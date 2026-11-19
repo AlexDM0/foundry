@@ -8,7 +8,7 @@ import type { EventLogEntry }                  from '../../src/lib/talos/EventLo
 import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { FIRST_WATCHER_INSTANCE }              from '../../src/lib/tracker-model/constants/JobStates.ts';
 import { jobFolderIn }                         from '../../src/services/overseer/OverseerFiles.ts';
-import { createWatcherBoardChildren }          from '../../src/services/overseer/WatcherBoardChildren.ts';
+import { createTalosChildren }                 from '../../src/services/overseer/TalosChildren.ts';
 import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace, type Workspace }    from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommand }                 from '../../src/shared/@types/ControlCommand.ts';
@@ -115,15 +115,14 @@ function entryLinesOf(adapter: AgentAdapter, instance: number, entries: readonly
   });
 }
 
-/** Read-only: every Watcher instance's event log in instance order, then the newest followed until the job leaves the board. */
+/** Read-only: every child instance's event log in instance order, then the newest followed until the job leaves the board. */
 async function attachJob(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['json'], SHOW_USAGE);
   commandArguments.rejectExtraPositionals(2, SHOW_USAGE);
   const workspace = requireWorkspace(context.currentDirectory);
   const jobId     = jobIdIn(commandArguments, SHOW_USAGE);
-  const children  = createWatcherBoardChildren({
-    platformPorts: context.platformPorts, trackerDirectory: workspace.trackerDirectory, launching: null, log: () => undefined
-  });
+  // A reader: with no connection to Talos it launches, writes and stops nothing.
+  const children  = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts: context.platformPorts, connection: () => null });
   const jobFolder = children.jobFolderOf(jobId);
   let { newestInstance } = jobRecordOf(workspace, jobId);
   if (commandArguments.flag('json')) {
@@ -147,7 +146,7 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
   for (;;) {
     const current = (requireProgressFile(workspace).jobs ?? []).find((job) => job.id === jobId);
     if (current === undefined) {
-      // The Watcher may have written its last entries after the previous print, before the job left the board.
+      // Talos may have written its last entries after the previous print, before the job left the board.
       printNewEntries(newestInstance);
       return;
     }

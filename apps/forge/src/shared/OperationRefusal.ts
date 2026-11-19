@@ -67,6 +67,10 @@ export type OperationRefusalDetail =
   | { kind: 'overseer-owns-the-lifecycle'; url: string; batonFilePath: string }
   | { kind: 'watcher-bundle-failed'; entryPath: string; reason: string }
   | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }
+  /** The Talos this Overseer started answers another protocol version, so no Talos starts again while it lives. */
+  | { kind: 'talos-protocol-differs'; requiredProtocolVersion: number; answeredProtocolVersion: number }
+  /** The Talos this Overseer started never served: its endpoint does not fit, it refused its start, or it stayed silent. */
+  | { kind: 'talos-unavailable'; reason: 'endpoint-does-not-fit' | 'start-refused' | 'not-serving'; startNumber: number }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
   | { kind: 'chart-range-bound-unreadable'; bound: 'from' | 'to'; written: string }
   | { kind: 'chart-range-backwards'; from: string; to: string }

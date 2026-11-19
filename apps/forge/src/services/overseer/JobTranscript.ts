@@ -9,8 +9,8 @@ import { createHash } from 'node:crypto';
 import type { AgentPicture, SentLine }                                  from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }                                       from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }                                           from '../../lib/talos/EventLog.ts';
+import { clientEntryOf }                                                from '../../lib/talos/TalosFrames.ts';
 import type { LogRecord }                                               from '../../lib/tracker-model/@types/LogRecord.ts';
-import { clientFrameOf }                                                from '../../lib/watcher/WatcherFrames.ts';
 import type { TranscriptClientAct, TranscriptEntry, TranscriptPicture } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                           from './AssistantBoot.ts';
 import { AssistantSession, type AssistantChat }                         from './AssistantSession.ts';
@@ -87,11 +87,12 @@ function entryOfEvent(event: AgentSessionEvent): EntryOfLine | null {
   }
 }
 
-/** `null` for a line that is no acting frame, and for a written line the adapter does not read back. */
+/** `null` for a line that is no client entry, and for a written line the adapter does not read back; a closed input keeps its act's name. */
 function clientLineOf(line: string, sentLineOf: TranscriptReading['sentLineOf']): ClientLine | null {
-  const frame = clientFrameOf(line);
-  if (frame === null || frame.kind === 'hello') return null;
-  return frame.kind === 'write' ? sentLineOf(frame.line) : { act: frame.kind };
+  const entry = clientEntryOf(line);
+  if (entry === null) return null;
+  if (entry.act === 'write-line') return sentLineOf(entry.line);
+  return { act: entry.act === 'close' ? 'close-input' : 'stop' };
 }
 
 /**

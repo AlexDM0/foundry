@@ -220,7 +220,7 @@ These belong to this story.
 | What launches next, and held | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf`, `candidateOf`, `ticketIsHeld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Counts toward parking | `src/lib/tracker-model/Playbook.ts` | `handoffCycleResumesOf`, `redHandoffStepsOf` | `src/lib/tracker-model/Playbook.redHandoff.spec.ts` |
 | Failed passes | `src/lib/tracker-model/utils/FailedPassUtil.ts` | `failedPassesOf` | `src/lib/tracker-model/utils/FailedPassUtil.spec.ts` |
-| A build job, Handoff included | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/overseer/JobLaunch.integration.spec.ts` |
+| A build job, Handoff included | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/overseer/JobLaunch.buildJobFrames.spec.ts` |
 | What a review leads to | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
 | The queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/overseer/BoardState.mergeQueue.spec.ts` |
 | Landing | `src/services/lifecycle/Landing.ts`, `src/services/overseer/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/overseer/Airlocks.spec.ts` |

@@ -1,6 +1,6 @@
 /**
  * A review job brings its branch up to the target's tip before its reviewer starts. What matters: a branch that holds the tip starts its
- * reviewer with no merge and no gate; one that lacks it gets the target merged in by a process Watcher with every hook off, and its
+ * reviewer with no merge and no gate; one that lacks it gets the target merged in by a line under Talos with every hook off, and its
  * reviewer starts only once the build phase's gates are green on the merged tree, run from a manifest of its own, at once when that phase
  * has none; a red gate and a conflict both send the work back to the builder, counted in its handoff cycle, and a conflict aborts the merge
  * and resets the worktree to the branch tip. A crossing ticket's review sends its catch-up to the entity that owns the cause (E66): a
@@ -10,31 +10,26 @@
  * gate goes back to the review's own entity, the home review's to `adapt` with the seal kept and a package review's to its package's
  * build; and a conflict no one stage may resolve, in a package's and the home's files or in home files for a package review, parks the
  * ticket for User. The folders are real; git answers from recorded answer sets, one for each state of the worktree, the
- * launcher is fake, and the spec ends the Watchers itself.
+ * launcher is fake, and the spec ends each line itself.
  */
-import {
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, realpathSync } from 'node:fs';
+import { join }                                  from 'node:path';
 
 import { afterEach, expect } from 'bun:test';
 
 
-import { EVENT_LOG_FORMAT_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { Board }                       from '../../lib/tracker-model/Board.ts';
-import { createLogger }                from '../../lib/tracker-model/Logger.ts';
-import { Playbook }                    from '../../lib/tracker-model/Playbook.ts';
-import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
-import { branchNamesOf }               from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
+import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import { Board }                                         from '../../lib/tracker-model/Board.ts';
+import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
+import { Playbook }                                      from '../../lib/tracker-model/Playbook.ts';
+import { branchNamesOf }                                 from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
+import { type FrameRecordingTalos, frameRecordingTalos } from '../../testing/FrameRecordingTalos.ts';
+import { nativePlatformPorts }                           from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                  from '../../testing/PlantedChild.ts';
 import {
   ancestryAsked,
   commitResolved,
@@ -49,15 +44,12 @@ import type { TrackerChange }                                    from '../tracke
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext }    from './JobLaunch.ts';
 import { jobFolderIn }                                           from './OverseerFiles.ts';
-import type { ProcessStarts }                                    from './ProcessStarts.ts';
 import { RedHandoff }                                            from './RedHandoff.ts';
-import { createWatcherBoardChildren }                            from './WatcherBoardChildren.ts';
 
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = {
   version: 3, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] }, review: { name: 'Review' },
 };
-const TRACKER_ID = 'example-tracker-id';
 const TARGET = 'master';
 const TARGET_TIP = '1'.repeat(40);
 const BRANCH_TIP = '3'.repeat(40);
@@ -79,7 +71,8 @@ interface CatchUpScene {
   repository:     string;
   worktree:       string;
   reviewJobId:    string;
-  spawnedFolders: string[];
+  spawnedFolders: () => readonly string[];
+  talos:          FrameRecordingTalos;
   pass:           () => Promise<void>;
   reviewJob:      () => Readonly<Job> | undefined;
   jobFolder:      () => string;
@@ -149,8 +142,7 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
   }, AT);
   board.startReviewBar('001', { round: 1, owner: review.job.id }, AT);
   board.moveJob(review.job.id, 'preparing', AT);
-  const spawnedFolders: string[] = [];
-  const processStarts = { spawnWatcher: (_ports: unknown, request: { jobFolder: string }) => spawnedFolders.push(request.jobFolder) } as unknown as ProcessStarts;
+  const talos = frameRecordingTalos(trackerDirectory, nativePlatformPorts());
   const gateSlots = { tryAcquire: () => false, release: () => undefined, recordSpawnedProcess: () => undefined } as unknown as GateRunSlots;
   const context = {
     platformPorts:        nativePlatformPorts(),
@@ -161,18 +153,11 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
     inheritedEnvironment: {},
     mainLine:             TARGET,
     branchNames:          branchNamesOf(null),
-    boardChildren:        createWatcherBoardChildren({
-      platformPorts: nativePlatformPorts(),
-      trackerDirectory,
-      launching:     {
-        trackerId: TRACKER_ID, monitorFolder, watcherBundlePath: join(monitorFolder, 'watcher.js'), codeVersion: 'example-version', watcherDirectory: repository, processStarts
-      },
-      log: () => undefined,
-    }),
-    codeVersion:       'example-version',
+    boardChildren:        talos.boardChildren,
+    codeVersion:          'example-version',
     gateSlots,
-    log:               () => undefined,
-    decisionWordingOf: () => ({
+    log:                  () => undefined,
+    decisionWordingOf:    () => ({
       questions: [{
         question: 'Example?', header: 'Example', multiSelect: false, options: []
       }],
@@ -183,18 +168,19 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
   const pass = async (): Promise<void> => {
     const observations = JobLaunch.observeBuildJobs(context, board.jobs(), board.pipeline());
     JobLaunch.applyBuildJobObservations(change, context, observations);
-    await JobLaunch.runBuildJobEffects(context, board, TRACKER_ID, observations);
+    await JobLaunch.runBuildJobEffects(context, board, observations);
   };
   return {
     board,
     context,
     repository,
     worktree,
-    reviewJobId: review.job.id,
-    spawnedFolders,
+    reviewJobId:    review.job.id,
+    spawnedFolders: talos.launchedFolders,
+    talos,
     pass,
-    reviewJob:   () => board.jobs().find((job) => job.id === review.job.id),
-    jobFolder:   () => jobFolderIn(trackerDirectory, review.job.id),
+    reviewJob:      () => board.jobs().find((job) => job.id === review.job.id),
+    jobFolder:      () => jobFolderIn(trackerDirectory, review.job.id),
   };
 }
 
@@ -234,21 +220,19 @@ function stoppedOnAConflict(scene: CatchUpScene, conflictedFile = 'shared.txt'):
   ];
 }
 
-/** The process Watcher of one folder, ended with the given exit code, as the Watcher records it. */
-function endWatcher(watcherFolder: string, exitCode: number): void {
-  mkdirSync(watcherFolder, { recursive: true });
-  writeFileSync(watcherFilesOf(watcherFolder, 1).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
-  })}\n`);
+/** The first instance of a line folder's child, ended with the given exit code, as Talos records it. */
+function endLine(lineFolder: string, exitCode: number): void {
+  PlantedChild.plantEndedChildAt(lineFolder, 1, { exitCode });
 }
 
-/** Ends the merge Watcher the pass launched with `exitCode`, as git's merge would have ended it, and hands back the command it was given. */
-function endMergeWatcher(scene: CatchUpScene, exitCode: number): string[] {
-  const watcherFolder = join(scene.jobFolder(), 'target-merge');
-  const launch = JSON.parse(readFileSync(watcherFilesOf(watcherFolder, 1).launchPath, 'utf8')) as { argv: string[]; workingDirectory: string };
-  expect(launch.workingDirectory).toBe(scene.worktree);
-  endWatcher(watcherFolder, exitCode);
-  return launch.argv;
+/** Ends the merge line the pass launched with `exitCode`, as git's merge would have ended it, and hands back the command it was given. */
+function endMergeLine(scene: CatchUpScene, exitCode: number): readonly string[] {
+  const lineFolder = join(scene.jobFolder(), 'target-merge');
+  const launch = scene.talos.launchOf(lineFolder, 1);
+  expect(launch?.workingDirectory).toBe(scene.worktree);
+  expect(launch?.timeBoundMilliseconds).toBeNull();
+  endLine(lineFolder, exitCode);
+  return launch?.argv ?? [];
 }
 
 function handoffCycleResumes(scene: CatchUpScene): number {
@@ -260,7 +244,7 @@ async function cleanlyMergedScene(pipeline: Pipeline = PIPELINE, packageRuns = 0
   const scene = catchUpScene(pipeline, packageRuns, reviewsThePackage);
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();
-  endMergeWatcher(scene, CLEAN_EXIT_CODE);
+  endMergeLine(scene, CLEAN_EXIT_CODE);
   recordedGit.answerFrom(cleanlyMerged(scene));
   await scene.pass();
   await scene.pass();
@@ -274,18 +258,18 @@ testWhenGitIsRecorded('a branch that already holds the target tip starts its rev
   await scene.pass();
 
   expect(scene.reviewJob()?.state).toBe('running');
-  expect(scene.spawnedFolders).toEqual([]);
+  expect(scene.spawnedFolders()).toEqual([]);
 });
 
-testWhenGitIsRecorded('a branch behind the target gets the tip merged in by a process Watcher with every hook off, before any reviewer', async () => {
+testWhenGitIsRecorded('a branch behind the target gets the tip merged in by a line under Talos with every hook off, before any reviewer', async () => {
   const scene = catchUpScene();
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
 
   await scene.pass();
 
   expect(scene.reviewJob()?.state).toBe('preparing');
-  expect(scene.spawnedFolders).toEqual([join(scene.jobFolder(), 'target-merge')]);
-  const argv = endMergeWatcher(scene, CLEAN_EXIT_CODE);
+  expect(scene.spawnedFolders()).toEqual([join(scene.jobFolder(), 'target-merge')]);
+  const argv = endMergeLine(scene, CLEAN_EXIT_CODE);
   expect(argv).toContain(`core.hooksPath=${join(argv[0] ?? '', 'hooks-off')}`);
   expect(argv.slice(-5)).toEqual(['merge', '--no-ff', '--no-edit', '--quiet', TARGET_TIP]);
 });
@@ -296,7 +280,7 @@ testWhenGitIsRecorded('after a clean merge the reviewer starts only once the gat
   expect(JobLaunch.observeBuildJobs(scene.context, scene.board.jobs(), PIPELINE)[0]?.targetCatchUp).toEqual({ verdict: 'gating', stepIndex: 0 });
   expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'target-gate-run.json'), 'utf8'))).toMatchObject({ phase: 'build' });
 
-  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 0);
+  endLine(join(scene.jobFolder(), 'target-gate-1'), 0);
   await scene.pass();
   expect(scene.reviewJob()?.state).toBe('running');
 });
@@ -304,7 +288,7 @@ testWhenGitIsRecorded('after a clean merge the reviewer starts only once the gat
 testWhenGitIsRecorded('a red gate on the merged tree sends the builder the red handoff, counted in its handoff cycle', async () => {
   const scene = await cleanlyMergedScene();
 
-  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  endLine(join(scene.jobFolder(), 'target-gate-1'), 1);
   await scene.pass();
 
   expect(scene.reviewJob()).toBeUndefined();
@@ -320,7 +304,7 @@ testWhenGitIsRecorded('a conflict aborts the merge, resets the worktree to the b
   const scene = catchUpScene();
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();
-  endMergeWatcher(scene, CONFLICT_EXIT_CODE);
+  endMergeLine(scene, CONFLICT_EXIT_CODE);
   recordedGit.answerFrom(stoppedOnAConflict(scene));
 
   await scene.pass();
@@ -349,7 +333,7 @@ const BUILD_AND_REVIEW_GATES_APART: Pipeline = {
 testWhenGitIsRecorded('the merged tree is gated with the build phase\'s gates, whose red one goes back to the builder', async () => {
   const scene = await cleanlyMergedScene(BUILD_AND_REVIEW_GATES_APART);
 
-  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  endLine(join(scene.jobFolder(), 'target-gate-1'), 1);
   await scene.pass();
 
   expect(scene.reviewJob()).toBeUndefined();
@@ -361,7 +345,7 @@ testWhenGitIsRecorded('with no build gates the reviewer starts once the merge is
   const scene = await cleanlyMergedScene(noBuildGates);
 
   expect(scene.reviewJob()?.state).toBe('running');
-  expect(scene.spawnedFolders).toEqual([join(scene.jobFolder(), 'target-merge')]);
+  expect(scene.spawnedFolders()).toEqual([join(scene.jobFolder(), 'target-merge')]);
 });
 
 /** A crossing ticket's home review, or its package's review, whose catch-up stopped on a conflict in `conflictedFile`, settled. */
@@ -369,7 +353,7 @@ async function crossingConflictScene(conflictedFile: string, packageRuns = 1, re
   const scene = catchUpScene(SHOP_AND_TOKENS, reviewsThePackage ? 0 : packageRuns, reviewsThePackage);
   recordedGit.answerFrom(branchBeforeTheMerge(scene, false));
   await scene.pass();
-  endMergeWatcher(scene, CONFLICT_EXIT_CODE);
+  endMergeLine(scene, CONFLICT_EXIT_CODE);
   recordedGit.answerFrom(stoppedOnAConflict(scene, conflictedFile));
   await scene.pass();
   await scene.pass();
@@ -406,7 +390,7 @@ testWhenGitIsRecorded('a crossing ticket\'s conflict in package files that would
 testWhenGitIsRecorded('a crossing ticket\'s home review whose catch-up gate runs red goes back to adapt, the seal kept (E66)', async () => {
   const scene = await cleanlyMergedScene(SHOP_AND_TOKENS, 1);
 
-  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  endLine(join(scene.jobFolder(), 'target-gate-1'), 1);
   await scene.pass();
 
   expect(scene.reviewJob()).toBeUndefined();
@@ -419,7 +403,7 @@ testWhenGitIsRecorded('a crossing ticket\'s home review whose catch-up gate runs
 testWhenGitIsRecorded('a crossing ticket\'s package review whose catch-up gate runs red goes back to the package\'s build, no return counted (E66)', async () => {
   const scene = await cleanlyMergedScene(SHOP_AND_TOKENS, 0, true);
 
-  endWatcher(join(scene.jobFolder(), 'target-gate-1'), 1);
+  endLine(join(scene.jobFolder(), 'target-gate-1'), 1);
   await scene.pass();
 
   expect(scene.reviewJob()).toBeUndefined();

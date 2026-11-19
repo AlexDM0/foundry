@@ -2,8 +2,9 @@
  * The Assistant's turns on a board, with its session's readings given as values. What matters: incidents go out only while it is idle, as
  * the next numbered chat; the n-th `result` closes chat n and its open incidents default after the hold's moves were applied; the open
  * turn's call budget defaults them too; past the context-token count its input closes; one that went down ends, never resumes, and what it
- * was delivered goes to the fresh one; a boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which
- * the turn a reader shows agrees with; and every move outside its incidents is refused at the Hatch.
+ * was delivered goes to the fresh one, but for one a network outage or a lease end interrupted, which waits for User's resume as any job; a
+ * boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which the turn a reader shows agrees with; and
+ * every move outside its incidents is refused at the Hatch.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -202,6 +203,18 @@ describe('down means fresh (A5)', () => {
     expect(records.filter((record) => record.kind === 'job-resumed')).toEqual([]);
     expect(board.jobs().map((job) => [job.kind, job.state])).toEqual([['assistant', 'launching']]);
     expect(board.incidents().map((open) => open.deliveredInTurn)).toEqual([null]);
+  });
+
+  test.each(['network-outage', 'lease-ended'] as const)('one interrupted %s is not down: it waits for User\'s resume, never replaced', (cause) => {
+    const { board, records } = assistantBoard();
+    board.interruptJob(ASSISTANT_ID, cause, FIXTURE_AT);
+
+    const down = AssistantSession.endDownAssistants(board, [readingOf(1)], [], FIXTURE_AT);
+    advance(board, []);
+
+    expect(down).toEqual({ bootFailed: false, endedJobs: [] });
+    expect(records.filter((record) => record.kind === 'job-ended' || record.kind === 'job-resumed')).toEqual([]);
+    expect(board.jobs().map((job) => [job.id, job.state, job.interruption])).toEqual([[ASSISTANT_ID, 'interrupted', cause]]);
   });
 
   test('one quiet mid-turn is down too; one that never answered ends failed, a failed boot', () => {

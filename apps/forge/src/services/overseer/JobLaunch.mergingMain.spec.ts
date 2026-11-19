@@ -1,37 +1,37 @@
 /**
  * With merge approval on, a green review, or a green build with no review step, merges the target into the ticket's worktree before the
  * ticket waits for User's Merge (`merging-main`). What matters: a worktree that holds the target's tip and whose green is current finishes
- * at once and queues; one that lacks it gets the tip merged in by a process Watcher with every hook off, and the merged tree is gated in the
+ * at once and queues; one that lacks it gets the tip merged in by a line under Talos with every hook off, and the merged tree is gated in the
  * job's own phase (review, or build with no review step) before it queues; a red gate and a conflict both go back to the job's own session,
  * the ticket's last worker, as a red handoff; a resolution larger than `airlock.reReview.thresholdLines`, or one git cannot measure, gets a
  * conflict re-reviewer before the gates, one at or below it and a pipeline with no `airlock.reReview` go straight on; a re-review that
  * does not hold fails the job. The crash rows: each round of a job keeps its own files, so a resumed session never reads an earlier round's
  * merge; a merge that ended while the Overseer was down is settled once; a replaced re-reviewer relaunches with the same attempt; and a stop
  * while a re-reviewer works stops it first. The folders are real; git answers from recorded answer sets, the launcher is fake, and the spec
- * ends the Watchers itself.
+ * ends each line itself.
  */
 import {
   existsSync,
   mkdirSync,
   readFileSync,
-  realpathSync,
-  writeFileSync
+  realpathSync
 } from 'node:fs';
 import { join } from 'node:path';
 
 import { afterEach, expect } from 'bun:test';
 
-import { EVENT_LOG_FORMAT_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { Board }                       from '../../lib/tracker-model/Board.ts';
-import { createLogger }                from '../../lib/tracker-model/Logger.ts';
-import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
-import { branchNamesOf }               from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
+import type { ChildLaunch }                              from '../../lib/talos/ChildLaunch.ts';
+import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import { Board }                                         from '../../lib/tracker-model/Board.ts';
+import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
+import { branchNamesOf }                                 from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                 from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
+import { type FrameRecordingTalos, frameRecordingTalos } from '../../testing/FrameRecordingTalos.ts';
+import { nativePlatformPorts }                           from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                  from '../../testing/PlantedChild.ts';
 import {
   ancestryAsked,
   commitResolved,
@@ -51,10 +51,8 @@ import {
   type BuildJobObservation,
   type JobLaunchContext
 } from './JobLaunch.ts';
-import { jobFolderIn }                from './OverseerFiles.ts';
-import type { ProcessStarts }         from './ProcessStarts.ts';
-import { RedHandoff }                 from './RedHandoff.ts';
-import { createWatcherBoardChildren } from './WatcherBoardChildren.ts';
+import { jobFolderIn } from './OverseerFiles.ts';
+import { RedHandoff }  from './RedHandoff.ts';
 
 const AT = '2026-11-12T10:00:00+01:00';
 const TARGET = 'master';
@@ -65,7 +63,6 @@ const RESOLUTION_TIP = '9'.repeat(40);
 const BRANCH_TREE = 'a'.repeat(40);
 const MERGED_TREE = 'b'.repeat(40);
 const RESOLVED_TREE = 'c'.repeat(40);
-const TRACKER_ID = 'example-tracker-id';
 const CLEAN_EXIT_CODE = 0;
 const RED_EXIT_CODE = 1;
 const CONFLICTED_FILE = 'shared.txt';
@@ -103,7 +100,8 @@ interface MergingMainScene {
   repository:     string;
   worktree:       string;
   jobId:          string;
-  spawnedFolders: string[];
+  spawnedFolders: () => readonly string[];
+  talos:          FrameRecordingTalos;
   resolution:     { lines: number | null };
   pass:           () => Promise<BuildJobObservation[]>;
   job:            () => Readonly<Job> | undefined;
@@ -142,8 +140,7 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     jobId = review.job.id;
   }
   board.moveJob(jobId, 'merging-main', AT);
-  const spawnedFolders: string[] = [];
-  const processStarts = { spawnWatcher: (_ports: unknown, request: { jobFolder: string }) => spawnedFolders.push(request.jobFolder) } as unknown as ProcessStarts;
+  const talos = frameRecordingTalos(trackerDirectory, nativePlatformPorts());
   const gateSlots = { tryAcquire: () => false, release: () => undefined, recordSpawnedProcess: () => undefined } as unknown as GateRunSlots;
   const resolution: { lines: number | null } = { lines: 0 };
   const context = {
@@ -155,24 +152,17 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     inheritedEnvironment: {},
     mainLine:             TARGET,
     branchNames:          branchNamesOf(null),
-    boardChildren:        createWatcherBoardChildren({
-      platformPorts: nativePlatformPorts(),
-      trackerDirectory,
-      launching:     {
-        trackerId: TRACKER_ID, monitorFolder, watcherBundlePath: join(monitorFolder, 'watcher.js'), codeVersion: 'example-version', watcherDirectory: repository, processStarts
-      },
-      log: () => undefined,
-    }),
-    codeVersion:       'example-version',
+    boardChildren:        talos.boardChildren,
+    codeVersion:          'example-version',
     gateSlots,
-    log:               () => undefined,
-    resolutionLinesOf: () => resolution.lines,
+    log:                  () => undefined,
+    resolutionLinesOf:    () => resolution.lines,
   } as unknown as JobLaunchContext;
   const change = { board, at: AT } as unknown as TrackerChange;
   const pass = async (): Promise<BuildJobObservation[]> => {
     const observations = JobLaunch.observeBuildJobs(context, board.jobs(), board.pipeline());
     JobLaunch.applyBuildJobObservations(change, context, observations);
-    await JobLaunch.runBuildJobEffects(context, board, TRACKER_ID, observations);
+    await JobLaunch.runBuildJobEffects(context, board, observations);
     return observations;
   };
   return {
@@ -181,12 +171,13 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     repository,
     worktree,
     jobId,
-    spawnedFolders,
+    spawnedFolders: talos.launchedFolders,
+    talos,
     resolution,
     pass,
-    job:        () => board.jobById(jobId),
-    jobFolder:  () => jobFolderIn(trackerDirectory, jobId),
-    reReviewer: () => board.jobs().find((candidate) => candidate.kind === 'merge-agent' && candidate.parentJobId === jobId),
+    job:            () => board.jobById(jobId),
+    jobFolder:      () => jobFolderIn(trackerDirectory, jobId),
+    reReviewer:     () => board.jobs().find((candidate) => candidate.kind === 'merge-agent' && candidate.parentJobId === jobId),
   };
 }
 
@@ -226,27 +217,21 @@ function stoppedOnAConflict(scene: MergingMainScene): RecordedGitStep[] {
   ];
 }
 
-function endWatcher(watcherFolder: string, exitCode: number): void {
-  mkdirSync(watcherFolder, { recursive: true });
-  writeFileSync(watcherFilesOf(watcherFolder, 1).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
-  })}\n`);
+/** The first instance of a line folder's child, ended with the given exit code, as Talos records it. */
+function endLine(lineFolder: string, exitCode: number): void {
+  PlantedChild.plantEndedChildAt(lineFolder, 1, { exitCode });
 }
 
-/** The job's own session at `instance`, ended as its Watcher records it. */
+/** The job's own session at `instance`, ended as Talos records it. */
 function endSession(jobFolder: string, instance: number): void {
-  writeFileSync(watcherFilesOf(jobFolder, instance).watcherRecordPath, `${JSON.stringify({
-    protocolVersion:       1,
-    eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
-    watcherInstance:       instance,
-    state:                 'ended',
-    watcher:               null,
-    end:                   { reason: 'exited', exitCode: 0, signal: null },
-  })}\n`);
+  PlantedChild.plantEndedChildAt(jobFolder, instance);
 }
 
-function launchedMergeOf(scene: MergingMainScene, watcherFolder: string): { argv: string[]; workingDirectory: string } {
-  return JSON.parse(readFileSync(watcherFilesOf(join(scene.jobFolder(), watcherFolder), 1).launchPath, 'utf8')) as { argv: string[]; workingDirectory: string };
+function launchedMergeOf(scene: MergingMainScene, lineFolder: string): ChildLaunch {
+  const launch = scene.talos.launchOf(join(scene.jobFolder(), lineFolder), 1);
+  if (launch === null) throw new Error(`no merge was launched in ${lineFolder}`);
+  expect(launch.timeBoundMilliseconds).toBeNull();
+  return launch;
 }
 
 function recordGreenOn(scene: MergingMainScene, tree: string, phase: 'build' | 'review'): void {
@@ -258,7 +243,7 @@ async function cleanlyMergedScene(kind: 'review' | 'build', pipeline: Pipeline):
   const scene = mergingMainScene(kind, pipeline);
   recordedGit.answerFrom(worktreeAt(scene, BRANCH_TIP, false, BRANCH_TREE));
   await scene.pass();
-  endWatcher(join(scene.jobFolder(), 'main-merge'), CLEAN_EXIT_CODE);
+  endLine(join(scene.jobFolder(), 'main-merge'), CLEAN_EXIT_CODE);
   recordedGit.answerFrom(cleanlyMerged(scene));
   await scene.pass();
   await scene.pass();
@@ -270,7 +255,7 @@ async function conflictedScene(kind: 'review' | 'build', pipeline: Pipeline): Pr
   const scene = mergingMainScene(kind, pipeline);
   recordedGit.answerFrom(worktreeAt(scene, BRANCH_TIP, false, BRANCH_TREE));
   await scene.pass();
-  endWatcher(join(scene.jobFolder(), 'main-merge'), RED_EXIT_CODE);
+  endLine(join(scene.jobFolder(), 'main-merge'), RED_EXIT_CODE);
   recordedGit.answerFrom(stoppedOnAConflict(scene));
   await scene.pass();
   await scene.pass();
@@ -297,17 +282,17 @@ testWhenGitIsRecorded('a worktree that holds the target tip, its green current, 
   expect(scene.job()).toBeUndefined();
   expect(newestEndingOf(scene.board)).toMatchObject({ jobId: scene.jobId, fields: { outcome: 'reviewed', commit: BRANCH_TIP } });
   expect(scene.board.ticketIsMergeQueued('001')).toBe(true);
-  expect(scene.spawnedFolders).toEqual([]);
+  expect(scene.spawnedFolders()).toEqual([]);
 });
 
-testWhenGitIsRecorded('a worktree behind the target gets the tip merged in by a process Watcher with every hook off, and nothing queues yet', async () => {
+testWhenGitIsRecorded('a worktree behind the target gets the tip merged in by a line under Talos with every hook off, and nothing queues yet', async () => {
   const scene = mergingMainScene('review', REVIEW_PIPELINE);
   recordedGit.answerFrom(worktreeAt(scene, BRANCH_TIP, false, BRANCH_TREE));
 
   await scene.pass();
 
   expect(scene.job()?.state).toBe('merging-main');
-  expect(scene.spawnedFolders).toEqual([join(scene.jobFolder(), 'main-merge')]);
+  expect(scene.spawnedFolders()).toEqual([join(scene.jobFolder(), 'main-merge')]);
   const launch = launchedMergeOf(scene, 'main-merge');
   expect(launch.workingDirectory).toBe(scene.worktree);
   expect(launch.argv).toContain(`core.hooksPath=${join(launch.argv[0] ?? '', 'hooks-off')}`);
@@ -320,7 +305,7 @@ testWhenGitIsRecorded('the merged tree runs the review phase\'s gates; green end
   expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'main-gate-run.json'), 'utf8'))).toMatchObject({ phase: 'review', gates: [{ name: 'lint' }] });
   expect(scene.job()?.state).toBe('merging-main');
 
-  endWatcher(join(scene.jobFolder(), 'main-gate-1'), CLEAN_EXIT_CODE);
+  endLine(join(scene.jobFolder(), 'main-gate-1'), CLEAN_EXIT_CODE);
   await scene.pass();
 
   expect(scene.job()).toBeUndefined();
@@ -332,7 +317,7 @@ testWhenGitIsRecorded('the merged tree runs the review phase\'s gates; green end
 testWhenGitIsRecorded('a red gate on the merged tree resumes the job\'s own session with the red handoff, and nothing queues', async () => {
   const scene = await cleanlyMergedScene('review', REVIEW_PIPELINE);
 
-  endWatcher(join(scene.jobFolder(), 'main-gate-1'), RED_EXIT_CODE);
+  endLine(join(scene.jobFolder(), 'main-gate-1'), RED_EXIT_CODE);
   await scene.pass();
 
   expect(scene.job()).toMatchObject({ state: 'interrupted', interruption: 'handoff-red', role: 'reviewer' });
@@ -435,7 +420,7 @@ testWhenGitIsRecorded('with no review step the builder\'s own session takes the 
 
   const merged = await cleanlyMergedScene('build', NO_REVIEW_PIPELINE);
   expect(JSON.parse(readFileSync(join(merged.jobFolder(), 'main-gate-run.json'), 'utf8'))).toMatchObject({ phase: 'build', gates: [{ name: 'tests' }] });
-  endWatcher(join(merged.jobFolder(), 'main-gate-1'), CLEAN_EXIT_CODE);
+  endLine(join(merged.jobFolder(), 'main-gate-1'), CLEAN_EXIT_CODE);
   await merged.pass();
   expect(newestEndingOf(merged.board)).toMatchObject({ fields: { outcome: 'built', commit: MERGED_TIP } });
   expect(merged.board.tickets()[0]?.frontmatter.status).toBe('in-review');
@@ -511,7 +496,7 @@ testWhenGitIsRecorded('crash row: a resumed session\'s round keeps its own files
 
   await scene.pass();
 
-  expect(scene.spawnedFolders.at(-1)).toBe(join(scene.jobFolder(), 'main-merge-2'));
+  expect(scene.spawnedFolders().at(-1)).toBe(join(scene.jobFolder(), 'main-merge-2'));
   expect(JSON.parse(readFileSync(join(scene.jobFolder(), 'main-merge-2.json'), 'utf8'))).toEqual({ startTip: RESOLUTION_TIP, mergedTip: TARGET_TIP });
 });
 
@@ -519,7 +504,7 @@ testWhenGitIsRecorded('crash row: a merge that ended while the Overseer was down
   const scene = mergingMainScene('review', REVIEW_PIPELINE);
   recordedGit.answerFrom(worktreeAt(scene, BRANCH_TIP, false, BRANCH_TREE));
   await scene.pass();
-  endWatcher(join(scene.jobFolder(), 'main-merge'), CLEAN_EXIT_CODE);
+  endLine(join(scene.jobFolder(), 'main-merge'), CLEAN_EXIT_CODE);
   recordedGit.answerFrom(cleanlyMerged(scene));
 
   await scene.pass();
@@ -528,7 +513,7 @@ testWhenGitIsRecorded('crash row: a merge that ended while the Overseer was down
   await scene.pass();
 
   expect(readFileSync(join(scene.jobFolder(), 'main-merge-settlement.json'), 'utf8')).toBe(settlement);
-  expect(scene.spawnedFolders.filter((folder) => folder.endsWith('main-merge'))).toHaveLength(1);
+  expect(scene.spawnedFolders().filter((folder) => folder.endsWith('main-merge'))).toHaveLength(1);
   expect(JSON.parse(settlement)).toEqual({ verdict: 'merged', mergeCommit: MERGED_TIP });
 });
 

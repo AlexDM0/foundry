@@ -1,9 +1,9 @@
 /**
  * The machine-wide cap on gate runs. What matters: with the cap at 2 a third gate run waits until one of the two ends; a holder asking
  * again keeps the slot it holds rather than taking a second; a slot whose holder is no longer live is taken over without a release; and
- * the slots are files, so two Overseers sharing the folder share the cap. A gate Watcher that never claimed is judged by the process
- * recorded with its slot, the acquirer's until the spawn is recorded, and one whose job folder is gone frees its slot: else a Watcher dying
- * before its claim would hold a slot for good.
+ * the slots are files, so two Overseers sharing the folder share the cap. A gate line with no child record is judged by the process
+ * recorded with its slot, the acquirer's until the launch is recorded, and one whose job folder is gone frees its slot: else a launch that
+ * never came up would hold a slot for good.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -19,17 +19,14 @@ import type { PlatformPorts }                             from '../../lib/platfo
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                         from '../../testing/TalosChildReadings.ts';
 import { waitUntil }                                      from '../../testing/WaitUntil.ts';
 import { GateRunSlots }                                   from './GateRunSlots.ts';
-import { createWatcherBoardChildren }                     from './WatcherBoardChildren.ts';
 
 
-/** The holder's liveness as the drive pass judges it, a gate Watcher's read through the Watchers' adapter of the board's children. */
+/** The holder's liveness as the drive pass judges it, a gate line's read through Talos's adapter of the board's children. */
 function holderIsLive(ports: PlatformPorts, holding: Parameters<typeof GateRunSlots.gateRunHolderIsLive>[2]): boolean {
-  const children = createWatcherBoardChildren({
-    platformPorts: ports, trackerDirectory: '/example/tracker', launching: null, log: () => undefined
-  });
-  return GateRunSlots.gateRunHolderIsLive(children, ports, holding);
+  return GateRunSlots.gateRunHolderIsLive(talosChildReadingsWith(ports, '/example/tracker'), ports, holding);
 }
 
 const ports = nativePlatformPorts();
@@ -117,7 +114,7 @@ describe('the gate run slots', () => {
   });
 });
 
-describe('a gate Watcher that has not claimed', () => {
+describe('a gate line with no child record', () => {
   function gateWatcherFolderIn(scratch: string, jobId: string): string {
     const jobFolder = join(scratch, 'jobs', jobId);
     mkdirSync(jobFolder, { recursive: true });

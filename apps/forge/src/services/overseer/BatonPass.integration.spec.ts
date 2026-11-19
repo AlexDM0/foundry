@@ -23,7 +23,7 @@ const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
 
 const SCHEDULE = { readyTries: 40, releaseTries: 40, intervalMilliseconds: 10 };
-const PREPARATION_STEPS: readonly BatonPassStep[] = ['build-bundles', 'read-board', 'read-jobs', 'read-watcher-files', 'install-version'];
+const PREPARATION_STEPS: readonly BatonPassStep[] = ['read-board', 'read-jobs', 'read-child-records', 'install-version'];
 const SUCCESSOR_CODE = 'code-successor';
 
 let overseerDirectory = '';

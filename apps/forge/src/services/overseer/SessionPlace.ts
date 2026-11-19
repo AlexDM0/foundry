@@ -7,17 +7,19 @@
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import {
+  basename,
+  dirname,
   isAbsolute,
   join,
   relative,
   sep
 } from 'node:path';
 
-import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
+import { childRecordOf }                                   from '../../lib/talos/ChildRecord.ts';
+import { childFilesOf }                                    from '../../lib/talos/TalosFiles.ts';
 import type { Job }                                        from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate }                               from '../../lib/tracker-model/@types/Pipeline.ts';
 import { FIRST_WATCHER_INSTANCE }                          from '../../lib/tracker-model/constants/JobStates.ts';
-import { watcherFilesOf }                                  from '../../lib/watcher/WatcherFiles.ts';
 import { WorktreesFolder }                                 from '../../shared/WorktreesFolder.ts';
 import { ProjectPathsUtil }                                from '../../shared/utils/ProjectPathsUtil.ts';
 import { type ProjectLocation, worktreeProjectLocationOf } from '../tracker/ProjectLocation.ts';
@@ -59,15 +61,17 @@ function ticketSessionPlaceOf(workspace: Workspace, location: ProjectLocation, j
   };
 }
 
-/** The folder the first instance of a session owner's job started in, as its launch file records it; `null` when no launch file says. */
+/** The folder the first instance of a session owner's job started in, as its child record keeps it; `null` when no readable record says. */
 function firstStartFolderOf(sessionOwnerJobFolder: string): string | null {
+  const { recordPath } = childFilesOf(dirname(sessionOwnerJobFolder), basename(sessionOwnerJobFolder), FIRST_WATCHER_INSTANCE);
+  let text: string;
   try {
-    const launch = JsonRecordUtil.recordOf(JSON.parse(readFileSync(watcherFilesOf(sessionOwnerJobFolder, FIRST_WATCHER_INSTANCE).launchPath, 'utf8')));
-    const startFolder = launch?.['workingDirectory'];
-    return typeof startFolder === 'string' ? startFolder : null;
+    text = readFileSync(recordPath, 'utf8');
   } catch {
     return null;
   }
+  const reading = childRecordOf(text);
+  return reading.verdict === 'read' ? reading.record.workingDirectory : null;
 }
 
 function folderLiesInCheckout(checkout: string, folder: string): boolean {

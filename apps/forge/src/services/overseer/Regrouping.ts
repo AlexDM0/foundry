@@ -1,27 +1,25 @@
 /**
- * What a starting Overseer does before its first pass, design sections 3.6 and 7.3: each live job's newest Watcher instance is attached with
- * `hello` from the stored cursor, a dead Watcher's surviving child group is killed (identity-checked) so no orphan outlives it, a Watcher never
- * claimed is named for its re-spawn under the same instance, and a worktree folder no job or branch owns is named for User.
+ * What a starting Overseer does before its first pass, design sections 3.6 and 7.3: a lost child of a job, its Talos gone, is settled (its
+ * surviving tree stopped, identity-checked, so no orphan outlives it), a job whose current instance was never launched is named for its
+ * launch under the same instance, and a worktree folder no job or branch owns is named for User.
  */
 import {
   existsSync,
   readdirSync,
   readFileSync,
   realpathSync
-}                           from 'node:fs';
-import { basename, join } from 'node:path';
+}                                 from 'node:fs';
+import {
+  basename,
+  join,
+  relative,
+  sep
+} from 'node:path';
 
-import { writeFileAtomically }                              from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
 import type { PlatformPorts }                               from '../../lib/platform-ports/PlatformPortsFor.ts';
-import { sameBoot }                                         from '../../lib/process-identity/ProcessIdentity.ts';
-import type { EventLogEntry }                               from '../../lib/talos/EventLog.ts';
 import type { InterruptionCause, Job }                      from '../../lib/tracker-model/@types/Job.ts';
-import type { HistoryFrame, WatcherFrame }                  from '../../lib/watcher/@types/WatcherFrame.ts';
-import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
-import { readWatcherLaunch, readWatcherSecret }             from '../../lib/watcher/WatcherLaunch.ts';
 import { HATCH_FOLDER, WorktreesFolder }                    from '../../shared/WorktreesFolder.ts';
-import { REGROUP_HELLO_TIMEOUT_MILLISECONDS }               from '../../shared/constants/OverseerLimits.ts';
 import { requireProgressFile }                              from '../tracker/TrackerReader.ts';
 import type { Workspace }                                   from '../tracker/Workspace.ts';
 import type { BoardChildren }                               from './BoardChildren.ts';
@@ -29,24 +27,14 @@ import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits } from './Constitution
 import { GATE_PROFILE_WORKTREES_FOLDER }                    from './GateProfiling.ts';
 import { GroupWorktrees }                                   from './GroupWorktrees.ts';
 import { JobLaunch }                                        from './JobLaunch.ts';
-import { LegacyWatcherReader }                              from './LegacyWatcherReader.ts';
 import { PIPELINE_AGENT_SNAPSHOT_FOLDER }                   from './PipelineAgentSessions.ts';
 import { PIPELINE_CHECK_WORKTREES_FOLDER }                  from './PipelineChecking.ts';
-
-export interface WatcherRegrouped {
-  jobId:           string;
-  instance:        number;
-  /** What the Watcher's `history` answered past the stored cursor; `null` when the Watcher never answered, its event log then read alone. */
-  replayedEntries: readonly EventLogEntry[] | null;
-}
+import { settleLostChild }                                  from './TalosStart.ts';
 
 export interface RegroupingReport {
-  attached:          WatcherRegrouped[];
-  /** Live Watchers on a protocol below the supported window: watch only, their events read from their files by each pass. */
-  legacyWatchers:    { jobId: string; instance: number; protocolVersion: number }[];
-  /** `cause` is `null` while the forced stop of the Watcher's child tree is refused. */
+  /** `cause` is `null` while the forced stop of the child's tree is refused. */
   lost:              { jobId: string; instance: number; cause: InterruptionCause | null }[];
-  /** Jobs whose current instance was never claimed: the first pass spawns that same instance, and the exclusive claim lets one run. */
+  /** Jobs whose current instance was never launched: the first pass launches that same instance, and Talos launches it once. */
   respawnJobIds:     string[];
   leftoverWorktrees: string[];
 }
@@ -61,32 +49,22 @@ const OVERSEER_OWNED_FOLDERS: ReadonlySet<string> = new Set([
 
 const WORKTREE_LINE_PREFIX = 'worktree ';
 const BRANCH_LINE_PREFIX   = 'branch ';
+const CHILD_FOLDER_SEPARATOR = '/';
 
-function lostCauseFileOf(jobFolder: string, instance: number): string {
-  return join(jobFolder, `watcher-${instance}.lost-cause`);
-}
-
-function storedLostCauseOf(jobFolder: string, instance: number): InterruptionCause | null {
-  try {
-    return readFileSync(lostCauseFileOf(jobFolder, instance), 'utf8').trim() as InterruptionCause;
-  } catch {
-    return null;
-  }
-}
-
-/** The forced stops of a lost Watcher's child tree that were refused, and the tree's process ids at the last one, its root first. */
+/** The forced stops of a lost child's tree that were refused, and the tree's process ids at the last one, its root first. */
 export interface ForcedStopRefusals {
   refusals:       number;
   treeProcessIds: number[];
 }
 
-function refusedForcedStopsFileOf(jobFolder: string, instance: number): string {
-  return join(jobFolder, `watcher-${instance}.refused-forced-stops`);
+/** Beside the child's record, where the settling of a lost child keeps it. */
+function refusedForcedStopsFileOf(childFolder: string, instance: number): string {
+  return join(childFolder, `child-${instance}.refused-forced-stops`);
 }
 
-function refusedForcedStopsOf(jobFolder: string, instance: number): ForcedStopRefusals {
+function refusedForcedStopsOf(childFolder: string, instance: number): ForcedStopRefusals {
   try {
-    const stored = JSON.parse(readFileSync(refusedForcedStopsFileOf(jobFolder, instance), 'utf8')) as Partial<ForcedStopRefusals>;
+    const stored = JSON.parse(readFileSync(refusedForcedStopsFileOf(childFolder, instance), 'utf8')) as Partial<ForcedStopRefusals>;
     return { refusals: typeof stored.refusals === 'number' ? stored.refusals : 0, treeProcessIds: Array.isArray(stored.treeProcessIds) ? stored.treeProcessIds : [] };
   } catch {
     return { refusals: 0, treeProcessIds: [] };
@@ -94,81 +72,19 @@ function refusedForcedStopsOf(jobFolder: string, instance: number): ForcedStopRe
 }
 
 /**
- * A lost Watcher's cause, settled once and stored beside its record, so an Overseer dying after the kill reads the same cause again. A foreign
- * boot is a reboot; a recorded child group still alive, its leader living or not, is killed with the groups below it, walked from what
- * still lives of it, never by its pid alone, and the Watcher is the one lost; otherwise the agent crashed with it. A refused forced stop
- * stores no cause and answers `null`: the tree may still run. It is counted, and tried again only when `retryRefusedStop` says so.
+ * A lost child's cause, settled once and stored beside its record as the sweep after a lost Talos stores it: a foreign boot is a reboot, a
+ * surviving tree is stopped and the cause is the lost commander (`watcher-lost` until the rename), otherwise the agent crashed with it. A
+ * refused forced stop stores no cause and answers `null`, counted and tried again only when `retryRefusedStop` says so.
  */
-function settleLostWatcher(
-  children: BoardChildren, { processSupervision }: PlatformPorts, jobFolder: string, instance: number, retryRefusedStop = true
+function settleLostChildIn(
+  boardFolder: string, ports: PlatformPorts, childFolder: string, instance: number, retryRefusedStop = true
 ): InterruptionCause | null {
-  const stored = storedLostCauseOf(jobFolder, instance);
-  if (stored !== null) return stored;
-  const refusedStops = refusedForcedStopsOf(jobFolder, instance);
-  if (refusedStops.refusals > 0 && !retryRefusedStop) return null;
-  const record      = children.recordOf(jobFolder, instance);
-  const currentBoot = processSupervision.identityOf(process.pid)?.bootIdentity ?? null;
-  const recordedBoot = record?.talos?.bootIdentity ?? record?.childProcess?.bootIdentity ?? null;
-  let cause: InterruptionCause = 'agent-crashed';
-  if (recordedBoot !== null && (currentBoot === null || !sameBoot(recordedBoot, currentBoot))) cause = 'reboot';
-  else if (record !== null && record.childProcess !== null) {
-    const treeMembers = processSupervision.treeMembersOf(record.childProcess) ?? [];
-    const { verdict } = processSupervision.stopTree(record.childProcess, 'force', treeMembers);
-    if (verdict === 'refused') {
-      const treeProcessIds = [...new Set([record.childProcess.processId, ...treeMembers.map((member) => member.processId)])];
-      writeFileAtomically(refusedForcedStopsFileOf(jobFolder, instance), `${JSON.stringify({ refusals: refusedStops.refusals + 1, treeProcessIds })}\n`);
-      return null;
-    }
-    if (verdict === 'signalled') cause = 'watcher-lost';
-  }
-  writeFileAtomically(lostCauseFileOf(jobFolder, instance), `${cause}\n`);
-  return cause;
-}
-
-function historyFrameOf(line: string): HistoryFrame | 'refused' | null {
-  try {
-    const frame = JSON.parse(line) as WatcherFrame;
-    if (frame.kind === 'refused') return 'refused';
-    return frame.kind === 'history' ? frame : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Says `hello` from the cursor and answers the `history` the Watcher replays; `null` when it refuses or never answers. */
-async function helloHistoryOf({ localEndpoint }: PlatformPorts, jobFolder: string, instance: number, sinceSequence: number): Promise<readonly EventLogEntry[] | null> {
-  const reading = readWatcherLaunch(watcherFilesOf(jobFolder, instance).launchPath, localEndpoint);
-  if (reading.verdict !== 'read') return null;
-  const { socketPath, secretFilePath } = reading.launch;
-  const watcherSecret = readWatcherSecret(secretFilePath);
-  if (watcherSecret === null) return null;
-  const protocolVersion = LegacyWatcherReader.helloProtocolVersionOf(LegacyWatcherReader.watcherRecordIn(jobFolder, instance));
-  return await new Promise((resolve) => {
-    const socket = localEndpoint.connectionTo(socketPath);
-    let buffered = '';
-    const settle = (entries: readonly EventLogEntry[] | null): void => {
-      clearTimeout(timer);
-      socket.destroy();
-      resolve(entries);
-    };
-    const timer = setTimeout(() => settle(null), REGROUP_HELLO_TIMEOUT_MILLISECONDS);
-    socket.once('error', () => settle(null));
-    socket.once('close', () => settle(null));
-    socket.on('data', (chunk) => {
-      buffered += chunk.toString('utf8');
-      const lines = buffered.split('\n');
-      buffered = lines.pop() ?? '';
-      for (const line of lines) {
-        const frame = historyFrameOf(line);
-        if (frame === 'refused') settle(null);
-        else if (frame !== null) settle(frame.entries);
-      }
-    });
-    socket.once('connect', () => {
-      socket.write(`${JSON.stringify({
-        kind: 'hello', protocolVersion, sinceSequence, watcherSecret
-      })}\n`);
-    });
+  return settleLostChild(ports, {
+    boardFolder,
+    childFolder:       relative(boardFolder, childFolder).split(sep).join(CHILD_FOLDER_SEPARATOR),
+    instance,
+    talosBootIdentity: null,
+    retryRefusedStop,
   });
 }
 
@@ -221,23 +137,16 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
   return (job.state === 'launching' && !JobLaunch.isWorktreeJob(job)) || job.state === 'running';
 }
 
-/** Reads and acts outside the lock; the first pass's one hold then applies everything it found. */
-async function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Workspace): Promise<RegroupingReport> {
+/** Reads and acts outside the lock; the first pass's one hold then applies everything it found. A live child is read by the passes alone. */
+function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Workspace): RegroupingReport {
   const jobs   = requireProgressFile(workspace).jobs ?? [];
-  const report: RegroupingReport = {
-    attached: [], legacyWatchers: [], lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs)
-  };
+  const report: RegroupingReport = { lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs) };
+  children.beginPass();
   for (const job of jobs.filter((candidate) => candidate.role !== null)) {
     const jobFolder = children.jobFolderOf(job.id);
     const liveness  = children.livenessOf(jobFolder, job.watcherInstance);
-    const record    = LegacyWatcherReader.watcherRecordIn(jobFolder, job.watcherInstance);
-    if (liveness.verdict === 'live' && record !== null && LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher') {
-      report.legacyWatchers.push({ jobId: job.id, instance: job.watcherInstance, protocolVersion: record.protocolVersion });
-    } else if (liveness.verdict === 'live') {
-      const sinceSequence = job.eventCursor.instance === job.watcherInstance ? job.eventCursor.sequence : 0;
-      report.attached.push({ jobId: job.id, instance: job.watcherInstance, replayedEntries: await helloHistoryOf(ports, jobFolder, job.watcherInstance, sinceSequence) });
-    } else if (liveness.verdict === 'lost') {
-      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostWatcher(children, ports, jobFolder, job.watcherInstance) });
+    if (liveness.verdict === 'lost') {
+      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostChildIn(workspace.trackerDirectory, ports, jobFolder, job.watcherInstance) });
     } else if (liveness.verdict === 'unlaunched' && awaitsItsSpawn(job)) {
       report.respawnJobIds.push(job.id);
     }
@@ -246,5 +155,5 @@ async function regroup(children: BoardChildren, ports: PlatformPorts, workspace:
 }
 
 export const Regrouping = Object.freeze({
-  regroup, settleLostWatcher, refusedForcedStopsOf, leftoverWorktreesOf
+  regroup, settleLostChildIn, refusedForcedStopsOf, leftoverWorktreesOf
 });

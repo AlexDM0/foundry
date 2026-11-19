@@ -17,7 +17,7 @@
       "callShape": "identity-of <caller>",
       "answer": {
         "processId": "<caller>",
-        "startStamp": "1795047268",
+        "startStamp": "1795053922",
         "bootIdentity": "C0CC056D-D849-4FE2-BE41-AAA79B712A3D"
       }
     },
@@ -28,13 +28,779 @@
       }
     },
     {
+      "callShape": "talos stage \"a line ended by a clean quit\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": {
+            "reason": "paused",
+            "exitCode": null,
+            "signal": "SIGTERM",
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "quit",
+          "endpoint": "<endpoint>",
+          "quitReason": "restart",
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": false
+      }
+    },
+    {
+      "callShape": "talos stage \"a line launched\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": null
+        },
+        "entries": [],
+        "childRuns": true,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"a line of a Talos that crashed\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": null
+        },
+        "entries": [],
+        "childRuns": true,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": false
+      }
+    },
+    {
+      "callShape": "talos stage \"a line past its time bound\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": {
+            "reason": "time-bound",
+            "exitCode": null,
+            "signal": "SIGTERM",
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"a line stopped by the Overseer\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": {
+            "reason": "signalled",
+            "exitCode": null,
+            "signal": "SIGTERM",
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true,
+        "childTreeAfterTheStop": []
+      }
+    },
+    {
+      "callShape": "talos stage \"a line that ends green\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": {
+            "reason": "exited",
+            "exitCode": "<exit code>",
+            "signal": null,
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "agent",
+            "line": "<child line>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"a line that ends red\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "line",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": "<time bound>",
+          "recognisedEndings": [],
+          "end": {
+            "reason": "exited",
+            "exitCode": "<exit code>",
+            "signal": null,
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "agent",
+            "line": "<child line>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"a Talos serving\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": null
+        },
+        "entries": [],
+        "childRuns": true,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent ended by a clean quit\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": {
+            "reason": "paused",
+            "exitCode": "<exit code>",
+            "signal": null,
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "client",
+            "line": "<client entry>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "quit",
+          "endpoint": "<endpoint>",
+          "quitReason": "restart",
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": false
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent ended by a lease end\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": {
+            "reason": "lease-ended",
+            "exitCode": "<exit code>",
+            "signal": null,
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "client",
+            "line": "<client entry>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "ended",
+            "lastRenewer": "<renewer>"
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent launched\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": null
+        },
+        "entries": [],
+        "childRuns": true,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent of a Talos that crashed\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": null
+        },
+        "entries": [],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": false
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent stopped by the Overseer\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": {
+            "reason": "signalled",
+            "exitCode": null,
+            "signal": "SIGTERM",
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "client",
+            "line": "<client entry>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent taking a line and replying\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": null
+        },
+        "entries": [
+          {
+            "origin": "client",
+            "line": "<client entry>"
+          },
+          {
+            "origin": "agent",
+            "line": "<child line>"
+          }
+        ],
+        "childRuns": true,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent that crashed\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": {
+            "reason": "signalled",
+            "exitCode": null,
+            "signal": "SIGKILL",
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "client",
+            "line": "<client entry>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent whose closing line Talos recognised\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "running",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [
+            {
+              "name": "network-outage",
+              "closingLineSequence": "<closing line sequence>",
+              "countedLines": "<counted lines>"
+            }
+          ],
+          "end": null
+        },
+        "entries": [
+          {
+            "origin": "agent",
+            "line": "<child line>"
+          },
+          {
+            "origin": "agent",
+            "line": "<child line>"
+          }
+        ],
+        "childRuns": true,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
+      "callShape": "talos stage \"an agent whose input closed\"",
+      "answer": {
+        "record": {
+          "formatVersion": 1,
+          "childId": "<child id>",
+          "kind": "agent",
+          "label": "<label>",
+          "workingDirectory": "<working directory>",
+          "talosStartNumber": "<start number>",
+          "talos": "<talos>",
+          "state": "ended",
+          "childProcess": "<child>",
+          "childProcessGroupId": "<child process id>",
+          "eventLogFormatVersion": 2,
+          "timeBoundMilliseconds": null,
+          "recognisedEndings": [],
+          "end": {
+            "reason": "exited",
+            "exitCode": "<exit code>",
+            "signal": null,
+            "detail": null,
+            "runMilliseconds": "<run milliseconds>"
+          }
+        },
+        "entries": [
+          {
+            "origin": "client",
+            "line": "<client entry>"
+          }
+        ],
+        "childRuns": false,
+        "talosRecord": {
+          "formatVersion": 1,
+          "startNumber": "<start number>",
+          "protocolVersion": 1,
+          "codeVersion": "<code version>",
+          "talos": "<talos>",
+          "state": "serving",
+          "endpoint": "<endpoint>",
+          "quitReason": null,
+          "lease": {
+            "standing": "unheld",
+            "lastRenewer": null
+          }
+        },
+        "talosRuns": true
+      }
+    },
+    {
       "callShape": "tree-members-of <identity>, a sleeping process born as the leader of its own group",
       "answer": [
         {
           "processId": "<process>",
           "parentProcessId": "<caller>",
           "processGroupId": "<process>",
-          "startStamp": "1795047278"
+          "startStamp": "1795053932"
         }
       ]
     },

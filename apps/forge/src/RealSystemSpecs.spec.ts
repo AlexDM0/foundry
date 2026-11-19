@@ -43,6 +43,7 @@ const NAMED_REAL_HELPER_EXPORTS = [
   'describeWhenGitMergeTreeStdinIsPresent',
   'installedVersionOf',
   'pinnedScratchWatcherBundle',
+  'startScratchBoardTalos',
   'PlantedWatcher',
   'processIsRunning',
   'realBunBuildAnswerOf',

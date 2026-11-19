@@ -20,7 +20,6 @@ import { watcherFilesOf }                                              from '../
 import { readWatcherLaunch, readWatcherSecret }                        from '../../lib/watcher/WatcherLaunch.ts';
 import { WATCHER_PROTOCOL_VERSION }                                    from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../../testing/ChildProcessCaseTimeout.ts';
-import { pinnedScratchWatcherBundle }                                  from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, fakeAssistantTurnLine, type FakeAgentStep } from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
 import { recordAnswer }                                                from '../../testing/RecordedAnswers.ts';
@@ -31,6 +30,7 @@ import {
   watcherStageCallShapeOf,
   WATCHER_STAGES
 } from '../../testing/RecordedWatcherStages.ts';
+import { pinnedScratchWatcherBundle }                     from '../../testing/ScratchWatcherBundle.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                      from '../../testing/WaitUntil.ts';
 import { type WatcherProtocolClient, connectToWatcher }   from '../../testing/WatcherProtocolClient.ts';

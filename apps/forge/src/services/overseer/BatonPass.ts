@@ -1,7 +1,7 @@
 /**
  * The checked Baton pass of design section 7.3, through one file, `<data>/overseer/baton-pass-<generation>.json`, which the two Overseers write
  * in turn: the old Overseer `requested`, the successor `ready` once it proved the new code, the old Overseer `released` once it let go, and the
- * successor `serving` or, at any step, `failed`. Nothing lets go before the new code has started, and no Watcher is ever sent anything.
+ * successor `serving` or, at any step, `failed`. Nothing lets go before the new code has started, and Talos is never sent anything.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -14,10 +14,9 @@ import type { ProcessIdentity, ProcessTreeStopOutcome } from '../../lib/process-
 export type BatonPassStep =
   | 'spawn'
   | 'report-ready'
-  | 'build-bundles'
   | 'read-board'
   | 'read-jobs'
-  | 'read-watcher-files'
+  | 'read-child-records'
   | 'install-version'
   | 'await-release'
   | 'take-baton'

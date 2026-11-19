@@ -18,11 +18,10 @@ import {
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
 import type { BoardChildren }                             from './BoardChildren.ts';
 import { JobResumption, RESUME_FAILED_CAUSE }             from './JobResumption.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
@@ -112,7 +111,7 @@ function writeStaleGreenFacts(jobId: string): void {
 
 function writeSessionStart(jobId: string): void {
   const jobFolder = jobFolderIn(trackerDirectory, jobId);
-  const { eventLogPath } = watcherFilesOf(jobFolder, 1);
+  const { eventLogPath } = childFilesIn(jobFolder, 1);
   mkdirSync(join(eventLogPath, '..'), { recursive: true });
   const writer = createEventLogWriter(eventLogPath, () => AT);
   writer.append('agent', fakeStartedLine('fake-session'));
@@ -121,7 +120,7 @@ function writeSessionStart(jobId: string): void {
 
 /** The tracker's children as the Overseer reads them, by the job folders of the tracker the case made. */
 function childrenOfTheTracker(trackerDirectory: string): BoardChildren {
-  return watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory);
+  return talosChildReadingsWith(nativePlatformPorts(), trackerDirectory);
 }
 
 describe('a stale green that turned red', () => {

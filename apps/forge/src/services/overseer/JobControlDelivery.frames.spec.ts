@@ -1,8 +1,8 @@
 /**
- * User's job controls as frames to a planted Watcher. What matters: a Watcher refusing the first connection is sent the frame on a later
- * pass, its marker written only then; a session's stop has a marker of its own, so a `job stop` recorded after its input was closed still
- * reaches the session; a stop asked before any close sends close-input then stop, each once, a restarted Overseer included; and a message's
- * pictures are read from the board's store and written into its chat line.
+ * User's job controls as frames to the board's Talos, a recording one answering for it. What matters: a Talos that answers no frame on one
+ * pass is sent it on a later pass, its marker written only once Talos took it; a session's stop has a marker of its own, so a `job stop`
+ * recorded after its input was closed still reaches the session; a stop asked before any close sends close then stop, each once, a
+ * restarted Overseer included; and a message's pictures are read from the board's store and written into its chat line.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -17,13 +17,13 @@ import {
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                from '../../shared/constants/OverseerLimits.ts';
+import { clientEntryLinesOf }                             from '../../testing/ClientEntryLines.ts';
+import { type FrameRecordingTalos, frameRecordingTalos }  from '../../testing/FrameRecordingTalos.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
-import { PlantedWatcher }                                 from './testing/PlantedWatcher.ts';
 
 function productOwnerJob(overrides: Partial<Job> = {}): Job {
   return {
@@ -43,26 +43,30 @@ function productOwnerJob(overrides: Partial<Job> = {}): Job {
   };
 }
 
-const CLOSE_INPUT = JSON.stringify({ kind: 'close-input' });
-const STOP = JSON.stringify({ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS });
+const CLOSE_INPUT = JSON.stringify({ act: 'close' });
+const STOP = JSON.stringify({ act: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS });
 
 describe('a session job\'s control frames', () => {
   let trackerDirectory = '';
-  let monitorFolder    = '';
+  let talos: FrameRecordingTalos;
 
   beforeEach(() => {
     trackerDirectory = createScratchDirectory('job-controls');
-    monitorFolder    = createScratchDirectory('h');
+    talos            = frameRecordingTalos(trackerDirectory, nativePlatformPorts());
   });
 
   afterEach(() => {
     removeScratchDirectory(trackerDirectory);
-    removeScratchDirectory(monitorFolder);
   });
+
+  /** The job's session, live under the board's Talos. */
+  function plantLiveSession(job: Job): void {
+    talos.plantLiveChild(jobFolderIn(trackerDirectory, job.id), 1);
+  }
 
   async function deliverPass(job: Job, logRecords: readonly LogRecord[] = []): Promise<void> {
     await JobControlDelivery.deliverJobControls({
-      boardChildren:   watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+      boardChildren:   talos.boardChildren,
       trackerDirectory,
       board:           { jobs: () => [job], logRecordsSoFar: () => [...logRecords] },
       adapter:         { chatLineOf: (message, pictures = []) => JSON.stringify({ message, pictures }) },
@@ -74,30 +78,30 @@ describe('a session job\'s control frames', () => {
     return existsSync(join(jobFolderIn(trackerDirectory, job.id), 'control-frames', marker));
   }
 
-  async function actingFramesWhile(socketPath: string, during: () => Promise<void>): Promise<readonly string[]> {
-    return (await PlantedWatcher.framesReceivedWhile(socketPath, during)).filter((line) => !line.includes('"hello"'));
+  async function actingFramesWhile(during: () => Promise<void>): Promise<readonly string[]> {
+    const framesBefore = talos.frames().length;
+    await during();
+    return clientEntryLinesOf(talos.frames().slice(framesBefore));
   }
 
-  test('a closed intake\'s close-input reaches a Watcher that refused the first connection on the next pass, marked only then', async () => {
+  test('a closed intake\'s close reaches a Talos that answered nothing on the first pass on the next pass, marked only then', async () => {
     const job = productOwnerJob();
-    const socketPath = PlantedWatcher.plantLiveWatcher({
-      trackerDirectory, monitorFolder, jobId: job.id, instance: 1
-    });
+    plantLiveSession(job);
+    talos.answers(false);
     await deliverPass(job);
+    talos.answers(true);
     const markedWhileRefusing = markerExists(job, 'input-closed-1');
-    const frames = await actingFramesWhile(socketPath, async () => {
+    const frames = await actingFramesWhile(async () => {
       await deliverPass(job);
       await deliverPass(job);
     });
     expect({ markedWhileRefusing, frames, marked: markerExists(job, 'input-closed-1') }).toEqual({ markedWhileRefusing: false, frames: [CLOSE_INPUT], marked: true });
   });
 
-  test('a job stop recorded after a delivered close-input sends the stop frame on the next pass', async () => {
+  test('a job stop recorded after a delivered close sends the stop frame on the next pass', async () => {
     const closedIntake = productOwnerJob();
-    const socketPath = PlantedWatcher.plantLiveWatcher({
-      trackerDirectory, monitorFolder, jobId: closedIntake.id, instance: 1
-    });
-    const frames = await actingFramesWhile(socketPath, async () => {
+    plantLiveSession(closedIntake);
+    const frames = await actingFramesWhile(async () => {
       await deliverPass(closedIntake);
       await deliverPass(productOwnerJob({ stopRequest: 'stop' }));
     });
@@ -112,25 +116,21 @@ describe('a session job\'s control frames', () => {
     const messaged: LogRecord = {
       at: '2026-11-10T09:30:00+01:00', kind: 'job-messaged', jobId: job.id, fields: { text: 'Like this.', pictures: [{ pictureId: storing.pictureId, name: 'header.png' }] }
     };
-    const socketPath = PlantedWatcher.plantLiveWatcher({
-      trackerDirectory, monitorFolder, jobId: job.id, instance: 1
-    });
-    const frames = await actingFramesWhile(socketPath, async () => {
+    plantLiveSession(job);
+    const frames = await actingFramesWhile(async () => {
       await deliverPass(job, [messaged]);
     });
     const line = JSON.stringify({ message: 'Like this.', pictures: [{ mediaType: 'image/png', base64Data: Buffer.from(pngBytes).toString('base64') }] });
-    expect(frames).toEqual([JSON.stringify({ kind: 'write', line })]);
+    expect(frames).toEqual([JSON.stringify({ act: 'write-line', line })]);
   });
 
-  test('a stop asked before any close sends close-input then stop, each once across an Overseer restart', async () => {
+  test('a stop asked before any close sends close then stop, each once across an Overseer restart', async () => {
     const job = productOwnerJob({ stopRequest: 'stop' });
-    const socketPath = PlantedWatcher.plantLiveWatcher({
-      trackerDirectory, monitorFolder, jobId: job.id, instance: 1
-    });
-    const beforeRestart = await actingFramesWhile(socketPath, async () => {
+    plantLiveSession(job);
+    const beforeRestart = await actingFramesWhile(async () => {
       await deliverPass(job);
     });
-    const afterRestart = await actingFramesWhile(socketPath, async () => {
+    const afterRestart = await actingFramesWhile(async () => {
       await deliverPass(productOwnerJob({ stopRequest: 'stop' }));
     });
     expect({ beforeRestart, afterRestart }).toEqual({ beforeRestart: [CLOSE_INPUT, STOP], afterRestart: [] });

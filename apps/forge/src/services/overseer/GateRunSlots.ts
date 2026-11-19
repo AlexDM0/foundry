@@ -1,6 +1,6 @@
 /**
  * The machine-wide cap on concurrent gate runs: one file per slot in the monitor folder, created exclusively and naming its holder and the
- * process answering for it. A slot whose holder is no longer live is taken over, so a crashed Overseer, an ended gate Watcher or one that
+ * process answering for it. A slot whose holder is no longer live is taken over, so a crashed Overseer, an ended gate line or one that
  * died before it claimed frees its slot without a release.
  */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
@@ -15,9 +15,7 @@ import { type ProcessIdentity, storedIdentityOf }                    from '../..
 import type { BoardChildren }                                        from './BoardChildren.ts';
 import { heldSlotCreateMeansTakenInThisProcess }                     from './HeldSlotCreateFor.ts';
 
-const GATE_WATCHER_INSTANCE = 1;
-
-/** A slot's holder and the process answering for it while its gate Watcher has not claimed: the acquirer until the spawn is recorded. */
+/** A slot's holder and the process answering for it while its gate's line has no child record: the acquirer until the launch is recorded. */
 export interface GateRunHolding {
   holder:  string;
   process: ProcessIdentity | null;
@@ -45,7 +43,7 @@ export interface GateRunSlots {
   tryAcquireAfterRealGates: (holder: string) => boolean;
   /** A drive pass's round of real gate starts begins: a gate refused in an earlier round and not tried again waits no longer. */
   startRound:               () => void;
-  /** The spawned gate Watcher answers for the slot from here on; `null` for a spawn already gone. */
+  /** The Talos that runs the gate line answers for the slot from here on; `null` for one already gone. */
   recordSpawnedProcess:     (holder: string, spawnedProcess: ProcessIdentity | null) => void;
   release:                  (holder: string) => void;
   /** Waits until `holder` holds a slot, and answers its release. */
@@ -67,7 +65,7 @@ function slotTextOf(holding: GateRunHolding): string {
   return holding.process === null ? holding.holder : `${holding.holder}${HOLDING_SEPARATOR}${JSON.stringify(holding.process)}`;
 }
 
-/** An unreadable process line reads as no process, so the holder is judged by its Watcher alone. */
+/** An unreadable process line reads as no process, so the holder is judged by its child alone. */
 function holdingOf(slotText: string): GateRunHolding {
   const separatorIndex = slotText.indexOf(HOLDING_SEPARATOR);
   if (separatorIndex < 0) return { holder: slotText, process: null };
@@ -100,9 +98,9 @@ function processIsStillRunning({ processSupervision }: PlatformPorts, recorded: 
 }
 
 /**
- * A gate Watcher's holder is its Watcher folder: live while its Watcher is, and before it claimed, while the recorded process still runs. A holder
- * whose job folder is gone is never live. An in-process holder is live while its Overseer is: the recorded process when its identity was
- * readable, so a reused process id frees the slot, and otherwise its process id alone.
+ * A gate line's holder is its child folder: live while the folder's newest child is, and before any child record exists, while the recorded
+ * acquirer still runs. A holder whose job folder is gone is never live. An in-process holder is live while its Overseer is: the recorded
+ * process when its identity was readable, so a reused process id frees the slot, and otherwise its process id alone.
  */
 function gateRunHolderIsLive(children: BoardChildren, ports: PlatformPorts, holding: GateRunHolding): boolean {
   const { holder } = holding;
@@ -112,9 +110,9 @@ function gateRunHolderIsLive(children: BoardChildren, ports: PlatformPorts, hold
     return holding.process === null || processIsStillRunning(ports, holding.process);
   }
   if (!existsSync(dirname(holder))) return false;
-  const { verdict } = children.livenessOf(holder, GATE_WATCHER_INSTANCE);
-  if (verdict === 'live') return true;
-  return verdict === 'unlaunched' && processIsStillRunning(ports, holding.process);
+  const newestInstance = children.newestInstanceIn(holder);
+  if (newestInstance === null) return processIsStillRunning(ports, holding.process);
+  return children.livenessOf(holder, newestInstance).verdict === 'live';
 }
 
 function createGateRunSlots(options: GateRunSlotsOptions): GateRunSlots {

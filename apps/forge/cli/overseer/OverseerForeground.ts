@@ -19,8 +19,8 @@ import { LocalTimeUtil }                                  from '../../src/lib/lo
 import type { PlatformPorts }                             from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
+import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
 import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { WATCHER_PROTOCOL_VERSION }                       from '../../src/lib/watcher/constants/WatcherProtocol.ts';
 import { finishHalfAppliedSetup }                         from '../../src/services/control/PipelineSetupControls.ts';
 import { mainLineOf }                                     from '../../src/services/lifecycle/MergeTargets.ts';
 import { AgentSlots }                                     from '../../src/services/overseer/AgentSlots.ts';
@@ -34,12 +34,13 @@ import {
   type RebindOutcome,
   BatonPass
 } from '../../src/services/overseer/BatonPass.ts';
+import type { BoardChildren }                                       from '../../src/services/overseer/BoardChildren.ts';
 import { CodeVersion }                                              from '../../src/services/overseer/CodeVersion.ts';
 import { DataFolderWatch }                                          from '../../src/services/overseer/DataFolderWatch.ts';
 import { createDrivePass, type DrivePass }                          from '../../src/services/overseer/DrivePass.ts';
 import { EventBroker }                                              from '../../src/services/overseer/EventBroker.ts';
 import { createInstallChangeWatch, versionsFromTheBinary }          from '../../src/services/overseer/InstallChangeWatch.ts';
-import { LegacyWatcherReader }                                      from '../../src/services/overseer/LegacyWatcherReader.ts';
+import { type LeaseRenewal, startLeaseRenewal }                     from '../../src/services/overseer/LeaseRenewal.ts';
 import { MachineAgentLimit }                                        from '../../src/services/overseer/MachineAgentLimit.ts';
 import { MainLineReads }                                            from '../../src/services/overseer/MainLineReads.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts }       from '../../src/services/overseer/MonitorSnapshotAssembly.ts';
@@ -47,14 +48,23 @@ import { MonitorStream }                                            from '../../
 import { overseerFilesIn, overseerTokenPathOf, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                  from '../../src/services/overseer/OverseerPort.ts';
 import { OverseerServer, type OverseerServer as StartedServer }     from '../../src/services/overseer/OverseerServer.ts';
-import { type WatcherBoardChildren, createWatcherBoardChildren }    from '../../src/services/overseer/WatcherBoardChildren.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }                        from '../../src/services/overseer/WatcherBundle.ts';
-import { registerWithTheMonitor, type MonitorRegistrationRequest }  from '../../src/services/tracker/MonitorRegistration.ts';
-import { PictureStore }                                             from '../../src/services/tracker/PictureStore.ts';
-import { projectLocationOf }                                        from '../../src/services/tracker/ProjectLocation.ts';
-import { requireProgressFile }                                      from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }                                           from '../../src/services/tracker/Workspace.ts';
-import { branchNamesOf }                                            from '../../src/shared/BranchNames.ts';
+import { createTalosChildren }                                      from '../../src/services/overseer/TalosChildren.ts';
+import { type TalosConnection, connectToTalos }                     from '../../src/services/overseer/TalosConnection.ts';
+import {
+  type TalosAvailability,
+  type TalosStartContext,
+  createTalosStartHold,
+  ensureTalos,
+  spawnTalos,
+  TALOS_START_BOUNDS,
+  TALOS_START_WAITS
+} from '../../src/services/overseer/TalosStart.ts';
+import { registerWithTheMonitor, type MonitorRegistrationRequest } from '../../src/services/tracker/MonitorRegistration.ts';
+import { PictureStore }                                            from '../../src/services/tracker/PictureStore.ts';
+import { projectLocationOf }                                       from '../../src/services/tracker/ProjectLocation.ts';
+import { requireProgressFile }                                     from '../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }                                          from '../../src/services/tracker/Workspace.ts';
+import { branchNamesOf }                                           from '../../src/shared/BranchNames.ts';
 import {
   apiBillingKeyIsSet,
   environmentCopy,
@@ -107,7 +117,7 @@ interface Serving {
   lifetime:      ReturnType<typeof overseerLifetime>;
   /** Lives and ends with the serving period: a Baton pass or a stop ends a running brain. */
   flintBrain:    OverseerFlintBrain;
-  boardChildren: WatcherBoardChildren;
+  boardChildren: BoardChildren;
 }
 
 const TOKEN_BYTES            = 32;
@@ -264,42 +274,33 @@ function manifestMatchesIn(repositoryRoot: string): boolean {
   }
 }
 
-/** What the successor proves before it reports `ready`, holding no Baton and writing nothing but its bundles. */
-function preparationSteps(request: ForegroundRunRequest, pinWatcherBundle: () => Promise<string>): readonly BatonPassStepRun[] {
+/** What the successor proves before it reports `ready`, holding no Baton and writing nothing. */
+function preparationSteps(request: ForegroundRunRequest, boardChildren: BoardChildren): readonly BatonPassStepRun[] {
   const { workspace } = request;
   const jobsOf = () => requireProgressFile(workspace).jobs ?? [];
   const steps: readonly BatonPassStepRun[] = [
-    {
-      step: 'build-bundles',
-      run:  async () => { await pinWatcherBundle(); },
-    },
     { step: 'read-board', run: () => { readingBoardOf(requireProgressFile(workspace), [], []); } },
     {
       step: 'read-jobs',
       run:  () => {
         for (const job of jobsOf()) {
           if (!Number.isSafeInteger(job.watcherInstance) || !Number.isSafeInteger(job.eventCursor.sequence)) {
-            throw new Error(`job ${job.id} has no readable Watcher instance or cursor`);
+            throw new Error(`job ${job.id} has no readable child instance or cursor`);
           }
         }
       },
     },
     {
-      step: 'read-watcher-files',
+      step: 'read-child-records',
       run:  () => {
-        const children = createWatcherBoardChildren({
-          platformPorts: request.context.platformPorts, trackerDirectory: workspace.trackerDirectory, launching: null, log: () => undefined
-        });
         for (const job of jobsOf()) {
-          const jobFolder = children.jobFolderOf(job.id);
-          if (children.livenessOf(jobFolder, job.watcherInstance).verdict === 'unlaunched') continue;
-          const record = LegacyWatcherReader.watcherRecordIn(jobFolder, job.watcherInstance);
-          if (record === null) throw new Error(`watcher ${job.watcherInstance} of job ${job.id} has no readable Watcher file`);
-          if (!LegacyWatcherReader.readableEventLogFormats().includes(record.eventLogFormatVersion)) {
-            throw new Error(`watcher ${job.watcherInstance} of job ${job.id} writes event-log format ${record.eventLogFormatVersion}, which this code does not read`);
+          const jobFolder = boardChildren.jobFolderOf(job.id);
+          if (boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict === 'unlaunched') continue;
+          if (boardChildren.recordOf(jobFolder, job.watcherInstance) === null) {
+            throw new Error(`child ${job.watcherInstance} of job ${job.id} has no readable child record`);
           }
-          if (children.eventsAfter(jobFolder, job.watcherInstance, 0) === 'malformed') {
-            throw new Error(`the event log of Watcher ${job.watcherInstance} of job ${job.id} is malformed`);
+          if (boardChildren.eventsAfter(jobFolder, job.watcherInstance, 0) === 'malformed') {
+            throw new Error(`the event log of child ${job.watcherInstance} of job ${job.id} is malformed`);
           }
         }
       },
@@ -307,6 +308,15 @@ function preparationSteps(request: ForegroundRunRequest, pinWatcherBundle: () =>
     { step: 'install-version', run: () => { requireCurrentInstall(workspace.rootDirectory); } },
   ];
   return steps;
+}
+
+/** Why a start whose Talos cannot serve is refused: one of another protocol is never started again, and one that never served stops the start. */
+export function talosStartRefusalOf(availability: Extract<TalosAvailability, { verdict: 'held' | 'unavailable' }>): OperationRefusal {
+  if (availability.verdict === 'held') {
+    const { answeredProtocolVersion } = availability;
+    return new OperationRefusal('unrepaired', { kind: 'talos-protocol-differs', requiredProtocolVersion: TALOS_PROTOCOL_VERSION, answeredProtocolVersion });
+  }
+  return new OperationRefusal('unrepaired', { kind: 'talos-unavailable', reason: availability.reason, startNumber: availability.startNumber });
 }
 
 /** The successor on the code on disk, spawned so it outlives this Overseer; `null` when it did not start. */
@@ -380,10 +390,56 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     onLearned:       () => current?.drivePass.wake(true),
   });
 
-  let watcherBundlePath: string | null = null;
-  const pinWatcherBundle = async (): Promise<string> => {
-    watcherBundlePath ??= await WatcherBundle.pinWatcherBundle({ overseerDirectory: files.overseerDirectory, codeVersion, entryPath: WATCHER_ENTRY_PATH });
-    return watcherBundlePath;
+  const monitorFolder = platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
+  // One per process: a Talos this Overseer started that answered another protocol version is never started again.
+  const talosStartHold = createTalosStartHold();
+  let talosConnection: TalosConnection | null = null;
+  let talosIsLost = false;
+  let leaseRenewal: LeaseRenewal | null = null;
+  const boardChildren = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts, connection: () => talosConnection });
+  const talosStartContext = (): TalosStartContext => ({
+    boardFolder:    workspace.trackerDirectory,
+    monitorFolder,
+    trackerId:      progress.trackerId,
+    codeVersion,
+    repositoryRoot: workspace.rootDirectory,
+    ports:          platformPorts,
+    bounds:         TALOS_START_BOUNDS,
+    waits:          TALOS_START_WAITS,
+    connect:        connectToTalos,
+    startTalos:     spawnTalos,
+    hold:           talosStartHold,
+    log,
+  });
+
+  /** A connection that closes, by Talos's quit or its loss, has the next pass ensure a Talos before it launches anything. */
+  const followTalos = (availability: Extract<TalosAvailability, { connection: TalosConnection }>): void => {
+    const { connection } = availability;
+    const previousConnection = talosConnection;
+    talosConnection = connection;
+    talosIsLost = false;
+    previousConnection?.close();
+    connection.onClose(() => {
+      if (talosConnection !== connection) return;
+      talosConnection = null;
+      talosIsLost = true;
+      log(`The connection to Talos ${availability.startNumber} closed; the next pass ensures a Talos.`);
+      current?.drivePass.wake(true);
+    });
+    if (availability.verdict === 'started') {
+      log(`Started Talos ${availability.startNumber} (the one before ${availability.previousTalos}, ${availability.sweptOrphans} orphans swept).`);
+    } else log(`Attached to Talos ${availability.startNumber}.`);
+  };
+
+  /** The one place a pass finds its Talos lost while serving: stage 3 turns it into a crash of Talos. */
+  const ensureTalosIfLost = async (): Promise<void> => {
+    if (!talosIsLost) return;
+    const availability = await ensureTalos(talosStartContext());
+    if (availability.verdict === 'attached' || availability.verdict === 'started') {
+      followTalos(availability);
+      return;
+    }
+    log(`No Talos serves the board (${availability.reason}); the next pass tries again.`);
   };
 
   let token: string | null = null;
@@ -398,36 +454,22 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     return { ...passState, runtimeState: handingOver ? 'passing-baton' as const : passState.runtimeState, batonPassWarning };
   };
 
-  /** Binds, takes a generation through `acquireBaton`, records the start and regroups every Watcher; whatever it took is let go on a failure. */
+  /** Binds, takes a generation through `acquireBaton`, records the start, ensures Talos and regroups every child; what it took is let go on a failure. */
   async function startServing(
     portChoice: OverseerPortChoice,
     acquireBaton: (record: BatonRecord) => BatonAcquisition,
     enterStep: (step: BatonPassStep) => void,
   ): Promise<Serving> {
-    const bundlePath = await pinWatcherBundle();
-    const boardChildren = createWatcherBoardChildren({
-      platformPorts,
-      trackerDirectory: workspace.trackerDirectory,
-      launching:        {
-        trackerId:         progress.trackerId,
-        monitorFolder:     platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
-        watcherBundlePath: bundlePath,
-        codeVersion,
-        watcherDirectory:  workspace.rootDirectory,
-      },
-      log,
-    });
     // Set once the Baton is taken; a brain change before then has no stream to reach.
     let publishFlintBrainChange: () => void = () => undefined;
     const overseerFlintBrain = createOverseerFlintBrain({
-      commandArguments:  request.commandArguments,
+      commandArguments: request.commandArguments,
       context,
       workspace,
-      trackerId:         progress.trackerId,
+      trackerId:        progress.trackerId,
       repositoryRoot,
-      watcherBundlePath: bundlePath,
-      codeVersion,
-      publish:           () => publishFlintBrainChange(),
+      boardChildren,
+      publish:          () => publishFlintBrainChange(),
       log,
     });
     const flintBrainReading = () => overseerFlintBrain.brain.reading();
@@ -517,15 +559,15 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
 
     enterStep('take-baton');
     const record: BatonRecord = {
-      processId:              ownIdentity.processId,
-      processStartStamp:      ownIdentity.startStamp,
-      bootIdentity:           ownIdentity.bootIdentity,
-      port:                   server.port,
-      url:                    server.url,
-      tokenFile:              tokenFilePath,
+      processId:            ownIdentity.processId,
+      processStartStamp:    ownIdentity.startStamp,
+      bootIdentity:         ownIdentity.bootIdentity,
+      port:                 server.port,
+      url:                  server.url,
+      tokenFile:            tokenFilePath,
       codeVersion,
-      installVersion:         INSTALL_VERSION,
-      watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
+      installVersion:       INSTALL_VERSION,
+      talosProtocolVersion: TALOS_PROTOCOL_VERSION,
     };
     let acquisition: BatonAcquisition;
     try {
@@ -595,11 +637,11 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         overseerDirectory:     files.overseerDirectory,
         generation,
         boardChildren,
-        reapEndedWatchers:     boardChildren.reapEndedWatchers,
+        ensureTalosIfLost,
         programCommand:        context.programCommand,
         codeVersion,
         agentAdapter:          context.agentAdapter,
-        monitorFolder:         context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
+        monitorFolder,
         inheritedEnvironment:  environmentCopy(),
         mainLine,
         branchNames,
@@ -637,6 +679,24 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
           publishState();
         },
       });
+      // The first of the two places the Overseer finds its Talos; stage 3 turns a lost one here into a crash of Talos. Before the URL is given
+      // out, so a Talos that cannot serve refuses the start; after the start's own writes, so a start that fails earlier starts no Talos.
+      const talos = await ensureTalos(talosStartContext());
+      if (talos.verdict === 'held' || talos.verdict === 'unavailable') throw talosStartRefusalOf(talos);
+      followTalos(talos);
+      // Renews at once; a renewal of the previous serving period ends here, and none ends at a stop, so a quick restart keeps every agent.
+      leaseRenewal?.stop();
+      leaseRenewal = startLeaseRenewal({
+        connection: () => talosConnection,
+        renewer:    {
+          processId: ownIdentity.processId, startStamp: ownIdentity.startStamp, bootIdentity: ownIdentity.bootIdentity, generation
+        },
+        intervalMilliseconds: TALOS_START_BOUNDS.renewalIntervalMilliseconds,
+        tickGapMilliseconds:  TALOS_START_BOUNDS.tickGapMilliseconds,
+        passProgress:         { passInFlight: () => drivePass?.passInFlight() ?? null },
+        wallNowMilliseconds:  () => context.now().getTime(),
+        log,
+      });
       const serving: Serving = {
         generation, server, drivePass, watcher, lifetime, flintBrain: overseerFlintBrain, boardChildren
       };
@@ -666,7 +726,10 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     }
   }
 
-  /** The release half of a Baton pass: a landing in progress finishes, no effect batch starts, and the listener closes; no Watcher is sent anything. */
+  /**
+   * The release half of a Baton pass: a landing in progress finishes, no effect batch starts, and the listener closes; Talos is sent nothing,
+   * and the lease renewal goes on until this process exits, so the successor's own renewal overlaps it.
+   */
   async function release(serving: Serving): Promise<void> {
     handingOver = true;
     serving.lifetime.stopWatching();
@@ -723,7 +786,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         return newest.verdict === 'live' && newest.generation === predecessorGeneration;
       },
       schedule: batonPassSchedule(),
-    }, preparationSteps(request, pinWatcherBundle));
+    }, preparationSteps(request, boardChildren));
     if (admission === 'failed') {
       const report = BatonPass.readBatonPass(batonPassFilePath);
       const reported = report?.state === 'successor-failed' || report?.state === 'failed';
@@ -799,11 +862,9 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       { name: 'the stop of Flint\'s brain', run: () => stoppingServing.flintBrain.close() },
       { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
       ...(end.kind === 'stopped' && end.now ? [{
-        name: 'the stop of the live process Watchers',
+        name: 'the stop of the live lines',
         run:  async () => { await stoppingServing.boardChildren.stopLiveLines(); },
       }] : []),
-      // A Watcher ending after the last pass would otherwise wait for an acknowledgement until the next Overseer.
-      { name: 'the reap of ended Watchers', run: () => stoppingServing.boardChildren.reapEndedWatchers() },
       { name: 'the server stop', run: () => stoppingServing.server.stop() },
     ];
     try {

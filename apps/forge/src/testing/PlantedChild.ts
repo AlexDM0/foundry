@@ -3,12 +3,12 @@
  * case overrides. Test-only.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { dirname }                  from 'node:path';
+import { basename, dirname }        from 'node:path';
 
-import { type ChildRecord, childRecordTextOf } from '../lib/talos/ChildRecord.ts';
-import type { EventLogEntry }                  from '../lib/talos/EventLog.ts';
-import { childFilesOf, talosRecordPathOf }     from '../lib/talos/TalosFiles.ts';
-import { type TalosRecord, talosRecordTextOf } from '../lib/talos/TalosRecord.ts';
+import { type ChildEnd, type ChildRecord, childRecordTextOf } from '../lib/talos/ChildRecord.ts';
+import type { EventLogEntry }                                 from '../lib/talos/EventLog.ts';
+import { childFilesOf, talosRecordPathOf }                    from '../lib/talos/TalosFiles.ts';
+import { type TalosRecord, talosRecordTextOf }                from '../lib/talos/TalosRecord.ts';
 import {
   CHILD_RECORD_FORMAT_VERSION,
   EVENT_LOG_FORMAT_VERSION,
@@ -51,6 +51,17 @@ function plantChildRecord(request: PlantedChildRequest, changes: Partial<ChildRe
   return record;
 }
 
+/** A child of the absolute `childFolder` ended as Talos records `end`, exited 0 unless it says otherwise; answers the record written. */
+function plantEndedChildAt(childFolder: string, instance: number, end: Partial<ChildEnd> = {}): ChildRecord {
+  return plantChildRecord({ boardFolder: dirname(childFolder), childFolder: basename(childFolder), instance }, {
+    kind:  'line',
+    state: 'ended',
+    end:   {
+      reason: 'exited', exitCode: 0, signal: null, detail: null, runMilliseconds: 0, ...end
+    },
+  });
+}
+
 /** Writes the record file's text as it is, for a record no reader should take. */
 function plantChildRecordText(request: PlantedChildRequest, text: string): void {
   writeCreatingFolder(childFilesOf(request.boardFolder, request.childFolder, request.instance).recordPath, text);
@@ -81,5 +92,5 @@ function plantTalosRecord(boardFolder: string, startNumber: number, changes: Par
 }
 
 export const PlantedChild = Object.freeze({
-  plantChildRecord, plantChildRecordText, plantEventLog, plantTalosRecord
+  plantChildRecord, plantEndedChildAt, plantChildRecordText, plantEventLog, plantTalosRecord
 });

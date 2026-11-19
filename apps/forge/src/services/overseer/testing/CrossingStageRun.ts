@@ -146,7 +146,7 @@ function ticketOf(place: CrossingStagePlace) {
   return place.board.tickets().find((candidate) => candidate.frontmatter.id === place.ticketId);
 }
 
-/** The job's start as the Overseer records it at the first Watcher's spawn. */
+/** The job's start as the Overseer records it at the first child's launch. */
 function writeJobStart(place: CrossingStagePlace, job: Readonly<Job>, jobFolder: string, startCommit: string): void {
   const jobStart = {
     startCommit,

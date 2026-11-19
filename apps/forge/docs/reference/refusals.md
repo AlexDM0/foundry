@@ -421,7 +421,9 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `is sent to the live Overseer, never applied to the board` | `overseer-control-is-runtime-only` | Never printed: the API route, `oversee stop` and the Bouncer each stop `overseer-stop` and `overseer-restart` earlier. | Nothing to do. | |
 | `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Use Delivered by hand… on the ticket's form in the Bridge, or run `oversee stop` first. | [cli.md](../cli.md) |
 | `did not bundle, so the Overseer cannot spawn Watchers` | `watcher-bundle-failed` | The Watcher entry in the forge program checkout, not the tracked repository, did not bundle. **Exit 2.** | Read the reason at the end of the line, then repair the program checkout. | |
-| `cannot bind the Watcher endpoint` | `watcher-endpoint-does-not-fit` | This platform's limit refuses the endpoint, so no launch file was written. A drive pass turns this into a notice of the same kind. | Move the home folder to a shorter path. | |
+| `cannot bind the Watcher endpoint` | `watcher-endpoint-does-not-fit` | This platform's limit refuses the endpoint, so no launch file was written. | Move the home folder to a shorter path. | |
+| `speaks protocol version <answered>, and this Overseer speaks <required>` | `talos-protocol-differs` | The Talos the Overseer started from the program on disk answered another protocol version, so no Talos starts again while this Overseer lives. **Exit 2.** | Update the program checkout, then start the Overseer again. | |
+| `so the Overseer did not start and no agent runs` | `talos-unavailable` | The Talos the Overseer started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start the Overseer again. | |
 
 </details>
 

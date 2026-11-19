@@ -348,7 +348,7 @@ as behaviour.
 | Events | `src/lib/agent-launch/AgentSessionEvent.ts` | `AgentSessionEvent` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Argv, settings, files | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `argvOf`, `settingsOf`, `planOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Session id | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `claudeSessionIdOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
-| Session owner | `src/services/overseer/JobResumption.ts` | `JobResumption.sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.integration.spec.ts` |
+| Session owner | `src/services/overseer/JobResumption.ts` | `JobResumption.sessionOwnerJobIdOf` | `src/services/overseer/JobResumption.verdicts.spec.ts` |
 | Stream mapping | `src/lib/claude-code/ClaudeStreamMapper.ts` | `claudeStreamEventsOf` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Lines written | `src/lib/claude-code/ClaudeStreamLines.ts` | `CLAUDE_STREAM_LINES` | `src/lib/claude-code/ClaudeStreamMapper.spec.ts` |
 | Fixtures | `src/lib/claude-code/testing/fixtures/` | | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` |

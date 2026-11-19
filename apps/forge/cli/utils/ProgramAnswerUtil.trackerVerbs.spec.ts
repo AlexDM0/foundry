@@ -92,15 +92,15 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the answer o
     const { overseerDirectory } = overseerFilesIn(requireWorkspace(directory).trackerDirectory);
     const liveOverseer = processTable.bornProcess();
     const acquisition = Baton.acquire(processTable.ports, overseerDirectory, {
-      processId:              liveOverseer.processId,
-      processStartStamp:      liveOverseer.startStamp,
-      bootIdentity:           liveOverseer.bootIdentity,
-      port:                   1,
-      url:                    UNANSWERING_URL,
-      tokenFile:              join(overseerDirectory, 'token'),
-      codeVersion:            'code-example',
-      installVersion:         INSTALL_VERSION,
-      watcherProtocolVersion: 1,
+      processId:            liveOverseer.processId,
+      processStartStamp:    liveOverseer.startStamp,
+      bootIdentity:         liveOverseer.bootIdentity,
+      port:                 1,
+      url:                  UNANSWERING_URL,
+      tokenFile:            join(overseerDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       INSTALL_VERSION,
+      talosProtocolVersion: 1,
     });
     expect(acquisition.verdict).toBe('acquired');
     const updated = await recordedGit.playStage(REFRESH_OF_AN_IGNORING_REPOSITORY, () => answerIn(directory, ['update', '--json'], processTable.ports));

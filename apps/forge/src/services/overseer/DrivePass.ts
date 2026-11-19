@@ -19,7 +19,7 @@ import {
 import type { JsonSchema }                                   from '../../adapters/reports/ReportValidation.ts';
 import { type UsageMarkerReading, UsageMarkerFile }          from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import type { UsageWindowObservation }                       from '../../adapters/usage-marker/UsageWindowsFile.ts';
-import type { AgentAdapter }                                 from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentAdapter, AgentEndingName }                from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentConfinement, AgentLaunchRequest }         from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                                from '../../lib/agent-launch/WorkerProfile.ts';
 import type { ExecutableRefusalCause }                       from '../../lib/executable-resolver/ExecutableResolver.ts';
@@ -28,6 +28,8 @@ import { GitProcess }                                        from '../../lib/git
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                              from '../../lib/process-identity/ProcessIdentity.ts';
 import type { ShellLine }                                    from '../../lib/shell-line/ShellLine.ts';
+import type { ChildEnd }                                     from '../../lib/talos/ChildRecord.ts';
+import type { RecognisedEnding }                             from '../../lib/talos/EndingPatterns.ts';
 import type { EventLogEntry }                                from '../../lib/talos/EventLog.ts';
 import type { DecisionAnswer }                               from '../../lib/tracker-model/@types/Decision.ts';
 import type { IncidentDefaultCause, IncidentMove }           from '../../lib/tracker-model/@types/Incident.ts';
@@ -165,7 +167,12 @@ export interface JobLaunchFacts {
   confinement:            AgentConfinement;
 }
 
-type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' | 'watcher-endpoint-does-not-fit' }>;
+type LaunchRefusal = Extract<OverseerNotice, { kind: 'instructions-missing' | 'agent-program-refused' }>;
+
+/** No Talos took the launch: nothing marks the instance launched, so the next pass tries it again. */
+interface TalosDidNotLaunch {
+  readonly talosDidNotLaunch: string;
+}
 
 /** API billing is set and the Overseer's environment holds no API key: nothing starts until User sets it. */
 interface ApiBillingKeyMissing {
@@ -215,13 +222,13 @@ export interface DrivePassRequest {
   overseerDirectory:                 string;
   generation:                        number;
   boardChildren:                     BoardChildren;
-  /** Acknowledges every ended Watcher of the board's jobs so it exits; called at the end of each pass. */
-  reapEndedWatchers:                 () => Promise<unknown>;
+  /** Called as each pass begins: the Overseer starts or attaches to a Talos there once its connection to the last one closed. */
+  ensureTalosIfLost?:                () => Promise<void>;
   /** The runtime, isolating arguments and entry script this Overseer was started with, which a job's network guard hook runs. */
   programCommand:                    readonly string[];
   codeVersion:                       string;
   agentAdapter:                      AgentAdapter;
-  /** The folder the Watcher sockets go under: `<home>/<monitor folder>`. */
+  /** The machine's monitor folder: `<home>/<monitor folder>`. */
   monitorFolder:                     string;
   /** Narrowed to the launch allowlist before any session sees it. */
   inheritedEnvironment:              Readonly<Record<string, string | undefined>>;
@@ -299,9 +306,7 @@ export type OverseerNotice =
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
   // A job's launch was refused, nothing spawned, because its agent program did not resolve to an absolute path; retried each pass.
-  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string }
-  // A job's launch was refused, nothing spawned, because this platform cannot bind its Watcher's endpoint; retried each pass.
-  | { kind: 'watcher-endpoint-does-not-fit'; jobId: string; endpoint: string };
+  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string };
 
 /** What a pass knows of the runtime state; the Overseer adds `passing-baton` around a Baton pass. */
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
@@ -331,6 +336,8 @@ export interface DrivePass {
   silentSweepsOf: (jobId: string) => number;
   /** Resolves once no pass is running or queued. */
   idle:           () => Promise<void>;
+  /** The number of the pass running now, counted from 1 over this DrivePass's life; `null` between passes. */
+  passInFlight:   () => number | null;
   state:          () => OverseerStateDocument;
   /** No pass starts after it; resolves once the one running, a landing in it included, has finished, and each gate profile run has ended. */
   stop:           () => Promise<void>;
@@ -341,6 +348,8 @@ interface WatcherObservation {
   instance:           number;
   liveness:           ChildLiveness;
   events:             readonly EventLogEntry[];
+  /** Read after the events, so an ending Talos recognised in a line just read is never missed. */
+  recognisedEndings:  readonly RecognisedEnding[];
   /** Settled for a lost Watcher only, after its surviving child group was killed; `null` while the forced stop is refused. */
   lostCause:          InterruptionCause | null;
   forcedStopRefusals: ForcedStopRefusals;
@@ -378,6 +387,15 @@ const WORKER_LAUNCH_STEP = 'worker';
 
 // A live session takes the answer as the `control_response` allow with `updatedInput.answers`, so it needs no stop and resume.
 const CONTROL_RESPONSE_DELIVERS_ANSWERS = true;
+/** The cause a job is interrupted with when Talos recognised its agent's ending, by the ending's name. */
+const INTERRUPTION_CAUSE_OF_AGENT_ENDING: Readonly<Record<AgentEndingName, InterruptionCause>> = { 'network-outage': 'network-outage', };
+
+/** How Talos ended a child that did not end by itself, and the cause its job is interrupted with. */
+const INTERRUPTION_CAUSE_OF_TALOS_END: Readonly<Partial<Record<ChildEnd['reason'], InterruptionCause>>> = {
+  'paused':      'talos-paused',
+  'lease-ended': 'lease-ended',
+};
+
 const ROLES_THAT_MAY_ASK: ReadonlySet<string> = new Set(['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer', 'product-owner']);
 
 /** Multi-turn sessions: finished only when the Overseer closed their input, never by a turn's `result`. */
@@ -472,17 +490,20 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const watchers = jobs.map((job): WatcherObservation => {
     const jobFolder     = children.jobFolderOf(job.id);
     const afterSequence = job.eventCursor.instance === job.watcherInstance ? job.eventCursor.sequence : 0;
-    const liveness      = children.livenessOf(jobFolder, job.watcherInstance);
-    const events        = children.eventsAfter(jobFolder, job.watcherInstance, afterSequence);
-    if (events === 'malformed') request.log(`The event log of job ${job.id}, Watcher instance ${job.watcherInstance}, is malformed; its events wait.`);
+    // Liveness first, so an ended child's log is read whole; the endings last, so they cover every line just read.
+    const liveness          = children.livenessOf(jobFolder, job.watcherInstance);
+    const events            = children.eventsAfter(jobFolder, job.watcherInstance, afterSequence);
+    const recognisedEndings = children.recognisedEndingsOf(jobFolder, job.watcherInstance);
+    if (events === 'malformed') request.log(`The event log of job ${job.id}, child instance ${job.watcherInstance}, is malformed; its events wait.`);
     const lostCause = liveness.verdict === 'lost' && job.role !== null
-      ? Regrouping.settleLostWatcher(children, request.platformPorts, jobFolder, job.watcherInstance, forcedStopRetryJobIds.has(job.id))
+      ? Regrouping.settleLostChildIn(workspace.trackerDirectory, request.platformPorts, jobFolder, job.watcherInstance, forcedStopRetryJobIds.has(job.id))
       : null;
     return {
       jobId:              job.id,
       instance:           job.watcherInstance,
       liveness,
       events:             events === 'malformed' ? [] : events,
+      recognisedEndings,
       lostCause,
       forcedStopRefusals: Regrouping.refusedForcedStopsOf(jobFolder, job.watcherInstance),
       sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(children, jobFolder, job.watcherInstance, request.agentAdapter),
@@ -540,12 +561,19 @@ interface WatcherEventFacts {
   decisionWordingOf: DrivePassRequest['decisionWordingOf'];
 }
 
+/** The cause of the ending Talos recognised in the line at `sequence`; `null` for any other line or an ending this code does not name. */
+function recognisedEndingCauseAt(watcher: WatcherObservation, sequence: number): InterruptionCause | null {
+  const ending = watcher.recognisedEndings.find((recognised) => recognised.closingLineSequence === sequence);
+  if (ending === undefined || !Object.hasOwn(INTERRUPTION_CAUSE_OF_AGENT_ENDING, ending.name)) return null;
+  return INTERRUPTION_CAUSE_OF_AGENT_ENDING[ending.name as AgentEndingName];
+}
+
 /**
  * A question opens its decision and a closing result moves the job to verification in the hold that reads them; the cursor moves with them.
  * A top-level usage refusal interrupts the job instead, and the error result after it is no closing result; under API billing so do a 429
- * result, a refused key and a budget stop.
+ * result, a refused key and a budget stop. A result Talos recognised as an ending interrupts the job with its cause and stops its session.
  */
-function applyWatcherEvents(
+function applyChildEvents(
   change: TrackerChange,
   adapter: AgentAdapter,
   watchers: readonly WatcherObservation[],
@@ -573,6 +601,12 @@ function applyWatcherEvents(
           const hit = { jobId: watcher.jobId, ...refusal };
           UsageLimits.interruptLimitedJob(board, hit, at);
           usageLimitHits.push(hit);
+          continue;
+        }
+        const endingCause = event.kind === 'result' && state === 'running' ? recognisedEndingCauseAt(watcher, entry.sequence) : null;
+        if (endingCause !== null) {
+          board.interruptJob(watcher.jobId, endingCause, at);
+          stoppedSessions.push({ jobId: watcher.jobId, watcherInstance: watcher.instance });
           continue;
         }
         const failure = event.kind === 'result' ? event.failure : null;
@@ -618,7 +652,9 @@ function applyWatcherEvents(
     } else if (sessionEndedCleanly && !closedWithResult && state === 'running' && job !== undefined && REPORTING_JOB_KINDS.includes(job.kind)) {
       board.endJob(watcher.jobId, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport }, at);
     } else if (watcherIsGone && !closedWithResult && (state === 'running' || state === 'waiting-for-answer')) {
-      board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : 'agent-crashed', at);
+      // A clean quit or a lease end is Talos's own stop, never a crash the Playbook counts.
+      const talosEndCause = watcher.liveness.verdict === 'ended' ? INTERRUPTION_CAUSE_OF_TALOS_END[watcher.liveness.end.reason] ?? null : null;
+      board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : talosEndCause ?? 'agent-crashed', at);
     }
   }
   return {
@@ -846,13 +882,13 @@ export function launchFactsOf(
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
  * marks its instance spawned, so the next pass tries it again.
  */
-async function launchWatcher(
+async function launchAgentChild(
   request: DrivePassRequest,
   jobLaunchContext: JobLaunchContext,
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | null> {
+): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | null> {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
@@ -864,11 +900,6 @@ async function launchWatcher(
   if (program.verdict === 'refused') return {
     kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
   };
-  const { localEndpoint } = request.platformPorts;
-  const endpoint = localEndpoint.endpointOf({
-    monitorFolder: request.monitorFolder, trackerId, name: job.id, instance: job.watcherInstance
-  });
-  if (!localEndpoint.endpointFits(endpoint)) return { kind: 'watcher-endpoint-does-not-fit', jobId: job.id, endpoint };
   const children         = request.boardChildren;
   const jobFolder        = children.jobFolderOf(job.id);
   const hatchDirectory   = HatchInbox.hatchDirectoryOf(workspace.rootDirectory, job.id);
@@ -948,7 +979,7 @@ async function launchWatcher(
   if (launchRequest.profile.stageEditGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
   JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
   JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
-  await children.launchAgent({
+  const launched = await children.launchAgent({
     childFolder:                    jobFolder,
     instance:                       job.watcherInstance,
     label:                          job.id,
@@ -956,7 +987,13 @@ async function launchWatcher(
     plan:                           agentAdapter.planOf(launchRequest),
     treeStopAtEndGraceMilliseconds: JobLaunch.treeStopAtEndOf(job).treeStopAtEndGraceMilliseconds ?? null,
   });
-  request.log(`Spawned Watcher instance ${job.watcherInstance} of job ${job.id} (${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}).`);
+  const jobWords = `${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}`;
+  if (launched.verdict === 'talos-unavailable' || launched.verdict === 'refused') {
+    const why = launched.verdict === 'refused' ? `Talos refused it (${launched.reason})` : 'no Talos took it';
+    request.log(`Child instance ${job.watcherInstance} of job ${job.id} (${jobWords}) did not launch: ${why}; the next pass tries again.`);
+    return { talosDidNotLaunch: job.id };
+  }
+  request.log(`Launched child instance ${job.watcherInstance} of job ${job.id} (${jobWords}) under Talos.`);
   return null;
 }
 
@@ -1031,6 +1068,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let running: Promise<void> | null = null;
   let wokenAgain = false;
   let forcedNext = false;
+  let passesStarted = 0;
+  // A number, never a time: the lease renewal withholds itself while the same pass stays in flight.
+  let passInFlight: number | null = null;
   const quietJobWatch = IncidentRouter.createQuietJobWatch(QUIET_JOB_SWEEPS);
   const quietJobIdsDue: string[] = [];
   const forcedStopRetryJobIdsDue: string[] = [];
@@ -1349,6 +1389,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function runOnePass(forced: boolean): Promise<void> {
+    // Before anything is read: a new Talos sweeps the lost one's orphans, so this pass reads their causes as settled.
+    await request.ensureTalosIfLost?.();
     const observation = observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0)));
     if (!forced && observation.fingerprint === lastFingerprint) return;
     await request.installVersionsKnown?.();
@@ -1367,7 +1409,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const watcherEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
         const {
           usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds
-        } = applyWatcherEvents(
+        } = applyChildEvents(
           change,
           request.agentAdapter,
           observation.watchers,
@@ -1474,7 +1516,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     gateSlots.startRound();
-    await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.trackerId, observation.buildJobs);
+    await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.buildJobs);
     const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
     PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
     for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
@@ -1510,10 +1552,10 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       : jobsNeedingAWatcher(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
     for (const job of jobsToLaunch) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
-      const refusal = await launchWatcher(request, jobLaunchContext, written.board, observation.trackerId, job);
+      const refusal = await launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
-      else if ('airlockConflictsUnknownFor' in refusal) continue;
+      else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal) continue;
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);
@@ -1542,7 +1584,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     targetsHeldAtTheLastPass = heldTargets.length;
     gateProfiling.followRuns(written.board);
     pipelineChecking.followChecks(written.board);
-    await request.reapEndedWatchers();
     jobsAtTheLastPass = written.board.jobs();
     assistantsMidTurnAtTheLastPass = AssistantSession.midTurnJobIdsOf(request.workspace.trackerDirectory, written.board, observation.assistantReadings);
     state = {
@@ -1580,11 +1621,15 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       wokenAgain = false;
       const forced = forcedNext;
       forcedNext = false;
+      passesStarted += 1;
+      passInFlight = passesStarted;
       try {
         await runOnePass(forced);
         request.afterPass?.();
       } catch (thrown) {
         request.log(`A drive pass failed and waits for the next wake-up: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
+      } finally {
+        passInFlight = null;
       }
     } while (wokenAgain && !stopped);
     running = null;
@@ -1601,12 +1646,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function regroup(): Promise<RegroupingReport> {
-    const report = await Regrouping.regroup(request.boardChildren, platformPorts, request.workspace);
+    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace);
     mergedTreeGateRuns.settleAtStart();
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();
     leftoverWorktrees.push(...report.leftoverWorktrees);
-    for (const lost of report.lost) request.log(`Watcher instance ${lost.instance} of job ${lost.jobId} is gone (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
+    for (const lost of report.lost) request.log(`Child instance ${lost.instance} of job ${lost.jobId} is lost (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
     wake(true);
     await (running ?? Promise.resolve());
     return report;
@@ -1652,6 +1697,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     sweep,
     silentSweepsOf: (jobId) => quietJobWatch.silentSweepsOf(jobId),
     idle:           () => running ?? Promise.resolve(),
+    passInFlight:   () => passInFlight,
     state:          () => state,
     stop,
   };

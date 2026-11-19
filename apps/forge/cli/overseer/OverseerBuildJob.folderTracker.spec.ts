@@ -1,6 +1,6 @@
 /**
  * A build job's code for a tracker in a folder of its repository with a branch namespace, on the recorded folder flow of
- * `src/testing/RecordedGitFlow.ts` behind the Watcher boundary, as `cli/overseer/OverseerBuildJob.spec.ts` runs a root tracker's. What
+ * `src/testing/RecordedGitFlow.ts` behind the Talos boundary, as `cli/overseer/OverseerBuildJob.spec.ts` runs a root tracker's. What
  * matters: a folder tracker's git calls are frozen, so no change moves them unnoticed. Each flow asks
  * git exactly the calls in `cli/overseer/FrozenFolderTrackerGitCalls.json`: a clean run to the landing, a conflict an Airlock agent
  * resolves, whose resolution V5, V17 and V13 then judge against git's own merge, a red merged tree whose fix by the resumed Airlock agent
@@ -16,12 +16,12 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }                                                     from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { Board }                                                            from '../../src/lib/tracker-model/Board.ts';
-import type { DrivePass }                                                        from '../../src/services/overseer/DrivePass.ts';
-import { requireWorkspace }                                                      from '../../src/services/tracker/Workspace.ts';
-import { branchNamesOf }                                                         from '../../src/shared/BranchNames.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH, seatbeltThatApplies } from '../../src/testing/DrivePassHarness.ts';
+import type { AgentAdapter }                           from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { Board }                                  from '../../src/lib/tracker-model/Board.ts';
+import type { DrivePass }                              from '../../src/services/overseer/DrivePass.ts';
+import { requireWorkspace }                            from '../../src/services/tracker/Workspace.ts';
+import { branchNamesOf }                               from '../../src/shared/BranchNames.ts';
+import { createScratchDrivePass, seatbeltThatApplies } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -42,7 +42,7 @@ import {
   RECORDED_FOLDER_FLOW_PROJECT,
   type RecordedFolderFlowStageName
 } from '../../src/testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages }           from '../../src/testing/RecordedWatcherStages.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }               from '../../src/testing/RecordedTalosStages.ts';
 import { createScratchDirectory, removeScratchDirectory, runScratchRoot } from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                      from '../../src/testing/WaitUntil.ts';
@@ -61,8 +61,8 @@ const RED_GATE_END = { exitCode: 1, output: 'expected 2, received 3\n' };
 const FROZEN_FOLDER_TRACKER_GIT_CALLS_PATH = join(import.meta.dir, 'FrozenFolderTrackerGitCalls.json');
 const CLAIMED_GATE_NAMES = ['checks'];
 
-const world = useRecordedWatcherStages(nativePlatformPorts());
-let ports: RecordedWatcherStages['ports'];
+const world = useRecordedTalosStages(nativePlatformPorts());
+let ports: RecordedTalosStages['ports'];
 let repositoryDirectory = '';
 let projectDirectory = '';
 let monitorFolder = '';
@@ -100,7 +100,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[]): DrivePass {
     processStarts:        world.processStarts,
     workspace:            requireWorkspace(projectDirectory),
     now:                  SPEC_CLOCK,
-    watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+    talosConnection:      () => world.connectionFor(requireWorkspace(projectDirectory).trackerDirectory),
     agentAdapter:         airlockCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
     inheritedEnvironment: inheritedEnvironment(),

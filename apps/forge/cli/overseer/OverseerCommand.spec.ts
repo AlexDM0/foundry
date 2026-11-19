@@ -35,8 +35,8 @@ import { nativePlatformPorts }                                                  
 import { useRecordedGit }                                                       from '../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                                              from '../../src/testing/RecordedProcessTable.ts';
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                                               from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded }                                                 from '../../src/testing/ToolGuard.ts';
-import { watcherChildReadingsWith }                                             from '../../src/testing/WatcherChildReadings.ts';
 import { runCommandLine }                                                       from '../Main.ts';
 import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
@@ -102,7 +102,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
     const { state } = readBoardState({
       context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
       workspace:     requireWorkspace(repositoryDirectory),
-      boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+      boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
       notices:       () => [],
       overseer:      () => ({
         state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
@@ -127,7 +127,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
     const { state } = readBoardState({
       context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
       workspace:     requireWorkspace(repositoryDirectory),
-      boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+      boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
       notices:       () => [],
       overseer:      () => ({
         state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
@@ -178,15 +178,15 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
       },
     };
     const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
-      processId:              identity.processId,
-      processStartStamp:      identity.startStamp,
-      bootIdentity:           identity.bootIdentity,
-      port:                   1,
-      url:                    UNANSWERING_URL,
-      tokenFile:              join(overseerDirectory, 'token'),
-      codeVersion:            'code-example',
-      installVersion:         1,
-      watcherProtocolVersion: 1,
+      processId:            identity.processId,
+      processStartStamp:    identity.startStamp,
+      bootIdentity:         identity.bootIdentity,
+      port:                 1,
+      url:                  UNANSWERING_URL,
+      tokenFile:            join(overseerDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
     });
     expect(acquisition.verdict).toBe('acquired');
     createProgressPageStubWriter(workspace.htmlFilePath).write(UNANSWERING_URL);
@@ -251,15 +251,15 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
   test('a forced end overtaken by a newer Overseer still says so and records the stop, and leaves that Overseer its registry entry, page and Baton', async () => {
     const successorStarts = (overseerDirectory: string, htmlFilePath: string): void => {
       const successorRecord = {
-        processId:              WEDGED_PROCESS_ID + 1,
-        processStartStamp:      '3',
-        bootIdentity:           'example-boot',
-        port:                   2,
-        url:                    SUCCESSOR_URL,
-        tokenFile:              join(overseerDirectory, 'token'),
-        codeVersion:            'code-example',
-        installVersion:         1,
-        watcherProtocolVersion: 1,
+        processId:            WEDGED_PROCESS_ID + 1,
+        processStartStamp:    '3',
+        bootIdentity:         'example-boot',
+        port:                 2,
+        url:                  SUCCESSOR_URL,
+        tokenFile:            join(overseerDirectory, 'token'),
+        codeVersion:          'code-example',
+        installVersion:       1,
+        talosProtocolVersion: 1,
       };
       expect(Baton.acquireAbove(overseerDirectory, successorRecord, 1).verdict).toBe('acquired');
       createProgressPageStubWriter(htmlFilePath).write(SUCCESSOR_URL);
@@ -361,15 +361,15 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
       },
     };
     const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
-      processId:              deadOverseer.processId,
-      processStartStamp:      deadOverseer.startStamp,
-      bootIdentity:           deadOverseer.bootIdentity,
-      port:                   1,
-      url:                    UNANSWERING_URL,
-      tokenFile:              join(overseerDirectory, 'token'),
-      codeVersion:            'code-example',
-      installVersion:         1,
-      watcherProtocolVersion: 1,
+      processId:            deadOverseer.processId,
+      processStartStamp:    deadOverseer.startStamp,
+      bootIdentity:         deadOverseer.bootIdentity,
+      port:                 1,
+      url:                  UNANSWERING_URL,
+      tokenFile:            join(overseerDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
     });
     expect(acquisition.verdict).toBe('acquired');
     const successorArgumentsFile = join(repositoryDirectory, 'successor-arguments.json');
@@ -398,15 +398,15 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
       processSupervision: { ...processTable.ports.processSupervision, spawnOptionsFor: nativePlatformPorts().processSupervision.spawnOptionsFor },
     };
     const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
-      processId:              deadOverseer.processId,
-      processStartStamp:      deadOverseer.startStamp,
-      bootIdentity:           deadOverseer.bootIdentity,
-      port:                   1,
-      url:                    UNANSWERING_URL,
-      tokenFile:              join(overseerDirectory, 'token'),
-      codeVersion:            'code-example',
-      installVersion:         1,
-      watcherProtocolVersion: 1,
+      processId:            deadOverseer.processId,
+      processStartStamp:    deadOverseer.startStamp,
+      bootIdentity:         deadOverseer.bootIdentity,
+      port:                 1,
+      url:                  UNANSWERING_URL,
+      tokenFile:            join(overseerDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
     });
     expect(acquisition.verdict).toBe('acquired');
     processTable.endProcess(deadOverseer);
@@ -443,15 +443,15 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     const { overseerDirectory } = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
     const ownIdentity = processTable.callerProcess();
     const acquisition = Baton.acquire(platformPorts, overseerDirectory, {
-      processId:              ownIdentity.processId,
-      processStartStamp:      ownIdentity.startStamp,
-      bootIdentity:           ownIdentity.bootIdentity,
-      port:                   1,
-      url:                    UNANSWERING_URL,
-      tokenFile:              join(overseerDirectory, 'token'),
-      codeVersion:            'code-example',
-      installVersion:         1,
-      watcherProtocolVersion: 1,
+      processId:            ownIdentity.processId,
+      processStartStamp:    ownIdentity.startStamp,
+      bootIdentity:         ownIdentity.bootIdentity,
+      port:                 1,
+      url:                  UNANSWERING_URL,
+      tokenFile:            join(overseerDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
     });
     if (acquisition.verdict !== 'acquired') throw new Error('The example Baton was not acquired.');
     return { overseerDirectory, generation: acquisition.generation };
@@ -515,7 +515,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run pause an
       const boardState = readBoardState({
         context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
         workspace:     requireWorkspace(repositoryDirectory),
-        boardChildren: watcherChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
+        boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
         notices:       () => [],
         overseer:      () => ({
           state: 'serving', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, batonPassWarning: null

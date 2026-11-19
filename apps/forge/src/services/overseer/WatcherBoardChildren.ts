@@ -37,10 +37,7 @@ export interface WatcherBoardChildrenFacts {
   log:              (sentence: string) => void;
 }
 
-export interface WatcherBoardChildren extends BoardChildren {
-  /** Acknowledges every ended Watcher of the board's jobs that still runs, so it exits; answers how many took it. */
-  readonly reapEndedWatchers: () => Promise<number>;
-}
+export type WatcherBoardChildren = BoardChildren;
 
 /** A Watcher record names no Talos start. */
 const WATCHER_TALOS_START_NUMBER = 0;
@@ -212,6 +209,5 @@ export function createWatcherBoardChildren(facts: WatcherBoardChildrenFacts): Wa
       facts.log(`Stopped ${stoppedWatchers} live process Watcher${stoppedWatchers === 1 ? '' : 's'}.`);
       return true;
     },
-    reapEndedWatchers: async () => await WatcherFleet.reapEndedWatchers(ports, facts.trackerDirectory),
   });
 }

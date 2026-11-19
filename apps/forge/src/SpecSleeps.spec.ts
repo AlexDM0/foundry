@@ -27,10 +27,6 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'The unreferenced `sleep` descendant has no handle to wait on, and the run\'s leak check fails on it while it runs.',
   'cli/RegisterWrittenTracker.integration.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
     'A negative across processes: nothing writes the registry while its lock is held; a hold ending on the children\'s state could outlast their retry budget.',
-  'cli/overseer/OverseerDrivePass.integration.spec.ts: for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {':
-    'Teardown cleanup, no verdict: a Watcher that never claims has nothing to end.',
-  'cli/overseer/OverseerDrivePass.integration.spec.ts: await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);':
-    'The same teardown wait.',
   'src/lib/watcher/Watcher.protocol.integration.spec.ts: watcherJob().writeLaunch(1, \'process\', \'await Bun.sleep(30_000);\');':
     'The script of a child that only has to stay alive until the case stops it.',
   // eslint-disable-next-line @stylistic/max-len -- the key is the scanned line itself
@@ -48,6 +44,8 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'A negative: a stop that does not wait for the identity ends unseen, so there is no state to wait on; load only shortens what the hold covers.',
   'src/lib/talos/Talos.lines.integration.spec.ts: const SLEEPS_PAST_THE_BOUND = \'await Bun.sleep(1200);\';':
     'The script of a line that must outlast its bound in wall time while Talos is suspended; the case waits on the mark it leaves.',
+  'src/lib/talos/Talos.stages.integration.spec.ts: const GREEN_AFTER_A_PAUSE = `await Bun.sleep(${LINE_PAUSE_MILLISECONDS}); console.log(${JSON.stringify(GREEN_OUTPUT)});`;':
+    'The script of a line whose start the stage reads before it ends; the case waits on the record Talos writes, never on the pause.',
   'src/lib/talos/SynchronousCallsThread.integration.spec.ts: setTimeout(() => resolve(performance.now()), MAIN_THREAD_TIMER_MILLISECONDS);':
     'The timer is what the case measures: its lateness shows whether the main thread stayed free while the worker worked through a queue of tree calls.',
   'src/services/overseer/WatcherFleet.integration.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':

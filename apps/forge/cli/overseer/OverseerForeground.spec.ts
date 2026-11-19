@@ -3,17 +3,22 @@
  * root as a temp folder and registers nothing. An Overseer whose data folder watch fails to start registers no URL with the monitor: a move of
  * the registry write before the watch start makes it fail. The page stub and the output of that start are held by
  * `cli/overseer/OverseerCommand.integration.spec.ts`. Its confinement is a planted answer and its own identity the recorded process
- * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program.
+ * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program. A Talos started from the
+ * program on disk that answers another protocol version refuses the start `talos-protocol-differs`, naming both versions, and one that never
+ * served refuses it `talos-unavailable`; `cli/overseer/OverseerCommand.integration.spec.ts` holds that a started Overseer's Talos serves
+ * under a lease it renewed.
  */
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join }                                from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 } from 'bun:test';
 
+import { TALOS_PROTOCOL_VERSION }                                from '../../src/lib/talos/constants/TalosProtocol.ts';
 import { MONITOR_REGISTRY_FILES }                                from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
 import { PRODUCT_NAMES }                                         from '../../src/shared/constants/ProductNames.ts';
 import { fakeGateConfinement }                                   from '../../src/testing/FakeGateConfinement.ts';
@@ -26,6 +31,7 @@ import { runCommandLine }                                        from '../Main.t
 import { createCapturedCommandContext }                          from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                from '../testing/InitializedScratchRepository.ts';
 import { idleOverseerAnswersIn }                                 from '../testing/RecordedGitStages.ts';
+import { talosStartRefusalOf }                                   from './OverseerForeground.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
@@ -72,5 +78,21 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ lastCommand: 'oversee' });
     expect(Object.keys(entries[0] ?? {})).not.toContain('overseer');
+  });
+});
+
+describe('a start whose Talos cannot serve', () => {
+  test('is refused talos-protocol-differs, unrepaired, when the Talos it started answers another protocol version', () => {
+    const refusal = talosStartRefusalOf({ verdict: 'held', reason: 'talos-protocol-differs', answeredProtocolVersion: TALOS_PROTOCOL_VERSION + 1 });
+    const detail = { kind: 'talos-protocol-differs', requiredProtocolVersion: TALOS_PROTOCOL_VERSION, answeredProtocolVersion: TALOS_PROTOCOL_VERSION + 1 } as const;
+    expect(refusal.status).toBe('unrepaired');
+    expect(refusal.detail).toEqual(detail);
+  });
+
+  test('is refused talos-unavailable, unrepaired, naming why the Talos it started never served', () => {
+    const refusal = talosStartRefusalOf({ verdict: 'unavailable', reason: 'endpoint-does-not-fit', startNumber: 2 });
+    const detail = { kind: 'talos-unavailable', reason: 'endpoint-does-not-fit', startNumber: 2 } as const;
+    expect(refusal.status).toBe('unrepaired');
+    expect(refusal.detail).toEqual(detail);
   });
 });

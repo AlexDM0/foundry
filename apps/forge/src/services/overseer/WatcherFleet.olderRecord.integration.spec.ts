@@ -15,7 +15,7 @@ import {
 } from 'bun:test';
 
 import { type ProcessIdentity, sameProcess, storedIdentityOf } from '../../lib/process-identity/ProcessIdentity.ts';
-import { EVENT_LOG_FORMAT_VERSION }                            from '../../lib/talos/constants/TalosProtocol.ts';
+import { EVENT_LOG_FORMAT_VERSION, TALOS_PROTOCOL_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
 import { watcherFilesOf }                                      from '../../lib/watcher/WatcherFiles.ts';
 import { readWatcherLaunch }                                   from '../../lib/watcher/WatcherLaunch.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
@@ -57,15 +57,15 @@ function jobFolderWithRecord(watcher: object): string {
 
 function batonText(startFields: object): string {
   return JSON.stringify({
-    processId:              process.pid,
+    processId:            process.pid,
     ...startFields,
-    bootIdentity:           ownIdentity().bootIdentity,
-    port:                   4930,
-    url:                    'http://127.0.0.1:4930/',
-    tokenFile:              join(scratchDirectory, 'token'),
-    codeVersion:            'code-example',
-    installVersion:         19,
-    watcherProtocolVersion: OLDER_PROTOCOL,
+    bootIdentity:         ownIdentity().bootIdentity,
+    port:                 4930,
+    url:                  'http://127.0.0.1:4930/',
+    tokenFile:            join(scratchDirectory, 'token'),
+    codeVersion:          'code-example',
+    installVersion:       19,
+    talosProtocolVersion: TALOS_PROTOCOL_VERSION,
   });
 }
 

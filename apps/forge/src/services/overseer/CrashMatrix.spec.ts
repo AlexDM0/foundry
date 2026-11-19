@@ -2,7 +2,7 @@
  * The rows of the crash, reboot and update matrix that need no real process. What matters in these rows: a hold cut short after its journal is
  * finished by the next holder before that holder reads, and a holder whose lock was taken over writes nothing further, its committed journal
  * replayed by its successor. A hold that leaves progress.json as it was journals only the files it changes, and a crash anywhere in it is still
- * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedWatcherStages.ts`,
+ * finished by the next holder, progress.json never rewritten. The session rows run a build job behind `src/testing/RecordedTalosStages.ts`,
  * an Overseer restart being a fresh DrivePass regrouping: a fresh session takes its first message once, a restart replays history, an answer
  * given with the Overseer down reaches the session, a stopped product owner never resumes by itself, and an Airlock agent, or a conflict
  * re-reviewer before User's code review, launches never asking User. A first instance that resumes another job's session and exits before
@@ -13,7 +13,7 @@
  * it applied, or still waiting for its commit, and never refuses the pipeline it stored itself; the Overseer's start hold leaves no record
  * open either.
  *
- * Every row that kills or crashes a process, or needs a real Watcher, git history or Baton pass, is in
+ * Every row that kills or crashes a process, or needs a real Talos, git history or Baton pass, is in
  * `src/services/overseer/CrashMatrix.integration.spec.ts`.
  */
 import {
@@ -36,12 +36,11 @@ import type { AgentAdapter }                                from '../../lib/agen
 import type { AgentLaunchRequest }                          from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                               from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { WorkerProfile }                               from '../../lib/agent-launch/WorkerProfile.ts';
+import type { ChildRecord }                                 from '../../lib/talos/ChildRecord.ts';
 import { createEventLogWriter, type EventLogEntry }         from '../../lib/talos/EventLog.ts';
 import type { Decision }                                    from '../../lib/tracker-model/@types/Decision.ts';
 import type { Job }                                         from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                       from '../../lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                   from '../../lib/watcher/WatcherFiles.ts';
-import type { WatcherRecord }                               from '../../lib/watcher/WatcherRecord.ts';
 import type { ControlCommand }                              from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
@@ -49,7 +48,7 @@ import { LIFECYCLE_LIMITS }                                 from '../../shared/c
 import { LIMITS }                                           from '../../shared/constants/Limits.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../testing/DrivePassHarness.ts';
+import { createScratchDrivePass }                           from '../../testing/DrivePassHarness.ts';
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith } from '../../testing/EchoedControlContext.ts';
 import {
   fakeAgentAdapter,
@@ -59,39 +58,38 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                                  from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                  from '../../testing/NativePlatformPorts.ts';
-import { GIT_CALL_SHAPES, useRecordedGit }                      from '../../testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                              from '../../testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
-import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../testing/ToolGuard.ts';
-import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }       from '../../testing/TrackerFileFixtures.ts';
-import { waitUntil }                                            from '../../testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                             from '../../testing/WatcherChildReadings.ts';
-import { ControlService }                                       from '../control/ControlService.ts';
-import { finishHalfAppliedSetup }                               from '../control/PipelineSetupControls.ts';
-import { holdJournalFilePathOf, readHoldJournal }               from '../tracker/HoldJournal.ts';
-import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }    from '../tracker/TrackerLock.ts';
-import { writeTracker, type TrackerChange }                     from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
-import { workspacePathsFor, type Workspace }                    from '../tracker/Workspace.ts';
-import { AirlockFactsFile }                                     from './AirlockFactsFile.ts';
-import type { BoardChildren }                                   from './BoardChildren.ts';
-import type { DrivePass, JobLaunchFacts }                       from './DrivePass.ts';
-import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }         from './GateProfiling.ts';
-import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
-import { IntakeSessions }                                       from './IntakeSessions.ts';
-import { JobResumption }                                        from './JobResumption.ts';
-import { LegacyWatcherReader }                                  from './LegacyWatcherReader.ts';
-import { jobFolderIn }                                          from './OverseerFiles.ts';
-import { RedHandoff }                                           from './RedHandoff.ts';
-import { Regrouping }                                           from './Regrouping.ts';
+import { fakeGateConfinement }                                 from '../../testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
+import { GIT_CALL_SHAPES, useRecordedGit }                     from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }    from '../../testing/RecordedTalosStages.ts';
+import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }                from '../../testing/TalosChildReadings.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }   from '../../testing/ToolGuard.ts';
+import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testing/TrackerFileFixtures.ts';
+import { waitUntil }                                           from '../../testing/WaitUntil.ts';
+import { ControlService }                                      from '../control/ControlService.ts';
+import { finishHalfAppliedSetup }                              from '../control/PipelineSetupControls.ts';
+import { holdJournalFilePathOf, readHoldJournal }              from '../tracker/HoldJournal.ts';
+import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/TrackerLock.ts';
+import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
+import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
+import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
+import type { BoardChildren }                                  from './BoardChildren.ts';
+import type { DrivePass, JobLaunchFacts }                      from './DrivePass.ts';
+import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }        from './GateProfiling.ts';
+import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './InstructionFiles.ts';
+import { IntakeSessions }                                      from './IntakeSessions.ts';
+import { JobResumption }                                       from './JobResumption.ts';
+import { jobFolderIn }                                         from './OverseerFiles.ts';
+import { RedHandoff }                                          from './RedHandoff.ts';
+import { Regrouping }                                          from './Regrouping.ts';
 
 const recordedGit = useRecordedGit();
 
-const world = useRecordedWatcherStages(nativePlatformPorts());
-let ports: RecordedWatcherStages['ports'];
+const world = useRecordedTalosStages(nativePlatformPorts());
+let ports: RecordedTalosStages['ports'];
 
 const CHANGED_AT = '2026-09-18T20:05:00+02:00';
 
@@ -100,9 +98,9 @@ const now = (): Date => new Date('2026-09-18T18:05:00Z');
 
 let workspace: Workspace;
 
-/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+/** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */
 function childReadings(): BoardChildren {
-  return watcherChildReadingsWith(ports);
+  return talosChildReadingsWith(ports, sessionWorkspace.trackerDirectory);
 }
 
 function ticketFilePath(): string {
@@ -534,7 +532,7 @@ function startedOverseer(
     workspace:         sessionWorkspace,
     now:               () => new Date(Date.parse(SESSION_STAMP)),
     formatStamp:       () => SESSION_STAMP,
-    watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
+    talosConnection:   () => world.connectionFor(sessionWorkspace.trackerDirectory),
     agentAdapter:      adapter,
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,
@@ -585,8 +583,8 @@ function sessionJobFolder(jobId: string): string {
   return jobFolderIn(sessionWorkspace.trackerDirectory, jobId);
 }
 
-function watcherRecordOf(jobId: string, instance: number): WatcherRecord | null {
-  return LegacyWatcherReader.watcherRecordIn(sessionJobFolder(jobId), instance);
+function childRecordOf(jobId: string, instance: number): ChildRecord | null {
+  return childReadings().recordOf(sessionJobFolder(jobId), instance);
 }
 
 
@@ -608,7 +606,7 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
-  const record = watcherRecordOf(job.id, job.watcherInstance);
+  const record = childRecordOf(job.id, job.watcherInstance);
   return childReadings().livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
@@ -641,18 +639,25 @@ async function applyControl(command: ControlCommand): Promise<void> {
 }
 
 
-/** The instance's Watcher and child as recorded on another boot, so the next pass reads them as gone with the machine. */
+/**
+ * Talos and every child it ran gone with the machine, each live child's record as written on another boot, so the next pass reads them as
+ * gone with it; the next Talos then serves, as the restarted Overseer's start gives it. `jobId` names the job whose child must have run.
+ */
 function rebootTheMachine(jobId: string, instance: number): void {
-  const record = watcherRecordOf(jobId, instance);
-  if (record?.watcher === undefined || record.watcher === null) throw new Error('no Watcher record to reboot');
-  world.rebootMachine(sessionJobFolder(jobId), instance);
+  if (childRecordOf(jobId, instance)?.talos === null) throw new Error('no child record to reboot');
+  world.rebootMachine(sessionWorkspace.trackerDirectory);
   const foreignBoot = { bootIdentity: 'example-earlier-boot' };
-  const rebootedRecord = {
-    ...record,
-    watcher:      { ...record.watcher, ...foreignBoot },
-    childProcess: record.childProcess === undefined || record.childProcess === null ? record.childProcess : { ...record.childProcess, ...foreignBoot },
-  };
-  writeFileSync(watcherFilesOf(sessionJobFolder(jobId), instance).watcherRecordPath, `${JSON.stringify(rebootedRecord)}\n`);
+  for (const job of storedJobs()) {
+    const record = childRecordOf(job.id, job.watcherInstance);
+    if (record === null || record.talos === null || record.end !== null) continue;
+    const rebootedRecord: ChildRecord = {
+      ...record,
+      talos:        { ...record.talos, ...foreignBoot },
+      childProcess: record.childProcess === null ? null : { ...record.childProcess, ...foreignBoot },
+    };
+    writeFileSync(childFilesIn(sessionJobFolder(job.id), job.watcherInstance).recordPath, `${JSON.stringify(rebootedRecord)}\n`);
+  }
+  world.startTalosAgain(sessionWorkspace.trackerDirectory);
 }
 
 function productOwnerJob(): Readonly<Job> | undefined {
@@ -663,7 +668,7 @@ function resumedRecordsOf(jobId: string):{ kind: string; fields: Record<string, 
   return storedRecords().filter((record) => record.kind === 'job-resumed' && record.jobId === jobId);
 }
 
-describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the Watcher boundary', () => {
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the Talos boundary', () => {
   beforeEach(async () => {
     ({ ports } = world);
     repository       = createScratchDirectory('crash-rows');
@@ -698,22 +703,21 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     removeScratchDirectory(repository);
   });
 
-  test('overseer dies: the Watchers keep running, and a restart attaches with hello from the stored cursor and replays the history', async () => {
+  test('overseer dies: Talos keeps the session running, and a restart reads its log from the stored cursor, applying what it missed', async () => {
     const adapter = recordingAdapter({ fresh: LINE_THEN_WAITING_STEPS, resumed: WAITING_STEPS });
     const job     = await runningBuildSession(await startedOverseer(adapter));
     await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
     // The Overseer is down from here: the session goes on and logs a turn nobody applies.
-    await childReadings().sendInput(sessionJobFolder(job.id), 1, { act: 'write-line', line: adapter.chatLineOf('Example line while the Overseer is down') });
+    const input = { act: 'write-line', line: adapter.chatLineOf('Example line while the Overseer is down') } as const;
+    await world.connectionFor(sessionWorkspace.trackerDirectory).send({ kind: 'input', childId: `jobs/${job.id}#1`, input });
     await until(() => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the session never answered the line');
     const storedCursor = requireBuildJob().eventCursor;
     const unapplied    = childReadings().eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
 
+    expect(JSON.stringify(unapplied)).toContain('after-the-line');
     const report = await (await startedOverseer(adapter)).regroup();
 
-    const attached = report.attached.find((watcher) => watcher.jobId === job.id);
-    expect(attached?.instance).toBe(1);
-    expect(attached?.replayedEntries).toEqual(unapplied === 'malformed' ? [] : unapplied);
-    expect(JSON.stringify(attached?.replayedEntries)).toContain('after-the-line');
+    expect(report.lost).toEqual([]);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
     expect(requireBuildJob().eventCursor.sequence).toBeGreaterThan(storedCursor.sequence);
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
@@ -727,7 +731,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     await passOnce(drivePass);
 
     const clientLines = (childReadings().eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
-    expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ kind: 'write', line: firstLine })]);
+    expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ act: 'write-line', line: firstLine })]);
     expect(existsSync(join(sessionJobFolder(job.id), 'first-message-1.sent'))).toBe(true);
   });
 
@@ -747,7 +751,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect(storedRecords().filter((record) => record.jobId === job.id && record.kind === 'job-interrupted')).toEqual([]);
   });
 
-  test('a question answered while the Overseer is down: the restart replays it without a second decision and the live Watcher takes the control_response', async () => {
+  test('a question answered while the Overseer is down: the restart replays it without a second decision and the live session takes the control_response', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
     const job     = await runningBuildSession(first);
@@ -763,14 +767,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
     await passUntil(restarted, () => eventLogTextOf(job.id, 1).includes('after-the-answer'), 'the live session never took the answer');
-    // The Watcher logs the line it wrote inside its own frame, so the answer's quotes read escaped.
+    // Talos logs the line it wrote inside its client entry, so the answer's quotes read escaped.
     expect(eventLogTextOf(job.id, 1)).toContain('\\"type\\":\\"control_response\\"');
     expect(eventLogTextOf(job.id, 1)).toContain('\\"answers\\":{\\"Ship the example export?\\":\\"No\\"}');
     expect(storedRecords().filter((record) => record.kind === 'decision-opened')).toHaveLength(1);
     expect(requireBuildJob()).toMatchObject({ watcherInstance: 1, state: 'running' });
   });
 
-  test('without a control_response delivery the Overseer stops the live Watcher and resumes with the answer, cause answer-delivery, never counted', async () => {
+  test('without a control_response delivery the Overseer stops the live session and resumes with the answer, cause answer-delivery, never counted', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
     const drivePass = await startedOverseer(adapter, undefined, false);
     const job       = await runningBuildSession(drivePass);
@@ -885,27 +889,27 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
     expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['watcherInstance'])).toEqual([2]);
   });
 
-  test('a lost Watcher whose child takes the forced stop: the job is interrupted watcher-lost, and the cause is stored', async () => {
+  test('a lost Talos whose child takes the forced stop: the job is interrupted watcher-lost, and the cause is stored', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }));
     const job       = await runningBuildSession(drivePass);
-    world.crashWatcherAlone(sessionJobFolder(job.id), 1);
-    await passUntil(drivePass, () => storedRecords().some((record) => record.kind === 'job-interrupted'), 'the job was never interrupted');
+    world.crashTalosLeavingItsAgents(sessionWorkspace.trackerDirectory);
+    await passUntil(drivePass, () => storedRecords().some((record) => record.kind === 'job-interrupted' && record.jobId === job.id), 'the job was never interrupted');
 
-    expect(storedRecords().filter((record) => record.kind === 'job-interrupted').map((record) => record.fields['cause'])).toEqual(['watcher-lost']);
-    expect(readFileSync(join(sessionJobFolder(job.id), 'watcher-1.lost-cause'), 'utf8')).toBe('watcher-lost\n');
+    expect(storedRecords().filter((record) => record.kind === 'job-interrupted' && record.jobId === job.id).map((record) => record.fields['cause'])).toEqual(['watcher-lost']);
+    expect(readFileSync(join(sessionJobFolder(job.id), 'child-1.lost-cause'), 'utf8')).toBe('watcher-lost\n');
   });
 
   test('a child refusing the forced stop: the job waits interrupted, never resumed, each sweep tries again, the last refusal ends it blocked with one decision', async () => {
     const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }));
     const job       = await runningBuildSession(drivePass);
-    const childProcessId = watcherRecordOf(job.id, 1)?.childProcess?.processId;
+    const childProcessId = childRecordOf(job.id, 1)?.childProcess?.processId;
     world.refuseForcedStopsOfChild(sessionJobFolder(job.id), 1);
-    world.crashWatcherAlone(sessionJobFolder(job.id), 1);
+    world.crashTalosLeavingItsAgents(sessionWorkspace.trackerDirectory);
     const refusals = (): number => Regrouping.refusedForcedStopsOf(sessionJobFolder(job.id), 1).refusals;
     await passUntil(drivePass, () => requireBuildJob().state === 'interrupted', 'the job was never interrupted');
 
     expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', watcherInstance: 1 });
-    expect(existsSync(join(sessionJobFolder(job.id), 'watcher-1.lost-cause')), 'a refused stop stores no cause').toBe(false);
+    expect(existsSync(join(sessionJobFolder(job.id), 'child-1.lost-cause')), 'a refused stop stores no cause').toBe(false);
     expect(refusals()).toBe(1);
     await passOnce(drivePass);
     expect(refusals(), 'only a sweep tries the stop again').toBe(1);
@@ -1128,7 +1132,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the W
       callBudget:          30,
       interruptedInstance: 0,
     }, 'expected 2, received 3');
-    const { eventLogPath } = watcherFilesOf(sessionJobFolder(endedBuildJobId), 1);
+    const { eventLogPath } = childFilesIn(sessionJobFolder(endedBuildJobId), 1);
     mkdirSync(join(eventLogPath, '..'), { recursive: true });
     const eventLog = createEventLogWriter(eventLogPath, () => SESSION_STAMP);
     eventLog.append('agent', fakeStartedLine('fake-session'));

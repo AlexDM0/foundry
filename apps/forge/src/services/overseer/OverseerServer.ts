@@ -18,7 +18,7 @@ import type { MonitorEventDocument, MonitorStreamHandshake } from 'forge-contrac
 import { CompatibilityRegistryUtil }                         from 'system-versions/CompatibilityRegistryUtil';
 import type { SystemVersion, VersionsDocument }              from 'system-versions/VersionsDocument';
 
-import { WATCHER_PROTOCOL_VERSION }                   from '../../lib/watcher/constants/WatcherProtocol.ts';
+import { TALOS_PROTOCOL_VERSION }                     from '../../lib/talos/constants/TalosProtocol.ts';
 import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
 import { IDENTITY_VERSION, SERVED_CONTRACT_VERSIONS } from '../../shared/constants/OverseerApiContracts.ts';
 import {
@@ -39,16 +39,16 @@ import { MILLISECONDS_PER_SECOND }               from './constants/TimeUnits.ts'
 
 /** The package's identity, but for `application`: the program's name, which a build linked beside the released program changes. */
 export interface OverseerIdentity extends Omit<IdentityDocument, 'application'> {
-  identityVersion:        typeof IDENTITY_VERSION;
-  application:            string;
-  trackerId:              string;
-  project:                string;
-  codeVersion:            string;
-  installVersion:         number;
-  watcherProtocolVersion: number;
-  processId:              number;
+  identityVersion:      typeof IDENTITY_VERSION;
+  application:          string;
+  trackerId:            string;
+  project:              string;
+  codeVersion:          string;
+  installVersion:       number;
+  talosProtocolVersion: number;
+  processId:            number;
   /** The version of each API contract this program serves; a contract it does not serve has no key. */
-  contracts:              typeof SERVED_CONTRACT_VERSIONS;
+  contracts:            typeof SERVED_CONTRACT_VERSIONS;
 }
 
 /** What a 401, a 403 or a 500 refuses, which the routes word as `text` beside it. */
@@ -119,7 +119,7 @@ export interface OverseerRoutes {
 
 export interface OverseerServerRequest {
   portChoice:             OverseerPortChoice;
-  identity:               Omit<OverseerIdentity, 'identityVersion' | 'application' | 'watcherProtocolVersion' | 'contracts'>;
+  identity:               Omit<OverseerIdentity, 'identityVersion' | 'application' | 'talosProtocolVersion' | 'contracts'>;
   routes:                 OverseerRoutes;
   /** The clock a session code's life is measured on. */
   now:                    () => Date;
@@ -631,11 +631,11 @@ function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequest
   const versions = serverRequest.versions ?? FORGE_SYSTEM_VERSIONS;
   const servedEndpoints = servedEndpointsOf(versions);
   const identity: OverseerIdentity = {
-    identityVersion:        IDENTITY_VERSION,
-    application:            PRODUCT_NAMES.PROGRAM,
+    identityVersion:      IDENTITY_VERSION,
+    application:          PRODUCT_NAMES.PROGRAM,
     ...serverRequest.identity,
-    watcherProtocolVersion: WATCHER_PROTOCOL_VERSION,
-    contracts:              SERVED_CONTRACT_VERSIONS,
+    talosProtocolVersion: TALOS_PROTOCOL_VERSION,
+    contracts:            SERVED_CONTRACT_VERSIONS,
   };
   return {
     answer: async (request, boundPort, holdOpen) => {

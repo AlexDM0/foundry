@@ -40,15 +40,15 @@ function batonRecordWithToken(token: string | null): BatonRecord {
   const tokenFile = join(scratchDirectory, 'token');
   if (token !== null) writeFileSync(tokenFile, `${token}\n`);
   return {
-    processId:              4242,
-    processStartStamp:      'example-start',
-    bootIdentity:           'example-boot',
-    port:                   overseer.port,
-    url:                    overseer.url,
+    processId:            4242,
+    processStartStamp:    'example-start',
+    bootIdentity:         'example-boot',
+    port:                 overseer.port,
+    url:                  overseer.url,
     tokenFile,
-    codeVersion:            'code-example',
-    installVersion:         17,
-    watcherProtocolVersion: 2,
+    codeVersion:          'code-example',
+    installVersion:       17,
+    talosProtocolVersion: 2,
   };
 }
 

@@ -3,8 +3,8 @@
  * than handed its task again; a resume fails only when the session exited by itself before it ever started, a first instance included when
  * its launch resumed the session of another job; and only the newest earlier job
  * of the same work decides whether a fresh job inherits a replaced session's worktree. An Airlock agent carries on the session of its
- * ticket's last worker, whatever its own role, unless an agent of its merge was replaced. A fresh instance's first message survives a Watcher
- * not yet listening and is sent once, its marker following the accepted frame.
+ * ticket's last worker, whatever its own role, unless an agent of its merge was replaced. A fresh instance's first message survives a Talos
+ * that answers nothing on one pass and is sent once, its marker following the taken frame.
  */
 import { existsSync, mkdirSync } from 'node:fs';
 import { join }                  from 'node:path';
@@ -18,14 +18,13 @@ import {
 
 import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import { clientEntryLinesOf }                             from '../../testing/ClientEntryLines.ts';
+import { type FrameRecordingTalos, frameRecordingTalos }  from '../../testing/FrameRecordingTalos.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
-import type { BoardChildren }                             from './BoardChildren.ts';
 import { JobResumption }                                  from './JobResumption.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
-import { PlantedWatcher }                                 from './testing/PlantedWatcher.ts';
 
 const AT = '2026-09-18T22:11:03+02:00';
 
@@ -64,11 +63,6 @@ function ended(jobId: string, outcome: 'replaced' | 'failed' | 'built' | 'does-n
   };
 }
 
-/** The tracker's children as the Overseer reads them, by the job folders of the tracker the case made. */
-function childrenOfTheTracker(trackerDirectory: string): BoardChildren {
-  return watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory);
-}
-
 describe('the launch of a job\'s current instance', () => {
   test('the first instance gets its task; a later one resumes and is told it was interrupted', () => {
     expect(JobResumption.launchPartsOf(buildJob(), 'Example task', 'Example resume')).toEqual({ resume: false, firstMessage: 'Example task' });
@@ -88,50 +82,47 @@ describe('the launch of a job\'s current instance', () => {
 
 describe('the first message of a fresh instance', () => {
   let trackerDirectory = '';
-  let monitorFolder    = '';
+  let talos: FrameRecordingTalos;
 
   beforeEach(() => {
     trackerDirectory = createScratchDirectory('first-message');
-    monitorFolder    = createScratchDirectory('h');
+    talos            = frameRecordingTalos(trackerDirectory, nativePlatformPorts());
   });
 
   afterEach(() => {
     removeScratchDirectory(trackerDirectory);
-    removeScratchDirectory(monitorFolder);
   });
 
-  function plantedLiveWatcher(job: Job): string {
-    return PlantedWatcher.plantLiveWatcher({
-      trackerDirectory, monitorFolder, jobId: job.id, instance: 1
-    });
+  function plantLiveSession(job: Job): void {
+    talos.plantLiveChild(jobFolderIn(trackerDirectory, job.id), job.watcherInstance);
   }
 
-  test('a Watcher refusing the first connection is sent the line on the next pass, and never again once it took it', async () => {
+  test('a Talos answering nothing on one pass is sent the line on the next pass, and never again once it took it', async () => {
     const job        = buildJob();
     const jobs       = { jobs: (): readonly Readonly<Job>[] => [job] };
     const adapter    = { chatLineOf: (message: string): string => `chat:${message}` };
-    const socketPath = plantedLiveWatcher(job);
+    plantLiveSession(job);
     const jobFolder  = jobFolderIn(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 1, 'Example task');
 
-    await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, jobs, adapter);
+    talos.answers(false);
+    await JobResumption.deliverFirstMessages(talos.boardChildren, trackerDirectory, jobs, adapter);
+    talos.answers(true);
     expect(existsSync(join(jobFolder, 'first-message-1.sent'))).toBe(false);
 
-    const received = await PlantedWatcher.framesReceivedWhile(socketPath, async () => {
-      await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, jobs, adapter);
-      await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, jobs, adapter);
-    });
-    const writes = received.filter((line) => line.includes('"write"'));
-    expect(writes).toEqual([JSON.stringify({ kind: 'write', line: 'chat:Example task' })]);
+    await JobResumption.deliverFirstMessages(talos.boardChildren, trackerDirectory, jobs, adapter);
+    await JobResumption.deliverFirstMessages(talos.boardChildren, trackerDirectory, jobs, adapter);
+    expect(clientEntryLinesOf(talos.frames())).toEqual([JSON.stringify({ act: 'write-line', line: 'chat:Example task' })]);
     expect(existsSync(join(jobFolder, 'first-message-1.sent'))).toBe(true);
   });
 
   test('a resumed instance is never sent a stored first message', async () => {
     const job = buildJob({ watcherInstance: 2 });
-    plantedLiveWatcher(job);
+    plantLiveSession(job);
     const jobFolder = jobFolderIn(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 2, 'Example task');
-    await JobResumption.deliverFirstMessages(childrenOfTheTracker(trackerDirectory), trackerDirectory, { jobs: () => [job] }, { chatLineOf: (message) => message });
+    await JobResumption.deliverFirstMessages(talos.boardChildren, trackerDirectory, { jobs: () => [job] }, { chatLineOf: (message) => message });
+    expect(talos.frames()).toEqual([]);
     expect(existsSync(join(jobFolder, 'first-message-2.sent'))).toBe(false);
   });
 });

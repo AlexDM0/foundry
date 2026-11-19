@@ -1,7 +1,8 @@
 /**
- * The one way a spec makes a DrivePass on a scratch tracker: a Baton of this process and the example wording, every other request field the
- * spec's to set. A real-system spec pins the Watcher bundle; a default spec passes `src/testing/RecordedWatcherStages.ts`, its bundle path
- * never read, and runs on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`.
+ * The one way a spec makes a DrivePass on a scratch tracker: a Baton of this process, the board's children through Talos's adapter over the
+ * connection the spec hands, and the example wording, every other request field the spec's to set. A default spec hands the connection of
+ * `src/testing/RecordedTalosStages.ts` and runs on the recorded git flow stages of `src/testing/RecordedGitFlow.ts`; a real-system spec
+ * starts a scratch Talos with `startScratchBoardTalos`.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join }            from 'node:path';
@@ -10,25 +11,37 @@ import type { AgentAdapter }                                      from '../lib/a
 import { createDarwinSeatbelt }                                   from '../lib/gate-confinement/DarwinSeatbelt.ts';
 import type { GateConfinement }                                   from '../lib/gate-confinement/GateConfinement.ts';
 import type { PlatformPorts }                                     from '../lib/platform-ports/PlatformPortsFor.ts';
+import type { ProcessIdentity }                                   from '../lib/process-identity/ProcessIdentity.ts';
+import type { ChildLaunch }                                       from '../lib/talos/ChildLaunch.ts';
+import { TALOS_PROTOCOL_VERSION }                                 from '../lib/talos/constants/TalosProtocol.ts';
 import { Baton }                                                  from '../services/overseer/Baton.ts';
 import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/overseer/DrivePass.ts';
 import { overseerFilesIn }                                        from '../services/overseer/OverseerFiles.ts';
-import { createWatcherBoardChildren }                             from '../services/overseer/WatcherBoardChildren.ts';
-import { WATCHER_ENTRY_PATH, WatcherBundle }                      from '../services/overseer/WatcherBundle.ts';
-import { requireProgressFile }                                    from '../services/tracker/TrackerReader.ts';
-import type { Workspace }                                         from '../services/tracker/Workspace.ts';
-import { branchNamesOf }                                          from '../shared/BranchNames.ts';
-
-export const FAKE_WATCHER_BUNDLE_PATH = '/no-bundle-is-read-by-the-recorded-watcher-stages';
+import { createTalosChildren }                                    from '../services/overseer/TalosChildren.ts';
+import { type TalosConnection, connectToTalos }                   from '../services/overseer/TalosConnection.ts';
+import {
+  createTalosStartHold,
+  ensureTalos,
+  spawnTalos,
+  TALOS_START_BOUNDS,
+  TALOS_START_WAITS,
+  type TalosStartContext,
+  talosRecordAt
+} from '../services/overseer/TalosStart.ts';
+import { requireProgressFile } from '../services/tracker/TrackerReader.ts';
+import type { Workspace }      from '../services/tracker/Workspace.ts';
+import { branchNamesOf }       from '../shared/BranchNames.ts';
+import { firstValueOf }        from './WaitUntil.ts';
 
 interface ScratchDrivePassRequired {
-  platformPorts:     PlatformPorts;
-  workspace:         Workspace;
-  agentAdapter:      AgentAdapter;
-  monitorFolder:     string;
-  mainLine:          string;
-  watcherBundlePath: string;
-  log:               (line: string) => void;
+  platformPorts:   PlatformPorts;
+  workspace:       Workspace;
+  agentAdapter:    AgentAdapter;
+  monitorFolder:   string;
+  mainLine:        string;
+  /** The connection to the board's Talos, read at each act: the recorded stages' in a default spec, a scratch Talos's in a real-system one. */
+  talosConnection: () => TalosConnection | null;
+  log:             (line: string) => void;
 }
 
 export type ScratchDrivePassRequest = ScratchDrivePassRequired & Partial<DrivePassRequest>;
@@ -40,38 +53,25 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
   // Only the start stamp differs from this process's identity, so the Baton reads as dead to a successor, a recorded answer of the process table.
   const ownBootIdentity = request.platformPorts.processSupervision.identityOf(process.pid)?.bootIdentity ?? 'example-boot';
   const acquisition = Baton.acquire(request.platformPorts, overseerDirectory, {
-    processId:              process.pid,
-    processStartStamp:      '1',
-    bootIdentity:           ownBootIdentity,
-    port:                   1,
-    url:                    'http://127.0.0.1:1/',
-    tokenFile:              join(overseerDirectory, 'token'),
-    codeVersion:            'code-example',
-    installVersion:         1,
-    watcherProtocolVersion: 1,
+    processId:            process.pid,
+    processStartStamp:    '1',
+    bootIdentity:         ownBootIdentity,
+    port:                 1,
+    url:                  'http://127.0.0.1:1/',
+    tokenFile:            join(overseerDirectory, 'token'),
+    codeVersion:          'code-example',
+    installVersion:       1,
+    talosProtocolVersion: TALOS_PROTOCOL_VERSION,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the scratch Baton was not acquired');
   const codeVersion = request.codeVersion ?? 'code-example';
-  const boardChildren = createWatcherBoardChildren({
-    platformPorts:    request.platformPorts,
-    trackerDirectory: request.workspace.trackerDirectory,
-    launching:        {
-      trackerId:         requireProgressFile(request.workspace).trackerId,
-      monitorFolder:     request.monitorFolder,
-      watcherBundlePath: request.watcherBundlePath,
-      codeVersion,
-      watcherDirectory:  request.workspace.rootDirectory,
-      ...(request.processStarts === undefined ? {} : { processStarts: request.processStarts }),
-    },
-    log: request.log,
-  });
+  const boardChildren = createTalosChildren({ boardFolder: request.workspace.trackerDirectory, platformPorts: request.platformPorts, connection: request.talosConnection });
   const defaults: Omit<DrivePassRequest, keyof ScratchDrivePassRequired> = {
     now:                   () => new Date('2026-09-18T20:11:03Z'),
     formatStamp:           () => '2026-09-18T22:11:03+02:00',
     overseerDirectory,
     generation:            acquisition.generation,
     boardChildren,
-    reapEndedWatchers:     boardChildren.reapEndedWatchers,
     codeVersion,
     programCommand:        [process.execPath, join(import.meta.dir, '..', '..', 'agent-progress.ts')],
     inheritedEnvironment:  {},
@@ -96,11 +96,78 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
   return createDrivePass(Object.defineProperties(defaults, Object.getOwnPropertyDescriptors(request)) as DrivePassRequest);
 }
 
-/** The real Watcher's bundle, for a real-system spec; the build lands in the scratch tracker. */
-export async function pinnedScratchWatcherBundle(workspace: Workspace): Promise<string> {
-  const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
-  mkdirSync(overseerDirectory, { recursive: true });
-  return await WatcherBundle.pinWatcherBundle({ overseerDirectory, codeVersion: 'code-example', entryPath: WATCHER_ENTRY_PATH });
+/** A board's real Talos for a real-system spec, started as the Overseer starts it; `quit` ends it cleanly, pausing what still runs. */
+export interface ScratchBoardTalos {
+  readonly connection:   () => TalosConnection | null;
+  /** The launch sent for the child of `childFolder`, an absolute folder, at `instance`, which a spec reads as Talos never stores it. */
+  readonly launchOf:     (childFolder: string, instance: number) => ChildLaunch | null;
+  /** The Talos's own process, as its record names it; `null` before it claimed. */
+  readonly talos:        () => ProcessIdentity | null;
+  /** Once the connection closed, starts the next Talos as the Overseer's `ensureTalos` does, sweeping the lost one's orphans. */
+  readonly ensureIfLost: () => Promise<void>;
+  readonly quit:         () => Promise<void>;
+}
+
+export interface ScratchBoardTalosRequest {
+  workspace:     Workspace;
+  platformPorts: PlatformPorts;
+  monitorFolder: string;
+  log:           (line: string) => void;
+}
+
+export async function startScratchBoardTalos(request: ScratchBoardTalosRequest): Promise<ScratchBoardTalos> {
+  const boardFolder = request.workspace.trackerDirectory;
+  const context: TalosStartContext = {
+    boardFolder,
+    monitorFolder:  request.monitorFolder,
+    trackerId:      requireProgressFile(request.workspace).trackerId,
+    codeVersion:    'code-example',
+    repositoryRoot: request.workspace.rootDirectory,
+    ports:          request.platformPorts,
+    bounds:         TALOS_START_BOUNDS,
+    waits:          TALOS_START_WAITS,
+    connect:        connectToTalos,
+    startTalos:     spawnTalos,
+    hold:           createTalosStartHold(),
+    log:            request.log,
+  };
+  const launches: ChildLaunch[] = [];
+  let current: { connection: TalosConnection; startNumber: number } | null = null;
+  let lost = false;
+  const follow = async (): Promise<void> => {
+    const availability = await ensureTalos(context);
+    if (availability.verdict !== 'started' && availability.verdict !== 'attached') throw new Error(`the scratch Talos did not serve: ${JSON.stringify(availability)}`);
+    const { connection, startNumber } = availability;
+    current = { connection, startNumber };
+    lost = false;
+    connection.onClose(() => {
+      if (current?.connection !== connection) return;
+      current = null;
+      lost = true;
+    });
+  };
+  await follow();
+  const launchKeepingConnection = (connection: TalosConnection): TalosConnection => ({
+    ...connection,
+    send: async (frame) => {
+      if (frame.kind === 'launch') launches.push(frame.launch);
+      return await connection.send(frame);
+    },
+  });
+  return {
+    connection:   () => (current === null ? null : launchKeepingConnection(current.connection)),
+    launchOf:     (childFolder, instance) => launches.find((launch) => join(boardFolder, ...launch.childFolder.split('/')) === childFolder && launch.instance === instance) ?? null,
+    talos:        () => (current === null ? null : talosRecordAt(boardFolder, current.startNumber)?.talos ?? null),
+    ensureIfLost: async () => {
+      if (lost) await follow();
+    },
+    quit: async () => {
+      const connection = current?.connection;
+      if (connection === undefined) return;
+      await connection.send({ kind: 'quit', reason: 'restart' });
+      await firstValueOf(() => (current === null ? true : undefined), 'the scratch Talos quitting');
+    },
+  };
 }
 
 /** `createDarwinSeatbelt` answering that a sandbox applies, so the real profile is written with no probe of `sandbox-exec`, on any platform. */

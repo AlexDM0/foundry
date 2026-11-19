@@ -1,10 +1,9 @@
 /**
- * Settling a lost Watcher's cause against real process groups. What matters is that the recorded child group is killed whenever it is still
- * the recorded one, including once its leader has exited while members live on (the Watcher is then the one lost), and that a group whose
+ * Settling a lost child's cause against real process groups. What matters is that the recorded child group is killed whenever it is still
+ * the recorded one, including once its leader has exited while members live on (its Talos is then the one lost), and that a group whose
  * recorded leader id now belongs to an unrelated process, alive or as the members of a reused group, is never signalled.
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import { join } from 'node:path';
 import {
   afterEach,
   describe,
@@ -13,19 +12,17 @@ import {
 } from 'bun:test';
 
 import { processIsGone, type ProcessIdentity }            from '../../lib/process-identity/ProcessIdentity.ts';
-import { EVENT_LOG_FORMAT_VERSION }                       from '../../lib/talos/constants/TalosProtocol.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { parentOfDetachedChild }                          from '../../testing/ProcessDoubles.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { OUTLIVES_EVERY_WAIT_SECONDS, waitUntil }         from '../../testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
 import { Regrouping }                                     from './Regrouping.ts';
 
 const ports = nativePlatformPorts();
 const { identityOf } = ports.processSupervision;
 
-const WATCHER_INSTANCE = 1;
+const CHILD_INSTANCE = 1;
 
 const scratchDirectories: string[] = [];
 const lingeringProcessIds: number[] = [];
@@ -56,48 +53,47 @@ async function spawnGroupWithLingeringChild(): Promise<{ leader: Bun.Subprocess<
 
 const LATER_THAN_ANY_START_STAMP = '99999999999999';
 
-/** A lost Watcher's job folder whose record names the given child, the Watcher itself unrecorded so the boot is read from the child. */
-function jobFolderRecording(childProcess: ProcessIdentity): string {
-  const scratchDirectory = createScratchDirectory('regrouping');
-  scratchDirectories.push(scratchDirectory);
-  const jobFolder = join(scratchDirectory, 'J1');
-  mkdirSync(jobFolder, { recursive: true });
-  writeFileSync(watcherFilesOf(jobFolder, WATCHER_INSTANCE).watcherRecordPath, `${JSON.stringify({
-    protocolVersion:       1,
-    eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
-    watcherInstance:       WATCHER_INSTANCE,
-    state:                 'running',
-    watcher:               null,
-    childProcess,
-    childProcessGroupId:   childProcess.processId,
-  })}\n`);
-  return jobFolder;
+interface LostChild {
+  boardFolder: string;
+  jobFolder:   string;
 }
 
-describe('settling a lost watcher', () => {
-  test('a recorded child whose leader exited while a member of its group lives: the group is signalled and the Watcher judged lost', async () => {
+/** A lost child's job folder whose record names the given child, its Talos unrecorded so the boot is read from the child. */
+function lostChildRecording(childProcess: ProcessIdentity): LostChild {
+  const boardFolder = createScratchDirectory('regrouping');
+  scratchDirectories.push(boardFolder);
+  PlantedChild.plantChildRecord({ boardFolder, childFolder: 'jobs/J1', instance: CHILD_INSTANCE }, { talos: null, childProcess, childProcessGroupId: childProcess.processId });
+  return { boardFolder, jobFolder: join(boardFolder, 'jobs', 'J1') };
+}
+
+function settled(lost: LostChild): ReturnType<typeof Regrouping.settleLostChildIn> {
+  return Regrouping.settleLostChildIn(lost.boardFolder, ports, lost.jobFolder, CHILD_INSTANCE);
+}
+
+describe('settling a lost child', () => {
+  test('a recorded child whose leader exited while a member of its group lives: the group is signalled and its Talos judged lost', async () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
-    const jobFolder = jobFolderRecording(identityOrThrow(leader.pid));
+    const lost = lostChildRecording(identityOrThrow(leader.pid));
     process.kill(leader.pid, 'SIGKILL');
     await leader.exited;
     expect(processIsGone(childProcessId)).toBe(false);
-    expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(ports), ports, jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
+    expect(settled(lost)).toBe('watcher-lost');
     await waitUntil(() => processIsGone(childProcessId), 'the lingering child going');
   });
 
-  test('a lost Watcher\'s still-live child: a command leading a group of its own below it goes too, so no resume runs beside it', async () => {
+  test('a lost Talos\'s still-live child: a command leading a group of its own below it goes too, so no resume runs beside it', async () => {
     const parent = await parentOfDetachedChild();
     lingeringProcessIds.push(parent.processId, parent.reportedProcessId);
-    const jobFolder = jobFolderRecording(identityOrThrow(parent.processId));
-    expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(ports), ports, jobFolder, WATCHER_INSTANCE)).toBe('watcher-lost');
+    const lost = lostChildRecording(identityOrThrow(parent.processId));
+    expect(settled(lost)).toBe('watcher-lost');
     await waitUntil(() => processIsGone(parent.reportedProcessId), 'the command going');
   });
 
   test('a recorded leader id now held by an unrelated live process: nothing is signalled and the agent reads as crashed', async () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
     const current = identityOrThrow(leader.pid);
-    const jobFolder = jobFolderRecording({ ...current, startStamp: '1' });
-    expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(ports), ports, jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
+    const lost = lostChildRecording({ ...current, startStamp: '1' });
+    expect(settled(lost)).toBe('agent-crashed');
     expect(processIsGone(leader.pid)).toBe(false);
     expect(processIsGone(childProcessId)).toBe(false);
   });
@@ -105,10 +101,10 @@ describe('settling a lost watcher', () => {
   test('a recorded leader id reused by a group whose members predate the recorded leader: nothing is signalled', async () => {
     const { leader, childProcessId } = await spawnGroupWithLingeringChild();
     const current = identityOrThrow(leader.pid);
-    const jobFolder = jobFolderRecording({ ...current, startStamp: LATER_THAN_ANY_START_STAMP });
+    const lost = lostChildRecording({ ...current, startStamp: LATER_THAN_ANY_START_STAMP });
     process.kill(leader.pid, 'SIGKILL');
     await leader.exited;
-    expect(Regrouping.settleLostWatcher(watcherChildReadingsWith(ports), ports, jobFolder, WATCHER_INSTANCE)).toBe('agent-crashed');
+    expect(settled(lost)).toBe('agent-crashed');
     expect(processIsGone(childProcessId)).toBe(false);
   });
 });

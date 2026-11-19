@@ -14,15 +14,15 @@ import { type ProcessIdentity, startStampOfStored } from '../../lib/process-iden
 import { OperationRefusal }                         from '../../shared/OperationRefusal.ts';
 
 export interface BatonRecord {
-  processId:              number;
-  processStartStamp:      string;
-  bootIdentity:           string;
-  port:                   number;
-  url:                    string;
-  tokenFile:              string;
-  codeVersion:            string;
-  installVersion:         number;
-  watcherProtocolVersion: number;
+  processId:            number;
+  processStartStamp:    string;
+  bootIdentity:         string;
+  port:                 number;
+  url:                  string;
+  tokenFile:            string;
+  codeVersion:          string;
+  installVersion:       number;
+  talosProtocolVersion: number;
 }
 
 /**
@@ -42,7 +42,7 @@ export type BatonAcquisition =
 
 const BATON_FILE_PATTERN = /^baton-(\d+)\.json$/;
 
-const NUMBER_FIELDS = ['processId', 'port', 'installVersion', 'watcherProtocolVersion'] as const;
+const NUMBER_FIELDS = ['processId', 'port', 'installVersion', 'talosProtocolVersion'] as const;
 const TEXT_FIELDS   = ['processStartStamp', 'bootIdentity', 'url', 'tokenFile', 'codeVersion'] as const;
 
 function batonFilePathFor(overseerDirectory: string, generation: number): string {

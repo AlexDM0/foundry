@@ -7,7 +7,7 @@
  * entity of the stored pipeline launches that entity's own session alone, stamped with its entity, and the Overseer stamps the entity on
  * what it relays, so its finding lands in that entity's part alone; an advise at an entity the stored pipeline does not hold launches
  * nothing. Git answers from the recorded flow of `src/testing/RecordedGitFlow.ts`; the session plays
- * `src/testing/RecordedWatcherStages.ts`.
+ * `src/testing/RecordedTalosStages.ts`.
  */
 import { existsSync } from 'node:fs';
 import {
@@ -28,18 +28,18 @@ import { type TrackerChange, writeTracker }                          from '../..
 import { requireWorkspace }                                          from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                          from '../../src/shared/OperationRefusal.ts';
 import { entityPipelineFixture }                                     from '../../src/testing/BoardFixtures.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH }          from '../../src/testing/DrivePassHarness.ts';
+import { createScratchDrivePass }                                    from '../../src/testing/DrivePassHarness.ts';
 import { ECHOED_CONTROL_CONTEXT }                                    from '../../src/testing/EchoedControlContext.ts';
 import { fakeAgentAdapter, fakeStartedLine }                         from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                       from '../../src/testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                       from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                            from '../../src/testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                                   from '../../src/testing/RecordedGitFlow.ts';
-import { useRecordedWatcherStages }                                  from '../../src/testing/RecordedWatcherStages.ts';
+import { useRecordedTalosStages }                                    from '../../src/testing/RecordedTalosStages.ts';
 import { createScratchDirectory, removeScratchDirectory }            from '../../src/testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                                    from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }         from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                 from '../../src/testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                                  from '../../src/testing/WatcherChildReadings.ts';
 import type { CommandContext }                                       from '../CommandContext.ts';
 import { runCommandLine }                                            from '../Main.ts';
 import { type CapturedCommandContext, createCapturedCommandContext } from '../testing/CapturedCommandContext.ts';
@@ -63,7 +63,7 @@ const LISTENING_SESSION = fakeAgentAdapter([
   ...Array.from({ length: MESSAGES_THE_AGENT_READS }, () => ({ kind: 'await-line' as const })),
 ]);
 
-const world = useRecordedWatcherStages(nativePlatformPorts());
+const world = useRecordedTalosStages(nativePlatformPorts());
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -118,7 +118,7 @@ async function untilTheAgentSessionIsLive(jobId: string): Promise<void> {
   await waitUntil(async () => {
     drivePass?.wake(true);
     await drivePass?.idle();
-    return watcherChildReadingsWith(world.ports).livenessOf(jobFolder, 1).verdict === 'live';
+    return talosChildReadingsWith(world.ports, requireWorkspace(repositoryDirectory).trackerDirectory).livenessOf(jobFolder, 1).verdict === 'live';
   }, () => `the pipeline agent's session being spawned: ${overseerLog.join('\n')}`);
 }
 
@@ -133,7 +133,7 @@ beforeEach(async () => {
     workspace:         requireWorkspace(repositoryDirectory),
     now:               () => new Date(Date.parse(SPEC_STAMP)),
     formatStamp:       () => SPEC_STAMP,
-    watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
+    talosConnection:   () => world.connectionFor(requireWorkspace(repositoryDirectory).trackerDirectory),
     agentAdapter:      LISTENING_SESSION,
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,

@@ -22,14 +22,13 @@ import {
 
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { CLAUDE_STREAM_LINES }                            from '../../lib/claude-code/ClaudeStreamLines.ts';
+import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { ActingFrame }                               from '../../lib/watcher/@types/WatcherFrame.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import type { TranscriptEntry }                           from '../../shared/@types/TranscriptEntry.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
 import { JobTranscript, type TranscriptSenderFacts }      from './JobTranscript.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 
@@ -40,7 +39,7 @@ afterEach(() => {
 });
 
 type LoggedLine =
-  | { readonly origin: 'client'; readonly frame: ActingFrame }
+  | { readonly origin: 'client'; readonly frame: ClientEntry }
   | { readonly origin: 'agent'; readonly events: readonly AgentSessionEvent[] }
   | { readonly origin: 'talos'; readonly line: string };
 
@@ -55,11 +54,11 @@ const EXAMPLE_PICTURE_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0
 const EXAMPLE_PICTURE_ID = createHash('sha256').update(EXAMPLE_PICTURE_BYTES).digest('hex');
 
 function chat(text: string): LoggedLine {
-  return { origin: 'client', frame: { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf(text) } };
+  return { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf(text) } };
 }
 
 function answer(requestId: string, answers: Readonly<Record<string, string>>): LoggedLine {
-  return { origin: 'client', frame: { kind: 'write', line: CLAUDE_STREAM_LINES.answerLineOf(requestId, [QUESTION], answers) } };
+  return { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.answerLineOf(requestId, [QUESTION], answers) } };
 }
 
 function agent(...events: AgentSessionEvent[]): LoggedLine {
@@ -77,7 +76,7 @@ function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance
   const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   linesByInstance.forEach((lines, index) => {
-    const writer = createEventLogWriter(watcherFilesOf(jobFolder, index + 1).eventLogPath, () => EXAMPLE_STAMP);
+    const writer = createEventLogWriter(childFilesIn(jobFolder, index + 1).eventLogPath, () => EXAMPLE_STAMP);
     for (const logged of lines) {
       if (logged.origin === 'client') writer.append('client', JSON.stringify(logged.frame));
       else if (logged.origin === 'agent') writer.append('agent', JSON.stringify(logged.events));
@@ -96,7 +95,7 @@ function transcriptOf(
 ): { entries: TranscriptEntry[]; senderFactReads: number } {
   let senderFactReads = 0;
   const { entries } = JobTranscript.entriesAfter(jobFolder, newestInstance, JobTranscript.cursorOf(after) ?? { instance: 1, sequence: 0 }, {
-    eventsAfter:   watcherChildReadingsWith(nativePlatformPorts()).eventsAfter,
+    eventsAfter:   talosChildReadingsWith(nativePlatformPorts()).eventsAfter,
     eventsOf:      (line) => JSON.parse(line) as AgentSessionEvent[],
     sentLineOf:    CLAUDE_STREAM_LINES.sentLineOf,
     senderFactsOf: () => {
@@ -169,9 +168,9 @@ describe('a build job\'s client lines', () => {
 
   test('read an interrupt, a closed input and a stop as the Overseer\'s acts, with no text', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[
-      { origin: 'client', frame: { kind: 'write', line: CLAUDE_STREAM_LINES.interruptLineOf() } },
-      { origin: 'client', frame: { kind: 'close-input' } },
-      { origin: 'client', frame: { kind: 'stop', graceMilliseconds: 5000 } },
+      { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.interruptLineOf() } },
+      { origin: 'client', frame: { act: 'close' } },
+      { origin: 'client', frame: { act: 'stop', graceMilliseconds: 5000 } },
     ]]);
     expect(senderColumnsOf(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries)).toEqual(['interrupt', 'close-input', 'stop'].map((clientAct) => ({
       role: 'overseer', sentBy: 'overseer', clientAct, text: ''
@@ -179,7 +178,7 @@ describe('a build job\'s client lines', () => {
   });
 
   test('give no entry for a written line the adapter does not read back', () => {
-    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[{ origin: 'client', frame: { kind: 'write', line: '{"type":"unknown"}' } }]]);
+    const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[{ origin: 'client', frame: { act: 'write-line', line: '{"type":"unknown"}' } }]]);
     expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries).toEqual([]);
   });
 
@@ -202,7 +201,7 @@ describe('a product owner\'s pictures', () => {
     const picture = { mediaType: 'image/png', base64Data: EXAMPLE_PICTURE_BYTES.toString('base64') };
     const withPicture = CLAUDE_STREAM_LINES.chatLineOf('Make the header like this.', [picture]);
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J7', [[
-      chat('File the basket ticket.'), { origin: 'client', frame: { kind: 'write', line: withPicture } },
+      chat('File the basket ticket.'), { origin: 'client', frame: { act: 'write-line', line: withPicture } },
     ]]);
     const facts = { ...NO_SENDER_FACTS, userMessageTexts: ['Make the header like this.'], pictureNamesById: new Map([[EXAMPLE_PICTURE_ID, 'header-mockup.png']]) };
     const { entries } = transcriptOf(jobFolder, 1, facts);
@@ -220,7 +219,7 @@ describe('a product owner\'s pictures', () => {
   test('a picture no record of the job names reads with a null name', () => {
     const picture = { mediaType: 'image/png', base64Data: EXAMPLE_PICTURE_BYTES.toString('base64') };
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J7', [[
-      { origin: 'client', frame: { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf('', [picture]) } },
+      { origin: 'client', frame: { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf('', [picture]) } },
     ]]);
     expect(transcriptOf(jobFolder, 1, NO_SENDER_FACTS).entries[0]?.pictures).toEqual([{
       pictureId: EXAMPLE_PICTURE_ID, name: null, mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES.length

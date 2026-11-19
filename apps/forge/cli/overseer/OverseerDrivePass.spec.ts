@@ -1,7 +1,9 @@
 /**
- * The DrivePass's code on a scratch tracker behind the Watcher boundary, `src/testing/RecordedWatcherStages.ts` playing each session. What matters: a
+ * The DrivePass's code on a scratch tracker behind the Talos boundary, `src/testing/RecordedTalosStages.ts` playing each session. What matters: a
  * readied ticket gets a `launching` job and a session in one pass; a Hatch request and the `result` of the turn that wrote it, read in one pass,
- * are applied request first; a build's launch file asks its Watcher to stop the groups its session left and the Assistant's does not; a
+ * are applied request first; a build's launch asks Talos to stop the groups its session left and the Assistant's does not; a launch is a
+ * `launch` frame; a recognised outage interrupts its job `network-outage` and stops its session, and the job never moves to `in-customs`;
+ * an end `paused` interrupts `talos-paused` and resumes on the next pass, and an end `lease-ended` interrupts `lease-ended` and nothing resumes it; a
  * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a reply lost after its hold committed is
  * written again from its `hatch-applied` record, unapplied, and a record carrying no reply leaves it unanswered; a pass with nothing changed does not run,
  * however late; one pass reads the install version once, so its runtime state and notices never disagree; a launched job's Hatch folder
@@ -27,25 +29,25 @@ import {
 } from 'bun:test';
 
 
-import { hatchReplyFilePathOf, writeHatchRequest }          from '../../src/adapters/hatch/HatchFolder.ts';
-import { MachineLimitsFile }                                from '../../src/adapters/machine-limits/MachineLimitsFile.ts';
-import { UsageMarkerFile }                                  from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { UsageWindowsFile }                                 from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
-import { OperationRefusalWordingUtil }                      from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { AgentAdapter }                                from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { createWindowsExecutableResolver }                  from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
-import type { PlatformWatch }                               from '../../src/lib/quiet-watch/QuietWatch.ts';
-import type { Board }                                       from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
-import { AGENT_SLOTS_FOLDER }                               from '../../src/services/overseer/AgentSlots.ts';
-import type { BoardChildren }                               from '../../src/services/overseer/BoardChildren.ts';
-import { DataFolderWatch }                                  from '../../src/services/overseer/DataFolderWatch.ts';
-import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
-import { HatchInbox }                                       from '../../src/services/overseer/HatchInbox.ts';
-import { jobFolderIn }                                      from '../../src/services/overseer/OverseerFiles.ts';
-import { requireWorkspace, workspacePathsFor }              from '../../src/services/tracker/Workspace.ts';
-import { SESSION_STOP_GRACE_MILLISECONDS }                  from '../../src/shared/constants/OverseerLimits.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
+import { hatchReplyFilePathOf, writeHatchRequest }              from '../../src/adapters/hatch/HatchFolder.ts';
+import { MachineLimitsFile }                                    from '../../src/adapters/machine-limits/MachineLimitsFile.ts';
+import { UsageMarkerFile }                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { UsageWindowsFile }                                     from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
+import { OperationRefusalWordingUtil }                          from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
+import { createWindowsExecutableResolver }                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
+import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
+import type { Job }                                             from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Board }                                           from '../../src/lib/tracker-model/Board.ts';
+import { AGENT_SLOTS_FOLDER }                                   from '../../src/services/overseer/AgentSlots.ts';
+import type { BoardChildren }                                   from '../../src/services/overseer/BoardChildren.ts';
+import { DataFolderWatch }                                      from '../../src/services/overseer/DataFolderWatch.ts';
+import type { DrivePass }                                       from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                           from '../../src/services/overseer/HatchInbox.ts';
+import { jobFolderIn }                                          from '../../src/services/overseer/OverseerFiles.ts';
+import { requireWorkspace, workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
+import { SESSION_STOP_GRACE_MILLISECONDS }                      from '../../src/shared/constants/OverseerLimits.ts';
+import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   fakeAgentAdapter,
@@ -53,28 +55,28 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                                  from '../../src/testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                  from '../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                       from '../../src/testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                              from '../../src/testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                             from '../../src/testing/WatcherChildReadings.ts';
-import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }                      from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                                      from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                                      from '../testing/StoredLogText.ts';
-import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
+import { fakeGateConfinement }                               from '../../src/testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                               from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                    from '../../src/testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                           from '../../src/testing/RecordedGitFlow.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }  from '../../src/testing/RecordedTalosStages.ts';
+import { createScratchDirectory, removeScratchDirectory }    from '../../src/testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }              from '../../src/testing/TalosChildReadings.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../src/testing/ToolGuard.ts';
+import { waitUntil }                                         from '../../src/testing/WaitUntil.ts';
+import { createCapturedCommandContext }                      from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }            from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                   from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                                   from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                                   from '../testing/StoredLogText.ts';
+import { storedProgressOf }                                  from '../testing/StoredProgress.ts';
 
 const recordedGit = useRecordedGit();
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
-const world = useRecordedWatcherStages(nativePlatformPorts());
-let ports: RecordedWatcherStages['ports'];
+const world = useRecordedTalosStages(nativePlatformPorts());
+let ports: RecordedTalosStages['ports'];
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -89,29 +91,32 @@ async function run(commandLineArguments: readonly string[]) {
 
 const SPEC_STAMP = '2026-09-18T22:11:03+02:00';
 
-/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+function trackerDirectory(): string {
+  return requireWorkspace(repositoryDirectory).trackerDirectory;
+}
+
+/** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */
 function childReadings(): BoardChildren {
-  return watcherChildReadingsWith(ports);
+  return talosChildReadingsWith(ports, trackerDirectory());
 }
 
 function drivePassWith(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
   clock: { stamp: string } = { stamp: SPEC_STAMP },
-  endpointOverride: Partial<RecordedWatcherStages['ports']['localEndpoint']> = {},
-  requestOverrides: Partial<DrivePassRequest> = {},
+  requestOverrides: Partial<ScratchDrivePassRequest> = {},
 ): Promise<DrivePass> {
   const drivePass = createScratchDrivePass({
-    platformPorts:     { ...ports, localEndpoint: { ...ports.localEndpoint, ...endpointOverride }, gateConfinement: fakeGateConfinement('unconfined-by-design') },
-    processStarts:     world.processStarts,
-    workspace:         requireWorkspace(repositoryDirectory),
-    now:               () => new Date(Date.parse(clock.stamp)),
-    formatStamp:       () => clock.stamp,
-    watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
-    agentAdapter:      adapter,
+    platformPorts:   { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
+    processStarts:   world.processStarts,
+    workspace:       requireWorkspace(repositoryDirectory),
+    now:             () => new Date(Date.parse(clock.stamp)),
+    formatStamp:     () => clock.stamp,
+    talosConnection: () => world.connectionFor(trackerDirectory()),
+    agentAdapter:    adapter,
     monitorFolder,
-    mainLine:          RECORDED_FLOW_MAIN_LINE,
-    log:               (line) => overseerLog.push(line),
+    mainLine:        RECORDED_FLOW_MAIN_LINE,
+    log:             (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
     ...requestOverrides,
   });
@@ -128,8 +133,8 @@ function jobFolder(jobId: string): string {
   return jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
 }
 
-async function untilWatcherEnded(jobId: string, instance: number): Promise<void> {
-  await waitUntil(() => childReadings().livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
+async function untilChildEnded(jobId: string, instance: number): Promise<void> {
+  await waitUntil(() => childReadings().livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `child ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
 }
 
 /** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
@@ -139,12 +144,12 @@ function buildJobId(): string {
   return buildJob.id;
 }
 
-/** A session that starts and then waits on its stdin past the Overseer's first message, so its Watcher stays live until the spec ends it. */
+/** A session that starts and then waits on its stdin past the Overseer's first message, so its child stays live until the spec ends it. */
 const WAITING_SESSION = fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }, { kind: 'await-line' }]);
 
 /**
  * Each job's log ends up holding the Overseer's first message and the session's started line, in either order; once both are there and
- * read, with the Watcher live, a `WAITING_SESSION` job's log stops changing until the spec acts.
+ * read, with the child live, a `WAITING_SESSION` job's log stops changing until the spec acts.
  */
 function everyJobHasReadItsWholeStart(): boolean {
   const jobs = storedProgressOf(repositoryDirectory).jobs ?? [];
@@ -198,7 +203,7 @@ afterEach(async () => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-/** A build job launches, prepares its worktree, then runs: forced passes until its session's Watcher is spawned. */
+/** A build job launches, prepares its worktree, then runs: forced passes until its session's child is launched. */
 async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void> {
   await waitUntil(async () => {
     await passOnce(drivePass);
@@ -208,15 +213,18 @@ async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void>
 }
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
-  test('one wake carries a readied ticket\'s job from launching through its prepared worktree to running, and its session a Watcher running the fake child', async () => {
+  test('one wake carries a readied ticket\'s job from launching through its prepared worktree to running, and its session a child of Talos running the fake agent', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())).toMatchObject({
       kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', watcherInstance: 1
     });
     await passUntilBuildSessionSpawned(drivePass);
-    await untilWatcherEnded(buildJobId(), 1);
-    expect(readFileSync(watcherFilesOf(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
+    await untilChildEnded(buildJobId(), 1);
+    expect(readFileSync(childFilesIn(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
+    expect(world.launchOf(jobFolder(buildJobId()), 1)).toMatchObject({
+      childFolder: `jobs/${buildJobId()}`, instance: 1, kind: 'agent', label: buildJobId()
+    });
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
   });
 
@@ -235,14 +243,17 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
   });
 
-  test('an endpoint this platform cannot bind launches no session and is noticed, before any launch file exists', async () => {
-    const drivePass = await drivePassWith(fakeAgentAdapter(), undefined, undefined, { endpointFits: () => false });
+  test('a launch no Talos takes leaves the job for the next pass, which launches it once Talos serves', async () => {
+    let talosServes = false;
+    const drivePass = await drivePassWith(fakeAgentAdapter(), undefined, undefined, { talosConnection: () => (talosServes ? world.connectionFor(trackerDirectory()) : null), });
     await passOnce(drivePass);
     await passOnce(drivePass);
-
-    expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'watcher-endpoint-does-not-fit', jobId: buildJobId() }));
-    expect(existsSync(watcherFilesOf(jobFolder(buildJobId()), 1).launchPath)).toBe(false);
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
+    expect(overseerLog.join('\n')).toContain(`Child instance 1 of job ${buildJobId()} (build #001) did not launch: no Talos took it; the next pass tries again.`);
+
+    talosServes = true;
+    await passUntilBuildSessionSpawned(drivePass);
+    expect(world.launchOf(jobFolder(buildJobId()), 1)).not.toBeNull();
   });
 
   test('a Hatch request and the result of the turn that wrote it, read in one pass, are applied request first', async () => {
@@ -259,7 +270,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     ]), recordPhase);
     await passUntilBuildSessionSpawned(drivePass);
     const firstBuildJobId = buildJobId();
-    await untilWatcherEnded(firstBuildJobId, 1);
+    await untilChildEnded(firstBuildJobId, 1);
     writeHatchRequest(hatchDirectory(firstBuildJobId), lowFinding('request-1', 'Example finding beside the build'));
     phases.length = 0;
     await passOnce(drivePass);
@@ -273,20 +284,19 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     expect(JSON.parse(readFileSync(hatchReplyFilePathOf(hatchDirectory(firstBuildJobId), 'request-1'), 'utf8'))).toMatchObject({ outcome: 'done' });
   });
 
-  test('the build session\'s launch file asks for the stop at the end, and the Assistant\'s, which keeps its groups, does not', async () => {
+  test('the build session\'s launch asks for the stop at the end, and the Assistant\'s, which keeps its groups, does not', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
-    const launchPathOfKind = (kind: string): string | null => {
+    const launchOfKind = (kind: string): ReturnType<RecordedTalosStages['launchOf']> => {
       const job = (storedProgressOf(repositoryDirectory).jobs ?? []).find((candidate) => candidate.kind === kind);
-      return job === undefined ? null : watcherFilesOf(jobFolder(job.id), job.watcherInstance).launchPath;
+      return job === undefined ? null : world.launchOf(jobFolder(job.id), job.watcherInstance);
     };
-    const launchKeysOfKind = (kind: string): Record<string, unknown> => JSON.parse(readFileSync(String(launchPathOfKind(kind)), 'utf8')) as Record<string, unknown>;
     await waitUntil(async () => {
       await passOnce(drivePass);
-      return ['build', 'assistant'].every((kind) => existsSync(launchPathOfKind(kind) ?? ''));
-    }, () => `the build and Assistant launch files: ${overseerLog.join('\n')}`);
+      return ['build', 'assistant'].every((kind) => launchOfKind(kind) !== null);
+    }, () => `the build and Assistant launches: ${overseerLog.join('\n')}`);
 
-    expect(launchKeysOfKind('build')['treeStopAtEndGraceMilliseconds']).toBe(SESSION_STOP_GRACE_MILLISECONDS);
-    expect(Object.hasOwn(launchKeysOfKind('assistant'), 'treeStopAtEndGraceMilliseconds')).toBe(false);
+    expect(launchOfKind('build')?.treeStopAtEndGraceMilliseconds).toBe(SESSION_STOP_GRACE_MILLISECONDS);
+    expect(launchOfKind('assistant')?.treeStopAtEndGraceMilliseconds).toBeNull();
   });
 
 });
@@ -489,11 +499,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch folder watches', ()
         { kind: 'print', line: fakeStartedLine('fake-session') },
         { kind: 'print', line: fakeResultLine({ outcome: 'built' }) },
         { kind: 'exit', code: 0 },
-      ]), undefined, undefined, {}, { watchHatchFolder: watcher.watchHatchFolder, unwatchHatchFolder: watcher.unwatchHatchFolder });
+      ]), undefined, undefined, { watchHatchFolder: watcher.watchHatchFolder, unwatchHatchFolder: watcher.unwatchHatchFolder });
       await passUntilBuildSessionSpawned(drivePass);
       const firstBuildJobId = buildJobId();
       expect(openFolders).toContain(hatchFolderOf(firstBuildJobId));
-      await untilWatcherEnded(firstBuildJobId, 1);
+      await untilChildEnded(firstBuildJobId, 1);
       await passOnce(drivePass);
       await passOnce(drivePass);
       expect(storedLogTextOf(repositoryDirectory), overseerLog.join('\n')).toContain(`"kind":"job-ended","jobId":"${firstBuildJobId}"`);
@@ -516,7 +526,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crediting an ended job\'s tok
     ]));
     await passUntilBuildSessionSpawned(drivePass);
     const firstBuildJobId = buildJobId();
-    await untilWatcherEnded(firstBuildJobId, 1);
+    await untilChildEnded(firstBuildJobId, 1);
     const taskId = await ticketTaskId();
     expect(rowTokensOf(storedProgressOf(repositoryDirectory).tasks, taskId)).toBeNull();
     await passOnce(drivePass);
@@ -535,7 +545,6 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'waking', () => {
         if (phase === 'lifecycle') installVersionChanged = !installVersionChanged;
       },
       undefined,
-      {},
       { installVersionChanged: () => installVersionChanged },
     );
     await passOnce(drivePass);
@@ -596,7 +605,7 @@ async function passUntilBuildJobIs(drivePass: DrivePass, state: string): Promise
 }
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
-  test('a top-level rejected limit interrupts the job uncounted, marks the machine, logs it and stops the Watcher; nothing resumes before the reset', async () => {
+  test('a top-level rejected limit interrupts the job uncounted, marks the machine, logs it and stops the session; nothing resumes before the reset', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       { kind: 'print', line: rateLimitLine('rejected', 'five_hour', 'rejected') },
@@ -616,14 +625,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
       verdict: 'read',
       marker:  { vendor: 'fake-agent', window: 'five_hour', resetsAt: USAGE_RESET_STAMP }
     });
-    await untilWatcherEnded(jobId, 1);
+    await untilChildEnded(jobId, 1);
     await passOnce(drivePass);
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', watcherInstance: 1 }]);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'assistant')).toBe(false);
   });
 
-  test('once the marker\'s reset has passed the interrupted job resumes by id in a new Watcher instance', async () => {
+  test('once the marker\'s reset has passed the interrupted job resumes by id in a new child instance', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       { kind: 'print', line: rateLimitLine('rejected', 'five_hour', 'rejected') },
@@ -632,14 +641,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     await passUntilBuildSessionSpawned(drivePass);
     const jobId = buildJobId();
     await passUntilBuildJobIs(drivePass, 'interrupted');
-    await untilWatcherEnded(jobId, 1);
+    await untilChildEnded(jobId, 1);
     UsageMarkerFile.write(monitorFolder, {
       vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:00:00.000Z', seenBy: { trackerId: 'example', jobId }
     });
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'running', watcherInstance: 2 });
     expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"watcherInstance":2,"cause":"usage-limit"}`);
-    expect(readFileSync(watcherFilesOf(jobFolder(jobId), 2).launchPath, 'utf8')).toContain('fake-agent-scenario.json');
+    expect(world.launchOf(jobFolder(jobId), 2)?.argv.join(' ')).toContain('fake-agent-scenario.json');
   });
 
   test('the Overseer wakes a pass of its own at the marker\'s reset, which resumes the interrupted job with no other wake', async () => {
@@ -652,7 +661,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     await passUntilBuildSessionSpawned(drivePass);
     const jobId = buildJobId();
     await passUntilBuildJobIs(drivePass, 'interrupted');
-    await untilWatcherEnded(jobId, 1);
+    await untilChildEnded(jobId, 1);
     UsageMarkerFile.write(monitorFolder, {
       vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:11:03.010Z', seenBy: { trackerId: 'example', jobId }
     });
@@ -674,7 +683,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     ]));
     await passUntilBuildSessionSpawned(drivePass);
     const jobId = buildJobId();
-    const { eventLogPath } = watcherFilesOf(jobFolder(jobId), 1);
+    const { eventLogPath } = childFilesIn(jobFolder(jobId), 1);
     await waitUntil(() => existsSync(eventLogPath) && readFileSync(eventLogPath, 'utf8').includes('five_hour'), 'the session\'s limit lines in its event log');
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)?.state).toBe('running');
@@ -699,5 +708,91 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the verbs beside an overseer'
     await passOnce(drivePass);
     expect(await runRefused(['ticket', 'deliver', '001', '--by-hand'])).toContain(`Ticket #001 has job ${buildJobId()} live (running)`);
     expect(deliveredRecordsOf('001')).toEqual([]);
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the ends Talos gives a session', () => {
+  function buildJob(): Job | undefined {
+    return (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId());
+  }
+
+  test('a launch is a launch frame of the agent\'s plan in the job\'s folder', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passUntilBuildSessionSpawned(drivePass);
+    expect(world.launchOf(jobFolder(buildJobId()), 1)).toMatchObject({
+      childFolder: `jobs/${buildJobId()}`, instance: 1, kind: 'agent', timeBoundMilliseconds: null
+    });
+  });
+
+  test('a result Talos recognised as a network outage interrupts the job network-outage and stops its session, never moving it to in-customs', async () => {
+    const drivePass = await drivePassWith(fakeAgentAdapter([
+      { kind: 'print', line: fakeStartedLine('fake-session') },
+      { kind: 'print', line: fakeResultLine({ outcome: 'built' }) },
+      { kind: 'await-line' },
+    ]));
+    await passUntilBuildSessionSpawned(drivePass);
+    world.recogniseEndingOfTheLastLine(jobFolder(buildJobId()), 1, 'network-outage');
+    await passOnce(drivePass);
+
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'network-outage', watcherInstance: 1 });
+    expect(storedLogTextOf(repositoryDirectory)).not.toContain('"to":"in-customs"');
+    const entries = childReadings().eventsAfter(jobFolder(buildJobId()), 1, 0);
+    expect(entries === 'malformed' ? [] : entries.filter((entry) => entry.origin === 'client').map((entry) => JSON.parse(entry.line) as unknown))
+      .toContainEqual({ act: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS });
+    await passOnce(drivePass);
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'network-outage', watcherInstance: 1 });
+  });
+
+  test('an end paused interrupts the job talos-paused, which resumes by itself on the next pass under the next Talos', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passUntilBuildSessionSpawned(drivePass);
+    world.quitTalos(trackerDirectory());
+    world.startTalosAgain(trackerDirectory());
+    await passOnce(drivePass);
+
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-interrupted","jobId":"${buildJobId()}","fields":{"cause":"talos-paused","watcherInstance":1}`);
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${buildJobId()}","fields":{"watcherInstance":2,"cause":"talos-paused"}`);
+    await passUntilBuildJobIs(drivePass, 'running');
+    expect(buildJob()).toMatchObject({ state: 'running', watcherInstance: 2, crashResumes: 0 });
+    expect(world.launchOf(jobFolder(buildJobId()), 2)).not.toBeNull();
+  });
+
+  test('an end lease-ended interrupts the job lease-ended, and nothing resumes it', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passUntilBuildSessionSpawned(drivePass);
+    world.endLease(trackerDirectory());
+    await passOnce(drivePass);
+    await passOnce(drivePass);
+
+    expect(buildJob()).toMatchObject({
+      state: 'interrupted', interruption: 'lease-ended', watcherInstance: 1, crashResumes: 0
+    });
+    expect(storedLogTextOf(repositoryDirectory)).not.toContain(`"kind":"job-resumed","jobId":"${buildJobId()}"`);
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the passes the lease renewal reads', () => {
+  test('passes are numbered from 1, the running one is in flight and none between passes, and each asks for its Talos before it reads', async () => {
+    const inFlightDuringHolds: (number | null)[] = [];
+    const talosAsks: (number | null)[] = [];
+    const drivePasses: DrivePass[] = [];
+    const drivePass = await drivePassWith(WAITING_SESSION, () => {
+      inFlightDuringHolds.push(drivePasses[0]?.passInFlight() ?? null);
+    }, undefined, {
+      ensureTalosIfLost: () => {
+        talosAsks.push(drivePasses[0]?.passInFlight() ?? null);
+        return Promise.resolve();
+      },
+    });
+    drivePasses.push(drivePass);
+    expect(drivePass.passInFlight()).toBeNull();
+
+    await passOnce(drivePass);
+    expect(drivePass.passInFlight()).toBeNull();
+    await passOnce(drivePass);
+
+    expect(talosAsks.slice(0, 2)).toEqual([1, 2]);
+    expect(new Set(inFlightDuringHolds)).toEqual(new Set(talosAsks));
+    expect(drivePass.passInFlight()).toBeNull();
   });
 });

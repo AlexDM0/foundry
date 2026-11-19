@@ -1,16 +1,15 @@
 /**
  * The crash, reboot and update matrix on the real system, one row per scenario, each held against the mechanism that settles it; the rows that
  * need no real process are in `src/services/overseer/CrashMatrix.spec.ts`, and the merge rows in `CrashMatrix.merges.spec.ts`. The
- * processes, Watchers and folders are real; git answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
+ * processes, Talos and folders are real; git answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
  *
- * The session, Watcher, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its
- * session the fake child: every crash is made by killing the Watcher, the child's group or both, a reboot by also giving the Watcher record a
- * foreign boot, and an Overseer restart by a fresh DrivePass regrouping. What matters there: an orphaned agent group is killed before the
- * resume, only the crash causes count toward the bound, a resume is by id in the same folder, and a finished session never continues,
- * save a closed product owner User messages, which resumes by id. A Baton pass row hands a running session's board to a successor and
- * holds that no Watcher is touched; a Watcher below the supported protocol window is watched from its files and stopped by its group. The
- * Assistant rows hold that it continues across an Overseer restart, is replaced and never resumed when down, and boots past two failed boots
- * only on a sweep while every incident defaults. The rows
+ * The session, Talos, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its
+ * session the fake child: every crash is made by killing Talos, the child's group or both, a reboot by also giving Talos's and the child
+ * records a foreign boot, and an Overseer restart by a fresh DrivePass that ensures its Talos and regroups. What matters there: an orphaned
+ * agent group is killed before the resume, only the crash causes count toward the bound, a resume is by id in the same folder, and a finished
+ * session never continues, save a closed product owner User messages, which resumes by id. A Baton pass row hands a running session's board
+ * to a successor and holds that Talos is sent nothing. The Assistant rows hold that it continues across an Overseer restart, is replaced and
+ * never resumed when down, and boots past two failed boots only on a sweep while every incident defaults. The rows
  * "the old Overseer dies during a baton-pass" and "a Baton pass's successor fails" are held by `src/services/overseer/BatonPass.spec.ts`. The
  * usage-limit row is held by `src/services/overseer/UsageLimits.spec.ts` and `cli/overseer/OverseerDrivePass.spec.ts`, the body-edit row by V6
  * in `src/services/lifecycle/Customs.spec.ts`, and the kill of a silent successor by `src/services/overseer/BatonPass.integration.spec.ts`.
@@ -18,7 +17,6 @@
 import {
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   writeFileSync
 }                         from 'node:fs';
@@ -30,25 +28,25 @@ import {
   expect,
   test,
 } from 'bun:test';
-import { writeHatchRequest }                                  from '../../adapters/hatch/HatchFolder.ts';
-import type { AgentAdapter }                                  from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                            from '../../lib/agent-launch/AgentLaunchRequest.ts';
-import type { AgentQuestion }                                 from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { sameProcess, type ProcessIdentity }                  from '../../lib/process-identity/ProcessIdentity.ts';
-import type { EventLogEntry }                                 from '../../lib/talos/EventLog.ts';
-import { EVENT_LOG_FORMAT_VERSION }                           from '../../lib/talos/constants/TalosProtocol.ts';
-import type { Decision }                                      from '../../lib/tracker-model/@types/Decision.ts';
-import type { Incident }                                      from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                           from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                                         from '../../lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                     from '../../lib/watcher/WatcherFiles.ts';
-import type { WatcherRecord }                                 from '../../lib/watcher/WatcherRecord.ts';
-import { WATCHER_PROTOCOL_OLDEST_SUPPORTED }                  from '../../lib/watcher/constants/WatcherProtocol.ts';
-import type { ControlCommand }                                from '../../shared/@types/ControlCommand.ts';
-import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../testing/ChildProcessCaseTimeout.ts';
-import { createScratchDrivePass, pinnedScratchWatcherBundle } from '../../testing/DrivePassHarness.ts';
-import { ECHOED_CONTROL_CONTEXT }                             from '../../testing/EchoedControlContext.ts';
+import { writeHatchRequest }                                                      from '../../adapters/hatch/HatchFolder.ts';
+import type { AgentAdapter }                                                      from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                                                from '../../lib/agent-launch/AgentLaunchRequest.ts';
+import type { AgentQuestion }                                                     from '../../lib/agent-launch/AgentSessionEvent.ts';
+import { sameProcess, type ProcessIdentity }                                      from '../../lib/process-identity/ProcessIdentity.ts';
+import type { ChildRecord }                                                       from '../../lib/talos/ChildRecord.ts';
+import { childRecordTextOf }                                                      from '../../lib/talos/ChildRecord.ts';
+import type { EventLogEntry }                                                     from '../../lib/talos/EventLog.ts';
+import { talosRecordPathOf }                                                      from '../../lib/talos/TalosFiles.ts';
+import { talosRecordTextOf }                                                      from '../../lib/talos/TalosRecord.ts';
+import type { Decision }                                                          from '../../lib/tracker-model/@types/Decision.ts';
+import type { Incident }                                                          from '../../lib/tracker-model/@types/Incident.ts';
+import type { Job }                                                               from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }                                                             from '../../lib/tracker-model/Board.ts';
+import type { ControlCommand }                                                    from '../../shared/@types/ControlCommand.ts';
+import { PRODUCT_NAMES }                                                          from '../../shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                from '../../testing/ChildProcessCaseTimeout.ts';
+import { createScratchDrivePass, type ScratchBoardTalos, startScratchBoardTalos } from '../../testing/DrivePassHarness.ts';
+import { ECHOED_CONTROL_CONTEXT }                                                 from '../../testing/EchoedControlContext.ts';
 import {
   fakeAgentAdapter,
   fakeAssistantTurnLine,
@@ -58,12 +56,14 @@ import {
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                                  from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                                         from '../../testing/PlantedChild.ts';
+import { stopProcessesReachingInto }                            from '../../testing/ProcessesInFolder.ts';
 import { useRecordedGit }                                       from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH } from '../../testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }                 from '../../testing/TalosChildReadings.ts';
 import { writeReadableTracker }                                 from '../../testing/TrackerFileFixtures.ts';
 import { blockUntil, waitUntil }                                from '../../testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                             from '../../testing/WatcherChildReadings.ts';
 import { ControlService }                                       from '../control/ControlService.ts';
 import { writeTracker }                                         from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                  from '../tracker/TrackerReader.ts';
@@ -73,10 +73,10 @@ import type { BoardChildren }                                   from './BoardChi
 import { type DrivePass, type JobLaunchFacts }                  from './DrivePass.ts';
 import { HatchInbox }                                           from './HatchInbox.ts';
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }  from './InstructionFiles.ts';
-import { LegacyWatcherReader }                                  from './LegacyWatcherReader.ts';
 import { overseerFilesIn }                                      from './OverseerFiles.ts';
 import { jobFolderIn }                                          from './OverseerFiles.ts';
 import { Regrouping }                                           from './Regrouping.ts';
+import { talosRecordAt }                                        from './TalosStart.ts';
 
 const recordedGit = useRecordedGit();
 const ports = nativePlatformPorts();
@@ -122,9 +122,19 @@ const EXAMPLE_QUESTION: AgentQuestion = {
   question: 'Ship the example export?', header: 'Export', multiSelect: false, options: [{ label: 'Yes', description: 'Ship it' }, { label: 'No', description: 'Hold it' }],
 };
 
-/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+/** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */
 function childReadings(): BoardChildren {
-  return watcherChildReadingsWith(ports);
+  return talosChildReadingsWith(ports, sessionWorkspace.trackerDirectory);
+}
+
+let boardTalos: ScratchBoardTalos | null = null;
+
+/** The board's Talos, which outlives every Overseer of the case as it outlives a real one; a lost one is followed by the next. */
+async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
+  boardTalos ??= await startScratchBoardTalos({
+    workspace: sessionWorkspace, platformPorts: ports, monitorFolder, log: (line) => overseerLog.push(line)
+  });
+  return boardTalos;
 }
 
 function askingSteps(question: AgentQuestion): readonly FakeAgentStep[] {
@@ -178,14 +188,17 @@ async function startedOverseer(
   deliversByControlResponse?: boolean,
   onUsageMarkerRead?: () => void,
 ): Promise<DrivePass> {
-  const watcherBundlePath = await pinnedScratchWatcherBundle(sessionWorkspace);
+  // An Overseer's start ensures its Talos, so a Talos lost while it was down is followed by the next before the regroup.
+  const talos = await boardTalosOfTheCase();
+  await talos.ensureIfLost();
   return createScratchDrivePass({
-    platformPorts: ports,
-    workspace:     sessionWorkspace,
-    now:           () => new Date(Date.parse(SESSION_STAMP)),
-    formatStamp:   () => SESSION_STAMP,
-    watcherBundlePath,
-    agentAdapter:  adapter,
+    platformPorts:     ports,
+    workspace:         sessionWorkspace,
+    now:               () => new Date(Date.parse(SESSION_STAMP)),
+    formatStamp:       () => SESSION_STAMP,
+    talosConnection:   talos.connection,
+    ensureTalosIfLost: talos.ensureIfLost,
+    agentAdapter:      adapter,
     // A pass reads the usage marker after the Hatch folders: the hook acts there, between the observation's reads.
     get monitorFolder() {
       onUsageMarkerRead?.();
@@ -239,8 +252,8 @@ function sessionJobFolder(jobId: string): string {
   return jobFolderIn(sessionWorkspace.trackerDirectory, jobId);
 }
 
-function watcherRecordOf(jobId: string, instance: number): WatcherRecord | null {
-  return LegacyWatcherReader.watcherRecordIn(sessionJobFolder(jobId), instance);
+function childRecordOf(jobId: string, instance: number): ChildRecord | null {
+  return childReadings().recordOf(sessionJobFolder(jobId), instance);
 }
 
 function processIsAlive(identity: ProcessIdentity): boolean {
@@ -266,7 +279,7 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
-  const record = watcherRecordOf(job.id, job.watcherInstance);
+  const record = childRecordOf(job.id, job.watcherInstance);
   return childReadings().livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
@@ -276,16 +289,17 @@ async function runningBuildSession(drivePass: DrivePass): Promise<Readonly<Job>>
   return requireBuildJob();
 }
 
-function requireRecord(jobId: string, instance: number): WatcherRecord {
-  const record = watcherRecordOf(jobId, instance);
-  const recordedBoth = record?.watcher !== null && record?.watcher !== undefined && record.childProcess !== null && record.childProcess !== undefined;
-  if (!recordedBoth) throw new Error(`watcher ${instance} of ${jobId} recorded no processes`);
-  return record;
+function requireRecord(jobId: string, instance: number): ChildRecord & { talos: ProcessIdentity; childProcess: ProcessIdentity } {
+  const record = childRecordOf(jobId, instance);
+  if (record?.talos === null || record?.talos === undefined || record.childProcess === null) throw new Error(`child ${instance} of ${jobId} recorded no processes`);
+  return { ...record, talos: record.talos, childProcess: record.childProcess };
 }
 
-function killWatcher(jobId: string, instance: number): void {
-  const record = requireRecord(jobId, instance);
-  process.kill(record.watcher?.processId ?? 0, 'SIGKILL');
+/** Talos dies with no word: each child of the board loses its commander, and an agent waiting on its input sees it close. */
+async function killTalos(jobId: string, instance: number): Promise<void> {
+  const { talos } = requireRecord(jobId, instance);
+  process.kill(talos.processId, 'SIGKILL');
+  await until(() => !processIsAlive(talos), 'Talos never died');
 }
 
 function killChildGroup(jobId: string, instance: number): void {
@@ -293,35 +307,30 @@ function killChildGroup(jobId: string, instance: number): void {
   process.kill(-(record.childProcessGroupId ?? 0), 'SIGKILL');
 }
 
-/** What a reboot leaves: both processes gone, and the identities recorded under a boot that is no longer the machine's. */
+/** What a reboot leaves: Talos and every child gone, and their identities recorded under a boot that is no longer the machine's. */
 async function reboot(jobId: string, instance: number): Promise<void> {
   const record = requireRecord(jobId, instance);
-  killWatcher(jobId, instance);
-  killChildGroup(jobId, instance);
-  const child = record.childProcess;
-  await until(() => child === null || child === undefined || !processIsAlive(child), 'the rebooted child never died');
-  const foreign = (identity: ProcessIdentity | null | undefined): ProcessIdentity | null => (
-    identity === null || identity === undefined ? null : { ...identity, bootIdentity: FOREIGN_BOOT }
-  );
-  const rebootedRecord = { ...record, watcher: foreign(record.watcher), childProcess: foreign(record.childProcess) };
-  writeFileSync(watcherFilesOf(sessionJobFolder(jobId), instance).watcherRecordPath, `${JSON.stringify(rebootedRecord)}\n`);
-}
-
-function endEverySessionWatcher(): void {
-  const jobsFolder = join(sessionWorkspace.trackerDirectory, 'jobs');
-  if (!existsSync(jobsFolder)) return;
-  for (const jobId of readdirSync(jobsFolder)) {
-    for (const fileName of readdirSync(join(jobsFolder, jobId)).filter((name) => /^watcher-\d+\.json$/.test(name))) {
-      const record = JSON.parse(readFileSync(join(jobsFolder, jobId, fileName), 'utf8')) as WatcherRecord;
-      for (const target of [record.childProcessGroupId === undefined ? null : -record.childProcessGroupId, record.watcher?.processId ?? null]) {
-        try {
-          if (target !== null && (record.watcher?.bootIdentity ?? '') !== FOREIGN_BOOT) process.kill(target, 'SIGKILL');
-        } catch {
-          // Already gone.
-        }
-      }
+  const talosRecordPath = talosRecordPathOf(sessionWorkspace.trackerDirectory, record.talosStartNumber);
+  const talosRecord = talosRecordAt(sessionWorkspace.trackerDirectory, record.talosStartNumber);
+  const liveChildren = storedJobs().flatMap((job) => {
+    const childRecord = childRecordOf(job.id, job.watcherInstance);
+    return childRecord === null || childRecord.end !== null ? [] : [{ job, childRecord }];
+  });
+  for (const { childRecord } of liveChildren) {
+    try {
+      process.kill(-(childRecord.childProcessGroupId ?? 0), 'SIGKILL');
+    } catch {
+      // Already gone.
     }
   }
+  await killTalos(jobId, instance);
+  await until(() => !processIsAlive(record.childProcess), 'the rebooted child never died');
+  const foreign = (identity: ProcessIdentity | null): ProcessIdentity | null => (identity === null ? null : { ...identity, bootIdentity: FOREIGN_BOOT });
+  for (const { job, childRecord } of liveChildren) {
+    const rebootedRecord: ChildRecord = { ...childRecord, talos: foreign(childRecord.talos), childProcess: foreign(childRecord.childProcess) };
+    writeFileSync(childFilesIn(sessionJobFolder(job.id), job.watcherInstance).recordPath, childRecordTextOf(rebootedRecord));
+  }
+  if (talosRecord !== null) writeFileSync(talosRecordPath, talosRecordTextOf({ ...talosRecord, talos: foreign(talosRecord.talos) }));
 }
 
 function openDecisions(): readonly Readonly<Decision>[] {
@@ -388,7 +397,7 @@ function resumedRecordsOf(jobId: string):{ kind: string; fields: Record<string, 
   return storedRecords().filter((record) => record.kind === 'job-resumed' && record.jobId === jobId);
 }
 
-describe('the session, Watcher, Overseer and reboot rows', () => {
+describe('the session, Talos, Overseer and reboot rows', () => {
   beforeEach(async () => {
     repository       = createScratchDirectory('crash-rows');
     // The common folder git's recorded answers name, which the Overseer resolves.
@@ -418,28 +427,29 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     });
   });
 
-  afterEach(() => {
-    endEverySessionWatcher();
+  afterEach(async () => {
+    // Talos and every child it ran work in the repository, so stopping what reaches into it ends them all.
+    boardTalos = null;
+    await stopProcessesReachingInto(repository);
     removeScratchDirectory(monitorFolder);
     removeScratchDirectory(repository);
   });
 
-  test('overseer dies: the Watchers keep running, and a restart attaches with hello from the stored cursor and replays the history', async () => {
+  test('overseer dies: Talos keeps the session running, and a restart reads its log from the stored cursor, applying what it missed', async () => {
     const adapter = recordingAdapter({ fresh: LINE_THEN_WAITING_STEPS, resumed: WAITING_STEPS });
     const job     = await runningBuildSession(await startedOverseer(adapter));
     await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
     // The Overseer is down from here: the session goes on and logs a turn nobody applies.
-    await childReadings().sendInput(sessionJobFolder(job.id), 1, { act: 'write-line', line: adapter.chatLineOf('Example line while the Overseer is down') });
+    const input = { act: 'write-line', line: adapter.chatLineOf('Example line while the Overseer is down') } as const;
+    await (await boardTalosOfTheCase()).connection()?.send({ kind: 'input', childId: `jobs/${job.id}#1`, input });
     await until(() => eventLogTextOf(job.id, 1).includes('after-the-line'), 'the session never answered the line');
     const storedCursor = requireBuildJob().eventCursor;
     const unapplied    = childReadings().eventsAfter(sessionJobFolder(job.id), 1, storedCursor.instance === 1 ? storedCursor.sequence : 0);
 
+    expect(JSON.stringify(unapplied)).toContain('after-the-line');
     const report = await (await startedOverseer(adapter)).regroup();
 
-    const attached = report.attached.find((watcher) => watcher.jobId === job.id);
-    expect(attached?.instance).toBe(1);
-    expect(attached?.replayedEntries).toEqual(unapplied === 'malformed' ? [] : unapplied);
-    expect(JSON.stringify(attached?.replayedEntries)).toContain('after-the-line');
+    expect(report.lost).toEqual([]);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
     expect(requireBuildJob().eventCursor.sequence).toBeGreaterThan(storedCursor.sequence);
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
@@ -453,7 +463,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     await passOnce(drivePass);
 
     const clientLines = (childReadings().eventsAfter(sessionJobFolder(job.id), 1, 0) as readonly EventLogEntry[]).filter((entry) => entry.origin === 'client');
-    expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ kind: 'write', line: firstLine })]);
+    expect(clientLines.map((entry) => entry.line)).toEqual([JSON.stringify({ act: 'write-line', line: firstLine })]);
     expect(existsSync(join(sessionJobFolder(job.id), 'first-message-1.sent'))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -475,20 +485,20 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     await passUntil(drivePass, () => eventLogTextOf(freshJobId, 1).includes(EARLIER_SESSION_NOTE), 'the fresh session never took the earlier-session note');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('watcher dies with its agent alive: the agent group is killed first, the job is interrupted watcher-lost and resumed by id in place, told so', async () => {
+  test('Talos dies with its agent alive: the agent group is killed first, the job is interrupted watcher-lost and resumed by id in place, told so', async () => {
     // The agent's own tool call keeps it alive whatever happens to its input, as a Bash child of a killed CLI does.
     const adapter  = recordingAdapter({ fresh: [STARTED, { kind: 'shell', command: 'sleep 60' }], resumed: LINE_THEN_WAITING_STEPS });
     const job      = await runningBuildSession(await startedOverseer(adapter));
     const child    = requireRecord(job.id, 1).childProcess;
-    killWatcher(job.id, 1);
-    await until(() => childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
-    expect(child !== null && child !== undefined && processIsAlive(child), 'the orphaned agent outlives its watcher').toBe(true);
+    await killTalos(job.id, 1);
+    await until(() => childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the child never read as lost');
+    expect(processIsAlive(child), 'the orphaned agent outlives its Talos').toBe(true);
 
     const restarted = await startedOverseer(adapter);
     const report    = await restarted.regroup();
 
-    expect(report.lost).toEqual([{ jobId: job.id, instance: 1, cause: 'watcher-lost' }]);
-    expect(child !== null && child !== undefined && processIsAlive(child)).toBe(false);
+    expect(report.lost.filter((lost) => lost.jobId === job.id)).toEqual([{ jobId: job.id, instance: 1, cause: 'watcher-lost' }]);
+    expect(processIsAlive(child)).toBe(false);
     expect(storedRecords().find((record) => record.kind === 'job-interrupted' && record.jobId === job.id)?.fields).toMatchObject({ cause: 'watcher-lost' });
     expect(requireBuildJob()).toMatchObject({
       id: job.id, state: 'running', watcherInstance: 2, crashResumes: 1
@@ -501,16 +511,16 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     expect(existsSync(join(sessionJobFolder(job.id), 'resume-message-2.sent'))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('watcher and agent die with the input open: interrupted agent-crashed, and resumed', async () => {
+  test('Talos and agent die with the input open: interrupted agent-crashed, and resumed', async () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     const job     = await runningBuildSession(await startedOverseer(adapter));
-    killWatcher(job.id, 1);
     killChildGroup(job.id, 1);
-    await until(() => childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the Watcher never read as lost');
+    await killTalos(job.id, 1);
+    await until(() => childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict === 'lost', 'the child never read as lost');
 
     const report = await (await startedOverseer(adapter)).regroup();
 
-    expect(report.lost).toEqual([{ jobId: job.id, instance: 1, cause: 'agent-crashed' }]);
+    expect(report.lost.filter((lost) => lost.jobId === job.id)).toEqual([{ jobId: job.id, instance: 1, cause: 'agent-crashed' }]);
     expect(report.leftoverWorktrees).toEqual([]);
     expect(requireBuildJob()).toMatchObject({
       id: job.id, state: 'running', watcherInstance: 2, crashResumes: 1
@@ -588,17 +598,18 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
       await reboot(job.id, job.watcherInstance);
       const restarted = await startedOverseer(adapter);
       const report    = await restarted.regroup();
-      expect(report.lost).toEqual([{ jobId: job.id, instance: rebootNumber, cause: 'reboot' }]);
+      expect(report.lost.filter((lost) => lost.jobId === job.id)).toEqual([{ jobId: job.id, instance: rebootNumber, cause: 'reboot' }]);
       job = await runningBuildSession(restarted);
     }
 
     expect(job).toMatchObject({ attempt: 1, watcherInstance: 4, crashResumes: 0 });
     expect(resumedRecordsOf(job.id).map((record) => record.fields['cause'])).toEqual(['reboot', 'reboot', 'reboot']);
     expect(new Set(launches.map((launch) => `${launch.jobId} ${launch.sessionId} ${launch.workingDirectory}`)).size).toBe(1);
-    expect(storedRecords().filter((record) => record.kind === 'job-ended')).toEqual([]);
+    // A reboot takes the Assistant down too, which is replaced; the build is never ended.
+    expect(storedRecords().filter((record) => record.kind === 'job-ended' && record.jobId === job.id)).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a question answered while the Overseer is down: the restart replays it without a second decision and the live Watcher takes the control_response', async () => {
+  test('a question answered while the Overseer is down: the restart replays it without a second decision and the live session takes the control_response', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
     const job     = await runningBuildSession(first);
@@ -614,7 +625,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
     await passUntil(restarted, () => eventLogTextOf(job.id, 1).includes('after-the-answer'), 'the live session never took the answer');
-    // The Watcher logs the line it wrote inside its own frame, so the answer's quotes read escaped.
+    // Talos logs the line it wrote inside its client entry, so the answer's quotes read escaped.
     expect(eventLogTextOf(job.id, 1)).toContain('\\"type\\":\\"control_response\\"');
     expect(eventLogTextOf(job.id, 1)).toContain('\\"answers\\":{\\"Ship the example export?\\":\\"No\\"}');
     expect(storedRecords().filter((record) => record.kind === 'decision-opened')).toHaveLength(1);
@@ -643,7 +654,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0, watcherInstance: 2 });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('without a control_response delivery the Overseer stops the live Watcher and resumes with the answer, cause answer-delivery, never counted', async () => {
+  test('without a control_response delivery the Overseer stops the live session and resumes with the answer, cause answer-delivery, never counted', async () => {
     const adapter = recordingAdapter({ fresh: ASKING_STEPS, resumed: LINE_THEN_WAITING_STEPS });
     const drivePass = await startedOverseer(adapter, undefined, false);
     const job       = await runningBuildSession(drivePass);
@@ -707,7 +718,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('an Assistant session finishes only once the Overseer closed its input: a turn\'s result keeps it running, its Watcher gone while stopping ends it closed', async () => {
+  test('an Assistant session finishes only once the Overseer closed its input: a turn\'s result keeps it running, its child gone while stopping ends it closed', async () => {
     const assistantSteps: readonly FakeAgentStep[] = [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }];
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS, Assistant: assistantSteps });
     const drivePass        = await startedOverseer(adapter);
@@ -721,9 +732,10 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     await writeTracker({
       workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.moveJob(jobId, 'stopping', change.at); },
     });
-    killWatcher(jobId, 1);
     killChildGroup(jobId, 1);
-    await until(() => childReadings().livenessOf(sessionJobFolder(jobId), 1).verdict === 'lost', 'the Assistant Watcher never read as lost');
+    await killTalos(jobId, 1);
+    await (await boardTalosOfTheCase()).ensureIfLost();
+    await until(() => childReadings().livenessOf(sessionJobFolder(jobId), 1).verdict === 'lost', 'the Assistant\'s child never read as lost');
     await passUntil(drivePass, () => storedRecords().some((record) => record.kind === 'job-ended' && record.jobId === jobId), 'the stopped Assistant never ended');
 
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === jobId)?.fields).toMatchObject({ outcome: 'closed' });
@@ -905,24 +917,15 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 
-  test('a reused pid is never signalled: a lost Watcher whose recorded child names another process reads agent-crashed', () => {
-    // Outside the jobs folder, so the cleanup that kills every recorded Watcher never reads this spec's own process.
-    const jobFolder = join(monitorFolder, 'J99');
-    mkdirSync(jobFolder, { recursive: true });
+  test('a reused pid is never signalled: a lost child whose recorded process names another process reads agent-crashed', () => {
+    // A board folder of its own, so the teardown that stops what reaches into the repository never reads this spec's own process.
     const self = identityOf(process.pid);
     if (self === null) throw new Error('this process has no readable identity');
     const reused = { ...self, startStamp: '1' };
-    writeFileSync(watcherFilesOf(jobFolder, 1).watcherRecordPath, `${JSON.stringify({
-      protocolVersion:       1,
-      eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION,
-      watcherInstance:       1,
-      state:                 'running',
-      watcher:               reused,
-      childProcess:          reused,
-      childProcessGroupId:   process.pid,
-    })}\n`);
-    expect(childReadings().livenessOf(jobFolder, 1).verdict).toBe('lost');
-    expect(Regrouping.settleLostWatcher(childReadings(), ports, jobFolder, 1)).toBe('agent-crashed');
+    PlantedChild.plantChildRecord({ boardFolder: monitorFolder, childFolder: 'J99', instance: 1 }, { talos: reused, childProcess: reused, childProcessGroupId: process.pid });
+    const jobFolder = join(monitorFolder, 'J99');
+    expect(talosChildReadingsWith(ports, monitorFolder).livenessOf(jobFolder, 1).verdict).toBe('lost');
+    expect(Regrouping.settleLostChildIn(monitorFolder, ports, jobFolder, 1)).toBe('agent-crashed');
     expect(processIsAlive(self)).toBe(true);
   });
 
@@ -957,7 +960,7 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     expect(decisions.map((decision) => basename(decision.context))).toEqual(['ticket-999']);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('run restart mid-session or mid-gate: the Baton pass sends no Watcher anything, and the successor regroups it from the stored cursor', async () => {
+  test('run restart mid-session or mid-gate: the Baton pass sends Talos nothing, and the successor reads the session on from the stored cursor', async () => {
     const adapter   = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     const oldOverseer = await startedOverseer(adapter);
     const job       = await runningBuildSession(oldOverseer);
@@ -982,8 +985,8 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
         const request  = {
           batonPassFilePath, codeVersion: 'code-example', predecessorIsLive: () => true, schedule: BATON_PASS_SCHEDULE
         };
-        const readWatcherFiles = { step: 'read-watcher-files' as const, run: () => { if (watcherRecordOf(job.id, 1) === null) throw new Error('no Watcher file'); } };
-        expect(await BatonPass.prepareAndAwaitRelease(request, [readWatcherFiles])).toBe('released');
+        const readChildRecords = { step: 'read-child-records' as const, run: () => { if (childRecordOf(job.id, 1) === null) throw new Error('no child record'); } };
+        expect(await BatonPass.prepareAndAwaitRelease(request, [readChildRecords])).toBe('released');
         const successor = await startedOverseer(adapter);
         successorReports.push(await successor.regroup());
         BatonPass.reportServing(request, successor.state().generation, 'http://127.0.0.1:1/');
@@ -991,33 +994,10 @@ describe('the session, Watcher, Overseer and reboot rows', () => {
     ]);
 
     expect(outcome.verdict).toBe('baton-passed');
-    expect(child !== null && child !== undefined && processIsAlive(child)).toBe(true);
-    expect(successorReports[0]?.attached.map((watcher) => [watcher.jobId, watcher.instance])).toContainEqual([job.id, 1]);
+    expect(processIsAlive(child)).toBe(true);
     expect(successorReports[0]?.lost).toEqual([]);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
     expect(launches.filter((launch) => launch.jobId === job.id)).toHaveLength(1);
-  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-  test('overseer updated while Watchers run an older protocol: outside the window the Watcher is legacy, watched from its files and stopped by its group', async () => {
-    const adapter = recordingAdapter({ fresh: LINE_THEN_WAITING_STEPS, resumed: WAITING_STEPS });
-    const job     = await runningBuildSession(await startedOverseer(adapter));
-    const record  = requireRecord(job.id, 1);
-    // A Watcher spawned by code whose protocol the updated Overseer no longer speaks.
-    writeFileSync(watcherFilesOf(sessionJobFolder(job.id), 1).watcherRecordPath, `${JSON.stringify({ ...record, protocolVersion: WATCHER_PROTOCOL_OLDEST_SUPPORTED - 1 })}\n`);
-
-    const updatedOverseer = await startedOverseer(adapter);
-    const report        = await updatedOverseer.regroup();
-
-    expect(report.attached.map((watcher) => watcher.jobId)).not.toContain(job.id);
-    expect(report.legacyWatchers).toEqual([{ jobId: job.id, instance: 1, protocolVersion: WATCHER_PROTOCOL_OLDEST_SUPPORTED - 1 }]);
-    expect(updatedOverseer.state().legacyWatcherJobIds).toEqual([job.id]);
-    expect(childReadings().eventsAfter(sessionJobFolder(job.id), 1, 0)).not.toBe('malformed');
-    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
-
-    expect(await childReadings().sendInput(sessionJobFolder(job.id), 1, { act: 'write-line', line: adapter.chatLineOf('Example line') })).toBe(false);
-    expect(await childReadings().stop(sessionJobFolder(job.id), 1, 1)).toBe(true);
-    const child = record.childProcess;
-    await until(() => child === null || child === undefined || !processIsAlive(child), 'the legacy watcher\'s agent group was never stopped');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

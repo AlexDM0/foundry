@@ -8,9 +8,9 @@
 import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent }               from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }                   from '../../lib/talos/EventLog.ts';
+import { clientEntryOf }                        from '../../lib/talos/TalosFrames.ts';
 import type { Job, JobKind }                    from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                           from '../../lib/tracker-model/Board.ts';
-import { clientFrameOf }                        from '../../lib/watcher/WatcherFrames.ts';
 import type { TranscriptEntry, TranscriptRole } from '../../shared/@types/TranscriptEntry.ts';
 import { AssistantBoot }                        from './AssistantBoot.ts';
 import { AssistantSession }                     from './AssistantSession.ts';
@@ -242,8 +242,8 @@ function turnOfEntries(newestInstanceEntries: readonly EventLogEntry[], adapter:
   for (const entry of newestInstanceEntries) {
     if (entry.origin === 'agent') results += adapter.eventsOf(entry.line).filter((event) => event.kind === 'result').length;
     if (entry.origin !== 'client') continue;
-    const frame = clientFrameOf(entry.line);
-    if (frame?.kind === 'write' && adapter.sentLineOf(frame.line)?.act === 'chat') chats += 1;
+    const clientEntry = clientEntryOf(entry.line);
+    if (clientEntry?.act === 'write-line' && adapter.sentLineOf(clientEntry.line)?.act === 'chat') chats += 1;
   }
   return chats > results ? 'mid-turn' : 'between-turns';
 }

@@ -175,6 +175,13 @@ function runRefusalReasonOf(refusal: ShellRunRefusal, directory: string): string
   return RUN_REFUSAL_WORDING[refusal](directory);
 }
 
+const MILLISECONDS_PER_MINUTE = 60_000;
+
+/** The line a step's output gets when Talos stopped it at its time bound, which a sleep never counts towards. */
+function timeBoundLineOf(timeBoundMilliseconds: number): string {
+  return `The line ran past its bound of ${timeBoundMilliseconds / MILLISECONDS_PER_MINUTE} minutes of awake time and was stopped.`;
+}
+
 /** The shell's refusal for the folder comes first, so a line its shell cannot run is never handed to the confinement port. */
 function runnableLineOf(
   { shellLine, confinedLineOf }: Pick<PipelineRunRequest, 'shellLine' | 'confinedLineOf'>,
@@ -406,6 +413,7 @@ export const GateRun = Object.freeze({
   takeCacheReport,
   recordedStatusOf,
   runRefusalReasonOf,
+  timeBoundLineOf,
   runnableLineOf,
   runGate,
   runPipeline,

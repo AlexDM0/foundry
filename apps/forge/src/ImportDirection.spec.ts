@@ -123,7 +123,7 @@ const TESTING_FOLDER_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
   'src/lib/tracker-model/testing/': ['src/lib/tracker-model/'],
   'src/adapters/progress/testing/': ['src/adapters/'],
   'src/services/tracker/testing/':  ['src/services/tracker/'],
-  'src/services/overseer/testing/': ['src/services/overseer/', 'cli/overseer/OverseerCommand.integration.spec.ts'],
+  'src/services/overseer/testing/': ['src/services/overseer/'],
   'cli/testing/':                   ['cli/', 'bridge/'],
   'bridge/testing/':                ['bridge/'],
   'design-system/testing/':         ['design-system/'],

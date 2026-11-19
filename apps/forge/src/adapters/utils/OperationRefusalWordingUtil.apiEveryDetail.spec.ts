@@ -319,6 +319,8 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'overseer-owns-the-lifecycle':      { kind: 'overseer-owns-the-lifecycle', url: URL, batonFilePath: BATON },
   'watcher-bundle-failed':            { kind: 'watcher-bundle-failed', entryPath: '/example/watcher.ts', reason: 'Example reason' },
   'watcher-endpoint-does-not-fit':    { kind: 'watcher-endpoint-does-not-fit', endpoint: '/example/watcher.sock' },
+  'talos-protocol-differs':           { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
+  'talos-unavailable':                { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
   'ticket-has-live-job':              {
     kind: 'ticket-has-live-job', ticketId: '004', jobId: 'J3', state: 'running'
   },

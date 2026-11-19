@@ -3,7 +3,9 @@
  * gates passed) runs no gate at all, unless its hold marked that green not current; and a review that changed the tree, and any build,
  * waits on the pipeline's first step. A build job runs only the build phase's gates and a review job only the review phase's, and a phase
  * with no gates passes at once without its prepare steps. Each prepare step runs as a process of its own, never as one joined line: the
- * install and the gate run wait on each step's own Watcher in turn. A run's steps and stamp are its manifest's, written at its start: a
+ * install and the gate run wait on each step's own line in turn; a line a clean quit paused is never judged, its next instance runs it
+ * again, and a line Talos stopped at its time bound judges `cannot-run`, or `install-failed` for an install step, its output naming the
+ * bound. A run's steps and stamp are its manifest's, written at its start: a
  * pipeline edited or reordered mid-run never passes an unrun gate, a kept verdict counts only under an equal manifest, and the settlement
  * stamps the manifest's hash. A prepare step that exits 0 but changes a tracked file is a setup failure, never the first gate's red.
  * Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version 1's words,
@@ -27,15 +29,16 @@ import {
   test
 } from 'bun:test';
 
-import { EVENT_LOG_FORMAT_VERSION }    from '../../lib/talos/constants/TalosProtocol.ts';
-import type { Job }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline }               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { PipelineUtil }                from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { watcherFilesOf }              from '../../lib/watcher/WatcherFiles.ts';
-import { branchNamesOf }               from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }               from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { nativePlatformPorts }         from '../../testing/NativePlatformPorts.ts';
+import type { ChildEnd }                from '../../lib/talos/ChildRecord.ts';
+import type { Job }                     from '../../lib/tracker-model/@types/Job.ts';
+import type { Pipeline }                from '../../lib/tracker-model/@types/Pipeline.ts';
+import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { branchNamesOf }                from '../../shared/BranchNames.ts';
+import { LINE_TIME_BOUND_MILLISECONDS } from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }                from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }  from '../../testing/BoardFixtures.ts';
+import { nativePlatformPorts }          from '../../testing/NativePlatformPorts.ts';
+import { PlantedChild }                 from '../../testing/PlantedChild.ts';
 import {
   GIT_CALL_SHAPES,
   type GitCallShape,
@@ -44,8 +47,8 @@ import {
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
+import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }            from '../../testing/TalosChildReadings.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
-import { watcherChildReadingsWith }                               from '../../testing/WatcherChildReadings.ts';
 import { GateRun }                                                from '../lifecycle/GateRun.ts';
 import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
 import { type GateRunManifest, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
@@ -93,7 +96,7 @@ function gatingScene(): GatingScene {
   const platformPorts = nativePlatformPorts();
   const context = {
     platformPorts,
-    boardChildren: watcherChildReadingsWith(platformPorts, trackerDirectory),
+    boardChildren: talosChildReadingsWith(platformPorts, trackerDirectory, EVERY_TALOS_IS_LIVE),
     workspace:     { rootDirectory, trackerDirectory },
     agentAdapter:  { eventsOf: () => [] },
     branchNames:   branchNamesOf(null),
@@ -133,13 +136,21 @@ testWhenGitIsRecorded('a build always waits on the first gate, even on the tree 
 
 const TWO_PREPARE_STEPS: Pipeline = { ...PIPELINE, prepare: [{ name: 'install', run: 'bun install' }, { name: 'generate', run: 'bun run generate' }] };
 
-/** The process Watcher of one step folder, ended with the given exit code, as the Watcher records it. */
-function endStepWatcher(scene: GatingScene, folderName: string, exitCode: number): void {
-  const watcherFolder = join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), folderName);
-  mkdirSync(watcherFolder, { recursive: true });
-  writeFileSync(watcherFilesOf(watcherFolder, 1).watcherRecordPath, `${JSON.stringify({
-    protocolVersion: 1, eventLogFormatVersion: EVENT_LOG_FORMAT_VERSION, watcherInstance: 1, state: 'ended', watcher: null, end: { reason: 'exited', exitCode, signal: null },
-  })}\n`);
+/** One instance of a step's line, ended as Talos records the end. */
+function endStepLine(scene: GatingScene, folderName: string, end: Partial<ChildEnd>, instance = 1): void {
+  PlantedChild.plantChildRecord({ boardFolder: scene.context.workspace.trackerDirectory, childFolder: `jobs/J2/${folderName}`, instance }, {
+    kind:                  'line',
+    state:                 'ended',
+    timeBoundMilliseconds: LINE_TIME_BOUND_MILLISECONDS,
+    end:                   {
+      reason: 'exited', exitCode: 0, signal: null, detail: null, runMilliseconds: 0, ...end
+    },
+  });
+}
+
+/** One instance of a step's line, exited with the given exit code. */
+function endStepExited(scene: GatingScene, folderName: string, exitCode: number): void {
+  endStepLine(scene, folderName, { exitCode });
 }
 
 function setupOf(scene: GatingScene): Promise<unknown> {
@@ -147,22 +158,67 @@ function setupOf(scene: GatingScene): Promise<unknown> {
   return recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], TWO_PREPARE_STEPS)[0]?.setup));
 }
 
-testWhenGitIsRecorded('each prepare step installs in a Watcher of its own: installed only once every step exited 0', async () => {
+testWhenGitIsRecorded('each prepare step installs as a line of its own: installed only once every step exited 0', async () => {
   const scene = gatingScene();
   expect(await setupOf(scene)).toBe('installing');
 
-  endStepWatcher(scene, 'install', 0);
+  endStepExited(scene, 'install', 0);
   expect(await setupOf(scene)).toBe('installing');
 
-  endStepWatcher(scene, 'install2', 0);
+  endStepExited(scene, 'install2', 0);
   expect(await setupOf(scene)).toBe('installed');
 });
 
 testWhenGitIsRecorded('a failed first prepare step fails the install without waiting on the second', async () => {
   const scene = gatingScene();
-  endStepWatcher(scene, 'install', 1);
+  endStepExited(scene, 'install', 1);
 
   expect(await setupOf(scene)).toBe('install-failed');
+});
+
+testWhenGitIsRecorded('an install step Talos stopped at its time bound fails the install', async () => {
+  const scene = gatingScene();
+  endStepLine(scene, 'install', { reason: 'time-bound', exitCode: null, signal: 'SIGTERM' });
+
+  expect(await setupOf(scene)).toBe('install-failed');
+});
+
+testWhenGitIsRecorded('an install step a clean quit paused installs again as its next instance, its first end never read', async () => {
+  const scene = gatingScene();
+  endStepLine(scene, 'install', { reason: 'paused', exitCode: null, signal: 'SIGTERM' });
+  expect(await setupOf(scene)).toBe('installing');
+
+  endStepExited(scene, 'install', 0);
+  endStepLine(scene, 'install', { exitCode: 0 }, 2);
+  endStepExited(scene, 'install2', 0);
+  expect(await setupOf(scene)).toBe('installed');
+});
+
+testWhenGitIsRecorded('a gate a clean quit paused is never judged: the run waits on that step again until its next instance ends', async () => {
+  const scene = gatingScene();
+  endStepExited(scene, 'gate-prepare', 0);
+  endStepLine(scene, 'gate-1', { reason: 'paused', exitCode: null, signal: 'SIGTERM' });
+
+  expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({ verdict: 'running', stepIndex: 1 });
+  expect(existsSync(join(jobFolderIn(scene.context.workspace.trackerDirectory, 'J2'), 'gate-1-verdict.json'))).toBe(false);
+
+  endStepLine(scene, 'gate-1', { exitCode: 1 }, 2);
+  // The prepare step's verdict is kept from the first read, so only the gate's own tree check is asked.
+  expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
+    verdict: 'judged', outcome: 'failed', step: 'lint', ran: true
+  });
+});
+
+testWhenGitIsRecorded('a gate Talos stopped at its time bound judges cannot-run, its output naming the bound', async () => {
+  const scene = gatingScene();
+  endStepExited(scene, 'gate-prepare', 0);
+  endStepLine(scene, 'gate-1', { reason: 'time-bound', exitCode: null, signal: 'SIGTERM' });
+
+  const gate = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE);
+  expect(gate).toMatchObject({
+    verdict: 'judged', outcome: 'cannot-run', step: 'lint', ran: true
+  });
+  expect(JSON.stringify(gate)).toContain(GateRun.timeBoundLineOf(LINE_TIME_BOUND_MILLISECONDS));
 });
 
 testWhenGitIsRecorded('a gate run runs each prepare step as a step of its own before the first gate', async () => {
@@ -172,16 +228,16 @@ testWhenGitIsRecorded('a gate run runs each prepare step as a step of its own be
   ));
   expect(await gateWith([])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 
-  endStepWatcher(scene, 'gate-prepare', 0);
+  endStepExited(scene, 'gate-prepare', 0);
   expect(await gateWith([TRACKED_TREE_UNCHANGED])).toMatchObject({ verdict: 'running', stepIndex: 1 });
 
-  endStepWatcher(scene, 'gate-prepare2', 0);
+  endStepExited(scene, 'gate-prepare2', 0);
   expect(await gateWith([TRACKED_TREE_UNCHANGED])).toMatchObject({ verdict: 'running', stepIndex: 2 });
 });
 
 testWhenGitIsRecorded('a prepare step that exits 0 but changes a tracked file is a setup failure with its diff, before the first gate runs', async () => {
   const scene = gatingScene();
-  endStepWatcher(scene, 'gate-prepare', 0);
+  endStepExited(scene, 'gate-prepare', 0);
   const trackedTreeChanged: RecordedGitStep = { gitArguments: ['diff', '--no-ext-diff', 'HEAD', '--'], answeredAs: GIT_CALL_SHAPES.DIFF_OF_A_REFORMATTED_FILE };
 
   const gate = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, trackedTreeChanged], TWO_PREPARE_STEPS);
@@ -202,8 +258,8 @@ const ONE_GATE_PER_PHASE: Pipeline = {
 
 testWhenGitIsRecorded('a build job runs only the build phase\'s gates, after the prepare steps', async () => {
   const scene = gatingScene();
-  endStepWatcher(scene, 'gate-prepare', 0);
-  endStepWatcher(scene, 'gate-1', 1);
+  endStepExited(scene, 'gate-prepare', 0);
+  endStepExited(scene, 'gate-1', 1);
 
   expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
     verdict: 'judged', outcome: 'failed', step: 'lint', ran: true
@@ -213,8 +269,8 @@ testWhenGitIsRecorded('a build job runs only the build phase\'s gates, after the
 testWhenGitIsRecorded('a review job runs only the review phase\'s gates, after the prepare steps', async () => {
   const scene = gatingScene();
   const headOnAChangedTree = treeOf('HEAD', GIT_CALL_SHAPES.TREE_OF_A_COMMIT_WITH_A_FILE);
-  endStepWatcher(scene, 'gate-prepare', 0);
-  endStepWatcher(scene, 'gate-1', 1);
+  endStepExited(scene, 'gate-prepare', 0);
+  endStepExited(scene, 'gate-1', 1);
 
   expect(await gateOf(scene, 'review', [headOnAChangedTree, START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE)).toMatchObject({
     verdict: 'judged', outcome: 'failed', step: 'tests', ran: true
@@ -262,10 +318,10 @@ describe('the gate-run manifest', () => {
     const scene = gatingScene();
     expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE])).toMatchObject({ verdict: 'running', stepIndex: 0 });
 
-    endStepWatcher(scene, 'gate-1', 0);
+    endStepExited(scene, 'gate-1', 0);
     expect(await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED], AUDIT_ADDED_IN_FRONT)).toMatchObject({ verdict: 'running', stepIndex: 1 });
 
-    endStepWatcher(scene, 'gate-2', 0);
+    endStepExited(scene, 'gate-2', 0);
     const judged = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED], AUDIT_ADDED_IN_FRONT);
     expect(judged).toMatchObject({
       verdict: 'judged', outcome: 'passed', ran: true, manifest: { phase: 'build', phaseHash: PipelineUtil.phaseHashOf(PIPELINE, 'build') }
@@ -276,8 +332,8 @@ describe('the gate-run manifest', () => {
   testWhenGitIsRecorded('a reorder mid-run names the red gate the run ran, not the gate the pipeline now puts in its folder', async () => {
     const scene = gatingScene();
     await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE]);
-    endStepWatcher(scene, 'gate-1', 0);
-    endStepWatcher(scene, 'gate-2', 1);
+    endStepExited(scene, 'gate-1', 0);
+    endStepExited(scene, 'gate-2', 1);
     const reordered: Pipeline = { ...PIPELINE, phases: { ...PIPELINE.phases, build: ['lint', 'tests'] } };
 
     const judged = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], reordered);
@@ -373,8 +429,8 @@ describe('a gate\'s cache report', () => {
   testWhenGitIsRecorded('is kept with each gate\'s verdict, read once and removed, and a gate that reported nothing has none', async () => {
     const scene = gatingScene();
     const reportFile = writeReport(scene, 'gate-1', { version: 1, cache: 'hit' });
-    endStepWatcher(scene, 'gate-1', 0);
-    endStepWatcher(scene, 'gate-2', 0);
+    endStepExited(scene, 'gate-1', 0);
+    endStepExited(scene, 'gate-2', 0);
     const cacheReports = [{ gateName: 'tests', cacheReport: 'hit' }, { gateName: 'lint', cacheReport: null }];
     const judged = { verdict: 'judged', outcome: 'passed', cacheReports };
 
@@ -387,8 +443,8 @@ describe('a gate\'s cache report', () => {
   testWhenGitIsRecorded('reads as none from a report of another version or outside the cache words, which is removed all the same', async () => {
     const scene = gatingScene();
     const reportFiles = [writeReport(scene, 'gate-1', { version: 2, cache: 'hit' }), writeReport(scene, 'gate-2', { version: 1, cache: 'warm' })];
-    endStepWatcher(scene, 'gate-1', 0);
-    endStepWatcher(scene, 'gate-2', 0);
+    endStepExited(scene, 'gate-1', 0);
+    endStepExited(scene, 'gate-2', 0);
 
     const cacheReports = [{ gateName: 'tests', cacheReport: null }, { gateName: 'lint', cacheReport: null }];
 
@@ -496,7 +552,7 @@ describe('a job of an entity', () => {
     const setup = (): Promise<unknown> => recordedGit.playStage([], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], PIPELINE_WITH_ENTITIES)[0]?.setup));
     expect(await setup()).toBe('installing');
 
-    endStepWatcher(scene, 'install', 0);
+    endStepExited(scene, 'install', 0);
     expect(await setup()).toBe('installed');
   });
 

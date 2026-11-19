@@ -226,7 +226,8 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
     'headless-bridge', ['--project', HEADLESS_CHECK_PROJECT, '--no-hooks'], FIXED_CLOCK, recordedGit
   );
   writeFileSync(workspacePathsFor(repositoryDirectory).pipelineFilePath, HEADLESS_CHECK_PIPELINE_TEXT);
-  const homeDirectory = createScratchDirectory('headless-bridge-home');
+  // Short, so the board's Talos endpoint under it fits the bytes macOS keeps for a socket path.
+  const homeDirectory = createScratchDirectory('bridge-home');
   const chromeProfileDirectory = createScratchDirectory('headless-bridge-chrome');
   const openerStubDirectory = createScratchDirectory('headless-bridge-opener');
   const problems: string[] = [];
@@ -311,6 +312,8 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
     // The returned reading holds this same array, so a git call the stopped Overseer could not answer still reaches the caller.
     const overseerGitProblem = await overseer?.finished.then(() => null, (error: unknown) => String(error));
     if (overseerGitProblem !== null && overseerGitProblem !== undefined) problems.push(overseerGitProblem);
+    // The board's Talos outlives the stopped Overseer, working in the repository.
+    await stopProcessesReachingInto(repositoryDirectory);
     removeScratchDirectory(chromeProfileDirectory);
     removeScratchDirectory(openerStubDirectory);
     removeScratchDirectory(homeDirectory);

@@ -20,11 +20,10 @@ import {
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { Job, JobKind, JobRole }                     from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { fakeAgentAdapter, fakeStartedLine }              from '../../testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
 import type { BoardChildren }                             from './BoardChildren.ts';
 import { JobResumption }                                  from './JobResumption.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
@@ -79,7 +78,7 @@ function jobOf(id: string, kind: JobKind, role: JobRole, scope: EntityAndStage, 
 
 /** The tracker's children as the Overseer reads them, by the job folders of the tracker the case made. */
 function childrenOfTheTracker(trackerDirectory: string): BoardChildren {
-  return watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory);
+  return talosChildReadingsWith(nativePlatformPorts(), trackerDirectory);
 }
 
 describe('a build after a built builder of the same attempt', () => {
@@ -166,7 +165,7 @@ describe('a stale green that turned red', () => {
       callBudget:          30,
       interruptedInstance: 0,
     }, 'expected 2, received 3');
-    const { eventLogPath } = watcherFilesOf(jobFolderIn(trackerDirectory, 'J1'), 1);
+    const { eventLogPath } = childFilesIn(jobFolderIn(trackerDirectory, 'J1'), 1);
     mkdirSync(join(eventLogPath, '..'), { recursive: true });
     const writer = createEventLogWriter(eventLogPath, () => AT);
     writer.append('agent', fakeStartedLine('fake-session'));

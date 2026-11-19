@@ -3,7 +3,7 @@
  * again"). What matters: the checkout that holds a target is not in the fingerprint, so once a pass held the main line an unforced wake
  * still runs no pass, while an Assistant is live; the next sweep runs one, which rechecks the checkout and lands the Apply's constitution
  * commit once User cleaned it. A ticket landing's held target is rechecked by the same sweep. Git answers from the recorded answer sets of
- * `src/services/overseer/testing/ConstitutionCommitAnswers.ts`; the Assistant's session plays `src/testing/RecordedWatcherStages.ts`.
+ * `src/services/overseer/testing/ConstitutionCommitAnswers.ts`; the Assistant's session plays `src/testing/RecordedTalosStages.ts`.
  */
 import {
   mkdirSync,
@@ -21,7 +21,7 @@ import {
 
 import type { Board }                                               from '../../lib/tracker-model/Board.ts';
 import { WorktreesFolder }                                          from '../../shared/WorktreesFolder.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH }         from '../../testing/DrivePassHarness.ts';
+import { createScratchDrivePass }                                   from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, fakeStartedLine }                        from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                      from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                      from '../../testing/NativePlatformPorts.ts';
@@ -32,7 +32,7 @@ import {
   type RecordedGitStage,
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages }                        from '../../testing/RecordedWatcherStages.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }                            from '../../testing/RecordedTalosStages.ts';
 import { createScratchDirectory, removeScratchDirectory }                              from '../../testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }                           from '../../testing/ToolGuard.ts';
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }                              from '../../testing/TrackerFileFixtures.ts';
@@ -45,7 +45,7 @@ import { HARNESS_AT, RECORDED_AIRLOCK_IDS }                                     
 import { CONSTITUTION_COMMIT_IDS, ConstitutionCommitAnswers, DRAFT_CONSTITUTION_TEXT } from './testing/ConstitutionCommitAnswers.ts';
 
 const recordedGit = useRecordedGit();
-const world = useRecordedWatcherStages(nativePlatformPorts());
+const world = useRecordedTalosStages(nativePlatformPorts());
 
 const MAIN_LINE = 'main';
 const STAMP = '2026-11-13T10:00:00+01:00';
@@ -55,7 +55,7 @@ const { BRANCH, PATH } = RECORDED_PLACEHOLDERS;
 /** The Assistant starts and then waits on its stdin, so it stays live through the spec. */
 const WAITING_ASSISTANT = fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-assistant') }, { kind: 'await-line' }, { kind: 'await-line' }]);
 
-let ports: RecordedWatcherStages['ports'];
+let ports: RecordedTalosStages['ports'];
 let repository = '';
 let workspace: Workspace;
 let monitorFolder = '';
@@ -86,16 +86,16 @@ function commitWalkOf(jobId: string, mainCheckout: 'clean' | 'constitution-modif
 
 function startedDrivePass(): DrivePass {
   return createScratchDrivePass({
-    platformPorts:     { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
-    processStarts:     world.processStarts,
+    platformPorts:   { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
+    processStarts:   world.processStarts,
     workspace,
-    now:               () => new Date(Date.parse(STAMP)),
-    formatStamp:       () => STAMP,
-    watcherBundlePath: FAKE_WATCHER_BUNDLE_PATH,
-    agentAdapter:      WAITING_ASSISTANT,
+    now:             () => new Date(Date.parse(STAMP)),
+    formatStamp:     () => STAMP,
+    talosConnection: () => world.connectionFor(workspace.trackerDirectory),
+    agentAdapter:    WAITING_ASSISTANT,
     monitorFolder,
-    mainLine:          MAIN_LINE,
-    log:               () => undefined,
+    mainLine:        MAIN_LINE,
+    log:             () => undefined,
   });
 }
 

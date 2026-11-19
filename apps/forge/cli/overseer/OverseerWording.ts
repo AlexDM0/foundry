@@ -1067,8 +1067,6 @@ function noticeTextOf(notice: OverseerNotice): string {
       return `job ${notice.jobId} is not launched: the instruction file ${notice.path} its pipeline names is missing`;
     case 'agent-program-refused':
       return OperationRefusalWordingUtil.agentProgramRefusalTextOf(notice.jobId, notice.cause, notice.reason);
-    case 'watcher-endpoint-does-not-fit':
-      return `job ${notice.jobId} is not launched: this platform cannot bind the Watcher endpoint ${notice.endpoint}; move the home folder to a shorter path`;
   }
 }
 

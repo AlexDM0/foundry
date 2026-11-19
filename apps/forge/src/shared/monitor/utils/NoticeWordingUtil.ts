@@ -64,8 +64,6 @@ function noticeTextOf(notice: NoticeFacts): string {
       return `job ${factOf(notice, 'jobId')} is not launched: the instruction file ${factOf(notice, 'path')} its pipeline names is missing`;
     case 'agent-program-refused':
       return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}`;
-    case 'watcher-endpoint-does-not-fit':
-      return `job ${factOf(notice, 'jobId')} is not launched: this platform cannot bind the Watcher endpoint ${factOf(notice, 'endpoint')}`;
     default:
       return notice.kind;
   }

@@ -1,18 +1,13 @@
 /**
- * The pipeline's `billing` on a scratch tracker behind the Watcher boundary, the Claude Code adapter's environment and arguments on a fake
+ * The pipeline's `billing` on a scratch tracker behind the Talos boundary, the Claude Code adapter's environment and arguments on a fake
  * session. What matters: with subscription billing, or none set, a session gets neither API variable of the Overseer; with API billing the
- * launch file names `ANTHROPIC_API_KEY` for the Watcher to copy and holds no key; a planted key is in no file of the data or monitor folder;
+ * launch names `ANTHROPIC_API_KEY` for Talos to copy and holds no key; a planted key is in no file of the data or monitor folder;
  * a budget reaches the launch arguments; and API billing with no key starts no session and opens one decision naming the variable and the
  * set-up section, which an Overseer started again with the key set, or with billing no longer `api`, withdraws. No case calls the API or holds
  * a real key.
  */
-import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                     from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -20,16 +15,15 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }                                from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchPlan }                             from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
-import type { PipelineBilling }                             from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import { watcherFilesOf }                                   from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherLaunch }                               from '../../src/lib/watcher/WatcherLaunch.ts';
-import type { DrivePass, DrivePassRequest }                 from '../../src/services/overseer/DrivePass.ts';
-import { jobFolderIn }                                      from '../../src/services/overseer/OverseerFiles.ts';
-import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
-import { API_RATE_LIMIT_BACKOFF_SECONDS }                   from '../../src/shared/constants/OverseerLimits.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH } from '../../src/testing/DrivePassHarness.ts';
+import type { AgentAdapter }                from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchPlan }             from '../../src/lib/agent-launch/AgentLaunchPlan.ts';
+import type { ChildLaunch }                 from '../../src/lib/talos/ChildLaunch.ts';
+import type { PipelineBilling }             from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { DrivePass, DrivePassRequest } from '../../src/services/overseer/DrivePass.ts';
+import { jobFolderIn }                      from '../../src/services/overseer/OverseerFiles.ts';
+import { requireWorkspace }                 from '../../src/services/tracker/Workspace.ts';
+import { API_RATE_LIMIT_BACKOFF_SECONDS }   from '../../src/shared/constants/OverseerLimits.ts';
+import { createScratchDrivePass }           from '../../src/testing/DrivePassHarness.ts';
 import {
   DEFAULT_FAKE_AGENT_STEPS,
   fakeAgentAdapter,
@@ -37,22 +31,22 @@ import {
   type FakeAgentStep,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                                  from '../../src/testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                  from '../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                       from '../../src/testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                              from '../../src/testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages } from '../../src/testing/RecordedWatcherStages.ts';
-import { createScratchDirectory, removeScratchDirectory }       from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }    from '../../src/testing/ToolGuard.ts';
-import { waitUntil }                                            from '../../src/testing/WaitUntil.ts';
-import { recordedLineOf }                                       from '../../src/testing/fake-agent/RecordedClaudeLines.ts';
-import { agentAdapterOfThisProcess }                            from '../CommandContext.ts';
-import { createCapturedCommandContext }                         from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }               from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }                      from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                                      from '../testing/ReadyTicketFiling.ts';
-import { storedProgressOf }                                     from '../testing/StoredProgress.ts';
-import { OverseerWording }                                      from './OverseerWording.ts';
+import { fakeGateConfinement }                               from '../../src/testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                               from '../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                    from '../../src/testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                           from '../../src/testing/RecordedGitFlow.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }  from '../../src/testing/RecordedTalosStages.ts';
+import { createScratchDirectory, removeScratchDirectory }    from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../src/testing/ToolGuard.ts';
+import { firstValueOf, waitUntil }                           from '../../src/testing/WaitUntil.ts';
+import { recordedLineOf }                                    from '../../src/testing/fake-agent/RecordedClaudeLines.ts';
+import { agentAdapterOfThisProcess }                         from '../CommandContext.ts';
+import { createCapturedCommandContext }                      from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }            from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                   from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                                   from '../testing/ReadyTicketFiling.ts';
+import { storedProgressOf }                                  from '../testing/StoredProgress.ts';
+import { OverseerWording }                                   from './OverseerWording.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -67,8 +61,8 @@ const OVERSEER_ENVIRONMENT = {
   CLAUDE_CODE_OAUTH_TOKEN: 'example-oauth-token',
 };
 
-const world = useRecordedWatcherStages(nativePlatformPorts());
-let ports: RecordedWatcherStages['ports'];
+const world = useRecordedTalosStages(nativePlatformPorts());
+let ports: RecordedTalosStages['ports'];
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -124,7 +118,7 @@ function drivePassWith(apiBillingKeyIsSet: boolean, requestOverrides: Partial<Dr
     processStarts:        world.processStarts,
     workspace:            requireWorkspace(repositoryDirectory),
     now:                  SPEC_CLOCK,
-    watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+    talosConnection:      () => world.connectionFor(requireWorkspace(repositoryDirectory).trackerDirectory),
     agentAdapter:         claudeBilledAdapter(),
     monitorFolder,
     mainLine:             RECORDED_FLOW_MAIN_LINE,
@@ -147,16 +141,17 @@ function buildJobId(): string | undefined {
   return (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build')?.id;
 }
 
-function buildLaunchPath(): string {
-  return watcherFilesOf(jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, String(buildJobId())), 1).launchPath;
+/** The launch Talos took for the build session; `null` before one. */
+function buildLaunch(): ChildLaunch | null {
+  const jobId = buildJobId();
+  return jobId === undefined ? null : world.launchOf(jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId), 1);
 }
 
-async function buildLaunchOf(drivePass: DrivePass): Promise<WatcherLaunch> {
-  await waitUntil(async () => {
+async function buildLaunchOf(drivePass: DrivePass): Promise<ChildLaunch> {
+  return await firstValueOf(async () => {
     await passOnce(drivePass);
-    return buildJobId() !== undefined && existsSync(buildLaunchPath());
-  }, () => `the build session's launch file: ${overseerLog.join('\n')}`);
-  return JSON.parse(readFileSync(buildLaunchPath(), 'utf8')) as WatcherLaunch;
+    return buildLaunch() ?? undefined;
+  }, () => `the build session's launch: ${overseerLog.join('\n')}`);
 }
 
 /** Every regular file under the folder whose text holds `value`; a socket or a folder is skipped. */
@@ -197,7 +192,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
       expect(launch.environment['ANTHROPIC_API_KEY']).toBeUndefined();
       expect(launch.environment['ANTHROPIC_AUTH_TOKEN']).toBeUndefined();
       expect(launch.environment['CLAUDE_CODE_OAUTH_TOKEN']).toBe('example-oauth-token');
-      expect(launch.environmentFromWatcher).toBeUndefined();
+      expect(launch.environmentFromTalos).toEqual({});
       expect(launch.argv).not.toContain('--max-budget-usd');
     },
   );
@@ -208,13 +203,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
     const launch = await buildLaunchOf(drivePass);
     await passOnce(drivePass);
 
-    expect(launch.environmentFromWatcher).toEqual({ ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY' });
+    expect(launch.environmentFromTalos).toEqual({ ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY' });
     expect(launch.environment['ANTHROPIC_API_KEY']).toBeUndefined();
     expect(launch.environment['ANTHROPIC_AUTH_TOKEN']).toBeUndefined();
     expect(launch.argv.slice(launch.argv.indexOf('--max-budget-usd'), launch.argv.indexOf('--max-budget-usd') + 2)).toEqual(['--max-budget-usd', '3']);
     const { trackerDirectory } = requireWorkspace(repositoryDirectory);
-    // The scan reads the launch file, which names the variable, so finding no key means something.
-    expect(filesHolding(trackerDirectory, 'ANTHROPIC_API_KEY')).toContain(buildLaunchPath());
     for (const planted of [PLANTED_KEY, PLANTED_AUTH_TOKEN]) {
       expect(filesHolding(trackerDirectory, planted)).toEqual([]);
       expect(filesHolding(monitorFolder, planted)).toEqual([]);
@@ -229,7 +222,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'billing', () => {
     for (let pass = 0; pass < 3; pass += 1) await passOnce(drivePass);
 
     expect(buildJobId()).toBeDefined();
-    expect(existsSync(buildLaunchPath())).toBe(false);
+    expect(buildLaunch()).toBeNull();
     const decisions = decisionsOfKind('api-key-not-set');
     expect(decisions).toHaveLength(1);
     const decisionText = JSON.stringify(decisions[0]);
@@ -315,7 +308,7 @@ function buildJobEnded(): LoggedRecord | undefined {
 }
 
 function spawnLines(): string[] {
-  return overseerLog.filter((line) => line.startsWith('Spawned Watcher'));
+  return overseerLog.filter((line) => line.startsWith('Launched child instance'));
 }
 
 /** The Assistant boots beside the build and plays the same session, so each case reads the build job's own records. */

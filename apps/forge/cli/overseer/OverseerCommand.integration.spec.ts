@@ -2,7 +2,8 @@
  * The Overseer's start, Baton and stop, end to end through real child processes, since an Overseer holds its process until it is stopped.
  * What matters: two starters at once leave exactly one Overseer serving; a Baton naming a dead process is taken over as after a crash; a
  * Overseer whose generation was overtaken stops at exit 2 touching nothing; `oversee --detach`, `oversee status`, `oversee restart` and `oversee stop`
- * agree with the Baton; `oversee stop --now` stops a live process Watcher, which a plain stop leaves running; `oversee pause|resume` write the
+ * agree with the Baton; a started Overseer has its board's Talos serving under a lease it renewed;
+ * `oversee stop --now` stops a live line of Talos, which a plain stop leaves running; `oversee pause|resume` write the
  * drain flag with no Overseer up, which the Bridge header's board state and `oversee status` read alike, held in-process by
  * `cli/overseer/OverseerCommand.spec.ts`; and a spec-spawned Overseer resolves the fake agent, never the vendor's adapter. Every Overseer binds
  * `--port 0`. Every binary, and every Overseer it starts, answers git from one recorded answer set an idle board needs. An Overseer whose data
@@ -27,19 +28,21 @@ import {
 } from 'bun:test';
 
 import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
-import { watcherFilesOf }                                 from '../../src/lib/watcher/WatcherFiles.ts';
+import { childFilesOf, talosRecordPathOf }                from '../../src/lib/talos/TalosFiles.ts';
+import { talosRecordOf }                                  from '../../src/lib/talos/TalosRecord.ts';
 import { CodeVersion }                                    from '../../src/services/overseer/CodeVersion.ts';
-import { createWatcherBoardChildren }                     from '../../src/services/overseer/WatcherBoardChildren.ts';
-import { PlantedWatcher }                                 from '../../src/services/overseer/testing/PlantedWatcher.ts';
 import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { startScratchBoardTalos }                         from '../../src/testing/DrivePassHarness.ts';
 import { FAKE_AGENT_VENDOR }                              from '../../src/testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                            from '../../src/testing/NativePlatformPorts.ts';
+import { PlantedChild }                                   from '../../src/testing/PlantedChild.ts';
 import { stopProcessesReachingInto }                      from '../../src/testing/ProcessesInFolder.ts';
 import { type RecordedGitStage, useRecordedGit }          from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                         from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenGitIsRecorded }                      from '../../src/testing/ToolGuard.ts';
 import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
 import {
@@ -65,11 +68,9 @@ const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 
 const OWNER_ONLY_FILE_MODE = 0o600;
 const PERMISSION_BITS      = 0o777;
-const WATCHER_BINARY_PATH = new URL('../../watcher.ts', import.meta.url).pathname;
 
 let repositoryDirectory = '';
 let homeDirectory       = '';
-let shortMonitorFolder  = '';
 
 function overseerDirectory(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer');
@@ -97,15 +98,15 @@ function storedLogKindsOf(repository: string): string[] {
 function plantDeadBaton(generation: number): void {
   mkdirSync(overseerDirectory(), { recursive: true });
   writeFileSync(join(overseerDirectory(), `baton-${generation}.json`), JSON.stringify({
-    processId:              process.pid,
-    processStartStamp:      '1',
-    bootIdentity:           'example-boot',
-    port:                   1,
-    url:                    'http://127.0.0.1:1/',
-    tokenFile:              join(overseerDirectory(), 'token'),
-    codeVersion:            'code-example',
-    installVersion:         1,
-    watcherProtocolVersion: 1,
+    processId:            process.pid,
+    processStartStamp:    '1',
+    bootIdentity:         'example-boot',
+    port:                 1,
+    url:                  'http://127.0.0.1:1/',
+    tokenFile:            join(overseerDirectory(), 'token'),
+    codeVersion:          'code-example',
+    installVersion:       1,
+    talosProtocolVersion: 1,
   }));
 }
 
@@ -120,18 +121,21 @@ function jobsOnTheBoard(): readonly JobOnTheBoard[] {
 }
 
 /**
- * The Watcher of the job the board lists now, claimed by this process. Each Overseer generation replaces a job whose Watcher never came up,
- * so a fixed job id would name a job a later generation no longer lists. Under a macOS temp path the scratch home is too long for a socket,
- * so the Overseer launches none; the monitor folder here is short enough.
+ * The event log of the job the board lists now, its current instance's child record planted as a running child of Talos. A job whose
+ * session ended may be replaced at a later generation, so a fixed job id would name a job a later generation no longer lists.
  */
 async function plantedEventLogPathOfTheListedJob(): Promise<string> {
   const listedJob = await firstValueOf(() => jobsOnTheBoard()[0], () => `the board listing a job:\n${overseerLogText()}`);
   const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
-  shortMonitorFolder = createScratchDirectory('m');
-  PlantedWatcher.plantLiveWatcher({
-    trackerDirectory, monitorFolder: shortMonitorFolder, jobId: listedJob.id, instance: listedJob.watcherInstance
-  });
-  return watcherFilesOf(join(trackerDirectory, 'jobs', listedJob.id), listedJob.watcherInstance).eventLogPath;
+  const child = { boardFolder: trackerDirectory, childFolder: `jobs/${listedJob.id}`, instance: listedJob.watcherInstance };
+  PlantedChild.plantChildRecord(child);
+  return childFilesOf(child.boardFolder, child.childFolder, child.instance).eventLogPath;
+}
+
+/** The board's Talos record of the first start; `null` before Talos claimed it. */
+function firstTalosRecord(): ReturnType<typeof talosRecordOf> | null {
+  const recordPath = talosRecordPathOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER), 1);
+  return existsSync(recordPath) ? talosRecordOf(readFileSync(recordPath, 'utf8')) : null;
 }
 
 /** The isolation check here asks git for the root of each scratch folder it is handed that holds no tracker and lies in no repository. */
@@ -187,8 +191,6 @@ afterEach(async () => {
   sharedAnswers = null;
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
-  if (shortMonitorFolder !== '') removeScratchDirectory(shortMonitorFolder);
-  shortMonitorFolder = '';
   try {
     answers.requireEveryCallAnswered();
   } finally {
@@ -223,7 +225,7 @@ describeWhenGitIsRecorded('run in the foreground', () => {
     const baton = batonOf('baton-1.json');
     expect(baton).toMatchObject({ processId: starters[servingIndex]?.processId, url, codeVersion: CodeVersion.onDisk() });
     expect(Object.keys(baton)).toEqual([
-      'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'watcherProtocolVersion',
+      'processId', 'processStartStamp', 'bootIdentity', 'port', 'url', 'tokenFile', 'codeVersion', 'installVersion', 'talosProtocolVersion',
     ]);
     expect(existsSync(join(overseerDirectory(), 'token'))).toBe(false);
     expect(statSync(baton['tokenFile'] as string).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
@@ -390,18 +392,18 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(detached.exitCode, detached.standardError).toBe(0);
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
     const batonBefore = batonOf('baton-1.json');
-    // The successor reads every claimed Watcher's event log before it reports ready: a malformed line in the listed job's fails that step.
+    // The successor reads every launched child's event log before it reports ready: a malformed line in the listed job's fails that step.
     appendFileSync(await plantedEventLogPathOfTheListedJob(), 'not an event\n');
 
     const restarted = await runAgentProgress(['oversee', 'restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(restarted.exitCode, `${restarted.standardError}\n${overseerLogText()}`).toBe(1);
-    expect(`${restarted.standardOutput}${restarted.standardError}`).toContain('failed at read-watcher-files');
+    expect(`${restarted.standardOutput}${restarted.standardError}`).toContain('failed at read-child-records');
     expect(batonFileNames()).toEqual(['baton-1.json']);
     expect(batonOf('baton-1.json')).toEqual(batonBefore);
     expect(storedLogKindsOf(repositoryDirectory)).toContain('baton-pass-failed');
 
     const status = await runAgentProgress(['oversee', 'status', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    expect(JSON.parse(status.standardOutput)).toMatchObject({ url, batonPassWarning: { step: 'read-watcher-files' } });
+    expect(JSON.parse(status.standardOutput)).toMatchObject({ url, batonPassWarning: { step: 'read-child-records' } });
     expect((await runAgentProgress(['oversee', 'status'], { currentDirectory: repositoryDirectory, homeDirectory })).standardOutput)
       .toContain('warning: the Baton pass to code');
     await stopOverseer();
@@ -430,60 +432,79 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     rmSync(manifestPath);
     const failed = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(failed.exitCode, failed.standardError).toBe(1);
-    expect(failed.standardError).toContain('failed at read-watcher-files');
+    expect(failed.standardError).toContain('failed at read-child-records');
     expect(existsSync(manifestPath)).toBe(true);
     expect(batonFileNames()).toEqual(['baton-2.json']);
     await stopOverseer();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('stop --now stops a live install Watcher before the Overseer exits; a plain stop leaves it running', async () => {
+  test('stop --now stops a live line of Talos before the Overseer exits; a plain stop leaves it running', async () => {
     const monitorFolder = createScratchDirectory('h');
     const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
     try {
-      const watcherFolder = join(trackerDirectory, 'jobs', 'J-example', 'install-1');
-      const children = createWatcherBoardChildren({
-        platformPorts: ports,
-        trackerDirectory,
-        launching:     {
-          trackerId: 'tracker-example', monitorFolder, watcherBundlePath: WATCHER_BINARY_PATH, codeVersion: 'code-example', watcherDirectory: repositoryDirectory
-        },
-        log: () => undefined,
-      });
-      await children.launchLine({
-        childFolder:           watcherFolder,
-        instance:              1,
-        label:                 'J-example/install-1',
-        workingDirectory:      watcherFolder,
-        argv:                  [process.execPath, '-e', 'setInterval(() => undefined, 1000);'],
-        verbatimArguments:     false,
-        environment:           {},
-        timeBoundMilliseconds: null,
-      });
-      const watcherProcessId = children.recordOf(watcherFolder, 1)?.talos?.processId;
-      if (watcherProcessId === undefined) throw new Error('the install Watcher did not spawn');
-      await waitUntil(() => children.livenessOf(watcherFolder, 1).verdict === 'live', 'the install Watcher going live');
-
       const startOverseerDetached = async (): Promise<void> => {
         const detached = await runAgentProgress(['oversee', '--detach', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
         expect(detached.exitCode, detached.standardError).toBe(0);
       };
       await startOverseerDetached();
+      // The Overseer's own Talos serves, so this attaches to it, as a second Overseer would.
+      const boardTalos = await startScratchBoardTalos({
+        workspace: workspacePathsFor(repositoryDirectory), platformPorts: ports, monitorFolder, log: () => undefined
+      });
+      const lineFolder = join(trackerDirectory, 'jobs', 'J-example', 'install-1');
+      const children = talosChildReadingsWith(ports, trackerDirectory);
+      const launched = await boardTalos.connection()?.send({
+        kind:   'launch',
+        launch: {
+          childFolder:                    'jobs/J-example/install-1',
+          instance:                       1,
+          kind:                           'line',
+          label:                          'J-example/install-1',
+          argv:                           [process.execPath, '-e', 'setInterval(() => undefined, 1000);'],
+          environment:                    {},
+          environmentFromTalos:           {},
+          workingDirectory:               repositoryDirectory,
+          verbatimArguments:              false,
+          standingReplies:                [],
+          closingLine:                    null,
+          endingPatterns:                 [],
+          quitAtTurnEnd:                  null,
+          treeStopAtEndGraceMilliseconds: null,
+          timeBoundMilliseconds:          null,
+        },
+      });
+      expect(launched).toMatchObject({ verdict: 'done' });
+      await waitUntil(() => children.livenessOf(lineFolder, 1).verdict === 'live' && children.recordOf(lineFolder, 1)?.state === 'running', 'the line running');
+      const lineProcessId = children.recordOf(lineFolder, 1)?.childProcess?.processId;
+      if (lineProcessId === undefined) throw new Error('the line did not start');
+
       await stopOverseer();
-      expect(children.livenessOf(watcherFolder, 1).verdict).toBe('live');
+      expect(children.livenessOf(lineFolder, 1).verdict).toBe('live');
 
       await startOverseerDetached();
       const stoppedNow = await runAgentProgress(['oversee', 'stop', '--now'], { currentDirectory: repositoryDirectory, homeDirectory });
       expect(stoppedNow.exitCode, stoppedNow.standardError).toBe(0);
-      expect(children.livenessOf(watcherFolder, 1)).toMatchObject({ verdict: 'ended' });
-      await waitUntil(() => processIsGone(watcherProcessId), () => `the install Watcher going:\n${overseerLogText()}`);
+      await waitUntil(() => children.livenessOf(lineFolder, 1).verdict === 'ended', () => `the line ending:\n${overseerLogText()}`);
+      await waitUntil(() => processIsGone(lineProcessId), () => `the line going:\n${overseerLogText()}`);
     } finally {
-      // A failed assertion would otherwise leave the Watcher and its child running past the scratch repository.
-      const children = createWatcherBoardChildren({
-        platformPorts: ports, trackerDirectory, launching: null, log: () => undefined
-      });
-      await children.stopLiveLines();
-      await children.reapEndedWatchers();
+      // Talos and its line work in the repository: the case's teardown stops what reaches into it.
       removeScratchDirectory(monitorFolder);
     }
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a started Overseer has its board\'s Talos serving under a lease it renewed', async () => {
+    const detached = await runAgentProgress(['oversee', '--detach', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(detached.exitCode, detached.standardError).toBe(0);
+    await waitUntil(() => {
+      const reading = firstTalosRecord();
+      return reading?.verdict === 'read' && reading.record.state === 'serving' && reading.record.lease.standing === 'held';
+    }, () => `Talos serving under a held lease:\n${overseerLogText()}`);
+    const lines = overseerLogText().split('\n');
+    const talosLine = lines.findIndex((line) => line.includes('Started Talos 1'));
+    const servingLine = lines.findIndex((line) => line.includes('Overseer serving'));
+    expect(servingLine, overseerLogText()).toBeGreaterThan(-1);
+    // Talos starts once the Baton is taken and the start recorded, so a start refused earlier leaves no Talos behind.
+    expect(talosLine, overseerLogText()).toBeGreaterThan(servingLine);
+    await stopOverseer();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

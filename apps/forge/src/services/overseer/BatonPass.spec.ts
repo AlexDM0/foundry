@@ -40,7 +40,7 @@ const nativePorts = nativePlatformPorts();
 const SCHEDULE = { readyTries: 40, releaseTries: 40, intervalMilliseconds: 10 };
 /** A successor that never reports runs out every try it is given, so the cases with a silent successor give it few. */
 const SILENT_SUCCESSOR_SCHEDULE = { ...SCHEDULE, readyTries: 3, releaseTries: 3 };
-const PREPARATION_STEPS: readonly BatonPassStep[] = ['build-bundles', 'read-board', 'read-jobs', 'read-watcher-files', 'install-version'];
+const PREPARATION_STEPS: readonly BatonPassStep[] = ['read-board', 'read-jobs', 'read-child-records', 'install-version'];
 const AFTER_RELEASE_STEPS: readonly BatonPassStep[] = ['bind-port', 'take-baton', 'regroup'];
 const SUCCESSOR_CODE = 'code-successor';
 
@@ -266,15 +266,15 @@ describeWhenRecorded(['process-table-recording'], 'the old Overseer dies during 
 describeWhenRecorded(['process-table-recording'], 'the Baton generations a Baton pass takes', () => {
   function recordNaming(identity: ProcessIdentity): BatonRecord {
     return {
-      processId:              identity.processId,
-      processStartStamp:      identity.startStamp,
-      bootIdentity:           identity.bootIdentity,
-      port:                   1,
-      url:                    'http://127.0.0.1:1/',
-      tokenFile:              join(overseerDirectory, 'token'),
-      codeVersion:            'code-example',
-      installVersion:         1,
-      watcherProtocolVersion: 1,
+      processId:            identity.processId,
+      processStartStamp:    identity.startStamp,
+      bootIdentity:         identity.bootIdentity,
+      port:                 1,
+      url:                  'http://127.0.0.1:1/',
+      tokenFile:            join(overseerDirectory, 'token'),
+      codeVersion:          'code-example',
+      installVersion:       1,
+      talosProtocolVersion: 1,
     };
   }
 

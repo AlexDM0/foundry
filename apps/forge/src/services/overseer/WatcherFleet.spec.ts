@@ -30,12 +30,12 @@ import {
 import { localEndpointFor }                                  from '../../lib/talos/LocalEndpointFor.ts';
 import { watcherFilesOf }                                    from '../../lib/watcher/WatcherFiles.ts';
 import { refusalIsOperationRefusal }                         from '../../shared/OperationRefusal.ts';
-import { FAKE_WATCHER_BUNDLE_PATH }                          from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, type FakeAgentStep }              from '../../testing/FakeAgentAdapter.ts';
 import { instantSleepsOf }                                   from '../../testing/InstantSleeps.ts';
 import { nativePlatformPorts }                               from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                    from '../../testing/RecordedGit.ts';
 import { useRecordedWatcherStages }                          from '../../testing/RecordedWatcherStages.ts';
+import { FAKE_WATCHER_BUNDLE_PATH }                          from '../../testing/ScratchWatcherBundle.ts';
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../testing/ToolGuard.ts';
 import { type StoppedWatcherWait, WatcherFleet }             from './WatcherFleet.ts';

@@ -20,17 +20,16 @@ import {
 import type { AgentSessionEvent }                                      from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { CLAUDE_STREAM_LINES }                                         from '../../lib/claude-code/ClaudeStreamLines.ts';
 import { transcriptFolderFor }                                         from '../../lib/claude-code/ClaudeTranscripts.ts';
+import type { ClientEntry }                                            from '../../lib/talos/@types/TalosFrame.ts';
 import { createEventLogWriter }                                        from '../../lib/talos/EventLog.ts';
 import type { Incident }                                               from '../../lib/tracker-model/@types/Incident.ts';
 import type { Job }                                                    from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                              from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { ActingFrame }                                            from '../../lib/watcher/@types/WatcherFrame.ts';
-import { watcherFilesOf }                                              from '../../lib/watcher/WatcherFiles.ts';
 import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
 import { DISPATCH_PROTOCOL }                                           from '../../shared/constants/DispatchProtocol.ts';
 import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }              from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                                    from '../../testing/WatcherChildReadings.ts';
+import { childFilesIn, talosChildReadingsWith }                        from '../../testing/TalosChildReadings.ts';
 import { JobLiveFactsReader, type JobLiveFactsSource }                 from './JobLiveFactsReader.ts';
 import { jobFolderIn }                                                 from './OverseerFiles.ts';
 import { liveJobFixture }                                              from './testing/LiveJobFixture.ts';
@@ -72,11 +71,11 @@ const RESULT: AgentSessionEvent = {
   kind: 'result', isError: false, structuredReport: null, usageTotals: null, contextTokens: null, costUsd: null, failure: null
 };
 
-/** A line the job's Watcher logged: what the session printed, or a frame the Overseer sent it. */
-type LoggedLine = AgentSessionEvent | ActingFrame;
+/** A line Talos logged for the job: what the session printed, or a client entry of what the Overseer sent it. */
+type LoggedLine = AgentSessionEvent | ClientEntry;
 
-function chat(text: string): ActingFrame {
-  return { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf(text) };
+function chat(text: string): ClientEntry {
+  return { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf(text) };
 }
 
 function messaged(jobId: string, text: string): LogRecord {
@@ -85,8 +84,8 @@ function messaged(jobId: string, text: string): LogRecord {
   };
 }
 
-function isFrame(logged: LoggedLine): logged is ActingFrame {
-  return logged.kind === 'write' || logged.kind === 'close-input' || logged.kind === 'stop';
+function isClientEntry(logged: LoggedLine): logged is ClientEntry {
+  return 'act' in logged;
 }
 
 const EVENTS_OF_ONE_EVENT_PER_LINE = (line: string): readonly AgentSessionEvent[] => [JSON.parse(line) as AgentSessionEvent];
@@ -127,11 +126,11 @@ function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance
   mkdirSync(jobFolder, { recursive: true });
   let second = 0;
   linesByInstance.forEach((lines, index) => {
-    const writer = createEventLogWriter(watcherFilesOf(jobFolder, index + 1).eventLogPath, () => {
+    const writer = createEventLogWriter(childFilesIn(jobFolder, index + 1).eventLogPath, () => {
       second += 1;
       return `2026-10-29T12:00:${String(second).padStart(2, '0')}Z`;
     });
-    for (const logged of lines) writer.append(isFrame(logged) ? 'client' : 'agent', JSON.stringify(logged));
+    for (const logged of lines) writer.append(isClientEntry(logged) ? 'client' : 'agent', JSON.stringify(logged));
     writer.syncAndClose();
   });
   return jobFolder;
@@ -139,7 +138,7 @@ function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance
 
 function liveFactsSourceOf(trackerDirectory: string, readingBoard: ReadingBoard = {}): JobLiveFactsSource {
   return {
-    boardChildren: watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+    boardChildren: talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     trackerDirectory,
     adapter:       { eventsOf: EVENTS_OF_ONE_EVENT_PER_LINE, sentLineOf: CLAUDE_STREAM_LINES.sentLineOf },
     board:         { logRecordsSoFar: () => readingBoard.logRecords ?? [], incidents: () => readingBoard.incidents ?? [] },
@@ -165,7 +164,7 @@ function liveFactsOfLoggedEvents(
 ) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   const jobFolder = writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [events]);
-  if (watcherProtocol !== null) writeFileSync(watcherFilesOf(jobFolder, 1).watcherRecordPath, JSON.stringify({ protocolVersion: watcherProtocol }));
+  if (watcherProtocol !== null) writeFileSync(join(jobFolder, 'watcher-1.json'), JSON.stringify({ protocolVersion: watcherProtocol }));
   return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory), EXAMPLE_JOB, scratchSessionOf(claudeConfigFolder));
 }
 
@@ -310,7 +309,7 @@ describe('the turn', () => {
 
   test('an answer to a question starts no turn', () => {
     const answerLine = CLAUDE_STREAM_LINES.answerLineOf('request-1', [], { 'Which colour?': 'Blue' });
-    expect(liveFactsOfLoggedLines([[chat('Example first message'), RESULT, { kind: 'write', line: answerLine }]]).turn).toBe('between-turns');
+    expect(liveFactsOfLoggedLines([[chat('Example first message'), RESULT, { act: 'write-line', line: answerLine }]]).turn).toBe('between-turns');
   });
 
   // A crashed instance's unanswered chat is no turn of the resumed session: the resume line is its first chat.
@@ -391,7 +390,7 @@ describe('the last line', () => {
 
   test('the last line reads no picture: a chat\'s pictures are neither decoded nor hashed on a facts read', () => {
     const trackerDirectory = scratchDirectoryFor('live-facts');
-    const pictureChat: ActingFrame = { kind: 'write', line: CLAUDE_STREAM_LINES.chatLineOf('Like this.', [{ mediaType: 'image/png', base64Data: 'iVBORw0KGgo=' }]) };
+    const pictureChat: ClientEntry = { act: 'write-line', line: CLAUDE_STREAM_LINES.chatLineOf('Like this.', [{ mediaType: 'image/png', base64Data: 'iVBORw0KGgo=' }]) };
     writeEventLogs(trackerDirectory, productOwner.id, [[...intake, pictureChat]]);
     let pictureReads = 0;
     const source = liveFactsSourceOf(trackerDirectory, { logRecords: [messaged('J7', 'The checkout pages.'), messaged('J7', 'Like this.')] });

@@ -15,10 +15,10 @@ import {
 
 import { jobFolderIn }                                                       from '../services/overseer/OverseerFiles.ts';
 import { WatcherFleet }                                                      from '../services/overseer/WatcherFleet.ts';
-import { FAKE_WATCHER_BUNDLE_PATH }                                          from './DrivePassHarness.ts';
 import { nativePlatformPorts }                                               from './NativePlatformPorts.ts';
 import { useRecordedGit }                                                    from './RecordedGit.ts';
 import { type ControlledRecordedWatcherStages, createRecordedWatcherStages } from './RecordedWatcherStages.ts';
+import { FAKE_WATCHER_BUNDLE_PATH }                                          from './ScratchWatcherBundle.ts';
 import { createScratchDirectory, removeScratchDirectory }                    from './ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }                 from './ToolGuard.ts';
 

@@ -1,17 +1,16 @@
 /**
- * The DrivePass on the real system: the pinned Watcher bundle and the fake agent child. Git plays the recorded flow stages of
- * `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each process a Watcher starts. What matters: a
- * readied ticket gets a Watcher running the fake child; a builder file the pipeline names waits until it is committed, and a launch records
- * its hash; an Airlock agent the merge sweep launches gets its Watcher in the same wake and, ended in a merge-slot hold, its tokens credited
+ * The DrivePass on the real system: the board's Talos started from its binary and the fake agent child. Git plays the recorded flow stages
+ * of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each process Talos starts. What matters: a
+ * readied ticket gets a child of Talos running the fake agent; a builder file the pipeline names waits until it is committed, and a launch records
+ * its hash; an Airlock agent the merge sweep launches gets its child in the same wake and, ended in a merge-slot hold, its tokens credited
  * in that hold; the notices come from git and are never stored; a real stop ends a usage-limited session; and a written verb nudges a live
  * Baton over HTTP, and `ticket deliver --by-hand` is refused while the Baton is live. `cli/overseer/OverseerDrivePass.spec.ts` holds the same
- * code behind the recorded Watcher stages.
+ * code behind the recorded Talos stages.
  */
 import { createHash } from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
-  readdirSync,
   readFileSync,
   writeFileSync
 } from 'node:fs';
@@ -24,24 +23,20 @@ import {
   test
 } from 'bun:test';
 
-import { UsageMarkerFile }                                    from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
-import { sameProcess }                                        from '../../src/lib/process-identity/ProcessIdentity.ts';
-import type { Board }                                         from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                     from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherRecord }                                 from '../../src/lib/watcher/WatcherRecord.ts';
-import { Baton }                                              from '../../src/services/overseer/Baton.ts';
-import type { BoardChildren }                                 from '../../src/services/overseer/BoardChildren.ts';
-import { type DrivePass }                                     from '../../src/services/overseer/DrivePass.ts';
-import { HatchInbox }                                         from '../../src/services/overseer/HatchInbox.ts';
-import { LegacyWatcherReader }                                from '../../src/services/overseer/LegacyWatcherReader.ts';
-import { overseerFilesIn }                                    from '../../src/services/overseer/OverseerFiles.ts';
-import { jobFolderIn }                                        from '../../src/services/overseer/OverseerFiles.ts';
-import { writeTracker }                                       from '../../src/services/tracker/TrackerPipeline.ts';
-import { requireWorkspace }                                   from '../../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                                      from '../../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDrivePass, pinnedScratchWatcherBundle } from '../../src/testing/DrivePassHarness.ts';
+import { UsageMarkerFile }                                                        from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import type { AgentAdapter }                                                      from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { Board }                                                             from '../../src/lib/tracker-model/Board.ts';
+import { Baton }                                                                  from '../../src/services/overseer/Baton.ts';
+import type { BoardChildren }                                                     from '../../src/services/overseer/BoardChildren.ts';
+import { type DrivePass }                                                         from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                                             from '../../src/services/overseer/HatchInbox.ts';
+import { overseerFilesIn }                                                        from '../../src/services/overseer/OverseerFiles.ts';
+import { jobFolderIn }                                                            from '../../src/services/overseer/OverseerFiles.ts';
+import { writeTracker }                                                           from '../../src/services/tracker/TrackerPipeline.ts';
+import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                                                          from '../../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { createScratchDrivePass, type ScratchBoardTalos, startScratchBoardTalos } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -50,9 +45,10 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
-import { nativePlatformPorts } from '../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }      from '../../src/testing/RecordedGit.ts';
+import { queueOnCurrentGreen }       from '../../src/testing/GreenQueue.ts';
+import { nativePlatformPorts }       from '../../src/testing/NativePlatformPorts.ts';
+import { stopProcessesReachingInto } from '../../src/testing/ProcessesInFolder.ts';
+import { useRecordedGit }            from '../../src/testing/RecordedGit.ts';
 import {
   RECORDED_FLOW_BUILDER_FILE,
   RECORDED_FLOW_CONFLICT,
@@ -69,8 +65,8 @@ import {
   withRecordedGitFirstOnPath
 } from '../../src/testing/RecordedGitProgram.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }           from '../../src/testing/TalosChildReadings.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                       from '../../src/testing/WatcherChildReadings.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }                from '../testing/OverseerTicketMoves.ts';
@@ -83,10 +79,19 @@ const nativePorts = nativePlatformPorts();
 let ports = nativePorts;
 let recordedFlow: SharedRecordedGitFlow | null = null;
 const { identityOf } = nativePorts.processSupervision;
+let boardTalos: ScratchBoardTalos | null = null;
 
-/** The children as the Overseer reads them, through the Watchers' adapter over the case's platform ports. */
+/** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */
 function childReadings(): BoardChildren {
-  return watcherChildReadingsWith(ports);
+  return talosChildReadingsWith(ports, requireWorkspace(repositoryDirectory).trackerDirectory);
+}
+
+/** The board's Talos, started at the case's first DrivePass as the Overseer's start starts it. */
+async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
+  boardTalos ??= await startScratchBoardTalos({
+    workspace: requireWorkspace(repositoryDirectory), platformPorts: ports, monitorFolder, log: (line) => overseerLog.push(line)
+  });
+  return boardTalos;
 }
 
 function requireRecordedFlow(): SharedRecordedGitFlow {
@@ -95,9 +100,6 @@ function requireRecordedFlow(): SharedRecordedGitFlow {
 }
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
-/** Bounds the teardown's wait for a claim alone, which is cleanup: a Watcher that never claims has nothing to end, and no verdict reads this. */
-const WATCHER_CLAIM_WAIT_TRIES = 200;
-const WATCHER_CLAIM_WAIT_MILLISECONDS = 50;
 
 let repositoryDirectory = '';
 let monitorFolder = '';
@@ -105,7 +107,6 @@ let overseerLog: string[] = [];
 const drivePassesOfThisTest: DrivePass[] = [];
 let currentTeardown = { started: false };
 let wakesInProgress = 0;
-const LAUNCH_FILE_PATTERN = /^launch-(\d+)\.json$/;
 
 async function run(commandLineArguments: readonly string[]) {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
@@ -128,7 +129,7 @@ async function drivePassWith(
     workspace,
     now:                  () => new Date(Date.parse(clock.stamp)),
     formatStamp:          () => clock.stamp,
-    watcherBundlePath:    await pinnedScratchWatcherBundle(workspace),
+    talosConnection:      (await boardTalosOfTheCase()).connection,
     agentAdapter:         adapter,
     monitorFolder,
     mainLine:             RECORDED_FLOW_MAIN_LINE,
@@ -136,7 +137,7 @@ async function drivePassWith(
     log:                  (line) => overseerLog.push(line),
     ...(afterHoldPhase === undefined ? {} : { afterHoldPhase }),
   });
-  // A test that timed out while the bundle was pinned arrives here after its teardown, so its pass never runs.
+  // A test that timed out while Talos started arrives here after its teardown, so its pass never runs.
   if (teardownOfThisTest.started) await drivePass.stop();
   else drivePassesOfThisTest.push(drivePass);
   return {
@@ -161,8 +162,8 @@ function jobFolder(jobId: string): string {
   return jobFolderIn(requireWorkspace(repositoryDirectory).trackerDirectory, jobId);
 }
 
-async function untilWatcherEnded(jobId: string, instance: number): Promise<void> {
-  await waitUntil(() => childReadings().livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `watcher ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
+async function untilChildEnded(jobId: string, instance: number): Promise<void> {
+  await waitUntil(() => childReadings().livenessOf(jobFolder(jobId), instance).verdict === 'ended', () => `child ${instance} of ${jobId} ending: ${overseerLog.join('\n')}`);
 }
 
 /** The policy boots the Assistant beside the build, so the build's job id is looked up rather than assumed. */
@@ -172,52 +173,6 @@ function buildJobId(): string {
   return buildJob.id;
 }
 
-
-/** Every folder under `folder` holding a launch file: a job's Watchers and, nested in it, its process Watchers. */
-function watcherFoldersUnder(folder: string): string[] {
-  const entries = readdirSync(folder, { withFileTypes: true });
-  const holdsALaunch = entries.some((entry) => entry.isFile() && LAUNCH_FILE_PATTERN.test(entry.name));
-  const nested = entries.filter((entry) => entry.isDirectory()).flatMap((entry) => watcherFoldersUnder(join(folder, entry.name)));
-  return holdsALaunch ? [folder, ...nested] : nested;
-}
-
-/** A Watcher spawned in the last pass may not have claimed its instance yet, so its record is waited for rather than read once. */
-async function claimedRecordOf(watcherFolder: string, instance: number): Promise<WatcherRecord | null> {
-  for (let attempt = 0; attempt < WATCHER_CLAIM_WAIT_TRIES; attempt += 1) {
-    const record = LegacyWatcherReader.watcherRecordIn(watcherFolder, instance);
-    if (record !== null) return record;
-    await Bun.sleep(WATCHER_CLAIM_WAIT_MILLISECONDS);
-  }
-  return null;
-}
-
-function killQuietly(target: number): void {
-  try {
-    process.kill(target, 'SIGKILL');
-  } catch {
-    // Already gone.
-  }
-}
-
-/**
- * Every Watcher a launch file was written for is ended, then its child's process group, so no fake session outlives the spec. The Watcher
- * goes first, so it cannot spawn a child after its record was read; a process id that now names another process is left alone.
- */
-async function endEveryWatcher(repositoryOfThisTest: string): Promise<void> {
-  const jobsFolder = join(requireWorkspace(repositoryOfThisTest).trackerDirectory, 'jobs');
-  if (!existsSync(jobsFolder)) return;
-  for (const watcherFolder of watcherFoldersUnder(jobsFolder)) {
-    const instances = readdirSync(watcherFolder).flatMap((name) => LAUNCH_FILE_PATTERN.exec(name)?.slice(1).map(Number) ?? []);
-    for (const instance of instances) {
-      const claimed = await claimedRecordOf(watcherFolder, instance);
-      const watcher = claimed?.watcher ?? null;
-      const current = watcher === null ? null : identityOf(watcher.processId);
-      if (watcher !== null && current !== null && sameProcess(current, watcher)) killQuietly(watcher.processId);
-      const childProcessGroupId = LegacyWatcherReader.watcherRecordIn(watcherFolder, instance)?.childProcessGroupId;
-      if (childProcessGroupId !== undefined) killQuietly(-childProcessGroupId);
-    }
-  }
-}
 
 function hatchDirectory(jobId: string): string {
   return HatchInbox.hatchDirectoryOf(repositoryDirectory, jobId);
@@ -238,7 +193,7 @@ beforeEach(async () => {
 });
 
 // A timed-out test's passes are stopped, and a wake the teardown interrupted (Bun ticks inside a sync spawn) waited out, before removal;
-// the folders are taken before the first await, so a late teardown never ends the next test's Watchers or folders.
+// the folders are taken before the first await, so a late teardown never ends the next test's Talos or folders.
 afterEach(async () => {
   currentTeardown.started = true;
   const repositoryOfThisTest = repositoryDirectory;
@@ -247,7 +202,9 @@ afterEach(async () => {
   await Promise.all(drivePasses.map(async (drivePass) => await drivePass.stop()));
   await waitUntil(() => wakesInProgress === 0, 'every wake of the case returning');
   await Promise.all(drivePasses.map(async (drivePass) => await drivePass.idle()));
-  await endEveryWatcher(repositoryOfThisTest);
+  // Talos and every child it ran work in the repository, so stopping what reaches into it ends them all, a case cut short included.
+  boardTalos = null;
+  await stopProcessesReachingInto(repositoryOfThisTest);
   removeScratchDirectory(monitorFolderOfThisTest);
   removeScratchDirectory(repositoryOfThisTest);
   const flowOfTheCase = requireRecordedFlow();
@@ -255,7 +212,7 @@ afterEach(async () => {
   flowOfTheCase.requireEveryCallAnswered();
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-/** A build job launches, prepares its worktree, then runs: forced passes until its session's Watcher is spawned. */
+/** A build job launches, prepares its worktree, then runs: forced passes until its session's child is launched. */
 async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void> {
   await waitUntil(async () => {
     await passOnce(drivePass);
@@ -265,15 +222,15 @@ async function passUntilBuildSessionSpawned(drivePass: DrivePass): Promise<void>
 }
 
 describe('one pass', () => {
-  test('one wake carries a readied ticket\'s job from launching through its prepared worktree to running, and its session a Watcher running the fake child', async () => {
+  test('one wake carries a readied ticket\'s job from launching through its prepared worktree to running, and its session a child of Talos running the fake agent', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())).toMatchObject({
       kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', watcherInstance: 1
     });
     await passUntilBuildSessionSpawned(drivePass);
-    await untilWatcherEnded(buildJobId(), 1);
-    expect(readFileSync(watcherFilesOf(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
+    await untilChildEnded(buildJobId(), 1);
+    expect(readFileSync(childFilesIn(jobFolder(buildJobId()), 1).eventLogPath, 'utf8')).toContain(JSON.stringify(fakeStartedLine('fake-session')));
     expect(existsSync(join(hatchDirectory(buildJobId()), 'requests'))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -299,7 +256,7 @@ describe('one pass', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-/** A session that starts and then waits on its stdin past the Overseer's first message, so its Watcher stays live until the spec ends it. */
+/** A session that starts and then waits on its stdin past the Overseer's first message, so its child stays live until the spec ends it. */
 const WAITING_SESSION = fakeAgentAdapter([{ kind: 'print', line: fakeStartedLine('fake-session') }, { kind: 'await-line' }, { kind: 'await-line' }]);
 
 /** Ticket 001 finished, its branch conflicting with the moved main line and queued on its green tree, as a builder and a later commit leave it. */
@@ -318,13 +275,13 @@ async function queueTheConflictingBranch(): Promise<void> {
 }
 
 describe('an Airlock agent', () => {
-  test('an Airlock agent the merge sweep launched after the pass spawned its Watchers gets one more pass in the same wake, which spawns its watcher', async () => {
+  test('an Airlock agent the merge sweep launched after the pass launched its children gets one more pass in the same wake, which launches it', async () => {
     await queueTheConflictingBranch();
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
     const airlockAgentJob = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'merge-agent');
     expect(airlockAgentJob, overseerLog.join('\n')).toBeDefined();
-    expect(existsSync(watcherFilesOf(jobFolder(airlockAgentJob?.id ?? ''), 1).launchPath), overseerLog.join('\n')).toBe(true);
+    expect(existsSync(childFilesIn(jobFolder(airlockAgentJob?.id ?? ''), 1).recordPath), overseerLog.join('\n')).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
@@ -434,15 +391,15 @@ function acquireLiveBaton(url: string): { overseerDirectory: string; generation:
   const identity = identityOf(process.pid);
   if (identity === null) throw new Error('this process has no readable identity');
   const acquisition = Baton.acquire(ports, overseerDirectory, {
-    processId:              identity.processId,
-    processStartStamp:      identity.startStamp,
-    bootIdentity:           identity.bootIdentity,
-    port:                   Number(new URL(url).port),
+    processId:            identity.processId,
+    processStartStamp:    identity.startStamp,
+    bootIdentity:         identity.bootIdentity,
+    port:                 Number(new URL(url).port),
     url,
-    tokenFile:              join(overseerDirectory, 'token'),
-    codeVersion:            'code-example',
-    installVersion:         1,
-    watcherProtocolVersion: 1,
+    tokenFile:            join(overseerDirectory, 'token'),
+    codeVersion:          'code-example',
+    installVersion:       1,
+    talosProtocolVersion: 1,
   });
   if (acquisition.verdict !== 'acquired') throw new Error('the live Baton was not acquired');
   return { overseerDirectory, generation: acquisition.generation };
@@ -474,7 +431,7 @@ async function passUntilBuildJobIs(drivePass: DrivePass, state: string): Promise
 }
 
 describe('usage limits', () => {
-  test('a top-level rejected limit interrupts the job uncounted, marks the machine, logs it and stops the Watcher; nothing resumes before the reset', async () => {
+  test('a top-level rejected limit interrupts the job uncounted, marks the machine, logs it and stops the session; nothing resumes before the reset', async () => {
     const drivePass = await drivePassWith(fakeAgentAdapter([
       { kind: 'print', line: fakeStartedLine('fake-session') },
       { kind: 'print', line: rateLimitLine('rejected', 'five_hour', 'rejected') },
@@ -494,7 +451,7 @@ describe('usage limits', () => {
       verdict: 'read',
       marker:  { vendor: 'fake-agent', window: 'five_hour', resetsAt: USAGE_RESET_STAMP }
     });
-    await untilWatcherEnded(jobId, 1);
+    await untilChildEnded(jobId, 1);
     await passOnce(drivePass);
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', watcherInstance: 1 }]);

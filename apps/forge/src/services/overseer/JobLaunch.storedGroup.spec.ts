@@ -74,7 +74,7 @@ async function launchInto(target: string, stageOf: (rootDirectory: string) => Re
   }, AT);
   board.moveJob(job.id, 'preparing', AT);
 
-  await recordedGit.playStage(stageOf(rootDirectory), () => JobLaunch.runBuildJobEffects(context, board, 'example-tracker', []));
+  await recordedGit.playStage(stageOf(rootDirectory), () => JobLaunch.runBuildJobEffects(context, board, []));
 
   const failureFile = join(jobFolderIn(trackerDirectory, job.id), 'worktree-failure.txt');
   return existsSync(failureFile) ? readFileSync(failureFile, 'utf8') : null;

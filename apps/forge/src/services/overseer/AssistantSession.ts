@@ -9,8 +9,9 @@ import { join }                     from 'node:path';
 import type { AgentAdapter }                                                 from '../../lib/agent-launch/AgentAdapter.ts';
 import { writeFileAtomically }                                               from '../../lib/atomic-file/AtomicFile.ts';
 import type { Incident, IncidentDeliveryTurn }                               from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                          from '../../lib/tracker-model/@types/Job.ts';
+import type { InterruptionCause, Job }                                       from '../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                        from '../../lib/tracker-model/Board.ts';
+import { INTERRUPTION_CAUSES_HELD_FROM_RESUMING }                            from '../../lib/tracker-model/constants/JobStates.ts';
 import { ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH, ASSISTANT_TURN_CALL_BUDGET } from '../../shared/constants/OverseerLimits.ts';
 import { AssistantBoot, FIRST_CHAT_SEQUENCE }                                from './AssistantBoot.ts';
 import type { BoardChildren }                                                from './BoardChildren.ts';
@@ -119,16 +120,21 @@ function assistantIsIdle(trackerDirectory: string, board: Pick<Board, 'incidents
   return isIdle(job, reading, newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id));
 }
 
+/** An Assistant interrupted by a network outage or a lease end waits for User's resume, as any job does: it is never replaced by itself. */
+function interruptionIsHeld(job: Readonly<Job>): boolean {
+  return job.interruption !== undefined && (INTERRUPTION_CAUSES_HELD_FROM_RESUMING as readonly InterruptionCause[]).includes(job.interruption);
+}
+
 /**
- * Run in the hold before the lifecycle: an Assistant interrupted (its Watcher lost, its session crashed, a reboot, a usage limit) or quiet
- * mid-turn is ended, `failed` before its first `result` and `replaced` after, and what it was delivered goes out again to the fresh one.
- * Returns whether a boot failed, so no retry boots in the same pass.
+ * Run in the hold before the lifecycle: an Assistant interrupted (its child lost, its session crashed, a reboot, a clean quit, a usage
+ * limit) or quiet mid-turn is ended, `failed` before its first `result` and `replaced` after, and what it was delivered goes out again to
+ * the fresh one. One interrupted by a held cause is left for User's resume. Returns whether a boot failed, so no retry boots in the same pass.
  */
 function endDownAssistants(board: Board, readings: readonly AssistantReading[], quietJobIds: readonly string[], at: string): { bootFailed: boolean; endedJobs: Readonly<Job>[] } {
   let bootFailed = false;
   const endedJobs: Readonly<Job>[] = [];
   for (const job of liveAssistantsOf(board)) {
-    const down = job.state === 'interrupted' || (job.state === 'running' && quietJobIds.includes(job.id));
+    const down = (job.state === 'interrupted' && !interruptionIsHeld(job)) || (job.state === 'running' && quietJobIds.includes(job.id));
     if (!down) continue;
     for (const incident of board.incidents().filter((delivered) => delivered.deliveredInTurn?.jobId === job.id)) board.withdrawIncidentDelivery(incident.id);
     const answered = (readings.find((reading) => reading.jobId === job.id)?.results ?? 0) > 0;

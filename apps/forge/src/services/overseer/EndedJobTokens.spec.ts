@@ -16,11 +16,10 @@ import type { AgentAdapter }                              from '../../lib/agent-
 import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
 import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
 import type { Job, JobLaunch }                            from '../../lib/tracker-model/@types/Job.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { boardFixture, taskFixture, ticketFixture }       from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
 import { EndedJobTokens, type EndedJobTokensContext }     from './EndedJobTokens.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 
@@ -60,7 +59,7 @@ function trackerWithLoggedEvents(jobId: string, ...eventsPerInstance: (readonly 
   const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
   eventsPerInstance.forEach((events, i) => {
-    const writer = createEventLogWriter(watcherFilesOf(jobFolder, i + 1).eventLogPath, () => '2026-10-30T13:00:00Z');
+    const writer = createEventLogWriter(childFilesIn(jobFolder, i + 1).eventLogPath, () => '2026-10-30T13:00:00Z');
     for (const event of events) writer.append('agent', JSON.stringify(event));
     writer.syncAndClose();
   });
@@ -96,7 +95,7 @@ const BUILD_EVENTS = [
 ];
 
 function contextOver(trackerDirectory: string): EndedJobTokensContext {
-  return { boardChildren: watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory), agentAdapter: LINE_AS_EVENT_ADAPTER };
+  return { boardChildren: talosChildReadingsWith(nativePlatformPorts(), trackerDirectory), agentAdapter: LINE_AS_EVENT_ADAPTER };
 }
 
 describe('EndedJobTokens', () => {

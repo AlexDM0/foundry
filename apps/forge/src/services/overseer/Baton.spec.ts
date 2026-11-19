@@ -30,15 +30,15 @@ let overseerDirectory = '';
 function recordOf(startStamp: string): BatonRecord {
   const ownIdentity = processTable.callerProcess();
   return {
-    processId:              process.pid,
-    processStartStamp:      startStamp,
-    bootIdentity:           ownIdentity.bootIdentity,
-    port:                   4930,
-    url:                    'http://127.0.0.1:4930/',
-    tokenFile:              `${overseerDirectory}/token`,
-    codeVersion:            'code-example',
-    installVersion:         17,
-    watcherProtocolVersion: 1,
+    processId:            process.pid,
+    processStartStamp:    startStamp,
+    bootIdentity:         ownIdentity.bootIdentity,
+    port:                 4930,
+    url:                  'http://127.0.0.1:4930/',
+    tokenFile:            `${overseerDirectory}/token`,
+    codeVersion:          'code-example',
+    installVersion:       17,
+    talosProtocolVersion: 1,
   };
 }
 

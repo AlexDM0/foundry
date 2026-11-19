@@ -1,16 +1,15 @@
 /**
- * A build job end to end on the real system: the pinned Watcher bundle, the fake agent child and real gate processes under the real sandbox.
- * Git plays the recorded flow stages of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`, in each
- * process a Watcher starts: the session's own commit moves the flow on for every process. What matters: the whole chain from the worktree to
- * the review job runs once on real processes and the ended Watchers are reaped; a gate killed by a signal or exiting 126 or 127 opens
+ * A build job end to end on the real system: the board's Talos started from its binary, the fake agent child and real gate processes under
+ * the real sandbox. Git plays the recorded flow stages of `src/testing/RecordedGitFlow.ts`, here and, through `src/testing/RecordedGitProgram.ts`,
+ * in each process Talos starts: the session's own commit moves the flow on for every process. What matters: the whole chain from the worktree
+ * to the review job runs once on real processes, each line launched bounded and ended; a gate killed by a signal or exiting 126 or 127 opens
  * gate-cannot-run; a worktree git refuses, or one dirty straight after checkout, opens setup-failed; and a merge gate runs in the Overseer's
- * narrowed environment. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the recorded Watcher stages.
+ * narrowed environment. `cli/overseer/OverseerBuildJob.spec.ts` holds the job's code behind the recorded Talos stages.
  */
 import {
   existsSync,
   readdirSync,
   readFileSync,
-  statSync,
   writeFileSync
 } from 'node:fs';
 import { join } from 'node:path';
@@ -22,24 +21,22 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentAdapter }                                  from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                            from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
-import { SANDBOX_EXEC_PATH }                                  from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
-import type { GateConfinement }                               from '../../src/lib/gate-confinement/GateConfinement.ts';
-import { processIsGone }                                      from '../../src/lib/process-identity/ProcessIdentity.ts';
-import type { Job, JobState }                                 from '../../src/lib/tracker-model/@types/Job.ts';
-import type { AgentStepSettings, PipelineReview }             from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                         from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                     from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherLaunch }                                 from '../../src/lib/watcher/WatcherLaunch.ts';
-import type { WatcherRecord }                                 from '../../src/lib/watcher/WatcherRecord.ts';
-import type { DrivePass }                                     from '../../src/services/overseer/DrivePass.ts';
-import { LegacyWatcherReader }                                from '../../src/services/overseer/LegacyWatcherReader.ts';
-import { jobFolderIn }                                        from '../../src/services/overseer/OverseerFiles.ts';
-import { requireWorkspace }                                   from '../../src/services/tracker/Workspace.ts';
-import { JOB_ID_VARIABLE }                                    from '../../src/shared/Environment.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }            from '../../src/testing/ChildProcessCaseTimeout.ts';
-import { createScratchDrivePass, pinnedScratchWatcherBundle } from '../../src/testing/DrivePassHarness.ts';
+import type { AgentAdapter }                                                      from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                                                from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
+import { SANDBOX_EXEC_PATH }                                                      from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
+import type { GateConfinement }                                                   from '../../src/lib/gate-confinement/GateConfinement.ts';
+import type { ChildLaunch }                                                       from '../../src/lib/talos/ChildLaunch.ts';
+import type { Job, JobState }                                                     from '../../src/lib/tracker-model/@types/Job.ts';
+import type { AgentStepSettings, PipelineReview }                                 from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { Board }                                                             from '../../src/lib/tracker-model/Board.ts';
+import type { BoardChildren }                                                     from '../../src/services/overseer/BoardChildren.ts';
+import type { DrivePass }                                                         from '../../src/services/overseer/DrivePass.ts';
+import { jobFolderIn }                                                            from '../../src/services/overseer/OverseerFiles.ts';
+import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
+import { JOB_ID_VARIABLE }                                                        from '../../src/shared/Environment.ts';
+import { LINE_TIME_BOUND_MILLISECONDS }                                           from '../../src/shared/constants/OverseerLimits.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                from '../../src/testing/ChildProcessCaseTimeout.ts';
+import { createScratchDrivePass, type ScratchBoardTalos, startScratchBoardTalos } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -47,9 +44,10 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
-import { inheritedEnvironment }     from '../../src/testing/InheritedEnvironment.ts';
-import { nativePlatformPorts }      from '../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }           from '../../src/testing/RecordedGit.ts';
+import { inheritedEnvironment }      from '../../src/testing/InheritedEnvironment.ts';
+import { nativePlatformPorts }       from '../../src/testing/NativePlatformPorts.ts';
+import { stopProcessesReachingInto } from '../../src/testing/ProcessesInFolder.ts';
+import { useRecordedGit }            from '../../src/testing/RecordedGit.ts';
 import {
   RECORDED_FLOW_MAIN_LINE,
   RECORDED_FLOW_PLACEHOLDERS,
@@ -65,8 +63,8 @@ import {
   withRecordedGitFirstOnPath
 } from '../../src/testing/RecordedGitProgram.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                         from '../../src/testing/TalosChildReadings.ts';
 import { waitUntil }                                      from '../../src/testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                       from '../../src/testing/WatcherChildReadings.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }         from '../testing/InitializedScratchRepository.ts';
@@ -90,6 +88,20 @@ let buildStates: string[] = [];
 let afterEachHoldPhase: (board: Board) => void = () => undefined;
 let launchRequests: AgentLaunchRequest[] = [];
 let jobsNotingStateAssignments = new WeakSet<object>();
+let boardTalos: ScratchBoardTalos | null = null;
+
+/** The board's Talos, started at the case's first DrivePass as the Overseer's start starts it. */
+async function boardTalosOfTheCase(): Promise<ScratchBoardTalos> {
+  boardTalos ??= await startScratchBoardTalos({
+    workspace: requireWorkspace(repositoryDirectory), platformPorts: ports, monitorFolder, log: (line) => overseerLog.push(line)
+  });
+  return boardTalos;
+}
+
+/** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */
+function childReadings(): BoardChildren {
+  return talosChildReadingsWith(ports, requireWorkspace(repositoryDirectory).trackerDirectory);
+}
 
 function requireRecordedFlow(): SharedRecordedGitFlow {
   if (recordedFlow === null) throw new Error('the case shares no recorded git flow');
@@ -168,7 +180,7 @@ async function drivePassPlaying(
     platformPorts:        { ...ports, gateConfinement },
     workspace,
     now:                  SPEC_CLOCK,
-    watcherBundlePath:    await pinnedScratchWatcherBundle(workspace),
+    talosConnection:      (await boardTalosOfTheCase()).connection,
     agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
     inheritedEnvironment: withRecordedGitFirstOnPath(overseerEnvironment, requireRecordedFlow()),
@@ -265,30 +277,11 @@ function buildingSession(report = builderReport()): FakeAgentStep[] {
   ];
 }
 
-function watcherLaunchIn(watcherFolder: string): WatcherLaunch {
-  return JSON.parse(readFileSync(watcherFilesOf(watcherFolder, 1).launchPath, 'utf8')) as WatcherLaunch;
-}
-
-/** Every Watcher and Watcher child a spec spawned is ended, so no fake session or gate outlives the spec. */
-function endEveryWatcher(): void {
-  const jobsFolder = join(requireWorkspace(repositoryDirectory).trackerDirectory, 'jobs');
-  if (!existsSync(jobsFolder)) return;
-  const watcherFolders = readdirSync(jobsFolder).flatMap((jobId) => {
-    const jobFolder = join(jobsFolder, jobId);
-    return [jobFolder, ...readdirSync(jobFolder).map((name) => join(jobFolder, name)).filter((path) => statSync(path).isDirectory())];
-  });
-  for (const watcherFolder of watcherFolders.filter((folder) => existsSync(folder))) {
-    for (const fileName of readdirSync(watcherFolder).filter((name) => /^watcher-\d+\.json$/.test(name))) {
-      const record = JSON.parse(readFileSync(join(watcherFolder, fileName), 'utf8')) as WatcherRecord;
-      for (const target of [record.childProcessGroupId === undefined ? null : -record.childProcessGroupId, record.watcher?.processId ?? null]) {
-        try {
-          if (target !== null) process.kill(target, 'SIGKILL');
-        } catch {
-          // Already gone.
-        }
-      }
-    }
-  }
+/** The launch sent to Talos for the line folder's first instance. */
+function lineLaunchIn(lineFolder: string): ChildLaunch {
+  const launch = boardTalos?.launchOf(lineFolder, 1) ?? null;
+  if (launch === null) throw new Error(`no line was launched in ${lineFolder}`);
+  return launch;
 }
 
 beforeEach(async () => {
@@ -306,8 +299,10 @@ beforeEach(async () => {
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });
 
-afterEach(() => {
-  endEveryWatcher();
+afterEach(async () => {
+  // Talos and every child it ran work in the repository, so stopping what reaches into it ends them all.
+  boardTalos = null;
+  await stopProcessesReachingInto(repositoryDirectory);
   removeScratchDirectory(monitorFolder);
   removeScratchDirectory(repositoryDirectory);
   const flowOfTheCase = requireRecordedFlow();
@@ -315,7 +310,7 @@ afterEach(() => {
   flowOfTheCase.requireEveryCallAnswered();
 });
 
-describe('a build job end to end, on the real Watcher', () => {
+describe('a build job end to end, on the real Talos', () => {
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     await run(['gate', 'prepare', 'install', '--', 'true']);
@@ -343,22 +338,21 @@ describe('a build job end to end, on the real Watcher', () => {
     const jobFolder = jobFolderOf(firstBuildJobId());
     const sandboxApplies = ports.gateConfinement.availability().verdict === 'confined';
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
-      const launch = watcherLaunchIn(join(jobFolder, folder));
-      expect(launch.kind).toBe('process');
+      const launch = lineLaunchIn(join(jobFolder, folder));
+      expect(launch.kind).toBe('line');
+      expect(launch.timeBoundMilliseconds).toBe(LINE_TIME_BOUND_MILLISECONDS);
+      expect(childReadings().livenessOf(join(jobFolder, folder), 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
       expect(launch.argv[0] === SANDBOX_EXEC_PATH).toBe(sandboxApplies);
       expect(readFileSync(join(jobFolder, folder, 'process-sandbox.sb'), 'utf8').includes('(deny network-outbound')).toBe(networkDenied);
     }
-    expect(watcherChildReadingsWith(ports).livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
-    const endedWatcherProcessIds = [jobFolder, ...['install', 'gate-prepare', 'gate-1'].map((folder) => join(jobFolder, folder))]
-      .map((watcherFolder) => LegacyWatcherReader.watcherRecordIn(watcherFolder, 1)?.watcher?.processId ?? null);
-    expect(endedWatcherProcessIds).not.toContain(null);
-    await passUntil(drivePass, () => endedWatcherProcessIds.every((processId) => processId === null || processIsGone(processId)), 'the ended Watchers reaped');
+    await waitUntil(() => childReadings().livenessOf(jobFolder, 1).verdict === 'ended', 'the build session ending');
+    expect(childReadings().livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     expect(loggedEntries('gate-ran').map((entry) => entry.fields)).toEqual([expect.objectContaining({ outcome: 'passed', cached: false })]);
     expect(existsSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'gates'))).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describe('a merge gate on the real Watcher', () => {
+describe('a merge gate on the real Talos', () => {
   test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s, a planted API key stays behind, and core.longpaths rides along', async () => {
     const longPathsSetting = 'test "${GIT_CONFIG_KEY_0-}" = core.longpaths && test "${GIT_CONFIG_VALUE_0-}" = true';
     await run(['gate', 'add', 'checks', '--', `test "$LANG" = example-narrowed && test -z "\${ANTHROPIC_API_KEY-}" && ${longPathsSetting}`]);
@@ -377,7 +371,7 @@ describe('a merge gate on the real Watcher', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });
 
-describe('operational failures on the real Watcher', () => {
+describe('operational failures on the real Talos', () => {
   // Each line passes where `checks` tries it, in the main checkout, and cannot run only on the built tree.
   const cannotRunLines = [['exits 127', 'exit 127'], ['exits 126', 'exit 126'], ['is killed by a signal', 'kill -9 $$']];
   test.each(cannotRunLines)('a checks process that %s opens gate-cannot-run, never a failed pass', async (_name, cannotRun) => {

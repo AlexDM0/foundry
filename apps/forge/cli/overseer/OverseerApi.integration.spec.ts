@@ -38,6 +38,7 @@ import { PICTURE_SIZE_LIMIT_BYTES, PICTURES_PER_MESSAGE_LIMIT }                 
 import { PRODUCT_NAMES }                                                                from '../../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                                      from '../../src/testing/ChildProcessCaseTimeout.ts';
 import { COMMAND_LINE_FORM }                                                            from '../../src/testing/CommandLineForm.ts';
+import { stopProcessesReachingInto }                                                    from '../../src/testing/ProcessesInFolder.ts';
 import { recordAnswer }                                                                 from '../../src/testing/RecordedAnswers.ts';
 import { useRecordedGit }                                                               from '../../src/testing/RecordedGit.ts';
 import { type SharedRecordedGitFlow, shareRecordedGitFlow, withRecordedGitFirstOnPath } from '../../src/testing/RecordedGitProgram.ts';
@@ -141,11 +142,14 @@ beforeEach(async () => {
   repositoryDirectory = await createInitializedRecordedGitRepository('overseer-api', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
   recordedGit.enterFlowStage('tracker ready', repositoryDirectory);
   recordedFlow = shareRecordedGitFlow(recordedGit);
-  homeDirectory = createScratchDirectory('overseer-api-home');
+  // Short, so the board's Talos endpoint under it fits the bytes macOS keeps for a socket path.
+  homeDirectory = createScratchDirectory('api-home');
 });
 
 afterEach(async () => {
   await run(['oversee', 'stop']);
+  // The board's Talos outlives the stopped Overseer, working in the repository.
+  await stopProcessesReachingInto(repositoryDirectory);
   removeScratchDirectory(repositoryDirectory);
   removeScratchDirectory(homeDirectory);
   const flowOfTheCase = requireRecordedFlow();
@@ -351,9 +355,6 @@ describe('the Overseer API on a scratch board', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('Flint\'s brain starts by the token as the API\'s, runs, shows in the monitor and its stream, stops, and leaves its run behind', async () => {
-    // A shorter home, so the brain's Watcher socket under it fits the bytes macOS keeps for one; under the other cases' it would not.
-    removeScratchDirectory(homeDirectory);
-    homeDirectory = createScratchDirectory('brain-home');
     const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const headers = tokenHeaders();

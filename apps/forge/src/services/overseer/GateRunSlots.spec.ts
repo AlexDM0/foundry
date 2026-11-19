@@ -1,5 +1,5 @@
 /**
- * A gate slot on Windows, over a fake kernel table. What matters: a gate Watcher that was spawned and never claimed answers for its slot through
+ * A gate slot on Windows, over a fake kernel table. What matters: a gate line launched with no child record yet answers for its slot through
  * the recorded process, so another acquirer waits while that process lives and takes the slot once it is gone. On Linux an in-process holder
  * whose Overseer is a zombie is not live, over recorded `/proc` stat text. And over injected file moves: a held-file failure on a slot create
  * is a taken slot on win32 and a fault elsewhere, and a held move aside leaves a stale slot in place. A gate profile comes after every real
@@ -24,17 +24,14 @@ import { createPosixProcessGroups }                        from '../../lib/proce
 import { createFakeWindowsKernel, fakeWindowsSupervision } from '../../testing/FakeWindowsKernel.ts';
 import { nativePlatformPorts }                             from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }  from '../../testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                          from '../../testing/TalosChildReadings.ts';
 import { GateRunSlots }                                    from './GateRunSlots.ts';
 import { heldSlotCreateMeansTakenFor }                     from './HeldSlotCreateFor.ts';
-import { createWatcherBoardChildren }                      from './WatcherBoardChildren.ts';
 
 
-/** The holder's liveness as the drive pass judges it, a gate Watcher's read through the Watchers' adapter of the board's children. */
+/** The holder's liveness as the drive pass judges it, a gate line's read through Talos's adapter of the board's children. */
 function holderIsLive(ports: PlatformPorts, holding: Parameters<typeof GateRunSlots.gateRunHolderIsLive>[2]): boolean {
-  const children = createWatcherBoardChildren({
-    platformPorts: ports, trackerDirectory: '/example/tracker', launching: null, log: () => undefined
-  });
-  return GateRunSlots.gateRunHolderIsLive(children, ports, holding);
+  return GateRunSlots.gateRunHolderIsLive(talosChildReadingsWith(ports, '/example/tracker'), ports, holding);
 }
 
 const HOLDER_PROCESS_ID = 5001;

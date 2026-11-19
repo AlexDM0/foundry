@@ -15,7 +15,7 @@ import type { Job }                                       from '../../lib/tracke
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                       from '../../testing/WatcherChildReadings.ts';
+import { talosChildReadingsWith }                         from '../../testing/TalosChildReadings.ts';
 import { JobControlDelivery }                             from './JobControlDelivery.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 
@@ -57,7 +57,7 @@ describe('a pass over messages already taken', () => {
     };
     let chatLinesBuilt = 0;
     await JobControlDelivery.deliverJobControls({
-      boardChildren:   watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+      boardChildren:   talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
       trackerDirectory,
       board:           { jobs: () => [RUNNING_PRODUCT_OWNER], logRecordsSoFar: () => [messaged] },
       adapter:         { chatLineOf: (message) => { chatLinesBuilt += 1; return message; } },

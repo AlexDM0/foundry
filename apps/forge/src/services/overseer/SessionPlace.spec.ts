@@ -7,8 +7,8 @@
  * included, but never outside its checkout. The gates a session reads name each folder from where it starts. The `.git` entry is
  * planted, since finding the project's place runs no git.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join }                                 from 'node:path';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join }                  from 'node:path';
 
 import {
   afterAll,
@@ -18,8 +18,8 @@ import {
 } from 'bun:test';
 
 import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
-import { watcherFilesOf }                                 from '../../lib/watcher/WatcherFiles.ts';
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
+import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { projectLocationOf }                              from '../tracker/ProjectLocation.ts';
 import { workspacePathsFor }                              from '../tracker/Workspace.ts';
@@ -57,10 +57,10 @@ function placeOf(projectDirectory: string): SessionPlace {
 
 /** A job folder whose first instance's launch file records the folder its session started in. */
 function sessionOwnerJobFolderStartedIn(startFolder: string): string {
-  const jobFolder = createScratchDirectory('session-owner');
-  scratchDirectories.push(jobFolder);
-  writeFileSync(watcherFilesOf(jobFolder, 1).launchPath, `${JSON.stringify({ workingDirectory: startFolder })}\n`);
-  return jobFolder;
+  const boardFolder = createScratchDirectory('session-owner');
+  scratchDirectories.push(boardFolder);
+  PlantedChild.plantChildRecord({ boardFolder, childFolder: 'J1', instance: 1 }, { workingDirectory: startFolder });
+  return join(boardFolder, 'J1');
 }
 
 describe('a ticket worktree', () => {

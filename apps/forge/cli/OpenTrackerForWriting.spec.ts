@@ -53,15 +53,15 @@ function writeLiveBaton(): void {
   const overseerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer');
   mkdirSync(overseerDirectory, { recursive: true });
   const record: BatonRecord = {
-    processId:              BATON_PROCESS.processId,
-    processStartStamp:      BATON_PROCESS.startStamp,
-    bootIdentity:           BATON_PROCESS.bootIdentity,
-    port:                   overseer.port,
-    url:                    overseer.url,
-    tokenFile:              join(overseerDirectory, 'token'),
-    codeVersion:            'code-example',
-    installVersion:         17,
-    watcherProtocolVersion: 2,
+    processId:            BATON_PROCESS.processId,
+    processStartStamp:    BATON_PROCESS.startStamp,
+    bootIdentity:         BATON_PROCESS.bootIdentity,
+    port:                 overseer.port,
+    url:                  overseer.url,
+    tokenFile:            join(overseerDirectory, 'token'),
+    codeVersion:          'code-example',
+    installVersion:       17,
+    talosProtocolVersion: 2,
   };
   writeFileSync(join(overseerDirectory, 'baton-1.json'), JSON.stringify(record));
 }

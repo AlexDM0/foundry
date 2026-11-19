@@ -1,6 +1,6 @@
 /**
- * A build job's code on a scratch tracker behind the Watcher boundary: `src/testing/RecordedWatcherStages.ts` plays the session and scripts each gate
- * line, so no Watcher, agent or gate process starts. What matters: each step is a job state, from the worktree made off the target tip and the
+ * A build job's code on a scratch tracker behind the Talos boundary: `src/testing/RecordedTalosStages.ts` plays the session and scripts each gate
+ * line, so no Talos, agent or gate process starts. What matters: each step is a job state, from the worktree made off the target tip and the
  * install line, through the closing report, verification and a gate, to the Handoff code writes, the finished ticket and the review job the
  * policy launches; and each operational failure opens its own incident or decision rather than a failed pass, while a missing report or an
  * attribution trailer is a failed pass with its cause. A tracker at its repository's root whose pipeline has no entities asks git exactly the
@@ -22,25 +22,24 @@ import {
 } from 'bun:test';
 
 
-import type { AgentAdapter }                                                     from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentLaunchRequest }                                               from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
-import type { NetworkDomainGuard }                                               from '../../src/lib/agent-launch/WorkerProfile.ts';
-import { SANDBOX_EXEC_PATH }                                                     from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
-import type { GateConfinement }                                                  from '../../src/lib/gate-confinement/GateConfinement.ts';
-import type { Job, JobState }                                                    from '../../src/lib/tracker-model/@types/Job.ts';
-import type { AgentStepSettings, PipelineReview }                                from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { Board }                                                            from '../../src/lib/tracker-model/Board.ts';
-import { watcherFilesOf }                                                        from '../../src/lib/watcher/WatcherFiles.ts';
-import type { WatcherLaunch }                                                    from '../../src/lib/watcher/WatcherLaunch.ts';
-import type { DrivePass }                                                        from '../../src/services/overseer/DrivePass.ts';
-import { HatchInbox }                                                            from '../../src/services/overseer/HatchInbox.ts';
-import { LegacyWatcherReader }                                                   from '../../src/services/overseer/LegacyWatcherReader.ts';
-import { jobFolderIn }                                                           from '../../src/services/overseer/OverseerFiles.ts';
-import { requireWorkspace }                                                      from '../../src/services/tracker/Workspace.ts';
-import { JOB_ID_VARIABLE }                                                       from '../../src/shared/Environment.ts';
-import { DISPATCH_PROTOCOL }                                                     from '../../src/shared/constants/DispatchProtocol.ts';
-import { WIND_DOWN_GRACE_CALLS }                                                 from '../../src/shared/constants/OverseerLimits.ts';
-import { createScratchDrivePass, FAKE_WATCHER_BUNDLE_PATH, seatbeltThatApplies } from '../../src/testing/DrivePassHarness.ts';
+import type { AgentAdapter }                                   from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentLaunchRequest }                             from '../../src/lib/agent-launch/AgentLaunchRequest.ts';
+import type { NetworkDomainGuard }                             from '../../src/lib/agent-launch/WorkerProfile.ts';
+import { SANDBOX_EXEC_PATH }                                   from '../../src/lib/gate-confinement/DarwinSeatbelt.ts';
+import type { GateConfinement }                                from '../../src/lib/gate-confinement/GateConfinement.ts';
+import type { ChildLaunch }                                    from '../../src/lib/talos/ChildLaunch.ts';
+import type { Job, JobState }                                  from '../../src/lib/tracker-model/@types/Job.ts';
+import type { AgentStepSettings, PipelineReview }              from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { Board }                                          from '../../src/lib/tracker-model/Board.ts';
+import type { BoardChildren }                                  from '../../src/services/overseer/BoardChildren.ts';
+import type { DrivePass }                                      from '../../src/services/overseer/DrivePass.ts';
+import { HatchInbox }                                          from '../../src/services/overseer/HatchInbox.ts';
+import { jobFolderIn }                                         from '../../src/services/overseer/OverseerFiles.ts';
+import { requireWorkspace }                                    from '../../src/services/tracker/Workspace.ts';
+import { JOB_ID_VARIABLE }                                     from '../../src/shared/Environment.ts';
+import { DISPATCH_PROTOCOL }                                   from '../../src/shared/constants/DispatchProtocol.ts';
+import { LINE_TIME_BOUND_MILLISECONDS, WIND_DOWN_GRACE_CALLS } from '../../src/shared/constants/OverseerLimits.ts';
+import { createScratchDrivePass, seatbeltThatApplies }         from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
   FAKE_HEAD_PLACEHOLDER,
@@ -63,11 +62,11 @@ import {
   type RecordedFlowCommitStageName,
   REPLAYED_OBJECT_IDS
 } from '../../src/testing/RecordedGitFlow.ts';
-import { type RecordedWatcherStages, useRecordedWatcherStages }           from '../../src/testing/RecordedWatcherStages.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }               from '../../src/testing/RecordedTalosStages.ts';
 import { createScratchDirectory, removeScratchDirectory, runScratchRoot } from '../../src/testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }                           from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                                                      from '../../src/testing/WaitUntil.ts';
-import { watcherChildReadingsWith }                                       from '../../src/testing/WatcherChildReadings.ts';
 import { runCommandLine }                                                 from '../Main.ts';
 import { createCapturedCommandContext }                                   from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                         from '../testing/InitializedScratchRepository.ts';
@@ -83,8 +82,8 @@ const WORKTREES_FOLDER = '.forge-worktrees';
 const RED_TESTS_LINE = 'echo expected 2, received 3; exit 1';
 const FROZEN_ROOT_TRACKER_GIT_CALLS_PATH = join(import.meta.dir, 'FrozenRootTrackerGitCalls.json');
 
-const world = useRecordedWatcherStages(nativePlatformPorts());
-let ports: RecordedWatcherStages['ports'];
+const world = useRecordedTalosStages(nativePlatformPorts());
+let ports: RecordedTalosStages['ports'];
 let repositoryDirectory = '';
 let monitorFolder = '';
 let overseerLog: string[] = [];
@@ -176,7 +175,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: Gate
     processStarts:        world.processStarts,
     workspace:            requireWorkspace(repositoryDirectory),
     now:                  SPEC_CLOCK,
-    watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+    talosConnection:      () => world.connectionFor(requireWorkspace(repositoryDirectory).trackerDirectory),
     agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(steps)),
     monitorFolder,
     inheritedEnvironment: inheritedEnvironment(),
@@ -201,6 +200,11 @@ async function passUntil(drivePass: DrivePass, holds: () => boolean, what: strin
     const gateLog = existsSync(gateFolder) ? readdirSync(gateFolder).map((name) => `${name}: ${readFileSync(join(gateFolder, name), 'utf8')}`).join('\n') : '';
     return `${what} (states ${buildStates.join(' > ')}, ending ${JSON.stringify(buildJobEnding())}):\n${overseerLog.join('\n')}\n${gateLog}`;
   });
+}
+
+/** The children as the Overseer reads them, through Talos's adapter over the case's platform ports. */
+function childReadings(): BoardChildren {
+  return talosChildReadingsWith(ports, requireWorkspace(repositoryDirectory).trackerDirectory);
 }
 
 function jobFolderOf(jobId: string): string {
@@ -277,8 +281,11 @@ function buildingSession(commitStage: RecordedFlowCommitStageName = 'tree change
   ];
 }
 
-function watcherLaunchIn(watcherFolder: string): WatcherLaunch {
-  return JSON.parse(readFileSync(watcherFilesOf(watcherFolder, 1).launchPath, 'utf8')) as WatcherLaunch;
+/** The launch Talos took for the line folder's first instance. */
+function lineLaunchIn(lineFolder: string): ChildLaunch {
+  const launch = world.launchOf(lineFolder, 1);
+  if (launch === null) throw new Error(`no line was launched in ${lineFolder}`);
+  return launch;
 }
 
 beforeEach(async () => {
@@ -421,17 +428,13 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(recordedGit.flowCalls()).toContainEqual(['worktree', 'add', '-b', RECORDED_FLOW_TICKET_BRANCH, recordedWorktree, RECORDED_FLOW_MAIN_LINE]);
     const jobFolder = jobFolderOf(firstBuildJobId());
     for (const [folder, networkDenied] of [['install', false], ['gate-prepare', false], ['gate-1', true]] as const) {
-      const launch = watcherLaunchIn(join(jobFolder, folder));
-      expect(launch.kind).toBe('process');
+      const launch = lineLaunchIn(join(jobFolder, folder));
+      expect(launch.kind).toBe('line');
+      expect(launch.timeBoundMilliseconds).toBe(LINE_TIME_BOUND_MILLISECONDS);
       expect(launch.argv[0]).toBe(SANDBOX_EXEC_PATH);
       expect(readFileSync(join(jobFolder, folder, 'process-sandbox.sb'), 'utf8').includes('(deny network-outbound')).toBe(networkDenied);
     }
-    expect(watcherChildReadingsWith(ports).livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
-    const endedWatcherProcessIds = [jobFolder, ...['install', 'gate-prepare', 'gate-1'].map((folder) => join(jobFolder, folder))]
-      .map((watcherFolder) => LegacyWatcherReader.watcherRecordIn(watcherFolder, 1)?.watcher?.processId ?? null);
-    expect(endedWatcherProcessIds).not.toContain(null);
-    const everyWatcherIsGone = (): boolean => endedWatcherProcessIds.every((processId) => processId === null || ports.processSupervision.processIsGone(processId));
-    await passUntil(drivePass, everyWatcherIsGone, 'the ended Watchers reaped');
+    expect(childReadings().livenessOf(jobFolder, 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     expect(loggedEntries('gate-ran').map((entry) => entry.fields)).toEqual([expect.objectContaining({ outcome: 'passed', cached: false })]);
     expect(existsSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'gates'))).toBe(false);
   });
@@ -448,7 +451,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(buildJobEnding()).toMatchObject({ outcome: 'built' });
     const jobFolder = jobFolderOf(firstBuildJobId());
     for (const folder of ['install', 'install2', 'gate-prepare', 'gate-prepare2']) {
-      expect(watcherChildReadingsWith(ports).livenessOf(join(jobFolder, folder), 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
+      expect(childReadings().livenessOf(join(jobFolder, folder), 1)).toMatchObject({ verdict: 'ended', end: { reason: 'exited', exitCode: 0 } });
     }
     expect(world.linesRun().filter((line) => line.endsWith('-step'))).toEqual(['echo first-step', 'echo second-step', 'echo first-step', 'echo second-step']);
   });
@@ -492,8 +495,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
 
     const jobId = firstBuildJobId();
     const jobFolder = jobFolderOf(jobId);
-    // The same job's next Watcher instances are its resumes: the adapter resumes a job's own session id (ClaudeCodeAdapter.spec.ts).
-    expect([1, 2, 3, 4].map((instance) => existsSync(watcherFilesOf(jobFolder, instance).launchPath))).toEqual([true, true, true, false]);
+    // The same job's next child instances are its resumes: the adapter resumes a job's own session id (ClaudeCodeAdapter.spec.ts).
+    expect([1, 2, 3, 4].map((instance) => world.launchOf(jobFolder, instance) !== null)).toEqual([true, true, true, false]);
     expect(loggedEntries('job-launched').filter((entry) => entry.fields['kind'] === 'build')).toHaveLength(1);
     expect(loggedEntries('job-resumed').map((entry) => entry.fields['cause'])).toEqual(['handoff-red', 'handoff-red']);
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'red-resumes-spent' });
@@ -549,7 +552,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'Hatch folder watches', () => 
       processStarts:        world.processStarts,
       workspace:            requireWorkspace(repositoryDirectory),
       now:                  SPEC_CLOCK,
-      watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+      talosConnection:      () => world.connectionFor(requireWorkspace(repositoryDirectory).trackerDirectory),
       agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(buildingSession())),
       monitorFolder,
       inheritedEnvironment: inheritedEnvironment(),
@@ -585,7 +588,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a network guard that cannot s
       processStarts:        world.processStarts,
       workspace:            requireWorkspace(repositoryDirectory),
       now:                  SPEC_CLOCK,
-      watcherBundlePath:    FAKE_WATCHER_BUNDLE_PATH,
+      talosConnection:      () => world.connectionFor(requireWorkspace(repositoryDirectory).trackerDirectory),
       programCommand:       commandOf(trackerDirectory),
       agentAdapter:         launchCapturingAdapterOf(fakeAgentAdapter(buildingSession())),
       monitorFolder,
@@ -660,7 +663,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => 
     await passUntil(drivePass, () => openIncidentKinds().includes('sandbox-unavailable'), 'the sandbox-unavailable incident');
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'sandbox-unavailable' });
     expect(world.linesRun()).not.toContain(`touch '${marker}'`);
-    expect(existsSync(watcherFilesOf(join(jobFolderOf(firstBuildJobId()), 'gate-1'), 1).launchPath)).toBe(false);
+    expect(world.launchOf(join(jobFolderOf(firstBuildJobId()), 'gate-1'), 1)).toBeNull();
     expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'gate-1', reason: FAKE_MISSING_TOOLS_REASON } });
     expect(loggedEntries('gate-ran')).toEqual([]);
   });
@@ -679,7 +682,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => 
     const drivePass = await drivePassPlaying(buildingSession(), fakeGateConfinement('unavailable', 'confined'));
     await passUntil(drivePass, () => openIncidentKinds().includes('sandbox-unavailable'), 'the sandbox-unavailable incident');
     expect((storedProgressOf(repositoryDirectory).incidents ?? [])[0]).toMatchObject({ facts: { step: 'install' } });
-    expect(existsSync(watcherFilesOf(join(jobFolderOf(firstBuildJobId()), 'install'), 1).launchPath)).toBe(false);
+    expect(world.launchOf(join(jobFolderOf(firstBuildJobId()), 'install'), 1)).toBeNull();
   });
 
   test('unconfined-by-design runs the line unchanged in the job worktree, and no refusal is logged', async () => {
@@ -687,7 +690,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => 
     const confinement = fakeGateConfinement('unconfined-by-design');
     const drivePass = await drivePassPlaying(buildingSession(), confinement);
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
-    const launch = watcherLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1'));
+    const launch = lineLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1'));
     expect(launch.argv).toEqual([...ports.shellLine.spawnRequestOf('true', join(jobFolderOf(firstBuildJobId()), 'gate-1-line-status')).argv]);
     expect(launch.workingDirectory).toBe(join(requireWorkspace(repositoryDirectory).rootDirectory, WORKTREES_FOLDER, 'ticket-001'));
     expect(openIncidentKinds()).toEqual([]);
@@ -695,11 +698,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'operational failures', () => 
     expect(overseerLog.filter((line) => line.includes('unconfined by design')).length).toBeGreaterThan(0);
   });
 
-  test('a planted confined adapter wraps the line a gate Watcher runs', async () => {
+  test('a planted confined adapter wraps the line a gate runs', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying(buildingSession(), fakeGateConfinement('confined'));
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job\'s end');
-    expect(watcherLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1')).argv.slice(0, FAKE_CONFINER_ARGV.length)).toEqual([...FAKE_CONFINER_ARGV]);
+    expect(lineLaunchIn(join(jobFolderOf(firstBuildJobId()), 'gate-1')).argv.slice(0, FAKE_CONFINER_ARGV.length)).toEqual([...FAKE_CONFINER_ARGV]);
   });
 
   test('a report saying blocked opens blocked', async () => {
@@ -726,16 +729,16 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'failed passes', () => {
     expect(drivePass.state().notices).toContainEqual({ kind: 'attribution-found', ticketId: '001' });
   });
 
-  test('a session that Customs ends in the hold that verified it gets its input closed, and its Watcher ends', async () => {
+  test('a session that Customs ends in the hold that verified it gets its input closed, and its child ends', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
     const drivePass = await drivePassPlaying(buildingSession('tree changed with trailer'));
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');
     expect(buildStates.slice(-2)).toEqual(['in-customs', 'ended']);
     const sessionFolder = jobFolderOf(firstBuildJobId());
-    await waitUntil(() => watcherChildReadingsWith(ports).livenessOf(sessionFolder, 1).verdict === 'ended', () => `the ended job's Watcher ending:\n${overseerLog.join('\n')}`);
-    const entries = watcherChildReadingsWith(ports).eventsAfter(sessionFolder, 1, 0) as readonly { origin: string; line: string }[];
+    await waitUntil(() => childReadings().livenessOf(sessionFolder, 1).verdict === 'ended', () => `the ended job's child ending:\n${overseerLog.join('\n')}`);
+    const entries = childReadings().eventsAfter(sessionFolder, 1, 0) as readonly { origin: string; line: string }[];
     const clientLines = entries.filter((entry) => entry.origin === 'client');
-    expect(clientLines.map((entry) => entry.line)).toContain(JSON.stringify({ kind: 'close-input' }));
+    expect(clientLines.map((entry) => entry.line)).toContain(JSON.stringify({ act: 'close' }));
   });
 
   test('a commit changing .claude/ fails the pass on V13, opens branch-touches-agent-config and launches no review while it is open', async () => {
@@ -777,7 +780,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'failed passes', () => {
       { kind: 'await-line' },
     ]);
     await passUntil(drivePass, () => openIncidentKinds().includes('out-of-calls'), 'the out-of-calls incident');
-    const events = readFileSync(watcherFilesOf(jobFolderOf(firstBuildJobId()), 1).eventLogPath, 'utf8');
+    const events = readFileSync(childFilesIn(jobFolderOf(firstBuildJobId()), 1).eventLogPath, 'utf8');
     expect(events).toContain('Example wind-down message');
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the stopped job ending');
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'out-of-calls' });

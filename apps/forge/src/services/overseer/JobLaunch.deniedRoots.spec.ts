@@ -25,7 +25,7 @@ import type { Board }                                                 from '../.
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import { watcherChildReadingsWith }                                   from '../../testing/WatcherChildReadings.ts';
+import { talosChildReadingsWith }                                     from '../../testing/TalosChildReadings.ts';
 import type { TrackerChange }                                         from '../tracker/TrackerPipeline.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
 import { jobFolderIn }                                                from './OverseerFiles.ts';
@@ -57,7 +57,7 @@ function runningScene(sandboxDenyShape: SandboxDenyShape): RunningScene {
   for (const state of ['preparing', 'running'] as const) board.moveJob(job.id, state, AT);
   const context = {
     platformPorts: nativePlatformPorts(),
-    boardChildren: watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+    boardChildren: talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     workspace:     { rootDirectory, trackerDirectory },
     agentAdapter:  { sandboxDenyShape },
     log:           () => undefined,
@@ -134,7 +134,7 @@ describe('the denied roots a prepare step makes on a forge with entities', () =>
     const entityClaudeFolder = join(scene.worktree, 'apps', 'gaia', '.claude');
     mkdirSync(join(scene.worktree, 'apps', 'gaia'), { recursive: true });
     symlinkSync(join(scene.worktree, 'example-missing', 'target'), entityClaudeFolder);
-    await JobLaunch.spawnNextInstallStep(scene.context, 'example-tracker', scene.job, PIPELINE_WITH_ENTITIES);
+    await JobLaunch.spawnNextInstallStep(scene.context, scene.job, PIPELINE_WITH_ENTITIES);
     expect(existsSync(join(scene.worktree, '.claude'))).toBe(true);
     const reason = `the denied folder ${entityClaudeFolder} could not be made, so it would get no read-only mount`;
     expect(observationOf(scene.context, scene.job).sandboxRefusal).toEqual({ step: 'install', reason });

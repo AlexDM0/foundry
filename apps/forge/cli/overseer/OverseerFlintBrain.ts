@@ -2,38 +2,38 @@
  * Flint's brain for one serving period of the Overseer: made with the board's facts, fed its paused flag and the machine's usage marker,
  * publishing the board state and the monitor snapshot on each change, logging each run that ended, and closed with the period.
  */
-import { UsageMarkerFile }                                                                        from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { readingBoardOf }                                                                         from '../../src/lib/tracker-model/ReadingBoard.ts';
-import type { FlintBrainEndedRun }                                                                from '../../src/services/overseer/@types/FlintBrainRun.ts';
-import { type FlintBrain, REAL_FLINT_BRAIN_TIMERS, createFlintBrain }                             from '../../src/services/overseer/FlintBrain.ts';
-import { type FlintBrainSessionHost, FlintBrainSessionHosts, createWatcherFlintBrainSessionHost } from '../../src/services/overseer/FlintBrainSessionHost.ts';
-import { UsageLimits }                                                                            from '../../src/services/overseer/UsageLimits.ts';
-import { createWatcherBoardChildren }                                                             from '../../src/services/overseer/WatcherBoardChildren.ts';
-import { requireProgressFile }                                                                    from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }                                                                         from '../../src/services/tracker/Workspace.ts';
-import { environmentCopy, flintBrainIsWithheld, flintBrainMaximumOverride }                       from '../../src/shared/Environment.ts';
-import { FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS }   from '../../src/shared/constants/OverseerLimits.ts';
-import type { CommandContext }                                                                    from '../CommandContext.ts';
-import { openTrackerForWriting }                                                                  from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                                                                    from '../arguments/ArgumentParser.ts';
+import { UsageMarkerFile }                                                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { readingBoardOf }                                                                       from '../../src/lib/tracker-model/ReadingBoard.ts';
+import type { FlintBrainEndedRun }                                                              from '../../src/services/overseer/@types/FlintBrainRun.ts';
+import type { BoardChildren }                                                                   from '../../src/services/overseer/BoardChildren.ts';
+import { type FlintBrain, REAL_FLINT_BRAIN_TIMERS, createFlintBrain }                           from '../../src/services/overseer/FlintBrain.ts';
+import { type FlintBrainSessionHost, FlintBrainSessionHosts, createFlintBrainSessionHost }      from '../../src/services/overseer/FlintBrainSessionHost.ts';
+import { UsageLimits }                                                                          from '../../src/services/overseer/UsageLimits.ts';
+import { requireProgressFile }                                                                  from '../../src/services/tracker/TrackerReader.ts';
+import type { Workspace }                                                                       from '../../src/services/tracker/Workspace.ts';
+import { environmentCopy, flintBrainIsWithheld, flintBrainMaximumOverride }                     from '../../src/shared/Environment.ts';
+import { FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS } from '../../src/shared/constants/OverseerLimits.ts';
+import type { CommandContext }                                                                  from '../CommandContext.ts';
+import { openTrackerForWriting }                                                                from '../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                                                                  from '../arguments/ArgumentParser.ts';
 
 export interface OverseerFlintBrainRequest {
-  commandArguments:  ArgumentParser;
-  context:           CommandContext;
-  workspace:         Workspace;
-  trackerId:         string;
+  commandArguments: ArgumentParser;
+  context:          CommandContext;
+  workspace:        Workspace;
+  trackerId:        string;
   /** The repository's root, which the brain's session may not write. */
-  repositoryRoot:    string;
-  watcherBundlePath: string;
-  codeVersion:       string;
+  repositoryRoot:   string;
+  /** The board's children, under which each run of the brain is a child of the `flint-brain/` folder. */
+  boardChildren:    BoardChildren;
   /** Publishes the board state and the monitor snapshot, as after a pass. */
-  publish:           () => void;
-  log:               (line: string) => void;
+  publish:          () => void;
+  log:              (line: string) => void;
 }
 
 export interface OverseerFlintBrain {
   brain: FlintBrain;
-  /** Ends a running brain `stopped`, waits until every ended run is logged, and acknowledges each ended run's Watcher. */
+  /** Ends a running brain `stopped` and waits until every ended run is logged. */
   close: () => Promise<void>;
 }
 
@@ -69,19 +69,6 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
   } = request;
   const { platformPorts } = context;
   const monitorFolder = platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
-  // The brain's Watchers run in its own folder, so none holds the repository as its working directory.
-  const brainChildren = createWatcherBoardChildren({
-    platformPorts,
-    trackerDirectory: workspace.trackerDirectory,
-    launching:        {
-      trackerId:         request.trackerId,
-      monitorFolder,
-      watcherBundlePath: request.watcherBundlePath,
-      codeVersion:       request.codeVersion,
-      watcherDirectory:  FlintBrainSessionHosts.brainFolderOf(workspace.trackerDirectory),
-    },
-    log,
-  });
   const pendingLogWrites = new Set<Promise<void>>();
 
   const logEndedRun = (run: FlintBrainEndedRun): void => {
@@ -107,12 +94,9 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
       brainIsWithheld:        flintBrainIsWithheld(),
       maximumRunMilliseconds: flintBrainMaximumOverride() ?? FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS,
     },
-    sessionHost: sessionHostLoggingLaunches(createWatcherFlintBrainSessionHost({
-      boardChildren:    brainChildren,
-      platformPorts,
+    sessionHost: sessionHostLoggingLaunches(createFlintBrainSessionHost({
+      boardChildren:    request.boardChildren,
       trackerDirectory: workspace.trackerDirectory,
-      trackerId:        request.trackerId,
-      monitorFolder,
     }), log),
     timers:           REAL_FLINT_BRAIN_TIMERS,
     now:              context.now,
@@ -127,7 +111,7 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
     close: async () => {
       await brain.close();
       await Promise.all([...pendingLogWrites]);
-      await FlintBrainSessionHosts.reapRunsAtStop(brainChildren, workspace.trackerDirectory, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS);
+      await FlintBrainSessionHosts.awaitRunsAtStop(request.boardChildren, workspace.trackerDirectory, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS);
     },
   };
 }

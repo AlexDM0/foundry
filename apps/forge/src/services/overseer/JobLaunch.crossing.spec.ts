@@ -60,8 +60,8 @@ import { ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/
 import { nativePlatformPorts }                              from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }   from '../../testing/ScratchWorkspace.ts';
+import { talosChildReadingsWith }                           from '../../testing/TalosChildReadings.ts';
 import { describeWhenGitIsRecorded }                        from '../../testing/ToolGuard.ts';
-import { watcherChildReadingsWith }                         from '../../testing/WatcherChildReadings.ts';
 import { sealOf }                                           from '../lifecycle/Customs.ts';
 import { CrossingStages }                                   from './CrossingStages.ts';
 import { DependentFixTickets }                              from './DependentFixTickets.ts';
@@ -142,7 +142,7 @@ function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
     branchNames:       branchNamesOf(null),
     log:               () => undefined,
     platformPorts:     { dataFolders: { pathModule: path, foldsCase: false } },
-    boardChildren:     watcherChildReadingsWith(nativePlatformPorts(), trackerDirectory),
+    boardChildren:     talosChildReadingsWith(nativePlatformPorts(), trackerDirectory),
     decisionWordingOf: () => WORDING,
   } as unknown as JobLaunchContext;
   return {

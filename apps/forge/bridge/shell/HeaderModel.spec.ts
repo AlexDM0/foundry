@@ -182,11 +182,6 @@ describe('the warnings and notices', () => {
     }), FIXTURE_NOW, 'live');
     expect(model.notices).toEqual(['job J7 is not launched: C:\\npm\\claude.cmd is a batch file']);
   });
-
-  test('a Watcher endpoint that does not fit names its job and the endpoint, never only its kind', () => {
-    const model = headerModelOf(boardStateFixture({ notices: [{ kind: 'watcher-endpoint-does-not-fit', jobId: 'J7', endpoint: '/long/watchers/a.sock' }], }), FIXTURE_NOW, 'live');
-    expect(model.notices).toEqual(['job J7 is not launched: this platform cannot bind the Watcher endpoint /long/watchers/a.sock']);
-  });
 });
 
 /** Seven rows in progress, three slot jobs (two builders and a reviewer) against a limit of five, and the Assistant beside them. */

@@ -34,6 +34,12 @@ type GitBelowFloorDetail = Extract<OperationRefusalDetail, { kind: 'git-below-fl
  */
 type RefusalChannel = 'command-line' | 'api';
 
+const TALOS_UNAVAILABLE_REASON_WORDING: Readonly<Record<Extract<OperationRefusalDetail, { kind: 'talos-unavailable' }>['reason'], string>> = {
+  'endpoint-does-not-fit': 'cannot bind its endpoint on this platform; move the home folder to a shorter path',
+  'start-refused':         'refused its start, as its log in the board\'s talos folder says',
+  'not-serving':           'did not serve within its start wait',
+};
+
 const NOTHING_WAS_WRITTEN = 'Nothing was written.';
 const WINDOWS_CLAUDE_INSTALL_COMMAND = 'irm https://claude.ai/install.ps1 | iex';
 
@@ -847,6 +853,11 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The Watcher entry ${detail.entryPath} did not bundle, so the Overseer cannot spawn Watchers: ${detail.reason}`;
     case 'watcher-endpoint-does-not-fit':
       return `This platform cannot bind the Watcher endpoint ${detail.endpoint}, so no launch file was written. Move the home folder to a shorter path.`;
+    case 'talos-protocol-differs':
+      return `Talos, started from the program on disk, speaks protocol version ${detail.answeredProtocolVersion}, and this Overseer speaks `
+        + `${detail.requiredProtocolVersion}, so the Overseer did not start. Update the program checkout, then start the Overseer again.`;
+    case 'talos-unavailable':
+      return `Talos ${detail.startNumber} ${TALOS_UNAVAILABLE_REASON_WORDING[detail.reason]}, so the Overseer did not start and no agent runs.`;
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'chart-range-bound-unreadable':
