@@ -28,7 +28,7 @@ import { type RecordedGitStage, useRecordedGit }                       from '../
 import { removeScratchDirectory }                                      from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                   from '../src/testing/ToolGuard.ts';
 import { refuseBesideAnOlderProgram }                                  from './adoption/OlderProgramRefusal.ts';
-import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }               from './adoption/constants/ClaudeCodeInstall.ts';
+import { INSTALLED_SKILL_NAMES, installedSkillNamesFor }               from './adoption/constants/AgentInstall.ts';
 import { type AgentProgressResult, runAgentProgressBesideRecordedGit } from './testing/CliProcess.ts';
 import { createRecordedGitRepository }                                 from './testing/InitializedScratchRepository.ts';
 import {

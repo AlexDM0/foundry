@@ -1,38 +1,30 @@
 /**
  * Writes what the tool installs into a tracked repository for `init` and `update`, walking the table in
- * `cli/adoption/constants/ClaudeCodeInstall.ts`, and reports per part whether its bytes changed: that is how an orchestrator that read the
- * brief earlier learns its copy is stale.
+ * `cli/adoption/constants/AgentInstall.ts` with the agent's installer, and reports per part whether its bytes changed: that is how an
+ * orchestrator that read the brief earlier learns its copy is stale.
  */
 import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join }           from 'node:path';
 
-import { createInstallManifestWriter } from '../../src/adapters/install/InstallManifestWriter.ts';
-import { writeFileAtomically }         from '../../src/lib/atomic-file/AtomicFile.ts';
+import { createInstallManifestWriter }                      from '../../src/adapters/install/InstallManifestWriter.ts';
+import type { AgentInstaller }                              from '../../src/lib/agent-launch/AgentInstaller.ts';
+import { writeFileAtomically }                              from '../../src/lib/atomic-file/AtomicFile.ts';
+import { ensureIgnored }                                    from '../../src/lib/git/GitIgnore.ts';
+import type { EnsureIgnoredOutcome }                        from '../../src/lib/git/GitIgnore.ts';
+import type { Workspace }                                   from '../../src/services/tracker/Workspace.ts';
+import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                    from '../../src/shared/constants/ProductNames.ts';
+import { installedFilePathsIn, type InstalledFilePaths }    from '../InstalledFiles.ts';
+import { INSTALL_VERSION }                                  from '../constants/InstallVersion.ts';
+import type { InstalledFileTexts, InstalledSkillFileTexts } from './InstalledFileGeneration.ts';
 import {
-  claudeLocalSettingsFilePathFor,
-  claudeSettingsFilePathFor,
-  refreshCommandHook,
-  writeCommandHook,
-  type CommandHook
-}                                                                    from '../../src/lib/claude-code/ClaudeSettings.ts';
-import { ensureIgnored }                                                                   from '../../src/lib/git/GitIgnore.ts';
-import type { EnsureIgnoredOutcome }                                                       from '../../src/lib/git/GitIgnore.ts';
-import type { Workspace }                                                                  from '../../src/services/tracker/Workspace.ts';
-import { OperationRefusal }                                                                from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                                                   from '../../src/shared/constants/ProductNames.ts';
-import { installedFilePathsIn, installedSkillFolderInRepository, type InstalledFilePaths } from '../InstalledFiles.ts';
-import { INSTALL_VERSION }                                                                 from '../constants/InstallVersion.ts';
-import type { InstalledFileTexts, InstalledSkillFileTexts }                                from './InstalledFileGeneration.ts';
-import {
-  CLAUDE_CODE_INSTALL,
+  AGENT_INSTALL,
   INSTALL_OPT_OUT_FLAGS,
   type InstalledFile,
   type InstalledFileName,
   type InstalledPart,
   type InstallOptOutFlag
-}                                                                from './constants/ClaudeCodeInstall.ts';
-
-const REFUSED_UNREADABLE_SETTINGS_LINE = 'refused (the settings file could not be read)';
+} from './constants/AgentInstall.ts';
 
 export const IGNORE_OUTCOME_WORDS: Readonly<Record<EnsureIgnoredOutcome, string>> = {
   'already-ignored':      'already ignored, so nothing was added',
@@ -47,6 +39,8 @@ export interface TrackerRefreshRequest {
   workspace:               Workspace;
   installedFileTexts:      InstalledFileTexts;
   installedSkillFileTexts: InstalledSkillFileTexts;
+  /** The agent adapter's, which names the folders the bundles go into and writes the agent's session-start entry. */
+  agentInstaller:          AgentInstaller;
   /** The word the reader typed, so a line telling them to run something again names it. */
   commandName:             string;
   optOutFlags:             ReadonlySet<InstallOptOutFlag>;
@@ -134,15 +128,16 @@ function refreshBriefs(files: readonly InstalledFile[], installedFilePaths: Inst
  * Every file of the skill is rewritten, like the briefs; a file a user added to the folder is never touched, so one the skill dropped stays
  * behind too. Each folder is git-ignored, since it is a copy of this checkout's and the next `update` replaces it.
  */
-function refreshSkillFolders(
-  { installedSkillNames }: Pick<Extract<InstalledPart, { writing: 'skill-folders' }>, 'installedSkillNames'>,
+function refreshInstructionBundles(
+  { installedSkillNames }: Pick<Extract<InstalledPart, { writing: 'instruction-bundles' }>, 'installedSkillNames'>,
   rootDirectory: string,
   installedSkillFileTexts: InstalledSkillFileTexts,
+  agentInstaller: AgentInstaller,
 ): string {
   return Object.values(installedSkillNames).map((skillName) => {
     const skillFileTexts = installedSkillFileTexts[skillName];
     if (skillFileTexts === undefined) throw new OperationRefusal('unrepaired', `No files were read for the installed skill ${skillName}, so it was not written.`);
-    const folderInRepository = installedSkillFolderInRepository(skillName);
+    const folderInRepository = agentInstaller.instructionBundleFolderOf(skillName);
     const folderPath         = join(rootDirectory, folderInRepository);
     let anyFileChanged = false;
     for (const [pathInFolder, text] of skillFileTexts) {
@@ -154,45 +149,6 @@ function refreshSkillFolders(
   }).join('; ');
 }
 
-/** Written to the per-user settings file unless the shared one already holds the entry, which is then kept current there. */
-function refreshHookIn(rootDirectory: string, commandName: string, hook: CommandHook, standardError: (text: string) => void): string {
-
-  function refusedUnreadableSettings(settingsFilePath: string): string {
-    standardError(
-      `${settingsFilePath} could not be read as a JSON object, so it was left exactly as it was and the hook was not written. `
-      + `Fix or remove that file and run \`${PRODUCT_NAMES.PROGRAM} ${commandName}\` again, or add the \`${hook.command}\` hook to it by hand.`,
-    );
-    return REFUSED_UNREADABLE_SETTINGS_LINE;
-  }
-
-  const sharedSettingsFilePath = claudeSettingsFilePathFor(rootDirectory);
-  const sharedOutcome          = refreshCommandHook(sharedSettingsFilePath, hook);
-  if (sharedOutcome === 'refused-unreadable') return refusedUnreadableSettings(sharedSettingsFilePath);
-  if (sharedOutcome !== 'absent') return `${sharedSettingsFilePath} (${sharedOutcome})`;
-
-  const localSettingsFilePath = claudeLocalSettingsFilePathFor(rootDirectory);
-  const localOutcome          = refreshCommandHook(localSettingsFilePath, hook);
-  if (localOutcome === 'refused-unreadable') return refusedUnreadableSettings(localSettingsFilePath);
-  if (localOutcome !== 'absent') return `${localSettingsFilePath} (${localOutcome})`;
-
-  const installOutcome = writeCommandHook(localSettingsFilePath, hook);
-  if (installOutcome === 'refused-unreadable') return refusedUnreadableSettings(localSettingsFilePath);
-  return `${localSettingsFilePath} (installed)`;
-}
-
-/** One line for every hook when they fared alike, one per hook otherwise; an unreadable settings file stops at the first refusal. */
-function refreshClaudeSettingsHooks(hooks: readonly CommandHook[], rootDirectory: string, commandName: string, standardError: (text: string) => void): string {
-  const hookLines: { event: string; line: string }[] = [];
-  for (const hook of hooks) {
-    const line = refreshHookIn(rootDirectory, commandName, hook, standardError);
-    if (line === REFUSED_UNREADABLE_SETTINGS_LINE) return line;
-    hookLines.push({ event: hook.event, line });
-  }
-  const distinctLines = new Set(hookLines.map(({ line }) => line));
-  if (distinctLines.size === 1) return hookLines[0]?.line ?? '';
-  return hookLines.map(({ event, line }) => `${event} ${line}`).join('; ');
-}
-
 function ignoreFolders(rootDirectory: string, folderNames: readonly string[]): string {
   return folderNames.map((folderName) => `${folderName} ${IGNORE_OUTCOME_WORDS[ensureIgnored(rootDirectory, folderName)]}`).join('; ');
 }
@@ -200,24 +156,24 @@ function ignoreFolders(rootDirectory: string, folderNames: readonly string[]): s
 /** Touches nothing the tracker holds: not `progress.json`, not a ticket, not the log. */
 export function refreshTrackedRepository(request: TrackerRefreshRequest): TrackerRefreshReport {
   const {
-    workspace, installedFileTexts, installedSkillFileTexts, commandName, optOutFlags, writesTheBriefFirst, standardError
+    workspace, installedFileTexts, installedSkillFileTexts, agentInstaller, commandName, optOutFlags, writesTheBriefFirst, standardError
   } = request;
   const installedFilePaths = installedFilePathsIn(workspace.rootDirectory);
-  const { parts }          = CLAUDE_CODE_INSTALL;
+  const { parts }          = AGENT_INSTALL;
   const briefsPart         = parts.find((part) => part.writing === 'briefs');
   if (briefsPart?.writing !== 'briefs') throw new OperationRefusal('unrepaired', 'The install lists no briefs.');
 
   function refreshedLineOf(part: InstalledPart): string {
-    // Opting out comes first, or refreshing a hook the shared settings file already holds would write into a file colleagues share on
+    // Opting out comes first, or keeping current an entry a shared settings file already holds would write into a file colleagues share on
     // behalf of a reader who asked for no settings file to be touched at all.
     if (part.optOutFlag !== null && optOutFlags.has(part.optOutFlag)) return `left alone (--${part.optOutFlag})`;
     switch (part.writing) {
       case 'briefs':
         return refreshBriefs(part.files, installedFilePaths, installedFileTexts);
-      case 'claude-settings-hooks':
-        return refreshClaudeSettingsHooks(part.hooks, workspace.rootDirectory, commandName, standardError);
-      case 'skill-folders':
-        return refreshSkillFolders(part, workspace.rootDirectory, installedSkillFileTexts);
+      case 'session-start':
+        return agentInstaller.refreshSessionStart(workspace.rootDirectory, part.command, `${PRODUCT_NAMES.PROGRAM} ${commandName}`, standardError);
+      case 'instruction-bundles':
+        return refreshInstructionBundles(part, workspace.rootDirectory, installedSkillFileTexts, agentInstaller);
       case 'ignored-folders':
         return ignoreFolders(workspace.rootDirectory, part.folderNames);
     }

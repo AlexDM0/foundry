@@ -6,7 +6,7 @@ description: >-
   user wants into board commands (ready, hold, priority, pause, answer a
   question, message, wind down or stop a job, start an intake), take ticket
   requests through the {{productOwnerSkill}} skill, and put each new question
-  to the user. Use this skill only when the user says "/{{skillName}}", asks
+  to the user. Use this skill only when the user says "{{skillLine}}", asks
   you to orchestrate, run the board, work through the tickets, manage the
   queue or "take tickets from me". Filing or editing a ticket is not one of
   them.

@@ -9,7 +9,7 @@ description: >-
   this skill in a repository tracked by {{program}} whenever the user asks to
   file, report, log, track or add a ticket, a bug, a feature, a change or a
   research question, asks you to grill them on one, says "continue D7" of a
-  draft, or says "/{{productOwnerSkill}}".
+  draft, or says "{{productOwnerSkillLine}}".
 ---
 
 # Filing tickets on an {{program}} board

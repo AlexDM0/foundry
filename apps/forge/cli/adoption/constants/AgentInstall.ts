@@ -1,8 +1,7 @@
 /**
- * What `init` and `update` install for Claude Code: the parts, in report order, each with the files it writes, the flag that opts out of it
- * and its report label.
+ * What `init` and `update` install through the agent port's installer: the parts, in report order, each with the files it writes, the
+ * flag that opts out of it and its report label.
  */
-import type { CommandHook }                 from '../../../src/lib/claude-code/ClaudeSettings.ts';
 import { PRODUCT_NAMES, type ProductNames } from '../../../src/shared/constants/ProductNames.ts';
 import type { InstalledFilePaths }          from '../../InstalledFiles.ts';
 
@@ -19,10 +18,10 @@ export interface InstalledFile {
   resourceFolder?:  'prompts';
 }
 
-/** A folder of this checkout's `skills/`, copied into the repository's `.claude/skills/` under the name the product gives that skill. */
+/** A folder of this checkout's `skills/`, copied into the folder the agent loads the bundle from, under the name the product gives it. */
 export type SkillSourceFolderName = 'agent-po' | 'agent-progress-orchestrate';
 
-/** Each skill source folder's installed name, which its `SKILL.md` frontmatter is filled with too, so Claude Code knows it by its folder. */
+/** Each bundle source folder's installed name, which its files are filled with too, so the agent knows the bundle by its folder. */
 export function installedSkillNamesFor(productNames: Pick<ProductNames, 'PRODUCT_OWNER_SKILL' | 'ORCHESTRATE_SKILL'>): Readonly<Record<SkillSourceFolderName, string>> {
   return {
     'agent-po':                   productNames.PRODUCT_OWNER_SKILL,
@@ -34,24 +33,19 @@ export const INSTALLED_SKILL_NAMES = installedSkillNamesFor(PRODUCT_NAMES);
 
 /**
  * `briefs` replaces each file whole and asks the reader to re-read the last one, whose presence marks the files installed;
- * `claude-settings-hooks` writes no file text, only Claude Code settings entries; `skill-folders` rewrites every file of each skill folder,
- * leaves any other file in it alone and git-ignores the folder; `ignored-folders` git-ignores folders the product makes later.
+ * `session-start` has the agent's installer run `command` when a session starts; `instruction-bundles` rewrites every file of each bundle
+ * folder, leaves any other file in it alone and git-ignores the folder; `ignored-folders` git-ignores folders the product makes later.
  */
 export type InstalledPart =
   | { writing: 'briefs'; reportLabel: string; optOutFlag: null; files: readonly InstalledFile[] }
-  | { writing: 'claude-settings-hooks'; reportLabel: string; optOutFlag: InstallOptOutFlag | null; hooks: readonly CommandHook[] }
-  | { writing: 'skill-folders'; reportLabel: string; optOutFlag: null; installedSkillNames: Readonly<Record<SkillSourceFolderName, string>> }
+  | { writing: 'session-start'; reportLabel: string; optOutFlag: InstallOptOutFlag | null; command: string }
+  | { writing: 'instruction-bundles'; reportLabel: string; optOutFlag: null; installedSkillNames: Readonly<Record<SkillSourceFolderName, string>> }
   | { writing: 'ignored-folders'; reportLabel: string; optOutFlag: null; folderNames: readonly string[] };
 
 /** Prints `session-instructions.md` to every session User opens, which is how a session learns how this repository tracks its work. */
-const SESSION_START_HOOK: CommandHook = {
-  event:          'SessionStart',
-  matcher:        '',
-  command:        `${PRODUCT_NAMES.PROGRAM} hook session-start`,
-  timeoutSeconds: 10,
-};
+const SESSION_START_COMMAND = `${PRODUCT_NAMES.PROGRAM} hook session-start`;
 
-export const CLAUDE_CODE_INSTALL: { parts: readonly InstalledPart[] } = {
+export const AGENT_INSTALL: { parts: readonly InstalledPart[] } = {
   parts: [
     {
       writing:     'briefs',
@@ -71,13 +65,13 @@ export const CLAUDE_CODE_INSTALL: { parts: readonly InstalledPart[] } = {
       ],
     },
     {
-      writing:     'claude-settings-hooks',
+      writing:     'session-start',
       reportLabel: 'hooks',
       optOutFlag:  'no-hooks',
-      hooks:       [SESSION_START_HOOK],
+      command:     SESSION_START_COMMAND,
     },
     {
-      writing:             'skill-folders',
+      writing:             'instruction-bundles',
       reportLabel:         'skills',
       optOutFlag:          null,
       installedSkillNames: INSTALLED_SKILL_NAMES,

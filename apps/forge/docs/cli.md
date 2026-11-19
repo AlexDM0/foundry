@@ -242,8 +242,8 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 | [1](#1-the-tracker) | The tracker: `progress.json`, `log.jsonl`, a `tickets/` folder, the `progress.html` stub, and the `.lock` directory | `<data>/` | `init` only; the stub also `update` and `oversee` | none |
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
 | [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the eight instruction defaults, from `Constitution.md`, `ReReviewerBrief.md`, `ConflictReReviewerBrief.md`, `PipelineAgentBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|reReviewer\|conflictReReviewer\|productOwner\|pipelineAgent\|assistant>.md` | `init`, `update` | none |
-| [4](#4-the-hook) | The `SessionStart` hook running `forge hook session-start`, kept current in `.claude/settings.json` when that file already holds it | `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
-| [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/`, each with its `.gitignore` entry | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update` | none |
+| [4](#4-the-hook) | The agent's session-start entry running `forge hook session-start`, written by the agent adapter; for Claude Code a `SessionStart` hook, kept current in `.claude/settings.json` when that file already holds it | for Claude Code `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
+| [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/` into the folder the agent loads instruction bundles from, each with its `.gitignore` entry | for Claude Code `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update` | none |
 | [6](#6-the-install-version) | The install version | `<data>/version.json` | `init`, `update` | none |
 
 ### Re-running
@@ -297,8 +297,8 @@ worktrees folder's before any worktree can exist, and `update` adds it to a repo
 
 #### 3. The files beside the tracker
 
-- `session-instructions.md` is what the SessionStart hook prints to every session User opens: how this repository tracks
-  its work, which skill to load for what, and where the reference is. Its presence marks the files installed.
+- `session-instructions.md` is what the session-start entry prints to every session User opens: how this repository
+  tracks its work, which skill to load for what, and where the reference is. Its presence marks the files installed.
 - `reference.md` is the ticket file's format, the ticket moves and the exit codes copied from this file, which a session
   reads on demand.
 - `briefs/defaults/` holds the instruction file each role reads when the pipeline names none (see [Files on
@@ -313,9 +313,10 @@ earlier versions wrote, and install version 26 removes `briefs/defaults/merger.m
 
 #### 4. The hook
 
-The hook goes in under an empty matcher, into `.claude/settings.local.json`. That is the per-user file Claude Code
-applies over the shared one and keeps out of git, and a job's `--setting-sources project` never loads it, so the hook
-lands in nothing colleagues share and reaches no worker. A repository that already keeps the hook in the shared
+The agent adapter writes the entry; forge names only the command it runs. Claude Code's adapter puts it in under an
+empty matcher, into `.claude/settings.local.json`. That is the per-user file Claude Code applies over the shared one
+and keeps out of git, and a job's `--setting-sources project` never loads it, so the hook lands in nothing colleagues
+share and reaches no worker. A repository that already keeps the hook in the shared
 `.claude/settings.json` has it kept current there instead.
 
 Either way it merges into whatever the file holds and is never added twice. It refuses a document it cannot parse rather
@@ -327,7 +328,9 @@ itself. Until then the file this tool creates shows up in `git status`; this too
 #### 5. The skills
 
 `forge-po` and `forge-orchestrate` ([The two skills](#the-two-skills)) are copied file for file from this
-checkout's `skills/` into `.claude/skills/<name>/`, where Claude Code reads a project's skills.
+checkout's `skills/` into the folder the agent adapter names for each, Claude Code's `.claude/skills/<name>/`, where it
+reads a project's skills. Where a skill quotes the line that runs a skill, the adapter gives the line (`/<name>` for
+Claude Code).
 
 - Every `init` and `update` rewrites each file the skill ships, so a hand edit is undone.
 - A file somebody else put in the folder is never touched, so one a newer skill no longer ships stays behind until
@@ -379,9 +382,10 @@ These commands do not take the refusal above:
 
 ## The two skills
 
-`init` and `update` copy two Claude Code skills from this checkout's `skills/` into the tracked repository's git-ignored
-`.claude/skills/` (item 5 of [Adopting a repository](#adopting-a-repository)). Neither lists commands: `forge help` is
-the reference, and both name it and `<data>/reference.md`.
+`init` and `update` copy two skills from this checkout's `skills/` into the tracked repository's git-ignored folder the
+agent loads instruction bundles from, Claude Code's `.claude/skills/` (item 5 of
+[Adopting a repository](#adopting-a-repository)). Neither lists commands: `forge help` is the reference, and both name
+it and `<data>/reference.md`.
 
 | installed skill | source folder | loads |
 |---|---|---|
@@ -398,7 +402,7 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 | command | what it does |
 |---|---|
 | `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the six items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
-| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the SessionStart hook, the two skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
+| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the agent's session-start entry, the two skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
 | `help` | The command reference. |
 
 #### `init` and `update` refusals
@@ -1258,7 +1262,7 @@ Each table prints these figures per group. "Review passes" is the printed label 
 
 | command | what it does |
 |---|---|
-| `hook session-start` | Print `session-instructions.md` for the session Claude Code is starting. `init` and `update` wire it as the `SessionStart` hook in `.claude/settings.local.json`, which a job's `--setting-sources project` never loads. It prints nothing under a job, skips the install version check, and exits 0 whatever happens, printing nothing on failure. |
+| `hook session-start` | Print `session-instructions.md` for the session the agent is starting. `init` and `update` wire it as the agent's session-start entry, which the agent adapter writes (for Claude Code the `SessionStart` hook in `.claude/settings.local.json`, which a job's `--setting-sources project` never loads). It prints nothing under a job, skips the install version check, and exits 0 whatever happens, printing nothing on failure. |
 | `hook bash-domains --allow <domains>` | Keep a job's network inside its ticket's `network` line: the network guard an Overseer renders into a job's launch for a role with a `network` line, run before each shell command and web fetch, since auto mode's classifier may grant a domain the session asks for. [What it denies](#hook-bash-domains) is below. |
 | `hook stage-edits --allow <folder>…` | Keep the file edits of a job of an entity inside its stage's folders: the edit guard an Overseer renders into the launch of such a job, since its deny rules name only the paths that existed at launch. [What it denies](#hook-stage-edits) is below. |
 | `usage [--since <when>] [--transcripts <folder>] [--json]` | What this repository's subagents cost, read out of the subagent transcripts the agent keeps for this repository: one row per agent, oldest first, then the cohort summary. It writes nothing and takes no lock; a repository with no transcripts is one sentence at exit 0. [The columns and flags](#usage) are below. |

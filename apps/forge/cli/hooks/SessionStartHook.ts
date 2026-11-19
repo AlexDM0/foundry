@@ -1,7 +1,7 @@
 /**
- * `hook session-start`: prints the installed session instructions, which Claude Code adds to the session it starts. A session the Overseer
- * launched for a job prints nothing, since its role prompt is its whole brief, and so does a session started where no tracker governs, the
- * root of a repository whose trackers each sit in a folder of it among them. Never checks the install version.
+ * `hook session-start`: prints the installed session instructions, which the agent's session-start entry adds to the session it starts. A
+ * session the Overseer launched for a job prints nothing, since its role prompt is its whole brief, and so does a session started where no
+ * tracker governs, the root of a repository whose trackers each sit in a folder of it among them. Never checks the install version.
  */
 import { readFileSync } from 'node:fs';
 
@@ -9,7 +9,7 @@ import { findWorkspace }        from '../../src/services/tracker/Workspace.ts';
 import type { CommandContext }  from '../CommandContext.ts';
 import { installedFilePathsIn } from '../InstalledFiles.ts';
 
-/** Prints nothing on any failure and never throws: a failing SessionStart hook would reach every session in the repository. */
+/** Prints nothing on any failure and never throws: a failing session-start entry would reach every session in the repository. */
 export function printTheSessionInstructions(context: CommandContext): void {
   if (context.job !== undefined) return;
   try {

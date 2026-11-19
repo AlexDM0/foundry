@@ -16,6 +16,7 @@ import { PRODUCT_NAMES }                                               from '../
 import { type RecordedGitStage, useRecordedGit }                       from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                      from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                   from '../../src/testing/ToolGuard.ts';
+import { agentAdapterOfThisProcess }                                   from '../CommandContext.ts';
 import { runCommandLine }                                              from '../Main.ts';
 import { createCapturedCommandContext }                                from '../testing/CapturedCommandContext.ts';
 import { createRecordedGitRepository }                                 from '../testing/InitializedScratchRepository.ts';
@@ -35,7 +36,7 @@ interface FrozenInstallTable {
   scenarios: Record<string, InstallScenario>;
 }
 
-import { INSTALLED_SKILL_NAMES } from './constants/ClaudeCodeInstall.ts';
+import { INSTALLED_SKILL_NAMES } from './constants/AgentInstall.ts';
 
 const FROZEN_TABLE_PATH = join(import.meta.dir, 'FrozenClaudeInstall.json');
 
@@ -51,8 +52,6 @@ const TRACKER_LOCK_FOLDER = `${PRODUCT_NAMES.DATA_FOLDER}/.lock/`;
 
 const ROOT_STAND_IN = '<root>';
 
-const INSTALLED_SKILLS_FOLDER = '.claude/skills/';
-
 const CHECKOUT_SKILLS_DIRECTORY = join(import.meta.dir, '..', '..', 'skills');
 
 const scratchDirectories: string[] = [];
@@ -67,7 +66,7 @@ afterAll(() => {
  */
 function skillCopyStandInOf(relativePath: string, text: string): string | null {
   for (const [sourceFolderName, installedName] of Object.entries(INSTALLED_SKILL_NAMES)) {
-    const installedFolder = `${INSTALLED_SKILLS_FOLDER}${installedName}/`;
+    const installedFolder = `${agentAdapterOfThisProcess().installer.instructionBundleFolderOf(installedName)}/`;
     if (!relativePath.startsWith(installedFolder)) continue;
     const pathInSkills = `${sourceFolderName}/${relativePath.slice(installedFolder.length)}`;
     const sourcePath   = join(CHECKOUT_SKILLS_DIRECTORY, pathInSkills);

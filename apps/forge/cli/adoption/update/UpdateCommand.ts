@@ -55,7 +55,8 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   const report             = refreshTrackedRepository({
     workspace,
     installedFileTexts,
-    installedSkillFileTexts: installedSkillFileTexts(),
+    installedSkillFileTexts: installedSkillFileTexts(context.agentAdapter),
+    agentInstaller:          context.agentAdapter.installer,
     commandName:             'update',
     optOutFlags,
     writesTheBriefFirst:     false,

@@ -14,6 +14,7 @@ import { GitArgumentsUtil }                    from '../git/utils/GitArgumentsUt
 import type { AgentHostFacts }                 from './AgentHostFacts.ts';
 import { agentHostFactsFor }                   from './AgentHostFactsFor.ts';
 import { CLAUDE_API_KEY_VARIABLE }             from './ClaudeApiKeyVariable.ts';
+import { CLAUDE_CODE_INSTALLER }               from './ClaudeCodeInstaller.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE }       from './ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CREDENTIALS }             from './ClaudeCredentials.ts';
 import { ClaudeHookInput }                     from './ClaudeHookInput.ts';
@@ -362,6 +363,7 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
     inheritedVariableNames: [...CLAUDE_AUTHENTICATION_VARIABLES, CLAUDE_CONFIG_FOLDER_VARIABLE],
     configurationNames:     CLAUDE_CODE_CONFIGURATION_NAMES,
     attributionPatterns:    CLAUDE_CODE_ATTRIBUTION_PATTERNS,
+    installer:              CLAUDE_CODE_INSTALLER,
     credentialPathsOf:      (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
     programPathOf:          (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
     programRepairOf:        claudeProgramRepairOf,

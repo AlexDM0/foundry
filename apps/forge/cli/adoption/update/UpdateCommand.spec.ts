@@ -22,6 +22,7 @@ import { PRODUCT_NAMES }                                          from '../../..
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit } from '../../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded, testWhenNotRunningAsRoot }    from '../../../src/testing/ToolGuard.ts';
+import { agentAdapterOfThisProcess }                              from '../../CommandContext.ts';
 import { installedFilePathsIn }                                   from '../../InstalledFiles.ts';
 import { runCommandLine }                                         from '../../Main.ts';
 import { INSTALL_VERSION }                                        from '../../constants/InstallVersion.ts';
@@ -202,7 +203,9 @@ describeWhenGitIsRecorded('updating a tracked repository', () => {
   test('the worktrees folder is git-ignored', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     writeFileSync(join(repositoryDirectory, '.gitignore'), `${PRODUCT_NAMES.DATA_FOLDER}/\n`);
-    const refreshIgnoringNothing = [`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}`, `.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}`, PRODUCT_NAMES.WORKTREES_FOLDER]
+    const { installer } = agentAdapterOfThisProcess();
+    const bundleFolders = [PRODUCT_NAMES.PRODUCT_OWNER_SKILL, PRODUCT_NAMES.ORCHESTRATE_SKILL].map((bundleName) => installer.instructionBundleFolderOf(bundleName));
+    const refreshIgnoringNothing = [...bundleFolders, PRODUCT_NAMES.WORKTREES_FOLDER]
       .map((folder) => checkIgnoreOf(folder, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED));
 
     const { exitCode, context } = await runIn(repositoryDirectory, ['update'], refreshIgnoringNothing);

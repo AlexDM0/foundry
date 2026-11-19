@@ -80,11 +80,6 @@ const VENDOR_ADAPTER_SEAM = 'cli/CommandContext.ts';
 /** The fake agent, an adapter of the same port that replays the vendor's recorded wire. */
 const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
-/** Each file that imports the vendor's adapter today, beside the seam and the adapters, with the package that removes the import. */
-const VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED: Readonly<Record<string, string>> = {
-  'cli/adoption/TrackerRefresh.ts':              'WP2.30',
-  'cli/adoption/constants/ClaudeCodeInstall.ts': 'WP2.30',
-};
 const SOURCE_LAYERS = [
   'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'overseer-service',
 ] as const satisfies readonly Layer[];
@@ -156,17 +151,15 @@ const COMMAND_SET_REACHES: readonly ExactReach[] = [
 ];
 
 interface Allowlists {
-  readonly testingFolderImporters:            Readonly<Record<string, readonly string[]>>;
-  readonly featureReachesByPath:              readonly ExactReach[];
-  readonly commandSetReaches:                 readonly ExactReach[];
-  readonly vendorAdapterImportersUntilClosed: Readonly<Record<string, string>>;
+  readonly testingFolderImporters: Readonly<Record<string, readonly string[]>>;
+  readonly featureReachesByPath:   readonly ExactReach[];
+  readonly commandSetReaches:      readonly ExactReach[];
 }
 
 const ALLOWLISTS: Allowlists = {
-  testingFolderImporters:            TESTING_FOLDER_IMPORTERS,
-  featureReachesByPath:              FEATURE_REACHES_BY_PATH,
-  commandSetReaches:                 COMMAND_SET_REACHES,
-  vendorAdapterImportersUntilClosed: VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED,
+  testingFolderImporters: TESTING_FOLDER_IMPORTERS,
+  featureReachesByPath:   FEATURE_REACHES_BY_PATH,
+  commandSetReaches:      COMMAND_SET_REACHES,
 };
 
 /** Folders inside a `cli/` set that hold what the set's commands share rather than one command. */
@@ -432,13 +425,13 @@ function flintEntryFinding(edge: ImportEdge, targetPath: string, flintEntryPaths
   return edgeFinding(edge, 'flint-reached-beside-its-entry-files', `outside ${FLINT_FOLDER}, only its entry files are imported: ${flintEntryPaths.join(', ')}`);
 }
 
-function isVendorAdapterImporter(path: string, allowlists: Allowlists): boolean {
+function isVendorAdapterImporter(path: string): boolean {
   return isInside(path, VENDOR_ADAPTER_PACKAGE_FOLDER) || path === VENDOR_ADAPTER_SEAM || isInside(path, FAKE_AGENT_ADAPTER_FOLDER)
-    || FAKE_AGENT_ADAPTER_FILES.includes(path) || Object.hasOwn(allowlists.vendorAdapterImportersUntilClosed, path);
+    || FAKE_AGENT_ADAPTER_FILES.includes(path);
 }
 
-function vendorSeamFinding(edge: ImportEdge, targetPath: string, allowlists: Allowlists): Finding | null {
-  if (!isInside(targetPath, VENDOR_ADAPTER_PACKAGE_FOLDER) || isVendorAdapterImporter(edge.fromPath, allowlists)) return null;
+function vendorSeamFinding(edge: ImportEdge, targetPath: string): Finding | null {
+  if (!isInside(targetPath, VENDOR_ADAPTER_PACKAGE_FOLDER) || isVendorAdapterImporter(edge.fromPath)) return null;
   return edgeFinding(edge, 'vendor-adapter-imported-outside-its-seam', 'only the agent port\'s seam and its adapters import the vendor\'s adapter');
 }
 
@@ -473,7 +466,7 @@ function edgeFindingsOf(
     commandSetFinding(edge, targetPath, allowlists),
     bridgeViewFinding(edge, targetPath),
     testingFolderFinding(edge, targetPath, allowlists),
-    vendorSeamFinding(edge, targetPath, allowlists),
+    vendorSeamFinding(edge, targetPath),
     workspacePackagePathFinding(edge, targetPath),
     workspacePackageDeclarationFinding(edge, targetPath),
     flintEntryFinding(edge, targetPath, flintEntryPaths),
@@ -580,9 +573,6 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
   const unusedFeatureReaches = allowlists.featureReachesByPath
     .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
     .map((reach) => `FEATURE_REACHES_BY_PATH lets ${reach.importer} import ${reach.target}, and it does not`);
-  const unusedVendorAdapterImporters = Object.keys(allowlists.vendorAdapterImportersUntilClosed)
-    .filter((importer) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === importer && isInside(targetPath, VENDOR_ADAPTER_PACKAGE_FOLDER)))
-    .map((importer) => `VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED lets ${importer} import ${VENDOR_ADAPTER_PACKAGE_FOLDER}, and it does not`);
   const unusedCommandSetReaches = allowlists.commandSetReaches
     .filter((reach) => !fileEdges.some(({ fromPath, targetPath }) => fromPath === reach.importer && targetPath === reach.target))
     .map((reach) => `COMMAND_SET_REACHES lets ${reach.importer} import ${reach.target}, and it does not`);
@@ -590,7 +580,6 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
     ...[...testingFoldersInTree].filter((folder) => !listedTestingFolders.includes(folder)).map((folder) => `${folder} has no TESTING_FOLDER_IMPORTERS entry`),
     ...unusedFeatureReaches,
     ...unusedCommandSetReaches,
-    ...unusedVendorAdapterImporters,
     ...listedTestingFolders.filter((folder) => !testingFoldersInTree.has(folder)).map((folder) => `TESTING_FOLDER_IMPORTERS lists ${folder}, which holds no file`),
     ...unusedImporters,
     ...unusedDeclarations,
@@ -767,8 +756,8 @@ describe('the guard still names each violation, planted in memory', () => {
       'command-set-imports-another-set — cli/jobs/PlantedStep.ts:1 imports cli/adoption/TrackerRefresh.ts: '
         + 'the command set cli/jobs/ imports another set\'s folder; hoist what both need above them',
     ]);
-    expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importing('../../adoption/constants/ClaudeCodeInstall.ts') })).toEqual([
-      'command-set-imports-another-set — cli/tracking/log/PlantedStep.ts:1 imports cli/adoption/constants/ClaudeCodeInstall.ts: '
+    expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importing('../../adoption/constants/AgentInstall.ts') })).toEqual([
+      'command-set-imports-another-set — cli/tracking/log/PlantedStep.ts:1 imports cli/adoption/constants/AgentInstall.ts: '
         + 'the command set cli/tracking/ imports another set\'s folder; hoist what both need above them',
     ]);
     expect(plantedSentencesOf({ 'cli/tracking/log/PlantedStep.ts': importing('../../adoption/init/InitCommand.ts') })).toEqual([
@@ -1010,10 +999,9 @@ describe('the guard still names each violation, planted in memory', () => {
 
   test('an allowlist entry or a declared lib dependency nothing uses any more, and a testing folder without an entry', () => {
     const plantedAllowlists: Allowlists = {
-      testingFolderImporters:            { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'bridge/', 'src/'], 'src/retired/testing/': ['src/'] },
-      featureReachesByPath:              [...FEATURE_REACHES_BY_PATH, { importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/retired.html' }],
-      commandSetReaches:                 [...COMMAND_SET_REACHES, { importer: 'cli/tracking/open/OpenCommand.ts', target: 'cli/overseer/Retired.ts' }],
-      vendorAdapterImportersUntilClosed: { ...VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED, 'cli/overseer/Retired.ts': 'WP2.23' },
+      testingFolderImporters: { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'bridge/', 'src/'], 'src/retired/testing/': ['src/'] },
+      featureReachesByPath:   [...FEATURE_REACHES_BY_PATH, { importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/retired.html' }],
+      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/tracking/open/OpenCommand.ts', target: 'cli/overseer/Retired.ts' }],
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
     const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
@@ -1024,7 +1012,6 @@ describe('the guard still names each violation, planted in memory', () => {
       'TESTING_FOLDER_IMPORTERS lets src/ import cli/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lists src/retired/testing/, which holds no file',
-      'VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED lets cli/overseer/Retired.ts import src/lib/claude-code/, and it does not',
       'src/shared/testing/ has no TESTING_FOLDER_IMPORTERS entry',
       'the header of src/lib/claude-code/ names src/lib/gate-confinement, which the package does not import',
     ]);

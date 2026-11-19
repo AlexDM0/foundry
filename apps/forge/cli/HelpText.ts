@@ -43,32 +43,34 @@ never carries it.
       [--namespace <name>]    tracker go \`session-instructions.md\` (written first, its presence marking
       [--no-hooks] [--json]   the install), \`reference.md\` (the ticket format, the moves and the exit
                               codes) and \`assistant-brief.md\`, the role prompt the Overseer fills for
-                              its Assistant; the SessionStart hook \`hook session-start\` goes into
-                              \`.claude/settings.local.json\`, and two skills into \`.claude/skills/\`:
-                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a ticket loads, and
-                              ${PRODUCT_NAMES.ORCHESTRATE_SKILL}, for the session running the board, which loads
-                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} for intake. It never writes CLAUDE.md. Refused when an
+                              its Assistant; \`hook session-start\` goes into the agent's
+                              session-start entry, in the settings the agent adapter writes, and two
+                              skills into the folder the agent loads instruction bundles from:
+                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a
+                              ticket loads, and ${PRODUCT_NAMES.ORCHESTRATE_SKILL}, for the session
+                              running the board, which loads ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} for
+                              intake. It never writes the agent's instruction file. Refused when an
                               ancestor already holds a tracker, when a tracker the repository's
-                              tracker list names sits above or below the directory, when --root is
-                              not an existing directory, and inside a bare repository, which has no
+                              tracker list names sits above or below the directory, when --root is not
+                              an existing directory, and inside a bare repository, which has no
                               working tree to track. Re-running only refreshes what \`update\`
                               refreshes, and \`update\` is the command to reach for there. --project
-                              names the project shown on the page, and --no-hooks touches no
-                              settings file. Without --root it tracks the root of the repository's
-                              main checkout and, run from elsewhere, says it chose that; --root
-                              tracks that directory instead. A tracker in a folder of its repository
-                              needs --namespace, which sets its branch namespace as \`namespace\`
-                              does and is refused when another tracker of the repository lists it or
-                              a branch leaves it no room; such a tracker, and any with a namespace,
-                              is written into the repository's tracker list in the git directory, so
-                              a later \`init\` above or below it is refused. --json
-                              prints {answerVersion, outcome, trackerId, project, root}, the
-                              outcome \`created\` or, for a tracker that was there, \`refreshed\`.
+                              names the project shown on the page, and --no-hooks touches no settings
+                              file. Without --root it tracks the root of the repository's main
+                              checkout and, run from elsewhere, says it chose that; --root tracks that
+                              directory instead. A tracker in a folder of its repository needs
+                              --namespace, which sets its branch namespace as \`namespace\` does and
+                              is refused when another tracker of the repository lists it or a branch
+                              leaves it no room; such a tracker, and any with a namespace, is written
+                              into the repository's tracker list in the git directory, so a later
+                              \`init\` above or below it is refused. --json prints
+                              {answerVersion, outcome, trackerId, project, root}, the outcome
+                              \`created\` or, for a tracker that was there, \`refreshed\`.
 
   update [--no-hooks] [--json]
                               Refresh what the tool wrote into a repository it already tracks: the
                               three files beside the tracker, guidance shipped with the tool rather
-                              than files a project edits, the SessionStart hook, the two skills and
+                              than files a project edits, the session-start entry, the two skills and
                               the worktrees folder's \`.gitignore\` entry. The tracker itself is left
                               alone: a tracker an earlier ${PRODUCT_NAMES.PROGRAM} wrote in a format this one no
                               longer reads is refused at exit 2 by every command that reads it,
@@ -144,12 +146,13 @@ never carries it.
 
   log "<text>" [--at <when>]  Append one line to the log. --at backfills it.
 
-  hook session-start          Print \`session-instructions.md\` for the session Claude Code is
-                              starting: \`init\` and \`update\` wire it as the SessionStart hook in
-                              \`.claude/settings.local.json\`, which a job's sessions never load. It
-                              prints nothing under a job or where no tracker governs (the root of a
-                              repository whose trackers sit in folders of it), skips the install
-                              version check, and exits 0 whatever happens, printing nothing on failure.
+  hook session-start          Print \`session-instructions.md\` for the session the agent is
+                              starting: \`init\` and \`update\` wire it as the agent's session-start
+                              entry, in the settings the agent adapter writes, which a job's
+                              sessions never load. It prints nothing under a job or where no
+                              tracker governs (the root of a repository whose trackers sit in
+                              folders of it), skips the install version check, and exits 0 whatever
+                              happens, printing nothing on failure.
 
   hook bash-domains           Keep a job's network inside its ticket's \`network\` line: the
       --allow <domains>       network guard an Overseer renders into a job's launch, run before each

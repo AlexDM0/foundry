@@ -12,6 +12,7 @@ import type { AgentLaunchRequest }           from '../lib/agent-launch/AgentLaun
 import type { AgentQuestion }                from '../lib/agent-launch/AgentSessionEvent.ts';
 import type { SubagentFacts, SubagentUsage } from '../lib/agent-launch/AgentTranscripts.ts';
 import { claudeSessionWritablePathsOf }      from '../lib/claude-code/ClaudeCodeAdapter.ts';
+import { CLAUDE_CODE_INSTALLER }             from '../lib/claude-code/ClaudeCodeInstaller.ts';
 import { claudeConfigFolderOf }              from '../lib/claude-code/ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CREDENTIALS }           from '../lib/claude-code/ClaudeCredentials.ts';
 import { ClaudeHookInput }                   from '../lib/claude-code/ClaudeHookInput.ts';
@@ -180,6 +181,7 @@ export function fakeAgentAdapter(
     inheritedVariableNames: [],
     configurationNames:     CLAUDE_CODE_CONFIGURATION_NAMES,
     attributionPatterns:    CLAUDE_CODE_ATTRIBUTION_PATTERNS,
+    installer:              CLAUDE_CODE_INSTALLER,
     credentialPathsOf:      (homeDirectory) => [join(homeDirectory, '.ssh')],
     programPathOf:          () => ({ verdict: 'found', path: process.execPath }),
     programRepairOf:        claudeProgramRepairOf,

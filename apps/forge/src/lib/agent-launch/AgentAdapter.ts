@@ -4,6 +4,7 @@
  * `src/lib/executable-resolver`, whose port an adapter finds its program through.
  */
 import type { ExecutableRefusalCause, ExecutableResolution, ExecutableResolver } from '../executable-resolver/ExecutableResolver.ts';
+import type { AgentInstaller }                                                   from './AgentInstaller.ts';
 import type { AgentLaunchPlan }                                                  from './AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }                                               from './AgentLaunchRequest.ts';
 import type { AgentQuestion, AgentSessionEvent }                                 from './AgentSessionEvent.ts';
@@ -73,6 +74,7 @@ export interface AgentAdapter {
   readonly configurationNames:     AgentConfigurationNames;
   /** Each commit message trailer that marks a commit as the agent's work; Customs refuses a commit whose message matches one. */
   readonly attributionPatterns:    readonly RegExp[];
+  readonly installer:              AgentInstaller;
   /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
   credentialPathsOf(homeDirectory: string): readonly string[];
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */

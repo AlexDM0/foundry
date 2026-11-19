@@ -1,7 +1,7 @@
 /**
- * The skills reach a tracked repository as copies in its `.claude/skills/`, never through a global install, so what matters is that `init`
- * writes each folder byte for byte as this checkout holds it and keeps it out of git, that a later refresh carries a changed source file
- * over, and that a file a user put in the folder survives, since the refresh owns only the files the skill ships.
+ * The skills reach a tracked repository as copies in the folder the agent's installer names, never through a global install, so what
+ * matters is that `init` writes each folder byte for byte as this checkout holds it and keeps it out of git, that a later refresh carries a
+ * changed source file over, and that a file a user put in the folder survives, since the refresh owns only the files the skill ships.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                    from 'node:path';
@@ -15,6 +15,7 @@ import { PRODUCT_NAMES }                                                        
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                     from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                                     from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                  from '../../src/testing/ToolGuard.ts';
+import { agentAdapterOfThisProcess }                                                  from '../CommandContext.ts';
 import { runCommandLine }                                                             from '../Main.ts';
 import { createCapturedCommandContext }                                               from '../testing/CapturedCommandContext.ts';
 import { createRecordedGitRepository }                                                from '../testing/InitializedScratchRepository.ts';
@@ -22,17 +23,21 @@ import { checkIgnoreOf, INIT_IN_A_NEW_REPOSITORY, REFRESH_OF_AN_IGNORING_REPOSIT
 import { repositoryFileContentsOf }                                                   from '../testing/RepositoryFileContents.ts';
 import { installedFileTextsFor, installedSkillFileTexts, skillSourceDirectoryOf }     from './InstalledFileGeneration.ts';
 import { refreshTrackedRepository }                                                   from './TrackerRefresh.ts';
-import { INSTALLED_SKILL_NAMES, type SkillSourceFolderName }                          from './constants/ClaudeCodeInstall.ts';
+import { INSTALLED_SKILL_NAMES, type SkillSourceFolderName }                          from './constants/AgentInstall.ts';
 
 const SKILLS = Object.entries(INSTALLED_SKILL_NAMES) as [SkillSourceFolderName, string][];
 
-const PRODUCT_OWNER_SKILL_FOLDER = join('.claude', 'skills', PRODUCT_NAMES.PRODUCT_OWNER_SKILL);
+const AGENT_ADAPTER = agentAdapterOfThisProcess();
+
+const instructionBundleFolderOf = (bundleName: string): string => AGENT_ADAPTER.installer.instructionBundleFolderOf(bundleName);
+
+const PRODUCT_OWNER_SKILL_FOLDER = instructionBundleFolderOf(PRODUCT_NAMES.PRODUCT_OWNER_SKILL);
 
 const INSTALLED_FILE_TEXTS = installedFileTextsFor();
 
 /** The refresh in a repository whose `.gitignore` names none of its folders yet. */
 const REFRESH_OF_A_NEW_REPOSITORY: RecordedGitStage = [
-  ...Object.values(INSTALLED_SKILL_NAMES).map((installedName) => checkIgnoreOf(`.claude/skills/${installedName}`, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED)),
+  ...Object.values(INSTALLED_SKILL_NAMES).map((installedName) => checkIgnoreOf(instructionBundleFolderOf(installedName), GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED)),
   checkIgnoreOf(PRODUCT_NAMES.WORKTREES_FOLDER, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED),
 ];
 
@@ -68,6 +73,7 @@ async function refreshSkillsIn(repositoryDirectory: string, skillFileTexts: Read
     workspace:               workspacePathsFor(repositoryDirectory),
     installedFileTexts:      INSTALLED_FILE_TEXTS,
     installedSkillFileTexts: Object.fromEntries(Object.values(INSTALLED_SKILL_NAMES).map((installedName) => [installedName, skillFileTexts])),
+    agentInstaller:          AGENT_ADAPTER.installer,
     commandName:             'update',
     optOutFlags:             new Set(['no-hooks'] as const),
     writesTheBriefFirst:     false,
@@ -82,23 +88,28 @@ describeWhenGitIsRecorded('the installed skill folders', () => {
     await initIn(repositoryDirectory);
 
     for (const [sourceFolderName, installedName] of SKILLS) {
-      const installedFolder = join(repositoryDirectory, '.claude', 'skills', installedName);
+      const installedFolder = join(repositoryDirectory, instructionBundleFolderOf(installedName));
       const sourceFiles     = repositoryFileContentsOf(skillSourceDirectoryOf(sourceFolderName));
-      const fillValues      = { ...productNameTemplateValuesOf(PRODUCT_NAMES), skillName: installedName };
+      const fillValues      = {
+        ...productNameTemplateValuesOf(PRODUCT_NAMES),
+        skillName:             installedName,
+        skillLine:             AGENT_ADAPTER.instructionBundleLineOf(installedName, ''),
+        productOwnerSkillLine: AGENT_ADAPTER.instructionBundleLineOf(PRODUCT_NAMES.PRODUCT_OWNER_SKILL, ''),
+      };
       expect(repositoryFileContentsOf(installedFolder)).toEqual(new Map([...sourceFiles].map(([path, text]) => [path, filledTemplateOf(text, fillValues)])));
       expect(readFileSync(join(installedFolder, 'SKILL.md'), 'utf8')).toContain(`\nname: ${installedName}\n`);
-      expect(gitIgnoreLinesOf(repositoryDirectory), installedName).toContain(`.claude/skills/${installedName}/`);
+      expect(gitIgnoreLinesOf(repositoryDirectory), installedName).toContain(`${instructionBundleFolderOf(installedName)}/`);
     }
   });
 
-  test('every source SKILL.md takes its name from the install, so the folder and the name Claude Code reads cannot disagree', () => {
+  test('every source SKILL.md takes its name from the install, so the folder and the name the agent reads cannot disagree', () => {
     for (const [sourceFolderName] of SKILLS) {
       expect(readFileSync(join(skillSourceDirectoryOf(sourceFolderName), 'SKILL.md'), 'utf8'), sourceFolderName).toStartWith('---\nname: {{skillName}}\n');
     }
   });
 
   test('the files read for each skill are every file of its source folder, SKILL.md among them', () => {
-    const skillFileTexts = installedSkillFileTexts();
+    const skillFileTexts = installedSkillFileTexts(AGENT_ADAPTER);
     for (const [sourceFolderName, installedName] of SKILLS) {
       expect([...(skillFileTexts[installedName]?.keys() ?? [])]).toEqual([...repositoryFileContentsOf(skillSourceDirectoryOf(sourceFolderName)).keys()].sort());
       expect(skillFileTexts[installedName]?.has('SKILL.md'), installedName).toBe(true);
@@ -129,6 +140,6 @@ describeWhenGitIsRecorded('the installed skill folders', () => {
     await refreshSkillsIn(repositoryDirectory, skillFileTexts, REFRESH_OF_AN_IGNORING_REPOSITORY);
 
     expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8'))
-      .toBe(`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`);
+      .toBe(`${PRODUCT_OWNER_SKILL_FOLDER}/\n${instructionBundleFolderOf(PRODUCT_NAMES.ORCHESTRATE_SKILL)}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`);
   });
 });

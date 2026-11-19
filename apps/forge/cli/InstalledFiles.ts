@@ -22,14 +22,9 @@ export interface InstalledFilePaths {
   productOwnerDefault:       string;
   pipelineAgentDefault:      string;
   assistantDefault:          string;
-  /** What the SessionStart hook prints to each session User opens; its presence marks the files installed. */
+  /** What the agent's session-start entry prints to each session User opens; its presence marks the files installed. */
   sessionInstructions:       string;
   installManifest:           string;
-}
-
-/** Claude Code reads a project's skills from `.claude/skills/<name>/`, written with `/` as `.gitignore` takes it. */
-export function installedSkillFolderInRepository(skillName: string): string {
-  return `.claude/skills/${skillName}`;
 }
 
 export function installedFilePathsIn(rootDirectory: string): InstalledFilePaths {

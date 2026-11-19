@@ -115,108 +115,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Permanent: The seam imports the vendor\'s adapter; the one composition root that chooses it.',
   'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, agentVariableOf);':
     'Permanent: The seam chooses the vendor\'s adapter, which reads its own variables through the reader it is handed.',
-  'cli/HelpText.ts: vendor-hook-protocol: its Assistant; the SessionStart hook \\`hook session-start\\` goes into':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-name: \\`.claude/settings.local.json\\`, and two skills into \\`.claude/skills/\\`:':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-file-layout: \\`.claude/settings.local.json\\`, and two skills into \\`.claude/skills/\\`:':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-name: ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} for intake. It never writes CLAUDE.md. Refused when an':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-hook-protocol: than files a project edits, the SessionStart hook, the two skills and':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-name: hook session-start          Print \\`session-instructions.md\\` for the session Claude Code is':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-hook-protocol: starting: \\`init\\` and \\`update\\` wire it as the SessionStart hook in':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-name: \\`.claude/settings.local.json\\`, which a job\'s sessions never load. It':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/HelpText.ts: vendor-file-layout: \\`.claude/settings.local.json\\`, which a job\'s sessions never load. It':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/InstalledFiles.ts: vendor-hook-protocol: /** What the SessionStart hook prints to each session User opens; its presence marks the files installed. */':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/InstalledFiles.ts: vendor-name: /** Claude Code reads a project\'s skills from `.claude/skills/<name>/`, written with `/` as `.gitignore` takes it. */':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/InstalledFiles.ts: vendor-name: return `.claude/skills/${skillName}`;':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/InstalledFileGeneration.ts: vendor-name: CLAUDE_CODE_INSTALL,':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/InstalledFileGeneration.ts: vendor-name: } from \'./constants/ClaudeCodeInstall.ts\';':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/InstalledFileGeneration.ts: vendor-file-layout: * filled with the skill\'s installed name, which its `SKILL.md` frontmatter names it by.':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/InstalledFileGeneration.ts: vendor-name: for (const part of CLAUDE_CODE_INSTALL.parts) {':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/InstalledFileGeneration.ts: vendor-name: for (const part of CLAUDE_CODE_INSTALL.parts) { [copy 2]':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/TrackerRefresh.ts: vendor-name: * `cli/adoption/constants/ClaudeCodeInstall.ts`, and reports per part whether its bytes changed: that is how an '
-    + 'orchestrator that read the'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: claudeLocalSettingsFilePathFor,':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: claudeSettingsFilePathFor,':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: }                                                                    from \'../../src/lib/claude-code/ClaudeSettings.ts\';':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: CLAUDE_CODE_INSTALL,':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: }                                                                from \'./constants/ClaudeCodeInstall.ts\';':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const sharedSettingsFilePath = claudeSettingsFilePathFor(rootDirectory);':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const localSettingsFilePath = claudeLocalSettingsFilePathFor(rootDirectory);':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/TrackerRefresh.ts: vendor-name: function refreshClaudeSettingsHooks(hooks: readonly CommandHook[], rootDirectory: string, commandName: string, '
-    + 'standardError: (text: string) => void): string {'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: const { parts }          = CLAUDE_CODE_INSTALL;':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: case \'claude-settings-hooks\':':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/TrackerRefresh.ts: vendor-name: return refreshClaudeSettingsHooks(part.hooks, workspace.rootDirectory, commandName, standardError);':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * What `init` and `update` install for Claude Code: the parts, in report order, each with the files it writes, '
-    + 'the flag that opts out of it'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: import type { CommandHook }                 from \'../../../src/lib/claude-code/ClaudeSettings.ts\';':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: /** A folder of this checkout\'s `skills/`, copied into the repository\'s `.claude/skills/` under the name '
-    + 'the product gives that skill. */'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: /** Each skill source folder\'s installed name, which its `SKILL.md` frontmatter is filled with too, so '
-    + 'Claude Code knows it by its folder. */'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-file-layout: /** Each skill source folder\'s installed name, which its `SKILL.md` frontmatter is filled with too, '
-    + 'so Claude Code knows it by its folder. */'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: * `claude-settings-hooks` writes no file text, only Claude Code settings entries; `skill-folders` rewrites every '
-    + 'file of each skill folder,'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: | { writing: \'claude-settings-hooks\'; reportLabel: string; optOutFlag: InstallOptOutFlag | null; hooks: '
-    + 'readonly CommandHook[] }'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-hook-protocol: event:          \'SessionStart\',':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: export const CLAUDE_CODE_INSTALL: { parts: readonly InstalledPart[] } = {':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'cli/adoption/constants/ClaudeCodeInstall.ts: vendor-name: writing:     \'claude-settings-hooks\',':
-    'Removed by WP2.30: The adapter installs into a repository.',
   [
   'cli/adoption/init/InitCommand.ts: vendor-name: `  2. Ask a Claude session in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill, files the '
     + 'ticket as a`,'
@@ -227,16 +125,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     + 'the option or options Claude recommends.`);'
   ]:
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  [
-  'cli/hooks/SessionStartHook.ts: vendor-name: * `hook session-start`: prints the installed session instructions, which Claude Code adds to the session it starts. A '
-    + 'session the Overseer'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
-  [
-  'cli/hooks/SessionStartHook.ts: vendor-hook-protocol: /** Prints nothing on any failure and never throws: a failing SessionStart hook would reach every session in the '
-    + 'repository. */'
-  ]:
-    'Removed by WP2.30: The adapter installs into a repository.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Bash reaches no network.\',':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Do not use the network from Bash.\',':
@@ -271,10 +159,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'resources/templates/Constitution.md: vendor-name: Obey the rules of this repository. Its `CLAUDE.md`, its `CONTRIBUTING.md` and its code show them. When the code and a':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'skills/agent-po/SKILL.md: vendor-mark: draft, or says "/{{productOwnerSkill}}".':
-    'Removed by WP2.30: The adapter installs into a repository.',
-  'skills/agent-progress-orchestrate/SKILL.md: vendor-mark: to the user. Use this skill only when the user says "/{{skillName}}", asks':
-    'Removed by WP2.30: The adapter installs into a repository.',
   [
   'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: return `A question needs ${adviceFor(channel, \'--recommended <letter>, \', \'\')}the option Claude '
     + 'recommends. ${NOTHING_WAS_WRITTEN}`;'
@@ -355,8 +239,6 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     + '--with-real-claude to opt in.\';'
   ]:
     'Permanent: the cutover smoke runs real sessions on purpose, refused without its flag.',
-  'cli/testing/InstalledSurfaceScan.ts: vendor-name: \'cli/adoption/constants/ClaudeCodeInstall.ts\',':
-    'Removed by WP2.30: The adapter installs into a repository.',
   'cli/testing/InstalledSurfaceScan.ts: vendor-name: + \'cli/constants/InstallVersion.ts (CLAUDE.md, Generated and installed files) and freeze the new version\\\'s surface\'),':
     'Permanent: this repository\'s own agent folders and evidence, which the scans and the smoke skip.',
   'cli/testing/RecordedGitStages.ts: vendor-name: const INSTALLED_SKILLS_FOLDER = \'.claude/skills\';':

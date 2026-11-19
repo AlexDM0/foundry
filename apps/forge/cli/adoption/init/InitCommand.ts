@@ -82,13 +82,14 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   refuseAnOverrideNamingAnotherDirectory(context.currentDirectory, rootDirectory);
   requireGitAtTheFloor(rootDirectory);
 
-  const skillFileTexts = installedSkillFileTexts();
+  const skillFileTexts = installedSkillFileTexts(context.agentAdapter);
   // The briefs, the hook and the skills are written by the same refresh a second `init` and `update` run, so a fresh tracker and an
   // adopted one never drift.
   const refreshTheRepository = (installedFileTexts: InstalledFileTexts, { writesTheBriefFirst }: { writesTheBriefFirst: boolean }) => refreshTrackedRepository({
     workspace,
     installedFileTexts,
     installedSkillFileTexts: skillFileTexts,
+    agentInstaller:          context.agentAdapter.installer,
     commandName:             'init',
     optOutFlags,
     writesTheBriefFirst,

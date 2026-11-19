@@ -42,8 +42,8 @@ export const INSTALLED_TEMPLATE_PATHS = [
   'resources/prompts/BuildPrompt.md',
   'resources/prompts/ReviewPrompt.md',
   'resources/prompts/ProductOwnerPrompt.md',
-  // The hook command `init` and `update` write into the settings file.
-  'cli/adoption/constants/ClaudeCodeInstall.ts',
+  // The session-start command `init` and `update` have the agent's installer write.
+  'cli/adoption/constants/AgentInstall.ts',
 ];
 
 const INSTALLED_SKILL_FOLDERS = ['skills/agent-po', 'skills/agent-progress-orchestrate'];
