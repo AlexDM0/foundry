@@ -1,0 +1,57 @@
+/**
+ * User's resume of interrupted work (decision 41), recorded in the hold with the forge up or down: an instruction the Playbook carries out
+ * at its next pass under every hold a resume obeys, and an `interrupted:` hold lifted with no fresh attempt. `all` and `network-outage`
+ * with nothing waiting change nothing, so a monitor's one control may send them to every forge.
+ */
+import type { Logged }             from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { Board }              from '../../lib/tracker-model/Board.ts';
+import { BoardRefusal }            from '../../lib/tracker-model/BoardRefusal.ts';
+import { INTERRUPTED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import type { ControlCommandOf }   from '../../shared/@types/ControlCommand.ts';
+import { LIFECYCLE_LIMITS }        from '../../shared/constants/LifecycleLimits.ts';
+import type { TrackerChange }      from '../tracker/TrackerPipeline.ts';
+import { ticketIdOfReference }     from './ControlTicketLookup.ts';
+
+interface ResumeRecorded extends Logged {
+  changed: boolean;
+}
+
+function recordedFrom(logged: Logged['logged']): ResumeRecorded {
+  return { logged, changed: logged.length > 0 };
+}
+
+function holdIsInterrupted(hold: string | undefined): boolean {
+  return hold?.startsWith(INTERRUPTED_HOLD_PREFIX) === true;
+}
+
+function interruptedJobIdsOfTicket(board: Board, ticketId: string): string[] {
+  return board.jobs().filter((job) => job.state === 'interrupted' && job.ticketIds.includes(ticketId)).map((job) => job.id);
+}
+
+function liftEveryInterruptedHold(board: Board, at: string): Logged['logged'] {
+  const heldTicketIds = board.tickets().filter((ticket) => holdIsInterrupted(ticket.frontmatter.hold)).map((ticket) => ticket.frontmatter.id);
+  return heldTicketIds.flatMap((ticketId) => board.liftInterruptedHold(ticketId, at).logged);
+}
+
+/** Refused `ticket-not-interrupted` when the ticket has neither an interrupted job nor an `interrupted:` hold. */
+function resumeTicket(ticketReference: string, change: TrackerChange): ResumeRecorded {
+  const { board, at } = change;
+  const ticketId      = ticketIdOfReference(change, ticketReference);
+  const jobIds        = interruptedJobIdsOfTicket(board, ticketId);
+  const holdLifts     = holdIsInterrupted(board.ticketByReference(ticketId)?.frontmatter.hold);
+  if (jobIds.length === 0 && !holdLifts) throw new BoardRefusal({ reason: 'ticket-not-interrupted', ticketId });
+  const instructed = jobIds.flatMap((jobId) => board.instructResume(jobId, at).logged);
+  const lifted     = holdLifts ? board.liftInterruptedHold(ticketId, at).logged : [];
+  return recordedFrom([...instructed, ...lifted]);
+}
+
+function resumeInterruptedWork(command: ControlCommandOf<'interrupted-work-resume'>, change: TrackerChange): ResumeRecorded {
+  const { board, at } = change;
+  const { target }    = command;
+  if (target === 'all') return recordedFrom([...board.instructResumeOfEveryWaitingJob(LIFECYCLE_LIMITS, at).logged, ...liftEveryInterruptedHold(board, at)]);
+  if (target === 'network-outage') return recordedFrom(board.instructResumeOfEveryNetworkOutageJob(at).logged);
+  if ('jobId' in target) return recordedFrom(board.instructResume(target.jobId, at).logged);
+  return resumeTicket(target.ticketReference, change);
+}
+
+export const RESUME_CONTROLS = { 'interrupted-work-resume': resumeInterruptedWork, };

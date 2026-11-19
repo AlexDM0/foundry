@@ -1,5 +1,5 @@
 /**
- * The control contract a monitor sends to `POST /api/v1/commands`: the nine kinds, each body and each answer, under `controlVersion` 1,
+ * The control contract a monitor sends to `POST /api/v1/commands`: the ten kinds, each body and each answer, under `controlVersion` 1,
  * which forge 1.1 keeps although it adds Flint's brain's two kinds. What matters: the list of kinds is exact both ways against
  * `CONTROL_CONTRACT_KINDS`, and each body is both the package's `ForgeControlCommand` and forge's own command, which the typecheck holds;
  * every applied kind answers 200 `{controlVersion: 1, outcome, result}` with the outcome `done` or `nothing-to-do`; a body of a contract kind
@@ -55,6 +55,7 @@ const CONTRACT_BODIES: { readonly [Kind in ForgeControlCommand['kind']]: { body:
   'machine-agent-limit-set': { body: { kind: 'machine-agent-limit-set', limit: 2 }, outcomes: ['done'] },
   'flint-brain-start':       { body: { kind: 'flint-brain-start' }, outcomes: ['done'] },
   'flint-brain-stop':        { body: { kind: 'flint-brain-stop' }, outcomes: ['done'] },
+  'interrupted-work-resume': { body: { kind: 'interrupted-work-resume', target: 'network-outage' }, outcomes: ['nothing-to-do'] },
 };
 
 /** Each refusal of Flint's brain, by the command that meets it. */
@@ -77,6 +78,9 @@ const MALFORMED_BODIES: readonly Record<string, unknown>[] = [
   { kind: 'concurrency-set' },
   { kind: 'job-stop-all', mode: 'fresh' },
   { kind: 'job-stop-all' },
+  { kind: 'interrupted-work-resume', target: 'everything' },
+  { kind: 'interrupted-work-resume', target: { jobId: 4 } },
+  { kind: 'interrupted-work-resume' },
 ];
 
 const recordedGit = useRecordedGit();
@@ -131,7 +135,7 @@ function routeRequest(launchesHeld = false, flintBrain = scriptedFlintBrain().br
 }
 
 describeWhenGitIsRecorded('the control contract', () => {
-  test('names exactly the nine kinds of the contract, each a kind the command route takes', () => {
+  test('names exactly the ten kinds of the contract, each a kind the command route takes', () => {
     expect(Object.keys(CONTRACT_BODIES).sort()).toEqual([...CONTROL_CONTRACT_KINDS].sort());
     expect(CONTROL_CONTRACT_KINDS.filter((kind) => !COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
   });
@@ -174,6 +178,13 @@ describeWhenGitIsRecorded('the control contract', () => {
   test('a board kind of the contract while launches are held answers 423 with its code and sentence', async () => {
     const heldAnswer = { controlVersion: 1, refusal: 'launches-held-by-install-change', text: expect.stringContaining('update') };
     expect(await answerControlCommand({ kind: 'concurrency-set', limit: 3 }, routeRequest(true), API_CALLER)).toEqual({ status: 423, body: heldAnswer });
+  });
+
+  test('a resume of work that is not interrupted answers 409 with the refusal\'s code and sentence, and writes nothing', async () => {
+    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const answer = await answerControlCommand({ kind: 'interrupted-work-resume', target: { jobId: 'J9' } }, routeRequest(), API_CALLER);
+    expect(answer).toEqual({ status: 409, body: { controlVersion: 1, refusal: 'unknown-job', text: expect.stringContaining('J9') } });
+    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
   });
 
   test('each refusal of Flint\'s brain answers 409 with its code and sentence', async () => {

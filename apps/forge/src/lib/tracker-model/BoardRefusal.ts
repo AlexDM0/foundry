@@ -84,6 +84,7 @@ export type BoardRefusalDetail =
   | { reason: 'hold-of-a-settled-ticket'; ticketId: string; status: TicketStatus; action: 'hold' | 'unhold' }
   | { reason: 'ticket-already-held'; ticketId: string }
   | { reason: 'ticket-not-held'; ticketId: string }
+  | { reason: 'ticket-not-interrupted'; ticketId: string }
   | { reason: 'release-mark-of-a-settled-ticket'; ticketId: string; status: TicketStatus; action: 'mark' | 'clear' }
   | { reason: 'release-mark-of-an-ungrouped-ticket'; ticketId: string }
   | { reason: 'group-already-has-a-release-ticket'; ticketId: string; group: string; releaseTicketId: string }

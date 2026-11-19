@@ -32,6 +32,7 @@ export const COMMAND_TABLE = {
   incident:       async () => (await import('./incidents/IncidentCommand.ts')).incidentCommand,
   jobs:           async () => (await import('./jobs/JobsCommand.ts')).jobsCommand,
   job:            async () => (await import('./jobs/JobCommand.ts')).jobCommand,
+  resume:         async () => (await import('./resume/ResumeCommand.ts')).resumeCommand,
   intake:         async () => (await import('./intake/IntakeCommand.ts')).intakeCommand,
   advise:         async () => (await import('./pipeline/AdviseCommand.ts')).adviseCommand,
   pipeline:       async () => (await import('./pipeline/PipelineCommand.ts')).pipelineCommand,

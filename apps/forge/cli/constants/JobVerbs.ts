@@ -88,6 +88,7 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommand
   'need-declare':                'need declare',
   'overseer-pause':              'oversee pause',
   'overseer-resume':             'oversee resume',
+  'interrupted-work-resume':     'resume',
   'overseer-stop':               'oversee stop',
   'overseer-restart':            'oversee restart',
   'concurrency-set':             'concurrency',

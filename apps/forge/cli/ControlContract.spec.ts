@@ -4,10 +4,11 @@
  * and a relayable verb without a kind are both named, and each list is exact both ways, so a stale entry fails as loudly as a missing one.
  */
 import { describe, expect, test } from 'bun:test';
+import type { ForgeResumeTarget } from 'forge-contracts/ForgeControlCommand';
 
-import { CONTROL_COMMAND_KINDS }   from '../src/services/control/ControlService.ts';
-import type { ControlCommandKind } from '../src/shared/@types/ControlCommand.ts';
-import { COMMAND_NAMES }           from './CommandTable.ts';
+import { CONTROL_COMMAND_KINDS }                 from '../src/services/control/ControlService.ts';
+import type { ControlCommandKind, ResumeTarget } from '../src/shared/@types/ControlCommand.ts';
+import { COMMAND_NAMES }                         from './CommandTable.ts';
 import {
   OTHER_VERBS_OF_CONTROL_KIND,
   READ_ONLY_VERBS_UNDER_A_JOB,
@@ -29,6 +30,11 @@ import { PIPELINE_SUBCOMMAND_NAMES }   from './pipeline/PipelineCommand.ts';
 import { LOGIN_ITEM_SUBCOMMAND_NAMES } from './setup/login-item/LoginItemCommand.ts';
 import { TICKET_SUBCOMMAND_NAMES }     from './tickets/TicketCommand.ts';
 import { WORKTREE_SUBCOMMAND_NAMES }   from './worktrees/WorktreeCommand.ts';
+
+/** True only when each type is assignable to the other, so a member added on one side alone fails the typecheck. */
+type IsTheSameTypeAs<Left, Right> = [Left] extends [Right] ? ([Right] extends [Left] ? true : false) : false;
+
+const RESUME_TARGET_IS_THE_CONTRACTS: IsTheSameTypeAs<ResumeTarget, ForgeResumeTarget> = true;
 
 const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = { ...RELAYED_VERB_OF_CONTROL_KIND, ...UNRELAYED_VERB_OF_CONTROL_KIND };
 
@@ -145,6 +151,10 @@ describe('the control contract', () => {
     expect(Object.values(VERB_OF_KIND).filter((verb) => LIFECYCLE_VERB_PATTERN.test(verb))).toEqual(['ticket deliver --by-hand']);
     expect(Object.values(UNRELAYED_VERB_OF_CONTROL_KIND)).toContain('ticket deliver --by-hand');
     expect(NOT_RELAYABLE_MUTATING_VERBS.filter((verb) => LIFECYCLE_VERB_PATTERN.test(verb))).toEqual([]);
+  });
+
+  test('forge\'s resume target is the contract\'s, member for member', () => {
+    expect(RESUME_TARGET_IS_THE_CONTRACTS).toBe(true);
   });
 
   test('the scan saw the table: ticket, epic and draft verbs and the top-level commands are all there', () => {

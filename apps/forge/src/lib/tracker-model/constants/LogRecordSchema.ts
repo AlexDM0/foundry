@@ -144,6 +144,8 @@ export const LOG_RECORD_SCHEMA = {
   'ticket-agents-changed':           { subject: 'ticket', fields: { from: 'agent-pair', to: 'agent-pair' } },
   'ticket-held':                     { subject: 'ticket', fields: { reason: 'text' } },
   'ticket-unheld':                   { subject: 'ticket', fields: NO_FIELDS },
+  // User's resume lifted a hold an interruption put on; logged in place of `ticket-unheld`, so no count resets.
+  'ticket-interrupted-hold-lifted':  { subject: 'ticket', fields: { hold: 'text' } },
   'ticket-release-marked':           { subject: 'ticket', fields: { group: 'text' } },
   'ticket-release-cleared':          { subject: 'ticket', fields: NO_FIELDS },
   'ticket-grouped':                  { subject: 'ticket', fields: { group: 'text' } },

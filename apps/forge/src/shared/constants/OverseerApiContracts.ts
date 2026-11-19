@@ -26,6 +26,7 @@ export type ServedContract = keyof typeof SERVED_CONTRACT_VERSIONS;
 export const CONTROL_CONTRACT_KINDS = [
   'overseer-pause',
   'overseer-resume',
+  'interrupted-work-resume',
   'overseer-stop',
   'overseer-restart',
   'concurrency-set',

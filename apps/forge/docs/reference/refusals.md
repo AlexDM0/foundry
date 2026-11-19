@@ -110,7 +110,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 [Customs](../glossary.md#customs).
 
 <details open>
-<summary>59 sentences</summary>
+<summary>60 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -169,6 +169,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `so there is nothing to <hold or unhold>` | `hold-of-a-settled-ticket` | `ticket hold` or `unhold` on a `delivered` or `abandoned` ticket. | Nothing. | |
 | `Ticket #<ticket> is already held.` | `ticket-already-held` | The ticket has a hold. | Run `ticket show` for its reason. | |
 | `Ticket #<ticket> is not held.` | `ticket-not-held` | `ticket unhold` on a ticket with no hold. | Nothing. | |
+| `has no interrupted job and no hold an interruption put on` | `ticket-not-interrupted` | `resume <ticket>` on a ticket whose job is not `interrupted` and whose hold, if any, does not start with `interrupted:`. | Run `ticket show` for its hold; a hold of User's is lifted with `ticket unhold`. | [cli.md](../cli.md#resume) |
 | `and its release mark was not <set or cleared>` | `release-mark-of-a-settled-ticket` | `ticket release-of` on a `delivered` or `abandoned` ticket. | Nothing. | |
 | `belongs to no group, so it cannot be a group's release ticket` | `release-mark-of-an-ungrouped-ticket` | The ticket has no group. | File it in the group. | |
 | `already has its release ticket` | `group-already-has-a-release-ticket` | A group has one open release ticket. The other form reads `is already the release ticket of group`. | Clear the mark the sentence names first, or nothing. | |

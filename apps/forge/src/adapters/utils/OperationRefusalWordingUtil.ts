@@ -498,6 +498,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Ticket #${detail.ticketId} is already held. ${NOTHING_WAS_WRITTEN}`;
     case 'ticket-not-held':
       return `Ticket #${detail.ticketId} is not held. ${NOTHING_WAS_WRITTEN}`;
+    case 'ticket-not-interrupted':
+      return `Ticket #${detail.ticketId} has no interrupted job and no hold an interruption put on, so there is nothing of it to resume. ${NOTHING_WAS_WRITTEN}`;
     case 'release-mark-of-a-settled-ticket':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its release mark was not ${detail.action === 'mark' ? 'set' : 'cleared'}: `
         + `no agent will work it again. ${NOTHING_WAS_WRITTEN}`;

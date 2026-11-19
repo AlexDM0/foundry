@@ -641,7 +641,8 @@ never carries it.
                               (baton-pass-failed).
   oversee pause|resume [--json]
                               Store \`overseerState\` \`paused\` or \`running\`: no new jobs while
-                              paused. Works with the Overseer up or down.
+                              paused; oversee resume undoes a pause, and \`resume\` resumes
+                              interrupted work. Works with the Overseer up or down.
   oversee status [--json]     The Baton, the URL, the runtime state, paused or not, and the code
                               version on disk against the live Overseer's. Read-only, no lock.
 
@@ -770,6 +771,18 @@ never carries it.
   job stop --all [--wind-down] [--json]
                               oversee pause, then stop or wind down every build, review and
                               product-owner job.
+
+  resume <J>|<T> [--json]     Resume interrupted work: User's instruction for the job, or for the
+                              ticket's interrupted job and its interrupted: hold, which is lifted
+                              with no fresh attempt (ticket-interrupted-hold-lifted). Recorded with
+                              the Overseer up or down; the next pass resumes the job under every
+                              hold a resume obeys, and an instruction gives the job its automatic
+                              restarts back. Refused job-not-interrupted, ticket-not-interrupted.
+  resume --all [--json]       Resume every job that waits for an instruction and lift every
+                              interrupted: hold. Nothing waiting is nothing to do, exit 0.
+  resume --network-outage [--json]
+                              Resume every job that ended on a network outage. Nothing waiting is
+                              nothing to do, exit 0.
 
   intake -- <text> [--json]   Record a product-owner job (no ticket, no build slot) the Overseer
                               launches in <worktrees>/sessions/<J>/ with /${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} <text>;

@@ -11,6 +11,7 @@ import type {
 } from './@types/Ticket.ts';
 import type { BoardRecords }                                               from './BoardRecords.ts';
 import { BoardRefusal }                                                    from './BoardRefusal.ts';
+import { INTERRUPTED_HOLD_PREFIX }                                         from './constants/DecisionAndIncidentVocabulary.ts';
 import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_EDITABLE_WITHOUT_FORCE } from './constants/Statuses.ts';
 import { NetworkDomainUtil }                                               from './utils/NetworkDomainUtil.ts';
 import { TicketChartUtil }                                                 from './utils/TicketChartUtil.ts';
@@ -156,6 +157,19 @@ export class TicketSettings {
     delete ticket.frontmatter.hold;
     this.records.markChanged(ticket);
     return { logged: [this.records.logger.log({ kind: 'ticket-unheld', ticketId, fields: {} }, at)], ticket };
+  }
+
+  /**
+   * User's resume of a ticket an interruption held: the `interrupted:` hold goes with no `ticket-unheld`, so its failed passes and its
+   * builder's returns are kept and no fresh attempt starts. Any other hold, or none, is refused `ticket-not-interrupted`.
+   */
+  liftInterruptedHold(ticketId: string, at: string): TicketChanged {
+    const ticket   = this.records.requireTicket(ticketId);
+    const { hold } = ticket.frontmatter;
+    if (hold?.startsWith(INTERRUPTED_HOLD_PREFIX) !== true) throw new BoardRefusal({ reason: 'ticket-not-interrupted', ticketId });
+    delete ticket.frontmatter.hold;
+    this.records.markChanged(ticket);
+    return { logged: [this.records.logger.log({ kind: 'ticket-interrupted-hold-lifted', ticketId, fields: { hold } }, at)], ticket };
   }
 }
 

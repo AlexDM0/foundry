@@ -108,7 +108,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     tickets: [
       ticketFixture({ id: '001', title: 'Example checkout page' }),
       ticketFixture({ id: '002', title: 'Example cart', group: 'example-shop' }),
-      ticketFixture({ id: '004', title: 'Example cart total is wrong', type: 'bug' }),
+      ticketFixture({
+        id: '004', title: 'Example cart total is wrong', type: 'bug', hold: 'interrupted:merge'
+      }),
     ],
   });
   board.recordNote('Example note from the orchestrator', at);
@@ -124,6 +126,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.setTicketAgents('001', { model: 'sonnet', effort: 'high' }, at);
   board.holdTicket('001', 'waiting on Example Agency', at);
   board.unholdTicket('001', at);
+  board.liftInterruptedHold('004', at);
   board.recordWorktreeRepaired('001', { step: 'prune', patchPath: null }, at);
   board.markReleaseTicket('002', at);
   board.clearReleaseTicket('002', at);

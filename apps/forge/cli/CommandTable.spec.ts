@@ -73,6 +73,7 @@ describe('the command table', () => {
       'pipeline',
       'question',
       'range',
+      'resume',
       'review-stats',
       'start',
       'status',

@@ -130,6 +130,8 @@ function sentenceOf(record: LogRecordContent): string {
       return record.fields.reason === '' ? `Ticket #${record.ticketId} held` : `Ticket #${record.ticketId} held: ${record.fields.reason}`;
     case 'ticket-unheld':
       return `Ticket #${record.ticketId} unheld`;
+    case 'ticket-interrupted-hold-lifted':
+      return `Ticket #${record.ticketId} no longer held ${record.fields.hold}, as User asked to resume it`;
     case 'ticket-body-changed-after-claim':
       return `Ticket #${record.ticketId} body changed after its claim`;
     case 'ticket-release-marked':

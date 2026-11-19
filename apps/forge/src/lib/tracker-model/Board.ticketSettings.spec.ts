@@ -15,6 +15,8 @@ import {
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
 import type { BoardRefusalDetail } from './BoardRefusal.ts';
+import { finishedJobRecords }      from './testing/LifecycleFixtures.ts';
+import { FailedPassUtil }          from './utils/FailedPassUtil.ts';
 import { PipelineUtil }            from './utils/PipelineUtil.ts';
 
 const CHANGED_AT = '2026-09-18T15:00:00+02:00';
@@ -314,6 +316,41 @@ describe('setTicketAgents', () => {
       const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketAgents('001', { model: 'sonnet' }, CHANGED_AT), 'agents-of-a-settled-ticket');
       expect(detail).toEqual({ reason: 'agents-of-a-settled-ticket', ticketId: '001', status });
     }
+  });
+});
+
+describe('liftInterruptedHold', () => {
+  test('lifts an interrupted: hold, logging ticket-interrupted-hold-lifted with the hold and never ticket-unheld', () => {
+    const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', hold: 'interrupted:merge' })] });
+    const lifted = board.liftInterruptedHold('001', CHANGED_AT);
+
+    expect(tickets[0]?.frontmatter).not.toHaveProperty('hold');
+    expect(records).toEqual([{
+      at: CHANGED_AT, kind: 'ticket-interrupted-hold-lifted', ticketId: '001', fields: { hold: 'interrupted:merge' }
+    }]);
+    expect(lifted.logged).toEqual(records);
+    expect(board.changedTickets()).toEqual([lifted.ticket]);
+  });
+
+  test('a parked: hold and a ticket with no hold are refused ticket-not-interrupted, with nothing changed', () => {
+    const parkedFixture = boardFixture({ tickets: [ticketFixture({ id: '001', hold: 'parked:failed-passes' })] });
+    expectRefusedWithNothingChanged(parkedFixture, () => parkedFixture.board.liftInterruptedHold('001', CHANGED_AT), 'ticket-not-interrupted');
+
+    const unheldFixture = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
+    expectRefusedWithNothingChanged(unheldFixture, () => unheldFixture.board.liftInterruptedHold('001', CHANGED_AT), 'ticket-not-interrupted');
+  });
+
+  // The contrast is the point: an unhold would start a fresh attempt and read 0, so a crash's hold must not be lifted by one.
+  test('after the lift the ticket\'s failed passes read the same count as before it, where an unhold reads none', () => {
+    const history = finishedJobRecords('J1', 'build', '001', 'failed');
+    const liftedFixture = boardFixture({ tickets: [ticketFixture({ id: '001', hold: 'interrupted:merge' })] });
+    liftedFixture.board.liftInterruptedHold('001', CHANGED_AT);
+    const unheldFixture = boardFixture({ tickets: [ticketFixture({ id: '001', hold: 'interrupted:merge' })] });
+    unheldFixture.board.unholdTicket('001', CHANGED_AT);
+
+    expect(FailedPassUtil.failedPassesOf('001', history)).toBe(1);
+    expect(FailedPassUtil.failedPassesOf('001', [...history, ...liftedFixture.records])).toBe(1);
+    expect(FailedPassUtil.failedPassesOf('001', [...history, ...unheldFixture.records])).toBe(0);
   });
 });
 

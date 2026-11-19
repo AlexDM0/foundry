@@ -13,6 +13,7 @@ import { describe, expect, test } from 'bun:test';
 import type { IncidentKind, IncidentMove }                from '../../lib/tracker-model/@types/Incident.ts';
 import type { JobRole }                                   from '../../lib/tracker-model/@types/Job.ts';
 import { INCIDENT_KINDS }                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { JOB_ROLES }                                      from '../../lib/tracker-model/constants/JobStates.ts';
 import type { ControlCommand, ControlCommandOf }          from '../../shared/@types/ControlCommand.ts';
 import { WORKER_FILINGS_PER_JOB }                         from '../../shared/constants/OverseerLimits.ts';
 import { Bouncer, type BouncerVerdict, type RelayingJob } from './Bouncer.ts';
@@ -331,6 +332,17 @@ describe('the kinds only User\'s own surfaces send', () => {
   const SYSTEM_QUESTION_ON_TICKET_7: RelayingJob['deliveredIncidents'][number] = {
     id: 'I9', kind: 'system-question', ticketIds: ['007'], jobId: 'J2'
   };
+
+  test('no Overseer-launched session relays a resume of interrupted work, whatever its target', () => {
+    const targets: ControlCommandOf<'interrupted-work-resume'>['target'][] = [{ jobId: 'J2' }, { ticketReference: '7' }, 'all', 'network-outage'];
+    for (const role of [...JOB_ROLES, null]) {
+      const job = jobOf(role, { deliveredIncidents: [SYSTEM_QUESTION_ON_TICKET_7] });
+      for (const target of targets) {
+        const verdict = Bouncer.verdictOf(job, { kind: 'interrupted-work-resume', target });
+        expect(verdict.verdict, `${String(role)} ${JSON.stringify(target)}`).toBe('refused');
+      }
+    }
+  });
 
   test('no Overseer-launched session relays range, clear or a by-hand delivery, not even naming a delivered incident', () => {
     const commands: ControlCommand[] = [

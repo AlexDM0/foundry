@@ -150,7 +150,7 @@ journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge
 | the `gate` writes, `gate retry`, every `pipeline` verb | `gate list` |
 | `merge`, `worktree repair` | `merges` |
 | `decide`, `incident` | `decisions`, `incidents`, `await` |
-| `job message`, `job fresh`, `job wind-down`, `job stop`, `intake`, `advise` | `jobs`, `job show`, `job attach` |
+| `job message`, `job fresh`, `job wind-down`, `job stop`, `resume`, `intake`, `advise` | `jobs`, `job show`, `job attach` |
 | `oversee pause\|resume` | `oversee status`, `open`, `version` |
 
 Each file a lockless command reads is written atomically, so it is whole, but one such read can meet `progress.json`
@@ -1579,6 +1579,9 @@ nothing, so the ticket runs again as it stood.
 | `job fresh <J> [--incident <I>] [--json]` | End the job `replaced`, holding nothing, so the next attempt starts on its worktree with the earlier-session note. `--incident` names the incident it handles; a job with no ticket is refused `job-has-no-ticket`. |
 | `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer has Talos stop its child, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
 | `job stop --all [--wind-down] [--json]` | `oversee pause`, then a stop (or wind-down) of every build, review and product-owner job, in one hold. |
+| `resume <J>\|<T> [--json]` | Resume interrupted work: record User's instruction for the job (`job-resume-instructed`), or for the ticket's interrupted job and its `interrupted:` hold, with the Overseer up or down. [What it records and refuses](#resume) is below. |
+| `resume --all [--json]` | Resume every job that waits for an instruction and lift every `interrupted:` hold, in one hold; nothing waiting is nothing to do, exit 0. |
+| `resume --network-outage [--json]` | Resume every job that ended on a network outage, in one hold; nothing waiting is nothing to do, exit 0. |
 | `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with the Overseer up or down; several may run at once. The Overseer launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
 | `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. Besides `pipeline setup`, it is the only thing that starts one. [Where it runs and what it writes](#advise) is below. |
 | `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: the Overseer stamps its own. [What follows](#intake-close) is below. |
@@ -1596,6 +1599,26 @@ resumes its session by id in the same folder with the text as its first line.
   [Commands](reference/overseer-api.md#commands).
 - Under an incident it is refused `job-awaits-user-answer` for a job in `waiting-for-answer` or whose ticket has an open
   `agent-question`, and `job-is-product-owner` for User's product-owner session.
+
+#### `resume`
+
+`resume` records the command `interrupted-work-resume` in a hold: the forge carries it out at its next pass, at once
+when it is up, else when it starts. Exactly one of a job, a ticket, `--all` and `--network-outage` is named; an
+argument that starts with `J` is a job, any other a ticket. Under a job the Bouncer refuses it for every role.
+
+- A job is resumed only while it is `interrupted`; any other is refused `job-not-interrupted` (exit 1). The instruction
+  is logged `job-resume-instructed`, and the resume that carries it out obeys every hold a resume obeys (usage limit,
+  install change, outage, refused key, a missing pipeline). An instructed resume sets the job's `crashResumes` back
+  to 0.
+- A ticket instructs its interrupted job and lifts a hold that starts with `interrupted:`, logged
+  `ticket-interrupted-hold-lifted` in place of `ticket-unheld`, so the ticket's failed passes and its builder's returns
+  are kept. A ticket with neither is refused `ticket-not-interrupted` (exit 1). `ticket unhold` lifts the same hold as
+  a person's unhold, with its resets.
+- `--all` instructs every job whose resume waits for an instruction and lifts every `interrupted:` hold;
+  `--network-outage` instructs every job that ended on a network outage. With nothing waiting either prints `Nothing
+  interrupted waits for a resume.` and exits 0. A job that ends on an outage again waits again.
+
+`oversee resume` is another command: it undoes a pause.
 
 #### `job wind-down|stop`
 
@@ -2727,6 +2750,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `ticket-readied`, `ticket-submitted-for-review`, `ticket-reopened`, `ticket-started`, `ticket-finished`, `ticket-approved`, `ticket-unheld`, `ticket-release-cleared` | `ticketId` | none |
 | `ticket-delivered` | `ticketId` | `byHand`: `true`, only when `ticket deliver --by-hand` recorded it |
 | `ticket-abandoned`, `ticket-held` | `ticketId` | `reason` |
+| `ticket-interrupted-hold-lifted` | `ticketId` | `hold`: the `interrupted:` hold that `resume` lifted, logged in place of `ticket-unheld`, so no count resets |
 | `ticket-retitled` | `ticketId` | `from`, `to`: titles |
 | `ticket-body-changed-after-claim` | `ticketId` | none |
 | `ticket-rereviewed` | `ticketId` | `round`, from 2 |

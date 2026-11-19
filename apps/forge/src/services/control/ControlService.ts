@@ -21,6 +21,7 @@ import { OVERSEER_CONTROLS }       from './OverseerControls.ts';
 import { PIPELINE_AGENT_CONTROLS } from './PipelineAgentControls.ts';
 import { PIPELINE_SETUP_CONTROLS } from './PipelineSetupControls.ts';
 import { REPAIR_CONTROLS }         from './RepairControls.ts';
+import { RESUME_CONTROLS }         from './ResumeControls.ts';
 import { SETTING_CONTROLS }        from './SettingControls.ts';
 import { TICKET_CONTROLS }         from './TicketControls.ts';
 
@@ -32,6 +33,7 @@ const CONTROL_APPLIERS = {
   ...JOB_CONTROLS,
   ...REPAIR_CONTROLS,
   ...OVERSEER_CONTROLS,
+  ...RESUME_CONTROLS,
   ...SETTING_CONTROLS,
   ...AIRLOCK_CONTROLS,
   ...PIPELINE_SETUP_CONTROLS,

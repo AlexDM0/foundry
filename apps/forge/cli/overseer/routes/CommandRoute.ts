@@ -83,17 +83,24 @@ function isAbsentOrText(value: unknown): boolean {
   return value === undefined || typeof value === 'string';
 }
 
+function resumeTargetIsWellTyped(target: unknown): boolean {
+  if (target === 'all' || target === 'network-outage') return true;
+  if (!isRecord(target)) return false;
+  return typeof target['jobId'] === 'string' || typeof target['ticketReference'] === 'string';
+}
+
 /**
  * The fields checked before any hold, a field of the wrong type answering 400: the board kinds of control contract 1, and the kinds only
  * User's own surfaces send, where a wrong value would still act, such as a clear of an unknown scope. A value of the right type that a rule
  * refuses, such as a concurrency limit above the ceiling, answers 409 from the applier.
  */
 const FIELDS_CHECK_OF_KIND: Readonly<Record<string, (body: Record<string, unknown>) => boolean>> = {
-  'concurrency-set':        (body) => typeof body['limit'] === 'number',
-  'job-stop-all':           (body) => (JOB_STOP_ALL_MODES as readonly unknown[]).includes(body['mode']),
-  'chart-range-set':        (body) => chartRangeIsWellTyped(body['range']),
-  'tracker-clear':          (body) => (TRACKER_CLEAR_SCOPES as readonly unknown[]).includes(body['scope']),
-  'ticket-deliver-by-hand': (body) => typeof body['ticketReference'] === 'string' && isAbsentOrText(body['branch']) && isAbsentOrText(body['commit']),
+  'concurrency-set':         (body) => typeof body['limit'] === 'number',
+  'job-stop-all':            (body) => (JOB_STOP_ALL_MODES as readonly unknown[]).includes(body['mode']),
+  'chart-range-set':         (body) => chartRangeIsWellTyped(body['range']),
+  'tracker-clear':           (body) => (TRACKER_CLEAR_SCOPES as readonly unknown[]).includes(body['scope']),
+  'ticket-deliver-by-hand':  (body) => typeof body['ticketReference'] === 'string' && isAbsentOrText(body['branch']) && isAbsentOrText(body['commit']),
+  'interrupted-work-resume': (body) => resumeTargetIsWellTyped(body['target']),
 };
 
 function fieldsAreWellTyped(kind: string, body: Record<string, unknown>): boolean {

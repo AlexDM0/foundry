@@ -1443,6 +1443,10 @@ export class Board {
     return this.ticketSettings.unholdTicket(ticketId, at);
   }
 
+  liftInterruptedHold(ticketId: string, at: string): TicketChanged {
+    return this.ticketSettings.liftInterruptedHold(ticketId, at);
+  }
+
   markReleaseTicket(ticketId: string, at: string): TicketChanged {
     return this.groupReleases.markReleaseTicket(ticketId, at);
   }

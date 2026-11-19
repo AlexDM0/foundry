@@ -106,6 +106,7 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'need-declare':               ['need', 'declare', 'Export the basket total', '--entity', 'shared', '--body', NEED_BODY_TEXT],
   'overseer-pause':             ['oversee', 'pause'],
   'overseer-resume':            ['oversee', 'resume'],
+  'interrupted-work-resume':    ['resume', '--all'],
   'overseer-stop':              ['oversee', 'stop', '--now'],
   'overseer-restart':           ['oversee', 'restart'],
   'concurrency-set':            ['concurrency', '3'],

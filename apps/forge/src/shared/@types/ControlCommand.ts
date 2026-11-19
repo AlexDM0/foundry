@@ -64,6 +64,12 @@ export interface FilingAdmission {
   finderTicketIds?: string[];
 }
 
+/**
+ * What User's resume of interrupted work names (decision 41): one job, one ticket (its interrupted job and its `interrupted:` hold), every
+ * job that waits for an instruction with every `interrupted:` hold, or every job that ended on a network outage (decision 35).
+ */
+export type ResumeTarget = { jobId: string } | { ticketReference: string } | 'all' | 'network-outage';
+
 export type ControlCommand =
   | {
     kind:          'ticket-add';
@@ -136,7 +142,9 @@ export type ControlCommand =
   | { kind: 'draft-abandon'; draftId: string; reason: string }
   | { kind: 'decision-answer'; decisionId: string; answer: DecisionAnswerForm }
   | { kind: 'overseer-pause' }
+  /** Undoes a pause until stage 9 names it `unpause`; resuming interrupted work is `interrupted-work-resume`. */
   | { kind: 'overseer-resume' }
+  | { kind: 'interrupted-work-resume'; target: ResumeTarget }
   /** Runtime only: sent to the live Overseer, which stops; the board is never changed by it. */
   | { kind: 'overseer-stop'; now: boolean }
   /** Runtime only: sent to the live Overseer, which hands the board to a successor on the code on disk. */

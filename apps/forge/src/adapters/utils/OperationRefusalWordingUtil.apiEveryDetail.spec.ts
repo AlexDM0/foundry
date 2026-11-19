@@ -99,6 +99,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   },
   'ticket-already-held':              { reason: 'ticket-already-held', ticketId: '004' },
   'ticket-not-held':                  { reason: 'ticket-not-held', ticketId: '004' },
+  'ticket-not-interrupted':           { reason: 'ticket-not-interrupted', ticketId: '004' },
   'release-mark-of-a-settled-ticket': {
     reason: 'release-mark-of-a-settled-ticket', ticketId: '004', status: 'delivered', action: 'mark'
   },

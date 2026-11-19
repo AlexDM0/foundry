@@ -34,12 +34,13 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * refusal, and install version 35; 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's non-converging
  * review against the pipeline of the stage its review ran in, and adds install version 36, whose installed surface is 35's; 1.19 adds a monitor
  * job's interruption cause, names the identity's Talos protocol version `talosProtocolVersion`, in place of the retired one, and adds the
- * pipeline facts' step run times. Each minor only adds, but for that rename, whose key no client reads.
+ * pipeline facts' step run times; 1.20 adds the control command interrupted-work-resume, its refusal ticket-not-interrupted and the
+ * ticket-interrupted-hold-lifted record. Each minor only adds, but for 1.19's rename, whose key no client reads.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 19 },
+  current:          { major: 1, minor: 20 },
   minimumSupported: { major: 0, minor: 0 },
 };

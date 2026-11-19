@@ -70,6 +70,9 @@ export const PIPELINE_APPLIED_DECISION_REASON = 'a pipeline was applied';
 /** A ticket the lifecycle parks is held with this prefix before its park cause, as `parked:failed-passes`. */
 export const PARKED_HOLD_PREFIX = 'parked:';
 
+/** A ticket an interruption holds, as `interrupted:merge`; User's resume lifts it with no fresh attempt, unlike an unhold. */
+export const INTERRUPTED_HOLD_PREFIX = 'interrupted:';
+
 export const INCIDENT_ID_PREFIX = 'I';
 
 /** The number the first decision and the first incident a tracker opens take: the lowest counter a progress file may store. */

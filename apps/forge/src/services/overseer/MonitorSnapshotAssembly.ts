@@ -95,6 +95,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'ticket-agents-changed':           null,
   'ticket-held':                     'forge',
   'ticket-unheld':                   'forge',
+  'ticket-interrupted-hold-lifted':  'forge',
   'ticket-release-marked':           null,
   'ticket-release-cleared':          null,
   'ticket-grouped':                  null,

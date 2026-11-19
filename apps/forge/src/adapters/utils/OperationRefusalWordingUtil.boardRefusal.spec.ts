@@ -359,6 +359,10 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   [{ reason: 'ticket-already-held', ticketId: '001' }, 'Ticket #001 is already held. Nothing was written.'],
   [{ reason: 'ticket-not-held', ticketId: '001' }, 'Ticket #001 is not held. Nothing was written.'],
   [
+    { reason: 'ticket-not-interrupted', ticketId: '001' },
+    'Ticket #001 has no interrupted job and no hold an interruption put on, so there is nothing of it to resume. Nothing was written.',
+  ],
+  [
     {
       reason:   'release-mark-of-a-settled-ticket',
       ticketId: '004',
@@ -459,7 +463,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 62;
+const REFUSAL_REASON_COUNT = 63;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

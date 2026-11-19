@@ -108,6 +108,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   },
   'overseer-pause':            { kind: 'overseer-pause' },
   'overseer-resume':           { kind: 'overseer-resume' },
+  'interrupted-work-resume':   { kind: 'interrupted-work-resume', target: 'all' },
   'overseer-stop':             { kind: 'overseer-stop', now: true },
   'overseer-restart':          { kind: 'overseer-restart', now: false },
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },

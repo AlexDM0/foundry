@@ -165,7 +165,7 @@ server.
 ## Commands
 
 `POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`, or one of Flint's brain's two kinds
-([Flint's brain](#flint-brain)). `CONTROL_COMMAND_KINDS` holds 75 kinds. Three of them are the Bridge's controls for
+([Flint's brain](#flint-brain)). `CONTROL_COMMAND_KINDS` holds 76 kinds. Three of them are the Bridge's controls for
 verbs that once needed a terminal: `chart-range-set` (`range`), `tracker-clear`
 (`clear`) and `ticket-deliver-by-hand` (`ticket deliver --by-hand`). They are in no versioned control contract.
 
@@ -177,6 +177,7 @@ each does:
 | `pipeline-setup-start`, `pipeline-update-start`, `pipeline-setup-billing`, `pipeline-setup-step`, `pipeline-setup-answer`, `pipeline-constitution-edit`, `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-draft-discard`, `pipeline-check`, `pipeline-setup-start-over`, `pipeline-setup-resume`, `pipeline-apply`, `pipeline-apply-cancel` | The `pipeline` verbs of [Pipeline setup](../cli.md#pipeline-setup) |
 | `gate-profile-start`, `gate-profile-stop` | `pipeline profile`, `pipeline profile-stop` ([Gate profiles](../cli.md#gate-profiles)) |
 | `pipeline-agent-advise` | `advise` |
+| `interrupted-work-resume` | `resume` ([Jobs and sessions](../cli.md#resume)) |
 | `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gate-order`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | The `gate` writes of [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `pipeline-finding-record`, `pipeline-question-ask`, `pipeline-constitution-draft`, `pipeline-draft-propose`, `pipeline-step-ready` | The [pipeline agent's verbs](../cli.md#the-pipeline-agents-verbs), relayed through its job's Hatch |
 
@@ -191,7 +192,7 @@ missing or misshapen one `malformed-setup-command`, naming the field. A pipeline
 | Status | Body | Meaning |
 | --- | --- | --- |
 | 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
-| 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
+| 400 | `{controlVersion, refusal: 'malformed-body', text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{controlVersion, refusal: <code>, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; the sentence is the API sentence of `OperationRefusalWordingUtil` (`apiMessageOf`), and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
 | 423 | `{controlVersion, refusal: 'launches-held-by-install-change', text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
@@ -219,13 +220,21 @@ limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and write
 
 ### Control contract 1
 
-The control contract is what a monitor may send and what it gets back. It names nine kinds, `CONTROL_CONTRACT_KINDS` in
+The control contract is what a monitor may send and what it gets back. It names ten kinds, `CONTROL_CONTRACT_KINDS` in
 `src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`, `overseer-resume`, `overseer-stop {now}`,
-`overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, and, from
-forge 1.1, `flint-brain-start` and `flint-brain-stop`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
+`overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, from
+forge 1.1, `flint-brain-start` and `flint-brain-stop`, and, from forge 1.20, `interrupted-work-resume {target}`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
 `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
 and a 423 answer `refusal`, a code, and `text`, its sentence; a 401 answers `unauthorized`. A `concurrency-set` `limit`
 outside 1 to 10 answers 409 `concurrency-limit-out-of-range` and writes nothing.
+
+`interrupted-work-resume` is User's resume of interrupted work, the command of `resume`. Its `target` is `{jobId}`,
+`{ticketReference}`, `'all'` (every job that waits for an instruction, and every `interrupted:` hold lifted) or
+`'network-outage'` (every job that ended on a network outage). It records an instruction the next Pass carries out under
+every hold a resume obeys, and lifts an `interrupted:` hold with `ticket-interrupted-hold-lifted`, never `ticket-unheld`.
+A job that is not interrupted answers 409 `job-not-interrupted`, a ticket with no interrupted job and no `interrupted:`
+hold 409 `ticket-not-interrupted`, and an unknown ticket 409 as every ticket lookup does. `'all'` and `'network-outage'`
+with nothing waiting answer `nothing-to-do`, so a monitor may send them to every forge. `overseer-resume` undoes a pause.
 `cli/overseer/routes/CommandRoute.controlContract.spec.ts` pins each kind's body and answer. A change to one of them
 raises the system version in the same change, its minor when the change only adds; the other kinds may change and keep it.
 
@@ -632,7 +641,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.19` and `0.0`: 1.1 adds [Flint's
+moment the server answers, while the Overseer starts too. This forge answers `1.20` and `0.0`: 1.1 adds [Flint's
 brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and crosses, the
 entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity` command, a
 ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields and a setup
@@ -669,8 +678,9 @@ command, the `group-of-a-settled-ticket` and `ticket-already-in-a-group` refusal
 `dependentsFixedInGroup` start key, the `reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and
 install version 35, 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's
 non-converging review against the pipeline of the stage its review ran in, and adds install version 36, whose installed
-surface is 35's, and 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, each minor only
-adds, and version 0.0 stands for every forge released before system versions.
+surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, and 1.20 adds the
+`interrupted-work-resume` command, the `ticket-not-interrupted` refusal and the `ticket-interrupted-hold-lifted` record,
+each minor only adds, and version 0.0 stands for every forge released before system versions.
 
 The system version is set by interoperability, never by a package's version:
 
