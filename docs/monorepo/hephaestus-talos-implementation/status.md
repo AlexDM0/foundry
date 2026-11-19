@@ -11,6 +11,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### For tomorrow, with real sessions
 
+- Stage 2 verification step 6 (a Talos of another protocol version): its throwaway edit of
+  `src/lib/talos/constants/TalosProtocol.ts` on a scratch forge was refused to the agent; run it by hand as the stage
+  file's step 6 says. Step 7 (the network outage on a scratch board, `FORGE_FAKE_AGENT_NETWORK_OUTAGE=1`) after G1.
 - G1's second half, after WP2.2: run the prompting script
   `.claude/.evidence/hephaestus-talos/stage-2/fake-agent-outage/record-fake-agent-outage.sh` (main checkout; it takes
   the repository root, defaulting to the integration worktree). It adds `'network-outage'` to `CLAUDE_WIRE_SCENARIOS`
@@ -25,9 +28,6 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
   `GAIA_RECORDING_FORGE_PROGRAM=<the integration branch's forge> bun run record overseer-fetch-supported-forge`, then
   `overseer-fetch-flint-brain` and `overseer-fetch-versions`; commit the retaken recordings.
 
-- WP2.7's fix round could not retake the Talos recording (the permission classifier refused `bun run record` for the
-  agent); the fixer says the new specs record no answers, so the committed recording stands. To be sure, in
-  `apps/forge`: `bun run record src/lib/talos/Talos.ts` and commit any change.
 
 - WP2.8: with a real session, check that an agent mid-turn ends at its turn end after `close-input` within
   `cleanQuitWaitMilliseconds` (stage 2's verification, the clean quit row).
@@ -124,6 +124,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- Stage 2's end-to-end check: `job stop` on a merge or merge-agent job stays `stopping` and sends no stop, so its
+  child runs on until killed by hand (the same code on `main`). A Talos with no Overseer stays serving with an ended
+  lease and no children until it is killed. `usage --since 1d` is refused (`-1d` works).
 - Gate speed-up: nothing checks any more that the tracker model is DOM-safe (the Bridge's typecheck proved it); fine
   while only the Bridge needed it. A production lead it found: Bun sends a streamed response's headers only at its first
   write, so a client of a stream with nothing to write on connect (`api/events` before any snapshot, an empty profile
@@ -233,7 +236,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 2-L11 | WP2.31 | landed | 9930c3c9 | First round, beside WP2.29. `AgentCapabilities.ownConfinement`, `AgentAdapter.sessionWritablePathsOf`; Claude Code and the fake declare `applies-the-profile` (unchanged launches); an agent declaring `none` is wrapped by `SessionConfinement.ts`. Its `none` path is reached only by a planted adapter. `LineSandbox.refDeniesHoldUnder` still asks `workerConfinement()`. `bun run record src/lib/gate-confinement/` not retaken (classifier refused; its specs pass) |
 | 2-L12 | WP2.32 | landed | aeca87d8 | Third round (night rule), built with WP2.17 on the owner's speed-up. The guard's `ALLOWED_AGENT_LINES` holds only the two `Permanent:` seam lines of `cli/CommandContext.ts`; Gaia's allowlist is empty: the owner's port rule is closed for shipping code. `INSTALL_VERSION` 38 (`productOwnerBashNetwork` renamed; a customised brief holding the old placeholder launches it unfilled); frozen install table and `InstallChangeWatch` retaken. Setup messages take fills through `COMMAND_CONTROL_CONTEXT`, from `agentAdapterOfThisProcess()`. Left: the core still calls a bundle a skill (`PRODUCT_OWNER_SKILL` and kin) |
 | 2-M | WP2.17 | landed | a91a9252 | Third round, with WP2.32. Rules and docs describe Talos; `RETIRED_NAMES` gained WP2.15's and WP2.16's names; `ALLOWED_RETIRED_NAMES` has one dated research entry; the terminal setup and init figures and `architecture.png` redrawn. Left: unused `typecheck:root`; `data-and-improvements.md:467`; the Watcher wording in `.readme-graphics/`; four `docs/figures/claude-probe/` PNGs drawn with the Watcher (the document says so) |
-| 2-N | WP2.18 | waiting | | |
+| 2-N | WP2.18 | landed | 5ee91945 | First round. Recorded the missing boundaries (`PosixSocketEndpoint`, `UnsupportedLocalEndpoint`, `WindowsPipeEndpoint`, `GuardCommand`, `OverseerForeground`, `OverseerRemote`); retook every boundary earlier packages could not, all unchanged but start stamps (so those 'For tomorrow' retakes are closed). `ClaudeStreamFixtures.spec.ts` imports `createEndingRecognition` from Talos; `ImportDirection` now counts spec imports for unused lib dependencies, and claude-code declares talos. 18 boundaries have no darwin recording, the same 18 as on `main`. **Stage 2's verification:** its checker ran the end-to-end check on a scratch forge with the fake agent: steps 1-5 and 8-11 observed as the stage expects (step 1 has no renewal log line, none exists; step 2 had no install step and no review job), step 6 skipped (the classifier refused the throwaway protocol edit), step 7 waits on G1; `verify:integration` 852 pass, 0 fail |
 | 3-A | WP3.1 | waiting | | |
 | 3-A | WP3.4 | waiting | | |
 | 3-A | WP3.5 | waiting | | |
