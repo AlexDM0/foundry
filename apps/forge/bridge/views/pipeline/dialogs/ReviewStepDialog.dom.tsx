@@ -74,7 +74,7 @@ describe('the re-review', () => {
     expect(screen.getByText('Off: the Re-review steps leave the flow, and a large fix goes straight to the gates.')).toBeDefined();
     await clickSettled(within(dialog()).getByRole('button', { name: 'Save' }));
     expect(controls.sent).toHaveLength(1);
-    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ field: 'role:reviewer' }, { field: 'review', value: { name: 'review' } }] });
+    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ target: 'role', role: 'reviewer' }, { target: 'review', value: { name: 'review' } }] });
     expect(JSON.stringify(controls.sent[0])).not.toContain('reReview');
   });
 
@@ -138,9 +138,9 @@ describe('the two tabs', () => {
     expect((within(dialog()).getByRole('combobox', { name: 'Model' }) as HTMLSelectElement).value).toBe('haiku');
     await clickSettled(within(dialog()).getByRole('button', { name: 'Save' }));
     const savedEdits = [
-      { field: 'role:reviewer', value: { model: 'haiku' } },
-      { field: 'role:reReviewer' },
-      { field: 'review', value: { reReview: { thresholdLines: 800 } } },
+      { target: 'role', role: 'reviewer', value: { model: 'haiku' } },
+      { target: 'role', role: 'reReviewer' },
+      { target: 'review', value: { reReview: { thresholdLines: 800 } } },
     ];
     expect(controls.sent[0]).toMatchObject({ edits: savedEdits });
   });
@@ -154,7 +154,7 @@ describe('Remove review', () => {
     const strip = within(dialog()).getByRole('group', { name: 'Remove review' });
     await clickSettled(within(strip).getByRole('button', { name: 'Remove' }));
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ field: 'review', value: null }],
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ target: 'review', value: null }],
     }]);
   });
 });

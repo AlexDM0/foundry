@@ -41,7 +41,7 @@ describe('a Save', () => {
   test('is one edit of the role with its model, its effort and its entries in order', () => {
     const entries = [{ kind: 'default-brief', role: 'builder' } as const, { kind: 'file', path: 'docs/example-brief.md' } as const];
     const edit = AgentStepDialogModel.roleEditOf('builder', { model: 'haiku', effort: 'max', entries });
-    expect(edit).toEqual({ field: 'role:builder', value: { model: 'haiku', effort: 'max', instructions: entries } });
+    expect(edit).toEqual({ target: 'role', role: 'builder', value: { model: 'haiku', effort: 'max', instructions: entries } });
   });
 });
 

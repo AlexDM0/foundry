@@ -12,7 +12,9 @@ import { useControlCommand }                       from '../../../shell/ControlC
 import { EntityLevelFactsModel }                   from '../entities/EntityLevelFactsModel.ts';
 import { entityKeyOfScope, useMonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
 
-import { PipelineFlowModel, type DraftEditTarget, type FlowDraftEdit } from './PipelineFlowModel.ts';
+import type { PipelineDraftEdit } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+
+import { PipelineFlowModel, type DraftEditTarget } from './PipelineFlowModel.ts';
 
 export const UPDATE_START_COMMAND = Object.freeze({ kind: 'pipeline-update-start' });
 
@@ -21,13 +23,13 @@ export interface PipelineFlowEditSender {
   readonly enabled:   boolean;
   /** The refusal of the last start or edit, verbatim. */
   readonly refusal:   string | null;
-  readonly sendEdits: (edits: readonly FlowDraftEdit[]) => void;
+  readonly sendEdits: (edits: readonly PipelineDraftEdit[]) => void;
 }
 
 /** One gesture's edits; the number tells a gesture from the one before it, so each is sent once. */
 interface HeldEdits {
   readonly gestureNumber: number;
-  readonly edits:         readonly FlowDraftEdit[];
+  readonly edits:         readonly PipelineDraftEdit[];
   /** The record the gesture saw; `null` when the gesture sent `pipeline-update-start`, whose record its edits go to. */
   readonly seenTarget:    DraftEditTarget | null;
 }
@@ -57,7 +59,7 @@ export function usePipelineFlowEditSender(target: DraftEditTarget | null, onEdit
     void editSender.send().then(() => setSettledGestureNumber(heldEdits.gestureNumber));
   }, [heldEdits, editCommand, editSender, startWasRefused]);
 
-  const sendEdits = (edits: readonly FlowDraftEdit[]): void => {
+  const sendEdits = (edits: readonly PipelineDraftEdit[]): void => {
     if (!enabled) return;
     setHeldEdits({ gestureNumber: (heldEdits?.gestureNumber ?? settledGestureNumber) + 1, edits, seenTarget: target });
     if (target === null) void updateStartSender.send();

@@ -100,7 +100,7 @@ describe('Human code review', () => {
     expect(stepIds()).not.toContain('merge-before-human-code-review');
     await clickSettled(within(stepOf('human-code-review')).getByRole('switch', { name: 'Human code review' }));
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'approval:merge', value: true }],
+      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'approval', approval: 'merge', value: true }],
     }]);
     cleanup();
     renderEditing('A6-drawn-changes');

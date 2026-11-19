@@ -205,9 +205,9 @@ async function checkRequestedOnAnUpdate(): Promise<void> {
     setupId:       'S1',
     draftRevision: 0,
     edits:         [
-      { field: 'gate:tests', value: { name: 'tests', run: 'bun test --bail', writes: ['/example-cache'] } },
-      { field: 'gate:lint', value: { name: 'lint', run: 'eslint .' } },
-      { field: 'phase-order:merge', value: ['tests', 'types', 'lint'] },
+      { target: 'gate', name: 'tests', value: { name: 'tests', run: 'bun test --bail', writes: ['/example-cache'] } },
+      { target: 'gate', name: 'lint', value: { name: 'lint', run: 'eslint .' } },
+      { target: 'phase-order', phase: 'merge', names: ['tests', 'types', 'lint'] },
     ],
   });
   await applied({ kind: 'pipeline-check', setupId: 'S1' });

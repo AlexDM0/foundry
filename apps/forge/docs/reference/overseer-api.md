@@ -171,7 +171,8 @@ server.
 `POST /api/commands` takes one `ControlCommand` as JSON, `{kind, ...}`, or one of Flint's brain's two kinds
 ([Flint's brain](#flint-brain)). `CONTROL_COMMAND_KINDS` holds 76 kinds. Three of them are the Bridge's controls for
 verbs that once needed a terminal: `chart-range-set` (`range`), `tracker-clear`
-(`clear`) and `ticket-deliver-by-hand` (`ticket deliver --by-hand`). They are in no versioned control contract.
+(`clear`) and `ticket-deliver-by-hand` (`ticket deliver --by-hand`). They are [board commands](#board-commands) of the
+contract from forge 1.21.
 
 The pipeline kinds each name the CLI verb that sends the same command, and the [CLI reference](../cli.md) says what
 each does:
@@ -185,8 +186,9 @@ each does:
 | `pipeline-prepare-step-set`, `pipeline-gate-add`, `pipeline-gate-order`, `pipeline-gates-none`, `pipeline-gate-remove`, `pipeline-approval-set` | The `gate` writes of [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `pipeline-finding-record`, `pipeline-question-ask`, `pipeline-constitution-draft`, `pipeline-draft-propose`, `pipeline-step-ready` | The [pipeline agent's verbs](../cli.md#the-pipeline-agents-verbs), relayed through its job's Hatch |
 
-The route checks only `kind`; each setup, profile and pipeline agent applier reads its own fields and refuses a
-missing or misshapen one `malformed-setup-command`, naming the field. A pipeline agent's job may relay only its five verbs and
+The route reads a board command whole (see [Board commands](#board-commands)); for every other kind it checks only
+`kind`. Each setup, profile and pipeline agent applier reads its own fields and refuses a missing or misshapen one
+`malformed-setup-command`, naming the field. A pipeline agent's job may relay only its five verbs and
 `question options`; `gate-profile-start` and `pipeline-check` come only from User.
 
 ![The route checks the token, answering 401, then the JSON and the kind, either failure answering 400. A runtime command leaves here and answers 200, meaning received. Any other command answers 423 during the install hold. Otherwise it is applied in a lock hold of its own: 409 or 400 on failure, or 200 with a Pass woken.](../figures/overseer-api/command-route.png)
@@ -196,7 +198,7 @@ missing or misshapen one `malformed-setup-command`, naming the field. A pipeline
 | Status | Body | Meaning |
 | --- | --- | --- |
 | 200 | `{controlVersion, outcome, result}` | Applied in a [lock hold](../glossary.md#lock-hold) of its own, and a Pass was woken. `result` is what the control function returned. |
-| 400 | `{controlVersion, refusal: 'malformed-body', fields: {}, text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `range` of `chart-range-set` that is neither `{kind: 'automatic'}` nor a `window` of text `from` and `to` and a `tickMinutes` that is a number or null, a `scope` of `tracker-clear` that is not `tasks-and-log` or `everything`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a `ticket-deliver-by-hand` whose `ticketReference` is not text or whose `branch` or `commit` is given and not text, or a control function reading a field the body lacks. Nothing was written. |
+| 400 | `{controlVersion, refusal: 'malformed-body', fields: {}, text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a board command that does not read as its `ForgeBoardCommand`, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{controlVersion, refusal: <code>, fields, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; `fields` are the facts its detail names, without the field the code already says (a board refusal's `reason`, another detail's `kind`, a brain refusal's `code`); from forge 1.21 the sentence is the one the command line prints (`OperationRefusalWordingUtil.messageOf`), which may name a command, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
 | 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
@@ -246,6 +248,34 @@ raises the system version in the same change, its minor when the change only add
 `contracts.control` on the identity and `controlVersion` stay 1 in forge 1.1, although 1.1 adds the brain's two kinds:
 a client built for 1.0 compares the number for equality, so a 2 would cut it off every control under a minor. System
 version 1.1 is what announces the two kinds; a client sends them only to a forge of 1.1 or newer.
+
+### Board commands
+
+From forge 1.21 the contract also names the board's commands, the kinds a view sends: `ForgeBoardCommand` in
+`forge-contracts/BoardCommand`, listed as `BOARD_COMMAND_CONTRACT_KINDS` in `src/shared/constants/OverseerApiContracts.ts`.
+They are part of the contract under `controlVersion` 1, with the answers of control contract 1. The 34 kinds are
+`chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
+`job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-apply`,
+`pipeline-apply-cancel`, `pipeline-check`, `pipeline-constitution-edit`, `pipeline-draft-discard`,
+`pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-answer`, `pipeline-setup-billing`,
+`pipeline-setup-resume`, `pipeline-setup-start`, `pipeline-setup-start-over`, `pipeline-setup-step`,
+`pipeline-update-start`, `ticket-deliver-by-hand`, `ticket-hold`, `ticket-network`, `ticket-park`, `ticket-priority`,
+`ticket-ready`, `ticket-unhold` and `tracker-clear`. A kind in neither list may change without raising the system
+version.
+
+The route reads a body of a board kind field by field into its `ForgeBoardCommand`
+(`src/adapters/board-commands/utils/BoardCommandReadingUtil.ts`) and maps it into forge's own command
+(`BoardCommandMappingUtil.controlCommandOf`). A missing or misshapen field answers 400 `malformed-body`; a key the kind
+does not name is left behind.
+
+`pipeline-draft-edit` carries typed edits, `PipelineDraftEditDocument`, each addressed by its `target`: `gate`
+`{name, value}`, `phase-order` `{phase, names}`, `prepare` `{name, value}`, `prepare-order` `{names}`, `review`,
+`constitution` and `airlock` `{value}`, `role` `{role, value}`, `approval` `{approval, value}`, `entity`
+`{entityKey, value}` (an entity's kind, homes and summary) and `within-entity` `{entityKey, edit}`, whose `edit` is a
+steps edit, `role` of an entity's own role, `whitelist`, `reach`, `depends-on` or `concurrency` `{value}`. A `null`
+value removes what the edit names. An edit written as a field string, `{field, value}`, is no typed edit: the route
+answers 400. Only the pipeline agent's `pipeline-draft-propose` names fields.
+`cli/overseer/routes/CommandRoute.boardContract.spec.ts` pins the list against the package's union.
 
 ### Flint's brain
 

@@ -137,8 +137,8 @@ function requireEntityLevel(pipeline: Readonly<Pipeline> | null, entityKey: Enti
 function draftEditsFieldOf(command: SentCommand): PipelineDraftEdit[] {
   const edits = fieldOf(command, 'edits');
   if (!Array.isArray(edits) || edits.length === 0) refuseMalformedSetupCommand(command.kind, 'edits');
-  return edits.map((fieldEdit: unknown, index) => {
-    const reading = SetupPayloadSchemas.draftEditReadingOf(fieldEdit, index);
+  return edits.map((edit: unknown, index) => {
+    const reading = SetupPayloadSchemas.typedDraftEditReadingOf(edit, index);
     if (reading.verdict === 'malformed') refuseMalformedSetupCommand(command.kind, reading.field);
     return reading.value;
   });

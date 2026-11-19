@@ -6,10 +6,11 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { PipelineDraftField } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
-import { pipelineBoardStateOf }    from '../../../testing/PipelineFixture.ts';
-import type { PipelineViewFacts }  from '../PipelineViewModel.ts';
-import { EntityLevelFactsModel }   from './EntityLevelFactsModel.ts';
+import type { PipelineDraftEdit, PipelineDraftField } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { PipelineDraftEditUtil }                      from '../../../../src/lib/tracker-model/utils/PipelineDraftEditUtil.ts';
+import { pipelineBoardStateOf }                       from '../../../testing/PipelineFixture.ts';
+import type { PipelineViewFacts }                     from '../PipelineViewModel.ts';
+import { EntityLevelFactsModel }                      from './EntityLevelFactsModel.ts';
 
 function monorepoFacts(): PipelineViewFacts {
   const facts = pipelineBoardStateOf('mono-design');
@@ -75,11 +76,21 @@ describe('the facts at an entity', () => {
 describe('an edit at an entity', () => {
   test('goes scoped to the entity', () => {
     expect(EntityLevelFactsModel.editsScopedTo([
-      { field: 'gate:lint', value: null },
-      { field: 'phase-order:build', value: [] },
-      { field: 'role:builder', value: {} },
-      { field: 'review', value: null },
-    ], 'web').map((edit) => edit.field)).toEqual(['entity:web/gate:lint', 'entity:web/phase-order:build', 'entity:web/role:builder', 'entity:web/review']);
+      { target: 'gate', name: 'lint', value: null },
+      { target: 'phase-order', phase: 'build', names: [] },
+      { target: 'role', role: 'builder', value: {} },
+      { target: 'review', value: null },
+    ], 'web').map(PipelineDraftEditUtil.fieldOf)).toEqual(['entity:web/gate:lint', 'entity:web/phase-order:build', 'entity:web/role:builder', 'entity:web/review']);
+  });
+
+  test('keeps an edit the forge sets for every entity, and one already scoped, as it is', () => {
+    const edits: PipelineDraftEdit[] = [
+      { target: 'approval', approval: 'merge', value: true },
+      { target: 'airlock', value: null },
+      { target: 'role', role: 'productOwner', value: null },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'gate', name: 'lint', value: null } },
+    ];
+    expect(EntityLevelFactsModel.editsScopedTo(edits, 'web')).toEqual(edits);
   });
 
   test('keeps a field the forge sets for every entity, and one already scoped, as it is', () => {

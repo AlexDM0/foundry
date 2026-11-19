@@ -1,7 +1,8 @@
 /**
  * The closed shapes of the setup payloads a session or a body sends: the pipeline agent's finding, question, constitution, proposal and
- * ready step, and the field edits of a draft. Each reading maps untrusted JSON to its typed value or names the first field that is
- * missing, misshapen or not in the shape. Whether the value fits the record (a step reached, a line the text holds) is the Board's.
+ * ready step, the field edits of a draft, and the typed edits a person sends. Each reading maps untrusted JSON to its typed value or
+ * names the first field that is missing, misshapen or not in the shape. Whether the value fits the record (a step reached, a line the
+ * text holds) is the Board's.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import { GATE_PHASES }    from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -11,6 +12,7 @@ import {
   PIPELINE_AGENT_ROLES,
   PIPELINE_ENTITY_KINDS,
   type PipelineAirlock,
+  type PipelineApproval,
   type PipelineConstitution,
   type PipelineGate,
   type PipelineReview,
@@ -58,6 +60,31 @@ const PROPOSAL_KEYS = ['edits'] as const;
 const PROPOSED_EDIT_KEYS = ['field', 'value', 'summary'] as const;
 const READY_STEP_KEYS = ['step'] as const;
 const ENTITY_DEFINITION_KEYS = ['kind', 'home', 'summary'] as const;
+
+/** The keys of each typed edit, by its target; a key outside them is malformed. */
+const TYPED_EDIT_KEYS = {
+  'gate':          ['target', 'name', 'value'],
+  'phase-order':   ['target', 'phase', 'names'],
+  'prepare':       ['target', 'name', 'value'],
+  'prepare-order': ['target', 'names'],
+  'review':        ['target', 'value'],
+  'constitution':  ['target', 'value'],
+  'role':          ['target', 'role', 'value'],
+  'airlock':       ['target', 'value'],
+  'approval':      ['target', 'approval', 'value'],
+  'entity':        ['target', 'entityKey', 'value'],
+  'within-entity': ['target', 'entityKey', 'edit'],
+  'whitelist':     ['target', 'value'],
+  'reach':         ['target', 'value'],
+  'depends-on':    ['target', 'value'],
+  'concurrency':   ['target', 'value'],
+} as const satisfies Readonly<Record<PipelineDraftEdit['target'] | EntityDraftEdit['target'], readonly string[]>>;
+
+type TypedEditTarget = keyof typeof TYPED_EDIT_KEYS;
+
+const TYPED_EDIT_TARGETS = Object.keys(TYPED_EDIT_KEYS) as TypedEditTarget[];
+
+const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
 
 /** An option that offers "Other" is the Bridge's own free-text answer, so the agent never sends one. */
 const OTHER_OPTION_PATTERN = /^other\s*(?:$|[(:.,;-])/iu;
@@ -302,12 +329,101 @@ function draftEditAt(fieldEdit: PayloadRecord, path: string): PipelineDraftEdit 
   return { target: 'within-entity', entityKey, edit: entityEditAt(scope.field, value, valuePath) };
 }
 
-/** User's `{field, value}` at `edits[index]`: a field outside the closed union is malformed. */
+/** A `{field, value}` at `edits[index]`, as `pipeline edit` writes it: a field outside the closed union is malformed. */
 function draftEditReadingOf(fieldEdit: unknown, index: number): PayloadReading<PipelineDraftEdit> {
   const path = `edits[${index}]`;
   return readingOf(() => {
     if (!JsonRecordUtil.valueIsAPlainObject(fieldEdit)) malformed(path);
     return draftEditAt(fieldEdit, path);
+  });
+}
+
+/** The typed edit at `path` with its target's keys alone; a target outside the union is malformed. */
+function typedEditRecordAt(value: unknown, path: string): { record: PayloadRecord; target: TypedEditTarget } {
+  if (!JsonRecordUtil.valueIsAPlainObject(value)) malformed(path);
+  const target = oneOf(TYPED_EDIT_TARGETS, value, path, 'target');
+  return { record: closedRecordAt(value, path, TYPED_EDIT_KEYS[target]), target };
+}
+
+function valueAt(record: PayloadRecord, key: string): unknown {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
+function namesAt(record: PayloadRecord, path: string): string[] {
+  return textListOrMalformed(valueAt(record, 'names'), fieldPathOf(path, 'names'));
+}
+
+/** What a pipeline and an entity both hold, addressed by its target; null for any other target. */
+function typedStepsEditAt(record: PayloadRecord, target: TypedEditTarget, path: string): PipelineStepsDraftEdit | null {
+  const valuePath = fieldPathOf(path, 'value');
+  const value     = valueAt(record, 'value');
+  switch (target) {
+    case 'gate':
+      return { target, name: textAt(record, path, 'name'), value: definitionOrNullAt(value, valuePath) as PipelineGate | null };
+    case 'prepare':
+      return { target, name: textAt(record, path, 'name'), value: definitionOrNullAt(value, valuePath) as PipelineStep | null };
+    case 'phase-order':
+      return { target, phase: oneOf(GATE_PHASES, record, path, 'phase'), names: namesAt(record, path) };
+    case 'prepare-order':
+      return { target, names: namesAt(record, path) };
+    case 'review':
+      return { target, value: definitionOrNullAt(value, valuePath) as PipelineReview | null };
+    case 'constitution':
+      return { target, value: definitionOrNullAt(value, valuePath) as PipelineConstitution | null };
+    default:
+      return null;
+  }
+}
+
+/** An edit inside one entity: its steps, one of its own roles, a list of keys or paths, or a cap of at least one job. */
+function typedEntityEditAt(value: unknown, path: string): EntityDraftEdit {
+  const { record, target } = typedEditRecordAt(value, path);
+  const stepsEdit = typedStepsEditAt(record, target, path);
+  if (stepsEdit !== null) return stepsEdit;
+  const valuePath = fieldPathOf(path, 'value');
+  const editValue = valueAt(record, 'value');
+  switch (target) {
+    case 'whitelist':
+    case 'reach':
+    case 'depends-on':
+      return { target, value: textsOrNullAt(editValue, valuePath) };
+    case 'concurrency':
+      if (editValue !== null && !(typeof editValue === 'number' && Number.isInteger(editValue) && editValue >= 1)) malformed(valuePath);
+      return { target, value: editValue };
+    case 'role':
+      return { target, role: oneOf(ENTITY_AGENT_ROLES, record, path, 'role'), value: definitionOrNullAt(editValue, valuePath) as AgentStepSettings | null };
+    default:
+      return malformed(fieldPathOf(path, 'target'));
+  }
+}
+
+/**
+ * A person's typed edit at `edits[index]`, read by its target, its keys and the shape of each value. A definition is taken as sent, as the
+ * field reading takes it, since the whole draft is validated once every edit is written.
+ */
+function typedDraftEditReadingOf(edit: unknown, index: number): PayloadReading<PipelineDraftEdit> {
+  const path = `edits[${index}]`;
+  return readingOf((): PipelineDraftEdit => {
+    const { record, target } = typedEditRecordAt(edit, path);
+    const stepsEdit = typedStepsEditAt(record, target, path);
+    if (stepsEdit !== null) return stepsEdit;
+    const valuePath = fieldPathOf(path, 'value');
+    const value     = valueAt(record, 'value');
+    switch (target) {
+      case 'role':
+        return { target, role: oneOf(PIPELINE_AGENT_ROLES, record, path, 'role'), value: definitionOrNullAt(value, valuePath) as AgentStepSettings | null };
+      case 'airlock':
+        return { target, value: definitionOrNullAt(value, valuePath) as PipelineAirlock | null };
+      case 'approval':
+        if (value !== null && typeof value !== 'boolean') malformed(valuePath);
+        return { target, approval: oneOf(PIPELINE_APPROVALS, record, path, 'approval'), value };
+      case 'entity':
+        return { target, entityKey: textAt(record, path, 'entityKey'), value: entityDefinitionAt(value, valuePath) };
+      case 'within-entity':
+        return { target, entityKey: textAt(record, path, 'entityKey'), edit: typedEntityEditAt(valueAt(record, 'edit'), fieldPathOf(path, 'edit')) };
+      default:
+        return malformed(fieldPathOf(path, 'target'));
+    }
   });
 }
 
@@ -334,6 +450,7 @@ export const SetupPayloadSchemas = Object.freeze({
   questionReadingOf,
   constitutionReadingOf,
   draftEditReadingOf,
+  typedDraftEditReadingOf,
   proposalReadingOf,
   readyStepReadingOf,
 });

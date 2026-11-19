@@ -99,8 +99,8 @@ describe('the re-review after a conflict merge', () => {
     expect(controls.sent[0]).toMatchObject({
       kind:  'pipeline-draft-edit',
       edits: [
-        { field: 'airlock', value: { reReview: { thresholdLines: 750 } } },
-        { field: 'role:conflictReReviewer', value: { model: 'sonnet', effort: 'high' } },
+        { target: 'airlock', value: { reReview: { thresholdLines: 750 } } },
+        { target: 'role', role: 'conflictReReviewer', value: { model: 'sonnet', effort: 'high' } },
       ],
     });
   });

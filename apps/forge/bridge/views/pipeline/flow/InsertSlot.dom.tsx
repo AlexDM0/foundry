@@ -14,7 +14,7 @@ import {
 import type { GatePhase }             from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import { clickSettled, fakeControls } from '../../../testing/FakeControls.ts';
 import { InsertSlot }                 from './InsertSlot.tsx';
-import type { FlowDraftEdit }         from './PipelineFlowModel.ts';
+import type { PipelineDraftEdit }     from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { PipelineFlowModel }          from './PipelineFlowModel.ts';
 
 afterEach(cleanup);
@@ -22,7 +22,7 @@ afterEach(cleanup);
 const SLOT = PipelineFlowModel.slotViewOf({ slotId: 'airlock', after: 'merge-in-airlock', offeredSteps: ['merge-gates', 'airlock-re-review'] }, 'merge-train', null);
 
 function renderSlot(disabled = false) {
-  const edits: (readonly FlowDraftEdit[])[] = [];
+  const edits: (readonly PipelineDraftEdit[])[] = [];
   const phases: GatePhase[] = [];
   fakeControls().render(<InsertSlot slot={SLOT} disabled={disabled} onEdits={(chosen) => edits.push(chosen)} onNewGate={(phase) => phases.push(phase)} />);
   return { edits, phases };
@@ -43,7 +43,7 @@ describe('an add card', () => {
     await clickSettled(screen.getByRole('button', { name: 'Merge gates' }));
     await clickSettled(screen.getByRole('button', { name: 'Conditional re-review' }));
     expect(phases).toEqual(['merge']);
-    expect(edits).toEqual([[{ field: 'airlock', value: { reReview: { thresholdLines: 750 } } }]]);
+    expect(edits).toEqual([[{ target: 'airlock', value: { reReview: { thresholdLines: 750 } } }]]);
   });
 
   test('a disabled card\'s choices are disabled and hand nothing on', async () => {

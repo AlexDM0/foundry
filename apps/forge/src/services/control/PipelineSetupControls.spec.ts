@@ -147,23 +147,26 @@ const MALFORMED_COMMANDS: readonly [string, Record<string, unknown>][] = [
   ['edits[0]', {
     kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: ['gate:test']
   }],
-  ['edits[0].field', {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'gates', value: null }]
+  ['edits[0].target', {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'gate:test', value: null }]
   }],
-  ['edits[0].field', {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'role:janitor', value: null }]
+  ['edits[0].target', {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'gates', value: null }]
   }],
-  ['edits[0].value', {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'gate:test', value: 'bun test' }]
-  }],
-  ['edits[0].value', {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'phase-order:build', value: 'test' }]
+  ['edits[0].role', {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'role', role: 'janitor', value: null }]
   }],
   ['edits[0].value', {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: 'on' }]
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'gate', name: 'test', value: 'bun test' }]
+  }],
+  ['edits[0].names', {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'phase-order', phase: 'build', names: 'test' }]
+  }],
+  ['edits[0].value', {
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'approval', approval: 'merge', value: 'on' }]
   }],
   ['isACopy', {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }], isACopy: 'yes'
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'approval', approval: 'merge', value: true }], isACopy: 'yes'
   }],
   ['editId', { kind: 'pipeline-draft-undo', setupId: 'S1' }],
   ['wholeBatch', {
@@ -233,9 +236,9 @@ describe('a draft edit', () => {
       setupId:       'S1',
       draftRevision: 0,
       edits:         [
-        { field: 'gate:test', value: { name: 'test', run: 'bun test' } },
-        { field: 'phase-order:build', value: ['test'] },
-        { field: 'approval:merge', value: true },
+        { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } },
+        { target: 'phase-order', phase: 'build', names: ['test'] },
+        { target: 'approval', approval: 'merge', value: true },
       ],
     });
 
@@ -262,7 +265,7 @@ describe('a draft edit', () => {
         at:     CHANGED_AT,
         now:    () => new Date(CHANGED_AT),
         mutate: (change) => ControlService.apply({
-          kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }], isACopy: true
+          kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'approval', approval: 'merge', value: true }], isACopy: true
         }, change, ECHOED_CONTROL_CONTEXT).result,
       }));
 
@@ -278,7 +281,7 @@ describe('a draft edit', () => {
     const fixture = boardAtDesign();
 
     apply(fixture, {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'approval:merge', value: true }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'approval', approval: 'merge', value: true }]
     });
 
     expect(Object.hasOwn(fixture.board.pipelineSetup()?.edits[0] ?? {}, 'batch')).toBe(false);
@@ -286,9 +289,10 @@ describe('a draft edit', () => {
 
   test('refuses pipeline-draft-invalid with the validator\'s reason when the draft it leaves cannot be stored', () => {
     const fixture = boardAtDesign();
+    const gateWithAnUnknownKey = { name: 'test', run: 'bun test', retries: 3 };
 
     const refusal = operationRefusalOf(() => apply(fixture, {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ field: 'gate:test', value: { name: 'test', run: 'bun test', retries: 3 } }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'gate', name: 'test', value: gateWithAnUnknownKey }]
     }));
 
     expect(refusal.detail).toMatchObject({ kind: 'pipeline-draft-invalid', setupId: 'S1' });
@@ -301,7 +305,7 @@ describe('a draft edit', () => {
       kind:          'pipeline-draft-edit',
       setupId:       'S1',
       draftRevision: 0,
-      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:merge', value: ['test'] }],
+      edits:         [{ target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } }, { target: 'phase-order', phase: 'merge', names: ['test'] }],
     });
 
     const refusal = operationRefusalOf(() => apply(fixture, { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E2' }));
@@ -311,7 +315,7 @@ describe('a draft edit', () => {
 
   test('refuses a revision User did not see as pipeline-draft-stale', () => {
     const thrown = thrownBy(() => apply(boardAtDesign(), {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 4, edits: [{ field: 'review', value: null }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 4, edits: [{ target: 'review', value: null }]
     }));
 
     expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({
@@ -341,9 +345,9 @@ describe('the message to the pipeline agent', () => {
       setupId:       'S1',
       draftRevision: 0,
       edits:         [
-        { field: 'gate:test', value: { name: 'test', run: 'bun test' } },
-        { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
-        { field: 'phase-order:merge', value: ['test', 'lint'] },
+        { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } },
+        { target: 'gate', name: 'lint', value: { name: 'lint', run: 'bun run lint' } },
+        { target: 'phase-order', phase: 'merge', names: ['test', 'lint'] },
       ],
     });
     apply(fixture, { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' });
@@ -445,7 +449,7 @@ describe('the message to the pipeline agent', () => {
       kind:          'pipeline-draft-edit',
       setupId:       'S1',
       draftRevision: 0,
-      edits:         [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }, { field: 'phase-order:merge', value: ['test'] }],
+      edits:         [{ target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } }, { target: 'phase-order', phase: 'merge', names: ['test'] }],
     });
     fixture.records.length = 0;
 
@@ -750,10 +754,10 @@ describe('a check', () => {
       setupId:       'S1',
       draftRevision: 0,
       edits:         [
-        { field: 'gate:test', value: { name: 'test', run: 'bun test --bail' } },
-        { field: 'gate:types', value: null },
-        { field: 'gate:lint', value: { name: 'lint', run: 'eslint .' } },
-        { field: 'phase-order:build', value: ['test', 'format', 'lint'] },
+        { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test --bail' } },
+        { target: 'gate', name: 'types', value: null },
+        { target: 'gate', name: 'lint', value: { name: 'lint', run: 'eslint .' } },
+        { target: 'phase-order', phase: 'build', names: ['test', 'format', 'lint'] },
       ],
     });
     fixture.records.length = 0;

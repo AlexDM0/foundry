@@ -8,7 +8,8 @@ import { ReorderIndexUtil } from 'design-system/ReorderIndexUtil';
 import type { GatePhase }                            from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import type { EntityKey }                            from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunFacts, PipelineGateRow } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { FlowChange, FlowDraftEdit }            from '../flow/PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                    from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { FlowChange }                           from '../flow/PipelineFlowModel.ts';
 import { GateCacheMarkModel }                        from './GateCacheMarkModel.ts';
 
 /** What the gates area asks its holder to open: the Gate dialog of a gate in a phase or of a prepare step, or an empty one to add either. */
@@ -214,7 +215,7 @@ function keptNamesOf(rows: readonly PipelineGateRow[], rowKind: PipelineGateRow[
 }
 
 /** A moved prepare row sends the prepare steps' order; a moved gate the phase's run order. A move that changes nothing sends nothing. */
-function reorderEditsOf(rows: readonly PipelineGateRow[], phase: GatePhase, fromIndex: number, toIndex: number): FlowDraftEdit[] {
+function reorderEditsOf(rows: readonly PipelineGateRow[], phase: GatePhase, fromIndex: number, toIndex: number): PipelineDraftEdit[] {
   const moved = rows[fromIndex];
   if (moved === undefined || fromIndex === toIndex || rowIsRemoved(moved)) return [];
   const reordered = ReorderIndexUtil.reorderedIndicesOf(rows.length, fromIndex, toIndex).flatMap((index) => {
@@ -222,16 +223,16 @@ function reorderEditsOf(rows: readonly PipelineGateRow[], phase: GatePhase, from
     return row === undefined ? [] : [row];
   });
   const names = keptNamesOf(reordered, moved.rowKind);
-  if (moved.rowKind === 'prepare') return [{ field: 'prepare-order', value: names }];
-  return [{ field: `phase-order:${phase}`, value: names }];
+  if (moved.rowKind === 'prepare') return [{ target: 'prepare-order', names }];
+  return [{ target: 'phase-order', phase, names }];
 }
 
 /** Delete takes a gate out of this phase alone, and removes a prepare step; a removed row sends nothing. */
-function deleteEditsOf(rows: readonly PipelineGateRow[], phase: GatePhase, index: number): FlowDraftEdit[] {
+function deleteEditsOf(rows: readonly PipelineGateRow[], phase: GatePhase, index: number): PipelineDraftEdit[] {
   const row = rows[index];
   if (row === undefined || rowIsRemoved(row)) return [];
-  if (row.rowKind === 'prepare') return [{ field: `prepare:${row.name}`, value: null }];
-  return [{ field: `phase-order:${phase}`, value: keptNamesOf(rows, 'gate').filter((name) => name !== row.name) }];
+  if (row.rowKind === 'prepare') return [{ target: 'prepare', name: row.name, value: null }];
+  return [{ target: 'phase-order', phase, names: keptNamesOf(rows, 'gate').filter((name) => name !== row.name) }];
 }
 
 function keyDeletesRow(key: string): boolean {

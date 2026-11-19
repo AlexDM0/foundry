@@ -14,9 +14,9 @@ import {
   type PipelineEntity,
   type PipelineEntityKind
 } from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { EntityDraftField }               from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { EntityDraftEdit, PipelineDraftEdit } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { ControlCommandBody }             from '../../../api/CommandClient.ts';
-import type { DraftEditTarget, FlowDraftEdit } from '../flow/PipelineFlowModel.ts';
+import type { DraftEditTarget }                from '../flow/PipelineFlowModel.ts';
 
 /** What one copy carries: an entity's gates with their phases, its prepare steps, or its agents' model and effort. */
 export type CopiedPart = 'gates' | 'prepare-steps' | 'agent-settings';
@@ -45,7 +45,7 @@ export interface CopyTargetOption {
 }
 
 interface TargetEdits {
-  readonly edits:         readonly FlowDraftEdit[];
+  readonly edits:         readonly PipelineDraftEdit[];
   /** The target's own gates that a copied gate of the same name replaces. */
   readonly replacedGates: readonly string[];
 }
@@ -63,8 +63,8 @@ function entityOf(draft: Pipeline, entityKey: EntityKey): PipelineEntity | null 
   return Object.hasOwn(entities, entityKey) ? entities[entityKey] ?? null : null;
 }
 
-function fieldOf(entityKey: EntityKey, field: EntityDraftField): FlowDraftEdit['field'] {
-  return `entity:${entityKey}/${field}`;
+function withinEntityOf(entityKey: EntityKey, edit: EntityDraftEdit): PipelineDraftEdit {
+  return { target: 'within-entity', entityKey, edit };
 }
 
 function sameValue(first: unknown, second: unknown): boolean {
@@ -77,31 +77,31 @@ function copiedGateNamesOf(source: PipelineEntity, phases: readonly GatePhase[])
 }
 
 function gateEditsOf(source: PipelineEntity, target: PipelineEntity, targetKey: EntityKey, phases: readonly GatePhase[]): TargetEdits {
-  const edits: FlowDraftEdit[] = [];
+  const edits: PipelineDraftEdit[] = [];
   const replacedGates: string[] = [];
   for (const name of copiedGateNamesOf(source, phases)) {
     const gate = source.gates.find((candidate) => candidate.name === name);
     const own = target.gates.find((candidate) => candidate.name === name);
     if (gate === undefined || sameValue(gate, own)) continue;
     if (own !== undefined) replacedGates.push(name);
-    edits.push({ field: fieldOf(targetKey, `gate:${name}`), value: gate });
+    edits.push(withinEntityOf(targetKey, { target: 'gate', name, value: gate }));
   }
   for (const phase of phases) {
     const order = [...target.phases[phase], ...source.phases[phase].filter((name) => !target.phases[phase].includes(name))];
-    if (!sameValue(order, target.phases[phase])) edits.push({ field: fieldOf(targetKey, `phase-order:${phase}`), value: order });
+    if (!sameValue(order, target.phases[phase])) edits.push(withinEntityOf(targetKey, { target: 'phase-order', phase, names: order }));
   }
   return { edits, replacedGates };
 }
 
-function prepareEditsOf(source: PipelineEntity, target: PipelineEntity, targetKey: EntityKey): FlowDraftEdit[] {
+function prepareEditsOf(source: PipelineEntity, target: PipelineEntity, targetKey: EntityKey): PipelineDraftEdit[] {
   return source.prepare.flatMap((step) => {
     const own = target.prepare.find((candidate) => candidate.name === step.name);
-    return sameValue(step, own) ? [] : [{ field: fieldOf(targetKey, `prepare:${step.name}`), value: step }];
+    return sameValue(step, own) ? [] : [withinEntityOf(targetKey, { target: 'prepare', name: step.name, value: step })];
   });
 }
 
 /** Each role the source sets a model or effort for, with the target's own briefs kept. */
-function agentEditsOf(source: PipelineEntity, target: PipelineEntity, targetKey: EntityKey): FlowDraftEdit[] {
+function agentEditsOf(source: PipelineEntity, target: PipelineEntity, targetKey: EntityKey): PipelineDraftEdit[] {
   return ENTITY_AGENT_ROLES.flatMap((role) => {
     const settings = source.agents?.[role];
     if (settings?.model === undefined && settings?.effort === undefined) return [];
@@ -111,7 +111,7 @@ function agentEditsOf(source: PipelineEntity, target: PipelineEntity, targetKey:
       ...(settings.model === undefined ? {} : { model: settings.model }),
       ...(settings.effort === undefined ? {} : { effort: settings.effort }),
     };
-    return sameValue(value, own) ? [] : [{ field: fieldOf(targetKey, `role:${role}`), value }];
+    return sameValue(value, own) ? [] : [withinEntityOf(targetKey, { target: 'role', role, value })];
   });
 }
 
@@ -132,7 +132,7 @@ function targetEditsOf(draft: Pipeline, request: CopyRequest, targetKey: EntityK
   };
 }
 
-function copyEditsOf(draft: Pipeline, request: CopyRequest): FlowDraftEdit[] {
+function copyEditsOf(draft: Pipeline, request: CopyRequest): PipelineDraftEdit[] {
   return request.toEntityKeys.flatMap((targetKey) => targetEditsOf(draft, request, targetKey).edits);
 }
 
@@ -168,7 +168,7 @@ function copyLabelOf(editCount: number): string {
 }
 
 /** The set as one move, marked as a copy so the draft stores it as one batch; null with nothing to send. */
-function copyCommandOf(target: DraftEditTarget, edits: readonly FlowDraftEdit[]): ControlCommandBody | null {
+function copyCommandOf(target: DraftEditTarget, edits: readonly PipelineDraftEdit[]): ControlCommandBody | null {
   if (edits.length === 0) return null;
   return {
     kind: 'pipeline-draft-edit', setupId: target.setupId, draftRevision: target.draftRevision, edits, isACopy: true

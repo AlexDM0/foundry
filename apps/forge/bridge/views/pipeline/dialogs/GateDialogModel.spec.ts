@@ -57,48 +57,45 @@ describe('a Save', () => {
     const form = GateDialogModel.formOf(TYPECHECK, DRAFT);
     const edits = GateDialogModel.saveEditsOf(TYPECHECK, { ...form, fix: 'bun run typecheck --fix', phases: { build: true, review: true, merge: false }, }, DRAFT);
     expect(edits).toEqual([
-      {
-        field: 'gate:typecheck',
-        value: {
+      { target: 'gate', name: 'typecheck', value: {
           name: 'typecheck', run: 'bun run typecheck', writes: ['~/.cache/example'], fix: 'bun run typecheck --fix',
-        },
-      },
-      { field: 'phase-order:review', value: ['typecheck'] },
-      { field: 'phase-order:merge', value: ['browser-tests'] },
+        } },
+      { target: 'phase-order', phase: 'review', names: ['typecheck'] },
+      { target: 'phase-order', phase: 'merge', names: ['browser-tests'] },
     ]);
   });
 
   test('a network switched off drops the domains', () => {
     const subject: GateDialogSubject = { rowKind: 'gate', name: 'browser-tests', phase: 'merge' };
     const [gateEdit] = GateDialogModel.saveEditsOf(subject, { ...GateDialogModel.formOf(subject, DRAFT), networkIsOn: false }, DRAFT);
-    expect(gateEdit?.value).toEqual({ name: 'browser-tests', run: 'bun run test:browser' });
+    expect(gateEdit).toEqual({ target: 'gate', name: 'browser-tests', value: { name: 'browser-tests', run: 'bun run test:browser' } });
   });
 
   test('a new gate is defined and appended to its phase', () => {
     const form = { ...GateDialogModel.formOf(NEW_REVIEW_GATE, DRAFT), name: 'lint', run: 'bun run lint' };
     expect(GateDialogModel.saveEditsOf(NEW_REVIEW_GATE, form, DRAFT)).toEqual([
-      { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
-      { field: 'phase-order:review', value: ['lint'] },
+      { target: 'gate', name: 'lint', value: { name: 'lint', run: 'bun run lint' } },
+      { target: 'phase-order', phase: 'review', names: ['lint'] },
     ]);
   });
 
   test('a prepare step sends its command; a new one also the prepare order', () => {
     const stored: GateDialogSubject = { rowKind: 'prepare', name: 'install', phase: 'build' };
     expect(GateDialogModel.saveEditsOf(stored, { ...GateDialogModel.formOf(stored, DRAFT), run: 'bun install' }, DRAFT)).toEqual([
-      { field: 'prepare:install', value: { name: 'install', run: 'bun install' } },
+      { target: 'prepare', name: 'install', value: { name: 'install', run: 'bun install' } },
     ]);
     const added: GateDialogSubject = { rowKind: 'prepare', name: null, phase: 'build' };
     const form = { ...GateDialogModel.formOf(added, DRAFT), name: 'generate', run: 'bun run generate' };
     expect(GateDialogModel.saveEditsOf(added, form, DRAFT)).toEqual([
-      { field: 'prepare:generate', value: { name: 'generate', run: 'bun run generate' } },
-      { field: 'prepare-order', value: ['install', 'generate'] },
+      { target: 'prepare', name: 'generate', value: { name: 'generate', run: 'bun run generate' } },
+      { target: 'prepare-order', names: ['install', 'generate'] },
     ]);
   });
 });
 
 test('Remove is one null edit of the gate, or of the prepare step', () => {
-  expect(GateDialogModel.removeEditsOf(TYPECHECK)).toEqual([{ field: 'gate:typecheck', value: null }]);
-  expect(GateDialogModel.removeEditsOf({ rowKind: 'prepare', name: 'install', phase: 'build' })).toEqual([{ field: 'prepare:install', value: null }]);
+  expect(GateDialogModel.removeEditsOf(TYPECHECK)).toEqual([{ target: 'gate', name: 'typecheck', value: null }]);
+  expect(GateDialogModel.removeEditsOf({ rowKind: 'prepare', name: 'install', phase: 'build' })).toEqual([{ target: 'prepare', name: 'install', value: null }]);
   expect(GateDialogModel.removeEditsOf(NEW_REVIEW_GATE)).toEqual([]);
 });
 

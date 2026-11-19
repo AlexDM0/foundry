@@ -72,8 +72,8 @@ function boardWithAnUpdate(): BoardFixture {
     setupId:       'S1',
     draftRevision: 0,
     edits:         [
-      { field: 'gate:typecheck', value: { name: 'typecheck', run: 'bun run typecheck' } },
-      { field: 'phase-order:build', value: ['typecheck'] },
+      { target: 'gate', name: 'typecheck', value: { name: 'typecheck', run: 'bun run typecheck' } },
+      { target: 'phase-order', phase: 'build', names: ['typecheck'] },
     ],
   });
   return fixture;

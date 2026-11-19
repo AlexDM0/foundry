@@ -407,7 +407,7 @@ describe('nothing but User\'s press queues a run', () => {
       kind:          'pipeline-draft-edit',
       setupId:       'S1',
       draftRevision: 0,
-      edits:         [{ field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } }, { field: 'phase-order:build', value: ['tests', 'lint'] }],
+      edits:         [{ target: 'gate', name: 'lint', value: { name: 'lint', run: 'bun run lint' } }, { target: 'phase-order', phase: 'build', names: ['tests', 'lint'] }],
     });
     await applied({
       kind: 'pipeline-draft-propose', jobId: 'J1', setupId: 'S1', edits: [{ field: 'review', value: { name: 'Review' }, summary: 'Review every ticket.' }]

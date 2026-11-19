@@ -9,6 +9,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { PipelineSetup }                          from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { PipelineDraftEditUtil }                       from '../../../../src/lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import { ENTITIES_STEP_ENTITIES, entitiesStepDraftOf } from '../../../testing/EntitiesStepFixture.ts';
 import { EntitiesStepModel }                           from './EntitiesStepModel.ts';
 
@@ -137,14 +138,14 @@ describe('the gestures', () => {
   test('staying in single mode removes every entity, so the draft holds none', () => {
     const declined = EntitiesStepModel.declineEditsOf(entities);
     expect(EntitiesStepModel.entitiesAfterEdits(draft, declined)).toEqual({});
-    expect(EntitiesStepModel.fieldEditsOf(declined).map((edit) => edit.field)).toEqual(['entity:web', 'entity:admin', 'entity:ui', 'entity:config', 'entity:docs']);
+    expect(declined.map(PipelineDraftEditUtil.fieldOf)).toEqual(['entity:web', 'entity:admin', 'entity:ui', 'entity:config', 'entity:docs']);
   });
 
-  test('the edits go out as the fields the command names, a list inside its entity and an emptied list as null', () => {
+  test('the edits go out typed, a list inside its entity and an emptied list as null', () => {
     const edits = [EntitiesStepModel.whitelistRemovedEditOf(entities, 'web', 'ui'), EntitiesStepModel.reachAddedEditOf(entities, 'web', 'turbo.json')];
-    expect(EntitiesStepModel.fieldEditsOf(edits.flatMap((edit) => (edit === null ? [] : [edit])))).toEqual([
-      { field: 'entity:web/whitelist', value: null },
-      { field: 'entity:web/reach', value: ['/package.json', '/bun.lock', '/turbo.json'] },
+    expect(edits).toEqual([
+      { target: 'within-entity', entityKey: 'web', edit: { target: 'whitelist', value: null } },
+      { target: 'within-entity', entityKey: 'web', edit: { target: 'reach', value: ['/package.json', '/bun.lock', '/turbo.json'] } },
     ]);
   });
 });

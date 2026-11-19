@@ -14,14 +14,14 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Pipeline }                          from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetup }                     from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { Ticket }                            from '../../lib/tracker-model/@types/Ticket.ts';
-import { BoardRefusal }                           from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ControlCommand, PipelineFieldEdit } from '../../shared/@types/ControlCommand.ts';
-import type { ControlContext }                    from '../../shared/@types/ControlContext.ts';
-import { OperationRefusal }                       from '../../shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                          from '../../shared/constants/ProductNames.ts';
+import type { Pipeline }                         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineDraftEdit, PipelineSetup } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { Ticket }                           from '../../lib/tracker-model/@types/Ticket.ts';
+import { BoardRefusal }                          from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommand }                   from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }                   from '../../shared/@types/ControlContext.ts';
+import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
 import {
   boardFixture,
   entityPipelineFixture,
@@ -414,7 +414,10 @@ describe('a whitelist in the draft', () => {
     designSystem.review = { name: 'review' };
 
     apply(fixture, {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: [{ field: 'entity:web/whitelist', value: ['design-system'] }]
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: setupOf(fixture).draftRevision,
+      edits:         [{ target: 'within-entity', entityKey: 'web', edit: { target: 'whitelist', value: ['design-system'] } }],
     });
 
     expect(setupOf(fixture).draft?.entities?.['web']?.whitelist).toEqual(['design-system']);
@@ -422,16 +425,16 @@ describe('a whitelist in the draft', () => {
 });
 
 describe('a copy to another entity', () => {
-  const COPIED_GATE_EDITS: PipelineFieldEdit[] = [
-    { field: 'entity:design-system/gate:test', value: WEB_TEST_GATE },
-    { field: 'entity:design-system/phase-order:build', value: ['test'] },
+  const COPIED_GATE_EDITS: PipelineDraftEdit[] = [
+    { target: 'within-entity', entityKey: 'design-system', edit: { target: 'gate', name: 'test', value: WEB_TEST_GATE } },
+    { target: 'within-entity', entityKey: 'design-system', edit: { target: 'phase-order', phase: 'build', names: ['test'] } },
   ];
 
   /** S1 past the `entities` step with an approval edited first, then web's test gate copied to the design system as E2 and E3. */
   function boardWithACopy(): BoardFixture {
     const fixture = boardWithEntitySessions();
     apply(fixture, {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: [{ field: 'approval:merge', value: true }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: [{ target: 'approval', approval: 'merge', value: true }]
     });
     apply(fixture, {
       kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: setupOf(fixture).draftRevision, edits: COPIED_GATE_EDITS, isACopy: true
@@ -474,7 +477,11 @@ describe('a copy to another entity', () => {
     const before = structuredClone(setupOf(fixture));
 
     expect(operationRefusalDetailOf(() => apply(fixture, {
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: before.draftRevision, edits: [...COPIED_GATE_EDITS, { field: 'approval:merge', value: true }], isACopy: true
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: before.draftRevision,
+      edits:         [...COPIED_GATE_EDITS, { target: 'approval', approval: 'merge', value: true }],
+      isACopy:       true,
     }))).toEqual({ kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['approval:merge'] });
     expect(setupOf(fixture)).toEqual(before);
     expect(fixture.records).toEqual([]);

@@ -7,7 +7,7 @@ import type { InstructionEntry, Pipeline, PipelineAgentRole } from '../../../../
 import type { AgentEffort, AgentModel, AgentPair }            from '../../../../src/lib/tracker-model/@types/Ticket.ts';
 import { DEFAULT_INSTRUCTIONS_OF_ROLE }                       from '../../../../src/lib/tracker-model/constants/PipelineDefaults.ts';
 import { WORKER_EFFORT, WORKER_MODEL }                        from '../../../../src/shared/constants/OverseerLimits.ts';
-import type { FlowDraftEdit }                                 from '../flow/PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                             from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 
 /** The roles a step dialog sets: the two agent steps, the reviewer and the two re-reviewers. */
 export type StepDialogRole = Extract<PipelineAgentRole, 'productOwner' | 'builder' | 'reviewer' | 'reReviewer' | 'conflictReReviewer'>;
@@ -78,8 +78,8 @@ function resetFormOf(role: StepDialogRole): AgentStepForm {
 }
 
 /** The one edit a Save sends for a role: its model, its effort and its instruction list in order. */
-function roleEditOf(role: StepDialogRole, form: AgentStepForm): FlowDraftEdit {
-  return { field: `role:${role}`, value: { model: form.model, effort: form.effort, instructions: [...form.entries] } };
+function roleEditOf(role: StepDialogRole, form: AgentStepForm): PipelineDraftEdit {
+  return { target: 'role', role, value: { model: form.model, effort: form.effort, instructions: [...form.entries] } };
 }
 
 /** An effort's meter level is its place in the choices plus one; an effort outside them fills no bar. */

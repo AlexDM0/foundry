@@ -16,7 +16,7 @@ import type {
   PipelineNodeKind,
   PipelineNodeMark
 } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { PipelineDraftField } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type { PipelineDraftEdit, PipelineDraftField } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { DISPATCH_PROTOCOL }       from '../../../../src/shared/constants/DispatchProtocol.ts';
 import { GateCacheMarkModel }      from '../gates/GateCacheMarkModel.ts';
 
@@ -88,19 +88,13 @@ export interface FlowNodeView {
 
 export type FlowSlotPlace = 'after-builder' | 'after-review' | 'merge-train';
 
-/** One draft edit as the `pipeline-draft-edit` command carries it: the field it addresses and its new value, `null` to remove it. */
-export interface FlowDraftEdit {
-  readonly field: PipelineDraftField;
-  readonly value: unknown;
-}
-
 export interface DraftEditTarget {
   readonly setupId:       string;
   readonly draftRevision: number;
 }
 
 export type FlowInsertAction =
-  | { readonly kind: 'edit'; readonly edits: readonly FlowDraftEdit[] }
+  | { readonly kind: 'edit'; readonly edits: readonly PipelineDraftEdit[] }
   | { readonly kind: 'new-gate'; readonly phase: GatePhase };
 
 export interface FlowInsertChoice {
@@ -376,13 +370,13 @@ function insertActionOf(step: PipelineInsertableStep, draft: Pipeline | null): F
     case 'merge-gates':
       return { kind: 'new-gate', phase: 'merge' };
     case 'review':
-      return { kind: 'edit', edits: [{ field: 'review', value: { name: DEFAULT_REVIEW_NAME } }] };
+      return { kind: 'edit', edits: [{ target: 'review', value: { name: DEFAULT_REVIEW_NAME } }] };
     case 'human-code-review':
-      return { kind: 'edit', edits: [{ field: 'approval:merge', value: true }] };
+      return { kind: 'edit', edits: [{ target: 'approval', approval: 'merge', value: true }] };
     case 're-review':
-      return { kind: 'edit', edits: [{ field: 'review', value: { name: draft?.review?.name ?? DEFAULT_REVIEW_NAME, reReview } }] };
+      return { kind: 'edit', edits: [{ target: 'review', value: { name: draft?.review?.name ?? DEFAULT_REVIEW_NAME, reReview } }] };
     case 'airlock-re-review':
-      return { kind: 'edit', edits: [{ field: 'airlock', value: { ...draft?.airlock, reReview } }] };
+      return { kind: 'edit', edits: [{ target: 'airlock', value: { ...draft?.airlock, reReview } }] };
   }
 }
 
@@ -393,11 +387,11 @@ function slotViewOf(slot: PipelineInsertSlot, place: FlowSlotPlace, draft: Pipel
   };
 }
 
-function switchEditOf(switchView: FlowSwitchView): FlowDraftEdit {
-  return { field: `approval:${switchView.approval}`, value: !switchView.checked };
+function switchEditOf(switchView: FlowSwitchView): PipelineDraftEdit {
+  return { target: 'approval', approval: switchView.approval, value: !switchView.checked };
 }
 
-function draftEditCommandOf(target: DraftEditTarget, edits: readonly FlowDraftEdit[]) {
+function draftEditCommandOf(target: DraftEditTarget, edits: readonly PipelineDraftEdit[]) {
   return {
     kind: 'pipeline-draft-edit', setupId: target.setupId, draftRevision: target.draftRevision, edits
   };

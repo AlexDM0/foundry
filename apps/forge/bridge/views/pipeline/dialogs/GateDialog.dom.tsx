@@ -110,7 +110,7 @@ describe('the form', () => {
     await clickSettled(button('Save gate'));
     expect(controls.sent[0]).toMatchObject({
       kind:  'pipeline-draft-edit',
-      edits: [{ field: 'gate:typecheck', value: { name: 'typecheck', run: 'bun run typecheck' } }, { field: 'phase-order:review', value: ['lint', 'unit-tests'] }],
+      edits: [{ target: 'gate', name: 'typecheck', value: { name: 'typecheck', run: 'bun run typecheck' } }, { target: 'phase-order', phase: 'review', names: ['lint', 'unit-tests'] }],
     });
   });
 
@@ -126,7 +126,7 @@ describe('the form', () => {
   test('Remove gate sends value null', async () => {
     const { controls } = renderDialog('A2', TYPECHECK_REQUEST);
     await clickSettled(button('Remove gate'));
-    expect(controls.sent[0]).toMatchObject({ edits: [{ field: 'gate:typecheck', value: null }] });
+    expect(controls.sent[0]).toMatchObject({ edits: [{ target: 'gate', name: 'typecheck', value: null }] });
   });
 
   test('the prepare variant has no phases and no fix command, and removes the step', async () => {
@@ -136,7 +136,7 @@ describe('the form', () => {
     expect(within(dialog()).queryByRole('textbox', { name: 'Fix command · the builder runs it first' })).toBeNull();
     expect(within(dialog()).queryByRole('region', { name: 'Profile' })).toBeNull();
     await clickSettled(button('Remove prepare step'));
-    expect(controls.sent[0]).toMatchObject({ edits: [{ field: 'prepare:install', value: null }] });
+    expect(controls.sent[0]).toMatchObject({ edits: [{ target: 'prepare', name: 'install', value: null }] });
   });
 
   test('a new gate from a + ticks its phase and asks for a name before it can be saved', async () => {
@@ -149,7 +149,7 @@ describe('the form', () => {
     await clickSettled(button('Save gate'));
     expect(controls.sent[0]).toMatchObject({
       setupId: 'S2',
-      edits:   [{ field: 'gate:typecheck', value: { name: 'typecheck', run: 'bun run typecheck' } }, { field: 'phase-order:build', value: ['typecheck'] }],
+      edits:   [{ target: 'gate', name: 'typecheck', value: { name: 'typecheck', run: 'bun run typecheck' } }, { target: 'phase-order', phase: 'build', names: ['typecheck'] }],
     });
   });
 

@@ -90,11 +90,11 @@ describe('the rows', () => {
 
 describe('the edits', () => {
   test('moving a gate sends the phase\'s new run order without the removed gate', () => {
-    expect(GatesAreaModel.reorderEditsOf(BUILD_ROWS, 'build', 4, 2)).toEqual([{ field: 'phase-order:build', value: ['typecheck', 'tests', 'lint'] }]);
+    expect(GatesAreaModel.reorderEditsOf(BUILD_ROWS, 'build', 4, 2)).toEqual([{ target: 'phase-order', phase: 'build', names: ['typecheck', 'tests', 'lint'] }]);
   });
 
   test('moving a prepare row sends the prepare steps\' order', () => {
-    expect(GatesAreaModel.reorderEditsOf(BUILD_ROWS, 'build', 1, 0)).toEqual([{ field: 'prepare-order', value: ['seed', 'install'] }]);
+    expect(GatesAreaModel.reorderEditsOf(BUILD_ROWS, 'build', 1, 0)).toEqual([{ target: 'prepare-order', names: ['seed', 'install'] }]);
   });
 
   test('a drop in place or of a removed row sends nothing', () => {
@@ -103,8 +103,8 @@ describe('the edits', () => {
   });
 
   test('Delete takes a gate out of this phase alone, removes a prepare step, and sends nothing for a removed row', () => {
-    expect(GatesAreaModel.deleteEditsOf(BUILD_ROWS, 'review', 3)).toEqual([{ field: 'phase-order:review', value: ['tests', 'typecheck'] }]);
-    expect(GatesAreaModel.deleteEditsOf(BUILD_ROWS, 'build', 0)).toEqual([{ field: 'prepare:install', value: null }]);
+    expect(GatesAreaModel.deleteEditsOf(BUILD_ROWS, 'review', 3)).toEqual([{ target: 'phase-order', phase: 'review', names: ['tests', 'typecheck'] }]);
+    expect(GatesAreaModel.deleteEditsOf(BUILD_ROWS, 'build', 0)).toEqual([{ target: 'prepare', name: 'install', value: null }]);
     expect(GatesAreaModel.deleteEditsOf(BUILD_ROWS, 'build', 5)).toEqual([]);
   });
 

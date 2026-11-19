@@ -3,12 +3,13 @@
  * misshapen or unknown field is named, never thrown; the agent can offer no "Other" option; a draft field outside the closed union is
  * malformed; a source path or a finding's path must stay inside the repository; and the constitution's markdown is kept byte for byte.
  * An entity's definition is a kind, its homes and an optional summary; a field inside an entity reads to the same edit on the entity, a
- * list of non-blank keys or paths, or a cap of at least one job, and a forge-level field never reads inside one.
+ * list of non-blank keys or paths, or a cap of at least one job, and a forge-level field never reads inside one. A person's typed edit reads
+ * by its target to the same edit, and a missing key, a misshapen value, a key outside its target's and an unknown target are each named.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { ResearchScript } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import { SetupPayloadSchemas } from './SetupPayloadSchemas.ts';
+import type { PipelineDraftEdit, ResearchScript } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import { SetupPayloadSchemas }                    from './SetupPayloadSchemas.ts';
 
 const QUESTION = {
   step:        'design',
@@ -238,5 +239,56 @@ describe('an edit of an entity', () => {
     ['edits[0].value', 'entity:api/gate:test', 'bun test'],
   ])('names %s of %s', (field, draftField, value) => {
     expect(SetupPayloadSchemas.draftEditReadingOf({ field: draftField, value }, 0)).toEqual({ verdict: 'malformed', field });
+  });
+});
+
+describe('a typed edit', () => {
+  const TYPED_EDITS: readonly PipelineDraftEdit[] = [
+    { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } },
+    { target: 'gate', name: 'test', value: null },
+    { target: 'phase-order', phase: 'build', names: ['test'] },
+    { target: 'prepare', name: 'install', value: { name: 'install', run: 'bun install' } },
+    { target: 'prepare-order', names: ['install'] },
+    { target: 'review', value: { name: 'review', reReview: { thresholdLines: 40 } } },
+    { target: 'constitution', value: { path: 'CONSTITUTION.md' } },
+    { target: 'role', role: 'assistant', value: { model: 'opus', effort: 'high' } },
+    { target: 'airlock', value: null },
+    { target: 'approval', approval: 'merge', value: true },
+    { target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: 'The API.' } },
+    { target: 'entity', entityKey: 'web', value: null },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } } },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'role', role: 'builder', value: { model: 'opus' } } },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'whitelist', value: ['design'] } },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'reach', value: ['/bun.lock'] } },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'depends-on', value: null } },
+    { target: 'within-entity', entityKey: 'api', edit: { target: 'concurrency', value: 2 } },
+  ];
+
+  test('reads each target to the same edit', () => {
+    for (const edit of TYPED_EDITS) {
+      expect(SetupPayloadSchemas.typedDraftEditReadingOf(edit, 0), JSON.stringify(edit)).toEqual({ verdict: 'read', value: edit });
+    }
+  });
+
+  test.each([
+    ['edits[1]', 'gate:test'],
+    ['edits[1].target', { field: 'gate:test', value: null }],
+    ['edits[1].target', { target: 'gates', value: null }],
+    ['edits[1].target', { target: 'whitelist', value: ['design'] }],
+    ['edits[1].edit.target', { target: 'within-entity', entityKey: 'api', edit: { target: 'approval', approval: 'merge', value: true } }],
+    ['edits[1].name', { target: 'gate', value: null }],
+    ['edits[1].phase', { target: 'phase-order', phase: 'deploy', names: [] }],
+    ['edits[1].role', { target: 'role', role: 'janitor', value: null }],
+    ['edits[1].edit.role', { target: 'within-entity', entityKey: 'api', edit: { target: 'role', role: 'assistant', value: null } }],
+    ['edits[1].entityKey', { target: 'entity', value: null }],
+    ['edits[1].value', { target: 'gate', name: 'test', value: 'bun test' }],
+    ['edits[1].names', { target: 'phase-order', phase: 'build', names: 'test' }],
+    ['edits[1].value', { target: 'approval', approval: 'merge', value: 'on' }],
+    ['edits[1].value.home', { target: 'entity', entityKey: 'api', value: { kind: 'app' } }],
+    ['edits[1].edit.value', { target: 'within-entity', entityKey: 'api', edit: { target: 'concurrency', value: 0 } }],
+    ['edits[1].value', { target: 'review', value: 'review' }],
+    ['edits[1].field', { target: 'review', value: null, field: 'review' }],
+  ])('names %s', (field, edit) => {
+    expect(SetupPayloadSchemas.typedDraftEditReadingOf(edit, 1)).toEqual({ verdict: 'malformed', field });
   });
 });

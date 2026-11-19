@@ -141,7 +141,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   },
   'pipeline-update-start': { kind: 'pipeline-update-start' },
   'pipeline-draft-edit':   {
-    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits: [{ field: 'gate:test', value: { name: 'test', run: 'bun test' } }]
+    kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits: [{ target: 'gate', name: 'test', value: { name: 'test', run: 'bun test' } }]
   },
   'pipeline-draft-undo':    { kind: 'pipeline-draft-undo', setupId: 'S1', editId: 'E1' },
   'pipeline-draft-discard': { kind: 'pipeline-draft-discard', setupId: 'S1' },

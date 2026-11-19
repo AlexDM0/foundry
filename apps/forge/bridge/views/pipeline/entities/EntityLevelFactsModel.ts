@@ -11,10 +11,14 @@ import type {
   PipelineFlowFacts,
   PipelineSetupFacts
 } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
-import type { EntityDraftField, PipelineDraftField } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import type {
+  EntityDraftEdit,
+  EntityDraftField,
+  PipelineDraftEdit,
+  PipelineDraftField
+} from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { PipelineUtil }                              from '../../../../src/lib/tracker-model/utils/PipelineUtil.ts';
 import type { PipelineViewFacts }                    from '../PipelineViewModel.ts';
-import type { FlowDraftEdit }                        from '../flow/PipelineFlowModel.ts';
 import { PipelineLevelModel }                        from './PipelineLevelModel.ts';
 
 const ENTITY_FIELD_PREFIX = 'entity:';
@@ -58,8 +62,27 @@ function fieldAsASinglePipelineNamesIt(field: PipelineDraftField): PipelineDraft
   return fieldWithinEntity !== null && isFieldOfASinglePipeline(fieldWithinEntity) ? fieldWithinEntity : field;
 }
 
-function editsScopedTo(edits: readonly FlowDraftEdit[], entityKey: EntityKey): FlowDraftEdit[] {
-  return edits.map((edit) => ({ field: scopedFieldOf(edit.field, entityKey), value: edit.value }));
+/** The edit as it stands inside an entity; null for one the forge sets for every entity, and for one already scoped. */
+function editWithinAnEntityOf(edit: PipelineDraftEdit): EntityDraftEdit | null {
+  switch (edit.target) {
+    case 'airlock':
+    case 'approval':
+    case 'entity':
+    case 'within-entity':
+      return null;
+    case 'role':
+      return roleIsForgeLevel(edit.role) ? null : { target: 'role', role: edit.role, value: edit.value };
+    default:
+      return edit;
+  }
+}
+
+/** A gate edit at web goes inside web; an approval and an edit already scoped stay as they are. */
+function editsScopedTo(edits: readonly PipelineDraftEdit[], entityKey: EntityKey): PipelineDraftEdit[] {
+  return edits.map((edit) => {
+    const editWithinAnEntity = editWithinAnEntityOf(edit);
+    return editWithinAnEntity === null ? edit : { target: 'within-entity', entityKey, edit: editWithinAnEntity };
+  });
 }
 
 /** The entity's changes as the fields of a single pipeline; its definition and the fields only an entity has are not on its flow. */

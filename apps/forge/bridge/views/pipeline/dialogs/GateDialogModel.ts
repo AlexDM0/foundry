@@ -10,7 +10,7 @@ import { GATE_PHASES, type GatePhase }                                     from 
 import type { Pipeline, PipelineGate }                                     from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { GateProfileRunFacts, PipelineGateRowKind, PipelineNodeMark } from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { ProfileOutputLine }                                          from '../../../api/ProfileStreamClient.ts';
-import type { FlowDraftEdit }                                              from '../flow/PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                                          from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { GateCacheMarkModel }                                              from '../gates/GateCacheMarkModel.ts';
 
 /** Which gate the dialog shows: a stored one, or a new one, of either kind; `phase` is the tab or + it was opened from. */
@@ -111,29 +111,29 @@ function gateOf(form: GateForm, stored: PipelineGate | null): PipelineGate {
   return gate;
 }
 
-function phaseOrderEditsOf(name: string, form: GateForm, draft: Pipeline | null): FlowDraftEdit[] {
-  return GATE_PHASES.flatMap((phase): FlowDraftEdit[] => {
+function phaseOrderEditsOf(name: string, form: GateForm, draft: Pipeline | null): PipelineDraftEdit[] {
+  return GATE_PHASES.flatMap((phase): PipelineDraftEdit[] => {
     const order = draft?.phases[phase] ?? [];
     const runsThere = order.includes(name);
     if (form.phases[phase] === runsThere) return [];
-    return [{ field: `phase-order:${phase}`, value: form.phases[phase] ? [...order, name] : order.filter((gateName) => gateName !== name) }];
+    return [{ target: 'phase-order', phase, names: form.phases[phase] ? [...order, name] : order.filter((gateName) => gateName !== name) }];
   });
 }
 
-function saveEditsOf(subject: GateDialogSubject, form: GateForm, draft: Pipeline | null): FlowDraftEdit[] {
+function saveEditsOf(subject: GateDialogSubject, form: GateForm, draft: Pipeline | null): PipelineDraftEdit[] {
   const name = form.name.trim();
   if (subject.rowKind === 'prepare') {
-    const stepEdit: FlowDraftEdit = { field: `prepare:${name}`, value: { name, run: form.run.trim() } };
+    const stepEdit: PipelineDraftEdit = { target: 'prepare', name, value: { name, run: form.run.trim() } };
     if (subject.name !== null) return [stepEdit];
-    return [stepEdit, { field: 'prepare-order', value: [...(draft?.prepare ?? []).map((step) => step.name), name] }];
+    return [stepEdit, { target: 'prepare-order', names: [...(draft?.prepare ?? []).map((step) => step.name), name] }];
   }
-  return [{ field: `gate:${name}`, value: gateOf(form, storedGateOf(draft, subject.name)) }, ...phaseOrderEditsOf(name, form, draft)];
+  return [{ target: 'gate', name, value: gateOf(form, storedGateOf(draft, subject.name)) }, ...phaseOrderEditsOf(name, form, draft)];
 }
 
 /** Remove gate takes it out of every phase; Remove prepare step drops the step. */
-function removeEditsOf(subject: GateDialogSubject): FlowDraftEdit[] {
+function removeEditsOf(subject: GateDialogSubject): PipelineDraftEdit[] {
   if (subject.name === null) return [];
-  return [{ field: subject.rowKind === 'prepare' ? `prepare:${subject.name}` : `gate:${subject.name}`, value: null }];
+  return [{ target: subject.rowKind === 'prepare' ? 'prepare' : 'gate', name: subject.name, value: null }];
 }
 
 /** "BUILD GATE 3 · PROPOSED": the phase, the gate's place among that phase's gates, and its mark; a new one says so. */

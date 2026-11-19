@@ -7,7 +7,7 @@ import type { EntityKey, Pipeline, PipelineApproval }                        fro
 import type { PipelineFlowNode }                                             from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS, LOWEST_CONCURRENCY_LIMIT_AGENTS } from '../../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import type { ControlCommandBody }                                           from '../../../api/CommandClient.ts';
-import type { FlowDraftEdit }                                                from '../flow/PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                                            from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 
 export interface ApprovalView {
   readonly approval: PipelineApproval;
@@ -44,8 +44,8 @@ function approvalViewsOf(draft: Pick<Pipeline, 'approvals'> | null): ApprovalVie
   });
 }
 
-function approvalEditOf(view: ApprovalView): FlowDraftEdit {
-  return { field: `approval:${view.approval}`, value: !view.isOn };
+function approvalEditOf(view: ApprovalView): PipelineDraftEdit {
+  return { target: 'approval', approval: view.approval, value: !view.isOn };
 }
 
 /** "Over 750 lines" while the merge train re-reviews a large conflict fix, else "Off". */

@@ -8,23 +8,20 @@
  */
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
+import { BoardCommandMappingUtil }                                          from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
+import { BoardCommandReadingUtil }                                          from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
 import { RefusalDocumentUtil }                                              from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import { CONTROL_COMMAND_KINDS, ControlService, FLINT_BRAIN_COMMAND_KINDS } from '../../../src/services/control/ControlService.ts';
 import type { FlintBrain }                                                  from '../../../src/services/overseer/FlintBrain.ts';
 import { MachineAgentLimit }                                                from '../../../src/services/overseer/MachineAgentLimit.ts';
 import type { CommandCaller, RouteAnswer }                                  from '../../../src/services/overseer/OverseerServer.ts';
-import type {
-  ControlCommand,
-  ControlCommandOf,
-  FlintBrainCommand,
-  TrackerClearScope
-} from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }         from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS } from '../../../src/shared/constants/OverseerApiContracts.ts';
-import type { CommandContext }      from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }  from '../../CommandControlContext.ts';
-import { openTrackerForWriting }    from '../../OpenTrackerForWriting.ts';
-import type { ArgumentParser }      from '../../arguments/ArgumentParser.ts';
+import type { ControlCommand, ControlCommandOf, FlintBrainCommand }         from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                                 from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS }                                         from '../../../src/shared/constants/OverseerApiContracts.ts';
+import type { CommandContext }                                              from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                                          from '../../CommandControlContext.ts';
+import { openTrackerForWriting }                                            from '../../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                                              from '../../arguments/ArgumentParser.ts';
 
 export interface RuntimeOverseerCommand {
   kind: 'overseer-stop' | 'overseer-restart';
@@ -79,19 +76,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 const JOB_STOP_ALL_MODES: readonly ControlCommandOf<'job-stop-all'>['mode'][] = ['stop', 'wind-down'];
 
-const TRACKER_CLEAR_SCOPES: readonly TrackerClearScope[] = ['tasks-and-log', 'everything'];
-
-function chartRangeIsWellTyped(range: unknown): boolean {
-  if (!isRecord(range)) return false;
-  if (range['kind'] === 'automatic') return true;
-  return range['kind'] === 'window' && typeof range['from'] === 'string' && typeof range['to'] === 'string'
-    && (range['tickMinutes'] === null || typeof range['tickMinutes'] === 'number');
-}
-
-function isAbsentOrText(value: unknown): boolean {
-  return value === undefined || typeof value === 'string';
-}
-
 function resumeTargetIsWellTyped(target: unknown): boolean {
   if (target === 'all' || target === 'network-outage') return true;
   if (!isRecord(target)) return false;
@@ -99,21 +83,25 @@ function resumeTargetIsWellTyped(target: unknown): boolean {
 }
 
 /**
- * The fields checked before any hold, a field of the wrong type answering 400: the board kinds of control contract 1, and the kinds only
- * User's own surfaces send, where a wrong value would still act, such as a clear of an unknown scope. A value of the right type that a rule
- * refuses, such as a concurrency limit above the ceiling, answers 409 from the applier.
+ * The fields checked before any hold, a field of the wrong type answering 400: the board kinds of control contract 1. A board command kind
+ * of the contract is read whole by `BoardCommandReadingUtil` instead. A value of the right type that a rule refuses, such as a concurrency
+ * limit above the ceiling, answers 409 from the applier.
  */
 const FIELDS_CHECK_OF_KIND: Readonly<Record<string, (body: Record<string, unknown>) => boolean>> = {
   'concurrency-set':         (body) => typeof body['limit'] === 'number',
   'job-stop-all':            (body) => (JOB_STOP_ALL_MODES as readonly unknown[]).includes(body['mode']),
-  'chart-range-set':         (body) => chartRangeIsWellTyped(body['range']),
-  'tracker-clear':           (body) => (TRACKER_CLEAR_SCOPES as readonly unknown[]).includes(body['scope']),
-  'ticket-deliver-by-hand':  (body) => typeof body['ticketReference'] === 'string' && isAbsentOrText(body['branch']) && isAbsentOrText(body['commit']),
   'interrupted-work-resume': (body) => resumeTargetIsWellTyped(body['target']),
 };
 
 function fieldsAreWellTyped(kind: string, body: Record<string, unknown>): boolean {
   return !Object.hasOwn(FIELDS_CHECK_OF_KIND, kind) || FIELDS_CHECK_OF_KIND[kind]?.(body) === true;
+}
+
+/** A board command kind is read into the contract's command and mapped into forge's; `null` when it does not read. */
+function controlCommandOfBody(kind: string, body: Record<string, unknown>): ControlCommand | null {
+  if (!BoardCommandReadingUtil.isBoardCommandKind(kind)) return body as unknown as ControlCommand;
+  const boardCommand = BoardCommandReadingUtil.boardCommandOf(body);
+  return boardCommand === null ? null : BoardCommandMappingUtil.controlCommandOf(boardCommand);
 }
 
 function appliedAnswerOf(applied: { outcome: string; result?: unknown }): RouteAnswer {
@@ -166,6 +154,8 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
   }
   if (kind === 'machine-agent-limit-set') return machineAgentLimitAnswerOf(body, request);
   if (!fieldsAreWellTyped(kind, body)) return MALFORMED;
+  const command = controlCommandOfBody(kind, body);
+  if (command === null) return MALFORMED;
   if (request.launchesHeld()) {
     return {
       status: HTTP_STATUS.LOCKED,
@@ -173,7 +163,6 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     };
   }
   try {
-    const command = body as unknown as ControlCommand;
     const applied = await openTrackerForWriting(request.commandArguments, request.context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT));
     request.wake();
     return appliedAnswerOf(applied);

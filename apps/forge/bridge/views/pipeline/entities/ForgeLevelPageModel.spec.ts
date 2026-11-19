@@ -29,7 +29,7 @@ describe('the approvals', () => {
     expect(views[1]?.hint).toBe('Off: a green review goes straight to the merge train.');
     const merge = views[1];
     if (merge === undefined) throw new Error('no merge approval');
-    expect(ForgeLevelPageModel.approvalEditOf(merge)).toEqual({ field: 'approval:merge', value: true });
+    expect(ForgeLevelPageModel.approvalEditOf(merge)).toEqual({ target: 'approval', approval: 'merge', value: true });
     expect(ForgeLevelPageModel.approvalViewsOf({ approvals: { tickets: false } })[0]?.isOn).toBe(false);
   });
 

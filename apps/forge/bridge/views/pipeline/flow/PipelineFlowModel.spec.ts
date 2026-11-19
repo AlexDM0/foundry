@@ -145,7 +145,7 @@ describe('step cards', () => {
   test('a switch edit flips its approval', () => {
     const { switchView } = viewOf('A2', 'human-code-review');
     if (switchView === null) throw new Error('no switch');
-    expect(PipelineFlowModel.switchEditOf(switchView)).toEqual({ field: 'approval:merge', value: true });
+    expect(PipelineFlowModel.switchEditOf(switchView)).toEqual({ target: 'approval', approval: 'merge', value: true });
   });
 
   test('an agent step lists its instruction files; a step no agent runs has none', () => {
@@ -206,8 +206,8 @@ describe('add cards', () => {
     expect(view.heading).toBe('Add after the Builder');
     expect(view.choices.map((choice) => [choice.label, choice.action])).toEqual([
       ['Build gates', { kind: 'new-gate', phase: 'build' }],
-      ['Review', { kind: 'edit', edits: [{ field: 'review', value: { name: 'review' } }] }],
-      ['Human code review', { kind: 'edit', edits: [{ field: 'approval:merge', value: true }] }],
+      ['Review', { kind: 'edit', edits: [{ target: 'review', value: { name: 'review' } }] }],
+      ['Human code review', { kind: 'edit', edits: [{ target: 'approval', approval: 'merge', value: true }] }],
     ]);
   });
 
@@ -218,7 +218,7 @@ describe('add cards', () => {
     expect(view.heading).toBe('Add before the fast-forward');
     expect(view.choices.map((choice) => choice.action)).toEqual([
       { kind: 'new-gate', phase: 'merge' },
-      { kind: 'edit', edits: [{ field: 'airlock', value: { reReview: { thresholdLines: 750 } } }] },
+      { kind: 'edit', edits: [{ target: 'airlock', value: { reReview: { thresholdLines: 750 } } }] },
     ]);
   });
 
@@ -229,13 +229,13 @@ describe('add cards', () => {
     };
     expect(PipelineFlowModel.slotViewOf(slot, 'after-review', draft).choices[0]?.action).toEqual({
       kind:  'edit',
-      edits: [{ field: 'review', value: { name: 'careful-review', reReview: { thresholdLines: 750 } } }],
+      edits: [{ target: 'review', value: { name: 'careful-review', reReview: { thresholdLines: 750 } } }],
     });
   });
 
   test('a draft edit command names the record and the revision', () => {
-    expect(PipelineFlowModel.draftEditCommandOf({ setupId: 'S2', draftRevision: 7 }, [{ field: 'approval:tickets', value: false }])).toEqual({
-      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'approval:tickets', value: false }],
+    expect(PipelineFlowModel.draftEditCommandOf({ setupId: 'S2', draftRevision: 7 }, [{ target: 'approval', approval: 'tickets', value: false }])).toEqual({
+      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'approval', approval: 'tickets', value: false }],
     });
   });
 });

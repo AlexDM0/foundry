@@ -15,17 +15,17 @@ const RE_REVIEW_ON = RereviewSettingsModel.resetFormOf('review');
 describe('a Save', () => {
   test('while the re-review is on: the reviewer, the re-reviewer and the review with its re-review', () => {
     const edits = ReviewStepDialogModel.saveEditsOf({ name: 'example-review' }, REVIEWER_FORM, RE_REVIEW_ON);
-    expect(edits.map((edit) => edit.field)).toEqual(['role:reviewer', 'role:reReviewer', 'review']);
-    expect(edits.at(-1)?.value).toEqual({ name: 'example-review', reReview: { thresholdLines: 750 } });
+    expect(edits.map((edit) => edit.target)).toEqual(['role', 'role', 'review']);
+    expect(edits.at(-1)).toEqual({ target: 'review', value: { name: 'example-review', reReview: { thresholdLines: 750 } } });
   });
 
   test('while it is off: the review drops its re-review, and the re-reviewer is not sent', () => {
     const edits = ReviewStepDialogModel.saveEditsOf({ name: 'example-review', reReview: { thresholdLines: 300 } }, REVIEWER_FORM, { ...RE_REVIEW_ON, isOn: false });
-    expect(edits.map((edit) => edit.field)).toEqual(['role:reviewer', 'review']);
-    expect(edits.at(-1)?.value).toEqual({ name: 'example-review' });
+    expect(edits.map((edit) => edit.target)).toEqual(['role', 'review']);
+    expect(edits.at(-1)).toEqual({ target: 'review', value: { name: 'example-review' } });
   });
 });
 
 test('Remove review is one edit with value null', () => {
-  expect(ReviewStepDialogModel.removeEditsOf()).toEqual([{ field: 'review', value: null }]);
+  expect(ReviewStepDialogModel.removeEditsOf()).toEqual([{ target: 'review', value: null }]);
 });

@@ -192,14 +192,14 @@ function useEntitiesStepState(setup: PipelineSetupFacts) {
       return true;
     }
     setHeldEdits([]);
-    sender.sendEdits(EntitiesStepModel.fieldEditsOf(combined));
+    sender.sendEdits(combined);
     return true;
   };
   const decline = (): void => {
     if (!sender.enabled) return;
     setHeldEdits([]);
     setAcceptedHere(false);
-    sender.sendEdits(EntitiesStepModel.fieldEditsOf(EntitiesStepModel.declineEditsOf(EntitiesStepModel.entitiesAfterEdits(record.draft, []))));
+    sender.sendEdits(EntitiesStepModel.declineEditsOf(EntitiesStepModel.entitiesAfterEdits(record.draft, [])));
   };
   const toggle = (key: EntityKey): void => {
     const next = new Set(expandedKeys);

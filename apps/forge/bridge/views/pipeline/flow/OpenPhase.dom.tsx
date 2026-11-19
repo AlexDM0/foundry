@@ -119,7 +119,7 @@ describe('the smallest pipeline', () => {
     const { controls } = renderPhase('A7', 'build');
     await clickSettled(screen.getByRole('button', { name: 'Review' }));
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'review', value: { name: 'review' } }],
+      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'review', value: { name: 'review' } }],
     }]);
   });
 
@@ -192,7 +192,7 @@ describe('switches', () => {
     const { controls } = renderPhase('A6', 'ticket');
     await clickSettled(within(stepOf('human-ticket-review')).getByRole('switch', { name: 'Human ticket review' }));
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'approval:tickets', value: false }],
+      kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'approval', approval: 'tickets', value: false }],
     }]);
   });
 
@@ -207,7 +207,7 @@ describe('switches', () => {
     expect(controls.sent).toEqual([
       { kind: 'pipeline-update-start' },
       {
-        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'approval:merge', value: true }]
+        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'approval', approval: 'merge', value: true }]
       },
     ]);
   });
@@ -236,7 +236,7 @@ describe('switches', () => {
     expect(controls.sent).toEqual([
       { kind: 'pipeline-update-start' },
       {
-        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'approval:merge', value: true }]
+        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'approval', approval: 'merge', value: true }]
       },
     ]);
   });

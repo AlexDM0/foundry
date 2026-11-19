@@ -15,13 +15,13 @@ import { TextButton }                         from 'design-system/TextButton';
 import { View }                               from 'design-system/View';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 
-import { StateToneUtil }         from '../../../utils/StateToneUtil.ts';
-import type { OccupantChipView } from '../live/FlowActivityPanelModel.ts';
+import type { PipelineDraftEdit } from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { StateToneUtil }          from '../../../utils/StateToneUtil.ts';
+import type { OccupantChipView }  from '../live/FlowActivityPanelModel.ts';
 
 import { FlowGlyph } from './FlowGlyph.tsx';
 import {
   PipelineFlowModel,
-  type FlowDraftEdit,
   type FlowNodeView,
   type FlowOpenRequest,
   type StepKind
@@ -46,7 +46,7 @@ export interface StepCardProps {
   readonly selected:           boolean;
   readonly editable:           boolean;
   readonly onOpen:             (request: FlowOpenRequest) => void;
-  readonly onEdits:            (edits: readonly FlowDraftEdit[]) => void;
+  readonly onEdits:            (edits: readonly PipelineDraftEdit[]) => void;
   /** Where the forge sets this step's switch, shown in its place; absent shows the switch. */
   readonly setAtTheForgeHref?: string;
 }

@@ -22,6 +22,8 @@ import {
   test
 } from 'bun:test';
 
+import type { PipelineDraftEdit }                      from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { PipelineDraftEditUtil }                       from '../../../../src/lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import type { BoardStateDocument }                     from '../../../@types/BoardStateDocument.ts';
 import { entitiesStepBoardOf }                         from '../../../testing/EntitiesStepFixture.ts';
 import { clickSettled, fakeControls, fakeTranscripts } from '../../../testing/FakeControls.ts';
@@ -56,7 +58,9 @@ function rowOf(key: string): HTMLElement {
 }
 
 function sentFields(controls: ReturnType<typeof fakeControls>): string[][] {
-  return controls.sent.map((command) => ('edits' in command && Array.isArray(command['edits']) ? command['edits'].map((edit: { field: string }) => edit.field) : []));
+  return controls.sent.map((command) => ('edits' in command && Array.isArray(command['edits'])
+    ? command['edits'].map((edit: PipelineDraftEdit) => PipelineDraftEditUtil.fieldOf(edit))
+    : []));
 }
 
 describe('the proposal', () => {
@@ -253,7 +257,7 @@ describe('the root and the crossing', () => {
       kind:          'pipeline-draft-edit',
       setupId:       'S1',
       draftRevision: entitiesStepBoardOf().pipelineSetup?.record.draftRevision,
-      edits:         [{ field: 'entity:root', value: { kind: 'root', home: ['/'] } }],
+      edits:         [{ target: 'entity', entityKey: 'root', value: { kind: 'root', home: ['/'] } }],
     }]);
   });
 

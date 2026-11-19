@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { Pipeline, PipelineEntity }  from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineDraftEdit }         from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { CopyBetweenEntitiesDialogModel } from './CopyBetweenEntitiesDialogModel.ts';
 
 const WEB: PipelineEntity = {
@@ -39,10 +40,10 @@ describe('the gates of a copy', () => {
   test('go with their definitions and their place at the end of each copied phase; a gate of the same name replaces the target\'s', () => {
     const request = { fromEntityKey: 'web', toEntityKeys: ['admin'], parts: ['gates'] as const };
     expect(CopyBetweenEntitiesDialogModel.copyEditsOf(DRAFT, request)).toEqual([
-      { field: 'entity:admin/gate:lint', value: { name: 'lint', run: 'bun run lint' } },
-      { field: 'entity:admin/gate:typecheck', value: { name: 'typecheck', run: 'tsc' } },
-      { field: 'entity:admin/phase-order:build', value: ['typecheck', 'lint'] },
-      { field: 'entity:admin/phase-order:review', value: ['typecheck'] },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'gate', name: 'lint', value: { name: 'lint', run: 'bun run lint' } } },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'gate', name: 'typecheck', value: { name: 'typecheck', run: 'tsc' } } },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'phase-order', phase: 'build', names: ['typecheck', 'lint'] } },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'phase-order', phase: 'review', names: ['typecheck'] } },
     ]);
     expect(CopyBetweenEntitiesDialogModel.previewLinesOf(DRAFT, request)).toEqual([
       { entityKey: 'admin', lead: 'Makes 4 edits in admin', rest: '; 1 gate replaces admin’s own typecheck.' },
@@ -54,8 +55,8 @@ describe('the gates of a copy', () => {
       fromEntityKey: 'web', toEntityKeys: ['root'], parts: ['gates'] as const, gatePhases: ['review'] as const
     };
     expect(CopyBetweenEntitiesDialogModel.copyEditsOf(DRAFT, request)).toEqual([
-      { field: 'entity:root/gate:typecheck', value: { name: 'typecheck', run: 'tsc' } },
-      { field: 'entity:root/phase-order:review', value: ['typecheck'] },
+      { target: 'within-entity', entityKey: 'root', edit: { target: 'gate', name: 'typecheck', value: { name: 'typecheck', run: 'tsc' } } },
+      { target: 'within-entity', entityKey: 'root', edit: { target: 'phase-order', phase: 'review', names: ['typecheck'] } },
     ]);
   });
 
@@ -72,8 +73,8 @@ describe('prepare steps and agent settings', () => {
   test('go only when ticked; the settings carry the model and effort and keep the target\'s briefs', () => {
     const request = { fromEntityKey: 'web', toEntityKeys: ['admin'], parts: ['prepare-steps', 'agent-settings'] as const };
     expect(CopyBetweenEntitiesDialogModel.copyEditsOf(DRAFT, request)).toEqual([
-      { field: 'entity:admin/prepare:install', value: { name: 'install', run: 'bun install' } },
-      { field: 'entity:admin/role:builder', value: { model: 'opus', effort: 'high', instructions: [{ kind: 'constitution' }] } },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'prepare', name: 'install', value: { name: 'install', run: 'bun install' } } },
+      { target: 'within-entity', entityKey: 'admin', edit: { target: 'role', role: 'builder', value: { model: 'opus', effort: 'high', instructions: [{ kind: 'constitution' }] } } },
     ]);
   });
 });
@@ -87,7 +88,7 @@ describe('the targets and the command', () => {
   });
 
   test('send the whole set as one edit marked as a copy', () => {
-    const edits = [{ field: 'entity:admin/gate:lint' as const, value: null }];
+    const edits: PipelineDraftEdit[] = [{ target: 'within-entity', entityKey: 'admin', edit: { target: 'gate', name: 'lint', value: null } }];
     expect(CopyBetweenEntitiesDialogModel.copyCommandOf({ setupId: 'S1', draftRevision: 3 }, edits)).toEqual({
       kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 3, edits, isACopy: true,
     });

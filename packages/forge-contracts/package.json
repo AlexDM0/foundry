@@ -11,6 +11,7 @@
     "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
     "./MonitorInterruptionCauses": "./constants/MonitorInterruptionCauses.ts",
     "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
+    "./BoardCommand": "./@types/BoardCommand.ts",
     "./ForgePresenceDocument": "./@types/ForgePresenceDocument.ts",
     "./ForgeCrashLogDocument": "./@types/ForgeCrashLogDocument.ts",
     "./ForgeRefusalDocument": "./@types/ForgeRefusalDocument.ts",

@@ -11,12 +11,14 @@ import { useId } from 'react';
 import type { GatePhase } from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 
 import { FlowGlyph }                                          from './FlowGlyph.tsx';
-import type { FlowDraftEdit, FlowInsertChoice, FlowSlotView } from './PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+
+import type { FlowInsertChoice, FlowSlotView } from './PipelineFlowModel.ts';
 
 export interface InsertSlotProps {
   readonly slot:      FlowSlotView;
   readonly disabled:  boolean;
-  readonly onEdits:   (edits: readonly FlowDraftEdit[]) => void;
+  readonly onEdits:   (edits: readonly PipelineDraftEdit[]) => void;
   readonly onNewGate: (phase: GatePhase) => void;
 }
 

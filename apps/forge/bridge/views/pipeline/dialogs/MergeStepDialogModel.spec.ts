@@ -27,12 +27,12 @@ describe('a Save', () => {
   test('while on: the merge train with its re-review, then the conflict re-reviewer', () => {
     const edits = MergeStepDialogModel.saveEditsOf(undefined, { ...RE_REVIEW_ON, thresholdLines: 400 });
     expect(edits).toEqual([
-      { field: 'airlock', value: { reReview: { thresholdLines: 400 } } },
-      { field: 'role:conflictReReviewer', value: { model: RE_REVIEW_ON.settings.model, effort: RE_REVIEW_ON.settings.effort, instructions: [...RE_REVIEW_ON.settings.entries] } },
+      { target: 'airlock', value: { reReview: { thresholdLines: 400 } } },
+      { target: 'role', role: 'conflictReReviewer', value: { model: RE_REVIEW_ON.settings.model, effort: RE_REVIEW_ON.settings.effort, instructions: [...RE_REVIEW_ON.settings.entries] } },
     ]);
   });
 
   test('while off: the merge train without its re-review, and no re-reviewer', () => {
-    expect(MergeStepDialogModel.saveEditsOf({ reReview: { thresholdLines: 750 } }, { ...RE_REVIEW_ON, isOn: false })).toEqual([{ field: 'airlock', value: {} }]);
+    expect(MergeStepDialogModel.saveEditsOf({ reReview: { thresholdLines: 750 } }, { ...RE_REVIEW_ON, isOn: false })).toEqual([{ target: 'airlock', value: {} }]);
   });
 });

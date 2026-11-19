@@ -137,7 +137,7 @@ describe('model and effort', () => {
     act(() => within(screen.getByRole('group', { name: 'Effort' })).getByRole('button', { name: 'xhigh' }).click());
     expect(screen.getByText('Deeper than high, for large or subtle tickets.')).toBeDefined();
     await save();
-    expect(controls.sent[0]).toMatchObject({ edits: [{ field: 'role:builder', value: { model: 'fable', effort: 'xhigh' } }] });
+    expect(controls.sent[0]).toMatchObject({ edits: [{ target: 'role', role: 'builder', value: { model: 'fable', effort: 'xhigh' } }] });
     cleanup();
     renderDialog('A3-fable-xhigh');
     expect([modelSelect().value, pressedText('Effort')]).toEqual(['fable', 'xhigh']);
@@ -152,10 +152,7 @@ describe('a Save', () => {
       kind:          'pipeline-draft-edit',
       setupId:       'S1',
       draftRevision: 7,
-      edits:         [{
-        field: 'role:builder',
-        value: { model: 'opus', effort: 'medium', instructions: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }] },
-      }],
+      edits:         [{ target: 'role', role: 'builder', value: { model: 'opus', effort: 'medium', instructions: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'builder' }] } }],
     }]);
     expect(screen.queryByRole('dialog')).toBeNull();
   });
@@ -175,7 +172,7 @@ describe('a Save', () => {
       handle.showFacts(pipelineBoardStateOf('A6'));
       await Promise.resolve();
     });
-    expect(controls.sent[1]).toMatchObject({ kind: 'pipeline-draft-edit', setupId: 'S2', edits: [{ field: 'role:builder' }] });
+    expect(controls.sent[1]).toMatchObject({ kind: 'pipeline-draft-edit', setupId: 'S2', edits: [{ target: 'role', role: 'builder' }] });
   });
 });
 

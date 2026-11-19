@@ -24,6 +24,7 @@ names no client.
 | `forge-contracts/BoardMergeQueueDocument` | the board document's merge queue, per target |
 | `forge-contracts/BoardLimitsDocument` | the board document's `limits`: how a view cuts a stamp and lays out the progress chart |
 | `forge-contracts/BoardVocabulary` | the values of the board document's unions a view iterates or compares, each as a list in forge's order and its type |
+| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v1/commands` from forge 1.21, with their payloads and the typed draft edit |
 | `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
 | `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |
 | `forge-contracts/OverseerContractVersions` | the integer version each document has always carried |

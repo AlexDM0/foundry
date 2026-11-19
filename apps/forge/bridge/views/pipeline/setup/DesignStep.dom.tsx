@@ -265,7 +265,7 @@ describe('monorepo mode', () => {
     fireEvent.doubleClick(stepOf('builder'));
     await clickSettled(within(screen.getByRole('dialog', { name: 'Builder' })).getByRole('button', { name: 'Save' }));
     expect(controls.sent).toHaveLength(1);
-    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', setupId: 'S1', edits: [{ field: 'entity:web/role:builder' }] });
+    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', setupId: 'S1', edits: [{ target: 'within-entity', entityKey: 'web', edit: { target: 'role', role: 'builder' } }] });
   });
 
   test('a profile at an entity names the entity', async () => {
@@ -289,7 +289,7 @@ describe('monorepo mode', () => {
     expect(within(dialog).getByRole<HTMLButtonElement>('switch').disabled).toBe(true);
     await clickSettled(within(dialog).getByRole('button', { name: 'Save' }));
     expect(controls.sent).toHaveLength(1);
-    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ field: 'entity:web/role:conflictReReviewer' }] });
+    expect(controls.sent[0]).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ target: 'within-entity', entityKey: 'web', edit: { target: 'role', role: 'conflictReReviewer' } }] });
   });
 
   test('the forge draws its page and no gates; its switches and the Airlock edit the forge\'s own fields', async () => {
@@ -304,13 +304,13 @@ describe('monorepo mode', () => {
 
     await clickSettled(screen.getByRole('switch', { name: 'Human code review' }));
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: expect.any(Number), edits: [{ field: 'approval:merge', value: true }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: expect.any(Number), edits: [{ target: 'approval', approval: 'merge', value: true }]
     }]);
     await clickSettled(screen.getByRole('button', { name: 'Change the conflict re-review' }));
     const airlock = screen.getByRole('dialog', { name: 'The Airlock' });
     expect(within(airlock).queryByRole('combobox')).toBeNull();
     await clickSettled(within(airlock).getByRole('button', { name: 'Save' }));
-    expect(controls.sent.at(-1)).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ field: 'airlock' }] });
+    expect(controls.sent.at(-1)).toMatchObject({ kind: 'pipeline-draft-edit', edits: [{ target: 'airlock' }] });
   });
 
   test('the board limit is the board\'s own control, sent at once in jobs', async () => {
@@ -341,8 +341,8 @@ describe('monorepo mode', () => {
       setupId:       'S1',
       draftRevision: expect.any(Number),
       edits:         [
-        { field: 'entity:design-system/gate:unit-tests', value: { name: 'unit-tests', run: 'bun test' } },
-        { field: 'entity:design-system/phase-order:build', value: ['typecheck', 'unit-tests'] },
+        { target: 'within-entity', entityKey: 'design-system', edit: { target: 'gate', name: 'unit-tests', value: { name: 'unit-tests', run: 'bun test' } } },
+        { target: 'within-entity', entityKey: 'design-system', edit: { target: 'phase-order', phase: 'build', names: ['typecheck', 'unit-tests'] } },
       ],
       isACopy: true,
     }]);

@@ -17,6 +17,7 @@ import type {
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   ConstitutionSources,
+  PipelineDraftEdit,
   PipelineDraftField,
   PipelineSetupStep,
   ResearchFindingRecording,
@@ -209,8 +210,11 @@ export type ControlCommand =
   }
   /** Opens an update record on the stored pipeline; `entity` names the level it opens at, an entity of that pipeline; absent is the forge. */
   | { kind: 'pipeline-update-start'; entity?: EntityKey }
-  /** `isACopy`: the edits copy one entity's settings to others, and the set is stored under one `batch` that can be undone at once. */
-  | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: PipelineFieldEdit[]; isACopy?: true }
+  /**
+   * Typed edits, each addressed by its target. `isACopy`: the edits copy one entity's settings to others, and the set is stored under one
+   * `batch` that can be undone at once.
+   */
+  | { kind: 'pipeline-draft-edit'; setupId: string; draftRevision: number; edits: readonly PipelineDraftEdit[]; isACopy?: true }
   /** `wholeBatch`: every edit of the copy that `editId` belongs to, at `editId`'s level, that still stands is undone at once, as one set. */
   | { kind: 'pipeline-draft-undo'; setupId: string; editId: string; wholeBatch?: true }
   | { kind: 'pipeline-draft-discard'; setupId: string }

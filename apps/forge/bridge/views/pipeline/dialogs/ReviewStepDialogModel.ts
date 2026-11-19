@@ -3,7 +3,7 @@
  * review with or without its `reReview`), and the one edit Remove review sends.
  */
 import type { PipelineReview }                      from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
-import type { FlowDraftEdit }                       from '../flow/PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                   from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { AgentStepDialogModel, type AgentStepForm } from './AgentStepDialogModel.ts';
 import { RereviewSettingsModel, type ReReviewForm } from './RereviewSettingsModel.ts';
 
@@ -27,18 +27,18 @@ export type ReviewStepTab = 'review' | 're-review';
 /** The review's name the draft keeps; a review the draft lacks is the default step. */
 const DEFAULT_REVIEW_NAME = 'review';
 
-function saveEditsOf(review: PipelineReview | undefined, reviewerForm: AgentStepForm, reReviewForm: ReReviewForm): FlowDraftEdit[] {
+function saveEditsOf(review: PipelineReview | undefined, reviewerForm: AgentStepForm, reReviewForm: ReReviewForm): PipelineDraftEdit[] {
   const reReview = RereviewSettingsModel.reReviewOf(reReviewForm);
   const reviewValue: PipelineReview = { name: review?.name ?? DEFAULT_REVIEW_NAME, ...(reReview === undefined ? {} : { reReview }) };
   return [
     AgentStepDialogModel.roleEditOf('reviewer', reviewerForm),
     ...(reReviewForm.isOn ? [AgentStepDialogModel.roleEditOf('reReviewer', reReviewForm.settings)] : []),
-    { field: 'review', value: reviewValue },
+    { target: 'review', value: reviewValue },
   ];
 }
 
-function removeEditsOf(): FlowDraftEdit[] {
-  return [{ field: 'review', value: null }];
+function removeEditsOf(): PipelineDraftEdit[] {
+  return [{ target: 'review', value: null }];
 }
 
 export const ReviewStepDialogModel = Object.freeze({

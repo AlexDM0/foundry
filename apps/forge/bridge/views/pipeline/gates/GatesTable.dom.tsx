@@ -168,7 +168,7 @@ describe('reorder and Delete', () => {
     moveByKeyboard('unit-tests', ['ArrowUp']);
     await settle();
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests', 'lint'] }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ target: 'phase-order', phase: 'build', names: ['typecheck', 'unit-tests', 'lint'] }]
     }]);
   });
 
@@ -187,8 +187,8 @@ describe('reorder and Delete', () => {
     fireEvent.keyDown(rowOf('install'), { key: 'Delete' });
     await settle();
     expect(controls.sent.map((command) => command['edits'])).toEqual([
-      [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests'] }],
-      [{ field: 'prepare:install', value: null }],
+      [{ target: 'phase-order', phase: 'build', names: ['typecheck', 'unit-tests'] }],
+      [{ target: 'prepare', name: 'install', value: null }],
     ]);
   });
 
@@ -208,7 +208,7 @@ describe('reorder and Delete', () => {
     await settle();
     await controls.releaseCommands();
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests'] }]
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ target: 'phase-order', phase: 'build', names: ['typecheck', 'unit-tests'] }]
     }]);
   });
 
@@ -225,7 +225,7 @@ describe('reorder and Delete', () => {
     expect(controls.sent).toEqual([
       { kind: 'pipeline-update-start' },
       {
-        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests', 'lint'] }]
+        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'phase-order', phase: 'build', names: ['typecheck', 'unit-tests', 'lint'] }]
       },
     ]);
   });
@@ -244,7 +244,7 @@ describe('reorder and Delete', () => {
     expect(controls.sent).toEqual([
       { kind: 'pipeline-update-start' },
       {
-        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ field: 'phase-order:build', value: ['typecheck', 'unit-tests', 'lint'] }]
+        kind: 'pipeline-draft-edit', setupId: 'S2', draftRevision: 7, edits: [{ target: 'phase-order', phase: 'build', names: ['typecheck', 'unit-tests', 'lint'] }]
       },
     ]);
   });

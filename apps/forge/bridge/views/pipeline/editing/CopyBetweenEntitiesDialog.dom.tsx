@@ -68,7 +68,7 @@ describe('the copy between entities', () => {
     expect(preview.textContent).toBe('Makes 1 edit in admin; 1 gate replaces admin’s own typecheck.');
     await clickSettled(within(dialog).getByRole('button', { name: 'Copy 1 edit' }));
     expect(controls.sent).toEqual([{
-      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ field: 'entity:admin/gate:typecheck', value: { name: 'typecheck', run: 'tsc' } }], isACopy: true,
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 7, edits: [{ target: 'within-entity', entityKey: 'admin', edit: { target: 'gate', name: 'typecheck', value: { name: 'typecheck', run: 'tsc' } } }], isACopy: true,
     }]);
     expect(closes).toEqual(['closed']);
   });

@@ -2,7 +2,7 @@
  * The entities step's model, pure: whether the step proposes monorepo mode, holds it, waits for the pipeline agent's proposal or stays in
  * single mode; each entity's row, the root entity's place, the footer's counts and why Continue waits; and the draft edits each gesture
  * makes, as typed edits on the entities a gesture saw. A gesture's edits are kept here as `PipelineDraftEdit`s so the view can apply them
- * to the draft before it sends them, and send them as the fields `pipeline-draft-edit` names.
+ * to the draft before it sends them, and send them as `pipeline-draft-edit` carries them.
  */
 import { GATE_PHASES }      from '../../../../src/lib/tracker-model/@types/GatePhase.ts';
 import {
@@ -18,7 +18,7 @@ import { EntityOwnershipUtil, ROOT_ENTITY_KEY, type PipelineEntities } from '../
 import { PipelineDraftEditUtil }                                       from '../../../../src/lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import type { ControlCommandBody }                                     from '../../../api/CommandClient.ts';
 import type { PanelStatus }                                            from '../PipelinePanel.tsx';
-import type { DraftEditTarget, FlowDraftEdit }                         from '../flow/PipelineFlowModel.ts';
+import type { DraftEditTarget }                                        from '../flow/PipelineFlowModel.ts';
 
 /**
  * `waiting`: the draft holds no entity yet; `proposed`: the agent proposed entities and User has not taken them; `accepted`: User took
@@ -242,23 +242,6 @@ function draftEditTargetOf(record: Pick<PipelineSetup, 'setupId' | 'draftRevisio
   return { setupId: record.setupId, draftRevision: record.draftRevision };
 }
 
-function valueOfEdit(edit: PipelineDraftEdit | EntityDraftEdit): unknown {
-  switch (edit.target) {
-    case 'phase-order':
-    case 'prepare-order':
-      return edit.names;
-    case 'within-entity':
-      return valueOfEdit(edit.edit);
-    default:
-      return edit.value;
-  }
-}
-
-/** The edits as the command names them: each field with its value. */
-function fieldEditsOf(edits: readonly PipelineDraftEdit[]): FlowDraftEdit[] {
-  return edits.map((edit) => ({ field: PipelineDraftEditUtil.fieldOf(edit), value: valueOfEdit(edit) }));
-}
-
 function definitionEditOf(key: EntityKey, entity: Readonly<PipelineEntity> | null): PipelineDraftEdit {
   return { target: 'entity', entityKey: key, value: entity === null ? null : PipelineDraftEditUtil.definitionOf(entity) };
 }
@@ -437,7 +420,6 @@ export const EntitiesStepModel = Object.freeze({
   headingOf,
   continueCommandOf,
   draftEditTargetOf,
-  fieldEditsOf,
   keyRefusalOf,
   renameEditsOf,
   kindEditOf,

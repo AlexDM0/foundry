@@ -14,6 +14,7 @@ import { Text }           from 'design-system/Text';
 import type { ReactNode } from 'react';
 
 import type { PipelineFlowFacts }                                           from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
+import { PipelineDraftEditUtil }                                            from '../../../../src/lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import { StateToneUtil }                                                    from '../../../utils/StateToneUtil.ts';
 import type { PipelineViewFacts }                                           from '../PipelineViewModel.ts';
 import { PipelineAgentPanelModel }                                          from '../agent-panel/PipelineAgentPanelModel.ts';
@@ -139,7 +140,7 @@ function slotViewAtLevelOf(slot: FlowSlotView, scope: MonorepoLevelScope | null)
   if (scope?.level.kind !== 'entity') return slot;
   return {
     ...slot,
-    choices: slot.choices.filter((choice) => choice.action.kind !== 'edit' || !choice.action.edits.some((edit) => EntityLevelFactsModel.fieldIsSetAtTheForge(edit.field))),
+    choices: slot.choices.filter((choice) => choice.action.kind !== 'edit' || !choice.action.edits.some((edit) => EntityLevelFactsModel.fieldIsSetAtTheForge(PipelineDraftEditUtil.fieldOf(edit)))),
   };
 }
 

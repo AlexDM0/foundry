@@ -6,7 +6,7 @@
 import type { PipelineAirlock }                                             from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { DerivedSettingsSource, MergePlacement }                       from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import { PipelineLevelModel, type PipelineLevel }                           from '../entities/PipelineLevelModel.ts';
-import type { FlowDraftEdit }                                               from '../flow/PipelineFlowModel.ts';
+import type { PipelineDraftEdit }                                           from '../../../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import { AgentStepDialogModel }                                             from './AgentStepDialogModel.ts';
 import { RereviewSettingsModel, type ReReviewForm, type ReReviewLevelPart } from './RereviewSettingsModel.ts';
 
@@ -48,12 +48,12 @@ function conflictTextOf(derivedFrom: DerivedSettingsSource | null): string {
 }
 
 /** The forge's part is the merge train alone, an entity's the conflict re-reviewer alone, while the forge has the re-review on. */
-function saveEditsOf(airlock: PipelineAirlock | undefined, reReviewForm: ReReviewForm, levelPart: ReReviewLevelPart = 'whole'): FlowDraftEdit[] {
+function saveEditsOf(airlock: PipelineAirlock | undefined, reReviewForm: ReReviewForm, levelPart: ReReviewLevelPart = 'whole'): PipelineDraftEdit[] {
   const airlockValue: PipelineAirlock = { ...airlock };
   const reReview = RereviewSettingsModel.reReviewOf(reReviewForm);
   if (reReview === undefined) Reflect.deleteProperty(airlockValue, 'reReview');
   else airlockValue.reReview = reReview;
-  const airlockEdits: FlowDraftEdit[] = levelPart === 'conflict-re-reviewer' ? [] : [{ field: 'airlock', value: airlockValue }];
+  const airlockEdits: PipelineDraftEdit[] = levelPart === 'conflict-re-reviewer' ? [] : [{ target: 'airlock', value: airlockValue }];
   const reReviewerEdits = reReviewForm.isOn && levelPart !== 'merge-train' ? [AgentStepDialogModel.roleEditOf('conflictReReviewer', reReviewForm.settings)] : [];
   return [...airlockEdits, ...reReviewerEdits];
 }
