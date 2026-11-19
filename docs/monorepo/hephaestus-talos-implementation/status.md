@@ -71,8 +71,15 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP3.13: with a real crashed forge run `oversee status`, `crash-log`, `start`, `resume --all`; on a real serving forge
   read the live presence lines (heartbeat, supervision), which no spec covers.
 
+- WP3.9: a real reboot, crash and stop with a merge mid-Airlock (the ticket is held, `resume <T>` lands it); a real
+  resume after `forge-crashed` resumes the session by id; a crash during a constitution commit, then `resume --all`.
+
 ### Assumptions to confirm
 
+- WP3.9: a merge agent `interrupted` or `gating` holds no slot; one `launching`, `running` or `in-customs` keeps it
+  (`MERGE_AGENT_STATES_HOLDING_NO_SLOT`). While a constitution commit is held `interrupted`, main's tickets wait behind
+  it. An orphaned refresh starting again by itself is acceptable (a refresh conflict could launch a merge agent without
+  a resume). Ask the owner about the last two.
 - WP3.8: with no known generation, the crash log goes one above the newest (`crashLogGenerationOf`); a suspected crash
   logs component `unknown` but tells the registry `overseer` (`registeredCrashOf`); an unreadable Talos record counts as
   lost in this boot.
@@ -290,7 +297,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 3-C | WP3.7 | landed | 49ecbfd3 | Second round, beside WP3.6. `CrashLog.ts` (`assemble`, `writeOnce`, `list`, `read`, `logTailOf`), `CrashPath.record` (crash log, presence `crashed`, lease stop, then a bounded registry write: a no-op until WP3.8), `listenForProcessCrashes` (rethrows, never exits). `CrashLogRecord.activeJobs` and `logTail` may be null (WP3.12's document must map null); `persistedChildRecordsOf` in `TalosStart.ts`; `CRASH_LOG_TAIL_READ_BOUND_BYTES` 256 KiB. For WP3.11: `ensureTalosIfLost` still throws a plain Error after a Talos crash; pass it over or keep the first ending, else `writeEnding` rewrites a Talos crash as `component: 'overseer'`. At a crash of Talos while serving, the fresh Talos `ensureTalos` started is left running with its connection closed. `docs/cli.md` lacks `crash-logs/crash-<generation>.json` and the `forge-crashed` exit (WP3.13). Stage-file drift: the two `ensureTalos` call sites are in `OverseerForeground.ts` (:447, :702), not `TalosStart.ts` |
 | 3-D | WP3.8 | landed | 584658b7 | First round. `StartGate.ts` (`admit`), `StartGateAdmission.ts`, `BoardRegistration.ts`; `--started-by` on `start`, `oversee` and `--detach`; the login items run `start --started-by login-item` on all three platforms; a start that stays off writes the registry `crashed`, takes no Baton, binds no port and is refused `forge-off-after-crash` (exit 1); `start-classified` logged once per process; the registry presence is written at serving, stopped, handed-over and crashed. The `stay-off` verdict carries `crashLogGeneration`. Spec gap: no spec proves the presence endings `stopped`/`handed-over` at their call sites (WP3.5 said WP3.8's specs would). Defect found in WP3.7's design: crash logs are named by Baton generation, which repeats; fixed by the crash-log number package that follows |
 | 3-D | Crash-log number | landed | faacc594 | Added by the orchestrator after WP3.8's check: crash logs were named by Baton generation, which repeats after a clean stop, so a later crash lost its log to an older one. Now `crash-<number>.json`, one above the highest on disk, created exclusively; the record keeps `crashedGeneration`; `crashLogGeneration` is `crashLogNumber` everywhere; the API is `crash-log?number=<n>` (stages 3, 6-7, 8-9 updated). `crashedGeneration` and `crashLogNumber` may be null. Specs prove `stopped` and `handed-over` (`recordTheHandover`) at their call sites. The status row of WP3.7 still says `crash-<generation>.json`: read it as `crash-<number>.json` |
-| 3-E | WP3.9 | waiting | | |
+| 3-E | WP3.9 | landed | 0bd4ebb0 | Second round (first: an interrupted constitution commit ran again by itself). `ReconcileCauses.ts` (reboot, forge-crashed, forge-stopped by start kind); until the start's forced first pass every child found lost takes the start's cause; the first Airlock sweep holds a slot with no live holder as `interrupted:merge` (`INTERRUPTED_MERGE_HOLD`, `startHoldsOrphans`) and records a landing git already made; an orphaned constitution commit holds its Apply as `interrupted` until `resume --all` (`Board.liftInterruptedApply`, `INTERRUPTED_APPLY_REASON`). The held ticket keeps its merge-queued mark (argued in the stage text). An orphaned refresh is freed and may start again. Cited orphan paths moved to `Airlocks.ts:821, 1036, 1480, 1515, 1547` |
 | 3-F | WP3.10 | waiting | | |
 | 3-F | WP3.15 | waiting | | |
 | 3-G | WP3.11 | waiting | | |
