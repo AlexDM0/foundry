@@ -56,6 +56,19 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
     expect(NoticeWordingUtil.noticeSentenceOf({ kind: 'instructions-missing', jobId: 'J7', path: 'briefs/defaults/builder.md' }))
       .toBe('job J7 is not launched: the instruction file briefs/defaults/builder.md its pipeline names is missing');
   });
+
+  test('a refused agent program appends the adapter\'s repair when the notice carries one, and only the reason when it is null', () => {
+    const repaired = {
+      kind: 'agent-program-refused', jobId: 'J7', cause: 'batch-target', reason: 'C:\\example\\agent.cmd is a batch file', repair: 'run the example repair'
+    };
+    const unrepaired = {
+      kind: 'agent-program-refused', jobId: 'J8', cause: 'not-found', reason: 'no agent program is on PATH', repair: null
+    };
+    expect([repaired, unrepaired].map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
+      'job J7 is not launched: C:\\example\\agent.cmd is a batch file; run the example repair',
+      'job J8 is not launched: no agent program is on PATH',
+    ]);
+  });
 });
 
 describe('NoticeWordingUtil.warningsOf', () => {

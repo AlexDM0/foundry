@@ -106,7 +106,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[]): DrivePass {
     inheritedEnvironment: inheritedEnvironment(),
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     branchNames:          branchNamesOf(RECORDED_FOLDER_FLOW_PROJECT.namespace),
-    decisionWordingOf:    OverseerWording.decisionWordingOf,
+    decisionWordingOf:    (draft) => OverseerWording.decisionWordingOf(draft, fakeAgentAdapter().credentials),
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
     afterHoldPhase:       (_phase, board) => afterEachHoldPhase(board),

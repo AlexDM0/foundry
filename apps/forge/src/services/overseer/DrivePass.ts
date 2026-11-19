@@ -307,7 +307,7 @@ export type OverseerNotice =
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
   // A job's launch was refused, nothing spawned, because its agent program did not resolve to an absolute path; retried each pass.
-  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string };
+  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string; repair: string | null };
 
 /** What a pass knows of the runtime state; the Overseer adds `passing-baton` around a Baton pass. */
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
@@ -902,7 +902,7 @@ async function launchAgentChild(
   // An agent program anywhere in the repository is code a job could have written, whichever project the tracker is.
   const program = agentAdapter.programPathOf(request.platformPorts.executableResolver, [location.repositoryRoot]);
   if (program.verdict === 'refused') return {
-    kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason
+    kind: 'agent-program-refused', jobId: job.id, cause: program.cause, reason: program.reason, repair: agentAdapter.programRepairOf(program.cause)
   };
   const children         = request.boardChildren;
   const jobFolder        = children.jobFolderOf(job.id);

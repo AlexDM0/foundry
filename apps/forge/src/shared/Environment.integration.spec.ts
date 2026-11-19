@@ -1,5 +1,6 @@
 /**
- * What `AGENT_PROGRESS_ROOT`, `SHELL` and the test settings mean at each value they come with, and where a prepended `PATH` folder lands.
+ * What `AGENT_PROGRESS_ROOT`, `SHELL`, an agent variable by its name and the test settings mean at each value they come with, and where a
+ * prepended `PATH` folder lands.
  * The value cases run in a child process so that the one assignment below stays the only in-process write to the environment a spec
  * makes, and that assignment is what shows the getter reads afresh rather than capturing at import.
  */
@@ -47,34 +48,23 @@ test('the user\'s shell is SHELL verbatim, and an unset, empty or whitespace-onl
   for (const clearedValue of ['', '  ']) expect(shellSeenByAChildProcess({ SHELL: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-function apiBillingKeySeenByAChildProcess(childEnvironment: Record<string, string>): boolean {
+const PLANTED_AGENT_VARIABLE = 'EXAMPLE_AGENT_VARIABLE';
+
+function agentVariableSeenByAChildProcess(childEnvironment: Record<string, string>): { value: string | null; isSet: boolean } {
   const source = [
     `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
-    'console.log(JSON.stringify(loaded.apiBillingKeyIsSet()));',
+    `const name = ${JSON.stringify(PLANTED_AGENT_VARIABLE)};`,
+    'console.log(JSON.stringify({ value: loaded.agentVariableOf(name) ?? null, isSet: loaded.agentVariableIsSet(name) }));',
   ].join('\n');
-  return jsonPrintedByAChildProcess(childEnvironment, source) as boolean;
+  return jsonPrintedByAChildProcess(childEnvironment, source) as { value: string | null; isSet: boolean };
 }
 
-test('the API billing key is set only by a non-blank ANTHROPIC_API_KEY, and an auth token alone sets none', () => {
-  expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_API_KEY: 'sk-ant-example-planted' })).toBe(true);
-  expect(apiBillingKeySeenByAChildProcess({})).toBe(false);
-  expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_AUTH_TOKEN: 'example-planted-auth-token' })).toBe(false);
-  for (const clearedValue of ['', '  ']) expect(apiBillingKeySeenByAChildProcess({ ANTHROPIC_API_KEY: clearedValue }), JSON.stringify(clearedValue)).toBe(false);
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-function claudeConfigFolderVariableSeenByAChildProcess(childEnvironment: Record<string, string>): string | null {
-  const source = [
-    `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
-    'console.log(JSON.stringify(loaded.claudeConfigFolderVariable() ?? null));',
-  ].join('\n');
-  return jsonPrintedByAChildProcess(childEnvironment, source) as string | null;
-}
-
-test('the Claude config folder variable is CLAUDE_CONFIG_DIR verbatim, and none when it is unset, empty or whitespace-only', () => {
-  expect(claudeConfigFolderVariableSeenByAChildProcess({ CLAUDE_CONFIG_DIR: '/srv/claude config' })).toBe('/srv/claude config');
-  expect(claudeConfigFolderVariableSeenByAChildProcess({})).toBeNull();
+test('an agent variable is read verbatim by the name it is given, and is unset when absent, empty or whitespace-only', () => {
+  expect(agentVariableSeenByAChildProcess({ [PLANTED_AGENT_VARIABLE]: '/srv/example agent' })).toEqual({ value: '/srv/example agent', isSet: true });
+  expect(agentVariableSeenByAChildProcess({})).toEqual({ value: null, isSet: false });
+  expect(agentVariableSeenByAChildProcess({ EXAMPLE_OTHER_VARIABLE: 'example-planted-value' })).toEqual({ value: null, isSet: false });
   for (const clearedValue of ['', '  ']) {
-    expect(claudeConfigFolderVariableSeenByAChildProcess({ CLAUDE_CONFIG_DIR: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
+    expect(agentVariableSeenByAChildProcess({ [PLANTED_AGENT_VARIABLE]: clearedValue }), JSON.stringify(clearedValue)).toEqual({ value: null, isSet: false });
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

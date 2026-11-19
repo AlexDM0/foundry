@@ -226,7 +226,7 @@ describe('without a folder in the request', () => {
     const projectFolder = transcriptFolderFor(join(scratchDirectory, 'repository'), configFolder);
     writeTranscript(join(projectFolder, 'session-config', 'subagents'), 'epsilon', transcriptTextFor(briefAgent('Read the config folder')));
 
-    const answer = claudeCodeAdapterFor('linux', configFolder).subagentUsagesOf(requestOf(null));
+    const answer = claudeCodeAdapterFor('linux', (name) => (name === 'CLAUDE_CONFIG_DIR' ? configFolder : undefined)).subagentUsagesOf(requestOf(null));
 
     expect(answer.transcriptFolder).toBe(projectFolder);
     expect(answer.usages.map((usage) => usage.agentIdentifier)).toEqual(['epsilon']);

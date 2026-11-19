@@ -9,8 +9,6 @@ import { delimiter } from 'node:path';
 import { SystemVersionUtil }     from 'system-versions/SystemVersionUtil';
 import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
-import { CLAUDE_API_KEY_VARIABLE }          from '../lib/claude-code/ClaudeApiKeyVariable.ts';
-import { CLAUDE_CONFIG_FOLDER_VARIABLE }    from '../lib/claude-code/ClaudeConfigFolder.ts';
 import { OperationRefusal }                 from './OperationRefusal.ts';
 import { PRODUCT_NAMES, type ProductNames } from './constants/ProductNames.ts';
 import { ROOT_OVERRIDE_VARIABLE }           from './constants/RootOverrideVariable.ts';
@@ -215,17 +213,17 @@ export function hatchDirectory(): string | undefined {
   return nonBlankValueOf(HATCH_DIRECTORY_VARIABLE);
 }
 
-/** `CLAUDE_CONFIG_DIR`, which moves Claude Code's user folder; empty or whitespace-only reads as unset. */
-export function claudeConfigFolderVariable(): string | undefined {
-  return nonBlankValueOf(CLAUDE_CONFIG_FOLDER_VARIABLE);
+/** A variable of the agent, by the name the agent adapter gives; empty or whitespace-only reads as unset. */
+export function agentVariableOf(name: string): string | undefined {
+  return nonBlankValueOf(name);
 }
 
 /**
- * Whether `ANTHROPIC_API_KEY` holds a key, which API billing needs before any session starts; empty or whitespace-only reads as unset. Only
- * presence is answered: the value goes to a session through Talos's own environment, never through the Overseer's code or files.
+ * Whether the agent's variable, by the name the agent adapter gives, holds a value; empty or whitespace-only reads as unset. Only presence
+ * is answered: an API key goes to a session through Talos's own environment, never through the Overseer's code or files.
  */
-export function apiBillingKeyIsSet(): boolean {
-  return nonBlankValueOf(CLAUDE_API_KEY_VARIABLE) !== undefined;
+export function agentVariableIsSet(name: string): boolean {
+  return nonBlankValueOf(name) !== undefined;
 }
 
 function nonBlankValueOf(variable: string): string | undefined {

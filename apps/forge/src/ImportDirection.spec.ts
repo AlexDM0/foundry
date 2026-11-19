@@ -86,8 +86,6 @@ const VENDOR_ADAPTER_IMPORTERS_UNTIL_CLOSED: Readonly<Record<string, string>> = 
   'cli/adoption/constants/ClaudeCodeInstall.ts':    'WP2.30',
   'cli/adoption/constants/RetiredClaudeInstall.ts': 'WP2.29',
   'cli/constants/ClaudeManagedBlockMarkers.ts':     'WP2.29',
-  'cli/overseer/OverseerWording.ts':                'WP2.24',
-  'src/shared/Environment.ts':                      'WP2.24',
 };
 const SOURCE_LAYERS = [
   'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'overseer-service',

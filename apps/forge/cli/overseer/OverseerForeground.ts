@@ -67,7 +67,7 @@ import { requireProgressFile }                                     from '../../s
 import type { Workspace }                                          from '../../src/services/tracker/Workspace.ts';
 import { branchNamesOf }                                           from '../../src/shared/BranchNames.ts';
 import {
-  apiBillingKeyIsSet,
+  agentVariableIsSet,
   environmentCopy,
   outlivingProgramEnvironment,
   overseerPollIntervalOverride,
@@ -651,9 +651,9 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,
         installVersionChanged: installWatch.installVersionChanged,
         installVersionsKnown:  installWatch.versionsSettled,
-        apiBillingKeyIsSet,
+        apiBillingKeyIsSet:    () => agentVariableIsSet(context.agentAdapter.credentials.billingKeyVariableName),
         newCodeOnDisk:         installWatch.newCodeOnDisk,
-        decisionWordingOf:     OverseerWording.decisionWordingOf,
+        decisionWordingOf:     (draft) => OverseerWording.decisionWordingOf(draft, context.agentAdapter.credentials),
         packageNeedWordingOf:  OverseerWording.packageNeedWordingOf,
         dependentFixWordingOf: OverseerWording.dependentFixWordingOf,
         launchTextOf:          OverseerWording.launchTextOf,

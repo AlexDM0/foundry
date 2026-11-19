@@ -34,6 +34,12 @@ function factOf(notice: NoticeFacts, fact: string): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
+/** The agent adapter's repair sentence for a refused program as a trailing clause, or nothing when the notice carries none. */
+function repairClauseOf(notice: NoticeFacts): string {
+  const { repair } = notice;
+  return typeof repair === 'string' && repair !== '' ? `; ${repair}` : '';
+}
+
 /** Why an incident took its default, `its delivery turn closed`; a cause the forge does not know reads as itself. */
 function defaultCauseTextOf(cause: string): string {
   return Object.hasOwn(DEFAULT_CAUSE_TEXT, cause) ? DEFAULT_CAUSE_TEXT[cause] ?? cause : cause;
@@ -63,7 +69,7 @@ function noticeTextOf(notice: NoticeFacts): string {
     case 'instructions-missing':
       return `job ${factOf(notice, 'jobId')} is not launched: the instruction file ${factOf(notice, 'path')} its pipeline names is missing`;
     case 'agent-program-refused':
-      return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}`;
+      return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}${repairClauseOf(notice)}`;
     default:
       return notice.kind;
   }

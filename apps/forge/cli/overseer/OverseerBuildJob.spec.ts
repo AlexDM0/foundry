@@ -180,7 +180,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: Gate
     monitorFolder,
     inheritedEnvironment: inheritedEnvironment(),
     mainLine:             RECORDED_FLOW_MAIN_LINE,
-    decisionWordingOf:    OverseerWording.decisionWordingOf,
+    decisionWordingOf:    (draft) => OverseerWording.decisionWordingOf(draft, fakeAgentAdapter().credentials),
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
     afterHoldPhase:       (phase, board) => {

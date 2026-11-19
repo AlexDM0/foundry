@@ -81,7 +81,7 @@ const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
 
 /** `<path>: <form>: <trimmed line>`, each with the reason it stays. */
 const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
-  'cli/CommandContext.ts: process-platform: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());':
+  'cli/CommandContext.ts: process-platform: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, agentVariableOf);':
     'The composition root hands the platform to the vendor adapter\'s selector.',
   'cli/CommandContext.ts: process-platform: const platformPorts = platformPortsFor(process.platform, PLATFORM_HOST_FACTS);':
     'The composition root builds the port record.',

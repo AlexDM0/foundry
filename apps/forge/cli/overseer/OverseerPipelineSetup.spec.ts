@@ -138,7 +138,7 @@ beforeEach(async () => {
     monitorFolder,
     mainLine:          RECORDED_FLOW_MAIN_LINE,
     log:               (line) => overseerLog.push(line),
-    decisionWordingOf: OverseerWording.decisionWordingOf,
+    decisionWordingOf: (draft) => OverseerWording.decisionWordingOf(draft, LISTENING_SESSION.credentials),
     launchTextOf:      OverseerWording.launchTextOf,
   });
 });

@@ -12,7 +12,7 @@ import { claudeCodeAdapterFor }                 from '../src/lib/claude-code/Cla
 import { platformPortsFor, type PlatformPorts } from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createRenderState, type RenderState }  from '../src/services/render/RenderState.ts';
 import {
-  claudeConfigFolderVariable,
+  agentVariableOf,
   executableSearchPath,
   fakeAgentEndsOnNetworkOutage,
   fakeAgentIsOn,
@@ -67,13 +67,13 @@ export interface CommandContext {
   programPath:             string;
   /** Calls `listener` on each of the platform's stop signals, which a foreground Overseer takes as a stop; returns the unsubscribe. */
   onStopSignal:            (listener: () => void) => () => void;
-  /** What the Overseer launches its sessions through: Claude Code, or the scripted fake agent under the fake-agent switch. */
+  /** What the Overseer launches its sessions through: the agent port's adapter, or the scripted fake agent under the fake-agent switch. */
   agentAdapter:            AgentAdapter;
 }
 
-/** The one place outside `src/lib/claude-code/` the vendor's adapter is chosen; a spec-spawned binary always gets the fake. */
+/** The one place outside the agent port's adapter that chooses it; a spec-spawned binary always gets the fake. */
 export function agentAdapterOfThisProcess(): AgentAdapter {
-  if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());
+  if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, agentVariableOf);
   const steps = fakeAgentStepsOfThisProcess();
   return fakeAgentReports() ? fakeAgentAdapter(steps, fakeReportingSessions().stepsOf) : fakeAgentAdapter(steps);
 }

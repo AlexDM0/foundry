@@ -117,23 +117,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   'bridge/shell/HeaderModel.ts: vendor-wire-key: const USAGE_WINDOW_WORDS: Readonly<Record<string, string>> = { five_hour: \'5-hour window\', seven_day: \'week\' };':
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  [
-  'bridge/views/pipeline/setup/BillingStepModel.ts: vendor-name: description: \'Agents run on this machine\\\'s Claude login. Usage counts against the plan\\\'s limits, '
-    + 'such as its weekly window.\','
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'bridge/views/pipeline/setup/BillingStepModel.ts: vendor-name: description: \'Billed to the Console account of ANTHROPIC_API_KEY in the Overseer\\\'s environment. The '
-    + 'key is never stored.\','
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'bridge/views/pipeline/setup/BillingStepModel.ts: vendor-name: if (choice.mode === \'subscription\') return { summary: \'Subscription\', detail: \'Agents run on this '
-    + 'machine\\\'s Claude login.\' };'
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'bridge/views/pipeline/setup/BillingStepModel.ts: vendor-name: return { summary: \'API key\', detail: `Billed to ANTHROPIC_API_KEY. ${capLine}` };':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'bridge/views/question-panel/QuestionPanelModel.ts: vendor-tool-name: const ASKING_TOOL_NAME = \'AskUserQuestion\';':
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   [
@@ -145,14 +128,8 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
   'cli/CommandContext.ts: vendor-name: import { claudeCodeAdapterFor }                 from \'../src/lib/claude-code/ClaudeCodeAdapter.ts\';':
     'Permanent: The seam imports the vendor\'s adapter; the one composition root that chooses it.',
-  'cli/CommandContext.ts: vendor-name: claudeConfigFolderVariable,':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'cli/CommandContext.ts: vendor-name: /** What the Overseer launches its sessions through: Claude Code, or the scripted fake agent under the fake-agent switch. */':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'cli/CommandContext.ts: vendor-name: /** The one place outside `src/lib/claude-code/` the vendor\'s adapter is chosen; a spec-spawned binary always gets the fake. */':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());':
-    'Permanent: The seam chooses the vendor\'s adapter; WP2.24 rewrites this key when the variable leaves the call.',
+  'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, agentVariableOf);':
+    'Permanent: The seam chooses the vendor\'s adapter, which reads its own variables through the reader it is handed.',
   'cli/HelpText.ts: vendor-hook-protocol: its Assistant; the SessionStart hook \\`hook session-start\\` goes into':
     'Removed by WP2.30: The adapter installs into a repository.',
   'cli/HelpText.ts: vendor-name: \\`.claude/settings.local.json\\`, and two skills into \\`.claude/skills/\\`:':
@@ -458,23 +435,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'cli/overseer/OverseerForeground.ts: vendor-name: managedBlockMarker:    CLAUDE_MANAGED_BLOCK_MARKERS.start,':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
-  'cli/overseer/OverseerWording.ts: vendor-name: import { CLAUDE_API_KEY_VARIABLE }     from \'../../src/lib/claude-code/ClaudeApiKeyVariable.ts\';':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'cli/overseer/OverseerWording.ts: vendor-name: question:    `The pipeline sets API billing, and the environment of the Overseer has no ${CLAUDE_API_KEY_VARIABLE}. No '
-    + 'agent starts until you set it.`,'
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'cli/overseer/OverseerWording.ts: vendor-name: context: `Set ${CLAUDE_API_KEY_VARIABLE} at OS level, never in a committed file, as the docs/cli.md section "API billing '
-    + 'set-up" tells. `'
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'cli/overseer/OverseerWording.ts: vendor-name: context: `Make sure that ${CLAUDE_API_KEY_VARIABLE} holds a valid key, and that no managed forceLoginMethod or '
-    + 'forceLoginOrgUUID `'
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Bash reaches no network.\',':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'cli/overseer/OverseerWording.ts: vendor-tool-name: productOwnerBashNetwork: \'Do not use the network from Bash.\',':
@@ -532,8 +492,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.30: The adapter installs into a repository.',
   'src/adapters/usage-marker/UsageWindowsFile.ts: vendor-wire-key: /** As the vendor names it, such as `five_hour` or `seven_day`. */':
     'Removed by WP2.26: The session\'s events carry the asking call, the recommendation and the window\'s length.',
-  'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: const WINDOWS_CLAUDE_INSTALL_COMMAND = \'irm https://claude.ai/install.ps1 | iex\';':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   [
   'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: return `A question needs ${adviceFor(channel, \'--recommended <letter>, \', \'\')}the option Claude '
     + 'recommends. ${NOTHING_WAS_WRITTEN}`;'
@@ -541,13 +499,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
   'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: return `A setup question needs the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;':
     'Removed by WP2.32: The vendor\'s names leave the wording, the prompts and the comments.',
-  'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: /** A batch target is the npm shim of `claude` on Windows, which only the native program replaces. */':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'src/adapters/utils/OperationRefusalWordingUtil.ts: vendor-name: const repair = cause === \'batch-target\' ? `; install the native program in PowerShell with '
-    + '\\`${WINDOWS_CLAUDE_INSTALL_COMMAND}\\`, and put its folder first on PATH` : \'\';'
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'src/lib/agent-launch/WorkerProfile.ts: port-tool-word: readonly bashNetworkDomains:       readonly string[];':
     'Removed by WP2.27: The tool-call guards take neutral tool calls.',
   [
@@ -752,23 +703,6 @@ const ALLOWED_AGENT_LINES: Readonly<Record<string, string>> = {
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
   'src/services/overseer/WorkerProfiles.ts: vendor-name: ...claudeFoldersOf(facts),':
     'Removed by WP2.28: The adapter names its configuration paths and its attribution.',
-  'src/shared/Environment.ts: vendor-name: import { CLAUDE_API_KEY_VARIABLE }          from \'../lib/claude-code/ClaudeApiKeyVariable.ts\';':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'src/shared/Environment.ts: vendor-name: import { CLAUDE_CONFIG_FOLDER_VARIABLE }    from \'../lib/claude-code/ClaudeConfigFolder.ts\';':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'src/shared/Environment.ts: vendor-name: /** `CLAUDE_CONFIG_DIR`, which moves Claude Code\'s user folder; empty or whitespace-only reads as unset. */':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'src/shared/Environment.ts: vendor-name: export function claudeConfigFolderVariable(): string | undefined {':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'src/shared/Environment.ts: vendor-name: return nonBlankValueOf(CLAUDE_CONFIG_FOLDER_VARIABLE);':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  [
-  'src/shared/Environment.ts: vendor-name: * Whether `ANTHROPIC_API_KEY` holds a key, which API billing needs before any session starts; empty or whitespace-only reads as '
-    + 'unset. Only'
-  ]:
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
-  'src/shared/Environment.ts: vendor-name: return nonBlankValueOf(CLAUDE_API_KEY_VARIABLE) !== undefined;':
-    'Removed by WP2.24: The adapter names its variables, its credentials and its repair.',
   'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: case \'claude-md-block-committed\':':
     'Removed by WP2.29: The retired install goes: the managed block, the old hooks, the global skill links.',
   'src/shared/monitor/utils/NoticeWordingUtil.ts: vendor-name: return `launches onto ${factOf(notice, \'target\')} wait: commit the CLAUDE.md change the board\'s update made`;':
@@ -1250,7 +1184,7 @@ describe('every entry names its package', () => {
   test('only the seam\'s import and its choice of the adapter stay among the shipping lines', () => {
     expect(Object.entries(ALLOWED_AGENT_LINES).filter(([, reason]) => reason.startsWith('Permanent:')).map(([key]) => key)).toEqual([
       'cli/CommandContext.ts: vendor-name: import { claudeCodeAdapterFor }                 from \'../src/lib/claude-code/ClaudeCodeAdapter.ts\';',
-      'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, claudeConfigFolderVariable());',
+      'cli/CommandContext.ts: vendor-name: if (!fakeAgentIsOn()) return claudeCodeAdapterFor(process.platform, agentVariableOf);',
     ]);
   });
 });

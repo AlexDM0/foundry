@@ -4,7 +4,7 @@
  */
 import { readFileSync }                from 'node:fs';
 import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CLAUDE_API_KEY_VARIABLE }     from '../../src/lib/claude-code/ClaudeApiKeyVariable.ts';
+import type { AgentCredentials }       from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { DecisionQuestionOption } from '../../src/lib/tracker-model/@types/Decision.ts';
 import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
 import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
@@ -57,28 +57,32 @@ function ticketsPhraseOf(ticketIds: readonly string[]): string {
   return ticketIds.length === 0 ? 'the board' : ticketIds.map((ticketId) => `#${ticketId}`).join(', ');
 }
 
-const API_KEY_NOT_SET_WORDING: DecisionWording = {
-  questions: [{
-    question:    `The pipeline sets API billing, and the environment of the Overseer has no ${CLAUDE_API_KEY_VARIABLE}. No agent starts until you set it.`,
-    header:      'api-key-not-set',
-    multiSelect: false,
-    options:     [],
-  }],
-  context: `Set ${CLAUDE_API_KEY_VARIABLE} at OS level, never in a committed file, as the docs/cli.md section "API billing set-up" tells. `
-    + 'Then stop the Overseer with `oversee stop` and start it again where the variable is set: each agent gets the key from the '
-    + 'environment the Overseer started with.',
-};
+function apiKeyNotSetWordingOf({ billingKeyVariableName }: AgentCredentials): DecisionWording {
+  return {
+    questions: [{
+      question:    `The pipeline sets API billing, and the environment of the Overseer has no ${billingKeyVariableName}. No agent starts until you set it.`,
+      header:      'api-key-not-set',
+      multiSelect: false,
+      options:     [],
+    }],
+    context: `Set ${billingKeyVariableName} at OS level, never in a committed file, as the docs/cli.md section "API billing set-up" tells. `
+      + 'Then stop the Overseer with `oversee stop` and start it again where the variable is set: each agent gets the key from the '
+      + 'environment the Overseer started with.',
+  };
+}
 
-const API_AUTHENTICATION_FAILED_WORDING: DecisionWording = {
-  questions: [{
-    question:    'The API refused the authentication of an agent session under API billing. No agent starts until you answer.',
-    header:      'api-authentication-failed',
-    multiSelect: false,
-    options:     [],
-  }],
-  context: `Make sure that ${CLAUDE_API_KEY_VARIABLE} holds a valid key, and that no managed forceLoginMethod or forceLoginOrgUUID `
-    + 'setting refuses API keys. Then answer: the stopped sessions resume.',
-};
+function apiAuthenticationFailedWordingOf({ billingKeyVariableName, authenticationCheckSentence }: AgentCredentials): DecisionWording {
+  return {
+    questions: [{
+      question:    'The API refused the authentication of an agent session under API billing. No agent starts until you answer.',
+      header:      'api-authentication-failed',
+      multiSelect: false,
+      options:     [],
+    }],
+    context: `Make sure that ${billingKeyVariableName} holds a valid key, and that ${authenticationCheckSentence}. Then answer: the stopped `
+      + 'sessions resume.',
+  };
+}
 
 /** The board's "no pipeline" question, which the setup answers: its Apply withdraws it, so User need not answer it by hand. */
 const CHECKS_NOT_SET_WORDING: DecisionWording = {
@@ -200,10 +204,11 @@ function entityDecisionWordingOf(draft: DecisionDraft): DecisionWording | null {
   }
 }
 
-function decisionWordingOf(draft: DecisionDraft): DecisionWording {
+/** `credentials` are the agent adapter's, which the API billing decisions name. */
+function decisionWordingOf(draft: DecisionDraft, credentials: AgentCredentials): DecisionWording {
   if (draft.kind === 'checks-not-set') return CHECKS_NOT_SET_WORDING;
-  if (draft.kind === 'api-key-not-set') return API_KEY_NOT_SET_WORDING;
-  if (draft.kind === 'api-authentication-failed') return API_AUTHENTICATION_FAILED_WORDING;
+  if (draft.kind === 'api-key-not-set') return apiKeyNotSetWordingOf(credentials);
+  if (draft.kind === 'api-authentication-failed') return apiAuthenticationFailedWordingOf(credentials);
   if (draft.kind === 'budget-reached') return budgetReachedWordingOf(draft);
   const entityDecisionWording = entityDecisionWordingOf(draft);
   if (entityDecisionWording !== null) return entityDecisionWording;
@@ -1066,7 +1071,7 @@ function noticeTextOf(notice: OverseerNotice): string {
     case 'instructions-missing':
       return `job ${notice.jobId} is not launched: the instruction file ${notice.path} its pipeline names is missing`;
     case 'agent-program-refused':
-      return OperationRefusalWordingUtil.agentProgramRefusalTextOf(notice.jobId, notice.cause, notice.reason);
+      return OperationRefusalWordingUtil.agentProgramRefusalTextOf(notice.jobId, notice.reason, notice.repair);
   }
 }
 

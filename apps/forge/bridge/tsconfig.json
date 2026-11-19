@@ -32,7 +32,6 @@
     "../src/adapters/utils/OperationRefusalWordingUtil.ts",
     "../src/adapters/utils/StatusWordingUtil.ts",
     "../src/adapters/utils/TicketPhraseUtil.ts",
-    "../src/lib/executable-resolver/ExecutableResolver.ts",
     "../src/lib/html-escape/HtmlEscapeUtil.ts",
     "../src/lib/local-time/LocalTimeUtil.ts",
     "../src/lib/token-count/TokenCountUtil.ts",

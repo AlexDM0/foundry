@@ -15,6 +15,8 @@ import type { AgentHostFacts }                 from './AgentHostFacts.ts';
 import { agentHostFactsFor }                   from './AgentHostFactsFor.ts';
 import { CLAUDE_API_KEY_VARIABLE }             from './ClaudeApiKeyVariable.ts';
 import { CLAUDE_CONFIG_FOLDER_VARIABLE }       from './ClaudeConfigFolder.ts';
+import { CLAUDE_CODE_CREDENTIALS }             from './ClaudeCredentials.ts';
+import { claudeProgramRepairOf }               from './ClaudeProgramRepair.ts';
 import { ClaudeSessionSubagents }              from './ClaudeSessionSubagents.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
@@ -340,11 +342,13 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
   return Object.freeze<AgentAdapter>({
     vendor:                 CLAUDE_CODE_VENDOR,
     capabilities:           CLAUDE_CODE_CAPABILITIES,
+    credentials:            CLAUDE_CODE_CREDENTIALS,
     sandboxDenyShape:       facts.sandboxDenyShape,
     // The config folder passes with the login, so a session writes the transcripts the readers find there.
     inheritedVariableNames: [...CLAUDE_AUTHENTICATION_VARIABLES, CLAUDE_CONFIG_FOLDER_VARIABLE],
     credentialPathsOf:      (homeDirectory) => facts.credentialPathsOf(homeDirectory, configFolderOf(homeDirectory)),
     programPathOf:          (resolver, forbiddenRoots) => resolver.absolutePathOf(CLAUDE_PROGRAM_NAME, forbiddenRoots),
+    programRepairOf:        claudeProgramRepairOf,
     planOf:                 (request) => planOf(facts, configFolderOf(request.homeDirectory), request),
     sessionIdOf:            claudeSessionIdOf,
     ...CLAUDE_STREAM_LINES,
@@ -357,6 +361,7 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
   });
 }
 
-export function claudeCodeAdapterFor(platform: string, configFolderVariable?: string): AgentAdapter {
-  return createClaudeCodeAdapter(agentHostFactsFor(platform), configFolderVariable);
+/** `agentVariableOf` reads a variable by the name the adapter gives; a spec that passes none runs with no variable set. */
+export function claudeCodeAdapterFor(platform: string, agentVariableOf: (name: string) => string | undefined = () => undefined): AgentAdapter {
+  return createClaudeCodeAdapter(agentHostFactsFor(platform), agentVariableOf(CLAUDE_CONFIG_FOLDER_VARIABLE));
 }

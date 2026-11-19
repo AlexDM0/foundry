@@ -101,9 +101,9 @@ describe('the setup landing', () => {
   test('the footer words the chosen billing', () => {
     fakeControls().render(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />);
     const footer = screen.getByRole('region', { name: 'Billing actions' });
-    expect(within(footer).getByText('Agents run on this machine\'s Claude login.')).toBeDefined();
+    expect(within(footer).getByText('Agents run on this machine\'s agent login.')).toBeDefined();
     fireEvent.click(screen.getByLabelText('API key'));
-    expect(within(footer).getByText('Billed to ANTHROPIC_API_KEY. No cap per launch.')).toBeDefined();
+    expect(within(footer).getByText('Billed to the API key. No cap per launch.')).toBeDefined();
   });
 });
 

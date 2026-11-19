@@ -3,12 +3,13 @@
  * not the Bridge, refuses a cap that is not positive) and the unreadable file's replacement; a reopened step sends a billing change only
  * when the choice differs from the record's, and a record still at billing continues from here, never loops back to it; the waiting
  * tickets are the pending ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one; the
- * panel head says the agent is not started before a setup, then whether its job runs; the footer words the chosen billing and its cap.
+ * panel head says the agent is not started before a setup, then whether its job runs; the cards and the footer word the chosen billing and
+ * its cap without naming the agent's vendor or its key variable, which the Overseer's decision names once the key is missing.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { PIPELINE_CHOICES_FIXTURE, pipelineBoardStateOf } from '../../../testing/PipelineFixture.ts';
-import { BillingStepModel }                               from './BillingStepModel.ts';
+import { BILLING_CARDS, BillingStepModel }                from './BillingStepModel.ts';
 
 const {
   billingChoiceOf, startCommandOf, billingChangeCommandOf, pendingTicketCountOf, waitingTicketsTextOf, pipelineAgentMeterOf, backLabelOf, continueCommandOf,
@@ -116,10 +117,19 @@ describe('the panel head', () => {
   });
 });
 
+describe('the cards', () => {
+  test('word the login and the API key in the Overseer\'s environment', () => {
+    expect(BILLING_CARDS.map((card) => card.description)).toEqual([
+      'Agents run on this machine\'s agent login. Usage counts against the plan\'s limits, such as its weekly window.',
+      'Billed to the API key in the Overseer\'s environment. The key is never stored.',
+    ]);
+  });
+});
+
 describe('the footer', () => {
   test('words the chosen billing, and the API key with its cap as typed', () => {
-    expect(footerLinesOf({ mode: 'subscription', capText: '' })).toEqual({ summary: 'Subscription', detail: 'Agents run on this machine\'s Claude login.' });
-    expect(footerLinesOf({ mode: 'api', capText: ' ' })).toEqual({ summary: 'API key', detail: 'Billed to ANTHROPIC_API_KEY. No cap per launch.' });
-    expect(footerLinesOf({ mode: 'api', capText: '12.5' })).toEqual({ summary: 'API key', detail: 'Billed to ANTHROPIC_API_KEY. A cap of US$ 12.5 per launch.' });
+    expect(footerLinesOf({ mode: 'subscription', capText: '' })).toEqual({ summary: 'Subscription', detail: 'Agents run on this machine\'s agent login.' });
+    expect(footerLinesOf({ mode: 'api', capText: ' ' })).toEqual({ summary: 'API key', detail: 'Billed to the API key. No cap per launch.' });
+    expect(footerLinesOf({ mode: 'api', capText: '12.5' })).toEqual({ summary: 'API key', detail: 'Billed to the API key. A cap of US$ 12.5 per launch.' });
   });
 });

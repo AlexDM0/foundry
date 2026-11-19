@@ -12,6 +12,8 @@ import type { AgentLaunchRequest }           from '../lib/agent-launch/AgentLaun
 import type { AgentQuestion }                from '../lib/agent-launch/AgentSessionEvent.ts';
 import type { SubagentFacts, SubagentUsage } from '../lib/agent-launch/AgentTranscripts.ts';
 import { claudeConfigFolderOf }              from '../lib/claude-code/ClaudeConfigFolder.ts';
+import { CLAUDE_CODE_CREDENTIALS }           from '../lib/claude-code/ClaudeCredentials.ts';
+import { claudeProgramRepairOf }             from '../lib/claude-code/ClaudeProgramRepair.ts';
 import {
   CLAUDE_CODE_CAPABILITIES,
   CLAUDE_CODE_SESSION_ENDINGS,
@@ -169,10 +171,12 @@ export function fakeAgentAdapter(
   return {
     vendor:                 FAKE_AGENT_VENDOR,
     capabilities:           CLAUDE_CODE_CAPABILITIES,
+    credentials:            CLAUDE_CODE_CREDENTIALS,
     sandboxDenyShape:       'path-rules',
     inheritedVariableNames: [],
     credentialPathsOf:      (homeDirectory) => [join(homeDirectory, '.ssh')],
     programPathOf:          () => ({ verdict: 'found', path: process.execPath }),
+    programRepairOf:        claudeProgramRepairOf,
     planOf(request: AgentLaunchRequest): AgentLaunchPlan {
       const scenarioPath = join(request.jobFilesDirectory, SCENARIO_FILE_NAME);
       // Some specs hand a request with no profile, so its absence reads as a session with tools.

@@ -5,17 +5,30 @@
  * about: `work-in-other-entity` offers a move to each entity that owns the work and abandoning (E15), `package-refused` its three answers
  * (E22), `whitelist-removed-mid-crossing` its two (E19) and `dependent-broken` a fix ticket for the dependent in the ticket's group and
  * abandoning (E26), each option labelled as the Overseer reads the answer back and naming no command; the need decisions name the need, and
- * `second-return` the package. The fix ticket of a dependent carries a numbered Acceptance and a Brief, so it can be readied.
+ * `second-return` the package. The fix ticket of a dependent carries a numbered Acceptance and a Brief, so it can be readied. The two API
+ * billing decisions name the variable and the check of the agent adapter's credentials, never a vendor's own.
  */
 import { expect, test } from 'bun:test';
 
+import type { AgentCredentials }   from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { DecisionKind }       from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { DecisionDraft }      from '../../src/lib/tracker-model/@types/PlaybookStep.ts';
 import { ENTITY_DECISION_ANSWERS } from '../../src/lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import { OverseerWording }         from './OverseerWording.ts';
 
+const PLANTED_CREDENTIALS: AgentCredentials = {
+  configurationFolderVariableName: 'EXAMPLE_AGENT_FOLDER',
+  billingKeyVariableName:          'EXAMPLE_AGENT_KEY',
+  authenticationCheckSentence:     'no example policy refuses keys',
+};
+
+function decisionWordingOf(draft: DecisionDraft): ReturnType<typeof OverseerWording.decisionWordingOf> {
+  return OverseerWording.decisionWordingOf(draft, PLANTED_CREDENTIALS);
+}
+
 test('checks-not-set says that no pipeline is set and that the setup\'s Apply sets one and withdraws the question', () => {
-  const wording = OverseerWording.decisionWordingOf({ kind: 'checks-not-set', ticketIds: [], jobId: null });
+  const wording = decisionWordingOf({ kind: 'checks-not-set', ticketIds: [], jobId: null });
 
   expect(wording.questions).toEqual([{
     question:    'No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.',
@@ -28,20 +41,36 @@ test('checks-not-set says that no pipeline is set and that the setup\'s Apply se
   expect(JSON.stringify(wording)).not.toContain('needs a decision');
 });
 
+test('api-key-not-set names the agent adapter\'s billing key variable and the set-up section', () => {
+  const wording = decisionWordingOf({ kind: 'api-key-not-set', ticketIds: [], jobId: null });
+
+  expect(wording.questions[0]?.question).toBe('The pipeline sets API billing, and the environment of the Overseer has no EXAMPLE_AGENT_KEY. No agent '
+    + 'starts until you set it.');
+  expect(wording.context).toContain('Set EXAMPLE_AGENT_KEY at OS level, never in a committed file, as the docs/cli.md section "API billing set-up" tells.');
+});
+
+test('api-authentication-failed names the agent adapter\'s billing key variable and its authentication check', () => {
+  const wording = decisionWordingOf({ kind: 'api-authentication-failed', ticketIds: [], jobId: null });
+
+  expect(wording.questions[0]?.header).toBe('api-authentication-failed');
+  expect(wording.context).toBe('Make sure that EXAMPLE_AGENT_KEY holds a valid key, and that no example policy refuses keys. Then answer: the stopped '
+    + 'sessions resume.');
+});
+
 test('a kind with no wording of its own is named in the generic sentence', () => {
-  const wording = OverseerWording.decisionWordingOf({ kind: 'target-moved', ticketIds: ['004'], jobId: null });
+  const wording = decisionWordingOf({ kind: 'target-moved', ticketIds: ['004'], jobId: null });
 
   expect(wording.questions[0]?.question).toBe('The Overseer needs a decision (target-moved) about #004.');
 });
 
 function optionLabelsOf(kind: DecisionKind, subject: Parameters<typeof OverseerWording.decisionWordingOf>[0]['subject'] = {}): string[] {
-  return OverseerWording.decisionWordingOf({
+  return decisionWordingOf({
     kind, ticketIds: ['001'], jobId: null, subject
   }).questions.flatMap((question) => question.options.map((option) => option.label));
 }
 
 test('E15: work-in-other-entity offers a move to each entity that owns the work, then abandoning, and names the files', () => {
-  const wording = OverseerWording.decisionWordingOf({
+  const wording = decisionWordingOf({
     kind: 'work-in-other-entity', ticketIds: ['001'], jobId: null, subject: { owningEntities: ['admin'], paths: ['apps/admin/src/Example.ts'] }
   });
 
@@ -53,7 +82,7 @@ test('E15: work-in-other-entity offers a move to each entity that owns the work,
 });
 
 test('E22: package-refused names the package and offers dropping the change, a need and abandoning', () => {
-  const wording = OverseerWording.decisionWordingOf({
+  const wording = decisionWordingOf({
     kind: 'package-refused', ticketIds: ['001'], jobId: null, subject: { packageEntity: 'ui-kit' }
   });
 
@@ -64,7 +93,7 @@ test('E22: package-refused names the package and offers dropping the change, a n
 });
 
 test('E19: whitelist-removed-mid-crossing names the package and offers finishing under the old whitelist or a need', () => {
-  const wording = OverseerWording.decisionWordingOf({
+  const wording = decisionWordingOf({
     kind: 'whitelist-removed-mid-crossing', ticketIds: ['001'], jobId: null, subject: { packageEntity: 'ui-kit' }
   });
 
@@ -76,24 +105,24 @@ test('E19: whitelist-removed-mid-crossing names the package and offers finishing
 
 test('the need decisions name the need, second-return the package, and none falls to the generic sentence (E12, E13, E14, E45)', () => {
   for (const kind of ['need-for-root', 'need-closes-circle', 'need-abandoned', 'second-return'] as const) {
-    const wording = OverseerWording.decisionWordingOf({
+    const wording = decisionWordingOf({
       kind, ticketIds: ['001'], jobId: null, subject: { need: 'admin: Example need', packageEntity: 'ui-kit' }
     });
     expect(JSON.stringify(wording), kind).not.toContain('needs a decision');
     expect(wording.questions[0]?.options.length, kind).toBeGreaterThan(0);
   }
-  expect(OverseerWording.decisionWordingOf({
+  expect(decisionWordingOf({
     kind: 'need-for-root', ticketIds: ['001'], jobId: null, subject: { need: 'root: Example need' }
   })
     .questions[0]?.question).toContain('the need "root: Example need"');
-  expect(OverseerWording.decisionWordingOf({
+  expect(decisionWordingOf({
     kind: 'second-return', ticketIds: ['001'], jobId: null, subject: { packageEntity: 'ui-kit' }
   })
     .questions[0]?.question).toContain('the package `ui-kit`');
 });
 
 test('E26: dependent-broken names the package and the dependent and offers a fix ticket in the group or abandoning, naming no command', () => {
-  const wording = OverseerWording.decisionWordingOf({
+  const wording = decisionWordingOf({
     kind: 'dependent-broken', ticketIds: ['001'], jobId: null, subject: { packageEntity: 'ui-kit', dependentEntity: 'admin' }
   });
 

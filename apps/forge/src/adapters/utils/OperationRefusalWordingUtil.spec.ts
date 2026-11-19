@@ -145,3 +145,9 @@ test('an install version mismatch is printed as the install version wording word
   const refusal = new OperationRefusal('refused', detail);
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(OperationRefusalWordingUtil.installVersionMismatchMessageOf(detail));
 });
+
+test('a refused agent program names its job and the reason, then the repair it is given, and names no program of its own', () => {
+  expect(OperationRefusalWordingUtil.agentProgramRefusalTextOf('J7', 'C:\\example\\agent.cmd is a batch file', 'run the example repair'))
+    .toBe('job J7 is not launched: C:\\example\\agent.cmd is a batch file; run the example repair');
+  expect(OperationRefusalWordingUtil.agentProgramRefusalTextOf('J7', 'no agent program is on PATH', null)).toBe('job J7 is not launched: no agent program is on PATH');
+});

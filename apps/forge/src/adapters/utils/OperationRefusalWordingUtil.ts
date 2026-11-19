@@ -2,7 +2,6 @@
  * Words an `OperationRefusal` for its channel: its own message, or its detail. A Board refusal carries only its reason code and facts, and
  * the install-version mismatch is worded as one paragraph, so a refusal is always one report.
  */
-import type { ExecutableRefusalCause }                       from '../../lib/executable-resolver/ExecutableResolver.ts';
 import type { JobMoveTarget }                                from '../../lib/tracker-model/@types/Job.ts';
 import type { NeedGap }                                      from '../../lib/tracker-model/@types/Need.ts';
 import type { TaskStatus }                                   from '../../lib/tracker-model/@types/Task.ts';
@@ -41,7 +40,6 @@ const TALOS_UNAVAILABLE_REASON_WORDING: Readonly<Record<Extract<OperationRefusal
 };
 
 const NOTHING_WAS_WRITTEN = 'Nothing was written.';
-const WINDOWS_CLAUDE_INSTALL_COMMAND = 'irm https://claude.ai/install.ps1 | iex';
 
 const CHART_RANGE_BOUND_TEXT: Readonly<Record<'from' | 'to', string>> = { from: 'The start', to: 'The end' };
 
@@ -901,10 +899,9 @@ function hatchQueuedMessageOf(requestId: string): string {
   return `queued ${requestId}`;
 }
 
-/** A batch target is the npm shim of `claude` on Windows, which only the native program replaces. */
-function agentProgramRefusalTextOf(jobId: string, cause: ExecutableRefusalCause, reason: string): string {
-  const repair = cause === 'batch-target' ? `; install the native program in PowerShell with \`${WINDOWS_CLAUDE_INSTALL_COMMAND}\`, and put its folder first on PATH` : '';
-  return `job ${jobId} is not launched: ${reason}${repair}`;
+/** `repair` is the agent adapter's sentence for the refusal, or `null` when it has none. */
+function agentProgramRefusalTextOf(jobId: string, reason: string, repair: string | null): string {
+  return `job ${jobId} is not launched: ${reason}${repair === null ? '' : `; ${repair}`}`;
 }
 
 function boardRefusalMessageOf(detail: BoardRefusalDetail): string {

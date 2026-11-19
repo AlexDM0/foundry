@@ -90,6 +90,7 @@ function claudeBilledAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGEN
   if (claude.vendor !== 'claude-code') throw new Error(`the spec process chose the ${claude.vendor} adapter, not Claude Code's`);
   return {
     ...fake,
+    credentials:            claude.credentials,
     eventsOf:               (line) => fake.eventsOf(budgetStopPlantedIn(line)),
     inheritedVariableNames: claude.inheritedVariableNames,
     planOf:                 (request): AgentLaunchPlan => {
@@ -113,18 +114,19 @@ function setBilling(billing: PipelineBilling | undefined): void {
 }
 
 function drivePassWith(apiBillingKeyIsSet: boolean, requestOverrides: Partial<DrivePassRequest> = {}): DrivePass {
+  const agentAdapter = claudeBilledAdapter();
   const drivePass = createScratchDrivePass({
     platformPorts:        { ...ports, gateConfinement: fakeGateConfinement('unconfined-by-design') },
     processStarts:        world.processStarts,
     workspace:            requireWorkspace(repositoryDirectory),
     now:                  SPEC_CLOCK,
     talosConnection:      () => world.connectionFor(requireWorkspace(repositoryDirectory).trackerDirectory),
-    agentAdapter:         claudeBilledAdapter(),
+    agentAdapter,
     monitorFolder,
     mainLine:             RECORDED_FLOW_MAIN_LINE,
     inheritedEnvironment: OVERSEER_ENVIRONMENT,
     apiBillingKeyIsSet:   () => apiBillingKeyIsSet,
-    decisionWordingOf:    OverseerWording.decisionWordingOf,
+    decisionWordingOf:    (draft) => OverseerWording.decisionWordingOf(draft, agentAdapter.credentials),
     log:                  (line) => overseerLog.push(line),
     ...requestOverrides,
   });

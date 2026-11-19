@@ -2,7 +2,8 @@
  * The adapter is the whole of what a launched session may do, so these cases hold its rendering per role as a table: the command line
  * of design section 4.2, the settings that confine the session (sandbox sets as `//`-anchored paths, git denies, no attribution, no
  * memory, no instruction file above the repository, no local port), the subagents, the git configuration, the scrubbed environment, the
- * one standing reply, and the lines Talos sends, against the ones the probes recorded.
+ * one standing reply, and the lines Talos sends, against the ones the probes recorded. The adapter names its own variables and credentials
+ * and reads its config folder variable through the reader it is handed, and words the repair of a refused program.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -244,7 +245,7 @@ describe('the rendered settings', () => {
   });
 
   test('with CLAUDE_CONFIG_DIR set, the user CLAUDE.md and the Claude login are those of that folder', () => {
-    const adapter  = claudeCodeAdapterFor('darwin', '/srv/claude-config');
+    const adapter  = claudeCodeAdapterFor('darwin', (name) => (name === 'CLAUDE_CONFIG_DIR' ? '/srv/claude-config' : undefined));
     const settings = settingsOf(adapter.planOf(requestOf('builder')));
     expect(settings.claudeMdExcludes).toContain('/srv/claude-config/CLAUDE.md');
     expect(adapter.credentialPathsOf('/Users/example')).toContain('/srv/claude-config/.credentials.json');
@@ -593,6 +594,40 @@ describe('the program a plan spawns', () => {
     expect(CLAUDE_CODE_ADAPTER.programPathOf(resolver, [REPOSITORY])).toBe(answer);
     expect(asked).toEqual([['claude', [REPOSITORY]]]);
   });
+});
+
+describe('the credentials and the repair', () => {
+  test('name the config folder variable, the API key variable and the managed login settings that refuse a key', () => {
+    expect(CLAUDE_CODE_ADAPTER.credentials).toEqual({
+      configurationFolderVariableName: 'CLAUDE_CONFIG_DIR',
+      billingKeyVariableName:          'ANTHROPIC_API_KEY',
+      authenticationCheckSentence:     'no managed forceLoginMethod or forceLoginOrgUUID setting refuses API keys',
+    });
+  });
+
+  test('the adapter asks the reader it is handed for its config folder variable alone', () => {
+    const askedNames: string[] = [];
+    claudeCodeAdapterFor('linux', (name) => {
+      askedNames.push(name);
+      return undefined;
+    });
+    expect(askedNames).toEqual(['CLAUDE_CONFIG_DIR']);
+  });
+
+  type RefusalCause = Parameters<AgentAdapter['programRepairOf']>[0];
+  const REPAIR_BY_CAUSE: Readonly<Record<RefusalCause, string | null>> = {
+    'not-a-program-name':     null,
+    'not-on-search-path':     null,
+    'relative-search-folder': null,
+    'inside-forbidden-root':  null,
+    'batch-target':           'install the native program in PowerShell with `irm https://claude.ai/install.ps1 | iex`, and put its folder first on PATH',
+    'no-adapter':             null,
+  };
+  for (const [cause, repair] of Object.entries(REPAIR_BY_CAUSE)) {
+    test(`a refused program of cause ${cause} is repaired by ${repair === null ? 'no sentence' : 'the native Windows install'}`, () => {
+      expect(CLAUDE_CODE_ADAPTER.programRepairOf(cause as RefusalCause)).toBe(repair);
+    });
+  }
 });
 
 describe('the lines Talos sends', () => {

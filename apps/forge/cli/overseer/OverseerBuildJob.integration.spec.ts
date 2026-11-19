@@ -185,7 +185,7 @@ async function drivePassPlaying(
     monitorFolder,
     inheritedEnvironment: withRecordedGitFirstOnPath(overseerEnvironment, requireRecordedFlow()),
     mainLine:             RECORDED_FLOW_MAIN_LINE,
-    decisionWordingOf:    OverseerWording.decisionWordingOf,
+    decisionWordingOf:    (draft) => OverseerWording.decisionWordingOf(draft, fakeAgentAdapter().credentials),
     redHandoffMessageOf:  OverseerWording.redHandoffMessageOf,
     log:                  (line) => overseerLog.push(line),
     afterHoldPhase:       recordBuildStateChanges,

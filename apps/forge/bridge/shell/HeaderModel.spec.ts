@@ -174,13 +174,13 @@ describe('the warnings and notices', () => {
     expect(model.warnings).toEqual([]);
   });
 
-  test('a refused agent program names its job and the reason, never only its kind', () => {
+  test('a refused agent program names its job, the reason and the adapter\'s repair, never only its kind', () => {
     const model = headerModelOf(boardStateFixture({
       notices: [{
-        kind: 'agent-program-refused', jobId: 'J7', cause: 'batch-target', reason: 'C:\\npm\\claude.cmd is a batch file'
+        kind: 'agent-program-refused', jobId: 'J7', cause: 'batch-target', reason: 'C:\\npm\\claude.cmd is a batch file', repair: 'run the example repair'
       }],
     }), FIXTURE_NOW, 'live');
-    expect(model.notices).toEqual(['job J7 is not launched: C:\\npm\\claude.cmd is a batch file']);
+    expect(model.notices).toEqual(['job J7 is not launched: C:\\npm\\claude.cmd is a batch file; run the example repair']);
   });
 });
 

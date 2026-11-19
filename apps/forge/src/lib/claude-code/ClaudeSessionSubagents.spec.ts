@@ -144,7 +144,8 @@ describe('ClaudeSessionSubagents.subagentFactsOf', () => {
     const { claudeConfigFolder, subagentsFolder } = sessionFolderUnderScratchConfigFolder('session-1');
     writeAgent(subagentsFolder, 'alpha', 'call-2');
     writeAgent(subagentsFolder, 'beta', 'call-3');
-    const facts = claudeCodeAdapterFor('linux', claudeConfigFolder).sessionSubagentsOf('/example/home', 'session-1', new Set(['call-3']));
+    const adapter = claudeCodeAdapterFor('linux', (name) => (name === 'CLAUDE_CONFIG_DIR' ? claudeConfigFolder : undefined));
+    const facts = adapter.sessionSubagentsOf('/example/home', 'session-1', new Set(['call-3']));
     expect(facts.map((subagent) => subagent.parentToolUseId)).toEqual(['call-2']);
   });
 

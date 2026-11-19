@@ -33,7 +33,6 @@ import { hatchReplyFilePathOf, writeHatchRequest }              from '../../src/
 import { MachineLimitsFile }                                    from '../../src/adapters/machine-limits/MachineLimitsFile.ts';
 import { UsageMarkerFile }                                      from '../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }                                     from '../../src/adapters/usage-marker/UsageWindowsFile.ts';
-import { OperationRefusalWordingUtil }                          from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { createWindowsExecutableResolver }                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
 import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
@@ -70,6 +69,7 @@ import { runCommandLineWithOverseerMoves }                   from '../testing/Ov
 import { fileReadyTicket }                                   from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                                   from '../testing/StoredLogText.ts';
 import { storedProgressOf }                                  from '../testing/StoredProgress.ts';
+import { OverseerWording }                                   from './OverseerWording.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -237,9 +237,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     await passOnce(drivePass);
     await passOnce(drivePass);
 
-    expect(drivePass.state().notices).toContainEqual(expect.objectContaining({ kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target' }));
-    const noticeText = OperationRefusalWordingUtil.agentProgramRefusalTextOf(buildJobId(), 'batch-target', `${shimPath} is a batch file`);
-    expect(noticeText).toContain('irm https://claude.ai/install.ps1 | iex');
+    expect(drivePass.state().notices).toContainEqual(expect.objectContaining({
+      kind: 'agent-program-refused', jobId: buildJobId(), cause: 'batch-target', repair: adapter.programRepairOf('batch-target')
+    }));
+    const noticeTexts = drivePass.state().notices.map(OverseerWording.noticeTextOf);
+    expect(noticeTexts.find((text) => text.startsWith(`job ${buildJobId()} is not launched: ${shimPath} is a batch file`))).toContain('irm https://claude.ai/install.ps1 | iex');
     expect(childReadings().livenessOf(jobFolder(buildJobId()), 1).verdict).toBe('unlaunched');
   });
 

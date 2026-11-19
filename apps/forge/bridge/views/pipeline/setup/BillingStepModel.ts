@@ -38,12 +38,12 @@ export const BILLING_CARDS: readonly { readonly mode: BillingMode; readonly labe
   {
     mode:        'subscription',
     label:       'Subscription',
-    description: 'Agents run on this machine\'s Claude login. Usage counts against the plan\'s limits, such as its weekly window.',
+    description: 'Agents run on this machine\'s agent login. Usage counts against the plan\'s limits, such as its weekly window.',
   },
   {
     mode:        'api',
     label:       'API key',
-    description: 'Billed to the Console account of ANTHROPIC_API_KEY in the Overseer\'s environment. The key is never stored.',
+    description: 'Billed to the API key in the Overseer\'s environment. The key is never stored.',
   },
 ];
 
@@ -145,10 +145,10 @@ function panelStatusOf(record: PipelineSetup | null, agentJobState: JobState | n
 
 /** "Subscription" with the login it runs on, or "API key" with its cap per launch as typed. */
 function footerLinesOf(choice: BillingChoice): BillingFooterLines {
-  if (choice.mode === 'subscription') return { summary: 'Subscription', detail: 'Agents run on this machine\'s Claude login.' };
+  if (choice.mode === 'subscription') return { summary: 'Subscription', detail: 'Agents run on this machine\'s agent login.' };
   const capText = choice.capText.trim();
   const capLine = capText === '' ? 'No cap per launch.' : `A cap of US$ ${capText} per launch.`;
-  return { summary: 'API key', detail: `Billed to ANTHROPIC_API_KEY. ${capLine}` };
+  return { summary: 'API key', detail: `Billed to the API key. ${capLine}` };
 }
 
 /** The reopened billing step's way back to where the setup stands, in place of a second start. */
