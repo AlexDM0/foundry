@@ -1,8 +1,8 @@
 /**
- * After the hold, the frames User's job controls ask of a live Watcher (design section 7.4): every `job-messaged` record as a chat line in log
+ * After the hold, the frames User's job controls ask of a live child (design section 7.4): every `job-messaged` record as a chat line in log
  * order, with the pictures it names read from the board's picture store, the wind-down turn of a `wind-down` request, and a session's closed
  * input, with a stop frame after it for a `stop`, and the closed input of a job that ended while its session ran. A frame waits until its
- * Watcher is live, and a marker written once it was taken keeps a restart from sending it again, unless the Overseer died before the marker:
+ * child is live, and a marker written once it was taken keeps a restart from sending it again, unless the Overseer died before the marker:
  * delivery is at least once.
  */
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -42,8 +42,8 @@ async function sendOnce(children: BoardChildren, jobFolder: string, job: Readonl
   if (existsSync(markerPath)) return true;
   const act = actOf();
   if (act.kind === 'input') {
-    await children.sendInputOnce(markerPath, jobFolder, job.watcherInstance, act.inputs);
-  } else if (children.livenessOf(jobFolder, job.watcherInstance).verdict === 'live' && await children.stop(jobFolder, job.watcherInstance, act.graceMilliseconds)) {
+    await children.sendInputOnce(markerPath, jobFolder, job.childInstance, act.inputs);
+  } else if (children.livenessOf(jobFolder, job.childInstance).verdict === 'live' && await children.stop(jobFolder, job.childInstance, act.graceMilliseconds)) {
     mkdirSync(dirname(markerPath), { recursive: true });
     writeFileSync(markerPath, '');
   }
@@ -57,7 +57,7 @@ async function deliverInOrder(sends: readonly (() => Promise<boolean>)[]): Promi
 }
 
 /**
- * User's messages to the job its session has not taken yet: no `message-<n>` marker, the one `deliverJobControls` writes once its Watcher
+ * User's messages to the job its session has not taken yet: no `message-<n>` marker, the one `deliverJobControls` writes once its child
  * took the line. The Assistant numbers them among its chats, so its own markers count them.
  */
 function unsentMessageCountOf(board: Pick<Board, 'logRecordsSoFar'>, trackerDirectory: string, job: Readonly<Job>): number {
@@ -99,10 +99,10 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
       sends.push(async () => await sendOnce(children, jobFolder, job, 'wind-down', () => inputOf(adapter.chatLineOf(request.windDownMessage))));
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {
-      sends.push(async () => await sendOnce(children, jobFolder, job, `input-closed-${job.watcherInstance}`, () => ({ kind: 'input', inputs: [{ act: 'close' }] })));
+      sends.push(async () => await sendOnce(children, jobFolder, job, `input-closed-${job.childInstance}`, () => ({ kind: 'input', inputs: [{ act: 'close' }] })));
       if (job.stopRequest === 'stop') {
         sends.push(async () => await sendOnce(
-          children, jobFolder, job, `stop-${job.watcherInstance}`, () => ({ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS })
+          children, jobFolder, job, `stop-${job.childInstance}`, () => ({ kind: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS })
         ));
       }
     }
@@ -110,24 +110,24 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
   }
 }
 
-/** A job the hold ended whose session's Watcher was live before the hold: the instance that ran it. */
+/** A job the hold ended whose session's child was live before the hold: the instance that ran it. */
 export interface EndedJobSession {
-  jobId:           string;
-  watcherInstance: number;
+  jobId:         string;
+  childInstance: number;
 }
 
 /**
- * Closes the input of each ended job's session, once, so the session exits and its Watcher ends: a job that left the board in the hold that
+ * Closes the input of each ended job's session, once, so the session exits and its child ends: a job that left the board in the hold that
  * moved it on, such as a build that Customs ended, has no state that asks for the close. Answers the sessions whose close is still due: the
- * Watcher is live and did not take the frame yet.
+ * child is live and did not take the frame yet.
  */
 async function closeInputOfEndedJobs(children: BoardChildren, endedSessions: readonly EndedJobSession[]): Promise<EndedJobSession[]> {
   const stillDue: EndedJobSession[] = [];
   for (const ended of endedSessions) {
     const jobFolder  = children.jobFolderOf(ended.jobId);
-    const markerPath = join(jobFolder, MARKERS_FOLDER, `input-closed-${ended.watcherInstance}`);
-    await children.sendInputOnce(markerPath, jobFolder, ended.watcherInstance, [{ act: 'close' }]);
-    const taken = existsSync(markerPath) || children.livenessOf(jobFolder, ended.watcherInstance).verdict !== 'live';
+    const markerPath = join(jobFolder, MARKERS_FOLDER, `input-closed-${ended.childInstance}`);
+    await children.sendInputOnce(markerPath, jobFolder, ended.childInstance, [{ act: 'close' }]);
+    const taken = existsSync(markerPath) || children.livenessOf(jobFolder, ended.childInstance).verdict !== 'live';
     if (!taken) stillDue.push(ended);
   }
   return stillDue;

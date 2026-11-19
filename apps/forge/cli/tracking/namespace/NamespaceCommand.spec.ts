@@ -73,7 +73,7 @@ function writeRunningJobs(jobs: readonly Pick<Job, 'id' | 'kind' | 'role' | 'tic
     attempt:            1,
     target:             job.ticketIds.length === 0 ? null : 'main',
     state:              'running',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,

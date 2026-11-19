@@ -217,7 +217,7 @@ function liveCountsOf(stampedEvents: readonly StampedEvents[]): JobLiveCounts {
 function entriesByInstanceOf(children: BoardChildren, job: Readonly<Job>): (readonly EventLogEntry[])[] {
   const jobFolder = children.jobFolderOf(job.id);
   const entriesByInstance: (readonly EventLogEntry[])[] = [];
-  for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
+  for (let instance = 1; instance <= job.childInstance; instance += 1) {
     const read = children.eventsAfter(jobFolder, instance, 0);
     entriesByInstance.push(read === 'malformed' ? [] : read);
   }
@@ -254,7 +254,7 @@ function isLastLineEntry(entry: TranscriptEntry): boolean {
 /** Read as the transcript stream reads the session, so the line and its sender are the ones the session's chat shows. */
 function lastLineOf(source: JobLiveFactsSource, job: Readonly<Job>): SessionLastLine | null {
   if (!SESSION_JOB_KINDS.includes(job.kind)) return null;
-  const { entries } = JobTranscript.entriesAfter(source.boardChildren.jobFolderOf(job.id), job.watcherInstance, TRANSCRIPT_START, {
+  const { entries } = JobTranscript.entriesAfter(source.boardChildren.jobFolderOf(job.id), job.childInstance, TRANSCRIPT_START, {
     eventsAfter:       source.boardChildren.eventsAfter,
     eventsOf:          (line) => source.adapter.eventsOf(line),
     sentLineOf:        (line) => source.adapter.sentLineOf(line),

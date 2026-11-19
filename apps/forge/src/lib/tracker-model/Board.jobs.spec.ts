@@ -1,5 +1,5 @@
 /**
- * The Overseer's jobs on the Board. What matters: a job's ids are never reused or gap-filled, since a log line and a Watcher folder name it for
+ * The Overseer's jobs on the Board. What matters: a job's ids are never reused or gap-filled, since a log line and a child folder name it for
  * good; the record holds what a restart needs and no process identity; every move goes through the one legality table, an illegal one
  * refused `job-move-illegal` from every state; a job is finished only by `job-ended`, after which every move is refused `job-finished`;
  * only the launch, an interruption, a resume and the end are logged; and the merge-queue mark lives on in-review rows only. A product owner's
@@ -90,13 +90,13 @@ describe('a launch', () => {
       'attempt',
       'target',
       'state',
-      'watcherInstance',
+      'childInstance',
       'eventCursor',
       'answeredRequestIds',
       'crashResumes',
     ]);
     expect(job).toMatchObject({
-      id: 'J1', state: 'launching', watcherInstance: 1, eventCursor: { instance: 1, sequence: 0 }, answeredRequestIds: []
+      id: 'J1', state: 'launching', childInstance: 1, eventCursor: { instance: 1, sequence: 0 }, answeredRequestIds: []
     });
     expect(board.jobs()).toEqual([job]);
     expect(logged).toEqual(records);
@@ -206,7 +206,7 @@ describe('an intake\'s request and title', () => {
 });
 
 describe('the pipeline agent as a session', () => {
-  test('a stop before its session started ends it closed, and User\'s message opens it again in its next Watcher instance', () => {
+  test('a stop before its session started ends it closed, and User\'s message opens it again in its next child instance', () => {
     const { board, records } = boardFixture();
     const { job } = board.startPipelineAgent(AT);
 
@@ -214,7 +214,7 @@ describe('the pipeline agent as a session', () => {
     board.messageJob(job.id, 'Check the test script again.', [], AT);
 
     expect(records.filter((record) => record.kind === 'job-ended').map((record) => record.fields)).toMatchObject([{ outcome: 'closed' }]);
-    expect(board.jobById(job.id)).toMatchObject({ kind: 'pipeline-agent', state: 'running', watcherInstance: 2 });
+    expect(board.jobById(job.id)).toMatchObject({ kind: 'pipeline-agent', state: 'running', childInstance: 2 });
     expect(records.at(-1)).toMatchObject({ kind: 'job-reopened', fields: { text: 'Check the test script again.', offeredTicketIds: [] } });
   });
 
@@ -308,7 +308,7 @@ describe('the moves a job logs', () => {
     expect(records.map((record) => record.kind)).toEqual(['job-launched']);
   });
 
-  test('an interruption records its cause; the resume spawns the next Watcher instance and counts only a crash', () => {
+  test('an interruption records its cause; the resume spawns the next child instance and counts only a crash', () => {
     const { board, records } = boardWithTicket();
     const { job }            = board.launchJob(BUILD_LAUNCH, AT);
     board.moveJob(job.id, 'running', AT);
@@ -317,12 +317,12 @@ describe('the moves a job logs', () => {
     board.interruptJob(job.id, 'agent-crashed', AT);
     board.moveJob(job.id, 'running', AT);
 
-    expect(board.jobById(job.id)).toMatchObject({ watcherInstance: 3, crashResumes: 1, interruption: 'agent-crashed' });
+    expect(board.jobById(job.id)).toMatchObject({ childInstance: 3, crashResumes: 1, interruption: 'agent-crashed' });
     expect(records.slice(1).map(({ kind, fields }) => [kind, fields])).toEqual([
-      ['job-interrupted', { cause: 'reboot', watcherInstance: 1 }],
-      ['job-resumed', { watcherInstance: 2, cause: 'reboot' }],
-      ['job-interrupted', { cause: 'agent-crashed', watcherInstance: 2 }],
-      ['job-resumed', { watcherInstance: 3, cause: 'agent-crashed' }],
+      ['job-interrupted', { cause: 'reboot', childInstance: 1 }],
+      ['job-resumed', { childInstance: 2, cause: 'reboot' }],
+      ['job-interrupted', { cause: 'agent-crashed', childInstance: 2 }],
+      ['job-resumed', { childInstance: 3, cause: 'agent-crashed' }],
     ]);
   });
 
@@ -333,18 +333,18 @@ describe('the moves a job logs', () => {
     board.interruptJob(job.id, cause, AT);
     board.moveJob(job.id, 'running', AT);
 
-    expect(board.jobById(job.id)).toMatchObject({ watcherInstance: 2, crashResumes: 0, interruption: cause });
+    expect(board.jobById(job.id)).toMatchObject({ childInstance: 2, crashResumes: 0, interruption: cause });
     expect(records.slice(1).map(({ kind, fields }) => [kind, fields])).toEqual([
-      ['job-interrupted', { cause, watcherInstance: 1 }],
-      ['job-resumed', { watcherInstance: 2, cause }],
+      ['job-interrupted', { cause, childInstance: 1 }],
+      ['job-resumed', { childInstance: 2, cause }],
     ]);
   });
 
-  test('a job awaiting an answer resumes into running in the next Watcher instance', () => {
+  test('a job awaiting an answer resumes into running in the next child instance', () => {
     const { board } = boardWithTicket();
     const jobId     = jobInState(board, 'awaiting-answer');
     expect(board.moveJob(jobId, 'running', AT).logged.map((record) => record.kind)).toEqual(['job-resumed']);
-    expect(board.jobById(jobId)?.watcherInstance).toBe(2);
+    expect(board.jobById(jobId)?.childInstance).toBe(2);
   });
 });
 

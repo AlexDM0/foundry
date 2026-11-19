@@ -1,7 +1,7 @@
 /**
- * Delivers each answered question to its session after the answering hold, design section 8.2: a live Watcher still holding the request gets
+ * Delivers each answered question to its session after the answering hold, design section 8.2: a live child still holding the request gets
  * the `control_response` allow with the answers; a resumed session gets them as its first user line. A marker per request in the job's
- * folder, written only after the Watcher took the line, keeps a later pass or restart from delivering the answer again, unless the Overseer
+ * folder, written only after Talos took the line, keeps a later pass or restart from delivering the answer again, unless the Overseer
  * died before the marker: delivery is at least once, and how the vendor takes a repeated `control_response` was never probed.
  */
 import { createHash }                from 'node:crypto';
@@ -24,7 +24,7 @@ export interface AnswerDeliveryRequest {
   boardChildren:             BoardChildren;
   board:                     Board;
   adapter:                   AgentAdapter;
-  /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the Watcher and resumes the session with it. */
+  /** True: the vendor takes the answer as a `control_response`; false: the Overseer stops the child and resumes the session with it. */
   deliversByControlResponse: boolean;
   /** The answer worded as a plain user message, for a session that no longer holds the request. */
   answerMessageOf:           (answer: DecisionAnswer) => string;
@@ -38,7 +38,7 @@ function deliveredMarkerOf(jobFolder: string, requestId: string): string {
   return join(jobFolder, `answer-${digestOf(requestId)}.delivered`);
 }
 
-/** Written before the stop frame of the fallback, so the pass that finds the Watcher ended interrupts it `answer-delivery`, never a crash. */
+/** Written before the stop frame of the fallback, so the pass that finds the child ended interrupts it `answer-delivery`, never a crash. */
 function answerStopMarkerOf(jobFolder: string, instance: number): string {
   return join(jobFolder, `answer-delivery-stop-${instance}`);
 }
@@ -70,29 +70,29 @@ function questionsAskedInInstance(
 async function deliverOne(request: AnswerDeliveryRequest, job: Readonly<Job>, requestId: string, answer: DecisionAnswer): Promise<void> {
   const children  = request.boardChildren;
   const jobFolder = children.jobFolderOf(job.id);
-  const asked     = questionsAskedInInstance(children, jobFolder, job.watcherInstance, request.adapter, requestId);
+  const asked     = questionsAskedInInstance(children, jobFolder, job.childInstance, request.adapter, requestId);
   if (asked !== null && !request.deliversByControlResponse) {
-    const stopMarker = answerStopMarkerOf(jobFolder, job.watcherInstance);
+    const stopMarker = answerStopMarkerOf(jobFolder, job.childInstance);
     if (existsSync(stopMarker)) return;
     writeFileSync(stopMarker, '');
-    await children.stop(jobFolder, job.watcherInstance, SESSION_STOP_GRACE_MILLISECONDS);
+    await children.stop(jobFolder, job.childInstance, SESSION_STOP_GRACE_MILLISECONDS);
     return;
   }
   const line = asked === null
     ? request.adapter.chatLineOf(request.answerMessageOf(answer))
     : request.adapter.answerLineOf(requestId, asked, answer);
-  if (!await children.sendInput(jobFolder, job.watcherInstance, { act: 'write-line', line })) return;
-  if (asked === null) JobResumption.recordAnswerAsResumeLine(jobFolder, job.watcherInstance);
+  if (!await children.sendInput(jobFolder, job.childInstance, { act: 'write-line', line })) return;
+  if (asked === null) JobResumption.recordAnswerAsResumeLine(jobFolder, job.childInstance);
   writeFileSync(deliveredMarkerOf(jobFolder, requestId), '');
 }
 
-/** Every running job's answered, undelivered requests, each to its live Watcher; a Watcher not yet listening is tried on the next pass. */
+/** Every running job's answered, undelivered requests, each to its live child; a child not yet running is tried on the next pass. */
 async function deliverAnswers(request: AnswerDeliveryRequest): Promise<void> {
   const logRecords = request.board.logRecordsSoFar();
   for (const job of request.board.jobs()) {
     if (job.state !== 'running') continue;
     const jobFolder = request.boardChildren.jobFolderOf(job.id);
-    if (request.boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    if (request.boardChildren.livenessOf(jobFolder, job.childInstance).verdict !== 'live') continue;
     for (const requestId of undeliveredRequestIdsOf(request.boardChildren, job)) {
       const answer = answerOf(logRecords, requestId);
       if (answer !== null) await deliverOne(request, job, requestId, answer);
@@ -107,7 +107,7 @@ function answerAwaitsDelivery(children: BoardChildren, job: Readonly<Job>): bool
 
 /** The Overseer stopped this instance itself to deliver an answer: its end is an `answer-delivery` interruption, never counted. */
 function stoppedForAnswerDelivery(children: BoardChildren, job: Readonly<Job>): boolean {
-  return existsSync(answerStopMarkerOf(children.jobFolderOf(job.id), job.watcherInstance));
+  return existsSync(answerStopMarkerOf(children.jobFolderOf(job.id), job.childInstance));
 }
 
 export const AnswerDelivery = Object.freeze({

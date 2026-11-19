@@ -21,7 +21,7 @@ function commandOf(item: LoginItem): readonly string[] {
   return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'oversee'];
 }
 
-/** `KillMode=process` stops only the Overseer with the unit, so the Watchers it spawned outlive a stop or restart, as they must. */
+/** `KillMode=process` stops only the Overseer with the unit, so the Talos it started outlives a stop or restart, as they must. */
 function unitTextOf(item: LoginItem): string {
   return [
     '[Unit]',

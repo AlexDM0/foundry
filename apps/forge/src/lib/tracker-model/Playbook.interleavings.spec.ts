@@ -1,7 +1,7 @@
 /**
  * Seeded interleavings of the lifecycle over one Board, a fake agent and a fake user acting at random between passes. What matters is what no
  * order of events may break: never two live jobs for one ticket, never a launch past the concurrency limit, never a resume of a session or of
- * a job that was not interrupted, every question answered at most once, never two Watcher instances live for one job, never a resume of a
+ * a job that was not interrupted, every question answered at most once, never two child instances live for one job, never a resume of a
  * finished session or a crash resume past the bound, at most one git operation per worktree at a time, at most one merge or refresh per
  * target (so never two refreshes), and never a refresh beside its group's release. A failing seed names itself, so it replays exactly.
  */
@@ -41,7 +41,7 @@ describe('the lifecycle under seeded interleavings', () => {
 
   test.each([
     [
-      'two Watcher instances live for one job',
+      'two child instances live for one job',
       'src/lib/tracker-model/Jobs.ts',
       'targetState === \'running\' && isProcessless(job.state)',
       'targetState === \'running\' && job.state !== \'launching\'',

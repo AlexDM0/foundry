@@ -19,7 +19,7 @@ import { childRecordOf }                                   from '../../lib/talos
 import { childFilesOf }                                    from '../../lib/talos/TalosFiles.ts';
 import type { Job }                                        from '../../lib/tracker-model/@types/Job.ts';
 import type { PipelineGate }                               from '../../lib/tracker-model/@types/Pipeline.ts';
-import { FIRST_WATCHER_INSTANCE }                          from '../../lib/tracker-model/constants/JobStates.ts';
+import { FIRST_CHILD_INSTANCE }                            from '../../lib/tracker-model/constants/JobStates.ts';
 import { WorktreesFolder }                                 from '../../shared/WorktreesFolder.ts';
 import { ProjectPathsUtil }                                from '../../shared/utils/ProjectPathsUtil.ts';
 import { type ProjectLocation, worktreeProjectLocationOf } from '../tracker/ProjectLocation.ts';
@@ -63,7 +63,7 @@ function ticketSessionPlaceOf(workspace: Workspace, location: ProjectLocation, j
 
 /** The folder the first instance of a session owner's job started in, as its child record keeps it; `null` when no readable record says. */
 function firstStartFolderOf(sessionOwnerJobFolder: string): string | null {
-  const { recordPath } = childFilesOf(dirname(sessionOwnerJobFolder), basename(sessionOwnerJobFolder), FIRST_WATCHER_INSTANCE);
+  const { recordPath } = childFilesOf(dirname(sessionOwnerJobFolder), basename(sessionOwnerJobFolder), FIRST_CHILD_INSTANCE);
   let text: string;
   try {
     text = readFileSync(recordPath, 'utf8');

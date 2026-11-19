@@ -20,7 +20,7 @@ function wholeEntry(): Record<string, unknown> {
       url:       'http://127.0.0.1:4987/',
       processId: 4242,
       startedAt: '2026-10-21T10:05:00+02:00',
-      tokenPath: '/Users/alex.example/.forge-monitor/watchers/example/token',
+      tokenPath: '/Users/alex.example/.forge-monitor/private/example/token',
     },
   };
 }
@@ -40,7 +40,7 @@ describe('registeredForgesOf', () => {
         url:       'http://127.0.0.1:4987/',
         processId: 4242,
         startedAt: '2026-10-21T10:05:00+02:00',
-        tokenPath: '/Users/alex.example/.forge-monitor/watchers/example/token',
+        tokenPath: '/Users/alex.example/.forge-monitor/private/example/token',
       },
       lastCommand:   'oversee',
       lastChangedAt: '2026-10-21T10:05:01+02:00',

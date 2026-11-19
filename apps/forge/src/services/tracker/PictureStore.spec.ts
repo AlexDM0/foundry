@@ -158,7 +158,7 @@ describe('the sweep', () => {
         kind:   'job-reopened',
         jobId:  'J1',
         fields: {
-          watcherInstance: 2, text: 'Again.', offeredTicketIds: [], pictures: pictureOf(reopenedId)
+          childInstance: 2, text: 'Again.', offeredTicketIds: [], pictures: pictureOf(reopenedId)
         }
       },
     ];

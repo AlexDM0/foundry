@@ -80,7 +80,7 @@ function shortInstantText(epochMilliseconds: number, todayCalendarDate: string):
 }
 
 /**
- * `shortInstantText` with seconds, for a chat whose lines come seconds apart. A Watcher stamp is UTC and has no wall clock of its own to
+ * `shortInstantText` with seconds, for a chat whose lines come seconds apart. A Talos stamp is UTC and has no wall clock of its own to
  * keep, so it is parsed and shown in the viewer's local time, unlike a board stamp, which is sliced.
  */
 function secondsClockText(epochMilliseconds: number, todayCalendarDate: string): string {

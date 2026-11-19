@@ -152,7 +152,7 @@ export function environmentCopy(): Record<string, string> {
 
 export const NO_ORPHANS_VARIABLE = 'BUN_FEATURE_FLAG_NO_ORPHANS';
 
-/** The whole environment less Bun's flag that ends a process with its parent, for a Watcher or an Overseer, which must outlive theirs. */
+/** The whole environment less Bun's flag that ends a process with its parent, for Talos or an Overseer, which must outlive theirs. */
 export function outlivingProgramEnvironment(): Record<string, string> {
   return Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== NO_ORPHANS_VARIABLE));
 }
@@ -222,7 +222,7 @@ export function claudeConfigFolderVariable(): string | undefined {
 
 /**
  * Whether `ANTHROPIC_API_KEY` holds a key, which API billing needs before any session starts; empty or whitespace-only reads as unset. Only
- * presence is answered: the value goes to a session through its Watcher's own environment, never through the Overseer's code or files.
+ * presence is answered: the value goes to a session through Talos's own environment, never through the Overseer's code or files.
  */
 export function apiBillingKeyIsSet(): boolean {
   return nonBlankValueOf(CLAUDE_API_KEY_VARIABLE) !== undefined;

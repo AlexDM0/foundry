@@ -84,7 +84,7 @@ function endedRecord(jobId: string, outcome: JobOutcome): LogRecord {
 
 function redHandoffRecord(jobId: string): LogRecord {
   return {
-    kind: 'job-resumed', jobId, fields: { watcherInstance: 1, cause: HANDOFF_RED_INTERRUPTION }, at: AT,
+    kind: 'job-resumed', jobId, fields: { childInstance: 1, cause: HANDOFF_RED_INTERRUPTION }, at: AT,
   };
 }
 

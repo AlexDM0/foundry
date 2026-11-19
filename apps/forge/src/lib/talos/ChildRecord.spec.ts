@@ -78,7 +78,7 @@ describe('unreadable text', () => {
     ['no format version', { formatVersion: undefined }],
     ['an unknown state', { state: 'paused' }],
     ['an identity of the old shape', { talos: { processId: 4242, startEpochSeconds: 1790000000, bootIdentity: 'example-boot' } }],
-    ['an event log of the Watcher\'s format', { eventLogFormatVersion: 1 }],
+    ['an event log of the retired format 1', { eventLogFormatVersion: 1 }],
     ['a time bound of 0', { timeBoundMilliseconds: 0 }],
     ['an unknown end reason', { end: { ...ENDED_AGENT.end, reason: 'crashed' } }],
     ['a recognised ending with no name', { recognisedEndings: [{ closingLineSequence: 1, countedLines: 0 }] }],

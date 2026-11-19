@@ -15,7 +15,7 @@ export interface TranscriptPictureDocument {
 }
 
 /**
- * The vendor-neutral entry the Overseer maps every stored line into; the Bridge never parses a vendor line. `at` is the Watcher's UTC stamp,
+ * The vendor-neutral entry the Overseer maps every stored line into; the Bridge never parses a vendor line. `at` is Talos's UTC stamp,
  * which a view shows in local time.
  */
 export interface TranscriptEntryDocument {

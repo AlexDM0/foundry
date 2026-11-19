@@ -301,9 +301,9 @@ function sentenceOf(record: LogRecordContent): string {
     case 'job-launched':
       return jobLaunchedTextOf(record.jobId, record.fields);
     case 'job-interrupted':
-      return `Job ${record.jobId} interrupted (${record.fields.cause}) in Watcher instance ${record.fields.watcherInstance}`;
+      return `Job ${record.jobId} interrupted (${record.fields.cause}) in child instance ${record.fields.childInstance}`;
     case 'job-resumed':
-      return `Job ${record.jobId} resumed in Watcher instance ${record.fields.watcherInstance} after ${record.fields.cause}`;
+      return `Job ${record.jobId} resumed in child instance ${record.fields.childInstance} after ${record.fields.cause}`;
     case 'usage-limit-hit':
       return `Job ${record.jobId} hit the ${record.fields.window} usage limit; nothing launches or resumes before ${record.fields.resetsAt}`;
     case 'job-ended':
@@ -314,7 +314,7 @@ function sentenceOf(record: LogRecordContent): string {
       return `Message for job ${record.jobId}: ${record.fields.text}`;
     case 'job-reopened': {
       const sender = record.fields.byOverseer === true ? 'the Overseer\'s' : 'User\'s';
-      return `Job ${record.jobId} reopened in Watcher instance ${record.fields.watcherInstance} for ${sender} message: ${record.fields.text}`;
+      return `Job ${record.jobId} reopened in child instance ${record.fields.childInstance} for ${sender} message: ${record.fields.text}`;
     }
     case 'intake-titled':
       return `Intake of job ${record.jobId} titled: ${record.fields.title}`;

@@ -42,7 +42,7 @@ export interface RedHandoffFacts {
   fullLogPath:         string | null;
   resume:              number;
   resumesAllowed:      number;
-  /** The Watcher instance that went red: the resume's calls are counted from the next one. A fresh session taking over stores 0. */
+  /** The child instance that went red: the resume's calls are counted from the next one. A fresh session taking over stores 0. */
   interruptedInstance: number;
   callBudget:          number;
   /** On a `merge-conflict` only: the target tip the session merges in again. */

@@ -28,7 +28,7 @@ function repairWorktree(command: ControlCommandOf<'worktree-repair'>, change: Tr
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   const incident = incidentForMove(change, command, { name: `#${ticketId}`, concerns: (open) => open.ticketIds.includes(ticketId) }, false);
   if (STEPS_NEEDING_AN_IDLE_WORKTREE.some((step) => step === command.step)) {
-    // Any job still on the board for the ticket may hold its agent group or a process watcher in the worktree.
+    // Any job still on the board for the ticket may hold its agent group or a line child in the worktree.
     const jobIds = change.board.jobs().filter((job) => job.ticketIds.includes(ticketId)).map((job) => job.id);
     if (jobIds.length > 0) throw new BoardRefusal({ reason: 'worktree-in-use', ticketId, jobIds });
   }

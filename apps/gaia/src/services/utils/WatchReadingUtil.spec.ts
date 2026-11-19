@@ -32,7 +32,7 @@ const EXAMPLE_OVERSEER = {
   url:       'http://127.0.0.1:4977/',
   processId: 51_230,
   startedAt: '2026-11-12T11:02:00.000Z',
-  tokenPath: '/Users/alexexample/.forge-monitor/watchers/design-system-91c2/token',
+  tokenPath: '/Users/alexexample/.forge-monitor/private/design-system-91c2/token',
 } as const;
 
 const LIVE_CONCURRENCY = {

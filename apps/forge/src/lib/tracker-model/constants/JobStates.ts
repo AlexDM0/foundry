@@ -86,7 +86,7 @@ export const INTERRUPTION_CAUSES = [
   'network-outage',
 ] as const satisfies readonly InterruptionCause[];
 
-/** The interruption of a job whose lost Watcher left a child tree that refused the forced stop: never resumed, the stop tried again. */
+/** The interruption of a job whose lost child left a child tree that refused the forced stop: never resumed, the stop tried again. */
 export const FORCED_STOP_REFUSED_INTERRUPTION = 'forced-stop-refused' satisfies InterruptionCause;
 
 /** The interruption of a handoff whose gate or Customs check went red, which resumes the same session to fix it. */
@@ -117,5 +117,5 @@ export const JOB_ID_PREFIX = 'J';
 /** The number the first job a tracker launches takes, `J1`: the lowest `nextJobId` a progress file may store. */
 export const FIRST_JOB_NUMBER = 1;
 
-/** The Watcher instance a job's first launch spawns; a resume spawns the next one. */
-export const FIRST_WATCHER_INSTANCE = 1;
+/** The child instance a job's first launch spawns; a resume spawns the next one. */
+export const FIRST_CHILD_INSTANCE = 1;

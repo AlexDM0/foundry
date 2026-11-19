@@ -48,7 +48,7 @@ function slotsIn(folder: string, liveHolders: Pick<Set<string>, 'has'>): GateRun
   });
 }
 
-function watcherJudgedSlotsIn(folder: string): GateRunSlots {
+function childJudgedSlotsIn(folder: string): GateRunSlots {
   return GateRunSlots.createGateRunSlots({
     ports, folder, limit: 2, holderIsLive: (holding) => holderIsLive(ports, holding), retryMilliseconds: RETRY_MILLISECONDS,
   });
@@ -94,28 +94,28 @@ describe('the gate run slots', () => {
   });
 
   test('a holder asking again keeps its one slot', () => {
-    const slots = slotsIn(scratchFolder(), new Set(['watcher-a', 'watcher-b']));
+    const slots = slotsIn(scratchFolder(), new Set(['child-a', 'child-b']));
 
-    expect(slots.tryAcquire('watcher-a')).toBe(true);
-    expect(slots.tryAcquire('watcher-a')).toBe(true);
-    expect(slots.tryAcquire('watcher-b')).toBe(true);
+    expect(slots.tryAcquire('child-a')).toBe(true);
+    expect(slots.tryAcquire('child-a')).toBe(true);
+    expect(slots.tryAcquire('child-b')).toBe(true);
   });
 
   test('a slot whose holder ended is taken over without a release', () => {
-    const liveHolders = new Set(['ended-watcher', 'live-watcher', 'waiting-watcher']);
+    const liveHolders = new Set(['ended-child', 'live-child', 'waiting-child']);
     const slots = slotsIn(scratchFolder(), liveHolders);
-    slots.tryAcquire('ended-watcher');
-    slots.tryAcquire('live-watcher');
-    expect(slots.tryAcquire('waiting-watcher')).toBe(false);
+    slots.tryAcquire('ended-child');
+    slots.tryAcquire('live-child');
+    expect(slots.tryAcquire('waiting-child')).toBe(false);
 
-    liveHolders.delete('ended-watcher');
+    liveHolders.delete('ended-child');
 
-    expect(slots.tryAcquire('waiting-watcher')).toBe(true);
+    expect(slots.tryAcquire('waiting-child')).toBe(true);
   });
 });
 
 describe('a gate line with no child record', () => {
-  function gateWatcherFolderIn(scratch: string, jobId: string): string {
+  function gateChildFolderIn(scratch: string, jobId: string): string {
     const jobFolder = join(scratch, 'jobs', jobId);
     mkdirSync(jobFolder, { recursive: true });
     return join(jobFolder, 'gate-1');
@@ -134,11 +134,11 @@ describe('a gate line with no child record', () => {
     };
   }
 
-  /** Both slots taken by never-claimed gate Watchers answered for by `firstProcess` and `secondProcess`. */
+  /** Both slots taken by never-claimed gate children answered for by `firstProcess` and `secondProcess`. */
   function fullSlots(scratch: string, firstProcess: ProcessIdentity | null, secondProcess: ProcessIdentity | null): { slots: GateRunSlots; first: string; second: string } {
-    const slots = watcherJudgedSlotsIn(join(scratch, 'slots'));
-    const first = gateWatcherFolderIn(scratch, 'first-job');
-    const second = gateWatcherFolderIn(scratch, 'second-job');
+    const slots = childJudgedSlotsIn(join(scratch, 'slots'));
+    const first = gateChildFolderIn(scratch, 'first-job');
+    const second = gateChildFolderIn(scratch, 'second-job');
     expect(slots.tryAcquire(first)).toBe(true);
     expect(slots.tryAcquire(second)).toBe(true);
     slots.recordSpawnedProcess(first, firstProcess);
@@ -153,7 +153,7 @@ describe('a gate line with no child record', () => {
 
     await spawned.stop();
 
-    expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'waiting-job'))).toBe(true);
+    expect(slots.tryAcquire(gateChildFolderIn(scratch, 'waiting-job'))).toBe(true);
   });
 
   test('frees its slot once its job folder is gone, its recorded process still running', async () => {
@@ -162,7 +162,7 @@ describe('a gate line with no child record', () => {
 
     removeScratchDirectory(join(scratch, 'jobs', 'first-job'));
 
-    expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'waiting-job'))).toBe(true);
+    expect(slots.tryAcquire(gateChildFolderIn(scratch, 'waiting-job'))).toBe(true);
   });
 
   test('keeps its slot while its spawned process runs', async () => {
@@ -171,7 +171,7 @@ describe('a gate line with no child record', () => {
     try {
       const { slots } = fullSlots(scratch, spawned.identity, identityOf(process.pid));
 
-      expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'waiting-job'))).toBe(false);
+      expect(slots.tryAcquire(gateChildFolderIn(scratch, 'waiting-job'))).toBe(false);
     } finally {
       await spawned.stop();
     }
@@ -179,17 +179,17 @@ describe('a gate line with no child record', () => {
 
   test('keeps its slot between the acquire and the recorded spawn, answered for by the acquiring process', () => {
     const scratch = scratchFolder();
-    const slots = watcherJudgedSlotsIn(join(scratch, 'slots'));
-    expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'first-job'))).toBe(true);
-    expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'second-job'))).toBe(true);
+    const slots = childJudgedSlotsIn(join(scratch, 'slots'));
+    expect(slots.tryAcquire(gateChildFolderIn(scratch, 'first-job'))).toBe(true);
+    expect(slots.tryAcquire(gateChildFolderIn(scratch, 'second-job'))).toBe(true);
 
-    expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'waiting-job'))).toBe(false);
+    expect(slots.tryAcquire(gateChildFolderIn(scratch, 'waiting-job'))).toBe(false);
   });
 
   test('frees its slot when its spawn left no process', () => {
     const scratch = scratchFolder();
     const { slots } = fullSlots(scratch, null, identityOf(process.pid));
 
-    expect(slots.tryAcquire(gateWatcherFolderIn(scratch, 'waiting-job'))).toBe(true);
+    expect(slots.tryAcquire(gateChildFolderIn(scratch, 'waiting-job'))).toBe(true);
   });
 });

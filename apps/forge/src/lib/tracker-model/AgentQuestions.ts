@@ -105,7 +105,7 @@ export class AgentQuestions {
   }
 
   /**
-   * A job waiting on this answer alone runs again, its Watcher taking the answer; a question that outlived its job writes the answer under
+   * A job waiting on this answer alone runs again, Talos taking the answer to its session; a question that outlived its job writes the answer under
    * the ticket's `## Questions` for the next agent and lifts the ticket's `awaiting answer` hold.
    */
   afterAnswer(decision: Readonly<Decision>, answer: DecisionAnswer, at: string): LogRecord[] {

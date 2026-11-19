@@ -1,6 +1,6 @@
 /**
  * The recorded git of a flow spec's other processes: a `git` program and a preload that answer from the flow stage a case keeps in one
- * file, through `src/testing/RecordedGit.ts`. A process a Watcher starts finds the program first on its `PATH`, or as the resolved git; a
+ * file, through `src/testing/RecordedGit.ts`. A process Talos starts finds the program first on its `PATH`, or as the resolved git; a
  * spawned binary gets the preload. Each call one of them could not answer is a line of the case's report.
  */
 import { chmodSync, readFileSync, writeFileSync } from 'node:fs';
@@ -22,7 +22,7 @@ export interface SharedRecordedGitFlow {
   readonly bunOptions:               string;
   /** Throws naming each git call another process could not answer. */
   readonly requireEveryCallAnswered: () => void;
-  /** Kept until the run ends, since a Watcher child may still start git after its case ended. */
+  /** Kept until the run ends, since a Talos child may still start git after its case ended. */
   readonly remove:                   () => void;
 }
 

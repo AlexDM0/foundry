@@ -6,7 +6,7 @@ import type { AgentAdapter }                   from '../../src/lib/agent-launch/
 import type { AgentSessionEvent }              from '../../src/lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }                  from '../../src/lib/talos/EventLog.ts';
 import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { FIRST_WATCHER_INSTANCE }              from '../../src/lib/tracker-model/constants/JobStates.ts';
+import { FIRST_CHILD_INSTANCE }                from '../../src/lib/tracker-model/constants/JobStates.ts';
 import { jobFolderIn }                         from '../../src/services/overseer/OverseerFiles.ts';
 import { createTalosChildren }                 from '../../src/services/overseer/TalosChildren.ts';
 import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
@@ -60,22 +60,22 @@ function finishedJobOf(logRecords: readonly LogRecord[], jobId: string): Record<
   };
 }
 
-/** The newest Watcher instance a finished job ran in: its `job-launched` record names none, so the moves that raise it are read. */
-function newestFinishedWatcherInstanceOf(logRecords: readonly LogRecord[], jobId: string): number {
+/** The newest child instance a finished job ran in: its `job-launched` record names none, so the moves that raise it are read. */
+function newestFinishedChildInstanceOf(logRecords: readonly LogRecord[], jobId: string): number {
   return logRecords.reduce((highest, record) => (
     (record.kind === 'job-resumed' || record.kind === 'job-interrupted' || record.kind === 'job-reopened') && record.jobId === jobId
-      ? Math.max(highest, record.fields.watcherInstance)
+      ? Math.max(highest, record.fields.childInstance)
       : highest
-  ), FIRST_WATCHER_INSTANCE);
+  ), FIRST_CHILD_INSTANCE);
 }
 
 function jobRecordOf(workspace: Workspace, jobId: string): { record: Record<string, unknown>; newestInstance: number } {
   const live = (requireProgressFile(workspace).jobs ?? []).find((job) => job.id === jobId) ?? null;
-  if (live !== null) return { record: { ...live }, newestInstance: live.watcherInstance };
+  if (live !== null) return { record: { ...live }, newestInstance: live.childInstance };
   const logRecords = requireTracker(workspace).storedLog.records;
   const finished   = finishedJobOf(logRecords, jobId);
   if (finished === null) throw new OperationRefusal('refused', `There is no job ${jobId}.\n  Usage: ${SHOW_USAGE}`);
-  return { record: finished, newestInstance: newestFinishedWatcherInstanceOf(logRecords, jobId) };
+  return { record: finished, newestInstance: newestFinishedChildInstanceOf(logRecords, jobId) };
 }
 
 async function showJob(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
@@ -150,7 +150,7 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
       printNewEntries(newestInstance);
       return;
     }
-    while (current.watcherInstance > newestInstance) {
+    while (current.childInstance > newestInstance) {
       // Two resumes between polls skip an instance; each one between is printed whole.
       printNewEntries(newestInstance);
       newestInstance += 1;

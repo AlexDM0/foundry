@@ -1,5 +1,5 @@
 /**
- * Where a Watcher instance listens on Windows: a named pipe `\\.\pipe\<prefix>-<random hex>`, drawn afresh for each launch and kept in its launch
+ * Where a child instance listens on Windows: a named pipe `\\.\pipe\<prefix>-<random hex>`, drawn afresh for each launch and kept in its launch
  * file, so nobody can take the name ahead of the bind. A pipe has no folder, no mode and no file to clear, and the system frees its name with its
  * last handle. libuv binds as the first instance, so a taken name fails the listen with `EADDRINUSE`.
  */

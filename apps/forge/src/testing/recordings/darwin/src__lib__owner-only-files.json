@@ -77,42 +77,6 @@
       }
     },
     {
-      "callShape": "hello with another secret, to a Watcher socket",
-      "answer": {
-        "frames": [
-          {
-            "kind": "refused",
-            "reason": "secret"
-          }
-        ],
-        "endArrived": true,
-        "closeArrived": true,
-        "timing": "at once"
-      }
-    },
-    {
-      "callShape": "hello with the secret, to a Watcher socket",
-      "answer": {
-        "frames": [
-          {
-            "kind": "welcome",
-            "protocolVersion": 2,
-            "watcherCodeVersion": "code-example",
-            "jobId": "J-1",
-            "state": "idle",
-            "lastSequence": 0
-          },
-          {
-            "kind": "history",
-            "entries": []
-          }
-        ],
-        "endArrived": false,
-        "closeArrived": false,
-        "timing": "at once"
-      }
-    },
-    {
       "callShape": "listen <endpoint longer than the platform keeps>",
       "answer": {
         "outcome": "error",

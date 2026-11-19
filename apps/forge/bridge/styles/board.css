@@ -1002,7 +1002,7 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .bridge-textarea:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
 /* A transcript: each entry's local time in its own column where stamped, its role, then its line. What User and the agent say is
-   prose under its role; a tool, result or Watcher line runs in muted mono on one line beside its role. */
+   prose under its role; a tool, result or Talos line runs in muted mono on one line beside its role. */
 .bridge-transcript { margin: 0; padding: 0; list-style: none; font-size: var(--fs-body); }
 .bridge-transcript:empty { display: none; }
 .bridge-transcript-entry { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-2); padding: 4px 0; }

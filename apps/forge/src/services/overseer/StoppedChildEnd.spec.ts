@@ -1,5 +1,5 @@
 /**
- * What a child's end on the Windows adapter decides downstream, read the way `DrivePass.ts` and `JobLaunch.ts` read a Watcher's end. A kill reads as
+ * What a child's end on the Windows adapter decides downstream, read the way `DrivePass.ts` and `JobLaunch.ts` read a child's end. A kill reads as
  * exit 1 there, so what matters is that a forced stop does not reach the branches of a child that exited by itself.
  */
 import { expect, test } from 'bun:test';
@@ -11,7 +11,7 @@ import { GateRun }                                         from '../lifecycle/Ga
 import { JobResumption }                                   from './JobResumption.ts';
 
 const KILLED_EXIT_CODE = 1;
-const RESUMED_JOB = { id: 'J1', watcherInstance: 2 } as Readonly<Job>;
+const RESUMED_JOB = { id: 'J1', childInstance: 2 } as Readonly<Job>;
 
 const { endOf } = fakeWindowsSupervision(createFakeWindowsKernel());
 const { shellLine } = nativePlatformPorts();

@@ -79,7 +79,7 @@ interface ValueOfFieldShape {
   'job-role':                 JobRole | null;
   'job-outcome':              JobOutcome;
   'interruption-cause':       InterruptionCause;
-  'watcher-instance':         number;
+  'child-instance':           number;
   'permission-names':         readonly string[];
   'overseer-stop-reason':     OverseerStopReason;
   'job-stop-mode':            JobStopMode;

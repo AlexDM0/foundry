@@ -110,7 +110,7 @@ Ordered by the value the research expects. "Numbers" needs only the analysis; "e
 | API calls of its subagents | Assistant lines with a parent tool use | Derived. |
 | Turns as the vendor counts them, and its API time | `num_turns` and `duration_api_ms` of the raw result line; `ClaudeStreamMapper` maps neither | Derived from the raw line. |
 | Chat turns sent to the session | `job-messaged`, `job-reopened` | Recorded. |
-| Sessions per job: resumes and their causes | `job-interrupted`, `job-resumed` (`cause`, `watcherInstance`) | Recorded. |
+| Sessions per job: resumes and their causes | `job-interrupted`, `job-resumed` (`cause`, `childInstance`) | Recorded. |
 | Context at the end, at its peak, and the calls past 200,000 tokens | Per-call usage | Derived. `agent-stopped.endContextTokens` holds the end. |
 
 ### 4.3 What were the tokens spent on?
@@ -194,7 +194,7 @@ target's catch-up, the merge before User's Merge, an Airlock's merged tree.
 | `outcome`, `exitCode` | As the step verdict holds them today. |
 | `elapsedMilliseconds`, `waitedForSlotMilliseconds` | Recorded and shown only, as a profile's duration is. |
 | `cacheReport` | As today. |
-| `watcherInstance` | Which handoff of the job it judged. |
+| `childInstance` | Which handoff of the job it judged. |
 | Where its output is kept | One output file per red step, not one `gate.log` that the next red overwrites. |
 
 `gate-ran` stays: an Airlock reads the newest one to skip a tree that already passed.

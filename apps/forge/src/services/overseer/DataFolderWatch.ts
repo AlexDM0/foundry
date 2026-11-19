@@ -54,8 +54,8 @@ function startWatching(request: DataFolderWatchRequest): DataFolderWatch {
     onEvent:   wakeSoon,
     ...(request.platformWatch === undefined ? {} : { platformWatch: request.platformWatch }),
   });
-  const baseWatchers = [watchFolder(request.trackerDirectory), watchFolder(hatchRoot)];
-  const hatchFolderWatchers = new Map<string, QuietWatchHandle | null>();
+  const baseFolderWatches = [watchFolder(request.trackerDirectory), watchFolder(hatchRoot)];
+  const hatchFolderWatches = new Map<string, QuietWatchHandle | null>();
   const sweepOnce = (): void => {
     request.onSweep?.();
     request.wake();
@@ -64,19 +64,19 @@ function startWatching(request: DataFolderWatchRequest): DataFolderWatch {
   let stopped = false;
   return {
     watchHatchFolder: (hatchDirectory) => {
-      if (stopped || hatchFolderWatchers.has(hatchDirectory)) return;
-      hatchFolderWatchers.set(hatchDirectory, watchFolder(hatchDirectory));
+      if (stopped || hatchFolderWatches.has(hatchDirectory)) return;
+      hatchFolderWatches.set(hatchDirectory, watchFolder(hatchDirectory));
     },
     unwatchHatchFolder: (hatchDirectory) => {
-      hatchFolderWatchers.get(hatchDirectory)?.close();
-      hatchFolderWatchers.delete(hatchDirectory);
+      hatchFolderWatches.get(hatchDirectory)?.close();
+      hatchFolderWatches.delete(hatchDirectory);
     },
     stop: () => {
       stopped = true;
       if (debounce !== null) clearTimeout(debounce);
       clearInterval(sweep);
-      for (const watcher of [...baseWatchers, ...hatchFolderWatchers.values()]) watcher?.close();
-      hatchFolderWatchers.clear();
+      for (const folderWatch of [...baseFolderWatches, ...hatchFolderWatches.values()]) folderWatch?.close();
+      hatchFolderWatches.clear();
     },
   };
 }

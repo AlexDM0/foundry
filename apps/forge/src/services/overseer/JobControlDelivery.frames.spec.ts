@@ -35,7 +35,7 @@ function productOwnerJob(overrides: Partial<Job> = {}): Job {
     attempt:            1,
     target:             null,
     state:              'stopping',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,

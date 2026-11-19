@@ -1,6 +1,6 @@
 /**
  * The per-job confinement of design section 4.4, as the launcher port's neutral `WorkerProfile`: what a builder's sandbox and permission
- * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the process-watcher sandbox reuses its denies.
+ * rules deny and allow, from the paths and refs as they stand at launch. The adapter renders it; the line sandbox reuses its denies.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import {

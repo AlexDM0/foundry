@@ -1,7 +1,7 @@
 /**
  * The extraction changed nothing a machine stores: `src/lib/process-identity/FrozenProcessSupervision.json` was taken from the code before the
  * port existed, and every start stamp, boot identity, group verdict, program line and signal of the macOS adapter over the same fixed worlds must
- * equal it, or every live Watcher reads lost. Its `retake` key says how it was taken; it is never retaken from the port. A start's field is
+ * equal it, or every live child reads lost. Its `retake` key says how it was taken; it is never retaken from the port. A start's field is
  * now `startStamp`, its value the decimal text of the number taken: a rename, every digit as frozen.
  */
 import { describe, expect, test } from 'bun:test';

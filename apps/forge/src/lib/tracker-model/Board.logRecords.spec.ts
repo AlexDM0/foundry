@@ -106,9 +106,9 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-started","fields":{"codeVersion":"a1b2c3d","installVersion":17}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J2","fields":{"kind":"build","role":"builder","ticketIds":["002"],'
     + '"attempt":1,"target":"main","parentJobId":null}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-interrupted","jobId":"J2","fields":{"cause":"agent-crashed","watcherInstance":1}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-interrupted","jobId":"J2","fields":{"cause":"agent-crashed","childInstance":1}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"usage-limit-hit","jobId":"J2","fields":{"window":"five_hour","resetsAt":"2026-09-26T13:00:34.000Z"}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-resumed","jobId":"J2","fields":{"watcherInstance":2,"cause":"agent-crashed"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-resumed","jobId":"J2","fields":{"childInstance":2,"cause":"agent-crashed"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-messaged","jobId":"J2","fields":{"text":"Keep the example export small."}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-stop-requested","jobId":"J2","fields":{"mode":"wind-down"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-held","ticketId":"002","fields":{"reason":"wound down by User (J2)"}}',
@@ -118,7 +118,7 @@ const FROZEN_STORED_LINES = [
     + `"intakePictures":[{"pictureId":"${'a'.repeat(64)}","name":"export-mockup.png"}]}}`,
   '{"at":"2026-09-26T10:15:00+02:00","kind":"intake-titled","jobId":"J3","fields":{"title":"Example export ticket"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-ended","jobId":"J3","fields":{"outcome":"closed","deniedPermissions":[]}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-reopened","jobId":"J3","fields":{"watcherInstance":2,"text":"Add the example import as well.",'
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"job-reopened","jobId":"J3","fields":{"childInstance":2,"text":"Add the example import as well.",'
     + `"offeredTicketIds":[],"pictures":[{"pictureId":"${'a'.repeat(64)}","name":"import-mockup.png"}]}}`,
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-opened","decisionId":"E1","fields":{"kind":"agent-question","ticketIds":["002"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-answered","decisionId":"E1","fields":{"answer":{"Ship the example export as CSV?":"CSV"},"requestId":"request-1"}}',

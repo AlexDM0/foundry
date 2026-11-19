@@ -140,7 +140,7 @@ export class JobControls {
   }
 
   /**
-   * Closes the session's input; the Overseer ends it `closed` once its Watcher is gone. The caller submits the drafts the intake filed in
+   * Closes the session's input; the Overseer ends it `closed` once its child is gone. The caller submits the drafts the intake filed in
    * the same hold.
    */
   closeIntake(jobId: string, proposedDraftSets: readonly (readonly string[])[], at: string): JobChanged {

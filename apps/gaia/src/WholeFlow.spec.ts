@@ -185,7 +185,7 @@ function repositoryRootOf(forge: FlowForge): string {
 }
 
 function tokenPathOf(forge: FlowForge): string {
-  return join(home, '.forge-monitor', 'watchers', FORGES[forge].trackerId, 'token');
+  return join(home, '.forge-monitor', 'private', FORGES[forge].trackerId, 'token');
 }
 
 /**

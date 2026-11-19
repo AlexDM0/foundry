@@ -56,7 +56,7 @@ function stopChoicesOf(agentsRunning: number): StopChoice[] {
     {
       agents:      'keep',
       title:       'Stop the Overseer only',
-      consequence: `${theAgents} ${agentsRunning === 1 ? 'finishes what it is on under its Watcher' : 'finish what they are on under their Watchers'}. `
+      consequence: `${theAgents} ${agentsRunning === 1 ? 'finishes what it is on under Talos' : 'finish what they are on under Talos'}. `
         + 'Nothing new starts until this forge is started again.',
     },
     {

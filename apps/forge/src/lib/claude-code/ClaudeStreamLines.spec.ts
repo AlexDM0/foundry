@@ -1,5 +1,5 @@
 /**
- * `sentLineOf` reads back the lines a Watcher writes to a Claude Code session, so a transcript shows what was said rather than the vendor's
+ * `sentLineOf` reads back the lines Talos writes to a Claude Code session, so a transcript shows what was said rather than the vendor's
  * JSON. What matters: it is the exact inverse of the three writers (a chat with or without pictures, an answer with its request and
  * answers, an interrupt), it reads the recorded stdin lines of a real session the same way, and any other line, a stdout line among them,
  * reads as `null` rather than a guess. A chat with pictures is written as probe P21 found Claude Code takes it: base64 image blocks before

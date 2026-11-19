@@ -48,7 +48,7 @@ records that use or discuss the flag; "none" means no probe names it.
 | `--input-format`, `--output-format` | `stream-json` | The line protocol | all |
 | `--verbose` | | Part of every probe's command | all |
 | `--session-id` | The derived id | First instance of a session | P1, P2, P7, P8 use a fixed id |
-| `--resume` | The same id, in place of `--session-id` | A later [instance](../glossary.md#watcher-instance), or the first instance of a job carrying on an earlier [builder](../glossary.md#builder)'s session | P6 |
+| `--resume` | The same id, in place of `--session-id` | A later [instance](../glossary.md#child-instance), or the first instance of a job carrying on an earlier [builder](../glossary.md#builder)'s session | P6 |
 | `--model`, `--effort` | From the job | The job's model and effort | all for `--model`, none for `--effort` |
 | `--setting-sources` | `project` | The [worktree](../glossary.md#worktree)'s `CLAUDE.md` and project hooks load; user-layer settings do not (user instruction files need `claudeMdExcludes`, P2) | P2, P13, P16 |
 | `--strict-mcp-config` | | Connector tools appear unpredictably without it | P4 |

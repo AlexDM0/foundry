@@ -2,7 +2,7 @@
  * The chat thread's model over the transcript entries the Overseer streams. What matters: the session's entries between two other items
  * are one agent turn and a `turn-end` closes it, so `working` and the open fold never depend on a clock; a subagent's entries stay out; a
  * call takes its outcome from the result with its `toolUseId`, so calls that share a log line each keep theirs; the fold counts its tools
- * most used first; the Overseer's first chat is the boot line and a later one with incidents a delivery; a Watcher line is a standing reply
+ * most used first; the Overseer's first chat is the boot line and a later one with incidents a delivery; a Talos line is a standing reply
  * with no text; a stamp is the entry's own and never invented; the queued messages come last; and every key is unique.
  */
 import { describe, expect, test } from 'bun:test';
@@ -55,7 +55,7 @@ describe('ChatThreadModelUtil.threadItemsOf', () => {
       entryOf({
         role: 'tool-call', toolName: 'Bash', toolUseId: 'call-1', text: 'agent-progress status'
       }),
-      entryOf({ role: 'watcher', text: '{"type":"control_response"}' }),
+      entryOf({ role: 'talos', text: '{"type":"control_response"}' }),
       entryOf({ role: 'tool-result', toolUseId: 'call-1' }),
       entryOf({ role: 'assistant', text: 'Done reading.' }),
     ], []);
@@ -138,9 +138,9 @@ describe('ChatThreadModelUtil.threadItemsOf', () => {
     ]);
   });
 
-  test('a Watcher line is a standing reply that shows no text, and a client act names its act and who did it', () => {
+  test('a Talos line is a standing reply that shows no text, and a client act names its act and who did it', () => {
     const items = threadItemsOf([
-      entryOf({ role: 'watcher', text: '{"type":"control_response"}' }),
+      entryOf({ role: 'talos', text: '{"type":"control_response"}' }),
       entryOf({ role: 'overseer', clientAct: 'interrupt', sentBy: 'overseer' }),
       entryOf({
         role: 'overseer', clientAct: 'answer', sentBy: 'assistant', text: 'Retry the gate'
@@ -201,7 +201,7 @@ describe('ChatThreadModelUtil.turnCountOf', () => {
       entryOf({
         role: 'tool-call', toolName: 'Bash', toolUseId: 'call-1', text: 'ls'
       }),
-      entryOf({ role: 'watcher', text: 'reply' }),
+      entryOf({ role: 'talos', text: 'reply' }),
       entryOf({ role: 'tool-result', toolUseId: 'call-1' }),
       entryOf({ role: 'turn-end' }),
       entryOf({ role: 'assistant', text: 'Three.' }),

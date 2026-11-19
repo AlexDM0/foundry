@@ -45,7 +45,7 @@ export type LogFieldShape =
   | 'job-role'
   | 'job-outcome'
   | 'interruption-cause'
-  | 'watcher-instance'
+  | 'child-instance'
   | 'permission-names'
   | 'overseer-stop-reason'
   | 'job-stop-mode'
@@ -333,21 +333,21 @@ export const LOG_RECORD_SCHEMA = {
       entitiesToAssign: 'optional-ticket-ids',
     },
   },
-  'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', watcherInstance: 'watcher-instance' } },
-  'job-resumed':        { subject: 'job', fields: { watcherInstance: 'watcher-instance', cause: 'interruption-cause' } },
+  'job-interrupted':    { subject: 'job', fields: { cause: 'interruption-cause', childInstance: 'child-instance' } },
+  'job-resumed':        { subject: 'job', fields: { childInstance: 'child-instance', cause: 'interruption-cause' } },
   // The vendor refused the job's requests: `window` as the vendor names it, `resetsAt` the ISO stamp no launch or resume precedes.
   'usage-limit-hit':    { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
-  // User's stop, wind-down or fresh agent, recorded whether or not a Watcher is up; the Overseer sends the frames from the job record.
+  // User's stop, wind-down or fresh agent, recorded whether or not its child is up; the Overseer sends the frames from the job record.
   'job-stop-requested': { subject: 'job', fields: { mode: 'job-stop-mode' } },
   // A chat turn for the session, which the Overseer writes from the log in order; `pictures` is set only when User sent some.
   // `byOverseer` is set only on the Overseer's own wording of User's setup move, so the transcript never reads it as User's.
   'job-messaged':       { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byOverseer: 'optional-flag' } },
-  // A message reopened a closed product owner or pipeline agent: `watcherInstance` resumes its session with `text` (and `pictures`,
+  // A message reopened a closed product owner or pipeline agent: `childInstance` resumes its session with `text` (and `pictures`,
   // when set) first; `offeredTicketIds` is recorded only; `byOverseer` as on `job-messaged`.
   'job-reopened':       {
     subject: 'job',
     fields:  {
-      watcherInstance: 'watcher-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures', byOverseer: 'optional-flag'
+      childInstance: 'child-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures', byOverseer: 'optional-flag'
     },
   },
   // The product owner's short title for its intake; a later record replaces an earlier one.
@@ -404,7 +404,7 @@ export const LOG_RECORD_SCHEMA = {
       outputTokens:         'count',
       workflowRunId:        'optional-text',
       agentLabel:           'optional-text',
-      // What the vendor said the job's sessions cost, summed over its Watcher instances; stored only when a result named it.
+      // What the vendor said the job's sessions cost, summed over its child instances; stored only when a result named it.
       costUsd:              'optional-cost-usd',
     },
   },

@@ -1,6 +1,6 @@
 /**
  * A unit of the Overseer's agent work, stored in progress.json while it is unsettled so a restart reads every job from disk. Only what the
- * Overseer decided is stored: a Watcher's process identity lives in the job's own folder, never on the board.
+ * Overseer decided is stored: a child's process identity lives in the job's own folder, never on the board.
  */
 
 import type { GatePhase }           from './GatePhase.ts';
@@ -76,7 +76,7 @@ export type JobOutcome =
 
 /**
  * `watcher-lost` and `agent-crashed` are the crashes a resume counts; the others never count. `handoff-red` is a handoff whose gate or Customs
- * check went red: the same session is resumed to fix it, counted on its own bound. `forced-stop-refused` is a lost Watcher whose child tree
+ * check went red: the same session is resumed to fix it, counted on its own bound. `forced-stop-refused` is a lost child whose process tree
  * refused the forced stop: the job is never resumed while it holds this cause, and a later pass gives it the cause the next stop settles.
  * `authentication-failed` is a session whose API key was refused: it resumes once User answers the decision that names the failure.
  * `talos-paused` is a clean quit of Talos, resumed by itself as a reboot is; `lease-ended` (Talos stopped the agents of an Overseer that lost
@@ -131,7 +131,7 @@ export interface JobIntake {
   carriedAnswers?:    Readonly<Record<string, string>>[];
 }
 
-/** The last Watcher event the Overseer applied, written in the hold that applied it. */
+/** The last child event the Overseer applied, written in the hold that applied it. */
 export interface JobEventCursor {
   instance: number;
   sequence: number;
@@ -153,8 +153,8 @@ export interface Job {
   state:               JobState;
   /** Why the job was last interrupted; absent on a job never interrupted. */
   interruption?:       InterruptionCause;
-  /** The newest Watcher instance spawned or to spawn, from 1. */
-  watcherInstance:     number;
+  /** The newest child instance spawned or to spawn, from 1. */
+  childInstance:       number;
   eventCursor:         JobEventCursor;
   /** The relayed question request ids already answered, kept until the job ends, so each answer is delivered until its delivery is marked. */
   answeredRequestIds:  string[];

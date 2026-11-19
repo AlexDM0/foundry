@@ -279,8 +279,8 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
-  const record = childRecordOf(job.id, job.watcherInstance);
-  return childReadings().livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
+  const record = childRecordOf(job.id, job.childInstance);
+  return childReadings().livenessOf(sessionJobFolder(job.id), job.childInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
 /** Passes until the build session's current instance runs a child; answers the job as stored then. */
@@ -313,7 +313,7 @@ async function reboot(jobId: string, instance: number): Promise<void> {
   const talosRecordPath = talosRecordPathOf(sessionWorkspace.trackerDirectory, record.talosStartNumber);
   const talosRecord = talosRecordAt(sessionWorkspace.trackerDirectory, record.talosStartNumber);
   const liveChildren = storedJobs().flatMap((job) => {
-    const childRecord = childRecordOf(job.id, job.watcherInstance);
+    const childRecord = childRecordOf(job.id, job.childInstance);
     return childRecord === null || childRecord.end !== null ? [] : [{ job, childRecord }];
   });
   for (const { childRecord } of liveChildren) {
@@ -328,7 +328,7 @@ async function reboot(jobId: string, instance: number): Promise<void> {
   const foreign = (identity: ProcessIdentity | null): ProcessIdentity | null => (identity === null ? null : { ...identity, bootIdentity: FOREIGN_BOOT });
   for (const { job, childRecord } of liveChildren) {
     const rebootedRecord: ChildRecord = { ...childRecord, talos: foreign(childRecord.talos), childProcess: foreign(childRecord.childProcess) };
-    writeFileSync(childFilesIn(sessionJobFolder(job.id), job.watcherInstance).recordPath, childRecordTextOf(rebootedRecord));
+    writeFileSync(childFilesIn(sessionJobFolder(job.id), job.childInstance).recordPath, childRecordTextOf(rebootedRecord));
   }
   if (talosRecord !== null) writeFileSync(talosRecordPath, talosRecordTextOf({ ...talosRecord, talos: foreign(talosRecord.talos) }));
 }
@@ -450,7 +450,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     const report = await (await startedOverseer(adapter)).regroup();
 
     expect(report.lost).toEqual([]);
-    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
     expect(requireBuildJob().eventCursor.sequence).toBeGreaterThan(storedCursor.sequence);
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -501,7 +501,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(processIsAlive(child)).toBe(false);
     expect(storedRecords().find((record) => record.kind === 'job-interrupted' && record.jobId === job.id)?.fields).toMatchObject({ cause: 'watcher-lost' });
     expect(requireBuildJob()).toMatchObject({
-      id: job.id, state: 'running', watcherInstance: 2, crashResumes: 1
+      id: job.id, state: 'running', childInstance: 2, crashResumes: 1
     });
     const [freshLaunch, resumeLaunch] = launches;
     expect(resumeLaunch).toEqual({
@@ -523,13 +523,13 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(report.lost.filter((lost) => lost.jobId === job.id)).toEqual([{ jobId: job.id, instance: 1, cause: 'agent-crashed' }]);
     expect(report.leftoverWorktrees).toEqual([]);
     expect(requireBuildJob()).toMatchObject({
-      id: job.id, state: 'running', watcherInstance: 2, crashResumes: 1
+      id: job.id, state: 'running', childInstance: 2, crashResumes: 1
     });
-    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ watcherInstance: 2, cause: 'agent-crashed' }]);
+    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'agent-crashed' }]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('agent exits with its closing result while the Overseer is down: on regroup the result is read from the event log into Customs', async () => {
-    const statesAfterWatcherEvents: (string | undefined)[] = [];
+    const statesAfterChildEvents: (string | undefined)[] = [];
     const adapter = recordingAdapter({ fresh: [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }], resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
     await passUntil(first, () => childReadings().livenessOf(sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unlaunched', 'the build session was never spawned');
@@ -537,10 +537,10 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     await until(() => eventLogTextOf(job.id, 1).includes('"result"'), 'the session never closed its turn');
 
     await (await startedOverseer(adapter, (phase, board) => {
-      if (phase === 'watcher-events') statesAfterWatcherEvents.push(board.jobById(job.id)?.state);
+      if (phase === 'child-events') statesAfterChildEvents.push(board.jobById(job.id)?.state);
     })).regroup();
 
-    expect(statesAfterWatcherEvents[0]).toBe('in-customs');
+    expect(statesAfterChildEvents[0]).toBe('in-customs');
     expect(storedRecords().filter((record) => record.jobId === job.id && record.kind === 'job-interrupted')).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -550,7 +550,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     await passUntil(drivePass, () => resumedRecordsOf(buildJobs()[0]?.id ?? '').length > 0, 'the crashed session was never resumed');
     const job = requireBuildJob();
     expect(storedRecords().find((record) => record.kind === 'job-interrupted' && record.jobId === job.id)?.fields).toMatchObject({ cause: 'agent-crashed' });
-    expect(job).toMatchObject({ attempt: 1, watcherInstance: 2 });
+    expect(job).toMatchObject({ attempt: 1, childInstance: 2 });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a job crash-resumed twice and interrupted again ends replaced, a fresh attempt takes the same worktree, and two replaced in a row open job-lost', async () => {
@@ -593,16 +593,16 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     const adapter = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
     let job = await runningBuildSession(await startedOverseer(adapter));
     for (let rebootNumber = 1; rebootNumber <= 3; rebootNumber += 1) {
-      const { id, watcherInstance } = job;
-      await until(() => eventLogTextOf(id, watcherInstance).includes('"init"'), 'the session never started');
-      await reboot(job.id, job.watcherInstance);
+      const { id, childInstance } = job;
+      await until(() => eventLogTextOf(id, childInstance).includes('"init"'), 'the session never started');
+      await reboot(job.id, job.childInstance);
       const restarted = await startedOverseer(adapter);
       const report    = await restarted.regroup();
       expect(report.lost.filter((lost) => lost.jobId === job.id)).toEqual([{ jobId: job.id, instance: rebootNumber, cause: 'reboot' }]);
       job = await runningBuildSession(restarted);
     }
 
-    expect(job).toMatchObject({ attempt: 1, watcherInstance: 4, crashResumes: 0 });
+    expect(job).toMatchObject({ attempt: 1, childInstance: 4, crashResumes: 0 });
     expect(resumedRecordsOf(job.id).map((record) => record.fields['cause'])).toEqual(['reboot', 'reboot', 'reboot']);
     expect(new Set(launches.map((launch) => `${launch.jobId} ${launch.sessionId} ${launch.workingDirectory}`)).size).toBe(1);
     // A reboot takes the Assistant down too, which is replaced; the build is never ended.
@@ -629,7 +629,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(eventLogTextOf(job.id, 1)).toContain('\\"type\\":\\"control_response\\"');
     expect(eventLogTextOf(job.id, 1)).toContain('\\"answers\\":{\\"Ship the example export?\\":\\"No\\"}');
     expect(storedRecords().filter((record) => record.kind === 'decision-opened')).toHaveLength(1);
-    expect(requireBuildJob()).toMatchObject({ watcherInstance: 1, state: 'running' });
+    expect(requireBuildJob()).toMatchObject({ childInstance: 1, state: 'running' });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a question pending when the machine reboots stays open, nothing resumes until it is answered, and the resume carries the answer', async () => {
@@ -643,7 +643,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
     await passOnce(restarted);
-    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', childInstance: 1 });
     expect(openDecisions().map((decision) => decision.id)).toEqual(['E1']);
 
     await decideWithTheOverseerDown('E1', ['a']);
@@ -651,7 +651,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
     expect(eventLogTextOf(job.id, 2)).not.toContain(RESUME_MESSAGE);
     expect(launches.map((launch) => launch.resume)).toEqual([false, true]);
-    expect(requireBuildJob()).toMatchObject({ crashResumes: 0, watcherInstance: 2 });
+    expect(requireBuildJob()).toMatchObject({ crashResumes: 0, childInstance: 2 });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('without a control_response delivery the Overseer stops the live session and resumes with the answer, cause answer-delivery, never counted', async () => {
@@ -663,7 +663,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     await decideWithTheOverseerDown('E1', ['a']);
     await passUntil(drivePass, () => eventLogTextOf(job.id, 2).includes('after-the-line'), 'the resumed session never took the answer');
 
-    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ watcherInstance: 2, cause: 'answer-delivery' }]);
+    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'answer-delivery' }]);
     expect(eventLogTextOf(job.id, 1)).not.toContain('control_response');
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0 });
@@ -685,7 +685,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(incidents).toMatchObject([{
       id: 'I1', kind: 'malformed-ticket', jobId: job.id, defaultMove: 'incident-escalate'
     }]);
-    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', childInstance: 1 });
 
     await writeTracker({
       workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => change.board.escalateQuestionIncident('I1', change.at),
@@ -715,7 +715,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
 
     expect(report.respawnJobIds).toContain(assistantJobId);
     await until(() => childReadings().livenessOf(sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
-    expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
+    expect(storedJobs().find((job) => job.id === assistantJobId)?.childInstance).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an Assistant session finishes only once the Overseer closed its input: a turn\'s result keeps it running, its child gone while stopping ends it closed', async () => {
@@ -726,7 +726,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     const assistantId   = (): string => assistantJob()?.id ?? '';
     await passUntil(drivePass, () => assistantJob() !== undefined && eventLogTextOf(assistantId(), 1).includes('"result"'), 'the Assistant never ended a turn');
     await passOnce(drivePass);
-    expect(assistantJob()).toMatchObject({ state: 'running', watcherInstance: 1 });
+    expect(assistantJob()).toMatchObject({ state: 'running', childInstance: 1 });
 
     const jobId = assistantId();
     await writeTracker({
@@ -758,7 +758,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     await successor.regroup();
     await passUntil(successor, () => openIncidents().length === 0, 'the closed turn never defaulted its incident');
 
-    expect(requireAssistant()).toMatchObject({ id: assistantId, state: 'running', watcherInstance: 1 });
+    expect(requireAssistant()).toMatchObject({ id: assistantId, state: 'running', childInstance: 1 });
     expect(storedRecords().find((record) => record.kind === 'incident-defaulted')?.fields).toMatchObject({ cause: 'turn-closed' });
     expect(storedRecords().filter((record) => record.jobId === assistantId && ['job-interrupted', 'job-ended'].includes(record.kind))).toEqual([]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -866,11 +866,11 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
     await passOnce(restarted);
-    expect(productOwnerJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', watcherInstance: 1 });
+    expect(productOwnerJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', childInstance: 1 });
 
     await decideWithTheOverseerDown(openDecisions()[0]?.id ?? '', ['a']);
     await passUntil(restarted, () => eventLogTextOf(jobId, 2).includes('after-the-line'), 'the resumed product owner never took the answer');
-    expect(resumedRecordsOf(jobId).map((record) => record.fields)).toEqual([{ watcherInstance: 2, cause: 'reboot' }]);
+    expect(resumedRecordsOf(jobId).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'reboot' }]);
     expect(eventLogTextOf(jobId, 2)).toContain(ANSWER_MESSAGE_PREFIX);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -903,7 +903,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(drivePass.state().notices).toEqual([]);
 
     await applyControl({ kind: 'job-message', jobId, text: 'Example follow-up from Alex Example' });
-    expect(productOwnerJob()).toMatchObject({ id: jobId, state: 'running', watcherInstance: 2 });
+    expect(productOwnerJob()).toMatchObject({ id: jobId, state: 'running', childInstance: 2 });
     await passUntil(drivePass, () => eventLogTextOf(jobId, 2).includes('after-the-line'), 'the reopened product owner never took the message');
 
     const [first, reopened] = productOwnerLaunches;
@@ -913,7 +913,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(first?.resume).toBe(false);
     expect(eventLogTextOf(jobId, 2)).toContain('Example follow-up from Alex Example');
     expect(eventLogTextOf(jobId, 2)).not.toContain(RESUME_MESSAGE);
-    expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['watcherInstance'])).toEqual([2]);
+    expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['childInstance'])).toEqual([2]);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
 
@@ -996,7 +996,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(outcome.verdict).toBe('baton-passed');
     expect(processIsAlive(child)).toBe(true);
     expect(successorReports[0]?.lost).toEqual([]);
-    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
     expect(launches.filter((launch) => launch.jobId === job.id)).toHaveLength(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

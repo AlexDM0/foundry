@@ -27,7 +27,7 @@ import { BoardRefusal }                                             from './Boar
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE, PROCESSLESS_JOB_STATES } from './constants/JobMoveLegality.ts';
 import {
   CRASH_INTERRUPTION_CAUSES,
-  FIRST_WATCHER_INSTANCE,
+  FIRST_CHILD_INSTANCE,
   FIRST_JOB_NUMBER,
   FORCED_STOP_REFUSED_INTERRUPTION,
   JOB_ID_PREFIX
@@ -105,8 +105,8 @@ export class Jobs {
       attempt:            launch.attempt,
       target:             launch.target,
       state:              'launching',
-      watcherInstance:    FIRST_WATCHER_INSTANCE,
-      eventCursor:        { instance: FIRST_WATCHER_INSTANCE, sequence: FIRST_EVENT_SEQUENCE },
+      childInstance:      FIRST_CHILD_INSTANCE,
+      eventCursor:        { instance: FIRST_CHILD_INSTANCE, sequence: FIRST_EVENT_SEQUENCE },
       answeredRequestIds: [],
       crashResumes:       0,
       ...(launch.intake === undefined ? {} : { intake: { ...launch.intake } }),
@@ -134,7 +134,7 @@ export class Jobs {
     return { job, logged: [logged] };
   }
 
-  /** A move into `running` from a state with no process is a resume: it spawns the next Watcher instance and is logged. */
+  /** A move into `running` from a state with no process is a resume: it spawns the next child instance and is logged. */
   moveJob(jobId: string, targetState: SteppedJobState, at: string): JobChanged {
     const job = this.requireLiveJob(jobId);
     this.refuseIllegalMove(job, targetState);
@@ -143,9 +143,9 @@ export class Jobs {
     if (!resumes) return { job, logged: [] };
 
     const cause      = job.interruption ?? 'watcher-lost';
-    job.watcherInstance += 1;
+    job.childInstance += 1;
     if (isCrash(cause)) job.crashResumes += 1;
-    return { job, logged: [this.records.logger.log({ kind: 'job-resumed', jobId, fields: { watcherInstance: job.watcherInstance, cause } }, at)] };
+    return { job, logged: [this.records.logger.log({ kind: 'job-resumed', jobId, fields: { childInstance: job.childInstance, cause } }, at)] };
   }
 
   /** A job interrupted `forced-stop-refused` takes the cause a later forced stop settles, staying interrupted. */
@@ -155,7 +155,7 @@ export class Jobs {
     if (!settlesARefusedStop) this.refuseIllegalMove(job, 'interrupted');
     job.state        = 'interrupted';
     job.interruption = cause;
-    return { job, logged: [this.records.logger.log({ kind: 'job-interrupted', jobId, fields: { cause, watcherInstance: job.watcherInstance } }, at)] };
+    return { job, logged: [this.records.logger.log({ kind: 'job-interrupted', jobId, fields: { cause, childInstance: job.childInstance } }, at)] };
   }
 
   /** The only way a job finishes: it leaves the board in this hold and lives on in the log, and every later move of it is refused. */
@@ -211,7 +211,7 @@ export class Jobs {
   }
 
   /**
-   * Puts an ended job back on the board from its log records, `running` in its next Watcher instance, so the Overseer launches it resuming the
+   * Puts an ended job back on the board from its log records, `running` in its next child instance, so the Overseer launches it resuming the
    * same session; the caller decides which ended jobs may come back.
    */
   reopenEndedJob(jobId: string, reopening: JobReopening, at: string): JobChanged {
@@ -220,10 +220,10 @@ export class Jobs {
     if (launched?.kind !== 'job-launched' || this.jobById(jobId) !== undefined) {
       return this.recordMessage(jobId, { text: reopening.text, pictures: reopening.pictures, sender: reopening.sender }, at);
     }
-    const lastWatcherInstance = records.reduce((highest, record) => (
-      (record.kind === 'job-resumed' || record.kind === 'job-interrupted' || record.kind === 'job-reopened') ? Math.max(highest, record.fields.watcherInstance) : highest
-    ), FIRST_WATCHER_INSTANCE);
-    const watcherInstance = lastWatcherInstance + 1;
+    const lastChildInstance = records.reduce((highest, record) => (
+      (record.kind === 'job-resumed' || record.kind === 'job-interrupted' || record.kind === 'job-reopened') ? Math.max(highest, record.fields.childInstance) : highest
+    ), FIRST_CHILD_INSTANCE);
+    const childInstance = lastChildInstance + 1;
     const job: Job = {
       id:                 jobId,
       kind:               launched.fields.kind,
@@ -233,8 +233,8 @@ export class Jobs {
       attempt:            launched.fields.attempt,
       target:             launched.fields.target,
       state:              'running',
-      watcherInstance,
-      eventCursor:        { instance: watcherInstance, sequence: FIRST_EVENT_SEQUENCE },
+      childInstance,
+      eventCursor:        { instance: childInstance, sequence: FIRST_EVENT_SEQUENCE },
       answeredRequestIds: [],
       crashResumes:       0,
       ...(reopening.intake === undefined ? {} : { intake: { ...reopening.intake } }),
@@ -243,7 +243,7 @@ export class Jobs {
     };
     this.liveJobRecords().push(job);
     const fields = {
-      watcherInstance,
+      childInstance,
       text:             reopening.text,
       offeredTicketIds: [...reopening.offeredTicketIds],
       ...(reopening.pictures.length === 0 ? {} : { pictures: picturesCopyOf(reopening.pictures) }),

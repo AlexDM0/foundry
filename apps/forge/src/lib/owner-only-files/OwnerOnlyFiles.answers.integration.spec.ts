@@ -1,5 +1,5 @@
 /**
- * The real answers of this platform for the Watcher socket folder and the files in it: the mode bits on macOS and Linux, and what `icacls`
+ * The real answers of this platform for the Talos socket folder and the files in it: the mode bits on macOS and Linux, and what `icacls`
  * prints on Windows. What matters is the folder: a socket file another user could reach is guarded by the owner-only folder above it.
  */
 import { writeFileSync }          from 'node:fs';

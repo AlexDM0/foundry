@@ -119,8 +119,8 @@ export interface AirlocksContext {
   mergeAgentReadingOf:    (job: Readonly<Job>) => MergeAgentReading;
   /** The lines the resolution at the worktree's HEAD changed against git's automatic merge; `null` when git cannot tell. */
   resolutionLinesOf:      (worktreePath: string) => number | null;
-  /** The job's own Watcher, an agent's or a process Watcher's, is alive. */
-  watcherIsLive:          (job: Readonly<Job>) => boolean;
+  /** The job's own child, an agent or a line, is alive. */
+  childIsLive:            (job: Readonly<Job>) => boolean;
   stopMergeAgent:         (job: Readonly<Job>) => Promise<void>;
   decisionWordingOf:      (draft: DecisionDraft) => DecisionWording;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
@@ -814,7 +814,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     }
     if (MergeRun.mergeIsInProgress(worktree)) {
       // A live holder keeps its slot; only a merge-in left behind by nobody is aborted and requeued.
-      if (context.watcherIsLive(job)) return false;
+      if (context.childIsLive(job)) return false;
       await freeSlot(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned });
       return true;
     }
@@ -990,7 +990,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
         resume:              resumes + 1,
         resumesAllowed:      context.redHandoffResumes,
         callBudget:          RED_HANDOFF_RESUME_CALL_BUDGET,
-        interruptedInstance: agent?.watcherInstance ?? 0,
+        interruptedInstance: agent?.childInstance ?? 0,
       }, red.output);
     }
     if (agent === undefined) launchAirlockAgent(hold, job, 1, homeWorkerScopeOf(hold.board, ticketIdOf(job)));

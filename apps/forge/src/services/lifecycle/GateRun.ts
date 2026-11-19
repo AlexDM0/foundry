@@ -193,7 +193,7 @@ function gateReportFileOf(): string {
 }
 
 /**
- * A step a Watcher runs is read in a later pass, perhaps by the next Overseer, so its report path in the temporary folder is derived from
+ * A step a line child runs is read in a later pass, perhaps by the next Overseer, so its report path in the temporary folder is derived from
  * the step's own folder rather than drawn fresh.
  */
 function gateReportFileFor(stepFolder: string): string {

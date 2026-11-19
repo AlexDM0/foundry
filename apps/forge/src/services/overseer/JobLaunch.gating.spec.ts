@@ -110,7 +110,7 @@ function gatingScene(): GatingScene {
     branchNames:   branchNamesOf(null),
   } as unknown as JobLaunchContext;
   const jobOf = (kind: 'build' | 'review'): Job => ({
-    id: 'J2', kind, state: 'gating', ticketIds: ['001'], watcherInstance: 1
+    id: 'J2', kind, state: 'gating', ticketIds: ['001'], childInstance: 1
   }) as unknown as Job;
   return { context, jobOf };
 }
@@ -384,7 +384,7 @@ describe('the gate-run manifest', () => {
 
   testWhenGitIsRecorded('a session resumed after a red handoff starts a run of its own, with a manifest of its own', async () => {
     const scene = gatingScene();
-    const resumed = { ...scene.jobOf('build'), watcherInstance: 2 } as Job;
+    const resumed = { ...scene.jobOf('build'), childInstance: 2 } as Job;
     await recordedGit.playStage([HEAD_ON_THE_START_TREE], () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [resumed], PIPELINE)));
 
     expect(existsSync(jobFileOf(scene, 'gate-run-2.json'))).toBe(true);

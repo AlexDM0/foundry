@@ -39,7 +39,7 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-const EXAMPLE_JOB = { id: 'J1', kind: 'build', watcherInstance: 1 } as unknown as Readonly<Job>;
+const EXAMPLE_JOB = { id: 'J1', kind: 'build', childInstance: 1 } as unknown as Readonly<Job>;
 
 function toolCall(toolUseId: string, toolName: string, parentToolUseId: string | null, description: string | null = null): AgentSessionEvent {
   return {
@@ -279,7 +279,7 @@ function usageWindow(window: string, resetsAt: string, requestsRefused = false):
 
 describe('the usage window', () => {
   test('is the newest window the session reported, of any instance, refused or not, stamped with its log entry', () => {
-    const resumed = { ...EXAMPLE_JOB, watcherInstance: 2 };
+    const resumed = { ...EXAMPLE_JOB, childInstance: 2 };
     expect(liveFactsOfLoggedLines([
       [usageWindow('five_hour', '2026-10-29T15:00:00.000Z'), RESULT],
       [usageWindow('seven_day', '2026-11-02T09:00:00.000Z', true), assistantTurn('message-1', null)],
@@ -305,12 +305,12 @@ describe('the turn', () => {
 
   // A crashed instance's unanswered chat is no turn of the resumed session: the resume line is its first chat.
   test('only the newest instance counts', () => {
-    const resumed = { ...EXAMPLE_JOB, watcherInstance: 2 };
+    const resumed = { ...EXAMPLE_JOB, childInstance: 2 };
     expect(liveFactsOfLoggedLines([[chat('Example first message')], [chat('Example resume line'), RESULT]], resumed).turn).toBe('between-turns');
     expect(liveFactsOfLoggedLines([[chat('Example first message'), RESULT], [chat('Example resume line')]], resumed).turn).toBe('mid-turn');
   });
 
-  test('a job with no agent session, and one before its first Watcher logged a line, has no turn', () => {
+  test('a job with no agent session, and one before its first child logged a line, has no turn', () => {
     expect(liveFactsOfLoggedLines([[RESULT]], liveJobFixture({ id: 'J2', kind: 'merge', role: null })).turn).toBeNull();
     expect(liveFactsOfLoggedLines([]).turn).toBeNull();
   });
@@ -329,7 +329,7 @@ describe('the turn', () => {
 });
 
 describe('the messages waiting', () => {
-  test('a job\'s messages count until the marker their sender writes once its Watcher took the line', () => {
+  test('a job\'s messages count until the marker their sender writes once Talos took the line', () => {
     const trackerDirectory = scratchDirectoryFor('live-facts');
     const jobFolder = writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [[]]);
     mkdirSync(join(jobFolder, 'control-frames'), { recursive: true });
@@ -374,8 +374,8 @@ describe('the last line', () => {
     expect(liveFactsOfLoggedLines([quietSince], productOwner, userMessage).lastLine).toMatchObject({ role: 'user', text: 'The checkout pages.' });
   });
 
-  test('the session\'s newest words with text are its last line, across Watcher instances', () => {
-    expect(liveFactsOfLoggedLines([intake, [assistantTurn('message-2', null, 'Filed two drafts.')]], { ...productOwner, watcherInstance: 2 }, userMessage).lastLine)
+  test('the session\'s newest words with text are its last line, across child instances', () => {
+    expect(liveFactsOfLoggedLines([intake, [assistantTurn('message-2', null, 'Filed two drafts.')]], { ...productOwner, childInstance: 2 }, userMessage).lastLine)
       .toEqual({ role: 'assistant', text: 'Filed two drafts.', at: '2026-10-29T12:00:05Z' });
   });
 
@@ -413,7 +413,7 @@ describe('the last line', () => {
     const pipelineAgent = liveJobFixture({
       id: 'J7', kind: 'pipeline-agent', role: 'pipeline-agent', target: null
     });
-    expect(liveFactsOfLoggedLines([intake, [assistantTurn('message-2', null, 'Proposed two gates.')]], { ...pipelineAgent, watcherInstance: 2 }, userMessage).lastLine)
+    expect(liveFactsOfLoggedLines([intake, [assistantTurn('message-2', null, 'Proposed two gates.')]], { ...pipelineAgent, childInstance: 2 }, userMessage).lastLine)
       .toEqual({ role: 'assistant', text: 'Proposed two gates.', at: '2026-10-29T12:00:05Z' });
   });
 

@@ -226,7 +226,7 @@ describe('one pass', () => {
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())).toMatchObject({
-      kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', watcherInstance: 1
+      kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', childInstance: 1
     });
     await passUntilBuildSessionSpawned(drivePass);
     await untilChildEnded(buildJobId(), 1);
@@ -442,7 +442,7 @@ describe('usage limits', () => {
     const jobId = buildJobId();
     await passUntilBuildJobIs(drivePass, 'interrupted');
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({
-      state: 'interrupted', interruption: 'usage-limit', crashResumes: 0, watcherInstance: 1
+      state: 'interrupted', interruption: 'usage-limit', crashResumes: 0, childInstance: 1
     });
     const usageLimitHit = { kind: 'usage-limit-hit', jobId, fields: { window: 'five_hour', resetsAt: USAGE_RESET_STAMP } };
     expect(storedLogTextOf(repositoryDirectory)).toContain(JSON.stringify(usageLimitHit).slice(1));
@@ -454,7 +454,7 @@ describe('usage limits', () => {
     await untilChildEnded(jobId, 1);
     await passOnce(drivePass);
     await passOnce(drivePass);
-    expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', watcherInstance: 1 }]);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', childInstance: 1 }]);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'assistant')).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

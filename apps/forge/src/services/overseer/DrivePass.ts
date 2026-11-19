@@ -104,6 +104,7 @@ import {
 } from './JobLaunch.ts';
 import { JobResumption }                                              from './JobResumption.ts';
 import { LaunchSettings, type SessionLaunchSettings }                 from './LaunchSettings.ts';
+import { LineSandbox }                                                from './LineSandbox.ts';
 import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
 import { mergedTreeGateStampOf, runMergedTreeGates }                  from './MergedTreeGateRun.ts';
 import { createMergedTreeGateRuns }                                   from './MergedTreeGateRuns.ts';
@@ -112,7 +113,6 @@ import { jobFolderIn, overseerFilesIn }                               from './Ov
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
 import { PipelineChecking }                                           from './PipelineChecking.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
-import { ProcessWatcherSandbox }                                      from './ProcessWatcherSandbox.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
 import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
@@ -276,7 +276,7 @@ export interface DrivePassRequest {
   /** Overridden by specs, which refuse to make an Airlock agent worktree's denied root. */
   folderMaker?:                      FolderMaker;
   /** Called inside the hold after each of its three phases, on the Board being changed; the step a spec reads the order at. */
-  afterHoldPhase?:                   (phase: 'relayed-commands' | 'watcher-events' | 'lifecycle', board: Board) => void;
+  afterHoldPhase?:                   (phase: 'relayed-commands' | 'child-events' | 'lifecycle', board: Board) => void;
   /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
   afterPass?:                        () => void;
   processStarts?:                    ProcessStarts;
@@ -342,22 +342,22 @@ export interface DrivePass {
   stop:           () => Promise<void>;
 }
 
-interface WatcherObservation {
+interface ChildObservation {
   jobId:              string;
   instance:           number;
   liveness:           ChildLiveness;
   events:             readonly EventLogEntry[];
   /** Read after the events, so an ending Talos recognised in a line just read is never missed. */
   recognisedEndings:  readonly RecognisedEnding[];
-  /** Settled for a lost Watcher only, after its surviving child group was killed; `null` while the forced stop is refused. */
+  /** Settled for a lost child only, after its surviving process group was killed; `null` while the forced stop is refused. */
   lostCause:          InterruptionCause | null;
   forcedStopRefusals: ForcedStopRefusals;
-  /** Read for a resumed instance whose Watcher recorded its end; `true` otherwise. */
+  /** Read for a resumed instance whose child record holds its end; `true` otherwise. */
   sessionStarted:     boolean;
 }
 
 interface Observation {
-  watchers:                     readonly WatcherObservation[];
+  childObservations:            readonly ChildObservation[];
   pendingRequests:              readonly PendingHatchRequest[];
   targetTips:                   Readonly<Record<string, string | null>>;
   targetsHoldingManagedBlock:   readonly string[];
@@ -452,10 +452,10 @@ function targetHoldsManagedBlock(location: ProjectLocation, target: string, mark
   return GitProcess.succeeded(shown) && shown.standardOutput.includes(marker);
 }
 
-/** Identity, never time: the stored board and log, the pending requests, the unread events, the target tips and each Watcher's verdict. */
+/** Identity, never time: the stored board and log, the pending requests, the unread events, the target tips and each child's verdict. */
 function fingerprintOf(
   workspace: Workspace,
-  watchers: readonly WatcherObservation[],
+  childObservations: readonly ChildObservation[],
   pending: readonly PendingHatchRequest[],
   tips: Readonly<Record<string, string | null>>,
   buildJobs: readonly BuildJobObservation[],
@@ -473,7 +473,10 @@ function fingerprintOf(
     const gateStep = buildJob.gate.verdict === 'running' ? buildJob.gate.stepIndex : '';
     digest.update(`build ${buildJob.jobId} ${buildJob.setup} ${buildJob.calls} ${buildJob.gate.verdict} ${gateStep}\n`);
   }
-  for (const watcher of watchers) digest.update(`watcher ${watcher.jobId} ${watcher.instance} ${watcher.liveness.verdict} ${watcher.events.at(-1)?.sequence ?? 0}\n`);
+  for (const childObservation of childObservations) {
+    const lastSequence = childObservation.events.at(-1)?.sequence ?? 0;
+    digest.update(`child ${childObservation.jobId} ${childObservation.instance} ${childObservation.liveness.verdict} ${lastSequence}\n`);
+  }
   for (const [target, tip] of Object.entries(tips)) digest.update(`tip ${target} ${tip ?? '-'}\n`);
   return digest.digest('hex');
 }
@@ -486,26 +489,26 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   // Events before Hatch folders: a request a session wrote before its turn's `result` is seen in the same pass as that result.
   const children      = request.boardChildren;
   children.beginPass();
-  const watchers = jobs.map((job): WatcherObservation => {
+  const childObservations = jobs.map((job): ChildObservation => {
     const jobFolder     = children.jobFolderOf(job.id);
-    const afterSequence = job.eventCursor.instance === job.watcherInstance ? job.eventCursor.sequence : 0;
+    const afterSequence = job.eventCursor.instance === job.childInstance ? job.eventCursor.sequence : 0;
     // Liveness first, so an ended child's log is read whole; the endings last, so they cover every line just read.
-    const liveness          = children.livenessOf(jobFolder, job.watcherInstance);
-    const events            = children.eventsAfter(jobFolder, job.watcherInstance, afterSequence);
-    const recognisedEndings = children.recognisedEndingsOf(jobFolder, job.watcherInstance);
-    if (events === 'malformed') request.log(`The event log of job ${job.id}, child instance ${job.watcherInstance}, is malformed; its events wait.`);
+    const liveness          = children.livenessOf(jobFolder, job.childInstance);
+    const events            = children.eventsAfter(jobFolder, job.childInstance, afterSequence);
+    const recognisedEndings = children.recognisedEndingsOf(jobFolder, job.childInstance);
+    if (events === 'malformed') request.log(`The event log of job ${job.id}, child instance ${job.childInstance}, is malformed; its events wait.`);
     const lostCause = liveness.verdict === 'lost' && job.role !== null
-      ? Regrouping.settleLostChildIn(workspace.trackerDirectory, request.platformPorts, jobFolder, job.watcherInstance, forcedStopRetryJobIds.has(job.id))
+      ? Regrouping.settleLostChildIn(workspace.trackerDirectory, request.platformPorts, jobFolder, job.childInstance, forcedStopRetryJobIds.has(job.id))
       : null;
     return {
       jobId:              job.id,
-      instance:           job.watcherInstance,
+      instance:           job.childInstance,
       liveness,
       events:             events === 'malformed' ? [] : events,
       recognisedEndings,
       lostCause,
-      forcedStopRefusals: Regrouping.refusedForcedStopsOf(jobFolder, job.watcherInstance),
-      sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(children, jobFolder, job.watcherInstance, request.agentAdapter),
+      forcedStopRefusals: Regrouping.refusedForcedStopsOf(jobFolder, job.childInstance),
+      sessionStarted:     liveness.verdict !== 'ended' || JobResumption.instanceSessionStarted(children, jobFolder, job.childInstance, request.agentAdapter),
     };
   });
   // Also before Hatch folders: a `result` closing an Assistant's turn must not be seen before the move it queued ahead of it.
@@ -525,7 +528,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     request.log(`The usage marker ${UsageMarkerFile.pathIn(request.monitorFolder)} is malformed (${usageMarker.reason}); no limit is held by it.`);
   }
   return {
-    watchers,
+    childObservations,
     pendingRequests,
     targetTips,
     targetsHoldingManagedBlock,
@@ -534,17 +537,17 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     answeredWaiverTrees,
     usageMarker,
     assistantReadings,
-    fingerprint: fingerprintOf(workspace, watchers, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
+    fingerprint: fingerprintOf(workspace, childObservations, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
     trackerId:   progress.trackerId,
   };
 }
 
-function lostWatcherCauseOf(watcher: WatcherObservation): InterruptionCause {
-  if (watcher.lostCause !== null) return watcher.lostCause;
-  return watcher.forcedStopRefusals.refusals > 0 ? FORCED_STOP_REFUSED_INTERRUPTION : 'watcher-lost';
+function lostChildCauseOf(childObservation: ChildObservation): InterruptionCause {
+  if (childObservation.lostCause !== null) return childObservation.lostCause;
+  return childObservation.forcedStopRefusals.refusals > 0 ? FORCED_STOP_REFUSED_INTERRUPTION : 'watcher-lost';
 }
 
-interface AppliedWatcherEvents {
+interface AppliedChildEvents {
   usageLimitHits:          UsageLimitHit[];
   /** Every usage window the streams reported, in stream order, which the pass records after the hold. */
   usageWindowObservations: UsageWindowObservation[];
@@ -554,15 +557,15 @@ interface AppliedWatcherEvents {
   pipelineAgentTurnEnds:   string[];
 }
 
-/** What the watcher events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
-interface WatcherEventFacts {
+/** What the child events are read under: the pipeline's API billing, `null` for a subscription, and the decision wording. */
+interface ChildEventFacts {
   apiBilling:        ApiBilling | null;
   decisionWordingOf: DrivePassRequest['decisionWordingOf'];
 }
 
 /** The cause of the ending Talos recognised in the line at `sequence`; `null` for any other line or an ending this code does not name. */
-function recognisedEndingCauseAt(watcher: WatcherObservation, sequence: number): InterruptionCause | null {
-  const ending = watcher.recognisedEndings.find((recognised) => recognised.closingLineSequence === sequence);
+function recognisedEndingCauseAt(childObservation: ChildObservation, sequence: number): InterruptionCause | null {
+  const ending = childObservation.recognisedEndings.find((recognised) => recognised.closingLineSequence === sequence);
   if (ending === undefined || !Object.hasOwn(INTERRUPTION_CAUSE_OF_AGENT_ENDING, ending.name)) return null;
   return INTERRUPTION_CAUSE_OF_AGENT_ENDING[ending.name as AgentEndingName];
 }
@@ -575,85 +578,87 @@ function recognisedEndingCauseAt(watcher: WatcherObservation, sequence: number):
 function applyChildEvents(
   change: TrackerChange,
   adapter: AgentAdapter,
-  watchers: readonly WatcherObservation[],
+  childObservations: readonly ChildObservation[],
   children: BoardChildren,
   trackerDirectory: string,
-  facts: WatcherEventFacts,
-): AppliedWatcherEvents {
+  facts: ChildEventFacts,
+): AppliedChildEvents {
   const { board, at } = change;
   const { apiBilling } = facts;
   const usageLimitHits: UsageLimitHit[] = [];
   const usageWindowObservations: UsageWindowObservation[] = [];
   const stoppedSessions: StoppedSession[] = [];
   const pipelineAgentTurnEnds: string[] = [];
-  for (const watcher of watchers) {
-    if (board.jobById(watcher.jobId)?.watcherInstance !== watcher.instance) continue;
+  for (const childObservation of childObservations) {
+    if (board.jobById(childObservation.jobId)?.childInstance !== childObservation.instance) continue;
     let closedWithResult = false;
-    for (const entry of watcher.events) {
+    for (const entry of childObservation.events) {
       if (entry.origin !== 'agent') continue;
       for (const event of adapter.eventsOf(entry.line)) {
-        const state = board.jobById(watcher.jobId)?.state;
+        const state = board.jobById(childObservation.jobId)?.state;
         const windowObservation = UsageLimits.windowObservationOf(event, apiBilling !== null);
         if (windowObservation !== null) usageWindowObservations.push(windowObservation);
         const refusal = UsageLimits.refusalOf(event, at, apiBilling !== null);
         if (refusal !== null && state === 'running') {
-          const hit = { jobId: watcher.jobId, ...refusal };
+          const hit = { jobId: childObservation.jobId, ...refusal };
           UsageLimits.interruptLimitedJob(board, hit, at);
           usageLimitHits.push(hit);
           continue;
         }
-        const endingCause = event.kind === 'result' && state === 'running' ? recognisedEndingCauseAt(watcher, entry.sequence) : null;
+        const endingCause = event.kind === 'result' && state === 'running' ? recognisedEndingCauseAt(childObservation, entry.sequence) : null;
         if (endingCause !== null) {
-          board.interruptJob(watcher.jobId, endingCause, at);
-          stoppedSessions.push({ jobId: watcher.jobId, watcherInstance: watcher.instance });
+          board.interruptJob(childObservation.jobId, endingCause, at);
+          stoppedSessions.push({ jobId: childObservation.jobId, childInstance: childObservation.instance });
           continue;
         }
         const failure = event.kind === 'result' ? event.failure : null;
         const stopped = apiBilling === null || failure === null
           ? null
-          : ApiBillingStops.applyResultFailure(board, watcher.jobId, apiBilling, failure, facts.decisionWordingOf, at);
+          : ApiBillingStops.applyResultFailure(board, childObservation.jobId, apiBilling, failure, facts.decisionWordingOf, at);
         if (stopped !== null) {
           stoppedSessions.push(stopped);
           closedWithResult = true;
           continue;
         }
-        if (event.kind === 'started' && (state === 'launching' || state === 'preparing')) board.moveJob(watcher.jobId, 'running', at);
-        if (event.kind === 'question' && state === 'running') QuestionRouting.openQuestion(board, watcher.jobId, event.requestId, event.questions, at);
+        if (event.kind === 'started' && (state === 'launching' || state === 'preparing')) board.moveJob(childObservation.jobId, 'running', at);
+        if (event.kind === 'question' && state === 'running') QuestionRouting.openQuestion(board, childObservation.jobId, event.requestId, event.questions, at);
         // A session's turn ends in a `result` too; it finishes only once the Overseer closed its input.
-        const kind = board.jobById(watcher.jobId)?.kind ?? 'build';
-        if (event.kind === 'result' && state === 'running' && kind === 'pipeline-agent') pipelineAgentTurnEnds.push(watcher.jobId);
+        const kind = board.jobById(childObservation.jobId)?.kind ?? 'build';
+        if (event.kind === 'result' && state === 'running' && kind === 'pipeline-agent') pipelineAgentTurnEnds.push(childObservation.jobId);
         if (event.kind === 'result' && state === 'running' && !SESSION_JOB_KINDS.includes(kind)) {
-          board.moveJob(watcher.jobId, 'in-customs', at);
+          board.moveJob(childObservation.jobId, 'in-customs', at);
           closedWithResult = true;
         }
       }
     }
-    const lastEvent = watcher.events.at(-1);
+    const lastEvent = childObservation.events.at(-1);
     // A budget stop ends its job in this loop, which then holds no cursor.
-    if (lastEvent !== undefined && board.jobById(watcher.jobId) !== undefined) board.setJobEventCursor(watcher.jobId, { instance: watcher.instance, sequence: lastEvent.sequence });
-    const job = board.jobById(watcher.jobId);
+    if (lastEvent !== undefined && board.jobById(childObservation.jobId) !== undefined) {
+      board.setJobEventCursor(childObservation.jobId, { instance: childObservation.instance, sequence: lastEvent.sequence });
+    }
+    const job = board.jobById(childObservation.jobId);
     const state = job?.state;
-    const watcherIsGone = watcher.liveness.verdict === 'ended' || watcher.liveness.verdict === 'lost';
-    const sessionExitedByItself = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited';
-    const sessionEndedCleanly   = watcher.liveness.verdict === 'ended' && watcher.liveness.end.reason === 'exited' && watcher.liveness.end.exitCode === 0;
+    const childIsGone = childObservation.liveness.verdict === 'ended' || childObservation.liveness.verdict === 'lost';
+    const sessionExitedByItself = childObservation.liveness.verdict === 'ended' && childObservation.liveness.end.reason === 'exited';
+    const sessionEndedCleanly   = sessionExitedByItself && childObservation.liveness.verdict === 'ended' && childObservation.liveness.end.exitCode === 0;
     if (job !== undefined && state === 'running' && JobResumption.resumeFailed(
       job,
       JobResumption.launchSessionOwnerJobIdOf(children, trackerDirectory, board.logRecordsSoFar(), job, adapter),
       sessionExitedByItself,
-      watcher.sessionStarted,
+      childObservation.sessionStarted,
     )) {
       JobResumption.applyResumeFailure(board, job, at);
-    } else if (watcherIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
+    } else if (childIsGone && state === 'stopping' && job !== undefined && SESSION_JOB_KINDS.includes(job.kind) && !IntakeSessions.isIntakeJob(job)) {
       // An Assistant or pipeline agent ends `closed`, so User's next message opens a pipeline agent again with its conversation.
-      board.endJob(watcher.jobId, { outcome: 'closed' }, at);
-    } else if (watcherIsGone && !closedWithResult && state === 'running' && job !== undefined && AnswerDelivery.stoppedForAnswerDelivery(children, job)) {
-      board.interruptJob(watcher.jobId, 'answer-delivery', at);
+      board.endJob(childObservation.jobId, { outcome: 'closed' }, at);
+    } else if (childIsGone && !closedWithResult && state === 'running' && job !== undefined && AnswerDelivery.stoppedForAnswerDelivery(children, job)) {
+      board.interruptJob(childObservation.jobId, 'answer-delivery', at);
     } else if (sessionEndedCleanly && !closedWithResult && state === 'running' && job !== undefined && REPORTING_JOB_KINDS.includes(job.kind)) {
-      board.endJob(watcher.jobId, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport }, at);
-    } else if (watcherIsGone && !closedWithResult && (state === 'running' || state === 'waiting-for-answer')) {
+      board.endJob(childObservation.jobId, { outcome: 'failed', cause: BUILD_JOB_CAUSES.noReport }, at);
+    } else if (childIsGone && !closedWithResult && (state === 'running' || state === 'waiting-for-answer')) {
       // A clean quit or a lease end is Talos's own stop, never a crash the Playbook counts.
-      const talosEndCause = watcher.liveness.verdict === 'ended' ? INTERRUPTION_CAUSE_OF_TALOS_END[watcher.liveness.end.reason] ?? null : null;
-      board.interruptJob(watcher.jobId, watcher.liveness.verdict === 'lost' ? lostWatcherCauseOf(watcher) : talosEndCause ?? 'agent-crashed', at);
+      const talosEndCause = childObservation.liveness.verdict === 'ended' ? INTERRUPTION_CAUSE_OF_TALOS_END[childObservation.liveness.end.reason] ?? null : null;
+      board.interruptJob(childObservation.jobId, childObservation.liveness.verdict === 'lost' ? lostChildCauseOf(childObservation) : talosEndCause ?? 'agent-crashed', at);
     }
   }
   return {
@@ -942,7 +947,7 @@ async function launchAgentChild(
   const launchParts      = JobResumption.launchPartsOf(job, firstMessage, resumeLine);
   if (!launchParts.resume && redHandoffTakenOver !== null) RedHandoff.adoptRedHandoff(jobFolder, redHandoffTakenOver);
   if (JobLaunch.isWorktreeJob(job)) JobLaunch.recordJobStart(jobLaunchContext, board, job);
-  if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.watcherInstance, launchParts.firstMessage);
+  if (!launchParts.resume) JobResumption.storeFirstMessage(jobFolder, job.childInstance, launchParts.firstMessage);
   const sessionOwnerJobId = staleGreenSessionOwner ?? JobResumption.sessionOwnerJobIdOf(board.logRecordsSoFar(), job);
   const launchSettings    = sessionLaunchSettingsOf(workspace.trackerDirectory, board, job, sessionOwnerJobId);
   const resumesASession   = launchParts.resume || sessionOwnerJobId !== job.id;
@@ -976,11 +981,11 @@ async function launchAgentChild(
   }
   if (launchRequest.profile.networkDomainGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job);
   if (launchRequest.profile.stageEditGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
-  JobLaunch.recordInstructionsRead(jobFolder, job.watcherInstance, instructions.files);
+  JobLaunch.recordInstructionsRead(jobFolder, job.childInstance, instructions.files);
   JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
   const launched = await children.launchAgent({
     childFolder:                    jobFolder,
-    instance:                       job.watcherInstance,
+    instance:                       job.childInstance,
     label:                          job.id,
     workingDirectory,
     plan:                           agentAdapter.planOf(launchRequest),
@@ -989,10 +994,10 @@ async function launchAgentChild(
   const jobWords = `${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}`;
   if (launched.verdict === 'talos-unavailable' || launched.verdict === 'refused') {
     const why = launched.verdict === 'refused' ? `Talos refused it (${launched.reason})` : 'no Talos took it';
-    request.log(`Child instance ${job.watcherInstance} of job ${job.id} (${jobWords}) did not launch: ${why}; the next pass tries again.`);
+    request.log(`Child instance ${job.childInstance} of job ${job.id} (${jobWords}) did not launch: ${why}; the next pass tries again.`);
     return { talosDidNotLaunch: job.id };
   }
-  request.log(`Launched child instance ${job.watcherInstance} of job ${job.id} (${jobWords}) under Talos.`);
+  request.log(`Launched child instance ${job.childInstance} of job ${job.id} (${jobWords}) under Talos.`);
   return null;
 }
 
@@ -1012,7 +1017,7 @@ function sessionLaunchSettingsOf(trackerDirectory: string, board: Board, job: Re
  * A job launching, or resumed into `running`, whose current instance nobody claimed yet; spawning twice is harmless, since the claim is
  * exclusive. A build job launches its session only once its worktree is prepared, as it moves into `running`.
  */
-function jobsNeedingAWatcher(
+function jobsNeedingAChild(
   children: BoardChildren,
   board: Board,
   spawnedInstances: ReadonlySet<string>,
@@ -1021,8 +1026,8 @@ function jobsNeedingAWatcher(
   return board.jobs().filter((job) => ((job.state === 'launching' && !JobLaunch.isWorktreeJob(job)) || job.state === 'running')
     && job.role !== null
     && !job.ticketIds.some((ticketId) => heldTicketIds.includes(ticketId))
-    && !spawnedInstances.has(`${job.id}:${job.watcherInstance}`)
-    && children.livenessOf(children.jobFolderOf(job.id), job.watcherInstance).verdict === 'unlaunched');
+    && !spawnedInstances.has(`${job.id}:${job.childInstance}`)
+    && children.livenessOf(children.jobFolderOf(job.id), job.childInstance).verdict === 'unlaunched');
 }
 
 function noticesOf(
@@ -1131,7 +1136,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const triedPipelineAgentSnapshots = new Set<string>();
 
   /**
-   * A gate step the Overseer runs itself, under the profile a gate Watcher gets, its own network and `writes`, in `worktreePath`; `pipeline`
+   * A gate step the Overseer runs itself, under the profile a gate line child gets, its own network and `writes`, in `worktreePath`; `pipeline`
    * names the entity homes whose `.claude` it denies.
    */
   function overseerGateLineOf(
@@ -1155,7 +1160,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       ...JobLaunch.cacheFolderFactsOf(jobLaunchContext),
     });
     const facts = { ...sandboxFacts, ...WorkerProfiles.entityFactsOf(pipeline) };
-    const planOf = () => ProcessWatcherSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
+    const planOf = () => LineSandbox.planOf(JobLaunch.processSandboxRequestOf(jobLaunchContext, facts, confinement), profilePath);
     const unmadeRootReason = WorkerProfiles.unmadeDeniedRootRefusalOf(facts);
     if (unmadeRootReason !== null) return { verdict: 'refused', reason: unmadeRootReason };
     return confinedLineOf(platformPorts.gateConfinement, planOf, commandArguments);
@@ -1245,9 +1250,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
 
   const hatchFolderOfLaunchedJob = new Map<string, string>();
 
-  /** The session's Watcher is asked to stop it, after the grace the session has to end by itself. */
-  async function stopSession(jobId: string, watcherInstance: number): Promise<void> {
-    await request.boardChildren.stop(request.boardChildren.jobFolderOf(jobId), watcherInstance, sessionStopGraceMilliseconds);
+  /** Talos is asked to stop the session, after the grace the session has to end by itself. */
+  async function stopSession(jobId: string, childInstance: number): Promise<void> {
+    await request.boardChildren.stop(request.boardChildren.jobFolderOf(jobId), childInstance, sessionStopGraceMilliseconds);
   }
 
   function unwatchHatchFoldersOfEndedJobs(board: Board): void {
@@ -1268,7 +1273,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     worktreeOf:     (ticketId) => WorktreesFolder.ticketWorktreeOf(request.workspace.rootDirectory, ticketId),
     limits:         AIRLOCK_LIMITS,
     get refDeniesHold() {
-      return ProcessWatcherSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
+      return LineSandbox.refDeniesHoldUnder(platformPorts.gateConfinement);
     },
     hold:             holdTracker,
     mergedTreeGateOf: (worktreePath, treeId, phase, gatedEntities, ownerJobId) => {
@@ -1311,11 +1316,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     stopMergedTreeGatesIn: mergedTreeGateRuns.stopRunsIn,
     mergeAgentReadingOf:   (job) => JobLaunch.sessionReadingOf(jobLaunchContext, job),
     resolutionLinesOf:     MergeRun.resolutionLinesOf,
-    watcherIsLive:         (job) => {
+    childIsLive:           (job) => {
       const jobFolder = request.boardChildren.jobFolderOf(job.id);
-      return request.boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict === 'live';
+      return request.boardChildren.livenessOf(jobFolder, job.childInstance).verdict === 'live';
     },
-    stopMergeAgent:        async (job) => { await stopSession(job.id, job.watcherInstance); },
+    stopMergeAgent:        async (job) => { await stopSession(job.id, job.childInstance); },
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
     keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(request.boardChildren.jobFolderOf(mergeJob.id), name),
@@ -1344,7 +1349,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     UsageLimits.markHits(request.monitorFolder, request.agentAdapter.vendor, trackerId, hits);
     for (const hit of hits) {
       const job = board.jobById(hit.jobId);
-      if (job !== undefined) await stopSession(job.id, job.watcherInstance);
+      if (job !== undefined) await stopSession(job.id, job.childInstance);
     }
   }
 
@@ -1379,21 +1384,21 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
         const billing = change.board.pipeline()?.billing;
-        const watcherEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
+        const childEventFacts = { apiBilling: billing?.mode === 'api' ? billing : null, decisionWordingOf: request.decisionWordingOf };
         const {
           usageLimitHits, usageWindowObservations, stoppedSessions, pipelineAgentTurnEnds
         } = applyChildEvents(
           change,
           request.agentAdapter,
-          observation.watchers,
+          observation.childObservations,
           request.boardChildren,
           request.workspace.trackerDirectory,
-          watcherEventFacts,
+          childEventFacts,
         );
-        RefusedForcedStops.settle(change.board, observation.watchers, request.decisionWordingOf, change.at);
-        const livenessOf = (job: Readonly<Job>): ChildLiveness => observation.watchers
-          .find((watcher) => watcher.jobId === job.id && watcher.instance === job.watcherInstance)?.liveness
-          ?? request.boardChildren.livenessOf(request.boardChildren.jobFolderOf(job.id), job.watcherInstance);
+        RefusedForcedStops.settle(change.board, observation.childObservations, request.decisionWordingOf, change.at);
+        const livenessOf = (job: Readonly<Job>): ChildLiveness => observation.childObservations
+          .find((childObservation) => childObservation.jobId === job.id && childObservation.instance === job.childInstance)?.liveness
+          ?? request.boardChildren.livenessOf(request.boardChildren.jobFolderOf(job.id), job.childInstance);
         IntakeSessions.endClosedIntakes(change.board, livenessOf, change.at);
         PipelineAgentSessions.verifyTurnEnds(change, {
           workspace:     request.workspace,
@@ -1404,7 +1409,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
           ...(sharedRepository === null ? {} : { sharedRepository }),
         }, pipelineAgentTurnEnds);
         PipelineAgentSessions.pinSnapshotCommit(change, request.mainLine);
-        request.afterHoldPhase?.('watcher-events', change.board);
+        request.afterHoldPhase?.('child-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
         const downAssistants = AssistantSession.endDownAssistants(change.board, assistantReadings, quietAssistantIdsDue.splice(0), change.at);
@@ -1486,13 +1491,13 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     HatchInbox.writeReplies(written.result.replies);
     await stopLimitedJobs(written.board, observation.trackerId, written.result.usageLimitHits);
     UsageLimits.recordWindowObservations(request.monitorFolder, written.result.usageWindowObservations);
-    for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.watcherInstance);
+    for (const stoppedSession of written.result.stoppedSessions) await stopSession(stoppedSession.jobId, stoppedSession.childInstance);
     scheduleThePassAtTheReset(written.result.usageResetsAt);
     gateSlots.startRound();
     await JobLaunch.runBuildJobEffects(jobLaunchContext, written.board, observation.buildJobs);
     const snapshotsContext = { workspace: request.workspace, worktreesRoot: WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory) };
     PipelineAgentSessions.removeUnheldSnapshots(written.board, snapshotsContext, triedPipelineAgentSnapshots, request.log);
-    for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.watcherInstance);
+    for (const endedAssistant of written.result.endedAssistantJobs) await stopSession(endedAssistant.id, endedAssistant.childInstance);
     await JobResumption.deliverFirstMessages(request.boardChildren, request.workspace.trackerDirectory, written.board, request.agentAdapter);
     await AssistantSession.deliverChats({
       boardChildren:    request.boardChildren,
@@ -1509,9 +1514,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       adapter:          request.agentAdapter,
       windDownMessage:  request.windDownMessage,
     });
-    const sessionsEndedThisPass = observation.watchers
-      .filter((watcher) => watcher.liveness.verdict === 'live' && written.board.jobById(watcher.jobId) === undefined)
-      .map((watcher) => ({ jobId: watcher.jobId, watcherInstance: watcher.instance }));
+    const sessionsEndedThisPass = observation.childObservations
+      .filter((childObservation) => childObservation.liveness.verdict === 'live' && written.board.jobById(childObservation.jobId) === undefined)
+      .map((childObservation) => ({ jobId: childObservation.jobId, childInstance: childObservation.instance }));
     endedSessionsAwaitingClose = await JobControlDelivery.closeInputOfEndedJobs(
       request.boardChildren, [...endedSessionsAwaitingClose, ...sessionsEndedThisPass],
     );
@@ -1524,11 +1529,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     let apiBillingKeyIsMissing = false;
     const jobsToLaunch = ApiBillingStops.launchesAreHeld(written.board)
       ? []
-      : jobsNeedingAWatcher(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
+      : jobsNeedingAChild(request.boardChildren, written.board, spawnedInstances, written.result.agentConfigHeldTicketIds);
     for (const job of jobsToLaunch) {
       hatchFolderOfLaunchedJob.set(job.id, HatchInbox.hatchDirectoryOf(request.workspace.rootDirectory, job.id));
       const refusal = await launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job);
-      if (refusal === null) spawnedInstances.add(`${job.id}:${job.watcherInstance}`);
+      if (refusal === null) spawnedInstances.add(`${job.id}:${job.childInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
       else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal) continue;
       else if ('kind' in refusal) launchRefusals.push(refusal);
@@ -1579,12 +1584,12 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       ticketsWaitingForMachineSlot: written.result.ticketsWaitingForMachineSlot,
     };
     const settled = observe(request, jobLaunchContext);
-    // An event a Watcher logged after this pass read its events is unapplied work, never a settled state an unforced wake may skip.
-    lastFingerprint = settled.watchers.some((watcher) => watcher.events.length > 0) ? null : settled.fingerprint;
-    // A job the merge sweep launched after this pass spawned Watchers needs one more pass, which its settled fingerprint would skip.
+    // An event Talos logged after this pass read its events is unapplied work, never a settled state an unforced wake may skip.
+    lastFingerprint = settled.childObservations.some((childObservation) => childObservation.events.length > 0) ? null : settled.fingerprint;
+    // A job the merge sweep launched after this pass launched children needs one more pass, which its settled fingerprint would skip.
     const jobIdsThisPassSaw = new Set(written.board.jobs().map((job) => job.id));
     const passIsDue = JobLaunch.someBuildJobAwaitsAPass(written.board, settled.buildJobs) || written.result.waiverAnswersAwaitAPass;
-    if (passIsDue || settled.watchers.some((watcher) => !jobIdsThisPassSaw.has(watcher.jobId))) {
+    if (passIsDue || settled.childObservations.some((childObservation) => !jobIdsThisPassSaw.has(childObservation.jobId))) {
       forcedNext = true;
       wokenAgain = true;
     }

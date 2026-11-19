@@ -1,7 +1,8 @@
 /**
  * What the CLI does to an Overseer it is not: start one detached, ask the live one to stop, and wait for its Baton to go. A stop goes to the
- * API with the token; when the API does not answer, the Baton's process is ended, its identity checked first. Watchers are
- * never touched. A Baton left naming a dead process says the Overseer's own stop never finished, which the outcome reports for the caller to repair.
+ * API with the token; when the API does not answer, the Baton's process is ended, its identity checked first. Talos and its children are
+ * never touched. A Baton left naming a dead process says the Overseer's own stop never finished, which the outcome reports for the caller
+ * to repair.
  */
 import { readFileSync } from 'node:fs';
 

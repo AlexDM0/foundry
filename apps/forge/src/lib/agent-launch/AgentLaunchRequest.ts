@@ -5,7 +5,7 @@ export type AgentEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 /** `confined`: the agent's own sandbox must start, or the session does not run. `unconfined-by-design`: the session runs with no sandbox. */
 export type AgentConfinement = 'confined' | 'unconfined-by-design';
 
-/** `subscription` bills the vendor login; `api` bills the API key of the Watcher's own environment, with an optional cap per launch. */
+/** `subscription` bills the vendor login; `api` bills the API key of Talos's own environment, with an optional cap per launch. */
 export type AgentBilling =
   | { readonly mode: 'subscription' }
   | { readonly mode: 'api'; readonly maxBudgetUsd?: number };

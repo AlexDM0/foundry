@@ -2180,7 +2180,7 @@ The board's state. The example shows the shape; the tables below give each key's
       "target": "main",
       "state": "merging",
       "interruption": "reboot",
-      "watcherInstance": 1,
+      "childInstance": 1,
       "eventCursor": { "instance": 1, "sequence": 12 },
       "answeredRequestIds": [],
       "crashResumes": 0,
@@ -2295,7 +2295,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `target` | no | The main line or `group-<name>`, or null for a session. |
 | `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging-main`, `merging`, `landing` or `stopping`. |
 | `interruption` | yes | Why it was last interrupted: `watcher-lost` (its Watcher died without recording an end; one that failed, such as on a full disk, first writes `watcher failed: <cause>` to its `watcher-<n>.log`), `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost Watcher's child tree refused the forced stop: never resumed, the stop tried again each sweep) or `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered). |
-| `watcherInstance` | no | The newest Watcher instance spawned or to spawn, from 1. |
+| `childInstance` | no | The newest child instance launched or to launch, from 1. |
 | `eventCursor` | no | `{ instance, sequence }`, the last Watcher event applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
 | `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` only. |
@@ -2819,13 +2819,13 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | kind | ids | fields |
 |---|---|---|
 | `job-launched` | `jobId` | `kind`, `role` (or `null`), `ticketIds`, `attempt`, `target` and `parentJobId` (each or `null`), and on a product-owner launch only `intakeText`: User's request, and `intakePictures` (`[{pictureId, name}]`) only when it came with pictures; on a forge with entities only, `entity` and `stage`: the entity and the ticket's stage the job runs, which scope its red handoffs and failed passes; and only on the product owner the first Apply over entities starts, `entitiesToAssign`: the pending tickets it gives an entity. A `kind` or `role` `onboarder`, which an earlier release logged, reads as `pipeline-agent`; the file is not rewritten |
-| `job-interrupted` | `jobId` | `cause`, `watcherInstance`: the instance that was lost |
-| `job-resumed` | `jobId` | `watcherInstance`: the instance spawned, `cause`: the interruption it resumes from |
+| `job-interrupted` | `jobId` | `cause`, `childInstance`: the instance that was lost |
+| `job-resumed` | `jobId` | `childInstance`: the instance spawned, `cause`: the interruption it resumes from |
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
 | `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some; `byOverseer` (`true`) only when the text is the Overseer's wording of User's setup move |
-| `job-reopened` | `jobId` | `watcherInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byOverseer` as on `job-messaged` |
+| `job-reopened` | `jobId` | `childInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byOverseer` as on `job-messaged` |
 | `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |
 | `agent-stopped` | none | below |
 | `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`), then the reply's `ticketIds`, or its `status` and `detail` when refused: a relayed request the Overseer answered, never applied again; a reply lost after the hold committed is written again from this record |

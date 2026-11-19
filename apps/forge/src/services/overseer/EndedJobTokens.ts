@@ -1,5 +1,5 @@
 /**
- * When a job ends, its session's tokens go to its tickets' rows: read from every Watcher instance's event log, summed by `TokenCrediting`,
+ * When a job ends, its session's tokens go to its tickets' rows: read from every child instance's event log, summed by `TokenCrediting`,
  * logged as one `agent-stopped` record keyed by the job id and added to the rows, a review job's to its ticket's newest review bar.
  */
 import type { AgentAdapter }                 from '../../lib/agent-launch/AgentAdapter.ts';
@@ -7,7 +7,7 @@ import type { TokenCredit }                  from '../../lib/tracker-model/@type
 import type { Job }                          from '../../lib/tracker-model/@types/Job.ts';
 import type { AgentUsage, LogRecord }        from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                        from '../../lib/tracker-model/Board.ts';
-import { FIRST_WATCHER_INSTANCE }            from '../../lib/tracker-model/constants/JobStates.ts';
+import { FIRST_CHILD_INSTANCE }              from '../../lib/tracker-model/constants/JobStates.ts';
 import { type CreditedTurn, TokenCrediting } from '../lifecycle/TokenCrediting.ts';
 import type { BoardChildren }                from './BoardChildren.ts';
 
@@ -18,10 +18,10 @@ export interface EndedJobTokensContext {
 
 /** What crediting reads of a job, so a job the log ended can be rebuilt from its records. */
 interface EndedJob {
-  readonly id:              string;
-  readonly kind:            Job['kind'];
-  readonly ticketIds:       readonly string[];
-  readonly watcherInstance: number;
+  readonly id:            string;
+  readonly kind:          Job['kind'];
+  readonly ticketIds:     readonly string[];
+  readonly childInstance: number;
 }
 
 interface SessionReading {
@@ -34,7 +34,7 @@ function sessionReadingOf(context: EndedJobTokensContext, job: EndedJob): Sessio
   const jobFolder = context.boardChildren.jobFolderOf(job.id);
   const turns: CreditedTurn[] = [];
   let costUsd: number | null = null;
-  for (let instance = 1; instance <= job.watcherInstance; instance += 1) {
+  for (let instance = 1; instance <= job.childInstance; instance += 1) {
     const entries = context.boardChildren.eventsAfter(jobFolder, instance, 0);
     if (entries === 'malformed') continue;
     let instanceCostUsd: number | null = null;
@@ -92,12 +92,12 @@ function creditJobsEndedInTheHold(board: Board, context: EndedJobTokensContext, 
   }
 }
 
-function highestWatcherInstanceOf(logRecords: readonly LogRecord[], jobId: string): number {
+function highestChildInstanceOf(logRecords: readonly LogRecord[], jobId: string): number {
   return logRecords.reduce((highest, record) => (
     (record.kind === 'job-interrupted' || record.kind === 'job-resumed' || record.kind === 'job-reopened') && record.jobId === jobId
-      ? Math.max(highest, record.fields.watcherInstance)
+      ? Math.max(highest, record.fields.childInstance)
       : highest
-  ), FIRST_WATCHER_INSTANCE);
+  ), FIRST_CHILD_INSTANCE);
 }
 
 /**
@@ -115,7 +115,7 @@ function creditJobsTheLogEndedUncredited(board: Board, context: EndedJobTokensCo
     const { jobId } = record;
     if (!endedJobIds.has(jobId) || creditedJobIds.has(jobId) || jobIdsAlreadyExamined.has(jobId)) continue;
     const job = {
-      id: jobId, kind: record.fields.kind, ticketIds: record.fields.ticketIds, watcherInstance: highestWatcherInstanceOf(logRecords, jobId)
+      id: jobId, kind: record.fields.kind, ticketIds: record.fields.ticketIds, childInstance: highestChildInstanceOf(logRecords, jobId)
     };
     creditEndedJob(board, context, job, at);
     examinedJobIds.push(jobId);

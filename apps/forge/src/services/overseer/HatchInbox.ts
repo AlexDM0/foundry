@@ -217,7 +217,7 @@ function replyRebuiltFrom(applied: HatchAppliedRecord): HatchReply | null {
 }
 
 /**
- * Inside the hold, before any Watcher event: each request of a job still on the board and readable is applied once, whatever its verdict,
+ * Inside the hold, before any child event: each request of a job still on the board and readable is applied once, whatever its verdict,
  * and logged with its reply. A request already applied whose reply was lost after its hold committed gets that reply again, unapplied. The
  * replies are returned for the Overseer to write once the hold has committed.
  */

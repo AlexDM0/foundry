@@ -33,7 +33,7 @@ interface ResumedScene {
   observe: (overrides: Partial<BuildJobObservation>) => void;
 }
 
-/** A build job whose first handoff went red and whose session was resumed once, now running in its second Watcher instance. */
+/** A build job whose first handoff went red and whose session was resumed once, now running in its second child instance. */
 function resumedScene(): ResumedScene {
   const rootDirectory = createScratchDirectory('red-resumed');
   folders.push(rootDirectory);

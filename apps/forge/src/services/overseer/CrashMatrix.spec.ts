@@ -607,8 +607,8 @@ async function passUntil(drivePass: DrivePass, condition: () => boolean, what: s
 
 function sessionRuns(job: Readonly<Job> | undefined): job is Readonly<Job> {
   if (job?.state !== 'running') return false;
-  const record = childRecordOf(job.id, job.watcherInstance);
-  return childReadings().livenessOf(sessionJobFolder(job.id), job.watcherInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
+  const record = childRecordOf(job.id, job.childInstance);
+  return childReadings().livenessOf(sessionJobFolder(job.id), job.childInstance).verdict === 'live' && record?.childProcess !== undefined && record.childProcess !== null;
 }
 
 /** Passes until the build session's current instance runs a child; answers the job as stored then. */
@@ -649,14 +649,14 @@ function rebootTheMachine(jobId: string, instance: number): void {
   world.rebootMachine(sessionWorkspace.trackerDirectory);
   const foreignBoot = { bootIdentity: 'example-earlier-boot' };
   for (const job of storedJobs()) {
-    const record = childRecordOf(job.id, job.watcherInstance);
+    const record = childRecordOf(job.id, job.childInstance);
     if (record === null || record.talos === null || record.end !== null) continue;
     const rebootedRecord: ChildRecord = {
       ...record,
       talos:        { ...record.talos, ...foreignBoot },
       childProcess: record.childProcess === null ? null : { ...record.childProcess, ...foreignBoot },
     };
-    writeFileSync(childFilesIn(sessionJobFolder(job.id), job.watcherInstance).recordPath, `${JSON.stringify(rebootedRecord)}\n`);
+    writeFileSync(childFilesIn(sessionJobFolder(job.id), job.childInstance).recordPath, `${JSON.stringify(rebootedRecord)}\n`);
   }
   world.startTalosAgain(sessionWorkspace.trackerDirectory);
 }
@@ -719,7 +719,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const report = await (await startedOverseer(adapter)).regroup();
 
     expect(report.lost).toEqual([]);
-    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
     expect(requireBuildJob().eventCursor.sequence).toBeGreaterThan(storedCursor.sequence);
     expect(storedRecords().filter((record) => record.kind === 'job-interrupted')).toEqual([]);
   });
@@ -737,7 +737,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
   });
 
   test('agent exits with its closing result while the Overseer is down: on regroup the result is read from the event log into Customs', async () => {
-    const statesAfterWatcherEvents: (string | undefined)[] = [];
+    const statesAfterChildEvents: (string | undefined)[] = [];
     const adapter = recordingAdapter({ fresh: [STARTED, { kind: 'print', line: fakeResultLine({ outcome: 'built' }) }, { kind: 'await-line' }], resumed: WAITING_STEPS });
     const first   = await startedOverseer(adapter);
     await passUntil(first, () => childReadings().livenessOf(sessionJobFolder(requireBuildJob().id), 1).verdict !== 'unlaunched', 'the build session was never spawned');
@@ -745,10 +745,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     await until(() => eventLogTextOf(job.id, 1).includes('"result"'), 'the session never closed its turn');
 
     await (await startedOverseer(adapter, (phase, board) => {
-      if (phase === 'watcher-events') statesAfterWatcherEvents.push(board.jobById(job.id)?.state);
+      if (phase === 'child-events') statesAfterChildEvents.push(board.jobById(job.id)?.state);
     })).regroup();
 
-    expect(statesAfterWatcherEvents[0]).toBe('in-customs');
+    expect(statesAfterChildEvents[0]).toBe('in-customs');
     expect(storedRecords().filter((record) => record.jobId === job.id && record.kind === 'job-interrupted')).toEqual([]);
   });
 
@@ -772,7 +772,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(eventLogTextOf(job.id, 1)).toContain('\\"type\\":\\"control_response\\"');
     expect(eventLogTextOf(job.id, 1)).toContain('\\"answers\\":{\\"Ship the example export?\\":\\"No\\"}');
     expect(storedRecords().filter((record) => record.kind === 'decision-opened')).toHaveLength(1);
-    expect(requireBuildJob()).toMatchObject({ watcherInstance: 1, state: 'running' });
+    expect(requireBuildJob()).toMatchObject({ childInstance: 1, state: 'running' });
   });
 
   test('without a control_response delivery the Overseer stops the live session and resumes with the answer, cause answer-delivery, never counted', async () => {
@@ -784,7 +784,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     await decideWithTheOverseerDown('E1', ['a']);
     await passUntil(drivePass, () => eventLogTextOf(job.id, 2).includes('after-the-line'), 'the resumed session never took the answer');
 
-    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ watcherInstance: 2, cause: 'answer-delivery' }]);
+    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'answer-delivery' }]);
     expect(eventLogTextOf(job.id, 1)).not.toContain('control_response');
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
     expect(requireBuildJob()).toMatchObject({ crashResumes: 0 });
@@ -801,7 +801,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
     await passOnce(restarted);
-    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', childInstance: 1 });
 
     await decideWithTheOverseerDown('E1', ['a']);
     await passUntil(restarted, () => eventLogTextOf(job.id, 2).includes('after-the-line'), 'the resumed session never took the answer');
@@ -809,7 +809,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     await passOnce(restarted);
     expect(eventLogTextOf(job.id, 2)).toContain(ANSWER_MESSAGE_PREFIX);
     expect(eventLogTextOf(job.id, 2)).not.toContain(RESUME_MESSAGE);
-    expect(requireBuildJob()).toMatchObject({ crashResumes: 0, watcherInstance: 2 });
+    expect(requireBuildJob()).toMatchObject({ crashResumes: 0, childInstance: 2 });
   });
 
   test('overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance', async () => {
@@ -829,7 +829,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
     expect(report.respawnJobIds).toContain(assistantJobId);
     await until(() => childReadings().livenessOf(sessionJobFolder(assistantJobId), 1).verdict === 'live', 'the same instance was never claimed');
-    expect(storedJobs().find((job) => job.id === assistantJobId)?.watcherInstance).toBe(1);
+    expect(storedJobs().find((job) => job.id === assistantJobId)?.childInstance).toBe(1);
   });
 
   test('a product owner stopped by User with its question open is finished: the decision withdrawn in that hold, and it ends closed, never resumed by itself', async () => {
@@ -877,7 +877,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(drivePass.state().notices).toEqual([]);
 
     await applyControl({ kind: 'job-message', jobId, text: 'Example follow-up from Alex Example' });
-    expect(productOwnerJob()).toMatchObject({ id: jobId, state: 'running', watcherInstance: 2 });
+    expect(productOwnerJob()).toMatchObject({ id: jobId, state: 'running', childInstance: 2 });
     await passUntil(drivePass, () => eventLogTextOf(jobId, 2).includes('after-the-line'), 'the reopened product owner never took the message');
 
     const [first, reopened] = productOwnerLaunches;
@@ -887,7 +887,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     expect(first?.resume).toBe(false);
     expect(eventLogTextOf(jobId, 2)).toContain('Example follow-up from Alex Example');
     expect(eventLogTextOf(jobId, 2)).not.toContain(RESUME_MESSAGE);
-    expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['watcherInstance'])).toEqual([2]);
+    expect(storedRecords().filter((record) => record.kind === 'job-reopened' && record.jobId === jobId).map((record) => record.fields['childInstance'])).toEqual([2]);
   });
 
   test('a lost Talos whose child takes the forced stop: the job is interrupted watcher-lost, and the cause is stored', async () => {
@@ -909,7 +909,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const refusals = (): number => Regrouping.refusedForcedStopsOf(sessionJobFolder(job.id), 1).refusals;
     await passUntil(drivePass, () => requireBuildJob().state === 'interrupted', 'the job was never interrupted');
 
-    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', childInstance: 1 });
     expect(existsSync(join(sessionJobFolder(job.id), 'child-1.lost-cause')), 'a refused stop stores no cause').toBe(false);
     expect(refusals()).toBe(1);
     await passOnce(drivePass);
@@ -920,7 +920,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       drivePass.sweep();
       await drivePass.idle();
       expect(refusals()).toBe(sweep);
-      expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', watcherInstance: 1 });
+      expect(requireBuildJob()).toMatchObject({ state: 'interrupted', interruption: 'forced-stop-refused', childInstance: 1 });
     }
     drivePass.sweep();
     await drivePass.idle();
@@ -943,7 +943,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.holdTicket('001', 'Waiting on Alex Example', change.at); },
     });
     await passOnce(drivePass);
-    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', watcherInstance: 1 });
+    expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
     expect(childReadings().livenessOf(sessionJobFolder(job.id), 1).verdict).toBe('live');
   });
 
@@ -1177,7 +1177,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
-    await passUntil(restarted, () => nextBuildJob()?.watcherInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
+    await passUntil(restarted, () => nextBuildJob()?.childInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
 
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
     expect(launches.filter((launch) => launch.jobId === nextBuildJobId).map(({ resume, sessionId }) => ({ resume, sessionId }))).toEqual([
@@ -1210,7 +1210,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
     const restarted = await startedOverseer(adapter);
     await restarted.regroup();
-    await passUntil(restarted, () => nextBuildJob()?.watcherInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
+    await passUntil(restarted, () => nextBuildJob()?.childInstance === 2 && sessionRuns(nextBuildJob()), 'the second instance never ran');
 
     const endedSessionId = adapter.sessionIdOf(requireProgressFile(sessionWorkspace).trackerId, endedBuildJobId);
     expect(launches.filter((launch) => launch.jobId === nextBuildJobId).map(({ sessionId }) => sessionId)).toEqual([endedSessionId, endedSessionId]);
@@ -1225,7 +1225,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
     await passUntil(drivePass, () => resumeFailed() !== undefined, 'resume-failed never opened');
 
-    expect(resumeFailed()).toMatchObject({ jobId: nextBuildJobId, facts: { watcherInstance: '1' } });
+    expect(resumeFailed()).toMatchObject({ jobId: nextBuildJobId, facts: { childInstance: '1' } });
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === nextBuildJobId)?.fields).toMatchObject({ outcome: 'replaced', cause: 'resume-failed' });
   });
 
@@ -1328,10 +1328,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the product-owner bound row',
     expect(board.jobById(job.id)).toBeUndefined();
     const fresh = board.jobs().find((candidate) => candidate.kind === 'product-owner');
     expect(fresh).toMatchObject({
-      parentJobId:     job.id,
-      state:           'launching',
-      watcherInstance: 1,
-      intake:          {
+      parentJobId:   job.id,
+      state:         'launching',
+      childInstance: 1,
+      intake:        {
         text: 'Example basket', title: 'Example basket and wishlist', pictures: requestPictures, carriedAnswers: [{ 'Example?': 'Example answer' }]
       },
     });

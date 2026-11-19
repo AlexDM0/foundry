@@ -635,11 +635,11 @@ never carries it.
   oversee stop [--now] [--json]
                               Stop the live Overseer through its API, else ends the process its Baton
                               names, by force where the platform cannot ask, and records the stop
-                              after a forced end; Watchers are never touched. --now also stops
-                              process Watchers, through the API only.
+                              after a forced end; Talos and its children are never touched. --now also stops
+                              line children, through the API only.
   oversee restart [--now] [--json]
                               Hand the board to the code on disk: a successor proves it, then takes
-                              over and regroups every Watcher; no agent is touched. A failed
+                              over and regroups around Talos; no agent is touched. A failed
                               Baton pass leaves the old Overseer driving with a warning and exits 1
                               (baton-pass-failed).
   oversee pause|resume [--json]
@@ -750,12 +750,12 @@ never carries it.
                               the incident handled in the same hold (incident-handled).
 
   jobs [--json]               The live jobs, one line each (id, kind and role, state, tickets,
-                              attempt, Watcher instance, a stop asked), then the Overseer, paused or not,
+                              attempt, child instance, a stop asked), then the Overseer, paused or not,
                               agents against the limit, open decisions and incidents, and each
                               incident that took its default since the Overseer started, a warning.
                               Read-only.
   job show <J> [--json]       The job's record, or what the log holds of a finished one.
-  job attach <J> [--json]     Replay every Watcher instance's event log, then follow the newest while
+  job attach <J> [--json]     Replay every child instance's event log, then follow the newest while
                               the job is on the board (--json replays only). Both read-only.
   job message <J> [--incident <I>] -- <text> [--json]
                               A chat turn the Overseer writes to the session (job-messaged); a closed

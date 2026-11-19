@@ -322,7 +322,7 @@ describe('a profile under mount-points, the Linux sandbox\'s deny shape', () => 
     ]);
   });
 
-  test('denies reads of the jobs folder by its literal name, the watchers folder and each existing credential folder, and of no absent path', () => {
+  test('denies reads of the jobs folder by its literal name, the private folder and each existing credential folder, and of no absent path', () => {
     expect(profile.deniedReadableRoots).toEqual([
       '/example/repository/.forge/jobs',
       '/home/alex-example/.forge-monitor/private',

@@ -69,7 +69,7 @@ export interface SessionLastLineDocument {
  */
 export interface SessionLiveFactsDocument {
   readonly calls:           number;
-  /** `null` before its first Watcher logged a line. */
+  /** `null` before its first child logged a line. */
   readonly turn:            SessionTurnDocument | null;
   readonly messagesWaiting: number;
   /** `null` before the session or User said a line. */

@@ -49,7 +49,7 @@ function reviewJob(overrides: Partial<Job> = {}): Job {
     attempt:            1,
     target:             'main',
     state:              'running',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,
@@ -154,10 +154,10 @@ describe('a stale green that turned red', () => {
     writeSessionStart('J1');
 
     expect(JobResumption.staleGreenSessionOwnerOf(
-      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter()
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
     )).toBe('J1');
     expect(JobResumption.launchSessionOwnerJobIdOf(
-      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter()
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
     )).toBe('J1');
   });
 
@@ -167,7 +167,7 @@ describe('a stale green that turned red', () => {
     const firstInstanceOwner = JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob(), fakeAgentAdapter());
     JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), firstInstanceOwner);
     const recordsAfterJ4Ended = [...RECORDS, launched('J4'), ended('J4')];
-    const secondInstance = reviewJob({ watcherInstance: 2 });
+    const secondInstance = reviewJob({ childInstance: 2 });
 
     expect(firstInstanceOwner).toBe('J1');
     expect(JobResumption.staleGreenSessionOwnerOf(childrenOfTheTracker(trackerDirectory), trackerDirectory, recordsAfterJ4Ended, secondInstance, fakeAgentAdapter())).toBe('J1');
@@ -181,16 +181,16 @@ describe('a stale green that turned red', () => {
     const recordsAfterJ4Ended = [...RECORDS, launched('J4'), ended('J4')];
 
     expect(JobResumption.launchSessionOwnerJobIdOf(
-      childrenOfTheTracker(trackerDirectory), trackerDirectory, recordsAfterJ4Ended, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter()
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, recordsAfterJ4Ended, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
     )).toBe('J2');
   });
 
   test('a resumed instance never overwrites the answer its first instance recorded', () => {
     JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob(), 'J1');
-    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob({ watcherInstance: 2 }), null);
+    JobResumption.recordStaleGreenSessionOwner(trackerDirectory, reviewJob({ childInstance: 2 }), null);
 
     expect(JobResumption.staleGreenSessionOwnerOf(
-      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ watcherInstance: 2 }), fakeAgentAdapter()
+      childrenOfTheTracker(trackerDirectory), trackerDirectory, RECORDS, reviewJob({ childInstance: 2 }), fakeAgentAdapter()
     )).toBe('J1');
   });
 

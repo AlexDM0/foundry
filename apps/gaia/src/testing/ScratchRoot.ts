@@ -21,7 +21,7 @@ const RUN_FOLDER_PREFIX        = 'run-';
 const SCRATCH_HOME_FOLDER_NAME = 'home';
 const SCRATCH_TEMPORARY_FOLDER_NAME = 'temporary';
 /**
- * The forge binds each Watcher's Unix socket below its home, and a socket path has a length limit no folder below the scratch root keeps
+ * The forge binds Talos's Unix socket below its home, and a socket path has a length limit no folder below the scratch root keeps
  * in a worktree: a scratch forge is handed its home through a short link here, the one scratch location outside the root.
  */
 const SCRATCH_FORGE_LINK_ROOT = '/tmp/gaia-scratch-forges';

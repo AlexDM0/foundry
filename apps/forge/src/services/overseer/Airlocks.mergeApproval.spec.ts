@@ -217,7 +217,7 @@ testWhenGitIsRecorded('the train takes the accepted tickets in User\'s press ord
   harness.board.setTicketMergeAccepted('002', true, HARNESS_AT);
   harness.board.setTicketMergeAccepted('001', true, HARNESS_AT);
   // The merge-in left by a live holder keeps its slot, so the sweep stops once the train took its first ticket.
-  harness.settings.watcherIsLive = true;
+  harness.settings.childIsLive = true;
   recordedGit.answerFrom([
     ...['001', '002'].flatMap((ticketId) => [
       treeRead(`refs/heads/ticket-${ticketId}`, BRANCH_TREE),

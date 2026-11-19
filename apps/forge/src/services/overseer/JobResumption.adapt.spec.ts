@@ -52,7 +52,7 @@ function adaptJobOf(id: string, attempt = 1): Job {
     attempt,
     target:             'main',
     state:              'running',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,

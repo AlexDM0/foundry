@@ -38,13 +38,13 @@ function wakingRecordsAfter(records: readonly LogRecord[], after: number): Posit
 /** A watch the platform refuses or fails leaves the sweep timer to resolve it. `platformWatch` is overridden by specs. */
 export function changeOrSweep(folderPath: string, platformWatch?: PlatformWatch): Promise<void> {
   return new Promise((resolve) => {
-    const watcher = QuietWatch.watchQuietly({
+    const folderWatch = QuietWatch.watchQuietly({
       folderPath, recursive: false, onEvent: () => finish(), ...(platformWatch === undefined ? {} : { platformWatch })
     });
     const sweep   = setTimeout(() => finish(), AWAIT_SWEEP_MILLISECONDS);
 
     function finish(): void {
-      watcher?.close();
+      folderWatch?.close();
       clearTimeout(sweep);
       resolve();
     }

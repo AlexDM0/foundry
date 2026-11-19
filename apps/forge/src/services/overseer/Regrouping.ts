@@ -144,9 +144,9 @@ function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Works
   children.beginPass();
   for (const job of jobs.filter((candidate) => candidate.role !== null)) {
     const jobFolder = children.jobFolderOf(job.id);
-    const liveness  = children.livenessOf(jobFolder, job.watcherInstance);
+    const liveness  = children.livenessOf(jobFolder, job.childInstance);
     if (liveness.verdict === 'lost') {
-      report.lost.push({ jobId: job.id, instance: job.watcherInstance, cause: settleLostChildIn(workspace.trackerDirectory, ports, jobFolder, job.watcherInstance) });
+      report.lost.push({ jobId: job.id, instance: job.childInstance, cause: settleLostChildIn(workspace.trackerDirectory, ports, jobFolder, job.childInstance) });
     } else if (liveness.verdict === 'unlaunched' && awaitsItsSpawn(job)) {
       report.respawnJobIds.push(job.id);
     }

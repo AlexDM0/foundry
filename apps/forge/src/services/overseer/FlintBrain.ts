@@ -112,7 +112,7 @@ type Phase =
   | { readonly kind: 'starting' | 'running'; readonly run: ActiveRun }
   | { readonly kind: 'ended'; readonly run: ActiveRun; readonly endedAt: string; readonly endedReason: MonitorFlintBrainEndedReason };
 
-/** How many times an ended run's Watcher is looked at for its end before it is left to the next run's launch. */
+/** How many times an ended run's child is looked at for its end before it is left to the next run's launch. */
 const ACKNOWLEDGE_TRIES = 40;
 
 const OFF_READING: MonitorFlintBrainDocument = Object.freeze({

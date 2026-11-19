@@ -70,7 +70,7 @@ function liveAssistantsOf(board: Pick<Board, 'jobs'>): readonly Readonly<Job>[] 
 }
 
 function readingOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'eventsOf'>, job: Readonly<Job>): AssistantReading {
-  const entries = children.eventsAfter(children.jobFolderOf(job.id), job.watcherInstance, 0);
+  const entries = children.eventsAfter(children.jobFolderOf(job.id), job.childInstance, 0);
   let results = 0;
   let lastContextTokens: number | null = null;
   let callsSinceLastResult = new Set<string>();
@@ -84,7 +84,7 @@ function readingOf(children: BoardChildren, adapter: Pick<AgentAdapter, 'eventsO
     }
   }
   return {
-    jobId: job.id, instance: job.watcherInstance, results, callsSinceLastResult: callsSinceLastResult.size, lastContextTokens
+    jobId: job.id, instance: job.childInstance, results, callsSinceLastResult: callsSinceLastResult.size, lastContextTokens
   };
 }
 
@@ -112,7 +112,7 @@ function newestChatOf(board: Pick<Board, 'incidents'>, chats: readonly Assistant
 }
 
 function isIdle(job: Readonly<Job>, reading: AssistantReading | undefined, newestChat: number): boolean {
-  return job.state === 'running' && reading !== undefined && reading.instance === job.watcherInstance && reading.results >= newestChat;
+  return job.state === 'running' && reading !== undefined && reading.instance === job.childInstance && reading.results >= newestChat;
 }
 
 /** The rule every delivery to the Assistant waits on, so a reader that shows whether a chat goes out now never contradicts the queue. */
@@ -149,7 +149,7 @@ function endDownAssistants(board: Board, readings: readonly AssistantReading[], 
 function turnObservationsOf(board: Pick<Board, 'jobs' | 'incidents'>, readings: readonly AssistantReading[]): AssistantTurnObservations {
   const observations: AssistantTurnObservations = { closedDeliveryTurns: [], budgetSpentDeliveryTurns: [], assistantHasAnswered: false };
   for (const job of liveAssistantsOf(board)) {
-    const reading = readings.find((candidate) => candidate.jobId === job.id && candidate.instance === job.watcherInstance);
+    const reading = readings.find((candidate) => candidate.jobId === job.id && candidate.instance === job.childInstance);
     if (reading === undefined) continue;
     observations.assistantHasAnswered ||= reading.results > 0;
     for (const turn of deliveryTurnsOf(board, job.id)) {
@@ -230,11 +230,11 @@ async function deliverChats(request: AssistantChatDelivery): Promise<void> {
         ? request.chatTextOf({ sequence: chat.sequence, incidents: board.incidents().filter((incident) => chat.incidentIds.includes(incident.id)) })
         : messages.find((message) => message.number === chat.messageNumber)?.text ?? '';
       const marker = join(jobFolder, MARKERS_FOLDER, `chat-${chat.sequence}`);
-      await request.boardChildren.sendInputOnce(marker, jobFolder, job.watcherInstance, [{ act: 'write-line', line: adapter.chatLineOf(text) }]);
+      await request.boardChildren.sendInputOnce(marker, jobFolder, job.childInstance, [{ act: 'write-line', line: adapter.chatLineOf(text) }]);
     }
     if (reading !== undefined && reading.results < newestChatOf(board, chats, job.id) && reading.callsSinceLastResult >= ASSISTANT_TURN_CALL_BUDGET) {
       const marker = join(jobFolder, MARKERS_FOLDER, `interrupt-${reading.results + 1}`);
-      await request.boardChildren.sendInputOnce(marker, jobFolder, job.watcherInstance, [{ act: 'write-line', line: adapter.interruptLineOf() }]);
+      await request.boardChildren.sendInputOnce(marker, jobFolder, job.childInstance, [{ act: 'write-line', line: adapter.interruptLineOf() }]);
     }
   }
 }
@@ -258,7 +258,7 @@ function createAssistantQuietWatch(quietSweeps: number): AssistantQuietWatch {
         if (!watched.some((job) => job.id === jobId)) standingByJobId.delete(jobId);
       }
       for (const job of watched) {
-        const cursor   = `${job.watcherInstance}.${job.eventCursor.instance}.${job.eventCursor.sequence}`;
+        const cursor   = `${job.childInstance}.${job.eventCursor.instance}.${job.eventCursor.sequence}`;
         const standing = standingByJobId.get(job.id);
         const sweeps   = standing?.cursor === cursor ? standing.sweeps + 1 : 0;
         standingByJobId.set(job.id, { cursor, sweeps });

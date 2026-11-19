@@ -1,7 +1,7 @@
 /**
- * The Watcher reads its child's stdout through this one splitter. What matters: every line comes out whole and in order, however the
+ * Talos reads a child's stdout through this one splitter. What matters: every line comes out whole and in order, however the
  * chunks cut it, a character cut between chunks included, with an unterminated tail last; and a long line arriving in many chunks is
- * searched only in its new text, since a search from the line's start each chunk stalls the Watcher's one thread on a large tool result.
+ * searched only in its new text, since a search from the line's start each chunk stalls Talos's one thread on a large tool result.
  */
 import { expect, spyOn, test } from 'bun:test';
 

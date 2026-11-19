@@ -27,7 +27,7 @@ let ownerOnlyFolder = '';
 
 beforeEach(() => {
   scratchDirectory = createScratchDirectory('open-redirect-file');
-  ownerOnlyFolder = join(scratchDirectory, 'watcher', 'tracker-example');
+  ownerOnlyFolder = join(scratchDirectory, 'private', 'tracker-example');
 });
 
 afterEach(() => {

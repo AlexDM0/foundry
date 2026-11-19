@@ -21,13 +21,13 @@ import {
   test
 } from 'bun:test';
 
-import { dataFoldersFor }                                    from '../../lib/data-folders/DataFoldersFor.ts';
-import { SANDBOX_EXEC_PATH }                                 from '../../lib/gate-confinement/DarwinSeatbelt.ts';
-import { fakeGateConfinement }                               from '../../testing/FakeGateConfinement.ts';
-import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
-import { testWhenSandboxExecApplies }                        from '../../testing/ToolGuard.ts';
-import { ProcessWatcherSandbox, type ProcessSandboxRequest } from './ProcessWatcherSandbox.ts';
-import { createProcessWatcherSandbox }                       from './testing/SeatbeltSpecSandbox.ts';
+import { dataFoldersFor }                                 from '../../lib/data-folders/DataFoldersFor.ts';
+import { SANDBOX_EXEC_PATH }                              from '../../lib/gate-confinement/DarwinSeatbelt.ts';
+import { fakeGateConfinement }                            from '../../testing/FakeGateConfinement.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { testWhenSandboxExecApplies }                     from '../../testing/ToolGuard.ts';
+import { LineSandbox, type ProcessSandboxRequest }        from './LineSandbox.ts';
+import { createLineSandbox }                              from './testing/SeatbeltSpecSandbox.ts';
 
 let scratch = '';
 
@@ -64,7 +64,7 @@ afterEach(() => {
 
 describe('the profile text', () => {
   test('denies writes to the denied roots after allowing the writable ones, and reads of a launch-file glob within one segment', () => {
-    const profile = createProcessWatcherSandbox().profileTextOf(requestIn(scratch, false));
+    const profile = createLineSandbox().profileTextOf(requestIn(scratch, false));
     const lines = profile.split('\n');
     const allowIndex = lines.findIndex((line) => line.startsWith('(allow file-write*'));
     const denyIndex = lines.findIndex((line) => line.startsWith('(deny file-write* (subpath'));
@@ -77,7 +77,7 @@ describe('the profile text', () => {
   test('with no cache path stored, lets a gate write exactly its worktree, its admin folder and temp', () => {
     const request = { ...requestIn(scratch, false), worktreeAdminFolder: join(scratch, 'admin'), temporaryDirectory: join(scratch, 'temp') };
     const resolvedScratch = realpathSync(scratch);
-    expect(allowedWriteLineOf(createProcessWatcherSandbox().profileTextOf(request))).toBe(
+    expect(allowedWriteLineOf(createLineSandbox().profileTextOf(request))).toBe(
       `(allow file-write* (subpath "${resolvedScratch}/worktree") (subpath "${resolvedScratch}/admin") (subpath "${resolvedScratch}/temp")`
       + ' (subpath "/private/tmp") (subpath "/private/var/folders") (regex #"^/dev/"))',
     );
@@ -86,7 +86,7 @@ describe('the profile text', () => {
   test('adds a stored cache path, home-relative or absolute, and drops one that is, sits in or holds a bin or PATH folder', () => {
     mkdirSync(join(scratch, 'home', '.bun', 'bin'), { recursive: true });
     const absoluteCache = join(scratch, 'shared-cache');
-    const profile = createProcessWatcherSandbox().profileTextOf(requestIn(scratch, false, [
+    const profile = createLineSandbox().profileTextOf(requestIn(scratch, false, [
       '~/.bun/install/cache', absoluteCache, '~/.bun', '~/.bun/bin', '~/.local', '~/.local/tools/cache',
     ]));
     const resolvedHome = join(realpathSync(scratch), 'home');
@@ -100,13 +100,13 @@ describe('the profile text', () => {
   });
 
   test('turns the network off unless the request asks for it', () => {
-    const sandbox = createProcessWatcherSandbox();
+    const sandbox = createLineSandbox();
     expect(sandbox.profileTextOf(requestIn(scratch, false))).toContain('(deny network-outbound (remote ip))');
     expect(sandbox.profileTextOf(requestIn(scratch, true))).not.toContain('network-outbound');
   });
 
   test('wraps the argv in sandbox-exec exactly when the sandbox applies here', () => {
-    const sandbox = createProcessWatcherSandbox();
+    const sandbox = createLineSandbox();
     const argv = sandbox.sandboxedArgvOf('/example/profile.sb', ['/bin/sh', '-c', 'true']);
     expect(argv).toEqual(sandbox.isUsable() ? [SANDBOX_EXEC_PATH, '-f', '/example/profile.sb', '/bin/sh', '-c', 'true'] : ['/bin/sh', '-c', 'true']);
   });
@@ -114,7 +114,7 @@ describe('the profile text', () => {
 
 describe('a child under the profile', () => {
   test('writes its worktree but not the data folder, and reads an event log but not a launch file, where the sandbox applies', () => {
-    const sandbox = createProcessWatcherSandbox();
+    const sandbox = createLineSandbox();
     const profilePath = join(scratch, 'profile.sb');
     writeFileSync(profilePath, sandbox.profileTextOf(requestIn(scratch, false)));
     const script = [
@@ -129,7 +129,7 @@ describe('a child under the profile', () => {
   });
 
   testWhenSandboxExecApplies('writes a stored cache path, a bin inside it included, but no bin folder beside its ancestors', () => {
-    const sandbox = createProcessWatcherSandbox();
+    const sandbox = createLineSandbox();
     const home = join(scratch, 'home');
     for (const folder of [join('.bun', 'bin'), join('.bun', 'install', 'bin'), join('.bun', 'install', 'cache')]) mkdirSync(join(home, folder), { recursive: true });
     const profilePath = join(scratch, 'profile.sb');
@@ -155,6 +155,6 @@ describe('refDeniesHoldUnder', () => {
     ['unavailable', 'confined', false],
     ['unconfined-by-design', 'unconfined-by-design', false],
   ] as const)('gates %s and workers %s: %p', (gateVerdict, workerVerdict, denies) => {
-    expect(ProcessWatcherSandbox.refDeniesHoldUnder(fakeGateConfinement(gateVerdict, workerVerdict))).toBe(denies);
+    expect(LineSandbox.refDeniesHoldUnder(fakeGateConfinement(gateVerdict, workerVerdict))).toBe(denies);
   });
 });

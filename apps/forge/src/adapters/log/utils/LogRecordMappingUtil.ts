@@ -79,7 +79,7 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'job-role':                 currentJobNameOf,
   'job-outcome':              sameValue,
   'interruption-cause':       sameValue,
-  'watcher-instance':         sameValue,
+  'child-instance':           sameValue,
   'permission-names':         listCopyOf,
   'overseer-stop-reason':     sameValue,
   'job-stop-mode':            sameValue,

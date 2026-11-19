@@ -58,7 +58,7 @@ describe('a gate slot held by a spawned, unclaimed holder on Windows', () => {
     const ports: PlatformPorts = { ...nativePlatformPorts(), processSupervision: supervision };
     const scratch = createScratchDirectory('windows-gate-slots');
     scratchDirectories.push(scratch);
-    const holder = join(scratch, 'job', 'gate-watcher');
+    const holder = join(scratch, 'job', 'gate-child');
     mkdirSync(holder, { recursive: true });
     const slots = slotsOver(ports, join(scratch, 'slots'));
     expect(slots.tryAcquire(holder)).toBe(true);

@@ -54,7 +54,7 @@ function airlockAgentOf(id: string, role: JobRole, scope: EntityAndStage): Job {
     attempt:            1,
     target:             'main',
     state:              'launching',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,

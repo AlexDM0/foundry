@@ -1,5 +1,5 @@
 /**
- * How an interrupted job comes back, design section 3.6: its next Watcher instance runs `--resume <id>` alone in the same working directory,
+ * How an interrupted job comes back, design section 3.6: its next child instance runs `--resume <id>` alone in the same working directory,
  * told first that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the fresh job
  * after a `replaced` one is told that an earlier session's uncommitted changes are its work. A job carries on only a session of its own
  * entity and stage (E29).
@@ -31,7 +31,7 @@ import { IntakeSessions }                                      from './IntakeSes
 import { jobFolderIn }                                         from './OverseerFiles.ts';
 import { RED_HANDOFF_FILES, RedHandoff, type RedHandoffFacts } from './RedHandoff.ts';
 
-const FIRST_WATCHER_INSTANCE = 1;
+const FIRST_CHILD_INSTANCE = 1;
 
 /** The entity and stage a job runs, as its launch logged them; both absent on a forge without entities, where every job shares them. */
 type SessionScope = Readonly<Pick<Job, 'entity' | 'stage'>>;
@@ -63,13 +63,13 @@ export interface ResumeMessages {
   redHandoffMessageOf: (facts: Readonly<RedHandoffFacts>) => string;
 }
 
-/** Only a resume increments a job's Watcher instance, so every instance past the first runs a resumed session. */
+/** Only a resume increments a job's child instance, so every instance past the first runs a resumed session. */
 function isResumedInstance(job: Readonly<Job>): boolean {
-  return job.watcherInstance > FIRST_WATCHER_INSTANCE;
+  return job.childInstance > FIRST_CHILD_INSTANCE;
 }
 
 function reopeningOf(logRecords: readonly LogRecord[], job: Readonly<Job>): LogRecordFieldsOf<'job-reopened'> | null {
-  const reopened = logRecords.findLast((record) => record.kind === 'job-reopened' && record.jobId === job.id && record.fields.watcherInstance === job.watcherInstance);
+  const reopened = logRecords.findLast((record) => record.kind === 'job-reopened' && record.jobId === job.id && record.fields.childInstance === job.childInstance);
   return reopened?.kind === 'job-reopened' ? reopened.fields : null;
 }
 
@@ -91,7 +91,7 @@ function launchPartsOf(job: Readonly<Job>, firstMessage: string, resumeMessage: 
   return isResumedInstance(job) ? { resume: true, firstMessage: reopenText ?? resumeMessage } : { resume: false, firstMessage };
 }
 
-/** Whether the instance's whole event log holds its session's start; read only for an instance whose Watcher is gone. */
+/** Whether the instance's whole event log holds its session's start; read only for an instance whose child is gone. */
 function instanceSessionStarted(children: BoardChildren, jobFolder: string, instance: number, adapter: AgentAdapter): boolean {
   const entries: readonly EventLogEntry[] | 'malformed' = children.eventsAfter(jobFolder, instance, 0);
   if (entries === 'malformed') return true;
@@ -115,7 +115,7 @@ function applyResumeFailure(board: Board, job: Readonly<Job>, at: string): void 
     kind:        'resume-failed',
     ticketIds:   job.ticketIds,
     jobId:       job.id,
-    facts:       { watcherInstance: String(job.watcherInstance) },
+    facts:       { childInstance: String(job.childInstance) },
     defaultMove: 'job-fresh',
   }, at);
 }
@@ -370,7 +370,7 @@ function staleGreenSessionOwnerOf(
   if (recorded !== undefined) return recorded;
   const predecessor = lastEndedPredecessorOf(logRecords, job);
   if (predecessor === null || !runsTheSameEntityAndStage(predecessor.scope, job) || staleGreenHandoffOf(trackerDirectory, predecessor) === null) return null;
-  if (!instanceSessionStarted(children, children.jobFolderOf(predecessor.jobId), FIRST_WATCHER_INSTANCE, adapter)) return null;
+  if (!instanceSessionStarted(children, children.jobFolderOf(predecessor.jobId), FIRST_CHILD_INSTANCE, adapter)) return null;
   return sessionOwnerJobIdOf(logRecords, { ...job, id: predecessor.jobId, parentJobId: null });
 }
 
@@ -410,14 +410,14 @@ function firstMessageMarkerOf(jobFolder: string, instance: number): string {
   return join(jobFolder, `first-message-${instance}.sent`);
 }
 
-/** Kept beside a fresh instance's launch files until a pass finds its Watcher live, so an Overseer restart in between loses nothing. */
+/** Kept beside a fresh instance's launch files until a pass finds its child live, so an Overseer restart in between loses nothing. */
 function storeFirstMessage(jobFolder: string, instance: number, message: string): void {
   writeFileAtomically(firstMessagePathOf(jobFolder, instance), message);
 }
 
 /**
- * The task text of each fresh instance, its session's first input, written once its Watcher answers, with the pictures of a product owner's
- * request. The marker is written only after the Watcher took the line, so one not yet listening is tried again on the next pass; an
+ * The task text of each fresh instance, its session's first input, written once its child runs, with the pictures of a product owner's
+ * request. The marker is written only after Talos took the line, so one not yet running is tried again on the next pass; an
  * Overseer that dies before the marker sends the line again, so the session can get its task text twice.
  */
 async function deliverFirstMessages(
@@ -426,18 +426,18 @@ async function deliverFirstMessages(
   for (const job of board.jobs()) {
     if (isResumedInstance(job)) continue;
     const jobFolder   = children.jobFolderOf(job.id);
-    const messagePath = firstMessagePathOf(jobFolder, job.watcherInstance);
-    const marker      = firstMessageMarkerOf(jobFolder, job.watcherInstance);
-    if (!existsSync(messagePath) || existsSync(marker) || children.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    const messagePath = firstMessagePathOf(jobFolder, job.childInstance);
+    const marker      = firstMessageMarkerOf(jobFolder, job.childInstance);
+    if (!existsSync(messagePath) || existsSync(marker) || children.livenessOf(jobFolder, job.childInstance).verdict !== 'live') continue;
     const pictures = PictureStore.attachmentsOf(trackerDirectory, IntakeSessions.firstMessagePicturesOf(job));
     const line = adapter.chatLineOf(readFileSync(messagePath, 'utf8'), pictures);
-    if (await children.sendInput(jobFolder, job.watcherInstance, { act: 'write-line', line })) writeFileSync(marker, '');
+    if (await children.sendInput(jobFolder, job.childInstance, { act: 'write-line', line })) writeFileSync(marker, '');
   }
 }
 
 /**
- * The first line of each resumed instance, written once its Watcher answers, with the pictures of User's reopening message; an answer
- * delivery is resumed with the answer instead. The marker is written only after the Watcher took the line, so a Watcher not yet listening is
+ * The first line of each resumed instance, written once its child runs, with the pictures of User's reopening message; an answer
+ * delivery is resumed with the answer instead. The marker is written only after Talos took the line, so a child not yet running is
  * tried again on the next pass.
  */
 async function deliverResumeMessages(
@@ -451,11 +451,11 @@ async function deliverResumeMessages(
   for (const job of board.jobs()) {
     if (job.state !== 'running' || !isResumedInstance(job) || job.interruption === 'answer-delivery' || answerAwaitsDelivery(job)) continue;
     const jobFolder = children.jobFolderOf(job.id);
-    const marker    = resumeMessageMarkerOf(jobFolder, job.watcherInstance);
-    if (existsSync(marker) || children.livenessOf(jobFolder, job.watcherInstance).verdict !== 'live') continue;
+    const marker    = resumeMessageMarkerOf(jobFolder, job.childInstance);
+    if (existsSync(marker) || children.livenessOf(jobFolder, job.childInstance).verdict !== 'live') continue;
     const pictures = PictureStore.attachmentsOf(trackerDirectory, reopenPicturesOf(board.logRecordsSoFar(), job));
     const line = adapter.chatLineOf(resumeLineOf(trackerDirectory, board, job, messages), pictures);
-    if (await children.sendInput(jobFolder, job.watcherInstance, { act: 'write-line', line })) writeFileSync(marker, '');
+    if (await children.sendInput(jobFolder, job.childInstance, { act: 'write-line', line })) writeFileSync(marker, '');
   }
 }
 

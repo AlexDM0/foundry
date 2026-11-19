@@ -1,10 +1,10 @@
 /**
  * User's job controls and the product owner's intake, applied through the control service to a Board as a hold carries it. What matters: a
- * stop or wind-down holds the job's ticket in the same hold, before any Watcher exists too, and logs its mode; a message to a finished job
+ * stop or wind-down holds the job's ticket in the same hold, before any child exists too, and logs its mode; a message to a finished job
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
  * `ready-for-review` while ticket review is on and to `pending` while it is off, and in a forge with entities refuses one without an
  * entity, and refuses work outside a draft's entity (E85) before the job moves, so a corrected retry closes; and ends the job once no
- * Watcher is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
+ * child is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
  * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
  * answers over. An intake title names its job, which User's request must name and a relayed one has stamped. A command's pictures must be
  * in the board's store and at most `PICTURES_PER_MESSAGE_LIMIT`, checked before the Board; only a product owner takes them, and a blank
@@ -92,7 +92,7 @@ describe('job stop and wind-down', () => {
     expect(board.jobById('J1')?.state).toBe('stopping');
   });
 
-  test('stop before a Watcher exists holds the ticket and ends the job stopped in the same hold', () => {
+  test('stop before a child exists holds the ticket and ends the job stopped in the same hold', () => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
     board.launchJob({
       kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
@@ -166,7 +166,7 @@ describe('job message', () => {
     expect(board.jobs()).toEqual([]);
   });
 
-  test('a closed product owner is reopened: back on the board running its next Watcher instance, the reopening logged with the message', () => {
+  test('a closed product owner is reopened: back on the board running its next child instance, the reopening logged with the message', () => {
     const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1')] });
     apply(board, { kind: 'intake-start', text: 'A basket' });
     board.moveJob('J1', 'running', AT);
@@ -175,10 +175,10 @@ describe('job message', () => {
     const result = apply(board, { kind: 'job-message', jobId: 'J1', text: 'Add a wishlist too.' });
 
     expect((result as { logged: unknown[] }).logged).toEqual([{
-      kind: 'job-reopened', jobId: 'J1', fields: { watcherInstance: 2, text: 'Add a wishlist too.', offeredTicketIds: ['004'] }, at: AT
+      kind: 'job-reopened', jobId: 'J1', fields: { childInstance: 2, text: 'Add a wishlist too.', offeredTicketIds: ['004'] }, at: AT
     }]);
     expect(board.jobById('J1')).toMatchObject({
-      kind: 'product-owner', role: 'product-owner', state: 'running', watcherInstance: 2, eventCursor: { instance: 2, sequence: 0 }
+      kind: 'product-owner', role: 'product-owner', state: 'running', childInstance: 2, eventCursor: { instance: 2, sequence: 0 }
     });
   });
 
@@ -188,7 +188,7 @@ describe('job message', () => {
     apply(board, { kind: 'job-stop', jobId: 'J1', mode: 'stop' });
     board.endIntakeJob('J1', AT);
     apply(board, { kind: 'job-message', jobId: 'J1', text: 'Carry on.' });
-    expect(board.jobById('J1')).toMatchObject({ state: 'running', watcherInstance: 2 });
+    expect(board.jobById('J1')).toMatchObject({ state: 'running', childInstance: 2 });
   });
 });
 

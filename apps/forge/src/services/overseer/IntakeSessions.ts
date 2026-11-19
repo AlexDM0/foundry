@@ -83,7 +83,7 @@ function productOwnerInstructionsOf(board: Board, job: Readonly<Job>, instructio
 }
 
 /**
- * A product owner whose input was closed, by `intake close` or `job stop`, ends `closed` once no Watcher of it is live, a Watcher that never
+ * A product owner whose input was closed, by `intake close` or `job stop`, ends `closed` once no child of it is live, a child that never
  * started included.
  */
 function endClosedIntakes(board: Board, livenessOf: (job: Readonly<Job>) => ChildLiveness, at: string): void {

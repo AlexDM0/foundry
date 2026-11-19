@@ -1,6 +1,6 @@
 /**
  * The systemd user unit: it runs the Overseer in the foreground under `Type=simple`, since `--detach`'s launcher exits at once, and with
- * `KillMode=process`, since the default kills the whole control group and with it every Watcher on a stop or restart. A host with no
+ * `KillMode=process`, since the default kills the whole control group and with it Talos and every child on a stop or restart. A host with no
  * systemctl or no user service manager gets nothing written, and a failed enable is reported, never a success.
  */
 import { join } from 'node:path';

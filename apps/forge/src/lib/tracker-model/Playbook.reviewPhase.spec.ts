@@ -25,7 +25,7 @@ import {
 
 function redResumedRecord(jobId: string): LogRecord {
   return {
-    kind: 'job-resumed', jobId, fields: { watcherInstance: 2, cause: 'handoff-red' }, at: FIXTURE_AT,
+    kind: 'job-resumed', jobId, fields: { childInstance: 2, cause: 'handoff-red' }, at: FIXTURE_AT,
   };
 }
 

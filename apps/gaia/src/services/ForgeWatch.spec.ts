@@ -114,12 +114,12 @@ let watchesToStop: ForgeWatch[];
 beforeEach(() => {
   scratchFolder  = createScratchDirectory('forge-watch');
   registryPath   = join(scratchFolder, 'projects.json');
-  tokenPath      = join(scratchFolder, 'watchers', 'token');
+  tokenPath      = join(scratchFolder, 'private', 'token');
   repositoryRoot = join(scratchFolder, 'example-storefront');
   currentStamp   = STAMPS.live;
   watchesToStop  = [];
   mkdirSync(repositoryRoot);
-  mkdirSync(join(scratchFolder, 'watchers'));
+  mkdirSync(join(scratchFolder, 'private'));
   writeFileSync(tokenPath, `${EXAMPLE_TOKEN}\n`);
 });
 

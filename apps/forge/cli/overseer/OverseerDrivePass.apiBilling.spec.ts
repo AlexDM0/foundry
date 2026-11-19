@@ -99,7 +99,7 @@ function claudeBilledAdapter(steps: readonly FakeAgentStep[] = DEFAULT_FAKE_AGEN
         ...fakePlan,
         argv:        [...fakePlan.argv, ...claudePlan.argv.slice(1)],
         environment: claudePlan.environment,
-        ...(claudePlan.environmentFromWatcher === undefined ? {} : { environmentFromWatcher: claudePlan.environmentFromWatcher }),
+        ...(claudePlan.environmentFromTalos === undefined ? {} : { environmentFromTalos: claudePlan.environmentFromTalos }),
         files:       [...fakePlan.files, ...claudePlan.files],
       };
     },
@@ -285,7 +285,7 @@ function logRecords(): LoggedRecord[] {
     .map((line) => JSON.parse(line) as LoggedRecord);
 }
 
-function buildJob(): { id: string; state: string; interruption?: string; watcherInstance: number } | undefined {
+function buildJob(): { id: string; state: string; interruption?: string; childInstance: number } | undefined {
   return (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'build');
 }
 
@@ -325,15 +325,15 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'API billing results', () => {
     });
     await passUntil(drivePass, () => buildJob()?.state === 'interrupted', 'the build job interrupted');
     const jobId = String(buildJob()?.id);
-    expect(buildJob()).toMatchObject({ interruption: 'usage-limit', watcherInstance: 1 });
+    expect(buildJob()).toMatchObject({ interruption: 'usage-limit', childInstance: 1 });
     const hit = logRecords().find((record) => record.kind === 'usage-limit-hit' && record.jobId === jobId);
     const expectedReset = new Date(Date.parse(clock.stamp) + (API_RATE_LIMIT_BACKOFF_SECONDS * 1000)).toISOString();
     expect(hit?.fields).toEqual({ window: 'api-rate-limit', resetsAt: expectedReset });
 
     await passOnce(drivePass);
-    expect(buildJob()).toMatchObject({ id: jobId, state: 'interrupted', watcherInstance: 1 });
+    expect(buildJob()).toMatchObject({ id: jobId, state: 'interrupted', childInstance: 1 });
     clock.stamp = '2026-09-18T22:12:04+02:00';
-    await passUntil(drivePass, () => (buildJob()?.watcherInstance ?? 0) >= 2, 'the build job resumed after the backoff');
+    await passUntil(drivePass, () => (buildJob()?.childInstance ?? 0) >= 2, 'the build job resumed after the backoff');
     expect(logRecords().some((record) => record.kind === 'job-resumed' && record.jobId === jobId && record.fields['cause'] === 'usage-limit')).toBe(true);
     expect(watch.states.has('in-customs')).toBe(false);
   });

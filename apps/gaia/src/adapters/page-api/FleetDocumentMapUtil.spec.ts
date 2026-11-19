@@ -45,7 +45,7 @@ describe('the fleet document mapper', () => {
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {
-    const forgeWithAnInternalKey = { ...FLEET_SNAPSHOT_FIVE_FORGES.forges[0], tokenPath: '/Users/alexexample/.forge-monitor/watchers/token' };
+    const forgeWithAnInternalKey = { ...FLEET_SNAPSHOT_FIVE_FORGES.forges[0], tokenPath: '/Users/alexexample/.forge-monitor/private/token' };
     const snapshotWithAnInternalKey = { ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [forgeWithAnInternalKey], internalOnly: true } as FleetSnapshot;
     const document = FleetDocumentMapUtil.fleetDocumentOf(snapshotWithAnInternalKey);
     expect(Object.hasOwn(document, 'internalOnly')).toBe(false);

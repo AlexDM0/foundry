@@ -1,5 +1,5 @@
 /**
- * Which job kinds ask their Watcher to stop the groups the session left as it ends. What matters: a build and a review wind down, so a
+ * Which job kinds ask Talos to stop the groups the session left as it ends. What matters: a build and a review wind down, so a
  * background command their session left would hold a port and the worktree; every other kind keeps its groups running.
  */
 import { expect, test } from 'bun:test';

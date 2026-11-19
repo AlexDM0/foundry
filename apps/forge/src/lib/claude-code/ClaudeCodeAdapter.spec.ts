@@ -2,7 +2,7 @@
  * The adapter is the whole of what a launched session may do, so these cases hold its rendering per role as a table: the command line
  * of design section 4.2, the settings that confine the session (sandbox sets as `//`-anchored paths, git denies, no attribution, no
  * memory, no instruction file above the repository, no local port), the subagents, the git configuration, the scrubbed environment, the
- * one standing reply, and the lines a Watcher sends, against the ones the probes recorded.
+ * one standing reply, and the lines Talos sends, against the ones the probes recorded.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -439,13 +439,13 @@ describe('the child environment', () => {
     };
 
     test.each([['absent', undefined], ['subscription', { mode: 'subscription' } as const]])(
-      'with billing %s, the child holds neither API variable of the Overseer, copies nothing from the Watcher and keeps the OAuth token',
+      'with billing %s, the child holds neither API variable of the Overseer, copies nothing from Talos and keeps the OAuth token',
       (_description, billing) => {
         const plan = billedPlanOf(billing);
         expect(plan.environment['ANTHROPIC_API_KEY']).toBeUndefined();
         expect(plan.environment['ANTHROPIC_AUTH_TOKEN']).toBeUndefined();
         expect(plan.environment['CLAUDE_CODE_OAUTH_TOKEN']).toBe('example-oauth-token');
-        expect(plan.environmentFromWatcher).toBeUndefined();
+        expect(plan.environmentFromTalos).toBeUndefined();
       },
     );
 
@@ -455,9 +455,9 @@ describe('the child environment', () => {
       expect(Object.keys(plan.environment)).not.toContain('ANTHROPIC_AUTH_TOKEN');
     });
 
-    test('with api billing, the child gets ANTHROPIC_API_KEY only by name from the Watcher\'s own variable, and no plan part holds the key', () => {
+    test('with api billing, the child gets ANTHROPIC_API_KEY only by name from Talos\'s own variable, and no plan part holds the key', () => {
       const plan = billedPlanOf({ mode: 'api' });
-      expect(plan.environmentFromWatcher).toEqual({ ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY' });
+      expect(plan.environmentFromTalos).toEqual({ ANTHROPIC_API_KEY: 'ANTHROPIC_API_KEY' });
       expect(plan.environment['ANTHROPIC_API_KEY']).toBeUndefined();
       expect(plan.environment['ANTHROPIC_AUTH_TOKEN']).toBeUndefined();
       expect(JSON.stringify(plan)).not.toContain(PLANTED_KEY);
@@ -595,7 +595,7 @@ describe('the program a plan spawns', () => {
   });
 });
 
-describe('the lines a Watcher sends', () => {
+describe('the lines Talos sends', () => {
   const recordedStdin = fixtureLines('ask-user-question-live-answer.stdin.jsonl');
 
   test('a chat line is the recorded user line, byte for byte', () => {

@@ -467,14 +467,14 @@ describe('the message to the pipeline agent', () => {
     }
   });
 
-  test('an agent a stop closed opens again with its conversation on User\'s next move, in its next Watcher instance', () => {
+  test('an agent a stop closed opens again with its conversation on User\'s next move, in its next child instance', () => {
     const fixture = liveAgentBoard();
     fixture.board.requestJobStop('J1', 'stop', CHANGED_AT);
 
     apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
 
     expect(fixture.records.map((record) => record.kind)).toEqual(['job-stop-requested', 'job-ended', 'pipeline-draft-discarded', 'job-reopened']);
-    expect(fixture.board.jobById('J1')).toMatchObject({ state: 'running', watcherInstance: 2 });
+    expect(fixture.board.jobById('J1')).toMatchObject({ state: 'running', childInstance: 2 });
   });
 
   test('the setup move\'s message and the reopening it makes are logged as the Overseer\'s, and User\'s own job message is not', () => {

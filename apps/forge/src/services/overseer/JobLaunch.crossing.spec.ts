@@ -384,7 +384,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     expect(JSON.parse(readFileSync(join(jobFolder, 'start.json'), 'utf8'))).toMatchObject({ homeEntity: SHOP.key, dependentsFixedInGroup: [ADMIN.key] });
 
     const headTree = { gitArguments: ['rev-parse', '--verify', '--quiet', 'HEAD^{tree}'], answeredAs: GIT_CALL_SHAPES.TREE_OF_AN_EMPTY_COMMIT };
-    const gating = { ...job, state: 'gating', watcherInstance: 1 } as Job;
+    const gating = { ...job, state: 'gating', childInstance: 1 } as Job;
     await playStage([headTree], () => Promise.resolve(JobLaunch.observeBuildJobs(ticket.context, [gating], CROSSING_PIPELINE)));
     const manifest = JSON.parse(readFileSync(join(jobFolder, 'gate-run.json'), 'utf8')) as { gates: { name: string }[] };
     expect(manifest.gates.map((gate) => gate.name)).toEqual(['verify']);

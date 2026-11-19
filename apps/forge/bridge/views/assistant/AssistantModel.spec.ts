@@ -158,7 +158,7 @@ describe('AssistantModelUtil.chatTurnsOf', () => {
     expect(turns.map((turn) => (turn.kind === 'system' ? turn.text : turn.kind))).toEqual([
       'Overseer booted J1 with its prompt · chat 1',
       'Overseer delivered I2 · chat 3',
-      'Watcher sent a standing reply',
+      'Talos sent a standing reply',
       'Overseer closed the session\'s input',
     ]);
     expect(turns[0]).toMatchObject({ stamp: { shortText: `${TimeUtil.shortInstantText(instant, today)}:31` }, revealText: 'You are the Assistant.' });

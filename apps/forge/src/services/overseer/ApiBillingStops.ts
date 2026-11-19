@@ -11,8 +11,8 @@ export type ApiBilling = Extract<PipelineBilling, { mode: 'api' }>;
 
 /** A job whose session the pass stops after the hold, since a session that printed its result still waits on its input. */
 export interface StoppedSession {
-  jobId:           string;
-  watcherInstance: number;
+  jobId:         string;
+  childInstance: number;
 }
 
 const AUTHENTICATION_DECISION_KIND = 'api-authentication-failed';
@@ -68,7 +68,7 @@ function applyResultFailure(
 ): StoppedSession | null {
   const job = board.jobById(jobId);
   if (job === undefined || job.state !== 'running') return null;
-  const stopped = { jobId, watcherInstance: job.watcherInstance };
+  const stopped = { jobId, childInstance: job.childInstance };
   if (failure.kind === 'authentication-failed') {
     interruptOnRefusedKey(board, jobId, failure, decisionWordingOf, at);
     return stopped;

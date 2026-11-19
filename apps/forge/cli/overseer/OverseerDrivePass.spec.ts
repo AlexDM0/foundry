@@ -155,10 +155,10 @@ function everyJobHasReadItsWholeStart(): boolean {
   const jobs = storedProgressOf(repositoryDirectory).jobs ?? [];
   return jobs.length > 0 && jobs.every((job) => {
     const folder = jobFolder(job.id);
-    const entries = childReadings().eventsAfter(folder, job.watcherInstance, 0);
-    if (entries === 'malformed' || job.state !== 'running' || childReadings().livenessOf(folder, job.watcherInstance).verdict !== 'live') return false;
+    const entries = childReadings().eventsAfter(folder, job.childInstance, 0);
+    if (entries === 'malformed' || job.state !== 'running' || childReadings().livenessOf(folder, job.childInstance).verdict !== 'live') return false;
     const origins = new Set(entries.map((entry) => entry.origin));
-    const cursorIsAtTheEnd = job.eventCursor.instance === job.watcherInstance && job.eventCursor.sequence === entries.at(-1)?.sequence;
+    const cursorIsAtTheEnd = job.eventCursor.instance === job.childInstance && job.eventCursor.sequence === entries.at(-1)?.sequence;
     return origins.has('client') && origins.has('agent') && cursorIsAtTheEnd;
   });
 }
@@ -217,7 +217,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     const drivePass = await drivePassWith(fakeAgentAdapter());
     await passOnce(drivePass);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId())).toMatchObject({
-      kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', watcherInstance: 1
+      kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', childInstance: 1
     });
     await passUntilBuildSessionSpawned(drivePass);
     await untilChildEnded(buildJobId(), 1);
@@ -278,7 +278,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     // the passes that carry attempt 2 on follow in the same wake.
     expect(phases.slice(0, 3), overseerLog.join('\n')).toEqual([
       { phase: 'relayed-commands', jobState: 'running', findingFiled: true },
-      { phase: 'watcher-events', jobState: 'in-customs', findingFiled: true },
+      { phase: 'child-events', jobState: 'in-customs', findingFiled: true },
       { phase: 'lifecycle', jobState: 'launching', findingFiled: false },
     ]);
     expect(JSON.parse(readFileSync(hatchReplyFilePathOf(hatchDirectory(firstBuildJobId), 'request-1'), 'utf8'))).toMatchObject({ outcome: 'done' });
@@ -288,7 +288,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one pass', () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     const launchOfKind = (kind: string): ReturnType<RecordedTalosStages['launchOf']> => {
       const job = (storedProgressOf(repositoryDirectory).jobs ?? []).find((candidate) => candidate.kind === kind);
-      return job === undefined ? null : world.launchOf(jobFolder(job.id), job.watcherInstance);
+      return job === undefined ? null : world.launchOf(jobFolder(job.id), job.childInstance);
     };
     await waitUntil(async () => {
       await passOnce(drivePass);
@@ -489,7 +489,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch folder watches', ()
   test('a launched job\'s Hatch folder watch closes once the job has ended, leaving only the watches of the jobs still on the board', async () => {
     const { platformWatch, openFolders } = countingFolderWatches();
     const workspace = requireWorkspace(repositoryDirectory);
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory: workspace.trackerDirectory, repositoryRoot: workspace.rootDirectory, wake: () => undefined, sweepMilliseconds: 600_000, platformWatch
     });
     const baseWatches = [...openFolders];
@@ -499,7 +499,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch folder watches', ()
         { kind: 'print', line: fakeStartedLine('fake-session') },
         { kind: 'print', line: fakeResultLine({ outcome: 'built' }) },
         { kind: 'exit', code: 0 },
-      ]), undefined, undefined, { watchHatchFolder: watcher.watchHatchFolder, unwatchHatchFolder: watcher.unwatchHatchFolder });
+      ]), undefined, undefined, { watchHatchFolder: dataFolderWatch.watchHatchFolder, unwatchHatchFolder: dataFolderWatch.unwatchHatchFolder });
       await passUntilBuildSessionSpawned(drivePass);
       const firstBuildJobId = buildJobId();
       expect(openFolders).toContain(hatchFolderOf(firstBuildJobId));
@@ -511,7 +511,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch folder watches', ()
       expect(openFolders).not.toContain(hatchFolderOf(firstBuildJobId));
       expect(openFolders.filter((folder) => !liveHatchFolders.includes(folder))).toEqual(baseWatches);
     } finally {
-      watcher.stop();
+      dataFolderWatch.stop();
     }
   });
 });
@@ -616,7 +616,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     const jobId = buildJobId();
     await passUntilBuildJobIs(drivePass, 'interrupted');
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({
-      state: 'interrupted', interruption: 'usage-limit', crashResumes: 0, watcherInstance: 1
+      state: 'interrupted', interruption: 'usage-limit', crashResumes: 0, childInstance: 1
     });
     const usageLimitHit = { kind: 'usage-limit-hit', jobId, fields: { window: 'five_hour', resetsAt: USAGE_RESET_STAMP } };
     expect(storedLogTextOf(repositoryDirectory)).toContain(JSON.stringify(usageLimitHit).slice(1));
@@ -628,7 +628,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
     await untilChildEnded(jobId, 1);
     await passOnce(drivePass);
     await passOnce(drivePass);
-    expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', watcherInstance: 1 }]);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'build')).toMatchObject([{ id: jobId, state: 'interrupted', childInstance: 1 }]);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.kind === 'assistant')).toBe(false);
   });
 
@@ -646,8 +646,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
       vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:00:00.000Z', seenBy: { trackerId: 'example', jobId }
     });
     await passOnce(drivePass);
-    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'running', watcherInstance: 2 });
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"watcherInstance":2,"cause":"usage-limit"}`);
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'running', childInstance: 2 });
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"childInstance":2,"cause":"usage-limit"}`);
     expect(world.launchOf(jobFolder(jobId), 2)?.argv.join(' ')).toContain('fake-agent-scenario.json');
   });
 
@@ -666,11 +666,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'usage limits', () => {
       vendor: 'fake-agent', window: 'five_hour', resetsAt: '2026-09-18T20:11:03.010Z', seenBy: { trackerId: 'example', jobId }
     });
     await passOnce(drivePass);
-    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'interrupted', watcherInstance: 1 });
+    expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === jobId)).toMatchObject({ state: 'interrupted', childInstance: 1 });
     clock.stamp = '2026-09-18T22:11:04+02:00';
     await waitUntil(async () => {
       await drivePass.idle();
-      return (storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.id === jobId && job.watcherInstance === 2);
+      return (storedProgressOf(repositoryDirectory).jobs ?? []).some((job) => job.id === jobId && job.childInstance === 2);
     }, () => `the interrupted job resuming on instance 2: ${overseerLog.join('\n')}`);
   });
 
@@ -734,13 +734,13 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the ends Talos gives a sessio
     world.recogniseEndingOfTheLastLine(jobFolder(buildJobId()), 1, 'network-outage');
     await passOnce(drivePass);
 
-    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'network-outage', watcherInstance: 1 });
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'network-outage', childInstance: 1 });
     expect(storedLogTextOf(repositoryDirectory)).not.toContain('"to":"in-customs"');
     const entries = childReadings().eventsAfter(jobFolder(buildJobId()), 1, 0);
     expect(entries === 'malformed' ? [] : entries.filter((entry) => entry.origin === 'client').map((entry) => JSON.parse(entry.line) as unknown))
       .toContainEqual({ act: 'stop', graceMilliseconds: SESSION_STOP_GRACE_MILLISECONDS });
     await passOnce(drivePass);
-    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'network-outage', watcherInstance: 1 });
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'network-outage', childInstance: 1 });
   });
 
   test('an end paused interrupts the job talos-paused, which resumes by itself on the next pass under the next Talos', async () => {
@@ -750,10 +750,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the ends Talos gives a sessio
     world.startTalosAgain(trackerDirectory());
     await passOnce(drivePass);
 
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-interrupted","jobId":"${buildJobId()}","fields":{"cause":"talos-paused","watcherInstance":1}`);
-    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${buildJobId()}","fields":{"watcherInstance":2,"cause":"talos-paused"}`);
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-interrupted","jobId":"${buildJobId()}","fields":{"cause":"talos-paused","childInstance":1}`);
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${buildJobId()}","fields":{"childInstance":2,"cause":"talos-paused"}`);
     await passUntilBuildJobIs(drivePass, 'running');
-    expect(buildJob()).toMatchObject({ state: 'running', watcherInstance: 2, crashResumes: 0 });
+    expect(buildJob()).toMatchObject({ state: 'running', childInstance: 2, crashResumes: 0 });
     expect(world.launchOf(jobFolder(buildJobId()), 2)).not.toBeNull();
   });
 
@@ -765,7 +765,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the ends Talos gives a sessio
     await passOnce(drivePass);
 
     expect(buildJob()).toMatchObject({
-      state: 'interrupted', interruption: 'lease-ended', watcherInstance: 1, crashResumes: 0
+      state: 'interrupted', interruption: 'lease-ended', childInstance: 1, crashResumes: 0
     });
     expect(storedLogTextOf(repositoryDirectory)).not.toContain(`"kind":"job-resumed","jobId":"${buildJobId()}"`);
   });

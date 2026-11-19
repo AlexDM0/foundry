@@ -1,9 +1,9 @@
 /**
  * One vendor-neutral entry of a job's transcript, as the Overseer's job stream sends it: the Bridge never parses a vendor line. `cursor` is
- * `<instance>.<sequence>`, because each Watcher instance numbers its event log from 1; one log line can give several entries, so `entryKey`
+ * `<instance>.<sequence>`, because each child instance numbers its event log from 1; one log line can give several entries, so `entryKey`
  * adds the entry's index within its line.
  */
-export type TranscriptRole = 'assistant' | 'tool-call' | 'tool-result' | 'user' | 'overseer' | 'watcher' | 'turn-end';
+export type TranscriptRole = 'assistant' | 'tool-call' | 'tool-result' | 'user' | 'overseer' | 'talos' | 'turn-end';
 
 /** What a client line did to the session: a chat line, an answer to its question, an interrupt, its input closed, or a stop. */
 export type TranscriptClientAct = 'chat' | 'answer' | 'interrupt' | 'close-input' | 'stop';
@@ -26,7 +26,7 @@ export interface TranscriptEntry {
   entryKey:         string;
   role:             TranscriptRole;
   text:             string;
-  /** The Watcher log entry's stamp; `null` on a log written before stamps. */
+  /** The Talos log entry's stamp; `null` on a log written before stamps. */
   at:               string | null;
   toolName?:        string;
   parentToolUseId?: string;

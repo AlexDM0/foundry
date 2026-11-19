@@ -1,6 +1,6 @@
 /**
  * The folders of a repository and one worktree per ticket branch, with no git in them, and a fixture Board whose holds run in place, around
- * `createAirlocks`: the spec's recorded git answers stand for the history, and the gate, the merge agent's reading and its Watcher's
+ * `createAirlocks`: the spec's recorded git answers stand for the history, and the gate, the merge agent's reading and its child's
  * liveness are the spec's to set. Test-only.
  */
 import { mkdirSync } from 'node:fs';
@@ -92,7 +92,7 @@ export interface AirlocksHarness {
     reading:                 MergeAgentReading;
     /** The lines a resolution changed, as git counts them; `null` when git cannot tell. */
     resolutionLines:         number | null;
-    watcherIsLive:           boolean;
+    childIsLive:             boolean;
     refDeniesHold:           boolean;
     /** Runs before each gate returns, after it read its stamp: a spec moves the main line or edits the pipeline here. */
     beforeGate:              () => void;
@@ -210,7 +210,7 @@ export function createRecordedAirlocksHarness(
     gateStep:          'tests',
     reading:           { calls: 0, report: undefined },
     resolutionLines:   0,
-    watcherIsLive:     false,
+    childIsLive:       false,
     refDeniesHold:     true,
     beforeGate:        () => undefined,
     gateIsRunningIn:   () => false,
@@ -260,7 +260,7 @@ export function createRecordedAirlocksHarness(
     },
     mergeAgentReadingOf: () => settings.reading,
     resolutionLinesOf:   () => settings.resolutionLines,
-    watcherIsLive:       () => settings.watcherIsLive,
+    childIsLive:         () => settings.childIsLive,
     stopMergeAgent:      (job) => {
       stopped.push(job.id);
       return Promise.resolve();

@@ -36,7 +36,7 @@ describe('the Stop question', () => {
         {
           agents:      'keep',
           title:       'Stop the Overseer only',
-          consequence: 'The 4 agents finish what they are on under their Watchers. Nothing new starts until this forge is started again.',
+          consequence: 'The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.',
         },
         {
           agents:      'stop-first',
@@ -52,7 +52,7 @@ describe('the Stop question', () => {
     const { question, choices } = ForgeCommandTextUtil.stopQuestionOf(withAgentsInFlight(STOREFRONT, 1));
     expect(question).toBe('Stop the Overseer of Example Storefront? 1 agent is running.');
     expect(choices.map((choice) => choice.consequence)).toEqual([
-      'The agent finishes what it is on under its Watcher. Nothing new starts until this forge is started again.',
+      'The agent finishes what it is on under Talos. Nothing new starts until this forge is started again.',
       'The agent winds down first and its tickets return to the board. Then the Overseer stops.',
     ]);
   });

@@ -5,16 +5,16 @@
 import { dirname }      from 'node:path';
 import { expect, test } from 'bun:test';
 
-import type { AgentLaunchRequest }                           from '../src/lib/agent-launch/AgentLaunchRequest.ts';
-import { POSIX_LAUNCH_ENVIRONMENT }                          from '../src/lib/agent-launch/PosixLaunchEnvironment.ts';
-import { createDarwinSeatbelt, seatbeltProfileTextOf }       from '../src/lib/gate-confinement/DarwinSeatbelt.ts';
-import type { ConfinementPlan }                              from '../src/lib/gate-confinement/GateConfinement.ts';
-import { platformPortsFor }                                  from '../src/lib/platform-ports/PlatformPortsFor.ts';
-import { createPosixShellLine }                              from '../src/lib/shell-line/PosixShellLine.ts';
-import { ProcessWatcherSandbox, type ProcessSandboxRequest } from '../src/services/overseer/ProcessWatcherSandbox.ts';
-import { settingsTextBeforePowerShell }                      from '../src/testing/SettingsBeforePowerShell.ts';
-import { agentAdapterOfThisProcess }                         from './CommandContext.ts';
-import frozenTable                                           from './FrozenPlatformPorts.json';
+import type { AgentLaunchRequest }                     from '../src/lib/agent-launch/AgentLaunchRequest.ts';
+import { POSIX_LAUNCH_ENVIRONMENT }                    from '../src/lib/agent-launch/PosixLaunchEnvironment.ts';
+import { createDarwinSeatbelt, seatbeltProfileTextOf } from '../src/lib/gate-confinement/DarwinSeatbelt.ts';
+import type { ConfinementPlan }                        from '../src/lib/gate-confinement/GateConfinement.ts';
+import { platformPortsFor }                            from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import { createPosixShellLine }                        from '../src/lib/shell-line/PosixShellLine.ts';
+import { LineSandbox, type ProcessSandboxRequest }     from '../src/services/overseer/LineSandbox.ts';
+import { settingsTextBeforePowerShell }                from '../src/testing/SettingsBeforePowerShell.ts';
+import { agentAdapterOfThisProcess }                   from './CommandContext.ts';
+import frozenTable                                     from './FrozenPlatformPorts.json';
 
 const ports = platformPortsFor('darwin', {
   userShell: () => undefined, commandInterpreter: () => undefined, systemRoot: () => undefined, monitorFolderName: '.example-monitor', pipeNamePrefix: 'example-product'
@@ -29,7 +29,7 @@ function darwinRequestOf(frozenRequest: (typeof frozenTable.seatbeltProfiles)[nu
 
 test('the Seatbelt profile of every fixed request equals the frozen text', () => {
   for (const { request, text } of frozenTable.seatbeltProfiles) {
-    expect(seatbeltProfileTextOf(ProcessWatcherSandbox.planOf(darwinRequestOf(request), ''))).toBe(text);
+    expect(seatbeltProfileTextOf(LineSandbox.planOf(darwinRequestOf(request), ''))).toBe(text);
   }
 });
 
@@ -42,7 +42,7 @@ test('the gate argv of every fixed line and shell equals the frozen one', () => 
 test('the confined gate argv equals the frozen one', () => {
   const seatbelt = createDarwinSeatbelt({ fileExists: () => true, programSucceeds: () => true, writeFile: () => undefined });
   for (const { profilePath, argv, confinedArgv } of frozenTable.confinedArgv) {
-    const plan = ProcessWatcherSandbox.planOf(darwinRequestOf(frozenTable.seatbeltProfiles[0]?.request), profilePath);
+    const plan = LineSandbox.planOf(darwinRequestOf(frozenTable.seatbeltProfiles[0]?.request), profilePath);
     expect(seatbelt.confinedArgvOf(plan satisfies ConfinementPlan, argv)).toEqual(confinedArgv);
   }
 });

@@ -1,6 +1,6 @@
 /**
  * What wakes the DrivePass. What matters: a burst of events is debounced into one wake, in the data folder and the Hatch root alike; the sweep
- * wakes with no file event at all; a stopped watcher wakes nothing, a pending debounce included; a watch the platform refuses or fails later
+ * wakes with no file event at all; a stopped data folder watch wakes nothing, a pending debounce included; a watch the platform refuses or fails later
  * throws nothing out and leaves the sweep waking; a job's Hatch folder gets its own watch once, and an unwatch closes it for good. Those run
  * on fake timers and fake watches, so the platform's event latency and stray events decide nothing. One case plays the recorded real watch
  * (`src/testing/RecordedFolderWatch.ts`): a request written into a Hatch folder created after the start reaches it.
@@ -32,7 +32,7 @@ let repositoryRoot = '';
 let trackerDirectory = '';
 
 beforeEach(() => {
-  repositoryRoot   = createScratchDirectory('board-watcher');
+  repositoryRoot   = createScratchDirectory('board-watch');
   trackerDirectory = join(repositoryRoot, PRODUCT_NAMES.DATA_FOLDER);
   mkdirSync(trackerDirectory);
 });
@@ -80,7 +80,7 @@ function fakeFolderWatches(): {
     fireIn: (folderPath) => onEventOfFolder.get(folderPath)?.(),
     failIn: (folderPath) => {
       const onError = onErrorOfFolder.get(folderPath);
-      const failure = new Error(`ENOSPC: System limit for number of file watchers reached, watch '${folderPath}'`);
+      const failure = new Error(`ENOSPC: System limit for number of file watches reached, watch '${folderPath}'`);
       if (onError === undefined) throw failure;
       onError(failure);
     },
@@ -94,7 +94,7 @@ describe('DataFolderWatch', () => {
     jest.useFakeTimers();
     let wakes = 0;
     const { platformWatch, fireIn } = fakeFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory, repositoryRoot, wake: () => { wakes += 1; }, sweepMilliseconds: NO_SWEEP_MILLISECONDS, platformWatch
     });
     for (let i = 0; i < BURST_EVENTS; i += 1) fireIn(trackerDirectory);
@@ -105,18 +105,18 @@ describe('DataFolderWatch', () => {
     fireIn(hatchRoot());
     jest.advanceTimersByTime(OVERSEER_WATCH_DEBOUNCE_MILLISECONDS);
     expect(wakes).toBe(2);
-    watcher.stop();
+    dataFolderWatch.stop();
   });
 
-  test('a stopped watcher closes both watches and wakes nothing, a debounce it left pending included', () => {
+  test('a stopped data folder watch closes both watches and wakes nothing, a debounce it left pending included', () => {
     jest.useFakeTimers();
     let wakes = 0;
     const { platformWatch, fireIn, closed } = fakeFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory, repositoryRoot, wake: () => { wakes += 1; }, sweepMilliseconds: QUICK_SWEEP_MILLISECONDS, platformWatch
     });
     fireIn(trackerDirectory);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(closed).toEqual([trackerDirectory, hatchRoot()]);
     jest.advanceTimersByTime(NO_SWEEP_MILLISECONDS);
     expect(wakes).toBe(0);
@@ -126,7 +126,7 @@ describe('DataFolderWatch', () => {
     jest.useFakeTimers();
     const calls: string[] = [];
     const { platformWatch } = fakeFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory,
       repositoryRoot,
       wake:              () => calls.push('wake'),
@@ -135,7 +135,7 @@ describe('DataFolderWatch', () => {
       platformWatch,
     });
     jest.advanceTimersByTime(QUICK_SWEEP_MILLISECONDS * 2);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(calls).toEqual(['sweep', 'wake', 'sweep', 'wake']);
   });
 
@@ -143,14 +143,14 @@ describe('DataFolderWatch', () => {
     jest.useFakeTimers();
     let sweeps = 0;
     const { platformWatch, failIn, closed } = fakeFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory, repositoryRoot, wake: () => undefined, onSweep: () => { sweeps += 1; }, sweepMilliseconds: QUICK_SWEEP_MILLISECONDS, platformWatch
     });
     expect(() => failIn(trackerDirectory)).not.toThrow();
     expect(() => failIn(hatchRoot())).not.toThrow();
     expect(closed).toEqual([trackerDirectory, hatchRoot()]);
     jest.advanceTimersByTime(QUICK_SWEEP_MILLISECONDS * 2);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(sweeps).toBe(2);
   });
 
@@ -158,12 +158,12 @@ describe('DataFolderWatch', () => {
     jest.useFakeTimers();
     let sweeps = 0;
     const refusingWatch: PlatformWatch = () => { throw new Error('EMFILE: too many open files, watch'); };
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory, repositoryRoot, wake: () => undefined, onSweep: () => { sweeps += 1; }, sweepMilliseconds: QUICK_SWEEP_MILLISECONDS, platformWatch: refusingWatch
     });
-    watcher.watchHatchFolder(join(hatchRoot(), 'J1'));
+    dataFolderWatch.watchHatchFolder(join(hatchRoot(), 'J1'));
     jest.advanceTimersByTime(QUICK_SWEEP_MILLISECONDS);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(sweeps).toBe(1);
   });
 
@@ -173,34 +173,34 @@ describe('DataFolderWatch', () => {
     const {
       platformWatch, fireIn, watched, closed
     } = fakeFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory, repositoryRoot, wake: () => { wakes += 1; }, sweepMilliseconds: NO_SWEEP_MILLISECONDS, platformWatch
     });
     const jobHatchFolder = join(hatchRoot(), 'J1');
-    watcher.watchHatchFolder(jobHatchFolder);
-    watcher.watchHatchFolder(jobHatchFolder);
+    dataFolderWatch.watchHatchFolder(jobHatchFolder);
+    dataFolderWatch.watchHatchFolder(jobHatchFolder);
     expect(watched).toEqual([trackerDirectory, hatchRoot(), jobHatchFolder]);
     fireIn(jobHatchFolder);
     jest.advanceTimersByTime(OVERSEER_WATCH_DEBOUNCE_MILLISECONDS);
     expect(wakes).toBe(1);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(closed).toEqual([trackerDirectory, hatchRoot(), jobHatchFolder]);
   });
 
   test('an unwatched Hatch folder closes its watch and is forgotten, so a second watch of it opens a new one', () => {
     const { platformWatch, watched, closed } = fakeFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory, repositoryRoot, wake: () => undefined, sweepMilliseconds: NO_SWEEP_MILLISECONDS, platformWatch
     });
     const jobHatchFolder = join(hatchRoot(), 'J1');
-    watcher.watchHatchFolder(jobHatchFolder);
-    watcher.unwatchHatchFolder(jobHatchFolder);
+    dataFolderWatch.watchHatchFolder(jobHatchFolder);
+    dataFolderWatch.unwatchHatchFolder(jobHatchFolder);
     expect(closed).toEqual([jobHatchFolder]);
-    watcher.unwatchHatchFolder(jobHatchFolder);
+    dataFolderWatch.unwatchHatchFolder(jobHatchFolder);
     expect(closed).toEqual([jobHatchFolder]);
-    watcher.watchHatchFolder(jobHatchFolder);
+    dataFolderWatch.watchHatchFolder(jobHatchFolder);
     expect(watched).toEqual([trackerDirectory, hatchRoot(), jobHatchFolder, jobHatchFolder]);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(closed).toEqual([jobHatchFolder, trackerDirectory, hatchRoot(), jobHatchFolder]);
   });
 
@@ -209,7 +209,7 @@ describe('DataFolderWatch', () => {
     jest.useFakeTimers();
     let wakes = 0;
     const recordedWatches = recordedFolderWatches();
-    const watcher = DataFolderWatch.startWatching({
+    const dataFolderWatch = DataFolderWatch.startWatching({
       trackerDirectory:  join(repositoryRoot, 'no-such-folder'),
       repositoryRoot,
       wake:              () => { wakes += 1; },
@@ -218,7 +218,7 @@ describe('DataFolderWatch', () => {
     });
     recordedWatches.writeFileInASubfolderMadeAfterStart(join(hatchRoot(), 'J7', 'requests'));
     jest.advanceTimersByTime(OVERSEER_WATCH_DEBOUNCE_MILLISECONDS);
-    watcher.stop();
+    dataFolderWatch.stop();
     expect(recordedWatches.unansweredCalls()).toEqual([]);
     expect(wakes).toBe(1);
   });

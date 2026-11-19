@@ -3,7 +3,7 @@ export const TALOS_PROTOCOL_VERSION = 1;
 export const CHILD_RECORD_FORMAT_VERSION = 1;
 export const TALOS_RECORD_FORMAT_VERSION = 1;
 export const TALOS_START_FILE_FORMAT_VERSION = 1;
-/** Origin `talos` replaced `watcher`. */
+/** Origin `talos` replaced the retired origin of format 1. */
 export const EVENT_LOG_FORMAT_VERSION = 2;
 /**
  * How long a client's unterminated line may grow before it is refused, checked before any secret: it bounds memory only, above the largest

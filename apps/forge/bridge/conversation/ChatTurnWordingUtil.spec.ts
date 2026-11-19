@@ -36,7 +36,7 @@ describe('ChatTurnWordingUtil.systemLineTextOf', () => {
       'Overseer started J7 · chat 1',
       'Overseer delivered I2, I4 · chat 3',
       'Overseer sent a message',
-      'Watcher sent a standing reply',
+      'Talos sent a standing reply',
       'The Assistant answered a question',
       'Overseer stopped the session',
     ]);

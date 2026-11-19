@@ -29,8 +29,8 @@ const ENDINGS_BY_KIND: Readonly<Record<'build' | 'review' | 'assistant', readonl
   assistant: ['closed'],
 };
 
-/** The states in which a job's Watcher runs its session, so the world keeps a Watcher instance live for it. */
-const WATCHER_RUNNING_STATES: readonly JobState[] = ['running', 'waiting-for-answer'];
+/** The states in which a job's child runs its session, so the world keeps a child instance live for it. */
+const CHILD_RUNNING_STATES: readonly JobState[] = ['running', 'waiting-for-answer'];
 
 /** The states in which a worktree job's session or the Overseer acts on its worktree with git. */
 export const GIT_OPERATING_STATES: readonly JobState[] = ['preparing', 'running', 'waiting-for-answer', 'in-customs', 'gating', 'merging-main', 'merging', 'landing'];
@@ -136,8 +136,8 @@ export class LifecycleWorld {
 
   private requestCount = 0;
 
-  /** The Watcher instances the world keeps running per job: spawned as a job runs on an instance, killed only by an interruption or an end. */
-  private readonly liveWatcherInstances = new Map<string, Set<number>>();
+  /** The child instances the world keeps running per job: spawned as a job runs on an instance, killed only by an interruption or an end. */
+  private readonly liveChildInstances = new Map<string, Set<number>>();
 
   /** How far the log was already checked for resumes, so each record is judged once. */
   private checkedRecordCount = 0;
@@ -171,7 +171,7 @@ export class LifecycleWorld {
     for (let i = 0; i < turns; i += 1) {
       this.advance(i);
       this.act();
-      this.syncWatchers(i);
+      this.syncChildren(i);
     }
     return this.violations;
   }
@@ -200,30 +200,30 @@ export class LifecycleWorld {
       const resumed = jobsBefore.find((job) => job.id === step.jobId);
       if (resumed?.state !== 'interrupted' || resumed.kind === 'assistant') this.violations.push(`turn ${turn}: resumed ${step.jobId}, which was no interrupted agent job`);
     }
-    this.syncWatchers(turn);
+    this.syncChildren(turn);
     this.checkInvariants(turn);
     this.checkMergeInvariants(turn);
     this.checkResumes(turn);
   }
 
-  /** A job running on an instance the world has not spawned gets that Watcher; a job interrupted, ended or gone has none left. */
-  private syncWatchers(turn: number): void {
+  /** A job running on an instance the world has not spawned gets that child; a job interrupted, ended or gone has none left. */
+  private syncChildren(turn: number): void {
     const liveJobs = new Map(this.board.jobs().map((job) => [job.id, job]));
-    for (const [jobId, instances] of this.liveWatcherInstances) {
+    for (const [jobId, instances] of this.liveChildInstances) {
       const job = liveJobs.get(jobId);
-      if (job === undefined || !WATCHER_RUNNING_STATES.includes(job.state)) instances.clear();
+      if (job === undefined || !CHILD_RUNNING_STATES.includes(job.state)) instances.clear();
     }
     for (const job of liveJobs.values()) {
-      if (!WATCHER_RUNNING_STATES.includes(job.state)) continue;
-      const instances = this.liveWatcherInstances.get(job.id) ?? new Set<number>();
-      instances.add(job.watcherInstance);
-      this.liveWatcherInstances.set(job.id, instances);
-      if (instances.size > 1) this.violations.push(`turn ${turn}: job ${job.id} has Watcher instances ${[...instances].join(', ')} live at once`);
+      if (!CHILD_RUNNING_STATES.includes(job.state)) continue;
+      const instances = this.liveChildInstances.get(job.id) ?? new Set<number>();
+      instances.add(job.childInstance);
+      this.liveChildInstances.set(job.id, instances);
+      if (instances.size > 1) this.violations.push(`turn ${turn}: job ${job.id} has child instances ${[...instances].join(', ')} live at once`);
     }
   }
 
-  private killWatcher(jobId: string): void {
-    this.liveWatcherInstances.get(jobId)?.clear();
+  private killChild(jobId: string): void {
+    this.liveChildInstances.get(jobId)?.clear();
   }
 
   /** Read from the log as written: a resume of a job already ended, or a crash resume past the bound, is a violation. */
@@ -376,7 +376,7 @@ export class LifecycleWorld {
       return;
     }
     if (roll < 0.35) {
-      this.killWatcher(job.id);
+      this.killChild(job.id);
       this.board.interruptJob(job.id, this.pick(INTERRUPTION_CAUSES) ?? 'watcher-lost', FIXTURE_AT);
       return;
     }

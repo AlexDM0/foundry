@@ -48,12 +48,12 @@ interface ProgramResult {
 }
 
 interface LiveJob {
-  id:              string;
-  kind:            string;
-  role:            string | null;
-  state:           string;
-  ticketIds:       string[];
-  watcherInstance: number;
+  id:            string;
+  kind:          string;
+  role:          string | null;
+  state:         string;
+  ticketIds:     string[];
+  childInstance: number;
 }
 
 const CHECKOUT_ROOT = join(import.meta.dir, '..', '..');
@@ -229,11 +229,11 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
     return newest === undefined ? null : JSON.parse(readFileSync(join(overseerFolder, newest), 'utf8')) as { processId: number; tokenFile: string };
   };
 
-  const watcherProcessIdOf = (jobId: string, instance: number): number | null => {
-    const watcherRecordPath = join(trackerDirectory, 'jobs', jobId, `watcher-${instance}.json`);
-    if (!existsSync(watcherRecordPath)) return null;
-    const record = JSON.parse(readFileSync(watcherRecordPath, 'utf8')) as { watcher?: { processId: number } | null };
-    return record.watcher?.processId ?? null;
+  const childProcessIdOf = (jobId: string, instance: number): number | null => {
+    const childRecordPath = join(trackerDirectory, 'jobs', jobId, `child-${instance}.json`);
+    if (!existsSync(childRecordPath)) return null;
+    const record = JSON.parse(readFileSync(childRecordPath, 'utf8')) as { childProcess?: { processId: number } | null };
+    return record.childProcess?.processId ?? null;
   };
 
   const buildLaunchesOf = (ticketId: string): number => storedLogRecords().filter((record) => record.kind === 'job-launched'
@@ -293,18 +293,18 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       return ticketIds;
     },
 
-    /** Kills the Overseer once a build runs, starts a new one, then hands it over; answers what the agent's Watcher did meanwhile. */
+    /** Kills the Overseer once a build runs, starts a new one, then hands it over; answers what the agent's child did meanwhile. */
     async regroupAroundRunningBuild(job: LiveJob): Promise<RegroupingObservation> {
       const ticketId = job.ticketIds[0] ?? '';
-      let watcherProcessId = watcherProcessIdOf(job.id, job.watcherInstance);
-      while (watcherProcessId === null && Date.now() < deadline) {
+      let childProcessId = childProcessIdOf(job.id, job.childInstance);
+      while (childProcessId === null && Date.now() < deadline) {
         await sleep(POLL_INTERVAL_MILLISECONDS / 10);
-        watcherProcessId = watcherProcessIdOf(job.id, job.watcherInstance);
+        childProcessId = childProcessIdOf(job.id, job.childInstance);
       }
       const buildLaunchesBefore = buildLaunchesOf(ticketId);
       const baton = newestBaton();
-      if (baton === null || watcherProcessId === null) throw new Error('no Baton or Watcher record to regroup around');
-      log(`kill -9 of the Overseer (process ${baton.processId}) while job ${job.id} (#${ticketId}) runs on Watcher instance ${job.watcherInstance}, process ${watcherProcessId}`);
+      if (baton === null || childProcessId === null) throw new Error('no Baton or child record to regroup around');
+      log(`kill -9 of the Overseer (process ${baton.processId}) while job ${job.id} (#${ticketId}) runs on child instance ${job.childInstance}, process ${childProcessId}`);
       const killedAt = new Date().toISOString();
       process.kill(baton.processId, 'SIGKILL');
       while (processIsAlive(baton.processId)) await sleep(POLL_INTERVAL_MILLISECONDS / 10);
@@ -313,9 +313,9 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       streamGaps.push({ from: killedAt, to: new Date().toISOString() });
       await sleep(SETTLE_AFTER_REGROUPING_MILLISECONDS);
       // A build may finish inside the wait: an agent that ended its work uninterrupted kept running as far as the kill is concerned.
-      const agentKeptRunning = (): boolean => processIsAlive(watcherProcessId)
+      const agentKeptRunning = (): boolean => processIsAlive(childProcessId)
         || !storedLogRecords().some((record) => record.kind === 'job-interrupted' && record.jobId === job.id);
-      const newestInstance = (): number => readdirSync(join(trackerDirectory, 'jobs', job.id)).filter((fileName) => /^watcher-\d+\.json$/.test(fileName)).length;
+      const newestInstance = (): number => readdirSync(join(trackerDirectory, 'jobs', job.id)).filter((fileName) => /^child-\d+\.json$/.test(fileName)).length;
       const instanceAfterRegrouping = newestInstance();
       const keptRunningAfterRegrouping = agentKeptRunning();
       const restartedAt = new Date().toISOString();
@@ -325,14 +325,14 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       streamGaps.push({ from: restartedAt, to: new Date().toISOString() });
       await sleep(SETTLE_AFTER_RESTART_MILLISECONDS);
       return {
-        jobId:                              job.id,
-        watcherInstanceBeforeKill:          job.watcherInstance,
-        watcherInstanceAfterRegrouping:     instanceAfterRegrouping,
-        watcherInstanceAfterRestart:        newestInstance(),
-        watcherProcessAliveAfterRegrouping: keptRunningAfterRegrouping,
-        watcherProcessAliveAfterRestart:    agentKeptRunning(),
-        restartExitCode:                    restart.exitCode,
-        buildJobsOnTheTicketAfterKill:      buildLaunchesOf(ticketId) - buildLaunchesBefore,
+        jobId:                            job.id,
+        childInstanceBeforeKill:          job.childInstance,
+        childInstanceAfterRegrouping:     instanceAfterRegrouping,
+        childInstanceAfterRestart:        newestInstance(),
+        childProcessAliveAfterRegrouping: keptRunningAfterRegrouping,
+        childProcessAliveAfterRestart:    agentKeptRunning(),
+        restartExitCode:                  restart.exitCode,
+        buildJobsOnTheTicketAfterKill:    buildLaunchesOf(ticketId) - buildLaunchesBefore,
       };
     },
 
@@ -345,7 +345,7 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
         const statuses = await Promise.all(ticketIds.map(async (ticketId) => (await quietJson<{ status: string }>(['ticket', 'show', ticketId]))?.status ?? '?'));
         if (statuses.every((status) => status === 'delivered')) return regrouping;
         const jobs = await liveJobs();
-        const jobLines = jobs.map((liveJob) => `${liveJob.id} ${liveJob.kind}/${liveJob.role ?? '-'} ${liveJob.state} Watcher ${liveJob.watcherInstance}`);
+        const jobLines = jobs.map((liveJob) => `${liveJob.id} ${liveJob.kind}/${liveJob.role ?? '-'} ${liveJob.state} child ${liveJob.childInstance}`);
         const jobsText = `tickets ${ticketIds.map((ticketId, i) => `#${ticketId} ${statuses[i]}`).join(', ')}; jobs ${jobLines.join(', ')}`;
         if (jobsText !== lastJobsText) log(jobsText);
         lastJobsText = jobsText;

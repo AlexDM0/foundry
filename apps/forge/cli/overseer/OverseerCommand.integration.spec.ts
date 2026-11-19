@@ -111,8 +111,8 @@ function plantDeadBaton(generation: number): void {
 }
 
 interface JobOnTheBoard {
-  id:              string;
-  watcherInstance: number;
+  id:            string;
+  childInstance: number;
 }
 
 function jobsOnTheBoard(): readonly JobOnTheBoard[] {
@@ -127,7 +127,7 @@ function jobsOnTheBoard(): readonly JobOnTheBoard[] {
 async function plantedEventLogPathOfTheListedJob(): Promise<string> {
   const listedJob = await firstValueOf(() => jobsOnTheBoard()[0], () => `the board listing a job:\n${overseerLogText()}`);
   const trackerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER);
-  const child = { boardFolder: trackerDirectory, childFolder: `jobs/${listedJob.id}`, instance: listedJob.watcherInstance };
+  const child = { boardFolder: trackerDirectory, childFolder: `jobs/${listedJob.id}`, instance: listedJob.childInstance };
   PlantedChild.plantChildRecord(child);
   return childFilesOf(child.boardFolder, child.childFolder, child.instance).eventLogPath;
 }

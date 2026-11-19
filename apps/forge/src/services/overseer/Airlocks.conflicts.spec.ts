@@ -258,7 +258,7 @@ describeWhenGitIsRecorded('slot recovery', () => {
 
   test('a merge-in with MERGE_HEAD and a live holder is kept', async () => {
     harness = slotLeftMidMerge();
-    harness.settings.watcherIsLive = true;
+    harness.settings.childIsLive = true;
     const jobId = harness.mergeJob()?.id;
     recordedGit.answerFrom(AirlockAnswerSets.stoppedOnTheConflict(false));
     await harness.slots.sweep();

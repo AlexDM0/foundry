@@ -111,14 +111,14 @@ type OverseerEnd = { kind: 'stopped'; how: string; now: boolean } | { kind: 'res
 
 /** One serving period under one Baton generation; a Baton pass that failed after the release starts another in the same process. */
 interface Serving {
-  generation:    number;
-  server:        StartedServer;
-  drivePass:     DrivePass;
-  watcher:       { stop: () => void };
-  lifetime:      ReturnType<typeof overseerLifetime>;
+  generation:      number;
+  server:          StartedServer;
+  drivePass:       DrivePass;
+  dataFolderWatch: { stop: () => void };
+  lifetime:        ReturnType<typeof overseerLifetime>;
   /** Lives and ends with the serving period: a Baton pass or a stop ends a running brain. */
-  flintBrain:    OverseerFlintBrain;
-  boardChildren: BoardChildren;
+  flintBrain:      OverseerFlintBrain;
+  boardChildren:   BoardChildren;
 }
 
 const TOKEN_BYTES            = 32;
@@ -244,7 +244,7 @@ function overseerLifetime(request: ForegroundRunRequest, files: OverseerFiles, g
       finish({ kind: 'taken-over', refusal });
     }
   };
-  const watcher     = QuietWatch.watchQuietly({ folderPath: files.overseerDirectory, recursive: false, onEvent: beforeEffectBatch });
+  const overseerFolderWatch = QuietWatch.watchQuietly({ folderPath: files.overseerDirectory, recursive: false, onEvent: beforeEffectBatch });
   const unsubscribe = request.context.onStopSignal(() => {
     log('Stop signal received.');
     finish({ kind: 'stopped', how: 'signal', now: false });
@@ -254,7 +254,7 @@ function overseerLifetime(request: ForegroundRunRequest, files: OverseerFiles, g
     stopFor:       (how: string, now: boolean) => finish({ kind: 'stopped', how, now }),
     restart:       () => finish({ kind: 'restart' }),
     takenOver:     (refusal: unknown) => finish({ kind: 'taken-over', refusal }),
-    stopWatching:  () => watcher?.close(),
+    stopWatching:  () => overseerFolderWatch?.close(),
     // Kept until the stop has finished, so a second SIGTERM during it is taken as the same stop rather than killing it halfway.
     stopListening: unsubscribe,
   };
@@ -285,7 +285,7 @@ function preparationSteps(request: ForegroundRunRequest, boardChildren: BoardChi
       step: 'read-jobs',
       run:  () => {
         for (const job of jobsOf()) {
-          if (!Number.isSafeInteger(job.watcherInstance) || !Number.isSafeInteger(job.eventCursor.sequence)) {
+          if (!Number.isSafeInteger(job.childInstance) || !Number.isSafeInteger(job.eventCursor.sequence)) {
             throw new Error(`job ${job.id} has no readable child instance or cursor`);
           }
         }
@@ -296,12 +296,12 @@ function preparationSteps(request: ForegroundRunRequest, boardChildren: BoardChi
       run:  () => {
         for (const job of jobsOf()) {
           const jobFolder = boardChildren.jobFolderOf(job.id);
-          if (boardChildren.livenessOf(jobFolder, job.watcherInstance).verdict === 'unlaunched') continue;
-          if (boardChildren.recordOf(jobFolder, job.watcherInstance) === null) {
-            throw new Error(`child ${job.watcherInstance} of job ${job.id} has no readable child record`);
+          if (boardChildren.livenessOf(jobFolder, job.childInstance).verdict === 'unlaunched') continue;
+          if (boardChildren.recordOf(jobFolder, job.childInstance) === null) {
+            throw new Error(`child ${job.childInstance} of job ${job.id} has no readable child record`);
           }
-          if (boardChildren.eventsAfter(jobFolder, job.watcherInstance, 0) === 'malformed') {
-            throw new Error(`the event log of child ${job.watcherInstance} of job ${job.id} is malformed`);
+          if (boardChildren.eventsAfter(jobFolder, job.childInstance, 0) === 'malformed') {
+            throw new Error(`the event log of child ${job.childInstance} of job ${job.id} is malformed`);
           }
         }
       },
@@ -615,7 +615,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
     servedGeneration = generation;
     startedAt        = LocalTimeUtil.formatLocalIso(context.now());
     const servingStartedAt = startedAt;
-    let watcher: DataFolderWatch | null = null;
+    let dataFolderWatch: DataFolderWatch | null = null;
     try {
       token    = writeToken(platformPorts, tokenFilePath);
       lifetime = overseerLifetime(request, files, generation, log);
@@ -666,12 +666,12 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         homeDirectory:         context.homeDirectory,
         log,
         onBatonTakenOver:      (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
-        watchHatchFolder:      (hatchDirectory) => watcher?.watchHatchFolder(hatchDirectory),
-        unwatchHatchFolder:    (hatchDirectory) => watcher?.unwatchHatchFolder(hatchDirectory),
+        watchHatchFolder:      (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
+        unwatchHatchFolder:    (hatchDirectory) => dataFolderWatch?.unwatchHatchFolder(hatchDirectory),
         afterPass:             publishState,
       });
       const startedPass = drivePass;
-      watcher = DataFolderWatch.startWatching({
+      dataFolderWatch = DataFolderWatch.startWatching({
         trackerDirectory: workspace.trackerDirectory,
         repositoryRoot:   workspace.rootDirectory,
         wake:             () => startedPass.wake(),
@@ -701,7 +701,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
         log,
       });
       const serving: Serving = {
-        generation, server, drivePass, watcher, lifetime, flintBrain: overseerFlintBrain, boardChildren
+        generation, server, drivePass, dataFolderWatch, lifetime, flintBrain: overseerFlintBrain, boardChildren
       };
       current = serving;
       publishState();
@@ -718,7 +718,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       await drivePass.regroup();
       return serving;
     } catch (thrown) {
-      watcher?.stop();
+      dataFolderWatch?.stop();
       lifetime?.stopWatching();
       lifetime?.stopListening();
       await overseerFlintBrain.close();
@@ -736,7 +736,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
   async function release(serving: Serving): Promise<void> {
     handingOver = true;
     serving.lifetime.stopWatching();
-    serving.watcher.stop();
+    serving.dataFolderWatch.stop();
     await serving.flintBrain.close();
     await serving.drivePass.stop();
     await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
@@ -858,7 +858,7 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
       continue;
     }
     serving.lifetime.stopWatching();
-    serving.watcher.stop();
+    serving.dataFolderWatch.stop();
     const stoppingServing = serving;
     const stopWaits: StopWait[] = [
       // First, so the run it ends is logged while the board is still this Overseer's.

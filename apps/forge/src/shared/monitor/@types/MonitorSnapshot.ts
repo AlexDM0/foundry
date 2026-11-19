@@ -86,7 +86,7 @@ export interface MonitorJob extends MonitorJobDocument, MonitorJobEntityKeys {
   readonly silentSweeps:        number;
   /** True while a `quiet-job` incident is open for the job: the forge's own verdict. */
   readonly quiet:               boolean;
-  /** `null` for a job with no agent session, and before its first Watcher logged a line. */
+  /** `null` for a job with no agent session, and before its first child logged a line. */
   readonly turn:                MonitorJobTurn | null;
   readonly messagesWaiting:     number;
   /** The newest line of an Assistant's or a product owner's session; `null` for every other job. */

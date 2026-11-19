@@ -42,7 +42,7 @@ test('every job vocabulary tuple covers its union, and none names a member twice
   }
 });
 
-test('the outcomes include a replaced, a resolved and a cannot-resolve job, and only Watcher and agent crashes count toward a resume', () => {
+test('the outcomes include a replaced, a resolved and a cannot-resolve job, and only lost-child and agent crashes count toward a resume', () => {
   expect(JOB_OUTCOMES).toEqual(expect.arrayContaining(['replaced', 'resolved', 'cannot-resolve']));
   expect(CRASH_INTERRUPTION_CAUSES).toEqual(['watcher-lost', 'agent-crashed']);
 });

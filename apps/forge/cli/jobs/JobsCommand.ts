@@ -42,7 +42,7 @@ export const jobsCommand: CommandHandler = (commandArguments, context) => {
     OutputUtil.padColumn(job.state, STATE_COLUMN_WIDTH),
     job.ticketIds.length === 0 ? '-' : job.ticketIds.map((ticketId) => `#${ticketId}`).join(','),
     `attempt ${job.attempt}`,
-    `watcher ${job.watcherInstance}`,
+    `child ${job.childInstance}`,
     ...(job.stopRequest === undefined ? [] : [`(${job.stopRequest} asked)`]),
   ].join('  '));
   const overseerText = footer.overseer.state === 'live' ? `overseer: live at ${baton.verdict === 'live' ? baton.record.url : ''}` : 'overseer: down';

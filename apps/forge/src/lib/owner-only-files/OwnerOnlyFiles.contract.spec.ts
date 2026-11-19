@@ -90,7 +90,7 @@ test('a platform with no adapter refuses a restriction and reads nothing as owne
 });
 
 describe('WindowsOwnerOnlyFiles over fake icacls output', () => {
-  const PROFILE_PATH = 'C:\\Users\\alex.example\\.agent-progress-monitor\\watchers\\tracker-example';
+  const PROFILE_PATH = 'C:\\Users\\alex.example\\.agent-progress-monitor\\private\\tracker-example';
   const SYSTEM_ENTRY = 'NT AUTHORITY\\SYSTEM:(I)(OI)(CI)(F)';
   const ADMINISTRATORS_ENTRY = 'BUILTIN\\Administrators:(I)(OI)(CI)(F)';
   const OWNER_ENTRY = 'EXAMPLE-PC\\alex.example:(I)(OI)(CI)(F)';

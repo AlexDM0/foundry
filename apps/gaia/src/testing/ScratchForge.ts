@@ -196,7 +196,7 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
     return longestFirst.reduce((exampleText, { drawn, example }) => exampleText.replaceAll(drawn, example), text);
   }
 
-  /** The processes still running from the repository's own files, such as a Watcher and its agent, which outlive an Overseer's stop. */
+  /** The processes still running from the repository's own files, such as Talos and its agent, which outlive an Overseer's stop. */
   async function processIdsRunningFrom(repository: string): Promise<number[]> {
     const listed = await realProcessRun(environmentCopy).run({
       program: 'pgrep', programArguments: ['-f', repository], workingDirectory: repository, timeoutMilliseconds: PROCESS_LIST_TIMEOUT_MILLISECONDS,

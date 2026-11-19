@@ -2,7 +2,7 @@ import type { JobMoveTarget, JobState } from '../@types/Job.ts';
 
 /**
  * Read as "to reach the key, the job has to be in one of these". Launching is reached only by a launch, and every state may end; a move
- * into `running` from a state with no process, `interrupted` or `awaiting-answer`, is a resume and spawns the next Watcher instance.
+ * into `running` from a state with no process, `interrupted` or `awaiting-answer`, is a resume and spawns the next child instance.
  */
 export const LEGAL_SOURCE_STATES_FOR_JOB_MOVE: Readonly<Record<JobMoveTarget, readonly JobState[]>> = {
   'launching':          [],

@@ -40,7 +40,7 @@ interface RetryScene {
   worktree:          string;
   /** The first attempt's commit on the ticket branch. */
   commitOnTheBranch: () => void;
-  /** Launches a build attempt on ticket 001 and records its start as the Overseer does when its Watcher is first spawned. */
+  /** Launches a build attempt on ticket 001 and records its start as the Overseer does when its child is first launched. */
   launchAttempt:     (attempt: number) => Readonly<Job>;
   /** Hands the attempt's built report to the hold, which verifies it. */
   reportBuilt:       (job: Readonly<Job>) => void;

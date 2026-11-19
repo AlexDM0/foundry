@@ -527,7 +527,7 @@ subagent. A malformed log adds nothing and does not fail the state.
 | Field | Meaning | Read from |
 | --- | --- | --- |
 | `jobId` | The job | The job |
-| `calls` | Distinct `messageId`s of the job's own assistant turns, across every [Watcher instance](../glossary.md#watcher-instance). Cumulative, and shown only. | Event logs |
+| `calls` | Distinct `messageId`s of the job's own assistant turns, across every [child instance](../glossary.md#child-instance). Cumulative, and shown only. | Event logs |
 | `callBudget` | The [role](../glossary.md#role)'s [call budget](../glossary.md#call-budget) from `JobLaunch.callBudgetOf`; `null` unless the job kind is `build` or `review` | The job |
 | `tokens` | Input, output and both cache figures, counted once per `messageId`, the job's own and its subagents' | Event logs, transcripts |
 | `toolCalls` | The job's own `tool-call` events | Event logs |

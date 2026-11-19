@@ -555,7 +555,7 @@ export function answerSharedFlowInThisProcess(stageFile: string, reportPath: str
 }
 
 /**
- * The answer of one git call of a process a Watcher starts, such as a session's commit or a gate's git, from the flow stage kept in
+ * The answer of one git call of a process Talos starts, such as a session's commit or a gate's git, from the flow stage kept in
  * `stageFile`. A call it could not answer is a line of `reportPath`, and answers exit 1 with its reason on standard error.
  */
 export function sharedFlowAnswerOf(directory: string, gitArguments: readonly string[], stageFile: string, reportPath: string): GitRun {

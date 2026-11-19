@@ -25,9 +25,9 @@ export interface QuietWatchRequest {
 function watchQuietly(request: QuietWatchRequest): QuietWatchHandle | null {
   const platformWatch = request.platformWatch ?? watch;
   try {
-    const watcher = platformWatch(request.folderPath, { recursive: request.recursive }, () => request.onEvent());
-    watcher.on('error', () => watcher.close());
-    return watcher;
+    const folderWatch = platformWatch(request.folderPath, { recursive: request.recursive }, () => request.onEvent());
+    folderWatch.on('error', () => folderWatch.close());
+    return folderWatch;
   } catch {
     return null;
   }

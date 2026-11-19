@@ -58,7 +58,7 @@ export interface HandOverRequest {
   successor:            ProcessIdentity | null;
   /** The code on disk, named in a failure the successor never reported itself. */
   successorCodeVersion: string;
-  /** Finishes a landing in progress, starts no effect batch, logs the hand-over and closes the listener and the Watcher connections. */
+  /** Finishes a landing in progress, starts no effect batch, logs the hand-over and closes the listener and the Talos connection. */
   release:              () => Promise<void>;
   /** Logs the failure and raises the warning, before the outcome is left in the file. */
   recordFailure:        (failure: BatonPassFailure) => Promise<void>;

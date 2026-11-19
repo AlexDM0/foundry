@@ -788,7 +788,7 @@ describe('what a change runs', () => {
 
   test.each([
     ['src/lib/process-identity/DarwinProcessIdentity.ts', 'src/lib/process-identity/ProcessIdentity.integration.spec.ts'],
-    ['src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts'],
+    ['src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/services/overseer/LineSandbox.integration.spec.ts'],
     ['src/lib/shell-line/PosixShellLine.ts', 'src/lib/shell-line/ShellLine.contract.integration.spec.ts'],
     ['src/lib/executable-resolver/PosixExecutableResolver.ts', 'src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'],
     ['src/lib/talos/PosixSocketEndpoint.ts', 'src/lib/talos/LocalEndpoint.contract.integration.spec.ts'],

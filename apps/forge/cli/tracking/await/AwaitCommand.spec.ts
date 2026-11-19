@@ -29,7 +29,7 @@ function settledFlagOf(wait: Promise<void>): { settled: boolean } {
 describe('changeOrSweep', () => {
   test('a watch the platform refuses at its start leaves the wait on its sweep timer', async () => {
     jest.useFakeTimers();
-    const refusingWatch: PlatformWatch = () => { throw new Error('ENOSPC: System limit for number of file watchers reached, watch'); };
+    const refusingWatch: PlatformWatch = () => { throw new Error('ENOSPC: System limit for number of file watches reached, watch'); };
     const wait = changeOrSweep(EXAMPLE_FOLDER, refusingWatch);
     const flag = settledFlagOf(wait);
     await Promise.resolve();

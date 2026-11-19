@@ -77,15 +77,15 @@ export const DIRTY_CHECKOUT_NOTICE: NoticeDocument = {
 /** A job record as `BoardState` serves it: a running builder on ticket 3 unless the changes say otherwise. */
 export function exampleAgentJob(changes: Partial<AgentJobDocument> & Pick<AgentJobDocument, 'id'>): AgentJobDocument {
   return {
-    kind:            'build',
-    role:            'builder',
-    ticketIds:       ['3'],
-    state:           'running',
-    attempt:         1,
-    watcherInstance: 1,
-    crashResumes:    0,
-    launchedAt:      '2026-10-29T11:20:00',
-    live:            {
+    kind:          'build',
+    role:          'builder',
+    ticketIds:     ['3'],
+    state:         'running',
+    attempt:       1,
+    childInstance: 1,
+    crashResumes:  0,
+    launchedAt:    '2026-10-29T11:20:00',
+    live:          {
       calls:                  12,
       callBudget:             150,
       tokens:                 3000,

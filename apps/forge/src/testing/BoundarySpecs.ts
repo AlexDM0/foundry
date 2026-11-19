@@ -81,7 +81,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    [
       BUILD_JOB_SPEC,
       'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts',
-      'src/services/overseer/ProcessWatcherSandbox.integration.spec.ts',
+      'src/services/overseer/LineSandbox.integration.spec.ts',
       'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
       'src/testing/RecordedGateLines.confinement.integration.spec.ts',
     ],

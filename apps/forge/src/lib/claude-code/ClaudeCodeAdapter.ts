@@ -1,6 +1,6 @@
 /**
  * The launcher port's Claude Code adapter: renders a job's `claude -p` command line, settings, agents, MCP and role files from a neutral
- * profile, and writes the stream-json lines a Watcher sends the session. Pure: the Watcher writes the files and spawns the argv.
+ * profile, and writes the stream-json lines Talos sends the session. Pure: Talos writes the files and spawns the argv.
  */
 import { createHash } from 'node:crypto';
 import { join }       from 'node:path';
@@ -38,7 +38,7 @@ export const CLAUDE_NESTING_VARIABLES = ['CLAUDECODE', 'CLAUDE_CODE_SESSION_ID',
 
 /**
  * The variables that bill an API account ahead of the login. Never forwarded from the caller: only API billing gives a session a key, and
- * then only from the Watcher's own `ANTHROPIC_API_KEY` at spawn.
+ * then only from Talos's own `ANTHROPIC_API_KEY` at spawn.
  */
 export const CLAUDE_API_BILLING_VARIABLES = [CLAUDE_API_KEY_VARIABLE, 'ANTHROPIC_AUTH_TOKEN'] as const;
 
@@ -81,7 +81,7 @@ const HEXADECIMAL_RADIX = 16;
 const LOOPBACK_DOMAINS = ['localhost', '127.0.0.1'] as const;
 const WEB_FETCH_TOOL_NAME = 'WebFetch';
 
-/** The session id a job keeps across every Watcher instance and resume: a UUID formatted from `sha256(scope + "\n" + jobId)`. */
+/** The session id a job keeps across every child instance and resume: a UUID formatted from `sha256(scope + "\n" + jobId)`. */
 export function claudeSessionIdOf(scope: string, jobId: string): string {
   const digits = createHash('sha256').update(`${scope}\n${jobId}`).digest('hex').slice(0, UUID_HEXADECIMAL_DIGITS).split('');
   digits[UUID_VERSION_DIGIT_INDEX] = UUID_NAME_HASH_VERSION;
@@ -312,14 +312,14 @@ function jsonTextOf(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-/** Every permission request but a question is denied at once, so no session waits on a Watcher nobody watches. */
+/** Every permission request but a question is denied at once, so no session waits on a question nobody answers. */
 function planOf(facts: AgentHostFacts, configFolder: string, request: AgentLaunchRequest): AgentLaunchPlan {
   const pathOf = (fileName: string): string => join(request.jobFilesDirectory, fileName);
   const reportSchemaFiles = request.reportSchema === null ? [] : [{ path: pathOf(CLAUDE_JOB_FILE_NAMES.reportSchema), text: jsonTextOf(request.reportSchema) }];
   return {
     argv:        argvOf(request, pathOf),
     environment: childEnvironmentOf(request),
-    ...request.billing?.mode === 'api' ? { environmentFromWatcher: { [CLAUDE_API_KEY_VARIABLE]: CLAUDE_API_KEY_VARIABLE } } : {},
+    ...request.billing?.mode === 'api' ? { environmentFromTalos: { [CLAUDE_API_KEY_VARIABLE]: CLAUDE_API_KEY_VARIABLE } } : {},
     files:       [
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.settings), text: jsonTextOf(settingsOf(facts, configFolder, request)) },
       { path: pathOf(CLAUDE_JOB_FILE_NAMES.agents), text: jsonTextOf(agentsOf(facts, request.profile.subagents)) },

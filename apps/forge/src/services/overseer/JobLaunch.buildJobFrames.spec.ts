@@ -37,7 +37,7 @@ function buildJob(overrides: Partial<Job> = {}): Job {
     attempt:            1,
     target:             'main',
     state:              'running',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,
@@ -134,7 +134,7 @@ describe('a build job\'s frames to its session', () => {
   });
 
   test('a session resumed after a red handoff is sent its own wind-down at the resume budget, counted from the resume', async () => {
-    const job = buildJob({ watcherInstance: 2 });
+    const job = buildJob({ childInstance: 2 });
     const jobFolder = jobFolderIn(trackerDirectory, job.id);
     RedHandoff.writeRedHandoff(jobFolder, redHandoffFactsIn(jobFolder), 'expected 2, received 3');
     writeFileSync(join(jobFolder, 'wind-down-sent'), '');

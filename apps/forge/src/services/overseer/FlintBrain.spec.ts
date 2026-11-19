@@ -78,7 +78,7 @@ async function settled(): Promise<void> {
   for (let i = 0; i < 10; i += 1) await Promise.resolve();
 }
 
-/** A session host that plays the lines a case gives it, as the Watcher would log them, and keeps what the engine asked of it. */
+/** A session host that plays the lines a case gives it, as Talos would log them, and keeps what the engine asked of it. */
 function playedSessionHost() {
   const printedLines: string[] = [];
   const state = {

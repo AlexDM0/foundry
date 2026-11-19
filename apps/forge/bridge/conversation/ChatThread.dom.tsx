@@ -74,7 +74,7 @@ describe('the chat thread', () => {
   });
 
   test('a system line with nothing to reveal offers no button', () => {
-    renderedThread([{ ...BOOT_LINE, text: 'Watcher sent a standing reply', revealText: null }]);
+    renderedThread([{ ...BOOT_LINE, text: 'Talos sent a standing reply', revealText: null }]);
     expect(screen.queryByRole('button')).toBeNull();
   });
 

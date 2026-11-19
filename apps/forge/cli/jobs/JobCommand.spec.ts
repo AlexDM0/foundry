@@ -1,5 +1,5 @@
 /**
- * `job attach` following a job to its end. What matters: an entry the Watcher writes after attach's last print, with the job leaving the
+ * `job attach` following a job to its end. What matters: an entry Talos writes after attach's last print, with the job leaving the
  * board before the next poll, is still printed before the command returns, and every entry prints exactly once. The entry is written and
  * the job removed from inside the output callback, so the race against the poll is decided by the code, never by a clock. A live job whose
  * instance jumps by two between polls still prints the instance between. A finished job names its newest instance only in the log records
@@ -55,7 +55,7 @@ function productOwnerJob(): Job {
     attempt:            1,
     target:             null,
     state:              'running',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,
@@ -129,7 +129,7 @@ describeWhenGitIsRecorded('job attach following a job to its end', () => {
         if (text === FIRST_LINE) {
           writeFileSync(join(jobFolder, 'events-2.ndjson'), eventLineOf(1, 'Example message of the second instance'));
           writeFileSync(join(jobFolder, 'events-3.ndjson'), eventLineOf(1, 'Example message of the third instance'));
-          writeBoardJobs([{ ...productOwnerJob(), watcherInstance: 3 }]);
+          writeBoardJobs([{ ...productOwnerJob(), childInstance: 3 }]);
         }
         if (text.startsWith('[3.1]')) writeBoardJobs([]);
       },
@@ -158,10 +158,10 @@ describeWhenGitIsRecorded('job attach following a job to its end', () => {
         jobRecordLineOf('job-launched', {
           kind: 'product-owner', role: 'product-owner', ticketIds: [], attempt: 1, target: null, parentJobId: null
         }),
-        jobRecordLineOf('job-interrupted', { cause: 'agent-crashed', watcherInstance: 1 }),
-        jobRecordLineOf('job-resumed', { watcherInstance: 2, cause: 'agent-crashed' }),
+        jobRecordLineOf('job-interrupted', { cause: 'agent-crashed', childInstance: 1 }),
+        jobRecordLineOf('job-resumed', { childInstance: 2, cause: 'agent-crashed' }),
         jobRecordLineOf('job-ended', { outcome: 'closed', deniedPermissions: [] }),
-        jobRecordLineOf('job-reopened', { watcherInstance: 3, text: 'Example question', offeredTicketIds: [] }),
+        jobRecordLineOf('job-reopened', { childInstance: 3, text: 'Example question', offeredTicketIds: [] }),
         jobRecordLineOf('job-ended', { outcome: 'stopped', deniedPermissions: [] }),
       ].join(''));
     });

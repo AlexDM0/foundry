@@ -4,7 +4,6 @@
     "gate":          { "detached": true, "stdin": "ignore", "stdout": "pipe",       "stderr": "pipe" },
     "agent-child":   { "detached": true, "stdin": "pipe",   "stdout": "pipe",       "stderr": "descriptor" },
     "process-child": { "detached": true, "stdin": "ignore", "stdout": "pipe",       "stderr": "descriptor" },
-    "watcher":       { "detached": true, "stdin": "ignore", "stdout": "descriptor", "stderr": "descriptor" },
     "overseer":      { "detached": true, "stdin": "ignore", "stdout": "ignore",     "stderr": "ignore" },
     "successor":     { "detached": true, "stdin": "ignore", "stdout": "ignore",     "stderr": "descriptor" }
   }

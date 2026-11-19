@@ -1,5 +1,5 @@
 /**
- * The stream-json lines Claude Code reads and writes once a session runs: the events read from its stdout and each line a Watcher sends its
+ * The stream-json lines Claude Code reads and writes once a session runs: the events read from its stdout and each line Talos sends its
  * stdin, and how its lines tell a turn's end and how the session ended, apart from the command line that starts it, so a scripted session
  * speaking the same lines needs no launch plan of Claude's.
  */

@@ -90,7 +90,7 @@ export interface StoredJob {
   target:              string | null;
   state:               JobState;
   interruption?:       InterruptionCause;
-  watcherInstance:     number;
+  childInstance:       number;
   eventCursor:         StoredJobEventCursor;
   answeredRequestIds:  string[];
   crashResumes:        number;

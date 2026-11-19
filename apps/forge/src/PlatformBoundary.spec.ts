@@ -304,7 +304,7 @@ describe('the guard names each form, planted in memory', () => {
     ['/tmp', 'const scratch = \'/tmp\';', ['temporary-folder']],
     ['a .sock path', 'const endpoint = `${folder}/${name}.sock`;', ['socket-file']],
     ['an escaped pipe name', 'const endpoint = \'\\\\\\\\.\\\\pipe\\\\talos\';', ['pipe-name']],
-    ['a forward-slash pipe name', 'const endpoint = \'//./pipe/watcher\';', ['pipe-name']],
+    ['a forward-slash pipe name', 'const endpoint = \'//./pipe/talos\';', ['pipe-name']],
     ['\'/bin/sh\'', 'const shell = \'/bin/sh\';', ['bourne-shell-path']],
     ['chmodSync', 'chmodSync(path, mode);', ['mode-change']],
     ['a search-path separator constant', 'const SEARCH_PATH_SEPARATOR = \':\';', ['search-path-separator']],

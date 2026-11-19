@@ -44,7 +44,7 @@ function systemLineTextOf(facts: SystemLineFacts, bootLineText: string): string 
     case 'overseer-chat':
       return 'Overseer sent a message';
     case 'standing-reply':
-      return 'Watcher sent a standing reply';
+      return 'Talos sent a standing reply';
     case 'client-act':
       return `${facts.sender === 'assistant' ? 'The Assistant' : 'Overseer'} ${CLIENT_ACT_TEXT[facts.act]}`;
   }

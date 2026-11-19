@@ -164,7 +164,7 @@ describe('readings', () => {
   test('the events past a sequence are read from the log, a missing log reads empty and a malformed one malformed', () => {
     const entries = [1, 2, 3].map((sequence) => ({ sequence, origin: 'agent' as const, line: `line ${sequence}` }));
     PlantedChild.plantEventLog(child('jobs/J-1'), entries);
-    PlantedChild.plantEventLog(child('jobs/J-2'), `${JSON.stringify({ sequence: 1, origin: 'watcher', line: 'an older origin' })}\n`);
+    PlantedChild.plantEventLog(child('jobs/J-2'), `${JSON.stringify({ sequence: 1, origin: 'retired-origin', line: 'an older origin' })}\n`);
     const children = childrenReading();
 
     expect(children.eventsAfter(absoluteFolderOf('jobs/J-1'), 1, 1)).toEqual(entries.slice(1));
@@ -247,14 +247,14 @@ function refusedWith(reason: 'unknown-child' | 'child-ended' | 'folder-outside-b
 
 function planWritingFile(path: string): AgentLaunchPlan {
   return {
-    argv:                   ['example-agent', '--example-flag'],
-    environment:            { EXAMPLE_VARIABLE: 'example value' },
-    environmentFromWatcher: { EXAMPLE_KEY: 'EXAMPLE_KEY_OF_TALOS' },
-    files:                  [{ path, text: 'example settings\n' }],
-    standingReplies:        [],
-    closingLine:            { allOf: [{ test: 'equals', path: 'type', value: 'result' }], anyOf: [], noneOf: [] },
-    endingPatterns:         [],
-    quitAtTurnEnd:          { act: 'close-input' },
+    argv:                 ['example-agent', '--example-flag'],
+    environment:          { EXAMPLE_VARIABLE: 'example value' },
+    environmentFromTalos: { EXAMPLE_KEY: 'EXAMPLE_KEY_OF_TALOS' },
+    files:                [{ path, text: 'example settings\n' }],
+    standingReplies:      [],
+    closingLine:          { allOf: [{ test: 'equals', path: 'type', value: 'result' }], anyOf: [], noneOf: [] },
+    endingPatterns:       [],
+    quitAtTurnEnd:        { act: 'close-input' },
   };
 }
 

@@ -466,7 +466,7 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
         {
           agents:      'keep',
           title:       'Stop the Overseer only',
-          consequence: 'The 4 agents finish what they are on under their Watchers. Nothing new starts until this forge is started again.',
+          consequence: 'The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.',
           chosen:      true,
         },
         {

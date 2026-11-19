@@ -1,5 +1,5 @@
 /**
- * What a process Watcher's child may reach, as the neutral plan the `GateConfinement` port confines it by: gates and install lines run
+ * What a line child's child may reach, as the neutral plan the `GateConfinement` port confines it by: gates and install lines run
  * worker-written code. The board's stored cache paths are judged here, so only the allowed ones cross into the port.
  */
 import type { ConfinementPlan, GateConfinement as PortGateConfinement } from '../../lib/gate-confinement/GateConfinement.ts';
@@ -40,4 +40,4 @@ function refDeniesHoldUnder(confinement: PortGateConfinement): boolean {
   return confinement.availability().verdict === 'confined' && confinement.workerConfinement() === 'confined';
 }
 
-export const ProcessWatcherSandbox = Object.freeze({ planOf, refDeniesHoldUnder });
+export const LineSandbox = Object.freeze({ planOf, refDeniesHoldUnder });

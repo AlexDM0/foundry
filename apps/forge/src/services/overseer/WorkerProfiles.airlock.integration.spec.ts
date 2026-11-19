@@ -23,7 +23,7 @@ import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH } from '../../test
 import { createScratchDirectory, removeScratchDirectory }       from '../../testing/ScratchWorkspace.ts';
 import { testWhenSandboxExecApplies }                           from '../../testing/ToolGuard.ts';
 import { NO_TOOLCHAIN, WorkerProfiles }                         from './WorkerProfiles.ts';
-import { createProcessWatcherSandbox }                          from './testing/SeatbeltSpecSandbox.ts';
+import { createLineSandbox }                                    from './testing/SeatbeltSpecSandbox.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -95,7 +95,7 @@ testWhenSandboxExecApplies('a sandboxed Airlock agent writes every path its merg
   }, null);
   const adminFolder = plantMergeWaitingLayout(facts.commonGitDirectory, mainLine);
   const profile = WorkerProfiles.profileOf('builder', facts, NO_TOOLCHAIN);
-  const sandbox = createProcessWatcherSandbox();
+  const sandbox = createLineSandbox();
   const profilePath = join(repository, 'airlock-agent.sb');
   writeFileSync(profilePath, sandbox.profileTextOf({
     worktree,

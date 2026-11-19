@@ -39,7 +39,7 @@ function createQuietJobWatch(quietSweeps: number): QuietJobWatch {
         if (!watched.some((job) => job.id === jobId)) standingByJobId.delete(jobId);
       }
       for (const job of watched) {
-        const cursor   = `${job.watcherInstance}.${job.eventCursor.instance}.${job.eventCursor.sequence}`;
+        const cursor   = `${job.childInstance}.${job.eventCursor.instance}.${job.eventCursor.sequence}`;
         const standing = standingByJobId.get(job.id);
         const sweeps   = standing?.cursor === cursor ? standing.sweeps + 1 : 0;
         standingByJobId.set(job.id, { cursor, sweeps: sweeps >= quietSweeps ? 0 : sweeps });

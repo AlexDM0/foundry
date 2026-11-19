@@ -33,7 +33,7 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * decision, a package build's dependentsFixedInGroup start key, the reach-inside-another-home reason of a pipeline-draft-invalid
  * refusal, and install version 35; 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's non-converging
  * review against the pipeline of the stage its review ran in, and adds install version 36, whose installed surface is 35's; 1.19 adds a monitor
- * job's interruption cause, names the identity's Talos protocol version `talosProtocolVersion`, in place of the Watcher's, and adds the
+ * job's interruption cause, names the identity's Talos protocol version `talosProtocolVersion`, in place of the retired one, and adds the
  * pipeline facts' step run times. Each minor only adds, but for that rename, whose key no client reads.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a

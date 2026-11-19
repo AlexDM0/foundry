@@ -138,7 +138,7 @@ tail -n 20 .forge/jobs/J7/watcher-1.log                # Watcher and agent stder
 ```
 
 The `1` in these paths is the `watcher` number on the job's line in `jobs`: each resume starts the next
-[instance](../glossary.md#watcher-instance). To follow the session itself:
+[instance](../glossary.md#child-instance). To follow the session itself:
 
 ```bash
 forge job attach J7   # replays, then follows; Ctrl-C leaves it running

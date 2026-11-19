@@ -111,13 +111,13 @@ function packageConfigurationLocationOf(packageFolder: string): string {
 
 function programFilePathsOf(programRoot: string, workspacePackages: readonly DeclaredWorkspacePackage[]): readonly string[] {
   const unreportedDiagnostic = (): void => undefined;
-  const parsingWatcher: ts.ParseConfigFileHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: unreportedDiagnostic };
+  const configurationParseHost: ts.ParseConfigFileHost = { ...ts.sys, onUnRecoverableConfigFileDiagnostic: unreportedDiagnostic };
   const configurationLocations = [
     ...PROGRAM_CONFIGURATION_PATHS.map((configurationPath) => join(programRoot, configurationPath)),
     ...workspacePackages.map((workspacePackage) => packageConfigurationLocationOf(workspacePackage.folder)),
   ];
   const filePaths = configurationLocations.flatMap((configurationLocation) => {
-    const parsedConfiguration = ts.getParsedCommandLineOfConfigFile(configurationLocation, {}, parsingWatcher);
+    const parsedConfiguration = ts.getParsedCommandLineOfConfigFile(configurationLocation, {}, configurationParseHost);
     if (parsedConfiguration === undefined) throw new Error(`${configurationLocation} could not be read`);
     return parsedConfiguration.fileNames.map((fileName) => programPathOf(programRoot, workspacePackages, resolve(fileName)));
   });

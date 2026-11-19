@@ -21,8 +21,8 @@ export async function stopAndCloseTheLiveOverseer(request: StoppedOverseerReques
 
 function stopTextOf(stopped: Exclude<StopOutcome, { verdict: 'was-down' }>, now: boolean): string {
   const overseerAtUrl = stopped.record === null ? 'The Overseer' : `The Overseer at ${stopped.record.url}`;
-  const watcherNote   = now ? ' Process Watchers were not stopped: --now needs the API.' : '';
-  const closing       = `this command recorded the stop in its place.${watcherNote}`;
+  const lineChildNote = now ? ' Line children were not stopped: --now needs the API.' : '';
+  const closing       = `this command recorded the stop in its place.${lineChildNote}`;
   if (stopped.verdict === 'found-dead') return `${overseerAtUrl} had already ended before it finished its stop, so ${closing}`;
   const { ending, record } = stopped;
   if (ending === 'clean') return `Stopped the Overseer at ${record.url}.`;

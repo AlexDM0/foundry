@@ -277,7 +277,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(Baton.batonGenerationsIn(wedged.overseerDirectory)).toEqual([2]);
   });
 
-  test('the JSON answer of a forced end names it, and --now says the Watchers kept running', async () => {
+  test('the JSON answer of a forced end names it, and --now says the line children kept running', async () => {
     const wedged = plantWedgedOverseer(true);
 
     const stopped = wedged.stopContext();
@@ -287,7 +287,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     const worded = plantWedgedOverseer(true);
     const wordedContext = worded.stopContext();
     expect(await stopWithInstantWaits(['oversee', 'stop', '--now'], wordedContext), wordedContext.errorText()).toBe(0);
-    expect(wordedContext.outputText()).toContain('Process Watchers were not stopped');
+    expect(wordedContext.outputText()).toContain('Line children were not stopped');
   });
 
   test('where a stop can ask, an Overseer that died without its stop is repaired too, and never called forced', async () => {

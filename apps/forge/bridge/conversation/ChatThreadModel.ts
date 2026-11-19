@@ -1,11 +1,11 @@
 /**
- * A session's transcript read as a chat: the Overseer's and the Watcher's lines as system lines, User's messages as bubbles, and the
+ * A session's transcript read as a chat: the Overseer's and Talos's lines as system lines, User's messages as bubbles, and the
  * session's own entries as agent turns, each with its prose and its top-level tool calls. A turn ends at its `turn-end`; a call is paired
  * with its result by `toolUseId`; a subagent's entries stay out, since the Agents view shows them. Text is carried as text, never parsed.
  */
 import type { TranscriptEntryDocument } from '../api/TranscriptStreamClient.ts';
 
-/** What a system line says, worded by its view: a chat the Overseer wrote, a Watcher standing reply, or what a client line did. */
+/** What a system line says, worded by its view: a chat the Overseer wrote, a Talos standing reply, or what a client line did. */
 export type SystemLineFacts =
   | { readonly form: 'boot'; readonly chatSequence: number | null }
   | { readonly form: 'incident-delivery'; readonly chatSequence: number | null; readonly incidentIds: readonly string[] }
@@ -128,7 +128,7 @@ function toolFoldOf(segment: readonly (readonly [TranscriptEntryDocument, number
 
 function systemItemOf(entry: TranscriptEntryDocument, isFirstOverseerChat: boolean): SystemThreadItem {
   const base = { kind: 'system', key: entry.entryKey, at: entry.at } as const;
-  if (entry.role === 'watcher') return { ...base, facts: { form: 'standing-reply' }, revealText: null };
+  if (entry.role === 'talos') return { ...base, facts: { form: 'standing-reply' }, revealText: null };
   if (isClientAct(entry.clientAct)) {
     return { ...base, facts: { form: 'client-act', act: entry.clientAct, sender: entry.sentBy === 'assistant' ? 'assistant' : 'overseer' }, revealText: null };
   }
@@ -188,7 +188,7 @@ function threadItemsOf(entries: readonly TranscriptEntryDocument[], queuedMessag
       });
       return;
     }
-    if (entry.role !== 'overseer' && entry.role !== 'watcher') return;
+    if (entry.role !== 'overseer' && entry.role !== 'talos') return;
     const isChat = entry.role === 'overseer' && !isClientAct(entry.clientAct);
     items.push(systemItemOf(entry, isChat && !overseerChatSeen));
     overseerChatSeen ||= isChat;

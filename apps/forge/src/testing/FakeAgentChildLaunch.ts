@@ -70,7 +70,7 @@ export function fakeAgentChildLaunch(
     label:                          `example agent ${childFolder}`,
     argv:                           plan.argv,
     environment:                    plan.environment,
-    environmentFromTalos:           plan.environmentFromWatcher ?? {},
+    environmentFromTalos:           plan.environmentFromTalos ?? {},
     workingDirectory:               boardFolder,
     verbatimArguments:              false,
     standingReplies:                plan.standingReplies,

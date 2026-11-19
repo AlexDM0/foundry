@@ -1,6 +1,6 @@
 /**
  * A job's transcript as vendor-neutral entries, read from its `events-<instance>.ndjson` files through the adapter's mapper, so it reads
- * a legacy Watcher, a finished job and a job whose Watcher is gone alike. The cursor is `(instance, sequence)`. A client line reads as what
+ * a running job, a finished job and a job whose child is gone alike. The cursor is `(instance, sequence)`. A client line reads as what
  * it said, and who sent it is derived from records the board already keeps, never from the line. A chat's pictures read as their ids, the
  * sha256 of their bytes, with the names User's records gave them: the entry never carries the bytes.
  */
@@ -148,7 +148,7 @@ function entriesOfLogEntry(
   senderOf: () => (clientLine: ClientLine) => ClientLineSender,
   pictureNamesById: () => ReadonlyMap<string, string>,
 ): EntryOfLine[] {
-  if (entry.origin === 'talos') return [{ role: 'watcher', text: entry.line }];
+  if (entry.origin === 'talos') return [{ role: 'talos', text: entry.line }];
   if (entry.origin === 'agent') return reading.eventsOf(entry.line).map(entryOfEvent).filter((mapped) => mapped !== null);
   const clientLine = clientLineOf(entry.line, reading.sentLineOf);
   if (clientLine === null) return [];

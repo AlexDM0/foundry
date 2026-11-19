@@ -196,8 +196,8 @@ describe('the Overseer and its jobs', () => {
       'Job J5 launched: merge-agent (reviewer) under job J4, attempt 1',
       [],
     ],
-    [{ kind: 'job-interrupted', jobId: 'J3', fields: { cause: 'reboot', watcherInstance: 1 } }, 'Job J3 interrupted (reboot) in Watcher instance 1', []],
-    [{ kind: 'job-resumed', jobId: 'J3', fields: { watcherInstance: 2, cause: 'reboot' } }, 'Job J3 resumed in Watcher instance 2 after reboot', []],
+    [{ kind: 'job-interrupted', jobId: 'J3', fields: { cause: 'reboot', childInstance: 1 } }, 'Job J3 interrupted (reboot) in child instance 1', []],
+    [{ kind: 'job-resumed', jobId: 'J3', fields: { childInstance: 2, cause: 'reboot' } }, 'Job J3 resumed in child instance 2 after reboot', []],
     [{ kind: 'job-ended', jobId: 'J3', fields: { outcome: 'built', commit: 'b2c3d4e', deniedPermissions: [] } }, 'Job J3 ended built at b2c3d4e', []],
     [
       { kind: 'job-ended', jobId: 'J4', fields: { outcome: 'failed', cause: 'no report', deniedPermissions: ['WebFetch', 'Bash(curl:*)'] } },
@@ -213,8 +213,8 @@ describe('the Overseer and its jobs', () => {
   });
 
   test.each(['talos-paused', 'lease-ended', 'network-outage'] as const)('an interruption by %s prints the cause as stored and names no command', (cause) => {
-    const sentence = sentenceOf({ kind: 'job-interrupted', jobId: 'J3', fields: { cause, watcherInstance: 1 } });
-    expect(sentence).toBe(`Job J3 interrupted (${cause}) in Watcher instance 1`);
+    const sentence = sentenceOf({ kind: 'job-interrupted', jobId: 'J3', fields: { cause, childInstance: 1 } });
+    expect(sentence).toBe(`Job J3 interrupted (${cause}) in child instance 1`);
     expect(sentence).not.toMatch(/\bforge\b|--|\bresume\b/);
   });
 });

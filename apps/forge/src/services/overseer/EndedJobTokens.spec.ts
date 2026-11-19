@@ -2,7 +2,7 @@
  * A job's tokens reach its tickets' rows when it ends. What matters: they add to what the row held, a review job's land on the newest
  * review bar, a turn repeated across log lines counts once, a job still on the board is not credited, and a hold that sees the same ended
  * job again credits nothing twice, since the `agent-stopped` record keyed by the job id already holds its total. A job a CLI control ended in
- * a hold of its own is rebuilt from the log on the next pass, every Watcher instance read, and credited once, whichever path sees it first.
+ * a hold of its own is rebuilt from the log on the next pass, every child instance read, and credited once, whichever path sees it first.
  */
 import { mkdirSync } from 'node:fs';
 import {
@@ -48,11 +48,11 @@ function assistantTurn(messageId: string, parentToolUseId: string | null, inputT
 
 function jobOf(id: string, kind: string, ticketIds: string[]): Readonly<Job> {
   return {
-    id, kind, ticketIds, watcherInstance: 1
+    id, kind, ticketIds, childInstance: 1
   } as unknown as Readonly<Job>;
 }
 
-/** A scratch tracker whose job logged each event as one agent line, the first list in its first Watcher instance, the next in the next. */
+/** A scratch tracker whose job logged each event as one agent line, the first list in its first child instance, the next in the next. */
 function trackerWithLoggedEvents(jobId: string, ...eventsPerInstance: (readonly AgentSessionEvent[])[]): string {
   const trackerDirectory = createScratchDirectory('ended-job-tokens');
   scratchDirectories.push(trackerDirectory);
@@ -70,7 +70,7 @@ const BUILD_LAUNCH: JobLaunch = {
   kind: 'build', role: 'builder', ticketIds: ['002'], parentJobId: null, attempt: 1, target: 'main',
 };
 
-/** A build job that ran two Watcher instances, interrupted after each, then ended by `job stop` in a hold of its own. */
+/** A build job that ran two child instances, interrupted after each, then ended by `job stop` in a hold of its own. */
 function boardWithAJobStoppedWhileInterrupted(): ReturnType<typeof boardFixture> {
   const fixture = boardFixture({
     tasks:   [taskFixture({ id: 7, ticket: '002', tokens: 500 })],
@@ -157,7 +157,7 @@ describe('EndedJobTokens', () => {
     expect(progress.tasks[0]?.tokens).toBe(500);
   });
 
-  test('a job `job stop` ended while interrupted is credited every Watcher instance\'s tokens on the next pass, rebuilt from the log', () => {
+  test('a job `job stop` ended while interrupted is credited every child instance\'s tokens on the next pass, rebuilt from the log', () => {
     const { board, progress } = boardWithAJobStoppedWhileInterrupted();
     const context = contextOver(trackerWithLoggedEvents('J1', BUILD_EVENTS, SECOND_INSTANCE_EVENTS));
 

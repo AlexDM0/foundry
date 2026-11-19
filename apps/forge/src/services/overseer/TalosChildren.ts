@@ -182,7 +182,7 @@ export function createTalosChildren(facts: TalosChildrenFacts): BoardChildren {
       label:                          request.label,
       argv:                           plan.argv,
       environment:                    plan.environment,
-      environmentFromTalos:           plan.environmentFromWatcher ?? {},
+      environmentFromTalos:           plan.environmentFromTalos ?? {},
       workingDirectory:               request.workingDirectory,
       verbatimArguments:              false,
       standingReplies:                plan.standingReplies satisfies readonly StandingReply[],

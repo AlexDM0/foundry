@@ -175,7 +175,7 @@ describe('advancing the lifecycle applies what the policy derives', () => {
     expect(board.incidents()).toEqual([]);
   });
 
-  test('an interrupted job is resumed on its next Watcher instance, and one past its crash bound is ended replaced', () => {
+  test('an interrupted job is resumed on its next child instance, and one past its crash bound is ended replaced', () => {
     const { board } = lifecycleBoardOf({
       tickets:  [ticketWith('001', { status: 'in-progress' }), ticketWith('002', { status: 'in-progress' })],
       progress: {
@@ -194,7 +194,7 @@ describe('advancing the lifecycle applies what the policy derives', () => {
     const advanced = advance(board);
 
     expect(stepKindsOf(advanced.steps)).toEqual(['resume-job', 'replace-job']);
-    expect(board.jobById('J1')).toMatchObject({ state: 'running', watcherInstance: 2 });
+    expect(board.jobById('J1')).toMatchObject({ state: 'running', childInstance: 2 });
     expect(board.jobById('J2')).toBeUndefined();
     expect(board.incidents()).toEqual([]);
   });

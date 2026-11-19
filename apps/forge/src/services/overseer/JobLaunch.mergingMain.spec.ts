@@ -560,7 +560,7 @@ testWhenGitIsRecorded('crash row: a job stopped while its re-reviewer works stop
   if (reReviewer === undefined) throw new Error('No conflict re-reviewer was launched.');
   scene.board.moveJob(reReviewer.id, 'running', AT);
   scene.board.requestJobStop(scene.jobId, 'stop', AT);
-  endSession(scene.jobFolder(), scene.job()?.watcherInstance ?? 0);
+  endSession(scene.jobFolder(), scene.job()?.childInstance ?? 0);
 
   await scene.pass();
   expect(scene.reReviewer()?.state).toBe('stopping');

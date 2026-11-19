@@ -4,7 +4,7 @@
  * held by the gate's child folder, and a line Talos paused is never judged. A
  * prepare step that exits 0 but changes a tracked file is a setup failure naming that step, never the red first gate it would make. A
  * prepare step with a folder runs in it, as a gate with one does. A gate's environment carries its own report path and never one this
- * process inherited. A step a Watcher runs has one report path per step folder, read in a later pass, which a take removes.
+ * process inherited. A step a line child runs has one report path per step folder, read in a later pass, which a take removes.
  */
 import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir }                    from 'node:os';
@@ -145,7 +145,7 @@ test('a gate\'s environment carries its own report path, drops an inherited one 
   ]);
 });
 
-test('a Watcher step\'s report path is one per step folder, in the temporary folder, and a take reads it once and removes it', () => {
+test('a line child step\'s report path is one per step folder, in the temporary folder, and a take reads it once and removes it', () => {
   const reportFile = GateRun.gateReportFileFor('/example/jobs/J2/gate-1');
   writeFileSync(reportFile, JSON.stringify({ version: 1, cache: 'hit' }));
 

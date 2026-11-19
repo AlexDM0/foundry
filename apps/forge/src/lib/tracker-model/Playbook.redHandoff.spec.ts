@@ -22,15 +22,15 @@ import {
   ticketOf
 } from './testing/LifecycleFixtures.ts';
 
-function redResumedRecord(jobId: string, watcherInstance: number): LogRecord {
+function redResumedRecord(jobId: string, childInstance: number): LogRecord {
   return {
-    kind: 'job-resumed', jobId, fields: { watcherInstance, cause: 'handoff-red' }, at: FIXTURE_AT,
+    kind: 'job-resumed', jobId, fields: { childInstance, cause: 'handoff-red' }, at: FIXTURE_AT,
   };
 }
 
 function redInterruptedJob(kind: 'build' | 'review', resumesSoFar: number): { job: Job; logRecords: LogRecord[] } {
   const job = jobFixture({
-    id: 'J1', kind, role: kind === 'build' ? 'builder' : 'reviewer', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', watcherInstance: resumesSoFar + 1,
+    id: 'J1', kind, role: kind === 'build' ? 'builder' : 'reviewer', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', childInstance: resumesSoFar + 1,
   });
   const logRecords: LogRecord[] = [launchedRecord('J1', kind, ['001'])];
   for (let resume = 1; resume <= resumesSoFar; resume += 1) logRecords.push(interruptedRecord('J1', 'handoff-red'), redResumedRecord('J1', resume + 1));
@@ -89,7 +89,7 @@ describe('a red handoff whose session could not be resumed', () => {
 
   test('parks its successor on the red after the cycle\'s last resume', () => {
     const successor = jobFixture({
-      id: 'J2', kind: 'build', role: 'builder', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', watcherInstance: 2,
+      id: 'J2', kind: 'build', role: 'builder', ticketIds: ['001'], state: 'interrupted', interruption: 'handoff-red', childInstance: 2,
     });
     const logRecords = [
       ...replacedAfterRed,

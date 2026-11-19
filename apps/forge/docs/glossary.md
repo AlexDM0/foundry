@@ -134,7 +134,7 @@ These are different words for neighbouring things. Each row says what separates 
 | --- | --- | --- |
 | **gate**, **checks line** | a gate is one named check; the checks line is the gates joined into one shell line | `pipeline.json` entries, the word to use; `PipelineUtil`, surviving comments and prompts |
 | **job** | the board's unit of work; it can span Watcher instances | `J<n>`; settled by a `job-ended` log record |
-| **Watcher instance** | one spawn of a Watcher for a job; a resume spawns the next | `watcher-<n>.json`, `Job.watcherInstance` |
+| **child instance** | one launch of a job's child under Talos; a resume launches the next | `child-<n>.json`, `Job.childInstance` |
 | **session** | the conversation with Claude Code; it can span jobs | `sessionIdOf`; a build sent back by review resumes it under a further job |
 | **attempt** | a fresh try at a build, numbered on the job | `Job.attempt` |
 | **reviewed**, **delivered** | `reviewed` is not yet on the main line; a ticket that is `delivered` is on it | shown `Awaiting merge` and `Done` |
@@ -451,7 +451,7 @@ A bug naming a delivered ticket in its [introducedBy](#introducedby) field, coun
 
 ### event log
 
-`<data>/jobs/J<n>/events-<instance>.ndjson`, the events one [Watcher instance](#watcher-instance) wrote. It differs from
+`<data>/jobs/J<n>/events-<instance>.ndjson`, the events one [child instance](#child-instance) wrote. It differs from
 the board's [log](#log).
 
 ### failed pass
@@ -674,7 +674,7 @@ strip shows one chip per slot job.
 
 ### liveness
 
-The verdict on one [Watcher instance](#watcher-instance) from its record and the process table,
+The verdict on one [child instance](#child-instance) from its record and the process table,
 `WatcherFleet.livenessOf`: `unclaimed`, `live`, `ended` or `lost`. It says nothing about the agent.
 
 ### lock hold
@@ -926,7 +926,7 @@ a job that reports, it moves the job to `in-customs`.
 ### resume
 
 A job's move into `running` from a [processless state](#processless-state): the next [Watcher
-instance](#watcher-instance) carries on the same [session](#session). It differs from a fresh job, which starts a new
+instance](#child-instance) carries on the same [session](#session). It differs from a fresh job, which starts a new
 one.
 
 ### review bar
@@ -998,7 +998,7 @@ an implementation at one guarded point.
 
 ### Seatbelt
 
-macOS's `sandbox-exec`. A profile from `ProcessWatcherSandbox` holds gate, prepare and install processes, which run
+macOS's `sandbox-exec`. A profile from `LineSandbox` holds gate, prepare and install processes, which run
 outside any session, a proposal's lines excepted. Where it cannot apply, they run unconfined. It differs from a [worker
 profile](#worker-profile).
 
@@ -1128,9 +1128,9 @@ A request for a [Pass](#pass), `DrivePass.wake`. Wakes during a Pass add exactly
 The small detached process that holds one session and logs its events, `watcher.ts` and `src/lib/watcher/Watcher.ts`. It
 outlives the Overseer.
 
-### Watcher instance
+### Child instance
 
-One spawn of a Watcher for a job, numbered by `Job.watcherInstance`. Its files carry the number.
+One launch of a job's child under Talos, numbered by `Job.childInstance`. Its files carry the number.
 
 ### Watcher kind
 

@@ -141,9 +141,9 @@ const FAILED_PASSES_IN_TWO_ENTITIES_OF_A_STAGE: LogRecord[] = [
   endedRecord('J2', 'failed'),
 ];
 
-function redHandoffResumedRecord(jobId: string, watcherInstance: number): LogRecord {
+function redHandoffResumedRecord(jobId: string, childInstance: number): LogRecord {
   return {
-    kind: 'job-resumed', jobId, fields: { watcherInstance, cause: 'handoff-red' }, at: FIXTURE_AT,
+    kind: 'job-resumed', jobId, fields: { childInstance, cause: 'handoff-red' }, at: FIXTURE_AT,
   };
 }
 

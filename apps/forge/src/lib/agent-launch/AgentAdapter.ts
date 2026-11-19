@@ -1,6 +1,6 @@
 /**
- * The launcher port: what a coding-agent vendor's adapter does for a Watcher that knows no vendor. It renders a launch plan the Watcher executes,
- * maps each stdout line the session prints to events, and writes the lines a Watcher sends the session. The package depends on
+ * The launcher port: what a coding-agent vendor's adapter does for Talos, which knows no vendor. It renders a launch plan Talos executes,
+ * maps each stdout line the session prints to events, and writes the lines Talos sends the session. The package depends on
  * `src/lib/executable-resolver`, whose port an adapter finds its program through.
  */
 import type { ExecutableResolution, ExecutableResolver } from '../executable-resolver/ExecutableResolver.ts';
@@ -51,7 +51,7 @@ export interface AgentAdapter {
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */
   programPathOf(resolver: ExecutableResolver, forbiddenRoots: readonly string[]): ExecutableResolution;
   planOf(request: AgentLaunchRequest): AgentLaunchPlan;
-  /** The session id a job keeps across every Watcher instance and resume, derived from the board's scope and the job, never random. */
+  /** The session id a job keeps across every child instance and resume, derived from the board's scope and the job, never random. */
   sessionIdOf(scope: string, jobId: string): string;
   /** One stdout line, mapped; a line the adapter does not recognise maps to no event. */
   eventsOf(line: string): readonly AgentSessionEvent[];

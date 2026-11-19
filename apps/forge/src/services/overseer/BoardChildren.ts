@@ -1,6 +1,6 @@
 /**
  * The Overseer's one way to its board's children, agent sessions and lines alike: launch, read, write to and stop them. An adapter over the
- * Watchers or over Talos answers it; nothing that uses it knows which.
+ * Talos answers it; nothing that uses it knows how.
  */
 import type { AgentLaunchPlan }                   from '../../lib/agent-launch/AgentLaunchPlan.ts';
 import type { ChildInput, FrameRefusalReason }    from '../../lib/talos/@types/TalosFrame.ts';

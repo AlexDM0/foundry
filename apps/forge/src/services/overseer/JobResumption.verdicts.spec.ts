@@ -38,7 +38,7 @@ function buildJob(overrides: Partial<Job> = {}): Job {
     attempt:            1,
     target:             'main',
     state:              'running',
-    watcherInstance:    1,
+    childInstance:      1,
     eventCursor:        { instance: 1, sequence: 0 },
     answeredRequestIds: [],
     crashResumes:       0,
@@ -66,17 +66,17 @@ function ended(jobId: string, outcome: 'replaced' | 'failed' | 'built' | 'does-n
 describe('the launch of a job\'s current instance', () => {
   test('the first instance gets its task; a later one resumes and is told it was interrupted', () => {
     expect(JobResumption.launchPartsOf(buildJob(), 'Example task', 'Example resume')).toEqual({ resume: false, firstMessage: 'Example task' });
-    expect(JobResumption.launchPartsOf(buildJob({ watcherInstance: 2 }), 'Example task', 'Example resume')).toEqual({ resume: true, firstMessage: 'Example resume' });
+    expect(JobResumption.launchPartsOf(buildJob({ childInstance: 2 }), 'Example task', 'Example resume')).toEqual({ resume: true, firstMessage: 'Example resume' });
   });
 
   test('a reopened product owner resumes with User\'s message, in the instance its reopening names only', () => {
     const reopened: LogRecord = {
-      at: AT, kind: 'job-reopened', jobId: 'J2', fields: { watcherInstance: 2, text: 'Example follow-up', offeredTicketIds: [] }
+      at: AT, kind: 'job-reopened', jobId: 'J2', fields: { childInstance: 2, text: 'Example follow-up', offeredTicketIds: [] }
     };
-    const job = buildJob({ kind: 'product-owner', role: 'product-owner', watcherInstance: 2 });
+    const job = buildJob({ kind: 'product-owner', role: 'product-owner', childInstance: 2 });
     const reopenText = JobResumption.reopenTextOf([reopened], job);
     expect(JobResumption.launchPartsOf(job, 'Example task', 'Example resume', reopenText)).toEqual({ resume: true, firstMessage: 'Example follow-up' });
-    expect(JobResumption.reopenTextOf([reopened], { ...job, watcherInstance: 3 })).toBeNull();
+    expect(JobResumption.reopenTextOf([reopened], { ...job, childInstance: 3 })).toBeNull();
   });
 });
 
@@ -94,7 +94,7 @@ describe('the first message of a fresh instance', () => {
   });
 
   function plantLiveSession(job: Job): void {
-    talos.plantLiveChild(jobFolderIn(trackerDirectory, job.id), job.watcherInstance);
+    talos.plantLiveChild(jobFolderIn(trackerDirectory, job.id), job.childInstance);
   }
 
   test('a Talos answering nothing on one pass is sent the line on the next pass, and never again once it took it', async () => {
@@ -117,7 +117,7 @@ describe('the first message of a fresh instance', () => {
   });
 
   test('a resumed instance is never sent a stored first message', async () => {
-    const job = buildJob({ watcherInstance: 2 });
+    const job = buildJob({ childInstance: 2 });
     plantLiveSession(job);
     const jobFolder = jobFolderIn(trackerDirectory, job.id);
     JobResumption.storeFirstMessage(jobFolder, 2, 'Example task');
@@ -129,7 +129,7 @@ describe('the first message of a fresh instance', () => {
 
 describe('a failed resume', () => {
   test('is a resumed instance that exited by itself before its session started', () => {
-    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), 'J2', true, false)).toBe(true);
+    expect(JobResumption.resumeFailed(buildJob({ childInstance: 2 }), 'J2', true, false)).toBe(true);
   });
 
   test('is a first instance that exited by itself before it started when its launch resumed the session of another job', () => {
@@ -138,8 +138,8 @@ describe('a failed resume', () => {
 
   test('is never a first instance of its own session, a started session or one killed or lost before it started', () => {
     expect(JobResumption.resumeFailed(buildJob(), 'J2', true, false)).toBe(false);
-    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), 'J2', true, true)).toBe(false);
-    expect(JobResumption.resumeFailed(buildJob({ watcherInstance: 2 }), 'J2', false, false)).toBe(false);
+    expect(JobResumption.resumeFailed(buildJob({ childInstance: 2 }), 'J2', true, true)).toBe(false);
+    expect(JobResumption.resumeFailed(buildJob({ childInstance: 2 }), 'J2', false, false)).toBe(false);
   });
 });
 
@@ -269,7 +269,7 @@ describe('a red handoff\'s resume', () => {
 
   function interrupted(jobId: string, cause: 'handoff-red' | 'watcher-lost'): LogRecord {
     return {
-      at: AT, kind: 'job-interrupted', jobId, fields: { cause, watcherInstance: 1 }
+      at: AT, kind: 'job-interrupted', jobId, fields: { cause, childInstance: 1 }
     };
   }
 
@@ -277,8 +277,8 @@ describe('a red handoff\'s resume', () => {
     writeRedFacts('J2');
     const board = { logRecordsSoFar: () => [] };
 
-    expect(JobResumption.resumeLineOf(trackerDirectory, board, buildJob({ watcherInstance: 2, interruption: 'handoff-red' }), messages)).toBe('Red tests, resume 1');
-    expect(JobResumption.resumeLineOf(trackerDirectory, board, buildJob({ watcherInstance: 2, interruption: 'watcher-lost' }), messages)).toBe('Example resume message');
+    expect(JobResumption.resumeLineOf(trackerDirectory, board, buildJob({ childInstance: 2, interruption: 'handoff-red' }), messages)).toBe('Red tests, resume 1');
+    expect(JobResumption.resumeLineOf(trackerDirectory, board, buildJob({ childInstance: 2, interruption: 'watcher-lost' }), messages)).toBe('Example resume message');
   });
 
   test('hands a fresh session taking over an unresumable red handoff the same facts, its calls counted from its own first instance', () => {

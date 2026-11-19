@@ -1,20 +1,20 @@
 export interface AgentLaunchPlan {
   /** Spawned directly, with no shell. */
-  readonly argv:                    readonly string[];
-  readonly environment:             Readonly<Record<string, string>>;
+  readonly argv:                  readonly string[];
+  readonly environment:           Readonly<Record<string, string>>;
   /**
-   * Child variable to the name of the Watcher's own variable whose value it gets at spawn, for a secret: the plan, and so every file
+   * Child variable to the name of Talos's own variable whose value it gets at spawn, for a secret: the plan, and so every file
    * written from it, names the variable and never holds the value.
    */
-  readonly environmentFromWatcher?: Readonly<Record<string, string>>;
-  readonly files:                   readonly LaunchFile[];
-  readonly standingReplies:         readonly StandingReply[];
+  readonly environmentFromTalos?: Readonly<Record<string, string>>;
+  readonly files:                 readonly LaunchFile[];
+  readonly standingReplies:       readonly StandingReply[];
   /** Which stdout line ends a turn, on which the ending patterns are tried; `null` when the vendor has none. */
-  readonly closingLine:             PlanLineConditions | null;
+  readonly closingLine:           PlanLineConditions | null;
   /** Tried in order on each closing line; the first that holds names how the session ended. */
-  readonly endingPatterns:          readonly PlanEndingPattern[];
+  readonly endingPatterns:        readonly PlanEndingPattern[];
   /** How a session is asked to stop at the end of its turn; `null` when it cannot be. */
-  readonly quitAtTurnEnd:           QuitAtTurnEnd | null;
+  readonly quitAtTurnEnd:         QuitAtTurnEnd | null;
 }
 
 export interface LaunchFile {
@@ -23,7 +23,7 @@ export interface LaunchFile {
 }
 
 /**
- * How a Watcher answers a session while nobody is there: a stdout line whose every `whenAllEqual` dotted path holds its value, and none of whose
+ * How Talos answers a session while nobody is there: a stdout line whose every `whenAllEqual` dotted path holds its value, and none of whose
  * `whenNoneEqual` paths does, is answered with `replyTemplate`.
  */
 export interface StandingReply {

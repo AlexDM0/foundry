@@ -11,7 +11,7 @@ import {
 import { FLINT_BRAIN_ENDED_REASONS, FLINT_BRAIN_STARTERS } from '../../lib/tracker-model/constants/FlintBrainVocabulary.ts';
 import { GATE_CACHE_REPORTS, GATE_PROFILE_RUN_ENDINGS }    from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
 import {
-  FIRST_WATCHER_INSTANCE,
+  FIRST_CHILD_INSTANCE,
   GATE_OUTCOMES,
   LANDING_KINDS,
   INTERRUPTION_CAUSES,
@@ -103,8 +103,8 @@ function checkCommandProblem(value: unknown, path: string): string | null {
   return value === null || BoardSettingsUtil.checkCommandIsWellFormed(value) ? null : `${path} is neither null nor a shell line that is not blank`;
 }
 
-function watcherInstanceProblem(value: unknown, path: string): string | null {
-  return StoredValueUtil.wholeNumberIsAtLeast(value, FIRST_WATCHER_INSTANCE) ? null : `${path} is not a whole number of at least ${FIRST_WATCHER_INSTANCE}`;
+function childInstanceProblem(value: unknown, path: string): string | null {
+  return StoredValueUtil.wholeNumberIsAtLeast(value, FIRST_CHILD_INSTANCE) ? null : `${path} is not a whole number of at least ${FIRST_CHILD_INSTANCE}`;
 }
 
 function decisionAnswerProblem(value: unknown, path: string): string | null {
@@ -181,7 +181,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'job-role':                 (value, path) => (value === null ? null : vocabularyProblem(LogRecordMappingUtil.currentJobNameOf(value), path, JOB_ROLES)),
   'job-outcome':              (value, path) => vocabularyProblem(value, path, JOB_OUTCOMES),
   'interruption-cause':       (value, path) => vocabularyProblem(value, path, INTERRUPTION_CAUSES),
-  'watcher-instance':         watcherInstanceProblem,
+  'child-instance':           childInstanceProblem,
   'permission-names':         (value, path) => listOfTextProblem(value, path, 'permission names'),
   'overseer-stop-reason':     (value, path) => vocabularyProblem(value, path, OVERSEER_STOP_REASONS),
   'job-stop-mode':            (value, path) => vocabularyProblem(value, path, JOB_STOP_MODES),

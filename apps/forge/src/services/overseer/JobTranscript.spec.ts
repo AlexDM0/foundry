@@ -1,5 +1,5 @@
 /**
- * A job's transcript from its Watcher event logs. What matters: a client line reads as what it said, never as the Watcher's frame JSON, and
+ * A job's transcript from its child event logs. What matters: a client line reads as what it said, never as Talos's frame JSON, and
  * who sent it is derived from the board's own records. A build job's first message, wind-down and resume lines are the Overseer's; a chat
  * equal to User's next unmatched `job message` is User's, so the same text sent twice matches two records in order; an answer is User's
  * unless the Assistant gave it under an incident. The Overseer's wording of a setup move, sent to the pipeline agent like a message and
@@ -71,7 +71,7 @@ function scratchTrackerDirectory(): string {
   return directory;
 }
 
-/** Each instance's lines into its own event log of the job's folder, stamped as a Watcher stamps them. */
+/** Each instance's lines into its own event log of the job's folder, stamped as Talos stamps them. */
 function writeEventLogs(trackerDirectory: string, jobId: string, linesByInstance: readonly (readonly LoggedLine[])[]): string {
   const jobFolder = jobFolderIn(trackerDirectory, jobId);
   mkdirSync(jobFolder, { recursive: true });
@@ -191,7 +191,7 @@ describe('a build job\'s client lines', () => {
   test('read no sender facts while no client line is among the entries read', () => {
     const jobFolder = writeEventLogs(scratchTrackerDirectory(), 'J4', [[chat('Build it.'), { origin: 'talos', line: 'session started' }]]);
     const { entries, senderFactReads } = transcriptOf(jobFolder, 1, NO_SENDER_FACTS, '1.1');
-    expect(entries.map((entry) => entry.role)).toEqual(['watcher']);
+    expect(entries.map((entry) => entry.role)).toEqual(['talos']);
     expect(senderFactReads).toBe(0);
   });
 });
@@ -317,7 +317,7 @@ describe('JobTranscript.senderFactsOf', () => {
         at: EXAMPLE_STAMP, kind: 'job-messaged', jobId: 'J5', fields: { text: 'Another job.' }
       },
       {
-        at: EXAMPLE_STAMP, kind: 'job-reopened', jobId: 'J4', fields: { watcherInstance: 2, text: 'Second.', offeredTicketIds: [] }
+        at: EXAMPLE_STAMP, kind: 'job-reopened', jobId: 'J4', fields: { childInstance: 2, text: 'Second.', offeredTicketIds: [] }
       },
       {
         at: EXAMPLE_STAMP, kind: 'incident-answered', incidentId: 'I3', fields: { answer: { Colour: 'Blue' }, requestId: 'request-incident' }
@@ -343,7 +343,7 @@ describe('JobTranscript.senderFactsOf', () => {
         kind:   'job-reopened',
         jobId:  'J2',
         fields: {
-          watcherInstance: 2, text: 'User resumed the setup. Main did not move.', offeredTicketIds: [], byOverseer: true
+          childInstance: 2, text: 'User resumed the setup. Main did not move.', offeredTicketIds: [], byOverseer: true
         }
       },
     ];
@@ -384,7 +384,7 @@ describe('JobTranscript.senderFactsOf', () => {
         kind:   'job-reopened',
         jobId:  'J7',
         fields: {
-          watcherInstance: 2, text: 'Again.', offeredTicketIds: [], pictures: [pictureOf('d', 'reopen.png')]
+          childInstance: 2, text: 'Again.', offeredTicketIds: [], pictures: [pictureOf('d', 'reopen.png')]
         }
       },
     ];

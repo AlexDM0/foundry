@@ -37,14 +37,14 @@ export interface SmokeItemVerdict {
 
 /** What the driver saw around the Overseer's `kill -9`, its second `oversee` and its `oversee restart`. */
 export interface RegroupingObservation {
-  jobId:                              string;
-  watcherInstanceBeforeKill:          number;
-  watcherInstanceAfterRegrouping:     number;
-  watcherInstanceAfterRestart:        number;
-  watcherProcessAliveAfterRegrouping: boolean;
-  watcherProcessAliveAfterRestart:    boolean;
-  restartExitCode:                    number;
-  buildJobsOnTheTicketAfterKill:      number;
+  jobId:                            string;
+  childInstanceBeforeKill:          number;
+  childInstanceAfterRegrouping:     number;
+  childInstanceAfterRestart:        number;
+  childProcessAliveAfterRegrouping: boolean;
+  childProcessAliveAfterRestart:    boolean;
+  restartExitCode:                  number;
+  buildJobsOnTheTicketAfterKill:    number;
 }
 
 export interface QuestionPlants {
@@ -160,25 +160,25 @@ export const CutoverSmokeUtil = Object.freeze({
     };
   },
 
-  /** Item 2: the agent outlived the Overseer's kill and its restart, and no second Watcher or build started on its ticket. */
+  /** Item 2: the agent outlived the Overseer's kill and its restart, and no second child or build started on its ticket. */
   regroupingVerdictOf(observation: RegroupingObservation): SmokeItemVerdict {
     const problems = [
-      ...(observation.watcherProcessAliveAfterRegrouping ? [] : ['the Watcher died with the Overseer']),
-      ...(observation.watcherInstanceAfterRegrouping === observation.watcherInstanceBeforeKill ? [] : [
-        `the regrouped job moved to Watcher instance ${observation.watcherInstanceAfterRegrouping}`,
+      ...(observation.childProcessAliveAfterRegrouping ? [] : ['the agent child died with the Overseer']),
+      ...(observation.childInstanceAfterRegrouping === observation.childInstanceBeforeKill ? [] : [
+        `the regrouped job moved to child instance ${observation.childInstanceAfterRegrouping}`,
       ]),
       ...(observation.buildJobsOnTheTicketAfterKill === 0 ? [] : [`${observation.buildJobsOnTheTicketAfterKill} more build jobs launched on the ticket`]),
       ...(observation.restartExitCode === 0 ? [] : [`oversee restart exited ${observation.restartExitCode}`]),
-      ...(observation.watcherProcessAliveAfterRestart ? [] : ['the Watcher died in the Baton pass']),
-      ...(observation.watcherInstanceAfterRestart === observation.watcherInstanceBeforeKill ? [] : [
-        `the job moved to Watcher instance ${observation.watcherInstanceAfterRestart} in the baton-pass`,
+      ...(observation.childProcessAliveAfterRestart ? [] : ['the agent child died in the Baton pass']),
+      ...(observation.childInstanceAfterRestart === observation.childInstanceBeforeKill ? [] : [
+        `the job moved to child instance ${observation.childInstanceAfterRestart} in the baton-pass`,
       ]),
     ];
     return {
       item:   2,
       passed: problems.length === 0,
       detail: problems.length === 0
-        ? `job ${observation.jobId} kept Watcher instance ${observation.watcherInstanceBeforeKill} alive through kill -9, a new run and oversee restart`
+        ? `job ${observation.jobId} kept child instance ${observation.childInstanceBeforeKill} alive through kill -9, a new run and oversee restart`
         : problems.join('; '),
     };
   },

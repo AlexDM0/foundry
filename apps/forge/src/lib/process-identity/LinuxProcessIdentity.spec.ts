@@ -1,5 +1,5 @@
 /**
- * The pure reading of `/proc/<pid>/stat`: what matters is that a comm cannot shift the fields, that a zombie reads as gone so a Watcher dead in
+ * The pure reading of `/proc/<pid>/stat`: what matters is that a comm cannot shift the fields, that a zombie reads as gone so a child dead in
  * a container reads lost, that a process exiting mid-scan is no failure, and that an identity is never guessed from text that is no stat line.
  * The Linux supervision reads a zombie as gone for the tracker lock and the gate slots, and an unreadable stat leaves the signal probe to decide.
  */
@@ -64,7 +64,7 @@ describe('a dead state', () => {
 
   test('a zombie has no identity, and is no member of its group', () => {
     const reader = readerOver({
-      '/proc/4242/stat':    statLine('watcher', 'Z', 4242, '500'),
+      '/proc/4242/stat':    statLine('talos', 'Z', 4242, '500'),
       '/proc/4243/stat':    statLine('child', 'S', 4242, '501'),
       [BOOT_IDENTITY_PATH]: 'example-boot\n',
     }, ['4242', '4243']);

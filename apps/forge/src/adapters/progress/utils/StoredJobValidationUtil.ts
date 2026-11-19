@@ -4,7 +4,7 @@
  */
 import { JsonRecordUtil } from '../../../lib/json-record/JsonRecordUtil.ts';
 import {
-  FIRST_WATCHER_INSTANCE,
+  FIRST_CHILD_INSTANCE,
   FIRST_JOB_NUMBER,
   INTERRUPTION_CAUSES,
   JOB_ID_PREFIX,
@@ -44,7 +44,7 @@ function jobIdIsWellFormed(value: unknown): value is string {
 
 function eventCursorProblem(value: unknown, path: string): string | null {
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return `${path} is not an object`;
-  if (!StoredValueUtil.wholeNumberIsAtLeast(value['instance'], FIRST_WATCHER_INSTANCE)) return `${path}.instance is not a whole number of at least ${FIRST_WATCHER_INSTANCE}`;
+  if (!StoredValueUtil.wholeNumberIsAtLeast(value['instance'], FIRST_CHILD_INSTANCE)) return `${path}.instance is not a whole number of at least ${FIRST_CHILD_INSTANCE}`;
   if (!StoredValueUtil.wholeNumberIsAtLeast(value['sequence'], FIRST_EVENT_SEQUENCE)) return `${path}.sequence is not a whole number of at least ${FIRST_EVENT_SEQUENCE}`;
   return null;
 }
@@ -141,8 +141,8 @@ function jobProblem(value: unknown, index: number): string | null {
   if (!nullableText(value['target'])) return `${path}.target is neither a branch nor null`;
   const stateProblem = vocabularyProblem(value['state'], `${path}.state`, JOB_STATES);
   if (stateProblem !== null) return stateProblem;
-  if (!StoredValueUtil.wholeNumberIsAtLeast(value['watcherInstance'], FIRST_WATCHER_INSTANCE)) {
-    return `${path}.watcherInstance is not a whole number of at least ${FIRST_WATCHER_INSTANCE}`;
+  if (!StoredValueUtil.wholeNumberIsAtLeast(value['childInstance'], FIRST_CHILD_INSTANCE)) {
+    return `${path}.childInstance is not a whole number of at least ${FIRST_CHILD_INSTANCE}`;
   }
   const cursorProblem = eventCursorProblem(value['eventCursor'], `${path}.eventCursor`);
   if (cursorProblem !== null) return cursorProblem;
