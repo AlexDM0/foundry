@@ -175,6 +175,14 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 ### Worth a look
 
+- Stage 3 verification: after a crash the CLI's `crash-log` and the registry name the component `overseer`, while
+  `GET /api/v1/crash-log` and the presence document say `hephaestus` (the contract defines it so; a user sees two
+  names). A crash log lists a job as 'running, interrupted lease-ended' (still running when written, with its earlier
+  cause beside it). An Assistant interrupted `lease-ended` waits, and `resume --all` replaces it with a new job rather
+  than resuming it. The registry entry keeps the dead process's URL and pid in `overseer` while presence reads
+  `crashed`. After `oversee restart`, overseer.log says 'Attached to Talos 1.' twice in the same second. A tracker under
+  a temp folder is never registered, so a scratch forge there shows no registry presence. `verify:integration` exists
+  only in `apps/forge`, not at the root.
 - WP3.12: `?number=abc`, `0` or empty answers 404 `no-crash-log` with a sentence saying no crash was logged, which is
   wrong when logs exist; presence's `lastStart.crashLogNumber` is the newest readable log, `oversee status` the newest on
   disk; `resumeWaitOf` answers `decision` for an `authentication-failed` job until the next pass resumes it.
@@ -322,6 +330,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 3-G | WP3.13 | landed | ccb723b7 | First round, beside WP3.9. `oversee status` gains `presence` (`StatusPresence`) and the off-after-crash line; verb `crash-log [<number>] [--json]` (read-only, refused under a job), refusal `no-crash-log`; `status` prints a crash notice on standard error only. New `PresenceStatus.ts`, `PresenceWording.ts`; `StartGate` exports `crashToLogOf`, `loggedCrashLogOf`; `CrashLog.newestLogOfTheSameCrash`. For WP3.12: reuse `SUPERVISION_OF_LEASE_STANDING` (held: supervising, ended: stopped, waiting-after-gap: checking-after-a-gap, unheld: not-yet-renewed, no live Talos: no-talos). No spec covers the live presence lines |
 | 3-H | WP3.12 | landed | f535586a | First round. Contract `ForgePresenceDocument`, `ForgeCrashLogDocument` (`number`, `generation`; `activeJobs`, `logTail` may be null) and named part types; `endpointAddedIn` dates `presence` and `crash-log` at 1.20 (WP4.8 uses it); `GET /api/presence` (503 `starting` until this generation's presence is classified) and `GET /api/crash-log?number=<n>`. `waitsFor` from the new `Playbook.resumeWaitOf`; causes reuse `MONITOR_INTERRUPTION_CAUSE_OF_CAUSE`; supervision reuses `PresenceStatus.supervisionOfTalosRecord`. For WP4.8: `automaticRestartsLeft` = `CRASH_RESUMES_BEFORE_WAITING` minus `crashResumes` (a job interrupted for the first time reads 2). Fixed the stale `SetupScript.integration` expectation. No spec covers `PresenceReader` (route 404 and 503 proven by a probe only) |
 | 3-I | WP3.14 | landed | 783e3074 | Second round (first only timed out before `verify:integration` finished). The crash matrix: changed rows found by title (every cited line was stale), 12 new integration rows run in-process over a real Talos and the fake agent (a src spec may not import `cli/testing`); the outage row skips until G1 (requirement `fake-agent-outage-recording`). `verify:integration` 871 pass, 1 skip, 0 fail. Some rows check less than the text: the Talos-crash row calls `CrashPath.record` itself (not the foreground's detection), the SIGSTOP row blocks the main thread with `/bin/sleep 4`, the uncaught-exception row runs a bun process with `listenForProcessCrashes`, not the real foreground. A refresh at a waiting start is freed (WP3.9). `bun run record src/lib/process-identity/` was refused to the agent |
+| 3-I | Stage 3 verification | passed | (no commit) | Run by a checker in a fresh worktree at `f78767fe`: verify, the eight spec sets, `verify:integration` 871 pass, 1 skip, 0 fail, and end-to-end steps 1-6 and 8 on a scratch forge with the fake agent (first start, stop and resume by instruction, a 60 s suspension ending the lease, SIGKILL then a login-item start that stays off with crash log 1, a user start after the crash and `resume`, `oversee restart` as a handover past a whole lease, a clean end with no leak). Step 7 (network outage) waits on G1 |
 | 4-A | WP4.4 | waiting | | |
 | 4-B | WP4.5 | waiting | | |
 | 4-B | WP4.6 | waiting | | |
