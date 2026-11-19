@@ -5,6 +5,14 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 
 ## Where the night run stands
 
+**Paused on 2026-11-19 by the owner until Friday 2026-11-20 15:00, when the weekly budget resets.** 61 of 129 packages
+have landed, stage 4 up to WP4.8. WP4.10 was `running` in `.claude/worktrees/wp4-10` (branch `run/wp4-10`, at
+`c3a07ad3`) when its builder and checker lost the network (ENOTFOUND). Its uncommitted half-built work stays in that
+worktree, and a copy is at `.claude/.evidence/hephaestus-talos/stage-4/wp4-10-partial.patch`. To resume:
+relaunch WP4.10 with "CONTINUE, DO NOT START OVER" in front of its note, land it, then do WP4.11, WP4.9 and stage 4's
+verification. After that come stages 5 to 9. The run scripts (`group.js`, `new-worktree.sh`) are kept in
+`.claude/.evidence/hephaestus-talos/run-scripts/`.
+
 The owner is away for the night (2026-11-18). His words: "build all you can, we can test with actual sessions
 tomorrow" and "make a best effort guess on how that works during build if needed to continue". The run builds through
 stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed on the machine before stage 9).
