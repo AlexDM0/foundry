@@ -11,6 +11,9 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### For tomorrow, with real sessions
 
+The retakes below of `Talos.ts`, `LocalEndpointFor.ts`, `Environment.ts`, `GuardCommand.ts` and `gate-confinement` are
+done: WP2.18 retook them all, unchanged but start stamps.
+
 - Stage 2 verification step 6 (a Talos of another protocol version): its throwaway edit of
   `src/lib/talos/constants/TalosProtocol.ts` on a scratch forge was refused to the agent; run it by hand as the stage
   file's step 6 says. Step 7 (the network outage on a scratch board, `FORGE_FAKE_AGENT_NETWORK_OUTAGE=1`) after G1.
