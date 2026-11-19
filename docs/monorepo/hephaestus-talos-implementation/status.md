@@ -56,6 +56,10 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Assumptions to confirm
 
+- WP2.31 (only matters once an adapter declares `none`): Claude Code's own session writes are its config folder and
+  `~/.claude.json` (`CLAUDE_STATE_FILE_NAME`); forge's confinement gives the whole network and does not grant the
+  session's git folder (a commit may fail under `none`); a ticketless session refused by forge's confinement is logged
+  and retried each pass, with no incident.
 - WP2.25: a launch with no quit act gets a stop with `SESSION_STOP_GRACE_MILLISECONDS` (`TalosChildren.inputSentAndTaken`);
   no shipping adapter has none today. Claude Code's `resumeFindsSessionByFolder: true` rests on the old `SessionPlace`
   comment; confirm with a real resume.
@@ -220,9 +224,9 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 2-L7 | WP2.27 | landed | c9b85cab | First round. `ClaudeHookInput.toolCallOf` maps the vendor's tools to `AgentToolCall` (`shell`, `web-fetch`, `file-change`, `no-reach`, `unknown`); `toolCallDenialLineOf` on the port; the guard's `WorkerProfile.ts` carve-out is gone (no key under the port's folders). A text domain `.` is now denied. Leaks left: `BashDomainsHook.ts` names "auto mode's classifier"; `WorkerProfiles.ts` comments name Edit and Write; `apps/forge/CLAUDE.md` names Bash, WebFetch, Edit, Write (WP2.17) |
 | 2-L8 | WP2.28 | landed | 2299dc12 | First round. The port names `configurationNames` (`AgentConfigurationNames`) and `attributionPatterns`; Customs V13 and V7 and the denied roots take them from the adapter; `claudeFoldersOf` is `agentConfigurationFoldersOf`. Same behaviour as before. The three packages were stacked on WP2.25 by one agent (conflicts in `AgentBoundary.spec.ts` and the adapter files), checked with `git range-diff` against their passed commits |
 | 2-L | Gate speed-up | landed | da2e6ac0 | Added on the owner's word ("research ... the performance of all the gates ... and try to speed them up"; the old implementation may break). Findings: main checkout `.claude/.evidence/hephaestus-talos/gate-performance.md`. forge's `test:dom` is `test:dom:bridge`, out of verify; forge's `typecheck` is `tsc -p tsconfig.json` only; `bridge/**` out of ESLint; `ProjectIncludeLists.spec.ts` deleted; Gaia's three tsc projects run in parallel; the OverseerServer spec uses a 20 ms heartbeat, the reply wait takes `FORGE_HATCH_REPLY_INTERVAL_MILLISECONDS` (test setting, production 250 ms), `ChildSpawnOptions` waits on the state. Cold verify 111 s to 72 s. Leftovers for WP2.17: `typecheck:root` unused; `guards-and-testing.md` (~:319, ~:574) and `contributing.md`'s 'Change a domain rule' row still describe the Bridge's DOM run and typecheck |
-| 2-L9 | WP2.29 | waiting | | |
+| 2-L9 | WP2.29 | landed | c01e707b | First round. Retired the install-16 cleanup, the managed-block notice, the global skill-link step and the retired-host refusal (`ClaudeInstructions.ts` deleted whole); setup runs 1/3 to 3/3; `INSTALL_VERSION` 37; `InstallChangeWatch` retaken; 119 git answers and 9 frozen `CLAUDE.md` calls removed by hand (a full retake gave the same shapes). Gaia's vendor allowlist is now empty. Dead code left: `removeCommandHook`, `removeIgnoreEntry`, `InstallManifestIngestion.agentHost`. For WP2.17: `apps/forge/CLAUDE.md:200-205` still states the retired rule (`removeManagedBlock`, `RetiredClaudeInstall.ts`, the `agent-brief.md` marker), and stale docs: `README.md:160,:165`, `getting-started.md:70-73,:105,:118-119`, `contributing.md:56-59`, `runbook.md:110,:560-561`, `glossary.md:113-114,:601,:698`, `docs/images/terminal-setup.svg`, `terminal-init.svg:21`, `refusals.md:540` |
 | 2-L10 | WP2.30 | waiting | | |
-| 2-L11 | WP2.31 | waiting | | |
+| 2-L11 | WP2.31 | landed | 9930c3c9 | First round, beside WP2.29. `AgentCapabilities.ownConfinement`, `AgentAdapter.sessionWritablePathsOf`; Claude Code and the fake declare `applies-the-profile` (unchanged launches); an agent declaring `none` is wrapped by `SessionConfinement.ts`. Its `none` path is reached only by a planted adapter. `LineSandbox.refDeniesHoldUnder` still asks `workerConfinement()`. `bun run record src/lib/gate-confinement/` not retaken (classifier refused; its specs pass) |
 | 2-L12 | WP2.32 | waiting | | |
 | 2-M | WP2.17 | waiting | | |
 | 2-N | WP2.18 | waiting | | |
