@@ -146,11 +146,23 @@ describe('a stale green\'s re-gate', () => {
     expect(harness.settledGateTrees[0]).toBe(MOVED_BRANCH_TREE);
   });
 
-  test('a red outcome leaves the ticket unqueued with no green, and the outcome is let go', async () => {
+  test('a red outcome leaves the ticket unqueued with no green, logs its step lines\' runs, and the outcome is let go', async () => {
     harness = mainLineHarness(MOVED_BRANCH);
     harness.settings.gateOutcome = 'failed';
+    harness.settings.gateStepRuns = {
+      phase: 'review',
+      steps: [{
+        stepKind: 'gate', stepName: 'tests', runMilliseconds: 4200, ending: 'failed'
+      }]
+    };
 
     await harness.slots.sweep();
+
+    expect(kindsLogged(harness, 'pipeline-step-ran')).toMatchObject([{
+      fields: {
+        stepKind: 'gate', stepName: 'tests', phase: 'review', runMilliseconds: 4200, ending: 'failed'
+      }
+    }]);
 
     expect(harness.board.ticketIsMergeQueued('001')).toBe(false);
     expect(harness.board.greenIsCurrent('001', MOVED_BRANCH_TREE, harness.board.greenPhaseOf('001'))).toBe(false);

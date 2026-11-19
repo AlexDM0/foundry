@@ -104,3 +104,15 @@ test('a gate run\'s cache reports travel byte for byte, and a key a gate\'s repo
 
   expect([JSON.stringify(recordOf(JSON.parse(line))), JSON.stringify(recordOf(withAnUnknownKey))]).toEqual([line, line]);
 });
+
+test('a pipeline step\'s run reads back byte for byte with its phase and entity, and an install step\'s with neither', () => {
+  const entityGate = {
+    stepKind: 'gate', stepName: 'verify', phase: 'merge', entity: 'web', runMilliseconds: 4200, ending: 'time-bound'
+  };
+  const installStep = {
+    stepKind: 'prepare', stepName: 'install', runMilliseconds: 61000, ending: 'passed'
+  };
+  const lines = [entityGate, installStep].map((fields) => JSON.stringify({ at: RECORDED_AT, kind: 'pipeline-step-ran', fields }));
+
+  expect(lines.map((line) => JSON.stringify(recordOf(JSON.parse(line))))).toEqual(lines);
+});

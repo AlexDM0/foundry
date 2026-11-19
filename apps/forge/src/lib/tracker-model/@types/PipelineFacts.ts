@@ -2,8 +2,13 @@
  * The pipeline facts the Overseer serves on its board state for the Bridge's Pipeline view: values only, never words, so the view models
  * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
-import type { GatePhase }                 from './GatePhase.ts';
-import type { GateCacheReport, JobState } from './Job.ts';
+import type { GatePhase } from './GatePhase.ts';
+import type {
+  GateCacheReport,
+  JobState,
+  PipelineStepEnding,
+  PipelineStepKind
+} from './Job.ts';
 import type {
   EntityAgentRole,
   EntityKey,
@@ -330,6 +335,24 @@ export interface GateCacheMarkFacts {
   gateName:    string;
   phase:       GatePhase;
   cacheReport: GateCacheReport;
+}
+
+/**
+ * The newest run of one step line, kept by entity, step kind, step name and phase, from its `pipeline-step-ran` record: what the pipeline
+ * overview shows, so a slow step can be found and made faster.
+ */
+export interface PipelineStepRunTimeFacts {
+  /** Only on a step of an entity's pipeline. */
+  entity?:         EntityKey;
+  stepKind:        PipelineStepKind;
+  stepName:        string;
+  /** The gate run's phase; absent for an install step. */
+  phase?:          GatePhase;
+  /** Recorded and shown only, in the measure of the line's bound. */
+  runMilliseconds: number;
+  ending:          PipelineStepEnding;
+  /** The stamp of the record it comes from. */
+  at:              string;
 }
 
 /** Every model and effort a step may take, in order; an effort's meter level is its position plus one. */

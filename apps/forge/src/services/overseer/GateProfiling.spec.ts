@@ -2,7 +2,8 @@
  * The Overseer's gate profiles, on recorded git, a fake line runner and a stand-in for the gate lines. What matters: a queued run runs
  * once, one gate in one phase, in a fresh detached worktree of main at `<worktrees>/gate-profiles/<P>`, with the prepare steps and no
  * `writes` granted, its lines in `<data>/gate-profile-runs/<P>`, holding a slot by that folder that it takes only after the real gates; its
- * output lines are appended as Talos records them; it ends with its line's run time, never a green or a `gate-ran` record, and its worktree
+ * output lines are appended as Talos records them; it ends with its line's run time, recorded as its gate's `pipeline-step-ran` but never
+ * a green or a `gate-ran` record, and its worktree
  * and slot go; a gate Talos stopped at its bound ends the profile `timed-out`; a Stop, and an Overseer stop, send `stop` to its running
  * line and record `stopped` with no duration; the next start stops the lines an earlier Overseer left before it removes their worktrees; a
  * proposal, a draft edit and a start queue no run; a run of the open setup turns the caching checks into note findings; and a run of an
@@ -20,6 +21,7 @@ import {
   test
 } from 'bun:test';
 
+import type { PipelineStepRun }                           from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ResearchFinding }                           from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                     from '../../lib/tracker-model/Board.ts';
@@ -104,12 +106,25 @@ function worktreeAddAndRemoveOf(profileRunId: string): Parameters<typeof recorde
   ];
 }
 
+/** The profiled gate's line as `GateLineRun` answers it once the line ran. */
+function stepRunOf(runMilliseconds: number, ending: PipelineStepRun['ending']): PipelineStepRun {
+  return {
+    stepKind: 'gate', stepName: 'tests', runMilliseconds, ending
+  };
+}
+
+/** The `pipeline-step-ran` records the log holds, as stored. */
+function loggedStepRuns(): unknown[] {
+  return readFileSync(workspace.logFilePath, 'utf8').split('\n').filter((line) => line.includes('"kind":"pipeline-step-ran"'))
+    .map((line) => (JSON.parse(line) as { fields: unknown }).fields);
+}
+
 function passedRun(milliseconds = PROFILED_MILLISECONDS): GateLinesRun {
   return {
     failedStep:    null,
     prepareOutput: '',
     gates:         [{
-      outcome: 'passed', milliseconds, stoppedAtTimeBound: false, cacheReport: null, output: ''
+      outcome: 'passed', milliseconds, stoppedAtTimeBound: false, cacheReport: null, output: '', stepRun: stepRunOf(milliseconds, 'passed')
     }]
   };
 }
@@ -139,7 +154,7 @@ async function stoppableRun(request: GateLineRunRequest): Promise<GateLinesRun> 
     failedStep:    null,
     prepareOutput: '',
     gates:         [{
-      outcome: 'cannot-run', milliseconds: end.runMilliseconds, stoppedAtTimeBound: false, cacheReport: null, output: end.output
+      outcome: 'cannot-run', milliseconds: end.runMilliseconds, stoppedAtTimeBound: false, cacheReport: null, output: end.output, stepRun: stepRunOf(end.runMilliseconds, 'failed')
     }]
   };
 }
@@ -222,6 +237,9 @@ describe('a queued run', () => {
     const logged = readFileSync(workspace.logFilePath, 'utf8');
     expect(logged).toContain('"kind":"gate-profiled"');
     expect(logged).not.toContain('"kind":"gate-ran"');
+    expect(loggedStepRuns()).toEqual([{
+      stepKind: 'gate', stepName: 'tests', phase: 'merge', runMilliseconds: PROFILED_MILLISECONDS, ending: 'passed'
+    }]);
     expect(readFileSync(join(workspace.trackerDirectory, GATE_PROFILE_RUNS_FOLDER, 'P1.ndjson'), 'utf8')).toBe('{"text":"example output\\n"}\n');
     expect(existsSync(worktreeOf('P1'))).toBe(false);
     expect(heldSlots).toEqual([]);
@@ -239,7 +257,12 @@ describe('a queued run', () => {
         failedStep:    null,
         prepareOutput: '',
         gates:         [{
-          outcome: 'cannot-run', milliseconds: PROFILED_MILLISECONDS, stoppedAtTimeBound: true, cacheReport: null, output: 'example output'
+          outcome:            'cannot-run',
+          milliseconds:       PROFILED_MILLISECONDS,
+          stoppedAtTimeBound: true,
+          cacheReport:        null,
+          output:             'example output',
+          stepRun:            stepRunOf(PROFILED_MILLISECONDS, 'time-bound'),
         }]
       });
     });
@@ -251,6 +274,7 @@ describe('a queued run', () => {
 
     expect(slotHoldersDuringTheRun).toEqual([[join(workspace.trackerDirectory, GATE_PROFILE_RUNS_FOLDER, 'P1')]]);
     expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ state: 'timed-out', elapsedMilliseconds: PROFILED_MILLISECONDS }]);
+    expect(loggedStepRuns()).toMatchObject([{ stepName: 'tests', runMilliseconds: PROFILED_MILLISECONDS, ending: 'time-bound' }]);
   });
 
   test('waits queued while no slot is free after the real gates, and starts nothing', async () => {
@@ -295,6 +319,9 @@ describe('a queued run', () => {
       gates:         [{ name: 'tests', run: 'bun test', in: '/apps/web' }],
     });
     expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ profileRunId: 'P1', entity: 'web', state: 'passed' }]);
+    expect(loggedStepRuns()).toEqual([{
+      stepKind: 'gate', stepName: 'tests', phase: 'build', entity: 'web', runMilliseconds: PROFILED_MILLISECONDS, ending: 'passed'
+    }]);
   });
 
   testWhenGitIsRecorded('a red gate ends red with its time', async () => {
@@ -306,7 +333,7 @@ describe('a queued run', () => {
       failedStep:    null,
       prepareOutput: '',
       gates:         [{
-        outcome: 'failed', milliseconds: 900, stoppedAtTimeBound: false, cacheReport: null, output: 'example red'
+        outcome: 'failed', milliseconds: 900, stoppedAtTimeBound: false, cacheReport: null, output: 'example red', stepRun: stepRunOf(900, 'failed')
       }]
     }));
 
@@ -337,6 +364,7 @@ testWhenGitIsRecorded('a Stop of a running run sends stop to its running line an
 
   expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ state: 'stopped', elapsedMilliseconds: null, stopRequested: false }]);
   expect(readFileSync(workspace.logFilePath, 'utf8')).toContain('"kind":"gate-profile-stopped"');
+  expect(loggedStepRuns()).toEqual([]);
 });
 
 testWhenGitIsRecorded('an Overseer stop sends stop to a running run\'s line and records it stopped, with no duration', async () => {

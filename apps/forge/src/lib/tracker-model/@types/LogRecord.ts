@@ -22,7 +22,9 @@ import type {
   JobStopMode,
   LandingKind,
   OverseerStopReason,
-  PictureReference
+  PictureReference,
+  PipelineStepEnding,
+  PipelineStepKind
 }                                                                        from './Job.ts';
 import type { PipelineBilling }                                              from './Pipeline.ts';
 import type { PipelineSetupMode, PipelineSetupStep, PipelineSetupStepState } from './PipelineSetup.ts';
@@ -99,6 +101,9 @@ interface ValueOfFieldShape {
   'optional-refusal-status':  HatchRefusalStatus;
   'optional-refusal-detail':  HatchRefusalDetail;
   'optional-cache-reports':   GateRunCacheReports;
+  'pipeline-step-kind':       PipelineStepKind;
+  'optional-gate-phase':      GatePhase;
+  'pipeline-step-ending':     PipelineStepEnding;
   'setup-mode':               PipelineSetupMode;
   'billing-mode':             PipelineBilling['mode'];
   'setup-step':               PipelineSetupStep;
@@ -128,7 +133,8 @@ type OptionalFieldShape =
   | 'optional-ticket-ids'
   | 'optional-refusal-status'
   | 'optional-refusal-detail'
-  | 'optional-cache-reports';
+  | 'optional-cache-reports'
+  | 'optional-gate-phase';
 
 type OptionalFieldNames<Shapes extends FieldShapes> = { [Name in keyof Shapes]: Shapes[Name] extends OptionalFieldShape ? Name : never }[keyof Shapes];
 

@@ -178,10 +178,11 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
   JobLaunch.applyBuildJobObservations({ board, at: AT, workspace: context.workspace } as unknown as TrackerChange, context, [{
-    jobId:  job.id,
-    setup:  'installed',
-    calls:  1,
-    report: {
+    jobId:           job.id,
+    setup:           'installed',
+    installStepRuns: [],
+    calls:           1,
+    report:          {
       role:              'builder',
       outcome,
       headCommit,

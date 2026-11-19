@@ -8,7 +8,9 @@ import type {
   JobStopMode,
   LandingKind,
   OverseerStopReason,
-  AirlockPhase
+  AirlockPhase,
+  PipelineStepEnding,
+  PipelineStepKind
 } from '../@types/Job.ts';
 
 export const JOB_KINDS = [
@@ -105,6 +107,10 @@ export const JOB_STOP_MODES = ['stop', 'wind-down', 'fresh'] as const satisfies 
 export const LANDING_KINDS = ['landed', 'integrated'] as const satisfies readonly LandingKind[];
 
 export const GATE_OUTCOMES = ['passed', 'failed', 'cannot-run'] as const satisfies readonly GateOutcome[];
+
+export const PIPELINE_STEP_KINDS = ['prepare', 'gate'] as const satisfies readonly PipelineStepKind[];
+
+export const PIPELINE_STEP_ENDINGS = ['passed', 'failed', 'time-bound'] as const satisfies readonly PipelineStepEnding[];
 
 export const JOB_ID_PREFIX = 'J';
 

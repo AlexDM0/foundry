@@ -33,6 +33,7 @@ import type {
   PipelineSetupEntityFacts,
   PipelineSetupEntitySummary,
   PipelineSetupFacts,
+  PipelineStepRunTimeFacts,
   ResolvedInstructionEntry,
   ResolvedSourceAnnotation
 } from '../../lib/tracker-model/@types/PipelineFacts.ts';
@@ -113,6 +114,7 @@ export interface PipelineFacts {
   pipelineFlow:          PipelineFlowFacts | null;
   profileRuns:           GateProfileRunFacts[];
   gateCacheMarks:        GateCacheMarkFacts[];
+  stepRunTimes:          PipelineStepRunTimeFacts[];
   pipelineHistory:       LogRecord[];
   pipelineChoices:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them, which the setup steps show. */
@@ -568,6 +570,21 @@ function gateCacheMarksOf(logRecords: readonly LogRecord[], profileRuns: readonl
   }]));
 }
 
+/** The newest run of each step line in the log, by entity, step kind, step name and phase, in the order each was first recorded. */
+function stepRunTimesOf(logRecords: readonly LogRecord[]): PipelineStepRunTimeFacts[] {
+  const newestByStep = new Map<string, PipelineStepRunTimeFacts>();
+  for (const record of logRecords) {
+    if (record.kind !== 'pipeline-step-ran') continue;
+    const {
+      entity, stepKind, stepName, phase, runMilliseconds, ending
+    } = record.fields;
+    newestByStep.set(JSON.stringify([entity ?? null, stepKind, stepName, phase ?? null]), {
+      ...(entity === undefined ? {} : { entity }), stepKind, stepName, ...(phase === undefined ? {} : { phase }), runMilliseconds, ending, at: record.at
+    });
+  }
+  return [...newestByStep.values()];
+}
+
 /**
  * The newest product owner launched to give pending tickets an entity, from its launch record, with each ticket's entity and reason from
  * its newest `entity-assigned` record after that launch; absent when no such product owner was launched.
@@ -606,6 +623,7 @@ export function pipelineFactsOf(input: PipelineFactsInput): PipelineFacts {
     pipelineFlow:          pipelineFlowOf(input, setup),
     profileRuns,
     gateCacheMarks:        gateCacheMarksOf(input.logRecords, profileRuns),
+    stepRunTimes:          stepRunTimesOf(input.logRecords),
     pipelineHistory:       pipelineHistoryOf(input.logRecords),
     pipelineChoices:       { models: [...AGENT_MODELS], efforts: [...AGENT_EFFORTS] },
     pipelineAgentDefaults: input.defaultSettingsOf('pipelineAgent'),

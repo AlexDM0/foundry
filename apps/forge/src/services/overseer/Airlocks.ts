@@ -18,6 +18,7 @@ import type { GatePhase, GateRunStamp } from '../../lib/tracker-model/@types/Gat
 import type {
   GateOutcome,
   GateRunCacheReports,
+  GateRunStepRuns,
   Job,
   JobEnding,
   JobRole,
@@ -155,12 +156,19 @@ export interface MergedTreeGate {
   stamp:         GateRunStamp | null;
   /** What each gate that ended reported of its cache; absent when no gate ran. */
   cacheReports?: GateRunCacheReports;
+  /** Each step line that ran, with its run time; absent when none ran. */
+  stepRuns?:     GateRunStepRuns;
 }
 
 function gateRanFieldsOf(tree: string, outcome: GateOutcome, cacheReports: GateRunCacheReports | undefined): LogRecordFieldsOf<'gate-ran'> {
   return {
     tree, outcome, cached: false, ...(cacheReports === undefined ? {} : { cacheReports })
   };
+}
+
+/** Each step line of a merged-tree gate that ran, with its run time, in the hold that consumes the gate; a run that ran no line records none. */
+function recordStepRuns(hold: AirlockHold, gate: MergedTreeGate): void {
+  if (gate.stepRuns !== undefined) hold.board.recordPipelineStepsRan(gate.stepRuns.steps, gate.stepRuns.phase, hold.at);
 }
 
 /** A red gate goes back to the ticket's agent; a gate that could not run and a failed prepare step are the incidents a build job opens too. */
@@ -641,6 +649,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     const stillWaits = ticket?.frontmatter.status === 'in-review' && ticket.frontmatter.hold === undefined
       && !hold.board.jobs().some((job) => job.ticketIds.includes(ticketId)) && branchTreeOf(ticketId) === treeId;
     if (!stillWaits) return;
+    recordStepRuns(hold, gate);
     if (gate.outcome !== 'setup-failed' && gate.outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, gate.outcome, gate.cacheReports), hold.at);
     hold.board.recordPipelineJudgedBy(ticketId, gate.outcome === 'passed' ? treeId : null, gate.stamp, hold.at);
     if (gate.outcome === 'passed') {
@@ -882,6 +891,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
       outcome, step, entity, output, stamp, cacheReports
     } = gate;
     const settled = await context.hold((hold): RedMergedTreeSettlement => {
+      recordStepRuns(hold, gate);
       if (outcome !== 'setup-failed' && outcome !== 'sandbox-unavailable') hold.board.recordGateRan(gateRanFieldsOf(treeId, outcome, cacheReports), hold.at);
       const agent = mergeAgentOf(hold.board, job);
       if (outcome === 'passed') {

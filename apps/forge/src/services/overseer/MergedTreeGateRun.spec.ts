@@ -3,16 +3,20 @@
  * its first home folder as the project folder, every entity's part runs when the Airlocks name none, the stamp holds the phase hash of each
  * entity that ran and of no other, and a red part names its entity; a pipeline without entities keeps the one run from the tracker's
  * project folder and the stamp without entity hashes, and no stored pipeline runs no step and stamps nothing. Each entity's part runs its
- * lines in its own part folder of the run folder; a pipeline without entities runs them in the run folder itself.
+ * lines in its own part folder of the run folder; a pipeline without entities runs them in the run folder itself. The step lines that ran
+ * go with the run's phase, each named by its entity on a pipeline with entities.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { PipelineStepRun }                                                from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineEntity }                                       from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { EntityPipelinesRunRequest, PipelineRunRequest, PipelineVerdict } from '../lifecycle/GateRun.ts';
 import { type MergedTreeGateRunRequest, runMergedTreeGates }                   from './MergedTreeGateRun.ts';
 
 const PROJECT_PREFIX = 'apps/example';
+
+const LINE_RUN_MILLISECONDS = 1500;
 
 function entityOf(home: string[], gateName: string): PipelineEntity {
   return {
@@ -70,10 +74,15 @@ function recordingRunner(redGate: string | null = null): { runs: RecordedRun[]; 
       runs.push({
         childFolder: pipelineRequest.childFolder, projectPrefix: pipelineRequest.projectPrefix, prepare: pipelineRequest.prepare.map((step) => step.name), gates: gateNames
       });
+      const stepRuns = gateNames.map((stepName): PipelineStepRun => ({
+        stepKind: 'gate', stepName, runMilliseconds: LINE_RUN_MILLISECONDS, ending: stepName === redGate ? 'failed' : 'passed'
+      }));
       if (redGate !== null && gateNames.includes(redGate)) return Promise.resolve({
-        outcome: 'failed', gate: redGate, output: 'expected 2, received 3', gatesRun: gateNames, cacheReports: []
+        outcome: 'failed', gate: redGate, output: 'expected 2, received 3', gatesRun: gateNames, cacheReports: [], stepRuns
       });
-      return Promise.resolve({ outcome: 'passed', gatesRun: gateNames, cacheReports: [] });
+      return Promise.resolve({
+        outcome: 'passed', gatesRun: gateNames, cacheReports: [], stepRuns
+      });
     },
   };
 }
@@ -103,6 +112,17 @@ describe('a merged tree\'s gate run on a pipeline with entities', () => {
     expect(gate.outcome).toBe('passed');
     expect(gate.stamp).toEqual(PipelineUtil.entitiesGateRunStampOf(ENTITIES_PIPELINE, 'merge', ['shop', 'tokens']));
     expect(Object.keys(gate.stamp?.entityPhaseHashes ?? {})).toEqual(['shop', 'tokens']);
+    expect(gate.stepRuns).toEqual({
+      phase: 'merge',
+      steps: [
+        {
+          stepKind: 'gate', stepName: 'verify-shop', runMilliseconds: LINE_RUN_MILLISECONDS, ending: 'passed', entity: 'shop'
+        },
+        {
+          stepKind: 'gate', stepName: 'verify-tokens', runMilliseconds: LINE_RUN_MILLISECONDS, ending: 'passed', entity: 'tokens'
+        },
+      ],
+    });
   });
 
   test('runs every entity\'s part when the Airlocks name no gated entities', async () => {
@@ -134,7 +154,16 @@ describe('a merged tree\'s gate run on a pipeline without entities', () => {
       childFolder: RUN_FOLDER, projectPrefix: PROJECT_PREFIX, prepare: ['install'], gates: ['verify']
     }]);
     expect(gate).toEqual({
-      outcome: 'passed', step: null, output: '', stamp: PipelineUtil.gateRunStampOf(SINGLE_PIPELINE, 'merge')
+      outcome:  'passed',
+      step:     null,
+      output:   '',
+      stamp:    PipelineUtil.gateRunStampOf(SINGLE_PIPELINE, 'merge'),
+      stepRuns: {
+        phase: 'merge',
+        steps: [{
+          stepKind: 'gate', stepName: 'verify', runMilliseconds: LINE_RUN_MILLISECONDS, ending: 'passed'
+        }],
+      },
     });
     expect(gate).not.toHaveProperty('entity');
   });
@@ -148,5 +177,6 @@ describe('a merged tree\'s gate run on a pipeline without entities', () => {
       childFolder: RUN_FOLDER, projectPrefix: PROJECT_PREFIX, prepare: [], gates: []
     }]);
     expect(gate.stamp).toBeNull();
+    expect(gate).not.toHaveProperty('stepRuns');
   });
 });

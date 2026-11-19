@@ -294,6 +294,8 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
 
     expect(manifest?.gates.map((gate) => gate.name)).toEqual(['verify', `${ADMIN.key}: verify`]);
     expect(Object.keys(manifest?.entityPhaseHashes ?? {}).sort()).toEqual([ADMIN.key, UI_KIT.key].sort());
+    // A dependent's step names its entity, so its run time is kept by that entity, not the package's.
+    expect(manifest?.gates.map((gate) => gate.entity ?? null)).toEqual([null, ADMIN.key]);
     expect(JobLaunch.manifestOf(CROSSING_PIPELINE, { entity: UI_KIT.key, stage: 3 } as unknown as Job, 'build', { homeEntity: SHOP.key })?.gates.map((gate) => gate.name))
       .toEqual(['verify']);
   });

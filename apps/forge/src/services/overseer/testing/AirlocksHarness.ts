@@ -6,23 +6,23 @@
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
 
-import { RepositoryLandings }                        from '../../../lib/git/RepositoryLandings.ts';
-import type { GatePhase }                            from '../../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateRunCacheReports, Job }             from '../../../lib/tracker-model/@types/Job.ts';
-import type { EntityKey, Pipeline, PipelineAirlock } from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { MainConstitutionReading }              from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { TicketPriority }                       from '../../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                from '../../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                              from '../../../lib/tracker-model/utils/PipelineUtil.ts';
-import { branchNamesOf }                             from '../../../shared/BranchNames.ts';
-import { AIRLOCK_LIMITS, type AirlockLimits }        from '../../../shared/constants/AirlockLimits.ts';
-import { PRODUCT_NAMES }                             from '../../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }               from '../../../testing/BoardFixtures.ts';
-import { queueOnCurrentGreen }                       from '../../../testing/GreenQueue.ts';
-import { createPlantedRepository }                   from '../../../testing/RecordedAirlockGit.ts';
-import { removeScratchDirectory }                    from '../../../testing/ScratchWorkspace.ts';
-import type { ProjectScope }                         from '../../lifecycle/Customs.ts';
-import type { SharedRepositoryLanding }              from '../../lifecycle/Landing.ts';
+import { RepositoryLandings }                             from '../../../lib/git/RepositoryLandings.ts';
+import type { GatePhase }                                 from '../../../lib/tracker-model/@types/GatePhase.ts';
+import type { GateRunCacheReports, GateRunStepRuns, Job } from '../../../lib/tracker-model/@types/Job.ts';
+import type { EntityKey, Pipeline, PipelineAirlock }      from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { MainConstitutionReading }                   from '../../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { TicketPriority }                            from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                                     from '../../../lib/tracker-model/Board.ts';
+import { PipelineUtil }                                   from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import { branchNamesOf }                                  from '../../../shared/BranchNames.ts';
+import { AIRLOCK_LIMITS, type AirlockLimits }             from '../../../shared/constants/AirlockLimits.ts';
+import { PRODUCT_NAMES }                                  from '../../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                    from '../../../testing/BoardFixtures.ts';
+import { queueOnCurrentGreen }                            from '../../../testing/GreenQueue.ts';
+import { createPlantedRepository }                        from '../../../testing/RecordedAirlockGit.ts';
+import { removeScratchDirectory }                         from '../../../testing/ScratchWorkspace.ts';
+import type { ProjectScope }                              from '../../lifecycle/Customs.ts';
+import type { SharedRepositoryLanding }                   from '../../lifecycle/Landing.ts';
 import {
   createAirlocks,
   type DeclinedCleanup,
@@ -87,6 +87,8 @@ export interface AirlocksHarness {
     gateEntity?:             EntityKey;
     /** What the gates reported of their cache; absent unless set, as when no gate reported. */
     gateCacheReports?:       GateRunCacheReports;
+    /** The step lines the gate run ran; absent unless set, as when no line ran. */
+    gateStepRuns?:           GateRunStepRuns;
     reading:                 MergeAgentReading;
     /** The lines a resolution changed, as git counts them; `null` when git cannot tell. */
     resolutionLines:         number | null;
@@ -248,6 +250,7 @@ export function createRecordedAirlocksHarness(
         output:  'Example gate output\nexpected 2, received 3',
         stamp,
         ...(settings.gateCacheReports === undefined ? {} : { cacheReports: settings.gateCacheReports }),
+        ...(settings.gateStepRuns === undefined ? {} : { stepRuns: settings.gateStepRuns }),
       };
     },
     mergedTreeGateSettled: (_worktreePath, treeId) => settledGateTrees.push(treeId),

@@ -221,3 +221,25 @@ export interface GateRunCacheReports {
   phase: GatePhase;
   gates: readonly GateCacheReportOfGate[];
 }
+
+/** Which kind of pipeline step a line ran: a prepare step, a job's install included, or a gate. */
+export type PipelineStepKind = 'prepare' | 'gate';
+
+/** How a step line that ran ended: `time-bound` when Talos stopped it at its bound, else as its run was judged. */
+export type PipelineStepEnding = 'passed' | 'failed' | 'time-bound';
+
+/** One step line that ran, with its run time in the measure of its bound, a sleep not counted: recorded and shown only. */
+export interface PipelineStepRun {
+  stepKind:        PipelineStepKind;
+  stepName:        string;
+  /** Only on a step of an entity's pipeline. */
+  entity?:         EntityKey;
+  runMilliseconds: number;
+  ending:          PipelineStepEnding;
+}
+
+/** The step lines one gate run ran, in run order, and the phase the run was in. */
+export interface GateRunStepRuns {
+  phase: GatePhase;
+  steps: readonly PipelineStepRun[];
+}

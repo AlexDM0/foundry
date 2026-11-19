@@ -26,11 +26,12 @@ export interface MergedTreeGateRunRequest {
   runOnePipeline: (pipelineRequest: PipelineRunRequest) => Promise<PipelineVerdict>;
 }
 
-/** A run's verdict as the Airlocks read it: the stamp of the pipeline it read, and the entity a stopping step belongs to. */
+/** A run's verdict as the Airlocks read it: the stamp of the pipeline it read, the entity a stopping step belongs to, and the steps that ran. */
 function mergedTreeGateOf(verdict: EntityPipelinesVerdict, phase: GatePhase, stamp: GateRunStamp | null): MergedTreeGate {
   const cacheReports = verdict.cacheReports.length === 0 ? {} : { cacheReports: { phase, gates: verdict.cacheReports } };
+  const stepRuns = verdict.stepRuns.length === 0 ? {} : { stepRuns: { phase, steps: verdict.stepRuns } };
   if (verdict.outcome === 'passed') return {
-    outcome: 'passed', step: null, output: '', stamp, ...cacheReports
+    outcome: 'passed', step: null, output: '', stamp, ...cacheReports, ...stepRuns
   };
   return {
     outcome: verdict.outcome,
@@ -39,6 +40,7 @@ function mergedTreeGateOf(verdict: EntityPipelinesVerdict, phase: GatePhase, sta
     output:  verdict.output,
     stamp,
     ...cacheReports,
+    ...stepRuns,
   };
 }
 

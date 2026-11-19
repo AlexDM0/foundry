@@ -361,13 +361,22 @@ testWhenGitIsRecorded('a reviewer back from a resume merging-main sent it on goe
   const stamp = board.gateRunStampOf('review');
   if (stamp === null) throw new Error('The scene stores no pipeline.');
   JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as TrackerChange, context, [{
-    jobId:    scene.jobId,
-    setup:    'installed',
-    calls:    1,
-    report:   { headCommit: RESOLUTION_TIP },
-    agentEnd: null,
-    gate:     {
-      verdict: 'judged', treeId: RESOLVED_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest: { ...stamp, prepare: [], gates: [LINT_GATE] }, cacheReports: []
+    jobId:           scene.jobId,
+    setup:           'installed',
+    installStepRuns: [],
+    calls:           1,
+    report:          { headCommit: RESOLUTION_TIP },
+    agentEnd:        null,
+    gate:            {
+      verdict:      'judged',
+      treeId:       RESOLVED_TREE,
+      outcome:      'passed',
+      step:         null,
+      output:       '',
+      ran:          true,
+      manifest:     { ...stamp, prepare: [], gates: [LINT_GATE] },
+      cacheReports: [],
+      stepRuns:     [],
     },
     sandboxRefusal:   null,
     targetCatchUp:    { verdict: 'not-checked' },
@@ -391,13 +400,14 @@ testWhenGitIsRecorded('with no review step a green build waits in merging-main, 
   if (stamp === null) throw new Error('The scene stores no pipeline.');
   const manifest = { ...stamp, prepare: [], gates: [{ name: 'tests', run: 'bun test' }] };
   JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as TrackerChange, context, [{
-    jobId:    gating.id,
-    setup:    'installed',
-    calls:    1,
-    report:   { headCommit: BRANCH_TIP, handoff: 'Example handoff.' },
-    agentEnd: null,
-    gate:     {
-      verdict: 'judged', treeId: BRANCH_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports: []
+    jobId:           gating.id,
+    setup:           'installed',
+    installStepRuns: [],
+    calls:           1,
+    report:          { headCommit: BRANCH_TIP, handoff: 'Example handoff.' },
+    agentEnd:        null,
+    gate:            {
+      verdict: 'judged', treeId: BRANCH_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports: [], stepRuns: []
     },
     sandboxRefusal:   null,
     targetCatchUp:    { verdict: 'not-checked' },
@@ -464,6 +474,7 @@ testWhenGitIsRecorded('a re-review that holds ends the re-reviewer reviewed, and
     JobLaunch.applyBuildJobObservations(change, scene.context, [{
       jobId:            scene.jobId,
       setup:            'installed',
+      installStepRuns:  [],
       calls:            0,
       report:           undefined,
       agentEnd:         null,

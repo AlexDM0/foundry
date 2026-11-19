@@ -646,11 +646,14 @@ export function createRecordedTalosStages(nativePorts: PlatformPorts, answers?: 
           if (!lineFails(gate.run)) continue;
           // A red gate ends the pipeline at it with its own output, as `GateRun.runPipeline` does for a gate that exits non-zero.
           const cacheReports = gatesRun.map((gateName) => ({ gateName, cacheReport: null }));
+          // A scripted line has no run time to record.
           return Promise.resolve({
-            outcome: 'failed', gate: gate.name, output: lineEnds.get(gate.run)?.output ?? '', gatesRun, cacheReports
+            outcome: 'failed', gate: gate.name, output: lineEnds.get(gate.run)?.output ?? '', gatesRun, cacheReports, stepRuns: []
           });
         }
-        return Promise.resolve({ outcome: 'passed', gatesRun, cacheReports: gatesRun.map((gateName) => ({ gateName, cacheReport: null })) });
+        return Promise.resolve({
+          outcome: 'passed', gatesRun, cacheReports: gatesRun.map((gateName) => ({ gateName, cacheReport: null })), stepRuns: []
+        });
       },
       runGateLines:     () => Promise.reject(new Error('a gate profile is a real-system case')),
       runProposalTwice: () => Promise.reject(new Error('a pipeline check is a real-system case')),

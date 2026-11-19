@@ -21,8 +21,9 @@ import {
   expect,
   test
 }                                        from 'bun:test';
-import { shellLineFor }      from '../../lib/shell-line/ShellLineFor.ts';
-import type { PipelineGate } from '../../lib/tracker-model/@types/Pipeline.ts';
+import { shellLineFor }                                               from '../../lib/shell-line/ShellLineFor.ts';
+import type { PipelineStepEnding, PipelineStepKind, PipelineStepRun } from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   environmentCopy,
   GATE_REPORT_VARIABLE,
@@ -90,6 +91,13 @@ const TRACKED_CHANGES_ARGUMENTS = ['diff', '--no-ext-diff', 'HEAD', '--'];
 
 const NO_REPORT_FROM_A_OR_B = [{ gateName: 'a', cacheReport: null }, { gateName: 'b', cacheReport: null }];
 
+/** A step line that ran, its run time whatever the real line took. */
+function stepRunOf(stepKind: PipelineStepKind, stepName: string, ending: PipelineStepEnding): PipelineStepRun {
+  return {
+    stepKind, stepName, runMilliseconds: expect.any(Number) as unknown as number, ending
+  };
+}
+
 /** The tree read once after each of `gateCount` gates, each time unchanged. */
 /** The tree is read unchanged after each passing prepare step and after each gate. */
 function treeUnchangedAfter(stepCount: number): RecordedGitStage {
@@ -126,7 +134,12 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'failed', gate: 'b', output: 'expected 2, received 3\n', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B
+      outcome:      'failed',
+      gate:         'b',
+      output:       'expected 2, received 3\n',
+      gatesRun:     ['a', 'b'],
+      cacheReports: NO_REPORT_FROM_A_OR_B,
+      stepRuns:     [stepRunOf('gate', 'a', 'passed'), stepRunOf('gate', 'b', 'failed')],
     });
     expect(journal()).toEqual(['a', 'b']);
   });
@@ -150,8 +163,11 @@ describeWhenGitIsRecorded('the pipeline', () => {
       shellLine, prepare: [], gates: [gateOf('a', journalLine('a')), gateOf('b', journalLine('b'))], directory: repository, confinedLineOf: runsAsGiven
     };
 
-    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B });
-    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual({ outcome: 'passed', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B });
+    const passed: PipelineVerdict = {
+      outcome: 'passed', gatesRun: ['a', 'b'], cacheReports: NO_REPORT_FROM_A_OR_B, stepRuns: [stepRunOf('gate', 'a', 'passed'), stepRunOf('gate', 'b', 'passed')]
+    };
+    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual(passed);
+    expect(await playedPipeline(treeUnchangedAfter(2), request)).toEqual(passed);
     expect(journal()).toEqual(['a', 'b', 'a', 'b']);
   });
 
@@ -167,7 +183,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'setup-failed', step: 'install', output: 'registry unreachable\n', gatesRun: [], cacheReports: []
+      outcome: 'setup-failed', step: 'install', output: 'registry unreachable\n', gatesRun: [], cacheReports: [], stepRuns: [stepRunOf('prepare', 'install', 'failed')]
     });
     expect(journal()).toEqual([]);
   });
@@ -231,6 +247,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
       output:       `cmd.exe runs no line in the network share folder ${scratchDirectory}; move the repository to a drive letter`,
       gatesRun:     [],
       cacheReports: [],
+      stepRuns:     [],
     });
     expect(confinedArgvs).toEqual([]);
     expect(journal()).toEqual([]);
@@ -265,7 +282,9 @@ describeWhenGitIsRecorded('the pipeline', () => {
         },
       });
 
-      expect(verdict).toEqual({ outcome: 'passed', gatesRun: [], cacheReports: [] });
+      expect(verdict).toEqual({
+        outcome: 'passed', gatesRun: [], cacheReports: [], stepRuns: []
+      });
       expect(confinedArgvs).toEqual([]);
     }
   });
@@ -279,7 +298,9 @@ describeWhenGitIsRecorded('the pipeline', () => {
       confinedLineOf: runsAsGiven,
     });
 
-    expect(verdict).toEqual({ outcome: 'passed', gatesRun: [], cacheReports: [] });
+    expect(verdict).toEqual({
+      outcome: 'passed', gatesRun: [], cacheReports: [], stepRuns: []
+    });
     expect(journal()).toEqual([]);
   });
 
@@ -324,7 +345,7 @@ describeWhenGitIsRecorded('the pipeline', () => {
     });
 
     expect(verdict).toEqual({
-      outcome: 'sandbox-unavailable', step: 'tests', output: FAKE_MISSING_TOOLS_REASON, gatesRun: [], cacheReports: []
+      outcome: 'sandbox-unavailable', step: 'tests', output: FAKE_MISSING_TOOLS_REASON, gatesRun: [], cacheReports: [], stepRuns: []
     });
     expect(existsSync(marker)).toBe(false);
     expect(slotEvents).toEqual([]);

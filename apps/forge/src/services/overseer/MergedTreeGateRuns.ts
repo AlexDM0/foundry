@@ -101,7 +101,8 @@ function gateIsReadable(gate: Record<string, unknown>): boolean {
   return KEPT_GATE_OUTCOMES.has(gate['outcome'])
     && (gate['step'] === null || typeof gate['step'] === 'string')
     && typeof gate['output'] === 'string'
-    && (gate['stamp'] === null || JsonRecordUtil.valueIsAPlainObject(gate['stamp']));
+    && (gate['stamp'] === null || JsonRecordUtil.valueIsAPlainObject(gate['stamp']))
+    && (gate['stepRuns'] === undefined || Array.isArray(JsonRecordUtil.recordOf(gate['stepRuns'])?.['steps']));
 }
 
 /** The outcome a run kept; `null` when there is none, it cannot be read, or it is of another format version. */

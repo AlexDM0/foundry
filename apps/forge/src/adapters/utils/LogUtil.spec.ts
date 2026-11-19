@@ -520,3 +520,35 @@ test.each<[LogRecordContent, string]>([
   expect(sentenceOf(record)).toBe(sentence);
   expect({ taskIds: identified.taskIds, ticketIds: identified.ticketIds }).toEqual({ taskIds: [], ticketIds: [] });
 });
+
+test.each<[LogRecordContent, string]>([
+  [
+    {
+      kind:   'pipeline-step-ran',
+      fields: {
+        stepKind: 'gate', stepName: 'verify', phase: 'merge', entity: 'web', runMilliseconds: 4200, ending: 'failed'
+      }
+    },
+    'Gate verify in the merge phase of entity web failed after 4200 ms',
+  ],
+  [
+    {
+      kind:   'pipeline-step-ran',
+      fields: {
+        stepKind: 'prepare', stepName: 'install', phase: 'build', runMilliseconds: 61_000, ending: 'passed'
+      }
+    },
+    'Prepare step install in the build phase passed after 61000 ms',
+  ],
+  [
+    {
+      kind:   'pipeline-step-ran',
+      fields: {
+        stepKind: 'prepare', stepName: 'codegen', runMilliseconds: 900_000, ending: 'time-bound'
+      }
+    },
+    'Install step codegen was stopped at its time bound after 900000 ms',
+  ],
+])('the pipeline step record %o names the step, its phase, its entity, its ending and its run time', (record, sentence) => {
+  expect(sentenceOf(record)).toBe(sentence);
+});

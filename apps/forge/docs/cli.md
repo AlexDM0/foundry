@@ -2802,6 +2802,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `gate-key-command-set` | none | `command` (or `null` when cleared); retired: still read, never logged |
 | `gate-cache-paths-set` | none | `paths` (empty when cleared); retired: still read, never logged |
 | `gate-ran` | none | `tree` (the gated tree's object id), `outcome` (`passed`, `failed`, `cannot-run`), `cached` (false, since no gate result is kept; true only in older logs), and `cacheReports` only once a gate reported: `{phase, gates}`, each gate run `{gateName, cacheReport}` (`hit`, `partial`, `miss` or `null`), in run order |
+| `pipeline-step-ran` | none | One step line that ran, recorded and shown only: `stepKind` (`prepare` or `gate`), `stepName`, `phase` (the gate run's phase; absent for a job's install step), `entity` (absent on a forge without entities), `runMilliseconds` (awake time, a sleep not counted), `ending` (`passed`, `failed` or `time-bound`). Written in the hold that consumes the step: a job's install as it leaves `preparing`, a gate run of a job or a merged tree at its settlement, a gate profile's gate at its end; a pipeline check writes none |
 
 #### Overseer records
 

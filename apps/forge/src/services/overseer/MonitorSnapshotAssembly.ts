@@ -164,6 +164,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'gate-key-command-set':            null,
   'gate-cache-paths-set':            null,
   'gate-ran':                        'forge',
+  'pipeline-step-ran':               null,
   'tracker-cleared':                 'forge',
   'overseer-started':                'forge',
   'overseer-stopped':                'forge',

@@ -67,6 +67,9 @@ export type LogFieldShape =
   | 'optional-refusal-status'
   | 'optional-refusal-detail'
   | 'optional-cache-reports'
+  | 'pipeline-step-kind'
+  | 'optional-gate-phase'
+  | 'pipeline-step-ending'
   | 'setup-mode'
   | 'billing-mode'
   | 'setup-step'
@@ -287,6 +290,14 @@ export const LOG_RECORD_SCHEMA = {
     subject: 'board',
     fields:  {
       tree: 'text', outcome: 'gate-outcome', cached: 'flag', cacheReports: 'optional-cache-reports'
+    }
+  },
+  // One pipeline step line that ran and its run time, a sleep not counted: recorded and shown only, never compared or waited on.
+  // `phase` is absent for a job's install step, `entity` on a forge without entities.
+  'pipeline-step-ran': {
+    subject: 'board',
+    fields:  {
+      stepKind: 'pipeline-step-kind', stepName: 'text', phase: 'optional-gate-phase', entity: 'optional-text', runMilliseconds: 'count', ending: 'pipeline-step-ending'
     }
   },
   'tracker-cleared':   { subject: 'board', fields: NO_FIELDS },

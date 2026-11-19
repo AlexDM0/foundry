@@ -61,7 +61,14 @@ testWhenGitIsRecorded('a red gate\'s output reaches the listener, its line runs 
 
   if ('verdict' in run) throw new Error(`the run was refused: ${run.reason}`);
   expect(run.gates).toEqual([{
-    outcome: 'failed', milliseconds: RECORDED_LINE_RUN_MILLISECONDS, stoppedAtTimeBound: false, cacheReport: null, output: 'example-red\n'
+    outcome:            'failed',
+    milliseconds:       RECORDED_LINE_RUN_MILLISECONDS,
+    stoppedAtTimeBound: false,
+    cacheReport:        null,
+    output:             'example-red\n',
+    stepRun:            {
+      stepKind: 'gate', stepName: 'tests', runMilliseconds: RECORDED_LINE_RUN_MILLISECONDS, ending: 'failed'
+    },
   }]);
   expect(outputLines).toEqual(['example-red']);
   expect(recordedGateLines.takeLineRequests().map((lineRequest) => lineRequest.childFolder)).toEqual([`${RUN_FOLDER}/gate-1`]);

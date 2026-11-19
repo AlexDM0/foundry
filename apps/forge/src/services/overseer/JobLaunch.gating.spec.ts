@@ -11,7 +11,9 @@
  * Each gate keeps what its line reported of its cache at its report path, read once and removed, and a report outside version 1's words,
  * or a kept one changed by hand, is none; the settlement logs each gate's report with the manifest's phase. A job of an entity installs
  * with its entity's prepare steps and runs its entity's gates, each folder read from the entity's first home, under a stamp that names
- * the entity's phase hash; a job of an entity the pipeline no longer holds cannot run its gates.
+ * the entity's phase hash; a job of an entity the pipeline no longer holds cannot run its gates. Each step line that ran is recorded with
+ * its run time, once, in the hold that consumes it: an install's when the job leaves `preparing`, a gate run's at its settlement in the
+ * manifest's phase; a line stopped at its bound records `time-bound`, a paused instance's run never, and a run that ran no line none.
  * git answers the tree reads from the recordings of `src/testing/RecordedGit.ts`.
  */
 import {
@@ -31,6 +33,7 @@ import {
 
 import type { ChildEnd }                from '../../lib/talos/ChildRecord.ts';
 import type { Job }                     from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }               from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                from '../../lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                 from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { branchNamesOf }                from '../../shared/BranchNames.ts';
@@ -46,13 +49,18 @@ import {
   type RecordedGitStep,
   useRecordedGit
 } from '../../testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
-import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }            from '../../testing/TalosChildReadings.ts';
-import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
-import { GateRun }                                                from '../lifecycle/GateRun.ts';
-import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
-import { type GateRunManifest, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
-import { jobFolderIn }                                            from './OverseerFiles.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }    from '../../testing/TalosChildReadings.ts';
+import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
+import { GateRun }                                        from '../lifecycle/GateRun.ts';
+import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import {
+  type BuildJobObservation,
+  type GateRunManifest,
+  JobLaunch,
+  type JobLaunchContext
+} from './JobLaunch.ts';
+import { jobFolderIn } from './OverseerFiles.ts';
 
 const PIPELINE: Pipeline = {
   version: 3,
@@ -396,13 +404,14 @@ describe('the gate run\'s settlement', () => {
     const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
 
     JobLaunch.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [{
-      jobId:    job.id,
-      setup:    'installed',
-      calls:    0,
-      report:   { headCommit: 'example-head-commit', handoff: 'Example handoff.' },
-      agentEnd: null,
-      gate:     {
-        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports: []
+      jobId:           job.id,
+      setup:           'installed',
+      installStepRuns: [],
+      calls:           0,
+      report:          { headCommit: 'example-head-commit', handoff: 'Example handoff.' },
+      agentEnd:        null,
+      gate:            {
+        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports: [], stepRuns: []
       },
       sandboxRefusal:   null,
       targetCatchUp:    { verdict: 'not-checked' },
@@ -481,13 +490,14 @@ describe('a gate\'s cache report', () => {
     const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
 
     JobLaunch.applyBuildJobObservations(change, { ...gatingScene().context, mainLine: 'main', log: () => undefined }, [{
-      jobId:    job.id,
-      setup:    'installed',
-      calls:    0,
-      report:   { headCommit: 'example-head-commit', handoff: 'Example handoff.' },
-      agentEnd: null,
-      gate:     {
-        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports
+      jobId:           job.id,
+      setup:           'installed',
+      installStepRuns: [],
+      calls:           0,
+      report:          { headCommit: 'example-head-commit', handoff: 'Example handoff.' },
+      agentEnd:        null,
+      gate:            {
+        verdict: 'judged', treeId: EXAMPLE_TREE, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports, stepRuns: []
       },
       sandboxRefusal:   null,
       targetCatchUp:    { verdict: 'not-checked' },
@@ -563,5 +573,122 @@ describe('a job of an entity', () => {
       verdict: 'judged', outcome: 'cannot-run', step: 'gate-run.json', manifest: null
     });
     expect(existsSync(jobFileOf(scene, 'gate-run.json'))).toBe(false);
+  });
+});
+
+describe('the step run times', () => {
+  /** A job of the fixture board in `state`, which the observation of the scene's job `J2` is applied to as its own. */
+  function boardJobIn(pipeline: Pipeline, state: 'preparing' | 'gating'): { board: ReturnType<typeof boardFixture>['board']; records: LogRecord[]; jobId: string } {
+    const { board, records } = boardFixture({ pipeline, tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })] });
+    const { job } = board.launchJob({
+      kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main'
+    }, SETTLED_AT);
+    const states = state === 'preparing' ? (['preparing'] as const) : (['preparing', 'running', 'in-customs', 'gating'] as const);
+    for (const next of states) board.moveJob(job.id, next, SETTLED_AT);
+    return { board, records, jobId: job.id };
+  }
+
+  function stepRunFieldsOf(records: readonly LogRecord[]): unknown[] {
+    return records.filter((record) => record.kind === 'pipeline-step-ran').map((record) => record.fields);
+  }
+
+  function applyTo(scene: GatingScene, board: ReturnType<typeof boardFixture>['board'], observation: BuildJobObservation): void {
+    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+    JobLaunch.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [observation]);
+  }
+
+  async function observationOf(scene: GatingScene, job: Job, stage: RecordedGitStage, pipeline: Pipeline): Promise<BuildJobObservation> {
+    const [observation] = await recordedGit.playStage(stage, () => Promise.resolve(JobLaunch.observeBuildJobs(scene.context, [job], pipeline)));
+    if (observation === undefined) throw new Error('The scene observed no job.');
+    return observation;
+  }
+
+  testWhenGitIsRecorded('an install that ran two steps records two step runs with no phase, once, though the hold sees it again', async () => {
+    const scene = gatingScene();
+    endStepLine(scene, 'install', { runMilliseconds: 61_000 });
+    endStepLine(scene, 'install2', { runMilliseconds: 2000 });
+    const { board, records, jobId } = boardJobIn(TWO_PREPARE_STEPS, 'preparing');
+    const observation = await observationOf(scene, { ...scene.jobOf('build'), state: 'preparing' } as Job, [], TWO_PREPARE_STEPS);
+
+    applyTo(scene, board, { ...observation, jobId });
+    applyTo(scene, board, { ...observation, jobId });
+
+    expect(board.jobById(jobId)?.state).toBe('running');
+    expect(stepRunFieldsOf(records)).toEqual([
+      {
+        stepKind: 'prepare', stepName: 'install', runMilliseconds: 61_000, ending: 'passed'
+      },
+      {
+        stepKind: 'prepare', stepName: 'generate', runMilliseconds: 2000, ending: 'passed'
+      },
+    ]);
+  });
+
+  testWhenGitIsRecorded('an install still running records nothing, and one stopped at its bound records its step time-bound', async () => {
+    const scene = gatingScene();
+    const preparing = { ...scene.jobOf('build'), state: 'preparing' } as Job;
+    const { board, records, jobId } = boardJobIn(TWO_PREPARE_STEPS, 'preparing');
+    endStepLine(scene, 'install', { runMilliseconds: 61_000 });
+
+    applyTo(scene, board, { ...await observationOf(scene, preparing, [], TWO_PREPARE_STEPS), jobId });
+    expect(stepRunFieldsOf(records)).toEqual([]);
+
+    endStepLine(scene, 'install2', {
+      reason: 'time-bound', exitCode: null, signal: 'SIGTERM', runMilliseconds: LINE_TIME_BOUND_MILLISECONDS
+    });
+    applyTo(scene, board, { ...await observationOf(scene, preparing, [], TWO_PREPARE_STEPS), jobId });
+    expect(stepRunFieldsOf(records)).toMatchObject([{ stepName: 'install' }, { stepName: 'generate', runMilliseconds: LINE_TIME_BOUND_MILLISECONDS, ending: 'time-bound' }]);
+  });
+
+  testWhenGitIsRecorded('a gate run records one step run for each of its steps at its settlement, in the manifest\'s phase', async () => {
+    const scene = gatingScene();
+    endStepLine(scene, 'gate-prepare', { runMilliseconds: 5000 });
+    endStepLine(scene, 'gate-1', { runMilliseconds: 7000 });
+    const { board, records, jobId } = boardJobIn(ONE_GATE_PER_PHASE, 'gating');
+    const observation = await observationOf(scene, scene.jobOf('build'), [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE);
+
+    applyTo(scene, board, { ...observation, jobId, report: { headCommit: 'example-head-commit', handoff: 'Example handoff.' } });
+
+    expect(stepRunFieldsOf(records)).toEqual([
+      {
+        stepKind: 'prepare', stepName: 'install', phase: 'build', runMilliseconds: 5000, ending: 'passed'
+      },
+      {
+        stepKind: 'gate', stepName: 'lint', phase: 'build', runMilliseconds: 7000, ending: 'passed'
+      },
+    ]);
+  });
+
+  testWhenGitIsRecorded('a gate Talos stopped at its bound records its run time-bound', async () => {
+    const scene = gatingScene();
+    endStepLine(scene, 'gate-prepare', { runMilliseconds: 5000 });
+    endStepLine(scene, 'gate-1', {
+      reason: 'time-bound', exitCode: null, signal: 'SIGTERM', runMilliseconds: LINE_TIME_BOUND_MILLISECONDS
+    });
+    const { board, records, jobId } = boardJobIn(ONE_GATE_PER_PHASE, 'gating');
+    const observation = await observationOf(scene, scene.jobOf('build'), [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE);
+
+    applyTo(scene, board, { ...observation, jobId });
+
+    expect(stepRunFieldsOf(records).at(-1)).toEqual({
+      stepKind: 'gate', stepName: 'lint', phase: 'build', runMilliseconds: LINE_TIME_BOUND_MILLISECONDS, ending: 'time-bound'
+    });
+  });
+
+  testWhenGitIsRecorded('a gate a clean quit paused records only the run of the instance that was judged', async () => {
+    const scene = gatingScene();
+    endStepLine(scene, 'gate-prepare', { runMilliseconds: 5000 });
+    endStepLine(scene, 'gate-1', {
+      reason: 'paused', exitCode: null, signal: 'SIGTERM', runMilliseconds: 3000
+    });
+    endStepLine(scene, 'gate-1', { exitCode: 1, runMilliseconds: 8000 }, 2);
+
+    const gate = await gateOf(scene, 'build', [HEAD_ON_THE_START_TREE, TRACKED_TREE_UNCHANGED, TRACKED_TREE_UNCHANGED], ONE_GATE_PER_PHASE);
+
+    expect(gate).toMatchObject({ verdict: 'judged', stepRuns: [{ stepName: 'install', runMilliseconds: 5000 }, { stepName: 'lint', runMilliseconds: 8000, ending: 'failed' }] });
+  });
+
+  testWhenGitIsRecorded('a review that left the tree its build\'s gates passed ran no line and has no step run', async () => {
+    expect(await gateOf(gatingScene(), 'review', [HEAD_ON_THE_START_TREE, START_TREE])).toMatchObject({ verdict: 'judged', ran: false, stepRuns: [] });
   });
 });

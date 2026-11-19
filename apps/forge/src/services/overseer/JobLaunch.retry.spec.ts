@@ -86,6 +86,7 @@ function retryScene(): RetryScene {
     JobLaunch.applyBuildJobObservations(change, context, [{
       jobId:            job.id,
       setup:            'installed',
+      installStepRuns:  [],
       calls:            1,
       report,
       agentEnd:         null,

@@ -70,7 +70,7 @@ async function runProposalTwice(request: ProposalRunRequest): Promise<ProposalRu
     prepare:        { failedSteps: runs.map((run) => run.failedStep), output: prepareOutput },
     gates:          request.gates.map((gate, index) => {
       const ofGate = runs.map((run): SingleGateRun => run.gates[index] ?? {
-        outcome: 'cannot-run', milliseconds: 0, stoppedAtTimeBound: false, cacheReport: null, output: ''
+        outcome: 'cannot-run', milliseconds: 0, stoppedAtTimeBound: false, cacheReport: null, output: '', stepRun: null
       });
       return {
         name:                  gate.name,

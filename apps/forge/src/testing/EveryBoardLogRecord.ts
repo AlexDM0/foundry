@@ -165,6 +165,9 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.setApproval('tickets', false, at);
   board.setReach(['/packages/shared'], at);
   board.recordGateRan({ tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', outcome: 'passed', cached: true }, at);
+  board.recordPipelineStepsRan([{
+    stepKind: 'gate', stepName: 'tests', entity: 'web', runMilliseconds: 4200, ending: 'passed'
+  }], 'build', at);
   board.editTicket('001', { body: { text: 'Example rewritten report.\n', appends: false }, allowsPastPending: true }, at);
   board.moveTicket('001', 'in-review', { checksLegality: true }, at);
   board.startReviewBar('001', { round: 1 }, at);

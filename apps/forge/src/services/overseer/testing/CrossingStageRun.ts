@@ -95,6 +95,7 @@ function observationOf(jobId: string, report: unknown, gate: GateObservation) {
   return {
     jobId,
     setup:            'installed' as const,
+    installStepRuns:  [],
     calls:            1,
     report,
     agentEnd:         null,
@@ -184,7 +185,7 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
         outcome: 'failed' as const, step: run.redGate, output: 'Example red gate.', exitCode: 1
       };
     JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, report, {
-      verdict: 'judged', treeId: place.gatedTreeId, ...verdict, ran: true, manifest, cacheReports: []
+      verdict: 'judged', treeId: place.gatedTreeId, ...verdict, ran: true, manifest, cacheReports: [], stepRuns: []
     })]);
   }
   const ended = board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === job.id);

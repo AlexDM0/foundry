@@ -28,6 +28,7 @@ function barOfALaunchedReviewer(pipeline: Pipeline, round: number, entityStage?:
   JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as TrackerChange, context, [{
     jobId:            job.id,
     setup:            'creating-worktree',
+    installStepRuns:  [],
     calls:            0,
     report:           undefined,
     agentEnd:         null,

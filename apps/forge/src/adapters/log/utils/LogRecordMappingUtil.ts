@@ -101,6 +101,9 @@ const COPY_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, (value: unknown) => u
   'optional-refusal-status':  sameValue,
   'optional-refusal-detail':  (value) => structuredClone(value),
   'optional-cache-reports':   gateCacheReportsCopyOf,
+  'pipeline-step-kind':       sameValue,
+  'optional-gate-phase':      sameValue,
+  'pipeline-step-ending':     sameValue,
   'setup-mode':               sameValue,
   'billing-mode':             sameValue,
   'setup-step':               sameValue,
@@ -125,6 +128,7 @@ const OPTIONAL_FIELD_SHAPES: readonly LogFieldShape[] = [
   'optional-refusal-status',
   'optional-refusal-detail',
   'optional-cache-reports',
+  'optional-gate-phase',
 ];
 
 /** Copies into `target` each value `shapes` names, in the schema's order, leaving out an optional one that is absent. */

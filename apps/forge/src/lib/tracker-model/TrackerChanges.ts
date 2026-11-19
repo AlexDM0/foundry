@@ -7,6 +7,7 @@ import type {
   TrackerCleared
 } from './@types/BoardChanges.ts';
 import { GATE_PHASES, type GatePhase, type GateRunStamp } from './@types/GatePhase.ts';
+import type { PipelineStepRun }                           from './@types/Job.ts';
 import type { LogRecordFieldsOf }                         from './@types/LogRecord.ts';
 import {
   type Pipeline,
@@ -243,6 +244,20 @@ export class TrackerChanges {
           tree, outcome, cached, ...(keepsCacheReports ? { cacheReports } : {})
         }
       }, at)]
+    };
+  }
+
+  /** Step lines that ran outside the hold, one record each in run order; `phase` is `null` for a job's install. Recorded and shown only. */
+  recordPipelineStepsRan(stepRuns: readonly PipelineStepRun[], phase: GatePhase | null, at: string): Logged {
+    return {
+      logged: stepRuns.map(({
+        stepKind, stepName, entity, runMilliseconds, ending
+      }) => this.records.logger.log({
+        kind:   'pipeline-step-ran',
+        fields: {
+          stepKind, stepName, ...(phase === null ? {} : { phase }), ...(entity === undefined ? {} : { entity }), runMilliseconds, ending
+        }
+      }, at))
     };
   }
 

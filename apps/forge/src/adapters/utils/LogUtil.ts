@@ -3,9 +3,9 @@
  * the page through `identifiedEntryOf`, which also carries every task and ticket id the record concerns, so a detail panel never reads ids
  * out of the sentence.
  */
-import { TokenCountUtil }            from '../../lib/token-count/TokenCountUtil.ts';
-import type { IncidentDefaultCause } from '../../lib/tracker-model/@types/Incident.ts';
-import type { JobStopMode }          from '../../lib/tracker-model/@types/Job.ts';
+import { TokenCountUtil }                       from '../../lib/token-count/TokenCountUtil.ts';
+import type { IncidentDefaultCause }            from '../../lib/tracker-model/@types/Incident.ts';
+import type { JobStopMode, PipelineStepEnding } from '../../lib/tracker-model/@types/Job.ts';
 import type {
   AgentUsage,
   FlintBrainEndedReason,
@@ -284,6 +284,8 @@ function sentenceOf(record: LogRecordContent): string {
       return record.fields.paths.length === 0 ? 'Gate cache paths cleared' : `Gate cache paths set to ${record.fields.paths.join(' ')}`;
     case 'gate-ran':
       return record.fields.cached ? `Gate on tree ${record.fields.tree} passed, from the cache` : `Gate on tree ${record.fields.tree} ${record.fields.outcome}`;
+    case 'pipeline-step-ran':
+      return pipelineStepRanTextOf(record.fields);
     case 'tracker-cleared':
       return 'Tracker cleared';
     case 'agent-stopped':
@@ -363,6 +365,21 @@ const FLINT_BRAIN_ENDING_PHRASES: Readonly<Record<FlintBrainEndedReason, string>
   'usage-limit': 'stopped at the usage limit',
   'failed':      'failed',
 };
+
+const PIPELINE_STEP_ENDING_PHRASES: Readonly<Record<PipelineStepEnding, string>> = {
+  'passed':     'passed',
+  'failed':     'failed',
+  'time-bound': 'was stopped at its time bound',
+};
+
+/** A step with no phase is a job's install step, which runs before any gate run. */
+function pipelineStepRanTextOf(step: LogRecordFieldsOf<'pipeline-step-ran'>): string {
+  const kindAndName = step.phase === undefined
+    ? `Install step ${step.stepName}`
+    : `${step.stepKind === 'prepare' ? 'Prepare step' : 'Gate'} ${step.stepName} in the ${step.phase} phase`;
+  const entity = step.entity === undefined ? '' : ` of entity ${step.entity}`;
+  return `${kindAndName}${entity} ${PIPELINE_STEP_ENDING_PHRASES[step.ending]} after ${step.runMilliseconds} ms`;
+}
 
 /** Names no client: who started the run is the record's fact, not the sentence's. */
 function flintBrainEndedTextOf(run: LogRecordFieldsOf<'flint-brain-ended'>): string {

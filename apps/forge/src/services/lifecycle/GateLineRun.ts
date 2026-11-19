@@ -3,11 +3,11 @@
  * run and a gate profile share it. Each line runs under Talos in its own step folder of the run's child folder. A gate that changed the
  * checkout fails, and the change is undone before the next gate.
  */
-import { GitProcess }                        from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                      from '../../lib/git/GitWorktrees.ts';
-import type { ShellLine }                    from '../../lib/shell-line/ShellLine.ts';
-import type { GateCacheReport, GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
-import type { PipelineGate, PipelineStep }   from '../../lib/tracker-model/@types/Pipeline.ts';
+import { GitProcess }                                         from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                       from '../../lib/git/GitWorktrees.ts';
+import type { ShellLine }                                     from '../../lib/shell-line/ShellLine.ts';
+import type { GateCacheReport, GateOutcome, PipelineStepRun } from '../../lib/tracker-model/@types/Job.ts';
+import type { PipelineGate, PipelineStep }                    from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   GateRun,
   type GateConfinement,
@@ -53,6 +53,8 @@ export interface SingleGateRun {
   /** What the gate reported at its report path; `null` when it reported nothing readable, or never ran. */
   cacheReport:        GateCacheReport | null;
   output:             string;
+  /** The gate line's run as its `pipeline-step-ran` record keeps it; `null` when it never ran, as after a failed prepare step. */
+  stepRun:            PipelineStepRun | null;
 }
 
 export interface GateLinesRun {
@@ -116,7 +118,7 @@ async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | Gate
       failedStep:    step.name,
       prepareOutput: failureOutput,
       gates:         request.gates.map(() => ({
-        outcome: 'cannot-run', milliseconds: 0, stoppedAtTimeBound: false, cacheReport: null, output: failureOutput
+        outcome: 'cannot-run', milliseconds: 0, stoppedAtTimeBound: false, cacheReport: null, output: failureOutput, stepRun: null
       }))
     };
   }
@@ -131,12 +133,14 @@ async function runOnce(request: GateLineRunRequest): Promise<GateLinesRun | Gate
     if ('verdict' in run) return run;
     const trackedChanges = GateRun.trackedChangesOf(request.directory);
     if (trackedChanges !== '') restoreCheckout(request.directory);
+    const outcome = GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges);
     gates.push({
-      outcome:            GateRun.gateOutcomeOf(request.shellLine, run, trackedChanges),
+      outcome,
       milliseconds:       run.runMilliseconds,
       stoppedAtTimeBound: run.endReason === 'time-bound',
       cacheReport:        run.cacheReport,
       output:             GateRun.gateErrorOutputOf(request.shellLine, run, trackedChanges),
+      stepRun:            GateRun.stepRunsOf('gate', gate.name, run, outcome === 'passed')[0] ?? null,
     });
   }
   return { failedStep: null, prepareOutput: '', gates };

@@ -89,7 +89,8 @@ import type {
   JobStopMode,
   Airlock,
   OverseerStopReason,
-  PictureReference
+  PictureReference,
+  PipelineStepRun
 }                                              from './@types/Job.ts';
 import type { LaunchSlots }     from './@types/LaunchSlots.ts';
 import type { LifecycleLimits } from './@types/LifecycleLimits.ts';
@@ -939,6 +940,10 @@ export class Board {
 
   recordGateRan(fields: LogRecordFieldsOf<'gate-ran'>, at: string): Logged {
     return this.trackerChanges.recordGateRan(fields, at);
+  }
+
+  recordPipelineStepsRan(stepRuns: readonly PipelineStepRun[], phase: GatePhase | null, at: string): Logged {
+    return this.trackerChanges.recordPipelineStepsRan(stepRuns, phase, at);
   }
 
   recordNote(text: string, at: string): Logged {

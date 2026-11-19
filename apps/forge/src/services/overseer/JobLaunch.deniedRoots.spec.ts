@@ -75,6 +75,7 @@ function observationOf(context: JobLaunchContext, job: Readonly<Job>): BuildJobO
   return {
     jobId:            job.id,
     setup:            'installed',
+    installStepRuns:  [],
     calls:            0,
     report:           undefined,
     agentEnd:         null,

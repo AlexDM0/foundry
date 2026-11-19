@@ -36,7 +36,8 @@ import type {
   GateOutcome,
   Job,
   JobKind,
-  JobState
+  JobState,
+  PipelineStepRun
 } from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord, LogRecordFieldsOf } from '../../lib/tracker-model/@types/LogRecord.ts';
 import type {
@@ -152,8 +153,13 @@ export type GateStepOutcome = GateOutcome | 'setup-failed';
  * the gate a step folder runs nor the hash the settlement stamps.
  */
 export interface GateRunManifest extends GateRunStamp {
-  prepare: PipelineStep[];
-  gates:   PipelineGate[];
+  prepare: (PipelineStep & ManifestStepEntity)[];
+  gates:   (PipelineGate & ManifestStepEntity)[];
+}
+
+/** A package build's manifest names the dependent whose step a step is; the job's own steps name none. */
+interface ManifestStepEntity {
+  entity?: EntityKey;
 }
 
 export type GateProgress =
@@ -163,7 +169,7 @@ export type GateProgress =
   /**
    * `step` names the red step, `null` on a pass; `ran` is false when a review left the tree the build's gates passed. `manifest` is what
    * the run judged by: `null` when no gate ran, or when the run's manifest cannot be read, which no gate passes. `cacheReports` holds what
-   * each gate that ended reported of its cache, in run order.
+   * each gate that ended reported of its cache, and `stepRuns` each step line that ran with its run time, both in run order.
    */
   | {
     verdict:      'judged';
@@ -175,12 +181,16 @@ export type GateProgress =
     exitCode?:    number | null;
     manifest:     GateRunManifest | null;
     cacheReports: GateCacheReportOfGate[];
+    stepRuns:     PipelineStepRun[];
   };
 
 /** One Watcher of a job's gate run: one prepare step, or one gate. */
 interface GateStep {
   kind:        'prepare' | 'gate';
   name:        string;
+  /** The step's own name in its pipeline and its entity there, as its `pipeline-step-ran` record keeps them. */
+  stepName:    string;
+  entity:      EntityKey | undefined;
   line:        string;
   folder:      string;
   in:          string | null;
@@ -195,11 +205,15 @@ interface StepVerdict extends GateRunStamp {
   exitCode?:    number | null;
   /** What a gate reported of its cache; written only once it reported. */
   cacheReport?: GateCacheReport;
+  /** The step's line with its run time; absent when the line never ran, or in a verdict kept before run times were. */
+  stepRun?:     PipelineStepRun;
 }
 
 export interface BuildJobObservation {
   jobId:            string;
   setup:            SetupProgress;
+  /** Each install step's line that ended, with its run time, while the job is `preparing`; the first that did not pass is the last. */
+  installStepRuns:  PipelineStepRun[];
   /** Top-level assistant turns across every Watcher instance of the job. */
   calls:            number;
   /** The structured report of the newest `result`, `undefined` before one. */
@@ -592,19 +606,42 @@ function stepPassed(context: JobLaunchContext, end: ChildEnd, jobFolder: string,
   return context.platformPorts.shellLine.exitMeaningOf(stepExitReportOf(end, jobFolder, folderName)) === 'passed';
 }
 
-/** Each prepare step runs as a line of its own, in list order, the first that does not pass stopping the rest. */
-function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, prepare: readonly PipelineStep[]): SetupProgress {
+/** A step's ended line with its run time, named by the step's entity; none for a line that never ran. */
+function stepRunsOfLine(step: Pick<GateStep, 'kind' | 'stepName' | 'entity'>, end: ChildEnd, passed: boolean): PipelineStepRun[] {
+  return GateRun.stepRunsOf(step.kind, step.stepName, { endReason: end.reason, runMilliseconds: end.runMilliseconds }, passed)
+    .map((stepRun) => (step.entity === undefined ? stepRun : { ...stepRun, entity: step.entity }));
+}
+
+/** The entity whose pipeline a job's install steps are: none for a job without one, or on a forge without entities. */
+function installEntityOf(pipeline: Readonly<Pipeline> | null, job: Readonly<Pick<Job, 'entity'>>): EntityKey | undefined {
+  return pipeline?.entities === undefined ? undefined : job.entity;
+}
+
+/**
+ * Each prepare step runs as a line of its own, in list order, the first that does not pass stopping the rest; each step line that ended is
+ * kept with its run time, which the hold that acts on the install verdict records.
+ */
+function setupReadingOf(
+  context: JobLaunchContext, job: Readonly<Job>, prepare: readonly PipelineStep[], entity: EntityKey | undefined
+): Pick<BuildJobObservation, 'setup' | 'installStepRuns'> {
   const jobFolder = jobFolderOf(context.workspace, job);
-  if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return 'worktree-failed';
-  if (existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised))) return 'worktree-unnormalised';
-  if (!existsSync(worktreeOf(context.workspace, job))) return 'creating-worktree';
-  for (const stepIndex of prepare.keys()) {
+  if (existsSync(join(jobFolder, JOB_FILES.worktreeFailure))) return { setup: 'worktree-failed', installStepRuns: [] };
+  if (existsSync(join(jobFolder, JOB_FILES.worktreeUnnormalised))) return { setup: 'worktree-unnormalised', installStepRuns: [] };
+  if (!existsSync(worktreeOf(context.workspace, job))) return { setup: 'creating-worktree', installStepRuns: [] };
+  const installStepRuns: PipelineStepRun[] = [];
+  for (const [stepIndex, step] of prepare.entries()) {
     const folderName = stepFolderOf(INSTALL_WATCHER_FOLDER, stepIndex);
     const end = lineEndOf(context.boardChildren, join(jobFolder, folderName));
-    if (end === 'pending' || end === 'rerun') return 'installing';
-    if (!stepPassed(context, end, jobFolder, folderName)) return 'install-failed';
+    if (end === 'pending' || end === 'rerun') return { setup: 'installing', installStepRuns };
+    const passed = stepPassed(context, end, jobFolder, folderName);
+    installStepRuns.push(...stepRunsOfLine({ kind: 'prepare', stepName: step.name, entity }, end, passed));
+    if (!passed) return { setup: 'install-failed', installStepRuns };
   }
-  return 'installed';
+  return { setup: 'installed', installStepRuns };
+}
+
+function setupProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline> | null): SetupProgress {
+  return setupReadingOf(context, job, installStepsOf(pipeline, job), installEntityOf(pipeline, job)).setup;
 }
 
 /** `calls` counts the current attempt's turns: since the last red handoff's resume, or every instance's when none went red. */
@@ -676,9 +713,19 @@ function dependentsOfThePackageOf(pipeline: Readonly<Pipeline> | null, job: Read
   return EntityOwnershipUtil.dependentsOf(pipeline.entities, [job.entity]);
 }
 
-/** A dependent's gate, named for its entity, so a red one tells the package builder whose gate it is. */
-function dependentGateOf(entityKey: EntityKey, gate: Readonly<PipelineGate>): PipelineGate {
-  return { ...gate, name: `${entityKey}: ${gate.name}` };
+function dependentGateNamePrefixOf(entityKey: EntityKey): string {
+  return `${entityKey}: `;
+}
+
+/** A dependent's gate, named for its entity, so a red one tells the package builder whose gate it is, and naming the entity it is of. */
+function dependentGateOf(entityKey: EntityKey, gate: Readonly<PipelineGate>): PipelineGate & ManifestStepEntity {
+  return { ...gate, name: `${dependentGateNamePrefixOf(entityKey)}${gate.name}`, entity: entityKey };
+}
+
+/** A manifest gate's own name in its entity's pipeline: a dependent's gate without the entity it was named for. */
+function ownGateNameOf(gate: Readonly<PipelineGate & ManifestStepEntity>): string {
+  const prefix = gate.entity === undefined ? '' : dependentGateNamePrefixOf(gate.entity);
+  return gate.name.startsWith(prefix) ? gate.name.slice(prefix.length) : gate.name;
 }
 
 /**
@@ -697,7 +744,7 @@ function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: Gat
   });
   return {
     ...PipelineUtil.entitiesGateRunStampOf(pipeline, phase, [job.entity, ...dependentPipelines.map(({ entityKey }) => entityKey)]),
-    prepare: [...manifest.prepare, ...dependentPipelines.flatMap(({ dependentPipeline }) => dependentPipeline.prepare)],
+    prepare: [...manifest.prepare, ...dependentPipelines.flatMap(({ entityKey, dependentPipeline }) => dependentPipeline.prepare.map((step) => ({ ...step, entity: entityKey })))],
     gates:   [
       ...manifest.gates,
       ...dependentPipelines.flatMap(({ entityKey, dependentPipeline }) => PipelineUtil.gatesOfPhase(dependentPipeline, phase).map((gate) => dependentGateOf(entityKey, gate))),
@@ -706,7 +753,9 @@ function manifestOf(pipeline: Readonly<Pipeline>, job: Readonly<Job>, phase: Gat
 }
 
 function isNamedLine(value: unknown): boolean {
-  return typeof value === 'object' && value !== null && typeof reportFieldOf(value, 'name') === 'string' && typeof reportFieldOf(value, 'run') === 'string';
+  const entity = reportFieldOf(value, 'entity');
+  return typeof value === 'object' && value !== null && typeof reportFieldOf(value, 'name') === 'string' && typeof reportFieldOf(value, 'run') === 'string'
+    && (entity === undefined || typeof entity === 'string');
 }
 
 function isAbsentOrTextList(value: unknown): boolean {
@@ -756,14 +805,18 @@ function gateRunManifestOf(context: JobLaunchContext, job: Readonly<Job>, place:
 /**
  * Each prepare step, then each gate of the manifest in its run order, each in a Watcher folder of its own named by its position in the
  * manifest; a manifest with no gates has no step, so it passes at once. A session resumed after a red handoff gates again in fresh folders,
- * suffixed with its Watcher instance, since a Watcher folder runs once.
+ * suffixed with its Watcher instance, since a Watcher folder runs once. A step is of the job's entity on a pipeline with entities, unless
+ * the manifest names a dependent's.
  */
-function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace): GateStep[] {
+function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace, job: Readonly<Pick<Job, 'entity'>>): GateStep[] {
   if (manifest.gates.length === 0) return [];
   const suffix = instanceSuffixOf(place.watcherInstance);
+  const jobEntity = manifest.entityPhaseHashes === undefined ? undefined : job.entity;
   const prepare = manifest.prepare.map((step, stepIndex): GateStep => ({
     kind:        'prepare',
     name:        PREPARE_STEP_NAME,
+    stepName:    step.name,
+    entity:      step.entity ?? jobEntity,
     line:        step.run,
     folder:      `${place.folderPrefix}${stepFolderOf(GATE_PREPARE_WATCHER_FOLDER, stepIndex)}${suffix}`,
     in:          step.in ?? null,
@@ -772,6 +825,8 @@ function gateStepsOf(manifest: Readonly<GateRunManifest>, place: GateRunPlace): 
   return [...prepare, ...manifest.gates.map((gate, index): GateStep => ({
     kind:        'gate',
     name:        gate.name,
+    stepName:    ownGateNameOf(gate),
+    entity:      gate.entity ?? jobEntity,
     line:        gate.run,
     folder:      `${place.folderPrefix}${GATE_WATCHER_FOLDER_PREFIX}${index + 1}${suffix}`,
     in:          gate.in ?? null,
@@ -841,15 +896,15 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
   const reportFile = stepReportFileOf(jobFolder, step);
   const cacheReport = reportFile === null ? null : GateRun.takeCacheReport(reportFile);
   const run = { ...stepExitReportOf(end, jobFolder, step.folder), cacheReport, output: lineOutputOf(context.boardChildren, lineFolder) };
-  let verdict: StepVerdict;
+  let judged: StepVerdict;
   if (step.kind === 'prepare') {
     const failureOutput = GateRun.prepareFailureOutputOf(shellLine, run, worktreeOf(context.workspace, job));
-    verdict = {
+    judged = {
       treeId, ...stamp, outcome: failureOutput === null ? 'passed' : 'setup-failed', output: failureOutput ?? run.output, exitCode: run.exitCode
     };
   } else {
     const trackedChanges = GateRun.trackedChangesOf(worktreeOf(context.workspace, job));
-    verdict = {
+    judged = {
       treeId,
       ...stamp,
       outcome:  GateRun.gateOutcomeOf(shellLine, run, trackedChanges),
@@ -858,6 +913,8 @@ function stepVerdictOf(context: JobLaunchContext, job: Readonly<Job>, treeId: st
       ...(cacheReport === null ? {} : { cacheReport }),
     };
   }
+  const [stepRun] = stepRunsOfLine(step, end, judged.outcome === 'passed');
+  const verdict: StepVerdict = stepRun === undefined ? judged : { ...judged, stepRun };
   writeFileAtomically(verdictPath, `${JSON.stringify(verdict)}\n`);
   if (verdict.outcome !== 'passed') writeFileAtomically(join(jobFolder, GATE_LOG_FILE), `${step.name}\n${verdict.output}`);
   return verdict;
@@ -877,7 +934,7 @@ function gateProgressOf(context: JobLaunchContext, job: Readonly<Job>, pipeline:
   const treeId = treeOf(worktreeOf(context.workspace, job));
   if (treeId === null) return { verdict: 'pending' };
   if (reviewLeftTheTreeAsItWas(context, job, treeId)) return {
-    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false, manifest: null, cacheReports: []
+    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: false, manifest: null, cacheReports: [], stepRuns: []
   };
   return gateRunProgressOf(context, job, treeId, ownGateRunOf(job), pipeline);
 }
@@ -888,19 +945,21 @@ function gateRunProgressOf(
 ): Exclude<GateProgress, { verdict: 'pending' }> {
   const manifest = gateRunManifestOf(context, job, place, pipeline);
   if (manifest === 'unreadable') return {
-    verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null, cacheReports: []
+    verdict: 'judged', treeId, outcome: 'cannot-run', step: gateRunManifestFileOf(place), output: '', ran: true, manifest: null, cacheReports: [], stepRuns: []
   };
   const cacheReports: GateCacheReportOfGate[] = [];
-  for (const [stepIndex, step] of gateStepsOf(manifest, place).entries()) {
+  const stepRuns: PipelineStepRun[] = [];
+  for (const [stepIndex, step] of gateStepsOf(manifest, place, job).entries()) {
     const verdict = stepVerdictOf(context, job, treeId, step, manifest);
     if (verdict === null) return { verdict: 'running', treeId, stepIndex };
     if (step.kind === 'gate') cacheReports.push({ gateName: step.name, cacheReport: keptCacheReportOf(verdict) });
+    if (verdict.stepRun !== undefined) stepRuns.push(verdict.stepRun);
     if (verdict.outcome !== 'passed') return {
-      verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null, manifest, cacheReports
+      verdict: 'judged', treeId, outcome: verdict.outcome, step: step.name, output: verdict.output, ran: true, exitCode: verdict.exitCode ?? null, manifest, cacheReports, stepRuns
     };
   }
   return {
-    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports
+    verdict: 'judged', treeId, outcome: 'passed', step: null, output: '', ran: true, manifest, cacheReports, stepRuns
   };
 }
 
@@ -908,10 +967,13 @@ function gateRunProgressOf(
 function observeBuildJobs(context: JobLaunchContext, jobs: readonly Readonly<Job>[], pipeline: Readonly<Pipeline> | null): BuildJobObservation[] {
   return jobs.filter(isWorktreeJob).map((job) => {
     const liveness = context.boardChildren.livenessOf(jobFolderOf(context.workspace, job), job.watcherInstance);
-    const setup = job.state === 'preparing' ? setupProgressOf(context, job, installStepsOf(pipeline, job)) : 'installed';
+    const { setup, installStepRuns } = job.state === 'preparing'
+      ? setupReadingOf(context, job, installStepsOf(pipeline, job), installEntityOf(pipeline, job))
+      : { setup: 'installed' as const, installStepRuns: [] };
     return {
       jobId:            job.id,
       setup,
+      installStepRuns,
       ...sessionReadingOf(context, job),
       agentEnd:         liveness.verdict === 'ended' ? liveness.end : liveness.verdict === 'lost' ? 'lost' : null,
       gate:             job.state === 'gating' && pipeline !== null ? gateProgressOf(context, job, pipeline) : { verdict: 'pending' },
@@ -1535,13 +1597,20 @@ function gateRanFieldsOf(gate: Extract<GateProgress, { verdict: 'judged' }>, out
   };
 }
 
+/** Each step line of a judged run with its run time, in the phase of the manifest it ran; a run that ran no line records none. */
+function recordGateStepRuns(hold: HoldContext, gate: Extract<GateProgress, { verdict: 'judged' }>): void {
+  if (gate.manifest === null) return;
+  hold.logged.push(...hold.change.board.recordPipelineStepsRan(gate.stepRuns, gate.manifest.phase, hold.change.at).logged);
+}
+
 /**
- * Records a judged gate run on the row, and routes a run that did not pass: a failed prepare step or a gate that cannot run opens its
- * incident and stops the job, a red gate is the session's red handoff. Returns whether the run passed.
+ * Records a judged gate run and its step lines on the row, and routes a run that did not pass: a failed prepare step or a gate that cannot
+ * run opens its incident and stops the job, a red gate is the session's red handoff. Returns whether the run passed.
  */
 function settleJudgedGate(hold: HoldContext, job: Readonly<Job>, gate: Extract<GateProgress, { verdict: 'judged' }>, stamp: GateRunStamp | null): boolean {
   const { board, at } = hold.change;
   board.recordPipelineJudgedBy(ticketIdOf(job), gate.outcome === 'passed' ? gate.treeId : null, stamp, at);
+  recordGateStepRuns(hold, gate);
   if (gate.outcome === 'setup-failed') {
     openIncidentFor(hold, job, 'setup-failed', { step: PREPARE_STEP_NAME });
     endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
@@ -2071,6 +2140,7 @@ function settleTargetCatchUp(hold: HoldContext, job: Readonly<Job>, catchUp: Tar
     }
     case 'gated': {
       const { gate } = catchUp;
+      recordGateStepRuns(hold, gate);
       if (gate.outcome === 'setup-failed') {
         openIncidentFor(hold, job, 'setup-failed', { step: PREPARE_STEP_NAME });
         endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
@@ -2127,6 +2197,27 @@ function reviewBarRequestOf(board: Board, job: Readonly<Job>): ReviewBarRequest 
   };
 }
 
+/**
+ * In the hold, for a job in `preparing`: its install verdict moves it on. The hold that moves it out of `preparing` records each install
+ * step line that ran, once, as a review's catch-up may hold it there across passes.
+ */
+function settleInstall(hold: HoldContext, job: Readonly<Job>, observation: BuildJobObservation): void {
+  const { board, at } = hold.change;
+  if (observation.setup === 'worktree-failed' || observation.setup === 'install-failed') {
+    openIncidentFor(hold, job, 'setup-failed', { step: observation.setup === 'worktree-failed' ? 'worktree' : 'install' });
+    endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
+  } else if (observation.setup === 'worktree-unnormalised') {
+    openIncidentFor(hold, job, 'setup-failed', { step: 'worktree', cause: 'line-ending-normalisation' });
+    endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
+  } else if (observation.setup === 'installed' && job.kind === REVIEW_JOB_KIND) {
+    settleTargetCatchUp(hold, job, observation.targetCatchUp);
+  } else if (observation.setup === 'installed') {
+    hold.logged.push(...board.moveJob(job.id, 'running', at).logged);
+  }
+  if (board.jobById(job.id)?.state === 'preparing') return;
+  hold.logged.push(...board.recordPipelineStepsRan(observation.installStepRuns, null, at).logged);
+}
+
 function applyObservation(hold: HoldContext, observation: BuildJobObservation): void {
   const { board, at } = hold.change;
   const job = board.jobById(observation.jobId);
@@ -2149,17 +2240,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
       return;
     }
     case 'preparing':
-      if (observation.setup === 'worktree-failed' || observation.setup === 'install-failed') {
-        openIncidentFor(hold, job, 'setup-failed', { step: observation.setup === 'worktree-failed' ? 'worktree' : 'install' });
-        endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
-      } else if (observation.setup === 'worktree-unnormalised') {
-        openIncidentFor(hold, job, 'setup-failed', { step: 'worktree', cause: 'line-ending-normalisation' });
-        endJob(hold, job, { outcome: 'stopped', cause: BUILD_JOB_CAUSES.setupFailed });
-      } else if (observation.setup === 'installed' && job.kind === REVIEW_JOB_KIND) {
-        settleTargetCatchUp(hold, job, observation.targetCatchUp);
-      } else if (observation.setup === 'installed') {
-        hold.logged.push(...board.moveJob(job.id, 'running', at).logged);
-      }
+      settleInstall(hold, job, observation);
       return;
     case 'running':
       if (observation.calls >= attemptCallBudgetOf(hold.context.workspace.trackerDirectory, job) + WIND_DOWN_GRACE_CALLS) {
@@ -2492,7 +2573,7 @@ async function launchMergeIntoTree(
 
 /** After the hold: what a prepared review job's catch-up asks of git and the Watchers, read afresh like a gate step. */
 async function runTargetCatchUpEffects(context: JobLaunchContext, job: Readonly<Job>, pipeline: Readonly<Pipeline>): Promise<void> {
-  if (job.kind !== REVIEW_JOB_KIND || setupProgressOf(context, job, installStepsOf(pipeline, job)) !== 'installed') return;
+  if (job.kind !== REVIEW_JOB_KIND || setupProgressOf(context, job, pipeline) !== 'installed') return;
   const catchUp = targetCatchUpOf(context, job, pipeline);
   const jobFolder = jobFolderOf(context.workspace, job);
   const recordPath = join(jobFolder, JOB_FILES.targetMerge);
@@ -2724,7 +2805,7 @@ async function spawnGateRunStep(
   context: JobLaunchContext, job: Readonly<Job>, run: { place: GateRunPlace; pipeline: Readonly<Pipeline>; stepIndex: number }
 ): Promise<void> {
   const manifest = gateRunManifestOf(context, job, run.place, run.pipeline);
-  const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, run.place)[run.stepIndex];
+  const step = manifest === 'unreadable' ? undefined : gateStepsOf(manifest, run.place, job)[run.stepIndex];
   if (step !== undefined) await spawnGateStep(context, job, run.pipeline, step);
 }
 

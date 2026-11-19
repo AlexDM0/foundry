@@ -22,7 +22,7 @@ import { GitProcess }                                                           
 import { GitWorktrees, REAL_WORKTREE_REMOVAL_PRIMITIVES, type WorktreeRemovalPrimitives } from '../../lib/git/GitWorktrees.ts';
 import type { PlatformPorts }                                                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { GateProfileRun, GateProfileRunEnd, GateProfileRunEnding }                   from '../../lib/tracker-model/@types/GateProfile.ts';
-import type { GateOutcome }                                                               from '../../lib/tracker-model/@types/Job.ts';
+import type { GateOutcome, PipelineStepRun }                                              from '../../lib/tracker-model/@types/Job.ts';
 import type { EntityKey, Pipeline, PipelineGate }                                         from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup, ResearchFinding, ResearchFindingRecording }                  from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
@@ -173,6 +173,13 @@ function endingOf(run: GateLinesRun | GateLineRefusal): GateProfileRunEnd {
   };
 }
 
+/** The profiled gate's line, with its run time, when it ran; a profile's prepare steps are not the pipeline's runs and record none. */
+function profiledStepRunsOf(run: GateLinesRun | GateLineRefusal, entity: EntityKey | undefined): PipelineStepRun[] {
+  const stepRun = 'verdict' in run ? null : run.gates[0]?.stepRun ?? null;
+  if (stepRun === null) return [];
+  return [entity === undefined ? stepRun : { ...stepRun, entity }];
+}
+
 function createGateProfiling(context: GateProfilingContext): GateProfiling {
   const runsInThisProcess = new Map<string, RunInThisProcess>();
   const { workspace, worktreesRoot, platformPorts } = context;
@@ -226,7 +233,9 @@ function createGateProfiling(context: GateProfilingContext): GateProfiling {
         // A run this Overseer ended as it stopped has no result, as one User stopped has none.
         if (stopSignal.aborted) board.stopGateProfile(run.profileRunId, at);
         const ended = board.endGateProfile(run.profileRunId, end, at);
-        if (ended.run.state !== 'stopped') recordCachingFindings(board, repositoryRoot, ended.run, at);
+        if (ended.run.state === 'stopped') return;
+        recordCachingFindings(board, repositoryRoot, ended.run, at);
+        board.recordPipelineStepsRan(profiledStepRunsOf(lines, run.entity), run.phase, at);
       });
     } catch (failure) {
       context.log(`Gate profile ${run.profileRunId} failed and waits for the next start: ${failure instanceof Error ? failure.message : String(failure)}`);

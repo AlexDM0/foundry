@@ -19,7 +19,9 @@ import {
   JOB_OUTCOMES,
   JOB_ROLES,
   OVERSEER_STOP_REASONS,
-  JOB_STOP_MODES
+  JOB_STOP_MODES,
+  PIPELINE_STEP_ENDINGS,
+  PIPELINE_STEP_KINDS
 }                                                            from '../../lib/tracker-model/constants/JobStates.ts';
 import type { LogFieldShape } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
 import {
@@ -201,6 +203,9 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'optional-refusal-status':  (value, path) => (value === undefined ? null : vocabularyProblem(value, path, HATCH_REFUSAL_STATUSES)),
   'optional-refusal-detail':  refusalDetailProblem,
   'optional-cache-reports':   gateCacheReportsProblem,
+  'pipeline-step-kind':       (value, path) => vocabularyProblem(value, path, PIPELINE_STEP_KINDS),
+  'optional-gate-phase':      (value, path) => (value === undefined ? null : vocabularyProblem(value, path, GATE_PHASES)),
+  'pipeline-step-ending':     (value, path) => vocabularyProblem(value, path, PIPELINE_STEP_ENDINGS),
   'setup-mode':               (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_MODES),
   'billing-mode':             (value, path) => vocabularyProblem(value, path, PIPELINE_BILLING_MODES),
   'setup-step':               (value, path) => vocabularyProblem(value, path, PIPELINE_SETUP_STEPS),

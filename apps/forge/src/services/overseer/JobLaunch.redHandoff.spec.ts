@@ -66,6 +66,7 @@ function resumedScene(): ResumedScene {
     JobLaunch.applyBuildJobObservations(change, context, [{
       jobId:            job.id,
       setup:            'installed',
+      installStepRuns:  [],
       calls:            0,
       report:           undefined,
       agentEnd:         null,

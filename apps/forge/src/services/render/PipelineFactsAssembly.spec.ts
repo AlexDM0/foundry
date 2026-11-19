@@ -4,7 +4,8 @@
  * with the index of the line it anchors, the roles reading the constitution, and a held Apply's blocking files and the ticket holding
  * main); the flow's stage, its question markers and its change list; the live occupants on the node of each job's step, a review
  * catching up with main on the merge before review (Q5) and a filing draft on ticket creation, never the constitution commit job; every
- * model and effort in order (Q9); and each gate's cache mark from its newest run in a phase, a job's or a profile's, by log order. On a
+ * model and effort in order (Q9); each gate's cache mark from its newest run in a phase, a job's or a profile's, by log order; and each
+ * step's newest run time, kept by entity, step kind, step name and phase. On a
  * forge over entities: the forge's flow beside each entity's flow, drawn from its single pipeline and marked against the applied entity;
  * each entity's setup facts from its part of the record, a record-only entity included, read by the entity's roles alone; and profile runs
  * and cache marks kept by entity, gate and phase; and the product owner the first Apply over entities started, with its job's state and
@@ -24,7 +25,7 @@ import type {
   GateRunCacheReports,
   Job
 } from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                  from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { LogRecord, LogRecordFieldsOf }               from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { InstructionEntry, Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   MainConstitutionReading,
@@ -654,6 +655,74 @@ describe('the choices, profile runs and history', () => {
     test('mark nothing on a board whose gates never reported', () => {
       const unreported: LogRecord = { kind: 'gate-ran', at: AT, fields: { tree: 'example-tree', outcome: 'passed', cached: false } };
       expect(pipelineFactsOf(inputOf({ logRecords: [unreported], gateProfilesReading: profilesReadingOf('verify', 'build', null) })).gateCacheMarks).toEqual([]);
+    });
+  });
+
+  describe('the step run times', () => {
+    function stepRanRecordOf(at: string, fields: LogRecordFieldsOf<'pipeline-step-ran'>): LogRecord {
+      return { kind: 'pipeline-step-ran', at, fields };
+    }
+
+    const FIRST_AT = '2026-11-19T09:00:00+01:00';
+    const LATER_AT = '2026-11-19T10:00:00+01:00';
+
+    test('serve the newest run of each step, kept apart by entity and by phase, an install step with no phase', () => {
+      const logRecords = [
+        stepRanRecordOf(FIRST_AT, {
+          stepKind: 'gate', stepName: 'verify', phase: 'build', entity: 'web', runMilliseconds: 9000, ending: 'failed'
+        }),
+        stepRanRecordOf(FIRST_AT, {
+          stepKind: 'gate', stepName: 'verify', phase: 'merge', entity: 'web', runMilliseconds: 7000, ending: 'passed'
+        }),
+        stepRanRecordOf(FIRST_AT, {
+          stepKind: 'gate', stepName: 'verify', phase: 'build', entity: 'api', runMilliseconds: 3000, ending: 'passed'
+        }),
+        stepRanRecordOf(FIRST_AT, {
+          stepKind: 'prepare', stepName: 'install', entity: 'web', runMilliseconds: 61_000, ending: 'passed'
+        }),
+        stepRanRecordOf(LATER_AT, {
+          stepKind: 'gate', stepName: 'verify', phase: 'build', entity: 'web', runMilliseconds: 900_000, ending: 'time-bound'
+        }),
+      ];
+
+      expect(pipelineFactsOf(inputOf({ logRecords })).stepRunTimes).toEqual([
+        {
+          entity: 'web', stepKind: 'gate', stepName: 'verify', phase: 'build', runMilliseconds: 900_000, ending: 'time-bound', at: LATER_AT
+        },
+        {
+          entity: 'web', stepKind: 'gate', stepName: 'verify', phase: 'merge', runMilliseconds: 7000, ending: 'passed', at: FIRST_AT
+        },
+        {
+          entity: 'api', stepKind: 'gate', stepName: 'verify', phase: 'build', runMilliseconds: 3000, ending: 'passed', at: FIRST_AT
+        },
+        {
+          entity: 'web', stepKind: 'prepare', stepName: 'install', runMilliseconds: 61_000, ending: 'passed', at: FIRST_AT
+        },
+      ]);
+    });
+
+    test('keep a prepare step and a gate of one name apart, and name no entity on a forge without entities', () => {
+      const logRecords = [
+        stepRanRecordOf(FIRST_AT, {
+          stepKind: 'prepare', stepName: 'build', phase: 'build', runMilliseconds: 20_000, ending: 'passed'
+        }),
+        stepRanRecordOf(FIRST_AT, {
+          stepKind: 'gate', stepName: 'build', phase: 'build', runMilliseconds: 30_000, ending: 'failed'
+        }),
+      ];
+
+      expect(pipelineFactsOf(inputOf({ logRecords })).stepRunTimes).toEqual([
+        {
+          stepKind: 'prepare', stepName: 'build', phase: 'build', runMilliseconds: 20_000, ending: 'passed', at: FIRST_AT
+        },
+        {
+          stepKind: 'gate', stepName: 'build', phase: 'build', runMilliseconds: 30_000, ending: 'failed', at: FIRST_AT
+        },
+      ]);
+    });
+
+    test('serve none on a board whose log holds no step run', () => {
+      expect(pipelineFactsOf(inputOf({ logRecords: [] })).stepRunTimes).toEqual([]);
     });
   });
 

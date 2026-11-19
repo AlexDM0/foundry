@@ -2,7 +2,8 @@
  * The main line's Airlock (design section 6). What matters: candidates land one at a time in queue order, each on its gated merged tree
  * and by fast-forward alone; the merged tree runs the merge phase's gates, skipped only for a green current in that phase, and a stale green
  * is gated again in the phase it was taken in; a green records the stamp its gate run read at its start, so a pipeline edited while the
- * gates ran never leaves a current green, and the run's gate-ran record carries what its gates reported of their cache; a moved target, a
+ * gates ran never leaves a current green, and the run's gate-ran record carries what its gates reported of their cache, beside one
+ * pipeline-step-ran record per step line it ran, a failed prepare step's included; a moved target, a
  * dirty checkout and a refused stamp each map to one outcome that cannot loop; and a job in landing whose commit the main line holds
  * finishes. `Airlocks.conflicts.spec.ts` holds a conflict and a slot left mid-merge, and `Airlocks.spec.ts` a group's slot. The folders
  * are real; git answers from the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`, one for each state of the
@@ -168,6 +169,51 @@ describe('the merged tree\'s gate', () => {
         tree: MERGED_TREE, outcome: 'passed', cached: false, cacheReports
       },
     ]);
+  });
+
+  test('logs each step line of the merged tree\'s run with its run time and the run\'s phase', async () => {
+    harness = harnessAnswering({ holdsMainLine: false });
+    recordPassOn(harness, TICKET_TREE);
+    harness.settings.gateStepRuns = {
+      phase: 'merge',
+      steps: [
+        {
+          stepKind: 'prepare', stepName: 'install', runMilliseconds: 61_000, ending: 'passed'
+        },
+        {
+          stepKind: 'gate', stepName: 'verify', runMilliseconds: 4200, ending: 'passed'
+        },
+      ],
+    };
+
+    await harness.slots.sweep();
+
+    expect(kindsLogged(harness, 'pipeline-step-ran').map((record) => record['fields'])).toEqual([
+      {
+        stepKind: 'prepare', stepName: 'install', phase: 'merge', runMilliseconds: 61_000, ending: 'passed'
+      },
+      {
+        stepKind: 'gate', stepName: 'verify', phase: 'merge', runMilliseconds: 4200, ending: 'passed'
+      },
+    ]);
+  });
+
+  test('logs a failed prepare step\'s run though the run logs no gate run', async () => {
+    harness = harnessAnswering();
+    harness.settings.gateOutcome = 'setup-failed';
+    harness.settings.gateStepRuns = {
+      phase: 'merge',
+      steps: [{
+        stepKind: 'prepare', stepName: 'install', runMilliseconds: 900_000, ending: 'time-bound'
+      }]
+    };
+
+    await harness.slots.sweep();
+
+    expect(kindsLogged(harness, 'gate-ran')).toEqual([]);
+    expect(kindsLogged(harness, 'pipeline-step-ran').map((record) => record['fields'])).toEqual([{
+      stepKind: 'prepare', stepName: 'install', phase: 'merge', runMilliseconds: 900_000, ending: 'time-bound'
+    }]);
   });
 
   test('gates the branch\'s own tree the gates last passed when its green is current in review but not in the merge phase', async () => {

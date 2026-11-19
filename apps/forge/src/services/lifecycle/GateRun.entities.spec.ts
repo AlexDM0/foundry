@@ -9,6 +9,7 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
+import type { PipelineStepRun }          from '../../lib/tracker-model/@types/Job.ts';
 import type { Pipeline, PipelineEntity } from '../../lib/tracker-model/@types/Pipeline.ts';
 import {
   GateRun,
@@ -16,6 +17,8 @@ import {
   type PipelineRunRequest,
   type PipelineVerdict
 } from './GateRun.ts';
+
+const LINE_RUN_MILLISECONDS = 1200;
 
 const CHECKOUT = '/example/repository/.example-worktrees/merge-main';
 
@@ -106,12 +109,25 @@ describe('a run of entities', () => {
 
   function passedOf(request: PipelineRunRequest): PipelineVerdict {
     const gatesRun = request.gates.map((gate) => gate.name);
-    return { outcome: 'passed', gatesRun, cacheReports: gatesRun.map((gateName) => ({ gateName, cacheReport: null })) };
+    return {
+      outcome:      'passed',
+      gatesRun,
+      cacheReports: gatesRun.map((gateName) => ({ gateName, cacheReport: null })),
+      stepRuns:     gatesRun.map((stepName) => ({
+        stepKind: 'gate', stepName, runMilliseconds: LINE_RUN_MILLISECONDS, ending: 'passed'
+      })),
+    };
+  }
+
+  function gateRunOf(entity: string, stepName: string, ending: PipelineStepRun['ending'] = 'passed'): PipelineStepRun {
+    return {
+      stepKind: 'gate', stepName, runMilliseconds: LINE_RUN_MILLISECONDS, ending, entity
+    };
   }
 
   const PARTS = GateRun.entityPipelinesOf(ENTITIES_PIPELINE, ['shop', 'design-system'], 'merge');
 
-  test('runs each part in turn as a single run from its home, and passes with every part\'s gates and cache reports', async () => {
+  test('runs each part in turn as a single run from its home, and passes with every part\'s gates, cache reports and step runs', async () => {
     const runner = recordingRunner(passedOf);
 
     const verdict = await GateRun.runEntityPipelines(RUN_REQUEST, PARTS, runner.run);
@@ -128,13 +144,21 @@ describe('a run of entities', () => {
       outcome:      'passed',
       gatesRun:     ['test', 'lint', 'verify'],
       cacheReports: [{ gateName: 'test', cacheReport: null }, { gateName: 'lint', cacheReport: null }, { gateName: 'verify', cacheReport: null }],
+      stepRuns:     [gateRunOf('shop', 'test'), gateRunOf('shop', 'lint'), gateRunOf('design-system', 'verify')],
     });
   });
 
   test('ends at the first part that does not pass, naming its entity, with the gates run so far', async () => {
     const runner = recordingRunner((request) => (request.projectPrefix === 'apps/shop'
       ? {
-        outcome: 'failed', gate: 'test', output: 'expected 2, received 3', gatesRun: ['test'], cacheReports: [{ gateName: 'test', cacheReport: null }]
+        outcome:      'failed',
+        gate:         'test',
+        output:       'expected 2, received 3',
+        gatesRun:     ['test'],
+        cacheReports: [{ gateName: 'test', cacheReport: null }],
+        stepRuns:     [{
+          stepKind: 'gate', stepName: 'test', runMilliseconds: LINE_RUN_MILLISECONDS, ending: 'failed'
+        }],
       }
       : passedOf(request)));
 
@@ -142,14 +166,20 @@ describe('a run of entities', () => {
 
     expect(runner.requests).toHaveLength(1);
     expect(verdict).toEqual({
-      outcome: 'failed', gate: 'test', output: 'expected 2, received 3', gatesRun: ['test'], cacheReports: [{ gateName: 'test', cacheReport: null }], entity: 'shop'
+      outcome:      'failed',
+      gate:         'test',
+      output:       'expected 2, received 3',
+      gatesRun:     ['test'],
+      cacheReports: [{ gateName: 'test', cacheReport: null }],
+      stepRuns:     [gateRunOf('shop', 'test', 'failed')],
+      entity:       'shop',
     });
   });
 
   test('names the entity of a prepare step that failed after an earlier part passed', async () => {
     const runner = recordingRunner((request) => (request.projectPrefix === 'packages/design-system'
       ? {
-        outcome: 'setup-failed', step: 'install', output: 'no lockfile', gatesRun: [], cacheReports: []
+        outcome: 'setup-failed', step: 'install', output: 'no lockfile', gatesRun: [], cacheReports: [], stepRuns: []
       }
       : passedOf(request)));
 
@@ -163,7 +193,9 @@ describe('a run of entities', () => {
   test('passes at once with no part to run', async () => {
     const runner = recordingRunner(passedOf);
 
-    expect(await GateRun.runEntityPipelines(RUN_REQUEST, [], runner.run)).toEqual({ outcome: 'passed', gatesRun: [], cacheReports: [] });
+    expect(await GateRun.runEntityPipelines(RUN_REQUEST, [], runner.run)).toEqual({
+      outcome: 'passed', gatesRun: [], cacheReports: [], stepRuns: []
+    });
     expect(runner.requests).toEqual([]);
   });
 });

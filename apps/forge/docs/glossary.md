@@ -812,6 +812,11 @@ fresh worktree of the main line, its result sent to the [pipeline agent](#pipeli
 The pure function that derives what runs next from the board and the Overseer's observations,
 `src/lib/tracker-model/Playbook.ts`. It reads no clock, file or process.
 
+### pipeline-step-ran
+
+The [log](#log) record of one pipeline step line that ran: its kind, name, phase, entity, run time and ending. It is
+recorded and shown only, as the pipeline facts' `stepRunTimes`.
+
 ### prepare step
 
 A `pipeline.json` step that sets a tree up before the gates run (`PipelineStep`).

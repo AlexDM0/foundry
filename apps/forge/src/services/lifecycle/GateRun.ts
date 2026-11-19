@@ -11,14 +11,20 @@ import { readFileSync, rmSync }    from 'node:fs';
 import { tmpdir }                  from 'node:os';
 import { basename, dirname, join } from 'node:path';
 
-import { GateReportFile }                                           from '../../adapters/pipeline/GateReportFile.ts';
-import type { ConfinedLine }                                        from '../../lib/gate-confinement/ConfinedLine.ts';
-import { GitProcess }                                               from '../../lib/git/GitProcess.ts';
-import { GitWorktrees }                                             from '../../lib/git/GitWorktrees.ts';
-import type { ShellExitReport, ShellLine, ShellRunRefusal }         from '../../lib/shell-line/ShellLine.ts';
-import type { ChildEndReason }                                      from '../../lib/talos/ChildRecord.ts';
-import type { GatePhase }                                           from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { GateCacheReport, GateCacheReportOfGate, GateOutcome } from '../../lib/tracker-model/@types/Job.ts';
+import { GateReportFile }                                   from '../../adapters/pipeline/GateReportFile.ts';
+import type { ConfinedLine }                                from '../../lib/gate-confinement/ConfinedLine.ts';
+import { GitProcess }                                       from '../../lib/git/GitProcess.ts';
+import { GitWorktrees }                                     from '../../lib/git/GitWorktrees.ts';
+import type { ShellExitReport, ShellLine, ShellRunRefusal } from '../../lib/shell-line/ShellLine.ts';
+import type { ChildEndReason }                              from '../../lib/talos/ChildRecord.ts';
+import type { GatePhase }                                   from '../../lib/tracker-model/@types/GatePhase.ts';
+import type {
+  GateCacheReport,
+  GateCacheReportOfGate,
+  GateOutcome,
+  PipelineStepKind,
+  PipelineStepRun
+} from '../../lib/tracker-model/@types/Job.ts';
 import type {
   EntityKey,
   Pipeline,
@@ -132,13 +138,19 @@ export interface PipelineRunRequest {
 /** A step's argv in its confinement, or the refusal that keeps it from running. */
 export type GateLineConfiner = (argv: readonly string[], confinement: GateConfinement) => ConfinedLine;
 
-/** `cacheReports` holds what each gate that ended reported of its cache, in run order. */
+/** What every run's verdict carries: each gate's cache report, and each step line that ran with its run time, both in run order. */
+interface PipelineRunRecords {
+  gatesRun:     string[];
+  cacheReports: GateCacheReportOfGate[];
+  stepRuns:     PipelineStepRun[];
+}
+
 export type PipelineVerdict =
-  | { outcome: 'setup-failed'; step: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
+  | { outcome: 'setup-failed'; step: string; output: string } & PipelineRunRecords
   /** `output` is the port's reason; the step never started. */
-  | { outcome: 'sandbox-unavailable'; step: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
-  | { outcome: 'passed'; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] }
-  | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string; gatesRun: string[]; cacheReports: GateCacheReportOfGate[] };
+  | { outcome: 'sandbox-unavailable'; step: string; output: string } & PipelineRunRecords
+  | { outcome: 'passed' } & PipelineRunRecords
+  | { outcome: Exclude<GateOutcome, 'passed'>; gate: string; output: string } & PipelineRunRecords;
 
 /** One entity's part of a gate run of entities: its prepare steps and the phase's gates, each step's folder read from its first home. */
 export interface EntityPipelineRun {
@@ -253,6 +265,18 @@ function runnableLineOf(
   const spawnRequest = shellLine.spawnRequestOf(line, place.statusFile);
   const confined = confinedLineOf(spawnRequest.argv, confinement);
   return confined.verdict === 'refused' ? confined : { verdict: 'runs', argv: confined.argv, verbatimArguments: spawnRequest.verbatimArguments };
+}
+
+/** Line ends that ran nothing to time: no Talos took the line, or its process never started. */
+const END_REASONS_OF_NO_RUN: ReadonlySet<GateProcessRun['endReason']> = new Set(['talos-unavailable', 'spawn-failed']);
+
+/** The step's run with its run time, as its `pipeline-step-ran` record keeps it; none for a line that never ran. */
+function stepRunsOf(stepKind: PipelineStepKind, stepName: string, run: Pick<GateProcessRun, 'endReason' | 'runMilliseconds'>, passed: boolean): PipelineStepRun[] {
+  if (END_REASONS_OF_NO_RUN.has(run.endReason)) return [];
+  const ending = run.endReason === 'time-bound' ? 'time-bound' : passed ? 'passed' : 'failed';
+  return [{
+    stepKind, stepName, runMilliseconds: run.runMilliseconds, ending
+  }];
 }
 
 /** The line's output, with a closing sentence when Talos stopped it at its bound or no Talos ran it. */
@@ -380,18 +404,21 @@ function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
  * `fix`. A phase with no gates passes at once: its prepare steps would prepare for nothing.
  */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {
-  if (request.gates.length === 0) return { outcome: 'passed', gatesRun: [], cacheReports: [] };
+  if (request.gates.length === 0) return {
+    outcome: 'passed', gatesRun: [], cacheReports: [], stepRuns: []
+  };
   const prepareConfinement = prepareConfinementOf(request.gates);
   const {
     shellLine, environment, runLine, onOutputLine
   } = request;
   const listeners = onOutputLine === undefined ? {} : { onOutputLine };
+  const stepRuns: PipelineStepRun[] = [];
   for (const [stepIndex, step] of request.prepare.entries()) {
     const statusFile = lineStatusFileOf();
     const stepDirectory = gateDirectoryOf(request.directory, step, request.projectPrefix);
     const line = runnableLineOf(request, step.run, { directory: stepDirectory, statusFile }, prepareConfinement);
     if (line.verdict === 'refused') return {
-      outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: [], cacheReports: []
+      outcome: 'sandbox-unavailable', step: step.name, output: line.reason, gatesRun: [], cacheReports: [], stepRuns
     };
     const run = await runGate({
       argv:              line.argv,
@@ -404,8 +431,9 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
       ...listeners,
     });
     const failureOutput = prepareFailureOutputOf(shellLine, run, request.directory);
+    stepRuns.push(...stepRunsOf('prepare', step.name, run, failureOutput === null));
     if (failureOutput !== null) return {
-      outcome: 'setup-failed', step: step.name, output: failureOutput, gatesRun: [], cacheReports: []
+      outcome: 'setup-failed', step: step.name, output: failureOutput, gatesRun: [], cacheReports: [], stepRuns
     };
   }
   const gatesRun: string[] = [];
@@ -415,7 +443,7 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     const directory = gateDirectoryOf(request.directory, gate, request.projectPrefix);
     const line = runnableLineOf(request, gate.run, { directory, statusFile }, gateConfinementOf(gate));
     if (line.verdict === 'refused') return {
-      outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun, cacheReports
+      outcome: 'sandbox-unavailable', step: gate.name, output: line.reason, gatesRun, cacheReports, stepRuns
     };
     const gateFolder = stepFolderOf(request.childFolder, 'gate', gateIndex);
     const releaseGateSlot = request.acquireGateSlot === undefined ? null : await request.acquireGateSlot(gateFolder);
@@ -439,16 +467,20 @@ async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict
     cacheReports.push({ gateName: gate.name, cacheReport: run.cacheReport });
     const trackedChanges = trackedChangesOf(request.directory);
     const outcome = gateOutcomeOf(shellLine, run, trackedChanges);
+    stepRuns.push(...stepRunsOf('gate', gate.name, run, outcome === 'passed'));
     if (outcome !== 'passed') return {
-      outcome, gate: gate.name, output: gateErrorOutputOf(shellLine, run, trackedChanges), gatesRun, cacheReports
+      outcome, gate: gate.name, output: gateErrorOutputOf(shellLine, run, trackedChanges), gatesRun, cacheReports, stepRuns
     };
   }
-  return { outcome: 'passed', gatesRun, cacheReports };
+  return {
+    outcome: 'passed', gatesRun, cacheReports, stepRuns
+  };
 }
 
 /**
  * Each entity's part in turn, as a single run from its first home folder and in its own part folder, through `runOnePipeline`; the first
- * part that does not pass ends the run, named by its entity. The gates run and their cache reports are every part's, in run order.
+ * part that does not pass ends the run, named by its entity. The gates run, their cache reports and the step runs are every part's, in run
+ * order, each step run named by its part's entity.
  */
 async function runEntityPipelines(
   request: EntityPipelinesRunRequest,
@@ -457,6 +489,7 @@ async function runEntityPipelines(
 ): Promise<EntityPipelinesVerdict> {
   const gatesRun: string[] = [];
   const cacheReports: GateCacheReportOfGate[] = [];
+  const stepRuns: PipelineStepRun[] = [];
   for (const [partIndex, {
     entityKey, prepare, gates, homePrefix
   }] of entityPipelines.entries()) {
@@ -465,11 +498,14 @@ async function runEntityPipelines(
     });
     gatesRun.push(...verdict.gatesRun);
     cacheReports.push(...verdict.cacheReports);
+    stepRuns.push(...verdict.stepRuns.map((stepRun) => ({ ...stepRun, entity: entityKey })));
     if (verdict.outcome !== 'passed') return {
-      ...verdict, gatesRun, cacheReports, entity: entityKey
+      ...verdict, gatesRun, cacheReports, stepRuns, entity: entityKey
     };
   }
-  return { outcome: 'passed', gatesRun, cacheReports };
+  return {
+    outcome: 'passed', gatesRun, cacheReports, stepRuns
+  };
 }
 
 export const GateRun = Object.freeze({
@@ -490,6 +526,7 @@ export const GateRun = Object.freeze({
   recordedStatusOf,
   runRefusalReasonOf,
   timeBoundLineOf,
+  stepRunsOf,
   stepFolderOf,
   entityPartFolderOf,
   runnableLineOf,
