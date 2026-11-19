@@ -401,7 +401,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 [Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
 
 <details open>
-<summary>20 sentences</summary>
+<summary>22 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -426,6 +426,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `so the Overseer did not start and no agent runs` | `talos-unavailable` | The Talos the Overseer started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start the Overseer again. | |
 | `and stays off; its crash log` | `forge-crashed` | The serving Overseer crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
 | `is off after a crash of` | `forge-off-after-crash` | A start by the login item, or a successor whose predecessor died during the Baton pass, found a crash of the generation before it (`of a Baton nothing names` when its presence record is unreadable and no Baton is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Baton, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#the-overseer) |
+| `This board has no crash log` | `no-crash-log` | `crash-log` found no crash log on the board, or none of the number it was given (` <n>; ` and the advice to ask for the newest). It wrote nothing. | Run `crash-log` with no number for the newest, or `oversee status` to see whether the forge is off after a crash. | [cli.md](../cli.md#after-a-crash) |
 
 </details>
 

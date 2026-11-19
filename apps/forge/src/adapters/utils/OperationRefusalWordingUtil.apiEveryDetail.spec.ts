@@ -325,6 +325,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'forge-off-after-crash':            {
     kind: 'forge-off-after-crash', crashedGeneration: 4, crashLogPath: '/example/overseer/crash-logs/crash-4.json', suspected: false
   },
+  'no-crash-log':        { kind: 'no-crash-log', number: 7 },
   'ticket-has-live-job': {
     kind: 'ticket-has-live-job', ticketId: '004', jobId: 'J3', state: 'running'
   },

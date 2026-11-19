@@ -158,22 +158,31 @@ function sameProcessIdentity(stored: ProcessIdentity | null, candidate: ProcessI
  * The same crash: the same generation of the same process. A crash whose process nothing names is the same only when the start read the same
  * evidence, as a second start of an unchanged board does.
  */
-function recordsTheSameCrash(stored: PresenceFileReading<CrashLogRecord>, candidate: CrashLogRecord): boolean {
+type CrashIdentity = Pick<CrashLogRecord, 'crashedGeneration' | 'crashedProcess' | 'classification'>;
+
+function recordsTheSameCrash(stored: PresenceFileReading<CrashLogRecord>, candidate: CrashIdentity): boolean {
   if (stored.verdict !== 'read') return false;
   const { record } = stored;
   if (record.crashedGeneration !== candidate.crashedGeneration || !sameProcessIdentity(record.crashedProcess, candidate.crashedProcess)) return false;
   return candidate.crashedProcess !== null || JSON.stringify(record.classification) === JSON.stringify(candidate.classification);
 }
 
+/** Only the newest log can be this crash's: another crash needs a start that served in between. */
+function newestLogOfTheSameCrash(files: OverseerFiles, crash: CrashIdentity): number | null {
+  const newestNumber = list(files).at(-1);
+  return newestNumber !== undefined && recordsTheSameCrash(read(files, newestNumber), crash) ? newestNumber : null;
+}
+
 /**
- * Only the newest log can be this crash's: another crash needs a start that served in between. The next number is one above the highest on
- * disk, so removing older logs frees no number; once the folder is emptied, numbering starts again at 1, as nothing names a removed log.
+ * The next number is one above the highest on disk, so removing older logs frees no number; once the folder is emptied, numbering starts
+ * again at 1, as nothing names a removed log.
  */
 function writeOnce(files: OverseerFiles, record: CrashLogRecord): CrashLogWrite {
   const text = `${JSON.stringify(record, null, 2)}\n`;
   for (let attempt = 0; attempt < CRASH_LOG_CREATION_ATTEMPTS; attempt++) {
+    const alreadyWritten = newestLogOfTheSameCrash(files, record);
+    if (alreadyWritten !== null) return { verdict: 'already-written', crashLogNumber: alreadyWritten };
     const newestNumber = list(files).at(-1) ?? 0;
-    if (newestNumber > 0 && recordsTheSameCrash(read(files, newestNumber), record)) return { verdict: 'already-written', crashLogNumber: newestNumber };
     const crashLogNumber = newestNumber + 1;
     if (createWholeFileAtomically(pathOf(files, crashLogNumber), text) === 'created') return { verdict: 'written', crashLogNumber };
   }
@@ -221,6 +230,7 @@ export const CrashLog = Object.freeze({
   activeJobOf,
   assemble,
   writeOnce,
+  newestLogOfTheSameCrash,
   list,
   read,
   logTailOf,

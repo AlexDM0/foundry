@@ -1,6 +1,8 @@
 import { LogUtil }                                      from '../../../src/adapters/utils/LogUtil.ts';
 import { LocalTimeUtil }                                from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { readingBoardOf }                               from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { overseerFilesIn }                              from '../../../src/services/overseer/OverseerFiles.ts';
+import { PresenceStatus }                               from '../../../src/services/overseer/PresenceStatus.ts';
 import { holdJournalFilePathOf, readHoldJournal }       from '../../../src/services/tracker/HoldJournal.ts';
 import { requireTracker }                               from '../../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                             from '../../../src/services/tracker/Workspace.ts';
@@ -16,6 +18,9 @@ import { humanStatusTextOf }                            from './StatusText.ts';
 const USAGE = `${PRODUCT_NAMES.PROGRAM} status [--json] [--full] [--tickets-only]`;
 
 const KNOWN_OPTION_NAMES = ['json', 'full', 'tickets-only'];
+
+const OFF_AFTER_A_CRASH_NOTICE = `The ${PRODUCT_NAMES.PROGRAM} is off after a crash: run \`${PRODUCT_NAMES.PROGRAM} crash-log\` to read why, `
+  + `\`${PRODUCT_NAMES.PROGRAM} start\` to start it again.`;
 
 /**
  * Sorted for display because `--at` backfills, so array order is not chronological: a stated exception
@@ -40,6 +45,9 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   if (holdJournalReading.verdict === 'malformed') {
     context.standardError(`Hold journal unreadable: ${holdJournalFilePathOf(workspace)}: ${holdJournalReading.reason}. `
       + 'Every write refuses until it is repaired or removed.');
+  }
+  if (PresenceStatus.forgeIsOffAfterACrash({ ports: context.platformPorts, files: overseerFilesIn(workspace.trackerDirectory), workspace })) {
+    context.standardError(OFF_AFTER_A_CRASH_NOTICE);
   }
   const {
     progress, pipelineReading, storedLog, listing, epicListing, draftListing

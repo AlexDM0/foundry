@@ -48,6 +48,7 @@ describe('the command table', () => {
       'await',
       'clear',
       'concurrency',
+      'crash-log',
       'decide',
       'decisions',
       'draft',

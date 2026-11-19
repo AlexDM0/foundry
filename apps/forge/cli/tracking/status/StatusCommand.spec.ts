@@ -1,6 +1,7 @@
 /**
  * What `agent-progress status` tells its two readers. The `--json` working view leaves settled work and the old log out and counts what it
  * left out; `--full` is the whole progress file plus the tickets. Both documents are the agent's contract, and both carry the concurrency block.
+ * A forge off after a crash adds one notice on standard error and leaves standard output as it was; a stopped forge adds none.
  */
 import { writeFileSync } from 'node:fs';
 import { join }          from 'node:path';
@@ -11,19 +12,24 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import type { ConfinementVerdict }                from '../../../src/lib/gate-confinement/GateConfinement.ts';
-import type { TicketFrontmatter }                 from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import type { WordedProgressDocument }            from '../../../src/shared/@types/WordedProgressDocument.ts';
-import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
-import { fakeGateConfinement }                    from '../../../src/testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                    from '../../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                        from '../../testing/ReadyTicketFiling.ts';
+import type { ConfinementVerdict }                         from '../../../src/lib/gate-confinement/GateConfinement.ts';
+import type { TicketFrontmatter }                          from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import type { PresenceEndingToWrite }                      from '../../../src/services/overseer/@types/PresenceRecord.ts';
+import { overseerFilesIn }                                 from '../../../src/services/overseer/OverseerFiles.ts';
+import { Presence }                                        from '../../../src/services/overseer/Presence.ts';
+import { requireWorkspace }                                from '../../../src/services/tracker/Workspace.ts';
+import type { WordedProgressDocument }                     from '../../../src/shared/@types/WordedProgressDocument.ts';
+import { PRODUCT_NAMES }                                   from '../../../src/shared/constants/ProductNames.ts';
+import { fakeGateConfinement }                             from '../../../src/testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                             from '../../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                  from '../../../src/testing/RecordedGit.ts';
+import { useRecordedProcessTable }                         from '../../../src/testing/RecordedProcessTable.ts';
+import { removeScratchDirectory }                          from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded, describeWhenRecorded } from '../../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }                    from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }          from '../../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                 from '../../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket }                                 from '../../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -70,6 +76,7 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
 }
 
 const recordedGit = useRecordedGit();
+const processTable = useRecordedProcessTable(nativePlatformPorts());
 
 beforeEach(async () => {
   repositoryDirectory = await createInitializedRecordedGitRepository('status-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
@@ -571,5 +578,50 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
     expect(full.ticketRows.map((entry) => entry.id)).toEqual(['001', '002']);
     expect(full.ticketRows[0]).toEqual(firstTicketRows);
     expect(full.ticketRows[1]).toMatchObject({ id: '002', row: { id: 3, status: 'abandoned' }, reviewBars: [] });
+  });
+});
+
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the notice of a forge off after a crash', () => {
+  const ENDED_GENERATION = 2;
+  const OFF_AFTER_A_CRASH_NOTICE = `The ${PRODUCT_NAMES.PROGRAM} is off after a crash: run \`${PRODUCT_NAMES.PROGRAM} crash-log\` to read why, `
+    + `\`${PRODUCT_NAMES.PROGRAM} start\` to start it again.`;
+
+  function plantAnEnding(ending: PresenceEndingToWrite): void {
+    const files = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+    Presence.writeStartedPresence(files, {
+      generation:          ENDED_GENERATION,
+      process:             processTable.bornProcess(),
+      codeVersion:         'code-example',
+      startOrigin:         'user',
+      startedAt:           '2026-09-18T20:00:00+00:00',
+      startClassification: null,
+    });
+    Presence.writeEnding(files, ENDED_GENERATION, ending, '2026-09-18T20:05:00+00:00');
+  }
+
+  async function statusOverTheProcessTable(commandLine: readonly string[]): Promise<ReturnType<typeof createCapturedCommandContext>> {
+    processTable.callerProcess();
+    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts: processTable.ports });
+    expect(await runCommandLineWithOverseerMoves(commandLine, context), context.errorText()).toBe(0);
+    return context;
+  }
+
+  test('is one line on standard error only, and standard output stays what it was', async () => {
+    const before = await statusOverTheProcessTable(['status', '--json']);
+    plantAnEnding({ kind: 'crashed', component: 'overseer', crashLogNumber: null });
+
+    const after = await statusOverTheProcessTable(['status', '--json']);
+
+    expect(after.errorText()).toContain(OFF_AFTER_A_CRASH_NOTICE);
+    expect(after.outputText()).toBe(before.outputText());
+    expect(after.outputText()).not.toContain('crash-log');
+  });
+
+  test('is absent for a forge stopped on purpose', async () => {
+    plantAnEnding({ kind: 'stopped' });
+
+    const context = await statusOverTheProcessTable(['status']);
+
+    expect(context.errorText()).not.toContain('off after a crash');
   });
 });

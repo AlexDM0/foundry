@@ -73,6 +73,8 @@ export type OperationRefusalDetail =
   | { kind: 'forge-crashed'; component: 'overseer' | 'talos'; crashLogPath: string | null }
   /** A start after a crash, or one suspected before a reboot, that the user did not make: it took no Baton and stays off. `null`: no Baton named it. */
   | { kind: 'forge-off-after-crash'; crashedGeneration: number | null; crashLogPath: string; suspected: boolean }
+  /** No crash log of that number, or none at all when `number` is `null`. */
+  | { kind: 'no-crash-log'; number: number | null }
   | { kind: 'ticket-has-live-job'; ticketId: string; jobId: string; state: string }
   | { kind: 'chart-range-bound-unreadable'; bound: 'from' | 'to'; written: string }
   | { kind: 'chart-range-backwards'; from: string; to: string }

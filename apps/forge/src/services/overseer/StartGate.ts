@@ -95,13 +95,30 @@ function crashLogNamedByTheEnding(files: OverseerFiles, presenceOfTheCrash: Pres
   return CrashLog.read(files, ending.crashLogNumber).verdict === 'read' ? ending.crashLogNumber : null;
 }
 
+function presenceOfTheCrashIn(evidence: StartEvidence, classification: StartClassificationVerdict): PresenceRecord | null {
+  const { presence } = evidence;
+  const presenceNamesTheCrash = presence.verdict === 'read' && !classification.evidence.newerBatonThanPresence
+    && presence.record.generation === classification.previousGeneration;
+  return presenceNamesTheCrash ? presence.record : null;
+}
+
+/** The log a start already wrote for this crash, or the crash path did, read without writing one: `oversee status` names it. */
+function loggedCrashLogOf(files: OverseerFiles, evidence: StartEvidence, classification: StartClassificationVerdict): number | null {
+  const crashedGeneration = classification.previousGeneration;
+  const presenceOfTheCrash = presenceOfTheCrashIn(evidence, classification);
+  return crashLogNamedByTheEnding(files, presenceOfTheCrash) ?? CrashLog.newestLogOfTheSameCrash(files, {
+    crashedGeneration,
+    crashedProcess: presenceOfTheCrash?.process ?? batonHolderOf(evidence, crashedGeneration),
+    classification,
+  });
+}
+
 /** Written once: the crash path, or an earlier start, may have logged this crash already, and that log stays. Answers the log's number. */
 function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, classification: StartClassificationVerdict): number {
   const { files, workspace, origin } = request;
   const crashedGeneration = classification.previousGeneration;
-  const { presence, heartbeat } = evidence;
-  const presenceNamesTheCrash = presence.verdict === 'read' && !classification.evidence.newerBatonThanPresence && presence.record.generation === crashedGeneration;
-  const presenceOfTheCrash = presenceNamesTheCrash ? presence.record : null;
+  const { heartbeat } = evidence;
+  const presenceOfTheCrash = presenceOfTheCrashIn(evidence, classification);
   const loggedByTheCrashPath = crashLogNamedByTheEnding(files, presenceOfTheCrash);
   if (loggedByTheCrashPath !== null) return loggedByTheCrashPath;
   const heartbeatOfTheCrash = heartbeat.verdict === 'read' && heartbeat.record.generation === crashedGeneration ? heartbeat.record : null;
@@ -139,4 +156,6 @@ function admit(request: StartGateRequest): StartGateVerdict {
   };
 }
 
-export const StartGate = Object.freeze({ evidenceOf, admit });
+export const StartGate = Object.freeze({
+  evidenceOf, crashToLogOf, loggedCrashLogOf, admit
+});

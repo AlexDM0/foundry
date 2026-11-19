@@ -867,6 +867,10 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
           `read why with \`${PRODUCT_NAMES.PROGRAM} crash-log\`, and start it yourself with \`${PRODUCT_NAMES.PROGRAM} start\`.`,
           'read why in its crash log, and start it yourself.',
         );
+    case 'no-crash-log':
+      if (detail.number === null) return 'This board has no crash log: no crash was logged since its crash logs were last removed.';
+      return `This board has no crash log ${detail.number}; `
+        + adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} crash-log\` with no number prints the newest.`, 'ask for none to read the newest.');
     case 'ticket-has-live-job':
       return `Ticket #${detail.ticketId} has job ${detail.jobId} live (${detail.state}), so it cannot be recorded delivered by hand. ${NOTHING_WAS_WRITTEN}`;
     case 'chart-range-bound-unreadable':

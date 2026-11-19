@@ -112,6 +112,8 @@ never carries it.
                               on the trimmed owner under its most common spelling, rows without an
                               owner apart; --json carries it as \`tokensByOwner\`, and then
                               \`ticketCountByStatus\`, every ticket counted per status.
+                              With the Overseer down after a crash, one line on standard error
+                              says to read crash-log and to start it again; the JSON is unchanged.
 
   task add "<name>"           Add a Gantt row. --start marks it in-progress at --at (default
       [--owner <who>]         now), --ticket links it to a ticket that has no row of its own, --note
@@ -646,7 +648,15 @@ never carries it.
                               paused; oversee resume undoes a pause, and \`resume\` resumes
                               interrupted work. Works with the Overseer up or down.
   oversee status [--json]     The Baton, the URL, the runtime state, paused or not, and the code
-                              version on disk against the live Overseer's. Read-only, no lock.
+                              version on disk against the live Overseer's, with presence: down, it
+                              says when it stays down after a crash and names the crash log;
+                              live, the last start's kind, the heartbeat, the supervision and the
+                              abandoned passes. --json adds {presence}. Read-only, no lock.
+  crash-log [<number>] [--json]
+                              Print the crash log of that number, or the newest: the component,
+                              the start's classification and its evidence, the error, the jobs,
+                              then the log tail. Reads files only, with the Overseer up or down.
+                              Refused no-crash-log at exit 1 when there is none.
 
   version [--json]            Print the code version on disk and the install version:
                               {answerVersion, codeVersion, installVersion, contracts,

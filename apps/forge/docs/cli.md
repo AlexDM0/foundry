@@ -24,7 +24,7 @@ Look a command up by its first word, or a stored file by its name.
 | `pipeline` | [Pipeline setup](#pipeline-setup) |
 | `review-stats` | [Review statistics](#review-statistics) |
 | `hook`, `usage` | [Hooks and usage](#hooks-and-usage) |
-| `oversee`, `start`, `stop`, `open`, `version`, `login-item` | [The Overseer](#the-overseer) |
+| `oversee`, `start`, `stop`, `open`, `version`, `login-item`, `crash-log` | [The Overseer](#the-overseer) |
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
 | `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
@@ -438,7 +438,7 @@ standing. With no live Overseer it does nothing more.
 
 | command | what it does |
 |---|---|
-| `status [--json] [--full] [--tickets-only]` | The project, the counts, the rows that are not delivered or abandoned, and the last five log entries newest first, then the Next line. [The flags](#status-flags) and [the `--json` documents](#what-status---json-holds) are below. |
+| `status [--json] [--full] [--tickets-only]` | The project, the counts, the rows that are not delivered or abandoned, and the last five log entries newest first, then the Next line. With the forge [off after a crash](#after-a-crash), one line on standard error says so ("The forge is off after a crash: run `forge crash-log` to read why, `forge start` to start it again."); standard output is unchanged. [The flags](#status-flags) and [the `--json` documents](#what-status---json-holds) are below. |
 | `ticket list [--status <s>] [--priority <p>] [--json]` | The tickets with their status, priority, type and row id, the model and effort after the title where the ticket names them, and "waiting on #003" where a dependency is unsettled. `--status` and `--priority` narrow the listing. `--json` carries no bodies. |
 | `ticket show <id> [--json]` | One ticket: its frontmatter, its priority, its model and effort where it names them, its body, and always its file path, which an agent needs to edit that body. Once the ticket started it says whether the body changed since: a hash of the body now against the stored `claimedBodyHash`, never a clock; under `--json`, and in `status --json` and `ticket list --json`, that is `bodyChangedSinceClaim`, absent on a ticket never started. |
 
@@ -1349,7 +1349,8 @@ open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word,
 | `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. The board's [Talos](glossary.md#talos) is left running, and stops the agents at the end of their turn once the lease the stopped Overseer no longer renews ends; `--now` also has Talos stop every install, prepare, gate and merge line, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. |
 | `oversee restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
 | `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
-| `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, and the warning of a failed Baton pass. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
+| `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, the warning of a failed Baton pass, and the forge's presence: down, whether it is off after a crash and its crash log; live, its last start, heartbeat, supervision and abandoned passes. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
+| `crash-log [<number>] [--json]` | Print the crash log `<data>/overseer/crash-logs/crash-<number>.json`, the newest when no number is given: its heading (number, path, when and by whom it was recorded), the component and the crashed Baton generation, the classification and its evidence, the error and its stack, the jobs as the crash found them, then the tail of `overseer.log`. `--json` prints the stored log with `number` and `path` added. It reads files only, takes no lock and writes nothing, so it works with the forge up or down. With no log, or none of that number, it is refused `no-crash-log` at exit 1. [After a crash](#after-a-crash) has the whole path. |
 | `open [--no-browser]` | Open the live Overseer's URL in the default browser (`open` on macOS, `%SystemRoot%\System32\rundll32.exe url.dll,FileProtocolHandler` by absolute path on Windows, `xdg-open` on Linux and elsewhere, each detached) and print it, when the newest Baton in `<data>/overseer/` names a live process. With none live, it first starts the Overseer detached, as `oversee --detach` does, with the same checks and refusals, and says so on standard error; the Overseer keeps running after `open` ends. A started Overseer gone again before `open` reads its Baton is refused `overseer-down` at exit 1. The URL carries a one-time session code in its fragment, `#session=<code>`, asked for with the token; the Bridge exchanges it once for the session cookie every data route needs ([Browser sessions](reference/overseer-api.md#browser-sessions)). The opener gets only the path of an owner-only redirect file beside the token, and `open` stays until the code's life ends, or a stop signal comes, to remove it; it prints the plain URL, since the code is the launched browser's. `--no-browser` launches nothing, writes no redirect file and prints the URL with its code, which works once within the code's life (30 seconds), then exits. Each step (the Overseer found or started, the browser launched, the wait and its end) is reported on standard error; standard output holds only the URL. An Overseer that gives no code within 10 seconds is reported on standard error and the plain URL opened. It takes no lock and writes nothing in the board itself; an Overseer it starts writes what `oversee` writes. |
 | `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Overseer API contracts this program serves as `GET /api/identity` names them, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
 | `start [--started-by user\|login-item] [--repository <path>] [--port <n>] [--json]` | Start the board's Overseer detached, as `open` does, with the same checks and refusals, and open no browser. `--started-by` names who started it, `user` when absent, and is passed to the detached Overseer; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With an Overseer live it starts nothing. It returns only once the Overseer's API answers; a live Overseer whose API does not answer within the start's tries is refused `overseer-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Overseer's identity names them. `--repository` starts the Overseer of that repository, and `--port` binds the port given, `0` any free one, as `oversee` does. A second `start` answers `started: false` at exit 0. |
@@ -1376,6 +1377,24 @@ right after `overseer-started`).
 
 `presence.json` is the newest generation's start, abandoned passes and ending (`stopped`, `handed-over` or `crashed`),
 written whole by the Overseer; `heartbeat.json` is its newest beat, rewritten at each lease renewal Talos confirmed.
+
+#### After a crash
+
+A serving forge that crashes (an uncaught error in the Overseer, or its Talos lost while the machine stayed up) writes
+its crash log, writes its presence ending `crashed`, stops renewing Talos's lease, so its agents end `lease-ended` and
+wait, and exits 2, refused `forge-crashed`. It stays off until the user starts it. The command line alone carries the
+whole path:
+
+1. `oversee status` says the forge is off after a crash of Baton `<n>`, with the crash log's number and path, and
+   `--json` carries `presence.state` `off-after-crash`. It classifies as a start by the user would, and writes nothing:
+   before any start or the crash itself wrote a crash log, it says the next start writes one. `status` prints one
+   line on standard error.
+2. `crash-log` prints the newest crash log, `crash-log <number>` an older one.
+3. `start` (origin `user`) serves, and records the start as `crashed`, or `machine-went-down` with `crashSuspected`.
+   No interrupted work starts by itself.
+4. `resume --all` resumes every job that waits for an instruction, `resume --network-outage` every job that ended on a
+   network outage, and `resume <J>` or `resume <T>` one job or ticket ([`resume`](#resume)). `job fresh <J>` starts a
+   fresh agent on the job's worktree instead, and `job stop <J>` gives the work up.
 
 #### Where the secrets live
 
@@ -1442,7 +1461,20 @@ nothing, and the successor connects to the same Talos. The Overseer never restar
 
 The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-by-install-change`, `passing-baton`;
 `starting` while the API does not answer yet, or `down`. `--json` prints
-`{state, paused, url, baton, codeVersionOnDisk, codeVersionInMemory, notices, batonPassWarning}`.
+`{state, paused, url, baton, codeVersionOnDisk, codeVersionInMemory, notices, batonPassWarning, presence}`.
+
+`presence` is `{state, lastStart, crashLog, heartbeat, supervision, abandonedPasses}`:
+
+- `state`: `serving`, `starting`, `down`, or `off-after-crash` when a start now would classify `crashed`, or
+  `machine-went-down` with `crashSuspected`.
+- `lastStart`: the classification `presence.json` records for the last start, or `null`.
+- `crashLog`: `{number, generation, path, suspected}` of the crash a down forge is off after, or of the crash the live
+  forge's last start followed; `null` when there is none, or none is written yet.
+- `heartbeat`: `{heartbeatVersion, generation, sequence, at}`, the live generation's newest beat, or with the forge
+  down the last beat stored.
+- `supervision`: `supervising`, `stopped` (the lease ended), `checking-after-a-gap`, `not-yet-renewed`, or `no-talos`
+  when no Talos runs, from Talos's newest record.
+- `abandonedPasses`: `{inARow, last}` from `presence.json`, `null` when it records no such generation.
 
 An install version that differs from the Overseer's holds launches, the stored `overseerState` untouched, with the
 notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Here both say to run

@@ -7,7 +7,8 @@
  * past what Windows gives. `oversee restart` over an Overseer found dead keeps its port, also one dead before the hand-over, which it closes, over
  * the recorded process table. `--started-by` takes only a start by hand, never beside `--successor-of`, and the registry's presence key
  * is written in each state and kept by a call without one. A stop ends presence `stopped` and a release `handed-over`, each also in the
- * registry, the handover's ending written before the crash path lets go of the generation. An Overseer that runs is held by
+ * registry, the handover's ending written before the crash path lets go of the generation. `oversee status` of a forge down after a crash
+ * names the crashed Baton and its crash log, and `--json` carries the presence block. An Overseer that runs is held by
  * `cli/overseer/OverseerCommand.integration.spec.ts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
@@ -24,6 +25,7 @@ import { createProgressPageStubWriter, progressPageStubTextOf }                 
 import type { PlatformPorts }                                                   from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessStopStage }                                                from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { Baton }                                                                from '../../src/services/overseer/Baton.ts';
+import { CrashLog }                                                             from '../../src/services/overseer/CrashLog.ts';
 import { overseerFilesIn }                                                      from '../../src/services/overseer/OverseerFiles.ts';
 import { Presence }                                                             from '../../src/services/overseer/Presence.ts';
 import { registerWithTheMonitor }                                               from '../../src/services/tracker/MonitorRegistration.ts';
@@ -640,5 +642,85 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run pause an
     };
     expect(await pausedFlagsAfter(['oversee', 'resume'])).toEqual({ header: false, runStatus: false });
     expect(await pausedFlagsAfter(['oversee', 'pause'])).toEqual({ header: true, runStatus: true });
+  });
+});
+
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'oversee status after a crash', () => {
+  const CRASHED_GENERATION = 3;
+
+  function plantACrash(): { crashLogPath: string } {
+    const files = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+    const crashed = processTable.bornProcess();
+    const { crashLogNumber } = CrashLog.writeOnce(files, CrashLog.assemble({
+      crashedGeneration: CRASHED_GENERATION,
+      component:         'overseer',
+      suspected:         false,
+      classification:    null,
+      recordedAt:        '2026-09-18T20:05:00+00:00',
+      recordedBy:        { generation: CRASHED_GENERATION, startOrigin: 'user', crashPath: true },
+      error:             {
+        origin: 'pass', name: 'ExampleError', message: 'an example crash', stack: null
+      },
+      presence:      null,
+      batonHolder:   crashed,
+      heartbeat:     null,
+      activeJobs:    [],
+      talosChildren: null,
+      logTail:       [],
+    }));
+    Presence.writeStartedPresence(files, {
+      generation:          CRASHED_GENERATION,
+      process:             crashed,
+      codeVersion:         'code-example',
+      startOrigin:         'user',
+      startedAt:           '2026-09-18T20:00:00+00:00',
+      startClassification: null,
+    });
+    Presence.writeEnding(files, CRASHED_GENERATION, { kind: 'crashed', component: 'overseer', crashLogNumber }, '2026-09-18T20:05:00+00:00');
+    return { crashLogPath: CrashLog.pathOf(files, crashLogNumber) };
+  }
+
+  function statusContext() {
+    processTable.callerProcess();
+    return createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts: processTable.ports });
+  }
+
+  test('prints that the forge is off after a crash of its Baton, with the crash log\'s number and path, and how to start and resume', async () => {
+    const { crashLogPath } = plantACrash();
+    const context = statusContext();
+
+    expect(await runCommandLine(['oversee', 'status'], context), context.errorText()).toBe(0);
+
+    expect(context.outputText()).toContain(`${PRODUCT_NAMES.PROGRAM}: off after a crash of Baton ${CRASHED_GENERATION} (crash log 1, ${crashLogPath})`);
+    expect(context.outputText()).toContain(`\`${PRODUCT_NAMES.PROGRAM} start\`, then resume the interrupted work with \`${PRODUCT_NAMES.PROGRAM} resume --all\``);
+    expect(context.outputText()).toContain('overseer: down');
+  });
+
+  test('--json carries the presence block of a forge off after a crash, and writes no crash log of its own', async () => {
+    const { crashLogPath } = plantACrash();
+    const context = statusContext();
+
+    expect(await runCommandLine(['oversee', 'status', '--json'], context), context.errorText()).toBe(0);
+
+    const { state, presence } = JSON.parse(context.outputText()) as { state: string; presence: Record<string, unknown> };
+    expect(state).toBe('down');
+    expect(presence).toMatchObject({
+      state:     'off-after-crash',
+      lastStart: null,
+      crashLog:  {
+        number: 1, generation: CRASHED_GENERATION, path: crashLogPath, suspected: false
+      },
+      heartbeat:   null,
+      supervision: 'no-talos',
+    });
+    expect(CrashLog.list(overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory))).toEqual([1]);
+  });
+
+  test('a board no forge ran on is down, not off after a crash, and prints no crash line', async () => {
+    const context = statusContext();
+
+    expect(await runCommandLine(['oversee', 'status', '--json'], context), context.errorText()).toBe(0);
+
+    expect((JSON.parse(context.outputText()) as { presence: Record<string, unknown> }).presence).toMatchObject({ state: 'down', crashLog: null });
   });
 });

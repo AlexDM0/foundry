@@ -8,6 +8,7 @@ import { Baton }                                                                
 import { CodeVersion }                                                            from '../../src/services/overseer/CodeVersion.ts';
 import { overseerFilesIn, type OverseerFiles }                                    from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                                from '../../src/services/overseer/OverseerPort.ts';
+import { PresenceStatus }                                                         from '../../src/services/overseer/PresenceStatus.ts';
 import { requireProgressFile }                                                    from '../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }                                                  from '../../src/shared/@types/ControlCommand.ts';
@@ -26,6 +27,7 @@ import { type StoppedOverseerRequest, runOverseerInTheForeground }              
 import { OverseerRemote, type RuntimeStopKind, type StopOutcome }                 from './OverseerRemote.ts';
 import { stopAndCloseTheLiveOverseer, stopTheOverseer }                           from './OverseerStop.ts';
 import { OverseerWording }                                                        from './OverseerWording.ts';
+import { PresenceWording }                                                        from './PresenceWording.ts';
 import { startOriginArgumentsOf, startOriginIn }                                  from './StartGateAdmission.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
@@ -155,6 +157,10 @@ async function printOverseerStatus(commandArguments: ArgumentParser, context: Co
   const live            = newest.verdict === 'live' ? newest : null;
   const overseerState     = live === null ? null : OverseerWording.overseerStateOf(await OverseerRemote.stateOf(live.record));
   const state           = live === null ? 'down' : overseerState?.runtimeState ?? (await OverseerRemote.identityAnswers(live.record) ? 'serving' : 'starting');
+  const presenceReading = PresenceStatus.readingOf(
+    { ports: context.platformPorts, files: overseerFilesIn(workspace.trackerDirectory), workspace },
+    live === null ? null : { generation: live.generation, answersAlready: state !== 'starting' },
+  );
   const entity = {
     state,
     paused:              storedOverseerState === 'paused',
@@ -164,13 +170,19 @@ async function printOverseerStatus(commandArguments: ArgumentParser, context: Co
     codeVersionInMemory: live?.record.codeVersion ?? null,
     notices:             overseerState?.notices ?? [],
     batonPassWarning:    overseerState?.batonPassWarning ?? null,
+    presence:            presenceReading.presence,
   };
   const pausedText = entity.paused ? 'paused' : 'not paused';
   const lines = live === null
-    ? [`overseer: down; ${pausedText}`, `code on disk: ${codeVersionOnDisk}`]
+    ? [
+      ...(presenceReading.crash === null ? [] : [PresenceWording.offAfterACrashLineOf(presenceReading.crash, presenceReading.presence.crashLog)]),
+      `overseer: down; ${pausedText}`,
+      `code on disk: ${codeVersionOnDisk}`,
+    ]
     : [
       `overseer: ${state} at ${live.record.url}, process ${live.record.processId}, Baton ${live.generation}; ${pausedText}`,
       `code on disk: ${codeVersionOnDisk}; in memory: ${live.record.codeVersion}${live.record.codeVersion === codeVersionOnDisk ? '' : ` (new code: run \`${PROGRAM} update\`)`}`,
+      ...PresenceWording.livePresenceLinesOf(presenceReading.presence),
       ...entity.notices.map((notice) => `notice: ${OverseerWording.noticeTextOf(notice)}`),
       ...(entity.batonPassWarning === null ? [] : [`warning: ${OverseerWording.batonPassWarningTextOf(entity.batonPassWarning)}`]),
     ];
