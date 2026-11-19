@@ -21,7 +21,7 @@ function parentScriptSpawningWith(spawnOptions: string): string {
   ].join(' ');
 }
 
-/** The lines of a child script that start a sleeper leading a group of its own and print its process id, as a Bash tool command does. */
+/** The lines of a child script that start a sleeper leading a group of its own and print its process id, as an agent's shell command does. */
 export const SPAWN_DETACHED_SLEEPER_LINES = [
   `const child = Bun.spawn([process.execPath, "-e", ${JSON.stringify(SLEEP_LINE)}], ${DETACHED_SPAWN_OPTIONS});`,
   'child.unref();',
@@ -60,7 +60,7 @@ export function parentOfSleepingChild(): Promise<ProcessDouble> {
   return startedDouble(parentScriptSpawningWith(SPAWN_OPTIONS));
 }
 
-/** `reportedProcessId` is the child, leading a group of its own, as a Bash tool command does below a session. */
+/** `reportedProcessId` is the child, leading a group of its own, as an agent's shell command does below a session. */
 export function parentOfDetachedChild(): Promise<ProcessDouble> {
   return startedDouble(parentScriptSpawningWith(DETACHED_SPAWN_OPTIONS));
 }

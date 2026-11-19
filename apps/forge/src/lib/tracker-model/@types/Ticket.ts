@@ -14,7 +14,7 @@ export type TicketPriority = 'low' | 'normal' | 'high';
 export type TicketSize     = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 export type LineEnding    = '\n' | '\r\n';
 
-/** The model aliases a Claude Code agent definition's `model` key accepts, as an agent working a ticket runs on. */
+/** The tiers an agent adapter maps to its own models, as an agent working a ticket runs on. */
 export type AgentModel  = 'haiku' | 'sonnet' | 'opus' | 'fable';
 export type AgentEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 

@@ -139,7 +139,7 @@ beforeEach(async () => {
     mainLine:          RECORDED_FLOW_MAIN_LINE,
     log:               (line) => overseerLog.push(line),
     decisionWordingOf: (draft) => OverseerWording.decisionWordingOf(draft, LISTENING_SESSION.credentials),
-    launchTextOf:      OverseerWording.launchTextOf,
+    launchTextOf:      (job, facts) => OverseerWording.launchTextOf(job, facts, LISTENING_SESSION.promptFills),
   });
 });
 

@@ -55,7 +55,7 @@ async function askDraft(commandArguments: ArgumentParser, context: CommandContex
     throw refusalOf(`${PRODUCT_NAMES.PROGRAM} draft ask needs --context <text>, what the user needs to answer it.`);
   }
   const recommended = commandArguments.option('recommended');
-  if (recommended === undefined) throw refusalOf(`${PRODUCT_NAMES.PROGRAM} draft ask needs --recommended <letters>, the option or options Claude recommends.`);
+  if (recommended === undefined) throw refusalOf(`${PRODUCT_NAMES.PROGRAM} draft ask needs --recommended <letters>, the option or options the agent recommends.`);
   const recommendedLetters = recommended.split(LETTER_LIST_SEPARATOR).map((letter) => letter.trim()).filter((letter) => letter !== '');
 
   await changeDraftContent(commandArguments, context, {

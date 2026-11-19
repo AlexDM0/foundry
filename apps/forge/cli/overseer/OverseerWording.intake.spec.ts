@@ -12,7 +12,10 @@ import type { JobLaunchFacts }              from '../../src/services/overseer/Dr
 import { type IntakeFacts, IntakeSessions } from '../../src/services/overseer/IntakeSessions.ts';
 import { resourceFilePathOf }               from '../../src/shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                    from '../../src/shared/constants/ProductNames.ts';
+import { fakeAgentAdapter }                 from '../../src/testing/FakeAgentAdapter.ts';
 import { OverseerWording }                  from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 const PRODUCT_OWNER_INSTRUCTIONS = readFileSync(resourceFilePathOf('prompts', 'ProductOwnerPrompt.md'), 'utf8');
 
@@ -33,7 +36,11 @@ function intakeOf(text: string, drafts: IntakeFacts['drafts'] = [], carriedAnswe
   };
 }
 
-function launchFactsWith(intake: JobLaunchFacts['intake']): JobLaunchFacts {
+function launchFactsWith(
+  intake: JobLaunchFacts['intake'],
+  confinement: JobLaunchFacts['confinement'] = 'confined',
+  instructions: string = PRODUCT_OWNER_INSTRUCTIONS,
+): JobLaunchFacts {
   return {
     tickets:                [],
     checksLine:             null,
@@ -42,8 +49,8 @@ function launchFactsWith(intake: JobLaunchFacts['intake']): JobLaunchFacts {
     intake,
     airlock:                null,
     assistant:              null,
-    instructions:           PRODUCT_OWNER_INSTRUCTIONS,
-    confinement:            'confined',
+    instructions,
+    confinement,
   };
 }
 
@@ -68,7 +75,7 @@ const SESSION_PROFILE: WorkerProfile = {
 
 describe('the product owner launch', () => {
   test('the first line is the agent\'s line that runs the product-owner bundle on the request, and nothing else is in a first intake\'s message', () => {
-    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('Alex Example asks for a basket')));
+    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('Alex Example asks for a basket')), PROMPT_FILLS);
 
     expect(text.firstMessage).toBe(`run-bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} with Alex Example asks for a basket`);
     expect(text.roleBrief).toContain('job J3');
@@ -77,12 +84,30 @@ describe('the product owner launch', () => {
   test('a fresh session taking over reads the drafts filed so far and the answers given, below the same first line', () => {
     const drafts = [{ id: '004', title: 'Example basket' }];
     const carriedAnswers = [{ 'Which currency?': 'Euro' }];
-    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('A basket', drafts, carriedAnswers)));
+    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('A basket', drafts, carriedAnswers)), PROMPT_FILLS);
     const lines = text.firstMessage.split('\n');
 
     expect(lines[0]).toBe(`run-bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} with A basket`);
     expect(lines).toContain('- #004 Example basket');
     expect(text.firstMessage).toContain('- Which currency?\n  Answer: Euro');
+  });
+
+  test.each(['ProductOwnerPrompt.md', 'BuiltInBriefProductOwner.md'])('%s claims shell commands reach no network where a sandbox enforces it', (templateName) => {
+    const template = readFileSync(resourceFilePathOf('prompts', templateName), 'utf8');
+    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('A basket'), 'confined', template), PROMPT_FILLS);
+
+    expect(text.roleBrief).toContain('Shell commands reach no network.');
+    expect(text.roleBrief).not.toContain('Do not use the network from a shell command.');
+    expect(text.roleBrief).not.toContain('{{productOwnerShellNetwork}}');
+  });
+
+  test.each(['ProductOwnerPrompt.md', 'BuiltInBriefProductOwner.md'])('%s gives the shell network limit as a rule in a session unconfined by design', (templateName) => {
+    const template = readFileSync(resourceFilePathOf('prompts', templateName), 'utf8');
+    const text = OverseerWording.launchTextOf(PRODUCT_OWNER_JOB, launchFactsWith(intakeOf('A basket'), 'unconfined-by-design', template), PROMPT_FILLS);
+
+    expect(text.roleBrief).toContain('Do not use the network from a shell command.');
+    expect(text.roleBrief).not.toContain('Shell commands reach no network.');
+    expect(text.roleBrief).not.toContain('{{productOwnerShellNetwork}}');
   });
 
   // `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` holds this profile's rendering: no disallowed tool, slash commands on.

@@ -9,7 +9,10 @@
 import { expect, test } from 'bun:test';
 
 import type { SetupMessage } from '../../src/shared/@types/ControlContext.ts';
+import { fakeAgentAdapter }  from '../../src/testing/FakeAgentAdapter.ts';
 import { OverseerWording }   from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 test.each<[SetupMessage, string]>([
   [{
@@ -41,7 +44,7 @@ test.each<[SetupMessage, string]>([
     'User discarded all proposed changes to the draft pipeline (revision 7).\n\nNo value of the draft changed.',
   ],
 ])('%o is worded for the agent', (message, wording) => {
-  expect(OverseerWording.setupMessageWordingOf(message)).toBe(wording);
+  expect(OverseerWording.setupMessageWordingOf(message, PROMPT_FILLS)).toBe(wording);
 });
 
 test('a constitution edit carries the whole new text and the new SOURCES ticks, so the agent keeps User\'s change without a read', () => {
@@ -51,7 +54,7 @@ test('a constitution edit carries the whole new text and the new SOURCES ticks, 
     revision:    4,
     markdown:    '## Rules\n\n- Example rule with ``` a fence.\n',
     draftedFrom: { contributing: true, research: false, installedDefault: true },
-  });
+  }, PROMPT_FILLS);
   expect(wording).toBe([
     'User changed the constitution (revision 4). Keep User\'s change when you change the constitution.',
     'The full text is now:',
@@ -64,11 +67,11 @@ test('a constitution edit carries the whole new text and the new SOURCES ticks, 
 test('a constitution edit of the ticks alone carries no text, and one of the text alone no ticks', () => {
   const ticksOnly = OverseerWording.setupMessageWordingOf({
     kind: 'constitution-edited', setupId: 'S1', revision: 5, markdown: null, draftedFrom: { contributing: false, research: false, installedDefault: false }
-  });
+  }, PROMPT_FILLS);
   expect(ticksOnly).toBe('User changed the constitution (revision 5). Keep User\'s change when you change the constitution.\n\nThe SOURCES ticks now select: none.');
   const textOnly = OverseerWording.setupMessageWordingOf({
     kind: 'constitution-edited', setupId: 'S1', revision: 6, markdown: 'Example text.', draftedFrom: null
-  });
+  }, PROMPT_FILLS);
   expect(textOnly).not.toContain('SOURCES');
   expect(textOnly).toContain('```markdown\nExample text.\n```');
 });
@@ -84,7 +87,7 @@ test('a draft edit carries each changed field with its value now as JSON, so the
       { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
       { field: 'phase-order:build', value: ['lint', 'test'] },
     ],
-  });
+  }, PROMPT_FILLS);
   expect(wording).toBe([
     'User changed the draft pipeline (revision 5): gate:lint, phase-order:build. Keep User\'s change when you propose a change.',
     '',
@@ -102,7 +105,7 @@ test.each([
 ] as const)('a Continue from %s carries the block of the %s step', (step, currentStep, heading) => {
   const wording = OverseerWording.setupMessageWordingOf({
     kind: 'step-continued', setupId: 'S1', mode: 'setup', step, currentStep
-  });
+  }, PROMPT_FILLS);
 
   expect(wording.startsWith(`User completed the ${step} step. The current step is ${currentStep}.\n\n${heading}\n`)).toBe(true);
   expect(wording).not.toContain('{{');
@@ -125,13 +128,13 @@ test.each<[SetupMessage, string]>([
     'User resumed the setup. Main moved 3 commits. These paths changed: package.json, Makefile. Check the findings that name them.',
   ],
 ])('a resume is worded as %o', (message, wording) => {
-  expect(OverseerWording.setupMessageWordingOf(message)).toBe(wording);
+  expect(OverseerWording.setupMessageWordingOf(message, PROMPT_FILLS)).toBe(wording);
 });
 
 test('a check\'s request names the gates the Overseer runs', () => {
   expect(OverseerWording.setupMessageWordingOf({
     kind: 'check-requested', setupId: 'S1', draftRevision: 3, gateNames: ['tests', 'lint']
-  })).toBe('User asked for a check of draft revision 3. The Overseer runs these gates two times in a fresh worktree of main: tests, lint. '
+  }, PROMPT_FILLS)).toBe('User asked for a check of draft revision 3. The Overseer runs these gates two times in a fresh worktree of main: tests, lint. '
     + 'You get the result in a later message. Do not run a gate or a script yourself.');
 });
 
@@ -157,7 +160,7 @@ test('a checked result gives each gate\'s verdict, its runs and the end of its o
       },
       reason: null,
     },
-  });
+  }, PROMPT_FILLS);
 
   expect(wording).toContain('draft revision\n3 changes or adds');
   expect(wording).toContain(`at commit ${'c'.repeat(40)}`);
@@ -175,5 +178,5 @@ test('a check that could not run says why', () => {
     check:   {
       draftRevision: 3, gateNames: ['tests'], state: 'cannot-run', result: null, reason: 'example sandbox tool missing'
     },
-  })).toBe('User\'s check of draft revision 3 could not run: example sandbox tool missing. Tell User. Do not run a gate or a script yourself.');
+  }, PROMPT_FILLS)).toBe('User\'s check of draft revision 3 could not run: example sandbox tool missing. Tell User. Do not run a gate or a script yourself.');
 });

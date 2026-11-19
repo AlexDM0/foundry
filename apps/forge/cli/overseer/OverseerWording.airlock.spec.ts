@@ -14,7 +14,10 @@ import type { Job }                          from '../../src/lib/tracker-model/@
 import type { AirlockFacts, JobLaunchFacts } from '../../src/services/overseer/DrivePass.ts';
 import { DISPATCH_PROTOCOL }                 from '../../src/shared/constants/DispatchProtocol.ts';
 import { RED_HANDOFF_RESUME_CALL_BUDGET }    from '../../src/shared/constants/OverseerLimits.ts';
+import { fakeAgentAdapter }                  from '../../src/testing/FakeAgentAdapter.ts';
 import { OverseerWording }                   from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 const CONFLICT: AirlockFacts = {
   mergePlacement:  'airlock',
@@ -49,7 +52,7 @@ const RED: AirlockFacts = {
 
 const TICKET_BODY = '## Acceptance\nA1. Example basket adds up.\n\n## Handoff\nExample handoff.\n\n## Review 1\nExample review.';
 
-function messageOf(airlock: AirlockFacts, role: Job['role'] = 'reviewer', instructions = ''): string {
+function messageOf(airlock: AirlockFacts, role: Job['role'] = 'reviewer', instructions = '', promptFills = PROMPT_FILLS): string {
   const facts = {
     tickets: [{
       id: '012', title: 'Example basket total', body: TICKET_BODY, branch: 'ticket-012'
@@ -66,7 +69,7 @@ function messageOf(airlock: AirlockFacts, role: Job['role'] = 'reviewer', instru
   const job = {
     id: 'J9', kind: 'merge-agent', role, ticketIds: ['012'], parentJobId: 'J8', attempt: 1, target: 'main'
   } as unknown as Readonly<Job>;
-  return OverseerWording.launchTextOf(job, facts).firstMessage;
+  return OverseerWording.launchTextOf(job, facts, promptFills).firstMessage;
 }
 
 describe('a resumed agent on a conflict', () => {
@@ -193,5 +196,13 @@ describe('a session resumed on a conflicted merge before User\'s code review', (
     expect(message).toContain(`${RED_HANDOFF_RESUME_CALL_BUDGET} tool calls`);
     expect(message).not.toContain('\n');
     expect(message).not.toMatch(/\{\{\w+\}\}/);
+  });
+});
+
+describe('the asking tool a message names', () => {
+  test('is the adapter\'s fill, so with Claude Code\'s fills the message reads as it did before the port named it', () => {
+    expect(messageOf(CONFLICT)).toContain('You cannot ask User in the Airlock: AskUserQuestion is not available.');
+    expect(messageOf(CONFLICT, 'reviewer', '', { ...PROMPT_FILLS, askUserTool: 'example-ask' }))
+      .toContain('You cannot ask User in the Airlock: example-ask is not available.');
   });
 });

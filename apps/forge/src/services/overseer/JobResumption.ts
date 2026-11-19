@@ -1,8 +1,8 @@
 /**
- * How an interrupted job comes back, design section 3.6: its next child instance runs `--resume <id>` alone in the same working directory,
- * told first that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the fresh job
- * after a `replaced` one is told that an earlier session's uncommitted changes are its work. A job carries on only a session of its own
- * entity and stage (E29).
+ * How an interrupted job comes back, design section 3.6: its next child instance resumes the agent's session alone in the same working
+ * directory, told first that it was interrupted; a resume the vendor cannot take ends the job `replaced` and opens `resume-failed`; and the
+ * fresh job after a `replaced` one is told that an earlier session's uncommitted changes are its work. A job carries on only a session of
+ * its own entity and stage (E29).
  */
 import {
   existsSync,

@@ -1,6 +1,6 @@
 /**
- * `hook bash-domains --allow <domains>`, the network guard design section 4.4 renders for a role with a `network` line: auto mode's
- * classifier may grant a shell command's domains, or a web fetch, outside the ticket's domains, and this denies it. It exits 0 whatever
+ * `hook bash-domains --allow <domains>`, the network guard design section 4.4 renders for a role with a `network` line: the agent's
+ * own permission check may grant a shell command's domains, or a web fetch, outside the ticket's domains, and this denies it. It exits 0 whatever
  * happens and answers deny on any failure, since a guard that errors would let the call through.
  */
 import type { AgentToolCall }        from '../../src/lib/agent-launch/AgentToolCall.ts';

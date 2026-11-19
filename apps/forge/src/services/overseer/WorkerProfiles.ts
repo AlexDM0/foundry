@@ -68,7 +68,7 @@ export interface SandboxFacts {
   stageEntity?:                  StageEntity;
 }
 
-/** The entity whose stage a job runs: its homes and `reach` are what the job's Edit and Write may change. */
+/** The entity whose stage a job runs: its homes and `reach` are what the job's file edits may change. */
 export interface StageEntity {
   entities:       PipelineEntities;
   entityKey:      EntityKey;
@@ -305,7 +305,7 @@ function nestedCheckoutAncestorsOf(repositoryRoot: string, checkout: string, pro
 }
 
 /**
- * A session in a checkout nested in the main checkout writes the whole checkout, by Edit and Write too, wherever in it the session started,
+ * A session in a checkout nested in the main checkout writes the whole checkout, by file edits too, wherever in it the session started,
  * and reads the checkout's instruction files, never the main checkout's copies above it. A job's session starts at the checkout's root, where
  * the sandbox grants its git admin folder with no rule of forge's; a pipeline agent's snapshot starts in the project's folder of it.
  */
@@ -349,7 +349,7 @@ function stageEntityOf({ entities, entityKey }: StageEntity): Readonly<PipelineE
 }
 
 /**
- * The repository paths a stage's Edit and Write reach, without a trailing `/`: the whole tree, `''`, for the root entity; else its homes and
+ * The repository paths a stage's file edits reach, without a trailing `/`: the whole tree, `''`, for the root entity; else its homes and
  * `reach`, and in stage 1 the homes of the packages it may write a proposal in.
  */
 function stageRepositoryPathsOf(stage: StageEntity): string[] {
@@ -391,7 +391,7 @@ function deniedEditPathsOf(stage: StageEntity, worktree: string, folderEntries: 
   return deniedUnder('');
 }
 
-/** The `hook stage-edits` guard of a stage (E18), which denies an Edit or Write outside its folders, a name made after launch included. */
+/** The `hook stage-edits` guard of a stage (E18), which denies a file edit outside its folders, a name made after launch included. */
 function stageEditGuardOf(stageFolders: readonly string[], guardCommand: readonly string[] | null): StageEditGuard {
   const [runtimePath, ...leadingArguments] = guardCommand ?? [];
   return {
@@ -402,7 +402,7 @@ function stageEditGuardOf(stageFolders: readonly string[], guardCommand: readonl
 }
 
 /**
- * A job of an entity: Edit and Write reach its stage's folders, every other path of the worktree at launch is denied them by a rule, and
+ * A job of an entity: file edits reach its stage's folders, every other path of the worktree at launch is denied them by a rule, and
  * the stage edit guard denies the rest, a name made later in a folder on the way to a stage's folder included.
  */
 function stageEditProfileOf(

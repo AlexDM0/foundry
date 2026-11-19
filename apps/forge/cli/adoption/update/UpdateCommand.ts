@@ -51,7 +51,7 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   const workspace          = requireWorkspace(context.currentDirectory);
   refuseBesideAnOlderProgram(workspace.rootDirectory);
   requireInstallManifestThisVersionCanReplace(workspace.rootDirectory);
-  const installedFileTexts = installedFileTextsFor();
+  const installedFileTexts = installedFileTextsFor(context.agentAdapter.promptFills);
   const report             = refreshTrackedRepository({
     workspace,
     installedFileTexts,

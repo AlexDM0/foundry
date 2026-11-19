@@ -1,6 +1,7 @@
 /**
  * The text of every file `init` and `update` install, computed before any of them is written, so a failure here leaves the repository
- * as it was. The markdown is read from `resources/templates/` and the skills from `skills/`, each filled with the product's names.
+ * as it was. The markdown is read from `resources/templates/` and the skills from `skills/`, each filled with the product's names; the
+ * briefs also with the agent adapter's names of its tools and files.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep }       from 'node:path';
@@ -73,8 +74,8 @@ export function installedSkillFileTexts(instructionBundleLines: InstructionBundl
   return texts;
 }
 
-export function installedFileTextsFor(): InstalledFileTexts {
-  const templateValues = productNameTemplateValuesOf(PRODUCT_NAMES);
+export function installedFileTextsFor(promptFills: AgentAdapter['promptFills']): InstalledFileTexts {
+  const templateValues = { ...productNameTemplateValuesOf(PRODUCT_NAMES), ...promptFills };
   const texts: Partial<Record<InstalledFileName, string>> = {};
   for (const part of AGENT_INSTALL.parts) {
     if (part.writing !== 'briefs') continue;

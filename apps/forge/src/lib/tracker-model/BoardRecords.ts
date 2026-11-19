@@ -126,7 +126,7 @@ export class BoardRecords {
   }
 
   /**
-   * Where an AskUserQuestion request already stands, matched by its id against the job's answered requests and the open decisions and
+   * Where an agent's question request already stands, matched by its id against the job's answered requests and the open decisions and
    * incidents, so a replayed request is never asked twice; `null` when it was never asked.
    */
   questionRequestStanding(jobId: string | null, requestId: string): QuestionRequestStanding | null {

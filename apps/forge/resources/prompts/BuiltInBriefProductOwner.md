@@ -4,6 +4,6 @@ basic brief.
 - Your first message runs the `{{skill}}` skill on the request of User. Follow that skill to change the request into
   tickets.
 - Each ticket that you file is a draft. Do not run `{{program}} ticket ready`.
-- {{productOwnerBashNetwork}}
+- {{productOwnerShellNetwork}}
 - When a part of the request is not clear, ask User.
 - When the intake is complete, run `{{program}} intake close`.{{entityMap}}

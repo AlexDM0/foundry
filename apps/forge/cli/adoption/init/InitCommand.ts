@@ -41,17 +41,20 @@ const KNOWN_OPTION_NAMES = ['project', 'root', 'namespace', 'no-hooks', 'json'];
 
 const { PROGRAM, PRODUCT_OWNER_SKILL } = PRODUCT_NAMES;
 
-const NEXT_STEP_LINES: readonly string[] = [
-  '',
-  'Next steps:',
-  `  1. Run \`${PROGRAM} open\`. It starts the Overseer in the background and opens the board in your browser.`,
-  '     The Overseer keeps running after the terminal closes; its agents run on even when it stops.',
-  `  2. Ask a Claude session in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill, files the ticket as a`,
-  '     draft and readies it on your yes.',
-  '  3. The board opens on Pipeline setup. Choose who pays, then let the pipeline agent read the repository.',
-  `     Apply commits ${CONSTITUTION_FILE_PATH} to main; with Resume it starts the board.`,
-  `  Stop the Overseer with \`${PROGRAM} oversee stop\`; \`${PROGRAM} help\` lists every command.`,
-];
+/** `agentDisplayName` is the agent adapter's name for the agent whose sessions file tickets here. */
+function nextStepLinesOf(agentDisplayName: string): readonly string[] {
+  return [
+    '',
+    'Next steps:',
+    `  1. Run \`${PROGRAM} open\`. It starts the Overseer in the background and opens the board in your browser.`,
+    '     The Overseer keeps running after the terminal closes; its agents run on even when it stops.',
+    `  2. Ask an agent session (${agentDisplayName}) in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill,`,
+    '     files the ticket as a draft and readies it on your yes.',
+    '  3. The board opens on Pipeline setup. Choose who pays, then let the pipeline agent read the repository.',
+    `     Apply commits ${CONSTITUTION_FILE_PATH} to main; with Resume it starts the board.`,
+    `  Stop the Overseer with \`${PROGRAM} oversee stop\`; \`${PROGRAM} help\` lists every command.`,
+  ];
+}
 
 export const initCommand: CommandHandler = async (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
@@ -117,7 +120,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   requireInstallManifestThisVersionCanReplace(workspace.rootDirectory);
 
   // Every installed text is computed before the first write, so a template that will not read leaves no tracker and no file behind.
-  const installedFileTexts = installedFileTextsFor();
+  const installedFileTexts = installedFileTextsFor(context.agentAdapter.promptFills);
   const chosenRootLine = chosenRootLineOf(rootOption, context.currentDirectory, rootDirectory);
   if (existingWorkspace !== null) {
     if (branchNamespace !== null) {
@@ -184,6 +187,6 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
     if (!marksTheInstall) output(reportLineOf(reportLabel, line));
   }
   recordInstallVersion(workspace.rootDirectory);
-  for (const line of NEXT_STEP_LINES) output(line);
+  for (const line of nextStepLinesOf(context.agentAdapter.displayName)) output(line);
   printAnswer('created');
 };

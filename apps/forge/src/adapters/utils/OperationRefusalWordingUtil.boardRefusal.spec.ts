@@ -580,7 +580,7 @@ test.each<[BoardRefusalDetail, string]>([
     },
     'A setup question takes 2 to 4 options, and 1 was given. Nothing was written.',
   ],
-  [{ reason: 'setup-question-without-recommendation' }, 'A setup question needs the option Claude recommends. Nothing was written.'],
+  [{ reason: 'setup-question-without-recommendation' }, 'A setup question needs the option the agent recommends. Nothing was written.'],
   [{ reason: 'unknown-setup-option-letters', unknownLetters: ['c'], optionLetters: ['a', 'b'] }, 'There is no option c: the options are a, b. Nothing was written.'],
   [{ reason: 'several-letters-on-single-select-setup-question', letters: ['a', 'b'] }, 'a, b names several options, and the setup question takes one. Nothing was written.'],
   [{ reason: 'constitution-empty' }, 'The constitution has no text. Nothing was written.'],
@@ -658,4 +658,11 @@ const ENTITY_APPLY_REFUSALS: readonly (readonly [BoardRefusalDetail, string, str
 test.each(ENTITY_APPLY_REFUSALS)('the entity Apply refusal %o words as its sentence on the command line and through the API', (detail, message, apiMessage) => {
   expect(messageOf(detail)).toBe(message);
   expect(OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal: detail }))).toBe(apiMessage);
+});
+
+test('a draft question without a recommendation words as needing the option the agent recommends, with the flag only on the command line', () => {
+  const detail: BoardRefusalDetail = { reason: 'draft-question-without-recommendation', draftId: 'D2' };
+  expect(messageOf(detail)).toBe('A question needs --recommended <letter>, the option the agent recommends. Nothing was written.');
+  expect(OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal: detail })))
+    .toBe('A question needs the option the agent recommends. Nothing was written.');
 });

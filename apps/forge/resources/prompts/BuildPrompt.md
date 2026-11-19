@@ -9,9 +9,9 @@ Do not use this rule for human-facing documentation. Do not rewrite existing tex
 
 {{gateList}}
 
-Take the gates from here, never from CLAUDE.md or any other file. Run the spec files you touch while you iterate. The
-Overseer holds each claim to your HEAD before it runs any gate: a missing or stale claim fails your pass, and nothing a
-claim says is taken as true until the Overseer has run the gates on your HEAD itself.
+Take the gates from here, never from {{instructionFile}} or any other file. Run the spec files you touch while you
+iterate. The Overseer holds each claim to your HEAD before it runs any gate: a missing or stale claim fails your pass,
+and nothing a claim says is taken as true until the Overseer has run the gates on your HEAD itself.
 
 ## How you work
 {{entityScope}}

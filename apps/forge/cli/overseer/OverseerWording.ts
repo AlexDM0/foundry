@@ -2,13 +2,13 @@
  * The words the Overseer's DrivePass needs and services may not hold: a code-opened decision's question, and what a launched session is told.
  * The role prompts that replace the launch text come with the prompt templates later in the chain.
  */
-import { readFileSync }                from 'node:fs';
-import { OperationRefusalWordingUtil } from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import type { AgentCredentials }       from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { DecisionQuestionOption } from '../../src/lib/tracker-model/@types/Decision.ts';
-import type { Incident }               from '../../src/lib/tracker-model/@types/Incident.ts';
-import type { Job }                    from '../../src/lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineGate } from '../../src/lib/tracker-model/@types/Pipeline.ts';
+import { readFileSync }                        from 'node:fs';
+import { OperationRefusalWordingUtil }         from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import type { AgentAdapter, AgentCredentials } from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { DecisionQuestionOption }         from '../../src/lib/tracker-model/@types/Decision.ts';
+import type { Incident }                       from '../../src/lib/tracker-model/@types/Incident.ts';
+import type { Job }                            from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineGate }         from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type {
   CheckedGate,
   ConstitutionSources,
@@ -258,19 +258,21 @@ function gateListOf(gates: readonly Readonly<PipelineGate>[] | null): string {
   ].join('\n');
 }
 
+type PromptFills = AgentAdapter['promptFills'];
+
 /** What a prompt claims of the session's limits: a refusal only where a sandbox enforces it, else a rule the session must keep itself. */
 const CONFINEMENT_WORDING = {
   'confined': {
-    sandboxRefusal:          'the sandbox refuses it, and ',
-    pipelineAgentLimits:     'You may write only your Hatch folder, and you have no network.',
-    productOwnerBashNetwork: 'Bash reaches no network.',
-    assistantNetwork:        'The Overseer refuses each of these, and you have no network.',
+    sandboxRefusal:           'the sandbox refuses it, and ',
+    pipelineAgentLimits:      'You may write only your Hatch folder, and you have no network.',
+    productOwnerShellNetwork: 'Shell commands reach no network.',
+    assistantNetwork:         'The Overseer refuses each of these, and you have no network.',
   },
   'unconfined-by-design': {
-    sandboxRefusal:          '',
-    pipelineAgentLimits:     'Write only to your Hatch folder, and do not use the network. No sandbox runs on this machine: nothing stops a command that breaks this rule.',
-    productOwnerBashNetwork: 'Do not use the network from Bash.',
-    assistantNetwork:        'The Overseer refuses each of these. Do not use the network.',
+    sandboxRefusal:           '',
+    pipelineAgentLimits:      'Write only to your Hatch folder, and do not use the network. No sandbox runs on this machine: nothing stops a command that breaks this rule.',
+    productOwnerShellNetwork: 'Do not use the network from a shell command.',
+    assistantNetwork:         'The Overseer refuses each of these. Do not use the network.',
   },
 } as const satisfies Record<JobLaunchFacts['confinement'], Record<string, string>>;
 
@@ -287,7 +289,7 @@ function productOwnerTextOf(job: Readonly<Job>, intake: NonNullable<JobLaunchFac
     ...(answerLines.length === 0 ? [] : ['Answers User gave its questions:', ...answerLines]),
   ];
   const fills = {
-    jobId: job.id, program: PRODUCT_NAMES.PROGRAM, skill: PRODUCT_NAMES.PRODUCT_OWNER_SKILL, productOwnerBashNetwork: CONFINEMENT_WORDING[confinement].productOwnerBashNetwork,
+    jobId: job.id, program: PRODUCT_NAMES.PROGRAM, skill: PRODUCT_NAMES.PRODUCT_OWNER_SKILL, productOwnerShellNetwork: CONFINEMENT_WORDING[confinement].productOwnerShellNetwork,
   };
   const roleBrief = filledTemplateOf(instructions, fills);
   return { firstMessage: [intake.firstLine, ...(takeover.length === 0 ? [] : ['', ...takeover])].join('\n'), roleBrief };
@@ -555,7 +557,7 @@ function reviewerInstructionsOf(job: Readonly<Job>, ticket: LaunchTicket, facts:
  * A fresh agent in place of a session that could not resume first reads the instruction files of the role it stands in for, then the
  * ticket, its Handoff and Review; a resumed session read them at its own launch.
  */
-function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
+function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts, promptFills: PromptFills): string {
   const role = job.role ?? job.kind;
   const conflictTemplate = airlock.leavesTheMergeOpen === true ? 'AirlockOpenMergeMessage.md' : 'AirlockConflictMessage.md';
   const task = airlock.phase === 'resolving' || airlock.redHandoff === null
@@ -571,7 +573,7 @@ function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
     : `You are in the Airlock of #${ticket.id} as its ${role}, job ${job.id}. The Overseer merged the target tip ${airlock.targetTip} into `
       + `your branch in the worktree ${airlock.worktree}, and ran the gates on the merged tree. ${redHandoffMessageOf(airlock.redHandoff)}`;
   const reportTemplate = readFileSync(resourceFilePathOf('prompts', 'AirlockReportMessage.md'), 'utf8');
-  const report = filledTemplateOf(reportTemplate, { callBudget: String(airlockCallBudgetOf(role, airlock.resumesSession)) }).trim();
+  const report = filledTemplateOf(reportTemplate, { ...promptFills, callBudget: String(airlockCallBudgetOf(role, airlock.resumesSession)) }).trim();
   const takeoverLine = `The session of the earlier ${role} of #${ticket.id} could not be resumed, so you take over its work. Its ticket follows, with its Handoff and Review.`;
   if (airlock.resumesSession) return [task, '', report].join('\n');
   const instructions = (role === 'builder' ? builderInstructionsOf(job, ticket, facts) : reviewerInstructionsOf(job, ticket, facts, '')).trim();
@@ -582,16 +584,30 @@ function airlockAgentMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: 
  * A conflict re-reviewer reads its role's instruction files, the reviewer's brief among them, filled as a first review round's, and then
  * what the Airlock, or the merge before User's code review, asks of it: the merge it re-reviews, with no question to User.
  */
-function conflictReReviewMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts): string {
+function conflictReReviewMessageOf(job: Readonly<Job>, ticket: LaunchTicket, facts: JobLaunchFacts, airlock: AirlockFacts, promptFills: PromptFills): string {
   const instructions = reviewerInstructionsOf(job, ticket, facts, '').trim();
   const conflictedFiles = airlock.conflictedFiles.map((path) => `- ${path}`).join('\n');
   const callBudget = String(DISPATCH_PROTOCOL.REVIEWER_API_CALL_BUDGET);
   const task = airlock.mergePlacement === 'airlock'
     ? filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'AirlockReReviewMessage.md'), 'utf8'), {
-      ticketId: ticket.id, jobId: job.id, targetTip: airlock.targetTip, branchTip: airlock.branchTip, airlockWorktree: airlock.worktree, conflictedFiles, callBudget,
+      ...promptFills,
+      ticketId:        ticket.id,
+      jobId:           job.id,
+      targetTip:       airlock.targetTip,
+      branchTip:       airlock.branchTip,
+      airlockWorktree: airlock.worktree,
+      conflictedFiles,
+      callBudget,
     }).trim()
     : filledTemplateOf(readFileSync(resourceFilePathOf('prompts', 'HumanCodeReviewReReviewMessage.md'), 'utf8'), {
-      ticketId: ticket.id, jobId: job.id, targetTip: airlock.targetTip, branchTip: airlock.branchTip, worktree: airlock.worktree, conflictedFiles, callBudget,
+      ...promptFills,
+      ticketId:  ticket.id,
+      jobId:     job.id,
+      targetTip: airlock.targetTip,
+      branchTip: airlock.branchTip,
+      worktree:  airlock.worktree,
+      conflictedFiles,
+      callBudget,
     }).trim();
   return [instructions, '', task].join('\n');
 }
@@ -730,8 +746,8 @@ function stepPromptFilesOf(mode: PipelineSetupMode, step: PipelineSetupStep): re
   }
 }
 
-function stepInstructionsOf(mode: PipelineSetupMode, step: PipelineSetupStep): string {
-  const fills = { program: PRODUCT_NAMES.PROGRAM };
+function stepInstructionsOf(mode: PipelineSetupMode, step: PipelineSetupStep, promptFills: PromptFills): string {
+  const fills = { ...promptFills, program: PRODUCT_NAMES.PROGRAM };
   return stepPromptFilesOf(mode, step).map((fileName) => filledTemplateOf(promptOf(fileName), fills).trim()).join('\n\n');
 }
 
@@ -824,7 +840,13 @@ function setupFactsTextOf(facts: PipelineAgentFacts): string {
 }
 
 /** The current step's block and the record's facts; with no record, a first setup reads the research block. */
-function pipelineAgentTextOf(job: Readonly<Job>, facts: PipelineAgentFacts, instructions: string, confinement: SessionConfinement): JobLaunchText {
+function pipelineAgentTextOf(
+  job: Readonly<Job>,
+  facts: PipelineAgentFacts,
+  instructions: string,
+  confinement: SessionConfinement,
+  promptFills: PromptFills,
+): JobLaunchText {
   const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM };
   return {
     firstMessage: filledTemplateOf(promptOf('PipelineAgentPrompt.md'), {
@@ -832,7 +854,7 @@ function pipelineAgentTextOf(job: Readonly<Job>, facts: PipelineAgentFacts, inst
       pipelineAgentLimits: CONFINEMENT_WORDING[confinement].pipelineAgentLimits,
       lineGrammar:         LINE_GRAMMAR_WORDING[facts.lineGrammar],
       setupFacts:          setupFactsTextOf(facts),
-      stepInstructions:    stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research'),
+      stepInstructions:    stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research', promptFills),
     }),
     roleBrief: filledTemplateOf(instructions, fills),
   };
@@ -840,20 +862,22 @@ function pipelineAgentTextOf(job: Readonly<Job>, facts: PipelineAgentFacts, inst
 
 /**
  * A builder's and a reviewer's first message is its role's instruction files, the constitution first, filled with its ticket and checks
- * line; an airlock role's instruction files are its role brief, beside the first message its merge prompt gives it.
+ * line; an airlock role's instruction files are its role brief, beside the first message its merge prompt gives it. The instruction files
+ * take the adapter's names of its tools and files before the job's own fills, so a ticket's text is never filled in turn.
  */
-function launchTextOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
+function launchTextOf(job: Readonly<Job>, unfilledFacts: JobLaunchFacts, promptFills: PromptFills): JobLaunchText {
+  const facts = { ...unfilledFacts, instructions: filledTemplateOf(unfilledFacts.instructions, promptFills) };
   if (facts.intake !== null) return productOwnerTextOf(job, facts.intake, facts.instructions, facts.confinement);
-  if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement);
+  if (facts.pipelineAgent !== undefined && facts.pipelineAgent !== null) return pipelineAgentTextOf(job, facts.pipelineAgent, facts.instructions, facts.confinement, promptFills);
   if (facts.assistant !== null) return assistantTextOf(job, facts.assistant, facts.instructions, facts.confinement);
   const subject = ticketsPhraseOf(job.ticketIds);
   const roleBrief = `You are the ${job.role ?? job.kind} of job ${job.id}.`;
   const [ticket] = facts.tickets;
   if (job.kind === 'merge-agent' && ticket !== undefined && facts.airlock?.phase === 're-reviewing') {
-    return { firstMessage: conflictReReviewMessageOf(job, ticket, facts, facts.airlock), roleBrief };
+    return { firstMessage: conflictReReviewMessageOf(job, ticket, facts, facts.airlock, promptFills), roleBrief };
   }
   if (job.kind === 'merge-agent' && ticket !== undefined && facts.airlock !== null) {
-    return { firstMessage: airlockAgentMessageOf(job, ticket, facts, facts.airlock), roleBrief };
+    return { firstMessage: airlockAgentMessageOf(job, ticket, facts, facts.airlock, promptFills), roleBrief };
   }
   if (job.kind === 'review' && ticket !== undefined) {
     // Merge approval is once per ticket, at its end (E36): a package review of stage 3 does not merge the target in.
@@ -901,10 +925,10 @@ function answerMessageOf(answer: Readonly<Record<string, string>>): string {
 }
 
 /** A Continue carries the next step's block, unless the agent already works under it. */
-function stepContinuedMessageOf(mode: PipelineSetupMode, step: PipelineSetupStep, currentStep: PipelineSetupStep): string {
+function stepContinuedMessageOf(mode: PipelineSetupMode, step: PipelineSetupStep, currentStep: PipelineSetupStep, promptFills: PromptFills): string {
   const moved = `User completed the ${step} step. The current step is ${currentStep}.`;
-  const nextInstructions = stepInstructionsOf(mode, currentStep);
-  return nextInstructions === stepInstructionsOf(mode, step) ? moved : `${moved}\n\n${nextInstructions}`;
+  const nextInstructions = stepInstructionsOf(mode, currentStep, promptFills);
+  return nextInstructions === stepInstructionsOf(mode, step, promptFills) ? moved : `${moved}\n\n${nextInstructions}`;
 }
 
 function checkedGateLinesOf(gate: Readonly<CheckedGate>): string {
@@ -952,14 +976,14 @@ function draftChangesTextOf(changes: readonly DraftFieldValue[]): string {
  * What the pipeline agent reads when User answers, edits, undoes, discards, continues or asks for a check on its setup record, and when
  * User's check ends. The agent has no read of the record, so each message carries what changed.
  */
-function setupMessageWordingOf(message: SetupMessage): string {
+function setupMessageWordingOf(message: SetupMessage, promptFills: PromptFills): string {
   switch (message.kind) {
     case 'question-answered':
       return 'letters' in message.reply
         ? `User answered ${message.questionId}: ${message.reply.letters.join(', ')}.`
         : `User answered ${message.questionId}: ${message.reply.text}`;
     case 'step-continued':
-      return stepContinuedMessageOf(message.mode, message.step, message.currentStep);
+      return stepContinuedMessageOf(message.mode, message.step, message.currentStep, promptFills);
     case 'constitution-edited':
       return constitutionEditedMessageOf(message.revision, message.markdown, message.draftedFrom);
     case 'draft-edited':
@@ -1021,8 +1045,9 @@ const EARLIER_SESSION_NOTE = 'An earlier session was interrupted; uncommitted ch
  * A fresh job after a `replaced` one inherits its worktree, and is told so before anything else; one taking over a red handoff the
  * replaced session could not be resumed for opens with that handoff's message.
  */
-function launchTextWithEarlierSessionNoteOf(job: Readonly<Job>, facts: JobLaunchFacts): JobLaunchText {
-  const text = launchTextOf(job, facts);
+/** `promptFills` are the agent adapter's names of its tools and files, which the prompts a session reads at launch are filled with. */
+function launchTextWithEarlierSessionNoteOf(job: Readonly<Job>, facts: JobLaunchFacts, promptFills: PromptFills): JobLaunchText {
+  const text = launchTextOf(job, facts, promptFills);
   if (!facts.earlierSessionReplaced) return text;
   const redHandoff = facts.redHandoff ?? null;
   const opening = redHandoff === null ? EARLIER_SESSION_NOTE : `${EARLIER_SESSION_NOTE} ${redHandoffMessageOf(redHandoff)}`;

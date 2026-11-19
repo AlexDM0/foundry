@@ -290,7 +290,7 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `A question takes ${detail.minimum} to ${detail.maximum} options, and ${detail.optionCount} ${detail.optionCount === 1 ? 'was' : 'were'} given. `
         + NOTHING_WAS_WRITTEN;
     case 'draft-question-without-recommendation':
-      return `A question needs ${adviceFor(channel, '--recommended <letter>, ', '')}the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;
+      return `A question needs ${adviceFor(channel, '--recommended <letter>, ', '')}the option the agent recommends. ${NOTHING_WAS_WRITTEN}`;
     case 'unknown-draft-option-letters':
       return `There is no option ${detail.unknownLetters.join(', ')}: the options are ${detail.optionLetters.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
     case 'several-letters-on-single-select-question':
@@ -397,7 +397,7 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `A setup question takes ${detail.minimum} to ${detail.maximum} options, and ${detail.optionCount} ${detail.optionCount === 1 ? 'was' : 'were'} given. `
         + NOTHING_WAS_WRITTEN;
     case 'setup-question-without-recommendation':
-      return `A setup question needs the option Claude recommends. ${NOTHING_WAS_WRITTEN}`;
+      return `A setup question needs the option the agent recommends. ${NOTHING_WAS_WRITTEN}`;
     case 'unknown-setup-option-letters':
       return `There is no option ${detail.unknownLetters.join(', ')}: the options are ${detail.optionLetters.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
     case 'several-letters-on-single-select-setup-question':

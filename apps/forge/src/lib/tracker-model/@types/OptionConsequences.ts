@@ -1,5 +1,5 @@
 /**
- * What an option of an agent's question does, as the agent states it with `question options` before it asks: AskUserQuestion carries only
+ * What an option of an agent's question does, as the agent states it with `question options` before it asks: an agent's question request carries only
  * a label and a description, so the facts travel beside the question and the decision the question opens takes them.
  */
 

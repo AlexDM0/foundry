@@ -50,7 +50,7 @@ const STAGE_SIGNALS: Readonly<Record<ProcessStopStage, NodeJS.Signals>> = { ask:
 
 const GROUP_PROBE = 0;
 
-/** The processes of the groups and of every group a child of theirs sits in, so a Bash command in a group of its own is found. */
+/** The processes of the groups and of every group a child of theirs sits in, so a shell command in a group of its own is found. */
 function membersWithDescendantGroups(table: readonly ProcessTableEntry[], startGroups: ReadonlySet<number>): readonly ProcessTableEntry[] {
   const groups = new Set(startGroups);
   let members: readonly ProcessTableEntry[];

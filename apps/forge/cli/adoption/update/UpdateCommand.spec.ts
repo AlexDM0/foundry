@@ -47,7 +47,7 @@ const READ_AND_ENTER_ONLY_MODE = 0o555;
 
 const OWNER_FULL_ACCESS_MODE = 0o755;
 
-const GENERATED_SESSION_INSTRUCTIONS = installedFileTextsFor().sessionInstructions ?? '';
+const GENERATED_SESSION_INSTRUCTIONS = installedFileTextsFor(agentAdapterOfThisProcess().promptFills).sessionInstructions ?? '';
 
 const SHARED_SETTINGS = 'settings.json';
 

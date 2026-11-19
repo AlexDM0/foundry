@@ -54,6 +54,9 @@ export interface AgentConfigurationNames {
   readonly fileNames:   readonly string[];
 }
 
+/** The words a prompt names the agent's own tools and files by, each written `{{<name>}}` in the prompt and filled from the adapter. */
+export type AgentPromptFillName = 'askUserTool' | 'webFetchTool' | 'webSearchTool' | 'instructionFile' | 'agentConfigurationPaths';
+
 /** What a line written to a session said, read back from the line: the inverse of `chatLineOf`, `answerLineOf` and `interruptLineOf`. */
 export type SentLine =
   | { readonly act: 'chat'; readonly text: string; readonly pictures: readonly AgentPicture[] }
@@ -62,6 +65,8 @@ export type SentLine =
 
 export interface AgentAdapter {
   readonly vendor:                 string;
+  /** The agent's name as a person knows it, for help and next-step lines. */
+  readonly displayName:            string;
   readonly capabilities:           AgentCapabilities;
   readonly credentials:            AgentCredentials;
   /** How this vendor's sandbox applies a profile's path denies on this host, which the profile is shaped for. */
@@ -75,6 +80,7 @@ export interface AgentAdapter {
   /** Each commit message trailer that marks a commit as the agent's work; Customs refuses a commit whose message matches one. */
   readonly attributionPatterns:    readonly RegExp[];
   readonly installer:              AgentInstaller;
+  readonly promptFills:            Readonly<Record<AgentPromptFillName, string>>;
   /** The user's credential files and folders on this host, the vendor's own login among them, which every role is denied reading. */
   credentialPathsOf(homeDirectory: string): readonly string[];
   /** The absolute path `planOf` is then given as `programPath`, or why the job cannot launch. */

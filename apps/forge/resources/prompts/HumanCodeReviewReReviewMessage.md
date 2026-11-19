@@ -13,7 +13,7 @@ changed. For this reason, the Overseer started this re-review.
 - Make sure that each Acceptance item of the ticket is true after the merge.
 - Fix each defect that you find. Commit each fix in this worktree. Do not start a new merge. Do not amend, rebase or
   reset.
-- You cannot ask User: AskUserQuestion is not available. Do not propose a waiver.
+- You cannot ask User: {{askUserTool}} is not available. Do not propose a waiver.
 - You have {{callBudget}} calls.
 
 When the work is done, end with your report. Give one claim for each Acceptance item, with its result after your

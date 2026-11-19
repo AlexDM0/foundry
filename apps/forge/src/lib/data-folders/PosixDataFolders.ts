@@ -12,7 +12,7 @@ export interface DataFolderPrimitives {
 
 const EXECUTABLE_FOLDER_NAMES = ['bin'] as const;
 
-/** Beside `tmpdir()`, which on macOS is a per-user folder under `/var/folders`; Claude Code keeps its scratchpads under `/tmp`. */
+/** Beside `tmpdir()`, which on macOS is a per-user folder under `/var/folders`; programs keep scratch files under `/tmp`. */
 const TEMPORARY_FOLDERS_OF_EVERY_UNIX_MACHINE = ['/tmp', '/var/tmp'] as const;
 const TEMPORARY_VARIABLE = 'TMPDIR';
 const SYSTEM_FOLDER = '/usr/bin';

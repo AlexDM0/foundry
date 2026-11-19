@@ -1,5 +1,5 @@
 /**
- * An agent's AskUserQuestion request routed by who can answer it, design section 8.2: every question headed `system` opens a
+ * An agent's question request routed by who can answer it, design section 8.2: every question headed `system` opens a
  * `system-question` incident and every one headed `ticket` a `malformed-ticket` incident for the Assistant; anything else, a
  * mix included, opens an `agent-question` decision for User. Either way the job waits, keeping its slot, and the option notes the job gave
  * for these questions with `question options` go onto their options.

@@ -77,7 +77,7 @@ export const FIRST_DECISION_NUMBER = 1;
 
 export const FIRST_INCIDENT_NUMBER = 1;
 
-/** The fact naming the AskUserQuestion request an incident was opened for, so a replayed request opens nothing twice. */
+/** The fact naming the agent's question request an incident was opened for, so a replayed request opens nothing twice. */
 export const REQUEST_ID_FACT = 'requestId';
 
 /** The fact carrying an agent's questions as JSON, so an escalation puts exactly the agent's words to the user. */

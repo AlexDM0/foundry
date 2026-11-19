@@ -22,7 +22,10 @@ import type { JobLaunchFacts, ReviewFindingsFacts } from '../../src/services/ove
 import type { NeedsSettledFacts }                   from '../../src/services/overseer/NeedTickets.ts';
 import { resourceFilePathOf }                       from '../../src/shared/ResourceFilePath.ts';
 import { PRODUCT_NAMES }                            from '../../src/shared/constants/ProductNames.ts';
+import { fakeAgentAdapter }                         from '../../src/testing/FakeAgentAdapter.ts';
 import { OverseerWording }                          from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 const BUILD_PROMPT  = readFileSync(resourceFilePathOf('prompts', 'BuildPrompt.md'), 'utf8');
 const REVIEW_PROMPT = readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8');
@@ -66,7 +69,7 @@ function messageOf(
     crossingStage,
     ...extraFacts,
   };
-  return OverseerWording.launchTextOf(jobOf(kind, entity), facts).firstMessage;
+  return OverseerWording.launchTextOf(jobOf(kind, entity), facts, PROMPT_FILLS).firstMessage;
 }
 
 describe('a forge without entities', () => {

@@ -36,6 +36,8 @@ import { fakeAgentAdapter }                               from '../../src/testin
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { OverseerWording }                                from './OverseerWording.ts';
 
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
+
 const AT = '2026-11-17T17:00:00+01:00';
 const { SHOP, UI_KIT } = ENTITY_FORGE_ENTITIES;
 const { SHOP_TICKET } = ENTITY_FORGE_TICKETS;
@@ -142,7 +144,7 @@ function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
     checkout: '', workingDirectory: '', holdsRepository: true, projectFolderFromStart: ''
   };
   const facts = launchFactsOf(crossing.board, request, job, { instructions: BUILD_PROMPT, airlock: null, place });
-  return OverseerWording.launchTextOf(job, facts).firstMessage;
+  return OverseerWording.launchTextOf(job, facts, PROMPT_FILLS).firstMessage;
 }
 
 describe('stage 4, adapt, after the package stages', () => {

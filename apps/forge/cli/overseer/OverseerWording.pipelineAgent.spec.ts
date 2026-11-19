@@ -16,8 +16,11 @@ import type { Pipeline }           from '../../src/lib/tracker-model/@types/Pipe
 import type { PipelineSetup }      from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
 import type { JobLaunchFacts }     from '../../src/services/overseer/DrivePass.ts';
 import type { PipelineAgentFacts } from '../../src/services/overseer/PipelineAgentSessions.ts';
+import { fakeAgentAdapter }        from '../../src/testing/FakeAgentAdapter.ts';
 import { LINE_GRAMMAR_WORDING }    from '../LineGrammarWording.ts';
 import { OverseerWording }         from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 const PIPELINE_AGENT_JOB = {
   id: 'J9', kind: 'pipeline-agent', ticketIds: [], attempt: 1
@@ -107,7 +110,7 @@ function factsWith(pipelineAgent: Partial<PipelineAgentFacts>, confinement: JobL
 }
 
 function firstMessageOf(facts: JobLaunchFacts): string {
-  return OverseerWording.launchTextOf(PIPELINE_AGENT_JOB, facts).firstMessage;
+  return OverseerWording.launchTextOf(PIPELINE_AGENT_JOB, facts, PROMPT_FILLS).firstMessage;
 }
 
 function pipelineAgentMessageOf(lineGrammar: ShellLineGrammar, confinement: JobLaunchFacts['confinement'] = 'confined'): string {
@@ -149,6 +152,12 @@ describe('the current step\'s block', () => {
 
     expect(message).toContain(`## Your step\n\n${heading}\n`);
     expect(message).not.toContain('{{');
+  });
+
+  test('the research block names the instruction file by the adapter\'s fill, which with Claude Code\'s reads as before', () => {
+    expect(firstMessageOf(factsWith({}))).toContain('the README, `CONTRIBUTING.md`, `CLAUDE.md`, `CONSTITUTION.md`, the package');
+    expect(OverseerWording.launchTextOf(PIPELINE_AGENT_JOB, factsWith({}), { ...PROMPT_FILLS, instructionFile: 'EXAMPLE.md' }).firstMessage)
+      .toContain('`CONTRIBUTING.md`, `EXAMPLE.md`, `CONSTITUTION.md`');
   });
 
   test('an agent no record names reads the research block with no pipeline stored', () => {

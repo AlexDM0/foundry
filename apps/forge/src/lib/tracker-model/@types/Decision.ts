@@ -39,7 +39,7 @@ export interface DecisionQuestionOption extends OptionConsequences {
   isRecommended: boolean;
 }
 
-/** AskUserQuestion's own question shape, field for field, so an agent's question is stored exactly as it asked it. */
+/** The question shape the agent port carries, field for field, so an agent's question is stored exactly as it asked it. */
 export interface DecisionQuestion {
   question:    string;
   header:      string;
@@ -56,7 +56,7 @@ export interface Decision {
   ticketIds: string[];
   jobId:     string | null;
   askedBy:   DecisionAsker;
-  /** The AskUserQuestion request it was opened for, so a replayed request opens no second decision; `null` for one code opened. */
+  /** The agent's question request it was opened for, so a replayed request opens no second decision; `null` for one code opened. */
   requestId: string | null;
   questions: DecisionQuestion[];
   context:   string;

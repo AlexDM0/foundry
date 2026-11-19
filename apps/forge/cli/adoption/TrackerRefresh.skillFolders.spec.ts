@@ -33,7 +33,7 @@ const instructionBundleFolderOf = (bundleName: string): string => AGENT_ADAPTER.
 
 const PRODUCT_OWNER_SKILL_FOLDER = instructionBundleFolderOf(PRODUCT_NAMES.PRODUCT_OWNER_SKILL);
 
-const INSTALLED_FILE_TEXTS = installedFileTextsFor();
+const INSTALLED_FILE_TEXTS = installedFileTextsFor(AGENT_ADAPTER.promptFills);
 
 /** The refresh in a repository whose `.gitignore` names none of its folders yet. */
 const REFRESH_OF_A_NEW_REPOSITORY: RecordedGitStage = [

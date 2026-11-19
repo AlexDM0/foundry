@@ -1,6 +1,7 @@
 /**
  * The results under API billing that end a session's work without Customs: a refused key interrupts the job and opens one board decision,
- * which holds every launch until User answers it; a stop at `--max-budget-usd` ends the job `blocked` and opens a decision holding its tickets.
+ * which holds every launch until User answers it; a stop at the pipeline's budget cap ends the job `blocked` and opens a decision holding
+ * its tickets.
  */
 import type { AgentResultFailure }             from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { PipelineBilling }                from '../../lib/tracker-model/@types/Pipeline.ts';

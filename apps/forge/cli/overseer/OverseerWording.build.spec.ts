@@ -14,7 +14,10 @@ import type { Job }            from '../../src/lib/tracker-model/@types/Job.ts';
 import type { PipelineGate }   from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { JobLaunchFacts } from '../../src/services/overseer/DrivePass.ts';
 import { resourceFilePathOf }  from '../../src/shared/ResourceFilePath.ts';
+import { fakeAgentAdapter }    from '../../src/testing/FakeAgentAdapter.ts';
 import { OverseerWording }     from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 const BUILD_INSTRUCTIONS = readFileSync(resourceFilePathOf('prompts', 'BuildPrompt.md'), 'utf8');
 
@@ -43,7 +46,7 @@ function buildMessageOf(gates: readonly PipelineGate[] | null, confinement: JobL
     assistant:              null,
     instructions:           BUILD_INSTRUCTIONS,
   };
-  return OverseerWording.launchTextOf(BUILD_JOB, facts).firstMessage;
+  return OverseerWording.launchTextOf(BUILD_JOB, facts, PROMPT_FILLS).firstMessage;
 }
 
 describe('the build prompt\'s gates', () => {
@@ -112,7 +115,7 @@ describe('the build prompt\'s branch rule', () => {
       airlock:                null,
       assistant:              null,
       instructions:           readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8'),
-    }).firstMessage;
+    }, PROMPT_FILLS).firstMessage;
     expect(reviewMessageOf('confined')).toContain('move another branch: the sandbox refuses it, and verification fails');
     expect(reviewMessageOf('unconfined-by-design')).toContain('move another branch: verification fails a rewritten history or a moved ref.');
     expect(reviewMessageOf('unconfined-by-design')).not.toContain('sandbox');
@@ -135,7 +138,7 @@ describe('the build prompt\'s branch rule', () => {
       airlock:                null,
       assistant:              null,
       instructions:           readFileSync(resourceFilePathOf('prompts', 'ReviewPrompt.md'), 'utf8'),
-    }).firstMessage;
+    }, PROMPT_FILLS).firstMessage;
     expect(reviewMessageOf(true)).toContain('As the last step of your review, merge the target into the branch: `git merge --no-edit group-checkout` on `ticket-012`');
     expect(reviewMessageOf(false)).not.toContain('Merge approval');
     expect(reviewMessageOf(false)).not.toContain('{{mergeApprovalStep}}');
@@ -158,7 +161,7 @@ describe('the first line of a builder resumed after its review', () => {
     assistant:              null,
     instructions:           BUILD_INSTRUCTIONS,
   };
-  const message = OverseerWording.launchTextOf(BUILD_JOB, facts).firstMessage;
+  const message = OverseerWording.launchTextOf(BUILD_JOB, facts, PROMPT_FILLS).firstMessage;
 
   test('carries the review\'s findings and the resume count, and not the build prompt', () => {
     expect(message).toContain('The review of #012 found a claim that does not hold');
@@ -174,7 +177,7 @@ describe('the first line of a builder resumed after its review', () => {
         ...facts.reviewFindings ?? { reviewSection: '', resume: 1, resumesAllowed: 2 },
         targetCatchUp: { kind: 'conflict', targetTip: 'example-target-tip', conflictedFiles: ['src/Basket.ts', 'docs/basket.md'] },
       },
-    }).firstMessage;
+    }, PROMPT_FILLS).firstMessage;
     expect(conflictMessage).toContain('Merge `example-target-tip` into your branch');
     expect(conflictMessage).toContain('- src/Basket.ts\n- docs/basket.md');
     expect(conflictMessage).toContain('resume 1 of 2');
@@ -210,7 +213,7 @@ describe('the first line of a build that runs its stage again after its needs ar
   };
 
   test('in the resumed session names each need and its ticket and the merge of the main line, and not the build prompt', () => {
-    const message = OverseerWording.launchTextOf({ ...BUILD_JOB, target: 'group-checkout' }, facts).firstMessage;
+    const message = OverseerWording.launchTextOf({ ...BUILD_JOB, target: 'group-checkout' }, facts, PROMPT_FILLS).firstMessage;
     expect(message).toContain('The needs that you declared for #012 are settled.');
     expect(message).toContain('- design-system: Export the basket total (#013, delivered)');
     expect(message).toContain('- root: Add the example lockfile entry (no ticket: User decided it)');
@@ -221,7 +224,7 @@ describe('the first line of a build that runs its stage again after its needs ar
 
   test('in a fresh session comes before the build prompt', () => {
     const needsSettled = facts.needsSettled === undefined || facts.needsSettled === null ? null : { ...facts.needsSettled, resumesSession: false };
-    const message = OverseerWording.launchTextOf(BUILD_JOB, { ...facts, needsSettled }).firstMessage;
+    const message = OverseerWording.launchTextOf(BUILD_JOB, { ...facts, needsSettled }, PROMPT_FILLS).firstMessage;
     expect(message.startsWith('An earlier session of #012 declared needs in other entities.')).toBe(true);
     expect(message).toContain('Pass every gate on your final commit');
   });
@@ -256,14 +259,14 @@ describe('the project\'s folder', () => {
 
   test('is named first to a builder and a reviewer at the root of a folder tracker\'s worktree, with where the ticket\'s paths start', () => {
     for (const [job, instructionsFile] of [[BUILD_JOB, 'BuildPrompt.md'], [reviewJob, 'ReviewPrompt.md']] as const) {
-      const message = OverseerWording.launchTextOf(job, factsFor(instructionsFile, 'apps/example')).firstMessage;
+      const message = OverseerWording.launchTextOf(job, factsFor(instructionsFile, 'apps/example'), PROMPT_FILLS).firstMessage;
       expect(message.startsWith('Your working directory is the root of this worktree. The project of this board is in the folder `apps/example`')).toBe(true);
       expect(message).toContain('A path in the ticket starts from that folder. A path that starts with `/` starts from the root of the worktree.');
     }
   });
 
   test('is not named to a session that starts in it', () => {
-    expect(OverseerWording.launchTextOf(BUILD_JOB, factsFor('BuildPrompt.md', undefined)).firstMessage).not.toContain('Your working directory');
-    expect(OverseerWording.launchTextOf(reviewJob, factsFor('ReviewPrompt.md', undefined)).firstMessage).not.toContain('Your working directory');
+    expect(OverseerWording.launchTextOf(BUILD_JOB, factsFor('BuildPrompt.md', undefined), PROMPT_FILLS).firstMessage).not.toContain('Your working directory');
+    expect(OverseerWording.launchTextOf(reviewJob, factsFor('ReviewPrompt.md', undefined), PROMPT_FILLS).firstMessage).not.toContain('Your working directory');
   });
 });

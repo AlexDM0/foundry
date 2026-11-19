@@ -123,7 +123,7 @@ describeWhenGitIsRecorded('draft content', () => {
     expect(loggedRecords().slice(-2).map((record) => record.fields)).toEqual([{ noteId: 'N1', noteKind: 'fact' }, { noteId: 'N2', noteKind: 'assumption' }]);
   });
 
-  test('draft ask adds Q1 with lettered options and its recommendation; a bad option count, letter or parent is refused with nothing written', async () => {
+  test('draft ask adds Q1 with lettered options and its recommendation; a bad option count, letter or parent, or no recommendation, is refused with nothing written', async () => {
     await run(askArguments('Which format?', ['CSV', 'JSON'], 'b'));
     const [question] = (await shownDraft('D1')).questions;
     expect(question).toMatchObject({
@@ -134,6 +134,9 @@ describeWhenGitIsRecorded('draft content', () => {
     await expectRefusedWithNothingWritten(askArguments('Five?', ['1', '2', '3', '4', '5'], 'a'));
     expect((await expectRefusedWithNothingWritten(askArguments('Outside?', ['x', 'y'], 'c'))).errorText()).toContain('There is no option c');
     expect((await expectRefusedWithNothingWritten(askArguments('Orphan?', ['x', 'y'], 'a', '--under', 'Q9'))).errorText()).toContain('no question Q9');
+    const withoutRecommendation = askArguments('Unadvised?', ['x', 'y'], 'a').slice(0, -2);
+    expect((await expectRefusedWithNothingWritten(withoutRecommendation)).errorText())
+      .toContain(`${PRODUCT_NAMES.PROGRAM} draft ask needs --recommended <letters>, the option or options the agent recommends.`);
   });
 
   test('a follow-up asked --under a question sits in its followUps', async () => {

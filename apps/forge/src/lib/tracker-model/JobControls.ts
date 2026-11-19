@@ -177,7 +177,7 @@ export class JobControls {
 
   /**
    * A fresh product owner for one past the bound: the request's pictures and the answers its questions got travel in its first message,
-   * never a `--resume`, and it keeps the title its predecessor gave the intake.
+   * never a resumed session, and it keeps the title its predecessor gave the intake.
    */
   refreshIntake(jobId: string, at: string): Logged {
     const job = this.jobRules.requireJob(jobId);

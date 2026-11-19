@@ -14,7 +14,7 @@ import { agentAdapterOfThisProcess }                      from '../CommandContex
 import { installedFileTextsFor, installedSkillFileTexts } from './InstalledFileGeneration.ts';
 import { AGENT_INSTALL, INSTALLED_SKILL_NAMES }           from './constants/AgentInstall.ts';
 
-const TEXTS = installedFileTextsFor();
+const TEXTS = installedFileTextsFor(agentAdapterOfThisProcess().promptFills);
 
 const CHECKOUT_DIRECTORY = join(import.meta.dir, '..', '..');
 
@@ -27,6 +27,14 @@ const PLACEHOLDERS_THE_OVERSEER_FILLS = ['{{assistantNetwork}}', '{{callBudget}}
 
 /** Taken from the implementation before a bundle's invocation was the adapter's; `TrackerRefresh.claudeInstall.spec.ts` says how to retake it. */
 const FROZEN_INSTALL_TABLE_PATH = join(import.meta.dir, 'FrozenClaudeInstall.json');
+
+const PLANTED_PROMPT_FILLS = {
+  askUserTool:             'example-ask',
+  webFetchTool:            'example-fetch',
+  webSearchTool:           'example-search',
+  instructionFile:         'EXAMPLE.md',
+  agentConfigurationPaths: '`.example/`',
+};
 
 const PLANTED_BUNDLE_LINES = { instructionBundleLineOf: (bundleName: string, argumentsText: string) => `run bundle ${bundleName}${argumentsText}` };
 
@@ -56,6 +64,20 @@ describe('the installed texts', () => {
     expect(TEXTS.builderDefault).not.toContain('{{program}}');
     expect(TEXTS.sessionInstructions).toContain(`\`${PRODUCT_NAMES.PROGRAM} status --json\``);
     expect(TEXTS.sessionInstructions).toContain(`\`${PRODUCT_NAMES.DATA_FOLDER}/reference.md\``);
+  });
+
+  test('the briefs name the agent\'s tools and files by the adapter\'s fills, and leave none of them for a launch', () => {
+    const texts = installedFileTextsFor(PLANTED_PROMPT_FILLS);
+
+    expect(texts.productOwnerDefault).toContain('the web through example-fetch and\n  example-search; {{productOwnerShellNetwork}}');
+    expect(texts.productOwnerDefault).toContain('Ask User with example-ask whenever');
+    expect(texts.reviewerDefault).toContain('never from EXAMPLE.md or any other file');
+    expect(texts.reviewerDefault).toContain('never change `.example/` or the hooks folder');
+    expect(texts.builderDefault).toContain('never from EXAMPLE.md or any other file');
+    expect(texts.constitutionDefault).toContain('Its `EXAMPLE.md`, its `CONTRIBUTING.md`');
+    for (const [name, text] of Object.entries(texts)) {
+      expect(text, name).not.toMatch(/\{\{(?:askUserTool|webFetchTool|webSearchTool|instructionFile|agentConfigurationPaths)\}\}/);
+    }
   });
 
   test('neither the session instructions nor the Assistant brief name a retired verb, hook or file', () => {

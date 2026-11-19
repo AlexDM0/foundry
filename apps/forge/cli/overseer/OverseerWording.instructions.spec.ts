@@ -22,11 +22,14 @@ import type { InstructionEntry, Pipeline }                        from '../../sr
 import type { JobLaunchFacts }                                    from '../../src/services/overseer/DrivePass.ts';
 import { InstructionFiles, defaultInstructionPathOf }             from '../../src/services/overseer/InstructionFiles.ts';
 import { PRODUCT_NAMES }                                          from '../../src/shared/constants/ProductNames.ts';
+import { fakeAgentAdapter }                                       from '../../src/testing/FakeAgentAdapter.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../src/testing/RecordedGit.ts';
 import type { RecordedGitStep }                                   from '../../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                              from '../../src/testing/ToolGuard.ts';
 import { OverseerWording }                                        from './OverseerWording.ts';
+
+const PROMPT_FILLS = fakeAgentAdapter().promptFills;
 
 const recordedGit = useRecordedGit();
 
@@ -122,7 +125,7 @@ describeWhenGitIsRecorded('the instruction files a launch reads', () => {
   test('a builder\'s first message holds the files of its instruction list, in list order, as the main line holds them', async () => {
     const reading = await recordedGit.playStage(PIPELINE_SHOWS, async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, PIPELINE, BUILD_JOB));
     if (reading.verdict !== 'read') throw new Error(`the reading was ${reading.verdict}`);
-    const { firstMessage } = OverseerWording.launchTextOf(BUILD_JOB, factsWith(reading.text));
+    const { firstMessage } = OverseerWording.launchTextOf(BUILD_JOB, factsWith(reading.text), PROMPT_FILLS);
     const parts = [
       'Main line rule: name things fully.',
       'Main line style: one purpose per file.',
@@ -150,7 +153,7 @@ describeWhenGitIsRecorded('the instruction files a launch reads', () => {
     const pipeline: Pipeline = { ...PIPELINE, agents: { builder: { instructions: [] } } };
     const reading = await recordedGit.playStage([], async () => InstructionFiles.readingFor(repositoryDirectory, MAIN_LINE, pipeline, BUILD_JOB));
     if (reading.verdict !== 'read') throw new Error(`the reading was ${reading.verdict}`);
-    const { firstMessage } = OverseerWording.launchTextOf(BUILD_JOB, { ...factsWith(reading.text), gates: [] });
+    const { firstMessage } = OverseerWording.launchTextOf(BUILD_JOB, { ...factsWith(reading.text), gates: [] }, PROMPT_FILLS);
 
     expect(firstMessage).toContain('You are the builder of ticket #012, "Example basket total", job J4, attempt 1.');
     expect(firstMessage).toContain('A1. Example basket adds up.');

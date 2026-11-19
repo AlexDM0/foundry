@@ -44,7 +44,7 @@ function addTurn(totals: TokenTotals, usage: AgentTurnUsage | null, outputTokens
 
 /**
  * One API call spans several lines that repeat its input, so a message id's input counts once, from the first turn seen with it, and its
- * output is the largest any of them reports, as `TranscriptUsageUtil` sums a transcript.
+ * output is the largest any of them reports, as the agent adapter's reading of a transcript sums it.
  */
 function sessionTokensOf(turns: readonly CreditedTurn[]): SessionTokens {
   const firstTurnByMessageId = new Map<string, CreditedTurn>();
