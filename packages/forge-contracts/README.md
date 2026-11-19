@@ -12,6 +12,8 @@ names no client.
 | `forge-contracts/BoardSummaryDocument` | `GET /api/v1/summary` |
 | `forge-contracts/MonitorSnapshotDocument` | `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, at `monitorVersion` 3; the stream's `handshake` and `monitor` events, each with the forge's system version |
 | `forge-contracts/MonitorInterruptionCauses` | `MONITOR_INTERRUPTION_CAUSES`, every cause a monitor job's `interruption` names, as the wire spells it |
+| `forge-contracts/ForgePresenceDocument` | `GET /api/v1/presence` from forge 1.20: the last start, Talos's supervision, the work that waits by cause, the held merges and the crash logs |
+| `forge-contracts/ForgeCrashLogDocument` | `GET /api/v1/crash-log?number=<n>` from forge 1.20, the newest log without the query |
 | `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands`, Flint's brain's two kinds from forge 1.1 |
 | `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
 | `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |

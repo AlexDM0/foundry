@@ -94,6 +94,8 @@ function startExampleServer(
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     summary:         () => ({ summaryVersion: 1 }),
     monitor:         () => ({ status: 200, body: { monitorVersion: 3 } }),
+    presence:        () => ({ status: 200, body: { generation: 1 } }),
+    crashLog:        () => ({ status: 404, body: { refusal: 'no-crash-log', number: null } }),
     monitorStream:   () => null,
     refusalTextOf:   (refusal) => `Example sentence for ${refusal}`,
     events:          () => broker,

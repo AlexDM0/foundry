@@ -47,6 +47,8 @@ A bare verb such as `oversee status` is `forge oversee status`.
 | `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
 | `GET /api/summary` | none | `BoardSummary`, see [The summary contract](#the-summary-contract) | 500 `read-failed` when the read throws | a monitor; never the Bridge |
 | `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor |
+| `GET /api/presence` | session cookie or bearer token | `ForgePresenceDocument`, read fresh for this request, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` until this generation's presence record holds its start's classification | a monitor |
+| `GET /api/crash-log?number=<n>` | session cookie or bearer token | `ForgeCrashLogDocument` of crash log `<n>`, the newest without the query, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 404 `{refusal: 'no-crash-log', number, text}` for a number with no log, a query that is no whole number from 1, or no log at all; 500 `read-failed` for a log that cannot be read | a monitor |
 | `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
@@ -679,7 +681,8 @@ command, the `group-of-a-settled-ticket` and `ticket-already-in-a-group` refusal
 install version 35, 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's
 non-converging review against the pipeline of the stage its review ran in, and adds install version 36, whose installed
 surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, and 1.20 adds the
-`interrupted-work-resume` command, the `ticket-not-interrupted` refusal and the `ticket-interrupted-hold-lifted` record,
+`interrupted-work-resume` command, the `ticket-not-interrupted` refusal, the `ticket-interrupted-hold-lifted` record,
+and the presence and crash-log endpoints with the `no-crash-log` refusal,
 each minor only adds, and version 0.0 stands for every forge released before system versions.
 
 The system version is set by interoperability, never by a package's version:
@@ -713,6 +716,8 @@ among them.
 | monitor events | `GET /api/v2/monitor/events` |
 | commands | `POST /api/v1/commands` |
 | session codes | `POST /api/v1/session-codes` |
+| presence | `GET /api/v1/presence`, from 1.20 |
+| crash log | `GET /api/v1/crash-log?number=<n>`, from 1.20 |
 
 The monitor starts at v2: its warnings became objects before system versions. The unversioned paths stay as a
 compatibility path of the registry, for clients built before system versions, and the Bridge's own routes stay
@@ -813,6 +818,27 @@ appended later.
   timeout is off for it.
 - The output is never on [the event stream](#the-event-stream): the Overseer publishes no event for an output line, and
   this stream sends no board event.
+
+## The presence contract
+
+`GET /api/presence` answers one `ForgePresenceDocument` (`packages/forge-contracts`), mapped from the board's files by
+`src/services/overseer/PresenceDocumentAssembly.ts`. It carries no version key: the path carries it.
+
+| Key | Holds |
+| --- | --- |
+| `generation`, `processId`, `codeVersion`, `startedAt`, `startOrigin` | The serving generation's presence record |
+| `lastStart` | `{kind, previousGeneration, crashSuspected, crashLogNumber}`: how this generation's start was classified, and the crash log it wrote or found, `null` after no crash |
+| `heartbeat` | `{sequence, at}` of this generation's newest beat, or `null` |
+| `supervision` | Talos's lease standing: `supervising`, `stopped` (the lease ended, so Talos stopped the agents), `checking-after-a-gap`, `not-yet-renewed`, or `no-talos` with no live Talos |
+| `abandonedPasses` | `{inARow, lastReason, lastAt}` |
+| `interruptedWork[]` | `{jobId, kind, ticketIds, cause, waitsFor, crashResumes, automaticRestartsLeft}` for each interrupted job and each job whose lost line waits; `cause` is the monitor's cause union, `waitsFor` is `instruction`, `answer`, `decision`, `nothing` (it resumes by itself) or `never`, and `automaticRestartsLeft` is `null` for a cause that is never counted |
+| `heldMerges[]` | `{ticketId, hold}` for each ticket an `interrupted:` hold keeps |
+| `crashLogs[]` | `{number, generation, component, recordedAt, suspected}`, oldest first; a log that cannot be read is left out |
+
+`GET /api/crash-log?number=<n>` answers one `ForgeCrashLogDocument`: `number`, the crashed Baton `generation` (`null`
+when nothing names it), `component` (`hephaestus`, `talos` or `unknown`), `suspected`, `recordedAt`, `startKind`
+(`null` when the crash path wrote the log), `error`, `activeJobs` and `logTail`, each of the last two `null` when it
+could not be read at the crash. A crash log's number is its own, never a Baton generation.
 
 ## The summary contract
 

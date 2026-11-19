@@ -53,6 +53,9 @@ const TICKET_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = [
 /** The decisions a crossing ticket's package stages open, which hold it the same way. */
 const CROSSING_HOLDING_DECISION_KINDS: readonly Decision['kind'][] = ['package-refused', 'second-return', 'dependent-broken', 'whitelist-removed-mid-crossing'];
 
+/** What a job that waits to run again waits for; `nothing` is a job that resumes by itself at the next pass. */
+export type ResumeWait = 'instruction' | 'answer' | 'decision' | 'nothing' | 'never';
+
 export interface PlaybookFacts {
   tickets:                     readonly PlaybookTicket[];
   jobs:                        readonly Readonly<Job>[];
@@ -409,7 +412,7 @@ function jobResumeIsHeld(job: Readonly<Job>, facts: PlaybookFacts): boolean {
 }
 
 /** A session stopped at its question resumes only once the question is answered, so the resume can carry the answer. */
-function jobAwaitsAnAnswer(job: Readonly<Job>, facts: PlaybookFacts): boolean {
+function jobAwaitsAnAnswer(job: Readonly<Job>, facts: Pick<PlaybookFacts, 'decisions' | 'incidents'>): boolean {
   return facts.decisions.some((decision) => decision.jobId === job.id)
     || facts.incidents.some((incident) => incident.jobId === job.id && (incident.kind === 'system-question' || incident.kind === 'malformed-ticket'));
 }
@@ -417,6 +420,11 @@ function jobAwaitsAnAnswer(job: Readonly<Job>, facts: PlaybookFacts): boolean {
 /** Only a crash counts toward the bound: every other cause resumes, or waits, whatever the count. */
 function crashResumesAreSpent(job: Readonly<Job>, limits: LifecycleThresholds): boolean {
   return isCrash(job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE) && job.crashResumes >= limits.CRASH_RESUMES_BEFORE_WAITING;
+}
+
+/** The job's interruption cause as a resume reads it: one that recorded none reads as a lost child. */
+function interruptionCauseOf(job: Readonly<Job>): InterruptionCause {
+  return job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE;
 }
 
 /** The resume policy of the job's interruption; a crash whose resumes reached the bound waits for User's resume. */
@@ -467,6 +475,20 @@ function assistantWaitsForInstruction(job: Readonly<Job>, logRecords: readonly L
   const cause = job.interruption ?? UNRECORDED_INTERRUPTION_CAUSE;
   if (FORGE_ENDING_INTERRUPTION_CAUSES.includes(cause)) return false;
   return RESUME_POLICY_OF_CAUSE[cause] === 'waits-for-instruction' && !resumeIsInstructed(job, logRecords);
+}
+
+/**
+ * What an interrupted job, or one whose lost line waits, waits for before it runs again, as the passes read it: User's resume, the answer
+ * to its question, the decision that names its failure, nothing, or never. A hold that clears by itself, such as a usage limit, is no wait.
+ */
+function resumeWaitOf(job: Readonly<Job>, facts: Pick<PlaybookFacts, 'decisions' | 'incidents' | 'logRecords'>, limits: LifecycleThresholds): ResumeWait {
+  if (job.state !== 'interrupted') return lostLineAwaitsResume(job, facts.logRecords) ? 'instruction' : 'nothing';
+  const policy = resumePolicyOf(job, limits);
+  if (policy === 'never-resumes') return 'never';
+  if (policy === 'resumes-once-decision-answered') return 'decision';
+  if (REPLACED_SESSION_JOB_KINDS.includes(job.kind)) return assistantWaitsForInstruction(job, facts.logRecords) ? 'instruction' : 'nothing';
+  if (jobAwaitsAnAnswer(job, facts)) return 'answer';
+  return policy === 'waits-for-instruction' && !resumeIsInstructed(job, facts.logRecords) ? 'instruction' : 'nothing';
 }
 
 /**
@@ -858,6 +880,8 @@ function nextLaunchNumbersOf(tickets: readonly Pick<PlaybookTicket, 'id' | 'stat
 export const Playbook = {
   nextStepsOf,
   resumePolicyOf,
+  interruptionCauseOf,
+  resumeWaitOf,
   resumeIsInstructed,
   lostLineAwaitsResume,
   assistantWaitsForInstruction,

@@ -92,6 +92,10 @@ export interface OverseerRoutes {
   summary:         () => unknown;
   /** `GET /api/monitor`: 200 and the `MonitorSnapshot`, or 503 `starting` before the Overseer knows its generation. */
   monitor:         () => RouteAnswer;
+  /** `GET /api/presence`: 200 and the `ForgePresenceDocument`, or 503 `starting` before this generation's presence is written. */
+  presence:        () => RouteAnswer;
+  /** `GET /api/crash-log?number=<n>`, the newest log without the query: 200 and the `ForgeCrashLogDocument`, or 404 `no-crash-log`. */
+  crashLog:        (writtenNumber: string | null) => RouteAnswer;
   /** `null` until the first monitor snapshot was published. */
   monitorStream:   () => MonitorStream | null;
   /** The sentence beside a 401, a 403 or a 500. */
@@ -177,6 +181,9 @@ const VERSIONS_PATH       = '/api/versions';
 const VERSIONED_PATH      = /^\/api\/v([1-9]\d*)\/(.+)$/;
 const EVENTS_PATH         = '/api/events';
 const MONITOR_PATH        = '/api/monitor';
+const PRESENCE_PATH       = '/api/presence';
+const CRASH_LOG_PATH      = '/api/crash-log';
+const CRASH_LOG_NUMBER_PARAMETER = 'number';
 const MONITOR_EVENTS_PATH = '/api/monitor/events';
 // The Bridge's own, unversioned and in no registry entry: only the page this Overseer serves calls it.
 const FLINT_BRAIN_ASK_PATH = '/api/flint-brain/ask';
@@ -533,12 +540,14 @@ type PageFiles = (() => Promise<BuiltPageOutcome>) | null;
 
 /** The routes that answer board data, each behind `readerIsAuthorized`; `null` for any other request. */
 function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): (() => Response) | null {
-  const { pathname } = new URL(request.url);
+  const { pathname, searchParams } = new URL(request.url);
   if (request.method !== 'GET') return null;
   if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
   if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams);
   if (pathname === MONITOR_PATH) return () => jsonResponse(routes.monitor());
+  if (pathname === PRESENCE_PATH) return () => jsonResponse(routes.presence());
+  if (pathname === CRASH_LOG_PATH) return () => jsonResponse(routes.crashLog(searchParams.get(CRASH_LOG_NUMBER_PARAMETER)));
   if (pathname === MONITOR_EVENTS_PATH) return () => monitorEventsResponse(routes, eventStreams, systemVersion);
   const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
   if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);

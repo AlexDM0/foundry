@@ -3,7 +3,8 @@
  * entry contradicting itself; raising the minimum to 1.0 makes exactly what forge keeps for clients built before system versions
  * removable and keeps every current endpoint; once that raise is made, the guard fails, naming each of those entries, until it is removed;
  * a client built for the current forge calls each endpoint at the version the registry serves it, the same endpoints since 1.0, as 1.1 only
- * adds Flint's brain to the monitor and the commands; and every entry is shipped, since forge serves each one.
+ * adds Flint's brain to the monitor and the commands; presence and the crash log are dated 1.20, so a client built for 1.19 calls neither;
+ * and every entry is shipped, since forge serves each one.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -27,7 +28,11 @@ const CURRENT_ENDPOINTS = [
   'endpoint monitor/events at v2',
   'endpoint commands at v1',
   'endpoint session-codes at v1',
+  'endpoint presence at v1',
+  'endpoint crash-log at v1',
 ];
+
+const PRESENCE_FORGE = { major: 1, minor: 20 };
 
 describe('forge\'s compatibility registry', () => {
   test('agrees with forge\'s versions: nothing is kept below the minimum supported, and no entry contradicts itself or another', () => {
@@ -53,6 +58,15 @@ describe('forge\'s compatibility registry', () => {
     const endpoints = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes'];
     expect(endpoints.map((endpoint) => CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, FORGE_SYSTEM_VERSIONS.current)))
       .toEqual([1, 1, 2, 2, 1, 1]);
+  });
+
+  test('presence and the crash log are served at v1 from forge 1.20, and a client built for 1.19 calls neither', () => {
+    const endpoints = ['presence', 'crash-log'];
+    const versionsAt = (clientVersion: { major: number; minor: number }): (number | null)[] => endpoints
+      .map((endpoint) => CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, clientVersion));
+    expect(versionsAt(PRESENCE_FORGE)).toEqual([1, 1]);
+    expect(versionsAt(FORGE_SYSTEM_VERSIONS.current)).toEqual([1, 1]);
+    expect(versionsAt({ major: 1, minor: 19 })).toEqual([null, null]);
   });
 
   test('marks every endpoint and every compatibility path shipped, since every forge from 1.0 serves each versioned path beside its unversioned one', () => {

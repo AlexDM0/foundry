@@ -213,8 +213,8 @@ const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
 const FLINT_BRAIN_ACTIVITY_KIND = 'flint-brain';
 
-/** Every model cause as the contract spells it, so a new cause fails the compiler until it is mapped. */
-const MONITOR_INTERRUPTION_CAUSE_OF_CAUSE: Readonly<Record<InterruptionCause, MonitorInterruptionCause>> = {
+/** Every model cause as the contract spells it, so a new cause fails the compiler until it is mapped; presence reads it too. */
+export const MONITOR_INTERRUPTION_CAUSE_OF_CAUSE: Readonly<Record<InterruptionCause, MonitorInterruptionCause>> = {
   'watcher-lost':          'child-lost',
   'agent-crashed':         'agent-crashed',
   'reboot':                'reboot',

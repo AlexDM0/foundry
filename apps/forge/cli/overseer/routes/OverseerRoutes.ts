@@ -1,9 +1,9 @@
 /**
  * The routes the Overseer's API serves, over the board, its job folders, its picture store, Flint's brain and the framing programs' server
- * records: the state, summary and monitor snapshot read fresh each request, the brain's commands and the Bridge's asks, the sentence of each
- * refusal, a job's transcript and served files, a gate profile's output, the pictures User uploads and the ones a transcript names, the
- * origins allowed to frame the Bridge, and the Bridge itself, whose HTML import is the one place the command surface reaches `bridge/`, by
- * path, for Bun to bundle.
+ * records: the state, summary, monitor snapshot, presence and crash logs read fresh each request, the brain's commands and the Bridge's
+ * asks, the sentence of each refusal, a job's transcript and served files, a gate profile's output, the pictures User uploads and the ones
+ * a transcript names, the origins allowed to frame the Bridge, and the Bridge itself, whose HTML import is the one place the command
+ * surface reaches `bridge/`, by path, for Bun to bundle.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -22,6 +22,7 @@ import { GateProfiling }                                      from '../../../src
 import { JobTranscript }                                      from '../../../src/services/overseer/JobTranscript.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts } from '../../../src/services/overseer/MonitorSnapshotAssembly.ts';
 import type { MonitorStream }                                 from '../../../src/services/overseer/MonitorStream.ts';
+import { overseerFilesIn }                                    from '../../../src/services/overseer/OverseerFiles.ts';
 import type {
   OverseerRoutes,
   RouteAnswer,
@@ -36,6 +37,7 @@ import { JOB_ID_PATTERN }                                                      f
 import { readBoardState, type BoardStateSource }                               from './BoardStateReader.ts';
 import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
 import { FrameOrigins }                                                        from './FrameOrigins.ts';
+import { PresenceReader }                                                      from './PresenceReader.ts';
 
 export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRouteRequest, 'context' | 'flintBrain'> {
   flintBrain:    Pick<FlintBrain, 'start' | 'stop' | 'ask'>;
@@ -106,6 +108,7 @@ function pictureUploadAnswerOf(storing: PictureStoring): RouteAnswer {
 
 export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes {
   const { context, workspace } = request;
+  const presenceSource = { ports: context.platformPorts, workspace, files: overseerFilesIn(workspace.trackerDirectory) };
   const jobFolderOf = (jobId: string): string | null => {
     if (!JOB_ID_PATTERN.test(jobId)) return null;
     const jobFolder = request.boardChildren.jobFolderOf(jobId);
@@ -131,6 +134,8 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       if (overseer === null) return { status: MONITOR_STATUS.STARTING, body: { refusal: 'starting' } };
       return { status: MONITOR_STATUS.ANSWERED, body: MonitorSnapshotAssembly.monitorSnapshotOf({ ...readBoardState(request), overseer, now: context.now() }) };
     },
+    presence:      () => PresenceReader.presenceAnswerOf(presenceSource, request.monitorFacts()?.generation ?? null),
+    crashLog:      (writtenNumber) => PresenceReader.crashLogAnswerOf(presenceSource.files, writtenNumber),
     monitorStream: request.monitorStream,
     refusalTextOf: (refusal) => SERVER_REFUSAL_TEXT[refusal],
     events:        request.broker,

@@ -141,7 +141,7 @@ function runLoginOverseer(loginArguments: readonly string[]): FinishedSetupRun {
   return runSetupEntry(['--login-overseer', ...loginArguments]);
 }
 
-test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL running oversee --detach at load, every path absolute', () => {
+test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL running start --started-by login-item at load, every path absolute', () => {
   const repositoryDirectory = join(scratchDirectory, 'tracked-repository');
   mkdirSync(repositoryDirectory);
   const { exitCode, output } = runLoginOverseer([repositoryDirectory]);
@@ -150,7 +150,12 @@ test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL r
   const plist = readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8');
   expect(plist).toContain(`<key>Label</key>\n  <string>${PRODUCT_NAMES.LOGIN_ITEM_LABEL}</string>`);
   const programArguments = [
-    join(fakeBunDirectory, 'bun'), ...ToolRuntimeUtil.isolatingArgumentsFor(CHECKOUT_DIRECTORY), join(CHECKOUT_DIRECTORY, 'agent-progress.ts'), 'oversee', '--detach'
+    join(fakeBunDirectory, 'bun'),
+    ...ToolRuntimeUtil.isolatingArgumentsFor(CHECKOUT_DIRECTORY),
+    join(CHECKOUT_DIRECTORY, 'agent-progress.ts'),
+    'start',
+    '--started-by',
+    'login-item',
   ];
   expect(plist).toContain(programArguments.map((argument) => `<string>${argument}</string>`).join('\n    '));
   expect(plist).toContain(`<key>WorkingDirectory</key>\n  <string>${repositoryDirectory}</string>`);

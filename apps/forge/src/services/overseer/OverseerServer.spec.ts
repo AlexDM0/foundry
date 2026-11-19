@@ -6,7 +6,8 @@
  * line number as the id; a run the routes do not know is a 404; the board event stream carries no output line; and every stream route has
  * Bun's idle timeout off. `GET /api/versions` answers while the Overseer starts and while it serves, with no token, behind the Host guard;
  * every endpoint the registry serves answers at its versioned path exactly as at its unversioned one, behind the same guards, and a version
- * or an endpoint the registry does not serve is a 404.
+ * or an endpoint the registry does not serve is a 404. Presence and the crash log answer behind the token at both paths, the crash log's
+ * number reaching its route from the query.
  */
 import {
   afterEach,
@@ -112,6 +113,8 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
     state:         neverCalled,
     summary:       neverCalled,
     monitor:       neverCalled,
+    presence:      neverCalled,
+    crashLog:      neverCalled,
     monitorStream: () => null,
     refusalTextOf: neverCalled,
     events:        () => broker,
@@ -211,7 +214,7 @@ const PORT = 4100;
 const TOKEN = 'example-token';
 const HOST_HEADERS = { host: `127.0.0.1:${PORT}` };
 const TOKEN_HEADERS = { ...HOST_HEADERS, authorization: `Bearer ${TOKEN}` };
-const VERSIONED_ENDPOINTS = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes'];
+const VERSIONED_ENDPOINTS = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes', 'presence', 'crash-log'];
 
 const openHandlers: OverseerRequestHandler[] = [];
 
@@ -229,6 +232,8 @@ function versionedRoutesOf(started: () => boolean): OverseerRoutes {
     command:       (body) => Promise.resolve({ status: 200, body: { controlVersion: 1, received: body } }),
     summary:       () => ({ summaryVersion: 1, project: 'Example Agency' }),
     monitor:       () => ({ status: 200, body: { monitorVersion: 3 } }),
+    presence:      () => ({ status: 200, body: { generation: 4 } }),
+    crashLog:      (writtenNumber) => ({ status: 200, body: { number: writtenNumber } }),
     monitorStream: () => monitorStream,
     refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
     frameOrigins:  () => [],
@@ -303,6 +308,8 @@ describe('the versioned paths', () => {
       { endpoint: 'monitor' },
       { endpoint: 'monitor/events' },
       { endpoint: 'commands', method: 'POST', body: { kind: 'overseer-pause' } },
+      { endpoint: 'presence' },
+      { endpoint: 'crash-log' },
     ];
     for (const { endpoint, method, body } of calls) {
       const options = { ...(method === undefined ? {} : { method }), ...(body === undefined ? {} : { body }) };
@@ -338,6 +345,32 @@ describe('the versioned paths', () => {
   test('a version or an endpoint the registry does not serve is a 404 not-found', async () => {
     const handler = versionedHandlerOf();
     for (const path of ['/api/v9/identity', '/api/v1/monitor', '/api/v0/summary', '/api/v01/summary', '/api/v1/state', '/api/v1/events', '/api/v2/']) {
+      const answer = await handler.answer(requestTo(path), PORT);
+      expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
+    }
+  });
+});
+
+describe('presence and the crash log', () => {
+  test('each answers 401 without the token and its document with it, at its unversioned and its v1 path, the query kept', async () => {
+    const handler = versionedHandlerOf();
+    const answers: [string, unknown][] = [
+      ['/api/presence', { generation: 4 }],
+      ['/api/v1/presence', { generation: 4 }],
+      ['/api/crash-log', { number: null }],
+      ['/api/v1/crash-log?number=2', { number: '2' }],
+    ];
+    for (const [path, document] of answers) {
+      const refused = await handler.answer(requestTo(path, { headers: HOST_HEADERS }), PORT);
+      expect([refused.status, await refused.json()], path).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
+      const answered = await handler.answer(requestTo(path), PORT);
+      expect([answered.status, await answered.json()], path).toEqual([200, document]);
+    }
+  });
+
+  test('a version the registry does not serve them at is a 404 not-found', async () => {
+    const handler = versionedHandlerOf();
+    for (const path of ['/api/v2/presence', '/api/v2/crash-log?number=1']) {
       const answer = await handler.answer(requestTo(path), PORT);
       expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
     }

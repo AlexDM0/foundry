@@ -11,6 +11,8 @@
     "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
     "./MonitorInterruptionCauses": "./constants/MonitorInterruptionCauses.ts",
     "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
+    "./ForgePresenceDocument": "./@types/ForgePresenceDocument.ts",
+    "./ForgeCrashLogDocument": "./@types/ForgeCrashLogDocument.ts",
     "./EmbedChannelMessage": "./@types/EmbedChannelMessage.ts",
     "./EmbedMode": "./constants/EmbedMode.ts",
     "./FrameAncestorRecord": "./@types/FrameAncestorRecord.ts",

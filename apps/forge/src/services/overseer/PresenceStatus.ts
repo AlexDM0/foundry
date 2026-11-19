@@ -4,6 +4,7 @@
  */
 import type { PlatformPorts }                                         from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { LeaseStanding }                                         from '../../lib/talos/SupervisionLease.ts';
+import type { TalosRecord }                                           from '../../lib/talos/TalosRecord.ts';
 import type { Workspace }                                             from '../tracker/Workspace.ts';
 import type { HeartbeatRecord, PresenceRecord }                       from './@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }                            from './@types/StartClassification.ts';
@@ -67,12 +68,22 @@ const SUPERVISION_OF_LEASE_STANDING: Readonly<Record<LeaseStanding, Supervision>
   'unheld':            'not-yet-renewed',
 });
 
-function supervisionOf({ ports, workspace }: PresenceStatusRequest): Supervision {
+/** The newest Talos record while its Talos runs and has not quit; `null` with no such record. */
+function liveTalosRecordOf(ports: PlatformPorts, workspace: Workspace): TalosRecord | null {
   const newestStartNumber = newestTalosStartNumberIn(workspace.trackerDirectory);
-  if (newestStartNumber === null) return 'no-talos';
+  if (newestStartNumber === null) return null;
   const record = talosRecordAt(workspace.trackerDirectory, newestStartNumber);
-  if (record === null || record.state === 'quit' || runningIdentityOf(ports, record.talos) === null) return 'no-talos';
-  return SUPERVISION_OF_LEASE_STANDING[record.lease.standing];
+  if (record === null || record.state === 'quit' || runningIdentityOf(ports, record.talos) === null) return null;
+  return record;
+}
+
+/** The supervision a live Talos's record names; `no-talos` without one. */
+function supervisionOfTalosRecord(liveTalosRecord: TalosRecord | null): Supervision {
+  return liveTalosRecord === null ? 'no-talos' : SUPERVISION_OF_LEASE_STANDING[liveTalosRecord.lease.standing];
+}
+
+function supervisionOf({ ports, workspace }: PresenceStatusRequest): Supervision {
+  return supervisionOfTalosRecord(liveTalosRecordOf(ports, workspace));
 }
 
 function storedPresenceOf(files: OverseerFiles): PresenceRecord | null {
@@ -97,9 +108,13 @@ function statusCrashLogOf(files: OverseerFiles, crashLogNumber: number | null): 
 }
 
 /** A start that served after a crash wrote or found its log, the newest on disk while it serves. */
-function crashLogOfTheLastStart(files: OverseerFiles, lastStart: StartClassificationVerdict | null): StatusCrashLog | null {
+function crashLogNumberOfTheLastStart(lastStart: StartClassificationVerdict | null, crashLogNumbers: readonly number[]): number | null {
   if (lastStart === null || !StartGate.crashToLogOf(lastStart)) return null;
-  return statusCrashLogOf(files, CrashLog.list(files).at(-1) ?? null);
+  return crashLogNumbers.at(-1) ?? null;
+}
+
+function crashLogOfTheLastStart(files: OverseerFiles, lastStart: StartClassificationVerdict | null): StatusCrashLog | null {
+  return statusCrashLogOf(files, crashLogNumberOfTheLastStart(lastStart, CrashLog.list(files)));
 }
 
 function liveReadingOf(request: PresenceStatusRequest, live: LiveOverseer): StatusPresenceReading {
@@ -158,4 +173,10 @@ function forgeIsOffAfterACrash(request: PresenceStatusRequest): boolean {
   return StartGate.crashToLogOf(classificationOfAStartByTheUser(request));
 }
 
-export const PresenceStatus = Object.freeze({ readingOf, forgeIsOffAfterACrash });
+export const PresenceStatus = Object.freeze({
+  readingOf,
+  forgeIsOffAfterACrash,
+  liveTalosRecordOf,
+  supervisionOfTalosRecord,
+  crashLogNumberOfTheLastStart,
+});

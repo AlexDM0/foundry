@@ -13,15 +13,22 @@ export type ForgeCompatibilityEntry = CompatibilityEntry & { readonly source: 'a
 const BEFORE_SYSTEM_VERSIONS: SystemVersion = { major: 0, minor: 0 };
 const FIRST_VERSIONED_FORGE: SystemVersion = { major: 1, minor: 0 };
 
-function currentEndpointOf(endpoint: string, version: number): ForgeCompatibilityEntry {
+/** The forge version that first served the endpoint at this version: `versions:raise-minimum` dates it by this, and it gates nothing. */
+const PRESENCE_ADDED_IN: SystemVersion = { major: 1, minor: 20 };
+
+function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
   return {
     kind:         'endpoint',
     endpoint,
     version,
-    introducedIn: FIRST_VERSIONED_FORGE,
+    introducedIn,
     lastNeededBy: null,
     source:       'shipped',
   };
+}
+
+function currentEndpointOf(endpoint: string, version: number): ForgeCompatibilityEntry {
+  return endpointAddedIn(endpoint, version, FIRST_VERSIONED_FORGE);
 }
 
 /** Kept for a client built before system versions, which calls the unversioned paths and checks each document's integer version. */
@@ -43,6 +50,8 @@ export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = 
   currentEndpointOf('monitor/events', 2),
   currentEndpointOf('commands', 1),
   currentEndpointOf('session-codes', 1),
+  endpointAddedIn('presence', 1, PRESENCE_ADDED_IN),
+  endpointAddedIn('crash-log', 1, PRESENCE_ADDED_IN),
   keptForReleasedClientsOf('the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>'),
   keptForReleasedClientsOf('the integer version keys of the documents: identityVersion, contracts, summaryVersion, monitorVersion, controlVersion'),
   keptForReleasedClientsOf('channelVersion 1 on every embed message, which a released Bridge and host compare for equality'),
