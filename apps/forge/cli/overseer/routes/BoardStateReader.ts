@@ -4,24 +4,23 @@
  */
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
-import { storedFileTextOf }   from '../../../src/adapters/StoredFileText.ts';
-import { UsageMarkerFile }    from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
-import { UsageWindowsFile }   from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
-import { LogUtil }            from '../../../src/adapters/utils/LogUtil.ts';
-import { GitProcess }         from '../../../src/lib/git/GitProcess.ts';
-import { predictMerges }      from '../../../src/lib/git/MergeTree.ts';
-import type { LogRecord }     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { Board }         from '../../../src/lib/tracker-model/Board.ts';
-import { readingBoardOf }     from '../../../src/lib/tracker-model/ReadingBoard.ts';
-import { mergeTargetRuleOf }  from '../../../src/services/lifecycle/MergeTargets.ts';
-import type { BoardChildren } from '../../../src/services/overseer/BoardChildren.ts';
+import type { OverseerFacts, UsageFacts } from '../../../src/adapters/@types/BoardStateParts.ts';
+import { storedFileTextOf }               from '../../../src/adapters/StoredFileText.ts';
+import { UsageMarkerFile }                from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
+import { UsageWindowsFile }               from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
+import { LogUtil }                        from '../../../src/adapters/utils/LogUtil.ts';
+import { GitProcess }                     from '../../../src/lib/git/GitProcess.ts';
+import { predictMerges }                  from '../../../src/lib/git/MergeTree.ts';
+import type { LogRecord }                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                     from '../../../src/lib/tracker-model/Board.ts';
+import { readingBoardOf }                 from '../../../src/lib/tracker-model/ReadingBoard.ts';
+import { mergeTargetRuleOf }              from '../../../src/services/lifecycle/MergeTargets.ts';
+import type { BoardChildren }             from '../../../src/services/overseer/BoardChildren.ts';
 import {
   BoardStateAssembly,
   type BoardState,
   type MergeForecasting,
-  type MergeForecasts,
-  type OverseerFacts,
-  type UsageFacts
+  type MergeForecasts
 } from '../../../src/services/overseer/BoardState.ts';
 import { JobLiveFactsReader }                        from '../../../src/services/overseer/JobLiveFactsReader.ts';
 import { MainLineReads }                             from '../../../src/services/overseer/MainLineReads.ts';

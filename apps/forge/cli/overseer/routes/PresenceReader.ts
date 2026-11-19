@@ -2,7 +2,7 @@
  * The answers of `GET /api/presence` and `GET /api/crash-log`, read fresh from the board's files at each request and mapped into the
  * contract's documents by `PresenceDocumentAssembly`.
  */
-import { OperationRefusalWordingUtil }                     from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { RefusalDocumentUtil }                             from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import type { PlatformPorts }                              from '../../../src/lib/platform-ports/PlatformPortsFor.ts';
 import { readingBoardOf }                                  from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { CrashLog }                                        from '../../../src/services/overseer/CrashLog.ts';
@@ -68,12 +68,10 @@ function presenceAnswerOf(source: PresenceSource, servedGeneration: number | nul
   return { status: PRESENCE_STATUS.ANSWERED, body: document };
 }
 
+/** Served as every refusal is: its code, its fields and the sentence the command line prints. */
 function noCrashLogAnswerOf(crashLogNumber: number | null): RouteAnswer {
-  const refusal = new OperationRefusal('refused', { kind: 'no-crash-log', number: crashLogNumber });
-  return {
-    status: CRASH_LOG_STATUS.NO_CRASH_LOG,
-    body:   { refusal: 'no-crash-log', number: crashLogNumber, text: OperationRefusalWordingUtil.apiMessageOf(refusal) },
-  };
+  const { code, fields, sentence } = RefusalDocumentUtil.refusalDocumentOf(new OperationRefusal('refused', { kind: 'no-crash-log', number: crashLogNumber }));
+  return { status: CRASH_LOG_STATUS.NO_CRASH_LOG, body: { refusal: code, fields, text: sentence } };
 }
 
 function writtenCrashLogNumberOf(writtenNumber: string): number | null {

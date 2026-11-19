@@ -15,6 +15,7 @@ const FIRST_VERSIONED_FORGE: SystemVersion = { major: 1, minor: 0 };
 
 /** The forge version that first served the endpoint at this version: `versions:raise-minimum` dates it by this, and it gates nothing. */
 const PRESENCE_ADDED_IN: SystemVersion = { major: 1, minor: 20 };
+const BOARD_DOCUMENT_ADDED_IN: SystemVersion = { major: 1, minor: 21 };
 
 function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
   return {
@@ -52,6 +53,7 @@ export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = 
   currentEndpointOf('session-codes', 1),
   endpointAddedIn('presence', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('crash-log', 1, PRESENCE_ADDED_IN),
+  endpointAddedIn('board', 1, BOARD_DOCUMENT_ADDED_IN),
   keptForReleasedClientsOf('the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>'),
   keptForReleasedClientsOf('the integer version keys of the documents: identityVersion, contracts, summaryVersion, monitorVersion, controlVersion'),
   keptForReleasedClientsOf('channelVersion 1 on every embed message, which a released Bridge and host compare for equality'),

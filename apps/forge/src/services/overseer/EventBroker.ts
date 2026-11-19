@@ -6,7 +6,8 @@
  * A changed gate profile run sends `profile`, and a changed pipeline, setup record or flow sends `pipeline` just before `board`, so the
  * flow can animate its marks from the slice before the whole state replaces it.
  */
-import type { BoardState, EndedJob, JobLiveFactsWithSilence } from './BoardState.ts';
+import type { EndedJob, JobLiveFactsWithSilence } from '../../adapters/@types/BoardStateParts.ts';
+import type { BoardState }                        from './BoardState.ts';
 
 export type OverseerEventKind = 'board' | 'job' | 'decision' | 'incident' | 'overseer' | 'usage' | 'profile' | 'pipeline';
 

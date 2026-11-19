@@ -1,6 +1,7 @@
 /**
  * One of the forge's crash logs, from `GET /api/v1/crash-log?number=<n>`, the newest without the query (from forge 1.20). A number with no
- * log answers 404 with the refusal `no-crash-log`. It carries no version key: the path carries it.
+ * log answers 404 `{refusal: 'no-crash-log', fields: {number}, text}`, a `ForgeRefusalDocument`'s code, fields and sentence (from forge
+ * 1.21). It carries no version key: the path carries it.
  */
 import type { ForgeCrashedComponent, ForgeStartKind } from './ForgePresenceDocument.ts';
 

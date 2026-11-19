@@ -41,7 +41,7 @@ const TOKEN              = 'example-token';
 const DASHBOARD_ORIGIN   = 'http://127.0.0.1:4800';
 const TOKEN_HEADERS      = { authorization: `Bearer ${TOKEN}` };
 /** The routes that answer board data, each of which takes the session cookie or the bearer token. */
-const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json', 'api/profiles/P1/stream'];
+const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/board', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json', 'api/profiles/P1/stream'];
 
 const SHORT_HEARTBEAT_MILLISECONDS = 20;
 
@@ -92,6 +92,7 @@ function startExampleServer(
     askFlintBrain:   async () => await Promise.resolve({ status: 200, body: { kind: 'not-asked', reason: 'not-running' } }),
     onNudge:         () => nudges.push('nudge'),
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
+    board:           () => ({ project: 'Example Agency' }),
     summary:         () => ({ summaryVersion: 1 }),
     monitor:         () => ({ status: 200, body: { monitorVersion: 3 } }),
     presence:        () => ({ status: 200, body: { generation: 1 } }),

@@ -19,12 +19,13 @@ import { describe, expect, test } from 'bun:test';
 
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
+import type { JobLiveFactsWithSilence, JobWithLiveFacts }                                 from '../../adapters/@types/BoardStateParts.ts';
 import type { LogRecord }                                                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                                                                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { TicketStage }                                                               from '../../lib/tracker-model/@types/Task.ts';
 import type { Ticket }                                                                    from '../../lib/tracker-model/@types/Ticket.ts';
 import type { MonitorSnapshot }                                                           from '../../shared/monitor/@types/MonitorSnapshot.ts';
-import type { BoardState, JobLiveFactsWithSilence, JobWithLiveFacts }                     from './BoardState.ts';
+import type { BoardState }                                                                from './BoardState.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts, type MonitorSnapshotSource } from './MonitorSnapshotAssembly.ts';
 import { liveJobFixture }                                                                 from './testing/LiveJobFixture.ts';
 
@@ -52,7 +53,9 @@ const IDLE_LIVE_FACTS: JobLiveFactsWithSilence = {
 };
 
 function jobWith(job: Parameters<typeof liveJobFixture>[0], live: Partial<JobLiveFactsWithSilence>, launchedAt: string | null): JobWithLiveFacts {
-  return { ...liveJobFixture(job), launchedAt, live: { ...IDLE_LIVE_FACTS, jobId: job.id, ...live } };
+  return {
+    ...liveJobFixture(job), launchedAt, live: { ...IDLE_LIVE_FACTS, jobId: job.id, ...live }, lostLine: null
+  };
 }
 
 const JOBS: JobWithLiveFacts[] = [

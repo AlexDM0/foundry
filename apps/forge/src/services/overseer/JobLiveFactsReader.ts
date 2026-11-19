@@ -5,87 +5,28 @@
  * the session reported. The stamps are only recorded and shown: no Overseer decision reads them.
  */
 
-import type { AgentAdapter }                    from '../../lib/agent-launch/AgentAdapter.ts';
-import type { AgentSessionEvent }               from '../../lib/agent-launch/AgentSessionEvent.ts';
-import type { EventLogEntry }                   from '../../lib/talos/EventLog.ts';
-import { clientEntryOf }                        from '../../lib/talos/TalosFrames.ts';
-import type { Job, JobKind }                    from '../../lib/tracker-model/@types/Job.ts';
-import type { Board }                           from '../../lib/tracker-model/Board.ts';
-import type { TranscriptEntry, TranscriptRole } from '../../shared/@types/TranscriptEntry.ts';
-import { AssistantBoot }                        from './AssistantBoot.ts';
-import { AssistantSession }                     from './AssistantSession.ts';
-import type { BoardChildren }                   from './BoardChildren.ts';
-import { JobControlDelivery }                   from './JobControlDelivery.ts';
-import { JobLaunch }                            from './JobLaunch.ts';
-import { JobTranscript }                        from './JobTranscript.ts';
-
-export interface LastToolCall {
-  toolName:  string;
-  /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
-  startedAt: string | null;
-  /** True until the call's result arrives. */
-  running:   boolean;
-}
-
-export interface SubagentLiveFacts {
-  parentToolUseId: string;
-  toolCalls:       number;
-  lastToolCall:    LastToolCall | null;
-  tokens:          number;
-  /** `running` while the parent call that spawned it has no result; a subagent whose parent call the log does not hold reads `ended`. */
-  state:           SubagentState;
-  /** The parent call's `description` input, or the one its agent recorded beside its transcript; `null` without one. */
-  description:     string | null;
-}
-
-export type SubagentState = 'running' | 'ended';
-
-/** Whether a message sent now reaches the session between turns or waits behind the turn under way. */
-export type JobTurn = 'between-turns' | 'mid-turn';
-
-/** The newest line of a session's own words, or of User's chat to it, so a list of sessions shows it with no stream per row. */
-export interface SessionLastLine {
-  role: Extract<TranscriptRole, 'assistant' | 'user'>;
-  text: string;
-  /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
-  at:   string | null;
-}
-
-/** A usage window as the session reported it, whether or not the vendor refused requests in it. */
-export interface UsageWindowReport {
-  /** The window's name as the agent reported it, an opaque value. */
-  window:      string;
-  /** `null` for a window the agent's adapter does not know. */
-  lengthHours: number | null;
-  /** `null` when the vendor named no usable reset. */
-  resetsAt:    string | null;
-  /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
-  reportedAt:  string | null;
-}
-
-export interface JobLiveFacts {
-  jobId:                  string;
-  /** API turns of the job's own session, the count its call budget is held against. */
-  calls:                  number;
-  /** `null` for a job no budget holds. */
-  callBudget:             number | null;
-  tokens:                 number;
-  toolCalls:              number;
-  lastToolCall:           LastToolCall | null;
-  subagents:              SubagentLiveFacts[];
-  toolCallsWithSubagents: number;
-  /**
-   * The newest instance's: `mid-turn` while it took more chats than its session printed results. The Assistant's is the idle rule its
-   * deliveries wait on. `null` for a job with no agent session, and before its first instance logged a line.
-   */
-  turn:                   JobTurn | null;
-  /** User's `job message` records its session has not taken yet. */
-  messagesWaiting:        number;
-  /** For an Assistant, product-owner or pipeline agent job only; `null` for every other job, and before the session said anything. */
-  lastLine:               SessionLastLine | null;
-  /** The newest usage window the session reported, of any instance; `null` before it reported one. */
-  usageWindow:            UsageWindowReport | null;
-}
+import type {
+  JobLiveFacts,
+  JobTurn,
+  LastToolCall,
+  SessionLastLine,
+  SubagentLiveFacts,
+  SubagentState,
+  UsageWindowReport
+} from '../../adapters/@types/BoardStateParts.ts';
+import type { AgentAdapter }      from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentSessionEvent } from '../../lib/agent-launch/AgentSessionEvent.ts';
+import type { EventLogEntry }     from '../../lib/talos/EventLog.ts';
+import { clientEntryOf }          from '../../lib/talos/TalosFrames.ts';
+import type { Job, JobKind }      from '../../lib/tracker-model/@types/Job.ts';
+import type { Board }             from '../../lib/tracker-model/Board.ts';
+import type { TranscriptEntry }   from '../../shared/@types/TranscriptEntry.ts';
+import { AssistantBoot }          from './AssistantBoot.ts';
+import { AssistantSession }       from './AssistantSession.ts';
+import type { BoardChildren }     from './BoardChildren.ts';
+import { JobControlDelivery }     from './JobControlDelivery.ts';
+import { JobLaunch }              from './JobLaunch.ts';
+import { JobTranscript }          from './JobTranscript.ts';
 
 /** What every job's live facts are read through: its Talos event logs, the adapter that reads their lines, and the board's log and incidents. */
 export interface JobLiveFactsSource {

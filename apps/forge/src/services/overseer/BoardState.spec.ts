@@ -17,6 +17,7 @@ import {
   test
 } from 'bun:test';
 
+import type { JobLiveFactsWithSilence }                           from '../../adapters/@types/BoardStateParts.ts';
 import type { FullStatusDocument }                                from '../../adapters/@types/StatusDocument.ts';
 import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
@@ -30,7 +31,6 @@ import {
   BoardStateAssembly,
   type BoardState,
   type BoardStateReading,
-  type JobLiveFactsWithSilence,
   type MergeForecasting,
   type PipelineSources
 } from './BoardState.ts';

@@ -5,6 +5,19 @@
  */
 import type { BoardSummaryDocument } from 'forge-contracts/BoardSummaryDocument';
 
+import type {
+  EndedJob,
+  JobLiveFactsWithSilence,
+  JobWithLiveFacts,
+  LostLineFacts,
+  MergeQueueFacts,
+  MergeTargetFacts,
+  OverseerFacts,
+  OverseerRuntimeState,
+  PictureLimits,
+  UsageFacts,
+  WaitingForMergeEntry
+} from '../../adapters/@types/BoardStateParts.ts';
 import type { FullStatusDocument }                                                            from '../../adapters/@types/StatusDocument.ts';
 import type { PipelineReading }                                                               from '../../adapters/pipeline/PipelineFile.ts';
 import { GitProcess }                                                                         from '../../lib/git/GitProcess.ts';
@@ -18,7 +31,6 @@ import type { LaunchSlots }                                                     
 import type { LogRecord }                                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { PipelineSetupReading }                                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Ticket }                                                                        from '../../lib/tracker-model/@types/Ticket.ts';
-import type { TicketPriority }                                                                from '../../lib/tracker-model/@types/Ticket.ts';
 import type { TicketForecast }                                                                from '../../lib/tracker-model/@types/TicketForecast.ts';
 import type { TrackerProgress }                                                               from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { BranchTreeOf, MergeTargetOf }                                                   from '../../lib/tracker-model/AirlockClaims.ts';
@@ -30,72 +42,8 @@ import { boardFactsOf }                                                         
 import { assemblePagePayload, type AssembledPagePayload }                                     from '../render/PagePayloadAssembly.ts';
 import { pipelineFactsOf, type MainLineTexts, type PipelineFacts }                            from '../render/PipelineFactsAssembly.ts';
 import { InstructionFiles }                                                                   from './InstructionFiles.ts';
-import type { JobLiveFacts }                                                                  from './JobLiveFactsReader.ts';
 import { LaunchSettings }                                                                     from './LaunchSettings.ts';
 import type { MainLineReads }                                                                 from './MainLineReads.ts';
-
-export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
-
-export interface OverseerFacts {
-  state:            OverseerRuntimeState;
-  paused:           boolean;
-  url:              string | null;
-  generation:       number | null;
-  codeVersion:      string;
-  installVersion:   number;
-  /** The last Baton pass that failed while this Overseer kept driving; `null` when none did. */
-  batonPassWarning: unknown;
-}
-
-/** The newest observation of one usage window of the agent's plan. */
-export interface UsageWindowFacts {
-  /** The window's name as the agent reported it, an opaque value. */
-  window:      string;
-  /** `null` for a window the agent's adapter does not know. */
-  lengthHours: number | null;
-  /** The whole percent of the window used, 0 to 100. */
-  utilization: number;
-  resetsAt:    string;
-}
-
-export interface UsageFacts {
-  /** From the machine's usage marker: no launch happens before it; `null` when no limit was hit. */
-  resetsAt: string | null;
-  window:   string | null;
-  /** From the machine's usage windows: empty before the first observation and under API billing. */
-  windows:  UsageWindowFacts[];
-}
-
-/** One waiting candidate on a target, in the merge queue's order. */
-export interface MergeQueueEntry {
-  ticketId:        string;
-  priority:        TicketPriority;
-  againstTarget:   MergeForecast;
-  /** Empty when clean, the files git named when conflicting, `null` when the prediction failed. */
-  conflictedFiles: string[] | null;
-  /** The other clean candidates whose merge this one's would conflict with. */
-  conflictsCaused: number;
-}
-
-/** With merge approval on: a reviewed ticket waiting for User's accept, and git's prediction of its merge into the target's current tip. */
-export interface WaitingForMergeEntry {
-  ticketId:        string;
-  priority:        TicketPriority;
-  againstTarget:   MergeForecast;
-  /** Empty when clean, the files git named when conflicting, `null` when the prediction failed. */
-  conflictedFiles: string[] | null;
-}
-
-/** One merge target: its Airlock holder, its waiting candidates in order, and the decisions its landings wait on. */
-export interface MergeTargetFacts {
-  target:                 string;
-  holder:                 { jobId: string; ticketIds: string[]; phase: string } | null;
-  order:                  MergeQueueEntry[];
-  /** Empty with merge approval off; in readiness order. */
-  waitingForMerge:        WaitingForMergeEntry[];
-  pairwiseConflicts:      PairwiseConflict[];
-  targetMovedDecisionIds: string[];
-}
 
 /** git's predictions for a target's waiting candidates, which the Overseer reads from the repository. */
 export interface MergeForecasts {
@@ -109,31 +57,6 @@ export interface MergeForecasting {
   branchTreeOf: BranchTreeOf;
   forecastsOf:  (target: string, ticketIds: readonly string[]) => MergeForecasts;
 }
-
-export interface MergeQueueFacts {
-  /** In-review tickets queued for a merge, in board order. */
-  queuedTicketIds: string[];
-  /** Each merge or refresh job holding its target's slot. */
-  slots:           { jobId: string; target: string; phase: string }[];
-  /** Every target with a slot holder or a queued ticket; empty when the reading carries no forecasting. */
-  targets:         MergeTargetFacts[];
-}
-
-/** What a message or an intake request may carry, so the Bridge refuses a picture before its upload and keeps no copy of the rule. */
-export interface PictureLimits {
-  perMessage:     number;
-  sizeLimitBytes: number;
-  mediaTypes:     string[];
-}
-
-/** The live facts plus the DrivePass's in-memory count of quiet sweeps, which no event log holds. */
-export type JobLiveFactsWithSilence = JobLiveFacts & { silentSweeps: number };
-
-export type JobWithLiveFacts = Readonly<Job> & {
-  /** The newest `job-launched` record's stamp, shown as the job's elapsed time and never read to decide; `null` when the log lost it. */
-  launchedAt: string | null;
-  live:       JobLiveFactsWithSilence;
-};
 
 export interface BoardStateReading {
   /** The `status --json --full` document, built by the command surface from the same Board. */
@@ -187,19 +110,6 @@ export interface BoardState extends Omit<FullStatusDocument, 'jobs' | 'decisions
   launchSlots:     LaunchSlots;
   /** `null` when the agent adapter cannot send a session pictures. */
   pictureLimits:   PictureLimits | null;
-}
-
-export interface EndedJob {
-  id:        string;
-  kind:      Job['kind'];
-  role:      Job['role'];
-  ticketIds: string[];
-  target:    string | null;
-  attempt:   number;
-  state:     'ended';
-  outcome:   string;
-  cause:     string | null;
-  endedAt:   string;
 }
 
 /** The package's `BoardSummaryDocument`, with every key forge sends. */
@@ -319,6 +229,16 @@ function launchedAtByJobIdOf(logRecords: readonly LogRecord[]): ReadonlyMap<stri
   return new Map(logRecords.flatMap((record) => (record.kind === 'job-launched' ? [[record.jobId, record.at] as const] : [])));
 }
 
+/** The job's newest lost line while it waits for User's resume, as the presence document reads it; `null` while none waits. */
+function lostLineOf(board: Board, job: Readonly<Job>, logRecords: readonly LogRecord[]): LostLineFacts | null {
+  if (!board.lostLineAwaitsResume(job)) return null;
+  let lostLine: LostLineFacts | null = null;
+  for (const record of logRecords) {
+    if (record.kind === 'job-line-lost' && record.jobId === job.id) lostLine = { line: record.fields.line, cause: record.fields.cause };
+  }
+  return lostLine;
+}
+
 /** No main line read: no text, no constitution and no commit counted. */
 const NO_MAIN_LINE_TEXTS: MainLineTexts = Object.freeze({
   textOf:               () => null,
@@ -367,7 +287,9 @@ function boardStateOf(reading: BoardStateReading): BoardState {
       generatedAt:       reading.generatedAt,
     }),
     page,
-    jobs:            board.jobs().map((job) => ({ ...job, launchedAt: launchedAtByJobId.get(job.id) ?? null, live: reading.liveFactsOf(job) })),
+    jobs: board.jobs().map((job) => ({
+      ...job, launchedAt: launchedAtByJobId.get(job.id) ?? null, live: reading.liveFactsOf(job), lostLine: lostLineOf(board, job, reading.logRecords)
+    })),
     decisions:       [...board.decisions()],
     incidents:       [...board.incidents()],
     notices:         [...reading.notices],

@@ -46,11 +46,12 @@ sentence the command line prints, which may name a command. A bare verb such as 
 | `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
 | `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: forge-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
 | `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
-| `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
+| `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request; internal, at no versioned path | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
+| `GET /api/board` | session cookie or bearer token | `ForgeBoardDocument`, read fresh for this request, see [The board document](#the-board-document) | 401 `unauthorized`; 500 `read-failed` when the read throws | a monitor |
 | `GET /api/summary` | none | `BoardSummary`, see [The summary contract](#the-summary-contract) | 500 `read-failed` when the read throws | a monitor; never the Bridge |
 | `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor |
 | `GET /api/presence` | session cookie or bearer token | `ForgePresenceDocument`, read fresh for this request, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` until this generation's presence record holds its start's classification | a monitor |
-| `GET /api/crash-log?number=<n>` | session cookie or bearer token | `ForgeCrashLogDocument` of crash log `<n>`, the newest without the query, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 404 `{refusal: 'no-crash-log', number, text}` for a number with no log, a query that is no whole number from 1, or no log at all; 500 `read-failed` for a log that cannot be read | a monitor |
+| `GET /api/crash-log?number=<n>` | session cookie or bearer token | `ForgeCrashLogDocument` of crash log `<n>`, the newest without the query, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 404 `{refusal: 'no-crash-log', fields: {number}, text}`, the refusal's code, its fields and the command line's sentence, for a number with no log, a query that is no whole number from 1, or no log at all; 500 `read-failed` for a log that cannot be read | a monitor |
 | `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
 | `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
@@ -752,6 +753,7 @@ among them.
 | session codes | `POST /api/v1/session-codes` |
 | presence | `GET /api/v1/presence`, from 1.20 |
 | crash log | `GET /api/v1/crash-log?number=<n>`, from 1.20 |
+| board | `GET /api/v1/board`, from 1.21 |
 
 The monitor starts at v2: its warnings became objects before system versions. The unversioned paths stay as a
 compatibility path of the registry, for clients built before system versions, and the Bridge's own routes stay
@@ -873,6 +875,18 @@ appended later.
 when nothing names it), `component` (`hephaestus`, `talos` or `unknown`), `suspected`, `recordedAt`, `startKind`
 (`null` when the crash path wrote the log), `error`, `activeJobs` and `logTail`, each of the last two `null` when it
 could not be read at the crash. A crash log's number is its own, never a Baton generation.
+
+## The board document
+
+`GET /api/board` answers one `ForgeBoardDocument` (`packages/forge-contracts`, `ForgeBoardDocument` and the part
+documents beside it), which is the one description of its fields. It carries no version key: the path carries it.
+`BoardDocumentAssembly.boardDocumentOf` in `src/services/overseer/BoardDocumentAssembly.ts` builds it from the same
+reading as `BoardState`, through the mappers in `src/adapters/board-document/utils/`, which name every field: a field
+the model gains reaches no client until a mapper names it. A status the model still calls `pending` is `committed`
+there, and a job's `interruption` and lost line use the monitor's cause names.
+
+`GET /api/state` and the `board` event stay internal: the Bridge and the command line read them, at no versioned path,
+and no registry entry names `state`.
 
 ## The summary contract
 

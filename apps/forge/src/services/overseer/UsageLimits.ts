@@ -3,12 +3,12 @@
  * reset) and is written to the machine-wide marker, which every Overseer reads back as the `usageResetsAt` its Playbook holds by. Every
  * window a stream reports is written to the machine-wide usage windows, which every Overseer reads back as its `usage.windows`.
  */
+import type { UsageFacts }                                                         from '../../adapters/@types/BoardStateParts.ts';
 import { type UsageMarkerReading, UsageMarkerFile }                                from '../../adapters/usage-marker/UsageMarkerFile.ts';
 import { type UsageWindowObservation, type UsageWindowsReading, UsageWindowsFile } from '../../adapters/usage-marker/UsageWindowsFile.ts';
 import type { AgentSessionEvent }                                                  from '../../lib/agent-launch/AgentSessionEvent.ts';
 import type { Board }                                                              from '../../lib/tracker-model/Board.ts';
 import { API_RATE_LIMIT_BACKOFF_SECONDS }                                          from '../../shared/constants/OverseerLimits.ts';
-import type { UsageFacts }                                                         from './BoardState.ts';
 import { MILLISECONDS_PER_SECOND }                                                 from './constants/TimeUnits.ts';
 
 export interface UsageLimitHit {

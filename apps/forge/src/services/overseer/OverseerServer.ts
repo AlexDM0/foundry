@@ -88,7 +88,10 @@ export interface OverseerRoutes {
   askFlintBrain:   (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
   onNudge:         () => void;
+  /** `GET /api/state`: the Bridge's and the command line's own reading, served at no versioned path. */
   state:           () => unknown;
+  /** `GET /api/board`: the contract's `ForgeBoardDocument`, built from the same reading as `state`. */
+  board:           () => unknown;
   summary:         () => unknown;
   /** `GET /api/monitor`: 200 and the `MonitorSnapshot`, or 503 `starting` before the Overseer knows its generation. */
   monitor:         () => RouteAnswer;
@@ -182,6 +185,7 @@ const VERSIONED_PATH      = /^\/api\/v([1-9]\d*)\/(.+)$/;
 const EVENTS_PATH         = '/api/events';
 const MONITOR_PATH        = '/api/monitor';
 const PRESENCE_PATH       = '/api/presence';
+const BOARD_PATH          = '/api/board';
 const CRASH_LOG_PATH      = '/api/crash-log';
 const CRASH_LOG_NUMBER_PARAMETER = 'number';
 const MONITOR_EVENTS_PATH = '/api/monitor/events';
@@ -546,6 +550,7 @@ function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: Eve
   if (request.method !== 'GET') return null;
   if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
+  if (pathname === BOARD_PATH) return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.board() });
   if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams);
   if (pathname === MONITOR_PATH) return () => jsonResponse(routes.monitor());
   if (pathname === PRESENCE_PATH) return () => jsonResponse(routes.presence());

@@ -10,6 +10,7 @@ import type {
   ForgePresenceDocument
 } from 'forge-contracts/ForgePresenceDocument';
 
+import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }  from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
 import type { TalosRecord }                     from '../../lib/talos/TalosRecord.ts';
 import type { InterruptionCause, Job }          from '../../lib/tracker-model/@types/Job.ts';
 import type { LifecycleThresholds }             from '../../lib/tracker-model/@types/LifecycleLimits.ts';
@@ -21,7 +22,6 @@ import { CRASH_INTERRUPTION_CAUSES }            from '../../lib/tracker-model/co
 import type { CrashLogJob, CrashLogRecord }     from './@types/CrashLogRecord.ts';
 import type { HeartbeatRecord, PresenceRecord } from './@types/PresenceRecord.ts';
 import type { StartClassificationVerdict }      from './@types/StartClassification.ts';
-import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }  from './MonitorSnapshotAssembly.ts';
 import { PresenceStatus }                       from './PresenceStatus.ts';
 
 /** A crash log as `CrashLog.list` and `CrashLog.read` found it. */

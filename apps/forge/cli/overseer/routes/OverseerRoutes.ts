@@ -15,6 +15,7 @@ import { LogRecordMappingUtil }                               from '../../../src
 import { GateProfilesFile }                                   from '../../../src/adapters/pipeline/GateProfilesFile.ts';
 import { RefusalDocumentUtil }                                from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import type { LogRecord }                                     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
+import { BoardDocumentAssembly }                              from '../../../src/services/overseer/BoardDocumentAssembly.ts';
 import { BoardStateAssembly }                                 from '../../../src/services/overseer/BoardState.ts';
 import type { EventBroker }                                   from '../../../src/services/overseer/EventBroker.ts';
 import type { FlintBrain }                                    from '../../../src/services/overseer/FlintBrain.ts';
@@ -126,6 +127,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
     },
     onNudge: request.wake,
     state:   () => readBoardState(request).state,
+    board:   () => BoardDocumentAssembly.boardDocumentOf(readBoardState(request).state),
     summary: () => {
       const { state, project, readyTicketIds } = readBoardState(request);
       return BoardStateAssembly.summaryOf(state, project, readyTicketIds);

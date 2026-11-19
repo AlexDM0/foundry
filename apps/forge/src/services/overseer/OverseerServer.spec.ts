@@ -7,7 +7,8 @@
  * Bun's idle timeout off. `GET /api/versions` answers while the Overseer starts and while it serves, with no token, behind the Host guard;
  * every endpoint the registry serves answers at its versioned path exactly as at its unversioned one, behind the same guards, and a version
  * or an endpoint the registry does not serve is a 404. Presence and the crash log answer behind the token at both paths, the crash log's
- * number reaching its route from the query.
+ * number reaching its route from the query. The board document answers at v1 behind the token with the assembly's document, while the
+ * internal state answers as before at no versioned path.
  */
 import {
   afterEach,
@@ -22,11 +23,13 @@ import { CompatibilityRegistryUtil }    from 'system-versions/CompatibilityRegis
 import type { VersionsDocument }        from 'system-versions/VersionsDocument';
 
 import type { MonitorSnapshot }                                             from '../../shared/monitor/@types/MonitorSnapshot.ts';
+import { BoardDocumentAssembly }                                            from './BoardDocumentAssembly.ts';
 import type { BoardState }                                                  from './BoardState.ts';
 import { EventBroker }                                                      from './EventBroker.ts';
 import type { GateProfileOutputLine }                                       from './GateProfiling.ts';
 import { MonitorStream }                                                    from './MonitorStream.ts';
 import { OverseerServer, type OverseerRequestHandler, type OverseerRoutes } from './OverseerServer.ts';
+import { boardStateFixture }                                                from './testing/BoardStateFixture.ts';
 
 const EXAMPLE_UPLOAD_URL = 'http://127.0.0.1:4100/api/pictures';
 const SIZE_LIMIT_BYTES = 8;
@@ -111,6 +114,7 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
     askFlintBrain: neverCalled,
     onNudge:       neverCalled,
     state:         neverCalled,
+    board:         neverCalled,
     summary:       neverCalled,
     monitor:       neverCalled,
     presence:      neverCalled,
@@ -214,13 +218,15 @@ const PORT = 4100;
 const TOKEN = 'example-token';
 const HOST_HEADERS = { host: `127.0.0.1:${PORT}` };
 const TOKEN_HEADERS = { ...HOST_HEADERS, authorization: `Bearer ${TOKEN}` };
-const VERSIONED_ENDPOINTS = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes', 'presence', 'crash-log'];
+const VERSIONED_ENDPOINTS = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes', 'presence', 'crash-log', 'board'];
 
 const openHandlers: OverseerRequestHandler[] = [];
 
 afterEach(() => {
   for (const handler of openHandlers.splice(0)) handler.closeEveryStream();
 });
+
+const BOARD_STATE = boardStateFixture();
 
 /** Routes that answer each versioned endpoint with a fixed body, so an answer shows which route gave it. */
 function versionedRoutesOf(started: () => boolean): OverseerRoutes {
@@ -234,6 +240,8 @@ function versionedRoutesOf(started: () => boolean): OverseerRoutes {
     monitor:       () => ({ status: 200, body: { monitorVersion: 3 } }),
     presence:      () => ({ status: 200, body: { generation: 4 } }),
     crashLog:      (writtenNumber) => ({ status: 200, body: { number: writtenNumber } }),
+    state:         () => BOARD_STATE,
+    board:         () => BoardDocumentAssembly.boardDocumentOf(BOARD_STATE),
     monitorStream: () => monitorStream,
     refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
     frameOrigins:  () => [],
@@ -310,6 +318,7 @@ describe('the versioned paths', () => {
       { endpoint: 'commands', method: 'POST', body: { kind: 'overseer-pause' } },
       { endpoint: 'presence' },
       { endpoint: 'crash-log' },
+      { endpoint: 'board' },
     ];
     for (const { endpoint, method, body } of calls) {
       const options = { ...(method === undefined ? {} : { method }), ...(body === undefined ? {} : { body }) };
@@ -374,5 +383,27 @@ describe('presence and the crash log', () => {
       const answer = await handler.answer(requestTo(path), PORT);
       expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
     }
+  });
+});
+
+describe('the board document', () => {
+  test('answers GET /api/v1/board with the token by the assembly\'s document, and 401 unauthorized without it', async () => {
+    const handler = versionedHandlerOf();
+    const answered = await handler.answer(requestTo('/api/v1/board'), PORT);
+    expect([answered.status, await answered.json()]).toEqual([200, JSON.parse(JSON.stringify(BoardDocumentAssembly.boardDocumentOf(BOARD_STATE)))]);
+    const refused = await handler.answer(requestTo('/api/v1/board', { headers: HOST_HEADERS }), PORT);
+    expect([refused.status, await refused.json()]).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
+  });
+
+  test('a version the registry does not serve it at is a 404 not-found', async () => {
+    const answer = await versionedHandlerOf().answer(requestTo('/api/v2/board'), PORT);
+    expect([answer.status, await answer.json()]).toEqual([404, { refusal: 'not-found' }]);
+  });
+
+  test('GET /api/state answers the state as before, at no versioned path', async () => {
+    const handler = versionedHandlerOf();
+    const state = await handler.answer(requestTo('/api/state'), PORT);
+    expect([state.status, await state.json()]).toEqual([200, JSON.parse(JSON.stringify(BOARD_STATE))]);
+    expect((await handler.answer(requestTo('/api/v1/state'), PORT)).status).toBe(404);
   });
 });
