@@ -9,7 +9,7 @@
  * design, with Apply not reached. Once Apply lands, in whichever hold, every live pipeline agent of the record is stopped, each entity's
  * session beside the forge's, since a closed record leaves none of them a level to serve. A constitution commit
  * job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a refusal
- * git's text.
+ * git's text; User's resume lifts only a hold a start made `interrupted`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -182,6 +182,21 @@ describe('stage 1 while main lacks the draft\'s text', () => {
     expect(board.refuseApply(setupId, { reason: 'constitution-commit-unsigned', gitFailure: 'error: gpg failed to sign the data' }, AT).logged).toEqual([{
       at: AT, kind: 'pipeline-apply-refused', setupId, fields: { reason: 'constitution-commit-unsigned', gitFailure: 'error: gpg failed to sign the data' }
     }]);
+  });
+
+  test('User\'s resume lifts only a hold a start made interrupted: the request waits for its commit again, logged as when asked', () => {
+    const { board, setupId } = firstSetupAtApply();
+    board.requestApply(setupId, { draftRevision: 1, resumesBoard: true, mainConstitution: null }, AT);
+    board.holdApply(setupId, { reason: 'dirty-checkout', blockingFiles: [] }, AT);
+    expect(board.liftInterruptedApply(AT).logged).toEqual([]);
+
+    board.holdApply(setupId, { reason: 'interrupted', blockingFiles: [] }, AT);
+
+    expect(board.liftInterruptedApply(AT).logged).toEqual([{
+      at: AT, kind: 'pipeline-apply-requested', setupId, fields: { revision: 1, resumesBoard: true }
+    }]);
+    expect(openSetupOf(board).applyRequest).toMatchObject({ state: 'committing', reason: null, commitJobId: null });
+    expect(board.liftInterruptedApply(AT).logged).toEqual([]);
   });
 
   test('a constitution commit job takes a waiting or held request, committing under it; its end without a landing leaves it waiting', () => {

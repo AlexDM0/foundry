@@ -1,9 +1,10 @@
 /**
  * The pending Apply's model against hand-made `applyState` facts. What matters: while committing, the line names the commit, or the
  * ticket whose landing holds main; every stored hold and refusal reason is worded as a sentence, with the blocking files where the reason
- * has them; only a refused request offers Apply again, and only a signing failure offers the text of CONSTITUTION.md; the resume
- * summary's one line says the same; Cancel apply names the record. Over entities the committing line counts the constitutions in the one
- * commit, the reasons that name the file name the constitutions, and a signing failure asks for the drafted constitutions by hand.
+ * has them, and a commit held `interrupted` asks for a resume; only a refused request offers Apply again, and only a signing failure
+ * offers the text of CONSTITUTION.md; the resume summary's one line says the same; Cancel apply names the record. Over entities the
+ * committing line counts the constitutions in the one commit, the reasons that name the file name the constitutions, and a signing
+ * failure asks for the drafted constitutions by hand.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -12,6 +13,7 @@ import type { ApplyRequestReason } from '../../../../src/lib/tracker-model/@type
 import { ApplyPendingStateModel }  from './ApplyPendingStateModel.ts';
 
 const EVERY_REASON: readonly ApplyRequestReason[] = [
+  'interrupted',
   'not-on-target-branch',
   'dirty-checkout',
   'target-file-held',
@@ -47,6 +49,16 @@ describe('held and refused', () => {
       state:                  'held',
       text:                   'Main has uncommitted changes to CONSTITUTION.md.',
       nextStep:               'The commit runs on its own once main is clean. Cancel apply to change the draft.',
+      offersConstitutionText: false,
+      offersApplyAgain:       false,
+    });
+  });
+
+  test('a commit a start found cut short waits for a resume, not for main', () => {
+    expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'held', reason: 'interrupted' }))).toEqual({
+      state:                  'held',
+      text:                   'The commit was cut short when the machine or the Overseer went down, so it waits for a resume.',
+      nextStep:               'Resume all interrupted work to commit again. Cancel apply to change the draft.',
       offersConstitutionText: false,
       offersApplyAgain:       false,
     });

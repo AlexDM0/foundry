@@ -114,6 +114,7 @@ import { PipelineAgentSessions, type PipelineAgentFacts }             from './Pi
 import { PipelineChecking }                                           from './PipelineChecking.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
+import { ReconcileCauses }                                            from './ReconcileCauses.ts';
 import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
@@ -1092,6 +1093,11 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
   const leftoverWorktrees: string[] = [];
   let declinedCleanups: DeclinedCleanup[] = [];
+  const startKind = request.startClassification?.kind ?? null;
+  const causeOfAChildGoneAtTheStart = startKind === null ? null : ReconcileCauses.causeOfAGoneChild(startKind);
+  // True until the start's forced first pass has run: every child a pass finds lost until then is one the start found gone.
+  let startIsBeingReconciled = causeOfAChildGoneAtTheStart !== null;
+  const childrenGoneAtTheStart = new Set<string>();
   const worktreesRoot = WorktreesFolder.worktreesRootOf(request.workspace.rootDirectory);
   // Read once for the Overseer's life: a project moved in its repository moves only while no Overseer runs.
   const projectLocation = projectLocationOf(request.workspace.rootDirectory);
@@ -1330,6 +1336,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       return request.boardChildren.livenessOf(jobFolder, job.childInstance).verdict === 'live';
     },
     stopMergeAgent:        async (job) => { await stopSession(job.id, job.childInstance); },
+    startHoldsOrphans:     startKind !== null && ReconcileCauses.startLeavesWorkWaiting(startKind),
     decisionWordingOf:     request.decisionWordingOf,
     keepAirlockFacts:      (mergeJob, facts) => AirlockFactsFile.keep(request.boardChildren.jobFolderOf(mergeJob.id), facts),
     keptAirlockFactOf:     (mergeJob, name) => AirlockFactsFile.keptFactOf(request.boardChildren.jobFolderOf(mergeJob.id), name),
@@ -1375,10 +1382,32 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     resetTimer.unref();
   }
 
+  /**
+   * A child the start found gone with no end of its own takes the cause the start's kind names in place of the one its sweep settled, also
+   * once a refused forced stop of it settles; a child that ended with an end Talos recorded keeps the cause its end maps to.
+   */
+  function reconciledWithTheStart(observation: Observation): Observation {
+    if (causeOfAChildGoneAtTheStart === null) return observation;
+    const childKeyOf = (childObservation: ChildObservation): string => `${childObservation.jobId}#${childObservation.instance}`;
+    if (startIsBeingReconciled) {
+      for (const childObservation of observation.childObservations) {
+        if (childObservation.liveness.verdict === 'lost') childrenGoneAtTheStart.add(childKeyOf(childObservation));
+      }
+    }
+    return {
+      ...observation,
+      childObservations: observation.childObservations.map((childObservation) => (
+        childObservation.lostCause !== null && childrenGoneAtTheStart.has(childKeyOf(childObservation))
+          ? { ...childObservation, lostCause: causeOfAChildGoneAtTheStart }
+          : childObservation
+      )),
+    };
+  }
+
   async function runOnePass(forced: boolean): Promise<void> {
     // Before anything is read: a new Talos sweeps the lost one's orphans, so this pass reads their causes as settled.
     await request.ensureTalosIfLost?.();
-    const observation = observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0)));
+    const observation = reconciledWithTheStart(observe(request, jobLaunchContext, new Set(forcedStopRetryJobIdsDue.splice(0))));
     if (!forced && observation.fingerprint === lastFingerprint) return;
     await request.installVersionsKnown?.();
     const at = request.formatStamp(request.now());
@@ -1641,6 +1670,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     for (const lost of report.lost) request.log(`Child instance ${lost.instance} of job ${lost.jobId} is lost (${lost.cause ?? FORCED_STOP_REFUSED_INTERRUPTION}).`);
     wake(true);
     await (running ?? Promise.resolve());
+    startIsBeingReconciled = false;
     return report;
   }
 

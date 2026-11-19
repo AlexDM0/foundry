@@ -1447,6 +1447,10 @@ export class Board {
     return this.ticketSettings.liftInterruptedHold(ticketId, at);
   }
 
+  liftInterruptedApply(at: string): Logged {
+    return this.pipelineSetups.liftInterruptedApply(at);
+  }
+
   markReleaseTicket(ticketId: string, at: string): TicketChanged {
     return this.groupReleases.markReleaseTicket(ticketId, at);
   }

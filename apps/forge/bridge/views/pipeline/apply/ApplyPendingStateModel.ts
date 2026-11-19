@@ -27,6 +27,8 @@ const COMMITTING_TEXT = `Committing ${CONSTITUTION_FILE_NAME} to main`;
 
 const HELD_NEXT_STEP = 'The commit runs on its own once main is clean. Cancel apply to change the draft.';
 
+const INTERRUPTED_NEXT_STEP = 'Resume all interrupted work to commit again. Cancel apply to change the draft.';
+
 const UNSIGNED_NEXT_STEP = `Commit this text as ${CONSTITUTION_FILE_NAME} on main by hand, signed, then press Apply again.`;
 
 const ENTITIES_UNSIGNED_NEXT_STEP = 'Commit the drafted constitutions on main by hand, signed, then press Apply again.';
@@ -63,6 +65,8 @@ function reasonSentenceOf(reason: ApplyRequestReason | null, blockingFiles: read
   const entitiesSentence = entityConstitutionCount === null ? null : entitiesReasonSentenceOf(reason);
   if (entitiesSentence !== null) return entitiesSentence;
   switch (reason) {
+    case 'interrupted':
+      return 'The commit was cut short when the machine or the Overseer went down, so it waits for a resume.';
     case 'dirty-checkout':
       return `Main has uncommitted changes to ${filesTextOf(blockingFiles, entityConstitutionCount)}.`;
     case 'not-on-target-branch':
@@ -105,8 +109,9 @@ function pendingViewOf(applyState: ApplyStateFacts, entityConstitutionCount: Ent
   }
   const text = reasonSentenceOf(applyState.reason, applyState.blockingFiles, entityConstitutionCount);
   if (state === 'held') {
+    const nextStep = applyState.reason === 'interrupted' ? INTERRUPTED_NEXT_STEP : HELD_NEXT_STEP;
     return {
-      state, text, nextStep: HELD_NEXT_STEP, offersConstitutionText: false, offersApplyAgain: false,
+      state, text, nextStep, offersConstitutionText: false, offersApplyAgain: false,
     };
   }
   const unsigned = applyState.reason === 'constitution-commit-unsigned';

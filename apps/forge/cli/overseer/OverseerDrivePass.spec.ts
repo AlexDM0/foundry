@@ -8,7 +8,8 @@
  * written again from its `hatch-applied` record, unapplied, and a record carrying no reply leaves it unanswered; a pass with nothing changed does not run,
  * however late; one pass reads the install version once, so its runtime state and notices never disagree; a launched job's Hatch folder
  * watch closes once the job has left the board; and a job the pass hold ends has its session's tokens on its ticket's row by the end of
- * that hold.
+ * that hold. At a start after a reboot, a stop or a crash, a job whose child is gone with no end of its own takes the start's cause and waits for
+ * User's resume, a child that ended keeps the cause of its end, and new work still launches.
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
@@ -36,8 +37,9 @@ import { UsageWindowsFile }                                     from '../../src/
 import type { AgentAdapter }                                    from '../../src/lib/agent-launch/AgentAdapter.ts';
 import { createWindowsExecutableResolver }                      from '../../src/lib/executable-resolver/WindowsExecutableResolver.ts';
 import type { PlatformWatch }                                   from '../../src/lib/quiet-watch/QuietWatch.ts';
-import type { Job }                                             from '../../src/lib/tracker-model/@types/Job.ts';
+import type { Job, StartKind }                                  from '../../src/lib/tracker-model/@types/Job.ts';
 import type { Board }                                           from '../../src/lib/tracker-model/Board.ts';
+import type { StartClassificationVerdict }                      from '../../src/services/overseer/@types/StartClassification.ts';
 import { AGENT_SLOTS_FOLDER }                                   from '../../src/services/overseer/AgentSlots.ts';
 import type { BoardChildren }                                   from '../../src/services/overseer/BoardChildren.ts';
 import { DataFolderWatch }                                      from '../../src/services/overseer/DataFolderWatch.ts';
@@ -798,5 +800,129 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the passes the lease renewal 
     expect(talosAsks.slice(0, 2)).toEqual([1, 2]);
     expect(new Set(inFlightDuringHolds)).toEqual(new Set(talosAsks));
     expect(drivePass.passInFlight()).toBeNull();
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the reconcile at start', () => {
+  function startAfter(kind: StartKind): StartClassificationVerdict {
+    return {
+      kind,
+      previousGeneration: 1,
+      crashSuspected:     false,
+      crashedComponent:   kind === 'crashed' ? 'overseer' : null,
+      evidence:           {
+        presence:               'read',
+        previousEnding:         kind === 'stopped-on-purpose' ? 'stopped' : null,
+        previousBootIdentity:   'example-boot',
+        currentBootIdentity:    'example-boot',
+        newerBatonThanPresence: false,
+        talos:                  'lost-this-boot',
+        lastHeartbeatAt:        null,
+        bootStartedAt:          null,
+      },
+    };
+  }
+
+  function buildJob(): Job | undefined {
+    return (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === buildJobId());
+  }
+
+  function interruptionCausesOf(jobId: string): unknown[] {
+    return storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line !== '')
+      .map((line) => JSON.parse(line) as { kind: string; jobId?: string; fields?: { cause?: string } })
+      .filter((record) => record.kind === 'job-interrupted' && record.jobId === jobId)
+      .map((record) => record.fields?.cause);
+  }
+
+  /** The build session runs, then the Overseer stops and its Talos dies with no word, its agent living on; the next Talos serves. */
+  async function buildSessionGoneWithTheForge(endTheLease = false): Promise<string> {
+    const before = await drivePassWith(WAITING_SESSION);
+    await passUntilBuildSessionSpawned(before);
+    await before.stop();
+    if (endTheLease) world.endLease(trackerDirectory());
+    world.crashTalosLeavingItsAgents(trackerDirectory());
+    world.startTalosAgain(trackerDirectory());
+    return buildJobId();
+  }
+
+  async function startedAfter(kind: StartKind): Promise<DrivePass> {
+    const after = await drivePassWith(WAITING_SESSION, undefined, undefined, { startClassification: startAfter(kind) });
+    await after.regroup();
+    return after;
+  }
+
+  test('a start after the machine went down interrupts the gone job reboot and launches nothing for it', async () => {
+    const jobId = await buildSessionGoneWithTheForge();
+    const after = await startedAfter('machine-went-down');
+    await passOnce(after);
+
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'reboot', childInstance: 1 });
+    expect(interruptionCausesOf(jobId)).toEqual(['reboot']);
+    expect(world.launchOf(jobFolder(jobId), 2)).toBeNull();
+  });
+
+  test('a start after a crash interrupts the gone job forge-crashed', async () => {
+    const jobId = await buildSessionGoneWithTheForge();
+    await startedAfter('crashed');
+
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'forge-crashed', childInstance: 1 });
+    expect(interruptionCausesOf(jobId)).toEqual(['forge-crashed']);
+  });
+
+  test('a start after a stop on purpose interrupts the gone job forge-stopped', async () => {
+    const jobId = await buildSessionGoneWithTheForge();
+    await startedAfter('stopped-on-purpose');
+
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'forge-stopped', childInstance: 1 });
+    expect(interruptionCausesOf(jobId)).toEqual(['forge-stopped']);
+  });
+
+  test('a handover leaves a lost child the cause the lost Talos\'s sweep gave it', async () => {
+    const jobId = await buildSessionGoneWithTheForge();
+    await startedAfter('handover');
+
+    expect(interruptionCausesOf(jobId)).toEqual(['watcher-lost']);
+  });
+
+  test('a job whose child ended lease-ended before the start keeps that cause', async () => {
+    const jobId = await buildSessionGoneWithTheForge(true);
+    await startedAfter('crashed');
+
+    expect(buildJob()).toMatchObject({ state: 'interrupted', interruption: 'lease-ended', childInstance: 1 });
+    expect(interruptionCausesOf(jobId)).toEqual(['lease-ended']);
+  });
+
+  test('a pending ticket with no job still launches after a start that waits: new work is not interrupted work', async () => {
+    await run(['ticket', 'hold', '001', '--reason', 'Waiting on Alex Example']);
+    const before = await drivePassWith(WAITING_SESSION);
+    await waitUntil(async () => {
+      await passOnce(before);
+      const assistant = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'assistant');
+      return assistant !== undefined && childReadings().livenessOf(jobFolder(assistant.id), 1).verdict === 'live';
+    }, () => `the Assistant's session running: ${overseerLog.join('\n')}`);
+    const assistantJobId = (storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.kind === 'assistant')?.id ?? '';
+    await before.stop();
+    world.crashTalosLeavingItsAgents(trackerDirectory());
+    world.startTalosAgain(trackerDirectory());
+    await run(['ticket', 'unhold', '001']);
+
+    const after = await startedAfter('crashed');
+    await passUntilBuildSessionSpawned(after);
+
+    expect(interruptionCausesOf(assistantJobId)).toEqual(['forge-crashed']);
+    expect(buildJob()).toMatchObject({ ticketIds: ['001'], state: 'running', childInstance: 1 });
+  });
+
+  test('User\'s resume then resumes the job by id in the same folder, at its next instance', async () => {
+    const jobId = await buildSessionGoneWithTheForge();
+    const after = await startedAfter('crashed');
+    await passOnce(after);
+    expect(world.launchOf(jobFolder(jobId), 2)).toBeNull();
+
+    await run(['resume', jobId]);
+    await passUntilBuildJobIs(after, 'running');
+
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"childInstance":2,"cause":"forge-crashed","instructed":true}`);
+    expect(world.launchOf(jobFolder(jobId), 2)).toMatchObject({ childFolder: `jobs/${jobId}`, instance: 2, kind: 'agent' });
   });
 });

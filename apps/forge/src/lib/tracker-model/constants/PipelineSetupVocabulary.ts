@@ -45,6 +45,7 @@ export const SETUP_EDIT_AUTHORS = ['agent', 'user'] as const satisfies readonly 
 export const APPLY_REQUEST_STATES = ['committing', 'held', 'refused'] as const satisfies readonly ApplyRequestState[];
 
 export const APPLY_REQUEST_REASONS = [
+  'interrupted',
   'not-on-target-branch',
   'dirty-checkout',
   'target-file-held',
@@ -58,6 +59,9 @@ export const APPLY_REQUEST_REASONS = [
 ] as const satisfies readonly ApplyRequestReason[];
 
 export const ENTITY_CHANGE_REFUSAL_REASONS = ['entity-named-by-tickets', 'entities-while-tickets-in-flight'] as const satisfies readonly EntityChangeRefusalReason[];
+
+/** A request held for this reason waits for User's `resume --all`; no sweep commits it again by itself. */
+export const INTERRUPTED_APPLY_REASON = 'interrupted' satisfies ApplyRequestReason;
 
 /** While a request is in these states, the revision being committed must not change, so every other move refuses. */
 export const PENDING_APPLY_REQUEST_STATES = ['committing', 'held'] as const satisfies readonly ApplyRequestState[];

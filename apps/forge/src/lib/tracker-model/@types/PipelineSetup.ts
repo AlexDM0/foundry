@@ -169,9 +169,11 @@ export type EntityChangeRefusalReason = 'entity-named-by-tickets' | 'entities-wh
 
 /**
  * Why the constitution commit holds or was refused: stored codes, worded only for display. `pipeline-moved`: the stored pipeline changed
- * by hand while the commit waited, so the commit does not land.
+ * by hand while the commit waited, so the commit does not land. `interrupted`: a start that waits found the commit cut short, so it holds
+ * until User's `resume --all`.
  */
 export type ApplyRequestReason =
+  | 'interrupted'
   | 'not-on-target-branch'
   | 'dirty-checkout'
   | 'target-file-held'

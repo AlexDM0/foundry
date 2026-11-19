@@ -1,9 +1,9 @@
 /**
  * User's resume of interrupted work through the control service, as a hold carries it. What matters: a job target logs one instruction; a
  * ticket target lifts its `interrupted:` hold with its own record and no `ticket-unheld`, so no count resets, and instructs its interrupted
- * job; `all` covers both and leaves a job that resumes by itself alone; `network-outage` instructs only the jobs of that cause; a running
- * job, a ticket with nothing interrupted and an unknown ticket are refused; and with nothing waiting `all` and `network-outage` report
- * `nothing-to-do`, a success, so one control may send them to every forge.
+ * job; `all` covers both, lets an Apply held `interrupted` commit again and leaves a job that resumes by itself alone; `network-outage`
+ * instructs only the jobs of that cause; a running job, a ticket with nothing interrupted and an unknown ticket are refused; and with
+ * nothing waiting `all` and `network-outage` report `nothing-to-do`, a success, so one control may send them to every forge.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -146,6 +146,22 @@ describe('all and network-outage', () => {
     expect(applied.outcome).toBe('done');
     expect(recordsAfter(records, countBefore)).toEqual([['job-resume-instructed', rebooted], ['ticket-interrupted-hold-lifted', '003']]);
     expect(board.ticketByReference('004')?.frontmatter.hold).toBe('waiting on design');
+  });
+
+  test('all lets an Apply a start held interrupted wait for its constitution commit again', () => {
+    const { board, records } = boardWithTickets([]);
+    const { setupId } = board.openSetup({
+      mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
+    }, AT).setup;
+    board.editConstitution(setupId, { revision: 0, markdown: '# Rules\n- Name things in full.\n' }, AT);
+    board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: null }, AT);
+    board.holdApply(setupId, { reason: 'interrupted', blockingFiles: [] }, AT);
+    const countBefore = records.length;
+
+    expect(resume(board, 'all').outcome).toBe('done');
+
+    expect(recordsAfter(records, countBefore)).toEqual([['pipeline-apply-requested', null]]);
+    expect(board.pipelineSetup()?.applyRequest).toMatchObject({ state: 'committing', reason: null });
   });
 
   test('network-outage instructs only the jobs that ended on a network outage', () => {

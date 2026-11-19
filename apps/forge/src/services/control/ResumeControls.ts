@@ -1,7 +1,8 @@
 /**
  * User's resume of interrupted work (decision 41), recorded in the hold with the forge up or down: an instruction the Playbook carries out
- * at its next pass under every hold a resume obeys, and an `interrupted:` hold lifted with no fresh attempt. `all` and `network-outage`
- * with nothing waiting change nothing, so a monitor's one control may send them to every forge.
+ * at its next pass under every hold a resume obeys, and an `interrupted:` hold lifted with no fresh attempt; `all` also lets an Apply a
+ * start held `interrupted` commit again. `all` and `network-outage` with nothing waiting change nothing, so a monitor's one control may
+ * send them to every forge.
  */
 import type { Logged }             from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { Board }              from '../../lib/tracker-model/Board.ts';
@@ -48,7 +49,10 @@ function resumeTicket(ticketReference: string, change: TrackerChange): ResumeRec
 function resumeInterruptedWork(command: ControlCommandOf<'interrupted-work-resume'>, change: TrackerChange): ResumeRecorded {
   const { board, at } = change;
   const { target }    = command;
-  if (target === 'all') return recordedFrom([...board.instructResumeOfEveryWaitingJob(LIFECYCLE_LIMITS, at).logged, ...liftEveryInterruptedHold(board, at)]);
+  if (target === 'all') {
+    const instructed = board.instructResumeOfEveryWaitingJob(LIFECYCLE_LIMITS, at).logged;
+    return recordedFrom([...instructed, ...liftEveryInterruptedHold(board, at), ...board.liftInterruptedApply(at).logged]);
+  }
   if (target === 'network-outage') return recordedFrom(board.instructResumeOfEveryNetworkOutageJob(at).logged);
   if ('jobId' in target) return recordedFrom(board.instructResume(target.jobId, at).logged);
   return resumeTicket(target.ticketReference, change);

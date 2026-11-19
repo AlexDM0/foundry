@@ -73,6 +73,9 @@ export const PARKED_HOLD_PREFIX = 'parked:';
 /** A ticket an interruption holds, as `interrupted:merge`; User's resume lifts it with no fresh attempt, unlike an unhold. */
 export const INTERRUPTED_HOLD_PREFIX = 'interrupted:';
 
+/** A ticket whose Airlock slot a start that waits found with no live holder: restored, and held until User's resume. */
+export const INTERRUPTED_MERGE_HOLD = `${INTERRUPTED_HOLD_PREFIX}merge`;
+
 export const INCIDENT_ID_PREFIX = 'I';
 
 /** The number the first decision and the first incident a tracker opens take: the lowest counter a progress file may store. */

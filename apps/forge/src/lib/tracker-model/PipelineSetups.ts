@@ -7,8 +7,8 @@
  * and draft revision, so a retried Apply never refuses the pipeline it stored itself. On a draft over entities the forge has no
  * constitution of its own: each entity's drafted text is what the commit writes, and an entity with no draft adopts the file main holds.
  */
-import type { PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
-import type { LogRecord }                                  from './@types/LogRecord.ts';
+import type { Logged, PipelineApplyChanged, PipelineSetupChanged } from './@types/BoardChanges.ts';
+import type { LogRecord }                                          from './@types/LogRecord.ts';
 import type {
   EntityKey,
   Pipeline,
@@ -64,6 +64,7 @@ import {
   FINDING_ID_PREFIX,
   FIRST_SETUP_ITEM_NUMBER,
   FIRST_SETUP_NUMBER,
+  INTERRUPTED_APPLY_REASON,
   LAYOUT_FINDINGS_PROPOSING_ENTITIES,
   MINIMUM_SETUP_QUESTION_OPTIONS,
   PENDING_APPLY_REQUEST_STATES,
@@ -866,6 +867,20 @@ export class PipelineSetups {
     };
     this.store(setup);
     return { logged: [], setup };
+  }
+
+  /**
+   * User's `resume --all`: an Apply a start held `interrupted` waits for its constitution commit again, logged as when it was asked; with
+   * no such request nothing changes.
+   */
+  liftInterruptedApply(at: string): Logged {
+    const setup   = this.openSetupRecord();
+    const request = setup?.applyRequest ?? null;
+    if (setup === null || request === null || request.state !== 'held' || request.reason !== INTERRUPTED_APPLY_REASON) return { logged: [] };
+    setup.applyRequest = { ...request, state: 'committing', reason: null };
+    this.store(setup);
+    const fields = { revision: request.draftRevision, resumesBoard: request.resumesBoard };
+    return { logged: [this.records.logger.log({ kind: 'pipeline-apply-requested', setupId: setup.setupId, fields }, at)] };
   }
 
   /** A constitution commit job that ended without a landing leaves the request committing, for the next job; another job's request stays. */

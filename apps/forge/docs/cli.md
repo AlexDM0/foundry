@@ -1669,9 +1669,10 @@ argument that starts with `J` is a job, any other a ticket. Under a job the Boun
   `ticket-interrupted-hold-lifted` in place of `ticket-unheld`, so the ticket's failed passes and its builder's returns
   are kept. A ticket with neither is refused `ticket-not-interrupted` (exit 1). `ticket unhold` lifts the same hold as
   a person's unhold, with its resets.
-- `--all` instructs every job whose resume waits for an instruction and lifts every `interrupted:` hold;
-  `--network-outage` instructs every job that ended on a network outage. With nothing waiting either prints `Nothing
-  interrupted waits for a resume.` and exits 0. A job that ends on an outage again waits again.
+- `--all` instructs every job whose resume waits for an instruction, lifts every `interrupted:` hold and lets an Apply
+  held `interrupted` commit again (logged `pipeline-apply-requested`); `--network-outage` instructs every job that
+  ended on a network outage. With nothing waiting either prints `Nothing interrupted waits for a resume.` and exits 0.
+  A job that ends on an outage again waits again.
 
 `oversee resume` is another command: it undoes a pause.
 
@@ -2020,6 +2021,7 @@ land.
 | main moved past the slot's tip | the job ends `stopped` with the landing's reason, and the next allocation commits again on the new tip | none |
 | the request no longer names the job: User cancelled it | the job ends `stopped` (`apply-cancelled`) before it lands | none |
 | a job is found in `committing` with its worktree already there: a run was cut short | the job ends `stopped` (`orphaned`), its worktree removed, and the next allocation replaces it | none |
+| the first sweep after a start that leaves interrupted work waiting (a reboot, a crash, a stop on purpose) finds the job, not landed | the job ends `stopped` (`orphaned`), its worktree removed, and the request is `held`, `interrupted`; no sweep commits it again by itself, and the main line's tickets wait behind it | `resume --all` |
 | a job is found in `landing` whose commit main already holds: a run was cut short after the fast-forward | the board side finishes: `merge-landed`, the job's end and Apply's stage 2 | none |
 
 A ticket's builder or reviewer running meanwhile is not refused for it: Customs V14 exempts the commit worktree's

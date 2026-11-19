@@ -33,25 +33,25 @@ import type {
   MainConstitution,
   MainConstitutionReading
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { DecisionDraft, DecisionWording }                               from '../../lib/tracker-model/@types/PlaybookStep.ts';
-import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                  from '../../lib/tracker-model/AirlockClaims.ts';
-import { MERGE_PRIORITY_RANK }                                               from '../../lib/tracker-model/AirlockClaims.ts';
-import type { Board }                                                        from '../../lib/tracker-model/Board.ts';
-import { BoardRefusal }                                                      from '../../lib/tracker-model/BoardRefusal.ts';
-import { PARKED_HOLD_PREFIX }                                                from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
-import { HANDOFF_RED_INTERRUPTION }                                          from '../../lib/tracker-model/constants/JobStates.ts';
-import { PENDING_APPLY_REQUEST_STATES }                                      from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
-import { EntityOwnershipUtil, type PipelineEntities }                        from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { MergeQueueUtil, type MergeForecast }                                from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import { PipelineUtil }                                                      from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketStageUtil }                                                   from '../../lib/tracker-model/utils/TicketStageUtil.ts';
-import type { BranchNames }                                                  from '../../shared/BranchNames.ts';
-import type { AirlockLimits }                                                from '../../shared/constants/AirlockLimits.ts';
-import { RED_HANDOFF_RESUME_CALL_BUDGET }                                    from '../../shared/constants/OverseerLimits.ts';
-import { EntityFoldersUtil }                                                 from '../../shared/utils/EntityFoldersUtil.ts';
-import { entityAssignmentRequestOf }                                         from '../control/EntityAssignmentRequest.ts';
-import type { AgentNaming }                                                  from '../lifecycle/Customs.ts';
-import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding } from '../lifecycle/Landing.ts';
+import type { DecisionDraft, DecisionWording }                                 from '../../lib/tracker-model/@types/PlaybookStep.ts';
+import type { BranchTreeOf, MergeCandidate, MergeTargetOf }                    from '../../lib/tracker-model/AirlockClaims.ts';
+import { MERGE_PRIORITY_RANK }                                                 from '../../lib/tracker-model/AirlockClaims.ts';
+import type { Board }                                                          from '../../lib/tracker-model/Board.ts';
+import { BoardRefusal }                                                        from '../../lib/tracker-model/BoardRefusal.ts';
+import { INTERRUPTED_HOLD_PREFIX, INTERRUPTED_MERGE_HOLD, PARKED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
+import { HANDOFF_RED_INTERRUPTION }                                            from '../../lib/tracker-model/constants/JobStates.ts';
+import { INTERRUPTED_APPLY_REASON, PENDING_APPLY_REQUEST_STATES }              from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { EntityOwnershipUtil, type PipelineEntities }                          from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { MergeQueueUtil, type MergeForecast }                                  from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import { PipelineUtil }                                                        from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketStageUtil }                                                     from '../../lib/tracker-model/utils/TicketStageUtil.ts';
+import type { BranchNames }                                                    from '../../shared/BranchNames.ts';
+import type { AirlockLimits }                                                  from '../../shared/constants/AirlockLimits.ts';
+import { RED_HANDOFF_RESUME_CALL_BUDGET }                                      from '../../shared/constants/OverseerLimits.ts';
+import { EntityFoldersUtil }                                                   from '../../shared/utils/EntityFoldersUtil.ts';
+import { entityAssignmentRequestOf }                                           from '../control/EntityAssignmentRequest.ts';
+import type { AgentNaming }                                                    from '../lifecycle/Customs.ts';
+import { LANDING_OUTCOME_OF_REFUSAL, Landing, type SharedRepositoryLanding }   from '../lifecycle/Landing.ts';
 import {
   MergeRun,
   type ConflictPart,
@@ -125,6 +125,11 @@ export interface AirlocksContext {
   /** The job's own child, an agent or a line, is alive. */
   childIsLive:            (job: Readonly<Job>) => boolean;
   stopMergeAgent:         (job: Readonly<Job>) => Promise<void>;
+  /**
+   * The start this Overseer serves after leaves interrupted work waiting (not a handover or a first start): its first sweep restores each
+   * slot it finds with no live holder and holds its ticket for User's resume instead of requeuing it.
+   */
+  startHoldsOrphans?:     boolean;
   decisionWordingOf:      (draft: DecisionDraft) => DecisionWording;
   /** Keeps an Airlock incident's facts beside the merge job, for the agent its move or default launches once the incident is closed. */
   keepAirlockFacts:       (mergeJob: Readonly<Job>, facts: Readonly<Record<string, string>>) => void;
@@ -440,6 +445,9 @@ function mergeAgentOf(board: Board, job: Readonly<Job>): Readonly<Job> | undefin
   return board.jobs().find((candidate) => candidate.kind === 'merge-agent' && candidate.parentJobId === job.id);
 }
 
+/** An agent interrupted, or waiting through the gate with its session stopped, holds nothing; any other awaits its spawn, runs or reported. */
+const MERGE_AGENT_STATES_HOLDING_NO_SLOT: ReadonlySet<Job['state']> = new Set<Job['state']>(['interrupted', 'gating']);
+
 /** The ticket's trailing run of merge jobs ended by an unrecorded target move: what parks it after TARGET_MOVED_MERGES_BEFORE_PARKING. */
 function targetMovesInARowOf(board: Board, ticketId: string): number {
   const mergeJobIds = new Set<string>();
@@ -584,6 +592,7 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
   /** The commit a held main line of a project tracker could not land: only the paths its fast-forward changes keep the line held. */
   const commitsAHeldMainLineWaitsToLand = new Map<string, string>();
   const sharedLanding = context.sharedRepository === undefined ? {} : { sharedRepository: context.sharedRepository };
+  let startOrphansWereLookedAt = false;
 
   function holdTarget(heldTarget: HeldTarget, commitItWaitsToLand: string): void {
     heldTargets.set(heldTarget.target, heldTarget);
@@ -1362,15 +1371,63 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     return true;
   }
 
-  async function advanceTheSlot(target: string): Promise<boolean> {
+  /** The slot's own child lives, or its agent awaits its spawn, runs or has reported: a start does not cut that holder's work short. */
+  function slotHasALiveHolder(job: Readonly<Job>, agent: Readonly<Job> | undefined): boolean {
+    if (context.childIsLive(job)) return true;
+    return agent !== undefined && (!MERGE_AGENT_STATES_HOLDING_NO_SLOT.has(agent.state) || context.childIsLive(agent));
+  }
+
+  /** The target's tip moved past the start tip the slot recorded and holds the commit the slot was landing: only its board side is left. */
+  function landingWasMade(job: Readonly<Job>): boolean {
+    const slot = slotOf(job);
+    if (slot.phase !== 'landing') return false;
+    const landingWorktree = isConstitutionCommit(job) ? ConstitutionCommits.commitWorktreeOf(context.worktreesRoot, job.id) : slotWorktreeOf(job);
+    const landingCommit   = existsSync(landingWorktree) ? MergeRun.headOf(landingWorktree) : null;
+    const targetTip       = GitProcess.resolvedCommitOf(context.repositoryRoot, `refs/heads/${slot.target}`);
+    if (landingCommit === null || targetTip === null || targetTip === slot.targetTip) return false;
+    return GitProcess.succeeded(GitProcess.run(context.repositoryRoot, ['merge-base', '--is-ancestor', landingCommit, targetTip]));
+  }
+
+  /**
+   * As an orphan is freed, but its ticket is held `interrupted:merge` and keeps its merge-queued mark, so User's resume puts it back in the
+   * queue with no fresh review; a constitution commit's Apply is held `interrupted` until `resume --all`. A refresh, owed to no ticket and
+   * no request, is only freed: the next allocation derives it again from the branches.
+   */
+  async function holdOrphanedSlot(job: Readonly<Job>): Promise<boolean> {
+    if (isConstitutionCommit(job)) {
+      return endConstitutionCommit(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned }, (hold, setupId) => {
+        hold.board.holdApply(setupId, { reason: INTERRUPTED_APPLY_REASON, blockingFiles: [] }, hold.at);
+      });
+    }
+    await freeSlot(job, { outcome: 'stopped', cause: REQUEUE_CAUSES.orphaned }, (hold) => {
+      for (const ticketId of job.ticketIds) {
+        if (hold.board.ticketByReference(ticketId)?.frontmatter.hold === undefined) hold.board.holdTicket(ticketId, INTERRUPTED_MERGE_HOLD, hold.at);
+      }
+    });
+    return true;
+  }
+
+  /** `slotJobIdsHeldAtTheStart` names the slots the first sweep after a start that waits found; each is looked at once. */
+  async function advanceTheSlot(target: string, slotJobIdsHeldAtTheStart: Set<string>): Promise<boolean> {
     const holding = await context.hold((hold) => {
       const job = hold.board.airlockHolderOf(target);
       if (job === undefined) return null;
-      const parked = job.ticketIds.some((ticketId) => hold.board.ticketByReference(ticketId)?.frontmatter.hold?.startsWith(PARKED_HOLD_PREFIX) === true);
-      return { job, parked, hasOpenIncident: hold.board.incidents().some((incident) => incident.jobId === job.id) };
+      const holdOf = (ticketId: string): string | undefined => hold.board.ticketByReference(ticketId)?.frontmatter.hold;
+      return {
+        job,
+        agent:           mergeAgentOf(hold.board, job),
+        parked:          job.ticketIds.some((ticketId) => holdOf(ticketId)?.startsWith(PARKED_HOLD_PREFIX) === true),
+        waitsForResume:  job.ticketIds.some((ticketId) => holdOf(ticketId)?.startsWith(INTERRUPTED_HOLD_PREFIX) === true),
+        hasOpenIncident: hold.board.incidents().some((incident) => incident.jobId === job.id),
+      };
     });
     if (holding === null || holding.job.airlock === undefined) return false;
+    if (holding.waitsForResume) return false;
     if (holding.parked && !holding.hasOpenIncident) return abortParkedMerge(holding.job);
+    const foundAtTheStart = slotJobIdsHeldAtTheStart.delete(holding.job.id);
+    if (foundAtTheStart && !holding.hasOpenIncident && !slotHasALiveHolder(holding.job, holding.agent) && !landingWasMade(holding.job)) {
+      return holdOrphanedSlot(holding.job);
+    }
     return advance(holding.job, holding.hasOpenIncident);
   }
 
@@ -1609,16 +1666,18 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
 
   /**
    * An Apply waiting for its commit goes before any ticket candidate of the main line, also while the board is paused, since a first Apply
-   * resumes the board only in stage 2. `none`: no request waits, so the tickets go; `waits`: the request waits, and so does every ticket.
+   * resumes the board only in stage 2. `none`: no request waits, so the tickets go; `waits`: the request waits, and so does every ticket,
+   * also while a start holds it `interrupted` until User's `resume --all`.
    */
   async function allocateConstitutionCommit(): Promise<'none' | 'waits' | 'allocated'> {
     const waiting = await context.hold((hold) => {
       const request = pendingApplyOf(hold.board);
       if (request === null) return null;
-      return { request, slotIsHeld: hold.board.airlockHolderOf(mainLine) !== undefined };
+      const waitsForResume = hold.board.pipelineSetup()?.applyRequest?.reason === INTERRUPTED_APPLY_REASON;
+      return { request, mustWait: waitsForResume || hold.board.airlockHolderOf(mainLine) !== undefined };
     });
     if (waiting === null) return 'none';
-    if (waiting.slotIsHeld) return 'waits';
+    if (waiting.mustWait) return 'waits';
     const { request } = waiting;
     const readings = new Map<string, MainConstitution | null>();
     for (const path of pathsReadOf(request)) {
@@ -1690,12 +1749,20 @@ export function createAirlocks(context: AirlocksContext): Airlocks {
     });
   }
 
+  /** The slots standing as the first sweep after a start that waits begins, once; a slot this Overseer opens later is never among them. */
+  async function slotJobIdsHeldAtTheStartOf(): Promise<Set<string>> {
+    if (startOrphansWereLookedAt || context.startHoldsOrphans !== true) return new Set();
+    startOrphansWereLookedAt = true;
+    return context.hold((hold) => new Set(hold.board.jobs().filter((job) => job.airlock !== undefined).map((job) => job.id)));
+  }
+
   async function sweep(): Promise<readonly HeldTarget[]> {
     recheckHeldTargets();
+    const slotJobIdsHeldAtTheStart = await slotJobIdsHeldAtTheStartOf();
     for (let round = 0; round < ROUNDS_PER_SWEEP; round += 1) {
       let moved = false;
       for (const target of await liveTargets()) {
-        const advanced  = await advanceTheSlot(target);
+        const advanced  = await advanceTheSlot(target, slotJobIdsHeldAtTheStart);
         const regated   = await settleTicketsAwaitingGreen(target);
         const allocated = await allocate(target);
         moved = moved || advanced || regated || allocated;

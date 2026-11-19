@@ -836,10 +836,16 @@ and an Airlock left half done is made truthful and held, so nothing interrupted 
    `forge-crashed` or `lease-ended` job stays interrupted until an instruction.
 4. The Airlocks, for a start whose kind is not `handover` or `first-start`, in the first sweep after the start: every
    slot with no live holder is restored as `freeSlot` restores it (`Airlocks.ts:737-747`: merge abort, hard reset to the
-   slot's start tip), its job ended `orphaned`, and its ticket unqueued (`setTicketMergeQueued(false)`) and held
-   `interrupted:merge` instead of requeued. That covers a merge-in or refresh mid-merge, an Airlock agent left without a
-   holder, a slot whose worktree a stop left restored before `freeSlot`'s hold (stage 0, table B), and a constitution
-   commit's orphan; a constitution commit with no ticket waits until `resume --all`. A landing that did complete is
+   slot's start tip), its job ended `orphaned`, and its ticket held `interrupted:merge` instead of requeued. As built the
+   ticket keeps its merge-queued mark (and any `mergeAccepted`): the hold alone keeps it out of the queue, and the lift
+   puts it back in, whereas an unqueued `in-review` ticket would get a fresh reviewer after the lift
+   (`AirlockClaims.ticketsAwaitingGreenOf`, `Playbook.ts:398`), not the requeue the specs ask for. That covers a merge-in
+   mid-merge, an Airlock agent left without a holder, a slot whose worktree a stop left restored before `freeSlot`'s hold
+   (stage 0, table B), and a constitution commit's orphan; a constitution commit with no ticket waits until
+   `resume --all`: its Apply request is held with the reason `interrupted` (`INTERRUPTED_APPLY_REASON`), the main line's
+   allocation waits on it as on a claimed slot, and `resume --all` sets it `committing` again
+   (`Board.liftInterruptedApply`, logged `pipeline-apply-requested`). A refresh mid-merge is owed to no ticket and no
+   request: it is only freed, and the next allocation derives it again from the branches. A landing that did complete is
    recorded, as the rerun records it today (`CrashMatrix.merges.spec.ts:96`, `:219`, `:242`, `:332`): recording it is
    reconcile. While the forge stays up, an orphan made by an agent crash keeps today's requeue. The Airlock facts file
    of a crossing ticket's split conflict belongs to the ended merge job; the next merge job writes its own.

@@ -107,6 +107,8 @@ export interface AirlocksHarness {
     signsCommits:            boolean;
     /** The board is paused: no ticket's slot opens; false unless set. */
     dispatchIsStopped:       boolean;
+    /** The Airlocks serve after a start that leaves work waiting: the first sweep that reads it true holds the orphans; false unless set. */
+    startHoldsOrphans:       boolean;
   };
   worktreeOf:   (ticketId: string) => string;
   tipOf:        (branch: string) => string;
@@ -218,6 +220,7 @@ export function createRecordedAirlocksHarness(
     mainConstitution:  { verdict: 'absent' },
     signsCommits:      false,
     dispatchIsStopped: false,
+    startHoldsOrphans: false,
   };
   const mergeJob = (): Readonly<Job> | undefined => board.airlockHolderOf('main');
   const slots = createAirlocks({
@@ -230,6 +233,9 @@ export function createRecordedAirlocksHarness(
     agentNaming:    fakeAgentAdapter(),
     get refDeniesHold() {
       return settings.refDeniesHold;
+    },
+    get startHoldsOrphans() {
+      return settings.startHoldsOrphans;
     },
     hold: (mutate) => {
       const result = mutate({ board, at: HARNESS_AT });
