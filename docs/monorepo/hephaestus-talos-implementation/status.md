@@ -86,6 +86,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 ### Assumptions to confirm
 
+- WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
+  dropped (each slot is already a target's holder).
 - WP4.6: the job document's `interruption` and `lostLine.cause` use the monitor wire's cause names (`watcher-lost` is
   `child-lost`).
 - WP3.10: a line lost mid-serve (Talos lost while serving) reruns by itself; only the start's reconcile window makes it
@@ -338,7 +340,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-B | WP4.6 | landed | 20db0775 | First round. `ForgeBoardDocument` and six part documents, `BoardVocabulary` value lists (parity spec against the tracker model); carries stage 2-3's facts (`childInstance`, `crashResumes`, `interruption` with the monitor's cause names, `lostLine`, `isRecommended`, `stepRunTimes`, `pipelineAgentDefaults`). No `TASK_PHASES` (a task phase is `{status, at}`, its status list repeats `TASK_STATUSES`); `pipeline` is never null (`readingVerdict: 'absent'`); `limits` and `concurrency` at the top level only, not in `page.payload` (the Bridge reads them from `page.payload`: WP4.8 maps). Display-state order is the builder's choice |
 | 4-B | WP4.7 | landed | 6fae4e50 | First round. `FullStatusDocument` (`src/adapters/@types/StatusDocument.ts`) types `status --json --full`; `BoardState` drops its index signature; `OwnerTokenTotal(s)` moved there from `cli/` (adapters may not import `cli/`). Types only, no behaviour change |
 | 4-B | WP4.12 | landed | c9fe2b42 | Second check failed on a scope point, overruled: the crash-log route's `no-crash-log` 404 (stage 3's `PresenceReader.ts:71-77`) still serves the API wording with no `fields`; WP4.12 does not name it, so WP4.8 serves it through `RefusalDocumentUtil.refusalDocumentOf` (and updates `overseer-api.md:53` and the `ForgeCrashLogDocument` docblock). `ForgeRefusalDocument` (`code`, `fields`, `sentence`, `ForgeJsonValue`); `RefusalDocumentUtil`; every refusal of a command or picture is served as code, fields and the command line's sentence; the non-JSON 400 carries `fields: {}`. An empty `POST /api/pictures` body still answers a bare 400 |
-| 4-C | WP4.8 | waiting | | |
+| 4-C | WP4.8 | landed | a3e84abb | First round. Five board-document mappers in `src/adapters/board-document/utils/`, `BoardDocumentAssembly.boardDocumentOf(state)`; `GET /api/board` and `/api/v1/board` behind the reader token (`endpointAddedIn('board', 1, 1.21)`); the crash-log `no-crash-log` 404 is now a refusal document (WP4.12's handoff closed). `BoardState` part types moved to `src/adapters/@types/BoardStateParts.ts`, `MONITOR_INTERRUPTION_CAUSE_OF_CAUSE` to `src/adapters/constants/MonitorInterruptionCauseOfCause.ts`; `BoardState` jobs gain `lostLine` (reaching `/api/state` too; its doc row not updated). For WP4.9: the 'In the code' table lacks the assembly and mappers; `BoardState.lostLineOf` duplicates `PresenceDocumentAssembly.lostLineCauseOf` |
 | 4-D | WP4.10 | waiting | | |
 | 4-E | WP4.11 | waiting | | |
 | 4-F | WP4.9 | waiting | | |
