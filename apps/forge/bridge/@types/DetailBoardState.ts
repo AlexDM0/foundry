@@ -99,8 +99,6 @@ export interface DetailJobDocument {
     readonly calls:        number;
     readonly callBudget:   number | null;
     readonly lastToolCall: { readonly toolName: string; readonly running: boolean } | null;
-    /** A Watcher of an older protocol, which the Overseer only watches: the job takes nothing but Stop. */
-    readonly watchOnly?:   boolean;
   };
 }
 

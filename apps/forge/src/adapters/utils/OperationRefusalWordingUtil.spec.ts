@@ -30,13 +30,6 @@ test('a malformed Overseer poll interval names the variable, the value and what 
   );
 });
 
-test('an endpoint that does not fit names the endpoint and what the user can do', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'watcher-endpoint-does-not-fit', endpoint: '/example/private/a.sock' });
-  expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    'This platform cannot bind the Watcher endpoint /example/private/a.sock, so no launch file was written. Move the home folder to a shorter path.'
-  );
-});
-
 test('a Baton that cannot be created whole names the file, the failure and what the user can do', () => {
   const refusal = new OperationRefusal('refused', { kind: 'baton-not-created-whole', batonFilePath: '/example/overseer/baton-1.json', reason: 'Error: EPERM' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(

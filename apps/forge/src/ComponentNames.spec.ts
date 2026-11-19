@@ -80,7 +80,7 @@ test('the scan reads every program and package file but this one, the board and 
   expect(filePaths).toContain('CLAUDE.md');
   expect(filePaths).toEqual(expect.arrayContaining(['design-system/CONSTITUTION.md', 'flint/package.json']));
   expect(filePaths.some((filePath) => filePath.startsWith('src/services/overseer/'))).toBe(true);
-  expect(filePaths.some((filePath) => filePath.startsWith('src/lib/watcher/'))).toBe(true);
+  expect(filePaths.some((filePath) => filePath.startsWith('src/lib/talos/'))).toBe(true);
   expect(filePaths.filter((filePath) => filePath === THIS_FILE || UNSCANNED_FOLDERS.some((folder) => filePath.startsWith(folder)))).toEqual([]);
   expect(readFileSync(join(REPOSITORY_ROOT, 'CLAUDE.md'), 'utf8')).toContain('Overseer');
 });

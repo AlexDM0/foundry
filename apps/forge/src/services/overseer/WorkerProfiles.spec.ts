@@ -21,8 +21,8 @@ import { describe, expect, test } from 'bun:test';
 import { dataFoldersFor }                                 from '../../lib/data-folders/DataFoldersFor.ts';
 import { createPosixShellLine }                           from '../../lib/shell-line/PosixShellLine.ts';
 import { createWindowsCommandLine }                       from '../../lib/shell-line/WindowsCommandLine.ts';
+import { talosSecretPathOf }                              from '../../lib/talos/TalosFiles.ts';
 import type { Pipeline }                                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import { watcherSecretPathOf }                            from '../../lib/watcher/WatcherFiles.ts';
 import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -217,12 +217,12 @@ describe('a builder\'s profile', () => {
     expect(deniedRoots.slice(2)).toEqual(['/home/alex-example/.ssh']);
   });
 
-  test('the token and a Watcher secret both sit under a denied folder that no glob names, and the old token path is denied no more', () => {
+  test('the token and a Talos secret both sit under a denied folder that no glob names, and the old token path is denied no more', () => {
     const monitorFolder = '/home/alex-example/.forge-monitor';
     const deniedFolder  = join(monitorFolder, 'private');
     expect(profile.deniedReadableRoots).toContain(deniedFolder);
     expect(overseerTokenPathOf(monitorFolder, 'tracker-example').startsWith(`${deniedFolder}/`)).toBe(true);
-    expect(watcherSecretPathOf(monitorFolder, 'tracker-example', 'J1/gate-1', 1).startsWith(`${deniedFolder}/`)).toBe(true);
+    expect(talosSecretPathOf(monitorFolder, 'tracker-example', 1).startsWith(`${deniedFolder}/`)).toBe(true);
     expect(profile.deniedReadableRoots.filter((root) => root.endsWith('/token'))).toEqual([]);
   });
 

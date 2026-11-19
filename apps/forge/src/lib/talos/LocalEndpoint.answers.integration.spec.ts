@@ -7,8 +7,8 @@
 import type { Server, Socket }    from 'node:net';
 import { afterAll, expect, test } from 'bun:test';
 
-import { listenOnIdleWatcherSocket, watcherHelloLineOf } from '../../testing/IdleWatcherSocket.ts';
-import { recordAnswer }                                  from '../../testing/RecordedAnswers.ts';
+import { listenOnIdleTalosSocket, talosHelloLineOf } from '../../testing/IdleTalosSocket.ts';
+import { recordAnswer }                              from '../../testing/RecordedAnswers.ts';
 import {
   type ConnectAnswer,
   type DestroyAnswer,
@@ -27,7 +27,7 @@ import { localEndpointFor }                               from './LocalEndpointF
 
 
 const PIPE_NAME_PREFIX = 'example-product';
-const WATCHER_SECRET = 'example-secret';
+const TALOS_SECRET = 'example-secret';
 const TOO_LONG_SUFFIX_CHARACTERS = 200;
 /** How long a case waits for an end or a close that may never come; past the limit of an answer given at once. */
 const NEVER_ARRIVES_WAIT_MILLISECONDS = 1500;
@@ -102,9 +102,9 @@ async function arrives(emitter: Socket, event: 'end' | 'close'): Promise<boolean
   });
 }
 
-async function helloAnswerOf(watcherSecret: string): Promise<HelloAnswer> {
+async function helloAnswerOf(secret: string): Promise<HelloAnswer> {
   const endpoint = preparedEndpoint();
-  const listening = await listenOnIdleWatcherSocket(port, endpoint, WATCHER_SECRET);
+  const listening = await listenOnIdleTalosSocket(port, endpoint, TALOS_SECRET);
   if (listening.verdict !== 'listening') throw new Error(listening.reason);
   const client = await connected(endpoint);
   let received = '';
@@ -117,7 +117,7 @@ async function helloAnswerOf(watcherSecret: string): Promise<HelloAnswer> {
   });
   const startedAt = performance.now();
   const closing = arrives(client, 'close');
-  client.write(watcherHelloLineOf(watcherSecret));
+  client.write(talosHelloLineOf(secret));
   const closeArrived = await closing;
   const frames = received.split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as unknown);
   const timing = timingOf(closeArrived ? millisecondsSince(startedAt) : 0);
@@ -313,10 +313,10 @@ test('a hello with another secret is answered refused, and the end and the close
   expect(answer).toMatchObject({ frames: [{ kind: 'refused', reason: 'secret' }], endArrived: true, closeArrived: true });
 });
 
-test('a hello with the secret is answered welcome and history, and the connection stays open', async () => {
-  const answer = await helloAnswerOf(WATCHER_SECRET);
+test('a hello with the secret is answered welcome, and the connection stays open', async () => {
+  const answer = await helloAnswerOf(TALOS_SECRET);
   recordAnswer(ENDPOINT_CALL_SHAPES.HELLO_WITH_THE_SECRET, answer);
-  expect(answer.frames.map((frame) => (frame as { kind: string }).kind)).toEqual(['welcome', 'history']);
+  expect(answer.frames.map((frame) => (frame as { kind: string }).kind)).toEqual(['welcome']);
   expect(answer).toMatchObject({ endArrived: false, closeArrived: false });
 });
 

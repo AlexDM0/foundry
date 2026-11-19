@@ -1,5 +1,5 @@
 /**
- * A job's live facts as the Overseer's API shows them, read from its Watcher event logs through the adapter's mapper: API turns against
+ * A job's live facts as the Overseer's API shows them, read from its Talos event logs through the adapter's mapper: API turns against
  * the budget, tokens so far, and tool calls, the job's own and each subagent's by `parentToolUseId`, a subagent the log lost rebuilt from
  * the session's transcripts; whether a turn is under way, User's messages not yet sent, a session's last line, and the newest usage window
  * the session reported. The stamps are only recorded and shown: no Overseer decision reads them.
@@ -19,11 +19,10 @@ import { ClaudeTranscripts }                    from './ClaudeTranscripts.ts';
 import { JobControlDelivery }                   from './JobControlDelivery.ts';
 import { JobLaunch }                            from './JobLaunch.ts';
 import { JobTranscript }                        from './JobTranscript.ts';
-import { LegacyWatcherReader }                  from './LegacyWatcherReader.ts';
 
 export interface LastToolCall {
   toolName:  string;
-  /** The Watcher log entry's stamp; `null` for an entry written before stamps. */
+  /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
   startedAt: string | null;
   /** True until the call's result arrives. */
   running:   boolean;
@@ -49,7 +48,7 @@ export type JobTurn = 'between-turns' | 'mid-turn';
 export interface SessionLastLine {
   role: Extract<TranscriptRole, 'assistant' | 'user'>;
   text: string;
-  /** The Watcher log entry's stamp; `null` for an entry written before stamps. */
+  /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
   at:   string | null;
 }
 
@@ -59,15 +58,8 @@ export interface UsageWindowReport {
   window:     string;
   /** `null` when the vendor named no usable reset. */
   resetsAt:   string | null;
-  /** The Watcher log entry's stamp; `null` for an entry written before stamps. */
+  /** The Talos event log entry's stamp; `null` for an entry written before stamps. */
   reportedAt: string | null;
-}
-
-export interface WatcherFacts {
-  /** The protocol the newest instance's Watcher record names; `null` before it wrote one. */
-  watcherProtocol: number | null;
-  /** A Watcher below the supported window: watched through its files alone. */
-  watchOnly:       boolean;
 }
 
 export interface JobLiveFacts {
@@ -81,22 +73,20 @@ export interface JobLiveFacts {
   lastToolCall:           LastToolCall | null;
   subagents:              SubagentLiveFacts[];
   toolCallsWithSubagents: number;
-  watcherProtocol:        number | null;
-  watchOnly:              boolean;
   /**
-   * The newest Watcher instance's: `mid-turn` while it took more chats than its session printed results. The Assistant's is the idle rule its
-   * deliveries wait on. `null` for a job with no agent session, and before its first Watcher logged a line.
+   * The newest instance's: `mid-turn` while it took more chats than its session printed results. The Assistant's is the idle rule its
+   * deliveries wait on. `null` for a job with no agent session, and before its first instance logged a line.
    */
   turn:                   JobTurn | null;
   /** User's `job message` records its session has not taken yet. */
   messagesWaiting:        number;
   /** For an Assistant, product-owner or pipeline agent job only; `null` for every other job, and before the session said anything. */
   lastLine:               SessionLastLine | null;
-  /** The newest usage window the session reported, of any Watcher instance; `null` before it reported one. */
+  /** The newest usage window the session reported, of any instance; `null` before it reported one. */
   usageWindow:            UsageWindowReport | null;
 }
 
-/** What every job's live facts are read through: its Watcher logs, the adapter that reads their lines, and the board's log and incidents. */
+/** What every job's live facts are read through: its Talos event logs, the adapter that reads their lines, and the board's log and incidents. */
 export interface JobLiveFactsSource {
   boardChildren:    BoardChildren;
   trackerDirectory: string;
@@ -115,7 +105,7 @@ export interface JobSession {
   sessionId:          string;
 }
 
-type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messagesWaiting' | 'lastLine' | 'usageWindow' | keyof WatcherFacts>;
+type JobLiveCounts = Omit<JobLiveFacts, 'jobId' | 'callBudget' | 'turn' | 'messagesWaiting' | 'lastLine' | 'usageWindow'>;
 
 const BUDGETED_JOB_KINDS: readonly string[] = ['build', 'review'];
 
@@ -159,7 +149,7 @@ interface EventLogTally {
   answeredToolUseIds: ReadonlySet<string>;
 }
 
-/** Pure over the mapped events in log order, so a spec drives it without a Watcher. */
+/** Pure over the mapped events in log order, so a spec drives it without a Talos. */
 function eventLogTallyOf(stampedEvents: readonly StampedEvents[]): EventLogTally {
   const topLevelMessageIds = new Set<string>();
   const tokensByMessageId  = new Map<string, number>();
@@ -234,7 +224,7 @@ function entriesByInstanceOf(children: BoardChildren, job: Readonly<Job>): (read
   return entriesByInstance;
 }
 
-/** Pure over the newest instance's lines: the chats its Watcher took against the results its session printed. */
+/** Pure over the newest instance's lines: the chats its Talos took against the results its session printed. */
 function turnOfEntries(newestInstanceEntries: readonly EventLogEntry[], adapter: JobLiveFactsSource['adapter']): JobTurn | null {
   if (newestInstanceEntries.length === 0) return null;
   let chats = 0;
@@ -275,11 +265,6 @@ function lastLineOf(source: JobLiveFactsSource, job: Readonly<Job>): SessionLast
   return newest === undefined ? null : { role: newest.role === 'user' ? 'user' : 'assistant', text: newest.text, at: newest.at };
 }
 
-function watcherFactsOf(children: BoardChildren, job: Readonly<Job>): WatcherFacts {
-  const record = LegacyWatcherReader.watcherRecordIn(children.jobFolderOf(job.id), job.watcherInstance);
-  return { watcherProtocol: record?.protocolVersion ?? null, watchOnly: LegacyWatcherReader.attachmentOf(record) === 'legacy-watcher' };
-}
-
 /** The event log's subagents stand; a subagent only the session's transcripts still hold is added, its tallies in the totals. */
 function withTranscriptSubagents(counts: JobLiveCounts, transcriptSubagents: readonly SubagentLiveFacts[]): JobLiveCounts {
   if (transcriptSubagents.length === 0) return counts;
@@ -308,7 +293,6 @@ function liveFactsOf(source: JobLiveFactsSource, job: Readonly<Job>, session: Jo
     jobId:           job.id,
     callBudget:      BUDGETED_JOB_KINDS.includes(job.kind) ? JobLaunch.callBudgetOf(job) : null,
     ...withTranscriptSubagents(tally.counts, lostSubagentsOf(session, tally)),
-    ...watcherFactsOf(source.boardChildren, job),
     turn:            turnOf(source, job, entriesByInstance.at(-1) ?? []),
     messagesWaiting: JobControlDelivery.unsentMessageCountOf(source.board, source.trackerDirectory, job),
     lastLine:        lastLineOf(source, job),

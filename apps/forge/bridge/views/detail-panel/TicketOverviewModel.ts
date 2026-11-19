@@ -142,9 +142,9 @@ export interface TicketJobControlsModel {
   /** `Builder J4 controls`. */
   readonly label:     string;
   readonly stopping:  boolean;
-  /** A job with a role takes a message, unless only watched. */
+  /** A job with a role takes a message. */
   readonly messages:  boolean;
-  /** Wind down, Stop and Fresh agent in that order; Stop alone for a job the Overseer only watches. */
+  /** Wind down, Stop and Fresh agent in that order. */
   readonly stopItems: readonly JobStopItemModel[];
 }
 
@@ -578,7 +578,6 @@ function stopItemsOf(job: DetailJobDocument, ticket: DetailTicketDocument): JobS
     ],
     confirmLabel: `Stop ${job.id}`,
   };
-  if (job.live.watchOnly === true) return [stop];
   if (!JobStateUtil.offersFreshAgent(job.kind)) return [windDown, stop];
   const successor = job.role ?? job.kind;
   const onBranch = ticket.branch === undefined || ticket.branch === '' ? [textOf(' on its worktree')] : [textOf(' on the worktree of '), figureOf(ticket.branch)];
@@ -602,13 +601,12 @@ function stopItemsOf(job: DetailJobDocument, ticket: DetailTicketDocument): JobS
 
 function jobControlsOf(job: DetailJobDocument | null, ticket: DetailTicketDocument): TicketJobControlsModel | null {
   if (job === null) return null;
-  const watchOnly = job.live.watchOnly === true;
   const roleName = job.role !== null && Object.hasOwn(CONTROLS_NAME_OF_ROLE, job.role) ? CONTROLS_NAME_OF_ROLE[job.role] : undefined;
   return {
     jobId:     job.id,
     label:     `${roleName ?? CONTROLS_NAME_OF_ROLELESS_JOB} ${job.id} controls`,
     stopping:  job.state === STOPPING_STATE || job.stopRequest !== undefined,
-    messages:  job.role !== null && !watchOnly,
+    messages:  job.role !== null,
     stopItems: stopItemsOf(job, ticket),
   };
 }

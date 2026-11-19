@@ -12,10 +12,10 @@ import type {
 export type ProcessStopStage = 'ask' | 'force';
 
 /**
- * `gate` is one gate or prepare step, `supervised-child` the process a Watcher or Talos runs, `watcher` the Watcher itself, `talos` a
- * board's Talos, `overseer` an Overseer started in the background and `successor` the one that takes over from it.
+ * `supervised-child` is a process Talos runs, an agent session or a line, `talos` a board's Talos, `overseer` an Overseer started in the
+ * background and `successor` the one that takes over from it.
  */
-export type SupervisedChildKind = 'gate' | 'supervised-child' | 'watcher' | 'talos' | 'overseer' | 'successor';
+export type SupervisedChildKind = 'supervised-child' | 'talos' | 'overseer' | 'successor';
 
 /** Spread last over a spawn's own options, so `stderr` wins: a caller then reads the stream wherever it would have given a descriptor. */
 export interface SupervisedSpawnOptions {

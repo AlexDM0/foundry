@@ -94,8 +94,6 @@ export function exampleAgentJob(changes: Partial<AgentJobDocument> & Pick<AgentJ
       subagents:              [],
       toolCallsWithSubagents: 7,
       silentSweeps:           0,
-      watcherProtocol:        1,
-      watchOnly:              false,
     },
     ...changes,
   };

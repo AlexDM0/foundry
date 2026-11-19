@@ -849,10 +849,6 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
         + 'Record the work with Delivered by hand… on the ticket\'s form in the Bridge'
         + `${adviceFor(channel, `, or stop the Overseer with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` first`, '')}. ${NOTHING_WAS_WRITTEN}`;
-    case 'watcher-bundle-failed':
-      return `The Watcher entry ${detail.entryPath} did not bundle, so the Overseer cannot spawn Watchers: ${detail.reason}`;
-    case 'watcher-endpoint-does-not-fit':
-      return `This platform cannot bind the Watcher endpoint ${detail.endpoint}, so no launch file was written. Move the home folder to a shorter path.`;
     case 'talos-protocol-differs':
       return `Talos, started from the program on disk, speaks protocol version ${detail.answeredProtocolVersion}, and this Overseer speaks `
         + `${detail.requiredProtocolVersion}, so the Overseer did not start. Update the program checkout, then start the Overseer again.`;

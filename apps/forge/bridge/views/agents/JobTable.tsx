@@ -13,7 +13,7 @@ import { JobRow }                                           from './JobRow.tsx';
 
 const COLUMNS = ['job', 'subject', 'state', 'calls', 'subagents', 'last-tool', 'tokens'] as const;
 
-const DIAGNOSTICS_COLUMNS = ['phase', 'tool-calls', 'silent-sweeps', 'watcher'] as const;
+const DIAGNOSTICS_COLUMNS = ['phase', 'tool-calls', 'silent-sweeps'] as const;
 
 type Column = typeof COLUMNS[number] | typeof DIAGNOSTICS_COLUMNS[number];
 
@@ -28,7 +28,6 @@ const HEAD_TEXT: Readonly<Record<Column, string>> = {
   'phase':         'Phase',
   'tool-calls':    'Tool calls',
   'silent-sweeps': 'Silent sweeps',
-  'watcher':       'Watcher',
 };
 
 /** Sessions name what a session is about rather than a ticket, and have no call budget. */

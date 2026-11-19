@@ -157,7 +157,7 @@
       }
     },
     {
-      "callShape": "hello with another secret, to a Watcher socket",
+      "callShape": "hello with another secret, to a Talos socket",
       "answer": {
         "frames": [
           {
@@ -171,20 +171,16 @@
       }
     },
     {
-      "callShape": "hello with the secret, to a Watcher socket",
+      "callShape": "hello with the secret, to a Talos socket",
       "answer": {
         "frames": [
           {
             "kind": "welcome",
-            "protocolVersion": 2,
-            "watcherCodeVersion": "code-example",
-            "jobId": "J-1",
-            "state": "idle",
-            "lastSequence": 0
-          },
-          {
-            "kind": "history",
-            "entries": []
+            "protocolVersion": 1,
+            "codeVersion": "code-example",
+            "startNumber": 1,
+            "talos": null,
+            "leaseStanding": "unheld"
           }
         ],
         "endArrived": false,

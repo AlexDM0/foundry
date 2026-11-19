@@ -27,7 +27,7 @@ import {
   test
 } from 'bun:test';
 
-import { listenOnIdleWatcherSocket, type WatcherSocketListening }                                 from '../../testing/IdleWatcherSocket.ts';
+import { listenOnIdleTalosSocket, type TalosSocketListening }                                     from '../../testing/IdleTalosSocket.ts';
 import { type PortClause, type PortSubject, runPortContract }                                     from '../../testing/PortContract.ts';
 import { createScratchDirectory, removeScratchDirectory }                                         from '../../testing/ScratchWorkspace.ts';
 import { ownerOnlyFilesFor }                                                                      from '../owner-only-files/OwnerOnlyFilesFor.ts';
@@ -140,8 +140,8 @@ async function connectIsRefused(port: LocalEndpoint, endpoint: string): Promise<
   });
 }
 
-async function watcherSocketOn(port: LocalEndpoint, socketPath: string): Promise<WatcherSocketListening> {
-  return await listenOnIdleWatcherSocket(port, socketPath, 'example-secret');
+async function talosSocketOn(port: LocalEndpoint, socketPath: string): Promise<TalosSocketListening> {
+  return await listenOnIdleTalosSocket(port, socketPath, 'example-secret');
 }
 
 /** A process that binds the socket and dies by SIGKILL, so nothing of it runs to close the socket or clear its file. */
@@ -197,8 +197,8 @@ const CLAUSES: readonly PortClause<LocalEndpoint>[] = [
     check: async (port) => {
       const endpoint = port.endpointOf(scratchFacts(1));
       port.prepareEndpoint(endpoint);
-      const holder = await watcherSocketOn(port, endpoint);
-      const second = await watcherSocketOn(port, endpoint);
+      const holder = await talosSocketOn(port, endpoint);
+      const second = await talosSocketOn(port, endpoint);
       expect(second).toMatchObject({ verdict: 'unbindable', reason: expect.stringContaining('EADDRINUSE') });
       if (holder.verdict === 'listening') holder.server.close();
       expect(holder.verdict).toBe('listening');
@@ -226,7 +226,7 @@ const SOCKET_CLAUSES: readonly PortClause<LocalEndpoint>[] = [
     },
   },
   {
-    claim: 'prepare makes an owner-only folder and clears what a dead Watcher left',
+    claim: 'prepare makes an owner-only folder and clears what a dead Talos left',
     check: (port) => {
       const endpoint = port.endpointOf(scratchFacts(1));
       expect(port.prepareEndpoint(endpoint)).toEqual({ verdict: 'done' });

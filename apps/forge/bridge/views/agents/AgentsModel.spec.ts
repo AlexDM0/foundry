@@ -1,17 +1,16 @@
 /**
  * The Agents view's model. What matters: a record without live facts is no agent job, so a partial `job` event cannot break the table;
- * builders, reviewers and roleless jobs are worker work and intake, Assistant and pipeline agent jobs are sessions, so nothing that never takes
- * a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads the Overseer's `launchSlots`, never a kind
- * list, and a job is counted only when the Overseer named it; each role and each roleless kind draws its own icon and anything else a
+ * builders, reviewers and roleless jobs are worker work and intake, Assistant and pipeline agent jobs are sessions, so nothing that never
+ * takes a slot sits under the slot meter; jobs that ask User lead their card; the slot meter reads the Overseer's `launchSlots`, never a
+ * kind list, and a job is counted only when the Overseer named it; each role and each roleless kind draws its own icon and anything else a
  * dot, so no two roles read alike, but a re-reviewer and a conflict re-reviewer take the reviewer's icon with their own word; calls read
  * against the budget, warn near it and unbounded without one; subagents are squares worded in every plural form, an older board's subagent
  * without a state reading ended; the ask carries the open decision's first question and its stamp sliced as the inbox slices it; every
- * count leaves out its zero parts and names one in the singular; a session says what it is about; a watch-only Watcher is worded as such; a
- * job is stopping by its state or by a stop request alone, and takes a message only with a role, a Watcher that does more than watch and no
- * stop under way; the job panel's head and transcript head are worded from the job's facts alone; a concurrency limit is sendable only
- * as a changed whole number the Overseer would take; and Flint's brain has a row only while it starts, runs, ended or was refused, never
- * on a forge without it, a running one counting down from the forge's stated end, an ended or refused one in the forge's words, and Stop
- * offered only while it starts or runs.
+ * count leaves out its zero parts and names one in the singular; a session says what it is about; a job is stopping by its state or by a
+ * stop request alone, and takes a message only with a role and no stop under way; the job panel's head and transcript head are worded from
+ * the job's facts alone; a concurrency limit is sendable only as a changed whole number the Overseer would take; and Flint's brain has a
+ * row only while it starts, runs, ended or was refused, never on a forge without it, a running one counting down from the forge's stated
+ * end, an ended or refused one in the forge's words, and Stop offered only while it starts or runs.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -238,14 +237,6 @@ describe('the worded counts', () => {
   });
 });
 
-describe('the worded live facts', () => {
-  test('the Watcher reads as its protocol, as watch only for a legacy Watcher, and as a dash when unknown', () => {
-    expect(AgentsModel.watcherTextOf(BUILD_JOB)).toBe('protocol 1');
-    expect(AgentsModel.watcherTextOf({ live: { ...BUILD_JOB.live, watcherProtocol: 0, watchOnly: true } })).toBe('running on Watcher protocol 0: watch only');
-    expect(AgentsModel.watcherTextOf({ live: { ...BUILD_JOB.live, watcherProtocol: null } })).toBe('-');
-  });
-});
-
 describe('the controls a job takes', () => {
   test('a job is stopping in the stopping state or once a stop is requested, whatever its state', () => {
     expect(AgentsModel.isStopping(BUILD_JOB)).toBe(false);
@@ -253,10 +244,9 @@ describe('the controls a job takes', () => {
     expect(AgentsModel.isStopping({ state: 'running', stopRequest: 'stop' })).toBe(true);
   });
 
-  test('a job takes a message only with a role, a Watcher that does more than watch, and no stop under way', () => {
+  test('a job takes a message only with a role and no stop under way', () => {
     expect(AgentsModel.takesMessages(BUILD_JOB)).toBe(true);
     expect(AgentsModel.takesMessages({ ...BUILD_JOB, role: null })).toBe(false);
-    expect(AgentsModel.takesMessages({ ...BUILD_JOB, live: { ...BUILD_JOB.live, watchOnly: true } })).toBe(false);
     expect(AgentsModel.takesMessages({ ...BUILD_JOB, stopRequest: 'wind-down' })).toBe(false);
   });
 });

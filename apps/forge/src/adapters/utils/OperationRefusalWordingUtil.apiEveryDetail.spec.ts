@@ -317,8 +317,6 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'picture-too-large':                { kind: 'picture-too-large', bytes: 9, sizeLimitBytes: 8 },
   'picture-type-unsupported':         { kind: 'picture-type-unsupported', mediaTypes: ['image/png'] },
   'overseer-owns-the-lifecycle':      { kind: 'overseer-owns-the-lifecycle', url: URL, batonFilePath: BATON },
-  'watcher-bundle-failed':            { kind: 'watcher-bundle-failed', entryPath: '/example/watcher.ts', reason: 'Example reason' },
-  'watcher-endpoint-does-not-fit':    { kind: 'watcher-endpoint-does-not-fit', endpoint: '/example/watcher.sock' },
   'talos-protocol-differs':           { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
   'talos-unavailable':                { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
   'ticket-has-live-job':              {

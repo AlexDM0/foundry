@@ -1,7 +1,7 @@
 /**
  * The Agents view's model: which board records are agent jobs, which card a job sits in (the worker list or Sessions) and in what order,
  * its role mark, its open decision as an ask, its calls against its budget, its subagents as squares, its quiet sweeps, the slot meter and
- * the cards' counts and tallies, its worded Watcher, whether it is stopping, and whether a concurrency limit asked for may be sent; and
+ * the cards' counts and tallies, whether it is stopping, and whether a concurrency limit asked for may be sent; and
  * Flint's brain's own row, which is no job. Which job holds a launch slot is the Overseer's `launchSlots` fact, never a kind list copied
  * here.
  */
@@ -104,7 +104,6 @@ const FLINT_BRAIN_STATE_LABELS: Readonly<Record<FlintBrainRowState, string>> = {
   refused:  'Refused',
 };
 
-type JobLiveWording = Pick<AgentJobDocument, 'live'>;
 type GroupedJob = Pick<AgentJobDocument, 'role'>;
 type RoleMarkedJob = Pick<AgentJobDocument, 'role' | 'kind'>;
 type BudgetedJob = { readonly live: Pick<AgentJobDocument['live'], 'calls' | 'callBudget'> };
@@ -309,18 +308,13 @@ function sessionAboutTextOf(job: AboutJob, openIncidentCount: number): string {
   return 'pipeline agent';
 }
 
-function watcherTextOf(job: JobLiveWording): string {
-  if (job.live.watcherProtocol === null) return '-';
-  return job.live.watchOnly ? `running on Watcher protocol ${job.live.watcherProtocol}: watch only` : `protocol ${job.live.watcherProtocol}`;
-}
-
 function isStopping(job: Pick<AgentJobDocument, 'state' | 'stopRequest'>): boolean {
   return job.state === 'stopping' || job.stopRequest !== undefined;
 }
 
-/** A job with a role takes a message while it is not stopping and its Watcher does more than watch. */
-function takesMessages(job: Pick<AgentJobDocument, 'role' | 'state' | 'stopRequest'> & { readonly live: Pick<AgentJobDocument['live'], 'watchOnly'> }): boolean {
-  return job.role !== null && !job.live.watchOnly && !isStopping(job);
+/** A job with a role takes a message while it is not stopping. */
+function takesMessages(job: Pick<AgentJobDocument, 'role' | 'state' | 'stopRequest'>): boolean {
+  return job.role !== null && !isStopping(job);
 }
 
 /** "followed live · 11 entries": the transcript head says it follows the job and how much it holds. */
@@ -382,7 +376,6 @@ export const AgentsModel = Object.freeze({
   joblessTicketsTextOf,
   incidentsOpenTextOf,
   sessionAboutTextOf,
-  watcherTextOf,
   isStopping,
   takesMessages,
   panelStateTextOf,

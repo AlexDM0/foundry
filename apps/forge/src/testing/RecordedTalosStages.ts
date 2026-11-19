@@ -624,11 +624,6 @@ export function createRecordedTalosStages(nativePorts: PlatformPorts, answers?: 
       },
     },
     processStarts: {
-      spawnWatcher: () => {
-        const unanswered = 'spawnWatcher has no recorded answer: the Talos stages spawn no Watcher';
-        unansweredCalls.push(unanswered);
-        throw new Error(unanswered);
-      },
       startTalos: () => {
         const unanswered = 'startTalos has no recorded answer: the Talos stages answer the connection themselves';
         unansweredCalls.push(unanswered);

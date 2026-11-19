@@ -27,13 +27,6 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'The unreferenced `sleep` descendant has no handle to wait on, and the run\'s leak check fails on it while it runs.',
   'cli/RegisterWrittenTracker.integration.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
     'A negative across processes: nothing writes the registry while its lock is held; a hold ending on the children\'s state could outlast their retry budget.',
-  'src/lib/watcher/Watcher.protocol.integration.spec.ts: watcherJob().writeLaunch(1, \'process\', \'await Bun.sleep(30_000);\');':
-    'The script of a child that only has to stay alive until the case stops it.',
-  // eslint-disable-next-line @stylistic/max-len -- the key is the scanned line itself
-  'src/lib/watcher/Watcher.integration.spec.ts: writeLaunch(1, \'process\', `require(\'node:fs\').appendFileSync(${JSON.stringify(markerPath)}, \'spawned\\\\n\'); await Bun.sleep(200);`);':
-    'The script of a child that keeps its claim while the second Watcher races it; the case awaits both exits.',
-  'src/services/overseer/WatcherFleet.integration.spec.ts: await Bun.sleep(LINGER_WATCHED_MILLISECONDS);':
-    'A negative: an ended Watcher does not exit unacknowledged, so there is no state to wait on; load only shortens what the window watches.',
   'src/lib/talos/LocalEndpoint.answers.integration.spec.ts: const timer = setTimeout(() => resolve(false), NEVER_ARRIVES_WAIT_MILLISECONDS);':
     'A negative recorded as an answer: the end of a connection never reaches a client that does not read, so there is no state to wait on.',
   'src/lib/talos/TalosMainThread.spec.ts: [\'a blocking sleep\', \'Bun.sleepSync(50);\', \'sleepSync\'],':
@@ -48,10 +41,6 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'The script of a line whose start the stage reads before it ends; the case waits on the record Talos writes, never on the pause.',
   'src/lib/talos/SynchronousCallsThread.integration.spec.ts: setTimeout(() => resolve(performance.now()), MAIN_THREAD_TIMER_MILLISECONDS);':
     'The timer is what the case measures: its lateness shows whether the main thread stayed free while the worker worked through a queue of tree calls.',
-  'src/services/overseer/WatcherFleet.integration.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':
-    'Settling inside the bound is the claim: a send that does not read waits out the 2 s frame timeout, ten times the bound.',
-  'src/services/overseer/WatcherFleet.spec.ts: setTimeout(() => resolve(\'timed-out\'), SEND_SETTLE_BOUND_MILLISECONDS);':
-    'The same claim over the fake socket, which settles at once when the send reads.',
   'src/testing/SharedCaseDeadlinePreload.integration.spec.ts: await Bun.sleep(PAST_THE_DEFAULT_DEADLINE_MILLISECONDS);':
     'Outliving the default deadline is the claim itself, and Bun exposes no reading of it.',
   'src/testing/ProcessesInFolder.ts: for (let poll = 0; poll < polls; poll += 1) {':

@@ -1,17 +1,14 @@
 /**
  * The recorded local endpoint may give only what the real socket or pipe answered. What matters most is that the end of a connection
  * reaches no client that did not read it, as on a real socket, since a mock that closed it hid a real stall; then that a call with no
- * recorded answer fails, that a write after `end` and a connect to a removed endpoint are refused, and that a Watcher socket answers each
+ * recorded answer fails, that a write after `end` and a connect to a removed endpoint are refused, and that a Talos socket answers each
  * `hello` over the mock with the frames the real one sent. A destroy gives its peer the recorded end and close, also a peer that does not
  * read, unlike an end; a peer that holds unread data gets the recorded events in the recorded order, so no data comes after its end.
  */
 import type { Socket }              from 'node:net';
 import { beforeEach, expect, test } from 'bun:test';
 
-
-import type { WatcherSocketListening } from '../lib/watcher/WatcherSocketServer.ts';
-import { listenOnWatcherSocket }       from '../lib/watcher/WatcherSocketServer.ts';
-import { WATCHER_PROTOCOL_VERSION }    from '../lib/watcher/constants/WatcherProtocol.ts';
+import { listenOnIdleTalosSocket, talosHelloLineOf } from './IdleTalosSocket.ts';
 import {
   createRecordedLocalEndpoint,
   type DestroyAnswer,
@@ -24,7 +21,7 @@ import {
 } from './RecordedLocalEndpoint.ts';
 import { describeWhenRecorded } from './ToolGuard.ts';
 
-const WATCHER_SECRET = 'example-secret';
+const TALOS_SECRET = 'example-secret';
 
 let recorded: RecordedLocalEndpoint;
 let lastInstance = 0;
@@ -87,20 +84,6 @@ function watched(socket: Socket, reads: boolean): WatchedClient {
   return {
     socket, received: () => received, ended: () => ended, closed: () => closed
   };
-}
-
-async function watcherSocketOn(endpoint: string): Promise<WatcherSocketListening> {
-  return await listenOnWatcherSocket({
-    endpoint:          recorded.endpoint,
-    socketPath:        endpoint,
-    watcherSecret:     WATCHER_SECRET,
-    acceptedKinds:     [],
-    welcomeOf:         () => ({ watcherCodeVersion: 'code-example', jobId: 'J-1', state: 'idle' }),
-    durableEntries:    () => [],
-    onClientLine:      () => undefined,
-    onActingFrame:     () => undefined,
-    onHandlingFailure: () => undefined,
-  });
 }
 
 function recordedCodeOf(callShape: EndpointCallShape): string {
@@ -259,18 +242,16 @@ describeWhenRecorded(['local-endpoint-recording'], 'a destroy of a connection', 
   });
 });
 
-describeWhenRecorded(['local-endpoint-recording'], 'a Watcher socket over the mock', () => {
+describeWhenRecorded(['local-endpoint-recording'], 'a Talos socket over the mock', () => {
   test.each([
     ['another secret', 'another-secret', ENDPOINT_CALL_SHAPES.HELLO_WITH_A_BAD_SECRET],
-    ['the secret', WATCHER_SECRET, ENDPOINT_CALL_SHAPES.HELLO_WITH_THE_SECRET],
-  ] as const)('answers a hello with %s with the frames, the end and the close the real one gave', async (_case, watcherSecret, callShape) => {
+    ['the secret', TALOS_SECRET, ENDPOINT_CALL_SHAPES.HELLO_WITH_THE_SECRET],
+  ] as const)('answers a hello with %s with the frames, the end and the close the real one gave', async (_case, secret, callShape) => {
     const endpoint = nextEndpoint();
-    const listening = await watcherSocketOn(endpoint);
+    const listening = await listenOnIdleTalosSocket(recorded.endpoint, endpoint, TALOS_SECRET);
     if (listening.verdict !== 'listening') throw new Error(listening.reason);
     const client = watched((await connectOutcomeOf(endpoint)).socket, true);
-    client.socket.write(`${JSON.stringify({
-      kind: 'hello', protocolVersion: WATCHER_PROTOCOL_VERSION, sinceSequence: 0, watcherSecret
-    })}\n`);
+    client.socket.write(talosHelloLineOf(secret));
     await afterEveryMockedAnswer();
     const realAnswer = recordedEndpointAnswerOf(callShape) as HelloAnswer;
     const frames = client.received().split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as unknown);

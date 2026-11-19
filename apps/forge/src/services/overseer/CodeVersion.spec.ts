@@ -1,6 +1,6 @@
 /**
  * The code version over a planted program root. What matters: an edit to any shipping file moves the version, `bridge/` and
- * `watcher.ts` included, since the new-code check hands a live Overseer to the code on disk only when it moves; a spec edit
+ * `talos.ts` included, since the new-code check hands a live Overseer to the code on disk only when it moves; a spec edit
  * leaves it unchanged, so a test-only change never reads as new code. Inside a Bun workspace, an edit to a workspace package the program
  * depends on, or to its own part of the root `bun.lock`, moves it too, while a package, tool folder or lockfile entry that only another
  * member uses does not: another app's dependency must not read as new forge code.
@@ -26,7 +26,7 @@ afterEach(() => {
 
 const PLANTED_FILES = [
   'agent-progress.ts',
-  'watcher.ts',
+  'talos.ts',
   'package.json',
   'bridge/Main.tsx',
   'bridge/shell/Header.tsx',
@@ -92,7 +92,7 @@ describe('CodeVersion.codeVersionOf', () => {
   test.each([
     ['a bridge/ edit', 'bridge/shell/Header.tsx'],
     ['a new bridge/ file', 'bridge/views/NewView.tsx'],
-    ['a watcher.ts edit', 'watcher.ts'],
+    ['a talos.ts edit', 'talos.ts'],
     ['an agent-progress.ts edit', 'agent-progress.ts'],
     ['a cli/ edit', 'cli/Main.ts'],
   ])('%s moves the version', (_editName, relativePath) => {

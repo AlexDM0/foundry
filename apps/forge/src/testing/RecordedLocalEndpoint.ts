@@ -1,5 +1,5 @@
 /**
- * The Watcher socket of a default spec: `useRecordedLocalEndpoint` gives a `LocalEndpoint` whose servers and connections live in memory and
+ * The Talos socket of a default spec: `useRecordedLocalEndpoint` gives a `LocalEndpoint` whose servers and connections live in memory and
  * answer with what the real socket or pipe answered, which `src/lib/talos/LocalEndpoint.answers.integration.spec.ts` records under
  * `bun run record src/lib/talos/LocalEndpointFor.ts`. A call with no recorded answer fails the case. The mock refuses what the real socket
  * refuses: the end of a connection reaches no client that did not read it, a write after `end` is an error, and a removed path refuses a
@@ -33,8 +33,8 @@ export const ENDPOINT_CALL_SHAPES = {
   CONNECT_WITH_NO_LISTENER:                         'connect <endpoint>, nothing was ever bound there',
   CONNECT_TO_A_STALE_SOCKET:                        'connect <endpoint>, what a listener killed while listening left',
   CONNECT_TO_A_REMOVED_PATH:                        'connect <endpoint>, released while its server listens',
-  HELLO_WITH_A_BAD_SECRET:                          'hello with another secret, to a Watcher socket',
-  HELLO_WITH_THE_SECRET:                            'hello with the secret, to a Watcher socket',
+  HELLO_WITH_A_BAD_SECRET:                          'hello with another secret, to a Talos socket',
+  HELLO_WITH_THE_SECRET:                            'hello with the secret, to a Talos socket',
   CLIENT_HALF_CLOSE:                                'end <client connection>, the server reads',
   SERVER_END_THE_CLIENT_DID_NOT_READ:               'end <server connection>, the client never reads',
   SERVER_END_THE_CLIENT_READ:                       'end <server connection>, the client reads',
@@ -63,7 +63,7 @@ export type ConnectAnswer =
   | { readonly outcome: 'connected'; readonly timing: EndpointTiming }
   | { readonly outcome: 'error'; readonly code: string; readonly timing: EndpointTiming };
 
-/** What a client sees of a Watcher socket's answer to its `hello`: the frames, and whether the end and the close reached it. */
+/** What a client sees of a Talos socket's answer to its `hello`: the frames, and whether the end and the close reached it. */
 export interface HelloAnswer {
   readonly frames:       readonly unknown[];
   readonly endArrived:   boolean;
@@ -127,7 +127,7 @@ export function recordedEndpointAnswerOf(callShape: EndpointCallShape): unknown 
 }
 
 export interface RecordedLocalEndpoint {
-  /** The endpoint each Watcher and client of the spec binds and connects through; its names and limits are the platform's own. */
+  /** The endpoint each Talos and client of the spec binds and connects through; its names and limits are the platform's own. */
   readonly endpoint:            LocalEndpoint;
   /** The listener of the endpoint dies with no close, so what it leaves refuses a connect until a prepare or a release. */
   readonly killListener:        (endpoint: string) => void;

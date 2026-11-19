@@ -7,9 +7,9 @@
  * while one runs, Priority… opens the other priorities only for a pending ticket, and Delivered by hand… confirms first and waits while a
  * job of the ticket runs; Next words each forecast step, marks exactly the current one (none while nothing runs), links the tickets the
  * landing lets start and says what still holds the others, and is absent without a forecast; the facts carry their second lines; the live
- * job's controls offer a message while it takes one and Wind down, Stop and Fresh agent by its kind (Stop alone while only watched,
- * nothing while stopping), each worded with the ticket, its branch and the Board's own hold phrase, a ticket already held keeping its
- * hold; and the newest open incident listing the ticket heads the Overview.
+ * job's controls offer a message while it takes one and Wind down, Stop and Fresh agent by its kind (nothing while stopping), each worded
+ * with the ticket, its branch and the Board's own hold phrase, a ticket already held keeping its hold; and the newest open incident listing
+ * the ticket heads the Overview.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -193,16 +193,6 @@ describe('the live job\'s controls', () => {
   test('a stopping job, by its state or a stop request, offers nothing but says so', () => {
     expect(controlsOf(exampleDetailJob('J4', '004', { state: 'stopping' }))?.stopping).toBe(true);
     expect(controlsOf(exampleDetailJob('J4', '004', { stopRequest: 'wind-down' }))?.stopping).toBe(true);
-  });
-
-  test('a job the Overseer only watches takes no message and offers Stop alone', () => {
-    const controls = controlsOf(exampleDetailJob('J4', '004', {
-      live: {
-        calls: 0, callBudget: 150, lastToolCall: null, watchOnly: true
-      }
-    }));
-    expect(controls?.messages).toBe(false);
-    expect(controls?.stopItems.map((item) => item.move)).toEqual(['stop']);
   });
 
   test('a reviewer is named so and handed to a new reviewer; a merge agent takes no message and gets no fresh agent', () => {

@@ -203,7 +203,7 @@ export function testWhenGitIsRecorded(claim: string, body: SpecBody, timeoutMill
 
 type RecordingRequirements = readonly [RecordedBoundaryRequirement, ...RecordedBoundaryRequirement[]];
 
-/** For a spec of the Watcher stages (`src/testing/RecordedWatcherStages.ts`), which play all three. */
+/** For a spec of the Talos stages (`src/testing/RecordedTalosStages.ts`), which play all three. */
 export const EVERY_RECORDING_REQUIREMENT: RecordingRequirements = ['git-recording', 'process-table-recording', 'local-endpoint-recording'];
 
 /** The first requirement with no recording for this OS, or the first of all when each one is recorded. */

@@ -1,7 +1,7 @@
 /**
- * The Overseer's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock (Watcher
- * liveness, events past each job's stored cursor, then Hatch folders, target tips and ended Watchers), applies relayed commands, then Watcher
- * events with their cursors, then the Playbook in one `writeTracker` hold, and runs its effects after the Baton check.
+ * The Overseer's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock (child
+ * liveness under Talos, events past each job's stored cursor, then Hatch folders, target tips and ended children), applies relayed commands,
+ * then the children's events with their cursors, then the Playbook in one `writeTracker` hold, and runs its effects after the Baton check.
  */
 import { createHash }              from 'node:crypto';
 import { mkdirSync, readFileSync } from 'node:fs';
@@ -104,7 +104,6 @@ import {
 } from './JobLaunch.ts';
 import { JobResumption }                                              from './JobResumption.ts';
 import { LaunchSettings, type SessionLaunchSettings }                 from './LaunchSettings.ts';
-import { LegacyWatcherReader }                                        from './LegacyWatcherReader.ts';
 import { MachineAgentLimit }                                          from './MachineAgentLimit.ts';
 import { mergedTreeGateStampOf, runMergedTreeGates }                  from './MergedTreeGateRun.ts';
 import { createMergedTreeGateRuns }                                   from './MergedTreeGateRuns.ts';
@@ -264,7 +263,7 @@ export interface DrivePassRequest {
   answerMessageOf:                   (answer: DecisionAnswer) => string;
   /** What the pipeline agent reads when User's check of its setup record ends. */
   setupMessageWordingOf:             (message: SetupMessage) => string;
-  /** Overridden by specs of the fallback delivery: the Overseer stops the Watcher and resumes the session with the answer. */
+  /** Overridden by specs of the fallback delivery: the Overseer stops the session through Talos and resumes it with the answer. */
   deliversAnswersByControlResponse?: boolean;
   homeDirectory:                     string;
   log:                               (line: string) => void;
@@ -318,8 +317,6 @@ export interface OverseerStateDocument {
   passes:                       number;
   runtimeState:                 PassRuntimeState;
   notices:                      OverseerNotice[];
-  /** Jobs whose Watcher speaks a protocol below the supported window: watched through their files alone. */
-  legacyWatcherJobIds:          string[];
   /** The tickets the last pass would have launched but for the machine-wide agent limit. */
   ticketsWaitingForMachineSlot: number;
 }
@@ -1028,12 +1025,6 @@ function jobsNeedingAWatcher(
     && children.livenessOf(children.jobFolderOf(job.id), job.watcherInstance).verdict === 'unlaunched');
 }
 
-function legacyWatcherJobIdsOf(board: Board, children: BoardChildren): string[] {
-  return board.jobs()
-    .filter((job) => LegacyWatcherReader.attachmentOf(LegacyWatcherReader.watcherRecordIn(children.jobFolderOf(job.id), job.watcherInstance)) === 'legacy-watcher')
-    .map((job) => job.id);
-}
-
 function noticesOf(
   request: DrivePassRequest,
   installVersionChanged: boolean,
@@ -1083,7 +1074,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   let assistantsMidTurnAtTheLastPass: readonly string[] = [];
   let assistantBootRetryRequested = false;
   let state: OverseerStateDocument = {
-    generation: request.generation, passes: 0, runtimeState: 'serving', notices: [], legacyWatcherJobIds: [], ticketsWaitingForMachineSlot: 0
+    generation: request.generation, passes: 0, runtimeState: 'serving', notices: [], ticketsWaitingForMachineSlot: 0
   };
   let stopped = false;
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1585,7 +1576,6 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         IncidentRouter.defaultedIncidentsOf(written.board.logRecordsSoFar()),
         launchRefusals,
       ),
-      legacyWatcherJobIds:          legacyWatcherJobIdsOf(written.board, request.boardChildren),
       ticketsWaitingForMachineSlot: written.result.ticketsWaitingForMachineSlot,
     };
     const settled = observe(request, jobLaunchContext);

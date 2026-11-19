@@ -87,8 +87,6 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'The composition root builds the port record.',
   'cli/CommandContext.ts: process-platform: platform:                process.platform,':
     'The composition root carries the platform, so a spec can choose it.',
-  'watcher.ts: process-platform: process.exit(await runWatcher(Bun.argv.slice(2), () => new Date().toISOString(), process.platform, process.env[\'SystemRoot\'], ownVariableOf));':
-    'The Watcher has no CommandContext; its binary is its composition root.',
   'talos.ts: process-platform: process.exit(await runTalos(Bun.argv.slice(2), clock, process.platform, process.env[\'SystemRoot\'], ownVariableOf));':
     'Talos has no CommandContext; its binary is its composition root.',
   'src/lib/talos/SynchronousCallsThread.ts: platform-property: supervision = processSupervisionFor(request.platform, request.systemRoot ?? undefined);':
@@ -214,7 +212,7 @@ describe('the scan saw the tree', () => {
     expect(shippingPaths.length).toBeGreaterThan(400);
     expect(SOURCES.length).toBeGreaterThan(shippingPaths.length);
     expect(shippingPaths).toEqual(expect.arrayContaining([
-      'agent-progress.ts', 'watcher.ts', 'talos.ts', 'cli/CommandContext.ts', 'src/services/lifecycle/GateRun.ts', 'bridge/Main.tsx',
+      'agent-progress.ts', 'talos.ts', 'cli/CommandContext.ts', 'src/services/lifecycle/GateRun.ts', 'bridge/Main.tsx',
     ]));
     expect(shippingPaths).not.toContain('src/PlatformBoundary.spec.ts');
   });
@@ -247,11 +245,9 @@ describe('the scan saw the tree', () => {
       'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',
       'src/lib/process-identity/ProcessSupervisionFor.ts',
       'src/lib/talos/Talos.ts',
-      'src/lib/watcher/Watcher.ts',
       'src/services/overseer/GpgDirectories.ts',
       'src/services/overseer/InstallChangeWatch.ts',
       'src/services/overseer/TalosStart.ts',
-      'src/services/overseer/WatcherFleet.ts',
     ]);
   });
 });
@@ -307,7 +303,7 @@ describe('the guard names each form, planted in memory', () => {
     ['/usr/sbin/', 'const program = \'/usr/sbin/sysctl\';', ['usr-sbin-folder']],
     ['/tmp', 'const scratch = \'/tmp\';', ['temporary-folder']],
     ['a .sock path', 'const endpoint = `${folder}/${name}.sock`;', ['socket-file']],
-    ['an escaped pipe name', 'const endpoint = \'\\\\\\\\.\\\\pipe\\\\watcher\';', ['pipe-name']],
+    ['an escaped pipe name', 'const endpoint = \'\\\\\\\\.\\\\pipe\\\\talos\';', ['pipe-name']],
     ['a forward-slash pipe name', 'const endpoint = \'//./pipe/watcher\';', ['pipe-name']],
     ['\'/bin/sh\'', 'const shell = \'/bin/sh\';', ['bourne-shell-path']],
     ['chmodSync', 'chmodSync(path, mode);', ['mode-change']],
@@ -345,7 +341,7 @@ describe('the spawn scan reads a whole call', () => {
 
   test('the plain option or the port\'s options pass, anywhere in the call', () => {
     expect(violationsOfPlanted(plantedPath, 'Bun.spawn({\n  cmd: [\'git\'],\n  windowsHide: true,\n});')).toEqual([]);
-    expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...supervision.spawnOptionsFor(\'gate\') });')).toEqual([]);
+    expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...supervision.spawnOptionsFor(\'supervised-child\') });')).toEqual([]);
     expect(violationsOfPlanted(plantedPath, 'Bun.spawn({ cmd, ...spawnOptions });')).toEqual([]);
   });
 

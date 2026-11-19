@@ -49,7 +49,7 @@ function changedItemsOf<Item>(previous: readonly unknown[], next: readonly Item[
   return next.filter((item) => previousById.get((item as Identified).id) !== JSON.stringify(item));
 }
 
-/** A job that ended before any state showed it had no Watcher yet when it launched, so nothing had run. */
+/** A job that ended before any state showed it had no child under Talos yet when it launched, so nothing had run. */
 function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' | 'cause' | 'endedAt'> & { state: 'launching'; launchedAt: null; live: JobLiveFactsWithSilence } {
   const {
     id, kind, role, ticketIds, target, attempt
@@ -72,8 +72,6 @@ function launchingJobOf(endedJob: EndedJob): Omit<EndedJob, 'state' | 'outcome' 
       lastToolCall:           null,
       subagents:              [],
       toolCallsWithSubagents: 0,
-      watcherProtocol:        null,
-      watchOnly:              false,
       turn:                   null,
       messagesWaiting:        0,
       lastLine:               null,

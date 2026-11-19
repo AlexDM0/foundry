@@ -1,5 +1,5 @@
 /**
- * A job's live facts from its Watcher event log. What matters: `toolCalls` counts only top-level `tool-call` events, each subagent (by
+ * A job's live facts from its Talos event log. What matters: `toolCalls` counts only top-level `tool-call` events, each subagent (by
  * `parentToolUseId`) keeps its own count and last call, `toolCallsWithSubagents` adds them up, `lastToolCall` is the newest call stamped
  * with its log entry's `at` and `running` until its result arrives, and `calls` stays the top-level API turns the budget is held against.
  * A subagent runs until its parent call's result and carries that call's description. After a crash a subagent the log lost is rebuilt
@@ -17,22 +17,21 @@ import {
   test
 } from 'bun:test';
 
-import type { AgentSessionEvent }                                      from '../../lib/agent-launch/AgentSessionEvent.ts';
-import { CLAUDE_STREAM_LINES }                                         from '../../lib/claude-code/ClaudeStreamLines.ts';
-import { transcriptFolderFor }                                         from '../../lib/claude-code/ClaudeTranscripts.ts';
-import type { ClientEntry }                                            from '../../lib/talos/@types/TalosFrame.ts';
-import { createEventLogWriter }                                        from '../../lib/talos/EventLog.ts';
-import type { Incident }                                               from '../../lib/tracker-model/@types/Incident.ts';
-import type { Job }                                                    from '../../lib/tracker-model/@types/Job.ts';
-import type { LogRecord }                                              from '../../lib/tracker-model/@types/LogRecord.ts';
-import { WATCHER_PROTOCOL_OLDEST_SUPPORTED, WATCHER_PROTOCOL_VERSION } from '../../lib/watcher/constants/WatcherProtocol.ts';
-import { DISPATCH_PROTOCOL }                                           from '../../shared/constants/DispatchProtocol.ts';
-import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory }              from '../../testing/ScratchWorkspace.ts';
-import { childFilesIn, talosChildReadingsWith }                        from '../../testing/TalosChildReadings.ts';
-import { JobLiveFactsReader, type JobLiveFactsSource }                 from './JobLiveFactsReader.ts';
-import { jobFolderIn }                                                 from './OverseerFiles.ts';
-import { liveJobFixture }                                              from './testing/LiveJobFixture.ts';
+import type { AgentSessionEvent }                         from '../../lib/agent-launch/AgentSessionEvent.ts';
+import { CLAUDE_STREAM_LINES }                            from '../../lib/claude-code/ClaudeStreamLines.ts';
+import { transcriptFolderFor }                            from '../../lib/claude-code/ClaudeTranscripts.ts';
+import type { ClientEntry }                               from '../../lib/talos/@types/TalosFrame.ts';
+import { createEventLogWriter }                           from '../../lib/talos/EventLog.ts';
+import type { Incident }                                  from '../../lib/tracker-model/@types/Incident.ts';
+import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
+import { DISPATCH_PROTOCOL }                              from '../../shared/constants/DispatchProtocol.ts';
+import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }           from '../../testing/TalosChildReadings.ts';
+import { JobLiveFactsReader, type JobLiveFactsSource }    from './JobLiveFactsReader.ts';
+import { jobFolderIn }                                    from './OverseerFiles.ts';
+import { liveJobFixture }                                 from './testing/LiveJobFixture.ts';
 
 const scratchDirectories: string[] = [];
 
@@ -149,7 +148,7 @@ function scratchSessionOf(claudeConfigFolder: string | null = null): { claudeCon
   return { claudeConfigFolder: claudeConfigFolder ?? scratchDirectoryFor('live-facts-claude-config'), sessionId: EXAMPLE_SESSION_ID };
 }
 
-/** The live facts of `job` (J1, a build, by default) in a scratch tracker whose Watcher logged one list of lines per instance. */
+/** The live facts of `job` (J1, a build, by default) in a scratch tracker whose Talos logged one list of lines per instance. */
 function liveFactsOfLoggedLines(linesByInstance: readonly (readonly LoggedLine[])[], job: Readonly<Job> = EXAMPLE_JOB, readingBoard: ReadingBoard = {}) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
   writeEventLogs(trackerDirectory, job.id, linesByInstance);
@@ -159,12 +158,10 @@ function liveFactsOfLoggedLines(linesByInstance: readonly (readonly LoggedLine[]
 /** A scratch tracker whose job J1 logged each event as one agent line, stamped in order; the mapper reads a line as the event itself. */
 function liveFactsOfLoggedEvents(
   events: readonly AgentSessionEvent[],
-  watcherProtocol: number | null = null,
   claudeConfigFolder: string | null = null,
 ) {
   const trackerDirectory = scratchDirectoryFor('live-facts');
-  const jobFolder = writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [events]);
-  if (watcherProtocol !== null) writeFileSync(join(jobFolder, 'watcher-1.json'), JSON.stringify({ protocolVersion: watcherProtocol }));
+  writeEventLogs(trackerDirectory, EXAMPLE_JOB.id, [events]);
   return JobLiveFactsReader.liveFactsOf(liveFactsSourceOf(trackerDirectory), EXAMPLE_JOB, scratchSessionOf(claudeConfigFolder));
 }
 
@@ -236,7 +233,7 @@ describe('JobLiveFactsReader', () => {
       assistantTurn('message-1', null),
       toolCall('call-2', 'Agent', null),
       toolCall('call-3', 'Agent', null),
-    ], null, claudeConfigFolder);
+    ], claudeConfigFolder);
     const rebuiltSubagent = {
       toolCalls: 2, lastToolCall: { toolName: 'Grep', startedAt: '2026-10-29T13:00:03Z', running: true }, tokens: 100, state: 'running' as const, description: null
     };
@@ -255,15 +252,9 @@ describe('JobLiveFactsReader', () => {
       toolCall('call-2', 'Agent', null),
       assistantTurn('message-2', 'call-2'),
       toolCall('sub-1', 'Bash', 'call-2'),
-    ], null, claudeConfigFolder);
+    ], claudeConfigFolder);
     expect(facts.subagents.map((subagent) => [subagent.parentToolUseId, subagent.toolCalls, subagent.tokens])).toEqual([['call-2', 1, 15], ['call-3', 2, 100]]);
     expect(facts.toolCallsWithSubagents).toBe(4);
-  });
-
-  test('the Watcher protocol comes from the newest instance\'s record, a protocol below the window reads watch-only, and no record reads null', () => {
-    expect(liveFactsOfLoggedEvents([], WATCHER_PROTOCOL_VERSION)).toMatchObject({ watcherProtocol: WATCHER_PROTOCOL_VERSION, watchOnly: false });
-    expect(liveFactsOfLoggedEvents([], WATCHER_PROTOCOL_OLDEST_SUPPORTED - 1)).toMatchObject({ watcherProtocol: WATCHER_PROTOCOL_OLDEST_SUPPORTED - 1, watchOnly: true });
-    expect(liveFactsOfLoggedEvents([])).toMatchObject({ watcherProtocol: null, watchOnly: false });
   });
 
   test('a rebuilt subagent takes its description from its .meta.json, and reads ended once its parent call is answered or the log lost that call', () => {
@@ -271,7 +262,7 @@ describe('JobLiveFactsReader', () => {
     writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'alpha', 'call-2', 'Example checkout audit');
     writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'beta', 'call-3');
     writeSubagentTranscript(claudeConfigFolder, '/example/worktrees/ticket-1', 'gamma', 'call-4');
-    const facts = liveFactsOfLoggedEvents([toolCall('call-2', 'Agent', null), toolCall('call-3', 'Agent', null), toolResult('call-3', null)], null, claudeConfigFolder);
+    const facts = liveFactsOfLoggedEvents([toolCall('call-2', 'Agent', null), toolCall('call-3', 'Agent', null), toolResult('call-3', null)], claudeConfigFolder);
     expect(facts.subagents.map(({ parentToolUseId, state, description }) => ({ parentToolUseId, state, description }))).toEqual([
       { parentToolUseId: 'call-2', state: 'running', description: 'Example checkout audit' },
       { parentToolUseId: 'call-3', state: 'ended', description: null },
@@ -313,7 +304,7 @@ describe('the turn', () => {
   });
 
   // A crashed instance's unanswered chat is no turn of the resumed session: the resume line is its first chat.
-  test('only the newest Watcher instance counts', () => {
+  test('only the newest instance counts', () => {
     const resumed = { ...EXAMPLE_JOB, watcherInstance: 2 };
     expect(liveFactsOfLoggedLines([[chat('Example first message')], [chat('Example resume line'), RESULT]], resumed).turn).toBe('between-turns');
     expect(liveFactsOfLoggedLines([[chat('Example first message'), RESULT], [chat('Example resume line')]], resumed).turn).toBe('mid-turn');

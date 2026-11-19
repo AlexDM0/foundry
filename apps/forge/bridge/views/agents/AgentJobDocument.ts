@@ -28,8 +28,6 @@ export interface JobLiveFactsDocument {
   readonly subagents:              readonly SubagentDocument[];
   readonly toolCallsWithSubagents: number;
   readonly silentSweeps:           number;
-  readonly watcherProtocol:        number | null;
-  readonly watchOnly:              boolean;
 }
 
 export interface AgentJobDocument extends IdentifiedRecord {

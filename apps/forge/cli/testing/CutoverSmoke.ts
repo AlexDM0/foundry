@@ -15,7 +15,6 @@ import {
 } from 'node:fs';
 import { delimiter, dirname, join } from 'node:path';
 
-import { LegacyWatcherReader } from '../../src/services/overseer/LegacyWatcherReader.ts';
 import {
   environmentCopy,
   FAKE_AGENT_VARIABLE,
@@ -383,10 +382,7 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       ];
     },
 
-    /**
-     * Stops every job and waits, bounded, for the stopped ones to end before stopping the Overseer. A Watcher of an ended job still running then
-     * is the leak this counts; a Watcher of a job still live, such as the Assistant's, outlives the Overseer by design and is counted apart.
-     */
+    /** Stops every job and waits, bounded, for the stopped ones to end before stopping the Overseer. */
     async stopEverything(): Promise<void> {
       streamController?.abort();
       await program(['job', 'stop', '--all']);
@@ -394,15 +390,6 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
         await sleep(STOPPING_JOB_INTERVAL_MILLISECONDS);
       }
       await program(['oversee', 'stop', '--now']);
-      const watcherPattern = join(trackerDirectory, 'overseer', 'watcher-');
-      const leftoverWatcherLines = Bun.spawnSync(['pgrep', '-lf', watcherPattern]).stdout.toString().trim().split('\n').filter((line) => line !== '');
-      const endedWatcherLines = leftoverWatcherLines.filter((line) => {
-        const [watcherFolder = '', instance = ''] = line.trim().split(/\s+/).slice(-2);
-        return LegacyWatcherReader.watcherRecordIn(watcherFolder, Number(instance))?.end !== undefined;
-      });
-      log(`${endedWatcherLines.length} Watchers of ended jobs were still running after the stop${endedWatcherLines.length === 0 ? '' : `: ${endedWatcherLines.join('; ')}`}`);
-      log(`${leftoverWatcherLines.length - endedWatcherLines.length} Watchers of jobs still live outlived the Overseer, as they do by design`);
-      if (leftoverWatcherLines.length > 0) Bun.spawnSync(['pkill', '-f', watcherPattern]);
     },
 
     keepBoardLog(evidenceBase: string): void {

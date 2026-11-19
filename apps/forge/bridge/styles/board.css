@@ -1175,7 +1175,6 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-table col[data-column="phase"] { width: 90px; }
 .agents-table col[data-column="tool-calls"] { width: 150px; }
 .agents-table col[data-column="silent-sweeps"] { width: 100px; }
-.agents-table col[data-column="watcher"] { width: 220px; }
 .agents-table th,
 .agents-table td { text-align: left; padding: 9px 6px; border-top: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
 .agents-table :is(th, td):first-child { padding-left: 18px; }
@@ -1184,7 +1183,6 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-table tbody tr.agents-job-row > td { height: 58px; box-sizing: border-box; }
 .agents-table :is(th, td)[data-column="tokens"] { text-align: right; }
 .agents-table td:is([data-column="tokens"], [data-column="tool-calls"], [data-column="silent-sweeps"]) { font-variant-numeric: tabular-nums; }
-.agents-table td[data-column="watcher"] { overflow: hidden; text-overflow: ellipsis; }
 .agents-head-note { display: block; font-size: var(--fs-micro); }
 
 /* A project's row: its name, then its card's line (the launch-slot meter, its figure and the limit control, or the session count). */
@@ -1253,7 +1251,6 @@ a.bridge-stat:active, a.bridge-activity-job:active { filter: brightness(0.92); }
 .agents-brain-row > .bridge-control { margin-left: auto; }
 
 .agents-muted { color: var(--ink-muted); }
-.agents-watch-only { color: var(--link); }
 .agents-last-tool { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; max-width: 100%; font: var(--fs-small)/1.5 var(--font-mono); }
 .agents-running { font-family: var(--font-ui); color: var(--link); }
 .agents-elapsed { font-family: var(--font-ui); font-variant-numeric: tabular-nums; color: var(--ink-4); }

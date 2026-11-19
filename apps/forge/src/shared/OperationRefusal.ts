@@ -65,8 +65,6 @@ export type OperationRefusalDetail =
   | { kind: 'picture-too-large'; bytes: number; sizeLimitBytes: number }
   | { kind: 'picture-type-unsupported'; mediaTypes: readonly string[] }
   | { kind: 'overseer-owns-the-lifecycle'; url: string; batonFilePath: string }
-  | { kind: 'watcher-bundle-failed'; entryPath: string; reason: string }
-  | { kind: 'watcher-endpoint-does-not-fit'; endpoint: string }
   /** The Talos this Overseer started answers another protocol version, so no Talos starts again while it lives. */
   | { kind: 'talos-protocol-differs'; requiredProtocolVersion: number; answeredProtocolVersion: number }
   /** The Talos this Overseer started never served: its endpoint does not fit, it refused its start, or it stayed silent. */

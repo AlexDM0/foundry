@@ -18,7 +18,7 @@ export const RED_HANDOFF_RESUME_CALL_BUDGET = 30;
 export const QUIET_JOB_SWEEPS = 6;
 
 /**
- * The refused forced stops of a lost Watcher's child tree before its job ends `blocked` and opens `forced-stop-refused`: the Overseer start
+ * The refused forced stops of a lost child's tree before its job ends `blocked` and opens `forced-stop-refused`: the Overseer start
  * tries once, then each sweep once. A count, never a clock.
  */
 export const FORCED_STOP_TRIES_BEFORE_BLOCKING = 3;
@@ -47,7 +47,7 @@ export const ASSISTANT_TURN_CALL_BUDGET = 40;
 /** Context tokens of an Assistant's latest turn past which the Overseer closes its input after the turn, for a fresh one. */
 export const ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH = 200_000;
 
-/** How long a stopped session's Watcher lets it end before killing its process tree. */
+/** How long Talos lets a stopped session end before killing its process tree. */
 export const SESSION_STOP_GRACE_MILLISECONDS = 5000;
 
 /** How long Talos lets its agents go unsupervised: the Overseer writes it into each start file, and specs pass short ones. */
@@ -83,9 +83,6 @@ export const TALOS_QUIT_TRIES = 60;
 
 /** How often a line's run looks at its child's record for its end; a schedule only, never a decision. */
 export const TALOS_LINE_LOOK_MILLISECONDS = 1000;
-
-/** How long regrouping waits on a live Watcher's `welcome` and `history` before it reads the Watcher's event log alone. */
-export const REGROUP_HELLO_TIMEOUT_MILLISECONDS = 2000;
 
 /** How many ports above `OVERSEER_PORT_FIRST` a board's preferred Overseer port is spread over, and how far a busy port moves upward. */
 export const OVERSEER_PORT_COUNT = 100;
@@ -197,7 +194,7 @@ export const FLINT_BRAIN_RECENT_MOVES_LIMIT = 5;
 /** How long an ask waits for the session's answer before the rule director answers that time; a schedule only. */
 export const FLINT_BRAIN_ANSWER_TIMEOUT_MILLISECONDS = 15_000;
 
-/** How often the Overseer reads a brain run's event log for the session's lines and its Watcher's end; a schedule only, never a decision. */
+/** How often the Overseer reads a brain run's event log for the session's lines and its child's end; a schedule only, never a decision. */
 export const FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS = 250;
 
 /** The largest digest the Bridge's ask may send; the brain reads a capped excerpt of it, so a longer body is refused unread. */

@@ -1,15 +1,9 @@
 /**
- * The extraction changed no byte on macOS: the Seatbelt profile, the gate argv with and without confinement, the written settings file and
- * both launch files equal `cli/FrozenPlatformPorts.json`, whose `retake` key says how it was taken.
+ * The extraction changed no byte on macOS: the Seatbelt profile, the gate argv with and without confinement and the written settings file
+ * equal `cli/FrozenPlatformPorts.json`, whose `retake` key says how it was taken.
  */
-import { readFileSync }  from 'node:fs';
-import { dirname, join } from 'node:path';
-import {
-  afterEach,
-  beforeEach,
-  expect,
-  test
-} from 'bun:test';
+import { dirname }      from 'node:path';
+import { expect, test } from 'bun:test';
 
 import type { AgentLaunchRequest }                           from '../src/lib/agent-launch/AgentLaunchRequest.ts';
 import { POSIX_LAUNCH_ENVIRONMENT }                          from '../src/lib/agent-launch/PosixLaunchEnvironment.ts';
@@ -17,10 +11,7 @@ import { createDarwinSeatbelt, seatbeltProfileTextOf }       from '../src/lib/ga
 import type { ConfinementPlan }                              from '../src/lib/gate-confinement/GateConfinement.ts';
 import { platformPortsFor }                                  from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createPosixShellLine }                              from '../src/lib/shell-line/PosixShellLine.ts';
-import { GateRun }                                           from '../src/services/lifecycle/GateRun.ts';
 import { ProcessWatcherSandbox, type ProcessSandboxRequest } from '../src/services/overseer/ProcessWatcherSandbox.ts';
-import { WatcherFleet }                                      from '../src/services/overseer/WatcherFleet.ts';
-import { createScratchDirectory, removeScratchDirectory }    from '../src/testing/ScratchWorkspace.ts';
 import { settingsTextBeforePowerShell }                      from '../src/testing/SettingsBeforePowerShell.ts';
 import { agentAdapterOfThisProcess }                         from './CommandContext.ts';
 import frozenTable                                           from './FrozenPlatformPorts.json';
@@ -30,22 +21,6 @@ const ports = platformPortsFor('darwin', {
 });
 const claudeCodeAdapter = agentAdapterOfThisProcess();
 const { launchFiles } = frozenTable;
-
-let scratch = '';
-
-beforeEach(() => {
-  // The short prefix keeps a socket path under the macOS limit inside the scratch root.
-  scratch = createScratchDirectory('f');
-});
-
-afterEach(() => {
-  removeScratchDirectory(scratch);
-});
-
-/** The frozen paths name the example monitor folder; a spec writes its secret file under the scratch folder instead. */
-function launchTextWithExampleMonitorFolder(text: string): string {
-  return text.replaceAll(scratch, launchFiles.processRequest.monitorFolder);
-}
 
 /** The table predates the request's cache folder style; the Seatbelt is macOS's, so its style is too. */
 function darwinRequestOf(frozenRequest: (typeof frozenTable.seatbeltProfiles)[number]['request'] | undefined): ProcessSandboxRequest {
@@ -95,23 +70,4 @@ test('the written settings file of every fixed request equals the frozen bytes, 
 test('the launch environment of the fixed job equals the one the agent launch file was taken with', () => {
   const [settingsEntry] = frozenTable.settingsFiles;
   expect(POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(launchFiles.inherited, launchFiles.jobVariables)).toEqual(settingsEntry?.request.environment ?? {});
-});
-
-test('a process launch file equals the frozen bytes', () => {
-  WatcherFleet.writeProcessLaunchFile(ports, {
-    ...launchFiles.processRequest,
-    monitorFolder: scratch,
-    watcherFolder: scratch,
-    environment:   GateRun.gateEnvironmentOf(POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(launchFiles.inherited, {})),
-  });
-  expect(launchTextWithExampleMonitorFolder(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.processText);
-});
-
-test('an agent launch file equals the frozen bytes', () => {
-  const request = frozenTable.settingsFiles[launchFiles.agentRequestIndex]?.request;
-  if (request === undefined) throw new Error('the frozen table names no agent request');
-  WatcherFleet.writeLaunchFiles(ports, {
-    ...launchFiles.launchBase, monitorFolder: scratch, jobFolder: scratch, plan: { ...claudeCodeAdapter.planOf(requestOfFrozen(request)), files: [] }
-  });
-  expect(launchTextWithExampleMonitorFolder(readFileSync(join(scratch, 'launch-1.json'), 'utf8'))).toBe(launchFiles.agentText);
 });

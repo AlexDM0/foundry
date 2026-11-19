@@ -44,8 +44,6 @@ const IDLE_LIVE_FACTS: JobLiveFactsWithSilence = {
   lastToolCall:           null,
   subagents:              [],
   toolCallsWithSubagents: 0,
-  watcherProtocol:        2,
-  watchOnly:              false,
   turn:                   null,
   messagesWaiting:        0,
   lastLine:               null,

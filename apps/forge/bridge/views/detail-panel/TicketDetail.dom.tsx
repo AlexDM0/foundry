@@ -499,21 +499,10 @@ describe('the live job\'s controls', () => {
     expect(within(confirmation).getByRole('status').textContent).toBe('Job J4 is already stopping.');
   });
 
-  test('a stopping job shows Stopping. and no controls; one the Overseer only watches offers Stop alone and takes no message', async () => {
+  test('a stopping job shows Stopping. and no controls', () => {
     renderTicket(BUILDING, { boardState: withJob(exampleDetailJob('J4', '004', { stopRequest: 'stop' })) });
     expect(screen.getByText('Stopping.')).toBeTruthy();
     expect(screen.queryByRole('group', { name: 'Builder J4 controls' })).toBeNull();
-    cleanup();
-    renderTicket(BUILDING, {
-      boardState: withJob(exampleDetailJob('J4', '004', {
-        live: {
-          calls: 0, callBudget: 150, lastToolCall: null, watchOnly: true
-        }
-      }))
-    });
-    expect(screen.queryByRole('textbox', { name: 'Message J4' })).toBeNull();
-    await clicked(moreButton());
-    expect(within(stopMenu() as HTMLElement).getAllByRole('button').map((item) => item.firstChild?.textContent)).toEqual(['Stop J4']);
   });
 
   test('a review job\'s controls are the reviewer\'s, and a ticket with no job has none', () => {

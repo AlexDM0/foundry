@@ -33,24 +33,19 @@ const REAL_MODULE_PATTERN = /^(?:node:)?(?:child_process|net|http|https|http2|dg
 const BUN_MODULE = 'bun';
 /**
  * The real helper exports the derivation from the spec helpers cannot find: the tooling's probes, which start a process through a
- * dispatch table; helpers that reach a socket, a build, a Watcher or Talos through a shipping module, which the scan does not follow; and
+ * dispatch table; helpers that reach a socket or Talos through a shipping module, which the scan does not follow; and
  * helpers that build or signal a process, which are no call forms.
  */
 const NAMED_REAL_HELPER_EXPORTS = [
-  'connectIsRefused',
   'connectProtocolClientToTalos',
-  'connectToWatcher',
   'describeWhenGitMergeTreeStdinIsPresent',
   'installedVersionOf',
-  'pinnedScratchWatcherBundle',
   'startScratchBoardTalos',
-  'PlantedWatcher',
   'processIsRunning',
-  'realBunBuildAnswerOf',
   'testWhenSandboxExecApplies',
 ];
 /**
- * Calls of the gate boundary, which runs each gate as a real process: an integration spec that makes one, or that starts Watchers through
+ * Calls of the gate boundary, which runs each gate as a real process: an integration spec that makes one, or that starts processes through
  * `REAL_PROCESS_STARTS`, makes a real call. Shipping code makes them too, so they count only in an integration spec.
  */
 const GATE_PROCESS_STARTS = new Set([
@@ -102,7 +97,7 @@ function nodeFormsOf(node: ts.Node): string[] {
   if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'WebSocket') return ['WebSocket'];
   if (ts.isCallExpression(node)) {
     if (ts.isIdentifier(node.expression) && node.expression.text === 'fetch') return ['fetch'];
-    if (node.expression.getText() === 'WatcherFleet.spawnWatcher') return ['WatcherFleet.spawnWatcher'];
+    if (node.expression.getText() === 'spawnTalos') return ['spawnTalos'];
     return [loadedModuleFormOf(node)].filter((form) => form !== null);
   }
   return [];
@@ -668,7 +663,7 @@ describe('a planted spec is named', () => {
     ['a helper starting the binary', 'import { runAgentProgress } from \'./testing/CliProcess.ts\';', 'runAgentProgress'],
     ['a helper running git', 'import { gitOutputIn as git } from \'./testing/ScratchWorkspace.ts\';', 'gitOutputIn'],
     ['a helper starting a child', 'import { jsonPrintedByAChildProcess } from \'./testing/JsonPrintedByAChildProcess.ts\';', 'jsonPrintedByAChildProcess'],
-    ['a real Watcher start', 'WatcherFleet.spawnWatcher(ports, options);', 'WatcherFleet.spawnWatcher'],
+    ['a real Talos start', 'spawnTalos(ports, request);', 'spawnTalos'],
   ])('%s', (_form, text, form) => {
     const planted = { path: 'cli/Example.spec.ts', text };
     expect(suiteViolationsOf([planted], {})).toEqual([`cli/Example.spec.ts is a default spec calling ${form}`]);
@@ -721,7 +716,7 @@ describe('what the guard leaves alone', () => {
     ['a gate line', 'await GateLineRun.runLine(request, line, directory, confinement);\n'],
     ['one run of gate lines', 'await GateLineRun.runOnce(request);\n'],
     ['a proposal\'s two gate runs', 'await ProposalTwiceRun.runProposalTwice(request);\n'],
-    ['the real Watcher starts', 'const starts = REAL_PROCESS_STARTS;\n'],
+    ['the real process starts', 'const starts = REAL_PROCESS_STARTS;\n'],
     ['a folder watch', 'const handle = QuietWatch.watchQuietly(request);\n'],
   ])('%s makes an integration spec real, and is no real call in a default spec', (_form, text) => {
     const integrationSpec = { path: 'src/Example.integration.spec.ts', text };
@@ -730,8 +725,8 @@ describe('what the guard leaves alone', () => {
       .toEqual(['src/Example.integration.spec.ts is an integration spec making no real call']);
   });
 
-  test('a stand-in Watcher start passes in a default spec', () => {
-    expect(suiteViolationsOf([{ path: 'cli/Example.spec.ts', text: 'world.processStarts.spawnWatcher(ports, options);\n' }], {})).toEqual([]);
+  test('a stand-in Talos start passes in a default spec', () => {
+    expect(suiteViolationsOf([{ path: 'cli/Example.spec.ts', text: 'world.processStarts.startTalos(ports, request);\n' }], {})).toEqual([]);
   });
 });
 
@@ -797,7 +792,6 @@ describe('what a change runs', () => {
     ['src/lib/shell-line/PosixShellLine.ts', 'src/lib/shell-line/ShellLine.contract.integration.spec.ts'],
     ['src/lib/executable-resolver/PosixExecutableResolver.ts', 'src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'],
     ['src/lib/talos/PosixSocketEndpoint.ts', 'src/lib/talos/LocalEndpoint.contract.integration.spec.ts'],
-    ['src/lib/watcher/WatcherSocketServer.ts', 'src/lib/watcher/Watcher.protocol.integration.spec.ts'],
   ])('a change to the implementation %s behind a port runs %s', (changedPath, spec) => {
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
   });
@@ -815,8 +809,7 @@ describe('what a change runs', () => {
 
   test.each([
     ['src/testing/SharedCaseDeadlinePreload.ts', 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts'],
-    ['src/services/overseer/WatcherBundle.ts', 'src/services/overseer/WatcherBundle.integration.spec.ts'],
-    ['src/services/overseer/WatcherFleet.ts', 'src/services/overseer/WatcherBundle.integration.spec.ts'],
+    ['src/services/overseer/TalosStart.ts', 'cli/overseer/ChildSpawnOptions.integration.spec.ts'],
   ])('a change to %s runs %s', (changedPath, spec) => {
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
   });

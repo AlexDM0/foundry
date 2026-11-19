@@ -13,24 +13,19 @@ const BATON_PASS_SPEC = 'src/services/overseer/BatonPass.integration.spec.ts';
 const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
 const OVERSEER_API_SPEC = 'cli/overseer/OverseerApi.integration.spec.ts';
 const OVERSEER_COMMAND_SPEC = 'cli/overseer/OverseerCommand.integration.spec.ts';
-const WATCHER_FLEET_SPEC = 'src/services/overseer/WatcherFleet.integration.spec.ts';
 const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
 const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
-const WATCHER_STAGES_SPEC = 'src/services/overseer/WatcherFleet.stages.integration.spec.ts';
 const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
 const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.ts';
 const FAKE_AGENT_SPEC = 'src/testing/FakeAgentAdapter.integration.spec.ts';
-const WATCHER_BUNDLE_SPEC = 'src/services/overseer/WatcherBundle.integration.spec.ts';
 const LOCAL_ENDPOINT_SPECS = [
   'src/lib/owner-only-files/OwnerOnlyFiles.answers.integration.spec.ts',
   'src/lib/talos/LocalEndpoint.answers.integration.spec.ts',
   'src/lib/talos/LocalEndpoint.contract.integration.spec.ts',
-  'src/lib/watcher/Watcher.protocol.integration.spec.ts',
-  'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
 ];
 
 export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
@@ -61,12 +56,10 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       BATON_PASS_SPEC,
       CHILD_SPAWN_OPTIONS_SPEC,
       CRASH_MATRIX_SPEC,
-      'cli/overseer/WindowsProcessIdentity.watcher.integration.spec.ts',
       'src/lib/process-identity/ProcessIdentity.integration.spec.ts',
       'src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
       'src/services/overseer/Regrouping.integration.spec.ts',
-      'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
       'src/services/tracker/TrackerLock.integration.spec.ts',
     ],
   },
@@ -93,19 +86,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/testing/RecordedGateLines.confinement.integration.spec.ts',
     ],
   },
-  {
-    boundary: 'src/lib/watcher/Watcher.ts',
-    specs:    [
-      CHILD_SPAWN_OPTIONS_SPEC,
-      CRASH_MATRIX_SPEC,
-      WATCHER_FLEET_SPEC,
-      WATCHER_STAGES_SPEC,
-      'src/lib/watcher/Watcher.integration.spec.ts',
-      'src/lib/watcher/Watcher.processTree.integration.spec.ts',
-      'src/lib/watcher/Watcher.protocol.integration.spec.ts',
-      'src/lib/watcher/Watcher.windowsEnd.integration.spec.ts',
-    ],
-  },
   { boundary: 'src/lib/talos/LocalEndpointFor.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/talos/PosixSocketEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
   { boundary: 'src/lib/talos/UnsupportedLocalEndpoint.ts', specs: LOCAL_ENDPOINT_SPECS },
@@ -115,6 +95,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     boundary: 'src/lib/talos/Talos.ts',
     specs:    [
       CHILD_SPAWN_OPTIONS_SPEC,
+      DRIVE_PASS_SPEC,
       'src/lib/talos/SynchronousCallsThread.integration.spec.ts',
       'src/lib/talos/Talos.agents.integration.spec.ts',
       'src/lib/talos/Talos.cleanQuit.integration.spec.ts',
@@ -125,24 +106,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     ],
   },
   { boundary: 'src/lib/owner-only-files/', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/lib/watcher/WatcherSocketServer.ts', specs: ['src/lib/watcher/Watcher.protocol.integration.spec.ts'] },
-  {
-    boundary: 'src/services/overseer/WatcherFleet.ts',
-    specs:    [
-      CHILD_SPAWN_OPTIONS_SPEC,
-      BUILD_JOB_SPEC,
-      CRASH_MATRIX_SPEC,
-      DRIVE_PASS_SPEC,
-      OVERSEER_COMMAND_SPEC,
-      WATCHER_BUNDLE_SPEC,
-      WATCHER_FLEET_SPEC,
-      WATCHER_STAGES_SPEC,
-      'src/services/overseer/WatcherFleet.olderRecord.integration.spec.ts',
-    ],
-  },
-  { boundary: 'src/services/overseer/TalosStart.ts', specs: ['src/services/overseer/TalosStart.integration.spec.ts'] },
+  { boundary: 'src/services/overseer/TalosStart.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/services/overseer/TalosStart.integration.spec.ts'] },
   { boundary: 'src/services/overseer/LeaseRenewal.ts', specs: ['src/services/overseer/LeaseRenewal.integration.spec.ts'] },
-  { boundary: 'src/services/overseer/WatcherBundle.ts', specs: [WATCHER_BUNDLE_SPEC, 'src/testing/RecordedBunBuild.integration.spec.ts'] },
   { boundary: 'src/services/overseer/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/testing/RecordedCommand.versionCheck.integration.spec.ts'] },
   { boundary: 'src/services/overseer/GpgDirectories.ts', specs: ['src/services/overseer/GpgDirectories.integration.spec.ts'] },
   { boundary: 'src/services/overseer/OverseerServer.ts', specs: [HEADLESS_BRIDGE_SPEC, OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
@@ -184,7 +149,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'setup.ts', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts'] },
   { boundary: 'cli/setup/', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts', 'cli/setup/Setup.commands.integration.spec.ts'] },
   { boundary: 'launcher.ts', specs: ['cli/Launcher.integration.spec.ts'] },
-  { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', WATCHER_FLEET_SPEC] },
+  { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', 'src/services/overseer/TalosStart.integration.spec.ts'] },
   {
     boundary: 'src/lib/executable-resolver/',
     specs:    ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts', 'src/testing/RecordedGateLines.executableLookup.integration.spec.ts'],

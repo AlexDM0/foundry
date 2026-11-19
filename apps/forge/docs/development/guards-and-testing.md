@@ -148,9 +148,8 @@ These sit next to the code they guard.
 | `bridge/HeadlessBridge.integration.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
 | `cli/overseer/OverseerBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/overseer/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
-| `src/lib/watcher/WatcherBundleClosure.spec.ts` | The [Watcher](../glossary.md#watcher)'s `watcher.ts` import closure stays in its package and declared packages, with an exact builtin list and no product or vendor name. | Remove the import or the name. Watchers says why the bundle stays thin. |
+| `src/lib/talos/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
 | `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](overseer-claude-probe.md). |
-| `src/services/overseer/LegacyWatcherReader.spec.ts` | Every event-log and Watcher record format a running Watcher may have written is read, one fixture per version. | Add a fixture and a reader. |
 | `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
 | `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
 | `src/testing/TrackerIsolation.integration.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
@@ -203,7 +202,7 @@ Some text is a build input: rewording it can fail a spec. Check this table befor
 
 | text | read by | what breaks it |
 | --- | --- | --- |
-| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `src/ImportDirection.spec.ts`, also `src/lib/watcher/WatcherBundleClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
+| The `depends on` sentence in a `src/lib/` package's main module header | `declaredLibDependenciesOf` in `src/ImportDirection.spec.ts`, also `src/lib/talos/TalosClosure.spec.ts` | Dropping a `` `src/lib/<package>` `` the code imports, naming one it does not, or saying it in two modules of one package. |
 | `include` in `bridge/tsconfig.json` | `src/ProjectIncludeLists.spec.ts` | An entry nothing reaches, or a reached file missing. |
 | Command rows in `docs/cli.md`, under `REFERENCE_COMMAND_TABLE_HEADER` | `cli/HelpText.flags.spec.ts` | Renaming the header, or a flag missing from a row. |
 | Signature lines in `cli/HelpText.ts`, by column | `cli/HelpText.flags.spec.ts` | Prose starting short of `HELP_DESCRIPTION_COLUMN`. |
@@ -281,13 +280,12 @@ The guard reads what a spec names, not where its calls end up. A command run in-
 `GitProcess`, and `InitializedScratchRepository` still runs git to build its template. Those default specs pass: a real
 call inside the code under test is not a call in the spec.
 
-A default spec of the DrivePass stands on `useRecordedWatcherStages` (`src/testing/RecordedWatcherStages.ts`), reached
-through `src/testing/DrivePassHarness.ts`. It replaces the two process starts in `src/services/overseer/ProcessStarts.ts`,
+A default spec of the DrivePass stands on `useRecordedTalosStages` (`src/testing/RecordedTalosStages.ts`), reached
+through `src/testing/DrivePassHarness.ts`. It replaces the process starts in `src/services/overseer/ProcessStarts.ts`,
 and the process and socket ports with the recorded process table and local endpoint. A session and a gate line are played
-in the spec's own process, and each stage of a job (launch and claim, a session line, a process line that ends green or
-red, a stop by the Overseer, a Watcher crash, an agent crash, an acknowledgement) leaves what a real Watcher left in that
-stage. `src/services/overseer/WatcherFleet.stages.integration.spec.ts` walks the real Watcher through the stages and
-records them under `bun run record src/lib/watcher/Watcher.ts`; a stage with no recorded answer fails the case.
+in the spec's own process, and each frame of the Overseer's connection leaves what the real Talos left in that stage of a
+child. `src/lib/talos/Talos.stages.integration.spec.ts` walks the real Talos through the stages and records them under
+`bun run record src/lib/talos/Talos.ts`; a stage with no recorded answer fails the case.
 
 Those specs answer git from recordings, never from an emulator. `useRecordedGit` (`src/testing/RecordedGit.ts`) mocks
 `GitProcess.run` and `resolvedCommitOf` for a spec file, and `createInitializedRecordedGitRepository` builds the
@@ -417,12 +415,6 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 38 | try-count loop | Redesigned: `waitUntil`. |
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 73 | clock read against a tolerance | Redesigned: the start lies between the clock read either side of the spawn. |
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 81 | processes signalled | Kept: real process groups are the subject; each is awaited or waited on by state. |
-| `src/lib/watcher/Watcher.protocol.integration.spec.ts` | 84 | try-count loop | Redesigned: `waitUntil`. |
-| `src/lib/watcher/Watcher.protocol.integration.spec.ts` | 169 | signals, grace timers | Kept: the Watcher's stop is the subject, asserted by frames; the graces only order its own signals. |
-| `src/lib/watcher/Watcher.protocol.integration.spec.ts` | 200 | assertion racing a grace timer | Redesigned: dropped; `trap '' TERM` makes the survival the fixture's, and the SIGKILL that ends it is what the case waits on, the child outliving that wait through `OUTLIVES_EVERY_WAIT_SECONDS`. |
-| `src/lib/watcher/Watcher.protocol.integration.spec.ts` | 212 | sleep in a child's script | Kept: the child only stays alive until the case stops it. |
-| `src/lib/watcher/Watcher.integration.spec.ts` | 86 | sleep in a child's script | Kept: the child keeps its claim while the second Watcher races it; the case awaits both exits. |
-| `src/lib/watcher/Watcher.integration.spec.ts` | 130 | process signalled | Kept: the child kills itself, the recorded end is the subject. |
 | `src/services/lifecycle/GateRun.integration.spec.ts` | 189 | process signalled | Kept: the gate signals itself, and its run is awaited. |
 | `src/services/overseer/BatonPass.integration.spec.ts` | 134 | timer killing a process while tries run out | Redesigned: the kill lands at the rebind's first wait, an injected event. |
 | `src/services/overseer/BatonPass.integration.spec.ts` | 120 | port re-bound after its holder exits | Kept: the real port held and freed is the subject; the kernel's rotation makes a rival in that gap negligible. |
@@ -437,10 +429,6 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/overseer/OverseerServer.integration.spec.ts` | 268 | real heartbeat interval, private deadline | Kept: the five-second heartbeat runs in the server under test; the verdict is the `: ping` read, and only the deadline became the shared one. |
 | `src/services/overseer/Regrouping.integration.spec.ts` | 70 | try-count loop | Redesigned: `waitUntil`. |
 | `src/services/overseer/Regrouping.integration.spec.ts` | 28 | processes signalled | Kept: real process groups are the subject. |
-| `src/services/overseer/WatcherBundle.integration.spec.ts` | 33 | try-count loop | Redesigned: `firstValueOf`. |
-| `src/services/overseer/WatcherFleet.integration.spec.ts` | 49 | unbounded poll loops | Redesigned: `waitUntil`. |
-| `src/services/overseer/WatcherFleet.integration.spec.ts` | 85 | fixed sleep before a negative | Kept: a negative, an ended Watcher does not exit unacknowledged; load only shortens the window. |
-| `src/services/overseer/testing/PlantedWatcher.ts` | 54 | socket served | Kept: a Unix socket under the case's scratch folder. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 104 | fixed hold while a call queues | Redesigned: the holder leaves once the second call parked a retry. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 151 | elapsed time against the retry budget | Redesigned: the recorded lock waits are empty, under `lockRetryWaitsDuring`. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 167 | clock read | Kept: backdates a lock an hour past the stale threshold, a margin no run approaches. |
@@ -452,8 +440,6 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/SharedCaseDeadlinePreload.integration.spec.ts` | 10 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
 | `src/testing/WaitUntil.ts` | 23 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
-| `src/testing/WatcherProtocolClient.ts` | 30 | try-count connect loop | Redesigned: `firstValueOf`. |
-| `src/lib/watcher/WatcherLaunch.spec.ts` | 19 | a fixed `/tmp` path | Kept: a value in a parsed record, never opened. |
 | `src/services/overseer/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
 | `src/services/overseer/OverseerServer.integration.spec.ts` | 74 | port served | Kept: port 0, assigned by the kernel. |
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts`, `src/services/overseer/Regrouping.integration.spec.ts`, `src/services/overseer/BatonPass.integration.spec.ts` | 47, 49, 113 | one read assumed to hold a whole line | Kept: a single short write to a pipe is atomic. |

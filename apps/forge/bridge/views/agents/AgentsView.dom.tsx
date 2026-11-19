@@ -2,14 +2,14 @@
  * The Agents view in a happy-dom document, against a fake clock, a fake transcript stream and a fake command client. What matters: builder
  * and reviewer jobs sit under the project row of the worker card and sessions in their own card, so nothing that never takes a slot sits
  * under the slot meter; a job that asks User is marked and followed by its Asks User strip, whose Answer opens the decision on the
- * Questions tab; a row carries its raw state on its palette row with a quiet, watch-only or not-counted tag, its calls against its budget
+ * Questions tab; a row carries its raw state on its palette row with a quiet or not-counted tag, its calls against its budget
  * as a meter, its subagents as squares (no subagent rows), its tickets as chips, and a `job` or `decision` event through the shell moves
- * it; diagnostics add four columns and take them away again; the foot names what the figure counts and the tickets in progress no job
+ * it; diagnostics add three columns and take them away again; the foot names what the figure counts and the tickets in progress no job
  * works on; the Sessions head tallies each kind of session; each card has its own empty line; the elapsed time ticks each second, says
  * "running" while the call has no result, and is tinted only while silent sweeps are above zero; the transcript replays then follows,
  * resumes after its last cursor when reopened, and renders an agent's markup as text; each control posts its ControlCommand and shows a
  * refusal verbatim, a message or answer only when written, clearing its field once applied, and an answer only to the decision it was
- * typed for; a watch-only Watcher offers only Stop; and
+ * typed for; and
  * the project row offers the concurrency limit, Set only once the number differs, and no limit control on a board that states none. The
  * view opens with its title row; the selected job's side panel names the job and its state, holds one Flint slot (112, lane), cued by the
  * selected job while it runs and idle while it does not, unless the question panel covers it and holds the page's one slot, its facts, its
@@ -74,8 +74,6 @@ const BUILD_JOB: AgentJobDocument = exampleAgentJob({
     subagents:              [],
     toolCallsWithSubagents: 11,
     silentSweeps:           0,
-    watcherProtocol:        1,
-    watchOnly:              false,
   },
 });
 
@@ -343,14 +341,14 @@ describe('a job that asks User', () => {
 });
 
 describe('a row\'s live facts', () => {
-  test('the State cell shows the raw job state on its palette row, the quiet tag while silent sweeps are above zero, and the watch-only tag', () => {
+  test('the State cell shows the raw job state on its palette row, the quiet tag while silent sweeps are above zero, and the quiet tag alone', () => {
     const { rerender } = renderAgents([BUILD_JOB, { ...REVIEW_JOB, state: 'in-customs' }]);
     expect(jobRow('J12').querySelector('.design-system-state-badge')?.getAttribute('data-state-tone')).toBe('accent');
     expect(jobRow('J14').querySelector('.design-system-state-badge')?.getAttribute('data-state-tone')).toBe('info-outline');
     expect(cellOf(jobRow('J12'), 'state').textContent).toBe('running');
-    rerender([{ ...BUILD_JOB, live: { ...LIVE, silentSweeps: 2, watchOnly: true } }]);
-    expect(cellOf(jobRow('J12'), 'state').textContent).toBe('runningquiet 2 sweepswatch only');
-    expect([...jobRow('J12').querySelectorAll('.design-system-tag')].map((tag) => tag.getAttribute('data-tone'))).toEqual(['warn', 'warn']);
+    rerender([{ ...BUILD_JOB, live: { ...LIVE, silentSweeps: 2 } }]);
+    expect(cellOf(jobRow('J12'), 'state').textContent).toBe('runningquiet 2 sweeps');
+    expect([...jobRow('J12').querySelectorAll('.design-system-tag')].map((tag) => tag.getAttribute('data-tone'))).toEqual(['warn']);
     expect(within(card('Agents')).getByText('1 job · 1 quiet')).toBeDefined();
   });
 
@@ -399,20 +397,20 @@ describe('a row\'s live facts', () => {
     expect(panel.querySelector('.agents-subagents')?.hasAttribute('data-one-line')).toBe(true);
   });
 
-  test('Show diagnostics adds Phase, Tool calls, Silent sweeps and Watcher to both cards, and takes them away again', async () => {
+  test('Show diagnostics adds Phase, Tool calls and Silent sweeps to both cards, and takes them away again', async () => {
     renderAgents([{ ...BUILD_JOB, airlock: { phase: 'gating' } }, ASSISTANT_JOB]);
     const toggle = screen.getByRole('button', { name: 'Show diagnostics' });
     expect(toggle.getAttribute('aria-pressed')).toBe('false');
-    expect(jobRow('J12').querySelector('td[data-column="watcher"]')).toBeNull();
+    expect(jobRow('J12').querySelector('td[data-column="silent-sweeps"]')).toBeNull();
     await clicked('Show diagnostics');
     expect(toggle.getAttribute('aria-pressed')).toBe('true');
-    expect(headTextsOf(card('Agents')).slice(-4)).toEqual(['Phase', 'Tool calls', 'Silent sweeps', 'Watcher']);
-    expect(headTextsOf(card('Sessions')).slice(-4)).toEqual(['Phase', 'Tool calls', 'Silent sweeps', 'Watcher']);
-    expect(['phase', 'tool-calls', 'silent-sweeps', 'watcher'].map((column) => cellOf(jobRow('J12'), column).textContent))
-      .toEqual(['gating', '7 (11 with subagents)', '0', 'protocol 1']);
+    expect(headTextsOf(card('Agents')).slice(-3)).toEqual(['Phase', 'Tool calls', 'Silent sweeps']);
+    expect(headTextsOf(card('Sessions')).slice(-3)).toEqual(['Phase', 'Tool calls', 'Silent sweeps']);
+    expect(['phase', 'tool-calls', 'silent-sweeps'].map((column) => cellOf(jobRow('J12'), column).textContent))
+      .toEqual(['gating', '7 (11 with subagents)', '0']);
     expect(jobRow('J12').nextElementSibling).toBeNull();
     await clicked('Show diagnostics');
-    expect(jobRow('J12').querySelector('td[data-column="watcher"]')).toBeNull();
+    expect(jobRow('J12').querySelector('td[data-column="silent-sweeps"]')).toBeNull();
   });
 
   test('a job event and a decision event delivered through the shell replace the job\'s row and mark it asking', async () => {
@@ -592,15 +590,6 @@ describe('the controls', () => {
     renderAgents([BUILD_JOB], { selectedJobId: 'J12', outcome: { verdict: 'refused', refusal: 'Job J12 is not running: it is in-customs.' } });
     await clicked('Fresh agent');
     expect(screen.getByRole('status').textContent).toBe('Job J12 is not running: it is in-customs.');
-  });
-
-  test('a legacy Watcher shows "running on Watcher protocol N: watch only" in diagnostics and its controls offer only Stop', async () => {
-    renderAgents([{ ...BUILD_JOB, live: { ...LIVE, watcherProtocol: 0, watchOnly: true } }], { selectedJobId: 'J12' });
-    await clicked('Show diagnostics');
-    expect(cellOf(jobRow('J12'), 'watcher').textContent).toBe('running on Watcher protocol 0: watch only');
-    const panel = screen.getByRole('complementary', { name: 'Job J12' });
-    expect(within(panel).getByRole('group', { name: 'Job controls' }).textContent).toBe('Stop');
-    expect(within(panel).queryByRole('textbox', { name: 'Message' })).toBeNull();
   });
 });
 

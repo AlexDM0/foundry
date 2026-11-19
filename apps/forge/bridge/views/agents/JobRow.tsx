@@ -1,7 +1,7 @@
 /**
- * One job's row: its role glyph, id and role word; what it works on; its state with a quiet, watch-only or not-counted tag; its calls
- * against its budget as a meter; its subagents as squares; its last tool call; its tokens. Diagnostics add its phase, tool calls, silent
- * sweeps and Watcher. A job that asks User is marked and followed by its Asks User strip.
+ * One job's row: its role glyph, id and role word; what it works on; its state with a quiet or not-counted tag; its calls against its
+ * budget as a meter; its subagents as squares; its last tool call; its tokens. Diagnostics add its phase, tool calls and silent sweeps. A
+ * job that asks User is marked and followed by its Asks User strip.
  */
 
 import { StateBadge }     from 'design-system/StateBadge';
@@ -59,7 +59,6 @@ export function JobRow({
           <div className="agents-state-cell">
             <StateBadge {...StateToneUtil.lookOfJobState(job.state)} label={job.state} />
             {quietText === null ? null : <Tag text={quietText} tone="warn" />}
-            {live.watchOnly ? <Tag text="watch only" tone="warn" /> : null}
             {counted === false ? <Tag text="not counted" tone="neutral" dashed /> : null}
           </div>
         </td>
@@ -73,7 +72,6 @@ export function JobRow({
               <td data-column="phase">{job.airlock?.phase ?? '-'}</td>
               <td data-column="tool-calls">{`${live.toolCalls} (${live.toolCallsWithSubagents} with subagents)`}</td>
               <td data-column="silent-sweeps">{live.silentSweeps}</td>
-              <td data-column="watcher" className={live.watchOnly ? 'agents-watch-only' : 'agents-muted'}>{AgentsModel.watcherTextOf(job)}</td>
             </>
           )
           : null}
