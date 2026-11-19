@@ -18,7 +18,15 @@
     "./FrameAncestorRecord": "./@types/FrameAncestorRecord.ts",
     "./OverseerContractVersions": "./constants/OverseerContractVersions.ts",
     "./ForgeSystemVersions": "./constants/ForgeSystemVersions.ts",
-    "./ForgeCompatibilityRegistry": "./constants/ForgeCompatibilityRegistry.ts"
+    "./ForgeCompatibilityRegistry": "./constants/ForgeCompatibilityRegistry.ts",
+    "./BoardVocabulary": "./constants/BoardVocabulary.ts",
+    "./ForgeBoardDocument": "./@types/ForgeBoardDocument.ts",
+    "./BoardPageDocuments": "./@types/BoardPageDocuments.ts",
+    "./BoardJobDocuments": "./@types/BoardJobDocuments.ts",
+    "./BoardConversationDocuments": "./@types/BoardConversationDocuments.ts",
+    "./BoardPipelineDocuments": "./@types/BoardPipelineDocuments.ts",
+    "./BoardMergeQueueDocument": "./@types/BoardMergeQueueDocument.ts",
+    "./BoardLimitsDocument": "./@types/BoardLimitsDocument.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

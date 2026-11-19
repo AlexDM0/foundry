@@ -15,6 +15,14 @@ names no client.
 | `forge-contracts/ForgePresenceDocument` | `GET /api/v1/presence` from forge 1.20: the last start, Talos's supervision, the work that waits by cause, the held merges and the crash logs |
 | `forge-contracts/ForgeCrashLogDocument` | `GET /api/v1/crash-log?number=<n>` from forge 1.20, the newest log without the query |
 | `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands`, Flint's brain's two kinds from forge 1.1 |
+| `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v1/board` from forge 1.21: a board's every fact a view reads, its parts in the five files below |
+| `forge-contracts/BoardPageDocuments` | the board document's `page`: the tickets, the task rows, the worded log, the epics, the open filing drafts and the Board's facts of each row and ticket |
+| `forge-contracts/BoardJobDocuments` | the board document's jobs with their live facts, the jobs that left the board, and each open ticket's forecast |
+| `forge-contracts/BoardConversationDocuments` | the board document's open decisions and incidents, the records a settled one leaves, and the picture limits |
+| `forge-contracts/BoardPipelineDocuments` | the board document's pipeline facts: the stored pipeline, the open setup record, the flow, the gates' runs and the pipeline's records |
+| `forge-contracts/BoardMergeQueueDocument` | the board document's merge queue, per target |
+| `forge-contracts/BoardLimitsDocument` | the board document's `limits`: how a view cuts a stamp and lays out the progress chart |
+| `forge-contracts/BoardVocabulary` | the values of the board document's unions a view iterates or compares, each as a list in forge's order and its type |
 | `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
 | `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |
 | `forge-contracts/OverseerContractVersions` | the integer version each document has always carried |
@@ -23,7 +31,7 @@ names no client.
 
 ## What it holds, and what it does not
 
-Types, versions and the registry only. No ingestion, migration, check or mapping lives here: each client maps the documents into its own
+Types, versions, the registry, and the value lists of the unions its documents carry, only. No ingestion, migration, check or mapping lives here: each client maps the documents into its own
 model at its own boundary. A type names the keys a client checks; a key no client checks may be left out.
 
 ## Versions
