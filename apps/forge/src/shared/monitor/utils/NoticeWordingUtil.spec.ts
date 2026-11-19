@@ -2,8 +2,8 @@
  * The notice and warning sentences. What matters: a default's cause is worded, an unknown cause, also one named like an object property,
  * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
  * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed Baton pass and an
- * Assistant that cannot come up, each by its own kind, and nothing else. A notice that asks for an action names the Bridge control or a
- * neutral action, never a command line, since User runs no command.
+ * Assistant that cannot come up, each by its own kind, and nothing else; passes abandoned in a row name their count and their reason. A notice
+ * that asks for an action names the Bridge control or a neutral action, never a command line, since User runs no command.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -66,6 +66,19 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
     expect([repaired, unrepaired].map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
       'job J7 is not launched: C:\\example\\agent.cmd is a batch file; run the example repair',
       'job J8 is not launched: no agent program is on PATH',
+    ]);
+  });
+
+  test('passes abandoned in a row name their count and the reason in words, and a reason this program does not know reads as itself', () => {
+    const notices = [
+      { kind: 'passes-abandoned', inARow: 3, reason: 'tracker-lock-held' },
+      { kind: 'passes-abandoned', inARow: 5, reason: 'lock-taken-over' },
+      { kind: 'passes-abandoned', inARow: 3, reason: 'example-reason' },
+    ];
+    expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
+      '3 drive passes in a row were abandoned, the last as another process held the board\'s lock past its wait; the Overseer keeps running and tries again at each wake-up',
+      '5 drive passes in a row were abandoned, the last as another process took the board\'s lock over; the Overseer keeps running and tries again at each wake-up',
+      '3 drive passes in a row were abandoned, the last as example-reason; the Overseer keeps running and tries again at each wake-up',
     ]);
   });
 });

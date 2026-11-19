@@ -527,6 +527,12 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     (lifetimeBeingStarted ?? current?.lifetime)?.crashed(recordedCrash);
   }
 
+  /** A pass that threw after a crash was recorded, a crash of Talos included, is passed over, so the first crash keeps its component. */
+  async function recordThePassCrash(generation: number, thrown: unknown): Promise<void> {
+    if (recordedCrashNow() !== null) return;
+    await recordTheCrash(generation, 'overseer', CrashLog.errorOf('pass', thrown));
+  }
+
   /** The refusal a stop or a release ends with once a crash is recorded, so no `stopped` or `handed-over` ending overwrites `crashed`. */
   const crashRefusalOrNull = (): OperationRefusal | null => {
     const crash = recordedCrashNow();
@@ -799,6 +805,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         homeDirectory:         context.homeDirectory,
         log,
         onBatonTakenOver:      (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
+        onPassCrashed:         (thrown) => recordThePassCrash(generation, thrown),
         watchHatchFolder:      (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
         unwatchHatchFolder:    (hatchDirectory) => dataFolderWatch?.unwatchHatchFolder(hatchDirectory),
         afterPass:             publishState,

@@ -92,6 +92,10 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     homeDirectory:         request.monitorFolder,
     branchNames:           branchNamesOf(null),
     onBatonTakenOver:      () => request.log('taken over'),
+    onPassCrashed:         () => {
+      request.log('crashed');
+      return Promise.resolve();
+    },
   };
   // Property by property, since a spread would read once an accessor a spec hooks a pass with.
   return createDrivePass(Object.defineProperties(defaults, Object.getOwnPropertyDescriptors(request)) as DrivePassRequest);

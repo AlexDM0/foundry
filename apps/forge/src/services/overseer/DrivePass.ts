@@ -53,16 +53,17 @@ import {
   QUIET_JOB_SWEEPS,
   SESSION_STOP_GRACE_MILLISECONDS
 } from '../../shared/constants/OverseerLimits.ts';
-import type { GateConfinement, LineRunner } from '../lifecycle/GateRun.ts';
-import { Landing }                          from '../lifecycle/Landing.ts';
-import { MergeRun }                         from '../lifecycle/MergeRun.ts';
-import { ReviewOutcome }                    from '../lifecycle/ReviewOutcome.ts';
-import { projectLocationOf }                from '../tracker/ProjectLocation.ts';
-import { writeTracker, type TrackerChange } from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }              from '../tracker/TrackerReader.ts';
-import type { Workspace }                   from '../tracker/Workspace.ts';
-import type { StartClassificationVerdict }  from './@types/StartClassification.ts';
-import { AgentSlots }                       from './AgentSlots.ts';
+import type { GateConfinement, LineRunner }           from '../lifecycle/GateRun.ts';
+import { Landing }                                    from '../lifecycle/Landing.ts';
+import { MergeRun }                                   from '../lifecycle/MergeRun.ts';
+import { ReviewOutcome }                              from '../lifecycle/ReviewOutcome.ts';
+import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
+import { writeTracker, type TrackerChange }           from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                        from '../tracker/TrackerReader.ts';
+import type { Workspace }                             from '../tracker/Workspace.ts';
+import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
+import { AbandonedPassReason, type PassThrowReading } from './AbandonedPassReason.ts';
+import { AgentSlots }                                 from './AgentSlots.ts';
 import {
   AIRLOCK_FACT_NAMES,
   AirlockFactsFile,
@@ -112,6 +113,7 @@ import { NeedTickets, type NeedsSettledFacts }                        from './Ne
 import { jobFolderIn, overseerFilesIn }                               from './OverseerFiles.ts';
 import { PipelineAgentSessions, type PipelineAgentFacts }             from './PipelineAgentSessions.ts';
 import { PipelineChecking }                                           from './PipelineChecking.ts';
+import { Presence }                                                   from './Presence.ts';
 import { type ProcessStarts, REAL_PROCESS_STARTS }                    from './ProcessStarts.ts';
 import { QuestionRouting }                                            from './QuestionRouting.ts';
 import { ReconcileCauses }                                            from './ReconcileCauses.ts';
@@ -124,6 +126,7 @@ import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './Ta
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
 import { type UsageLimitHit, UsageLimits }                            from './UsageLimits.ts';
 import { type FolderMaker, WorkerProfiles }                           from './WorkerProfiles.ts';
+import { ABANDONED_PASSES_BEFORE_NOTICE }                             from './constants/PresenceLimits.ts';
 
 /** What a session is told at launch; worded by the command line, since services hold no words. */
 export interface JobLaunchText {
@@ -272,6 +275,8 @@ export interface DrivePassRequest {
   log:                           (line: string) => void;
   /** The pass stops acting at once; the caller ends the Overseer `baton-taken`. */
   onBatonTakenOver:              (refusal: unknown) => void;
+  /** A pass threw what no abandoned pass names: the caller runs the crash path and ends the Overseer `crashed`; no pass runs after it. */
+  onPassCrashed:                 (thrown: unknown) => Promise<void>;
   /** Called for each job's Hatch folder as the launch makes it, so a relayed request wakes a pass where no recursive watch sees the folder. */
   watchHatchFolder?:             (hatchDirectory: string) => void;
   /** Called for the Hatch folder of each job the pass saw launched, once the job is gone from the board. */
@@ -280,7 +285,7 @@ export interface DrivePassRequest {
   folderMaker?:                  FolderMaker;
   /** Called inside the hold after each of its three phases, on the Board being changed; the step a spec reads the order at. */
   afterHoldPhase?:               (phase: 'relayed-commands' | 'child-events' | 'lifecycle', board: Board) => void;
-  /** After each pass that ran to its end, outside the hold: the Overseer publishes its state to the event stream there. */
+  /** After each pass that ran to its end or was abandoned, outside the hold: the Overseer publishes its state to the event stream there. */
   afterPass?:                    () => void;
   processStarts?:                ProcessStarts;
   /** Overridden by specs, which cannot wait out the production retry of a merge gate looking for a free gate slot. */
@@ -311,7 +316,11 @@ export type OverseerNotice =
   // A job's launch was refused, nothing spawned, because an instruction file its pipeline names is missing; retried each pass.
   | { kind: 'instructions-missing'; jobId: string; path: string }
   // A job's launch was refused, nothing spawned, because its agent program did not resolve to an absolute path; retried each pass.
-  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string; repair: string | null };
+  | { kind: 'agent-program-refused'; jobId: string; cause: ExecutableRefusalCause; reason: string; repair: string | null }
+  // Passes in a row abandoned on one of the tracker lock's expected conditions; the forge keeps running and tries at each wake-up.
+  | { kind: 'passes-abandoned'; inARow: number; reason: AbandonedPass['reason'] };
+
+type AbandonedPass = Extract<PassThrowReading, { verdict: 'abandoned' }>;
 
 /** What a pass knows of the runtime state; the Overseer adds `passing-baton` around a Baton pass. */
 export type PassRuntimeState = 'serving' | 'held-by-install-change';
@@ -1040,6 +1049,10 @@ function jobsNeedingAChild(
     && children.livenessOf(children.jobFolderOf(job.id), job.childInstance).verdict === 'unlaunched');
 }
 
+function describedThrowOf(thrown: unknown): string {
+  return thrown instanceof Error ? thrown.message : String(thrown);
+}
+
 function noticesOf(
   request: DrivePassRequest,
   installVersionChanged: boolean,
@@ -1090,6 +1103,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     generation: request.generation, passes: 0, runtimeState: 'serving', notices: [], ticketsWaitingForMachineSlot: 0
   };
   let stopped = false;
+  let abandonedPassesInARow = 0;
+  let lastAbandonedPass: AbandonedPass | null = null;
+  const presenceFiles = overseerFilesIn(request.workspace.trackerDirectory);
   let resetTimer: ReturnType<typeof setTimeout> | null = null;
   const leftoverWorktrees: string[] = [];
   let declinedCleanups: DeclinedCleanup[] = [];
@@ -1632,6 +1648,42 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     }
   }
 
+  /** A presence write that fails is logged and passed over: the pass's own outcome stands, and presence is shown only. */
+  function recordInPresence(write: () => unknown): void {
+    try {
+      write();
+    } catch (thrown) {
+      request.log(`Presence could not record the pass: ${describedThrowOf(thrown)}`);
+    }
+  }
+
+  function recordTheCompletedPass(): void {
+    if (abandonedPassesInARow === 0) return;
+    abandonedPassesInARow = 0;
+    recordInPresence(() => Presence.recordCompletedPass(presenceFiles, request.generation));
+  }
+
+  /** Nothing reaches the board log: the board's lock may be what abandoned the pass. */
+  function recordTheAbandonedPass(abandoned: AbandonedPass, forced: boolean): void {
+    abandonedPassesInARow += 1;
+    lastAbandonedPass = abandoned;
+    // A forced pass stays forced, so the next wake-up tries it again even when nothing observed changed.
+    forcedNext ||= forced;
+    request.log(`Drive pass abandoned (${abandoned.reason}); it waits for the next wake-up: ${abandoned.detail}`);
+    const at = request.formatStamp(request.now());
+    recordInPresence(() => Presence.recordAbandonedPass(presenceFiles, request.generation, abandoned.reason, abandoned.detail, at));
+  }
+
+  async function crashOnPassThrow(thrown: unknown): Promise<void> {
+    stopped = true;
+    request.log(`Drive pass crashed: ${describedThrowOf(thrown)}; the crash path runs and no further pass runs.`);
+    try {
+      await request.onPassCrashed(thrown);
+    } catch (crashPathThrow) {
+      request.log(`The crash path of the drive pass threw: ${describedThrowOf(crashPathThrow)}`);
+    }
+  }
+
   async function drain(): Promise<void> {
     do {
       wokenAgain = false;
@@ -1639,16 +1691,32 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       forcedNext = false;
       passesStarted += 1;
       passInFlight = passesStarted;
+      let thrownByThePass: { thrown: unknown } | null = null;
       try {
         await runOnePass(forced);
+        recordTheCompletedPass();
         request.afterPass?.();
       } catch (thrown) {
-        request.log(`A drive pass failed and waits for the next wake-up: ${thrown instanceof Error ? thrown.message : String(thrown)}`);
+        thrownByThePass = { thrown };
       } finally {
         passInFlight = null;
       }
+      if (thrownByThePass !== null) {
+        const reading = AbandonedPassReason.of(thrownByThePass.thrown);
+        if (reading.verdict === 'crash') {
+          await crashOnPassThrow(thrownByThePass.thrown);
+        } else {
+          recordTheAbandonedPass(reading, forced);
+          request.afterPass?.();
+        }
+      }
     } while (wokenAgain && !stopped);
     running = null;
+  }
+
+  function passesAbandonedNotices(): OverseerNotice[] {
+    if (abandonedPassesInARow < ABANDONED_PASSES_BEFORE_NOTICE || lastAbandonedPass === null) return [];
+    return [{ kind: 'passes-abandoned', inARow: abandonedPassesInARow, reason: lastAbandonedPass.reason }];
   }
 
   function wake(forced = false): void {
@@ -1714,7 +1782,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     silentSweepsOf: (jobId) => quietJobWatch.silentSweepsOf(jobId),
     idle:           () => running ?? Promise.resolve(),
     passInFlight:   () => passInFlight,
-    state:          () => state,
+    // An abandoned pass ends before the pass's own notices are derived, so its notice joins them here.
+    state:          () => ({ ...state, notices: [...state.notices, ...passesAbandonedNotices()] }),
     stop,
   };
 }

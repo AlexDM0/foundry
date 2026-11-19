@@ -1070,6 +1070,11 @@ function overseerStateOf(document: unknown): OverseerStateReading | null {
   return { runtimeState, notices: notices as OverseerNotice[], batonPassWarning: (batonPassWarning ?? null) as BatonPassFailure | null };
 }
 
+const ABANDONED_PASS_REASON_TEXT: Readonly<Record<Extract<OverseerNotice, { kind: 'passes-abandoned' }>['reason'], string>> = {
+  'tracker-lock-held': 'another process held the board\'s lock past its wait',
+  'lock-taken-over':   'another process took the board\'s lock over',
+};
+
 function noticeTextOf(notice: OverseerNotice): string {
   switch (notice.kind) {
     case 'install-version-changed':
@@ -1094,6 +1099,9 @@ function noticeTextOf(notice: OverseerNotice): string {
       return `job ${notice.jobId} is not launched: the instruction file ${notice.path} its pipeline names is missing`;
     case 'agent-program-refused':
       return OperationRefusalWordingUtil.agentProgramRefusalTextOf(notice.jobId, notice.reason, notice.repair);
+    case 'passes-abandoned':
+      return `${notice.inARow} drive passes in a row were abandoned (${notice.reason}), the last as ${ABANDONED_PASS_REASON_TEXT[notice.reason]}; `
+        + 'the Overseer keeps running and tries again at each wake-up';
   }
 }
 

@@ -24,6 +24,11 @@ const DEFAULT_CAUSE_TEXT: Readonly<Record<string, string>> = {
   'no-assistant': 'no Assistant was up',
 };
 
+const ABANDONED_PASS_REASON_TEXT: Readonly<Record<string, string>> = {
+  'tracker-lock-held': 'another process held the board\'s lock past its wait',
+  'lock-taken-over':   'another process took the board\'s lock over',
+};
+
 const NO_ASSISTANT_CAUSE = 'no-assistant';
 
 const INCIDENT_DEFAULTED = 'incident-defaulted';
@@ -38,6 +43,11 @@ function factOf(notice: NoticeFacts, fact: string): string {
 function repairClauseOf(notice: NoticeFacts): string {
   const { repair } = notice;
   return typeof repair === 'string' && repair !== '' ? `; ${repair}` : '';
+}
+
+/** Why the last pass was abandoned, `another process took the board's lock over`; a reason the forge does not know reads as itself. */
+function abandonedPassReasonTextOf(reason: string): string {
+  return Object.hasOwn(ABANDONED_PASS_REASON_TEXT, reason) ? ABANDONED_PASS_REASON_TEXT[reason] ?? reason : reason;
 }
 
 /** Why an incident took its default, `its delivery turn closed`; a cause the forge does not know reads as itself. */
@@ -68,6 +78,9 @@ function noticeTextOf(notice: NoticeFacts): string {
       return `job ${factOf(notice, 'jobId')} is not launched: the instruction file ${factOf(notice, 'path')} its pipeline names is missing`;
     case 'agent-program-refused':
       return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}${repairClauseOf(notice)}`;
+    case 'passes-abandoned':
+      return `${factOf(notice, 'inARow')} drive passes in a row were abandoned, the last as ${abandonedPassReasonTextOf(factOf(notice, 'reason'))}; `
+        + 'the Overseer keeps running and tries again at each wake-up';
     default:
       return notice.kind;
   }
