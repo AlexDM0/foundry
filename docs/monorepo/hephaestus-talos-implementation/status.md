@@ -36,8 +36,16 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
   ends a running agent at its turn end and the next pass resumes it as `talos-paused`.
 - Gaia's recordings still show the old identity key `watcherProtocolVersion`; retake them with the WP2.11 retake above.
 
+- WP2.14, on a scratch forge under a real Talos: a merged-tree gate, a gate profile and a pipeline check, and a Talos
+  clean quit during a gate (one rerun, no kept `cannot-run`).
+
 ### Assumptions to confirm
 
+- WP2.14: a line that ends `paused` (a Talos clean quit) is never judged (`LinePausedError`): a merged-tree gate wakes
+  a forced pass and reruns; a profile or a check stays running until the next start's sweep. A refused launch and a
+  lost child judge `cannot-run` like `talos-unavailable` (`refusedEndOf`). Leftover lines get at most 30 looks
+  (`LEFTOVER_LINE_END_LOOKS`) before a start removes worktrees. A run folder with no record of its own is a live slot
+  holder while a line below it lives (`gateRunHolderIsLive`).
 - WP2.13: a home path too long for Talos's socket now refuses the Overseer's start (`talosStartRefusalOf`,
   `OverseerForeground.ts`); before, the Overseer started and launched no Watchers. Confirm this is the behaviour wanted.
 - WP2.12: an `already-done` answer counts as taken (`frameWasTaken`, `TalosChildren.ts:73-75`), resting on Talos
@@ -84,6 +92,11 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- WP2.14: a merged-tree gate whose line meets an unavailable or refusing Talos is judged `cannot-run`, and that outcome
+  is kept and settles the Airlock (before, gates did not depend on Talos). If the connection is gone when a stop
+  aborts, nothing is sent and the run waits for the line's own end, up to the 15-minute bound, and
+  `Airlocks.freeSlot` awaits that inside the pass, which would let the lease end. A stale-green re-gate in
+  `ticket-<id>` is still not stopped when that worktree changes. A gate's output holds stdout only.
 - WP2.13: a launch that Talos answers `refused` is retried every pass like `talos-unavailable`, with a log line and no
   notice, so a malformed launch would loop silently (`DrivePass` `launchAgentChild`, `JobLaunch`
   `launchProcessWatcher`). No spec runs a refused start or proves the renewal starts before regrouping.
@@ -118,7 +131,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | G1 | passed | 2026-11-18: recordings A and B. Still the owner's: the fake agent's outage scenario, after WP2.2 |
 | G2 | passed | Answered 2026-11-18: `owner-answers.md` |
 | G3 | passed | 2026-11-18: the owner stopped both trackers and removed both login items; the machine checks printed nothing |
-| G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's Ran at the end of WP2.13 (`fdf751b4`): 913 pass, 0 fail. |
+| G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's. Ran at the end of WP2.13 (`fdf751b4`): 913 pass, 0 fail. |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | waiting | Before and after stage 9: the owner's machine steps only |
 | G7 | waiting | End of the run |
@@ -153,7 +166,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-G | WP2.19 | landed | 3a3953b7 | First round. `MergedTreeGateRuns.ts`; `AirlocksContext.mergedTreeGateOf` (sync, answers a gate or `running`) plus `mergedTreeGateSettled`; `MergedTreeGateRunRequest.stamp` is `GateRunStamp \| null`; new `MERGED_TREE_GATE_RUNS_FOLDER`, `MERGED_TREE_GATE_OUTCOME_FILE`, `..._FORMAT_VERSION`, `mergedTreeGateStampOf`. For WP2.14: `stopAll` only marks stopping and awaits; the line processes are still stopped by `DrivePass.stop`'s `mergedTreeGateProcesses` loop, and WP2.14 item 6 builds on `stopAll` stopping them; nothing stops a gate's lines on a job stop or abort. One run per worktree at a time. Stage-file drift: `DrivePass.ts` gate context :1251-1274, pipeline read :1254-1257, regroup :1579-1588, stop :1590-1598 |
 | 2-G | Stale integration specs | landed | ffc996ee | Added by the orchestrator so G4's `verify:integration` can be green: three specs red since before the run, all stale specs, no product regression. `GitVersionFloor` stage order (`findWorkspace` asks the common dir first, since `1ea2d4a1`); the probes gain `--gpgconf-program` and `PlatformProbes` passes a stub (the trap since `01b3a424`); `OverseerCommand.integration` plants the bad event line in the job the board lists now (the Assistant is replaced each generation). `verify:integration`: 931 pass, 0 fail |
 | 2-H | WP2.13 | landed | fdf751b4 | First check, after a network outage (03:41) cut the first builder; a second builder finished from its uncommitted work. Gate G4: `verify:integration` 913 pass, 0 fail (931 before: three specs became default frame-recording specs, `Talos.stages.integration` added 11). New refusal `talos-unavailable` (worded in `OperationRefusalWordingUtil.ts`); `ensureTalos` runs after the start record and the DrivePass exist, before the URL is given out and regrouping. A Talos lost while serving is found only when its connection closes. `AssistantSession.endDownAssistants` skips the held causes (WP2.11's gap closed). `talosProtocolVersion` hand-edited into the OverseerServer recording. Leaks met, left: `OverseerForeground.ts` uses `CLAUDE_MANAGED_BLOCK_MARKERS`; `JobLiveFactsReader.spec` imports `transcriptFolderFor` |
-| 2-I | WP2.14 | waiting | | |
+| 2-I | WP2.14 | landed | b068d78f | Second round (first: `freeSlot`'s gate stop waited unboundedly on a gate slot inside the pass; no spec of the wiring; a merge job stopped in `gating` skipped `freeSlot`). `TalosLines.createLineRunner`, `stopLiveLinesUnder`; `GateRunSlots.acquire(holder, stopSignal?)`; `MergedTreeGateRuns.stopRunsIn` and `stopRunsOfEndedJobs` close WP2.19's gap but for a stale-green re-gate in `ticket-<id>`, which has no owner job. `verify:integration` 912 pass, 0 fail (one `ChildSpawnOptions` case removed: the Overseer spawns no gate). For WP2.15: the process-supervision kind `gate` (`SpawnOptionsFor.ts:13`, `ProcessSupervision.ts:18`) has no production caller left |
 | 2-J | WP2.20 | waiting | | |
 | 2-K | WP2.15 | waiting | | |
 | 2-L | WP2.16 | waiting | | |
