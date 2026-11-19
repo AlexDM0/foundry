@@ -334,7 +334,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-A | WP4.4 | landed | 994d45e4 | First round. Forge's system version 1.21 (S4) with its docblock clause; `forge-contracts` 1.1.0 (`bun.lock` moved one line); `overseer-api.md` 'System versions' updated. Every later stage-4 package adds under 1.21 without raising again |
 | 4-B | WP4.5 | waiting | | |
 | 4-B | WP4.6 | waiting | | |
-| 4-B | WP4.7 | waiting | | |
+| 4-B | WP4.7 | landed | 6fae4e50 | First round. `FullStatusDocument` (`src/adapters/@types/StatusDocument.ts`) types `status --json --full`; `BoardState` drops its index signature; `OwnerTokenTotal(s)` moved there from `cli/` (adapters may not import `cli/`). Types only, no behaviour change |
 | 4-B | WP4.12 | waiting | | |
 | 4-C | WP4.8 | waiting | | |
 | 4-D | WP4.10 | waiting | | |
