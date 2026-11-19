@@ -39,8 +39,12 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 - WP2.14, on a scratch forge under a real Talos: a merged-tree gate, a gate profile and a pipeline check, and a Talos
   clean quit during a gate (one rerun, no kept `cannot-run`).
 
+- WP2.20, on a scratch forge under a real Talos: `stepRunTimes` shows in the board state's pipeline facts.
+
 ### Assumptions to confirm
 
+- WP2.20: an install's steps are recorded once, in the hold that moves the job out of `preparing` (`settleInstall`),
+  resting on a review's target catch-up holding the job in `preparing` across passes. Confirm on a live board.
 - WP2.14: a line that ends `paused` (a Talos clean quit) is never judged (`LinePausedError`): a merged-tree gate wakes
   a forced pass and reruns; a profile or a check stays running until the next start's sweep. A refused launch and a
   lost child judge `cannot-run` like `talos-unavailable` (`refusedEndOf`). Leftover lines get at most 30 looks
@@ -167,7 +171,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-G | Stale integration specs | landed | ffc996ee | Added by the orchestrator so G4's `verify:integration` can be green: three specs red since before the run, all stale specs, no product regression. `GitVersionFloor` stage order (`findWorkspace` asks the common dir first, since `1ea2d4a1`); the probes gain `--gpgconf-program` and `PlatformProbes` passes a stub (the trap since `01b3a424`); `OverseerCommand.integration` plants the bad event line in the job the board lists now (the Assistant is replaced each generation). `verify:integration`: 931 pass, 0 fail |
 | 2-H | WP2.13 | landed | fdf751b4 | First check, after a network outage (03:41) cut the first builder; a second builder finished from its uncommitted work. Gate G4: `verify:integration` 913 pass, 0 fail (931 before: three specs became default frame-recording specs, `Talos.stages.integration` added 11). New refusal `talos-unavailable` (worded in `OperationRefusalWordingUtil.ts`); `ensureTalos` runs after the start record and the DrivePass exist, before the URL is given out and regrouping. A Talos lost while serving is found only when its connection closes. `AssistantSession.endDownAssistants` skips the held causes (WP2.11's gap closed). `talosProtocolVersion` hand-edited into the OverseerServer recording. Leaks met, left: `OverseerForeground.ts` uses `CLAUDE_MANAGED_BLOCK_MARKERS`; `JobLiveFactsReader.spec` imports `transcriptFolderFor` |
 | 2-I | WP2.14 | landed | b068d78f | Second round (first: `freeSlot`'s gate stop waited unboundedly on a gate slot inside the pass; no spec of the wiring; a merge job stopped in `gating` skipped `freeSlot`). `TalosLines.createLineRunner`, `stopLiveLinesUnder`; `GateRunSlots.acquire(holder, stopSignal?)`; `MergedTreeGateRuns.stopRunsIn` and `stopRunsOfEndedJobs` close WP2.19's gap but for a stale-green re-gate in `ticket-<id>`, which has no owner job. `verify:integration` 912 pass, 0 fail (one `ChildSpawnOptions` case removed: the Overseer spawns no gate). For WP2.15: the process-supervision kind `gate` (`SpawnOptionsFor.ts:13`, `ProcessSupervision.ts:18`) has no production caller left |
-| 2-J | WP2.20 | waiting | | |
+| 2-J | WP2.20 | landed | a549bea5 | First round. Record `pipeline-step-ran` (`Board.recordPipelineStepsRan`, one call per run's steps); `PipelineFacts.stepRunTimes` (newest per entity, step kind, name, phase); every `PipelineVerdict` carries `stepRuns`, `MergedTreeGate` an optional `stepRuns`. A failed prepare step still records its step runs; `spawn-failed` and `talos-unavailable` lines and a stopped profile record none. A package build's gate-run manifest names each dependent step's `entity`. Stage-file drift: `PipelineFacts` is declared in `PipelineFactsAssembly.ts:115`, not `@types/PipelineFacts.ts` |
 | 2-K | WP2.15 | waiting | | |
 | 2-L | WP2.16 | waiting | | |
 | 2-L2 | WP2.22 | waiting | | |
