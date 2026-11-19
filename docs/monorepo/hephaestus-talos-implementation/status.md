@@ -64,8 +64,15 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP3.7: kill a real Talos while a scratch forge serves (crash log and the `forge-crashed` exit); throw an uncaught error
   in a live Overseer (non-zero exit; WP3.14's integration row); a crash during a Baton pass.
 
+- WP3.8: a real macOS LaunchAgent running `start --started-by login-item` after a real crash (stays off) and after a
+  reboot (serves); on Linux the systemd unit after a crash; the Windows Run line's length on a real profile; a real
+  Baton pass whose predecessor dies.
+
 ### Assumptions to confirm
 
+- WP3.8: with no known generation, the crash log goes one above the newest (`crashLogGenerationOf`); a suspected crash
+  logs component `unknown` but tells the registry `overseer` (`registeredCrashOf`); an unreadable Talos record counts as
+  lost in this boot.
 - WP3.3: `resume --all` covers only `waits-for-instruction` jobs (not `authentication-failed`, which resumes once its
   decision is answered); resuming twice a job not yet resumed logs a second instruction and answers `done`
   ("always clickable"). Try both on a scratch board.
@@ -143,6 +150,14 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 ### Worth a look
 
+- WP3.8: the Linux unit keeps `Restart=on-failure`, so a start that stays off after a crash exits 1 and systemd
+  restarts it until its start limit, rerunning the gate, rewriting the registry and logging each time. The Windows Run
+  line grew 13 characters (`start --started-by login-item`); the spec's checkout path had to be shortened to stay under
+  the 260-character limit, so a real install with a long checkout path near the limit is now refused by setup.
+  `forge stop` after a recorded crash overwrites the `crashed` ending with `stopped` (the trap's 'second misreading'),
+  so Gaia loses the crash and the next login-item start serves. After a crash, a user start that fails after its
+  presence write leaves no Baton and no ending, so the next login-item start reads stopped-on-purpose and serves.
+  A successor that stays off makes `oversee restart` wait for a `failed` report no predecessor writes, so it times out.
 - WP3.6: generation numbers repeat after every clean stop, so a run that dies within seconds of its presence write,
   before its first beat, is judged by the previous run's last beat (a narrow window). On a machine whose boot identity
   cannot be read, a reboot reads as a crash and keeps the forge off until User resumes.
@@ -266,7 +281,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 3-B | WP3.6 | landed | 6085f3ef | Third round (night rule). The stage's rules assumed Baton generations only rise; they restart at 1 after a release. Fixed by identity, not order: rule 3 holds when the newest Baton is dead and its holder is not the process the presence record names (`batonOfAStartThatDiedBeforePresence`); `Presence.writeHeartbeat` refuses a lower generation's beat only while the stored beat's generation is the one `presence.json` names (`beatOfTheCurrentRecordAbove`, a change to WP3.5's file). Added rule: no ending and no Baton left reads `stopped-on-purpose` (a start that failed after its presence write). The stage file is corrected in the same commit (rule 3, WP3.5 item 5, the beat trap, and `sameBoot`: an unreadable boot reads as the same boot, so a reboot there reads as a crash) |
 | 3-C | WP3.3 | landed | ebb371ce | First round. Command `interrupted-work-resume` (`ResumeTarget`: a job, a ticket, `'all'`, `'network-outage'`; `ResumeControls.ts`), the verb `resume` (relayed under a job, the Bouncer refuses it), `Board.liftInterruptedHold`, record `ticket-interrupted-hold-lifted`, refusal `ticket-not-interrupted`; contract `ForgeResumeTarget`, forge 1.20. `CommandRoute.ts` checks the target's shape (400). A ticket target instructs every interrupted job of the ticket. In the product set where `PROGRAM` is `agent-progress` the line reads "The agent-progress carries it out" |
 | 3-C | WP3.7 | landed | 49ecbfd3 | Second round, beside WP3.6. `CrashLog.ts` (`assemble`, `writeOnce`, `list`, `read`, `logTailOf`), `CrashPath.record` (crash log, presence `crashed`, lease stop, then a bounded registry write: a no-op until WP3.8), `listenForProcessCrashes` (rethrows, never exits). `CrashLogRecord.activeJobs` and `logTail` may be null (WP3.12's document must map null); `persistedChildRecordsOf` in `TalosStart.ts`; `CRASH_LOG_TAIL_READ_BOUND_BYTES` 256 KiB. For WP3.11: `ensureTalosIfLost` still throws a plain Error after a Talos crash; pass it over or keep the first ending, else `writeEnding` rewrites a Talos crash as `component: 'overseer'`. At a crash of Talos while serving, the fresh Talos `ensureTalos` started is left running with its connection closed. `docs/cli.md` lacks `crash-logs/crash-<generation>.json` and the `forge-crashed` exit (WP3.13). Stage-file drift: the two `ensureTalos` call sites are in `OverseerForeground.ts` (:447, :702), not `TalosStart.ts` |
-| 3-D | WP3.8 | waiting | | |
+| 3-D | WP3.8 | landed | 584658b7 | First round. `StartGate.ts` (`admit`), `StartGateAdmission.ts`, `BoardRegistration.ts`; `--started-by` on `start`, `oversee` and `--detach`; the login items run `start --started-by login-item` on all three platforms; a start that stays off writes the registry `crashed`, takes no Baton, binds no port and is refused `forge-off-after-crash` (exit 1); `start-classified` logged once per process; the registry presence is written at serving, stopped, handed-over and crashed. The `stay-off` verdict carries `crashLogGeneration`. Spec gap: no spec proves the presence endings `stopped`/`handed-over` at their call sites (WP3.5 said WP3.8's specs would). Defect found in WP3.7's design: crash logs are named by Baton generation, which repeats; fixed by the crash-log number package that follows |
 | 3-E | WP3.9 | waiting | | |
 | 3-F | WP3.10 | waiting | | |
 | 3-F | WP3.15 | waiting | | |
