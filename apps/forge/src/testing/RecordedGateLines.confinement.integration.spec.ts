@@ -36,6 +36,7 @@ afterAll(() => {
 test('the native confinement puts its own argv before the gate argv, leaves the gate argv whole, and the confined line runs', () => {
   const plan: ConfinementPlan = {
     worktree:            join(scratch, 'worktree'),
+    writableRoots:       [],
     worktreeAdminFolder: null,
     temporaryDirectory:  join(scratch, 'temp'),
     writableCachePaths:  [],

@@ -11,6 +11,7 @@ import type { AgentLaunchPlan }              from '../lib/agent-launch/AgentLaun
 import type { AgentLaunchRequest }           from '../lib/agent-launch/AgentLaunchRequest.ts';
 import type { AgentQuestion }                from '../lib/agent-launch/AgentSessionEvent.ts';
 import type { SubagentFacts, SubagentUsage } from '../lib/agent-launch/AgentTranscripts.ts';
+import { claudeSessionWritablePathsOf }      from '../lib/claude-code/ClaudeCodeAdapter.ts';
 import { claudeConfigFolderOf }              from '../lib/claude-code/ClaudeConfigFolder.ts';
 import { CLAUDE_CODE_CREDENTIALS }           from '../lib/claude-code/ClaudeCredentials.ts';
 import { ClaudeHookInput }                   from '../lib/claude-code/ClaudeHookInput.ts';
@@ -205,7 +206,8 @@ export function fakeAgentAdapter(
       transcriptFolder: request.transcriptFolder ?? transcriptFolderFor(request.projectRoot, claudeConfigFolderOf(request.homeDirectory, undefined)),
       usages:           plantedTranscripts.subagentUsages ?? [],
     }),
-    toolCallOf:           ClaudeHookInput.toolCallOf,
-    toolCallDenialLineOf: ClaudeHookInput.toolCallDenialLineOf,
+    toolCallOf:             ClaudeHookInput.toolCallOf,
+    toolCallDenialLineOf:   ClaudeHookInput.toolCallDenialLineOf,
+    sessionWritablePathsOf: (homeDirectory) => claudeSessionWritablePathsOf(homeDirectory, claudeConfigFolderOf(homeDirectory, undefined)),
   };
 }

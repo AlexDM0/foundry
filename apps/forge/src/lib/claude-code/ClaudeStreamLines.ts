@@ -171,6 +171,8 @@ export const CLAUDE_CODE_CAPABILITIES: AgentCapabilities = Object.freeze({
   takesLiveAnswers:           true,
   // `--resume` finds a session by the project folder it started in.
   resumeFindsSessionByFolder: true,
+  // Its sandbox applies the profile's write roots, denies and network domains, rendered into the job's settings.
+  ownConfinement:             'applies-the-profile',
 });
 
 /** A skill runs from a slash command that names it, its arguments after a space. */

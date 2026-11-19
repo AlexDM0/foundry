@@ -25,6 +25,7 @@ import { type CreditedTurn, TokenCrediting }                   from '../lifecycl
 import type { FlintBrainEndedRun, FlintBrainRefusal }          from './@types/FlintBrainRun.ts';
 import { type FlintBrainLaunchFacts, FlintBrainProfile }       from './FlintBrainProfile.ts';
 import type { FlintBrainLaunchOutcome, FlintBrainSessionHost } from './FlintBrainSessionHost.ts';
+import { SessionConfinement }                                  from './SessionConfinement.ts';
 import { type FlintBrainDigest, FlintBrainDigestUtil }         from './utils/FlintBrainDigestUtil.ts';
 import { FlintBrainWordingUtil }                               from './utils/FlintBrainWordingUtil.ts';
 
@@ -153,7 +154,7 @@ export function createFlintBrain(options: FlintBrainOptions): FlintBrain {
   let isClosed = false;
 
   const nowIso = (): string => now().toISOString();
-  const brainCanRun = (): boolean => FlintBrainProfile.brainCanRun(launchFacts);
+  const brainCanRun = (): boolean => FlintBrainProfile.brainCanRun(launchFacts, adapter.capabilities);
 
   function runReadingOf(run: ActiveRun): Omit<MonitorFlintBrainDocument, 'state' | 'endedAt' | 'endedReason' | 'sentence'> {
     const { tokens, calls } = sumsOf(run);
@@ -328,7 +329,11 @@ export function createFlintBrain(options: FlintBrainOptions): FlintBrain {
 
   async function launchedOutcomeOf(programPath: string, startedAt: string): Promise<FlintBrainLaunchOutcome> {
     try {
-      return await sessionHost.launch((place) => adapter.planOf(FlintBrainProfile.launchRequestOf(adapter, launchFacts, place, programPath, startedAt)));
+      return await sessionHost.launch((place) => SessionConfinement.confinedPlanOf(
+        adapter,
+        launchFacts.platformPorts.gateConfinement,
+        FlintBrainProfile.launchRequestOf(adapter, launchFacts, place, programPath, startedAt),
+      ));
     } catch (error) {
       return { verdict: 'refused', reason: error instanceof Error ? error.message : String(error) };
     }

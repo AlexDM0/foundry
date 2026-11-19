@@ -72,6 +72,17 @@ export const CLAUDE_AUTHENTICATION_VARIABLES = [
   'ANTHROPIC_FOUNDRY_RESOURCE',
 ] as const;
 
+/** Claude Code's own state file in the home folder, which the program writes beside its config folder whatever its sandbox allows. */
+const CLAUDE_STATE_FILE_NAME = '.claude.json';
+
+/**
+ * What a Claude Code session writes outside its profile: its config folder (transcripts, todos, session state) and its state file. Its own
+ * sandbox confines its shell calls only, so these matter only to a confinement that wraps the whole program.
+ */
+export function claudeSessionWritablePathsOf(homeDirectory: string, configFolder: string, joinPath: (...segments: string[]) => string = join): string[] {
+  return [configFolder, joinPath(homeDirectory, CLAUDE_STATE_FILE_NAME)];
+}
+
 const USER_INSTRUCTION_FILE_NAME = 'CLAUDE.md';
 const INSTRUCTION_FILE_PATHS = [[USER_INSTRUCTION_FILE_NAME], ['CLAUDE.local.md'], ['.claude', USER_INSTRUCTION_FILE_NAME]] as const;
 /** Claude Code excludes a rules folder by a glob of its files, never by the folder's own path. */
@@ -362,9 +373,10 @@ export function createClaudeCodeAdapter(facts: AgentHostFacts, configFolderVaria
       sessionId,
       talliedParentToolUseIds,
     ),
-    subagentUsagesOf:     (request) => ClaudeSubagentUsages.subagentUsagesOf(configFolderOf(request.homeDirectory), request),
-    toolCallOf:           ClaudeHookInput.toolCallOf,
-    toolCallDenialLineOf: ClaudeHookInput.toolCallDenialLineOf,
+    subagentUsagesOf:       (request) => ClaudeSubagentUsages.subagentUsagesOf(configFolderOf(request.homeDirectory), request),
+    toolCallOf:             ClaudeHookInput.toolCallOf,
+    toolCallDenialLineOf:   ClaudeHookInput.toolCallDenialLineOf,
+    sessionWritablePathsOf: (homeDirectory) => claudeSessionWritablePathsOf(homeDirectory, configFolderOf(homeDirectory), facts.pathModule.join),
   });
 }
 

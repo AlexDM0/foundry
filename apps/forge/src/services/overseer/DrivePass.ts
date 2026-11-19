@@ -116,6 +116,7 @@ import { QuestionRouting }                                            from './Qu
 import { RedHandoff, type RedHandoffFacts }                           from './RedHandoff.ts';
 import { RefusedForcedStops }                                         from './RefusedForcedStops.ts';
 import { type ForcedStopRefusals, Regrouping, type RegroupingReport } from './Regrouping.ts';
+import { SessionConfinement }                                         from './SessionConfinement.ts';
 import { SessionPlaces, type SessionPlace }                           from './SessionPlace.ts';
 import { stopLiveLinesUnder as stopLiveLinesUnderAt }                 from './TalosLines.ts';
 import { unreadablePipelineGateOf }                                   from './UnreadablePipelineGate.ts';
@@ -180,6 +181,11 @@ interface ApiBillingKeyMissing {
 /** An Airlock agent whose conflicted files nothing tells: it is not told a wrong list, and the next pass reads them again. */
 interface AirlockConflictsUnknown {
   readonly airlockConflictsUnknownFor: string;
+}
+
+/** A session forge's confinement cannot hold, of a job with no incident of its own for it: the next pass tries it again. */
+interface SessionConfinementRefused {
+  readonly sessionConfinementRefusedFor: string;
 }
 
 const API_KEY_DECISION_DRAFT = { kind: 'api-key-not-set', ticketIds: [], jobId: null } as const;
@@ -821,11 +827,6 @@ function checksLineOf(gates: readonly Readonly<PipelineGate>[] | null, shellLine
 
 type LaunchFactsSource = Pick<DrivePassRequest, 'workspace' | 'platformPorts' | 'branchNames' | 'mainLine' | 'agentAdapter'>;
 
-/** An `unavailable` answer still asks for the sandbox, so the session refuses to start rather than run unconfined. */
-function sessionConfinementOf(platformPorts: LaunchFactsSource['platformPorts']): AgentConfinement {
-  return platformPorts.gateConfinement.workerConfinement() === 'unconfined-by-design' ? 'unconfined-by-design' : 'confined';
-}
-
 /** What a job's launch text is filled from, read off the board and the tracker's job folders. */
 export function launchFactsOf(
   board: Board, request: LaunchFactsSource, job: Readonly<Job>, launch: { instructions: string; airlock: AirlockFacts | null; place: SessionPlace }
@@ -841,7 +842,7 @@ export function launchFactsOf(
   const rootEntityKey = pipeline?.entities === undefined ? ROOT_ENTITY_KEY : EntityOwnershipUtil.rootEntityKeyOf(pipeline.entities);
   return {
     instructions: IntakeSessions.productOwnerInstructionsOf(board, job, instructions),
-    confinement:  sessionConfinementOf(request.platformPorts),
+    confinement:  SessionConfinement.launchConfinementOf(request.agentAdapter.capabilities, request.platformPorts.gateConfinement),
     airlock,
     tickets:      board.tickets()
       .filter((ticket) => job.ticketIds.includes(ticket.frontmatter.id))
@@ -865,6 +866,22 @@ export function launchFactsOf(
 }
 
 /**
+ * A session forge's confinement refuses opens today's `sandbox-unavailable` incident: a worktree job's through its sandbox refusal, which
+ * ends the job, an Airlock agent's through the Airlock's own, tried again each pass; any other job is logged and tried again each pass.
+ */
+function sessionConfinementRefusalOf(
+  request: DrivePassRequest, jobLaunchContext: JobLaunchContext, job: Readonly<Job>, reason: string,
+): UnmadeAirlockAgentRoot | SessionConfinementRefused | null {
+  if (JobLaunch.isWorktreeJob(job)) {
+    JobLaunch.recordSandboxRefusal(jobLaunchContext, job, { step: WORKER_LAUNCH_STEP, reason });
+    return null;
+  }
+  if (job.kind === 'merge-agent') return { jobId: job.id, reason };
+  request.log(`The session of job ${job.id} did not launch: ${reason}; the next pass tries again.`);
+  return { sessionConfinementRefusedFor: job.id };
+}
+
+/**
  * Refused, spawning nothing, when an instruction file the pipeline names is missing or the agent program does not resolve: the refusal is the notice.
  * An Airlock agent whose denied root cannot be made answers that root, and one whose conflicted files nothing tells answers so; nothing
  * marks its instance spawned, so the next pass tries it again.
@@ -875,7 +892,7 @@ async function launchAgentChild(
   board: Board,
   trackerId: string,
   job: Readonly<Job>,
-): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | null> {
+): Promise<LaunchRefusal | UnmadeAirlockAgentRoot | ApiBillingKeyMissing | AirlockConflictsUnknown | TalosDidNotLaunch | SessionConfinementRefused | null> {
   const { workspace, agentAdapter } = request;
   const billing = PipelineAgentSessions.launchBillingOf(board, job);
   if (billing?.mode === 'api' && !request.apiBillingKeyIsSet()) return { apiBillingKeyMissingFor: job.id };
@@ -970,12 +987,14 @@ async function launchAgentChild(
   if (launchRequest.profile.stageEditGuard?.programPath === null) JobLaunch.logUnstartableGuard(jobLaunchContext, job, 'stage-edits');
   JobLaunch.recordInstructionsRead(jobFolder, job.childInstance, instructions.files);
   JobLaunch.recordLaunchSettings(jobFolder, launchSettings);
+  const sessionLaunch = SessionConfinement.sessionLaunchOf(agentAdapter, request.platformPorts.gateConfinement, launchRequest);
+  if (sessionLaunch.verdict === 'refused') return sessionConfinementRefusalOf(request, jobLaunchContext, job, sessionLaunch.reason);
   const launched = await children.launchAgent({
     childFolder:                    jobFolder,
     instance:                       job.childInstance,
     label:                          job.id,
     workingDirectory,
-    plan:                           agentAdapter.planOf(launchRequest),
+    plan:                           sessionLaunch.plan,
     treeStopAtEndGraceMilliseconds: JobLaunch.treeStopAtEndOf(job).treeStopAtEndGraceMilliseconds ?? null,
   });
   const jobWords = `${job.kind}${job.ticketIds.length === 0 ? '' : ` #${job.ticketIds.join(', #')}`}`;
@@ -1522,7 +1541,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
       const refusal = await launchAgentChild(request, jobLaunchContext, written.board, observation.trackerId, job);
       if (refusal === null) spawnedInstances.add(`${job.id}:${job.childInstance}`);
       else if ('apiBillingKeyMissingFor' in refusal) apiBillingKeyIsMissing = true;
-      else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal) continue;
+      else if ('airlockConflictsUnknownFor' in refusal || 'talosDidNotLaunch' in refusal || 'sessionConfinementRefusedFor' in refusal) continue;
       else if ('kind' in refusal) launchRefusals.push(refusal);
       else unmadeAirlockAgentRoots.push(refusal);
       if (refusal === null && AirlockSandboxIncident.standsOpenFor(written.board, job.id)) launchedAirlockAgentJobIds.push(job.id);

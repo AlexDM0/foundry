@@ -1,9 +1,11 @@
 /**
- * The `GateConfinement` port: what confines a gate or install line, which runs worker-written code. The plan is neutral data; each adapter
- * turns it into its own mechanism. The package depends on `src/lib/atomic-file`.
+ * The `GateConfinement` port: what confines a gate or install line, which runs worker-written code, and a session whose agent brings no
+ * sandbox of its own. The plan is neutral data; each adapter turns it into its own mechanism. The package depends on `src/lib/atomic-file`.
  */
 export interface ConfinementPlan {
   worktree:            string;
+  /** Written below as `worktree` is; a line's plan has none, a session's names its profile's other roots and its agent's own folders. */
+  writableRoots:       readonly string[];
   /** The worktree's own `<common>/worktrees/<name>/`, whose index git refreshes; `null` for a main checkout. */
   worktreeAdminFolder: string | null;
   temporaryDirectory:  string | null;
@@ -26,7 +28,7 @@ export type ConfinementVerdict = ConfinementAvailability['verdict'];
 
 export interface GateConfinement {
   availability(): ConfinementAvailability;
-  /** What a worker session runs under on this platform, which its agent's own sandbox applies. */
+  /** What a worker session runs under on this platform when its agent's own sandbox applies its profile. */
   workerConfinement(): ConfinementVerdict;
   /** `argv` unchanged whenever `availability()` is not `confined`; only `confinedLineOf` may hand it to a child. */
   confinedArgvOf(plan: ConfinementPlan, argv: readonly string[]): readonly string[];

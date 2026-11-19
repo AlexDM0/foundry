@@ -28,6 +28,8 @@ export interface AgentCapabilities {
   readonly takesLiveAnswers:           boolean;
   /** A resumed session is found by the folder it began in. */
   readonly resumeFindsSessionByFolder: boolean;
+  /** The agent's own sandbox applies the whole worker profile; `none`: forge's confinement wraps the session. */
+  readonly ownConfinement:             'applies-the-profile' | 'none';
 }
 
 /** A picture a chat line carries: its media type and its bytes in base64. */
@@ -102,4 +104,6 @@ export interface AgentAdapter {
   toolCallOf(hookInput: string): AgentToolCall | null;
   /** The line a guard prints to deny the call, carrying `reason` as forge worded it. */
   toolCallDenialLineOf(reason: string): string;
+  /** The agent's own folders and files a session writes outside its profile, which forge's confinement lets it write. */
+  sessionWritablePathsOf(homeDirectory: string): readonly string[];
 }

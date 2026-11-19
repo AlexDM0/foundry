@@ -2923,6 +2923,7 @@ export const JobLaunch = Object.freeze({
   cacheFolderFactsOf,
   processSandboxRequestOf,
   deniedRootRefusalRecorded,
+  recordSandboxRefusal,
   gateEnvironmentOf,
   worktreeOf,
   isWorktreeJob,

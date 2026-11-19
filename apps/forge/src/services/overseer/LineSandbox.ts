@@ -25,6 +25,7 @@ export interface ProcessSandboxRequest {
 function planOf(request: ProcessSandboxRequest, confinementFilePath: string): ConfinementPlan {
   return {
     worktree:            request.worktree,
+    writableRoots:       [],
     worktreeAdminFolder: request.worktreeAdminFolder,
     temporaryDirectory:  request.temporaryDirectory,
     writableCachePaths:  GateCachePaths.writableCachePathsOf(request.cachePaths, request.homeDirectory, request.executableSearchPath, request.cacheFolderStyle),

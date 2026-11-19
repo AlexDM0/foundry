@@ -1,8 +1,9 @@
 /**
- * Confinement on macOS, design section 5.2: the child writes only the worktree, temp and the plan's cache paths, never the `bin` beside a cache
- * path's ancestors or a denied root, reads no denied root, and reaches the network only when asked. With the network off it still reaches
- * loopback, as a Linux gate reaches its own, so a spec may serve and fetch on 127.0.0.1. Where `sandbox-exec` cannot apply a profile the
- * child runs unconfined.
+ * Confinement on macOS, design section 5.2: the child writes only the worktree, the plan's writable roots, temp and its cache paths, never the
+ * `bin` beside a cache path's ancestors or a denied root, reads no denied root, and reaches the network only when asked. With the network off it
+ * still reaches loopback, as a Linux gate reaches its own, so a spec may serve and fetch on 127.0.0.1. Where `sandbox-exec` cannot apply a
+ * profile the child runs unconfined. A child under a profile with any deny rule cannot apply a profile of its own (`sandbox-exec` exits 71),
+ * so a session whose agent sandboxes its own shell calls is never wrapped in this one.
  */
 import { ancestorBinFoldersOf }                  from './AncestorBinFolders.ts';
 import type { ConfinementPlan, GateConfinement } from './GateConfinement.ts';
@@ -57,6 +58,7 @@ function denyRulesOf(operation: string, filters: readonly string[]): string[] {
 export function seatbeltProfileTextOf(plan: ConfinementPlan): string {
   const writable = [
     plan.worktree,
+    ...plan.writableRoots,
     ...plan.worktreeAdminFolder === null ? [] : [plan.worktreeAdminFolder],
     ...plan.temporaryDirectory === null ? [] : [plan.temporaryDirectory],
     ...SYSTEM_TEMPORARY_FOLDERS,

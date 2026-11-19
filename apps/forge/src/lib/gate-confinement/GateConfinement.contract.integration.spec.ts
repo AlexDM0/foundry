@@ -2,7 +2,8 @@
  * The real-child half of the `GateConfinement` contract: for each mapped rule a child runs under Seatbelt where `sandbox-exec` applies, and
  * the lines it prints show what it could reach. The bubblewrap half is the rendered-argv table in `GateConfinement.contract.spec.ts`, since
  * this machine has no bwrap. The network cases use a TEST-NET address, so only the Seatbelt refusal decides the result, and the loopback case
- * listeners on 127.0.0.1 and ::1 of this process, which accept a connection while the spec waits on the child.
+ * listeners on 127.0.0.1 and ::1 of this process, which accept a connection while the spec waits on the child. A session-shaped plan writes
+ * its extra roots, and a child under it cannot apply a sandbox of its own with a deny rule: `sandbox-exec` exits 71.
  */
 import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -17,7 +18,7 @@ import {
 
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { testWhenSandboxExecApplies }                     from '../../testing/ToolGuard.ts';
-import { createDarwinSeatbelt }                           from './DarwinSeatbelt.ts';
+import { createDarwinSeatbelt, SANDBOX_EXEC_PATH }        from './DarwinSeatbelt.ts';
 import type { ConfinementPlan }                           from './GateConfinement.ts';
 import { REAL_SEATBELT_PRIMITIVES }                       from './GateConfinementFor.ts';
 
@@ -75,6 +76,7 @@ describe('a child under DarwinSeatbelt where sandbox-exec applies', () => {
     testWhenSandboxExecApplies(rule, () => {
       const plan: ConfinementPlan = {
         worktree:            join(scratch, 'worktree'),
+        writableRoots:       [],
         worktreeAdminFolder: null,
         temporaryDirectory:  join(scratch, 'temp'),
         writableCachePaths:  [join(scratch, 'home', '.bun', 'install', 'cache')],
@@ -92,6 +94,7 @@ describe('a child under DarwinSeatbelt where sandbox-exec applies', () => {
   testWhenSandboxExecApplies('runs a line to exit 0 when the plan denies no root', () => {
     const plan: ConfinementPlan = {
       worktree:            join(scratch, 'worktree'),
+      writableRoots:       [],
       worktreeAdminFolder: null,
       temporaryDirectory:  join(scratch, 'temp'),
       writableCachePaths:  [],
@@ -102,6 +105,56 @@ describe('a child under DarwinSeatbelt where sandbox-exec applies', () => {
     };
     const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(plan, ['/bin/sh', '-c', 'exit 0']);
     expect(Bun.spawnSync({ cmd: [...argv], stderr: 'ignore' }).exitCode).toBe(0);
+  });
+});
+
+/** A nested `sandbox-exec` whose profile holds a deny rule: refused under an outer profile that holds one, which every plan's profile does. */
+const NESTED_SANDBOX_EXIT_CODE = 71;
+
+describe('a session-shaped plan under DarwinSeatbelt', () => {
+  let scratch = '';
+
+  beforeEach(() => {
+    scratch = realpathSync(createScratchDirectory('session-confinement'));
+    for (const folder of ['worktree/.example-agent-settings', 'agent-folder', 'hatch']) mkdirSync(join(scratch, folder), { recursive: true });
+    writeFileSync(join(scratch, 'agent-state.json'), '{}');
+  });
+
+  afterEach(() => {
+    removeScratchDirectory(scratch);
+  });
+
+  function sessionPlan(): ConfinementPlan {
+    return {
+      worktree:            join(scratch, 'worktree'),
+      writableRoots:       [join(scratch, 'agent-folder'), join(scratch, 'hatch'), join(scratch, 'agent-state.json')],
+      worktreeAdminFolder: null,
+      temporaryDirectory:  null,
+      writableCachePaths:  [],
+      deniedWritableRoots: [join(scratch, 'worktree', '.example-agent-settings')],
+      deniedReadableRoots: [],
+      network:             true,
+      confinementFilePath: join(scratch, 'session-confinement'),
+    };
+  }
+
+  testWhenSandboxExecApplies('writes the worktree and each writable root, a file root among them, and not a denied root inside the worktree', () => {
+    const script = [
+      `echo example > "${scratch}/worktree/written" && echo worktree`,
+      `echo example > "${scratch}/agent-folder/written" && echo agent-folder`,
+      `echo example > "${scratch}/hatch/written" && echo hatch`,
+      `echo '{"example":true}' > "${scratch}/agent-state.json" && echo agent-state`,
+      `echo example > "${scratch}/worktree/.example-agent-settings/written" && echo denied`,
+    ].join('; ');
+    const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(sessionPlan(), ['/bin/sh', '-c', script]);
+    const output = Bun.spawnSync({ cmd: [...argv], stderr: 'ignore' }).stdout.toString().split('\n');
+    expect(output.filter((line) => line !== '')).toEqual(['worktree', 'agent-folder', 'hatch', 'agent-state']);
+  });
+
+  testWhenSandboxExecApplies('refuses a nested sandbox with a deny rule, which is why an agent with its own sandbox is never wrapped too', () => {
+    const innerProfile = `(version 1)(allow default)(deny file-write* (subpath "${scratch}"))`;
+    const argv = createDarwinSeatbelt(REAL_SEATBELT_PRIMITIVES).confinedArgvOf(sessionPlan(), [SANDBOX_EXEC_PATH, '-p', innerProfile, '/bin/echo']);
+    expect(Bun.spawnSync({ cmd: [...argv], stdout: 'ignore', stderr: 'ignore' }).exitCode).toBe(NESTED_SANDBOX_EXIT_CODE);
   });
 });
 
@@ -123,6 +176,7 @@ describe('a child under DarwinSeatbelt with the network off', () => {
     const [ipv4Listener, ipv6Listener] = listeners;
     const plan: ConfinementPlan = {
       worktree:            join(scratch, 'worktree'),
+      writableRoots:       [],
       worktreeAdminFolder: null,
       temporaryDirectory:  null,
       writableCachePaths:  [],

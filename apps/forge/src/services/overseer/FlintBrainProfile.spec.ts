@@ -61,11 +61,19 @@ describe('the brain\'s launch', () => {
 });
 
 describe('where the brain runs', () => {
-  test('only where a worker session runs confined, and not under the no-flint test setting', () => {
-    expect(FlintBrainProfile.brainCanRun(LAUNCH_FACTS)).toBe(true);
-    expect(FlintBrainProfile.brainCanRun({ ...LAUNCH_FACTS, brainIsWithheld: true })).toBe(false);
+  test('only where a session of the agent runs confined, and not under the no-flint test setting', () => {
+    const { capabilities } = fakeAgentAdapter();
+    expect(FlintBrainProfile.brainCanRun(LAUNCH_FACTS, capabilities)).toBe(true);
+    expect(FlintBrainProfile.brainCanRun({ ...LAUNCH_FACTS, brainIsWithheld: true }, capabilities)).toBe(false);
     const gateConfinement = { ...LAUNCH_FACTS.platformPorts.gateConfinement, workerConfinement: () => 'unconfined-by-design' as const };
     const unconfined = { ...LAUNCH_FACTS.platformPorts, gateConfinement };
-    expect(FlintBrainProfile.brainCanRun({ ...LAUNCH_FACTS, platformPorts: unconfined })).toBe(false);
+    expect(FlintBrainProfile.brainCanRun({ ...LAUNCH_FACTS, platformPorts: unconfined }, capabilities)).toBe(false);
+  });
+
+  test('for an agent with no sandbox of its own, only where forge\'s confinement is available', () => {
+    const capabilities = { ownConfinement: 'none' } as const;
+    expect(FlintBrainProfile.brainCanRun(LAUNCH_FACTS, capabilities)).toBe(true);
+    const gateConfinement = { ...LAUNCH_FACTS.platformPorts.gateConfinement, availability: () => ({ verdict: 'unavailable', reason: 'no example sandbox' }) as const };
+    expect(FlintBrainProfile.brainCanRun({ ...LAUNCH_FACTS, platformPorts: { ...LAUNCH_FACTS.platformPorts, gateConfinement } }, capabilities)).toBe(false);
   });
 });

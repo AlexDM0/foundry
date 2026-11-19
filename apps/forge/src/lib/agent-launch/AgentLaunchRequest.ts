@@ -2,7 +2,10 @@ import type { WorkerProfile } from './WorkerProfile.ts';
 
 export type AgentEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
-/** `confined`: the agent's own sandbox must start, or the session does not run. `unconfined-by-design`: the session runs with no sandbox. */
+/**
+ * `confined`: the session runs confined or not at all, by its agent's own sandbox where the adapter applies the profile, else by forge's.
+ * `unconfined-by-design`: the session runs with no sandbox.
+ */
 export type AgentConfinement = 'confined' | 'unconfined-by-design';
 
 /** `subscription` bills the vendor login; `api` bills the API key of Talos's own environment, with an optional cap per launch. */

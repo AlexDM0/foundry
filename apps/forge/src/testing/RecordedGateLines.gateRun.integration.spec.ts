@@ -54,6 +54,7 @@ afterAll(() => {
 function planOf(): ConfinementPlan {
   return {
     worktree:            join(scratch, 'worktree'),
+    writableRoots:       [],
     worktreeAdminFolder: null,
     temporaryDirectory:  join(scratch, 'temp'),
     writableCachePaths:  [],

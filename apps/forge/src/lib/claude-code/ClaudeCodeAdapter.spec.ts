@@ -12,6 +12,7 @@ import { join }         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
+import { fakeAgentAdapter }                      from '../../testing/FakeAgentAdapter.ts';
 import { AGENT_ENDING_NAMES, type AgentAdapter } from '../agent-launch/AgentAdapter.ts';
 import type { AgentLaunchPlan, StandingReply }   from '../agent-launch/AgentLaunchPlan.ts';
 import type { AgentLaunchRequest }               from '../agent-launch/AgentLaunchRequest.ts';
@@ -635,6 +636,18 @@ describe('the credentials and the repair', () => {
 describe('what the core may count on', () => {
   test('a live session takes an answer line, and a resumed session is found by the folder it began in', () => {
     expect(CLAUDE_CODE_ADAPTER.capabilities).toMatchObject({ takesLiveAnswers: true, resumeFindsSessionByFolder: true });
+  });
+
+  test('its own sandbox applies the profile, so forge\'s confinement never wraps its sessions too', () => {
+    expect(CLAUDE_CODE_ADAPTER.capabilities.ownConfinement).toBe('applies-the-profile');
+    expect(fakeAgentAdapter().capabilities).toEqual(CLAUDE_CODE_ADAPTER.capabilities);
+  });
+
+  test('a session writes its config folder and its state file in the home folder, the folder moved by the config variable', () => {
+    expect(CLAUDE_CODE_ADAPTER.sessionWritablePathsOf('/Users/alex-example')).toEqual(['/Users/alex-example/.claude', '/Users/alex-example/.claude.json']);
+    const movedFolder = claudeCodeAdapterFor('darwin', (name) => (name === 'CLAUDE_CONFIG_DIR' ? '/srv/example-config' : undefined));
+    expect(movedFolder.sessionWritablePathsOf('/Users/alex-example')).toEqual(['/srv/example-config', '/Users/alex-example/.claude.json']);
+    expect(fakeAgentAdapter().sessionWritablePathsOf('/Users/alex-example')).toEqual(CLAUDE_CODE_ADAPTER.sessionWritablePathsOf('/Users/alex-example'));
   });
 
   test('an instruction bundle runs from a slash command naming it, its arguments after a space, with no space left over', () => {

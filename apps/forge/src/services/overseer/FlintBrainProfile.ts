@@ -4,11 +4,12 @@
  */
 import { dirname } from 'node:path';
 
-import type { AgentAdapter }                                 from '../../lib/agent-launch/AgentAdapter.ts';
+import type { AgentAdapter, AgentCapabilities }              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { AgentLaunchRequest }                           from '../../lib/agent-launch/AgentLaunchRequest.ts';
 import type { WorkerProfile }                                from '../../lib/agent-launch/WorkerProfile.ts';
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { FLINT_BRAIN_EFFORT, FLINT_BRAIN_MODEL }             from '../../shared/constants/OverseerLimits.ts';
+import { SessionConfinement }                                from './SessionConfinement.ts';
 import { FLINT_BRAIN_ANSWER_SCHEMA, FLINT_BRAIN_ROLE_BRIEF } from './utils/FlintBrainDigestUtil.ts';
 
 /** Where one run's session works and keeps its launch files; the session host chooses it. */
@@ -60,9 +61,9 @@ function profileOf(place: FlintBrainSessionPlace, repositoryRoot: string, creden
   };
 }
 
-/** Only where a worker session runs confined, and not under the no-flint test setting. */
-function brainCanRun(facts: Pick<FlintBrainLaunchFacts, 'platformPorts' | 'brainIsWithheld'>): boolean {
-  return !facts.brainIsWithheld && facts.platformPorts.gateConfinement.workerConfinement() === 'confined';
+/** Only where a session of the agent runs confined, and not under the no-flint test setting. */
+function brainCanRun(facts: Pick<FlintBrainLaunchFacts, 'platformPorts' | 'brainIsWithheld'>, capabilities: Pick<AgentCapabilities, 'ownConfinement'>): boolean {
+  return !facts.brainIsWithheld && SessionConfinement.confinementVerdictOf(capabilities, facts.platformPorts.gateConfinement) === 'confined';
 }
 
 /** A fresh session for each run, never resumed: its id comes from the run's start, which no other run of the board shares. */

@@ -25,6 +25,7 @@ import {
 
 const PLAN: ConfinementPlan = {
   worktree:            '/private/tmp/example-worktree',
+  writableRoots:       [],
   worktreeAdminFolder: null,
   temporaryDirectory:  null,
   writableCachePaths:  [],
@@ -62,6 +63,7 @@ const FAKE_TREE: HostTree = {
 
 const BUBBLEWRAP_PLAN: ConfinementPlan = {
   worktree:            '/tmp/example-worktree',
+  writableRoots:       [],
   worktreeAdminFolder: '/tmp/example-admin',
   temporaryDirectory:  '/tmp/example-job-temp',
   writableCachePaths:  ['/home/example/.bun/install/cache'],
@@ -148,6 +150,16 @@ test('a plan with no denied roots renders no deny rule for them, since a rule wi
   expect(profile.split('\n').filter((line) => ruleWithoutFilter.test(line))).toEqual(['(allow default)', '(deny file-write*)']);
   expect(profile).not.toContain('(deny file-read*');
   expect(profile.split('\n').filter((line) => line.startsWith('(deny file-write*'))).toEqual(['(deny file-write*)']);
+});
+
+test('a session plan\'s writable roots are allowed beside the worktree, and the denied roots, rendered after them, still win', () => {
+  const profile = seatbeltProfileTextOf({ ...PLAN, writableRoots: ['/Users/alex-example/.example-agent', '/private/tmp/example-data'] });
+  const lines = profile.split('\n');
+  const allowIndex = lines.findIndex((line) => line.startsWith('(allow file-write*'));
+  const denyIndex = lines.findIndex((line) => line.startsWith('(deny file-write* (subpath "/private/tmp/example-data")'));
+  expect(lines[allowIndex]).toContain('(subpath "/Users/alex-example/.example-agent")');
+  expect(denyIndex).toBeGreaterThan(allowIndex);
+  expect(seatbeltProfileTextOf(PLAN)).not.toContain('.example-agent');
 });
 
 test('with the network off the profile denies every remote address and then allows loopback; with it on, it renders neither', () => {
@@ -243,6 +255,13 @@ const RENDERED_ARGV_CASES: readonly RenderedArgvCase[] = [
       ['--bind-try', '/tmp/example-job-temp', '/tmp/example-job-temp'],
     ].every((sequence) => holdsSequence(argv, sequence)),
     plant: (argv) => withoutSequence(argv, ['--bind-try', '/var/tmp', '/var/tmp']),
+  },
+  {
+    rule:  'writes a session plan\'s writable roots, a denied root inside one still read-only after them',
+    plan:  { ...BUBBLEWRAP_PLAN, writableRoots: ['/home/example/.example-agent', '/tmp/example-data'] },
+    holds: (argv) => holdsSequence(argv, ['--bind-try', '/home/example/.example-agent', '/home/example/.example-agent'])
+      && indexOfSequence(argv, DATA_DENY) > indexOfSequence(argv, ['--bind-try', '/tmp/example-data', '/tmp/example-data']),
+    plant: (argv) => withoutSequence(argv, ['--bind-try', '/home/example/.example-agent', '/home/example/.example-agent']),
   },
   {
     rule:  'writes a stored cache path',

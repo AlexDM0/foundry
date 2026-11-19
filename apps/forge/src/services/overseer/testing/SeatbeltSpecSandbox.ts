@@ -6,6 +6,7 @@ import { LineSandbox, type ProcessSandboxRequest }     from '../LineSandbox.ts';
 
 const NO_REACH: ConfinementPlan = {
   worktree:            '/',
+  writableRoots:       [],
   worktreeAdminFolder: null,
   temporaryDirectory:  null,
   writableCachePaths:  [],
