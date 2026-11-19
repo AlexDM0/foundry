@@ -29,8 +29,15 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
   agent); the fixer says the new specs record no answers, so the committed recording stands. To be sure, in
   `apps/forge`: `bun run record src/lib/talos/Talos.ts` and commit any change.
 
+- WP2.8: with a real session, check that an agent mid-turn ends at its turn end after `close-input` within
+  `cleanQuitWaitMilliseconds` (stage 2's verification, the clean quit row).
+
 ### Assumptions to confirm
 
+- WP2.8: Talos logs a quit act and the final grace-0 stop as `client` entries (`close`, `write-line`, `stop`), read
+  from the `ClientEntry` doc and WP2.25 (`ChildSupervisor.quitAtTurnEnd`); WP2.13's transcript reader must read them.
+  An agent's stop closes its stdin after listing its tree, as the Watcher did. New agent launches are not refused
+  while the lease is ended.
 - WP2.7: Bun's `Worker` emits `close` when its thread exits or is terminated and `error` on an uncaught throw; the
   dead-worker detection in `SynchronousCallsClient.ts` rests on it. Proven on darwin by specs; Windows unconfirmed.
 - WP2.7: Talos passes an empty pipe-name prefix to `localEndpointFor` (it binds the endpoint its start file names).
@@ -109,7 +116,7 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 | 2-C | WP2.11 | landed | acf4243d | Second round. Forge 1.19. `MonitorJobDocument.interruption` is optional in the contract (Gaia still supports forge 1.1 and its recordings lack the key); `MONITOR_INTERRUPTION_CAUSES` in `packages/forge-contracts/constants/MonitorInterruptionCauses.ts`. Gap for WP2.13: `AssistantSession.endDownAssistants` (`AssistantSession.ts:127-140`, from `DrivePass.ts:1373`) still replaces an Assistant interrupted by a network outage or lease end, so the Playbook's new hold is skipped for it in production |
 | 2-D | WP2.7 | landed | 6e7210a7 | Second round (first: a stop during a launch's identity read sent no signal and hung a quit; `state` broadcast before the record write). `runTalos` takes a clock `{stampNow, wallNowMilliseconds}`; endpoint prepare and release run on the thread (`prepare-endpoint`, `release-endpoint` calls); the package's "depends on" sentence is now in `Talos.ts`; `helloFrameOf` accepts version 0 (gets `version-mismatch`). Until WP2.8 an agent launch is refused `malformed-launch`, `lease-renewal` is a no-op `done`, and `quit` runs a lines-only clean quit. A dead synchronous-calls worker now rejects every call and Talos ends with exit 2 (WP2.6's gap closed). `apps/forge/CLAUDE.md` still names only `watcher.ts` in the exit, environment and deviation rows (WP2.17) |
 | 2-D2 | WP2.21 | landed | ec9fb0b1 | First round. `StandingReply.requestIdentifierPath` (both twins); placeholder `{{request-identifier}}`; the adapter names `request_id`. `cli/FrozenPlatformPorts.json` edited by hand per its own retake rule. Left for later: the fake agent plans `standingReplies: []` (the trap "A capability the fake agent lacks"); `LaunchEnvironment.spec.ts:18-30` names `CLAUDE_CODE_*` (WP2.24) |
-| 2-E | WP2.8 | waiting | | |
+| 2-E | WP2.8 | landed | a32e38f6 | Third round (night rule): round 1 an agent launched during a lease end's wait was killed; round 2 the tree stop at an agent's end waited out the launch's grace twice inside a clean quit (10 s+ with the production 5000 ms grace); both fixed and specced (`ChildSupervisor.treeStopAtEnd.spec.ts`). `quitLiveAgentsAtTurnEnd` returns the agents it asked. Claude Code's standing reply moved into `ClaudeStreamLines.ts` as `CLAUDE_CODE_STANDING_REPLIES` and the fake agent now plans it (WP2.21's leftover closed). Quit acts and the final grace-0 stop are logged as `client` entries (`close`, `write-line`, `stop`) |
 | 2-F | WP2.9 | waiting | | |
 | 2-F | WP2.10 | waiting | | |
 | 2-G | WP2.12 | waiting | | |
