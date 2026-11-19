@@ -9,8 +9,8 @@ import { join }                      from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 
-import type { PlanFieldCondition, PlanLineConditions } from '../agent-launch/AgentLaunchPlan.ts';
-import { CLAUDE_CODE_SESSION_ENDINGS }                 from './ClaudeStreamLines.ts';
+import { createEndingRecognition, type RecognisedEnding } from '../talos/EndingPatterns.ts';
+import { CLAUDE_CODE_SESSION_ENDINGS }                    from './ClaudeStreamLines.ts';
 
 type StreamRecord = Readonly<Record<string, unknown>>;
 
@@ -191,52 +191,12 @@ function retryLinesOf(records: readonly StreamRecord[]): StreamRecord[] {
   return recordsOfType(records, 'system').filter((record) => record['subtype'] === 'api_retry');
 }
 
-/** A spec-only copy of Talos's field matching: dotted paths through own properties, `===`, `includes`, a finite number in bounds. */
-function valueAtPath(record: StreamRecord, path: string): unknown {
-  let value: unknown = record;
-  for (const key of path.split('.')) {
-    if (typeof value !== 'object' || value === null || !Object.hasOwn(value, key)) return undefined;
-    value = (value as StreamRecord)[key];
-  }
-  return value;
-}
-
-function fieldMeets(record: StreamRecord, condition: PlanFieldCondition): boolean {
-  const value = valueAtPath(record, condition.path);
-  if (condition.test === 'equals') return value === condition.value;
-  if (condition.test === 'one-of') return (condition.values as readonly unknown[]).includes(value);
-  return typeof value === 'number' && Number.isFinite(value) && condition.least <= value && value <= condition.most;
-}
-
-function lineMeets(record: StreamRecord, conditions: PlanLineConditions): boolean {
-  return conditions.allOf.every((condition) => fieldMeets(record, condition))
-    && (conditions.anyOf.length === 0 || conditions.anyOf.some((condition) => fieldMeets(record, condition)))
-    && !conditions.noneOf.some((condition) => fieldMeets(record, condition));
-}
-
-interface RecognisedEnding {
-  name:                string;
-  closingLineSequence: number;
-  countedLines:        number;
-}
-
-/** The endings the Claude Code plan's patterns recognise in a stream, each count reset at every closing line. */
+/** The endings the Claude Code plan's patterns recognise in a stream, through Talos's own recognition. */
 function recognisedEndingsOf(records: readonly StreamRecord[]): RecognisedEnding[] {
   const { closingLine, endingPatterns } = CLAUDE_CODE_SESSION_ENDINGS;
   if (closingLine === null) throw new Error('the Claude Code plan names no closing line');
-  const counts = endingPatterns.map(() => 0);
-  const recognised: RecognisedEnding[] = [];
-  records.forEach((record, sequence) => {
-    endingPatterns.forEach((pattern, index) => {
-      if (pattern.countedLineMatches !== null && lineMeets(record, pattern.countedLineMatches)) counts[index] = (counts[index] ?? 0) + 1;
-    });
-    if (!lineMeets(record, closingLine)) return;
-    const matchedIndex = endingPatterns.findIndex((pattern, index) => lineMeets(record, pattern.closingLineMatches) && (counts[index] ?? 0) >= pattern.minimumCountedLines);
-    const matched = endingPatterns[matchedIndex];
-    if (matched !== undefined) recognised.push({ name: matched.name, closingLineSequence: sequence, countedLines: counts[matchedIndex] ?? 0 });
-    counts.fill(0);
-  });
-  return recognised;
+  const recognition = createEndingRecognition(closingLine, endingPatterns);
+  return records.flatMap((record, sequence) => recognition.observe(record, sequence) ?? []);
 }
 
 describe('network-outage-retries-spent (P23, Claude Code 2.1.327)', () => {

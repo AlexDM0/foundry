@@ -565,7 +565,7 @@ function unusedAllowancesOf(graph: ImportGraph, allowlists: Allowlists): readonl
   const importedLibPackages = new Set(fileEdges.flatMap(({ fromPath, targetPath }) => {
     const fromPackage = libPackageOf(fromPath);
     const targetPackage = libPackageOf(targetPath);
-    return fromPackage === null || targetPackage === null || isTestOnly(fromPath) ? [] : [`${fromPackage} → ${targetPackage}`];
+    return fromPackage === null || targetPackage === null ? [] : [`${fromPackage} → ${targetPackage}`];
   }));
   const unusedDeclarations = [...declaredLibDependenciesOf(graph)].flatMap(([libPackage, dependencies]) => dependencies
     .filter((dependency) => !importedLibPackages.has(`${libPackage} → ${dependency}`))
@@ -656,7 +656,7 @@ describe('the scan itself', () => {
     expect(commandSetFolders.size, 'command sets under cli/').toBeGreaterThanOrEqual(10);
     expect(bridgeViewFolders.size, 'view folders under bridge/views/').toBeGreaterThanOrEqual(10);
     expect(libPackages.size, 'packages under src/lib/').toBeGreaterThanOrEqual(4);
-    expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record']);
+    expect(declaredLibDependenciesOf(GRAPH).get('claude-code')).toEqual(['agent-launch', 'atomic-file', 'git', 'json-record', 'talos']);
     expect(declaredLibDependenciesOf(GRAPH).get('talos')).toEqual(['atomic-file', 'json-record', 'owner-only-files', 'process-identity']);
   });
 
