@@ -116,6 +116,12 @@ stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed
 
 ### Worth a look
 
+- Gate speed-up: nothing checks any more that the tracker model is DOM-safe (the Bridge's typecheck proved it); fine
+  while only the Bridge needed it. A production lead it found: Bun sends a streamed response's headers only at its first
+  write, so a client of a stream with nothing to write on connect (`api/events` before any snapshot, an empty profile
+  stream) waits for the first heartbeat, up to 5 s, for its headers; Gaia connecting before a board is published waits
+  that long. Its checker also showed one OverseerServer transcript case never told the broker path from the heartbeat
+  path apart (a mutant without the subscription passes before and after).
 - WP2.15 says it retook `src__lib__talos__LocalEndpointFor.ts.json`; its checker found only the two hello answers
   changed, which reads like a hand edit. The answers spec passes against the real socket. A retake confirms it:
   in `apps/forge`, `bun run record src/lib/talos/LocalEndpointFor.ts`.
@@ -213,6 +219,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 2-L6 | WP2.26 | landed | 26593d75 | Second round. Neutral `isRecommended` on a question option (and an optional `askedLabel`, not in Interfaces, so notes keyed by the marked label still land); `asksUser`; a usage window's `lengthHours`. Stored decisions and `usage-windows.json` without the new fields read as malformed (no migration). `decisions` prints "(recommended)". Docs drift for WP2.17: `docs/reference/overseer-api.md:541`, `docs/cli.md:3030-3038` lack `lengthHours` |
 | 2-L7 | WP2.27 | landed | c9b85cab | First round. `ClaudeHookInput.toolCallOf` maps the vendor's tools to `AgentToolCall` (`shell`, `web-fetch`, `file-change`, `no-reach`, `unknown`); `toolCallDenialLineOf` on the port; the guard's `WorkerProfile.ts` carve-out is gone (no key under the port's folders). A text domain `.` is now denied. Leaks left: `BashDomainsHook.ts` names "auto mode's classifier"; `WorkerProfiles.ts` comments name Edit and Write; `apps/forge/CLAUDE.md` names Bash, WebFetch, Edit, Write (WP2.17) |
 | 2-L8 | WP2.28 | landed | 2299dc12 | First round. The port names `configurationNames` (`AgentConfigurationNames`) and `attributionPatterns`; Customs V13 and V7 and the denied roots take them from the adapter; `claudeFoldersOf` is `agentConfigurationFoldersOf`. Same behaviour as before. The three packages were stacked on WP2.25 by one agent (conflicts in `AgentBoundary.spec.ts` and the adapter files), checked with `git range-diff` against their passed commits |
+| 2-L | Gate speed-up | landed | da2e6ac0 | Added on the owner's word ("research ... the performance of all the gates ... and try to speed them up"; the old implementation may break). Findings: main checkout `.claude/.evidence/hephaestus-talos/gate-performance.md`. forge's `test:dom` is `test:dom:bridge`, out of verify; forge's `typecheck` is `tsc -p tsconfig.json` only; `bridge/**` out of ESLint; `ProjectIncludeLists.spec.ts` deleted; Gaia's three tsc projects run in parallel; the OverseerServer spec uses a 20 ms heartbeat, the reply wait takes `FORGE_HATCH_REPLY_INTERVAL_MILLISECONDS` (test setting, production 250 ms), `ChildSpawnOptions` waits on the state. Cold verify 111 s to 72 s. Leftovers for WP2.17: `typecheck:root` unused; `guards-and-testing.md` (~:319, ~:574) and `contributing.md`'s 'Change a domain rule' row still describe the Bridge's DOM run and typecheck |
 | 2-L9 | WP2.29 | waiting | | |
 | 2-L10 | WP2.30 | waiting | | |
 | 2-L11 | WP2.31 | waiting | | |
