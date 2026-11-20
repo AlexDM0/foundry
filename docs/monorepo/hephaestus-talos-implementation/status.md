@@ -103,6 +103,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.13: on a scratch forge, retitle a ticket and check its file keeps its name; check that a real session reads the
   new session instructions and uses `ticket edit` instead of editing ticket files.
 
+- WP5.14: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this checkout's
+  `version`, no model call) to replace the hand-edited recording; commit it.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -289,6 +292,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - Stage 4 verification: `equal-homes` serves `fix: null` when the shared home is the entity's only home. On the scratch
   forge the Bridge showed the Kanban only after setup S1 was discarded and a minimal `pipeline.json` written by hand.
 
+- WP5.14: four doc figures still show `pending` (PNG, alt text too): `docs/concepts/ticket-lifecycle.md:10`,
+  `docs/operations/getting-started.md:276`, `runbook.md:304`, `running-a-board.md:522`. Redrawing needs `.readme-graphics`.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -401,8 +406,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-H | WP5.10 | landed | 19ca5fc3 | First round; rebased over WP5.9 by the orchestrator (both added `boardStoreIn`: kept WP5.10's `Pick<CommandContext,'now'\|'platformPorts'>` with WP5.9's `boardReadsOf`; the guard is WP5.10's minus WP5.9's 32 entries; typecheck, lint and 2993 specs green). `OverseerForeground.overseerBoardStoreOf` builds one store from the workspace and hands it to the pass, Airlocks, gate profiles, the regroup, StartGate, the routes, CommandRoute and Flint's brain; `holdTracker` and `runOnePass` run on `transactions.transact`; `fingerprintOf` digests `boardRevision`; `fileTextOrEmpty`, `pipelineFileTextOf`, `logRecordsIn` deleted. Only the composition-root entry is left under the Overseer's folders. G4 `verify:integration` on the combined tree: 872 pass, 1 skip (the G1 outage row), 0 fail. The entities-in-a-folder merged-tree gate is covered in `UnreadablePipelineGate.spec.ts`, not through a whole landing |
 | 5-I | WP5.11 | landed | 903ffd0d | First round, side by side with WP5.12. `LocalStoreLayout.ts` (`localStoreLayoutOf({trackerDirectory})`, not `Workspace`: a type import would make an import cycle; `boardIsStoredAt`); `TrackerFiles.ts` is `LocalStoreFiles.ts` (`LOCAL_STORE_FILES`); `Workspace` holds `rootDirectory`, `trackerDirectory`, `htmlFilePath`; `holdJournalFilePathOf` gone. The guard's final form: exactly the two composition roots, and the 'Removed by WP5.x' reason form dropped. Talos's local `talosRecordPath` renamed `talosRecordFilePath` (it matched the new pattern). `verify:integration` 872 pass, 1 skip, 0 fail |
 | 5-I | WP5.12 | landed | ac6f2609 | First round, rebased over WP5.11. apps/forge/CLAUDE.md: `store` in the layer order, the store-port rule, the command surface through `cli/ApplyCommandOfVerb.ts`, the `BoardStore` Deviations row; overview.md's transaction rows and line 49 (by-hand kinds go through the same path); glossary 'lock hold'. No `.claude/rules` file named the old names |
-| 5-J | WP5.14 | running | | After stage 4 |
-| 5-J | WP5.15 | waiting | | After stage 4 |
+| 5-J | WP5.14 | landed | d92558dd | First round. `pending` is `committed` in `TaskStatus`, `TASK_STATUSES`, `TICKET_STATUSES`; `TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP`; `allowsPastCommitted`; four refusal reasons; log record `ticket-committed` ("Ticket #003 committed"); `ticket-reopened` keeps its name. The contract already said `committed`, so `BoardPageMappingUtil.committedStatusOf` and the parity spec's mapping are gone; forge-contracts and Gaia unchanged (Gaia's `BoardSummaryIngestion.spec.ts:42` fixture still holds `pending`). `INSTALL_VERSION` 39 to 40; `SKILL.md` trimmed under its limit. The `InstallChangeWatch` recording was hand-edited (stamp and `installVersion` 40) because `bun run record` was refused to the agent |
+| 5-J | WP5.15 | running | | After stage 4 |
 | 5-K | WP5.16 | waiting | | |
 | 5-L | WP5.17 | waiting | | |
 | 6-A | WP6.1 | waiting | | |
