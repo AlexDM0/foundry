@@ -97,6 +97,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP4.11: check that a real pipeline agent acts on the standing entity refusals in its `draft-edited` message and in
   `resources/prompts/PipelineAgentEntities.md`.
 
+- WP5.7: on a scratch forge with a live Overseer, `ticket deliver --by-hand` is refused `overseer-owns-the-lifecycle`
+  and writes nothing (the specs cover the context through a fake).
 
 ### Assumptions to confirm
 
@@ -387,8 +389,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-D | WP5.4 | landed | a8dc67dd | First round, side by side with WP5.5 and WP5.6. `src/services/store/`: `BoardStore.ts`, `LocalFilesBoardStore.ts`, the 13-clause `BoardStore.contract.spec.ts`, the adapter spec; layer `store-service` in ImportDirection. The one pipeline reading is `TrackerReader.storedPipelineReadingOf`; WP4.11's `draftReadingOf` stays outside it, so a draft keeps its refused entities. `LocalRecordAllocation.singleRecordFilePathOf` exported for `reads.locationOf`. `pipelineFileTextOf`, `logRecordsIn` and the DrivePass digest copied into the adapter, originals left for WP5.9 and WP5.10. The guard gained 'every board store adapter is named by the contract'. Line drift recorded in the check |
 | 5-D | WP5.5 | landed | b63a6e88 | First round, rebased over WP5.4. Filings through `change.records.newTicket`; `addEpic` keeps `newEpicLocation` (the interim form). The 12 WP5.5 guard entries removed. WP5.3's keying holds: a file whose name and `id` disagree answers by its name's number; the key match also takes `12-x.md` and `0012-x.md` for reference 12, where the old match needed `012-`. Specs asserting `WORKSPACE.pipelineFilePath` now ask `records.locationOf({ record: 'pipeline' })` |
 | 5-D | WP5.6 | landed | cfa8e376 | First round, rebased over WP5.4 and WP5.5. `TaskControls.ts` (`task-add`, `-move`, `-correct`, `-remove`) and `ByHandBoardControls.ts` (`log-note`, `namespace-set`); `BY_HAND_VERB_OF_CONTROL_KIND`, `BY_HAND_COMMAND_KINDS` in `JobVerbs.ts`; the endpoint refuses a by-hand kind 400 `malformed-body`. `task-move.status` typed `Exclude<TaskStatus,'abandoned'>` (src/shared may not import src/adapters). `GitRunsAtAToplevel.spec.ts` now names `ByHandBoardControls.ts`, where the namespace's git call moved. `namespace-branch-list-failed` is covered by the wording spec only (no git recording of a failed branch list) |
-| 5-E | WP5.7 | running | | |
-| 5-F | WP5.13 | waiting | | |
+| 5-E | WP5.7 | landed | b269f10b | First round. `TicketByHandControls.ts` (8 ticket kinds; `reviewBarStartedFor` moved there) and `EpicByHandControls.ts` (`epic-edit`, `epic-remove`); the 10 kinds are by-hand, `NOT_RELAYABLE_MUTATING_VERBS` holds only machine setup and the Overseer's start and stop. `ControlContext.liveOverseerOf`: `deliverTicketByHand` refuses `overseer-owns-the-lifecycle` inside the hold. `cli/CommandControlContext.ts`: `commandControlContextOf(platformPorts)` (the Baton lookup) for all ~35 CLI callers, `INSIDE_THE_OVERSEER_CONTROL_CONTEXT` (null) for the endpoint and OverseerForeground. No by-hand kind is in the board contract |
+| 5-F | WP5.13 | running | | |
 | 5-G | WP5.8 | waiting | | |
 | 5-H | WP5.9 | waiting | | |
 | 5-H | WP5.10 | waiting | | |
