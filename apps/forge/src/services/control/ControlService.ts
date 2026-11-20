@@ -14,6 +14,7 @@ import { AIRLOCK_CONTROLS }        from './AirlockControls.ts';
 import { BOARD_LIFETIME_CONTROLS } from './BoardLifetimeControls.ts';
 import { BY_HAND_BOARD_CONTROLS }  from './ByHandBoardControls.ts';
 import { DECISION_CONTROLS }       from './DecisionControls.ts';
+import { EPIC_BY_HAND_CONTROLS }   from './EpicByHandControls.ts';
 import { FILING_CONTROLS }         from './FilingControls.ts';
 import { GATE_PROFILE_CONTROLS }   from './GateProfileControls.ts';
 import { INCIDENT_CONTROLS }       from './IncidentControls.ts';
@@ -25,6 +26,7 @@ import { REPAIR_CONTROLS }         from './RepairControls.ts';
 import { RESUME_CONTROLS }         from './ResumeControls.ts';
 import { SETTING_CONTROLS }        from './SettingControls.ts';
 import { TASK_CONTROLS }           from './TaskControls.ts';
+import { TICKET_BY_HAND_CONTROLS } from './TicketByHandControls.ts';
 import { TICKET_CONTROLS }         from './TicketControls.ts';
 
 const CONTROL_APPLIERS = {
@@ -44,6 +46,8 @@ const CONTROL_APPLIERS = {
   ...BOARD_LIFETIME_CONTROLS,
   ...TASK_CONTROLS,
   ...BY_HAND_BOARD_CONTROLS,
+  ...TICKET_BY_HAND_CONTROLS,
+  ...EPIC_BY_HAND_CONTROLS,
 } as const satisfies {
   [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: BoardTransaction, context: ControlContext) => unknown
 };

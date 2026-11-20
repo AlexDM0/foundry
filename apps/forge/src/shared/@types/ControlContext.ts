@@ -1,7 +1,7 @@
 /**
  * What the control service takes from its caller besides the command and the hold: the wording of the messages a User setup move sends to
- * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`, and the reading of main's `CONSTITUTION.md`,
- * which the Overseer's instruction files own.
+ * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`, the reading of main's `CONSTITUTION.md`,
+ * which the Overseer's instruction files own, and the live Overseer of a board, which only the caller's process can judge.
  */
 import type {
   ConstitutionSources,
@@ -56,6 +56,12 @@ export type SetupMessage =
   /** The Overseer's, once the check ended `checked` or `cannot-run`. */
   | { kind: 'check-ended'; setupId: string; check: Readonly<PipelineCheck> };
 
+/** The live Overseer a by-hand delivery is refused for: where it serves, and the Baton that names it. */
+export interface LiveOverseer {
+  url:           string;
+  batonFilePath: string;
+}
+
 export interface ControlContext {
   setupMessageWordingOf: (message: SetupMessage) => string;
   /**
@@ -63,4 +69,9 @@ export interface ControlContext {
    * instead, an entity's constitution.
    */
   mainConstitutionOf:    (rootDirectory: string, constitutionPath?: string) => MainConstitutionReading;
+  /**
+   * The live Overseer that owns the lifecycle of the board in this data folder; `null` where the applier runs inside it, which applies its
+   * own commands in its own hold.
+   */
+  liveOverseerOf:        (dataFolder: string) => LiveOverseer | null;
 }

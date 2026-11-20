@@ -44,20 +44,10 @@ const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = {
 };
 
 /**
- * Mutating verbs that apply no control command, never relayed and never offered in the UI (design section 9.1): the ticket and epic verbs
- * User runs by hand that still write the board in place, machine setup, and the Overseer's own start and stop.
+ * Mutating verbs that apply no control command, never relayed and never offered in the UI (design section 9.1): machine setup, and the
+ * Overseer's own start and stop.
  */
 const NOT_RELAYABLE_MUTATING_VERBS = [
-  'ticket agent',
-  'ticket size',
-  'ticket status',
-  'ticket link',
-  'ticket introduced-by',
-  'ticket release-of',
-  'ticket rereview',
-  'ticket reopen',
-  'epic edit',
-  'epic remove',
   'init',
   'update',
   'oversee',

@@ -3,7 +3,7 @@ import { ControlService }          from '../../../src/services/control/ControlSe
 import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
-import { COMMAND_CONTROL_CONTEXT } from '../../CommandControlContext.ts';
+import { commandControlContextOf } from '../../CommandControlContext.ts';
 import type { CommandHandler }     from '../../CommandHandler.ts';
 import { openTrackerForWriting }   from '../../OpenTrackerForWriting.ts';
 import { OutputUtil }              from '../../utils/OutputUtil.ts';
@@ -37,7 +37,7 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
   }
 
   const command: ControlCommandOf<'tracker-clear'> = { kind: 'tracker-clear', scope: deletesTickets ? 'everything' : 'tasks-and-log' };
-  const summary = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const summary = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
 
   const ticketLine = deletesTickets
     ? `${summary.deletedTicketCount} ticket(s) and ${summary.deletedEpicCount} epic(s) deleted`

@@ -4,7 +4,7 @@ import { ControlService }          from '../../src/services/control/ControlServi
 import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
+import { commandControlContextOf } from '../CommandControlContext.ts';
 import type { CommandHandler }     from '../CommandHandler.ts';
 import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
 import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
@@ -36,6 +36,10 @@ export const decideCommand: CommandHandler = async (commandArguments, context) =
 
   const command: ControlCommandOf<'decision-answer'> = { kind: 'decision-answer', decisionId: decisionId.toUpperCase(), answer: answerFormOf(choices, text) };
   await hatchWhenUnderJob(context, command);
-  const { answer, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const { answer, logged } = await openTrackerForWriting(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
   OutputUtil.printEntity(commandArguments, context, { decisionId: command.decisionId, answer }, OutputUtil.loggedSentencesOf(logged));
 };

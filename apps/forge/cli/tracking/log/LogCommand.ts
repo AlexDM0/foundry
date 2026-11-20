@@ -2,7 +2,7 @@ import { ControlService }          from '../../../src/services/control/ControlSe
 import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
-import { COMMAND_CONTROL_CONTEXT } from '../../CommandControlContext.ts';
+import { commandControlContextOf } from '../../CommandControlContext.ts';
 import type { CommandHandler }     from '../../CommandHandler.ts';
 import { openTrackerForWriting }   from '../../OpenTrackerForWriting.ts';
 import { OutputUtil }              from '../../utils/OutputUtil.ts';
@@ -21,7 +21,7 @@ export const logCommand: CommandHandler = async (commandArguments, context) => {
   }
 
   const command: ControlCommandOf<'log-note'> = { kind: 'log-note', text };
-  const entry = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const entry = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
 
   OutputUtil.printEntity(commandArguments, context, entry, `Logged: ${entry.text}`);
 };

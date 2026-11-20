@@ -41,7 +41,8 @@ const HATCH_READABLE_STATES: ReadonlySet<JobState> = new Set([
 
 /**
  * The Bouncer admits no User setup command from a session, so a relayed command never words a setup message or reads main's constitution;
- * one that did is a Bouncer defect, which fails the hold rather than send a message nobody worded.
+ * one that did is a Bouncer defect, which fails the hold rather than send a message nobody worded. A relayed command is applied inside
+ * the live Overseer's own hold, so no other Overseer owns its board.
  */
 const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
   setupMessageWordingOf: (message: SetupMessage): string => {
@@ -50,6 +51,7 @@ const RELAYED_COMMAND_CONTEXT: ControlContext = Object.freeze({
   mainConstitutionOf: (): never => {
     throw new Error('A relayed command reached the reading of main\'s constitution, which only User\'s own commands read.');
   },
+  liveOverseerOf: () => null,
 });
 
 const REQUEST_FILE_PATTERN = /^(.+)\.json$/;

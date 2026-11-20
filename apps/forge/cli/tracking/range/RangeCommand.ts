@@ -7,7 +7,7 @@ import { ControlService }                           from '../../../src/services/
 import type { ChartRangeRequest, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                         from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                            from '../../../src/shared/constants/ProductNames.ts';
-import { COMMAND_CONTROL_CONTEXT }                  from '../../CommandControlContext.ts';
+import { commandControlContextOf }                  from '../../CommandControlContext.ts';
 import type { CommandHandler }                      from '../../CommandHandler.ts';
 import { openTrackerForWriting }                    from '../../OpenTrackerForWriting.ts';
 import { OutputUtil }                               from '../../utils/OutputUtil.ts';
@@ -50,7 +50,11 @@ export const rangeCommand: CommandHandler = async (commandArguments, context) =>
       kind: 'window', from: writtenFrom, to: writtenTo, tickMinutes: tickMinutesOf(writtenTick)
     };
   const command: ControlCommandOf<'chart-range-set'> = { kind: 'chart-range-set', range };
-  const { view, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const { view, logged } = await openTrackerForWriting(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
 
   OutputUtil.printEntity(commandArguments, context, view, OutputUtil.loggedSentencesOf(logged));
 };

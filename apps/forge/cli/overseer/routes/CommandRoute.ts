@@ -19,7 +19,7 @@ import type { ControlCommand, ControlCommandOf, FlintBrainCommand }         from
 import { OperationRefusal }                                                 from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }                                         from '../../../src/shared/constants/OverseerApiContracts.ts';
 import type { CommandContext }                                              from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                          from '../../CommandControlContext.ts';
+import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                              from '../../CommandControlContext.ts';
 import { openTrackerForWriting }                                            from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                              from '../../arguments/ArgumentParser.ts';
 import { BY_HAND_COMMAND_KINDS }                                            from '../../constants/JobVerbs.ts';
@@ -167,7 +167,7 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
     };
   }
   try {
-    const applied = await openTrackerForWriting(request.commandArguments, request.context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT));
+    const applied = await openTrackerForWriting(request.commandArguments, request.context, (change) => ControlService.apply(command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT));
     request.wake();
     return appliedAnswerOf(applied);
   } catch (thrown) {

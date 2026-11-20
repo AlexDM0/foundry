@@ -47,12 +47,22 @@ export const UNRELAYED_VERB_OF_CONTROL_KIND = {
  * `POST /api/commands`.
  */
 export const BY_HAND_VERB_OF_CONTROL_KIND = {
-  'task-add':      'task',
-  'task-move':     'task',
-  'task-correct':  'task',
-  'task-remove':   'task',
-  'log-note':      'log',
-  'namespace-set': 'namespace',
+  'task-add':             'task',
+  'task-move':            'task',
+  'task-correct':         'task',
+  'task-remove':          'task',
+  'log-note':             'log',
+  'namespace-set':        'namespace',
+  'ticket-link':          'ticket link',
+  'ticket-size':          'ticket size',
+  'ticket-agent':         'ticket agent',
+  'ticket-introduced-by': 'ticket introduced-by',
+  'ticket-release-of':    'ticket release-of',
+  'ticket-rereview':      'ticket rereview',
+  'ticket-reopen':        'ticket reopen',
+  'ticket-status-set':    'ticket status',
+  'epic-edit':            'epic edit',
+  'epic-remove':          'epic remove',
 } as const satisfies Partial<Record<ControlCommandKind, string>>;
 
 export type ByHandControlCommandKind = keyof typeof BY_HAND_VERB_OF_CONTROL_KIND;

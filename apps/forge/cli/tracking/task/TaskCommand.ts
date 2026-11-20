@@ -5,7 +5,7 @@ import type { ControlCommandOf }                  from '../../../src/shared/@typ
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                    from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                from '../../CommandControlContext.ts';
+import { commandControlContextOf }                from '../../CommandControlContext.ts';
 import type { CommandHandler }                    from '../../CommandHandler.ts';
 import { openTrackerForWritingThenReadNextLine }  from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                    from '../../arguments/ArgumentParser.ts';
@@ -43,7 +43,7 @@ async function transitionOneTask(
   const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   OutputUtil.printEntityThenNextLine(commandArguments, context, task, `Task #${task.id} ${StatusWordingUtil.movedPhraseFor(targetStatus)}: ${task.name}`, nextLine);

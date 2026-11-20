@@ -1,12 +1,9 @@
-/** The review bar `ticket rereview --start-review` opens for the ticket's next reviewer. */
-import { TicketBodyUtil }                         from '../../src/adapters/utils/TicketBodyUtil.ts';
-import type { AgentAssignment, ReviewBarStarted } from '../../src/lib/tracker-model/@types/BoardChanges.ts';
-import type { Ticket }                            from '../../src/lib/tracker-model/@types/Ticket.ts';
-import type { BoardTransaction }                  from '../../src/services/tracker/BoardTransaction.ts';
-import { OperationRefusal }                       from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
-import type { ArgumentParser }                    from '../arguments/ArgumentParser.ts';
-import { TICKET_USAGE }                           from './constants/TicketUsage.ts';
+/** The review bar `ticket rereview --start-review` asks to open for the ticket's next reviewer, as its options name it. */
+import type { AgentAssignment } from '../../src/lib/tracker-model/@types/BoardChanges.ts';
+import { OperationRefusal }     from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }        from '../../src/shared/constants/ProductNames.ts';
+import type { ArgumentParser }  from '../arguments/ArgumentParser.ts';
+import { TICKET_USAGE }         from './constants/TicketUsage.ts';
 
 export const REVIEW_BAR_OPTION_NAMES = ['start-review', 'owner', 'note'];
 
@@ -26,14 +23,4 @@ export function reviewBarRequestFrom(commandArguments: ArgumentParser, subcomman
     ...(owner === undefined ? {} : { owner }),
     ...(note === undefined ? {} : { note }),
   };
-}
-
-/**
- * A reviewer's `rereview` hands the ticket's slot to the next reviewer. The round is the one a reviewer
- * states for itself: the `## Review` sections already in the ticket, plus one.
- */
-export function reviewBarStartedFor(change: BoardTransaction, ticket: Readonly<Ticket>, request: AgentAssignment | null): ReviewBarStarted | null {
-  if (request === null) return null;
-  const round = TicketBodyUtil.nextReviewRoundOf(ticket.body);
-  return change.board.startReviewBar(ticket.frontmatter.id, { round, ...request }, change.at);
 }

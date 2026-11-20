@@ -4,7 +4,7 @@ import type { ControlCommandOf }                 from '../../../src/shared/@type
 import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                         from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                   from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }               from '../../CommandControlContext.ts';
+import { commandControlContextOf }               from '../../CommandControlContext.ts';
 import { openTrackerForWritingThenReadNextLine } from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
 import { OptionValueUtil }                       from '../../utils/OptionValueUtil.ts';
@@ -43,7 +43,7 @@ export async function addOneTask(commandArguments: ArgumentParser, context: Comm
   const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   const humanLine = `Task #${task.id} added: ${task.name}`;

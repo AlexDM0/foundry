@@ -6,13 +6,13 @@
 import { OperationRefusalWordingUtil }               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { TicketJsonUtil }                            from '../../src/adapters/utils/TicketJsonUtil.ts';
 import type { TicketStatus }                         from '../../src/lib/tracker-model/@types/Ticket.ts';
+import { reviewBarStartedFor }                       from '../../src/services/control/TicketByHandControls.ts';
 import type { BoardTransaction }                     from '../../src/services/tracker/BoardTransaction.ts';
 import { refusalIsOperationRefusal }                 from '../../src/shared/OperationRefusal.ts';
 import type { CommandContext }                       from '../CommandContext.ts';
 import { runCommandLine }                            from '../Main.ts';
 import { openTrackerForWriting }                     from '../OpenTrackerForWriting.ts';
 import { createArgumentParser, type ArgumentParser } from '../arguments/ArgumentParser.ts';
-import { reviewBarStartedFor }                       from '../tickets/ReviewBarRequest.ts';
 import { ReviewBarOutputUtil }                       from '../tickets/utils/ReviewBarOutputUtil.ts';
 import { TicketLookupUtil }                          from '../tickets/utils/TicketLookupUtil.ts';
 import { OptionValueUtil }                           from '../utils/OptionValueUtil.ts';

@@ -20,7 +20,7 @@ import { OperationRefusal }                               from '../../src/shared
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                        from '../CommandControlContext.ts';
+import { commandControlContextOf }                        from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
 import { openTrackerForWriting }                          from '../OpenTrackerForWriting.ts';
 import { refuseUsage }                                    from '../RecordedIncidentMove.ts';
@@ -115,7 +115,7 @@ function hashesOf(pipeline: Readonly<Pipeline>): { contentHash: string; phaseHas
 
 async function applyPipelineChange(commandArguments: ArgumentParser, context: CommandContext, command: ControlCommand): Promise<void> {
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
   if (!('pipeline' in changed)) return;
   const { logged, pipeline } = changed;
   OutputUtil.printEntity(commandArguments, context, { pipeline: PipelineFile.storedDocumentOf(pipeline), ...hashesOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));

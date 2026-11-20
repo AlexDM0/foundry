@@ -8,7 +8,7 @@ import type { ControlCommandOf }            from '../../../src/shared/@types/Con
 import { OperationRefusal }                 from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                    from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }              from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }          from '../../CommandControlContext.ts';
+import { commandControlContextOf }          from '../../CommandControlContext.ts';
 import type { CommandHandler }              from '../../CommandHandler.ts';
 import { hatchWhenUnderJob }                from '../../HatchUnderJob.ts';
 import { openTrackerForWriting }            from '../../OpenTrackerForWriting.ts';
@@ -54,7 +54,7 @@ export const concurrencyCommand: CommandHandler = async (commandArguments, conte
   const { logged, previousLimit, concurrency } = await openTrackerForWriting(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   const loggedSentence = OutputUtil.loggedSentencesOf(logged);

@@ -11,7 +11,8 @@
  * refused before it is filed, as is one that would reach `pending` without an entity, leaving no ticket behind; a forge without entities
  * reads no Brief and files a finding with no entity. An assignment stamped with a job is the product owner's, any other User's. A filed
  * ticket is the one the transaction's records allocate, and a reference to a ticket file the store cannot read finds it by the key the
- * store gives it, the file name's number, so it is refused as malformed rather than as no ticket.
+ * store gives it, the file name's number, so it is refused as malformed rather than as no ticket. A by-hand delivery is refused for a live
+ * Overseer the caller's context names, judged in the hold before anything is written.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -385,4 +386,35 @@ test('a reference to the id a renamed file holds finds no ticket: the file answe
 
   expect(refusal.status).toBe('refused');
   expect(refusal.detail).toEqual({ kind: 'no-readable-ticket', reference: '6' });
+});
+
+test('ticket-deliver-by-hand with a live Overseer the context names is refused overseer-owns-the-lifecycle, asked for its data folder, and writes nothing', () => {
+  const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', status: 'reviewed' }));
+  const askedDataFolders: string[] = [];
+  const liveOverseerContext = {
+    ...ECHOED_CONTROL_CONTEXT,
+    liveOverseerOf: (dataFolder: string) => {
+      askedDataFolders.push(dataFolder);
+      return { url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/overseer/baton-3.json' };
+    },
+  };
+  const ticketsBefore = board.tickets();
+
+  const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-deliver-by-hand', ticketReference: '1' }, change, liveOverseerContext));
+
+  expect(refusal.status).toBe('refused');
+  expect(refusal.detail).toEqual({ kind: 'overseer-owns-the-lifecycle', url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/overseer/baton-3.json' });
+  expect(askedDataFolders).toEqual([change.workspace.trackerDirectory]);
+  expect(board.tickets()).toEqual(ticketsBefore);
+  expect(board.logRecordsSoFar()).toEqual([]);
+});
+
+test('ticket-deliver-by-hand with no live Overseer delivers the ticket', () => {
+  const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', status: 'reviewed' }));
+
+  ControlService.apply({
+    kind: 'ticket-deliver-by-hand', ticketReference: '1', branch: 'ticket-001', commit: 'abc1234'
+  }, change, ECHOED_CONTROL_CONTEXT);
+
+  expect(board.ticketByReference('1')?.frontmatter.status).toBe('delivered');
 });

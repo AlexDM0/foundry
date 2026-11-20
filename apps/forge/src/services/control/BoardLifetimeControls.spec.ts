@@ -15,14 +15,16 @@ import { boardFixture, ticketFixture }                          from '../../test
 import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
 import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
+import { workspacePathsFor }                                    from '../tracker/Workspace.ts';
 import { ControlService }                                       from './ControlService.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
 
 function changeOf(board: Board): BoardTransaction {
-  // The chart and clear appliers read the Board, the stamp of the hold and the stored log's length; a plain clear deletes no file.
+  // The appliers read the Board, the stamp of the hold, the stored log's length and the data folder; a plain clear deletes no file.
   return {
     board,
+    workspace:                      workspacePathsFor('/example-agency/storefront'),
     at:                             AT,
     records:                        createFixtureRecordAllocation(board),
     unreadableRecords:              NO_UNREADABLE_RECORDS,

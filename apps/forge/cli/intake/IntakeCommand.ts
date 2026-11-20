@@ -7,7 +7,7 @@ import { ControlService }          from '../../src/services/control/ControlServi
 import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }     from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
+import { commandControlContextOf } from '../CommandControlContext.ts';
 import type { CommandHandler }     from '../CommandHandler.ts';
 import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
 import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
@@ -28,7 +28,11 @@ async function recordControl(
   command: ControlCommandOf<'intake-start'> | ControlCommandOf<'intake-close'> | ControlCommandOf<'intake-title'>,
 ): Promise<string> {
   await hatchWhenUnderJob(context, command);
-  const { job, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const { job, logged } = await openTrackerForWriting(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
   const sentences = OutputUtil.loggedSentencesOf(logged);
   OutputUtil.printEntity(commandArguments, context, { jobId: job.id, logged }, sentences === '' ? `Intake of job ${job.id} closed.` : sentences);
   return job.id;

@@ -90,7 +90,7 @@ import {
   OVERSEER_STOP_WAIT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                      from '../CommandControlContext.ts';
+import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
 import { openTrackerForWriting }                                        from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
@@ -762,7 +762,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         change.board.submitFirstRunLeftovers(change.at);
         // In the hold, so no command names a picture between the read of the references and the sweep.
         PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(change.board.logRecordsSoFar(), change.board.jobs()));
-        finishHalfAppliedSetup(change, COMMAND_CONTROL_CONTEXT);
+        finishHalfAppliedSetup(change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT);
         const overseerStarted = change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
         if (!startClassificationLogged) change.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), change.at);
         return overseerStarted;

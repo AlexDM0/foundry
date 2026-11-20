@@ -7,7 +7,7 @@ import type { ControlCommandOf }                  from '../../../src/shared/@typ
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                    from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                from '../../CommandControlContext.ts';
+import { commandControlContextOf }                from '../../CommandControlContext.ts';
 import { openTrackerForWriting }                  from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                    from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                             from '../../utils/OutputUtil.ts';
@@ -50,7 +50,7 @@ export async function updateOneTask(commandArguments: ArgumentParser, context: C
     },
     annotation: annotationFrom(commandArguments),
   };
-  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
 
   OutputUtil.printEntity(commandArguments, context, task, `Task #${task.id} updated: ${task.name}`);
 }
@@ -62,7 +62,7 @@ export async function removeOneTask(commandArguments: ArgumentParser, context: C
   const taskId = taskIdFrom(commandArguments.positionals()[1], 'remove');
 
   const command: ControlCommandOf<'task-remove'> = { kind: 'task-remove', taskId };
-  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
 
   OutputUtil.printEntity(commandArguments, context, task, `Task #${task.id} removed: ${task.name}`);
 }

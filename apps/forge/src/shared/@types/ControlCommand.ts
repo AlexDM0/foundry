@@ -3,12 +3,12 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
-import type { TaskAnnotation, TaskCorrection }     from '../../lib/tracker-model/@types/BoardChanges.ts';
-import type { DecisionAnswerForm }                 from '../../lib/tracker-model/@types/Decision.ts';
-import type { DraftNoteKind, DraftQuestionAsking } from '../../lib/tracker-model/@types/Draft.ts';
-import type { GatePhase }                          from '../../lib/tracker-model/@types/GatePhase.ts';
-import type { JobStopMode, PictureReference }      from '../../lib/tracker-model/@types/Job.ts';
-import type { OptionNote }                         from '../../lib/tracker-model/@types/OptionConsequences.ts';
+import type { AgentAssignment, TaskAnnotation, TaskCorrection } from '../../lib/tracker-model/@types/BoardChanges.ts';
+import type { DecisionAnswerForm }                              from '../../lib/tracker-model/@types/Decision.ts';
+import type { DraftNoteKind, DraftQuestionAsking }              from '../../lib/tracker-model/@types/Draft.ts';
+import type { GatePhase }                                       from '../../lib/tracker-model/@types/GatePhase.ts';
+import type { JobStopMode, PictureReference }                   from '../../lib/tracker-model/@types/Job.ts';
+import type { OptionNote }                                      from '../../lib/tracker-model/@types/OptionConsequences.ts';
 import type {
   EntityKey,
   PipelineApproval,
@@ -32,6 +32,7 @@ import type {
   AgentModel,
   TicketPriority,
   TicketSize,
+  TicketStatus,
   TicketType
 } from '../../lib/tracker-model/@types/Ticket.ts';
 
@@ -286,7 +287,21 @@ export type ControlCommand =
   | { kind: 'task-correct'; taskId: number; correction: TaskCorrection; movesAnyway: boolean; annotation: TaskAnnotation }
   | { kind: 'task-remove'; taskId: number }
   | { kind: 'log-note'; text: string }
-  | { kind: 'namespace-set'; namespace: string };
+  | { kind: 'namespace-set'; namespace: string }
+  | { kind: 'ticket-link'; ticketReference: string; taskId: number; movesTheLink: boolean }
+  | { kind: 'ticket-size'; ticketReference: string; size: TicketSize }
+  | { kind: 'ticket-agent'; ticketReference: string; model?: AgentModel; effort?: AgentEffort }
+  /** `causeTicketId` is the padded id the verb parsed, `null` to clear. */
+  | { kind: 'ticket-introduced-by'; ticketReference: string; causeTicketId: string | null }
+  | { kind: 'ticket-release-of'; ticketReference: string; clears: boolean }
+  /** With a review bar, the next reviewer's bar opens in the same hold. */
+  | { kind: 'ticket-rereview'; ticketReference: string; reviewBar: AgentAssignment | null }
+  /** Back to `pending` through the legality matrix. */
+  | { kind: 'ticket-reopen'; ticketReference: string; branch?: string; commit?: string; reason?: string; tokens?: number }
+  /** The documented override: any status, skipping the legality matrix. */
+  | { kind: 'ticket-status-set'; ticketReference: string; status: TicketStatus; branch?: string; commit?: string; reason?: string; tokens?: number }
+  | { kind: 'epic-edit'; key: string; title?: string; body?: { text: string; appends: boolean } }
+  | { kind: 'epic-remove'; key: string };
 
 export type ControlCommandKind = ControlCommand['kind'];
 

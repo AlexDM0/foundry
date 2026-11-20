@@ -35,7 +35,7 @@ import { createScratchDirectory, removeScratchDirectory }                       
 import { describeWhenGitIsRecorded }                                                                 from '../src/testing/ToolGuard.ts';
 import { firstValueOf }                                                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                                                       from './CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                                                   from './CommandControlContext.ts';
+import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                                                       from './CommandControlContext.ts';
 import { COMMAND_NAMES }                                                                             from './CommandTable.ts';
 import { runCommandLine }                                                                            from './Main.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND, type RelayedControlCommandKind } from './constants/JobVerbs.ts';
@@ -393,7 +393,7 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
       workspace: requireWorkspace(repositoryDirectory),
       at:        '2026-09-18T22:11:03+02:00',
       now:       SPEC_CLOCK,
-      mutate:    (change) => ControlService.apply(verdict.command, change, COMMAND_CONTROL_CONTEXT).result,
+      mutate:    (change) => ControlService.apply(verdict.command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT).result,
     });
     const filed = written.result as { ticket: { filePath: string } };
     const text  = readFileSync(filed.ticket.filePath, 'utf8');

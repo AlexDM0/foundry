@@ -7,6 +7,7 @@ import { TICKET_STATUSES_USER_READIES }       from '../../lib/tracker-model/cons
 import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { NetworkDomainUtil }                  from '../../lib/tracker-model/utils/NetworkDomainUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
+import type { ControlContext }                from '../../shared/@types/ControlContext.ts';
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import { resourceFilePathOf }                 from '../../shared/ResourceFilePath.ts';
@@ -142,10 +143,13 @@ function abandonTicket(command: CommandOf<'ticket-abandon'>, change: BoardTransa
 }
 
 /**
- * A ticket User finished and landed outside the Overseer, recorded delivered in the hold, merging, landing and spawning nothing. A live job
- * of the ticket refuses it, judged inside the hold; the verb refuses a live Overseer first, so on a live board only its own hold records it.
+ * A ticket User finished and landed outside the Overseer, recorded delivered in the hold, merging, landing and spawning nothing. A live
+ * Overseer the context names and a live job of the ticket refuse it, both judged inside the hold, so an Overseer starting meanwhile reads the
+ * ticket delivered or not at all, and on a live board only the Overseer's own hold records it.
  */
-function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: BoardTransaction) {
+function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: BoardTransaction, context: ControlContext) {
+  const liveOverseer = context.liveOverseerOf(change.workspace.trackerDirectory);
+  if (liveOverseer !== null) throw new OperationRefusal('refused', { kind: 'overseer-owns-the-lifecycle', url: liveOverseer.url, batonFilePath: liveOverseer.batonFilePath });
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   const liveJob  = change.board.liveJobOfTicket(ticketId);
   if (liveJob !== undefined) throw new OperationRefusal('refused', {

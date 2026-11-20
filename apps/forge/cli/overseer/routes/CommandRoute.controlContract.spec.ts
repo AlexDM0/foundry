@@ -190,6 +190,9 @@ describeWhenGitIsRecorded('the control contract', () => {
       },
       { kind: 'log-note', text: 'Example note' },
       { kind: 'namespace-set', namespace: 'web' },
+      { kind: 'ticket-size', ticketReference: '1', size: 'S' },
+      { kind: 'ticket-status-set', ticketReference: '1', status: 'abandoned' },
+      { kind: 'epic-remove', key: 'example-checkout' },
     ];
     expect(BY_HAND_COMMAND_KINDS.filter((kind) => COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
     for (const body of byHandBodies) expect(await answerControlCommand(body, routeRequest(), API_CALLER), body.kind).toEqual(malformedAnswer);

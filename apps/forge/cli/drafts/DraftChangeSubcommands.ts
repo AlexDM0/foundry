@@ -10,7 +10,7 @@ import type { ControlCommand }                              from '../../src/shar
 import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                    from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                              from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
+import { commandControlContextOf }                          from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                                from '../HatchUnderJob.ts';
 import { openTrackerForWriting }                            from '../OpenTrackerForWriting.ts';
 import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from '../PipedStandardInput.ts';
@@ -33,7 +33,7 @@ export async function appliedDraftControl<Command extends ControlCommand>(
   command: Command,
 ): Promise<ControlResultOf<Command['kind']>> {
   await hatchWhenUnderJob(context, command);
-  return openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  return openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
 }
 
 export function refusalOf(text: string): OperationRefusal {

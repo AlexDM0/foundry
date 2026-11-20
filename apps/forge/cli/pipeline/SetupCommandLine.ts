@@ -9,7 +9,7 @@ import type { PipelineAgentControlKind } from '../../src/services/control/Pipeli
 import type { PipelineSetupCommandKind } from '../../src/services/control/PipelineSetupControls.ts';
 import type { ControlCommandOf }         from '../../src/shared/@types/ControlCommand.ts';
 import type { CommandContext }           from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }       from '../CommandControlContext.ts';
+import { commandControlContextOf }       from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }             from '../HatchUnderJob.ts';
 import { openTrackerForWriting }         from '../OpenTrackerForWriting.ts';
 import { refuseUsage }                   from '../RecordedIncidentMove.ts';
@@ -72,7 +72,7 @@ export async function applySetupCommand(
   const changed = await openTrackerForWriting(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
   OutputUtil.printEntity(commandArguments, context, { setup: changed.setup, logged: changed.logged }, OutputUtil.loggedSentencesOf(changed.logged));
 }
@@ -87,7 +87,7 @@ export async function applyProfileCommand(
   const changed = await openTrackerForWriting(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
   const { run, logged } = changed;
   const humanLine = logged.length > 0

@@ -4,7 +4,7 @@
  */
 import { ControlService }          from '../../src/services/control/ControlService.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
+import { commandControlContextOf } from '../CommandControlContext.ts';
 import type { CommandHandler }     from '../CommandHandler.ts';
 import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
 import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
@@ -19,7 +19,11 @@ export const adviseCommand: CommandHandler = async (commandArguments, context) =
   commandArguments.rejectExtraPositionals(1, ADVISE_USAGE);
   const command = { kind: 'pipeline-agent-advise' } as const;
   await hatchWhenUnderJob(context, command);
-  const { setup, logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const { setup, logged } = await openTrackerForWriting(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
   const jobId = setup.agentJobId ?? '';
   OutputUtil.printEntity(commandArguments, context, { setupId: setup.setupId, jobId, logged }, OutputUtil.loggedSentencesOf(logged));
   context.standardError(`The Overseer launches the pipeline agent of job ${jobId} for pipeline setup ${setup.setupId}; follow it with `

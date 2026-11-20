@@ -4,7 +4,7 @@ import type { ControlCommandOf }                                        from '..
 import { OperationRefusal }                                             from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                      from '../CommandControlContext.ts';
+import { commandControlContextOf }                                      from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                                            from '../HatchUnderJob.ts';
 import { openTrackerForWriting, openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
@@ -21,7 +21,6 @@ import { setTicketIntroducedBy }                                        from './
 import { markOrClearReleaseTicket }                                     from './TicketReleaseMarker.ts';
 import { TICKET_USAGE }                                                 from './constants/TicketUsage.ts';
 import { TicketArgumentUtil }                                           from './utils/TicketArgumentUtil.ts';
-import { TicketLookupUtil }                                             from './utils/TicketLookupUtil.ts';
 
 const LINK_OPTION_NAMES     = ['force', 'json'];
 const PRIORITY_OPTION_NAMES = ['at', 'json'];
@@ -40,10 +39,13 @@ async function linkOneTicket(commandArguments: ArgumentParser, context: CommandC
   const taskId = OptionValueUtil.taskIdFrom(taskReference, null);
   const movesTheLink = commandArguments.flag('force');
 
+  const command: ControlCommandOf<'ticket-link'> = {
+    kind: 'ticket-link', ticketReference, taskId, movesTheLink
+  };
   const linked = await openTrackerForWriting(
     commandArguments,
     context,
-    (change) => change.board.linkTicketToTask(TicketLookupUtil.requireTicket(change, ticketReference).frontmatter.id, taskId, { movesTheLink }),
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(linked), `Ticket #${linked.frontmatter.id} linked to task #${taskId}`);
@@ -64,7 +66,7 @@ async function setTicketPriority(commandArguments: ArgumentParser, context: Comm
   const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   OutputUtil.printEntityThenNextLine(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged), nextLine);
@@ -80,10 +82,11 @@ async function setTicketSize(commandArguments: ArgumentParser, context: CommandC
   }
   const size = TicketArgumentUtil.requireSize(writtenSize);
 
+  const command: ControlCommandOf<'ticket-size'> = { kind: 'ticket-size', ticketReference: reference, size };
   const changed = await openTrackerForWriting(
     commandArguments,
     context,
-    (change) => change.board.setTicketSize(TicketLookupUtil.requireTicket(change, reference).frontmatter.id, size, change.at),
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged));
@@ -103,13 +106,17 @@ async function setTicketAgent(commandArguments: ArgumentParser, context: Command
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket agent needs --model, --effort or both.\n  Usage: ${TICKET_USAGE}`);
   }
 
-  const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
-    const ticketId = TicketLookupUtil.requireTicket(change, reference).frontmatter.id;
-    return change.board.setTicketAgents(ticketId, {
-      ...(model === undefined ? {} : { model }),
-      ...(effort === undefined ? {} : { effort }),
-    }, change.at);
-  });
+  const command: ControlCommandOf<'ticket-agent'> = {
+    kind:            'ticket-agent',
+    ticketReference: reference,
+    ...(model === undefined ? {} : { model }),
+    ...(effort === undefined ? {} : { effort }),
+  };
+  const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
 
   OutputUtil.printEntityThenNextLine(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged), nextLine);
 }
@@ -127,7 +134,7 @@ async function setTicketNetwork(commandArguments: ArgumentParser, context: Comma
 
   const command: ControlCommandOf<'ticket-network'> = { kind: 'ticket-network', ticketReference: reference, domains };
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
 
   OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged));
 }

@@ -16,7 +16,7 @@ import { BranchNamespaceUtil, branchNamesOf }                       from '../../
 import { OperationRefusal }                                         from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                            from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                      from '../../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                  from '../../CommandControlContext.ts';
+import { commandControlContextOf }                                  from '../../CommandControlContext.ts';
 import type { CommandHandler }                                      from '../../CommandHandler.ts';
 import { openTrackerForWriting }                                    from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
@@ -97,7 +97,11 @@ export const namespaceCommand: CommandHandler = async (commandArguments, context
   refuseWhileAnOverseerServes(context);
   refuseANamespaceAnotherTrackerLists(context, wantedNamespace);
   const command: ControlCommandOf<'namespace-set'> = { kind: 'namespace-set', namespace: wantedNamespace };
-  const { logged } = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const { logged } = await openTrackerForWriting(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
   await listTheBoard(context, wantedNamespace);
   const sentence = `${OutputUtil.loggedSentencesOf(logged)}: the board's ticket branches are ${ticketBranchExampleOf(wantedNamespace)}.`;
   OutputUtil.printEntity(commandArguments, context, { branchNamespace: wantedNamespace }, sentence);

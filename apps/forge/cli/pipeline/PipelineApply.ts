@@ -4,7 +4,7 @@
  */
 import { ControlService }          from '../../src/services/control/ControlService.ts';
 import type { CommandContext }     from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT } from '../CommandControlContext.ts';
+import { commandControlContextOf } from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
 import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
@@ -23,7 +23,7 @@ export async function applyPipelineSetup(commandArguments: ArgumentParser, conte
     resumesBoard:  commandArguments.flag('resume'),
   } as const;
   await hatchWhenUnderJob(context, command);
-  const applied = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
+  const applied = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
   const humanLine = applied.logged.length > 0
     ? OutputUtil.loggedSentencesOf(applied.logged)
     : `Pipeline setup ${command.setupId} draft revision ${command.draftRevision} `

@@ -2,30 +2,27 @@
  * The named verbs enforce the legality matrix of `src/lib/tracker-model/constants/TicketMoveLegality.ts`; `ticket status` is the
  * documented override that skips it.
  */
-import { TicketJsonUtil }                                                     from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { IncompleteTicket, TicketStatus }                                from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { VocabularyUtil }                                                     from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
-import { ControlService }                                                     from '../../src/services/control/ControlService.ts';
-import { Baton }                                                              from '../../src/services/overseer/Baton.ts';
-import { overseerFilesIn }                                                    from '../../src/services/overseer/OverseerFiles.ts';
-import type { ControlCommandOf }                                              from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                                   from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                                      from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                                                from '../CommandContext.ts';
-import { COMMAND_CONTROL_CONTEXT }                                            from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                                                  from '../HatchUnderJob.ts';
-import { openTrackerForWritingThenReadNextLine }                              from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                                                from '../arguments/ArgumentParser.ts';
-import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT }                     from '../arguments/constants/SubcommandPositionalCounts.ts';
-import { OutputUtil }                                                         from '../utils/OutputUtil.ts';
-import type { TicketSubcommandHandler }                                       from './@types/TicketSubcommandHandler.ts';
-import { REVIEW_BAR_OPTION_NAMES, reviewBarRequestFrom, reviewBarStartedFor } from './ReviewBarRequest.ts';
-import { parkTicket }                                                         from './TicketPark.ts';
-import { TRANSITION_OPTION_NAMES, transitionOneTicket }                       from './TicketTransition.ts';
-import { TICKET_USAGE }                                                       from './constants/TicketUsage.ts';
-import { ReviewBarOutputUtil }                                                from './utils/ReviewBarOutputUtil.ts';
-import { TicketArgumentUtil }                                                 from './utils/TicketArgumentUtil.ts';
-import { TicketLookupUtil }                                                   from './utils/TicketLookupUtil.ts';
+import { TicketJsonUtil }                                 from '../../src/adapters/utils/TicketJsonUtil.ts';
+import type { IncompleteTicket, TicketStatus }            from '../../src/lib/tracker-model/@types/Ticket.ts';
+import { VocabularyUtil }                                 from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+import { ControlService }                                 from '../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }                          from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import type { CommandContext }                            from '../CommandContext.ts';
+import { commandControlContextOf }                        from '../CommandControlContext.ts';
+import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
+import { openTrackerForWritingThenReadNextLine }          from '../OpenTrackerForWriting.ts';
+import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
+import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
+import { OutputUtil }                                     from '../utils/OutputUtil.ts';
+import type { TicketSubcommandHandler }                   from './@types/TicketSubcommandHandler.ts';
+import { REVIEW_BAR_OPTION_NAMES, reviewBarRequestFrom }  from './ReviewBarRequest.ts';
+import { parkTicket }                                     from './TicketPark.ts';
+import { TRANSITION_OPTION_NAMES, transitionOneTicket }   from './TicketTransition.ts';
+import { TICKET_USAGE }                                   from './constants/TicketUsage.ts';
+import { ReviewBarOutputUtil }                            from './utils/ReviewBarOutputUtil.ts';
+import { TicketArgumentUtil }                             from './utils/TicketArgumentUtil.ts';
 
 const TRANSITION_VERBS: readonly (readonly [string, TicketStatus])[] = [
   ['abandon', 'abandoned'],
@@ -47,8 +44,8 @@ function requireTicketReference(commandArguments: ArgumentParser, subcommand: st
 
 /**
  * The one record-only lifecycle verb: a ticket User finished and landed outside the Overseer is recorded delivered in one hold, merging,
- * landing and spawning nothing. A live Overseer refuses it, judged inside the hold, so an Overseer starting meanwhile reads the ticket
- * delivered or not at all; on a live board the Bridge sends the same command to the Overseer, which records it in its own hold.
+ * landing and spawning nothing. A live Overseer refuses it, judged inside the hold by the applier, so an Overseer starting meanwhile reads
+ * the ticket delivered or not at all; on a live board the Bridge sends the same command to the Overseer, which records it in its own hold.
  */
 async function deliverByHand(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(BY_HAND_OPTION_NAMES, TICKET_USAGE);
@@ -64,15 +61,11 @@ async function deliverByHand(commandArguments: ArgumentParser, context: CommandC
     ...(branch === undefined ? {} : { branch }),
     ...(commit === undefined ? {} : { commit }),
   };
-  const { result: move, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
-    const { overseerDirectory } = overseerFilesIn(change.workspace.trackerDirectory);
-    const newestBaton     = Baton.newestBatonOf(context.platformPorts, overseerDirectory);
-    if (newestBaton.verdict === 'live') {
-      const batonFilePath = Baton.batonFilePathFor(overseerDirectory, newestBaton.generation);
-      throw new OperationRefusal('refused', { kind: 'overseer-owns-the-lifecycle', url: newestBaton.record.url, batonFilePath });
-    }
-    return ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result;
-  });
+  const { result: move, nextLine } = await openTrackerForWritingThenReadNextLine(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
   const humanText = `${OutputUtil.loggedSentencesOf(move.logged.filter(ReviewBarOutputUtil.recordClosesNoBar))}${ReviewBarOutputUtil.closedReviewBarsText(move.closedReviewBars)}`;
   OutputUtil.printEntityThenNextLine(commandArguments, context, ReviewBarOutputUtil.ticketWithReviewBarAsJson(move.ticket, null, move.closedReviewBars), humanText, nextLine);
 }
@@ -105,10 +98,12 @@ async function rereviewOneTicket(commandArguments: ArgumentParser, context: Comm
   const reference        = requireTicketReference(commandArguments, 'rereview');
   const reviewBarRequest = reviewBarRequestFrom(commandArguments, 'rereview');
 
-  const { result: rereviewed, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
-    const rereview = change.board.rereviewTicket(TicketLookupUtil.requireTicket(change, reference).frontmatter.id, change.at);
-    return { rereview, startedReviewBar: reviewBarStartedFor(change, rereview.ticket, reviewBarRequest) };
-  });
+  const command: ControlCommandOf<'ticket-rereview'> = { kind: 'ticket-rereview', ticketReference: reference, reviewBar: reviewBarRequest };
+  const { result: rereviewed, nextLine } = await openTrackerForWritingThenReadNextLine(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
+  );
 
   const { rereview, startedReviewBar } = rereviewed;
   const humanText                      = `${OutputUtil.loggedSentencesOf(rereview.logged)}${ReviewBarOutputUtil.reviewBarText(startedReviewBar)}`;
@@ -127,7 +122,7 @@ async function readyTheNamedTickets(commandArguments: ArgumentParser, context: C
   const { result: readied, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
 
   const [onlyTicket] = readied.tickets;
@@ -154,7 +149,7 @@ async function submitTheNamedDrafts(commandArguments: ArgumentParser, context: C
   const { result: submitted, nextLine } = await openTrackerForWritingThenReadNextLine(
     commandArguments,
     context,
-    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
   );
   const document = { tickets: submitted.tickets.map(TicketJsonUtil.ticketAsJson), incompleteTickets: submitted.incompleteTickets };
   const humanText = `${OutputUtil.loggedSentencesOf(submitted.logged)}${incompleteDraftsText(submitted.incompleteTickets)}`;
