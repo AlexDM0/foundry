@@ -14,8 +14,8 @@ Whose rules a package follows beside its own `README.md`:
 
 - `packages/design-system` is reached by both apps: whichever app's change it is, its `CONSTITUTION.md`, the one constitution of a
   package here, and `.claude/rules/design-system.md`.
-- `packages/flint`, `packages/forge-contracts` and `packages/brand` are forge's (`.claude/rules/flint.md` for Flint). Nothing in a
-  package forge depends on names Gaia.
+- `packages/forge-contracts` and `packages/brand` are forge's. Nothing in a package forge depends on names Gaia.
+- `packages/flint` is both apps' (`.claude/rules/flint.md`) until stage 8 folds it into Gaia's page (decision 52).
 - `packages/system-versions` is both apps'; it names no server.
 
 ## The two trackers
@@ -25,7 +25,7 @@ From the landing on, each app has its own forge tracker in its own folder, and n
 | Tracker | Home | Branch namespace | Reach beyond its home |
 | --- | --- | --- | --- |
 | forge's | `apps/forge/` | `forge` | every package forge depends on (`/packages/design-system`, `/packages/flint`, `/packages/forge-contracts`, `/packages/brand`, `/packages/system-versions`), `/package.json`, `/bun.lock`, `/turbo.json` |
-| Gaia's | `apps/gaia/` | `gaia` | `/packages/design-system`, `/packages/system-versions`, `/package.json`, `/bun.lock`, `/turbo.json` |
+| Gaia's | `apps/gaia/` | `gaia` | `/packages/design-system`, `/packages/flint`, `/packages/system-versions`, `/package.json`, `/bun.lock`, `/turbo.json` |
 
 - A tracker's agents change only its home and its reach; Customs refuses the rest. `scripts/`, `docs/monorepo/`, this file and
   `.claude/` are in neither tracker's reach: a person changes them.

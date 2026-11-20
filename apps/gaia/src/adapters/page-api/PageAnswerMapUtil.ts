@@ -7,7 +7,7 @@ import type { CommandAnswerDocument }      from '../../../page/@types/CommandDoc
 import type { FrameSessionAnswerDocument } from '../../../page/@types/FrameSessionDocument.ts';
 import type { CommandVerdict }             from '../../shared/@types/CommandVerdict.ts';
 import type { FrameSessionVerdict }        from '../../shared/@types/FrameSessionVerdict.ts';
-import { CONTRACT_VERSIONS }               from '../../shared/constants/ContractVersions.ts';
+import { PAGE_CONTRACT_VERSIONS }          from '../../shared/constants/PageContractVersions.ts';
 import { ForgeSentenceUtil }               from './ForgeSentenceUtil.ts';
 import type { GaiaCommandReading }         from './GaiaCommandIngestion.ts';
 
@@ -15,7 +15,7 @@ export type UnreadableCommandReading = Exclude<GaiaCommandReading, { readonly ve
 
 function answerOf(outcome: CommandAnswerDocument['outcome'], refusal: string | null = null, text: string | null = null): CommandAnswerDocument {
   return {
-    answerVersion: CONTRACT_VERSIONS.gaiaCommandAnswer,
+    answerVersion: PAGE_CONTRACT_VERSIONS.gaiaCommandAnswer,
     outcome,
     refusal,
     text,
@@ -60,7 +60,7 @@ export const PageAnswerMapUtil = {
 
   frameSessionAnswerOf(verdict: FrameSessionVerdict): FrameSessionAnswerDocument {
     return {
-      frameSessionVersion: CONTRACT_VERSIONS.gaiaFrameSession,
+      frameSessionVersion: PAGE_CONTRACT_VERSIONS.gaiaFrameSession,
       ...frameSessionAnswerContentOf(verdict),
     };
   },

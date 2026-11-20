@@ -1,6 +1,7 @@
 /**
  * `docs/contracts.md` names every versioned contract with its one version (a whole number, or a stored format's major.minor), which
- * `CONTRACT_VERSIONS` holds; each of Gaia's routes at its endpoint version, which `GAIA_ENDPOINT_VERSIONS` holds; and the verdicts on a
+ * `CONTRACT_VERSIONS` holds for the forge's contracts and Gaia's stored files and `PAGE_CONTRACT_VERSIONS` for what Gaia serves its page,
+ * no key in both; each of Gaia's routes at its endpoint version, which `GAIA_ENDPOINT_VERSIONS` holds; and the verdicts on a
  * forge, exactly those of `ForgeVersionsVerdict`. What matters: each table and its source agree both ways, a key or a version missing from
  * either side, a version that differs in its number or its form and a key listed twice each named. The reading first proves it found each
  * table, and each disagreement is planted to prove the comparison names it.
@@ -14,6 +15,7 @@ import type { ForgeVersionsVerdict } from '../@types/ForgeReading.ts';
 import type { FormatVersion }        from '../utils/ContractVersionUtil.ts';
 import { CONTRACT_VERSIONS }         from './ContractVersions.ts';
 import { GAIA_ENDPOINT_VERSIONS }    from './GaiaSystemVersions.ts';
+import { PAGE_CONTRACT_VERSIONS }    from './PageContractVersions.ts';
 
 const CONTRACTS_REFERENCE_PATH = join(import.meta.dir, '..', '..', '..', 'docs', 'contracts.md');
 const VERSIONED_CONTRACTS_HEADING = '## Versioned contracts';
@@ -171,8 +173,13 @@ describe('docs/contracts.md', () => {
     expect(contractsReferenceRows().length).toBeGreaterThan(0);
   });
 
-  test('agrees with CONTRACT_VERSIONS on every key and number, both ways', () => {
-    expect(disagreementsBetween(contractsReferenceRows(), CONTRACT_VERSIONS)).toEqual([]);
+  test('agrees with CONTRACT_VERSIONS and PAGE_CONTRACT_VERSIONS together on every key and number, both ways', () => {
+    const knownVersions: KnownVersions = { ...CONTRACT_VERSIONS, ...PAGE_CONTRACT_VERSIONS };
+    expect(disagreementsBetween(contractsReferenceRows(), knownVersions, 'CONTRACT_VERSIONS or PAGE_CONTRACT_VERSIONS')).toEqual([]);
+  });
+
+  test('no contract key is in both CONTRACT_VERSIONS and PAGE_CONTRACT_VERSIONS', () => {
+    expect(Object.keys(PAGE_CONTRACT_VERSIONS).filter((contractKey) => Object.hasOwn(CONTRACT_VERSIONS, contractKey))).toEqual([]);
   });
 
   test('names no older version Gaia still reads: it reads only the contracts of the one forge version it supports', () => {

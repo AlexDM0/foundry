@@ -10,8 +10,8 @@
  * that answers again moves it on.
  */
 import { ApiPathUtil }                                 from '../../src/lib/api-paths/ApiPathUtil.ts';
-import { CONTRACT_VERSIONS }                           from '../../src/shared/constants/ContractVersions.ts';
 import { GAIA_ENDPOINT_VERSIONS, GAIA_SYSTEM_VERSION } from '../../src/shared/constants/GaiaSystemVersions.ts';
+import { PAGE_CONTRACT_VERSIONS }                      from '../../src/shared/constants/PageContractVersions.ts';
 import { ContractVersionUtil }                         from '../../src/shared/utils/ContractVersionUtil.ts';
 import { SystemVersionUtil }                           from '../../src/shared/utils/SystemVersionUtil.ts';
 import type { FleetDocument }                          from '../@types/FleetDocument.ts';
@@ -159,7 +159,7 @@ function create(publish: (fleetDocument: FleetDocument) => void, surroundings: F
   const readFleetEvent = (event: Event): void => {
     const fleetEventReading = fleetEventReadingOf('data' in event ? event.data : null);
     if (fleetEventReading === null) return;
-    if (ContractVersionUtil.majorVerdictOf(fleetEventReading.fleetVersion, CONTRACT_VERSIONS.gaiaFleetDocument) === 'known') {
+    if (ContractVersionUtil.majorVerdictOf(fleetEventReading.fleetVersion, PAGE_CONTRACT_VERSIONS.gaiaFleetDocument) === 'known') {
       if (reloadMark.read() !== null) reloadMark.write(null);
       publish(fleetEventReading.fleetDocument as FleetDocument);
       return;

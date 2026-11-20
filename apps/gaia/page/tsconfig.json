@@ -7,17 +7,19 @@
     "types": [],
     "tsBuildInfoFile": "../node_modules/.cache/typecheck/page.tsbuildinfo"
   },
-  // The page's own modules plus exactly the shared files it may reach, named one by one.
+  // The page's own modules, the board's under ./board/ among them, plus exactly the shared files it may reach, named one by one; none
+  // reaches `forge-contracts` (`PageImportDirection.spec.ts`).
   "include": [
     "./**/*.ts",
     "./**/*.tsx",
     "../src/lib/api-paths/ApiPathUtil.ts",
-    "../src/shared/constants/ContractVersions.ts",
     "../src/shared/constants/GaiaSystemVersions.ts",
     "../src/shared/constants/Limits.ts",
+    "../src/shared/constants/PageContractVersions.ts",
     "../src/shared/constants/ProductNames.ts",
     "../src/shared/utils/ContractVersionUtil.ts",
     "../src/shared/utils/SystemVersionUtil.ts"
   ],
-  "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./testing/**"]
+  // The specs, the board's DOM specs and the test-only helpers stay out; the spec project compiles them.
+  "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./**/*.dom.tsx", "./testing/**"]
 }

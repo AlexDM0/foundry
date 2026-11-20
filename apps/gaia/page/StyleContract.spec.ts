@@ -9,15 +9,36 @@
  * `--ease-out`, animates no size or place, and starts from no size or place; an animation is a live signal that runs only once motion is
  * ready and stops under reduced motion, never an entry fade, which is a `@starting-style` transition; Gaia defines no keyframe and names
  * only the package's; and every motion token Gaia reads is zeroed by the package before motion is ready and under reduced motion, or is an
- * exception only a gated animation reads. Each guard is first proved on a planted case, in memory.
+ * exception only a gated animation reads. The board's views under `page/board/` are styled apart, by the stylesheets `BOARD_STYLESHEETS`
+ * lists under `page/styles/board/`, and held by the Bridge's own guards (`page/testing/BoardStyleGuards.ts`): no hover or press that
+ * moves, a winning reduced-motion rule for each animation outside the no-preference query, a dark value for each literal colour token but
+ * one the same in both themes, set once; beside them classes emitted and styled both ways, balanced braces, only defined tokens and no
+ * colour value, the board's text pairs at 4.5:1, no `gaia-` board class and no `board-` Gaia class, and every keyframe named `board-` and
+ * kept in a board stylesheet. Each guard is first proved on a planted case, in memory.
  */
-import { readFileSync }  from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join }                         from 'node:path';
 
 import { describe, expect, test } from 'bun:test';
 import typescript                 from 'typescript';
 
+import {
+  isAnimatedOutsideTheMotionQueries,
+  movementSentencesOf,
+  sameInBothThemesSentencesOf,
+  stylesheetRulesOf,
+  themedColourTokensOf,
+  themeSentencesOf,
+  tokenBlocksOf,
+  unstoppedAnimationSentencesOf,
+  unusedAllowanceSentencesOf,
+  unusedGuaranteeSentencesOf,
+  type AllowedMovement,
+  type StylesheetRule
+} from './testing/BoardStyleGuards.ts';
+
 const PAGE_FOLDER = import.meta.dir;
+const BOARD_FOLDER_NAME = 'board';
 const TOKENS_PATH = join(PAGE_FOLDER, 'styles', 'tokens.css');
 const STYLESHEET_PATH = join(PAGE_FOLDER, 'styles', 'gaia.css');
 const SPLASH_PATH = join(PAGE_FOLDER, '..', 'resources', 'page', 'loading.html');
@@ -590,7 +611,11 @@ interface EmittedClasses {
 }
 
 function isShippingComponent(path: string): boolean {
-  return path.endsWith('.tsx') && !path.endsWith('.spec.tsx') && !path.split('/').includes('testing');
+  return path.endsWith('.tsx') && !path.endsWith('.spec.tsx') && !path.endsWith('.dom.tsx') && !path.split('/').includes('testing');
+}
+
+function isBoardComponent(path: string): boolean {
+  return path.startsWith(`${BOARD_FOLDER_NAME}/`);
 }
 
 function shippingComponentSources(): ComponentSource[] {
@@ -636,11 +661,47 @@ function styledClassesOf(stylesheetText: string): ReadonlySet<string> {
   return new Set(rulesOf(stylesheetText).flatMap((rule) => [...rule.selector.matchAll(/\.(-?[a-zA-Z_][\w-]*)/g)].map(([, className = '']) => className)));
 }
 
-function classContractSentencesOf(emitted: EmittedClasses, styled: ReadonlySet<string>): string[] {
+function classContractSentencesOf(emitted: EmittedClasses, styled: ReadonlySet<string>, stylesheetName = 'gaia.css'): string[] {
   return [
     ...emitted.unreadable.map((site) => `${site} sets a className the scan cannot read: use a literal`),
-    ...[...emitted.classNames].filter((className) => !styled.has(className)).sort().map((className) => `.${className} is emitted but gaia.css does not style it`),
-    ...[...styled].filter((className) => !emitted.classNames.has(className)).sort().map((className) => `.${className} is styled in gaia.css but no component emits it`),
+    ...[...emitted.classNames].filter((className) => !styled.has(className)).sort().map((className) => `.${className} is emitted but ${stylesheetName} does not style it`),
+    ...[...styled].filter((className) => !emitted.classNames.has(className)).sort().map((className) => `.${className} is styled in ${stylesheetName} but no component emits it`),
+  ];
+}
+
+/** The board's stylesheets as listed and as found in their folder must be the same, so no stylesheet escapes the board's guards. */
+function boardStylesheetListSentencesOf(listed: readonly string[], present: readonly string[]): string[] {
+  return [
+    ...present.filter((name) => !listed.includes(name)).map((name) => `styles/board/${name} is not in BOARD_STYLESHEETS`),
+    ...listed.filter((name) => !present.includes(name)).map((name) => `${name} is in BOARD_STYLESHEETS but not in styles/board/`),
+  ];
+}
+
+/** Braces outside comments and strings: none closes before it opens, and none is left open. */
+function braceBalanceSentencesOf(stylesheetName: string, stylesheetText: string): string[] {
+  const text = withoutComments(stylesheetText).replace(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/g, '""');
+  let depth = 0;
+  for (const character of text) {
+    if (character === '{') depth += 1;
+    if (character === '}') depth -= 1;
+    if (depth < 0) return [`${stylesheetName} closes a brace it never opened`];
+  }
+  return depth === 0 ? [] : [`${stylesheetName} leaves ${depth} brace${depth === 1 ? '' : 's'} open`];
+}
+
+/** The board's classes and Gaia's never share a prefix: a board class is no `gaia-`, a Gaia class no `board-`. */
+function classPrefixSentencesOf(boardClasses: ReadonlySet<string>, gaiaClasses: ReadonlySet<string>): string[] {
+  return [
+    ...[...boardClasses].filter((className) => className.startsWith('gaia-')).sort().map((className) => `.${className} is a board class named gaia-`),
+    ...[...gaiaClasses].filter((className) => className.startsWith('board-')).sort().map((className) => `.${className} is a Gaia class named board-`),
+  ];
+}
+
+/** A keyframe of the board's is named `board-` and defined only in a board stylesheet. */
+function boardKeyframeSentencesOf(boardStylesheetTexts: readonly string[], gaiaStylesheetTexts: readonly string[]): string[] {
+  return [
+    ...boardStylesheetTexts.flatMap(keyframeNamesOf).filter((name) => !name.startsWith('board-')).map((name) => `@keyframes ${name} is a board keyframe not named board-`),
+    ...gaiaStylesheetTexts.flatMap(keyframeNamesOf).filter((name) => name.startsWith('board-')).map((name) => `@keyframes ${name} is defined outside the board stylesheets`),
   ];
 }
 
@@ -652,7 +713,8 @@ const TOKENS_TEXT = readFileSync(TOKENS_PATH, 'utf8');
 const LINKED_TOKENS_TEXT = `${PACKAGE_TOKENS_TEXT}\n${TOKENS_TEXT}`;
 const STYLESHEET_TEXT = readFileSync(STYLESHEET_PATH, 'utf8');
 const DEFINED_TOKENS = tokenNamesOf(LINKED_TOKENS_TEXT);
-const SOURCES = shippingComponentSources();
+const SHIPPING_SOURCES = shippingComponentSources();
+const SOURCES = SHIPPING_SOURCES.filter(({ path }) => !isBoardComponent(path));
 const EMITTED = emittedClassesOf(SOURCES);
 const STYLED = styledClassesOf(STYLESHEET_TEXT);
 const PACKAGE_KEYFRAMES_TEXT = readFileSync(join(dirname(PACKAGE_TOKENS_PATH), 'keyframes.css'), 'utf8');
@@ -660,6 +722,45 @@ const PACKAGE_MOTION = packageMotionOf(PACKAGE_TOKENS_TEXT, PACKAGE_KEYFRAMES_TE
 const SPLASH_STYLE_TEXT = /<style>([\s\S]*?)<\/style>/.exec(readFileSync(SPLASH_PATH, 'utf8'))?.[1] ?? '';
 /** Gaia's stylesheets as motion reads them: the page's and the splash's own style. */
 const MOTION_STYLESHEETS = [STYLESHEET_TEXT, SPLASH_STYLE_TEXT] as const;
+
+const BOARD_STYLES_FOLDER = join(PAGE_FOLDER, 'styles', BOARD_FOLDER_NAME);
+const BOARD_TOKENS_FILE_NAME = 'tokens.css';
+/** Every stylesheet of the board, by its name under `page/styles/board/`; the package that moves one in names it here. */
+const BOARD_STYLESHEETS: readonly string[] = [];
+const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];
+const BOARD_STYLESHEET_TEXTS: ReadonlyMap<string, string> = new Map(BOARD_STYLESHEETS
+  .filter((name) => BOARD_STYLESHEETS_PRESENT.includes(name))
+  .map((name) => [name, readFileSync(join(BOARD_STYLES_FOLDER, name), 'utf8')]));
+const BOARD_TOKENS_TEXT = BOARD_STYLESHEET_TEXTS.get(BOARD_TOKENS_FILE_NAME) ?? '';
+const BOARD_RULE_STYLESHEET_TEXTS = [...BOARD_STYLESHEET_TEXTS].filter(([name]) => name !== BOARD_TOKENS_FILE_NAME).map(([, text]) => text);
+const BOARD_DEFINED_TOKENS = tokenNamesOf(`${LINKED_TOKENS_TEXT}\n${BOARD_TOKENS_TEXT}`);
+const BOARD_SOURCES = SHIPPING_SOURCES.filter(({ path }) => isBoardComponent(path));
+const BOARD_EMITTED = emittedClassesOf(BOARD_SOURCES);
+const BOARD_STYLED: ReadonlySet<string> = new Set(BOARD_RULE_STYLESHEET_TEXTS.flatMap((text) => [...styledClassesOf(text)]));
+const BOARD_STYLESHEET_NAME = 'a board stylesheet';
+const BOARD_STYLESHEET_FOLDER_PATH = 'page/styles/board';
+/** The board's rules as the Bridge's guards read them, each named by its path under `apps/gaia/`. */
+const BOARD_RULES: readonly StylesheetRule[] = [...BOARD_STYLESHEET_TEXTS].flatMap(([name, text]) => stylesheetRulesOf(`${BOARD_STYLESHEET_FOLDER_PATH}/${name}`, text));
+/** The package's rules, read beside the board's so a reduce rule of the package's may stop a board animation, as it may the Bridge's. */
+const PACKAGE_FOLDER = dirname(Bun.resolveSync('design-system/package.json', PAGE_FOLDER));
+const PACKAGE_RULES: readonly StylesheetRule[] = [...new Bun.Glob('**/*.css').scanSync({ cwd: PACKAGE_FOLDER })]
+  .filter((path) => !path.split('/').includes('node_modules'))
+  .sort()
+  .flatMap((path) => stylesheetRulesOf(`design-system/${path}`, readFileSync(join(PACKAGE_FOLDER, path), 'utf8')));
+const BOARD_TOKEN_BLOCKS = tokenBlocksOf(BOARD_TOKENS_TEXT);
+/** A hover or press movement of the board's that moves nothing else, with its reason; exact both ways, as the Bridge's `MOVEMENTS_ALLOWED`. */
+const BOARD_MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [];
+/** An ancestor a board reduce selector may name though the animated one does not, as the Bridge's `ANCESTORS_THE_MARKUP_GUARANTEES`. */
+const BOARD_ANCESTORS_THE_MARKUP_GUARANTEES: readonly string[] = [];
+/** The board's colours the same in both themes, set once in the light block, as the Bridge's `SAME_IN_BOTH_THEMES_TOKENS`. */
+const BOARD_SAME_IN_BOTH_THEMES_TOKENS: readonly string[] = [];
+/** The board's text pairs, each at 4.5:1 in both themes; the package that moves a board view in names its pairs here. */
+const BOARD_TEXT_PAIRS: readonly TextPair[] = [];
+
+function boardThemeSentencesOf(tokenBlocks: ReturnType<typeof tokenBlocksOf>, sameInBothThemesTokens: readonly string[]): string[] {
+  const themedTokens = themedColourTokensOf(tokenBlocks).filter((token) => !sameInBothThemesTokens.includes(token));
+  return [...themeSentencesOf(tokenBlocks, themedTokens), ...sameInBothThemesSentencesOf(tokenBlocks, sameInBothThemesTokens)];
+}
 
 describe('the readers, on known and planted values', () => {
   test('white on black is 21:1, and the same colour on itself is 1:1', () => {
@@ -857,10 +958,102 @@ describe('the readers, on known and planted values', () => {
   });
 });
 
+describe('the board\'s guards, on planted stylesheets and components', () => {
+  test('a stylesheet in styles/board/ the list leaves out, and a listed one that is not there, are each named', () => {
+    expect(boardStylesheetListSentencesOf(['kanban.css', 'waves.css'], ['kanban.css', 'tokens.css'])).toEqual([
+      'styles/board/tokens.css is not in BOARD_STYLESHEETS',
+      'waves.css is in BOARD_STYLESHEETS but not in styles/board/',
+    ]);
+  });
+
+  test('a board class emitted but unstyled and one styled but not emitted are each named against the board stylesheets', () => {
+    const emitted = emittedClassesOf([{ path: 'board/kanban/Planted.tsx', text: 'export const view = <p className="board-card board-kept" />;' }]);
+    expect(classContractSentencesOf(emitted, styledClassesOf('.board-kept { gap: 0; } .board-dead { gap: 0; }'), BOARD_STYLESHEET_NAME)).toEqual([
+      '.board-card is emitted but a board stylesheet does not style it',
+      '.board-dead is styled in a board stylesheet but no component emits it',
+    ]);
+  });
+
+  test('a board hover or press rule that moves a box is named, and one that sets a filter, an outline or visibility passes, as on the Bridge', () => {
+    const plantedRules = stylesheetRulesOf('planted.css', [
+      '.board-card:hover { transform: translateY(-1px); }',
+      '.board-card:active { filter: brightness(0.94); color: var(--ink); }',
+      '.board-link:hover { text-underline-offset: 3px; outline: 1px solid var(--line); outline-offset: 2px; visibility: visible; }',
+      '.board-card:active { transform: none; }',
+    ].join('\n'));
+    expect(movementSentencesOf(plantedRules, [])).toEqual(['planted.css: .board-card:hover sets transform, which a :hover or :active rule may not change']);
+    expect(movementSentencesOf(plantedRules, [{ selector: '.board-card:hover', property: 'transform' }])).toEqual([]);
+    expect(unusedAllowanceSentencesOf(plantedRules, [{ selector: '.board-tip:hover', property: 'transform' }]))
+      .toEqual(['.board-tip:hover { transform } is allowed but no rule sets it']);
+  });
+
+  test('an animation no winning reduce rule stops is named; a no-preference one, a stopped one and a presence attribute that reaches pass', () => {
+    const plantedRules = stylesheetRulesOf('planted.css', [
+      '.board-spin { animation-name: board-spin; }',
+      '.board-row[data-status="step"] .board-row-mark { animation: board-pulse 1s infinite; }',
+      '@media (prefers-reduced-motion: no-preference) { .board-dot { animation: board-pulse 1s infinite; } }',
+      '.board-chat-turn[data-presence="arriving"] { animation: board-rise 1s both; }',
+      '@media (prefers-reduced-motion: reduce) {',
+      '  .board-row-mark { animation: none; }',
+      '  .board-chat-turn[data-presence] { animation: none; }',
+      '}',
+    ].join('\n'));
+    expect(unstoppedAnimationSentencesOf(plantedRules)).toEqual([
+      'planted.css: .board-spin sets an animation that no winning prefers-reduced-motion: reduce rule stops',
+      'planted.css: .board-row[data-status="step"] .board-row-mark sets an animation that no winning prefers-reduced-motion: reduce rule stops',
+    ]);
+    expect(plantedRules.filter(isAnimatedOutsideTheMotionQueries)).toHaveLength(3);
+    expect(unusedGuaranteeSentencesOf(plantedRules, ['.board-lanes'])).toEqual(['.board-lanes is a guaranteed ancestor but no reduce rule names it']);
+  });
+
+  test('a brace closed before it opens and one left open are each named, and braces in a comment or a string are not counted', () => {
+    expect(braceBalanceSentencesOf('planted.css', '.a { gap: 0; } }')).toEqual(['planted.css closes a brace it never opened']);
+    expect(braceBalanceSentencesOf('planted.css', '@media (width > 1px) { .a { gap: 0; }')).toEqual(['planted.css leaves 1 brace open']);
+    expect(braceBalanceSentencesOf('planted.css', '/* { */ .a::before { content: "}"; }')).toEqual([]);
+  });
+
+  test('a board token read that no tokens.css defines and a colour value are each named', () => {
+    expect(colourValueSentencesOf('.board-card { color: var(--board-nowhere); background: #fff; border-color: var(--board-edge); }', new Set(['--board-edge']))).toEqual([
+      '.board-card { color } reads --board-nowhere, which no tokens.css defines',
+      '.board-card { background } holds a colour value: #fff',
+    ]);
+  });
+
+  test('a literal board colour without a dark value is named, and one the same in both themes is set once, in the light block', () => {
+    const plantedBlocks = tokenBlocksOf([
+      ':root { --board-lane: oklch(0.9 0 0); --board-edge: #ddd; --board-alias: var(--ink); --board-gap: 4px; --board-eye: #fff; --board-signal: #f80; }',
+      ':root[data-theme="dark"] { --board-edge: #333; --board-signal: #f80; }',
+    ].join('\n'));
+    expect(boardThemeSentencesOf(plantedBlocks, ['--board-eye', '--board-signal'])).toEqual([
+      '--board-lane is a literal in :root and has no value in :root[data-theme="dark"]',
+      '--board-signal is the same in both themes and has a value in :root[data-theme="dark"]',
+    ]);
+  });
+
+  test('a board text pair under 4.5:1 is named, against the board\'s and the linked tokens', () => {
+    const plantedTokens = ':root { --board-faint: #eeeeee; --board-ground: #ffffff; } :root[data-theme="dark"] { --board-faint: #eeeeee; --board-ground: #000000; }';
+    expect(contrastSentencesOf(plantedTokens, [textPair('--board-faint', '--board-ground')])).toEqual(['light: --board-faint on --board-ground is 1.16:1, under 4.5:1']);
+  });
+
+  test('a board class named gaia- and a Gaia class named board- are each named', () => {
+    expect(classPrefixSentencesOf(new Set(['board-card', 'gaia-card']), new Set(['gaia-rail', 'board-rail']))).toEqual([
+      '.gaia-card is a board class named gaia-',
+      '.board-rail is a Gaia class named board-',
+    ]);
+  });
+
+  test('a board keyframe not named board- and a board- keyframe outside the board stylesheets are each named', () => {
+    expect(boardKeyframeSentencesOf(['@keyframes board-pulse { to { opacity: 0; } } @keyframes pulse { to { opacity: 0; } }'], ['@keyframes board-wash { to { opacity: 0; } }']))
+      .toEqual(['@keyframes pulse is a board keyframe not named board-', '@keyframes board-wash is defined outside the board stylesheets']);
+  });
+});
+
 describe('the scan itself', () => {
   test('it reads the shipping components and both stylesheets, and finds a floor of each', () => {
     expect(SOURCES.map(({ path }) => path)).toContain('design-system/Refusal.tsx');
-    expect(SOURCES.some(({ path }) => path.endsWith('.spec.tsx') || path.startsWith('testing/'))).toBe(false);
+    expect(SOURCES.some(({ path }) => path.endsWith('.spec.tsx') || path.endsWith('.dom.tsx') || path.startsWith('testing/'))).toBe(false);
+    expect(SOURCES.some(({ path }) => isBoardComponent(path))).toBe(false);
+    expect(BOARD_SOURCES.every(({ path }) => isBoardComponent(path))).toBe(true);
     expect(EMITTED.classNames.size).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
     expect(STYLED.size).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
     expect(DEFINED_TOKENS.has('--bg')).toBe(true);
@@ -934,5 +1127,55 @@ describe('motion in gaia.css and the splash', () => {
   test('every motion token Gaia reads is zeroed before motion is ready and under reduced motion', () => {
     const reads = motionTokenReadsOf(MOTION_STYLESHEETS, PACKAGE_MOTION);
     expect(motionGateSentencesOf(PACKAGE_TOKENS_TEXT, PACKAGE_MOTION, reads)).toEqual([]);
+  });
+});
+
+describe('the board\'s stylesheets', () => {
+  test('BOARD_STYLESHEETS names exactly the stylesheets in page/styles/board/', () => {
+    expect(boardStylesheetListSentencesOf(BOARD_STYLESHEETS, BOARD_STYLESHEETS_PRESENT)).toEqual([]);
+  });
+
+  test('every class a board component emits is styled in a board stylesheet, and every styled class is emitted', () => {
+    expect(classContractSentencesOf(BOARD_EMITTED, BOARD_STYLED, BOARD_STYLESHEET_NAME)).toEqual([]);
+  });
+
+  test('no :hover or :active rule moves or resizes anything, and every allowed movement is still used', () => {
+    expect(movementSentencesOf(BOARD_RULES, BOARD_MOVEMENTS_ALLOWED)).toEqual([]);
+    expect(unusedAllowanceSentencesOf(BOARD_RULES, BOARD_MOVEMENTS_ALLOWED)).toEqual([]);
+  });
+
+  test('every board animation stops under prefers-reduced-motion: reduce, and every guaranteed ancestor is still used', () => {
+    const boardStylesheetPaths = new Set(BOARD_RULES.map(({ stylesheet }) => stylesheet));
+    const unstopped = unstoppedAnimationSentencesOf([...PACKAGE_RULES, ...BOARD_RULES], BOARD_ANCESTORS_THE_MARKUP_GUARANTEES)
+      .filter((sentence) => boardStylesheetPaths.has(sentence.slice(0, sentence.indexOf(':'))));
+    expect(PACKAGE_RULES.length).toBeGreaterThanOrEqual(SMALLEST_CLASS_COUNT);
+    expect(unstopped).toEqual([]);
+    expect(unusedGuaranteeSentencesOf(BOARD_RULES, BOARD_ANCESTORS_THE_MARKUP_GUARANTEES)).toEqual([]);
+  });
+
+  test('every brace balances', () => {
+    for (const [name, text] of BOARD_STYLESHEET_TEXTS) expect(braceBalanceSentencesOf(name, text)).toEqual([]);
+  });
+
+  test('every token read is defined in the package\'s, Gaia\'s or the board\'s tokens.css, and no colour value stands outside a token', () => {
+    for (const stylesheetText of BOARD_RULE_STYLESHEET_TEXTS) expect(colourValueSentencesOf(stylesheetText, BOARD_DEFINED_TOKENS)).toEqual([]);
+  });
+
+  test('every literal board colour has a light and a dark value, but one the same in both themes, set once in the light block', () => {
+    expect(boardThemeSentencesOf(BOARD_TOKEN_BLOCKS, BOARD_SAME_IN_BOTH_THEMES_TOKENS)).toEqual([]);
+  });
+
+  test('every board text pair reaches 4.5:1 in both themes', () => {
+    expect(contrastSentencesOf(`${LINKED_TOKENS_TEXT}\n${BOARD_TOKENS_TEXT}`, BOARD_TEXT_PAIRS)).toEqual([]);
+  });
+
+  test('no board class is gaia- and no Gaia class is board-', () => {
+    const boardClasses = new Set([...BOARD_EMITTED.classNames, ...BOARD_STYLED]);
+    const gaiaClasses = new Set([...EMITTED.classNames, ...STYLED]);
+    expect(classPrefixSentencesOf(boardClasses, gaiaClasses)).toEqual([]);
+  });
+
+  test('every keyframe of the board is named board- and defined only in a board stylesheet', () => {
+    expect(boardKeyframeSentencesOf([...BOARD_STYLESHEET_TEXTS.values()], MOTION_STYLESHEETS)).toEqual([]);
   });
 });

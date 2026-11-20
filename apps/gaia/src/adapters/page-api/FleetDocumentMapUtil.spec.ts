@@ -14,7 +14,7 @@ import { FLEET_FIVE_FORGES }                                 from '../../../page
 import { FLEET_VERSIONS, FLEET_VERSIONS_STATING_NO_VERSION } from '../../../page/testing/fixtures/fleet-versions.ts';
 import type { FleetSnapshot }                                from '../../shared/@types/FleetSnapshot.ts';
 import type { ForgeBrain }                                   from '../../shared/@types/ForgeBrain.ts';
-import { CONTRACT_VERSIONS }                                 from '../../shared/constants/ContractVersions.ts';
+import { PAGE_CONTRACT_VERSIONS }                            from '../../shared/constants/PageContractVersions.ts';
 
 import { FleetDocumentMapUtil }                                                from './FleetDocumentMapUtil.ts';
 import { FLEET_SNAPSHOT_AT_LIMIT }                                             from './testing/fleet-snapshot-at-limit.ts';
@@ -40,8 +40,8 @@ describe('the fleet document mapper', () => {
   });
 
   test('stamps the fleet contract version it was built for', () => {
-    expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(CONTRACT_VERSIONS.gaiaFleetDocument).toBe(4);
+    expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument);
+    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(4);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {

@@ -1,9 +1,11 @@
 # Contracts
 
 Every versioned contract Gaia reads, writes, sends or serves. Forge and Gaia are released apart and may run at any two versions, so
-they meet only through the model below. The one version Gaia knows of each contract lives once, in `CONTRACT_VERSIONS`
-(`src/shared/constants/ContractVersions.ts`); an Overseer's come from the `forge-contracts` package (`packages/forge-contracts/`),
-which forge produces. The tables below name each with that version, and `src/shared/constants/ContractVersions.reference.spec.ts` fails
+they meet only through the model below. The one version Gaia knows of each contract lives once: in `CONTRACT_VERSIONS`
+(`src/shared/constants/ContractVersions.ts`) for the forge's contracts and Gaia's stored files, an Overseer's from the `forge-contracts`
+package (`packages/forge-contracts/`), which forge produces; and in `PAGE_CONTRACT_VERSIONS` (`src/shared/constants/PageContractVersions.ts`)
+for what Gaia's server serves its page and launcher, which the page reads and which imports nothing. The tables below name each with that
+version, and `src/shared/constants/ContractVersions.reference.spec.ts` fails
 `bun run verify` when a table and its constant disagree. A shape is defined once, in the module the table names; this file does not repeat
 its keys.
 
@@ -90,7 +92,7 @@ changes the endpoint already had.
 Each document, program answer and message channel names the version its key carries, a whole number; each stored file its format
 version, major.minor.
 
-| Key in `CONTRACT_VERSIONS` | Version | Version key | What and where | Gaia | Defined in | Served by |
+| Key in `CONTRACT_VERSIONS` or `PAGE_CONTRACT_VERSIONS` | Version | Version key | What and where | Gaia | Defined in | Served by |
 | --- | --- | --- | --- | --- | --- | --- |
 | `forgeRegistry` | 1.0 | `version`, `minor` | `~/.forge-monitor/projects.json`, the registry every forge of the account writes itself into | reads | `src/adapters/forge-registry/RegistryFile.ts` | the forge; `program` per entry with F9 |
 | `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/v1/identity`; its `contracts` names the version of each contract below that the forge serves | reads | `forge-contracts/IdentityDocument`, `src/adapters/forge-api/IdentityIngestion.ts` | the forge; one without the version key or `contracts` is older than Gaia reads |

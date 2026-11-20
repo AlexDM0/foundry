@@ -25,7 +25,7 @@ import type { FleetSnapshot, GaiaFacts }                 from '../../shared/@typ
 import type { ForgeBrainReading }                        from '../../shared/@types/ForgeBrain.ts';
 import type { ForgeNotice, ForgeReading, ForgeVersions } from '../../shared/@types/ForgeReading.ts';
 import type { GaiaSettings }                             from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS }                             from '../../shared/constants/ContractVersions.ts';
+import { PAGE_CONTRACT_VERSIONS }                        from '../../shared/constants/PageContractVersions.ts';
 import { ForgeSentenceUtil }                             from './ForgeSentenceUtil.ts';
 
 function attentionItemOut(item: AttentionItem): FleetDocumentAttentionItem {
@@ -230,7 +230,7 @@ export const FleetDocumentMapUtil = {
   fleetDocumentOf(snapshot: FleetSnapshot): FleetDocument {
     const { figures, machine } = snapshot;
     return {
-      fleetVersion: CONTRACT_VERSIONS.gaiaFleetDocument,
+      fleetVersion: PAGE_CONTRACT_VERSIONS.gaiaFleetDocument,
       forges:       snapshot.forges.map(forgeOut),
       attention:    snapshot.attention.map((item) => ({ ...attentionItemOut(item), trackerId: item.trackerId })),
       needsALook:   snapshot.needsALook.map((look) => ({ trackerId: look.trackerId, kind: look.kind })),

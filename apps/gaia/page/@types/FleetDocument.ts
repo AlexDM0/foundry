@@ -3,7 +3,7 @@
  * mapped out to this shape at its edge, so a change inside the server reaches the page only through a change here, and one a page of the
  * older shape cannot read through a new `fleetVersion` and a new version of the fleet and events routes.
  */
-import type { CONTRACT_VERSIONS } from '../../src/shared/constants/ContractVersions.ts';
+import type { PAGE_CONTRACT_VERSIONS } from '../../src/shared/constants/PageContractVersions.ts';
 
 /** `newer-contract` and `older-contract`: Gaia reads nothing of the forge; `versions` says why when the forge's system version decided it. */
 export type FleetDocumentFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
@@ -284,7 +284,7 @@ export interface FleetStreamHandshake {
 export type FleetEventDocument = FleetDocument & { systemVersion: FleetDocumentSystemVersion };
 
 export interface FleetDocument {
-  fleetVersion: typeof CONTRACT_VERSIONS.gaiaFleetDocument;
+  fleetVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaFleetDocument;
   forges:       FleetDocumentForge[];
   attention:    FleetDocumentFleetAttentionItem[];
   needsALook:   FleetDocumentLook[];

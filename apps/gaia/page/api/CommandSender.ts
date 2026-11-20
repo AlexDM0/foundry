@@ -7,8 +7,8 @@
 import { createContext, useContext, useSyncExternalStore } from 'react';
 
 import { ApiPathUtil }            from '../../src/lib/api-paths/ApiPathUtil.ts';
-import { CONTRACT_VERSIONS }      from '../../src/shared/constants/ContractVersions.ts';
 import { GAIA_ENDPOINT_VERSIONS } from '../../src/shared/constants/GaiaSystemVersions.ts';
+import { PAGE_CONTRACT_VERSIONS } from '../../src/shared/constants/PageContractVersions.ts';
 import { ContractVersionUtil }    from '../../src/shared/utils/ContractVersionUtil.ts';
 import type {
   CommandAnswerDocument,
@@ -117,7 +117,7 @@ const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion' } as const;
 function answerDocumentOf(body: unknown): CommandAnswerDocument | null {
   if (typeof body !== 'object' || body === null || !Object.hasOwn(body, 'outcome')) return null;
   const { outcome } = body as { readonly outcome: unknown };
-  if (ContractVersionUtil.readMajorOf(body, ANSWER_VERSION_KEYS, CONTRACT_VERSIONS.gaiaCommandAnswer) === null || !COMMAND_OUTCOMES.has(outcome)) return null;
+  if (ContractVersionUtil.readMajorOf(body, ANSWER_VERSION_KEYS, PAGE_CONTRACT_VERSIONS.gaiaCommandAnswer) === null || !COMMAND_OUTCOMES.has(outcome)) return null;
   if (!nullableStringIsIn(body, 'refusal') || !nullableStringIsIn(body, 'text')) return null;
   return body as CommandAnswerDocument;
 }
@@ -154,7 +154,7 @@ function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSu
   };
 
   const post = async (command: CommandBody): Promise<SentCommandResult> => {
-    const commandDocument: CommandDocument = { ...command, commandVersion: CONTRACT_VERSIONS.gaiaCommand };
+    const commandDocument: CommandDocument = { ...command, commandVersion: PAGE_CONTRACT_VERSIONS.gaiaCommand };
     let response: Response;
     try {
       response = await sendRequest(COMMANDS_PATH, {

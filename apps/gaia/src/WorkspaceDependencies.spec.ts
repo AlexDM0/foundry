@@ -84,7 +84,8 @@ describe('the workspace packages Gaia reaches', () => {
     expect(scannedPaths).toContain('page/Main.tsx');
     expect(scannedPaths).toContain(PAGE_INDEX_PATH);
     expect(scannedPaths.length).toBeGreaterThanOrEqual(MINIMUM_SCANNED_SOURCE_COUNT);
-    expect([...workspacePackageNames()]).toEqual(expect.arrayContaining(['design-system', 'brand', 'forge-contracts']));
+    expect([...workspacePackageNames()]).toEqual(expect.arrayContaining(['design-system', 'brand', 'flint', 'forge-contracts']));
+    expect(declaredPackageNames().has('flint')).toBe(true);
     expect(workspacePackageNames().has('gaia')).toBe(false);
   });
 

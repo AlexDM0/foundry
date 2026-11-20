@@ -1,0 +1,13 @@
+/**
+ * The one version Gaia knows of each contract its own server serves its own clients, the page above all and the launcher, which reads
+ * health: each document's integer key. The page reads its versions from here only, so this file imports nothing and the page never reaches
+ * the forge's contracts through it. A new contract of Gaia's page, the board's included, takes its key here; the forge's contracts and the
+ * files Gaia stores stay in `ContractVersions.ts`. `ContractVersionUtil` holds the reading rule.
+ */
+export const PAGE_CONTRACT_VERSIONS = {
+  gaiaFleetDocument: 4,
+  gaiaCommand:       2,
+  gaiaCommandAnswer: 3,
+  gaiaFrameSession:  1,
+  gaiaHealth:        1,
+} as const satisfies Readonly<Record<string, number>>;

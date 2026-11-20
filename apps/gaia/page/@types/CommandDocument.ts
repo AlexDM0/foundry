@@ -2,8 +2,8 @@
  * The page contract of `POST /api/commands` (PLAN 6.3 and 8.2): the one command the page sends per request, and Gaia's answer to it. The
  * server reads the body in through its own ingestion and maps its verdict out to the answer, so the page knows only these two shapes.
  */
-import type { CONTRACT_VERSIONS }     from '../../src/shared/constants/ContractVersions.ts';
-import type { FleetDocumentSettings } from './FleetDocument.ts';
+import type { PAGE_CONTRACT_VERSIONS } from '../../src/shared/constants/PageContractVersions.ts';
+import type { FleetDocumentSettings }  from './FleetDocument.ts';
 
 export type ForgeStopAgents = 'keep' | 'stop-first';
 
@@ -45,7 +45,7 @@ export type CommandKind = CommandBody['kind'];
 
 export type FleetCommandKind = FleetCommandBody['kind'];
 
-export type CommandDocument = CommandBody & { commandVersion: typeof CONTRACT_VERSIONS.gaiaCommand };
+export type CommandDocument = CommandBody & { commandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaCommand };
 
 /** `restart-pending`: a `forge-update` was done, and the forge's Overseer runs the old code until it restarts. */
 export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'refused' | 'unreachable' | 'not-supported';
@@ -55,7 +55,7 @@ export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'ref
  * (D10) and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`.
  */
 export interface CommandAnswerDocument {
-  answerVersion: typeof CONTRACT_VERSIONS.gaiaCommandAnswer;
+  answerVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaCommandAnswer;
   outcome:       CommandOutcome;
   refusal:       string | null;
   text:          string | null;

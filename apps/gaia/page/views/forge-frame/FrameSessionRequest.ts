@@ -4,8 +4,8 @@
  * one-time code comes back only inside the frame's address.
  */
 import { ApiPathUtil }                                          from '../../../src/lib/api-paths/ApiPathUtil.ts';
-import { CONTRACT_VERSIONS }                                    from '../../../src/shared/constants/ContractVersions.ts';
 import { GAIA_ENDPOINT_VERSIONS }                               from '../../../src/shared/constants/GaiaSystemVersions.ts';
+import { PAGE_CONTRACT_VERSIONS }                               from '../../../src/shared/constants/PageContractVersions.ts';
 import { ContractVersionUtil }                                  from '../../../src/shared/utils/ContractVersionUtil.ts';
 import type { FrameSessionAnswerDocument, FrameSessionOutcome } from '../../@types/FrameSessionDocument.ts';
 
@@ -43,7 +43,7 @@ const FRAME_SESSION_VERSION_KEYS = { majorKey: 'frameSessionVersion' } as const;
 /** Gaia's answer at the known `frameSessionVersion`, or `null` for anything else. */
 function answerDocumentOf(body: unknown): FrameSessionAnswerDocument | null {
   if (typeof body !== 'object' || body === null) return null;
-  const versionIsKnown = ContractVersionUtil.readMajorOf(body, FRAME_SESSION_VERSION_KEYS, CONTRACT_VERSIONS.gaiaFrameSession) !== null;
+  const versionIsKnown = ContractVersionUtil.readMajorOf(body, FRAME_SESSION_VERSION_KEYS, PAGE_CONTRACT_VERSIONS.gaiaFrameSession) !== null;
   if (!versionIsKnown || !FRAME_SESSION_OUTCOMES.has(fieldOf(body, 'outcome'))) return null;
   if (!nullableStringIsIn(body, 'frameUrl') || !nullableStringIsIn(body, 'refusal') || !nullableStringIsIn(body, 'text')) return null;
   return body as FrameSessionAnswerDocument;

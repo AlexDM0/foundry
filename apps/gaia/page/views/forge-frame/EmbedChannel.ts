@@ -8,10 +8,10 @@
 import type { BridgeMessage, EmbedChannelEnvelope, FramingPageMessage } from 'forge-contracts/EmbedChannelMessage';
 import type { SystemVersion }                                           from 'system-versions/VersionsDocument';
 
-import { CONTRACT_VERSIONS }   from '../../../src/shared/constants/ContractVersions.ts';
-import { GAIA_SYSTEM_VERSION } from '../../../src/shared/constants/GaiaSystemVersions.ts';
-import { ContractVersionUtil } from '../../../src/shared/utils/ContractVersionUtil.ts';
-import { SystemVersionUtil }   from '../../../src/shared/utils/SystemVersionUtil.ts';
+import { GAIA_SYSTEM_VERSION }           from '../../../src/shared/constants/GaiaSystemVersions.ts';
+import { ContractVersionUtil }           from '../../../src/shared/utils/ContractVersionUtil.ts';
+import { SystemVersionUtil }             from '../../../src/shared/utils/SystemVersionUtil.ts';
+import { KNOWN_FORGE_CONTRACT_VERSIONS } from '../../shared/constants/KnownForgeContractVersions.ts';
 
 export type { BridgeMessage };
 
@@ -65,7 +65,7 @@ function senderSystemVersionOf(data: object): SystemVersion | null | 'malformed'
 /** The Bridge's message at the known channel version, or `null` for anything the channel does not know. */
 function bridgeMessageOf(data: unknown): BridgeMessage | null {
   if (typeof data !== 'object' || data === null) return null;
-  if (fieldOf(data, 'channel') !== CHANNEL_NAME || ContractVersionUtil.readMajorOf(data, CHANNEL_VERSION_KEYS, CONTRACT_VERSIONS.forgeEmbedChannel) === null) return null;
+  if (fieldOf(data, 'channel') !== CHANNEL_NAME || ContractVersionUtil.readMajorOf(data, CHANNEL_VERSION_KEYS, KNOWN_FORGE_CONTRACT_VERSIONS.embed) === null) return null;
   if (senderSystemVersionOf(data) === 'malformed') return null;
   const kind = fieldOf(data, 'kind');
   switch (kind) {
@@ -90,7 +90,7 @@ function messageIsFromTheFrame(event: EmbedMessageEvent, { frameOrigin, frameWin
 function documentOf(message: GaiaMessage): EmbedChannelEnvelope & GaiaMessage {
   return {
     channel:        CHANNEL_NAME,
-    channelVersion: CONTRACT_VERSIONS.forgeEmbedChannel,
+    channelVersion: KNOWN_FORGE_CONTRACT_VERSIONS.embed,
     systemVersion:  GAIA_SYSTEM_VERSION,
     ...message,
   };

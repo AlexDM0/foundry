@@ -20,9 +20,9 @@ import type {
   NotificationSettings,
   ThemeChoice,
 } from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS }   from '../../shared/constants/ContractVersions.ts';
-import { SETTINGS_CHOICES }    from '../../shared/constants/SettingsChoices.ts';
-import { ContractVersionUtil } from '../../shared/utils/ContractVersionUtil.ts';
+import { PAGE_CONTRACT_VERSIONS } from '../../shared/constants/PageContractVersions.ts';
+import { SETTINGS_CHOICES }       from '../../shared/constants/SettingsChoices.ts';
+import { ContractVersionUtil }    from '../../shared/utils/ContractVersionUtil.ts';
 
 /**
  * `other-version`: `commandVersion` is not the known number, `null` when it is absent or no whole number. `unknown-kind`: a kind this
@@ -230,7 +230,7 @@ export class GaiaCommandIngestion {
     if (body === null) return { verdict: 'not-a-json-object' };
     const versionReading = ContractVersionUtil.versionOf(body, VERSION_KEYS);
     const commandVersion = versionReading.verdict === 'versioned' ? versionReading.version.major : null;
-    if (commandVersion === null || ContractVersionUtil.majorVerdictOf(commandVersion, CONTRACT_VERSIONS.gaiaCommand) !== 'known') {
+    if (commandVersion === null || ContractVersionUtil.majorVerdictOf(commandVersion, PAGE_CONTRACT_VERSIONS.gaiaCommand) !== 'known') {
       return { verdict: 'other-version', commandVersion };
     }
     const kind = JsonValueUtil.ownValueOf(body, KIND_KEY);

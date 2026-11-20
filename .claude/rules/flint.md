@@ -14,6 +14,9 @@ paths:
 - `apps/forge/package.json` declares the dependency `"flint": "workspace:^"`, and the Bridge imports Flint only by its
   name, through the entries that `packages/flint/package.json` exports. `apps/forge/src/ImportDirection.spec.ts`
   holds this, and that the package imports no file of an app, by a path or by an app's name.
+- `apps/gaia/package.json` declares the dependency `"flint": "workspace:^"` too. Gaia's page imports Flint only by
+  the names that `packages/flint/package.json` exports, and only from `apps/gaia/page/board/`.
+  `apps/gaia/page/PageImportDirection.spec.ts` holds this. Flint is both apps' until stage 8 folds it into Gaia's page.
 - The package's `bun run typecheck` checks its `tsconfig.json` and its `tsconfig.spec.json`. The project uses only the
   DOM library and no Bun or Node types. `packages/flint/ProjectIncludeList.spec.ts` holds that each `include` list names
   only its own folder.
