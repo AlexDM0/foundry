@@ -1,8 +1,7 @@
 /** The open decisions for User, in opening order, each question with its options lettered as `decide` takes them. Read-only, no lock. */
 import type { Decision }       from '../../src/lib/tracker-model/@types/Decision.ts';
-import { requireProgressFile } from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }    from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
+import { boardReadsOf }        from '../BoardStoreOf.ts';
 import type { CommandHandler } from '../CommandHandler.ts';
 import { OutputUtil }          from '../utils/OutputUtil.ts';
 
@@ -26,7 +25,7 @@ function decisionTextOf(decision: Readonly<Decision>): string {
 export const decisionsCommand: CommandHandler = (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(['json'], USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
-  const decisions = requireProgressFile(requireWorkspace(context.currentDirectory)).decisions ?? [];
+  const decisions = boardReadsOf(context).requireProgress().decisions ?? [];
   const text = decisions.length === 0 ? 'No decision is open.' : decisions.map(decisionTextOf).join('\n\n');
   OutputUtil.printEntity(commandArguments, context, { decisions }, text);
   return Promise.resolve();

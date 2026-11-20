@@ -1,12 +1,11 @@
 import { readingBoardOf }                   from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { BoardSettingsUtil }                from '../../../src/lib/tracker-model/utils/BoardSettingsUtil.ts';
-import { requireProgressFile }              from '../../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                 from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }            from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                 from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                    from '../../../src/shared/constants/ProductNames.ts';
 import { applyCommandOfVerb }               from '../../ApplyCommandOfVerb.ts';
+import { boardReadsOf }                     from '../../BoardStoreOf.ts';
 import type { CommandContext }              from '../../CommandContext.ts';
 import type { CommandHandler }              from '../../CommandHandler.ts';
 import { hatchWhenUnderJob }                from '../../HatchUnderJob.ts';
@@ -31,8 +30,8 @@ function limitFrom(written: string): number {
 }
 
 function printCurrentLimit(commandArguments: ArgumentParser, context: CommandContext): void {
-  // Built over progress.json alone, so a broken log or ticket file does not stop this read.
-  const concurrency = readingBoardOf(requireProgressFile(requireWorkspace(context.currentDirectory)), [], []).concurrency();
+  // Built over the progress record alone, so a broken log or ticket does not stop this read.
+  const concurrency = readingBoardOf(boardReadsOf(context).requireProgress(), [], []).concurrency();
   OutputUtil.printEntity(commandArguments, context, concurrency, String(concurrency.limit));
 }
 

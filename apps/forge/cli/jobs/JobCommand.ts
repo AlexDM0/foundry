@@ -2,20 +2,20 @@
  * `job` and its subcommands: `show` and `attach` read without the lock; `message`, `wind-down`, `stop` and `fresh` each record one control
  * command in a hold, with the Overseer up or down, and the Overseer sends the frames.
  */
-import type { AgentAdapter }                   from '../../src/lib/agent-launch/AgentAdapter.ts';
-import type { AgentSessionEvent }              from '../../src/lib/agent-launch/AgentSessionEvent.ts';
-import type { EventLogEntry }                  from '../../src/lib/talos/EventLog.ts';
-import type { LogRecord }                      from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { FIRST_CHILD_INSTANCE }                from '../../src/lib/tracker-model/constants/JobStates.ts';
-import { jobFolderIn }                         from '../../src/services/overseer/OverseerFiles.ts';
-import { createTalosChildren }                 from '../../src/services/overseer/TalosChildren.ts';
-import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace, type Workspace }    from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommand }                 from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                    from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                 from '../CommandContext.ts';
-import type { CommandHandler }                 from '../CommandHandler.ts';
+import type { AgentAdapter }      from '../../src/lib/agent-launch/AgentAdapter.ts';
+import type { AgentSessionEvent } from '../../src/lib/agent-launch/AgentSessionEvent.ts';
+import type { EventLogEntry }     from '../../src/lib/talos/EventLog.ts';
+import type { LogRecord }         from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import { FIRST_CHILD_INSTANCE }   from '../../src/lib/tracker-model/constants/JobStates.ts';
+import { jobFolderIn }            from '../../src/services/overseer/OverseerFiles.ts';
+import { createTalosChildren }    from '../../src/services/overseer/TalosChildren.ts';
+import type { StoreReadFace }     from '../../src/services/store/BoardStore.ts';
+import type { ControlCommand }    from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }       from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }          from '../../src/shared/constants/ProductNames.ts';
+import { boardStoreOf }           from '../BoardStoreOf.ts';
+import type { CommandContext }    from '../CommandContext.ts';
+import type { CommandHandler }    from '../CommandHandler.ts';
 import {
   incidentOf,
   jobIdOf,
@@ -69,10 +69,10 @@ function newestFinishedChildInstanceOf(logRecords: readonly LogRecord[], jobId: 
   ), FIRST_CHILD_INSTANCE);
 }
 
-function jobRecordOf(workspace: Workspace, jobId: string): { record: Record<string, unknown>; newestInstance: number } {
-  const live = (requireProgressFile(workspace).jobs ?? []).find((job) => job.id === jobId) ?? null;
+function jobRecordOf(reads: StoreReadFace, jobId: string): { record: Record<string, unknown>; newestInstance: number } {
+  const live = (reads.requireProgress().jobs ?? []).find((job) => job.id === jobId) ?? null;
   if (live !== null) return { record: { ...live }, newestInstance: live.childInstance };
-  const logRecords = requireTracker(workspace).storedLog.records;
+  const logRecords = reads.requireBoard().storedLog.records;
   const finished   = finishedJobOf(logRecords, jobId);
   if (finished === null) throw new OperationRefusal('refused', `There is no job ${jobId}.\n  Usage: ${SHOW_USAGE}`);
   return { record: finished, newestInstance: newestFinishedChildInstanceOf(logRecords, jobId) };
@@ -81,9 +81,9 @@ function jobRecordOf(workspace: Workspace, jobId: string): { record: Record<stri
 async function showJob(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['json'], SHOW_USAGE);
   commandArguments.rejectExtraPositionals(2, SHOW_USAGE);
-  const workspace = requireWorkspace(context.currentDirectory);
+  const { workspace, store } = boardStoreOf(context);
   const jobId     = jobIdIn(commandArguments, SHOW_USAGE);
-  const { record } = jobRecordOf(workspace, jobId);
+  const { record } = jobRecordOf(store.reads, jobId);
   const jobFolder = jobFolderIn(workspace.trackerDirectory, jobId);
   const lines = [...Object.entries(record).map(([field, value]) => `${field}: ${typeof value === 'string' ? value : JSON.stringify(value)}`), `files: ${jobFolder}`];
   OutputUtil.printEntity(commandArguments, context, { job: record, jobFolder }, lines.join('\n'));
@@ -119,12 +119,12 @@ function entryLinesOf(adapter: AgentAdapter, instance: number, entries: readonly
 async function attachJob(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['json'], SHOW_USAGE);
   commandArguments.rejectExtraPositionals(2, SHOW_USAGE);
-  const workspace = requireWorkspace(context.currentDirectory);
+  const { workspace, store } = boardStoreOf(context);
   const jobId     = jobIdIn(commandArguments, SHOW_USAGE);
   // A reader: with no connection to Talos it launches, writes and stops nothing.
   const children  = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts: context.platformPorts, connection: () => null });
   const jobFolder = children.jobFolderOf(jobId);
-  let { newestInstance } = jobRecordOf(workspace, jobId);
+  let { newestInstance } = jobRecordOf(store.reads, jobId);
   if (commandArguments.flag('json')) {
     // A script reads one document, so --json replays without following.
     const lines = Array.from({ length: newestInstance }, (_unused, i) => i + 1).flatMap((instance) => {
@@ -144,7 +144,7 @@ async function attachJob(commandArguments: ArgumentParser, context: CommandConte
   for (let instance = 1; instance < newestInstance; instance += 1) printNewEntries(instance);
   printNewEntries(newestInstance);
   for (;;) {
-    const current = (requireProgressFile(workspace).jobs ?? []).find((job) => job.id === jobId);
+    const current = (store.reads.requireProgress().jobs ?? []).find((job) => job.id === jobId);
     if (current === undefined) {
       // Talos may have written its last entries after the previous print, before the job left the board.
       printNewEntries(newestInstance);

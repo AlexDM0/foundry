@@ -2,8 +2,13 @@
  * `status` beside a hold journal. It takes no lock, so it never replays one: a malformed journal is a verdict reported on standard error
  * while both documents still answer, and a readable one leaves every file as it stands.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join }                                    from 'node:path';
+import {
+  existsSync,
+  readFileSync,
+  realpathSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 
 import {
   afterEach,
@@ -43,12 +48,14 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('status beside a hold journal', () => {
-  test('a malformed one is reported on standard error, never thrown, and stays where it is', async () => {
+  test('a malformed one is reported on standard error with its location, never thrown, the board still printed, and stays where it is', async () => {
     writeFileSync(dataFilePath('hold-journal.json'), '{"version":1,"files":[{"path":"../outside.txt","contents":"x"}]}\n');
 
     const context = await statusJson();
 
     expect(context.errorText()).toMatch(/^Hold journal unreadable: \S+\/hold-journal\.json: files\[0\]\.path is not a path inside the data folder\./);
+    const namedLocation = /^Hold journal unreadable: (\S+): /.exec(context.errorText())?.[1] ?? '';
+    expect(realpathSync(namedLocation)).toBe(realpathSync(dataFilePath('hold-journal.json')));
     expect(JSON.parse(context.outputText())).toHaveProperty('concurrency');
     expect(readFileSync(dataFilePath('hold-journal.json'), 'utf8')).toContain('outside.txt');
   });

@@ -5,15 +5,13 @@ import { ensureIgnored }                                  from '../../../src/lib
 import { LocalTimeUtil }                                  from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { CONSTITUTION_FILE_PATH }                         from '../../../src/services/overseer/InstructionFiles.ts';
 import { listTracker }                                    from '../../../src/services/tracker/RepositoryTrackerList.ts';
-import { listTickets }                                    from '../../../src/services/tracker/TicketStore.ts';
-import { createTracker }                                  from '../../../src/services/tracker/TrackerCreation.ts';
-import { requireProgressFile }                            from '../../../src/services/tracker/TrackerReader.ts';
 import { findWorkspace, workspacePathsFor }               from '../../../src/services/tracker/Workspace.ts';
 import { TRACKER_FILES }                                  from '../../../src/services/tracker/constants/TrackerFiles.ts';
 import { BranchNamespaceUtil, branchNamesOf }             from '../../../src/shared/BranchNames.ts';
 import { OperationRefusal }                               from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
 import { JsonTextUtil }                                   from '../../../src/shared/utils/JsonTextUtil.ts';
+import { boardStoreIn }                                   from '../../BoardStoreOf.ts';
 import type { CommandHandler }                            from '../../CommandHandler.ts';
 import { requireGitAtTheFloor }                           from '../../GitVersionFloor.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
@@ -65,7 +63,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   const output = answersInJson ? (_line: string) => undefined : context.standardOutput;
   const printAnswer = (outcome: 'created' | 'refreshed') => {
     if (!answersInJson) return;
-    const { trackerId, project } = requireProgressFile(workspace);
+    const { trackerId, project } = store.reads.requireProgress();
     context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({
       outcome, trackerId, project, root: workspace.rootDirectory
     })));
@@ -80,6 +78,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   const rootOption    = commandArguments.option('root');
   const rootDirectory = initRootDirectoryOf(rootOption, context.currentDirectory);
   const workspace     = workspacePathsFor(rootDirectory);
+  const store         = boardStoreIn(context, workspace);
   const optOutFlags = optOutFlagsGiven((flagName) => commandArguments.flag(flagName));
 
   refuseAnOverrideNamingAnotherDirectory(context.currentDirectory, rootDirectory);
@@ -159,19 +158,19 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
   const ignoreOutcome = ensureIgnored(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME);
   ensureIgnored(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
   const project  = commandArguments.option('project') ?? basename(rootDirectory);
-  const creation = await createTracker(workspace, {
+  const creation = await store.initialise({
     project,
     startedAt: LocalTimeUtil.formatLocalIso(context.now()),
     // The page's localStorage key: `file://` is one origin in Chrome, so two trackers would otherwise share a saved range.
     trackerId,
     ...(branchNamespace === null ? {} : { branchNamespace }),
-  }, context.now, context.platformPorts.processSupervision.processIsGone);
+  });
   if (creation.verdict === 'already-exists') {
     reportTheRefreshOfAnExistingTracker(installedFileTexts);
     return;
   }
   // A ticket file left from a removed tracker is adopted as it stands, so one that will not parse is named.
-  OutputUtil.reportIgnoredTicketFiles(context, listTickets(workspace).unreadable);
+  OutputUtil.reportIgnoredTicketFiles(context, store.reads.listTickets().unreadable);
   writeProgressPageStub(context.platformPorts, workspace);
   await registerWrittenTracker(context, workspace);
 

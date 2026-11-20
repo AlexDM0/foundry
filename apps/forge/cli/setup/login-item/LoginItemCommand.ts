@@ -4,10 +4,10 @@
  */
 import { join, resolve } from 'node:path';
 
-import { requireProgressFile }                from '../../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                   from '../../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                   from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                      from '../../../src/shared/constants/ProductNames.ts';
+import { boardStoreIn }                       from '../../BoardStoreOf.ts';
 import type { CommandHandler }                from '../../CommandHandler.ts';
 import { ProgramAnswerUtil }                  from '../../utils/ProgramAnswerUtil.ts';
 import { autostartFor }                       from '../AutostartFor.ts';
@@ -83,7 +83,7 @@ export const loginItemCommand: CommandHandler = (commandArguments, context) => {
   commandArguments.rejectExtraPositionals(1, USAGE);
   const action = actionOf(commandArguments.positional());
   const workspace = requireWorkspace(resolve(context.currentDirectory, commandArguments.option('repository') ?? '.'));
-  const { trackerId } = requireProgressFile(workspace);
+  const { trackerId } = boardStoreIn(context, workspace).reads.requireProgress();
   const host = processSetupHostOf({
     platform:          context.platform as NodeJS.Platform,
     checkoutDirectory: checkoutDirectoryOfThisProgram(),

@@ -35,6 +35,7 @@ import {
   type RecordedGitStep,
   useRecordedGit
 } from '../src/testing/RecordedGit.ts';
+import { registeredBoardFactsOf } from '../src/testing/RegisteredBoardFacts.ts';
 import {
   createScratchCopyOf,
   createScratchCopyOutsideTheFixedTemporaryFolders,
@@ -80,7 +81,6 @@ interface RegistryEntry {
   project:       string;
   root:          string;
   progressHtml:  string;
-  progressJson:  string;
   gitOrigin:     string | null;
   program:       string;
   registeredAt:  string;
@@ -174,14 +174,13 @@ testWhenGitIsRecorded('A1: init registers one entry keyed by the trackerId, carr
     project:       'Example Agency',
     root:          paths.rootDirectory,
     progressHtml:  paths.htmlFilePath,
-    progressJson:  paths.progressFilePath,
     gitOrigin:     EXAMPLE_ORIGIN,
     program:       '/example/bin/forge',
     registeredAt:  LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastChangedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW),
     lastCommand:   'init',
   });
-  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand']);
+  expect(Object.keys(entry ?? {})).toEqual(['project', 'root', 'progressHtml', 'gitOrigin', 'program', 'registeredAt', 'lastChangedAt', 'lastCommand']);
 });
 
 testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastCommand, keeping registeredAt; no origin is null', async () => {
@@ -210,7 +209,7 @@ testWhenGitIsRecorded('an Overseer key with its token path is added at the overs
     url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW), tokenPath: join(homeDirectory, 'example-token')
   };
   const registration = {
-    workspace:            workspacePathsFor(repositoryDirectory),
+    ...registeredBoardFactsOf(workspacePathsFor(repositoryDirectory)),
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
     temporaryDirectories: [folderOutsideEveryRepository],
     command:              'oversee',
@@ -292,7 +291,7 @@ testWhenGitIsRecorded('A2: a tracker under the system temp folder registers noth
 /** Registers straight through the service, since no spec may write a tracker under `/tmp` or `/var/tmp` themselves. A refused one asks no origin. */
 async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDirectories: readonly string[], stage: RecordedGitStage = []): Promise<string> {
   const outcome = await recordedGit.playStage(stage, async () => registerWithTheMonitor({
-    workspace:     workspacePathsFor(rootDirectory),
+    ...registeredBoardFactsOf(workspacePathsFor(rootDirectory)),
     monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
     temporaryDirectories,
     command:       'log',
@@ -301,6 +300,24 @@ async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDi
   }));
   return outcome.verdict;
 }
+
+testWhenGitIsRecorded('a board whose progress record the store reads as absent or unreadable registers nothing, saying why, and asks git nothing', async () => {
+  const rootDirectory = join(homeDirectory, 'example-repository');
+  const request = {
+    rootDirectory,
+    htmlFilePath:         workspacePathsFor(rootDirectory).htmlFilePath,
+    monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    temporaryDirectories: [folderOutsideEveryRepository],
+    command:              'log',
+    program:              '/example/bin/forge',
+    now:                  () => FIRST_NOW,
+  };
+  const absent = await recordedGit.playStage([], async () => registerWithTheMonitor({ ...request, progress: { verdict: 'absent' } }));
+  expect(absent).toEqual({ verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' });
+  const unreadable = await recordedGit.playStage([], async () => registerWithTheMonitor({ ...request, progress: { verdict: 'unreadable', reason: 'Example reason' } }));
+  expect(unreadable).toEqual({ verdict: 'not-registered-unreadable-tracker', reason: 'Example reason' });
+  expect(existsSync(registryFilePath())).toBe(false);
+});
 
 testWhenGitIsRecorded('A1: a tracker rooted under /tmp registers nothing, named directly or through its resolved path', async () => {
   for (const rootDirectory of [join('/tmp', 'scratch-x'), join(realpathSync('/tmp'), 'scratch-x', 'nested')]) {
@@ -371,7 +388,7 @@ testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive
   expect(Object.keys(entries)).toEqual(['other', trackerId]);
   expect(entries['other']).toEqual({ project: 'Other Example', pinned: true } as unknown as RegistryEntry);
   expect(Object.keys(entries[trackerId] ?? {})).toEqual([
-    'pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'progressJson', 'gitOrigin', 'program', 'lastChangedAt', 'lastCommand',
+    'pinned', 'project', 'registeredAt', 'root', 'progressHtml', 'gitOrigin', 'program', 'lastChangedAt', 'lastCommand',
   ]);
   expect(entries[trackerId]).toMatchObject({ project: 'Example Agency', registeredAt: '2026-01-02T03:04:05+01:00' });
 });

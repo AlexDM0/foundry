@@ -92,56 +92,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     + ' \'../../../src/services/tracker/constants/TrackerFiles.ts\';'
   ]:
     'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
-  'cli/adoption/init/InitCommand.ts: store-internal-import: import { createTracker }                                  from \'../../../src/services/tracker/TrackerCreation.ts\';':
-    'Removed by WP5.9: `init` creates the tracker through the store.',
-  'cli/adoption/init/InitCommand.ts: store-internal-import: import { listTickets }                                    from \'../../../src/services/tracker/TicketStore.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/adoption/init/InitCommand.ts: store-internal-import: import { requireProgressFile }                            from \'../../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/decisions/DecisionsCommand.ts: store-internal-import: import { requireProgressFile } from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/dispatch/concurrency/ConcurrencyCommand.ts: store-internal-import: import { requireProgressFile }              from \'../../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/drafts/DraftCommand.ts: store-internal-import: import { requireTracker }                                          from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/epics/EpicCommand.ts: store-internal-import: import { requireTracker }          from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/gates/GatePipelineVerbs.ts: record-path-name: const reading = PipelineFile.read(pipelineFilePath);':
-    'Removed by WP5.9: `gate list` reads the one judged pipeline through the store.',
-  'cli/gates/GatePipelineVerbs.ts: record-path-name: const { pipelineFilePath } = requireWorkspace(context.currentDirectory);':
-    'Removed by WP5.9: `gate list` reads the one judged pipeline through the store.',
-  [
-  'cli/gates/GatePipelineVerbs.ts: record-path-name: if (reading.verdict === \'malformed\') throw new OperationRefusal(\'refused\', { kind: \'malformed-pipeline\', filePath:'
-    + ' pipelineFilePath, reason: reading.reason });'
-  ]:
-    'Removed by WP5.9: `gate list` reads the one judged pipeline through the store.',
-  [
-  'cli/gates/GatePipelineVerbs.ts: record-path-name: if (reading.verdict === \'older\') throw new OperationRefusal(\'refused\', { kind: \'older-pipeline\', filePath:'
-    + ' pipelineFilePath });'
-  ]:
-    'Removed by WP5.9: `gate list` reads the one judged pipeline through the store.',
-  'cli/gates/GatePipelineVerbs.ts: record-path-name: throw new OperationRefusal(\'refused\', { ...reading.unsupportedEntities, filePath: pipelineFilePath });':
-    'Removed by WP5.9: `gate list` reads the one judged pipeline through the store.',
-  'cli/gates/GatePipelineVerbs.ts: stored-record-read: const reading = PipelineFile.read(pipelineFilePath);':
-    'Removed by WP5.9: `gate list` reads the one judged pipeline through the store.',
-  'cli/incidents/IncidentsCommand.ts: store-internal-import: import { requireProgressFile }            from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/jobs/JobCommand.ts: store-internal-import: import { requireProgressFile, requireTracker } from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/jobs/JobsCommand.ts: store-internal-import: import { requireProgressFile, requireTracker } from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  [
-  'cli/measurement/review-stats/ReviewStatsCommand.ts: store-internal-import: import { requireTracker }                             from'
-    + ' \'../../../src/services/tracker/TrackerReader.ts\';'
-  ]:
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/merges/MergesCommand.ts: store-internal-import: import { requireTracker }      from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  [
-  'cli/overseer/OverseerCommand.ts: store-internal-import: import { requireProgressFile }                                                    from'
-    + ' \'../../src/services/tracker/TrackerReader.ts\';'
-  ]:
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
   [
   'cli/overseer/OverseerFlintBrain.ts: store-internal-import: import { requireProgressFile }                                                                  from'
     + ' \'../../src/services/tracker/TrackerReader.ts\';'
@@ -149,11 +99,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
   'cli/overseer/OverseerForeground.ts: store-internal-import: import { requireProgressFile } from \'../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  [
-  'cli/overseer/StartCommand.ts: store-internal-import: import { requireProgressFile }                                                    from'
-    + ' \'../../src/services/tracker/TrackerReader.ts\';'
-  ]:
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
   'cli/overseer/routes/BoardStateReader.ts: record-path-name: const stored = storedFileTextOf(workspace.pipelineFilePath);':
     'Removed by WP5.10: the board state shows the stored pipeline text from the store.',
   'cli/overseer/routes/BoardStateReader.ts: store-internal-import: import { requireTracker }                            from \'../../../src/services/tracker/TrackerReader.ts\';':
@@ -181,27 +126,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     + ' \'../../../src/services/tracker/TrackerReader.ts\';'
   ]:
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'cli/setup/login-item/LoginItemCommand.ts: store-internal-import: import { requireProgressFile }                from \'../../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/tickets/TicketList.ts: store-internal-import: import { listTickets }          from \'../../src/services/tracker/TicketStore.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/tickets/TicketReadingSubcommands.ts: store-internal-import: import { listTickets, readTicket }          from \'../../src/services/tracker/TicketStore.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/tracking/await/AwaitCommand.ts: store-internal-import: import { requireTracker }                 from \'../../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  [
-  'cli/tracking/namespace/NamespaceCommand.ts: store-internal-import: import { requireProgressFile }                                      from'
-    + ' \'../../../src/services/tracker/TrackerReader.ts\';'
-  ]:
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/tracking/status/StatusCommand.ts: record-path-name: context.standardError(`Hold journal unreadable: ${holdJournalFilePathOf(workspace)}: ${holdJournalReading.reason}. `':
-    'Removed by WP5.9: `status` reads the unfinished write through the store.',
-  'cli/tracking/status/StatusCommand.ts: record-path-name: import { holdJournalFilePathOf, readHoldJournal }       from \'../../../src/services/tracker/HoldJournal.ts\';':
-    'Removed by WP5.9: `status` reads the unfinished write through the store.',
-  'cli/tracking/status/StatusCommand.ts: store-internal-import: import { holdJournalFilePathOf, readHoldJournal }       from \'../../../src/services/tracker/HoldJournal.ts\';':
-    'Removed by WP5.9: `status` reads the unfinished write through the store.',
-  'cli/tracking/status/StatusCommand.ts: store-internal-import: import { requireTracker }                               from \'../../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.9: the CLI reads through the store\'s read side.',
   'src/services/overseer/DrivePass.ts: record-path-name: const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);':
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
   'src/services/overseer/DrivePass.ts: record-path-name: const reading  = PipelineFile.read(request.workspace.pipelineFilePath);':
@@ -229,15 +153,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
   'src/services/overseer/StartGate.ts: store-internal-import: import { requireProgressFile }                               from \'../tracker/TrackerReader.ts\';':
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'src/services/tracker/MonitorRegistration.ts: record-path-name: const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();':
-    'Removed by WP5.9: the registry request carries the root, and an entry holds no `progressJson`.',
-  'src/services/tracker/MonitorRegistration.ts: record-path-name: progressJson: workspace.progressFilePath,':
-    'Removed by WP5.9: the registry request carries the root, and an entry holds no `progressJson`.',
-  [
-  'src/services/tracker/MonitorRegistration.ts: store-internal-import: import { ProgressFileIngestion }                                           from'
-    + ' \'../../adapters/progress/ProgressFileIngestion.ts\';'
-  ]:
-    'Removed by WP5.9: the registry request carries the root, and an entry holds no `progressJson`.',
   [
   'src/services/tracker/RepositoryTrackerList.ts: store-internal-import: import { TRACKER_FILES }                                                      from'
     + ' \'./constants/TrackerFiles.ts\';'

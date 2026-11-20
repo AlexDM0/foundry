@@ -1,10 +1,9 @@
 /** `epic`: the epics a tracker groups its tickets under. `list` and `show` change nothing, so they read without the lock. */
 import type { Board }              from '../../src/lib/tracker-model/Board.ts';
 import { readingBoardOf }          from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { requireTracker }          from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }        from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
+import { boardReadsOf }            from '../BoardStoreOf.ts';
 import type { CommandContext }     from '../CommandContext.ts';
 import type { CommandHandler }     from '../CommandHandler.ts';
 import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
@@ -21,7 +20,7 @@ import { EPIC_USAGE } from './constants/EpicUsage.ts';
 const READING_OPTION_NAMES = ['json'];
 
 function readingBoardFor(context: CommandContext): Board {
-  const { progress, listing, epicListing } = requireTracker(requireWorkspace(context.currentDirectory));
+  const { progress, listing, epicListing } = boardReadsOf(context).requireBoard();
   OutputUtil.reportIgnoredEpicFiles(context, epicListing.unreadable);
   return readingBoardOf(progress, listing.tickets, epicListing.epics);
 }

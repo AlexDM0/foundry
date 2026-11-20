@@ -8,12 +8,12 @@ import { CodeVersion }                                                          
 import { overseerFilesIn, type OverseerFiles }                                    from '../../src/services/overseer/OverseerFiles.ts';
 import type { OverseerPortChoice }                                                from '../../src/services/overseer/OverseerPort.ts';
 import { PresenceStatus }                                                         from '../../src/services/overseer/PresenceStatus.ts';
-import { requireProgressFile }                                                    from '../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }                                                  from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                                       from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                          from '../../src/shared/constants/ProductNames.ts';
 import { applyCommandOfVerb }                                                     from '../ApplyCommandOfVerb.ts';
+import { boardStoreOf }                                                           from '../BoardStoreOf.ts';
 import type { CommandContext }                                                    from '../CommandContext.ts';
 import type { CommandHandler }                                                    from '../CommandHandler.ts';
 import { hatchWhenUnderJob }                                                      from '../HatchUnderJob.ts';
@@ -73,8 +73,8 @@ async function startOverseer(commandArguments: ArgumentParser, invokingContext: 
   // A successor checks the manifest against its own install version as a Baton pass step, so a mismatch is reported as the Baton pass's failure.
   if (successorOf === undefined) requireCurrentInstall(context.currentDirectory);
   requireTheOverseerCanStartIn(context.currentDirectory, context.platformPorts.gateConfinement);
-  const workspace  = requireWorkspace(context.currentDirectory);
-  const portChoice = portChoiceOf(commandArguments, requireProgressFile(workspace).trackerId);
+  const { workspace, store } = boardStoreOf(context);
+  const portChoice = portChoiceOf(commandArguments, store.reads.requireProgress().trackerId);
   if (!commandArguments.flag('detach')) {
     await runOverseerInTheForeground({
       commandArguments, context, workspace, portChoice, startOrigin, ...(successorOf === undefined ? {} : { successorOf })
@@ -148,8 +148,8 @@ function pauseSubcommand(kind: 'overseer-pause' | 'overseer-resume'): RunSubcomm
 async function printOverseerStatus(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['json'], STATUS_USAGE);
   commandArguments.rejectExtraPositionals(1, STATUS_USAGE);
-  const workspace       = requireWorkspace(context.currentDirectory);
-  const storedOverseerState = readingBoardOf(requireProgressFile(workspace), [], []).overseerState();
+  const { workspace, store } = boardStoreOf(context);
+  const storedOverseerState = readingBoardOf(store.reads.requireProgress(), [], []).overseerState();
   const newest          = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
   const codeVersionOnDisk = CodeVersion.onDisk();
   const live            = newest.verdict === 'live' ? newest : null;

@@ -41,6 +41,7 @@ import { lockRetryWaitsDuring }                                                 
 import { nativePlatformPorts }                                                  from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                       from '../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                                              from '../../src/testing/RecordedProcessTable.ts';
+import { registeredBoardFactsOf }                                               from '../../src/testing/RegisteredBoardFacts.ts';
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                                               from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded }                                                 from '../../src/testing/ToolGuard.ts';
@@ -221,7 +222,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
 
   async function registerWedgedOverseer({ workspace, homeDirectory }: ReturnType<typeof plantWedgedOverseer>): Promise<void> {
     await registerWithTheMonitor({
-      workspace,
+      ...registeredBoardFactsOf(workspace),
       monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
       temporaryDirectories: [],
       command:              'oversee',
@@ -278,7 +279,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
   test('the registry writes the presence key in each state, keeps it through a call without one, and a stop writes it stopped', async () => {
     const wedged = plantWedgedOverseer(true);
     const registerPresence = (presence: Parameters<typeof registerWithTheMonitor>[0]['presence']) => registerWithTheMonitor({
-      workspace:            wedged.workspace,
+      ...registeredBoardFactsOf(wedged.workspace),
       monitorFolder:        join(wedged.homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
       temporaryDirectories: [],
       command:              'oversee',

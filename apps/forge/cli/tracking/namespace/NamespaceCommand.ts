@@ -8,13 +8,13 @@ import { Baton }                                                    from '../../
 import { overseerFilesIn }                                          from '../../../src/services/overseer/OverseerFiles.ts';
 import { projectLocationOf }                                        from '../../../src/services/tracker/ProjectLocation.ts';
 import { listTracker, readListedTrackers, repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
-import { requireProgressFile }                                      from '../../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                                         from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }                                    from '../../../src/shared/@types/ControlCommand.ts';
 import { BranchNamespaceUtil, branchNamesOf }                       from '../../../src/shared/BranchNames.ts';
 import { OperationRefusal }                                         from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                            from '../../../src/shared/constants/ProductNames.ts';
 import { applyCommandOfVerb }                                       from '../../ApplyCommandOfVerb.ts';
+import { boardReadsOf, boardStoreIn }                               from '../../BoardStoreOf.ts';
 import type { CommandContext }                                      from '../../CommandContext.ts';
 import type { CommandHandler }                                      from '../../CommandHandler.ts';
 import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
@@ -36,8 +36,8 @@ function namespaceTextOf(branchNamespace: string | null): string {
 }
 
 function printCurrentNamespace(commandArguments: ArgumentParser, context: CommandContext): void {
-  // Built over progress.json alone, so a broken log or ticket file does not stop this read.
-  const branchNamespace = readingBoardOf(requireProgressFile(requireWorkspace(context.currentDirectory)), [], []).branchNamespace();
+  // Built over the progress record alone, so a broken log or ticket does not stop this read.
+  const branchNamespace = readingBoardOf(boardReadsOf(context).requireProgress(), [], []).branchNamespace();
   OutputUtil.printEntity(commandArguments, context, { branchNamespace }, namespaceTextOf(branchNamespace));
 }
 
@@ -58,7 +58,7 @@ function refuseANamespaceAnotherTrackerLists(context: CommandContext, wantedName
     throw new OperationRefusal('refused', `The repository's tracker list ${list.files.trackerListFilePath} could not be read, so the namespace could be `
       + 'another tracker\'s. Nothing was written.');
   }
-  const { trackerId } = requireProgressFile(workspace);
+  const { trackerId } = boardStoreIn(context, workspace).reads.requireProgress();
   const holder = reading.trackers.find((tracker) => tracker.trackerId !== trackerId && tracker.branchNamespace === wantedNamespace);
   if (holder === undefined) return;
   throw new OperationRefusal('refused', `The namespace ${wantedNamespace} is the tracker's in ${holder.prefix === '' ? 'the repository root' : `the folder ${holder.prefix}`} `
@@ -70,7 +70,7 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
   const workspace = requireWorkspace(context.currentDirectory);
   const list      = repositoryTrackerListOf(workspace.rootDirectory);
   if (list === null) return;
-  const { trackerId } = requireProgressFile(workspace);
+  const { trackerId } = boardStoreIn(context, workspace).reads.requireProgress();
   const tracker = { trackerId, prefix: projectLocationOf(workspace.rootDirectory).projectPrefix, branchNamespace };
   const listing = await listTracker(list, tracker, context.now, context.platformPorts.processSupervision.processIsGone);
   if (listing.verdict === 'not-listed') {

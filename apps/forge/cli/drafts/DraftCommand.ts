@@ -2,10 +2,9 @@
 import { DraftDocumentUtil }                                       from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
 import type { Board }                                              from '../../src/lib/tracker-model/Board.ts';
 import { readingBoardOf }                                          from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { requireTracker }                                          from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                                        from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
+import { boardReadsOf }                                            from '../BoardStoreOf.ts';
 import type { CommandContext }                                     from '../CommandContext.ts';
 import type { CommandHandler }                                     from '../CommandHandler.ts';
 import type { ArgumentParser }                                     from '../arguments/ArgumentParser.ts';
@@ -20,7 +19,7 @@ const READING_OPTION_NAMES = ['json'];
 function readingBoardFor(context: CommandContext): Board {
   const {
     progress, listing, epicListing, draftListing
-  } = requireTracker(requireWorkspace(context.currentDirectory));
+  } = boardReadsOf(context).requireBoard();
   OutputUtil.reportIgnoredDraftFiles(context, draftListing.unreadable);
   return readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts);
 }

@@ -3082,7 +3082,6 @@ A file recording another version, holding anything else or unreadable is a misma
       "project": "Example Agency",
       "root": "/Users/alex.example/development/example-agency",
       "progressHtml": "/Users/alex.example/development/example-agency/.forge/progress.html",
-      "progressJson": "/Users/alex.example/development/example-agency/.forge/progress.json",
       "gitOrigin": "git@example.invalid:example/example-agency.git",
       "program": "/Users/alex.example/.bun/bin/forge",
       "registeredAt": "2026-10-21T10:00:00+02:00",
@@ -3100,7 +3099,8 @@ A file recording another version, holding anything else or unreadable is a misma
 ```
 
 The machine-wide registry of every project this machine's program wrote a tracker for, in the home folder, for a monitor
-to find each project's stub and data; a folder, so the monitor can keep its own files beside it.
+to find each project's stub; a board's records are reached through its forge, never by path. A folder, so the monitor
+can keep its own files beside it.
 
 A project registers, its entry added or updated, exactly when the call wrote its tracker: every mutating command,
 `init`, and the Overseer at its start. `update` never writes the tracker, so it never registers; neither does a
@@ -3112,7 +3112,7 @@ symlinks (`/tmp` to `/private/tmp` on macOS). On Windows the system temp folder 
 the registry stays.
 
 An entry is keyed by the tracker's `trackerId`, so a moved or renamed folder updates its one entry. It holds the board's
-`project` name, the `root` folder, the absolute paths of `progressHtml` and `progressJson`, `gitOrigin` (the `origin`
+`project` name, the `root` folder, the absolute path of `progressHtml`, `gitOrigin` (the `origin`
 remote's URL, or `null`), `program` (the absolute path of the program that last wrote the entry: the compiled launcher
 when one started it, else the entry point), `registeredAt` (the first registration, kept), `lastChangedAt` (this write)
 and `lastCommand` (the verb that wrote, the command word and its subcommand), and, while an Overseer serves the board,

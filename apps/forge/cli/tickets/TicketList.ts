@@ -10,8 +10,7 @@ import type {
 import { TicketDefaultsUtil }   from '../../src/lib/tracker-model/utils/TicketDefaultsUtil.ts';
 import { TicketDependencyUtil } from '../../src/lib/tracker-model/utils/TicketDependencyUtil.ts';
 import { VocabularyUtil }       from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
-import { listTickets }          from '../../src/services/tracker/TicketStore.ts';
-import { requireWorkspace }     from '../../src/services/tracker/Workspace.ts';
+import { boardReadsOf }         from '../BoardStoreOf.ts';
 import type { CommandContext }  from '../CommandContext.ts';
 import type { ArgumentParser }  from '../arguments/ArgumentParser.ts';
 import { OutputUtil }           from '../utils/OutputUtil.ts';
@@ -76,7 +75,7 @@ export async function listAllTickets(commandArguments: ArgumentParser, context: 
   const listedStatus    = listedStatusFrom(commandArguments.option('status'));
   const writtenPriority = TicketArgumentUtil.priorityFrom(commandArguments.option('priority'));
 
-  const listing = listTickets(requireWorkspace(context.currentDirectory));
+  const listing = boardReadsOf(context).listTickets();
   const shown   = listing.tickets
     .filter((ticket) => listedStatus === undefined || ticket.frontmatter.status === listedStatus)
     .filter((ticket) => writtenPriority === undefined || TicketDefaultsUtil.ticketPriorityOf(ticket.frontmatter) === writtenPriority);

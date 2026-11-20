@@ -13,12 +13,12 @@ import type {
 } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
 import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';
-import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommand }                            from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
 import { applyCommandOfVerb }                             from '../ApplyCommandOfVerb.ts';
+import { boardReadsOf }                                   from '../BoardStoreOf.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
 import { refuseUsage }                                    from '../RecordedIncidentMove.ts';
@@ -214,17 +214,18 @@ function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
   return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval, ...reach].join('\n');
 }
 
-/** Takes no lock and writes nothing; a malformed or older file is refused, since nothing could be listed from it. */
+/** Takes no lock and writes nothing; a pipeline the store judges malformed, older or out of place is refused, since nothing could be listed from it. */
 export function listPipeline(commandArguments: ArgumentParser, context: CommandContext): void {
   commandArguments.rejectUnknownOptions(['json'], GATE_PIPELINE_USAGE.list);
   commandArguments.rejectExtraPositionals(1, GATE_PIPELINE_USAGE.list);
-  const { pipelineFilePath } = requireWorkspace(context.currentDirectory);
-  const reading = PipelineFile.read(pipelineFilePath);
+  const reads            = boardReadsOf(context);
+  const reading          = reads.readPipeline();
+  const pipelineLocation = reads.locationOf({ record: 'pipeline' });
   if (reading.verdict === 'malformed' && reading.unsupportedEntities !== undefined) {
-    throw new OperationRefusal('refused', { ...reading.unsupportedEntities, filePath: pipelineFilePath });
+    throw new OperationRefusal('refused', { ...reading.unsupportedEntities, filePath: pipelineLocation });
   }
-  if (reading.verdict === 'malformed') throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: pipelineFilePath, reason: reading.reason });
-  if (reading.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath: pipelineFilePath });
+  if (reading.verdict === 'malformed') throw new OperationRefusal('refused', { kind: 'malformed-pipeline', filePath: pipelineLocation, reason: reading.reason });
+  if (reading.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath: pipelineLocation });
   const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
   const entity = {
     pipelineIsSet: pipeline !== null,

@@ -1,13 +1,12 @@
 /** One screen of the board's live jobs, one line each, then a footer of the Overseer and what is open for User. Read-only, no lock. */
-import { readingBoardOf }                      from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { Baton }                               from '../../src/services/overseer/Baton.ts';
-import { IncidentRouter }                      from '../../src/services/overseer/IncidentRouter.ts';
-import { overseerFilesIn }                     from '../../src/services/overseer/OverseerFiles.ts';
-import { requireProgressFile, requireTracker } from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                    from '../../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
-import type { CommandHandler }                 from '../CommandHandler.ts';
-import { OutputUtil }                          from '../utils/OutputUtil.ts';
+import { readingBoardOf }      from '../../src/lib/tracker-model/ReadingBoard.ts';
+import { Baton }               from '../../src/services/overseer/Baton.ts';
+import { IncidentRouter }      from '../../src/services/overseer/IncidentRouter.ts';
+import { overseerFilesIn }     from '../../src/services/overseer/OverseerFiles.ts';
+import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
+import { boardStoreOf }        from '../BoardStoreOf.ts';
+import type { CommandHandler } from '../CommandHandler.ts';
+import { OutputUtil }          from '../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} jobs [--json]`;
 
@@ -18,8 +17,8 @@ const STATE_COLUMN_WIDTH  = 19;
 export const jobsCommand: CommandHandler = (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(['json'], USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
-  const workspace = requireWorkspace(context.currentDirectory);
-  const progress  = requireProgressFile(workspace);
+  const { workspace, store } = boardStoreOf(context);
+  const progress  = store.reads.requireProgress();
   const board     = readingBoardOf(progress, [], []);
   const jobs      = progress.jobs ?? [];
   const baton     = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
@@ -31,7 +30,7 @@ export const jobsCommand: CommandHandler = (commandArguments, context) => {
     limit:              concurrency.limit,
     openDecisions:      (progress.decisions ?? []).length,
     openIncidents:      (progress.incidents ?? []).length,
-    defaultedIncidents: IncidentRouter.defaultedIncidentsOf(requireTracker(workspace).storedLog.records),
+    defaultedIncidents: IncidentRouter.defaultedIncidentsOf(store.reads.requireBoard().storedLog.records),
   };
   const warningLines = footer.defaultedIncidents.map(({
     incidentId, move, cause, at

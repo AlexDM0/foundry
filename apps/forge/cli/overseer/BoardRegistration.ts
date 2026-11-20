@@ -5,18 +5,13 @@
 import { type MonitorRegistrationRequest, registerWithTheMonitor } from '../../src/services/tracker/MonitorRegistration.ts';
 import type { Workspace }                                          from '../../src/services/tracker/Workspace.ts';
 import type { CommandContext }                                     from '../CommandContext.ts';
+import { monitorRegistrationRequestOf }                            from '../RegisterWrittenTracker.ts';
 
 export type BoardRegistration = Pick<MonitorRegistrationRequest, 'overseer' | 'presence'>;
 
 export async function registerTheBoard(context: CommandContext, workspace: Workspace, { overseer, presence }: BoardRegistration): Promise<void> {
   await registerWithTheMonitor({
-    workspace,
-    monitorFolder:        context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory),
-    temporaryDirectories: context.temporaryDirectories,
-    command:              context.commandVerb,
-    program:              context.programPath,
-    now:                  context.now,
-    lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
+    ...monitorRegistrationRequestOf(context, workspace),
     ...(overseer === undefined ? {} : { overseer }),
     ...(presence === undefined ? {} : { presence }),
   });

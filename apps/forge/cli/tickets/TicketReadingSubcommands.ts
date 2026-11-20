@@ -1,25 +1,28 @@
-import { TicketJsonUtil }                   from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { Ticket, TicketStatus }        from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { TicketBodyHashUtil }               from '../../src/lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { TicketDefaultsUtil }               from '../../src/lib/tracker-model/utils/TicketDefaultsUtil.ts';
-import { listTickets, readTicket }          from '../../src/services/tracker/TicketStore.ts';
-import { requireWorkspace, type Workspace } from '../../src/services/tracker/Workspace.ts';
-import { OperationRefusal }                 from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                    from '../../src/shared/constants/ProductNames.ts';
-import { TIMESTAMP_SLICES }                 from '../../src/shared/constants/TimestampSlices.ts';
-import type { CommandContext }              from '../CommandContext.ts';
-import type { ArgumentParser }              from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                       from '../utils/OutputUtil.ts';
-import type { TicketSubcommandHandler }     from './@types/TicketSubcommandHandler.ts';
-import { listAllTickets }                   from './TicketList.ts';
-import { TICKET_USAGE }                     from './constants/TicketUsage.ts';
-import { TicketLookupUtil }                 from './utils/TicketLookupUtil.ts';
+import { TicketJsonUtil }               from '../../src/adapters/utils/TicketJsonUtil.ts';
+import type { Ticket, TicketStatus }    from '../../src/lib/tracker-model/@types/Ticket.ts';
+import { TicketBodyHashUtil }           from '../../src/lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { TicketDefaultsUtil }           from '../../src/lib/tracker-model/utils/TicketDefaultsUtil.ts';
+import { TicketIdUtil }                 from '../../src/lib/tracker-model/utils/TicketIdUtil.ts';
+import type { TicketListing }           from '../../src/services/tracker/@types/BoardRecords.ts';
+import { OperationRefusal }             from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                from '../../src/shared/constants/ProductNames.ts';
+import { TIMESTAMP_SLICES }             from '../../src/shared/constants/TimestampSlices.ts';
+import { boardReadsOf }                 from '../BoardStoreOf.ts';
+import type { CommandContext }          from '../CommandContext.ts';
+import type { ArgumentParser }          from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                   from '../utils/OutputUtil.ts';
+import type { TicketSubcommandHandler } from './@types/TicketSubcommandHandler.ts';
+import { listAllTickets }               from './TicketList.ts';
+import { TICKET_USAGE }                 from './constants/TicketUsage.ts';
+import { TicketLookupUtil }             from './utils/TicketLookupUtil.ts';
 
 const SHOW_OPTION_NAMES = ['json'];
 
-/** `ticket show` changes nothing, so it reads the ticket files as they are, with no lock and no Board. */
-function requireTicketToShow(workspace: Workspace, reference: string): Ticket {
-  return readTicket(workspace, reference) ?? TicketLookupUtil.refuseAMissingTicket(reference, listTickets(workspace).unreadable);
+/** `ticket show` changes nothing, so it reads the tickets as they are, with no lock and no Board; found by frontmatter `id`, never by storage. */
+function requireTicketToShow(listing: TicketListing, reference: string): Ticket {
+  const identifier = TicketIdUtil.parseTicketReference(reference);
+  const ticket     = identifier === null ? undefined : listing.tickets.find((candidate) => candidate.frontmatter.id === identifier);
+  return ticket ?? TicketLookupUtil.refuseAMissingTicket(reference, listing.unreadable);
 }
 
 function stampText(stamp: string): string {
@@ -60,9 +63,9 @@ async function showOneTicket(commandArguments: ArgumentParser, context: CommandC
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket show needs a ticket id.\n  Usage: ${TICKET_USAGE}`);
   }
 
-  const workspace  = requireWorkspace(context.currentDirectory);
-  const ticket     = requireTicketToShow(workspace, reference);
-  const statusById = new Map(listTickets(workspace).tickets.map((candidate) => [candidate.frontmatter.id, candidate.frontmatter.status]));
+  const listing    = boardReadsOf(context).listTickets();
+  const ticket     = requireTicketToShow(listing, reference);
+  const statusById = new Map(listing.tickets.map((candidate) => [candidate.frontmatter.id, candidate.frontmatter.status]));
   OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(ticket), `${summaryOf(ticket, statusById)}\n\n${ticket.body}`);
 }
 

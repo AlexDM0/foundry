@@ -5,10 +5,9 @@
  */
 import { Baton }                                                                  from '../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                        from '../../src/services/overseer/OverseerFiles.ts';
-import { requireProgressFile }                                                    from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                                                       from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                       from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                          from '../../src/shared/constants/ProductNames.ts';
+import { boardStoreOf }                                                           from '../BoardStoreOf.ts';
 import type { CommandHandler }                                                    from '../CommandHandler.ts';
 import { requireCurrentInstall }                                                  from '../InstallVersionCheck.ts';
 import { ProgramAnswerUtil }                                                      from '../utils/ProgramAnswerUtil.ts';
@@ -40,9 +39,9 @@ export const startCommand: CommandHandler = async (commandArguments, invokingCon
   const startOrigin = startOriginIn(commandArguments, USAGE);
   const context = startContextOf(commandArguments, invokingContext);
   requireCurrentInstall(context.currentDirectory);
-  const workspace = requireWorkspace(context.currentDirectory);
+  const { workspace, store } = boardStoreOf(context);
   const files = overseerFilesIn(workspace.trackerDirectory);
-  const { trackerId } = requireProgressFile(workspace);
+  const { trackerId } = store.reads.requireProgress();
   const started = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory).verdict !== 'live';
   if (started) {
     requireTheOverseerCanStartIn(workspace.rootDirectory, context.platformPorts.gateConfinement);

@@ -3,11 +3,9 @@ import { LocalTimeUtil }                                from '../../../src/lib/l
 import { readingBoardOf }                               from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { overseerFilesIn }                              from '../../../src/services/overseer/OverseerFiles.ts';
 import { PresenceStatus }                               from '../../../src/services/overseer/PresenceStatus.ts';
-import { holdJournalFilePathOf, readHoldJournal }       from '../../../src/services/tracker/HoldJournal.ts';
-import { requireTracker }                               from '../../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }                             from '../../../src/services/tracker/Workspace.ts';
 import type { WordedLogEntry }                          from '../../../src/shared/@types/WordedLogEntry.ts';
 import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
+import { boardStoreOf }                                 from '../../BoardStoreOf.ts';
 import type { CommandHandler }                          from '../../CommandHandler.ts';
 import { fullDocumentOf, workingDocumentOf }            from '../../StatusDocuments.ts';
 import { NextLineUtil }                                 from '../../utils/NextLineUtil.ts';
@@ -40,10 +38,10 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   commandArguments.rejectUnknownOptions(KNOWN_OPTION_NAMES, USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
 
-  const workspace = requireWorkspace(context.currentDirectory);
-  const holdJournalReading = readHoldJournal(workspace);
-  if (holdJournalReading.verdict === 'malformed') {
-    context.standardError(`Hold journal unreadable: ${holdJournalFilePathOf(workspace)}: ${holdJournalReading.reason}. `
+  const { workspace, store } = boardStoreOf(context);
+  const unfinishedWrite = store.reads.readUnfinishedWrite();
+  if (unfinishedWrite.verdict === 'malformed') {
+    context.standardError(`Hold journal unreadable: ${unfinishedWrite.location}: ${unfinishedWrite.reason}. `
       + 'Every write refuses until it is repaired or removed.');
   }
   if (PresenceStatus.forgeIsOffAfterACrash({ ports: context.platformPorts, files: overseerFilesIn(workspace.trackerDirectory), workspace })) {
@@ -51,7 +49,7 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   }
   const {
     progress, pipelineReading, storedLog, listing, epicListing, draftListing
-  } = requireTracker(workspace);
+  } = store.reads.requireBoard();
   const wordedLog       = storedLog.records.map(LogUtil.wordedEntryOf);
   const logNewestFirst  = logNewestFirstOf(wordedLog);
   const board           = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records);

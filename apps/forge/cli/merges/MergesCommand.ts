@@ -6,9 +6,8 @@ import type { LogRecord }      from '../../src/lib/tracker-model/@types/LogRecor
 import { MERGE_PRIORITY_RANK } from '../../src/lib/tracker-model/AirlockClaims.ts';
 import type { Board }          from '../../src/lib/tracker-model/Board.ts';
 import { readingBoardOf }      from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { requireTracker }      from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }    from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
+import { boardReadsOf }        from '../BoardStoreOf.ts';
 import type { CommandHandler } from '../CommandHandler.ts';
 import { OutputUtil }          from '../utils/OutputUtil.ts';
 
@@ -89,10 +88,9 @@ function mergesTextOf(report: MergesReport): string {
 export const mergesCommand: CommandHandler = (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(['json'], USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
-  const workspace = requireWorkspace(context.currentDirectory);
   const {
     progress, storedLog, listing, epicListing, draftListing, pipelineReading
-  } = requireTracker(workspace);
+  } = boardReadsOf(context).requireBoard();
   OutputUtil.reportIgnoredTicketFiles(context, listing.unreadable);
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const board    = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);

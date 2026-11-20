@@ -4,10 +4,9 @@
  */
 import { type PlatformWatch, QuietWatch } from '../../../src/lib/quiet-watch/QuietWatch.ts';
 import type { LogRecord }                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
-import { requireTracker }                 from '../../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace }               from '../../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }               from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                  from '../../../src/shared/constants/ProductNames.ts';
+import { boardStoreOf }                   from '../../BoardStoreOf.ts';
 import type { CommandHandler }            from '../../CommandHandler.ts';
 import { OutputUtil }                     from '../../utils/OutputUtil.ts';
 
@@ -54,13 +53,13 @@ export function changeOrSweep(folderPath: string, platformWatch?: PlatformWatch)
 export const awaitCommand: CommandHandler = async (commandArguments, context) => {
   commandArguments.rejectUnknownOptions(['json', 'after'], USAGE);
   commandArguments.rejectExtraPositionals(0, USAGE);
-  const workspace = requireWorkspace(context.currentDirectory);
-  const after     = afterPositionOf(commandArguments.option('after'), requireTracker(workspace).storedLog.records.length);
+  const { workspace, store } = boardStoreOf(context);
+  const after     = afterPositionOf(commandArguments.option('after'), store.reads.requireBoard().storedLog.records.length);
   let stopped     = false;
   const forget    = context.onStopSignal(() => { stopped = true; });
   try {
     while (!stopped) {
-      const { records } = requireTracker(workspace).storedLog;
+      const { records } = store.reads.requireBoard().storedLog;
       const woken   = wakingRecordsAfter(records, after);
       if (woken.length > 0) {
         const report = { after, position: records.length, records: woken };

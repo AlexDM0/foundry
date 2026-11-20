@@ -77,6 +77,7 @@ import { PlantedChild }                                             from '../../
 import { stopProcessesReachingInto }                                from '../../testing/ProcessesInFolder.ts';
 import { useRecordedGit }                                           from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH }     from '../../testing/RecordedGitFlow.ts';
+import { registeredBoardFactsOf }                                   from '../../testing/RegisteredBoardFacts.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { childFilesIn, talosChildReadingsWith }                     from '../../testing/TalosChildReadings.ts';
 import { testWhenTheFakeAgentOutageIsRecorded }                     from '../../testing/ToolGuard.ts';
@@ -448,7 +449,7 @@ function forgeFiles(): OverseerFiles {
 /** The registry write the foreground makes through `cli/overseer/BoardRegistration.ts`, into the case's monitor folder. */
 async function registerTheForge(presence: Parameters<typeof registerWithTheMonitor>[0]['presence']): Promise<void> {
   await registerWithTheMonitor({
-    workspace:            sessionWorkspace,
+    ...registeredBoardFactsOf(sessionWorkspace),
     monitorFolder,
     temporaryDirectories: [],
     command:              'oversee',

@@ -1,6 +1,6 @@
 /**
  * Records a tracker whose page this call wrote in the machine-wide registry `~/.agent-progress-monitor/projects.json`, which a monitor
- * reads to find every project's page and data. It never fails the command: every way it does not register comes back as a verdict.
+ * reads to find every project's root and page. It never fails the command: every way it does not register comes back as a verdict.
  */
 import { mkdirSync, realpathSync } from 'node:fs';
 import {
@@ -13,18 +13,26 @@ import {
 } from 'node:path';
 
 import { storedFileTextOf }                                                from '../../adapters/StoredFileText.ts';
-import { ProgressFileIngestion }                                           from '../../adapters/progress/ProgressFileIngestion.ts';
 import { writeFileAtomically }                                             from '../../lib/atomic-file/AtomicFile.ts';
 import { GitProcess }                                                      from '../../lib/git/GitProcess.ts';
 import { LocalTimeUtil }                                                   from '../../lib/local-time/LocalTimeUtil.ts';
 import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape }   from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
 import { refusalIsOperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from './GenerationLock.ts';
-import type { Workspace }                                                  from './Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                          from './constants/MonitorRegistryFiles.ts';
 
+/** The board's progress record as the caller read it through the store: the registry names the board by it. */
+export type ProgressRegistrationReading =
+  | { verdict: 'readable'; trackerId: string; project: string }
+  | { verdict: 'absent' }
+  | { verdict: 'unreadable'; reason: string };
+
 export interface MonitorRegistrationRequest {
-  workspace:            Workspace;
+  /** The repository folder the board governs. */
+  rootDirectory:        string;
+  /** The board's page, which a monitor opens. */
+  htmlFilePath:         string;
+  progress:             ProgressRegistrationReading;
   /** The registry's folder, as the platform's `DataFolders.monitorFolderOf` answers it for the home folder. */
   monitorFolder:        string;
   /** Every temp folder of the machine: a tracker under any of them is a scratch one nobody monitors. */
@@ -157,23 +165,22 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    workspace, monitorFolder, temporaryDirectories, command, program, now, overseer, presence, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
+    rootDirectory, htmlFilePath, progress, monitorFolder, temporaryDirectories, command, program, now, overseer, presence,
+    lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
   } = request;
-  if (trackerLiesInATemporaryFolder(workspace.rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
-  const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();
-  if (progressReading.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
-  if (progressReading.verdict === 'unreadable') return { verdict: 'not-registered-unreadable-tracker', reason: progressReading.reason };
+  if (trackerLiesInATemporaryFolder(rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
+  if (progress.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
+  if (progress.verdict === 'unreadable') return { verdict: 'not-registered-unreadable-tracker', reason: progress.reason };
 
   const registryFilePath = join(monitorFolder, MONITOR_REGISTRY_FILES.REGISTRY_FILE_NAME);
   const registration: Registration = {
     registryFilePath,
-    trackerId:      progressReading.progress.trackerId,
+    trackerId:      progress.trackerId,
     locationFields: {
-      project:      progressReading.progress.project,
-      root:         workspace.rootDirectory,
-      progressHtml: workspace.htmlFilePath,
-      progressJson: workspace.progressFilePath,
-      gitOrigin:    gitOriginOf(workspace.rootDirectory),
+      project:      progress.project,
+      root:         rootDirectory,
+      progressHtml: htmlFilePath,
+      gitOrigin:    gitOriginOf(rootDirectory),
       program,
     },
     changedAt: LocalTimeUtil.formatLocalIso(now()),
