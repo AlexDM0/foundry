@@ -18,6 +18,9 @@ export const TICKET_STATUSES_USER_READIES: readonly TicketStatus[] = ['draft', '
 /** No agent has claimed a ticket in one of these, so a change cannot reach work under way. */
 export const TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP: readonly TicketStatus[] = ['draft', 'ready-for-review', 'committed'];
 
+/** A ticket's title and body are fixed from committed onward, since an agent may pick it up at any moment. */
+export const TICKET_STATUSES_WITH_EDITABLE_CONTENT: readonly TicketStatus[] = ['draft', 'ready-for-review'];
+
 /** Abandoned is left out on purpose: the work a dependent ticket waited for never happened. */
 export const TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY: readonly TicketStatus[] = ['reviewed', 'delivered'];
 

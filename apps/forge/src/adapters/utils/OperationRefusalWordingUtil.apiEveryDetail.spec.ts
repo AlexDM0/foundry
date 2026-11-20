@@ -73,7 +73,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
     reason: 'size-unchanged', ticketId: '004', status: 'committed', size: 'M'
   },
   'lowering-a-ticket-that-is-not-committed': { reason: 'lowering-a-ticket-that-is-not-committed', ticketId: '004', status: 'in-progress' },
-  'edit-of-a-ticket-past-committed':         { reason: 'edit-of-a-ticket-past-committed', ticketId: '004', status: 'in-progress' },
+  'content-of-a-committed-ticket':           { reason: 'content-of-a-committed-ticket', ticketId: '004', status: 'in-progress' },
   'network-of-a-ticket-past-committed':      { reason: 'network-of-a-ticket-past-committed', ticketId: '004', status: 'in-progress' },
   'network-domain-not-public':               { reason: 'network-domain-not-public', ticketId: '004', domains: ['localhost'] },
   'network-unchanged':                       { reason: 'network-unchanged', ticketId: '004', domains: ['example.com'] },

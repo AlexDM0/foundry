@@ -1506,6 +1506,10 @@ export class Board {
     return this.ticketEdits.editTicket(ticketId, edit, at);
   }
 
+  restoreKeptTicketContent(ticketId: string, at: string): Logged {
+    return this.ticketEdits.restoreKeptContent(ticketId, at);
+  }
+
   clearTracker(request: { ticketsSurvive: boolean }, at: string): TrackerCleared {
     return this.trackerChanges.clearTracker(request, at);
   }

@@ -279,7 +279,7 @@ describe('intake', () => {
     expect(board.jobById('J1')?.state).toBe(jobStateBefore);
     expect(board.tickets()[0]?.frontmatter.status).toBe('draft');
 
-    board.editTicket('004', { body: { text: COMPLETE_BODY, appends: false }, allowsPastCommitted: false }, AT);
+    board.editTicket('004', { body: { text: COMPLETE_BODY, appends: false }, writtenBy: 'command' }, AT);
     expect(loggedKindsOf(apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] }))).toContain('ticket-submitted-for-review');
     expect(board.tickets()[0]?.frontmatter.status).toBe('ready-for-review');
   });

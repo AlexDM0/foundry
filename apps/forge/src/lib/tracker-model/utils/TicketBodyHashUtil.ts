@@ -1,9 +1,7 @@
 /**
- * The content hash a claim records of a ticket's body, so whether the builder saw the latest body is a hash comparison, never a clock. The
- * hash is 64-bit FNV-1a over the body's UTF-8 bytes, computed in plain script because the page compiles this model.
+ * The content hashes of the model: 64-bit FNV-1a over a text's UTF-8 bytes, computed in plain script because the page compiles this model.
+ * A ticket's content hash covers its title and body, so whether the builder saw the kept content is a hash comparison, never a clock.
  */
-import type { Ticket } from '../@types/Ticket.ts';
-
 const FNV_OFFSET_BASIS = 0xcbf29ce484222325n;
 const FNV_PRIME        = 0x100000001b3n;
 const HASH_WIDTH_BITS  = 64;
@@ -17,10 +15,9 @@ function bodyHashOf(body: string): string {
   return hash.toString(16).padStart(HASH_HEX_DIGITS, '0');
 }
 
-/** Undefined for a ticket never claimed or started, which has no hash to compare with. */
-function bodyChangedSinceClaimOf(ticket: Readonly<Ticket>): boolean | undefined {
-  const { claimedBodyHash } = ticket.frontmatter;
-  return claimedBodyHash === undefined ? undefined : bodyHashOf(ticket.body) !== claimedBodyHash;
+/** Hashed as a canonical record, as a gate and a pipeline are, so a title and a body never run into each other. */
+function contentHashOf(title: string, body: string): string {
+  return bodyHashOf(JSON.stringify({ title, body }));
 }
 
-export const TicketBodyHashUtil = { bodyChangedSinceClaimOf, bodyHashOf } as const;
+export const TicketBodyHashUtil = { bodyHashOf, contentHashOf } as const;

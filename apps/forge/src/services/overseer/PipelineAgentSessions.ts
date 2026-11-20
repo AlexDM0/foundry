@@ -248,18 +248,19 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
     verdict: 'refused', check: 'V16', reason: 'git-failed', facts: ['no snapshot start']
   };
   return clearCustoms({
-    role:             'pipeline-agent',
-    worktreePath:     snapshotDirectoryOf(context.worktreesRoot, board, job),
-    startCommit:      start.startCommit,
-    report:           undefined,
-    ticketBody:       '',
-    bodyHashAtLaunch: '',
-    jobId:            job.id,
-    logRecords:       board.logRecordsSoFar(),
-    launchSnapshot:   start.launchSnapshot,
-    refMovesAllowed:  turnEndRefMovesAllowedOf(context, board, job),
-    pathStyle:        context.pathStyle,
-    agentNaming:      context.agentNaming,
+    role:                'pipeline-agent',
+    worktreePath:        snapshotDirectoryOf(context.worktreesRoot, board, job),
+    startCommit:         start.startCommit,
+    report:              undefined,
+    ticketBody:          '',
+    contentHashAtLaunch: '',
+    ticketContentHash:   '',
+    jobId:               job.id,
+    logRecords:          board.logRecordsSoFar(),
+    launchSnapshot:      start.launchSnapshot,
+    refMovesAllowed:     turnEndRefMovesAllowedOf(context, board, job),
+    pathStyle:           context.pathStyle,
+    agentNaming:         context.agentNaming,
   });
 }
 

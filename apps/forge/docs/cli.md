@@ -39,6 +39,7 @@ Look a command up by its first word, or a stored file by its name.
 | `<data>/constitution-sources.json` | [The constitution's sources](#dataconstitution-sourcesjson) |
 | `<data>/log.jsonl` | [The log and its kinds](#datalogjsonl) |
 | `<data>/pictures/` | [The pictures](#datapictures) |
+| `<data>/committed-content/<hash>.json` | [The kept content](#datacommitted-contenthashjson) |
 | `<data>/hold-journal.json` | [The hold journal](#datahold-journaljson) |
 | `<data>/version.json` | [The install version file](#dataversionjson) |
 | `<monitor>/projects.json` | [The machine's registry](#monitorprojectsjson) |
@@ -440,7 +441,7 @@ standing. With no live Overseer it does nothing more.
 |---|---|
 | `status [--json] [--full] [--tickets-only]` | The project, the counts, the rows that are not delivered or abandoned, and the last five log entries newest first, then the Next line. With the forge [off after a crash](#after-a-crash), one line on standard error says so ("The forge is off after a crash: run `forge crash-log` to read why, `forge start` to start it again."); standard output is unchanged. [The flags](#status-flags) and [the `--json` documents](#what-status---json-holds) are below. |
 | `ticket list [--status <s>] [--priority <p>] [--json]` | The tickets with their status, priority, type and row id, the model and effort after the title where the ticket names them, and "waiting on #003" where a dependency is unsettled. `--status` and `--priority` narrow the listing. `--json` carries no bodies. |
-| `ticket show <id> [--json]` | One ticket: its frontmatter, its priority, its model and effort where it names them, and its body; never where it is kept, since a ticket changes only through its verbs (`ticket edit` for its title and body). Once the ticket started it says whether the body changed since: a hash of the body now against the stored `claimedBodyHash`, never a clock; under `--json`, and in `status --json` and `ticket list --json`, that is `bodyChangedSinceClaim`, absent on a ticket never started. |
+| `ticket show <id> [--json]` | One ticket: its frontmatter, its priority, its model and effort where it names them, and its body; never where it is kept, since a ticket changes only through its verbs (`ticket edit` for its title and body). From `committed` onward the title and body shown are the ones kept by the ticket's `contentHash`. |
 
 #### `status` flags
 
@@ -557,7 +558,7 @@ model and effort are stored and shown, and no launch reads them.
 | command | what it does |
 |---|---|
 | `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--entity <key>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `committed` and files its row. [Its options and refusals](#ticket-add) are below. |
-| `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--force] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or `committed` ticket is edited unless `--force`; [the rules](#ticket-edit) are below. |
+| `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or a ticket in `ready-for-review` is edited: a committed ticket's content is fixed; [the rules](#ticket-edit) are below. |
 | `ticket ready <id> [<id>...] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `committed` with a `committed` row at any priority, and one `ticket-committed` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
 | `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `committed` with its row (`ticket-committed`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`), and so, with ticket review off in a forge with entities, is a complete draft with no `entity` (`ticket-without-entity`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
 | `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
@@ -620,13 +621,11 @@ written.
   still reading as generated (`# <id> — <old title>`), before any body change applies. The file name, a review row's
   name and every other body byte stay as they are, and one `ticket-retitled` record is logged.
 - Every other frontmatter byte is kept. `updated` is not stamped, since only a transition stamps it, and a body change
-  of a draft ticket or a committed ticket is not logged. The write takes the tracker's lock and is atomic.
-- Past `committed` (started, in review, reviewed, delivered, abandoned) the edit is refused at exit 1 with nothing
-  written unless `--force`, held or not. Its status is read inside the same lock hold as the write, so no move slips
-  between them.
-- A forced edit that changes the body of a ticket carrying a `claimedBodyHash` logs one
-  `ticket-body-changed-after-claim` record and shows as the body changed, while a ticket with no hash logs nothing. A
-  rename alone moves `claimedBodyHash` along with the retitled heading, so it does not.
+  is not logged. The write takes the tracker's lock and is atomic.
+- A ticket's title and body are fixed from `committed` onward (committed, started, in review, reviewed, delivered,
+  abandoned): the edit is refused at exit 1 with nothing written (`content-of-a-committed-ticket`), held or not, since
+  an agent may pick a committed ticket up at any moment. Its status is read inside the same lock hold as the write, so
+  no move slips between them. Nothing overrides the refusal; `--force` is an unknown option.
 - An edit that changes nothing, an empty append or the current title included, writes nothing and exits 0.
 - An empty replacement or `--title`, none of `--title`, `--body` and `--body-file`, or both body options are refused at
   exit 1.
@@ -2813,7 +2812,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `ticket-abandoned`, `ticket-held` | `ticketId` | `reason` |
 | `ticket-interrupted-hold-lifted` | `ticketId` | `hold`: the `interrupted:` hold that `resume` lifted, logged in place of `ticket-unheld`, so no count resets |
 | `ticket-retitled` | `ticketId` | `from`, `to`: titles |
-| `ticket-body-changed-after-claim` | `ticketId` | none |
+| `ticket-content-restored` | `ticketId` | none: the stored title or body no longer matched the ticket's `contentHash`, and the kept content was written back |
 | `ticket-rereviewed` | `ticketId` | `round`, from 2 |
 | `ticket-priority-changed` | `ticketId` | `from`, `to`: priorities |
 | `ticket-size-changed` | `ticketId` | `from`, `to`: sizes, `from` absent when the ticket had none |
@@ -3022,6 +3021,23 @@ file. At each Overseer start, in the hold that records `overseer-started`, every
 `job-messaged` or `job-reopened` record and no live job's `intake.pictures` names is removed: a set difference, never an
 age. `clear` keeps the folder and `clear --all` removes it.
 
+### `<data>/committed-content/<hash>.json`
+
+```json
+{
+  "title": "Double-click a role to edit it",
+  "body": "# 003 — Double-click a role to edit it\n\n## Report\n…\n"
+}
+```
+
+The title and body of a committed ticket, kept under the ticket's `contentHash` (64-bit FNV-1a over the JSON of
+`{ title, body }`, 16 hex digits). A hold writes it whole before the ticket file that names it and never rewrites it, so
+a hold cut between the two leaves a ticket that still reads. A ticket that holds a `contentHash` is read with this title
+and body, whatever its file says, and the next write puts them back into the file and logs `ticket-content-restored`. A
+kept file that is missing, unreadable or whose title and body do not hash to its name makes the ticket unreadable,
+reason `committed-content-missing`, reported at this file. The same content is one file. `clear --all` removes the
+folder's files with the tickets.
+
 ### `<data>/hold-journal.json`
 
 ```json
@@ -3207,7 +3223,7 @@ network: "api.example.com, cdn.example.com"
 entity: "web"
 crosses: "design-system"
 filedByJob: "J12"
-claimedBodyHash: "5f1d3c9a0b7e2468"
+contentHash: "5f1d3c9a0b7e2468"
 task: 17
 ---
 # 003 — Double-click a role to edit it
@@ -3232,7 +3248,7 @@ task: 17
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
 | `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
-| `claimedBodyHash` | once the ticket was started | the content hash (64-bit FNV-1a, 16 hex digits) of the body as it read when the ticket last moved to in-progress; absent on a ticket never started. `ticket show` compares it with a hash of the body now to say whether the body changed since. |
+| `contentHash` | once the ticket was committed | the hash (64-bit FNV-1a, 16 hex digits) of the title and body kept when the ticket became committed, and moved by forge's own records in the body (the Handoff, a review, waived items, an answer); absent on a draft and on a ticket ready for review. The title and body read are always the kept ones, so a change of the file's text is undone at the next write. Any other value makes the file malformed. |
 | `task` | always | the row's id as an unquoted integer, or `null` for a draft, and for a low ticket filed before install version 17 and never started; a quoted `task` makes the file malformed |
 
 **The frontmatter is a deliberately small YAML subset.** One `key: value` per line, split at the
@@ -3252,9 +3268,9 @@ release that still reads it.
 The body is preserved byte for byte from the ticket template (Report, Wanted, Acceptance, Handoff),
 `--body` or `--body-file`; an empty body falls back to the template. `ticket edit` replaces the body or
 appends to it; `ticket edit --title`
-rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name; on a
-started ticket whose body is unchanged since its build started it moves `claimedBodyHash` along. Past `committed`,
-`ticket edit` needs `--force`. A malformed ticket file is listed as ignored rather than failing `status`.
+rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name. A
+committed ticket's title and body are not edited: from `committed` onward `ticket edit` is refused. A malformed ticket
+file is listed as ignored rather than failing `status`.
 A new ticket id is one past the highest of every file name, every parsed id and every ticket a row names;
 gaps are tolerated, never filled.
 

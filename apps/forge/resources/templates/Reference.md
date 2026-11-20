@@ -41,7 +41,7 @@ network: "api.example.com, cdn.example.com"
 entity: "web"
 crosses: "design-system"
 filedByJob: "J12"
-claimedBodyHash: "5f1d3c9a0b7e2468"
+contentHash: "5f1d3c9a0b7e2468"
 task: 17
 ---
 # 003 — Double-click a role to edit it
@@ -66,7 +66,7 @@ task: 17
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
 | `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
-| `claimedBodyHash` | once the ticket was started | the content hash (64-bit FNV-1a, 16 hex digits) of the body as it read when the ticket last moved to in-progress; absent on a ticket never started. `ticket show` compares it with a hash of the body now to say whether the body changed since. |
+| `contentHash` | once the ticket was committed | the hash (64-bit FNV-1a, 16 hex digits) of the title and body kept when the ticket became committed, and moved by forge's own records in the body (the Handoff, a review, waived items, an answer); absent on a draft and on a ticket ready for review. The title and body read are always the kept ones, so a change of the file's text is undone at the next write. Any other value makes the file malformed. |
 | `task` | always | the row's id as an unquoted integer, or `null` for a draft, and for a low ticket filed before install version 17 and never started; a quoted `task` makes the file malformed |
 
 **The frontmatter is a deliberately small YAML subset.** One `key: value` per line, split at the
@@ -86,9 +86,9 @@ release that still reads it.
 The body is preserved byte for byte from the ticket template (Report, Wanted, Acceptance, Handoff),
 `--body` or `--body-file`; an empty body falls back to the template. `ticket edit` replaces the body or
 appends to it; `ticket edit --title`
-rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name; on a
-started ticket whose body is unchanged since its build started it moves `claimedBodyHash` along. Past `committed`,
-`ticket edit` needs `--force`. A malformed ticket file is listed as ignored rather than failing `status`.
+rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name. A
+committed ticket's title and body are not edited: from `committed` onward `ticket edit` is refused. A malformed ticket
+file is listed as ignored rather than failing `status`.
 A new ticket id is one past the highest of every file name, every parsed id and every ticket a row names;
 gaps are tolerated, never filled.
 

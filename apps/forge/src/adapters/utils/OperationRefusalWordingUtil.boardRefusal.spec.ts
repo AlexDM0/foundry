@@ -146,6 +146,15 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     'Ticket #001 is held, so it is not claimed. Nothing was written; `agent-progress ticket unhold 001` lets it be claimed.',
   ],
   [
+    { reason: 'content-of-a-committed-ticket', ticketId: '003', status: 'committed' },
+    'Ticket #003 is committed, and its title and body were not edited: a committed ticket\'s content is fixed, '
+    + 'since an agent may pick it up at any moment. Nothing was written.',
+  ],
+  [
+    { reason: 'content-of-a-committed-ticket', ticketId: '003', status: 'in-progress' },
+    'Ticket #003 is in-progress, and its title and body were not edited: a committed ticket\'s content is fixed. Nothing was written.',
+  ],
+  [
     { reason: 'network-of-a-ticket-past-committed', ticketId: '006', status: 'in-progress' },
     'Ticket #006 is in-progress, and its network line was not changed: it is set only while the ticket is draft or committed. Nothing was written.',
   ],
@@ -463,7 +472,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 63;
+const REFUSAL_REASON_COUNT = 64;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

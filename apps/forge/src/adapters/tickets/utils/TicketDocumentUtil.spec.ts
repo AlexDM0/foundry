@@ -205,6 +205,12 @@ describe('parsedTicketDocumentOf', () => {
     expect(parsed).toEqual({ verdict: 'malformed', reason: '`not a key` is not a `key: value` line', line: 16 });
   });
 
+  test('a content hash reads as stored, and one that is not sixteen hex digits is refused, since the store reads the file it names', () => {
+    expect(parsedDocument(FULL_TICKET.replace('task: 17\n', 'contentHash: "5f1d3c9a0b7e2468"\ntask: 17\n')).frontmatter.contentHash).toBe('5f1d3c9a0b7e2468');
+    expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('task: 17\n', 'contentHash: "../progress"\ntask: 17\n')))
+      .toEqual({ verdict: 'malformed', reason: '`contentHash` is not a content hash of sixteen hex digits: ../progress', line: 14 });
+  });
+
   test('an id of zero or past the safe integers is refused rather than padded', () => {
     expect(TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('id: "003"', 'id: 0')))
       .toEqual({ verdict: 'malformed', reason: '`id` is not a ticket number: 0', line: 2 });

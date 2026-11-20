@@ -1,9 +1,13 @@
 /**
  * What any adapter of the store port must do, through the port alone. What matters: a write is whole or absent (a refusal or a throw
  * leaves nothing), writes are exclusive and queue behind one another across an `await`, a command waits for a transaction rather than
- * slipping into it, every later read and every other client sees a write, and the revision moves with the progress record and the log
- * only. A second adapter joins `STORE_SUBJECTS`.
+ * slipping into it, every later read and every other client sees a write, the revision moves with the progress record and the log
+ * only, and a committed ticket whose stored text is changed behind the store reads with the content its hash names until the next write
+ * restores it. A second adapter joins `STORE_SUBJECTS`, with the step that changes a ticket's stored text behind it.
  */
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join }                                     from 'node:path';
+
 import { expect } from 'bun:test';
 
 import { BoardRefusal }                                       from '../../lib/tracker-model/BoardRefusal.ts';
@@ -16,13 +20,16 @@ import { type PortClause, type PortSubject, runPortContract } from '../../testin
 import { createScratchDirectory }                             from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                          from '../../testing/WaitUntil.ts';
 import type { BoardTransaction }                              from '../tracker/BoardTransaction.ts';
+import { localStoreLayoutOf }                                 from '../tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                                  from '../tracker/Workspace.ts';
 import type { BoardStore }                                    from './BoardStore.ts';
 import { createLocalFilesBoardStore }                         from './LocalFilesBoardStore.ts';
 
 interface BoardStoreUnderContract {
-  store:                       BoardStore;
-  anotherClientOfTheSameBoard: () => BoardStore;
+  store:                          BoardStore;
+  anotherClientOfTheSameBoard:    () => BoardStore;
+  /** Changes a ticket's stored title and body the way a store that lets its text change would, with no write of the store's. */
+  changeTicketTextBehindTheStore: (ticketId: string, title: string, body: string) => void;
 }
 
 type BoardStoreSubject = () => Promise<BoardStoreUnderContract>;
@@ -33,11 +40,29 @@ const LATER_AT   = '2026-11-20T11:00:00+01:00';
 
 const fixedNow = (): Date => new Date('2026-11-20T08:00:00Z');
 
+const FRONTMATTER_CLOSING_FENCE = '\n---\n';
+
+/** A hand edit of the ticket's file: its `title` line and everything after the frontmatter. */
+function rewriteTicketFile(ticketRecordsFolder: string, ticketId: string, title: string, body: string): void {
+  const fileName = readdirSync(ticketRecordsFolder).find((name) => name.startsWith(`${ticketId}-`));
+  if (fileName === undefined) throw new Error(`no file holds ticket #${ticketId}`);
+  const filePath       = join(ticketRecordsFolder, fileName);
+  const storedText     = readFileSync(filePath, 'utf8');
+  const frontmatterEnd = storedText.indexOf(FRONTMATTER_CLOSING_FENCE) + FRONTMATTER_CLOSING_FENCE.length;
+  const frontmatter    = storedText.slice(0, frontmatterEnd).replace(/^title: .*$/m, `title: ${JSON.stringify(title)}`);
+  writeFileSync(filePath, `${frontmatter}${body}`);
+}
+
 async function localFilesBoardStoreOnAScratchTracker(): Promise<BoardStoreUnderContract> {
   const options = { workspace: workspacePathsFor(createScratchDirectory('board-store')), now: fixedNow, lockTaker: LIVE_HOLDERS_LOCK_TAKER };
   const store   = createLocalFilesBoardStore(options);
   await store.initialise({ project: 'Example Agency', startedAt: STARTED_AT, trackerId: 'example-tracker' });
-  return { store, anotherClientOfTheSameBoard: () => createLocalFilesBoardStore(options) };
+  const { ticketRecordsFolder } = localStoreLayoutOf(options.workspace);
+  return {
+    store,
+    anotherClientOfTheSameBoard:    () => createLocalFilesBoardStore(options),
+    changeTicketTextBehindTheStore: (ticketId, title, body) => { rewriteTicketFile(ticketRecordsFolder, ticketId, title, body); },
+  };
 }
 
 const STORE_SUBJECTS: readonly PortSubject<BoardStoreSubject>[] = [
@@ -72,7 +97,48 @@ async function openedDraftIdOf(store: BoardStore): Promise<string> {
   return opened.result.draft.id;
 }
 
+async function committedTicketIdOf(store: BoardStore, title: string, body: string): Promise<string> {
+  const committed = await store.transactions.transact({
+    at:     CHANGED_AT,
+    mutate: (transaction) => {
+      const ticket = transaction.records.newTicket({
+        title, type: 'ticket', bodyFor: () => body, at: transaction.at
+      });
+      transaction.board.fileTicket(ticket, transaction.at);
+      transaction.board.readyDraftTickets([ticket.frontmatter.id], () => [], transaction.at);
+      return ticket.frontmatter.id;
+    },
+  });
+  return committed.result;
+}
+
+function restoredRecordCountOf(store: BoardStore): number {
+  const logReading = store.reads.readLogRecords();
+  return logReading.verdict === 'readable' ? logReading.records.filter((record) => record.kind === 'ticket-content-restored').length : -1;
+}
+
 const STORE_CLAUSES: readonly PortClause<BoardStoreSubject>[] = [
+  {
+    claim: 'a committed ticket whose stored text is changed behind the store reads with the content its hash names, and the next write restores it',
+    check: async (subject) => {
+      const { store, changeTicketTextBehindTheStore } = await subject();
+      const ticketId = await committedTicketIdOf(store, 'Example basket page', 'The basket shows its items.\n');
+
+      changeTicketTextBehindTheStore(ticketId, 'Example changed title', 'Changed behind the store.\n');
+      const listing = store.reads.listTickets();
+
+      expect(listing.tickets.map((ticket) => [ticket.frontmatter.title, ticket.body])).toEqual([['Example basket page', 'The basket shows its items.\n']]);
+      expect(listing.contentRestored).toEqual([ticketId]);
+      expect(store.reads.requireBoard().listing.contentRestored).toEqual([ticketId]);
+
+      await store.transactions.transact({ at: LATER_AT, mutate: (transaction) => { transaction.board.setConcurrencyLimit(5, transaction.at); } });
+      await store.transactions.transact({ at: LATER_AT, mutate: (transaction) => { transaction.board.setConcurrencyLimit(6, transaction.at); } });
+
+      expect(store.reads.listTickets().contentRestored).toEqual([]);
+      expect(store.reads.listTickets().tickets.map((ticket) => ticket.body)).toEqual(['The basket shows its items.\n']);
+      expect(restoredRecordCountOf(store)).toBe(1);
+    },
+  },
   {
     claim: 'a new board reads as readable, with no ticket, epic or draft, no unreadable record and no unfinished write',
     check: async (subject) => {
@@ -82,7 +148,7 @@ const STORE_CLAUSES: readonly PortClause<BoardStoreSubject>[] = [
       expect(reading.verdict).toBe('readable');
       if (reading.verdict !== 'readable') return;
       expect(reading.unfinishedWrite).toEqual({ verdict: 'none' });
-      expect(reading.contents.listing).toEqual({ tickets: [], unreadable: [] });
+      expect(reading.contents.listing).toEqual({ tickets: [], unreadable: [], contentRestored: [] });
       expect(reading.contents.epicListing).toEqual({ epics: [], unreadable: [] });
       expect(reading.contents.draftListing).toEqual({ drafts: [], unreadable: [] });
       expect(store.reads.readUnfinishedWrite()).toEqual({ verdict: 'none' });
@@ -154,7 +220,7 @@ const STORE_CLAUSES: readonly PortClause<BoardStoreSubject>[] = [
       const ticketId = added.result.ticket.frontmatter.id;
 
       await applyCommand(store, {
-        kind: 'ticket-edit', ticketReference: ticketId, bodyText: 'The basket shows its total.\n', appendsBody: true, allowsPastCommitted: false
+        kind: 'ticket-edit', ticketReference: ticketId, bodyText: 'The basket shows its total.\n', appendsBody: true
       }, LATER_AT);
 
       const storedBody = store.reads.listTickets().tickets.map((ticket) => ticket.body).join('');

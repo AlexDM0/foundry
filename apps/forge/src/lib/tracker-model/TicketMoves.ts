@@ -129,8 +129,9 @@ export class TicketMoves {
 
     const logged = readiedTickets.map((ticket) => {
       const { frontmatter } = ticket;
-      frontmatter.status    = 'committed';
-      frontmatter.updated   = at;
+      frontmatter.status      = 'committed';
+      frontmatter.updated     = at;
+      frontmatter.contentHash = TicketBodyHashUtil.contentHashOf(frontmatter.title, ticket.body);
       this.records.ensureTaskForTicket(ticket, at);
       this.records.markChanged(ticket);
       return this.records.logger.log({ kind: 'ticket-committed', ticketId: frontmatter.id, fields: {} }, at);
@@ -224,11 +225,15 @@ export class TicketMoves {
     if (ticketsOutside.length > 0) throw new BoardRefusal({ reason: 'work-outside-entity', ticketsOutside });
   }
 
-  /** Moves a ticket not yet started to `ready-for-review`, past the move rules, which keep that status for the filer's close. */
+  /**
+   * Moves a ticket not yet started to `ready-for-review`, past the move rules, which keep that status for the filer's close. Its content is
+   * editable again there, so a committed ticket drops its content hash.
+   */
   putBeforeReview(ticket: Ticket, at: string): LogRecord {
     const { frontmatter } = ticket;
     frontmatter.status    = 'ready-for-review';
     frontmatter.updated   = at;
+    delete frontmatter.contentHash;
     this.records.markChanged(ticket);
     return this.records.logger.log({ kind: 'ticket-submitted-for-review', ticketId: frontmatter.id, fields: {} }, at);
   }
@@ -273,7 +278,7 @@ export class TicketMoves {
     });
   }
 
-  /** The move itself, unchecked: the status, its stamps and the fields given, and the row taking the same status. */
+  /** The move itself, unchecked: the status, its stamps and the fields given, and the row taking the same status. A reopen keeps the content then. */
   applyTicketMove(ticket: Ticket, targetStatus: RowedTicketStatus, fields: TicketMoveFields, at: string): LogRecord {
     const { frontmatter } = ticket;
     frontmatter.status      = targetStatus;
@@ -287,7 +292,7 @@ export class TicketMoves {
     if (fields.branch !== undefined) frontmatter.branch = fields.branch;
     if (fields.commit !== undefined) frontmatter.commit = fields.commit;
     if (fields.reason !== undefined) frontmatter.reason = fields.reason;
-    if (targetStatus === 'in-progress') frontmatter.claimedBodyHash = TicketBodyHashUtil.bodyHashOf(ticket.body);
+    if (targetStatus === 'committed') frontmatter.contentHash = TicketBodyHashUtil.contentHashOf(frontmatter.title, ticket.body);
 
     const task = this.records.ensureTaskForTicketOnTheChart(ticket, at);
     if (task !== null) this.records.transitionTaskInPlace(task, targetStatus, at);

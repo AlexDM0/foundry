@@ -1,9 +1,9 @@
 /**
  * The write pipeline on real tracker files: the mutation runs with the lock held, a Board refusal and any other throw leave every stored
  * file as it was, an unreadable tracker is refused before the mutation runs, and the write order holds (progress.json, the pipeline and the
- * constitution's sources, the tickets, the deletions, log.jsonl, and the setup record last, so an Apply closes its record after everything
- * it stored), observed by breaking one write from inside the mutation, with no clock. A file whose bytes would not change
- * is left in place, observed by its inode, so a hold that changes nothing writes no file.
+ * constitution's sources, the tickets each after the content its hash keeps, the deletions, log.jsonl, and the setup record last, so an
+ * Apply closes its record after everything it stored), observed by breaking one write from inside the mutation, with no clock. A file
+ * whose bytes would not change is left in place, observed by its inode, so a hold that changes nothing writes no file.
  */
 import {
   existsSync,
@@ -23,6 +23,7 @@ import {
   expect,
   test,
 } from 'bun:test';
+import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { OperationRefusal, refusalIsOperationRefusal }    from '../../shared/OperationRefusal.ts';
 import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -288,11 +289,48 @@ describe('writeTracker', () => {
       workspace,
       at:        CHANGED_AT,
       now,
-      mutate:    (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastCommitted: true }, change.at),
+      mutate:    (change) => change.board.editTicket('001', { title: 'Example retitled checkout', writtenBy: 'board' }, change.at),
     });
 
     expect(readdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder)).toEqual(['001-named-by-hand.md']);
     expect(listTickets(workspace).tickets.map((ticket) => ticket.frontmatter.title)).toEqual(['Example retitled checkout']);
+  });
+
+  test('a ticket committed in the hold is journaled after its kept content, and a hold cut between the two replays to the same board', async () => {
+    writeReadableTracker(workspace);
+    const commitATicket = (change: BoardTransaction): void => {
+      const ticket = change.records.newTicket({
+        title: 'Example kept page', type: 'ticket', bodyFor: () => 'Kept.\n', at: change.at
+      });
+      change.board.fileTicket(ticket, change.at);
+      change.board.readyDraftTickets([ticket.frontmatter.id], () => [], change.at);
+    };
+    const keptPath = join(localStoreLayoutOf(workspace).committedContentFolder, `${TicketBodyHashUtil.contentHashOf('Example kept page', 'Kept.\n')}.json`);
+    const journalText = (): string => readFileSync(localStoreLayoutOf(workspace).holdJournalPath, 'utf8');
+
+    await thrownFailureOf(() => writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           commitATicket,
+      afterFileWritten: (filePath) => {
+        if (filePath === keptPath) throw new Error('Example cut after the kept content');
+      },
+    }));
+    const journaledPaths = (JSON.parse(journalText()) as { files: { path: string }[] }).files.map((file) => file.path);
+    const keptIndex      = journaledPaths.findIndex((path) => path.startsWith('committed-content/'));
+    expect(keptIndex).toBeGreaterThanOrEqual(0);
+    expect(keptIndex).toBeLessThan(journaledPaths.findIndex((path) => path.startsWith('tickets/002-')));
+
+    await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER, workspace, at: CHANGED_AT, now, mutate: () => 'Example'
+    });
+
+    const replayed = listTickets(workspace);
+    expect(replayed.unreadable).toEqual([]);
+    const keptHash = TicketBodyHashUtil.contentHashOf('Example kept page', 'Kept.\n');
+    expect(replayed.tickets.find((ticket) => ticket.frontmatter.id === '002')?.frontmatter).toMatchObject({ status: 'committed', contentHash: keptHash });
   });
 
   test('a ticket the Board changed that the store never listed nor allocated throws, and nothing is written', async () => {

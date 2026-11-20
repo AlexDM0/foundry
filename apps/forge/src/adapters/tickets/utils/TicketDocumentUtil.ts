@@ -50,7 +50,10 @@ const OPTIONAL_TEXT_KEYS = ['group', 'branch', 'commit', 'reason'] as const;
 const RELEASES_GROUP_KEY   = 'releasesGroup';
 const RELEASES_GROUP_VALUE = 'true';
 
-const CLAIMED_BODY_HASH_KEY = 'claimedBodyHash';
+const CONTENT_HASH_KEY = 'contentHash';
+
+/** Sixteen lower-case hex digits, as `TicketBodyHashUtil` writes it, so a stored hash can never name a kept file outside its folder. */
+const CONTENT_HASH_PATTERN = /^[0-9a-f]{16}$/;
 
 const TICKET_LINK_KEYS = ['introducedBy', 'foundInReview'] as const;
 
@@ -84,7 +87,7 @@ const KNOWN_KEYS = new Set<string>([
   CROSSES_KEY,
   ...TICKET_LINK_KEYS,
   FILED_BY_JOB_KEY,
-  CLAIMED_BODY_HASH_KEY,
+  CONTENT_HASH_KEY,
   'task',
 ]);
 
@@ -238,8 +241,8 @@ function ticketDocumentTextOf(frontmatter: TicketFrontmatter, body: string, line
     lines.push(`${FILED_BY_JOB_KEY}: ${JSON.stringify(frontmatter.filedByJob)}`);
   }
 
-  if (frontmatter.claimedBodyHash !== undefined) {
-    lines.push(`${CLAIMED_BODY_HASH_KEY}: ${JSON.stringify(frontmatter.claimedBodyHash)}`);
+  if (frontmatter.contentHash !== undefined) {
+    lines.push(`${CONTENT_HASH_KEY}: ${JSON.stringify(frontmatter.contentHash)}`);
   }
 
   lines.push(`task: ${frontmatter.task === null ? 'null' : String(frontmatter.task)}`);
@@ -255,7 +258,7 @@ function ticketDocumentTextOf(frontmatter: TicketFrontmatter, body: string, line
  * A parsed document's frontmatter text, its fences included, with only its `title` line rewritten and every other byte kept. The last
  * `title` line is the one replaced, since that is the one the parse reads.
  */
-function frontmatterTextWithTextValueOf(frontmatterText: string, key: 'title' | typeof CLAIMED_BODY_HASH_KEY, value: string): string {
+function frontmatterTextWithTextValueOf(frontmatterText: string, key: 'title' | typeof CONTENT_HASH_KEY, value: string): string {
   const lines = frontmatterText.split('\n');
   const keyLineIndex = lines.findLastIndex((line) => {
     const reading = keyValueReadingOf(withoutCarriageReturn(line));
@@ -407,7 +410,7 @@ function frontmatterFrom(
     ...entityFields(knownValues),
     ...ticketLinkFields(knownValues),
     ...findingFields(knownValues),
-    ...claimedBodyHashField(knownValues),
+    ...contentHashField(knownValues),
     task:        nullableInteger(knownValues, 'task'),
     extra,
   };
@@ -603,13 +606,15 @@ function findingFields(knownValues: Map<string, KnownValue>): Pick<TicketFrontma
   return filedByJob === undefined || filedByJob.value === null ? {} : { filedByJob: textOf(filedByJob, FILED_BY_JOB_KEY) };
 }
 
-/** Absent or `null` was never claimed; any other value is kept as text, so a hand-changed hash reads as a changed body rather than a malformed file. */
-function claimedBodyHashField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatter, 'claimedBodyHash'> {
-  const found = knownValues.get(CLAIMED_BODY_HASH_KEY);
+/** Absent or `null` was never committed; any other value must be a content hash, since the store reads the kept content it names. */
+function contentHashField(knownValues: Map<string, KnownValue>): Pick<TicketFrontmatter, 'contentHash'> {
+  const found = knownValues.get(CONTENT_HASH_KEY);
   if (found === undefined || found.value === null) {
     return {};
   }
-  return { claimedBodyHash: textOf(found, CLAIMED_BODY_HASH_KEY) };
+  const contentHash = textOf(found, CONTENT_HASH_KEY);
+  if (!CONTENT_HASH_PATTERN.test(contentHash)) throw new FrontmatterProblem(`\`${CONTENT_HASH_KEY}\` is not a content hash of sixteen hex digits: ${contentHash}`, found.line);
+  return { contentHash };
 }
 
 function requiredText(knownValues: Map<string, KnownValue>, key: string, closingFenceLine: number): string {

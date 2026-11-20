@@ -4,13 +4,17 @@
  * file is reported with its key and its file and stays off the Board; the revision covers the progress record, the log and the gate
  * profile runs and no ticket; reads take no lock; the pipeline is judged once, so a tracker in a folder reads a stored pipeline with
  * entities as malformed in every read, the reading a write opens the Board on; and a lock record whose holder is judged gone is taken over
- * by the next write. The `.git` folder is planted: finding the prefix runs no git.
+ * by the next write. A committed ticket's content is kept in `<data>/committed-content/<hash>.json`, written before the ticket file so a
+ * write cut between the two leaves a board that reads; a ticket file changed on disk reads with the kept content until the next write puts
+ * it back, and a missing kept content makes the ticket unreadable at the kept file. The `.git` folder is planted: finding the prefix runs
+ * no git.
  */
 import {
   appendFileSync,
   mkdirSync,
   readdirSync,
   readFileSync,
+  rmSync,
   writeFileSync
 } from 'node:fs';
 import { join, sep } from 'node:path';
@@ -23,6 +27,7 @@ import {
 } from 'bun:test';
 
 import type { PipelineEntity }                                          from '../../lib/tracker-model/@types/Pipeline.ts';
+import { TicketBodyHashUtil }                                           from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { ControlCommand }                                          from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                                    from '../../shared/OperationRefusal.ts';
 import { ECHOED_CONTROL_CONTEXT }                                       from '../../testing/EchoedControlContext.ts';
@@ -134,6 +139,120 @@ describe('a write cut short and a malformed hold journal', () => {
     expect(store.reads.readUnfinishedWrite()).toEqual({ verdict: 'malformed', location: journalPath, reason: 'its "files" is not a list' });
     expect(refusalDetailOf(await thrownFailureOf(() => applyCommand(store, { kind: 'concurrency-set', limit: 6 })))).toEqual(expectedRefusal);
     expect(refusalDetailOf(await thrownFailureOf(() => store.transactions.transact({ at: CHANGED_AT, mutate: () => 'Example' })))).toEqual(expectedRefusal);
+  });
+});
+
+const KEPT_TITLE = 'Example basket page';
+const KEPT_BODY  = 'The basket shows its items.\n';
+const KEPT_HASH  = TicketBodyHashUtil.contentHashOf(KEPT_TITLE, KEPT_BODY);
+
+function commitATicket(transaction: BoardTransaction): string {
+  const ticket = transaction.records.newTicket({
+    title: KEPT_TITLE, type: 'ticket', bodyFor: () => KEPT_BODY, at: transaction.at
+  });
+  transaction.board.fileTicket(ticket, transaction.at);
+  transaction.board.readyDraftTickets([ticket.frontmatter.id], () => [], transaction.at);
+  return ticket.frontmatter.id;
+}
+
+function ticketFilePathIn(workspace: Workspace): string {
+  const { ticketRecordsFolder } = localStoreLayoutOf(workspace);
+  return join(ticketRecordsFolder, readdirSync(ticketRecordsFolder)[0] ?? '');
+}
+
+function keptContentPathIn(workspace: Workspace): string {
+  return join(localStoreLayoutOf(workspace).committedContentFolder, `${KEPT_HASH}.json`);
+}
+
+function contentRestoredCountOf(store: BoardStore): number {
+  const logReading = store.reads.readLogRecords();
+  return logReading.verdict === 'readable' ? logReading.records.filter((record) => record.kind === 'ticket-content-restored').length : -1;
+}
+
+describe('the content kept at the commit', () => {
+  test('a ticket committed in a hold has its kept content written whole, before its ticket file', async () => {
+    const { workspace } = await initialisedStoreIn('');
+    const writtenLocations: string[] = [];
+    const store = createLocalFilesBoardStore(storeOptionsIn('', (location) => { writtenLocations.push(location); }));
+
+    await store.transactions.transact({ at: CHANGED_AT, mutate: commitATicket });
+
+    const keptPath = keptContentPathIn(workspace);
+    expect(writtenLocations.indexOf(keptPath)).toBeGreaterThanOrEqual(0);
+    expect(writtenLocations.indexOf(keptPath)).toBeLessThan(writtenLocations.indexOf(ticketFilePathIn(workspace)));
+    expect(JSON.parse(readFileSync(keptPath, 'utf8'))).toEqual({ title: KEPT_TITLE, body: KEPT_BODY });
+    expect(store.reads.listTickets().tickets.map((ticket) => ticket.frontmatter.contentHash)).toEqual([KEPT_HASH]);
+  });
+
+  test('a hold cut between the kept content and the ticket file replays to the same board', async () => {
+    const { workspace } = await initialisedStoreIn('');
+    const keptPath = keptContentPathIn(workspace);
+    const cutAfterTheKeptContent = createLocalFilesBoardStore(storeOptionsIn('', (location) => {
+      if (location === keptPath) throw new Error('Example cut after the kept content');
+    }));
+    const nextStore = createLocalFilesBoardStore(storeOptionsIn(''));
+
+    await thrownFailureOf(() => cutAfterTheKeptContent.transactions.transact({ at: CHANGED_AT, mutate: commitATicket }));
+    expect(nextStore.reads.listTickets().unreadable).toEqual([]);
+    await nextStore.transactions.transact({ at: LATER_AT, mutate: () => 'Example' });
+
+    const listing = nextStore.reads.listTickets();
+    expect(listing.tickets.map((ticket) => [ticket.frontmatter.status, ticket.frontmatter.contentHash, ticket.body])).toEqual([['committed', KEPT_HASH, KEPT_BODY]]);
+    expect(listing.unreadable).toEqual([]);
+  });
+
+  test('a ticket file whose body was changed on disk reads with the kept body, listed restored, until the next write puts it back once', async () => {
+    const { store, workspace } = await initialisedStoreIn('');
+    const { result: ticketId } = await store.transactions.transact({ at: CHANGED_AT, mutate: commitATicket });
+    const storedText = readFileSync(ticketFilePathIn(workspace), 'utf8');
+    appendFileSync(ticketFilePathIn(workspace), 'A line Alex Example added.\n');
+
+    const listing = store.reads.listTickets();
+    expect(listing.tickets.map((ticket) => ticket.body)).toEqual([KEPT_BODY]);
+    expect(listing.contentRestored).toEqual([ticketId]);
+
+    await store.transactions.transact({ at: LATER_AT, mutate: () => 'Example' });
+    await store.transactions.transact({ at: LATER_AT, mutate: () => 'Example' });
+
+    expect(readFileSync(ticketFilePathIn(workspace), 'utf8')).toBe(storedText);
+    expect(store.reads.listTickets().contentRestored).toEqual([]);
+    expect(contentRestoredCountOf(store)).toBe(1);
+  });
+
+  test('a missing kept content makes the ticket unreadable with committed-content-missing, located at the kept file', async () => {
+    const { store, workspace } = await initialisedStoreIn('');
+    const { result: ticketId } = await store.transactions.transact({ at: CHANGED_AT, mutate: commitATicket });
+    rmSync(keptContentPathIn(workspace));
+
+    const listing = store.reads.listTickets();
+
+    expect(listing.tickets).toEqual([]);
+    expect(listing.unreadable.map(({ record, key, location }) => ({ record, key, location })))
+      .toEqual([{ record: 'ticket', key: ticketId, location: keptContentPathIn(workspace) }]);
+    expect(listing.unreadable[0]?.reason).toStartWith('committed-content-missing');
+  });
+
+  test('a kept content whose title and body do not hash to its name is unreadable the same way', async () => {
+    const { store, workspace } = await initialisedStoreIn('');
+    await store.transactions.transact({ at: CHANGED_AT, mutate: commitATicket });
+    writeFileSync(keptContentPathIn(workspace), `${JSON.stringify({ title: KEPT_TITLE, body: 'Changed in the kept file.\n' })}\n`);
+
+    expect(store.reads.listTickets().unreadable[0]?.reason).toStartWith('committed-content-missing');
+  });
+
+  test('clearing every ticket removes the kept content too', async () => {
+    const { store, workspace } = await initialisedStoreIn('');
+    await store.transactions.transact({ at: CHANGED_AT, mutate: commitATicket });
+
+    await store.transactions.transact({
+      at:     LATER_AT,
+      mutate: (transaction) => {
+        transaction.board.clearTracker({ ticketsSurvive: false }, transaction.at);
+        transaction.deleteAllTicketFilesAfterwards(() => {});
+      },
+    });
+
+    expect(readdirSync(localStoreLayoutOf(workspace).committedContentFolder)).toEqual([]);
   });
 });
 

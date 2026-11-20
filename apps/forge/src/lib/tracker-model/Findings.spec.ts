@@ -24,6 +24,8 @@ const COMPLETE_BODY = '## Acceptance\n1. It holds.\n\n## Brief\nBuild it.\n';
 
 const CONCURRENCY_LIMIT = 4;
 
+const EXAMPLE_CONTENT_HASH = '0123456789abcdef';
+
 const wordingOf = (draft: DecisionDraft) => ({
   questions: [{
     question: `Decide ${draft.kind}`, header: draft.kind, multiSelect: false, options: []
@@ -98,6 +100,17 @@ describe('an abandoned finder', () => {
     expect(moved.logged.map((record) => record.kind)).toContain('ticket-submitted-for-review');
   });
 
+  test('a committed finding put before review drops its content hash, so a command edits it without keeping content', () => {
+    const { board } = boardWithFinding(false);
+    expect(board.ticketByReference('002')?.frontmatter.contentHash).toBeDefined();
+    board.moveTicket('001', 'abandoned', { checksLegality: false, reason: 'Superseded by an example' }, AT);
+    expect(board.ticketByReference('002')?.frontmatter.contentHash).toBeUndefined();
+
+    const edited = board.editTicket('002', { body: { text: 'Replaced.\n', appends: false }, writtenBy: 'command' }, AT);
+    expect(edited.changed).toBe(true);
+    expect(edited.ticket.frontmatter.contentHash).toBeUndefined();
+  });
+
   test('a finding already ready-for-review only loses the dependency', () => {
     const { board } = boardWithFinding(true);
     board.moveTicket('001', 'abandoned', { checksLegality: false, reason: 'Superseded by an example' }, AT);
@@ -121,13 +134,17 @@ describe('the Overseer\'s first start', () => {
   function boardOfV16Tickets(): ReturnType<typeof boardFixture> {
     const fixture = boardFixture({
       tickets: [
-        ticketFixture({ id: '001', status: 'committed', priority: 'low' }),
+        ticketFixture({
+          id: '001', status: 'committed', priority: 'low', contentHash: EXAMPLE_CONTENT_HASH
+        }),
         ticketFixture({ id: '002', status: 'committed', priority: 'normal' }),
         ticketFixture({ id: '003', status: 'committed', priority: 'high' }),
         ticketFixture({
           id: '004', status: 'committed', priority: 'low', hold: 'Example hold'
         }),
-        ticketFixture({ id: '005', status: 'committed', priority: 'low' }),
+        ticketFixture({
+          id: '005', status: 'committed', priority: 'low', contentHash: EXAMPLE_CONTENT_HASH
+        }),
       ],
     });
     fixture.board.setNoGates(AT);
@@ -139,6 +156,8 @@ describe('the Overseer\'s first start', () => {
     const { board } = boardOfV16Tickets();
     board.submitFirstRunLeftovers(AT);
     expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['ready-for-review', 'committed', 'committed', 'committed', 'ready-for-review']);
+    expect(board.tickets().filter((ticket) => ticket.frontmatter.status === 'ready-for-review').map((ticket) => ticket.frontmatter.contentHash))
+      .toEqual([undefined, undefined]);
     expect(board.incidents()).toEqual([]);
     expect(board.decisions()).toEqual([]);
   });

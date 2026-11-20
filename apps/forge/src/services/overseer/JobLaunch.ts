@@ -57,7 +57,6 @@ import { FIRST_CHILD_INSTANCE, HANDOFF_RED_INTERRUPTION } from '../../lib/tracke
 import { EntityOwnershipUtil, type PipelineEntities }     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { GroupNameUtil }                                  from '../../lib/tracker-model/utils/GroupNameUtil.ts';
 import { PipelineUtil }                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { TicketStageUtil }                                from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { VocabularyUtil }                                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import type { BranchNames }                               from '../../shared/BranchNames.ts';
@@ -449,7 +448,7 @@ type PackageBuildStart = Pick<JobStart, 'homeEntity' | 'dependentsFixedInGroup'>
 
 interface JobStart {
   startCommit:             string;
-  bodyHashAtLaunch:        string;
+  contentHashAtLaunch:     string;
   launchSnapshot:          LaunchSnapshot;
   /** A package build's home entity, whose gates its run leaves out (strategy 4.2); absent for every other job. */
   homeEntity?:             EntityKey;
@@ -1294,22 +1293,23 @@ function verifyAndRoute(hold: HoldContext, job: Readonly<Job>, observation: Buil
   const projectScope = projectScopeOf(projectPrefix, pipeline, job, ticket.frontmatter.entity, refusedPackages);
   const crossingStage = crossingStageScopeOfJob(hold, job);
   const subject: CustomsSubject = {
-    role:             job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
-    worktreePath:     worktreeOf(hold.context.workspace, job),
-    startCommit:      start.startCommit,
+    role:                job.kind === REVIEW_JOB_KIND ? 'reviewer' : 'builder',
+    worktreePath:        worktreeOf(hold.context.workspace, job),
+    startCommit:         start.startCommit,
     ...(retriedStart === null ? {} : { workStartCommit: retriedStart.startCommit }),
-    bodyHashAtLaunch: start.bodyHashAtLaunch,
-    report:           observation.report,
-    ticketBody:       ticket.body,
-    jobId:            job.id,
-    logRecords:       board.logRecordsSoFar(),
-    launchSnapshot:   start.launchSnapshot,
-    refMovesAllowed:  refMovesAllowedFor(hold.context, board, job),
-    gates:            pipeline === null ? [] : stepsPipelineOf(pipeline, job)?.gates ?? [],
-    instructionFiles: InstructionFiles.trackedInstructionPathsOf(pipeline, projectPrefix),
-    target:           job.target ?? hold.context.mainLine,
-    pathStyle:        hold.context.platformPorts.dataFolders,
-    agentNaming:      hold.context.agentAdapter,
+    contentHashAtLaunch: start.contentHashAtLaunch,
+    ticketContentHash:   ticket.frontmatter.contentHash ?? '',
+    report:              observation.report,
+    ticketBody:          ticket.body,
+    jobId:               job.id,
+    logRecords:          board.logRecordsSoFar(),
+    launchSnapshot:      start.launchSnapshot,
+    refMovesAllowed:     refMovesAllowedFor(hold.context, board, job),
+    gates:               pipeline === null ? [] : stepsPipelineOf(pipeline, job)?.gates ?? [],
+    instructionFiles:    InstructionFiles.trackedInstructionPathsOf(pipeline, projectPrefix),
+    target:              job.target ?? hold.context.mainLine,
+    pathStyle:           hold.context.platformPorts.dataFolders,
+    agentNaming:         hold.context.agentAdapter,
     ...(projectScope === null ? {} : { projectScope }),
     ...(crossingStage === null ? {} : { crossingStage }),
   };
@@ -1719,7 +1719,7 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   const { board, at } = hold.change;
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job))?.body ?? '';
   const body = { text: bodyWithBuildHandoffOf(ticketBody, job, report, board.ticketStageOf(ticketIdOf(job)) !== null), appends: false };
-  hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastCommitted: true }, at).logged);
+  hold.logged.push(...board.editTicket(ticketIdOf(job), { body, writtenBy: 'board' }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
@@ -1756,7 +1756,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
     const exposedSurfaceChanged = reportFieldOf(report, 'exposedSurfaceChanged') !== false;
     const packageBuildBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
     const body = { text: bodyWithBuildHandoffOf(packageBuildBody, job, report, true), appends: false };
-    hold.logged.push(...board.editTicket(ticketId, { body, allowsPastCommitted: true }, at).logged);
+    hold.logged.push(...board.editTicket(ticketId, { body, writtenBy: 'board' }, at).logged);
     CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'package-build', exposedSurfaceChanged });
     endJob(hold, job, { outcome: 'built', commit: headCommit });
     board.moveTicketStage(ticketId, { name: 'package-review', entity: jobStage.entity }, at);
@@ -1777,7 +1777,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
   const [firstPackage] = crossedPackages;
   if (firstPackage === undefined) return settledOutsideAnyCrossing(hold, ticketId);
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
-  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithBuildHandoffOf(ticketBody, job, report, true), appends: false }, allowsPastCommitted: true }, at).logged);
+  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithBuildHandoffOf(ticketBody, job, report, true), appends: false }, writtenBy: 'board' }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   board.moveTicketStage(ticketId, { name: 'package-build', entity: firstPackage }, at);
   return true;
@@ -2914,7 +2914,7 @@ function packageBuildStartOf(board: Board, job: Readonly<Job>): PackageBuildStar
 }
 
 /**
- * Written as the session's child is first launched: the commit verification measures from, the body hash V6 compares with, and the refs,
+ * Written as the session's child is first launched: the commit verification measures from, the content hash V6 compares with, and the refs,
  * worktree HEADs and hooks folder V13 and V14 compare with.
  */
 function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<Job>): void {
@@ -2926,7 +2926,7 @@ function recordJobStart(context: JobLaunchContext, board: Board, job: Readonly<J
   const launchSnapshot = launchSnapshotOf(worktree);
   if (ticket === undefined || startCommit === null || launchSnapshot === null) return;
   const start: JobStart = {
-    startCommit, bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot, ...packageBuildStartOf(board, job)
+    startCommit, contentHashAtLaunch: ticket.frontmatter.contentHash ?? '', launchSnapshot, ...packageBuildStartOf(board, job)
   };
   mkdirSync(dirname(startPath), { recursive: true });
   writeFileAtomically(startPath, `${JSON.stringify(start, null, 2)}\n`);

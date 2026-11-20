@@ -16,6 +16,8 @@ export interface LocalStoreLayout {
   ticketRecordsFolder:           string;
   epicRecordsFolder:             string;
   draftRecordsFolder:            string;
+  /** One `<hash>.json` per committed content, written before the ticket naming it and never rewritten. */
+  committedContentFolder:        string;
   storeLockFolder:               string;
   holdJournalPath:               string;
 }
@@ -31,6 +33,7 @@ function localStoreLayoutIn(trackerDirectory: string): LocalStoreLayout {
     ticketRecordsFolder:           join(trackerDirectory, LOCAL_STORE_FILES.TICKETS_DIRECTORY_NAME),
     epicRecordsFolder:             join(trackerDirectory, LOCAL_STORE_FILES.EPICS_DIRECTORY_NAME),
     draftRecordsFolder:            join(trackerDirectory, LOCAL_STORE_FILES.DRAFTS_DIRECTORY_NAME),
+    committedContentFolder:        join(trackerDirectory, LOCAL_STORE_FILES.COMMITTED_CONTENT_DIRECTORY_NAME),
     storeLockFolder:               join(trackerDirectory, LOCAL_STORE_FILES.LOCK_DIRECTORY_NAME),
     holdJournalPath:               join(trackerDirectory, LOCAL_STORE_FILES.HOLD_JOURNAL_FILE_NAME),
   };

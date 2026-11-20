@@ -64,7 +64,7 @@ export type BoardRefusalDetail =
   | { reason: 'priority-unchanged'; ticketId: string; status: TicketStatus; priority: TicketPriority }
   | { reason: 'size-unchanged'; ticketId: string; status: TicketStatus; size: TicketSize }
   | { reason: 'lowering-a-ticket-that-is-not-committed'; ticketId: string; status: TicketStatus }
-  | { reason: 'edit-of-a-ticket-past-committed'; ticketId: string; status: TicketStatus }
+  | { reason: 'content-of-a-committed-ticket'; ticketId: string; status: TicketStatus }
   | { reason: 'network-of-a-ticket-past-committed'; ticketId: string; status: TicketStatus }
   | { reason: 'network-domain-not-public'; ticketId: string; domains: readonly string[] }
   | { reason: 'network-unchanged'; ticketId: string; domains: readonly string[] }

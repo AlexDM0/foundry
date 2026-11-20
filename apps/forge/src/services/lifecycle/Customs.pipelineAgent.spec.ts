@@ -44,16 +44,17 @@ function enter(scenario: string): void {
 
 function pipelineAgentSubject(): CustomsSubject {
   return {
-    role:             'pipeline-agent',
-    worktreePath:     snapshotDirectory,
-    startCommit:      START_COMMIT,
-    report:           undefined,
-    ticketBody:       '',
-    bodyHashAtLaunch: '',
-    jobId:            JOB_ID,
-    logRecords:       [],
+    role:                'pipeline-agent',
+    worktreePath:        snapshotDirectory,
+    startCommit:         START_COMMIT,
+    report:              undefined,
+    ticketBody:          '',
+    contentHashAtLaunch: '',
+    ticketContentHash:   '',
+    jobId:               JOB_ID,
+    logRecords:          [],
     launchSnapshot,
-    refMovesAllowed:  {
+    refMovesAllowed:     {
       ownBranch: '', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
     },
     agentNaming: fakeAgentAdapter(),

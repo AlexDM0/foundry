@@ -17,6 +17,7 @@ import type { RowedTicketStatus, TicketStatus } from './@types/Ticket.ts';
 import type { TicketOfferKind }                 from './MoveOffers.ts';
 import { TICKET_STATUSES }                      from './constants/Statuses.ts';
 import { PipelineUtil }                         from './utils/PipelineUtil.ts';
+import { TicketBodyHashUtil }                   from './utils/TicketBodyHashUtil.ts';
 import { TicketMoveUtil }                       from './utils/TicketMoveUtil.ts';
 
 const FILED_AT     = '2026-09-18T09:00:00+02:00';
@@ -121,6 +122,22 @@ describe('a move and its row', () => {
     expect(moved.ticket.frontmatter.reason).toBeUndefined();
     expect(progress.tasks[0]).toMatchObject({ status: 'committed', start: null });
     expect(records.at(-1)?.kind).toBe('ticket-reopened');
+  });
+
+  test('a reopen to committed records the hash of the content then, and a move to in-progress keeps it', () => {
+    const { board, tickets } = committedTicketFixture();
+    const ticket = tickets[0];
+    if (ticket === undefined) throw new Error('the fixture holds a ticket');
+    board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
+    board.moveTicket('003', 'abandoned', { checksLegality: true, reason: 'superseded' }, FINISHED_AT);
+    ticket.body = 'Example body as it reads at the reopen.\n';
+
+    board.moveTicket('003', 'committed', CHECKED, DELIVERED_AT);
+    const keptHash = TicketBodyHashUtil.contentHashOf(ticket.frontmatter.title, 'Example body as it reads at the reopen.\n');
+    expect(ticket.frontmatter.contentHash).toBe(keptHash);
+
+    board.moveTicket('003', 'in-progress', CHECKED, DELIVERED_AT);
+    expect(ticket.frontmatter.contentHash).toBe(keptHash);
   });
 
   // `ticket start` on a ticket back from review is rework: the bar still began when the work first did.

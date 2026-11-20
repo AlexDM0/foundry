@@ -2,13 +2,8 @@
  * The Gantt rows `agent-progress task` files and moves: a lifecycle stamps the row once and never again, and `--at` backfills;
  * the closing render reports a ticket file that will not parse exactly once, in exactly these words.
  */
-import {
-  appendFileSync,
-  readFileSync,
-  realpathSync,
-  writeFileSync
-} from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { join }                                      from 'node:path';
 
 import {
   afterEach,
@@ -259,7 +254,7 @@ describeWhenGitIsRecorded('linking a row to a ticket', () => {
     await run(['task', 'add', 'Example first review', '--review-of', '3']);
     expect(storedProgressOf(repositoryDirectory).tasks.find((task) => task.name === 'Example first review')).toMatchObject({ reviewOf: '003', reviewBarRound: 1 });
 
-    appendFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets', '003-split-the-exporter.md'), '\n## Review\nExample round.\n');
+    await run(['ticket', 'board-record', '3', '--append', '--body', '\n## Review\nExample round.\n']);
     await run(['task', 'add', 'Review 1 #3 — x', '--review-of', '3']);
     expect(storedProgressOf(repositoryDirectory).tasks.find((task) => task.name === 'Review 1 #3 — x')).toMatchObject({ reviewOf: '003', reviewBarRound: 2 });
   });

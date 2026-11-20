@@ -24,7 +24,6 @@ import type { Pipeline }                                     from '../../lib/tra
 import type { DecisionDraft, DecisionWording, PlaybookStep } from '../../lib/tracker-model/@types/PlaybookStep.ts';
 import type { Board }                                        from '../../lib/tracker-model/Board.ts';
 import { EntityOwnershipUtil }                               from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketBodyHashUtil }                                from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
 import { LIFECYCLE_LIMITS }                                  from '../../shared/constants/LifecycleLimits.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
@@ -106,7 +105,7 @@ function withoutTheAdminApp(pipeline: Pipeline): Pipeline {
 }
 
 /** A ticket body edit whose Brief names the package's constitution as its work. */
-const NAMING_THE_UI_KIT_CONSTITUTION = { body: { text: `## Brief\nWork belongs in: \`/${constitutionFileOf(UI_KIT)}\`.\n`, appends: false }, allowsPastCommitted: true };
+const NAMING_THE_UI_KIT_CONSTITUTION = { body: { text: `## Brief\nWork belongs in: \`/${constitutionFileOf(UI_KIT)}\`.\n`, appends: false }, writtenBy: 'board' as const };
 
 /** The shop crossing into the package, as step 4's pipeline whitelists it. */
 function withTheShopCrossingIntoTheUiKit(pipeline: Pipeline): Pipeline {
@@ -177,7 +176,7 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   enterScenario(scenario, { repositoryDirectory: repository, commits });
   const worktree = JobLaunch.worktreeOf(context.workspace, job);
   const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === SHOP_TICKET.id);
-  const jobStart = { startCommit: commits['<start>'], bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket?.body ?? ''), launchSnapshot: launchSnapshotOf(worktree) };
+  const jobStart = { startCommit: commits['<start>'], contentHashAtLaunch: ticket?.frontmatter.contentHash ?? '', launchSnapshot: launchSnapshotOf(worktree) };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');

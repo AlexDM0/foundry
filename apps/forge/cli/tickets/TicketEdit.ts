@@ -11,7 +11,7 @@ import type { ArgumentParser }    from '../arguments/ArgumentParser.ts';
 import { OutputUtil }             from '../utils/OutputUtil.ts';
 import { TICKET_USAGE }           from './constants/TicketUsage.ts';
 
-const EDIT_OPTION_NAMES = ['title', 'append', 'body', 'body-file', 'force', 'at', 'json'];
+const EDIT_OPTION_NAMES = ['title', 'append', 'body', 'body-file', 'at', 'json'];
 
 export async function editTicket(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(EDIT_OPTION_NAMES, TICKET_USAGE);
@@ -26,7 +26,6 @@ export async function editTicket(commandArguments: ArgumentParser, context: Comm
   }
   const title   = commandArguments.option('title');
   const appends = commandArguments.flag('append');
-  const forced  = commandArguments.flag('force');
   if (title?.trim() === '') throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket edit was given an empty --title.\n  Usage: ${TICKET_USAGE}`);
 
   // Read before the lock: `--body-file -` waits on a pipe the caller may hold open indefinitely.
@@ -40,12 +39,11 @@ export async function editTicket(commandArguments: ArgumentParser, context: Comm
   }
 
   const command: ControlCommandOf<'ticket-edit'> = {
-    kind:                'ticket-edit',
-    ticketReference:     reference,
+    kind:            'ticket-edit',
+    ticketReference: reference,
     ...(title === undefined ? {} : { title }),
-    bodyText:            text ?? null,
-    appendsBody:         appends,
-    allowsPastCommitted: forced,
+    bodyText:        text ?? null,
+    appendsBody:     appends,
   };
   await hatchWhenUnderJob(context, command);
   const edited = (await applyCommandOfVerb(commandArguments, context, command)).result;

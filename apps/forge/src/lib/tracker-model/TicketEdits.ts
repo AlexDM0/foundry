@@ -2,22 +2,25 @@
  * A ticket's title and body edited, leaving its status and `updated` stamp alone: only a transition stamps it. A new
  * title renames the ticket's own row and the body's generated heading, never a review bar, whose name records the title it was started under.
  */
-import type { Logged }                            from './@types/BoardChanges.ts';
-import type { LogRecord }                         from './@types/LogRecord.ts';
-import type { Ticket }                            from './@types/Ticket.ts';
-import type { BoardRecords }                      from './BoardRecords.ts';
-import { BoardRefusal }                           from './BoardRefusal.ts';
-import type { MarkdownBodyEdit }                  from './MarkdownBodyEdit.ts';
-import { editedBodyOf }                           from './MarkdownBodyEdit.ts';
-import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP } from './constants/Statuses.ts';
-import { TicketBodyHashUtil }                     from './utils/TicketBodyHashUtil.ts';
-import { TicketChartUtil }                        from './utils/TicketChartUtil.ts';
+import type { Logged }                           from './@types/BoardChanges.ts';
+import type { LogRecord }                        from './@types/LogRecord.ts';
+import type { Ticket }                           from './@types/Ticket.ts';
+import type { BoardRecords }                     from './BoardRecords.ts';
+import { BoardRefusal }                          from './BoardRefusal.ts';
+import type { MarkdownBodyEdit }                 from './MarkdownBodyEdit.ts';
+import { editedBodyOf }                          from './MarkdownBodyEdit.ts';
+import { TICKET_STATUSES_WITH_EDITABLE_CONTENT } from './constants/Statuses.ts';
+import { TicketBodyHashUtil }                    from './utils/TicketBodyHashUtil.ts';
+import { TicketChartUtil }                       from './utils/TicketChartUtil.ts';
 
 export interface TicketEdit {
-  title?:               string;
-  body?:                MarkdownBodyEdit;
-  /** Lets the edit reach a ticket that was claimed or started, or has moved on since; without it only a `committed` ticket is edited. */
-  allowsPastCommitted?: boolean;
+  title?:    string;
+  body?:     MarkdownBodyEdit;
+  /**
+   * `command` is refused from committed onward; `board` is the board's own record in the body (a Handoff, a review, waived items, an
+   * answer), allowed in every status, and moves `contentHash`.
+   */
+  writtenBy: 'command' | 'board';
 }
 
 export interface TicketEdited extends Logged {
@@ -45,16 +48,15 @@ export class TicketEdits {
   constructor(private readonly records: BoardRecords) {}
 
   /**
-   * A ticket past `committed` is refused unless the edit allows it, before anything is read, so a claim and an edit sharing one lock hold
-   * never both act on a stale status. The heading is retitled before the body edit applies, so a replacement is written as given and an
-   * append lands on the retitled body; a retitled heading alone moves the claimed body hash along, since a rename is no body change.
+   * A command's edit of a committed ticket, or of one past it, is refused before anything else is read, so a claim and an edit sharing one
+   * lock hold never both act on a stale status. The heading is retitled before the body edit applies, so a replacement is written as given
+   * and an append lands on the retitled body. The board's own record moves the content hash to the new content, so agents build from it.
    */
   editTicket(ticketId: string, edit: TicketEdit, at: string): TicketEdited {
     const ticket            = this.records.requireTicket(ticketId);
     const { frontmatter }   = ticket;
-    const pastCommitted     = !TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(frontmatter.status);
-    if (pastCommitted && edit.allowsPastCommitted !== true) {
-      throw new BoardRefusal({ reason: 'edit-of-a-ticket-past-committed', ticketId, status: frontmatter.status });
+    if (edit.writtenBy === 'command' && !TICKET_STATUSES_WITH_EDITABLE_CONTENT.includes(frontmatter.status)) {
+      throw new BoardRefusal({ reason: 'content-of-a-committed-ticket', ticketId, status: frontmatter.status });
     }
     const previousTitle     = frontmatter.title;
     const title             = edit.title ?? previousTitle;
@@ -63,9 +65,7 @@ export class TicketEdits {
     const body              = edit.body === undefined ? retitledBody : editedBodyOf({ ...ticket, body: retitledBody }, edit.body);
     if (!retitled && body === ticket.body) return { logged: [], ticket, changed: false };
 
-    if (retitled && TicketBodyHashUtil.bodyChangedSinceClaimOf(ticket) === false) {
-      frontmatter.claimedBodyHash = TicketBodyHashUtil.bodyHashOf(retitledBody);
-    }
+    if (frontmatter.contentHash !== undefined) frontmatter.contentHash = TicketBodyHashUtil.contentHashOf(title, body);
     ticket.body = body;
     this.records.markChanged(ticket);
     const logged: LogRecord[] = [];
@@ -75,9 +75,12 @@ export class TicketEdits {
       if (ownRow !== undefined) ownRow.name = TicketChartUtil.rowNameOf(frontmatter);
       logged.push(this.records.logger.log({ kind: 'ticket-retitled', ticketId, fields: { from: previousTitle, to: title } }, at));
     }
-    if (pastCommitted && body !== retitledBody && TicketBodyHashUtil.bodyChangedSinceClaimOf(ticket) !== undefined) {
-      logged.push(this.records.logger.log({ kind: 'ticket-body-changed-after-claim', ticketId, fields: {} }, at));
-    }
     return { logged, ticket, changed: true };
+  }
+
+  /** The store read the ticket with the content its hash keeps, not its changed stored text: the ticket is written back as it reads. */
+  restoreKeptContent(ticketId: string, at: string): Logged {
+    this.records.markChanged(this.records.requireTicket(ticketId));
+    return { logged: [this.records.logger.log({ kind: 'ticket-content-restored', ticketId, fields: {} }, at)] };
   }
 }

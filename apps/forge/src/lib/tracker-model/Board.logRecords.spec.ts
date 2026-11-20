@@ -70,7 +70,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-ran","fields":{"tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","outcome":"passed","cached":true}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-step-ran","fields":{"stepKind":"gate","stepName":"tests","phase":"build","entity":"web",'
     + '"runMilliseconds":4200,"ending":"passed"}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-body-changed-after-claim","ticketId":"001","fields":{}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-content-restored","ticketId":"001","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-finished","ticketId":"001","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"review-bar-started","taskId":3,"ticketId":"001","fields":{"name":"Review 1 #001 — Example checkout page"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"review-recorded","taskId":3,"ticketId":"001","fields":{"round":1,"verdict":"round-requested",'

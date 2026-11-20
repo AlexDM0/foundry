@@ -161,7 +161,9 @@ describe('createTicket and listTickets', () => {
     const workspace = scratchWorkspace();
     rmSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true, force: true });
 
-    expect(listTickets(workspace)).toEqual({ tickets: [], unreadable: [], ticketLocations: new Map() });
+    expect(listTickets(workspace)).toEqual({
+      tickets: [], unreadable: [], contentRestored: [], ticketLocations: new Map()
+    });
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('001');
   });
 });
@@ -275,6 +277,7 @@ describe('a ticket file renamed by hand', () => {
     expect(listTickets(workspace)).toEqual({
       tickets:         [],
       ticketLocations: new Map(),
+      contentRestored: [],
       unreadable:      [{
         record: 'ticket', key: '012', location: renamedPath, reason: 'the file name says #012 but its `id` is 001', line: 2
       }],
@@ -292,6 +295,7 @@ describe('a ticket file renamed by hand', () => {
     expect(listTickets(workspace)).toEqual({
       tickets:         [],
       ticketLocations: new Map(),
+      contentRestored: [],
       unreadable:      [
         {
           record: 'ticket', key: '001', location: first.location, reason: 'ticket #001 is also held by copy-of-the-first.md', line: 2

@@ -99,7 +99,7 @@ line](../glossary.md#main-line) `reviewed` is never a resting place.
 Assistant ask, and only for the move shown.*
 
 No session writes files in [`<data>`](../glossary.md#reading-names): confinement
-denies it, and Customs refuses a run whose commits touch that folder or that changed the ticket body.
+denies it, and Customs refuses a run whose commits touch that folder or during which the ticket's content hash moved.
 
 That is why the Handoff is the code's. The builder writes a `handoff` field in its report, and the Overseer copies it
 into the ticket once it has verified the rest.

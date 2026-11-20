@@ -36,8 +36,10 @@ export type RecordReference = {
 };
 
 export interface TicketListing {
-  tickets:    Ticket[];
-  unreadable: UnreadableRecord[];
+  tickets:         Ticket[];
+  unreadable:      UnreadableRecord[];
+  /** Tickets whose stored text no longer matches their content hash; read with the kept content. */
+  contentRestored: readonly string[];
 }
 
 export interface BoardContents {

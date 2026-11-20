@@ -43,7 +43,7 @@ function lowFinding(overrides: Partial<ControlCommandOf<'ticket-add'>> = {}): Co
 }
 
 const EDIT_OF_TICKET_7: ControlCommand = {
-  kind: 'ticket-edit', ticketReference: '#7', title: 'Sharper title', bodyText: null, appendsBody: false, allowsPastCommitted: false
+  kind: 'ticket-edit', ticketReference: '#7', title: 'Sharper title', bodyText: null, appendsBody: false
 };
 
 describe('builder and reviewer', () => {

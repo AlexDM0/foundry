@@ -21,7 +21,6 @@ import {
 } from 'bun:test';
 
 import type { LogRecord }                                      from '../../lib/tracker-model/@types/LogRecord.ts';
-import { TicketBodyHashUtil }                                  from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { fakeAgentAdapter }                                    from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                       from '../../testing/RecordedGitScenarios.ts';
@@ -98,13 +97,14 @@ function reviewerSubject(findings: readonly Record<string, unknown>[], logRecord
     report:       {
       role: 'reviewer', headCommit: HEAD_COMMIT, claims: [], findings, reviewText: 'Example review.'
     },
-    ticketBody:       TICKET_BODY,
-    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
-    jobId:            JOB_ID,
-    agentNaming:      AGENT_NAMING,
+    ticketBody:          TICKET_BODY,
+    contentHashAtLaunch: '0123456789abcdef',
+    ticketContentHash:   '0123456789abcdef',
+    jobId:               JOB_ID,
+    agentNaming:         AGENT_NAMING,
     logRecords,
     launchSnapshot,
-    refMovesAllowed:  {
+    refMovesAllowed:     {
       ownBranch,
       otherJobBranches:     [],
       loggedJobBranches:    [],

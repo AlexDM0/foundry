@@ -32,7 +32,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     bodyText:      '## Report\nAlex Example saw the basket empty itself.\n',
   },
   'ticket-edit': {
-    kind: 'ticket-edit', ticketReference: '#3', title: 'Example title', bodyText: null, appendsBody: false, allowsPastCommitted: true
+    kind: 'ticket-edit', ticketReference: '#3', title: 'Example title', bodyText: null, appendsBody: false
   },
   'ticket-depends': {
     kind: 'ticket-depends', ticketReference: '3', edit: 'add', ticketIds: ['001', '002']

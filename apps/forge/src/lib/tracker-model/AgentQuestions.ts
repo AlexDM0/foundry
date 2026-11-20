@@ -119,7 +119,7 @@ export class AgentQuestions {
       const ticket = this.records.ticketRecordById(ticketId);
       if (ticket === undefined) return [];
       const questionsSection = { text: questionsSectionTextOf(ticket.body, decision.id, answer), appends: true };
-      const edited = this.ticketEdits.editTicket(ticketId, { body: questionsSection, allowsPastCommitted: true }, at);
+      const edited = this.ticketEdits.editTicket(ticketId, { body: questionsSection, writtenBy: 'board' }, at);
       const unheld = ticket.frontmatter.hold === awaitingAnswerHoldOf(decision.id) ? this.ticketSettings.unholdTicket(ticketId, at).logged : [];
       return [...edited.logged, ...unheld];
     });
@@ -159,7 +159,7 @@ export class AgentQuestions {
       const ticket = this.records.ticketRecordById(ticketId);
       if (ticket === undefined) continue;
       const questionsSection = { text: questionsSectionTextOf(ticket.body, incident.id, answer), appends: true };
-      logged.push(...this.ticketEdits.editTicket(ticketId, { body: questionsSection, allowsPastCommitted: true }, at).logged);
+      logged.push(...this.ticketEdits.editTicket(ticketId, { body: questionsSection, writtenBy: 'board' }, at).logged);
     }
     return logged;
   }

@@ -128,16 +128,17 @@ function movedRefsAtTurnEnd(context: TurnEndContext, launchSnapshot: LaunchSnaps
   const job = board.jobById(agentJobId);
   if (job === undefined) throw new Error('the agent is on the board');
   const verdict = CUSTOMS_CHECKS.V14({
-    role:             'pipeline-agent',
-    worktreePath:     repositoryDirectory,
-    startCommit:      COMMITS['<start>'],
-    report:           undefined,
-    ticketBody:       '',
-    bodyHashAtLaunch: '',
+    role:                'pipeline-agent',
+    worktreePath:        repositoryDirectory,
+    startCommit:         COMMITS['<start>'],
+    report:              undefined,
+    ticketBody:          '',
+    contentHashAtLaunch: '',
+    ticketContentHash:   '',
     launchSnapshot,
-    refMovesAllowed:  PipelineAgentSessions.turnEndRefMovesAllowedOf(context, board, job),
-    pathStyle:        context.pathStyle,
-    agentNaming:      context.agentNaming,
+    refMovesAllowed:     PipelineAgentSessions.turnEndRefMovesAllowedOf(context, board, job),
+    pathStyle:           context.pathStyle,
+    agentNaming:         context.agentNaming,
   });
   return verdict.verdict === 'refused' ? verdict.facts : null;
 }

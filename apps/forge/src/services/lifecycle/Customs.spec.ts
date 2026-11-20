@@ -1,6 +1,6 @@
 /**
  * The Customs decisions that read no git: which attempt a build retries, how a board's definition-file pattern reads, and V6 and V8, which
- * judge the ticket body and the report alone. V13's and V14's path comparisons run here under the Windows path module, so git's `C:/`
+ * judge the ticket's content hash and the report alone. V13's and V14's path comparisons run here under the Windows path module, so git's `C:/`
  * spelling and a joined backslash path are shown to meet on this machine. Every check that reads the repository is held on one of the fake
  * git by `src/services/lifecycle/Customs.verification.spec.ts`, because what it decides is what git answers.
  */
@@ -10,7 +10,6 @@ import { expect, test } from 'bun:test';
 
 import { type GitPathStyle, GitPaths } from '../../lib/git/GitPaths.ts';
 import type { LogRecord }              from '../../lib/tracker-model/@types/LogRecord.ts';
-import { TicketBodyHashUtil }          from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { fakeAgentAdapter }            from '../../testing/FakeAgentAdapter.ts';
 import {
   agentConfigPathsAmong,
@@ -48,14 +47,15 @@ function builderReport(): Record<string, unknown> {
 
 function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject {
   return {
-    role:             'builder',
-    worktreePath:     '/no-repository-is-read-by-these-checks',
-    startCommit:      EXAMPLE_COMMIT,
-    report:           builderReport(),
-    ticketBody:       TICKET_BODY,
-    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
-    launchSnapshot:   { refs: {}, hooksFolderDigest: null },
-    refMovesAllowed:  {
+    role:                'builder',
+    worktreePath:        '/no-repository-is-read-by-these-checks',
+    startCommit:         EXAMPLE_COMMIT,
+    report:              builderReport(),
+    ticketBody:          TICKET_BODY,
+    contentHashAtLaunch: '0123456789abcdef',
+    ticketContentHash:   '0123456789abcdef',
+    launchSnapshot:      { refs: {}, hooksFolderDigest: null },
+    refMovesAllowed:     {
       ownBranch: 'example-branch', otherJobBranches: [], loggedJobBranches: [], recordedLandings: [], removedAfterLandings: [], airlockWorktreeHeads: []
     },
     agentNaming: AGENT_NAMING,
@@ -96,9 +96,9 @@ test('a build retries the unbroken run of failed build attempts right before it 
   expect(retriedFailedBuildJobIdOf(records, 'J9')).toBeNull();
 });
 
-test('V6 refuses a ticket body edited since launch', () => {
+test('V6 passes while the ticket holds the content hash its launch recorded, and refuses once it holds another', () => {
   expect(refusalOf('V6', builderSubject())).toBeNull();
-  expect(refusalOf('V6', builderSubject({ ticketBody: `${TICKET_BODY}\nA2. Added mid-job.\n` }))).toBe('ticket-body-changed');
+  expect(refusalOf('V6', builderSubject({ ticketContentHash: 'fedcba9876543210' }))).toBe('ticket-content-changed');
 });
 
 test('V8 refuses an Acceptance item the builder gave no evidence or waiver proposal for, or the reviewer no claim', () => {

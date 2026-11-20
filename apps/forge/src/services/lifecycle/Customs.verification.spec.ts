@@ -16,7 +16,6 @@ import {
 }                                                         from 'bun:test';
 
 import type { PipelineGate }                              from '../../lib/tracker-model/@types/Pipeline.ts';
-import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
@@ -106,14 +105,15 @@ function reviewerReport(fixedCommit: string): Record<string, unknown> {
 
 function builderSubject(overrides: Partial<CustomsSubject> = {}): CustomsSubject {
   return {
-    role:             'builder',
-    worktreePath:     repositoryDirectory,
-    startCommit:      START_COMMIT,
-    report:           builderReport(),
-    ticketBody:       TICKET_BODY,
-    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(TICKET_BODY),
+    role:                'builder',
+    worktreePath:        repositoryDirectory,
+    startCommit:         START_COMMIT,
+    report:              builderReport(),
+    ticketBody:          TICKET_BODY,
+    contentHashAtLaunch: '0123456789abcdef',
+    ticketContentHash:   '0123456789abcdef',
     launchSnapshot,
-    refMovesAllowed:  {
+    refMovesAllowed:     {
       ownBranch:            OWN_BRANCH,
       otherJobBranches:     [],
       loggedJobBranches:    [],

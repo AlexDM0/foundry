@@ -28,7 +28,6 @@ import type { Pipeline, PipelineEntity }                     from '../../lib/tra
 import type { Ticket }                                       from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }                                        from '../../lib/tracker-model/Board.ts';
 import { PipelineUtil }                                      from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketBodyHashUtil }                                from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                       from '../../testing/BoardFixtures.ts';
@@ -123,7 +122,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   enterScenario(GIT_SCENARIOS.MAIN_INSTRUCTION_FILE_MERGED, { repositoryDirectory: worktree, commits: SCENARIO_COMMITS });
   const jobFolder = jobFolderIn(trackerDirectory, job.id);
   mkdirSync(jobFolder, { recursive: true });
-  const jobStart = { startCommit: SCENARIO_COMMITS['<start>'], bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticket.body), launchSnapshot: launchSnapshotOf(worktree) };
+  const jobStart = { startCommit: SCENARIO_COMMITS['<start>'], contentHashAtLaunch: ticket.frontmatter.contentHash ?? '', launchSnapshot: launchSnapshotOf(worktree) };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');

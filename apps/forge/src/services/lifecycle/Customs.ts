@@ -35,7 +35,6 @@ import type { LogRecord }                                                       
 import type { PipelineGate }                                                       from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { TicketStageName }                                                    from '../../lib/tracker-model/@types/Task.ts';
 import { EntityOwnershipUtil }                                                     from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketBodyHashUtil }                                                      from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import type { BranchNames }                                                        from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                                           from '../../shared/constants/ProductNames.ts';
 import { ProjectPathsUtil }                                                        from '../../shared/utils/ProjectPathsUtil.ts';
@@ -60,7 +59,7 @@ export type VerificationRefusalReason =
   | 'no-commit-since-start'
   | 'worktree-dirty'
   | 'data-folder-touched'
-  | 'ticket-body-changed'
+  | 'ticket-content-changed'
   | 'ai-attribution-in-range'
   | 'acceptance-without-evidence'
   | 'fixed-finding-outside-range'
@@ -231,50 +230,53 @@ export type AgentNaming = Pick<AgentAdapter, 'configurationNames' | 'attribution
 const LANDING_OUTCOMES: readonly JobOutcome[] = ['landed', 'integrated', 'refreshed', 'committed'];
 
 export interface CustomsSubject {
-  role:              VerifiedRole;
-  worktreePath:      string;
+  role:                VerifiedRole;
+  worktreePath:        string;
   /** The worktree's HEAD at launch, the branch tip with `MERGE_HEAD` at the target tip for an Airlock agent, the merged commit after it. */
-  startCommit:       string;
+  startCommit:         string;
   /** V3 measures from it when set: the start of the failed build attempts this one retries, whose commits its branch already holds. */
-  workStartCommit?:  string;
+  workStartCommit?:    string;
   /** The report as parsed from the session's structured output, unvalidated. */
-  report:            unknown;
-  ticketBody:        string;
-  bodyHashAtLaunch:  string;
+  report:              unknown;
+  ticketBody:          string;
+  /** The ticket's content hash as the job's start recorded it; empty for a job with no ticket or a ticket that holds none. */
+  contentHashAtLaunch: string;
+  /** The ticket's content hash as the job ends, empty likewise: V6 compares the two. */
+  ticketContentHash:   string;
   /** V10's merge, for an Airlock agent. */
-  merge?:            MergeUnderVerification;
+  merge?:              MergeUnderVerification;
   /**
    * The gate catalogue, every gate whatever phases run it: V11 reads each one's `definedBy`, V15 the ones an agent runs; absent or empty,
    * both pass.
    */
-  gates?:            readonly Readonly<PipelineGate>[];
+  gates?:              readonly Readonly<PipelineGate>[];
   /**
    * V11 also: the tracked files, as repository paths, each role's resolved instruction list names, the constitution's path among them,
    * which a branch changes only where its ticket names them (`InstructionFiles.trackedInstructionPathsOf`).
    */
-  instructionFiles?: readonly string[];
+  instructionFiles?:   readonly string[];
   /**
    * V11 also: the line the branch lands on. When set, an instruction file counts as changed only where the branch changed it itself; a
    * change that reached the branch through a merge of this line, such as a constitution commit, is not the worker's edit.
    */
-  target?:           string;
+  target?:             string;
   /** V12: the job being verified, and the log as stored plus this hold's records. */
-  jobId?:            string;
-  logRecords?:       readonly LogRecord[];
+  jobId?:              string;
+  logRecords?:         readonly LogRecord[];
   /** V13 and V14: what was snapshotted at launch; without it V14 refuses, since nothing proves no ref moved. */
-  launchSnapshot?:   LaunchSnapshot;
-  refMovesAllowed?:  RefMovesAllowed;
+  launchSnapshot?:     LaunchSnapshot;
+  refMovesAllowed?:    RefMovesAllowed;
   /** How a path compares with git's spelling, from the `DataFolders` port; the host's path module without case folding when absent. */
-  pathStyle?:        GitPathStyle;
+  pathStyle?:          GitPathStyle;
   /**
    * V5, V11, V13 and V17; absent for a tracker at its repository's root whose pipeline has no entities. `worktreePath` is the worktree's
    * root either way.
    */
-  projectScope?:     ProjectScope;
+  projectScope?:       ProjectScope;
   /** A job of a ticket that crosses into whitelisted packages, once its row stores a stage; absent for every other job. */
-  crossingStage?:    CrossingStageScope;
+  crossingStage?:      CrossingStageScope;
   /** The agent's configuration, which V13 protects, and its attribution, which V7 refuses beside forge's own. */
-  agentNaming:       AgentNaming;
+  agentNaming:         AgentNaming;
 }
 
 /** `facts` name what failed: paths, commits or labels, never words. */
@@ -491,9 +493,9 @@ function dataFolderUntouched(subject: CustomsSubject): CheckVerdict {
   return touched.length === 0 ? PASSED : refused('data-folder-touched', touched);
 }
 
-function ticketBodyUnchanged(subject: CustomsSubject): CheckVerdict {
-  const bodyHash = TicketBodyHashUtil.bodyHashOf(subject.ticketBody);
-  return bodyHash === subject.bodyHashAtLaunch ? PASSED : refused('ticket-body-changed', [subject.bodyHashAtLaunch, bodyHash]);
+function ticketContentUnchanged(subject: CustomsSubject): CheckVerdict {
+  const { contentHashAtLaunch, ticketContentHash } = subject;
+  return ticketContentHash === contentHashAtLaunch ? PASSED : refused('ticket-content-changed', [contentHashAtLaunch, ticketContentHash]);
 }
 
 function noAiAttributionInRange(subject: CustomsSubject): CheckVerdict {
@@ -1140,7 +1142,7 @@ export const CUSTOMS_CHECKS: Readonly<Record<VerificationCheck, VerificationChec
   V3:  aCommitSinceTheStart,
   V4:  worktreeIsClean,
   V5:  dataFolderUntouched,
-  V6:  ticketBodyUnchanged,
+  V6:  ticketContentUnchanged,
   V7:  noAiAttributionInRange,
   V8:  everyAcceptanceItemAccountedFor,
   V9:  fixedFindingsNameCommitsInRange,

@@ -450,10 +450,10 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its priority was not changed: `
         + 'only a draft or committed ticket can be lowered to low, '
         + `since a low ticket has no row until it is started. ${NOTHING_WAS_WRITTEN}`;
-    case 'edit-of-a-ticket-past-committed':
-      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and it was not edited: an agent may already be working from it. `
-        + NOTHING_WAS_WRITTEN
-        + adviceFor(channel, ' Pass --force to edit it anyway; the change shows as the body changed since the claim.', '');
+    case 'content-of-a-committed-ticket':
+      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its title and body were not edited: `
+        + `a committed ticket's content is fixed${detail.status === 'committed' ? ', since an agent may pick it up at any moment' : ''}. `
+        + NOTHING_WAS_WRITTEN;
     case 'network-of-a-ticket-past-committed':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its network line was not changed: `
         + `it is set only while the ticket is draft or committed. ${NOTHING_WAS_WRITTEN}`;

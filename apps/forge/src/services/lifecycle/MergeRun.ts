@@ -107,13 +107,14 @@ function settleTargetMerge(worktreePath: string, sides: Readonly<MergeSides>): T
 
 function resolutionSubjectOf(worktreePath: string, sides: Readonly<MergeSides>, conflictedFiles: readonly string[], agentNaming: AgentNaming): CustomsSubject {
   return {
-    role:             'airlock-agent',
+    role:                'airlock-agent',
     worktreePath,
-    startCommit:      sides.startTip,
-    report:           null,
-    ticketBody:       '',
-    bodyHashAtLaunch: '',
-    merge:            { branchTip: sides.startTip, targetTip: sides.mergedTip, conflictedFiles },
+    startCommit:         sides.startTip,
+    report:              null,
+    ticketBody:          '',
+    contentHashAtLaunch: '',
+    ticketContentHash:   '',
+    merge:               { branchTip: sides.startTip, targetTip: sides.mergedTip, conflictedFiles },
     agentNaming,
   };
 }
@@ -167,7 +168,7 @@ function claimsOf(report: unknown): readonly Readonly<Record<string, unknown>>[]
  */
 function reReviewVerdictOf(worktreePath: string, resolutionCommit: string, report: unknown, agentNaming: AgentNaming): ReReviewVerdict {
   const subject = {
-    role: 'reviewer', worktreePath, startCommit: resolutionCommit, report, ticketBody: '', bodyHashAtLaunch: '', agentNaming
+    role: 'reviewer', worktreePath, startCommit: resolutionCommit, report, ticketBody: '', contentHashAtLaunch: '', ticketContentHash: '', agentNaming
   } as const;
   for (const check of [CUSTOMS_CHECKS.V1, CUSTOMS_CHECKS.V2]) {
     const verdict = check(subject);

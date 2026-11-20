@@ -4,8 +4,9 @@
  * without one, an empty append writes nothing, `--body-file -` in a terminal is refused rather than read as empty text, and the frontmatter's
  * bytes (unknown keys, comments, a hand-written layout) survive an edit while `updated` is not stamped and nothing is logged. A rename
  * touches the title line, the ticket's own row and a generated heading only, keeping the file path, a review bar's name and a hand-changed
- * heading, and logs one line. Past `committed` an edit needs `--force`, checked inside the same lock hold as the write, and a forced body edit
- * reads as changed since the claim while a rename does not.
+ * heading, and logs one line. A committed ticket's content is fixed: from `committed` onward an edit exits 1 with its sentence and changes
+ * nothing, nothing overrides it (`--force` is an unknown option), the status is read inside the same lock hold as the write, and the content
+ * hash readying keeps is the hash of the content as readied.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                     from 'node:path';
@@ -16,16 +17,16 @@ import {
   expect,
   test
 }                                                  from 'bun:test';
-import { TicketBodyHashUtil }                     from '../../src/lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
-import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
-import { storedLogTextOf }                        from '../testing/StoredLogText.ts';
+import { TicketBodyHashUtil }                           from '../../src/lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { PRODUCT_NAMES }                                from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                               from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                       from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                    from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }                 from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }       from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }              from '../testing/OverseerTicketMoves.ts';
+import { fileReadyTicket, READY_TICKET_BODY_ARGUMENTS } from '../testing/ReadyTicketFiling.ts';
+import { storedLogTextOf }                              from '../testing/StoredLogText.ts';
 
 const FROZEN_NOW = new Date('2026-09-24T09:25:00Z');
 
@@ -33,7 +34,7 @@ const FROZEN_NOW = new Date('2026-09-24T09:25:00Z');
 const HAND_WRITTEN_FRONTMATTER_LINES = [
   '---',
   'id: "001"',
-  'status: committed',
+  'status: draft',
   'title: "Example checkout page"',
   'type: feature',
   '# kept by hand',
@@ -45,7 +46,7 @@ const HAND_WRITTEN_FRONTMATTER_LINES = [
   'finished: null',
   'delivered: null',
   'abandonedAt: null',
-  'task: 1',
+  'task: null',
   '---',
 ];
 
@@ -91,25 +92,24 @@ function handWriteTicket(lineEnding: '\n' | '\r\n', body: string): string {
 }
 
 interface ShownTicket {
-  status:                 string;
-  body:                   string;
-  claimedBodyHash?:       string;
-  bodyChangedSinceClaim?: boolean;
+  status:       string;
+  title:        string;
+  body:         string;
+  contentHash?: string;
 }
 
 async function shownTicket(reference = '1'): Promise<ShownTicket> {
   return JSON.parse((await run(['ticket', 'show', reference, '--json'])).outputText()) as ShownTicket;
 }
 
-function withoutClaimedBodyHash(ticketText: string): string {
-  return ticketText.replace(/^claimedBodyHash: .*\n/m, '');
-}
+const COMMITTED_CONTENT_SENTENCE = 'Ticket #001 is committed, and its title and body were not edited: a committed ticket\'s content is fixed, since an '
+  + 'agent may pick it up at any moment. Nothing was written.';
 
 const recordedGit = useRecordedGit();
 
 beforeEach(async () => {
   repositoryDirectory = await createInitializedRecordedGitRepository('ticket-edit', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
-  await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example checkout page']);
+  await run(['ticket', 'add', '--type', 'ticket', 'Example checkout page']);
 });
 
 afterEach(() => {
@@ -200,79 +200,70 @@ describeWhenGitIsRecorded('editing a ticket body', () => {
   });
 });
 
-describeWhenGitIsRecorded('editing a ticket past committed', () => {
-  test('a draft ticket is edited without --force, as a committed one is', async () => {
-    await run(['ticket', 'add', '--type', 'ticket', 'Example cart']);
+describeWhenGitIsRecorded('a committed ticket\'s content', () => {
+  test('a draft carries no content hash, and readying keeps the hash of its title and body as readied', async () => {
+    expect(storedTicketText()).not.toContain('contentHash');
+    expect((await shownTicket()).contentHash).toBeUndefined();
 
-    await run(['ticket', 'edit', '2', '--append', '--body', 'Appended to the draft.\n']);
+    await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example cart']);
 
-    const draftText = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets', '002-example-cart.md'), 'utf8');
-    expect(draftText).toContain('status: "draft"');
-    expect(draftText.endsWith('Appended to the draft.\n')).toBe(true);
+    const readied = await shownTicket('2');
+    expect(readied.status).toBe('committed');
+    expect(readied.contentHash).toBe(TicketBodyHashUtil.contentHashOf('Example cart', readied.body));
   });
 
-  test('a ticket never claimed carries no claimed body hash, in its file or its JSON', async () => {
-    expect(storedTicketText()).not.toContain('claimedBodyHash');
-    const shown = await shownTicket();
-    expect(shown.claimedBodyHash).toBeUndefined();
-    expect(shown.bodyChangedSinceClaim).toBeUndefined();
-  });
-
-  test('a claimed ticket refuses an edit at exit 1 naming --force, the file byte-identical and nothing logged', async () => {
-    await run(['ticket', 'claim', '1']);
-    expect((await shownTicket()).bodyChangedSinceClaim).toBe(false);
-    const before    = storedTicketText();
-    const logBefore = storedLogTextOf(repositoryDirectory);
+  test('an edit of a committed ticket exits 1 with the sentence, the file byte-identical and nothing logged', async () => {
+    await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example cart']);
+    const committedFile = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets', '002-example-cart.md');
+    const before        = readFileSync(committedFile, 'utf8');
+    const logBefore     = storedLogTextOf(repositoryDirectory);
 
     for (const editArguments of [['--body', 'Replaced.\n'], ['--append', '--body', 'Appended.\n'], ['--title', 'Example payment page']]) {
-      const refused = await runExpectingExit(1, ['ticket', 'edit', '1', ...editArguments]);
-      expect(refused.errorText()).toContain('Ticket #001 is in-progress, and it was not edited');
-      expect(refused.errorText()).toContain('--force');
+      const refused = await runExpectingExit(1, ['ticket', 'edit', '2', ...editArguments]);
+      expect(refused.errorText()).toContain(COMMITTED_CONTENT_SENTENCE.replace('#001', '#002'));
     }
 
-    expect(storedTicketText()).toBe(before);
+    expect(readFileSync(committedFile, 'utf8')).toBe(before);
     expect(storedLogTextOf(repositoryDirectory)).toBe(logBefore);
   });
 
-  test('a forced body edit writes, logs once and reads as changed since the claim, in show and status', async () => {
-    await run(['ticket', 'start', '1']);
-    const logBefore = storedLogTextOf(repositoryDirectory);
+  test('an edit of a claimed ticket names its status and changes nothing', async () => {
+    await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example cart']);
+    await run(['ticket', 'claim', '2']);
 
-    const output = (await run(['ticket', 'edit', '1', '--append', '--body', 'Added after the claim.\n', '--force'])).outputText();
+    const refused = await runExpectingExit(1, ['ticket', 'edit', '2', '--append', '--body', 'Appended.\n']);
 
-    expect(output).toContain('Ticket #001 body changed after its claim');
-    const addedLogLines = storedLogTextOf(repositoryDirectory).slice(logBefore.length).trim().split('\n');
-    expect(addedLogLines.map((line) => (JSON.parse(line) as { kind: string }).kind)).toEqual(['ticket-body-changed-after-claim']);
-    expect((await shownTicket()).bodyChangedSinceClaim).toBe(true);
-    expect((await run(['ticket', 'show', '1'])).outputText()).toContain('  body:     changed since the claim');
-    const status = JSON.parse((await run(['status', '--json'])).outputText()) as { tickets: ShownTicket[] };
-    expect(status.tickets[0]?.bodyChangedSinceClaim).toBe(true);
+    expect(refused.errorText()).toContain('Ticket #002 is in-progress, and its title and body were not edited: a committed ticket\'s content is fixed. '
+      + 'Nothing was written.');
   });
 
-  test('a claim and an edit racing for the lock never both succeed on a stale read', async () => {
+  test('ticket edit --force is refused as an unknown option, writing nothing', async () => {
+    const before = storedTicketText();
+
+    const refused = await runExpectingExit(1, ['ticket', 'edit', '001', '--force', '--body', 'Replaced.\n']);
+
+    expect(refused.errorText()).toContain('--force');
+    expect(storedTicketText()).toBe(before);
+  });
+
+  test('a ready and an edit racing for the lock never both act on a stale read: the kept hash is of the content as readied', async () => {
     const rounds = 4;
     for (let i = 0; i < rounds; i++) {
       const reference = String(i + 2);
-      await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', `Example race ${reference}`]);
-      const editedText = `Edited in round ${reference}.\n`;
+      await run(['ticket', 'add', '--type', 'ticket', `Example race ${reference}`, ...READY_TICKET_BODY_ARGUMENTS]);
+      const appendedText = `Edited in round ${reference}.\n`;
 
-      const [claimExit, editExit] = await Promise.all([
-        runCommandLineWithOverseerMoves(['ticket', 'claim', reference], contextHere()),
-        runCommandLineWithOverseerMoves(['ticket', 'edit', reference, '--body', editedText], contextHere()),
+      const [readyExit, editExit] = await Promise.all([
+        runCommandLineWithOverseerMoves(['ticket', 'ready', reference], contextHere()),
+        runCommandLineWithOverseerMoves(['ticket', 'edit', reference, '--append', '--body', appendedText], contextHere()),
       ]);
 
-      expect(claimExit).toBe(0);
+      expect(readyExit).toBe(0);
       const shown = await shownTicket(reference);
-      if (editExit === 0) {
-        // The edit held the lock first, so the claim recorded the edited body.
-        expect(shown.body).toBe(editedText);
-        expect(shown.bodyChangedSinceClaim).toBe(false);
-      } else {
-        expect(editExit).toBe(1);
-        expect(shown.body).not.toBe(editedText);
-        expect(shown.bodyChangedSinceClaim).toBe(false);
-      }
-      await run(['ticket', 'abandon', reference, '--reason', 'Example race finished']);
+      // The edit either held the lock first, so the ready kept the edited content, or found the ticket committed and was refused.
+      expect(shown.body.endsWith(appendedText)).toBe(editExit === 0);
+      if (editExit !== 0) expect(editExit).toBe(1);
+      expect(shown.contentHash).toBe(TicketBodyHashUtil.contentHashOf(shown.title, shown.body));
     }
   });
 });
@@ -283,27 +274,22 @@ describeWhenGitIsRecorded('renaming a ticket', () => {
     return progress.tasks.map((task) => task.name);
   }
 
-  test('a new title rewrites only the title line, keeps the file path, renames the own row but not a review bar, stamps nothing and logs once', async () => {
-    await run(['ticket', 'start', '1']);
-    await run(['ticket', 'finish', '1', '--start-review']);
+  test('a new title rewrites only the title line and the generated heading, keeps the file path, stamps nothing and logs once', async () => {
     const filePathBefore = ticketFilePath();
     const textBefore     = storedTicketText();
     const logBefore      = storedLogTextOf(repositoryDirectory);
-    expect(storedRowNames()).toEqual(['#001 Example checkout page', 'Review 1 #001 — Example checkout page']);
 
-    const output = (await run(['ticket', 'edit', '1', '--title', 'Example payment page', '--force'])).outputText();
+    const output = (await run(['ticket', 'edit', '1', '--title', 'Example payment page'])).outputText();
 
     expect(output).toContain('Ticket #001 renamed: Example checkout page → Example payment page');
     expect(ticketFilePath()).toBe(filePathBefore);
-    // The claimed body hash follows the retitled heading, so the rename does not read as a body change.
-    expect(withoutClaimedBodyHash(storedTicketText())).toBe(withoutClaimedBodyHash(textBefore)
+    expect(storedTicketText()).toBe(textBefore
       .replace('title: "Example checkout page"', 'title: "Example payment page"')
       .replace('# 001 — Example checkout page', '# 001 — Example payment page'));
-    expect(storedRowNames()).toEqual(['#001 Example payment page', 'Review 1 #001 — Example checkout page']);
+    expect(storedRowNames()).toEqual([]);
     const addedLogLines = storedLogTextOf(repositoryDirectory).slice(logBefore.length).trim().split('\n');
     expect(addedLogLines).toHaveLength(1);
     expect(JSON.parse(addedLogLines[0] ?? '')).toMatchObject({ kind: 'ticket-retitled', ticketId: '001', fields: { from: 'Example checkout page', to: 'Example payment page' } });
-    expect((await shownTicket()).bodyChangedSinceClaim).toBe(false);
   });
 
   test('a hand-written CRLF frontmatter keeps every byte but its title line, and a hand-changed heading is kept', async () => {
@@ -313,23 +299,6 @@ describeWhenGitIsRecorded('renaming a ticket', () => {
     await run(['ticket', 'edit', '1', '--title', 'Example payment page']);
 
     expect(storedTicketText()).toBe(`${frontmatterText.replace('title: "Example checkout page"', 'title: "Example payment page"')}${body}`);
-  });
-
-  test('a forced rename of a claimed hand-written frontmatter rewrites only its title and claimedBodyHash lines', async () => {
-    const body = '# 001 — Example checkout page\n\n## Report\n';
-    const frontmatterText = HAND_WRITTEN_FRONTMATTER_LINES
-      .map((line) => (line === 'status: committed' ? 'status: in-progress' : line))
-      .flatMap((line) => (line === 'task: 1' ? [`claimedBodyHash: "${TicketBodyHashUtil.bodyHashOf(body)}"`, line] : [line]))
-      .join('\n');
-    writeFileSync(ticketFilePath(), `${frontmatterText}\n${body}`);
-
-    await run(['ticket', 'edit', '1', '--title', 'Example payment page', '--force']);
-
-    const renamedBody = '# 001 — Example payment page\n\n## Report\n';
-    expect(storedTicketText()).toBe(`${frontmatterText
-      .replace('title: "Example checkout page"', 'title: "Example payment page"')
-      .replace(TicketBodyHashUtil.bodyHashOf(body), TicketBodyHashUtil.bodyHashOf(renamedBody))}\n${renamedBody}`);
-    expect((await shownTicket()).bodyChangedSinceClaim).toBe(false);
   });
 
   test('the generated heading follows the title and no other body byte changes', async () => {

@@ -1,38 +1,39 @@
 /**
  * The sequence every mutating command follows, written once and all inside the lock: read the tracker into a Board, mutate, write the progress
  * file, then the pipeline when a `gate` verb or an Apply changed it, then the constitution's sources an Apply stored, then the tickets the
- * Board changed, then the epics it changed or removed, then the drafts, then the gate profile runs when a profile move changed one, then
- * log.jsonl, then the setup record when a setup move changed or removed it, so the progress file is never behind the tickets and an
- * Apply closes its record last. The writes commit through the hold journal, fenced against a takeover of the lock, and leave alone
- * every file whose bytes would not change.
+ * Board changed, each after the content its hash keeps, then the epics it changed or removed, then the drafts, then the gate profile runs
+ * when a profile move changed one, then log.jsonl, then the setup record when a setup move changed or removed it, so the progress file is
+ * never behind the tickets and an Apply closes its record last. The writes commit through the hold journal, fenced against a takeover of
+ * the lock, and leave alone every file whose bytes would not change.
  */
-import { createDraftFileWriter }                                              from '../../adapters/drafts/DraftFileWriter.ts';
-import { createEpicFileWriter }                                               from '../../adapters/epics/EpicFileWriter.ts';
-import type { JournaledFile }                                                 from '../../adapters/hold-journal/HoldJournalIngestion.ts';
-import { createLogFileWriter }                                                from '../../adapters/log/LogFileWriter.ts';
-import { createLogRecordCollector }                                           from '../../adapters/log/LogRecordCollector.ts';
-import { ConstitutionSourcesFile }                                            from '../../adapters/pipeline/ConstitutionSourcesFile.ts';
-import { GateProfilesFile }                                                   from '../../adapters/pipeline/GateProfilesFile.ts';
-import { PipelineFile, type PipelineReading, type UnreadablePipelineReading } from '../../adapters/pipeline/PipelineFile.ts';
-import { PipelineSetupFile }                                                  from '../../adapters/pipeline/PipelineSetupFile.ts';
-import { createProgressFileWriter }                                           from '../../adapters/progress/ProgressFileWriter.ts';
-import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
-import { Board }                                                              from '../../lib/tracker-model/Board.ts';
-import { refusalIsBoardRefusal }                                              from '../../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                                                       from '../../lib/tracker-model/Logger.ts';
-import { OperationRefusal }                                                   from '../../shared/OperationRefusal.ts';
-import type { BoardContents, UnreadableRecords }                              from './@types/BoardRecords.ts';
-import type { BoardTransaction }                                              from './BoardTransaction.ts';
-import { draftFilePathOf }                                                    from './DraftStore.ts';
-import { epicFilePathOf, everyEpicFilePathIn }                                from './EpicStore.ts';
-import type { LockTaker }                                                     from './GenerationLock.ts';
-import { commitHold }                                                         from './HoldJournal.ts';
-import { createLocalRecordAllocation, type LocalRecordAllocation }            from './LocalRecordAllocation.ts';
-import { localStoreLayoutOf }                                                 from './LocalStoreLayout.ts';
-import { everyTicketFilePathIn }                                              from './TicketStore.ts';
-import { withLock }                                                           from './TrackerLock.ts';
-import { folderPrefixHoldingEntitiesOf, requireLocalTracker }                 from './TrackerReader.ts';
-import type { Workspace }                                                     from './Workspace.ts';
+import { createDraftFileWriter }                                                              from '../../adapters/drafts/DraftFileWriter.ts';
+import { createEpicFileWriter }                                                               from '../../adapters/epics/EpicFileWriter.ts';
+import type { JournaledFile }                                                                 from '../../adapters/hold-journal/HoldJournalIngestion.ts';
+import { createLogFileWriter }                                                                from '../../adapters/log/LogFileWriter.ts';
+import { createLogRecordCollector }                                                           from '../../adapters/log/LogRecordCollector.ts';
+import { ConstitutionSourcesFile }                                                            from '../../adapters/pipeline/ConstitutionSourcesFile.ts';
+import { GateProfilesFile }                                                                   from '../../adapters/pipeline/GateProfilesFile.ts';
+import { PipelineFile, type PipelineReading, type UnreadablePipelineReading }                 from '../../adapters/pipeline/PipelineFile.ts';
+import { PipelineSetupFile }                                                                  from '../../adapters/pipeline/PipelineSetupFile.ts';
+import { createProgressFileWriter }                                                           from '../../adapters/progress/ProgressFileWriter.ts';
+import { CommittedContentFile }                                                               from '../../adapters/tickets/CommittedContentFile.ts';
+import { createTicketFileWriter }                                                             from '../../adapters/tickets/TicketFileWriter.ts';
+import { Board }                                                                              from '../../lib/tracker-model/Board.ts';
+import { refusalIsBoardRefusal }                                                              from '../../lib/tracker-model/BoardRefusal.ts';
+import { createLogger }                                                                       from '../../lib/tracker-model/Logger.ts';
+import { OperationRefusal }                                                                   from '../../shared/OperationRefusal.ts';
+import type { BoardContents, UnreadableRecords }                                              from './@types/BoardRecords.ts';
+import type { BoardTransaction }                                                              from './BoardTransaction.ts';
+import { draftFilePathOf }                                                                    from './DraftStore.ts';
+import { epicFilePathOf, everyEpicFilePathIn }                                                from './EpicStore.ts';
+import type { LockTaker }                                                                     from './GenerationLock.ts';
+import { commitHold }                                                                         from './HoldJournal.ts';
+import { createLocalRecordAllocation, type LocalRecordAllocation }                            from './LocalRecordAllocation.ts';
+import { localStoreLayoutOf }                                                                 from './LocalStoreLayout.ts';
+import { committedContentLocationOf, everyCommittedContentFilePathIn, everyTicketFilePathIn } from './TicketStore.ts';
+import { withLock }                                                                           from './TrackerLock.ts';
+import { folderPrefixHoldingEntitiesOf, requireLocalTracker }                                 from './TrackerReader.ts';
+import type { Workspace }                                                                     from './Workspace.ts';
 
 export interface TrackerWriteRequest<MutationResult> {
   workspace:         Workspace;
@@ -116,6 +117,9 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, records: Lo
   const ticketFileWriter = createTicketFileWriter();
   for (const ticket of board.changedTickets()) {
     const location = records.storedTicketLocationOf(ticket.frontmatter.id);
+    const { contentHash, title } = ticket.frontmatter;
+    // Kept first: alone it is harmless, while a ticket naming a hash with no kept content reads as unreadable.
+    if (contentHash !== undefined) files.push(written(committedContentLocationOf(workspace, contentHash), CommittedContentFile.contentsOf({ title, body: ticket.body })));
     files.push(written(location, ticketFileWriter.contentsOf(ticket, location)));
   }
   const epicFileWriter = createEpicFileWriter();
@@ -131,7 +135,7 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, records: Lo
   if (profilesWrite.write === 'profiles') files.push(written(layout.gateProfilesRecordPath, GateProfilesFile.contentsOf(profilesWrite.profiles)));
   const deletedTicketFilePaths = deletesEveryTicketFile ? everyTicketFilePathIn(workspace) : [];
   files.push(...deletedTicketFilePaths.map(removed));
-  if (deletesEveryTicketFile) files.push(...everyEpicFilePathIn(workspace).map(removed));
+  if (deletesEveryTicketFile) files.push(...everyCommittedContentFilePathIn(workspace).map(removed), ...everyEpicFilePathIn(workspace).map(removed));
 
   const logRecordsToWrite = logRecordCollector.recordsToWrite();
   if (logRecordsToWrite !== null) files.push(written(layout.logRecordPath, createLogFileWriter(layout.logRecordPath).contentsOf(logRecordsToWrite)));
@@ -164,6 +168,7 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
     const openedBoard                   = openBoard(contents);
     const unreadableRecords             = unreadableRecordsOf(contents);
     const records                       = createLocalRecordAllocation(workspace, openedBoard.board, unreadableRecords, ticketLocations);
+    for (const ticketId of contents.listing.contentRestored) openedBoard.board.restoreKeptTicketContent(ticketId, at);
 
     const deletionCallbacks: ((deletedTicketCount: number) => void)[] = [];
     const result = await mutateWrappingBoardRefusals(mutate, {

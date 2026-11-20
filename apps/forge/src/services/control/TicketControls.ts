@@ -114,7 +114,7 @@ function editTicket(command: CommandOf<'ticket-edit'>, change: BoardTransaction)
   return change.board.editTicket(ticketIdOfReference(change, command.ticketReference), {
     ...(command.title === undefined ? {} : { title: command.title }),
     ...(command.bodyText === null ? {} : { body: { text: command.bodyText, appends: command.appendsBody } }),
-    allowsPastCommitted: command.allowsPastCommitted,
+    writtenBy: 'command',
   }, change.at);
 }
 

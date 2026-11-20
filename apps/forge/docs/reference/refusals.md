@@ -156,7 +156,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `and its priority was not changed: it is already` | `priority-unchanged` | The ticket has that priority. | Nothing. | |
 | `and its size was not changed: it is already` | `size-unchanged` | The ticket has that size. | Nothing. | |
 | `only a draft or committed ticket can be lowered to low` | `lowering-a-ticket-that-is-not-committed` | `priority low` past `committed`. | Leave the priority. | |
-| `and it was not edited: an agent may already be working from it` | `edit-of-a-ticket-past-committed` | `ticket edit` past `committed`. | Add `--force` only when no job is running on it: a body changed after launch makes Customs refuse the job's report (`ticket-body-changed`). | |
+| `and its title and body were not edited: a committed ticket's content is fixed` | `content-of-a-committed-ticket` | `ticket edit` of a ticket in `committed` or past it. The content is kept by its hash at the commit, and agents build from it. | Nothing overrides it. Abandon and refile the ticket with the new content. | [cli.md](../cli.md#ticket-edit) |
 | `and its network line was not changed: it is set only while` | `network-of-a-ticket-past-committed` | `ticket network` past `committed`. | Abandon and refile, or leave it. | |
 | `is not a public domain` | `network-domain-not-public` | A loopback name, a `.local` name or a private address. The plural reads `are not public domains`. | Name a public domain. | |
 | `network line was not changed: it already reads` | `network-unchanged` | The line holds those domains. | Nothing. | |

@@ -127,13 +127,13 @@ test('ticket ready in a forge with entities refuses every named draft without on
 
 test('ticket submit with ticket review off in a forge with entities refuses a complete draft without one; with review on it waits for review', () => {
   const reviewOff = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft' }), { ...entityPipelineFixture(), approvals: { tickets: false } });
-  reviewOff.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, allowsPastCommitted: false }, AT);
+  reviewOff.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, writtenBy: 'command' }, AT);
   expect(refusalDetailOf(() => ControlService.apply({ kind: 'ticket-submit', ticketReferences: ['1'] }, reviewOff.change, ECHOED_CONTROL_CONTEXT)))
     .toEqual({ reason: 'ticket-without-entity', ticketIds: ['001'] });
   expect(reviewOff.board.ticketByReference('001')?.frontmatter.status).toBe('draft');
 
   const reviewOn = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft' }), entityPipelineFixture());
-  reviewOn.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, allowsPastCommitted: false }, AT);
+  reviewOn.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, writtenBy: 'command' }, AT);
   ControlService.apply({ kind: 'ticket-submit', ticketReferences: ['1'] }, reviewOn.change, ECHOED_CONTROL_CONTEXT);
   expect(reviewOn.board.ticketByReference('001')?.frontmatter.status).toBe('ready-for-review');
 });
@@ -141,7 +141,7 @@ test('ticket submit with ticket review off in a forge with entities refuses a co
 test('ticket ready of a research draft without an entity is refused ticket-without-entity, and of one in the root entity readies it (E84)', () => {
   const researchBody = '## Acceptance\n\nA1. The report names each slow gate.\n\n## Brief\nWork belongs in: docs/research/.\n';
   const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', type: 'research', status: 'draft' }), entityPipelineFixture());
-  board.editTicket('001', { body: { text: researchBody, appends: false }, allowsPastCommitted: false }, AT);
+  board.editTicket('001', { body: { text: researchBody, appends: false }, writtenBy: 'command' }, AT);
   expect(refusalDetailOf(() => ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, change, ECHOED_CONTROL_CONTEXT)))
     .toEqual({ reason: 'ticket-without-entity', ticketIds: ['001'] });
   expect(board.ticketByReference('001')?.frontmatter.status).toBe('draft');
@@ -150,19 +150,19 @@ test('ticket ready of a research draft without an entity is refused ticket-witho
     id: '001', type: 'research', status: 'draft', entity: 'root'
   });
   const inRoot = boardWithOneTicket(researchInRoot, entityPipelineFixture());
-  inRoot.board.editTicket('001', { body: { text: researchBody, appends: false }, allowsPastCommitted: false }, AT);
+  inRoot.board.editTicket('001', { body: { text: researchBody, appends: false }, writtenBy: 'command' }, AT);
   ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, inRoot.change, ECHOED_CONTROL_CONTEXT);
   expect(inRoot.board.ticketByReference('001')?.frontmatter.status).toBe('committed');
 });
 
 test('ticket ready readies a draft with an entity in a forge with entities, and a draft without one in a forge without entities', () => {
   const withEntities = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft', entity: 'web' }), entityPipelineFixture());
-  withEntities.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, allowsPastCommitted: false }, AT);
+  withEntities.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, writtenBy: 'command' }, AT);
   ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, withEntities.change, ECHOED_CONTROL_CONTEXT);
   expect(withEntities.board.ticketByReference('001')?.frontmatter.status).toBe('committed');
 
   const withoutEntities = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft' }));
-  withoutEntities.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, allowsPastCommitted: false }, AT);
+  withoutEntities.board.editTicket('001', { body: { text: COMPLETE_BODY, appends: false }, writtenBy: 'command' }, AT);
   ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, withoutEntities.change, ECHOED_CONTROL_CONTEXT);
   expect(withoutEntities.board.ticketByReference('001')?.frontmatter).not.toHaveProperty('entity');
   expect(withoutEntities.board.ticketByReference('001')?.frontmatter.status).toBe('committed');
@@ -196,7 +196,7 @@ function webCrossingPipeline(approvals: Pipeline['approvals'] = {}): Pipeline {
 
 function draftOfWeb(body: string, pipeline: Pipeline): { board: Board; change: BoardTransaction } {
   const fixture = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft', entity: 'web' }), pipeline);
-  fixture.board.editTicket('001', { body: { text: body, appends: false }, allowsPastCommitted: false }, AT);
+  fixture.board.editTicket('001', { body: { text: body, appends: false }, writtenBy: 'command' }, AT);
   return fixture;
 }
 
@@ -225,7 +225,7 @@ test('E85: work in the entity\'s homes, a whitelisted package and its reach read
 
 test('a forge without entities readies a draft whatever files its Brief names', () => {
   const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft' }));
-  board.editTicket('001', { body: { text: OUTSIDE_BODY, appends: false }, allowsPastCommitted: false }, AT);
+  board.editTicket('001', { body: { text: OUTSIDE_BODY, appends: false }, writtenBy: 'command' }, AT);
   ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['1'] }, change, ECHOED_CONTROL_CONTEXT);
   expect(board.ticketByReference('001')?.frontmatter.status).toBe('committed');
 });

@@ -6,7 +6,7 @@ export const TICKET_USAGE = [
   + '[--at <when>]',
   'list [--status <s>] [--priority <p>] [--json]',
   'show <id> [--json]',
-  'edit <id> [--title "<title>"] [--append] [--body <markdown> | --body-file <path|->] [--force] [--at <when>] [--json]',
+  'edit <id> [--title "<title>"] [--append] [--body <markdown> | --body-file <path|->] [--at <when>] [--json]',
   'abandon|reopen <id> [--branch <b>] [--commit <sha>] [--reason <text>] [--tokens <n>] [--at <when>]',
   'deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>]',
   'rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]',

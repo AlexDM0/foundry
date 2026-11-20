@@ -28,7 +28,7 @@ export function createTicketFileWriter(): {
 
 /**
  * The stored file's text up to its body, byte for byte, when the ticket's frontmatter would be written back as it already reads or differs
- * only in its title and stored `claimedBodyHash`, whose lines alone are then rewritten, so a body edit or a rename leaves a hand-written
+ * only in its title and stored `contentHash`, whose lines alone are then rewritten, so a body edit or a rename leaves a hand-written
  * frontmatter alone; null when anything else changed or the stored file is gone or unreadable.
  */
 function unchangedStoredFrontmatterTextOf(ticket: Readonly<Ticket>, location: string): string | null {
@@ -43,16 +43,16 @@ function unchangedStoredFrontmatterTextOf(ticket: Readonly<Ticket>, location: st
 
   const frontmatterTextOf = (frontmatter: Ticket['frontmatter']): string => TicketDocumentUtil.ticketDocumentTextOf(frontmatter, '', stored.lineEnding, stored.storedType);
   const storedFrontmatterText = storedText.slice(0, storedText.length - stored.body.length);
-  const { title, claimedBodyHash } = ticket.frontmatter;
-  const splicesClaimedBodyHash = stored.frontmatter.claimedBodyHash !== undefined && claimedBodyHash !== undefined;
-  const spliced = { ...stored.frontmatter, title, ...(splicesClaimedBodyHash ? { claimedBodyHash } : {}) };
+  const { title, contentHash } = ticket.frontmatter;
+  const splicesContentHash = stored.frontmatter.contentHash !== undefined && contentHash !== undefined;
+  const spliced = { ...stored.frontmatter, title, ...(splicesContentHash ? { contentHash } : {}) };
   if (frontmatterTextOf(spliced) !== frontmatterTextOf(ticket.frontmatter)) return null;
   let frontmatterText = storedFrontmatterText;
   if (title !== stored.frontmatter.title) {
     frontmatterText = TicketDocumentUtil.frontmatterTextWithTextValueOf(frontmatterText, 'title', title);
   }
-  if (splicesClaimedBodyHash && claimedBodyHash !== stored.frontmatter.claimedBodyHash) {
-    frontmatterText = TicketDocumentUtil.frontmatterTextWithTextValueOf(frontmatterText, 'claimedBodyHash', claimedBodyHash);
+  if (splicesContentHash && contentHash !== stored.frontmatter.contentHash) {
+    frontmatterText = TicketDocumentUtil.frontmatterTextWithTextValueOf(frontmatterText, 'contentHash', contentHash);
   }
   return frontmatterText;
 }

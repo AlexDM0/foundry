@@ -25,7 +25,6 @@ import {
 import type { GitPathStyle }                                    from '../../lib/git/GitPaths.ts';
 import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil }                                  from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { TicketBodyHashUtil }                                   from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { branchNamesOf }                                        from '../../shared/BranchNames.ts';
 import { PRODUCT_NAMES }                                        from '../../shared/constants/ProductNames.ts';
 import {
@@ -116,14 +115,15 @@ describe('a tracker at its repository\'s root reads every path as before', () =>
 
   test('V17 passes it without asking git, with its scope given or absent, since the whole repository is its home', () => {
     const subject: CustomsSubject = {
-      role:             'builder',
-      worktreePath:     '/no-repository-is-read-by-this-check',
-      startCommit:      'example-commit',
-      report:           {},
-      ticketBody:       '',
-      bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(''),
-      target:           TWO_TRACKER_MAIN_LINE,
-      agentNaming:      AGENT_NAMING,
+      role:                'builder',
+      worktreePath:        '/no-repository-is-read-by-this-check',
+      startCommit:         'example-commit',
+      report:              {},
+      ticketBody:          '',
+      contentHashAtLaunch: '0123456789abcdef',
+      ticketContentHash:   '0123456789abcdef',
+      target:              TWO_TRACKER_MAIN_LINE,
+      agentNaming:         AGENT_NAMING,
     };
     expect(CUSTOMS_CHECKS.V17(subject)).toEqual({ verdict: 'passed' });
     expect(CUSTOMS_CHECKS.V17({ ...subject, projectScope: ROOT_SCOPE })).toEqual({ verdict: 'passed' });
@@ -312,15 +312,16 @@ function forgeWatchedRefs(): WatchedRefs {
 
 function forgeBuilderIn(worktreePath: string, launchSnapshot: LaunchSnapshot, refMovesAllowed: RefMovesAllowed): CustomsSubject {
   return {
-    role:             'builder',
+    role:                'builder',
     worktreePath,
-    startCommit:      COMMITS['<start>'],
-    report:           {},
-    ticketBody:       '',
-    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(''),
+    startCommit:         COMMITS['<start>'],
+    report:              {},
+    ticketBody:          '',
+    contentHashAtLaunch: '0123456789abcdef',
+    ticketContentHash:   '0123456789abcdef',
     launchSnapshot,
     refMovesAllowed,
-    agentNaming:      AGENT_NAMING,
+    agentNaming:         AGENT_NAMING,
   };
 }
 
@@ -479,16 +480,17 @@ function entityForgeJobIn(scenario: EntityForgeScenario, job: EntityForgeJob): C
   const constitutions = entityForgeConstitutionsFor(pipeline, job.ticketEntity);
   const ticketBody = job.ticketBody ?? '';
   return {
-    role:             'builder',
-    worktreePath:     join(repositoryDirectory, entityForgeTicketWorktreeFolderOf(ENTITY_FORGE_TICKETS.SHOP_TICKET)),
-    startCommit:      commits[job.startCommit] ?? '',
-    report:           {},
+    role:                'builder',
+    worktreePath:        join(repositoryDirectory, entityForgeTicketWorktreeFolderOf(ENTITY_FORGE_TICKETS.SHOP_TICKET)),
+    startCommit:         commits[job.startCommit] ?? '',
+    report:              {},
     ticketBody,
-    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketBody),
-    agentNaming:      AGENT_NAMING,
-    instructionFiles: constitutions.constitutions.map((constitution) => constitution.gitPath),
+    contentHashAtLaunch: '0123456789abcdef',
+    ticketContentHash:   '0123456789abcdef',
+    agentNaming:         AGENT_NAMING,
+    instructionFiles:    constitutions.constitutions.map((constitution) => constitution.gitPath),
     ...(job.judgedAgainst === 'the main line' ? { target: ENTITY_FORGE_MAIN_LINE } : {}),
-    projectScope:     {
+    projectScope:        {
       projectPrefix:   '',
       reach:           [],
       entityHomes:     Object.values(pipeline.entities ?? {}).flatMap((entity) => entity.home),

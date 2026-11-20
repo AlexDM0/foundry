@@ -190,7 +190,7 @@ export function boardDocumentSourceFixture(): BoardDocumentSource {
     })],
     tickets: [
       ticketFixture({
-        id: '001', status: 'committed', priority: 'high', epics: ['example-checkout'], model: 'opus', claimedBodyHash: 'example-hash'
+        id: '001', status: 'committed', priority: 'high', epics: ['example-checkout'], model: 'opus', contentHash: '0123456789abcdef'
       }),
       ticketFixture({
         id: '002', status: 'in-progress', dependsOn: ['001'], task: 1, started: AT

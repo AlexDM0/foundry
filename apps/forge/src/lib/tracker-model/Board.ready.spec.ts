@@ -1,13 +1,14 @@
 /**
  * `readyDraftTickets` is the one way out of `draft` but abandoning: every named draft becomes `committed` with a row at every priority and
- * logs `ticket-committed`, or nothing changes. A ticket not in `draft` is refused before the body is read, and an incomplete body is
- * refused for every ticket at once. Refusals are asserted by reason code, never by wording.
+ * logs `ticket-committed`, keeping the hash of its title and body as readied, or nothing changes. A ticket not in `draft` is refused
+ * before the body is read, and an incomplete body is refused for every ticket at once. Refusals are asserted by reason code, never by wording.
  */
 import { describe, expect, test } from 'bun:test';
 
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import type { ReadinessGap }                            from './@types/Ticket.ts';
 import { TICKET_STATUSES }                              from './constants/Statuses.ts';
+import { TicketBodyHashUtil }                           from './utils/TicketBodyHashUtil.ts';
 
 const READIED_AT = '2026-09-18T10:00:00+02:00';
 
@@ -40,6 +41,17 @@ describe('readyDraftTickets', () => {
       ['ticket-committed', '001'],
       ['ticket-committed', '002'],
     ]);
+  });
+
+  test('readying records the hash of the title and body as readied, from a draft and from a ticket ready for review', () => {
+    for (const status of ['draft', 'ready-for-review'] as const) {
+      const ticket = { ...ticketFixture({ id: '001', status, title: 'Example basket badge' }), body: '## Brief\nExample brief.\n' };
+      const { board } = boardFixture({ tickets: [ticket] });
+
+      board.readyDraftTickets(['001'], NO_GAPS, READIED_AT, ['draft', 'ready-for-review']);
+
+      expect(ticket.frontmatter.contentHash, status).toBe(TicketBodyHashUtil.contentHashOf('Example basket badge', '## Brief\nExample brief.\n'));
+    }
   });
 
   test('a ticket in any status but draft is refused naming its status, and the drafts named beside it stay drafts', () => {

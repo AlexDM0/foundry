@@ -5,6 +5,7 @@
 
 import { basename, join }                                          from 'node:path';
 import { ProgressFileIngestion }                                   from '../../adapters/progress/ProgressFileIngestion.ts';
+import { CommittedContentFile }                                    from '../../adapters/tickets/CommittedContentFile.ts';
 import { TicketFileIngestion }                                     from '../../adapters/tickets/TicketFileIngestion.ts';
 import type { LogRecord }                                          from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Ticket, TicketFrontmatter }                          from '../../lib/tracker-model/@types/Ticket.ts';
@@ -42,7 +43,8 @@ const FILE_NAME_IDENTIFIER_MATCH = /^(\d+)(?:-|\.md$)/;
 
 /**
  * A ticket is known by its frontmatter `id`. A file whose name carries another number, and every file holding an id another
- * also holds, is listed as unreadable with its reason, since which of them is the ticket cannot be judged. Ordered by id numerically.
+ * also holds, is listed as unreadable with its reason, since which of them is the ticket cannot be judged. A ticket holding a content
+ * hash reads with the title and body kept under it. Ordered by id numerically.
  */
 export function listTickets(workspace: Workspace): LocalTicketListing {
   const parsedFiles: ParsedTicketFile[] = [];
@@ -87,18 +89,68 @@ export function listTickets(workspace: Workspace): LocalTicketListing {
     }
   }
 
-  listedFiles.sort((a, b) => Number(a.ticket.frontmatter.id) - Number(b.ticket.frontmatter.id));
+  const keptContentReading = withKeptContent(workspace, listedFiles);
+  const { readableFiles } = keptContentReading;
+  unreadable.push(...keptContentReading.unreadable);
+  readableFiles.sort((a, b) => Number(a.ticket.frontmatter.id) - Number(b.ticket.frontmatter.id));
   unreadable.sort((a, b) => (a.location < b.location ? -1 : Number(a.location > b.location)));
   return {
-    tickets:         listedFiles.map((listedFile) => listedFile.ticket),
+    tickets:         readableFiles.map((readableFile) => readableFile.ticket),
     unreadable,
-    ticketLocations: new Map(listedFiles.map((listedFile) => [listedFile.ticket.frontmatter.id, listedFile.location])),
+    contentRestored: keptContentReading.contentRestored.sort((a, b) => Number(a) - Number(b)),
+    ticketLocations: new Map(readableFiles.map((readableFile) => [readableFile.ticket.frontmatter.id, readableFile.location])),
   };
 }
 
 /** The port's listing alone, for an answer that leaves the store. */
 export function ticketListingOf(listing: LocalTicketListing): TicketListing {
-  return { tickets: listing.tickets, unreadable: listing.unreadable };
+  return { tickets: listing.tickets, unreadable: listing.unreadable, contentRestored: listing.contentRestored };
+}
+
+/** Where the local store keeps the content a hash names: one file per hash, shared by every ticket that ever held that content. */
+export function committedContentLocationOf(workspace: Workspace, contentHash: string): string {
+  return join(localStoreLayoutOf(workspace).committedContentFolder, CommittedContentFile.fileNameOf(contentHash));
+}
+
+/** Every kept content `clear --all` removes with the tickets. */
+export function everyCommittedContentFilePathIn(workspace: Workspace): string[] {
+  const { committedContentFolder } = localStoreLayoutOf(workspace);
+  return storeFolderFileNamesIn(committedContentFolder, CommittedContentFile.KEPT_CONTENT_FILE_EXTENSION).map((fileName) => join(committedContentFolder, fileName));
+}
+
+interface KeptContentReading {
+  readableFiles:   ParsedTicketFile[];
+  unreadable:      UnreadableRecord[];
+  contentRestored: string[];
+}
+
+/**
+ * A ticket whose stored title or body differs from the content its hash keeps takes the kept content and is listed as restored; one whose
+ * kept content cannot be read is unreadable, located at the kept file, since that is what a repair goes by.
+ */
+function withKeptContent(workspace: Workspace, listedFiles: readonly ParsedTicketFile[]): KeptContentReading {
+  const reading: KeptContentReading = { readableFiles: [], unreadable: [], contentRestored: [] };
+  for (const listedFile of listedFiles) {
+    const { ticket }      = listedFile;
+    const { contentHash } = ticket.frontmatter;
+    if (contentHash === undefined) {
+      reading.readableFiles.push(listedFile);
+      continue;
+    }
+    const keptLocation = committedContentLocationOf(workspace, contentHash);
+    const kept         = CommittedContentFile.read(keptLocation, contentHash);
+    if (kept.verdict === 'unreadable') {
+      reading.unreadable.push({ ...unreadableEntryOf(listedFile, kept.reason), location: keptLocation, line: 0 });
+      continue;
+    }
+    if (ticket.frontmatter.title !== kept.content.title || ticket.body !== kept.content.body) {
+      ticket.frontmatter.title = kept.content.title;
+      ticket.body              = kept.content.body;
+      reading.contentRestored.push(ticket.frontmatter.id);
+    }
+    reading.readableFiles.push(listedFile);
+  }
+  return reading;
 }
 
 /** Looked up by frontmatter `id`, never by file name; a ticket `listTickets` reports as unreadable answers for no id. */

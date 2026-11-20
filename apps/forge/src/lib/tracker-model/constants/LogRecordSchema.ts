@@ -116,77 +116,78 @@ export const LOG_RECORD_SCHEMA = {
     },
   },
   // A passing review queued the ticket to land on `target`.
-  'merge-queued':                    { subject: 'ticket', fields: { target: 'text' } },
+  'merge-queued':                   { subject: 'ticket', fields: { target: 'text' } },
   // With merge approval on: User accepted the ticket for its Airlock (`accepted`), or the Airlock or a lost review took it back (`cleared`).
-  'merge-acceptance-set':            { subject: 'ticket', fields: { state: 'text' } },
+  'merge-acceptance-set':           { subject: 'ticket', fields: { state: 'text' } },
   // `merge update`: the target merged into the ticket's worktree (`merged`), or conflicted and was aborted (`conflicted`).
-  'merge-updated':                   { subject: 'ticket', fields: { target: 'text', outcome: 'text' } },
-  'ticket-committed':                { subject: 'ticket', fields: NO_FIELDS },
+  'merge-updated':                  { subject: 'ticket', fields: { target: 'text', outcome: 'text' } },
+  'ticket-committed':               { subject: 'ticket', fields: NO_FIELDS },
   // The ticket waits for User's `ticket ready`: its filer closed it while ticket review is on, its finder was abandoned, or it is a v16 leftover.
-  'ticket-submitted-for-review':     { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-submitted-for-review':    { subject: 'ticket', fields: NO_FIELDS },
   // A code-implemented repair of the ticket's worktree ran; `patchPath` is where `recreate` saved its changes, when there were any.
-  'worktree-repaired':               { subject: 'ticket', fields: { step: 'text', patchPath: 'nullable-text' } },
-  'ticket-reopened':                 { subject: 'ticket', fields: NO_FIELDS },
-  'ticket-started':                  { subject: 'ticket', fields: NO_FIELDS },
-  'ticket-finished':                 { subject: 'ticket', fields: NO_FIELDS },
-  'ticket-approved':                 { subject: 'ticket', fields: NO_FIELDS },
+  'worktree-repaired':              { subject: 'ticket', fields: { step: 'text', patchPath: 'nullable-text' } },
+  'ticket-reopened':                { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-started':                 { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-finished':                { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-approved':                { subject: 'ticket', fields: NO_FIELDS },
   // `byHand` is set only by `ticket deliver --by-hand`, which records work the Overseer never merged or landed.
-  'ticket-delivered':                { subject: 'ticket', fields: { byHand: 'optional-flag' } },
-  'ticket-abandoned':                { subject: 'ticket', fields: { reason: 'text' } },
-  'ticket-retitled':                 { subject: 'ticket', fields: { from: 'text', to: 'text' } },
-  'ticket-body-changed-after-claim': { subject: 'ticket', fields: NO_FIELDS },
-  'ticket-rereviewed':               { subject: 'ticket', fields: { round: 'review-round' } },
-  'ticket-priority-changed':         { subject: 'ticket', fields: { from: 'priority', to: 'priority' } },
+  'ticket-delivered':               { subject: 'ticket', fields: { byHand: 'optional-flag' } },
+  'ticket-abandoned':               { subject: 'ticket', fields: { reason: 'text' } },
+  'ticket-retitled':                { subject: 'ticket', fields: { from: 'text', to: 'text' } },
+  // The store found the ticket's stored text changed behind it and wrote the content its hash keeps back into it.
+  'ticket-content-restored':        { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-rereviewed':              { subject: 'ticket', fields: { round: 'review-round' } },
+  'ticket-priority-changed':        { subject: 'ticket', fields: { from: 'priority', to: 'priority' } },
   // `from` is absent when the ticket had no size.
-  'ticket-size-changed':             { subject: 'ticket', fields: { from: 'optional-size', to: 'ticket-size' } },
-  'ticket-dependencies-set':         { subject: 'ticket', fields: { dependsOn: 'ticket-ids' } },
+  'ticket-size-changed':            { subject: 'ticket', fields: { from: 'optional-size', to: 'ticket-size' } },
+  'ticket-dependencies-set':        { subject: 'ticket', fields: { dependsOn: 'ticket-ids' } },
   // `introducedBy` is absent when the cause was cleared.
-  'ticket-introduced-by-set':        { subject: 'ticket', fields: { introducedBy: 'optional-text' } },
-  'ticket-agents-changed':           { subject: 'ticket', fields: { from: 'agent-pair', to: 'agent-pair' } },
-  'ticket-held':                     { subject: 'ticket', fields: { reason: 'text' } },
-  'ticket-unheld':                   { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-introduced-by-set':       { subject: 'ticket', fields: { introducedBy: 'optional-text' } },
+  'ticket-agents-changed':          { subject: 'ticket', fields: { from: 'agent-pair', to: 'agent-pair' } },
+  'ticket-held':                    { subject: 'ticket', fields: { reason: 'text' } },
+  'ticket-unheld':                  { subject: 'ticket', fields: NO_FIELDS },
   // User's resume lifted a hold an interruption put on; logged in place of `ticket-unheld`, so no count resets.
-  'ticket-interrupted-hold-lifted':  { subject: 'ticket', fields: { hold: 'text' } },
-  'ticket-release-marked':           { subject: 'ticket', fields: { group: 'text' } },
-  'ticket-release-cleared':          { subject: 'ticket', fields: NO_FIELDS },
-  'ticket-grouped':                  { subject: 'ticket', fields: { group: 'text' } },
-  'ticket-epics-set':                { subject: 'ticket', fields: { epics: 'epic-keys' } },
+  'ticket-interrupted-hold-lifted': { subject: 'ticket', fields: { hold: 'text' } },
+  'ticket-release-marked':          { subject: 'ticket', fields: { group: 'text' } },
+  'ticket-release-cleared':         { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-grouped':                 { subject: 'ticket', fields: { group: 'text' } },
+  'ticket-epics-set':               { subject: 'ticket', fields: { epics: 'epic-keys' } },
   // An empty `domains` cleared the line.
-  'ticket-network-set':              { subject: 'ticket', fields: { domains: 'network-domains' } },
+  'ticket-network-set':             { subject: 'ticket', fields: { domains: 'network-domains' } },
   // The reason is kept here alone, never on the ticket.
-  'entity-assigned':                 { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
+  'entity-assigned':                { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
   // A build stage's job of the ticket declared work it needs in another entity; the Overseer files that work as its own ticket.
-  'need-declared':                   { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
+  'need-declared':                  { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
   // E26: the Overseer filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
-  'dependent-fix-filed':             { subject: 'ticket', fields: { entity: 'text', fixTicketIds: 'ticket-ids' } },
+  'dependent-fix-filed':            { subject: 'ticket', fields: { entity: 'text', fixTicketIds: 'ticket-ids' } },
   // A crossing ticket's row moved into `stage`, run by the agents of `entity`; a stage job never moves the ticket's status.
-  'stage-started':                   { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
+  'stage-started':                  { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
   // A package review sealed the ticket's own change to package `entity`; `seal` is its hash, as the row stores it.
-  'seal-set':                        { subject: 'ticket', fields: { entity: 'text', seal: 'text' } },
-  'seal-lifted':                     { subject: 'ticket', fields: { entity: 'text' } },
+  'seal-set':                       { subject: 'ticket', fields: { entity: 'text', seal: 'text' } },
+  'seal-lifted':                    { subject: 'ticket', fields: { entity: 'text' } },
   // The ticket went back from `fromStage` to the package build of `entity`; `returns` counts every package return of the ticket.
-  'package-return':                  { subject: 'ticket', fields: { entity: 'text', fromStage: 'text', returns: 'count' } },
-  'ticket-check-command-restamped':  { subject: 'ticket', fields: { command: 'check-command' } },
-  'epic-added':                      { subject: 'epic', fields: { title: 'text' } },
-  'epic-edited':                     { subject: 'epic', fields: { title: 'text' } },
-  'epic-removed':                    { subject: 'epic', fields: NO_FIELDS },
-  'draft-opened':                    { subject: 'draft', fields: { title: 'text', owner: 'text' } },
+  'package-return':                 { subject: 'ticket', fields: { entity: 'text', fromStage: 'text', returns: 'count' } },
+  'ticket-check-command-restamped': { subject: 'ticket', fields: { command: 'check-command' } },
+  'epic-added':                     { subject: 'epic', fields: { title: 'text' } },
+  'epic-edited':                    { subject: 'epic', fields: { title: 'text' } },
+  'epic-removed':                   { subject: 'epic', fields: NO_FIELDS },
+  'draft-opened':                   { subject: 'draft', fields: { title: 'text', owner: 'text' } },
   // `takenFrom` is set only when a forced claim took the draft from another owner.
-  'draft-claimed':                   { subject: 'draft', fields: { owner: 'text', takenFrom: 'optional-text' } },
-  'draft-released':                  { subject: 'draft', fields: { owner: 'text' } },
-  'draft-closed':                    { subject: 'draft', fields: { ticketIds: 'ticket-ids' } },
-  'draft-abandoned':                 { subject: 'draft', fields: { reason: 'text' } },
-  'draft-note-added':                { subject: 'draft', fields: { noteId: 'text', noteKind: 'text' } },
-  'draft-question-asked':            { subject: 'draft', fields: { questionId: 'text', underQuestionId: 'optional-text' } },
+  'draft-claimed':                  { subject: 'draft', fields: { owner: 'text', takenFrom: 'optional-text' } },
+  'draft-released':                 { subject: 'draft', fields: { owner: 'text' } },
+  'draft-closed':                   { subject: 'draft', fields: { ticketIds: 'ticket-ids' } },
+  'draft-abandoned':                { subject: 'draft', fields: { reason: 'text' } },
+  'draft-note-added':               { subject: 'draft', fields: { noteId: 'text', noteKind: 'text' } },
+  'draft-question-asked':           { subject: 'draft', fields: { questionId: 'text', underQuestionId: 'optional-text' } },
   // `answer` is the option letters joined by commas, or the free text: the log keeps every answer, the draft only the current one.
-  'draft-question-answered':         { subject: 'draft', fields: { questionId: 'text', answer: 'text' } },
+  'draft-question-answered':        { subject: 'draft', fields: { questionId: 'text', answer: 'text' } },
   // A dropped question's follow-ups are dropped too, one record each after it.
-  'draft-item-dropped':              { subject: 'draft', fields: { itemId: 'text' } },
-  'pipeline-setup-opened':           { subject: 'pipeline-setup', fields: { mode: 'setup-mode', replacesUnreadablePipeline: 'flag' } },
+  'draft-item-dropped':             { subject: 'draft', fields: { itemId: 'text' } },
+  'pipeline-setup-opened':          { subject: 'pipeline-setup', fields: { mode: 'setup-mode', replacesUnreadablePipeline: 'flag' } },
   // `maxBudgetUsd` is set only on API billing with a cap.
-  'pipeline-setup-billing-set':      { subject: 'pipeline-setup', fields: { mode: 'billing-mode', maxBudgetUsd: 'optional-cost-usd' } },
+  'pipeline-setup-billing-set':     { subject: 'pipeline-setup', fields: { mode: 'billing-mode', maxBudgetUsd: 'optional-cost-usd' } },
   // `step` took `state`; `currentStep` is where the setup now stands; `needsRecheck` the later steps a reopening sent back.
-  'pipeline-setup-step-moved':       {
+  'pipeline-setup-step-moved':      {
     subject: 'pipeline-setup',
     fields:  {
       step: 'setup-step', state: 'setup-step-state', currentStep: 'setup-step', needsRecheck: 'setup-steps'

@@ -63,7 +63,7 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
   test('ticket rereview --start-review closes the round\'s running bar and starts the next, numbered from the ticket\'s review sections', async () => {
     await run(['ticket', 'finish', '1', '--start-review']);
     const [firstBar] = inProgressBarsReviewing('001');
-    await run(['ticket', 'edit', '1', '--force', '--append', '--body', '## Review\nRound 1 reworked 900 lines.\n']);
+    await run(['ticket', 'board-record', '1', '--append', '--body', '## Review\nRound 1 reworked 900 lines.\n']);
 
     await run(['ticket', 'rereview', '1', '--start-review', '--owner', 'opus']);
 
@@ -77,7 +77,7 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
     await run(['ticket', 'finish', '1', '--start-review']);
     expect(inProgressBarsReviewing('001')[0]).toMatchObject({ reviewOf: '001', reviewBarRound: 1 });
 
-    await run(['ticket', 'edit', '1', '--force', '--append', '--body', '## Review\nExample round.\n']);
+    await run(['ticket', 'board-record', '1', '--append', '--body', '## Review\nExample round.\n']);
     await run(['ticket', 'rereview', '1', '--start-review']);
 
     expect(inProgressBarsReviewing('001')[0]).toMatchObject({ reviewOf: '001', reviewBarRound: 2 });

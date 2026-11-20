@@ -25,7 +25,7 @@ const PAGE_TICKET: PageTicket = {
   hold:            '',
   epics:           ['example-checkout'],
   introducedBy:    '000',
-  claimedBodyHash: 'example-hash',
+  contentHash:     '0123456789abcdef',
   filed:           AT,
   updated:         AT,
   started:         null,
@@ -131,7 +131,7 @@ describe('BoardPageMappingUtil.pageOf', () => {
       facts:           TICKET_READINGS.facts,
       offers:          TICKET_READINGS.offers,
     }]);
-    const fieldsNoReaderNames = ['model', 'effort', 'extra', 'claimedBodyHash', 'filePath', 'size', 'group'];
+    const fieldsNoReaderNames = ['model', 'effort', 'extra', 'contentHash', 'filePath', 'size', 'group'];
     expect(page.tickets[0] === undefined ? [] : Object.keys(page.tickets[0]).filter((field) => fieldsNoReaderNames.includes(field))).toEqual([]);
   });
 

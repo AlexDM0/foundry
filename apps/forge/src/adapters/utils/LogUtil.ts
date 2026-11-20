@@ -132,8 +132,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} unheld`;
     case 'ticket-interrupted-hold-lifted':
       return `Ticket #${record.ticketId} no longer held ${record.fields.hold}, as User asked to resume it`;
-    case 'ticket-body-changed-after-claim':
-      return `Ticket #${record.ticketId} body changed after its claim`;
+    case 'ticket-content-restored':
+      return `Ticket #${record.ticketId} title and body restored to the content kept at its commit`;
     case 'ticket-release-marked':
       return `Ticket #${record.ticketId} marked as the release ticket of group ${record.fields.group}`;
     case 'ticket-release-cleared':

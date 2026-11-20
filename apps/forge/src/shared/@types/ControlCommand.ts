@@ -97,13 +97,12 @@ export type ControlCommand =
     admission?:    FilingAdmission;
   }
   | {
-    kind:                'ticket-edit';
-    ticketReference:     string;
-    title?:              string;
+    kind:            'ticket-edit';
+    ticketReference: string;
+    title?:          string;
     /** Null leaves the body as it is. */
-    bodyText:            string | null;
-    appendsBody:         boolean;
-    allowsPastCommitted: boolean;
+    bodyText:        string | null;
+    appendsBody:     boolean;
   }
   | { kind: 'ticket-depends'; ticketReference: string; edit: ListEdit; ticketIds: string[] }
   | { kind: 'ticket-priority'; ticketReference: string; priority: TicketPriority }

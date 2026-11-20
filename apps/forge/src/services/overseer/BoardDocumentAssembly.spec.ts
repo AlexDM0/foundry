@@ -88,7 +88,7 @@ describe('BoardDocumentAssembly.boardDocumentOf', () => {
 
   test('leaves out the model\'s fields no reader names', () => {
     const [ticket] = document.page.tickets;
-    expect(ticket === undefined ? [] : ['model', 'extra', 'claimedBodyHash', 'filePath'].filter((field) => Object.hasOwn(ticket, field))).toEqual([]);
+    expect(ticket === undefined ? [] : ['model', 'extra', 'contentHash', 'filePath'].filter((field) => Object.hasOwn(ticket, field))).toEqual([]);
     expect(Object.hasOwn(document, 'flintBrain') || Object.hasOwn(document, 'ticketCountByStatus')).toBe(false);
     expect(Object.hasOwn(document.mergeQueue, 'slots')).toBe(false);
   });

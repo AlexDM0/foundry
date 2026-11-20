@@ -143,7 +143,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
 
   // Stored tickets are never rewritten to the current types: a retired type reads as `ticket` and survives every move byte for byte.
   test('a ticket stored as change or feature reads as ticket everywhere and keeps its stored type line through start and finish', async () => {
-    const keysAMoveSets = /^(status|updated|started|finished|branch|commit|claimedBodyHash|task): /;
+    const keysAMoveSets = /^(status|updated|started|finished|branch|commit|contentHash|task): /;
     const linesAMoveLeaves = (text: string): string[] => text.split('\n').filter((line) => !keysAMoveSets.test(line));
     for (const [index, retiredType] of ['change', 'feature'].entries()) {
       const ticketId = `00${index + 1}`;

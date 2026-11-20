@@ -8,7 +8,6 @@ import { join }                     from 'node:path';
 import { GitProcess }                                                                      from '../../../lib/git/GitProcess.ts';
 import type { Job }                                                                        from '../../../lib/tracker-model/@types/Job.ts';
 import type { Board }                                                                      from '../../../lib/tracker-model/Board.ts';
-import { TicketBodyHashUtil }                                                              from '../../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { LIFECYCLE_LIMITS }                                                                from '../../../shared/constants/LifecycleLimits.ts';
 import { ENTITY_FORGE_MAIN_LINE }                                                          from '../../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../../testing/EntityForgeScenarios.ts';
@@ -153,8 +152,8 @@ function ticketOf(place: CrossingStagePlace) {
 function writeJobStart(place: CrossingStagePlace, job: Readonly<Job>, jobFolder: string, startCommit: string): void {
   const jobStart = {
     startCommit,
-    bodyHashAtLaunch: TicketBodyHashUtil.bodyHashOf(ticketOf(place)?.body ?? ''),
-    launchSnapshot:   launchSnapshotOf(JobLaunch.worktreeOf(place.context.workspace, job)),
+    contentHashAtLaunch: ticketOf(place)?.frontmatter.contentHash ?? '',
+    launchSnapshot:      launchSnapshotOf(JobLaunch.worktreeOf(place.context.workspace, job)),
     ...JobLaunch.packageBuildStartOf(place.board, job),
   };
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));

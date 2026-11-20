@@ -25,52 +25,52 @@ export interface AgentPair {
 }
 
 export interface TicketFrontmatter {
-  id:               string;
-  title:            string;
-  type:             TicketType;
+  id:             string;
+  title:          string;
+  type:           TicketType;
   /** Absent on every ticket filed before priorities existed, and on one filed without a priority; absent reads as `normal`. */
-  priority?:        TicketPriority;
+  priority?:      TicketPriority;
   /** Absent unless the filer sized it; it only feeds the page's statistics. */
-  size?:            TicketSize;
+  size?:          TicketSize;
   /** Absent unless somebody named one; absent reads as the default for builders and reviewers. */
-  model?:           AgentModel;
-  effort?:          AgentEffort;
+  model?:         AgentModel;
+  effort?:        AgentEffort;
   /** Present while a hold holds the ticket, holding its reason, empty when none was given; absent means not held. */
-  hold?:            string;
-  status:           TicketStatus;
-  filed:            string;
-  updated:          string;
-  started:          string | null;
-  finished:         string | null;
-  delivered:        string | null;
-  abandonedAt:      string | null;
-  group?:           string;
+  hold?:          string;
+  status:         TicketStatus;
+  filed:          string;
+  updated:        string;
+  started:        string | null;
+  finished:       string | null;
+  delivered:      string | null;
+  abandonedAt:    string | null;
+  group?:         string;
   /** Present, and true, only on the one ticket of its group whose delivery releases the group; absent on every other. */
-  releasesGroup?:   true;
-  branch?:          string;
-  commit?:          string;
-  reason?:          string;
+  releasesGroup?: true;
+  branch?:        string;
+  commit?:        string;
+  reason?:        string;
   /** Padded ids of the tickets this one waits on, in the order written; absent when it waits on none. */
-  dependsOn?:       string[];
+  dependsOn?:     string[];
   /** The keys of the epics the ticket belongs to, its primary epic first; absent when it belongs to none. */
-  epics?:           string[];
+  epics?:         string[];
   /** The public domains the ticket's agents may reach, lower case, in the order written; absent when its work needs no network. */
-  network?:         string[];
+  network?:       string[];
   /** The key of the entity whose pipeline builds the ticket in a forge with entities; absent until the product owner assigns one. */
-  entity?:          string;
+  entity?:        string;
   /** The keys of the whitelisted packages intake expects the ticket to cross into, in the order written; a forecast only. */
-  crosses?:         string[];
+  crosses?:       string[];
   /** On a bug only: the padded id of the delivered ticket whose change introduced it; absent when none was named. */
-  introducedBy?:    string;
+  introducedBy?:  string;
   /** The padded id of the ticket whose review found this one; absent on a ticket no review filed. */
-  foundInReview?:   string;
+  foundInReview?: string;
   /** The job that filed the ticket through its Hatch, stamped from the Hatch folder's job record; absent on a ticket no job filed. */
-  filedByJob?:      string;
-  /** The content hash of the body as it read when the ticket was last claimed or started; absent on a ticket never claimed or started. */
-  claimedBodyHash?: string;
-  task:             number | null;
+  filedByJob?:    string;
+  /** The hash of the title and body kept at the commit, moved by forge's own records; none on a draft. */
+  contentHash?:   string;
+  task:           number | null;
   /** Every frontmatter line the model does not own, in original order, so a status change does not eat it. */
-  extra:            Array<[key: string, rawValue: string]>;
+  extra:          Array<[key: string, rawValue: string]>;
 }
 
 export interface Ticket {

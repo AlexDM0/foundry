@@ -25,7 +25,8 @@ const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
 /**
  * Taken from `ticket add` before either key existed, by running this test on the commit before them: a ticket filed with neither flag must
- * still be written exactly so. It is never retaken from the current implementation.
+ * still be written exactly so. It is never retaken from the current implementation; the one line added since is the `contentHash` that
+ * readying writes, the hash of this title and the template body.
  */
 const FROZEN_FRONTMATTER_FILED_WITHOUT_LINKS = [
   '---',
@@ -39,6 +40,7 @@ const FROZEN_FRONTMATTER_FILED_WITHOUT_LINKS = [
   'finished: null',
   'delivered: null',
   'abandonedAt: null',
+  'contentHash: "2794112cd0a9aa01"',
   'task: 1',
   '---',
   '',

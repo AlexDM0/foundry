@@ -115,7 +115,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   });
   board.recordNote('Example note from the orchestrator', at);
   board.fileTicket(ticketFixture({ id: '003', title: 'Example search page', status: 'draft' }), at);
-  board.editTicket('003', { title: 'Example search results page' }, at);
+  board.editTicket('003', { title: 'Example search results page', writtenBy: 'command' }, at);
   board.setTicketNetwork('003', ['api.example.com'], at);
   records.push(...entityAssignedRecordsOf(at));
   board.submitDraftTickets(['003'], () => [], at);
@@ -166,7 +166,8 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordPipelineStepsRan([{
     stepKind: 'gate', stepName: 'tests', entity: 'web', runMilliseconds: 4200, ending: 'passed'
   }], 'build', at);
-  board.editTicket('001', { body: { text: 'Example rewritten report.\n', appends: false }, allowsPastCommitted: true }, at);
+  board.editTicket('001', { body: { text: 'Example rewritten report.\n', appends: false }, writtenBy: 'board' }, at);
+  board.restoreKeptTicketContent('001', at);
   board.moveTicket('001', 'in-review', { checksLegality: true }, at);
   board.startReviewBar('001', { round: 1 }, at);
   board.recordReview('001', {

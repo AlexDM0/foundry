@@ -1,6 +1,7 @@
 /**
- * The ticket moves the Overseer's lifecycle service makes (a claim, a finish into review, an approval, a delivery), applied to a scratch
- * board for specs that need a ticket in that state: the CLI no longer has those verbs. A spec's command lines pass through here in the shape
+ * The ticket moves the Overseer's lifecycle service makes (a claim, a finish into review, an approval, a delivery), and the board's own record
+ * in a ticket's body (`ticket board-record <id> [--append] --body <text>`, as a review writes its section), applied to a scratch board for
+ * specs that need a ticket in that state: the CLI has no such verbs. A spec's command lines pass through here in the shape
  * the retired verbs took; every other line reaches `runCommandLine` unchanged.
  */
 import { OperationRefusalWordingUtil }               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
@@ -25,6 +26,9 @@ const STATUS_OF_OVERSEER_MOVE: Readonly<Record<string, TicketStatus>> = {
 };
 
 const CLAIM_VERB = 'claim';
+
+/** No verb of the CLI: forge writes its own records in a committed ticket's body, which no command may edit. */
+const BOARD_RECORD_VERB = 'board-record';
 
 function optionalEntry<Key extends string>(key: Key, value: string | undefined): Partial<Record<Key, string>> {
   return value === undefined ? {} : { [key]: value } as Record<Key, string>;
@@ -53,10 +57,17 @@ function moveOnTheBoard(targetStatus: TicketStatus, commandArguments: ArgumentPa
   return ReviewBarOutputUtil.ticketWithReviewBarAsJson(move.ticket, reviewBarStartedFor(change, move.ticket, reviewBarRequest), move.closedReviewBars);
 }
 
+function recordOnTheBoard(commandArguments: ArgumentParser, change: BoardTransaction): unknown {
+  const ticketId = TicketLookupUtil.requireTicket(change, commandArguments.positionals()[1] ?? '').frontmatter.id;
+  const body     = { text: commandArguments.option('body') ?? '', appends: commandArguments.flag('append') };
+  return TicketJsonUtil.ticketAsJson(change.board.editTicket(ticketId, { body, writtenBy: 'board' }, change.at).ticket);
+}
+
 function boardMoveOf(commandLineArguments: readonly string[]): ((commandArguments: ArgumentParser, change: BoardTransaction) => unknown) | null {
   const [command, word] = commandLineArguments;
   if (command !== 'ticket' || word === undefined || commandLineArguments.includes('--by-hand')) return null;
   if (word === CLAIM_VERB) return claimOnTheBoard;
+  if (word === BOARD_RECORD_VERB) return recordOnTheBoard;
   const targetStatus = Object.hasOwn(STATUS_OF_OVERSEER_MOVE, word) ? STATUS_OF_OVERSEER_MOVE[word] : undefined;
   return targetStatus === undefined ? null : (commandArguments, change) => moveOnTheBoard(targetStatus, commandArguments, change);
 }
