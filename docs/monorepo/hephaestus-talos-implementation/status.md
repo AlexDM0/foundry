@@ -5,7 +5,7 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 
 ## Where the night run stands
 
-**Paused on 2026-11-19 by the owner until Friday 2026-11-20 15:00, when the weekly budget resets.** 61 of 129 packages
+**Paused on 2026-11-19 by the owner until Friday 2026-11-20 15:00; resumed then.** 61 of 129 packages
 have landed, stage 4 up to WP4.8. WP4.10 was `running` in `.claude/worktrees/wp4-10` (branch `run/wp4-10`, at
 `c3a07ad3`) when its builder and checker lost the network (ENOTFOUND). Its uncommitted half-built work stays in that
 worktree, and a copy is at `.claude/.evidence/hephaestus-talos/stage-4/wp4-10-partial.patch`. To resume:
@@ -349,7 +349,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-B | WP4.7 | landed | 6fae4e50 | First round. `FullStatusDocument` (`src/adapters/@types/StatusDocument.ts`) types `status --json --full`; `BoardState` drops its index signature; `OwnerTokenTotal(s)` moved there from `cli/` (adapters may not import `cli/`). Types only, no behaviour change |
 | 4-B | WP4.12 | landed | c9fe2b42 | Second check failed on a scope point, overruled: the crash-log route's `no-crash-log` 404 (stage 3's `PresenceReader.ts:71-77`) still serves the API wording with no `fields`; WP4.12 does not name it, so WP4.8 serves it through `RefusalDocumentUtil.refusalDocumentOf` (and updates `overseer-api.md:53` and the `ForgeCrashLogDocument` docblock). `ForgeRefusalDocument` (`code`, `fields`, `sentence`, `ForgeJsonValue`); `RefusalDocumentUtil`; every refusal of a command or picture is served as code, fields and the command line's sentence; the non-JSON 400 carries `fields: {}`. An empty `POST /api/pictures` body still answers a bare 400 |
 | 4-C | WP4.8 | landed | a3e84abb | First round. Five board-document mappers in `src/adapters/board-document/utils/`, `BoardDocumentAssembly.boardDocumentOf(state)`; `GET /api/board` and `/api/v1/board` behind the reader token (`endpointAddedIn('board', 1, 1.21)`); the crash-log `no-crash-log` 404 is now a refusal document (WP4.12's handoff closed). `BoardState` part types moved to `src/adapters/@types/BoardStateParts.ts`, `MONITOR_INTERRUPTION_CAUSE_OF_CAUSE` to `src/adapters/constants/MonitorInterruptionCauseOfCause.ts`; `BoardState` jobs gain `lostLine` (reaching `/api/state` too; its doc row not updated). For WP4.9: the 'In the code' table lacks the assembly and mappers; `BoardState.lostLineOf` duplicates `PresenceDocumentAssembly.lostLineCauseOf` |
-| 4-D | WP4.10 | waiting | | |
+| 4-D | WP4.10 | landed | a6eef519 | Resumed after the network outage and the owner's pause; first check failed (option served as `isRecommended`, three Apply refusal kinds untested, hold and priority rules inline), one fix round passed. `Board.ticketOffersOf(ticketId, mergeWait)` takes the merge queue's git forecast; the applied pipeline serves `pipeline.entityPipelines`, draft entities `pipelineSetup.draftEntities`. `boardDocumentOf` takes a source (state, Board, logs, Flint, now). The attention target's route is in `src/shared/monitor/AttentionEntries.ts`, so stage 8's N10 grep also names it. `reviewRound` falls back to `FIRST_REPEAT_REVIEW_ROUND` only in `re-review` (`BoardReadingMappingUtil.ticketFactsOf`); confirm against Gaia's views in stage 6 |
 | 4-E | WP4.11 | waiting | | |
 | 4-F | WP4.9 | waiting | | |
 | 5-A | WP5.1 | waiting | | |
