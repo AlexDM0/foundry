@@ -127,7 +127,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
     },
     onNudge: request.wake,
     state:   () => readBoardState(request).state,
-    board:   () => BoardDocumentAssembly.boardDocumentOf(readBoardState(request).state),
+    board:   () => BoardDocumentAssembly.boardDocumentOf({ ...readBoardState(request), now: context.now() }),
     summary: () => {
       const { state, project, readyTicketIds } = readBoardState(request);
       return BoardStateAssembly.summaryOf(state, project, readyTicketIds);

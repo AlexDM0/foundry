@@ -29,7 +29,7 @@ import { EventBroker }                                                      from
 import type { GateProfileOutputLine }                                       from './GateProfiling.ts';
 import { MonitorStream }                                                    from './MonitorStream.ts';
 import { OverseerServer, type OverseerRequestHandler, type OverseerRoutes } from './OverseerServer.ts';
-import { boardStateFixture }                                                from './testing/BoardStateFixture.ts';
+import { boardDocumentSourceFixture }                                       from './testing/BoardStateFixture.ts';
 
 const EXAMPLE_UPLOAD_URL = 'http://127.0.0.1:4100/api/pictures';
 const SIZE_LIMIT_BYTES = 8;
@@ -226,7 +226,9 @@ afterEach(() => {
   for (const handler of openHandlers.splice(0)) handler.closeEveryStream();
 });
 
-const BOARD_STATE = boardStateFixture();
+const BOARD_DOCUMENT_SOURCE = boardDocumentSourceFixture();
+
+const BOARD_STATE = BOARD_DOCUMENT_SOURCE.state;
 
 /** Routes that answer each versioned endpoint with a fixed body, so an answer shows which route gave it. */
 function versionedRoutesOf(started: () => boolean): OverseerRoutes {
@@ -241,7 +243,7 @@ function versionedRoutesOf(started: () => boolean): OverseerRoutes {
     presence:      () => ({ status: 200, body: { generation: 4 } }),
     crashLog:      (writtenNumber) => ({ status: 200, body: { number: writtenNumber } }),
     state:         () => BOARD_STATE,
-    board:         () => BoardDocumentAssembly.boardDocumentOf(BOARD_STATE),
+    board:         () => BoardDocumentAssembly.boardDocumentOf(BOARD_DOCUMENT_SOURCE),
     monitorStream: () => monitorStream,
     refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
     frameOrigins:  () => [],
@@ -390,7 +392,7 @@ describe('the board document', () => {
   test('answers GET /api/v1/board with the token by the assembly\'s document, and 401 unauthorized without it', async () => {
     const handler = versionedHandlerOf();
     const answered = await handler.answer(requestTo('/api/v1/board'), PORT);
-    expect([answered.status, await answered.json()]).toEqual([200, JSON.parse(JSON.stringify(BoardDocumentAssembly.boardDocumentOf(BOARD_STATE)))]);
+    expect([answered.status, await answered.json()]).toEqual([200, JSON.parse(JSON.stringify(BoardDocumentAssembly.boardDocumentOf(BOARD_DOCUMENT_SOURCE)))]);
     const refused = await handler.answer(requestTo('/api/v1/board', { headers: HOST_HEADERS }), PORT);
     expect([refused.status, await refused.json()]).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
   });

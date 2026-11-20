@@ -10,12 +10,14 @@ import type {
   BoardTicketForecastDocument,
   BoardTicketForecastStepDocument
 } from 'forge-contracts/BoardJobDocuments';
+import type { BoardJobOffersDocument }   from 'forge-contracts/BoardReadingDocuments';
 import type { BoardLaunchSlotsDocument } from 'forge-contracts/ForgeBoardDocument';
 
 import type { LaunchSlots }                              from '../../../lib/tracker-model/@types/LaunchSlots.ts';
 import type { TicketForecast, TicketForecastStep }       from '../../../lib/tracker-model/@types/TicketForecast.ts';
 import type { EndedJob, JobWithLiveFacts, LastToolCall } from '../../@types/BoardStateParts.ts';
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }           from '../../constants/MonitorInterruptionCauseOfCause.ts';
+import { BoardReadingMappingUtil }                       from './BoardReadingMappingUtil.ts';
 
 function lastToolCallOf(lastToolCall: LastToolCall | null): BoardLastToolCallDocument | null {
   return lastToolCall === null ? null : { toolName: lastToolCall.toolName, startedAt: lastToolCall.startedAt, running: lastToolCall.running };
@@ -44,7 +46,8 @@ function liveFactsOf(live: JobWithLiveFacts['live']): BoardJobLiveFactsDocument 
   };
 }
 
-function jobOf(job: JobWithLiveFacts): BoardJobDocument {
+/** `offers` are the Board's reading of what the job accepts now; its stop holds are read here from its id. */
+function jobOf(job: JobWithLiveFacts, offers: BoardJobOffersDocument): BoardJobDocument {
   return {
     id:            job.id,
     kind:          job.kind,
@@ -62,6 +65,8 @@ function jobOf(job: JobWithLiveFacts): BoardJobDocument {
     intake:        job.intake === undefined ? null : { text: job.intake.text, title: job.intake.title ?? null },
     entity:        job.entity ?? null,
     live:          liveFactsOf(job.live),
+    stopHolds:     BoardReadingMappingUtil.jobStopHoldsOf(job.id),
+    offers,
   };
 }
 

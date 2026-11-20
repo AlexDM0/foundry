@@ -9,6 +9,7 @@ import type {
   AgentStepSettingsDocument,
   ApplyRequestDocument,
   BoardAppliedPipelineDocument,
+  BoardDraftEntityFactsDocument,
   BoardEntityAssignmentDocument,
   BoardGateCacheMarkDocument,
   BoardGateProfileRunDocument,
@@ -41,6 +42,7 @@ import type {
   SetupQuestionDocument,
   SourceAnnotationDocument
 } from 'forge-contracts/BoardPipelineDocuments';
+import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
 import type { DraftAnswer } from '../../../lib/tracker-model/@types/Draft.ts';
 import type { GatePhase }   from '../../../lib/tracker-model/@types/GatePhase.ts';
@@ -61,6 +63,7 @@ import {
 } from '../../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
+  ApplyRefusalFacts,
   ApplyStateFacts,
   EntityAssignmentFacts,
   GateCacheMarkFacts,
@@ -87,7 +90,11 @@ import type {
   SetupQuestion,
   SourceAnnotation
 } from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair } from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { AgentPair }      from '../../../lib/tracker-model/@types/Ticket.ts';
+import { EntityOwnershipUtil } from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }        from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import { OperationRefusal }    from '../../../shared/OperationRefusal.ts';
+import { RefusalDocumentUtil } from '../../utils/RefusalDocumentUtil.ts';
 
 function stepOf(step: PipelineStep): PipelineStepDocument {
   return { name: step.name, run: step.run, ...(step.in === undefined ? {} : { in: step.in }) };
@@ -200,6 +207,14 @@ function pipelineDefinitionOf(pipeline: Pipeline): PipelineDefinitionDocument {
   };
 }
 
+/** Each entity's pipeline as it runs, the forge's merge train, approvals and billing joined to its own; empty without entities. */
+function entityPipelinesOf(pipeline: Pipeline): Record<string, PipelineDefinitionDocument> {
+  return Object.fromEntries(Object.keys(pipeline.entities ?? {}).flatMap((entityKey) => {
+    const entityPipeline = PipelineUtil.pipelineOfEntity(pipeline, entityKey);
+    return entityPipeline === null ? [] : [[entityKey, pipelineDefinitionOf(entityPipeline)] as const];
+  }));
+}
+
 function appliedPipelineOf(applied: AppliedPipelineFacts): BoardAppliedPipelineDocument {
   switch (applied.readingVerdict) {
     case 'absent':
@@ -220,6 +235,7 @@ function appliedPipelineOf(applied: AppliedPipelineFacts): BoardAppliedPipelineD
           appliedBy:          applied.application.appliedBy,
           constitutionCommit: applied.application.constitutionCommit,
         },
+        entityPipelines: entityPipelinesOf(applied.pipeline),
       };
   }
 }
@@ -393,6 +409,25 @@ function applyStateOf(applyState: ApplyStateFacts | null): BoardPipelineSetupDoc
   return { ...applyRequestOf(applyState), blockingFiles: [...applyState.blockingFiles], ticketIdHoldingMain: applyState.ticketIdHoldingMain };
 }
 
+/** Each entity of the draft with the pipeline it would run and every entity that consumes it, which a crossing or a fold shows. */
+function draftEntitiesOf(draft: Pipeline | null): Record<string, BoardDraftEntityFactsDocument> {
+  const entities = draft?.entities;
+  if (draft === null || entities === undefined) return {};
+  return Object.fromEntries(Object.keys(entities).flatMap((entityKey) => {
+    const effectivePipeline = PipelineUtil.pipelineOfEntity(draft, entityKey);
+    return effectivePipeline === null ? [] : [[entityKey, {
+      effectivePipeline:   pipelineDefinitionOf(effectivePipeline),
+      dependentEntityKeys: EntityOwnershipUtil.dependentsOf(entities, [entityKey]),
+    }] as const];
+  }));
+}
+
+/** Worded as the command answers it: the Board's refusal, or main's constitution that git could not read. */
+function applyRefusalOf(refusal: ApplyRefusalFacts | null): ForgeRefusalDocument | null {
+  if (refusal === null) return null;
+  return RefusalDocumentUtil.refusalDocumentOf(new OperationRefusal(refusal.kind === 'board-refusal' ? 'refused' : 'unrepaired', refusal));
+}
+
 function pipelineSetupOf(setup: PipelineSetupFacts | null): BoardPipelineSetupDocument | null {
   if (setup === null) return null;
   return {
@@ -406,6 +441,8 @@ function pipelineSetupOf(setup: PipelineSetupFacts | null): BoardPipelineSetupDo
     annotations:         setup.annotations.map(resolvedAnnotationOf),
     readByRoles:         [...setup.readByRoles],
     applyState:          applyStateOf(setup.applyState),
+    draftEntities:       draftEntitiesOf(setup.record.draft),
+    applyRefusal:        applyRefusalOf(setup.applyRefusal),
     ...(setup.entities === undefined ? {} : { entities: byEntityOf(setup.entities, setupEntityFactsOf) }),
   };
 }
@@ -568,6 +605,7 @@ function entityAssignmentOf(assignment: EntityAssignmentFacts | undefined): Boar
 
 export const BoardPipelineMappingUtil = Object.freeze({
   pipelineDefinitionOf,
+  instructionEntryOf,
   appliedPipelineOf,
   pipelineSetupOf,
   pipelineFlowOf,

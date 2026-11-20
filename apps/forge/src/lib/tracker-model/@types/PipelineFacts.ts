@@ -2,7 +2,8 @@
  * The pipeline facts the Overseer serves on its board state for the Bridge's Pipeline view: values only, never words, so the view models
  * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
-import type { GatePhase } from './GatePhase.ts';
+import type { BoardRefusalDetail } from '../BoardRefusal.ts';
+import type { GatePhase }          from './GatePhase.ts';
 import type {
   GateCacheReport,
   JobState,
@@ -119,6 +120,11 @@ export interface PipelineSetupEntityFacts {
   readByRoles:         EntityAgentRole[];
 }
 
+/** The refusal an Apply of the current draft meets now: the Board's, or main's constitution that git could not read, which an Apply refuses too. */
+export type ApplyRefusalFacts =
+  | { kind: 'board-refusal'; boardRefusal: BoardRefusalDetail }
+  | { kind: 'main-constitution-unreadable'; reason: string };
+
 export interface PipelineSetupFacts {
   record:              PipelineSetup;
   summary:             PipelineSetupSummary;
@@ -134,6 +140,8 @@ export interface PipelineSetupFacts {
   /** The roles whose instruction lists hold the constitution. */
   readByRoles:         PipelineAgentRole[];
   applyState:          ApplyStateFacts | null;
+  /** Read against main's texts as this state read them; `null` when an Apply would proceed. */
+  applyRefusal:        ApplyRefusalFacts | null;
   /** Absent on a forge without entities: each entity of the draft, else of the stored pipeline, then of the record, by its key. */
   entities?:           Record<EntityKey, PipelineSetupEntityFacts>;
 }

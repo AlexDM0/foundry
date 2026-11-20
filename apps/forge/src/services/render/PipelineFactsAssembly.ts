@@ -18,6 +18,7 @@ import {
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import type {
   AppliedPipelineFacts,
+  ApplyRefusalFacts,
   ApplyStateFacts,
   ConstitutionOutline,
   EntityAssignmentFacts,
@@ -39,6 +40,7 @@ import type {
 } from '../../lib/tracker-model/@types/PipelineFacts.ts';
 import type {
   ConstitutionDraft,
+  MainConstitution,
   MainConstitutionReading,
   PipelineSetup,
   PipelineSetupEntity,
@@ -52,6 +54,7 @@ import type { Board }                                                      from 
 import { AGENT_EFFORTS, AGENT_MODELS }                                     from '../../lib/tracker-model/constants/AgentSettings.ts';
 import { PipelineChangeUtil }                                              from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { EntityFoldersUtil }                                               from '../../shared/utils/EntityFoldersUtil.ts';
 import { PIPELINE_FLOW_NODE_IDS, entityFlowGraphsOf, pipelineFlowGraphOf } from './PipelineFlowGraph.ts';
 
 /** How much of an instruction file the flow carries for its preview; the editor reads the rest itself. */
@@ -83,8 +86,8 @@ const PIPELINE_HISTORY_KINDS: ReadonlySet<LogRecord['kind']> = new Set<LogRecord
 export interface MainLineTexts {
   /** A file's text on main, a data-folder file's from disk; null when it is not there or no main line is known. */
   textOf:               (path: string) => string | null;
-  /** Main's `CONSTITUTION.md`, asked only when a drafted constitution is compared with it. */
-  mainConstitution:     () => MainConstitutionReading;
+  /** Main's constitution at the project path, `CONSTITUTION.md` when none is named; asked only when a draft is compared with it. */
+  mainConstitution:     (constitutionPath?: string) => MainConstitutionReading;
   mainMovedByCommitsOf: (snapshotCommit: string | null) => number;
 }
 
@@ -277,6 +280,28 @@ function setupEntityFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineS
   }));
 }
 
+/**
+ * The refusal an Apply of the draft would meet, judged by the Board's own stage 1 against main's texts as this state read them: the forge's
+ * `CONSTITUTION.md` and, on a draft over entities, each entity's file, as the command reads them. A file git could not read refuses, as
+ * the command does.
+ */
+function applyRefusalOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): ApplyRefusalFacts | null {
+  const forgeConstitution = input.mainLineTexts.mainConstitution();
+  if (forgeConstitution.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', reason: forgeConstitution.reason };
+  const draftEntities = setup.draft?.entities;
+  const entityConstitutions: Record<EntityKey, MainConstitution | null> = {};
+  for (const [entityKey, entity] of Object.entries(draftEntities ?? {})) {
+    const reading = input.mainLineTexts.mainConstitution(EntityFoldersUtil.constitutionPathOf(entity));
+    if (reading.verdict === 'unreadable') return { kind: 'main-constitution-unreadable', reason: reading.reason };
+    entityConstitutions[entityKey] = reading.verdict === 'read' ? reading.constitution : null;
+  }
+  const refusal = input.board.applyRefusalOf(setup.setupId, {
+    mainConstitution: forgeConstitution.verdict === 'read' ? forgeConstitution.constitution : null,
+    ...(draftEntities === undefined ? {} : { entityConstitutions }),
+  });
+  return refusal === null ? null : { kind: 'board-refusal', boardRefusal: refusal };
+}
+
 function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>): PipelineSetupFacts {
   const { constitution, draft } = setup;
   const readPipeline = draft ?? storedPipelineOf(input);
@@ -293,6 +318,7 @@ function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>)
     ...constitutionFactsOf(input, constitution),
     readByRoles:        rolesReadingOf(readPipeline, { kind: 'constitution' }),
     applyState:         applyStateOf(input, setup),
+    applyRefusal:       applyRefusalOf(input, setup),
     ...(holdsEntities ? { entities: setupEntityFactsOf(input, setup, readPipeline) } : {}),
   };
 }

@@ -47,9 +47,9 @@ describe('BoardConversationMappingUtil.decisionOf', () => {
         multiSelect: true,
         options:     [
           {
-            label: 'CSV', description: 'Comma separated', isRecommended: true, touches: ['src/export.ts'], tradeOff: 'Smaller.', acceptanceEffect: 'A2 holds'
+            label: 'CSV', description: 'Comma separated', recommended: true, touches: ['src/export.ts'], tradeOff: 'Smaller.', acceptanceEffect: 'A2 holds'
           },
-          { label: 'JSON', description: 'One document', isRecommended: false },
+          { label: 'JSON', description: 'One document', recommended: false },
         ],
       }],
       context:  'The export needs a format.',

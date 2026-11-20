@@ -9,13 +9,18 @@ import type { LogRecord }                                        from '../lib/tr
 import type { Pipeline, PipelineEntity }                         from '../lib/tracker-model/@types/Pipeline.ts';
 import type { ConstitutionSourcesReading, PipelineSetupReading } from '../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Task }                                             from '../lib/tracker-model/@types/Task.ts';
-import type { Ticket, TicketFrontmatter }                        from '../lib/tracker-model/@types/Ticket.ts';
-import type { TrackerProgress }                                  from '../lib/tracker-model/@types/TrackerProgress.ts';
-import { Board }                                                 from '../lib/tracker-model/Board.ts';
-import type { BoardRefusalDetail }                               from '../lib/tracker-model/BoardRefusal.ts';
-import { refusalIsBoardRefusal }                                 from '../lib/tracker-model/BoardRefusal.ts';
-import { createLogger }                                          from '../lib/tracker-model/Logger.ts';
-import { PipelineUtil }                                          from '../lib/tracker-model/utils/PipelineUtil.ts';
+import type {
+  RowedTicketStatus,
+  Ticket,
+  TicketFrontmatter,
+  TicketStatus
+} from '../lib/tracker-model/@types/Ticket.ts';
+import type { TrackerProgress }    from '../lib/tracker-model/@types/TrackerProgress.ts';
+import { Board }                   from '../lib/tracker-model/Board.ts';
+import type { BoardRefusalDetail } from '../lib/tracker-model/BoardRefusal.ts';
+import { refusalIsBoardRefusal }   from '../lib/tracker-model/BoardRefusal.ts';
+import { createLogger }            from '../lib/tracker-model/Logger.ts';
+import { PipelineUtil }            from '../lib/tracker-model/utils/PipelineUtil.ts';
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 
@@ -146,4 +151,20 @@ export function refusalDetailOf(change: () => unknown): BoardRefusalDetail {
     throw error;
   }
   throw new Error('The change was not refused.');
+}
+
+/** A ticket has a row once readied: filing and the filer's close file none. */
+function statusHasARow(status: TicketStatus): status is RowedTicketStatus {
+  return status !== 'draft' && status !== 'ready-for-review';
+}
+
+/** One ticket `001` in the status, held or not, with its row where the status has one, and no job on it. */
+export function ticketInStatusFixture(status: TicketStatus, hold: string | null, contents: { pipeline?: Pipeline } = {}): BoardFixture {
+  const hasARow = statusHasARow(status);
+  const ticket  = ticketFixture({ status, task: hasARow ? 1 : null, ...(hold === null ? {} : { hold }) });
+  return boardFixture({
+    ...contents,
+    tickets: [ticket],
+    tasks:   hasARow ? [taskFixture({ ticket: '001', status })] : [],
+  });
 }

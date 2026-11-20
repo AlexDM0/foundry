@@ -4,7 +4,7 @@
  */
 import type { DisplayState }                                               from '../../src/lib/tracker-model/@types/Task.ts';
 import type { AttentionActionLabel, AttentionKind, MonitorAttentionEntry } from '../../src/shared/monitor/@types/MonitorSnapshot.ts';
-import { attentionEntriesOf, type AttentionBoard }                         from '../../src/shared/monitor/AttentionEntries.ts';
+import { attentionEntriesOf, routedAttentionEntryOf, type AttentionBoard } from '../../src/shared/monitor/AttentionEntries.ts';
 import type { BridgeTab }                                                  from './HashRouter.ts';
 
 export type TabCountTone = 'waiting' | 'escalated' | 'neutral';
@@ -68,7 +68,7 @@ function itemOf(entry: MonitorAttentionEntry): AttentionItem {
 }
 
 function waitingOnUserOf(board: WaitingOnUserBoard): WaitingOnUser {
-  const items = attentionEntriesOf(board).map(itemOf);
+  const items = attentionEntriesOf(board).map(routedAttentionEntryOf).map(itemOf);
   const escalated = items.filter((item) => item.kind === 'escalated-question');
   return {
     escalated,

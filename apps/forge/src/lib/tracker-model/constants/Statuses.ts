@@ -12,6 +12,9 @@ export const SETTLED_TASK_STATUSES: readonly TaskStatus[] = ['delivered', 'aband
 /** A settled ticket is never built, reviewed or held again, so neither its agents nor a hold on it can be changed. */
 export const SETTLED_TICKET_STATUSES: readonly TicketStatus[] = ['delivered', 'abandoned'];
 
+/** The statuses User's own `ticket ready` takes a ticket from: a draft, or one a filer closed for User's review. */
+export const TICKET_STATUSES_USER_READIES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
+
 /** No agent has claimed a ticket in one of these, so an edit cannot change work under way. */
 export const TICKET_STATUSES_EDITABLE_WITHOUT_FORCE: readonly TicketStatus[] = ['draft', 'ready-for-review', 'pending'];
 

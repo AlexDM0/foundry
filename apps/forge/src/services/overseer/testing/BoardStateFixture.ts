@@ -17,6 +17,7 @@ import {
   taskFixture,
   ticketFixture
 } from '../../../testing/BoardFixtures.ts';
+import type { BoardDocumentSource }            from '../BoardDocumentAssembly.ts';
 import { BoardStateAssembly, type BoardState } from '../BoardState.ts';
 import { liveJobFixture }                      from './LiveJobFixture.ts';
 
@@ -181,7 +182,8 @@ const LIVE_FACTS: JobLiveFactsWithSilence = {
 /** The status document carries far more; the board document reads only its project and its confinement. */
 const STATUS_DOCUMENT = { project: 'Example Agency', confinement: 'confined' } as FullStatusDocument;
 
-export function boardStateFixture(): BoardState {
+/** The scratch board's reading as the board document reads it: its state, the Board it was read from, and the reading's moment. */
+export function boardDocumentSourceFixture(): BoardDocumentSource {
   const { board, progress, tickets } = boardFixture({
     tasks: [taskFixture({
       id: 1, ticket: '002', status: 'in-progress', start: AT, history: [{ status: 'pending', at: AT }, { status: 'in-progress', at: AT }]
@@ -202,7 +204,7 @@ export function boardStateFixture(): BoardState {
   progress.jobs = [liveJobFixture({ id: 'J1', ticketIds: ['002'], interruption: 'network-outage' })];
   progress.decisions = [DECISION];
   progress.incidents = [INCIDENT];
-  return BoardStateAssembly.boardStateOf({
+  const state = BoardStateAssembly.boardStateOf({
     statusDocument: STATUS_DOCUMENT,
     board,
     progress,
@@ -235,4 +237,11 @@ export function boardStateFixture(): BoardState {
       mainLineTexts:        BoardStateAssembly.NO_MAIN_LINE_TEXTS,
     },
   });
+  return {
+    state, board, logRecords: LOG_RECORDS, flintBrain: null, now: new Date(AT)
+  };
+}
+
+export function boardStateFixture(): BoardState {
+  return boardDocumentSourceFixture().state;
 }

@@ -255,7 +255,7 @@ function mainLineTextsOf(reads: MainLineReads, rootDirectory: string, mainLine: 
   if (mainTip === null) return NO_MAIN_LINE_TEXTS;
   return {
     textOf:               (path) => reads.textAt(mainTip, path),
-    mainConstitution:     () => reads.mainConstitutionAt(mainTip),
+    mainConstitution:     (constitutionPath) => reads.mainConstitutionAt(mainTip, constitutionPath),
     mainMovedByCommitsOf: (snapshotCommit) => reads.mainMovedByCommitsOf(snapshotCommit, mainTip),
   };
 }

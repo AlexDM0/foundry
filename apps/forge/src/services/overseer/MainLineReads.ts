@@ -11,7 +11,7 @@ export class MainLineReads {
   private readonly movedCounts: MainMovedCounts;
   private readTip:              string | null = null;
   private readonly textByPath = new Map<string, string | null>();
-  private constitution:         MainConstitutionReading | null = null;
+  private readonly constitutionByPath = new Map<string, MainConstitutionReading>();
 
   constructor(private readonly projectDirectory: string) {
     this.movedCounts = new MainMovedCounts(projectDirectory);
@@ -29,12 +29,14 @@ export class MainLineReads {
     return text;
   }
 
-  /** An unreadable answer is not kept, so the next read asks git again. */
-  mainConstitutionAt(mainTip: string): MainConstitutionReading {
+  /** The constitution at the project path, `CONSTITUTION.md` when none is named; an unreadable answer is not kept, so the next read asks git again. */
+  mainConstitutionAt(mainTip: string, constitutionPath?: string): MainConstitutionReading {
     this.keepOnlyTip(mainTip);
-    if (this.constitution !== null) return this.constitution;
-    const reading = InstructionFiles.mainConstitutionAt(this.projectDirectory, mainTip);
-    if (reading.verdict !== 'unreadable') this.constitution = reading;
+    const pathKey = constitutionPath ?? '';
+    const kept = this.constitutionByPath.get(pathKey);
+    if (kept !== undefined) return kept;
+    const reading = InstructionFiles.mainConstitutionAt(this.projectDirectory, mainTip, constitutionPath);
+    if (reading.verdict !== 'unreadable') this.constitutionByPath.set(pathKey, reading);
     return reading;
   }
 
@@ -46,6 +48,6 @@ export class MainLineReads {
     if (mainTip === this.readTip) return;
     this.readTip = mainTip;
     this.textByPath.clear();
-    this.constitution = null;
+    this.constitutionByPath.clear();
   }
 }

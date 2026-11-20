@@ -149,6 +149,11 @@ export class BoardRecords {
     return task;
   }
 
+  /** Without an `approvals.merge` key, merge approval is off. */
+  mergeApprovalIsOn(): boolean {
+    return this.pipeline?.approvals?.merge === true;
+  }
+
   /** A caller hands in an id it resolved itself, so a miss here is a programming error rather than a refusal to word. */
   requireTicket(ticketId: string): Ticket {
     const ticket = this.ticketRecordById(ticketId);

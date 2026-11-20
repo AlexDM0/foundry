@@ -2,13 +2,16 @@
  * The board's pipeline facts against the contract's pipeline documents. What matters: a pipeline maps field by field, its optional fields
  * absent where the model leaves them absent, its entities and their agents included; the stored pipeline as read maps for each verdict; a
  * setup record with no check reads `null` and keeps no stored bookkeeping (next numbers, extra keys); each pipeline record the contract
- * declares maps to its history entry and a record of any other kind to none; no open setup, flow or entity assignment reads `null`.
+ * declares maps to its history entry and a record of any other kind to none; no open setup, flow or entity assignment reads `null`. Each
+ * entity carries the pipeline it runs, the forge's approvals and billing joined in; each draft entity names every entity that consumes it,
+ * the root's dependents being every other; and the Apply refusal is served as the command words it, or `null`.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type { LogRecord }           from '../../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }            from '../../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetupFacts }  from '../../../lib/tracker-model/@types/PipelineFacts.ts';
+import { PipelineUtil }             from '../../../lib/tracker-model/utils/PipelineUtil.ts';
 import { BoardPipelineMappingUtil } from './BoardPipelineMappingUtil.ts';
 
 const AT = '2026-11-19T10:00:00+01:00';
@@ -38,6 +41,13 @@ const PIPELINE: Pipeline = {
   },
 };
 
+/** The entity's own pipeline as the model joins it, which the mapper serves field for field. */
+function effectivePipelineOf(pipeline: Pipeline, entityKey: string): ReturnType<typeof BoardPipelineMappingUtil.pipelineDefinitionOf> {
+  const entityPipeline = PipelineUtil.pipelineOfEntity(pipeline, entityKey);
+  if (entityPipeline === null) throw new Error(`the pipeline holds no entity ${entityKey}`);
+  return BoardPipelineMappingUtil.pipelineDefinitionOf(entityPipeline);
+}
+
 describe('BoardPipelineMappingUtil.pipelineDefinitionOf', () => {
   test('maps a pipeline field by field, its absent fields absent and its entities with their agents', () => {
     expect(BoardPipelineMappingUtil.pipelineDefinitionOf(PIPELINE)).toEqual(PIPELINE);
@@ -62,8 +72,20 @@ describe('BoardPipelineMappingUtil.appliedPipelineOf', () => {
     expect(BoardPipelineMappingUtil.appliedPipelineOf({
       readingVerdict: 'readable', pipeline: PIPELINE, contentHash: 'example-hash', fileText: '{}', application
     })).toEqual({
-      readingVerdict: 'readable', pipeline: PIPELINE, contentHash: 'example-hash', fileText: '{}', application
+      readingVerdict: 'readable', pipeline: PIPELINE, contentHash: 'example-hash', fileText: '{}', application, entityPipelines: { web: effectivePipelineOf(PIPELINE, 'web') }
     });
+  });
+
+  test('serves each entity\'s pipeline with the forge\'s approvals and billing joined to its own, and none without entities', () => {
+    const readable = {
+      readingVerdict: 'readable', contentHash: 'example-hash', fileText: '{}', application: null
+    } as const;
+    const document = BoardPipelineMappingUtil.appliedPipelineOf({ ...readable, pipeline: PIPELINE });
+    const web = document.readingVerdict === 'readable' ? document.entityPipelines['web'] : undefined;
+    expect([web?.approvals, web?.billing, web?.agents?.builder?.effort]).toEqual([{ merge: true }, { mode: 'api' }, 'low']);
+    const { entities: _entities, ...withoutEntities } = PIPELINE;
+    const without = BoardPipelineMappingUtil.appliedPipelineOf({ ...readable, pipeline: withoutEntities });
+    expect(without.readingVerdict === 'readable' ? without.entityPipelines : null).toEqual({});
   });
 });
 
@@ -114,6 +136,16 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     applyState:          {
       draftRevision: 0, resumesBoard: true, commitJobId: 'J5', state: 'held', reason: 'dirty-checkout', blockingFiles: ['README.md'], ticketIdHoldingMain: null
     },
+    applyRefusal: null,
+  };
+
+  const entityOf = (kind: 'root' | 'package' | 'app', home: string, dependsOn?: string[]) => ({
+    kind, home: [home], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, ...(dependsOn === undefined ? {} : { dependsOn })
+  });
+
+  const draftOverEntities: Pipeline = {
+    ...PIPELINE,
+    entities: { root: entityOf('root', '/'), design: entityOf('package', '/packages/design'), web: entityOf('app', '/apps/web', ['design']) },
   };
 
   test('maps the record with no check as null, its entities\' parts, and none of its stored bookkeeping', () => {
@@ -135,6 +167,26 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     expect(document?.applyState).toEqual(setup.applyState);
     expect([document?.mainMovedByCommits, document?.readByRoles]).toEqual([4, ['builder']]);
     expect(document !== null && Object.hasOwn(document, 'entities')).toBe(false);
+  });
+
+  test('names each draft entity\'s effective pipeline and every entity that consumes it, and none without a draft over entities', () => {
+    const document = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, record: { ...setup.record, draft: draftOverEntities } });
+    expect(Object.entries(document?.draftEntities ?? {}).map(([entityKey, facts]) => [entityKey, facts.dependentEntityKeys]))
+      .toEqual([['root', ['design', 'web']], ['design', ['web']], ['web', []]]);
+    expect(document?.draftEntities['web']?.effectivePipeline).toEqual(effectivePipelineOf(draftOverEntities, 'web'));
+    expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.draftEntities).toEqual({});
+  });
+
+  test('serves the Apply refusal as the command words it: the Board\'s, main\'s unreadable constitution, or null', () => {
+    const boardRefusal = {
+      reason: 'pipeline-moved', setupId: 'S2', baseContentHash: 'example-hash', contentHash: 'other-hash'
+    } as const;
+    const refused = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'board-refusal', boardRefusal } });
+    expect([refused?.applyRefusal?.code, refused?.applyRefusal?.fields]).toEqual(['pipeline-moved', { setupId: 'S2', baseContentHash: 'example-hash', contentHash: 'other-hash' }]);
+    expect(refused?.applyRefusal?.sentence).not.toBe('');
+    const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', reason: 'git failed' } });
+    expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields]).toEqual(['main-constitution-unreadable', { reason: 'git failed' }]);
+    expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.applyRefusal).toBeNull();
   });
 
   test('reads no open setup as null', () => {

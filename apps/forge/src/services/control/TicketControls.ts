@@ -2,8 +2,8 @@
 import { readFileSync }         from 'node:fs';
 import { TicketAcceptanceUtil } from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
 
-import type { TicketStatus }                  from '../../lib/tracker-model/@types/Ticket.ts';
 import { BoardRefusal }                       from '../../lib/tracker-model/BoardRefusal.ts';
+import { TICKET_STATUSES_USER_READIES }       from '../../lib/tracker-model/constants/Statuses.ts';
 import { EntityOwnershipUtil }                from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { NetworkDomainUtil }                  from '../../lib/tracker-model/utils/NetworkDomainUtil.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
@@ -15,8 +15,6 @@ import type { TrackerChange }                 from '../tracker/TrackerPipeline.t
 import { ticketIdOfReference }                from './ControlTicketLookup.ts';
 
 const TICKET_BODY_TEMPLATE_PATH = ['templates', 'TicketBody.md'];
-
-const USER_READIABLE_STATUSES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
 
 function bodyForNewTicket(bodyText: string | null, ticketId: string, title: string): string {
   if (bodyText !== null && bodyText.trim() !== '') return bodyText;
@@ -100,7 +98,7 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
 /** Only User readies, a draft or a ticket in `ready-for-review`: no role the Bouncer admits relays `ticket ready`. */
 function readyTickets(command: CommandOf<'ticket-ready'>, change: TrackerChange) {
   const ticketIds = command.ticketReferences.map((reference) => ticketIdOfReference(change, reference));
-  return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, USER_READIABLE_STATUSES, TicketAcceptanceUtil.workFilesOf);
+  return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, TICKET_STATUSES_USER_READIES, TicketAcceptanceUtil.workFilesOf);
 }
 
 /** A stamped `jobId` is the product owner's job, which only the role policy writes; without one the command is User's own. */
@@ -150,7 +148,7 @@ function abandonTicket(command: CommandOf<'ticket-abandon'>, change: TrackerChan
  */
 function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: TrackerChange) {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
-  const liveJob  = change.board.jobs().find((job) => job.ticketIds.includes(ticketId));
+  const liveJob  = change.board.liveJobOfTicket(ticketId);
   if (liveJob !== undefined) throw new OperationRefusal('refused', {
     kind: 'ticket-has-live-job', ticketId, jobId: liveJob.id, state: liveJob.state
   });

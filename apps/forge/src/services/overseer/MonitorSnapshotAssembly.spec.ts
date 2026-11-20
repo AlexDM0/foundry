@@ -298,6 +298,13 @@ describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
       'draft-ticket', 'escalated-question', 'filing-draft', 'merge-accept', 'question', 'review',
     ]);
   });
+
+  test('each attention entry keeps its Bridge route and carries no target', () => {
+    const fixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as { attention: { key: string; route: string }[] };
+    const { attention } = MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE);
+    expect(attention.map((entry) => [entry.key, entry.route])).toEqual(fixture.attention.map((entry) => [entry.key, entry.route]));
+    expect(attention.filter((entry) => Object.hasOwn(entry, 'target'))).toEqual([]);
+  });
 });
 
 const INTERRUPTION_JOBS: JobWithLiveFacts[] = [

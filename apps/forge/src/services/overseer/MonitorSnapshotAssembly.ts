@@ -18,7 +18,6 @@ import type { Board }                               from '../../lib/tracker-mode
 import { SETTLED_TICKET_STATUSES }                  from '../../lib/tracker-model/constants/Statuses.ts';
 import { TicketStageUtil }                          from '../../lib/tracker-model/utils/TicketStageUtil.ts';
 import { SERVED_CONTRACT_VERSIONS }                 from '../../shared/constants/OverseerApiContracts.ts';
-import { TIMESTAMP_SLICES }                         from '../../shared/constants/TimestampSlices.ts';
 import type {
   ActivityCategory,
   MonitorActivityEntry,
@@ -27,12 +26,12 @@ import type {
   MonitorSnapshot,
   MonitorUsage
 } from '../../shared/monitor/@types/MonitorSnapshot.ts';
-import { attentionEntriesOf }                                              from '../../shared/monitor/AttentionEntries.ts';
-import { flintBrainRunsOf, todayFiguresOf }                                from '../../shared/monitor/TodayFigures.ts';
-import { BridgeFragmentUtil }                                              from '../../shared/monitor/utils/BridgeFragmentUtil.ts';
-import { NoticeWordingUtil, type BatonPassWarningFacts, type NoticeFacts } from '../../shared/monitor/utils/NoticeWordingUtil.ts';
-import { OpenDecisionsUtil }                                               from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
-import type { BoardState }                                                 from './BoardState.ts';
+import { attentionEntriesOf, routedAttentionEntryOf }            from '../../shared/monitor/AttentionEntries.ts';
+import { flintBrainRunsOf, todayCalendarDateOf, todayFiguresOf } from '../../shared/monitor/TodayFigures.ts';
+import { BridgeFragmentUtil }                                    from '../../shared/monitor/utils/BridgeFragmentUtil.ts';
+import { NoticeWordingUtil }                                     from '../../shared/monitor/utils/NoticeWordingUtil.ts';
+import { OpenDecisionsUtil }                                     from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
+import type { BoardState }                                       from './BoardState.ts';
 
 /** What the Overseer knows of itself and no board file holds; read at each snapshot, so a Baton taken over or new code on disk shows. */
 export interface MonitorOverseerFacts {
@@ -198,13 +197,6 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'agent-stopped':                   null,
 };
 
-const BRIDGE_TABS_OF_SUBJECTS = {
-  QUESTIONS: 'questions',
-  KANBAN:    'kanban',
-  AGENTS:    'agents',
-  ASSISTANT: 'assistant',
-} as const;
-
 const MONITOR_ACTIVITY_ENTRIES = 50;
 
 const RUNNING_SUBAGENT_STATE = 'running';
@@ -215,11 +207,11 @@ const FLINT_BRAIN_ACTIVITY_KIND = 'flint-brain';
 
 /** The Bridge route a record's subject opens: its question, its ticket or draft on the Kanban, its job or the Assistant; `null` for the board's own. */
 function activityRouteOf(record: LogRecord): string | null {
-  if ('decisionId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.QUESTIONS, record.decisionId);
-  if ('jobId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.AGENTS, record.jobId);
-  if ('ticketId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.KANBAN, BridgeFragmentUtil.detailItemTextOf('ticket', record.ticketId));
-  if ('draftId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.KANBAN, BridgeFragmentUtil.detailItemTextOf('draft', record.draftId));
-  if ('incidentId' in record) return BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.ASSISTANT, null);
+  if ('decisionId' in record) return BridgeFragmentUtil.subjectFragmentOf('decision', record.decisionId);
+  if ('jobId' in record) return BridgeFragmentUtil.subjectFragmentOf('job', record.jobId);
+  if ('ticketId' in record) return BridgeFragmentUtil.subjectFragmentOf('ticket', record.ticketId);
+  if ('draftId' in record) return BridgeFragmentUtil.subjectFragmentOf('draft', record.draftId);
+  if ('incidentId' in record) return BridgeFragmentUtil.subjectFragmentOf('incident', record.incidentId);
   return null;
 }
 
@@ -263,7 +255,7 @@ function jobOf(job: JobWithLiveFacts, decisions: readonly Decision[], incidents:
     lastLine:            live.lastLine?.text ?? null,
     waitingOnDecisionId: OpenDecisionsUtil.answeringOrderOf(decisions).find((decision) => decision.jobId === job.id)?.id ?? null,
     interruption:        job.state === 'interrupted' && job.interruption !== undefined ? MONITOR_INTERRUPTION_CAUSE_OF_CAUSE[job.interruption] : null,
-    route:               BridgeFragmentUtil.fragmentOf(BRIDGE_TABS_OF_SUBJECTS.AGENTS, job.id),
+    route:               BridgeFragmentUtil.subjectFragmentOf('job', job.id),
     ...jobEntityKeysOf(job),
   };
 }
@@ -294,17 +286,6 @@ function entityDocumentsOf(entities: NonNullable<Pipeline['entities']>): NonNull
   return Object.entries(entities).map(([key, entity]) => ({ key, kind: entity.kind, home: [...entity.home] }));
 }
 
-/** The state carries the notices as the DrivePass derived them; one that names no kind is no notice. */
-function noticeFactsIn(notices: readonly unknown[]): NoticeFacts[] {
-  return notices.filter((notice): notice is NoticeFacts => typeof notice === 'object' && notice !== null && typeof (notice as { kind?: unknown }).kind === 'string');
-}
-
-function batonPassWarningIn(warning: unknown): BatonPassWarningFacts | null {
-  if (typeof warning !== 'object' || warning === null) return null;
-  const { successorCodeVersion, step, error } = warning as Partial<Record<keyof BatonPassWarningFacts, unknown>>;
-  return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
-}
-
 /** A report with no stamp, from a log written before stamps, or with a stamp that does not read, is older than any stamped one. */
 function reportedInstantOf(report: UsageWindowReport): number {
   if (report.reportedAt === null) return Number.NEGATIVE_INFINITY;
@@ -326,10 +307,10 @@ function currentUsageWindowOf(jobs: readonly JobWithLiveFacts[]): Pick<MonitorUs
 
 function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
   const { state, board, overseer } = source;
-  const notices = noticeFactsIn(state.notices);
+  const notices = NoticeWordingUtil.noticeFactsIn(state.notices);
   const ticketTitleById = new Map((state.page.tickets).map((ticket) => [ticket.id, ticket.title]));
   const { limit, agentsInFlight } = board.concurrency();
-  const todayCalendarDate = LocalTimeUtil.formatLocalIso(source.now).slice(0, TIMESTAMP_SLICES.CALENDAR_DATE_LENGTH_CHARACTERS);
+  const todayCalendarDate = todayCalendarDateOf(source.now);
   return {
     monitorVersion: SERVED_CONTRACT_VERSIONS.monitor,
     trackerId:      overseer.trackerId,
@@ -356,10 +337,10 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     ticketCountByStatus: board.ticketCountByStatus(),
     readyTicketIds:      board.readyTicketEntries().map((ready) => ready.id),
     openIncidents:       state.incidents.length,
-    attention:           attentionEntriesOf(state),
+    attention:           attentionEntriesOf(state).map(routedAttentionEntryOf),
     jobs:                state.jobs.map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
     notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
-    warnings:            NoticeWordingUtil.warningsOf(notices, batonPassWarningIn(state.overseer.batonPassWarning)),
+    warnings:            NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.batonPassWarningIn(state.overseer.batonPassWarning)),
     today:               todayFiguresOf(state, todayCalendarDate, flintBrainRunsOf(source.logRecords, source.flintBrain)),
     usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),

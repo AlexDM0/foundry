@@ -18,6 +18,7 @@ import type { Decisions }         from './Decisions.ts';
 import type { JobMessage, Jobs }  from './Jobs.ts';
 import type { TicketSettings }    from './TicketSettings.ts';
 import { jobStopHoldOf }          from './constants/JobStopHolds.ts';
+import { JobControlRuleUtil }     from './utils/JobControlRuleUtil.ts';
 import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
 
 /** The states with no agent session to stop: a stop there ends the job in the same hold. */
@@ -55,7 +56,7 @@ export class JobControls {
    */
   requestJobStop(jobId: string, mode: JobStopMode, at: string): JobChanged {
     const job = this.jobRules.requireJob(jobId);
-    if (mode === 'fresh' && job.ticketIds.length === 0) throw new BoardRefusal({ reason: 'job-has-no-ticket', jobId });
+    if (mode === 'fresh' && !JobControlRuleUtil.freshAgentIsOpenTo(job)) throw new BoardRefusal({ reason: 'job-has-no-ticket', jobId });
     const logged: LogRecord[] = [...this.jobRules.recordStopRequest(jobId, mode, at).logged];
     if (mode !== 'fresh') logged.push(...this.holdTicketsOf(job, jobStopHoldOf(mode, jobId), at));
     if (mode === 'wind-down') return { job, logged };

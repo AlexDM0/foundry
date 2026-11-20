@@ -50,9 +50,11 @@ function jobWith(changes: Partial<JobWithLiveFacts>): JobWithLiveFacts {
   };
 }
 
+const OFFERS = { stopModes: ['stop', 'wind-down'], takesFresh: true, takesMessage: true } as const;
+
 describe('BoardJobMappingUtil.jobOf', () => {
   test('maps a job field by field, an absent interruption, stop request, intake and entity as null, and leaves its bookkeeping out', () => {
-    expect(BoardJobMappingUtil.jobOf(jobWith({}))).toEqual({
+    expect(BoardJobMappingUtil.jobOf(jobWith({}), OFFERS)).toEqual({
       id:            'J1',
       kind:          'build',
       role:          'builder',
@@ -83,11 +85,13 @@ describe('BoardJobMappingUtil.jobOf', () => {
         messagesWaiting:        1,
         lastLine:               { role: 'assistant', text: 'Done.', at: AT },
       },
+      stopHolds: { stop: 'stopped by User (J1)', windDown: 'wound down by User (J1)' },
+      offers:    OFFERS,
     });
   });
 
   test('names the interruption and the lost line by the monitor\'s causes', () => {
-    const document = BoardJobMappingUtil.jobOf(jobWith({ interruption: 'watcher-lost', lostLine: { line: 'gate', cause: 'forge-crashed' } }));
+    const document = BoardJobMappingUtil.jobOf(jobWith({ interruption: 'watcher-lost', lostLine: { line: 'gate', cause: 'forge-crashed' } }), OFFERS);
     expect([document.interruption, document.lostLine]).toEqual(['child-lost', { line: 'gate', cause: 'forge-crashed' }]);
   });
 
@@ -99,7 +103,7 @@ describe('BoardJobMappingUtil.jobOf', () => {
       intake:      { text: 'Export the orders.', proposedDraftSets: [['D1']] },
       stopRequest: 'wind-down',
       entity:      'web',
-    }));
+    }), OFFERS);
     expect([document.airlock, document.intake, document.stopRequest, document.entity])
       .toEqual([{ phase: 'landing' }, { text: 'Export the orders.', title: null }, 'wind-down', 'web']);
   });

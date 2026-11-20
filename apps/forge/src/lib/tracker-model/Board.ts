@@ -170,49 +170,51 @@ import {
   type RefreshSlotClaim,
   type TicketAwaitingGreen
 }                                              from './AirlockClaims.ts';
-import { BoardRecords }                                from './BoardRecords.ts';
-import { BoardRefusal }                                from './BoardRefusal.ts';
-import { Decisions }                                   from './Decisions.ts';
-import { DispatchQueries }                             from './DispatchQueries.ts';
-import { DisplayQueries }                              from './DisplayQueries.ts';
-import { DraftContents }                               from './DraftContents.ts';
-import { Drafts }                                      from './Drafts.ts';
-import { Epics }                                       from './Epics.ts';
-import { Findings }                                    from './Findings.ts';
-import { GateProfiles }                                from './GateProfiles.ts';
-import { GroupReleases }                               from './GroupReleases.ts';
-import { IncidentMoves }                               from './IncidentMoves.ts';
-import type { IncidentEscalation }                     from './Incidents.ts';
-import { Incidents }                                   from './Incidents.ts';
-import { JobControls }                                 from './JobControls.ts';
-import type { JobMoveOptions, SteppedJobState }        from './Jobs.ts';
-import { Jobs }                                        from './Jobs.ts';
-import type { Logger }                                 from './Logger.ts';
-import { MergeQueueMarks }                             from './MergeQueueMarks.ts';
-import { Needs }                                       from './Needs.ts';
-import { PipelineSetups }                              from './PipelineSetups.ts';
-import type { PlaybookFacts, PlaybookTicket }          from './Playbook.ts';
-import { Playbook }                                    from './Playbook.ts';
-import { ReviewBars }                                  from './ReviewBars.ts';
-import type { ReviewStatisticsReport }                 from './ReviewStatistics.ts';
-import { ReviewStatistics }                            from './ReviewStatistics.ts';
-import { TaskRows }                                    from './TaskRows.ts';
-import { TicketClaims }                                from './TicketClaims.ts';
-import { TicketDependencies }                          from './TicketDependencies.ts';
-import type { TicketEdit, TicketEdited }               from './TicketEdits.ts';
-import { TicketEdits }                                 from './TicketEdits.ts';
-import { TicketForecasts }                             from './TicketForecasts.ts';
-import { TicketLinks }                                 from './TicketLinks.ts';
-import { TicketMoves, type WorkFilesOf }               from './TicketMoves.ts';
-import { TicketSettings }                              from './TicketSettings.ts';
-import { TicketStageRows }                             from './TicketStageRows.ts';
-import { TokenCredits }                                from './TokenCredits.ts';
-import { TrackerChanges }                              from './TrackerChanges.ts';
-import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
-import { SETTLED_TICKET_STATUSES }                     from './constants/Statuses.ts';
-import { GroupNameUtil }                               from './utils/GroupNameUtil.ts';
-import { OptionConsequencesUtil }                      from './utils/OptionConsequencesUtil.ts';
-import { PipelineUtil }                                from './utils/PipelineUtil.ts';
+import { BoardRecords }                                  from './BoardRecords.ts';
+import { BoardRefusal, type BoardRefusalDetail }         from './BoardRefusal.ts';
+import { Decisions }                                     from './Decisions.ts';
+import { DispatchQueries }                               from './DispatchQueries.ts';
+import { DisplayQueries }                                from './DisplayQueries.ts';
+import { DraftContents }                                 from './DraftContents.ts';
+import { Drafts }                                        from './Drafts.ts';
+import { Epics }                                         from './Epics.ts';
+import { Findings }                                      from './Findings.ts';
+import { GateProfiles }                                  from './GateProfiles.ts';
+import { GroupReleases }                                 from './GroupReleases.ts';
+import { IncidentMoves }                                 from './IncidentMoves.ts';
+import type { IncidentEscalation }                       from './Incidents.ts';
+import { Incidents }                                     from './Incidents.ts';
+import { JobControls }                                   from './JobControls.ts';
+import type { JobMoveOptions, SteppedJobState }          from './Jobs.ts';
+import { Jobs }                                          from './Jobs.ts';
+import type { Logger }                                   from './Logger.ts';
+import { MergeQueueMarks }                               from './MergeQueueMarks.ts';
+import { MoveOffers, type JobOffers, type TicketOffers } from './MoveOffers.ts';
+import { Needs }                                         from './Needs.ts';
+import { PipelineSetups }                                from './PipelineSetups.ts';
+import type { PlaybookFacts, PlaybookTicket }            from './Playbook.ts';
+import { Playbook }                                      from './Playbook.ts';
+import { ReviewBars }                                    from './ReviewBars.ts';
+import type { ReviewStatisticsReport }                   from './ReviewStatistics.ts';
+import { ReviewStatistics }                              from './ReviewStatistics.ts';
+import { TaskRows }                                      from './TaskRows.ts';
+import { TicketClaims }                                  from './TicketClaims.ts';
+import { TicketDependencies }                            from './TicketDependencies.ts';
+import type { TicketEdit, TicketEdited }                 from './TicketEdits.ts';
+import { TicketEdits }                                   from './TicketEdits.ts';
+import { TicketForecasts }                               from './TicketForecasts.ts';
+import { TicketLinks }                                   from './TicketLinks.ts';
+import { TicketMoves, type WorkFilesOf }                 from './TicketMoves.ts';
+import { TicketSettings }                                from './TicketSettings.ts';
+import { TicketStageRows }                               from './TicketStageRows.ts';
+import { TokenCredits }                                  from './TokenCredits.ts';
+import { TrackerChanges }                                from './TrackerChanges.ts';
+import { PARKED_HOLD_PREFIX, RETIRED_DECISION_REASON }   from './constants/DecisionAndIncidentVocabulary.ts';
+import { SETTLED_TICKET_STATUSES }                       from './constants/Statuses.ts';
+import { GroupNameUtil }                                 from './utils/GroupNameUtil.ts';
+import type { MergeForecast }                            from './utils/MergeQueueUtil.ts';
+import { OptionConsequencesUtil }                        from './utils/OptionConsequencesUtil.ts';
+import { PipelineUtil }                                  from './utils/PipelineUtil.ts';
 
 /** The entity and stage a launch step names, which the job carries only when set. */
 function launchStageOf(step: PlaybookLaunchStage): PlaybookLaunchStage {
@@ -303,6 +305,8 @@ export class Board {
 
   private readonly ticketForecasts: TicketForecasts;
 
+  private readonly moveOffers: MoveOffers;
+
   constructor(input: BoardInput) {
     this.records            = new BoardRecords(input.progress, input.tickets, input.epics, input.drafts ?? [], input.logger, input.storedLogRecords ?? [], input.pipeline ?? null,
       input.pipelineSetup ?? { verdict: 'absent' }, input.gateProfiles ?? { verdict: 'absent' }, input.constitutionSources ?? { verdict: 'absent' });
@@ -336,6 +340,7 @@ export class Board {
     this.needRules          = new Needs(this.records, this.jobRules);
     this.findings           = new Findings(this.records, this.jobRules, this.ticketDependencies, this.ticketMoves);
     this.ticketForecasts    = new TicketForecasts(this.records, this.jobRules, this.mergeQueueMarks);
+    this.moveOffers         = new MoveOffers(this.records, this.ticketMoves, this.jobRules, this.mergeQueueMarks);
     this.incidentMoves      = new IncidentMoves({
       records:        this.records,
       incidentRules:  this.incidentRules,
@@ -662,9 +667,26 @@ export class Board {
     return this.mergeQueueMarks.recordMergeUpdated(ticketId, target, outcome, at);
   }
 
-  /** Without an `approvals.merge` key, merge approval is off. */
   mergeApprovalIsOn(): boolean {
-    return this.records.pipeline?.approvals?.merge === true;
+    return this.records.mergeApprovalIsOn();
+  }
+
+  /** The live job working on the ticket, which a delivery by hand is refused for. */
+  liveJobOfTicket(ticketId: string): Readonly<Job> | undefined {
+    return this.moveOffers.liveJobOfTicket(ticketId);
+  }
+
+  mergeUpdateIsOpenTo(ticketId: string): boolean {
+    return this.moveOffers.mergeUpdateIsOpenTo(ticketId);
+  }
+
+  /** User's moves the ticket accepts now; `mergeWait` is git's prediction while it waits for merge, as the merge queue read it. */
+  ticketOffersOf(ticketId: string, mergeWait: MergeForecast | null): TicketOffers {
+    return this.moveOffers.ticketOffersOf(ticketId, mergeWait);
+  }
+
+  jobOffersOf(jobId: string): JobOffers {
+    return this.moveOffers.jobOffersOf(jobId);
   }
 
   airlockHolderOf(target: string): Readonly<Job> | undefined {
@@ -1266,6 +1288,11 @@ export class Board {
   gateProfilesWrite(): { write: 'profiles'; profiles: StoredGateProfiles } | { write: 'unchanged' } {
     const reading = this.records.gateProfilesReading;
     return this.records.gateProfilesChanged && reading.verdict === 'readable' ? { write: 'profiles', profiles: reading.profiles } : { write: 'unchanged' };
+  }
+
+  /** The refusal `requestApply` would give the open record's current draft now against main's texts as read; `null` when it would proceed. */
+  applyRefusalOf(setupId: string, reading: ApplyMainReading): BoardRefusalDetail | null {
+    return this.pipelineSetups.applyRefusalOf(setupId, reading);
   }
 
   /** Stage 1 of an Apply: it refuses, waits for the constitution commit, or runs stage 2 at once when main already holds the text. */

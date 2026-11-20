@@ -1,6 +1,7 @@
 /**
  * The ticket and its row move together, the legality table holds unless the caller skips it, and every move except one to review ends the
- * reviewer's bar. Refusals are asserted by reason code, never by wording.
+ * reviewer's bar. Refusals are asserted by reason code, never by wording. The moves a ticket offers follow its status and its hold, for
+ * every status held and unheld, a live job keeps it from delivery by hand, and the merge accept waits for a clean prediction.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -9,10 +10,13 @@ import {
   boardFixture,
   refusalDetailOf,
   taskFixture,
-  ticketFixture
+  ticketFixture,
+  ticketInStatusFixture
 } from '../../testing/BoardFixtures.ts';
 import type { RowedTicketStatus, TicketStatus } from './@types/Ticket.ts';
+import type { TicketOfferKind }                 from './MoveOffers.ts';
 import { TICKET_STATUSES }                      from './constants/Statuses.ts';
+import { PipelineUtil }                         from './utils/PipelineUtil.ts';
 import { TicketMoveUtil }                       from './utils/TicketMoveUtil.ts';
 
 const FILED_AT     = '2026-09-18T09:00:00+02:00';
@@ -423,5 +427,63 @@ describe('review bars a move ends', () => {
     expect(moved.closedReviewBars).toEqual([]);
     expect(progress.tasks.find((task) => task.id === 4)?.status).toBe('in-progress');
     expect(records.at(-1)?.kind).toBe('ticket-finished');
+  });
+});
+
+describe('the moves a ticket offers', () => {
+  const HOLD = 'waiting for the designer';
+
+  /** Merge approval is off on these boards, so neither merge move is ever offered; a held ticket swaps the hold for the unhold. */
+  const KINDS_OFFERED_UNHELD: Readonly<Record<TicketStatus, readonly TicketOfferKind[]>> = {
+    'draft':            ['ticket-ready', 'ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority'],
+    'ready-for-review': ['ticket-ready', 'ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority'],
+    'pending':          ['ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'in-progress':      ['ticket-hold', 'ticket-park', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'in-review':        ['ticket-hold', 'ticket-park', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'reviewed':         ['ticket-hold', 'ticket-park', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'delivered':        ['ticket-priority'],
+    'abandoned':        ['ticket-priority', 'ticket-deliver-by-hand'],
+  };
+
+  for (const status of TICKET_STATUSES) {
+    test(`a ${status} ticket offers its moves, held or not`, () => {
+      const unheld = ticketInStatusFixture(status, null).board.ticketOffersOf('001', null).kinds;
+      const held   = ticketInStatusFixture(status, HOLD).board.ticketOffersOf('001', null).kinds;
+      expect(unheld).toEqual([...KINDS_OFFERED_UNHELD[status]]);
+      const settled = status === 'delivered' || status === 'abandoned';
+      expect(held).toEqual(KINDS_OFFERED_UNHELD[status].map((kind) => (kind === 'ticket-hold' && !settled ? 'ticket-unhold' : kind)));
+    });
+  }
+
+  test('offers every other priority, the highest first, and low only while no agent has claimed the ticket', () => {
+    expect(ticketInStatusFixture('pending', null).board.ticketOffersOf('001', null).priorityChoices).toEqual(['high', 'low']);
+    expect(ticketInStatusFixture('in-progress', null).board.ticketOffersOf('001', null).priorityChoices).toEqual(['high']);
+  });
+
+  test('a ticket a live job works on is not delivered by hand', () => {
+    const { board, progress } = ticketInStatusFixture('in-progress', null);
+    progress.jobs = [{
+      id:                 'J1',
+      kind:               'build',
+      role:               'builder',
+      ticketIds:          ['001'],
+      parentJobId:        null,
+      attempt:            1,
+      target:             'main',
+      state:              'running',
+      childInstance:      1,
+      eventCursor:        { instance: 1, sequence: 0 },
+      answeredRequestIds: [],
+      crashResumes:       0,
+    }];
+    expect(board.ticketOffersOf('001', null).kinds).not.toContain('ticket-deliver-by-hand');
+  });
+
+  test('with merge approval on, a ticket waiting for merge offers the accept only on a clean prediction', () => {
+    const pipeline = { ...PipelineUtil.minimalPipelineOf(), approvals: { merge: true } };
+    const { board } = ticketInStatusFixture('reviewed', null, { pipeline });
+    expect(board.ticketOffersOf('001', 'clean').kinds).toContain('merge-accept');
+    expect(board.ticketOffersOf('001', 'conflicting').kinds).not.toContain('merge-accept');
+    expect(ticketInStatusFixture('reviewed', null).board.ticketOffersOf('001', 'clean').kinds).not.toContain('merge-accept');
   });
 });

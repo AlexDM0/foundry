@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { attentionEntriesOf }      from '../../src/shared/monitor/AttentionEntries.ts';
+import { attentionEntriesOf, routedAttentionEntryOf } from '../../src/shared/monitor/AttentionEntries.ts';
 import {
   AGENT_DECISION,
   nothingWaitingBoard,
@@ -151,11 +151,11 @@ describe('the monitor snapshot\'s attention', () => {
   test('the Bridge\'s list is the attention list entry for entry, the action only added', () => {
     const waiting = waitingOnUserOf(waitingOnUserBoard());
     const shownEntries = [...waiting.escalated, ...waiting.byAge].map(({ action: _action, ...entry }) => entry);
-    expect(shownEntries).toEqual(attentionEntriesOf(waitingOnUserBoard()));
+    expect(shownEntries).toEqual(attentionEntriesOf(waitingOnUserBoard()).map(routedAttentionEntryOf));
   });
 
   test('every route names a tab the Bridge has, and the item the router reads back', () => {
-    for (const entry of attentionEntriesOf(waitingOnUserBoard())) {
+    for (const entry of attentionEntriesOf(waitingOnUserBoard()).map(routedAttentionEntryOf)) {
       const route = HashRouter.routeOf(entry.route, null);
       expect(BRIDGE_TABS).toContain(route.tab);
       expect(HashRouter.fragmentOf(route)).toBe(entry.route);

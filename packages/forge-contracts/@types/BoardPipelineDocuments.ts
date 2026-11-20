@@ -13,6 +13,7 @@ import type {
   JobState,
   PipelineAgentRole
 } from '../constants/BoardVocabulary.ts';
+import type { ForgeRefusalDocument } from './ForgeRefusalDocument.ts';
 
 
 export interface AgentPairDocument {
@@ -145,13 +146,15 @@ export type BoardAppliedPipelineDocument =
   | { readonly readingVerdict: 'older'; readonly fileText: string }
   | { readonly readingVerdict: 'malformed'; readonly reason: string; readonly fileText: string }
   | {
-    readonly readingVerdict: 'readable';
-    readonly pipeline:       PipelineDefinitionDocument;
-    readonly contentHash:    string;
+    readonly readingVerdict:  'readable';
+    readonly pipeline:        PipelineDefinitionDocument;
+    readonly contentHash:     string;
     /** The stored text, to show as it is. */
-    readonly fileText:       string;
+    readonly fileText:        string;
     /** `null` for a pipeline no Apply wrote. */
-    readonly application:    BoardPipelineApplicationDocument | null;
+    readonly application:     BoardPipelineApplicationDocument | null;
+    /** Each entity's pipeline as it runs, the forge's merge train, approvals and billing joined to its own; empty without entities. */
+    readonly entityPipelines: Readonly<Record<EntityKey, PipelineDefinitionDocument>>;
   };
 
 /** `entities` is walked only by a record of a forge over entities. */
@@ -463,6 +466,18 @@ export interface BoardPipelineSetupDocument {
   readonly applyState:          ApplyStateDocument | null;
   /** Absent on a forge without entities: each entity of the draft, else of the stored pipeline, by its key. */
   readonly entities?:           Readonly<Record<EntityKey, PipelineSetupEntityFactsDocument>>;
+  /** Each entity of the draft by its key; empty while the draft holds none. */
+  readonly draftEntities:       Readonly<Record<EntityKey, BoardDraftEntityFactsDocument>>;
+  /** The refusal an Apply of the current draft meets now, as the command would answer it; `null` when it would proceed. */
+  readonly applyRefusal:        ForgeRefusalDocument | null;
+}
+
+/** What a view shows of one entity of the draft. */
+export interface BoardDraftEntityFactsDocument {
+  /** The entity's pipeline as it would run, the forge's merge train, approvals and billing joined to its own. */
+  readonly effectivePipeline:   PipelineDefinitionDocument;
+  /** Every entity that consumes this one, directly or through another, in the draft's order. */
+  readonly dependentEntityKeys: readonly EntityKey[];
 }
 
 export type PipelineNodeKind =

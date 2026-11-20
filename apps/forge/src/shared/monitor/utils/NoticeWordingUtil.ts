@@ -96,19 +96,48 @@ function noticeSentenceOf(notice: NoticeFacts): string {
   return notice.kind === INCIDENT_DEFAULTED ? incidentDefaultTextOf(notice) : noticeTextOf(notice);
 }
 
+/** A header warning with the facts its sentence names: the failed pass's code version, step and error; an Assistant down names none. */
+export interface WordedWarning {
+  readonly kind:  MonitorWarning['kind'];
+  readonly facts: Readonly<Record<string, string>>;
+  readonly text:  string;
+}
+
 /** Derived from the notices and the Overseer's facts, never stored. */
-function warningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): MonitorWarning[] {
+function wordedWarningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): WordedWarning[] {
   const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
-  const batonPassFailed: MonitorWarning[] = batonPassWarning === null ? [] : [{
-    kind: 'baton-pass-failed',
-    text: `the Baton pass to code ${batonPassWarning.successorCodeVersion} failed at ${batonPassWarning.step}: ${batonPassWarning.error}`,
+  const batonPassFailed: WordedWarning[] = batonPassWarning === null ? [] : [{
+    kind:  'baton-pass-failed',
+    facts: { successorCodeVersion: batonPassWarning.successorCodeVersion, step: batonPassWarning.step, error: batonPassWarning.error },
+    text:  `the Baton pass to code ${batonPassWarning.successorCodeVersion} failed at ${batonPassWarning.step}: ${batonPassWarning.error}`,
   }];
-  const assistantDown: MonitorWarning[] = defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE)
-    ? [{ kind: 'assistant-down', text: 'no Assistant can come up: open incidents take their defaults' }]
+  const assistantDown: WordedWarning[] = defaulted.some((notice) => notice['cause'] === NO_ASSISTANT_CAUSE)
+    ? [{ kind: 'assistant-down', facts: {}, text: 'no Assistant can come up: open incidents take their defaults' }]
     : [];
   return [...batonPassFailed, ...assistantDown];
 }
 
+function warningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): MonitorWarning[] {
+  return wordedWarningsOf(notices, batonPassWarning).map(({ kind, text }) => ({ kind, text }));
+}
+
+/** The state carries the notices as the pass derived them; one that names no kind is no notice. */
+function noticeFactsIn(notices: readonly unknown[]): NoticeFacts[] {
+  return notices.filter((notice): notice is NoticeFacts => typeof notice === 'object' && notice !== null && typeof (notice as { kind?: unknown }).kind === 'string');
+}
+
+/** The Overseer keeps the warning as it was written; one that does not read as a warning is none. */
+function batonPassWarningIn(warning: unknown): BatonPassWarningFacts | null {
+  if (typeof warning !== 'object' || warning === null) return null;
+  const { successorCodeVersion, step, error } = warning as Partial<Record<keyof BatonPassWarningFacts, unknown>>;
+  return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
+}
+
+/** Why an incident that took its default did, worded; `null` for any other notice. */
+function causeSentenceOf(notice: NoticeFacts): string | null {
+  return notice.kind === INCIDENT_DEFAULTED ? defaultCauseTextOf(factOf(notice, 'cause')) : null;
+}
+
 export const NoticeWordingUtil = Object.freeze({
-  noticeTextOf, noticeSentenceOf, warningsOf, defaultCauseTextOf
+  noticeFactsIn, batonPassWarningIn, noticeTextOf, noticeSentenceOf, warningsOf, wordedWarningsOf, defaultCauseTextOf, causeSentenceOf
 });

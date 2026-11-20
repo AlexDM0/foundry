@@ -13,6 +13,7 @@ import type {
   TicketStatus,
   TicketType
 } from '../constants/BoardVocabulary.ts';
+import type { BoardTicketFactsDocument, BoardTicketOffersDocument } from './BoardReadingDocuments.ts';
 
 
 /** A `##` section of a ticket body as source text, which a view shows escaped, never as HTML. */
@@ -74,6 +75,8 @@ export interface BoardTicketDocument {
   readonly sections:        readonly BoardTicketSectionDocument[];
   /** Empty when the body has no `## Acceptance` or it numbers no item. */
   readonly acceptanceItems: readonly BoardAcceptanceItemDocument[];
+  readonly facts:           BoardTicketFactsDocument;
+  readonly offers:          BoardTicketOffersDocument;
 }
 
 /** One status a row reached, and when. */

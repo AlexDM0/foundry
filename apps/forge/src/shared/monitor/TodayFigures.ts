@@ -47,6 +47,11 @@ export function flintBrainRunsOf(logRecords: readonly LogRecord[], reading: Moni
   return [...runs, { startedAt: liveStartedAt, endedAt: reading.endedAt, tokens: reading.tokens ?? 0 }];
 }
 
+/** The machine's local calendar date at `now`, `2026-11-20`, the day the figures count. */
+export function todayCalendarDateOf(now: Date): string {
+  return LocalTimeUtil.formatLocalIso(now).slice(0, TIMESTAMP_SLICES.CALENDAR_DATE_LENGTH_CHARACTERS);
+}
+
 export function todayFiguresOf(board: TodayFiguresBoard, todayCalendarDate: string, flintBrainRuns: readonly TodayFlintBrainRun[] = []): TodayFigures {
   const tasks = board.page?.payload.progress.tasks ?? [];
   const tickets = board.page?.tickets ?? [];

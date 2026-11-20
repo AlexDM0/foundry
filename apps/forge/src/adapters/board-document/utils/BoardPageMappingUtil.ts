@@ -17,13 +17,9 @@ import type {
   BoardTaskDocument,
   BoardTicketDocument
 } from 'forge-contracts/BoardPageDocuments';
-import type { DisplayState, TaskStatus, TicketStatus } from 'forge-contracts/BoardVocabulary';
-import type {
-  BoardConcurrencyDocument,
-  BoardNoticeDocument,
-  BoardOverseerDocument,
-  BoardUsageDocument
-} from 'forge-contracts/ForgeBoardDocument';
+import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                 from 'forge-contracts/BoardReadingDocuments';
+import type { DisplayState, TaskStatus, TicketStatus }                              from 'forge-contracts/BoardVocabulary';
+import type { BoardConcurrencyDocument, BoardOverseerDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
 
 import type { DraftQuestion, DraftSummary }                                            from '../../../lib/tracker-model/@types/Draft.ts';
 import type { EpicRollup }                                                             from '../../../lib/tracker-model/@types/Epic.ts';
@@ -39,8 +35,15 @@ import type {
   PageTicketFacts
 } from '../../../shared/@types/PagePayload.ts';
 import type { IdentifiedLogEntry }        from '../../../shared/@types/WordedLogEntry.ts';
+import { NoticeWordingUtil }              from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
 import type { OverseerFacts, UsageFacts } from '../../@types/BoardStateParts.ts';
-import { RefusalDocumentUtil }            from '../../utils/RefusalDocumentUtil.ts';
+import { BoardReadingMappingUtil }        from './BoardReadingMappingUtil.ts';
+
+/** What forge reads of one ticket beyond its file: its facts and the commands it accepts now. */
+export interface TicketReadings {
+  readonly facts:  BoardTicketFactsDocument;
+  readonly offers: BoardTicketOffersDocument;
+}
 
 /** Where the model has not yet renamed `pending`, the contract says `committed`; the model's rename removes this function. */
 function committedStatusOf(status: ModelTicketStatus): TicketStatus;
@@ -51,7 +54,7 @@ function committedStatusOf(status: ModelDisplayState): DisplayState {
   return status === 'pending' ? 'committed' : status;
 }
 
-function ticketOf(ticket: PageTicket): BoardTicketDocument {
+function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocument {
   return {
     id:              ticket.id,
     title:           ticket.title,
@@ -83,6 +86,8 @@ function ticketOf(ticket: PageTicket): BoardTicketDocument {
     bodyHtml:        ticket.bodyHtml,
     sections:        ticket.sections.map((section) => ({ heading: section.heading, markdown: section.markdown })),
     acceptanceItems: ticket.acceptanceItems.map((item) => ({ label: item.label, text: item.text, waived: item.waived })),
+    facts:           readings.facts,
+    offers:          readings.offers,
   };
 }
 
@@ -211,7 +216,7 @@ function boardFactsOf(facts: PageBoardFacts): BoardPageDocument['payload']['boar
   };
 }
 
-function pageOf(page: { payload: PagePayload; tickets: readonly PageTicket[] }): BoardPageDocument {
+function pageOf(page: { payload: PagePayload; tickets: readonly PageTicket[] }, readingsOf: (ticket: PageTicket) => TicketReadings): BoardPageDocument {
   const { payload } = page;
   return {
     payload: {
@@ -220,7 +225,7 @@ function pageOf(page: { payload: PagePayload; tickets: readonly PageTicket[] }):
       draftRequests:    (payload.draftRequests ?? []).map((draftRequest) => ({ id: draftRequest.id, request: draftRequest.request })),
       boardFacts:       boardFactsOf(payload.boardFacts),
     },
-    tickets: page.tickets.map(ticketOf),
+    tickets: page.tickets.map((ticket) => ticketOf(ticket, readingsOf(ticket))),
   };
 }
 
@@ -241,6 +246,7 @@ function limitsOf(limits: PageLimits): BoardLimitsDocument {
     monthAndDaySliceStart:      limits.monthAndDaySliceStart,
     clockSliceStart:            limits.clockSliceStart,
     clockSliceEnd:              limits.clockSliceEnd,
+    ...BoardReadingMappingUtil.ruleLimitsOf(),
   };
 }
 
@@ -248,19 +254,12 @@ function concurrencyOf(concurrency: PageConcurrency): BoardConcurrencyDocument {
   return { limit: concurrency.limit, agentsInFlight: concurrency.agentsInFlight };
 }
 
-/** The Overseer keeps the warning as it was written; one that does not read as a warning is none. */
-function batonPassWarningOf(warning: unknown): BoardOverseerDocument['batonPassWarning'] {
-  if (typeof warning !== 'object' || warning === null) return null;
-  const { successorCodeVersion, step, error } = warning as Partial<Record<'successorCodeVersion' | 'step' | 'error', unknown>>;
-  return typeof successorCodeVersion === 'string' && typeof step === 'string' && typeof error === 'string' ? { successorCodeVersion, step, error } : null;
-}
-
 function overseerOf(overseer: OverseerFacts): BoardOverseerDocument {
   return {
     state:            overseer.state,
     paused:           overseer.paused,
     codeVersion:      overseer.codeVersion,
-    batonPassWarning: batonPassWarningOf(overseer.batonPassWarning),
+    batonPassWarning: NoticeWordingUtil.batonPassWarningIn(overseer.batonPassWarning),
   };
 }
 
@@ -274,15 +273,6 @@ function usageOf(usage: UsageFacts): BoardUsageDocument {
   };
 }
 
-/** The state carries the notices as the pass derived them; one that names no kind is no notice, and its kind is no fact of its own. */
-function noticesOf(notices: readonly unknown[]): BoardNoticeDocument[] {
-  return notices.flatMap((notice) => {
-    if (typeof notice !== 'object' || notice === null) return [];
-    const { kind } = notice as { kind?: unknown };
-    return typeof kind === 'string' ? [{ kind, facts: RefusalDocumentUtil.jsonFieldsOf(notice, 'kind') }] : [];
-  });
-}
-
 export const BoardPageMappingUtil = Object.freeze({
   committedStatusOf,
   pageOf,
@@ -290,5 +280,4 @@ export const BoardPageMappingUtil = Object.freeze({
   concurrencyOf,
   overseerOf,
   usageOf,
-  noticesOf,
 });

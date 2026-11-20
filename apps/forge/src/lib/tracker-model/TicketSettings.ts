@@ -16,6 +16,7 @@ import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_EDITABLE_WITHOUT_FORCE } from 
 import { NetworkDomainUtil }                                               from './utils/NetworkDomainUtil.ts';
 import { TicketChartUtil }                                                 from './utils/TicketChartUtil.ts';
 import { TicketDefaultsUtil }                                              from './utils/TicketDefaultsUtil.ts';
+import { type HoldAction, TicketSettingRuleUtil }                          from './utils/TicketSettingRuleUtil.ts';
 
 export class TicketSettings {
   constructor(private readonly records: BoardRecords) {}
@@ -30,17 +31,8 @@ export class TicketSettings {
     const { frontmatter } = ticket;
     const { status }      = frontmatter;
     const currentPriority = TicketDefaultsUtil.ticketPriorityOf(frontmatter);
-    if (currentPriority === priority) {
-      throw new BoardRefusal({
-        reason: 'priority-unchanged',
-        ticketId,
-        status,
-        priority,
-      });
-    }
-    if (priority === 'low' && !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) {
-      throw new BoardRefusal({ reason: 'lowering-a-ticket-that-is-not-pending', ticketId, status });
-    }
+    const refusal         = TicketSettingRuleUtil.priorityRefusalOf(frontmatter, priority);
+    if (refusal !== null) throw new BoardRefusal(refusal);
 
     frontmatter.priority = priority;
     const linkedTask     = this.records.linkedTaskRecordOf(ticket);
@@ -98,7 +90,7 @@ export class TicketSettings {
     const ticket          = this.records.requireTicket(ticketId);
     const { frontmatter } = ticket;
     const { status }      = frontmatter;
-    if (!TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) throw new BoardRefusal({ reason: 'network-of-a-ticket-past-pending', ticketId, status });
+    if (!TicketSettingRuleUtil.networkCanChange(status)) throw new BoardRefusal({ reason: 'network-of-a-ticket-past-pending', ticketId, status });
     const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
     const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
     if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });
@@ -143,8 +135,7 @@ export class TicketSettings {
   /** An empty reason still holds: the hold is the key's presence, not its text. */
   holdTicket(ticketId: string, reason: string, at: string): TicketChanged {
     const ticket = this.records.requireTicket(ticketId);
-    refuseAHoldChangeOfASettledTicket(ticket, 'hold');
-    if (ticket.frontmatter.hold !== undefined) throw new BoardRefusal({ reason: 'ticket-already-held', ticketId });
+    refuseAHoldChange(ticket, 'hold');
     ticket.frontmatter.hold = reason;
     this.records.markChanged(ticket);
     return { logged: [this.records.logger.log({ kind: 'ticket-held', ticketId, fields: { reason } }, at)], ticket };
@@ -152,8 +143,7 @@ export class TicketSettings {
 
   unholdTicket(ticketId: string, at: string): TicketChanged {
     const ticket = this.records.requireTicket(ticketId);
-    refuseAHoldChangeOfASettledTicket(ticket, 'unhold');
-    if (ticket.frontmatter.hold === undefined) throw new BoardRefusal({ reason: 'ticket-not-held', ticketId });
+    refuseAHoldChange(ticket, 'unhold');
     delete ticket.frontmatter.hold;
     this.records.markChanged(ticket);
     return { logged: [this.records.logger.log({ kind: 'ticket-unheld', ticketId, fields: {} }, at)], ticket };
@@ -173,13 +163,7 @@ export class TicketSettings {
   }
 }
 
-function refuseAHoldChangeOfASettledTicket(ticket: Readonly<Ticket>, action: 'hold' | 'unhold'): void {
-  const { id: ticketId, status } = ticket.frontmatter;
-  if (!SETTLED_TICKET_STATUSES.includes(status)) return;
-  throw new BoardRefusal({
-    reason: 'hold-of-a-settled-ticket',
-    ticketId,
-    status,
-    action,
-  });
+function refuseAHoldChange(ticket: Readonly<Ticket>, action: HoldAction): void {
+  const refusal = TicketSettingRuleUtil.holdRefusalOf(ticket.frontmatter, action);
+  if (refusal !== null) throw new BoardRefusal(refusal);
 }

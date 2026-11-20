@@ -9,18 +9,26 @@
  * design, with Apply not reached. Once Apply lands, in whichever hold, every live pipeline agent of the record is stopped, each entity's
  * session beside the forge's, since a closed record leaves none of them a level to serve. A constitution commit
  * job takes a waiting or held request and leaves it waiting when it ends without a landing; a hold logs the blocking files and a refusal
- * git's text; User's resume lifts only a hold a start made `interrupted`.
+ * git's text; User's resume lifts only a hold a start made `interrupted`. The Apply refusal a view shows is the refusal `requestApply` gives
+ * the current revision against the same main reading, for each kind stage 1 refuses, and none where it proceeds or already waits.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { boardFixture, refusalDetailOf } from '../../testing/BoardFixtures.ts';
-import type { Pipeline }                 from './@types/Pipeline.ts';
+import {
+  boardFixture,
+  entityPipelineFixture,
+  refusalDetailOf,
+  ticketFixture
+} from '../../testing/BoardFixtures.ts';
+import type { Pipeline } from './@types/Pipeline.ts';
 import type {
+  ApplyMainReading,
   MainConstitution,
   PipelineSetup,
   PipelineSetupOpening,
   SummarisedDraftEdit
 } from './@types/PipelineSetup.ts';
+import type { Ticket }  from './@types/Ticket.ts';
 import type { Board }   from './Board.ts';
 import { PipelineUtil } from './utils/PipelineUtil.ts';
 
@@ -128,6 +136,92 @@ describe('stage 1 refuses', () => {
       });
     const committedByHand = { ...MAIN_CONSTITUTION, markdown: `${CONSTITUTION_TEXT}- Name things in full.\n`, blob: 'e'.repeat(40) };
     expect(board.requestApply(setupId, { draftRevision: 0, resumesBoard: false, mainConstitution: committedByHand }, AT).outcome).toBe('applied');
+  });
+});
+
+describe('the Apply refusal a view reads', () => {
+  interface RefusalWorld extends ApplyWorld {
+    reading: ApplyMainReading;
+  }
+
+  const MAIN_WITHOUT_CONSTITUTION: ApplyMainReading = { mainConstitution: null };
+
+  function atApply(change: (world: ApplyWorld) => void): () => RefusalWorld {
+    return () => {
+      const world = firstSetupAtApply();
+      change(world);
+      return { ...world, reading: MAIN_WITHOUT_CONSTITUTION };
+    };
+  }
+
+  function updateOver(stored: Pipeline, tickets: Ticket[], mainConstitution: MainConstitution | null): ApplyWorld {
+    const { board } = boardFixture({ pipeline: stored, tickets });
+    const { setupId } = board.openSetup({ ...FIRST_SETUP, mode: 'update', mainConstitution }, AT).setup;
+    return { board, setupId };
+  }
+
+  function constitutionMovedOnMain(): RefusalWorld {
+    const { board, setupId } = updateOver(STORED_PIPELINE, [], MAIN_CONSTITUTION);
+    board.editConstitution(setupId, { revision: 0, markdown: `${CONSTITUTION_TEXT}- Name things in full.\n` }, AT);
+    return { board, setupId, reading: { mainConstitution: { ...MAIN_CONSTITUTION, markdown: '# Another text\n', blob: 'd'.repeat(40) } } };
+  }
+
+  function constitutionEmptiedWhileMainHoldsOne(): RefusalWorld {
+    const { board, setupId } = updateOver(STORED_PIPELINE, [], MAIN_CONSTITUTION);
+    board.editConstitution(setupId, { revision: 0, markdown: '' }, AT);
+    return { board, setupId, reading: { mainConstitution: MAIN_CONSTITUTION } };
+  }
+
+  function entityRemovedThatATicketNames(): RefusalWorld {
+    const { board, setupId } = updateOver(entityPipelineFixture(), [ticketFixture({ id: '019', entity: 'web', status: 'pending' })], null);
+    board.editDraft(setupId, { by: 'agent', revision: null, edits: [{ edit: { target: 'entity', entityKey: 'web', value: null }, summary: 'Drop the web app.' }] }, AT);
+    return { board, setupId, reading: MAIN_WITHOUT_CONSTITUTION };
+  }
+
+  function entitiesWhileATicketIsInFlight(): RefusalWorld {
+    const { board, setupId } = updateOver(STORED_PIPELINE, [ticketFixture({ id: '010', status: 'in-progress' })], null);
+    const entities = entityPipelineFixture().entities ?? {};
+    const edits = Object.entries(entities).map(([entityKey, value]) => ({ edit: { target: 'entity' as const, entityKey, value }, summary: `Add ${entityKey}.` }));
+    board.editDraft(setupId, { by: 'agent', revision: null, edits }, AT);
+    return { board, setupId, reading: MAIN_WITHOUT_CONSTITUTION };
+  }
+
+  const REFUSING_WORLDS: Readonly<Record<string, () => RefusalWorld>> = {
+    'setup-question-open': atApply(({ board, setupId }) => board.askSetupQuestion(setupId, {
+      step: 'design', subject: null, question: 'Run the type check in review too?', context: '', optionTexts: ['Yes', 'No'], recommendedLetters: ['a'], multiple: false
+    }, AT)),
+    'setup-step-needs-recheck':         atApply(({ board, setupId }) => board.reopenSetupStep(setupId, 'research', AT)),
+    'setup-snapshot-touched':           atApply(({ board, setupId }) => board.recordSetupSnapshotTouched(setupId, { check: 'V4', reason: 'worktree-dirty' }, AT)),
+    'pipeline-moved':                   atApply(({ board }) => board.setNoGates(AT)),
+    'constitution-moved':               constitutionMovedOnMain,
+    'constitution-empty':               constitutionEmptiedWhileMainHoldsOne,
+    'entity-named-by-tickets':          entityRemovedThatATicketNames,
+    'entities-while-tickets-in-flight': entitiesWhileATicketIsInFlight,
+  };
+
+  for (const [reason, worldOf] of Object.entries(REFUSING_WORLDS)) {
+    test(`gives the refusal requestApply gives the current revision: ${reason}`, () => {
+      const { board, setupId, reading } = worldOf();
+      const { draftRevision } = openSetupOf(board);
+      const refusal = board.applyRefusalOf(setupId, reading);
+      expect(String(refusal?.reason)).toBe(reason);
+      expect(refusal).toEqual(refusalDetailOf(() => board.requestApply(setupId, { ...reading, draftRevision, resumesBoard: false }, AT)));
+    });
+  }
+
+  test('gives none where requestApply proceeds, where the revision already waits, and for a record that is not open', () => {
+    const { board, setupId } = firstSetupAtApply();
+    expect(board.applyRefusalOf(setupId, { mainConstitution: null })).toBeNull();
+    expect(board.applyRefusalOf('S99', { mainConstitution: null })).toBeNull();
+    expect(board.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: null }, AT).outcome).toBe('committing');
+    expect(board.applyRefusalOf(setupId, { mainConstitution: null })).toBeNull();
+  });
+
+  test('writes nothing and logs nothing', () => {
+    const { board, setupId } = REFUSING_WORLDS['pipeline-moved']?.() ?? firstSetupAtApply();
+    const before = structuredClone(openSetupOf(board));
+    board.applyRefusalOf(setupId, { mainConstitution: null });
+    expect(openSetupOf(board)).toEqual(before);
   });
 });
 

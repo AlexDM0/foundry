@@ -107,8 +107,15 @@ describe('BoardPageMappingUtil.committedStatusOf', () => {
   });
 });
 
+const TICKET_READINGS = {
+  facts: {
+    resolvedPriority: 'high', settlesADependency: false, isClosed: false, noAgentHasPickedItUp: true, reviewRound: null, isRepeatReview: false
+  },
+  offers: { kinds: ['ticket-hold', 'ticket-park'], priorityChoices: ['normal', 'low'] },
+} as const;
+
 describe('BoardPageMappingUtil.pageOf', () => {
-  const page = BoardPageMappingUtil.pageOf({ payload: payloadWith({}), tickets: [PAGE_TICKET] });
+  const page = BoardPageMappingUtil.pageOf({ payload: payloadWith({}), tickets: [PAGE_TICKET] }, () => TICKET_READINGS);
 
   test('maps a ticket field by field, its status committed, the fields it names kept and no other', () => {
     expect(page.tickets).toEqual([{
@@ -130,6 +137,8 @@ describe('BoardPageMappingUtil.pageOf', () => {
       bodyHtml:        '<p>Example</p>',
       sections:        [{ heading: 'Brief', markdown: 'Example brief.' }],
       acceptanceItems: [{ label: 'A1', text: 'The page loads.', waived: false }],
+      facts:           TICKET_READINGS.facts,
+      offers:          TICKET_READINGS.offers,
     }]);
     const fieldsNoReaderNames = ['model', 'effort', 'extra', 'claimedBodyHash', 'filePath', 'size', 'group'];
     expect(page.tickets[0] === undefined ? [] : Object.keys(page.tickets[0]).filter((field) => fieldsNoReaderNames.includes(field))).toEqual([]);
@@ -173,15 +182,6 @@ describe('BoardPageMappingUtil.pageOf', () => {
   test('reads an absent draft list and absent draft requests as none', () => {
     expect(page.payload.boardFacts.drafts).toEqual([]);
     expect(page.payload.draftRequests).toEqual([]);
-  });
-});
-
-describe('BoardPageMappingUtil.noticesOf', () => {
-  test('keeps a notice\'s kind and its other fields as facts, and drops a value that names no kind', () => {
-    const notices = [{
-      kind: 'dirty-main-checkout', target: 'main', branch: null, blockingFiles: ['a.ts']
-    }, 'not a notice', { target: 'main' }];
-    expect(BoardPageMappingUtil.noticesOf(notices)).toEqual([{ kind: 'dirty-main-checkout', facts: { target: 'main', branch: null, blockingFiles: ['a.ts'] } }]);
   });
 });
 

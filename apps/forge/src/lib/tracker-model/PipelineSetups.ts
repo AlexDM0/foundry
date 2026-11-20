@@ -51,12 +51,12 @@ import type {
   SourceAnnotation,
   SourceAnnotationKind
 } from './@types/PipelineSetup.ts';
-import type { TicketStatus }                from './@types/Ticket.ts';
-import type { BoardRecords }                from './BoardRecords.ts';
-import { BoardRefusal }                     from './BoardRefusal.ts';
-import type { Decisions }                   from './Decisions.ts';
-import type { TrackerChanges }              from './TrackerChanges.ts';
-import { PIPELINE_APPLIED_DECISION_REASON } from './constants/DecisionAndIncidentVocabulary.ts';
+import type { TicketStatus }                     from './@types/Ticket.ts';
+import type { BoardRecords }                     from './BoardRecords.ts';
+import { BoardRefusal, type BoardRefusalDetail } from './BoardRefusal.ts';
+import type { Decisions }                        from './Decisions.ts';
+import type { TrackerChanges }                   from './TrackerChanges.ts';
+import { PIPELINE_APPLIED_DECISION_REASON }      from './constants/DecisionAndIncidentVocabulary.ts';
 import {
   CONSTITUTION_LIMIT_CHARACTERS,
   DEFAULT_CONSTITUTION_SOURCES,
@@ -739,18 +739,7 @@ export class PipelineSetups {
       return { logged: [], outcome: 'already-applied', setup: null };
     }
     const setup = this.requireOpenSetup(setupId);
-    const { applyRequest } = setup;
-    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
-    if (applyRequest !== null && pendingStates.includes(applyRequest.state)) {
-      if (applyRequest.draftRevision === requesting.draftRevision) return { logged: [], outcome: 'committing', setup };
-      throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
-    }
-    this.refuseUnappliable(setup, requesting.draftRevision);
-    this.refuseEntityChanges(setup);
-    if (!draftHasEntities(setup)) {
-      this.refuseMovedConstitution(setup, requesting.mainConstitution, mainHoldsTheDraftText(setup, requesting.mainConstitution));
-    }
-    this.refuseMovedPipeline(setup, this.appliedPipelineOf(setup, requesting));
+    if (this.applyRequestVerdictOf(setup, requesting) === 'committing') return { logged: [], outcome: 'committing', setup };
     if (mainHoldsEveryDraftText(setup, requesting)) return this.finishApply(setupId, { ...requesting, constitutionCommit: null }, at);
 
     for (const entityKey of Object.keys(setup.draft?.entities ?? {})) {
@@ -763,6 +752,22 @@ export class PipelineSetups {
     this.store(setup);
     const fields = { revision: requesting.draftRevision, resumesBoard: requesting.resumesBoard };
     return { logged: [this.records.logger.log({ kind: 'pipeline-apply-requested', setupId, fields }, at)], outcome: 'committing', setup };
+  }
+
+  /**
+   * The refusal a request to apply the open record's current draft meets now, `null` when it would proceed or already waits: stage 1's
+   * checks against `reading`, main's texts as the caller read them, shared with `requestApply`.
+   */
+  applyRefusalOf(setupId: string, reading: ApplyMainReading): BoardRefusalDetail | null {
+    const setup = this.openSetupRecord();
+    if (setup?.setupId !== setupId) return null;
+    try {
+      this.applyRequestVerdictOf(setup, { ...reading, draftRevision: setup.draftRevision });
+      return null;
+    } catch (refusal) {
+      if (refusal instanceof BoardRefusal) return refusal.detail;
+      throw refusal;
+    }
   }
 
   /**
@@ -930,6 +935,26 @@ export class PipelineSetups {
   openSetupRecord(): PipelineSetup | null {
     const reading = this.records.pipelineSetupReading;
     return reading.verdict === 'readable' ? reading.setup : null;
+  }
+
+  /**
+   * Stage 1 of a request of `draftRevision` against main's texts: `committing` when that revision already waits, else its refusals in the
+   * order a request meets them, or `proceeds`.
+   */
+  private applyRequestVerdictOf(setup: Readonly<PipelineSetup>, requesting: ApplyMainReading & { draftRevision: number }): 'committing' | 'proceeds' {
+    const { applyRequest, setupId } = setup;
+    const pendingStates: readonly string[] = PENDING_APPLY_REQUEST_STATES;
+    if (applyRequest !== null && pendingStates.includes(applyRequest.state)) {
+      if (applyRequest.draftRevision === requesting.draftRevision) return 'committing';
+      throw new BoardRefusal({ reason: 'pipeline-apply-pending', setupId });
+    }
+    this.refuseUnappliable(setup, requesting.draftRevision);
+    this.refuseEntityChanges(setup);
+    if (!draftHasEntities(setup)) {
+      this.refuseMovedConstitution(setup, requesting.mainConstitution, mainHoldsTheDraftText(setup, requesting.mainConstitution));
+    }
+    this.refuseMovedPipeline(setup, this.appliedPipelineOf(setup, requesting));
+    return 'proceeds';
   }
 
   /**

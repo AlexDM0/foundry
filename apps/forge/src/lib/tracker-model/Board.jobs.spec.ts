@@ -8,7 +8,8 @@
  * A request's pictures are logged as `intakePictures` and kept on the job only when there are some; a blank request with none is refused
  * `intake-empty`; only a product owner takes pictures. A pipeline agent is a session too: a stop closes it, even before its session started,
  * and User's message opens it again with its conversation; one that ended otherwise is refused `job-finished`. User's resume is logged for
- * an interrupted job only, refused `job-not-interrupted` for any other, and gives the job its crash resumes back.
+ * an interrupted job only, refused `job-not-interrupted` for any other, and gives the job its crash resumes back. In every state a job
+ * offers exactly the stop modes, fresh agent and message its controls accept.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -623,5 +624,39 @@ describe('a line a start found lost', () => {
     expect(logged.map((record) => [record.kind, 'jobId' in record ? record.jobId : null])).toEqual([
       ['job-resume-instructed', rebooted], ['job-resume-instructed', lostGate],
     ]);
+  });
+});
+
+describe('the controls a job offers', () => {
+  type JobControl = 'stop' | 'wind-down' | 'fresh' | 'message';
+
+  function controlAccepted(state: JobState, control: JobControl): boolean {
+    const { board } = boardWithTicket();
+    const jobId = jobInState(board, state);
+    try {
+      if (control === 'message') board.messageJob(jobId, 'Example message.', [], AT);
+      else board.requestJobStop(jobId, control, AT);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  test.each(JOB_STATES.map((state) => [state]))('from %s, each control offered is accepted and each one not offered is refused', (state) => {
+    const { board } = boardWithTicket();
+    const offers = board.jobOffersOf(jobInState(board, state));
+    expect(offers.stopModes).toEqual(['stop', 'wind-down']);
+    expect([offers.takesFresh, offers.takesMessage]).toEqual([true, state !== 'stopping']);
+    const offered: Record<JobControl, boolean> = {
+      'stop': offers.stopModes.includes('stop'), 'wind-down': offers.stopModes.includes('wind-down'), 'fresh': offers.takesFresh, 'message': offers.takesMessage
+    };
+    for (const control of ['stop', 'wind-down', 'fresh', 'message'] as const) expect(controlAccepted(state, control), control).toBe(offered[control]);
+  });
+
+  test('a job with no ticket takes no fresh agent, as its stop refuses one', () => {
+    const { board } = boardWithTicket();
+    const { job } = board.launchJob({ ...BUILD_LAUNCH, ticketIds: [] }, AT);
+    expect(board.jobOffersOf(job.id).takesFresh).toBe(false);
+    expect(refusalDetailOf(() => board.requestJobStop(job.id, 'fresh', AT))).toEqual({ reason: 'job-has-no-ticket', jobId: job.id });
   });
 });

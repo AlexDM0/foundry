@@ -28,7 +28,8 @@
     "./BoardConversationDocuments": "./@types/BoardConversationDocuments.ts",
     "./BoardPipelineDocuments": "./@types/BoardPipelineDocuments.ts",
     "./BoardMergeQueueDocument": "./@types/BoardMergeQueueDocument.ts",
-    "./BoardLimitsDocument": "./@types/BoardLimitsDocument.ts"
+    "./BoardLimitsDocument": "./@types/BoardLimitsDocument.ts",
+    "./BoardReadingDocuments": "./@types/BoardReadingDocuments.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

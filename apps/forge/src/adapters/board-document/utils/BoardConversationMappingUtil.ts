@@ -18,9 +18,9 @@ import { RefusalDocumentUtil }                   from '../../utils/RefusalDocume
 
 function decisionOptionOf(option: DecisionQuestionOption): BoardDecisionOptionDocument {
   return {
-    label:         option.label,
-    description:   option.description,
-    isRecommended: option.isRecommended,
+    label:       option.label,
+    description: option.description,
+    recommended: option.isRecommended,
     ...(option.touches === undefined ? {} : { touches: [...option.touches] }),
     ...(option.tradeOff === undefined ? {} : { tradeOff: option.tradeOff }),
     ...(option.acceptanceEffect === undefined ? {} : { acceptanceEffect: option.acceptanceEffect }),

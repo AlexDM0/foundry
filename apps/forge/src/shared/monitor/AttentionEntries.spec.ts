@@ -1,11 +1,11 @@
 /**
  * The Waiting on User list. What matters: each kind comes from its own source; an escalated decision leads, then every other entry oldest
- * first across kinds, a tie in key order, so no clock orders it; each route opens the entry's place in the Bridge; and a board without its
- * optional slices lists its decisions alone.
+ * first across kinds, a tie in key order, so no clock orders it; each entry names the thing it opens as a typed target, and its route,
+ * the Bridge's, opens that thing's place; and a board without its optional slices lists its decisions alone.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { attentionEntriesOf, type AttentionBoard } from './AttentionEntries.ts';
+import { attentionEntriesOf, routedAttentionEntryOf, type AttentionBoard } from './AttentionEntries.ts';
 
 function decisionOf(id: string, kind: string, openedAt: string): AttentionBoard['decisions'][number] {
   return {
@@ -45,8 +45,19 @@ const BOARD: AttentionBoard = {
 };
 
 describe('attentionEntriesOf', () => {
-  test('lists the escalated decision first, then the rest oldest first, a tie in key order, each with its route', () => {
-    expect(attentionEntriesOf(BOARD).map((entry) => [entry.key, entry.kind, entry.actionLabel, entry.route])).toEqual([
+  test('lists the escalated decision first, then the rest oldest first, a tie in key order, each with the target it opens', () => {
+    expect(attentionEntriesOf(BOARD).map((entry) => [entry.key, entry.kind, entry.target])).toEqual([
+      ['decision:E1', 'escalated-question', { subject: 'decision', id: 'E1' }],
+      ['merge-accept:005', 'merge-accept', { subject: 'ticket', id: '005' }],
+      ['decision:E2', 'question', { subject: 'decision', id: 'E2' }],
+      ['ticket:006', 'review', { subject: 'ticket', id: '006' }],
+      ['ticket:009', 'draft-ticket', { subject: 'ticket', id: '009' }],
+      ['draft:D2', 'filing-draft', { subject: 'draft', id: 'D2' }],
+    ]);
+  });
+
+  test('a routed entry carries the Bridge\'s route of its target in place of the target', () => {
+    expect(attentionEntriesOf(BOARD).map(routedAttentionEntryOf).map((entry) => [entry.key, entry.kind, entry.actionLabel, entry.route])).toEqual([
       ['decision:E1', 'escalated-question', 'Answer', '#questions/E1'],
       ['merge-accept:005', 'merge-accept', 'Accept', '#kanban/ticket/005'],
       ['decision:E2', 'question', 'Answer', '#questions/E2'],
@@ -54,6 +65,12 @@ describe('attentionEntriesOf', () => {
       ['ticket:009', 'draft-ticket', 'Ready', '#kanban/ticket/009'],
       ['draft:D2', 'filing-draft', 'Answer', '#kanban/draft/D2'],
     ]);
+  });
+
+  test('a routed entry keeps every other field and drops the target', () => {
+    const [entry] = attentionEntriesOf(BOARD);
+    const routed = entry === undefined ? undefined : routedAttentionEntryOf(entry);
+    expect(routed === undefined ? [] : Object.keys(routed).toSorted()).toEqual([...Object.keys(entry ?? {}).filter((field) => field !== 'target'), 'route'].toSorted());
   });
 
   test('an escalated decision names its incident, a code-opened one its kind, and a filing draft its state line', () => {

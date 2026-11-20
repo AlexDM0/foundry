@@ -82,8 +82,7 @@ function undoMergeUpdate(worktree: string, startTip: string): void {
  */
 function updateBranch(command: ControlCommandOf<'merge-update'>, change: TrackerChange): Logged & { changed?: false } {
   const { ticketId, status, target } = subjectOf(change, command.ticketReference);
-  const ticketHasAJob = change.board.jobs().some((job) => job.ticketIds.includes(ticketId));
-  if (!change.board.ticketIsMergeQueued(ticketId) || ticketHasAJob) throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status });
+  if (!change.board.mergeUpdateIsOpenTo(ticketId)) throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status });
   const worktree = WorktreesFolder.ticketWorktreeOf(change.workspace.rootDirectory, ticketId);
   const startTip = MergeRun.headOf(worktree);
   const targetTip = GitProcess.resolvedCommitOf(change.workspace.rootDirectory, `refs/heads/${target}`);

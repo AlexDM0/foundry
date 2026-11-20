@@ -7,10 +7,11 @@ import type { ForgeJsonValue } from './ForgeRefusalDocument.ts';
 
 /** An option of a question; what it touches, trades off and does to the Acceptance only once the asking agent noted them. */
 export interface BoardDecisionOptionDocument {
-  /** As asked, with no mark of the recommendation, which `isRecommended` carries. */
+  /** As asked, with no mark of the recommendation, which `recommended` carries. */
   readonly label:             string;
   readonly description:       string;
-  readonly isRecommended:     boolean;
+  /** The asking agent's recommendation, as forge stored it. */
+  readonly recommended:       boolean;
   /** The repository paths the option changes. */
   readonly touches?:          readonly string[];
   /** What the user gets and what the user loses. */

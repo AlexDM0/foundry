@@ -885,6 +885,28 @@ reading as `BoardState`, through the mappers in `src/adapters/board-document/uti
 the model gains reaches no client until a mapper names it. A status the model still calls `pending` is `committed`
 there, and a job's `interruption` and lost line use the monitor's cause names.
 
+The document serves as finished facts what a view would otherwise recompute with forge's rules
+(`BoardReadingDocuments`, mapped by `BoardReadingMappingUtil`):
+
+| Fact | Where | Worded by |
+| --- | --- | --- |
+| What waits on User, each entry with its `target` (`decision`, `ticket`, `draft`, `job` or `incident` and an id), no route | `attention` | forge: `metaText`, `stampWord`, `actionLabel` |
+| The open notices, each with its `kind`, its `facts` and its `sentence`; an incident default also its `causeSentence` | `notices` | forge |
+| The header's warnings, as the monitor serves them, with the facts each names | `warnings` | forge |
+| Today's delivered tickets and tokens, with the `calendarDate` the reading's clock counted them on | `today` | a reader |
+| The open decisions in answering order, and the ones an Assistant escalated | `openDecisionIds`, `escalatedDecisionIds` | a reader |
+| Each ticket's resolved priority, status classes and repeat-review round | `page.tickets[].facts` | a reader |
+| The board command kinds each ticket accepts now, and the priorities it may move to | `page.tickets[].offers` | a reader |
+| The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
+| Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
+| The refusal an Apply of the current draft meets now, as `POST /api/v1/commands` would answer it | `pipelineSetup.applyRefusal` | forge |
+| The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step | `limits` | a reader |
+| A question option's recommendation, as the agent adapter stored it (`isRecommended` in the store) | `decisions[].questions[].options[].recommended` | a reader |
+
+The offers come from the predicates the Board's moves check (`MoveOffers.ts`), so an offered command is one the Board
+accepts in the ticket's or job's state, and a command not offered is one it refuses; a command's content (a body's
+readiness, a domain list) is judged only when it comes. A reader words state names, counts and tokens itself.
+
 `GET /api/state` and the `board` event stay internal: the Bridge and the command line read them, at no versioned path,
 and no registry entry names `state`.
 

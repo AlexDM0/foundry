@@ -2,12 +2,16 @@
  * The board document a client reads. What matters: the document a client reads is built from the same reading the Bridge's state is, field
  * for field where both carry a field. On a scratch board with a ticket, a job, a decision, an incident and an open pipeline setup, every
  * value of the document whose path the state also holds equals the state's, a model's `pending` read as `committed`; the limits and the
- * concurrency, which the state keeps in its page, stand at the document's top level; and the model's fields no reader names stay out.
+ * concurrency, which the state keeps in its page, stand at the document's top level; and the model's fields no reader names stay out. The
+ * readings a view would recompute arrive finished: each ticket's facts and offers, each job's stop holds and offers, what waits on User
+ * with its target, the open decisions in answering order, today's figures dated by the reading's clock, the worded notices, the Apply
+ * refusal as the command words it, and a stored option's `isRecommended` as `recommended`.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { BoardDocumentAssembly } from './BoardDocumentAssembly.ts';
-import { boardStateFixture }     from './testing/BoardStateFixture.ts';
+import { BoardReadingMappingUtil }    from '../../adapters/board-document/utils/BoardReadingMappingUtil.ts';
+import { BoardDocumentAssembly }      from './BoardDocumentAssembly.ts';
+import { boardDocumentSourceFixture } from './testing/BoardStateFixture.ts';
 
 /** The document's top-level fields the state holds at another path. */
 const STATE_PATH_OF_DOCUMENT_FIELD: Readonly<Record<string, readonly string[]>> = {
@@ -54,8 +58,9 @@ function committedInPlaceOfPending(value: unknown): unknown {
 }
 
 describe('BoardDocumentAssembly.boardDocumentOf', () => {
-  const state = boardStateFixture();
-  const document = BoardDocumentAssembly.boardDocumentOf(state);
+  const source = boardDocumentSourceFixture();
+  const { state } = source;
+  const document = BoardDocumentAssembly.boardDocumentOf(source);
 
   test('every field the document and the state both carry holds the state\'s value, a pending status read as committed', () => {
     const comparisons = Object.entries(document)
@@ -69,19 +74,19 @@ describe('BoardDocumentAssembly.boardDocumentOf', () => {
   test('reads each part of the scratch board: the ticket, the job, the decision, the incident and the open setup', () => {
     expect(document.page.tickets.map((ticket) => [ticket.id, ticket.status])).toEqual([['001', 'committed'], ['002', 'in-progress']]);
     expect(document.jobs.map((job) => [job.id, job.interruption, job.live.tokens])).toEqual([['J1', 'network-outage', 48_000]]);
-    expect(document.decisions.map((decision) => decision.questions[0]?.options.map((option) => option.isRecommended))).toEqual([[true, false]]);
+    expect(document.decisions.map((decision) => decision.questions[0]?.options.map((option) => option.recommended))).toEqual([[true, false]]);
     expect(document.incidents.map((incident) => incident.facts)).toEqual([{ reason: 'The registry is down.' }]);
     expect(document.pipelineSetup?.record.draft?.gates.map((gate) => gate.name)).toEqual(['test', 'lint']);
     expect(document.pipeline.readingVerdict).toBe('readable');
   });
 
   test('serves the limits and the concurrency at the top level, as the state\'s page holds them', () => {
-    expect(document.limits).toEqual(state.page.payload.limits);
+    expect(document.limits).toEqual({ ...state.page.payload.limits, ...BoardReadingMappingUtil.ruleLimitsOf() });
     expect(document.concurrency).toEqual(state.page.payload.concurrency);
   });
 
   test('carries the notices that name a kind, with their facts, and the pipeline records the contract declares', () => {
-    expect(document.notices).toEqual([{ kind: 'attribution-found', facts: { ticketId: '002' } }]);
+    expect(document.notices).toEqual([{ kind: 'attribution-found', facts: { ticketId: '002' }, sentence: 'ticket #002 carries an AI attribution' }]);
     expect(document.pipelineHistory.map((entry) => entry.kind)).toEqual(['pipeline-setup-opened', 'pipeline-gate-added']);
   });
 
@@ -90,5 +95,42 @@ describe('BoardDocumentAssembly.boardDocumentOf', () => {
     expect(ticket === undefined ? [] : ['model', 'extra', 'claimedBodyHash', 'filePath'].filter((field) => Object.hasOwn(ticket, field))).toEqual([]);
     expect(Object.hasOwn(document, 'flintBrain') || Object.hasOwn(document, 'ticketCountByStatus')).toBe(false);
     expect(Object.hasOwn(document.mergeQueue, 'slots')).toBe(false);
+  });
+
+  test('serves each ticket\'s facts and the commands it accepts now, as the Board offers them', () => {
+    expect(document.page.tickets.map((ticket) => [ticket.id, ticket.facts.resolvedPriority, ticket.facts.noAgentHasPickedItUp, ticket.offers])).toEqual([
+      ['001', 'high', true, { kinds: ['ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'], priorityChoices: ['normal', 'low'] }],
+      ['002', 'normal', false, { kinds: ['ticket-hold', 'ticket-park', 'ticket-priority'], priorityChoices: ['high'] }],
+    ]);
+  });
+
+  test('serves each job\'s stop holds and the controls it takes', () => {
+    expect(document.jobs.map((job) => [job.stopHolds, job.offers])).toEqual([[
+      { stop: 'stopped by User (J1)', windDown: 'wound down by User (J1)' },
+      { stopModes: ['stop', 'wind-down'], takesFresh: true, takesMessage: true },
+    ]]);
+  });
+
+  test('serves what waits on User with the thing each entry opens, and the open decisions in answering order', () => {
+    expect(document.attention.map((entry) => [entry.key, entry.target])).toEqual([
+      ['decision:E1', { subject: 'decision', id: 'E1' }],
+      ['draft:D1', { subject: 'draft', id: 'D1' }],
+    ]);
+    expect([document.openDecisionIds, document.escalatedDecisionIds, document.warnings]).toEqual([['E1'], [], []]);
+  });
+
+  test('dates today\'s figures by the reading\'s clock', () => {
+    expect(document.today.calendarDate).toBe('2026-11-19');
+    const nextDay = BoardDocumentAssembly.boardDocumentOf({ ...source, now: new Date('2026-11-21T12:00:00+01:00') });
+    expect(nextDay.today.calendarDate).toBe('2026-11-21');
+  });
+
+  test('serves the refusal an Apply of the draft meets now, worded as the command words it', () => {
+    expect([document.pipelineSetup?.applyRefusal?.code, document.pipelineSetup?.applyRefusal?.fields['setupId']]).toEqual(['pipeline-moved', 'S1']);
+    expect(document.pipelineSetup?.applyRefusal?.sentence).toContain('pipeline setup S1');
+  });
+
+  test('serves a stored option\'s isRecommended as recommended, with its label unchanged', () => {
+    expect(document.decisions[0]?.questions[0]?.options.map((option) => [option.label, option.recommended])).toEqual([['CSV', true], ['JSON', false]]);
   });
 });

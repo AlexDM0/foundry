@@ -2,8 +2,9 @@
  * The board document's jobs: each job on the board with its live facts, the jobs that left it, and what lies ahead of each open ticket.
  * Values only; a view words them.
  */
-import type { EntityKey, JobState }         from '../constants/BoardVocabulary.ts';
-import type { MONITOR_INTERRUPTION_CAUSES } from '../constants/MonitorInterruptionCauses.ts';
+import type { EntityKey, JobState }                               from '../constants/BoardVocabulary.ts';
+import type { MONITOR_INTERRUPTION_CAUSES }                       from '../constants/MonitorInterruptionCauses.ts';
+import type { BoardJobOffersDocument, BoardJobStopHoldsDocument } from './BoardReadingDocuments.ts';
 
 
 /** Why a job was last interrupted; `lease-ended`, `network-outage`, `forge-stopped` and `forge-crashed` wait for the user's resume. */
@@ -109,6 +110,8 @@ export interface BoardJobDocument {
   /** On a forge with entities: the entity whose stage the job runs. */
   readonly entity:        EntityKey | null;
   readonly live:          BoardJobLiveFactsDocument;
+  readonly stopHolds:     BoardJobStopHoldsDocument;
+  readonly offers:        BoardJobOffersDocument;
 }
 
 /** A job that left the board, and how it ended. */

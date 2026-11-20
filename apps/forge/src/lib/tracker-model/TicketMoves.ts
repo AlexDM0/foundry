@@ -25,6 +25,7 @@ import type { GroupReleases }                from './GroupReleases.ts';
 import type { ReviewBars, ReviewBarsClosed } from './ReviewBars.ts';
 import type { TicketDependencies }           from './TicketDependencies.ts';
 import { FIRST_REPEAT_REVIEW_ROUND }         from './constants/ReviewRounds.ts';
+import { TICKET_STATUSES_USER_READIES }      from './constants/Statuses.ts';
 import { EntityOwnershipUtil }               from './utils/EntityOwnershipUtil.ts';
 import { TicketBodyHashUtil }                from './utils/TicketBodyHashUtil.ts';
 import { TicketMoveUtil }                    from './utils/TicketMoveUtil.ts';
@@ -62,24 +63,12 @@ export class TicketMoves {
    * `checksLegality` false is the deliberate override of the legality table. The tokens are judged after the move, which files a
    * low ticket's row when it starts; a refused invocation writes nothing, so the move before the refusal is never seen.
    */
-  moveTicket(ticketId: string, targetStatus: TicketStatus, request: TicketMoveRequest, at: string): TicketMoved {
+  moveTicket(ticketId: string, requestedStatus: TicketStatus, request: TicketMoveRequest, at: string): TicketMoved {
     const ticket     = this.records.requireTicket(ticketId);
     const { status } = ticket.frontmatter;
-    if (status === targetStatus) throw new BoardRefusal({ reason: 'ticket-already-in-status', ticketId, status });
-    // Filing is the only way into `draft` and `ticket ready` the only way on, even past the legality table: readying checks the body.
-    if (targetStatus === 'draft') throw new BoardRefusal({ reason: 'move-to-draft', ticketId, status });
-    // The filer's close is the only way into `ready-for-review`, and User's `ticket ready` the only way on.
-    if (targetStatus === 'ready-for-review') throw new BoardRefusal({ reason: 'move-to-ready-for-review', ticketId, status });
-    if (status === 'draft' && targetStatus !== 'abandoned') throw new BoardRefusal({ reason: 'move-of-a-draft', ticketId, targetStatus });
-    if (status === 'ready-for-review' && targetStatus !== 'abandoned') throw new BoardRefusal({ reason: 'move-of-a-ticket-ready-for-review', ticketId, targetStatus });
-    if (request.checksLegality && !TicketMoveUtil.ticketMoveIsLegal(status, targetStatus)) {
-      throw new BoardRefusal({
-        reason: 'illegal-ticket-move',
-        ticketId,
-        status,
-        targetStatus,
-      });
-    }
+    const move       = TicketMoveUtil.moveVerdictOf(ticketId, status, requestedStatus, request.checksLegality);
+    if (move.verdict === 'refused') throw new BoardRefusal(move.refusal);
+    const { targetStatus } = move;
     if (targetStatus === 'abandoned' && (request.reason === undefined || request.reason.trim() === '')) {
       throw new BoardRefusal({ reason: 'abandon-without-reason', ticketId });
     }
@@ -204,10 +193,22 @@ export class TicketMoves {
     if (!ticketReviewIsOn) this.refuseTicketsWithoutAnEntity(tickets.filter((ticket) => readinessGapsOf(ticket.body).length === 0));
   }
 
+  /**
+   * Whether User's own `ticket ready` takes the ticket in its state: its status, and on a forge with entities its entity. The body's
+   * readiness and the paths its Brief names are judged only when it is readied, since the model reads no markdown.
+   */
+  userReadyIsOpenTo(ticket: Readonly<Ticket>): boolean {
+    return TICKET_STATUSES_USER_READIES.includes(ticket.frontmatter.status) && !this.ticketNeedsAnEntity(ticket);
+  }
+
+  /** In a forge with entities, a ticket without one: it cannot reach `pending`, since it would build in no entity's pipeline. */
+  private ticketNeedsAnEntity(ticket: Readonly<Ticket>): boolean {
+    return this.records.pipeline?.entities !== undefined && ticket.frontmatter.entity === undefined;
+  }
+
   /** In a forge with entities, every ticket without one, all named at once: each ticket builds in the pipeline of its entity. */
   private refuseTicketsWithoutAnEntity(tickets: readonly Readonly<Ticket>[]): void {
-    if (this.records.pipeline?.entities === undefined) return;
-    const ticketIdsWithoutAnEntity = tickets.filter((ticket) => ticket.frontmatter.entity === undefined).map((ticket) => ticket.frontmatter.id);
+    const ticketIdsWithoutAnEntity = tickets.filter((ticket) => this.ticketNeedsAnEntity(ticket)).map((ticket) => ticket.frontmatter.id);
     if (ticketIdsWithoutAnEntity.length > 0) throw new BoardRefusal({ reason: 'ticket-without-entity', ticketIds: ticketIdsWithoutAnEntity });
   }
 

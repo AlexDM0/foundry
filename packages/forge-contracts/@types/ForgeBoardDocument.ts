@@ -24,7 +24,7 @@ import type {
   BoardPipelineSetupDocument,
   BoardPipelineStepRunTimeDocument
 } from './BoardPipelineDocuments.ts';
-import type { ForgeJsonValue } from './ForgeRefusalDocument.ts';
+import type { BoardAttentionEntryDocument, BoardNoticeDocument, BoardTodayDocument } from './BoardReadingDocuments.ts';
 
 
 export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
@@ -79,12 +79,6 @@ export interface BoardUsageDocument {
   readonly windows:  readonly BoardUsageWindowDocument[];
 }
 
-/** A notice the forge derives each pass: its kind and the facts that kind carries. */
-export interface BoardNoticeDocument {
-  readonly kind:  string;
-  readonly facts: Readonly<Record<string, ForgeJsonValue>>;
-}
-
 export interface ForgeBoardDocument {
   readonly project:               string;
   readonly overseer:              BoardOverseerDocument;
@@ -126,5 +120,15 @@ export interface ForgeBoardDocument {
   /** `null` while no picture can be sent. */
   readonly pictureLimits:         BoardPictureLimitsDocument | null;
   readonly limits:                BoardLimitsDocument;
+  /** The forge's open notices, each worded. */
   readonly notices:               readonly BoardNoticeDocument[];
+  /** What the header warns of, derived from the notices and the forge's own facts, each worded. */
+  readonly warnings:              readonly BoardNoticeDocument[];
+  /** What waits on the user. */
+  readonly attention:             readonly BoardAttentionEntryDocument[];
+  readonly today:                 BoardTodayDocument;
+  /** The open decisions in the order the user answers them: an agent's questions first. */
+  readonly openDecisionIds:       readonly string[];
+  /** The open decisions an Assistant put to the user unchanged. */
+  readonly escalatedDecisionIds:  readonly string[];
 }

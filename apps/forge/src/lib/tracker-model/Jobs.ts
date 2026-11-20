@@ -34,6 +34,7 @@ import {
   FORCED_STOP_REFUSED_INTERRUPTION,
   JOB_ID_PREFIX
 }                                   from './constants/JobStates.ts';
+import { JobControlRuleUtil }     from './utils/JobControlRuleUtil.ts';
 import { OptionConsequencesUtil } from './utils/OptionConsequencesUtil.ts';
 
 /** The states a plain move names: an interruption carries its cause. The table refuses `launching`, which only a launch enters. */
@@ -269,7 +270,7 @@ export class Jobs {
   /** `pictures` are recorded only when there are some, so a message without them logs as it always did. */
   recordMessage(jobId: string, message: JobMessage, at: string): JobChanged {
     const job = this.requireLiveJob(jobId);
-    if (job.state === 'stopping') throw new BoardRefusal({ reason: 'job-finished', jobId });
+    if (!JobControlRuleUtil.messageIsOpenTo(job)) throw new BoardRefusal({ reason: 'job-finished', jobId });
     const { text, pictures, sender } = message;
     const fields = { text, ...(pictures.length === 0 ? {} : { pictures: picturesCopyOf(pictures) }), ...senderFieldOf(sender) };
     return { job, logged: [this.records.logger.log({ kind: 'job-messaged', jobId, fields }, at)] };
