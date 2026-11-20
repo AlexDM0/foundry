@@ -28,8 +28,9 @@ import { Baton }                                                                
 import { CrashLog }                                                             from '../../src/services/overseer/CrashLog.ts';
 import { overseerFilesIn }                                                      from '../../src/services/overseer/OverseerFiles.ts';
 import { Presence }                                                             from '../../src/services/overseer/Presence.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE }                                         from '../../src/services/tracker/GenerationLock.ts';
 import { registerWithTheMonitor }                                               from '../../src/services/tracker/MonitorRegistration.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE, withLock }                               from '../../src/services/tracker/TrackerLock.ts';
+import { withLock }                                                             from '../../src/services/tracker/TrackerLock.ts';
 import { requireWorkspace }                                                     from '../../src/services/tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                               from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
 import { OVERSEER_STOP_INTERVAL_MILLISECONDS, OVERSEER_STOP_WAIT_MILLISECONDS } from '../../src/shared/constants/OverseerLimits.ts';

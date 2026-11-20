@@ -13,13 +13,9 @@ import type { FileReplace }                                                  fro
 import { fileReplaceOfThisProcess }                                          from '../../lib/atomic-file/FileReplaceFor.ts';
 import { errorCodeOf }                                                       from '../../lib/atomic-file/HeldFileFailure.ts';
 import { OperationRefusal }                                                  from '../../shared/OperationRefusal.ts';
+import type { HoldFence }                                                    from './GenerationLock.ts';
 import type { Workspace }                                                    from './Workspace.ts';
 import { TRACKER_FILES }                                                     from './constants/TrackerFiles.ts';
-
-/** What a hold checks before each write: it throws once the hold's lock was taken over, so a stale holder writes nothing further. */
-export interface HoldFence {
-  requireStillHeld(): void;
-}
 
 export function holdJournalFilePathOf(workspace: Workspace): string {
   return join(workspace.trackerDirectory, TRACKER_FILES.HOLD_JOURNAL_FILE_NAME);

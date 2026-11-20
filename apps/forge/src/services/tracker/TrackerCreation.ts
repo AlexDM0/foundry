@@ -1,11 +1,12 @@
 /** Creates a new tracker's files under the lock; an existing progress file is never replaced. */
 import { mkdirSync } from 'node:fs';
 
-import { createLogFileWriter }                                           from '../../adapters/log/LogFileWriter.ts';
-import { createProgressFileWriter }                                      from '../../adapters/progress/ProgressFileWriter.ts';
-import { emptyProgressFor }                                              from '../../lib/tracker-model/EmptyProgress.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock } from './TrackerLock.ts';
-import type { Workspace }                                                from './Workspace.ts';
+import { createLogFileWriter }                                 from '../../adapters/log/LogFileWriter.ts';
+import { createProgressFileWriter }                            from '../../adapters/progress/ProgressFileWriter.ts';
+import { emptyProgressFor }                                    from '../../lib/tracker-model/EmptyProgress.ts';
+import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE } from './GenerationLock.ts';
+import { withLock }                                            from './TrackerLock.ts';
+import type { Workspace }                                      from './Workspace.ts';
 
 export interface NewTracker {
   project:          string;

@@ -25,10 +25,11 @@ import { createLogger }                                                       fr
 import { OperationRefusal }                                                   from '../../shared/OperationRefusal.ts';
 import { draftFilePathOf, type MalformedDraftFile }                           from './DraftStore.ts';
 import { everyEpicFilePathIn, type MalformedEpicFile }                        from './EpicStore.ts';
+import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE }                from './GenerationLock.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
 import { projectLocationOf }                                                  from './ProjectLocation.ts';
 import { everyTicketFilePathIn, type MalformedTicketFile }                    from './TicketStore.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLock }      from './TrackerLock.ts';
+import { withLock }                                                           from './TrackerLock.ts';
 import { requireTracker, type TrackerContents }                               from './TrackerReader.ts';
 import type { Workspace }                                                     from './Workspace.ts';
 

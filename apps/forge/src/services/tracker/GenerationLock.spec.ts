@@ -13,7 +13,7 @@ import {
 
 import { LocalTimeUtil }                                          from '../../lib/local-time/LocalTimeUtil.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
-import { LockGenerationSteps, type LockHolderIsGone, withLockAt } from './TrackerLock.ts';
+import { LockGenerationSteps, type LockHolderIsGone, withLockAt } from './GenerationLock.ts';
 
 const ZOMBIE_HOLDER_PROCESS_ID = 4242;
 const HELD_AT = '2026-09-24T15:00:00+02:00';

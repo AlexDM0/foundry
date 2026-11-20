@@ -20,7 +20,8 @@ import {
   test
 }                                                                             from 'bun:test';
 import * as AtomicFile                            from '../../src/lib/atomic-file/AtomicFile.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE, withLock } from '../../src/services/tracker/TrackerLock.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE }           from '../../src/services/tracker/GenerationLock.ts';
+import { withLock }                               from '../../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';

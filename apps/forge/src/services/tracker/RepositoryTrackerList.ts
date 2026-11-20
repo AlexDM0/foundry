@@ -11,7 +11,7 @@ import type { RepositoryLandingFiles, RepositoryTracker, TrackerListReading } fr
 import { repositoryRootWithoutGit }                                           from '../../lib/git/RepositoryRootWithoutGit.ts';
 import { GIT_ENTRY_NAME }                                                     from '../../lib/git/constants/GitConventions.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';
-import { type LockHolderIsGone, withLockAt }                                  from './TrackerLock.ts';
+import { type LockHolderIsGone, withLockAt }                                  from './GenerationLock.ts';
 import { TRACKER_FILES }                                                      from './constants/TrackerFiles.ts';
 
 const PREFIX_SEPARATOR = '/';

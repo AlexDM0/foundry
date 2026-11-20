@@ -22,23 +22,23 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { JournaledFile }                             from '../../adapters/hold-journal/HoldJournalIngestion.ts';
-import { createHoldJournalWriter }                        from '../../adapters/hold-journal/HoldJournalWriter.ts';
-import type { FileReplace }                               from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                       from '../../lib/atomic-file/FileReplaceFor.ts';
-import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
-import { LIMITS }                                         from '../../shared/constants/Limits.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { JournaledFile }                                                from '../../adapters/hold-journal/HoldJournalIngestion.ts';
+import { createHoldJournalWriter }                                           from '../../adapters/hold-journal/HoldJournalWriter.ts';
+import type { FileReplace }                                                  from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                                          from '../../lib/atomic-file/FileReplaceFor.ts';
+import { refusalIsOperationRefusal }                                         from '../../shared/OperationRefusal.ts';
+import { LIMITS }                                                            from '../../shared/constants/Limits.ts';
+import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
+import { type HoldFence, LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE } from './GenerationLock.ts';
 import {
   commitHold,
   holdJournalFilePathOf,
   readHoldJournal,
-  replayHoldJournal,
-  type HoldFence,
+  replayHoldJournal
 } from './HoldJournal.ts';
-import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE, withLock } from './TrackerLock.ts';
-import { workspacePathsFor, type Workspace }                           from './Workspace.ts';
-import { thrownFailureOf }                                             from './testing/ThrownFailure.ts';
+import { withLock }                          from './TrackerLock.ts';
+import { workspacePathsFor, type Workspace } from './Workspace.ts';
+import { thrownFailureOf }                   from './testing/ThrownFailure.ts';
 
 const now = (): Date => new Date('2026-09-18T18:05:00Z');
 

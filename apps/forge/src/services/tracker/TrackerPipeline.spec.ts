@@ -30,8 +30,8 @@ import {
   storedFileContentsOf,
   writeReadableTracker
 } from '../../testing/TrackerFileFixtures.ts';
+import { LockGenerationSteps }               from './GenerationLock.ts';
 import { createTicket, listTickets }         from './TicketStore.ts';
-import { LockGenerationSteps }               from './TrackerLock.ts';
 import { writeTracker, type TrackerChange }  from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
 import { thrownFailureOf }                   from './testing/ThrownFailure.ts';

@@ -22,8 +22,8 @@ import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, expect } from 'bun:test';
 
 import { LocalTimeUtil }                            from '../src/lib/local-time/LocalTimeUtil.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from '../src/services/tracker/GenerationLock.ts';
 import { registerWithTheMonitor }                   from '../src/services/tracker/MonitorRegistration.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from '../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                        from '../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                            from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }  from '../src/testing/ChildProcessCaseTimeout.ts';

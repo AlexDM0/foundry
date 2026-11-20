@@ -16,6 +16,7 @@ import {
 import type { RepositoryTracker }                         from '../../lib/git/RepositoryLandings.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE }                   from './GenerationLock.ts';
 import {
   listTracker,
   readListedTrackers,
@@ -23,7 +24,6 @@ import {
   trackerBelongsInTheList,
   trackerPlacementRefusalOf
 } from './RepositoryTrackerList.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE } from './TrackerLock.ts';
 
 const FROZEN_NOW = (): Date => new Date('2026-11-16T09:00:00Z');
 

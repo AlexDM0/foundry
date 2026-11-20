@@ -60,6 +60,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts',
       'src/services/overseer/GateRunSlots.integration.spec.ts',
       'src/services/overseer/Regrouping.integration.spec.ts',
+      'src/services/tracker/GenerationLock.integration.spec.ts',
       'src/services/tracker/TrackerLock.integration.spec.ts',
     ],
   },

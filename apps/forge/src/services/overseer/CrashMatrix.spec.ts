@@ -71,8 +71,8 @@ import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testi
 import { waitUntil }                                           from '../../testing/WaitUntil.ts';
 import { ControlService }                                      from '../control/ControlService.ts';
 import { finishHalfAppliedSetup }                              from '../control/PipelineSetupControls.ts';
+import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/GenerationLock.ts';
 import { holdJournalFilePathOf, readHoldJournal }              from '../tracker/HoldJournal.ts';
-import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/TrackerLock.ts';
 import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';

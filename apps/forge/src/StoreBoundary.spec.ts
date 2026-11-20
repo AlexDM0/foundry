@@ -278,8 +278,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/control/TicketControls.ts: store-internal-import: import { createTicket }                       from \'../tracker/TicketStore.ts\';':
     'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
-  'src/services/lifecycle/Landing.ts: store-internal-import: import { LockGenerationSteps, type LockHolderIsGone }      from \'../tracker/TrackerLock.ts\';':
-    'Removed by WP5.2: the generation lock leaves the tracker lock.',
   'src/services/overseer/DependentFixTickets.ts: store-internal-import: import type { TrackerChange }      from \'../tracker/TrackerPipeline.ts\';':
     'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/overseer/DependentFixTickets.ts: store-internal-import: import { createTicket }            from \'../tracker/TicketStore.ts\';':
@@ -342,15 +340,11 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     + ' \'../../adapters/progress/ProgressFileIngestion.ts\';'
   ]:
     'Removed by WP5.9: the registry request carries the root, and an entry holds no `progressJson`.',
-  'src/services/tracker/MonitorRegistration.ts: store-internal-import: import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from \'./TrackerLock.ts\';':
-    'Removed by WP5.2: the generation lock leaves the tracker lock.',
   [
   'src/services/tracker/RepositoryTrackerList.ts: store-internal-import: import { TRACKER_FILES }                                                      from'
     + ' \'./constants/TrackerFiles.ts\';'
   ]:
     'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
-  'src/services/tracker/RepositoryTrackerList.ts: store-internal-import: import { type LockHolderIsGone, withLockAt }                                  from \'./TrackerLock.ts\';':
-    'Removed by WP5.2: the generation lock leaves the tracker lock.',
 };
 
 const ALLOWED_LINES = Object.keys(ALLOWED_STORE_LINES);

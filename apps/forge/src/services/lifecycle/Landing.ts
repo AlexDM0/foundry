@@ -14,8 +14,8 @@ import { LocalTimeUtil }                                   from '../../lib/local
 import type { Ticket }                                     from '../../lib/tracker-model/@types/Ticket.ts';
 import { LIMITS }                                          from '../../shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                                   from '../../shared/constants/ProductNames.ts';
+import { LockGenerationSteps, type LockHolderIsGone }      from '../tracker/GenerationLock.ts';
 import type { ProjectLocation }                            from '../tracker/ProjectLocation.ts';
-import { LockGenerationSteps, type LockHolderIsGone }      from '../tracker/TrackerLock.ts';
 
 /**
  * A tracker in a project folder of a repository its siblings land on too: its landing holds the repository's landing lock around the tip

@@ -19,7 +19,7 @@ import { GitProcess }                                                      from 
 import { LocalTimeUtil }                                                   from '../../lib/local-time/LocalTimeUtil.ts';
 import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape }   from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
 import { refusalIsOperationRefusal }                                       from '../../shared/OperationRefusal.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from './TrackerLock.ts';
+import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from './GenerationLock.ts';
 import type { Workspace }                                                  from './Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                          from './constants/MonitorRegistryFiles.ts';
 

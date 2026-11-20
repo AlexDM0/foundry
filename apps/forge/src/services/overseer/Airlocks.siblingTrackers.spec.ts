@@ -19,7 +19,7 @@ import { RepositoryLandings, type RepositoryLanding } from '../../lib/git/Reposi
 import { LocalTimeUtil }                              from '../../lib/local-time/LocalTimeUtil.ts';
 import { useRecordedGit }                             from '../../testing/RecordedGit.ts';
 import type { SharedRepositoryLanding }               from '../lifecycle/Landing.ts';
-import { LockGenerationSteps }                        from '../tracker/TrackerLock.ts';
+import { LockGenerationSteps }                        from '../tracker/GenerationLock.ts';
 import {
   AirlockAnswerSets,
   MOVED_AIRLOCK_IDS,
