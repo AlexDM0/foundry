@@ -41,10 +41,12 @@ function killedHolderSource(): string {
     const { writeTracker } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'TrackerPipeline.ts'))});
     const { workspacePathsFor } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'Workspace.ts'))});
     const { localStoreLayoutOf } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'LocalStoreLayout.ts'))});
+    const { lockTakerOf } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'LockHolders.ts'))});
+    const { nativePlatformPorts } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'testing', 'NativePlatformPorts.ts'))});
     const workspace = workspacePathsFor(${JSON.stringify(repositoryDirectory)});
     const at = '2026-09-18T22:12:00+02:00';
     await writeTracker({
-      workspace, at, now: () => new Date(),
+      workspace, at, now: () => new Date(), lockTaker: lockTakerOf(nativePlatformPorts().processSupervision),
       mutate: (change) => {
         change.board.addTask({ name: 'Example row of the killed holder', startsNow: false, movesTheLink: false }, at);
         change.board.setTicketPriority('001', 'high', at);

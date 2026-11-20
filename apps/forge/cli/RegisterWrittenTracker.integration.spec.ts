@@ -21,14 +21,15 @@ import { dirname, join } from 'node:path';
 
 import { afterEach, beforeEach, expect } from 'bun:test';
 
-import { LocalTimeUtil }                            from '../src/lib/local-time/LocalTimeUtil.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from '../src/services/tracker/GenerationLock.ts';
-import { localStoreLayoutOf }                       from '../src/services/tracker/LocalStoreLayout.ts';
-import { registerWithTheMonitor }                   from '../src/services/tracker/MonitorRegistration.ts';
-import { workspacePathsFor }                        from '../src/services/tracker/Workspace.ts';
-import { PRODUCT_NAMES }                            from '../src/shared/constants/ProductNames.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }  from '../src/testing/ChildProcessCaseTimeout.ts';
-import { nativePlatformPorts }                      from '../src/testing/NativePlatformPorts.ts';
+import { LocalTimeUtil }                           from '../src/lib/local-time/LocalTimeUtil.ts';
+import { withLockAt }                              from '../src/services/tracker/GenerationLock.ts';
+import { localStoreLayoutOf }                      from '../src/services/tracker/LocalStoreLayout.ts';
+import { registerWithTheMonitor }                  from '../src/services/tracker/MonitorRegistration.ts';
+import { workspacePathsFor }                       from '../src/services/tracker/Workspace.ts';
+import { PRODUCT_NAMES }                           from '../src/shared/constants/ProductNames.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                 from '../src/testing/LockTakers.ts';
+import { nativePlatformPorts }                     from '../src/testing/NativePlatformPorts.ts';
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -212,6 +213,7 @@ testWhenGitIsRecorded('an Overseer key with its token path is added at the overs
   const registration = {
     ...registeredBoardFactsOf(workspacePathsFor(repositoryDirectory)),
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
     temporaryDirectories: [folderOutsideEveryRepository],
     command:              'oversee',
     program:              '/example/bin/forge',
@@ -294,6 +296,7 @@ async function registrationOfATrackerRootedAt(rootDirectory: string, temporaryDi
   const outcome = await recordedGit.playStage(stage, async () => registerWithTheMonitor({
     ...registeredBoardFactsOf(workspacePathsFor(rootDirectory)),
     monitorFolder: join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    lockTaker:     LIVE_HOLDERS_LOCK_TAKER,
     temporaryDirectories,
     command:       'log',
     program:       '/example/bin/forge',
@@ -308,6 +311,7 @@ testWhenGitIsRecorded('a board whose progress record the store reads as absent o
     rootDirectory,
     htmlFilePath:         workspacePathsFor(rootDirectory).htmlFilePath,
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+    lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
     temporaryDirectories: [folderOutsideEveryRepository],
     command:              'log',
     program:              '/example/bin/forge',
@@ -442,7 +446,7 @@ describeWhenGitIsRecorded('concurrent registrations outside the fixed temp folde
       runningChildren = await recordedGit.playStage(homeIsolationCheckOfEachChild, async () => repositoryDirectories.map(logInAChildProcess));
       await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);
       expect(existsSync(registryFilePath())).toBe(false);
-    }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE);
+    }, () => new Date(), LIVE_HOLDERS_LOCK_TAKER);
 
     const results = await Promise.all(runningChildren);
     for (const result of results) expect(`${result.exitCode} ${result.standardError}`).toBe('0 ');

@@ -18,12 +18,12 @@ import {
 import { LocalTimeUtil }                                  from '../../lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                             from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessIdentity }                           from '../../lib/process-identity/ProcessIdentity.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { writeReadableTracker }                           from '../../testing/TrackerFileFixtures.ts';
 import { createLocalFilesBoardStore }                     from '../store/LocalFilesBoardStore.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }                   from '../tracker/GenerationLock.ts';
 import { type Workspace, workspacePathsFor }              from '../tracker/Workspace.ts';
 import type { CrashLogError }                             from './@types/CrashLogRecord.ts';
 import type { PresenceEndingToWrite }                     from './@types/PresenceRecord.ts';
@@ -115,7 +115,7 @@ function beatBeforeBoot(millisecondsBeforeBoot: number): void {
 }
 
 function boardReads() {
-  return createLocalFilesBoardStore({ workspace, now: () => new Date(RECORDED_AT), lockHolderIsGone: NO_LOCK_HOLDER_READS_AS_GONE }).reads;
+  return createLocalFilesBoardStore({ workspace, now: () => new Date(RECORDED_AT), lockTaker: LIVE_HOLDERS_LOCK_TAKER }).reads;
 }
 
 function admit(origin: StartOriginReading, ports = portsInBoot()) {

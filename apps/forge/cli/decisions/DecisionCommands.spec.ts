@@ -16,6 +16,7 @@ import type { DecisionOpening }                   from '../../src/lib/tracker-mo
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { writeTracker }                           from '../../src/services/tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                from '../../src/testing/LockTakers.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
@@ -70,6 +71,7 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
 
 async function openTheExampleDecision(): Promise<void> {
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace: workspacePathsFor(repositoryDirectory),
     at:        OPENED_AT,
     now:       () => FROZEN_NOW,

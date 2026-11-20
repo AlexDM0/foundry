@@ -26,6 +26,7 @@ import {
   type FakeGateConfinement,
   fakeGateConfinement
 } from '../../testing/FakeGateConfinement.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                             from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                      from '../../testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
@@ -134,10 +135,11 @@ function sandboxIncidents(): readonly { kind: string; facts: Record<string, unkn
 
 async function writeBoard(gate: PipelineGate): Promise<void> {
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace,
-    at:     CHANGED_AT,
-    now:    () => new Date(Date.parse(STAMP)),
-    mutate: (change) => {
+    at:        CHANGED_AT,
+    now:       () => new Date(Date.parse(STAMP)),
+    mutate:    (change) => {
       change.board.addGate(gate, change.at);
       change.board.setOverseerState('running', change.at);
     },

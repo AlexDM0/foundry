@@ -18,7 +18,7 @@ import type {
   StoredBoardReading,
   UnfinishedWriteReading
 } from '../tracker/@types/BoardRecords.ts';
-import type { LockHolderIsGone }        from '../tracker/GenerationLock.ts';
+import type { LockTaker }               from '../tracker/GenerationLock.ts';
 import { readHoldJournal }              from '../tracker/HoldJournal.ts';
 import { singleRecordFilePathOf }       from '../tracker/LocalRecordAllocation.ts';
 import { localStoreLayoutOf }           from '../tracker/LocalStoreLayout.ts';
@@ -45,8 +45,8 @@ export interface LocalFilesBoardStoreOptions {
   workspace:         Workspace;
   /** The caller's clock, for the lock's records only. */
   now:               () => Date;
-  /** The platform's process check; until WP5.15, `NO_LOCK_HOLDER_READS_AS_GONE` where there is none. */
-  lockHolderIsGone:  LockHolderIsGone;
+  /** This process as the lock's taker, and how it judges a holder it finds. */
+  lockTaker:         LockTaker;
   /** Called after each file a write stores; the step a spec interrupts to cut a write short. */
   afterFileWritten?: (location: string) => void;
 }
@@ -96,10 +96,10 @@ function revisionOf(workspace: Workspace): string {
 
 export function createLocalFilesBoardStore(options: LocalFilesBoardStoreOptions): BoardStore {
   const {
-    workspace, now, lockHolderIsGone, afterFileWritten
+    workspace, now, lockTaker, afterFileWritten
   } = options;
   const writeOptions = {
-    workspace, now, lockHolderIsGone, ...(afterFileWritten === undefined ? {} : { afterFileWritten })
+    workspace, now, lockTaker, ...(afterFileWritten === undefined ? {} : { afterFileWritten })
   };
 
   async function apply<Command extends ControlCommand>(request: CommandRequest<Command>): Promise<CommandWritten<ControlResultOf<Command['kind']>>> {
@@ -137,6 +137,6 @@ export function createLocalFilesBoardStore(options: LocalFilesBoardStoreOptions)
     commands:     Object.freeze({ apply }),
     transactions: Object.freeze({ transact }),
     reads,
-    initialise:   (newTracker: NewTracker) => createTracker(workspace, newTracker, now, lockHolderIsGone),
+    initialise:   (newTracker: NewTracker) => createTracker(workspace, newTracker, now, lockTaker),
   });
 }

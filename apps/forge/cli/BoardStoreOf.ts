@@ -1,12 +1,13 @@
 /** The CLI's composition root of the store port: the board of the current directory, reached through the local-files adapter. */
 import type { BoardStore, StoreReadFace }   from '../src/services/store/BoardStore.ts';
 import { createLocalFilesBoardStore }       from '../src/services/store/LocalFilesBoardStore.ts';
+import { lockTakerOf }                      from '../src/services/tracker/LockHolders.ts';
 import { requireWorkspace, type Workspace } from '../src/services/tracker/Workspace.ts';
 import type { CommandContext }              from './CommandContext.ts';
 
 /** The store of a board whose workspace the command already resolved. */
 export function boardStoreIn(context: Pick<CommandContext, 'now' | 'platformPorts'>, workspace: Workspace): BoardStore {
-  return createLocalFilesBoardStore({ workspace, now: context.now, lockHolderIsGone: context.platformPorts.processSupervision.processIsGone });
+  return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker: lockTakerOf(context.platformPorts.processSupervision) });
 }
 
 export function boardStoreOf(context: CommandContext): { workspace: Workspace; store: BoardStore } {

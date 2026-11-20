@@ -24,6 +24,7 @@ import {
   test,
 } from 'bun:test';
 import { OperationRefusal, refusalIsOperationRefusal }    from '../../shared/OperationRefusal.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
   BROKEN_LOG_TEXT,
@@ -79,23 +80,25 @@ describe('writeTracker', () => {
     writeReadableTracker(workspace);
 
     const written = await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: () => newestLockRecord(),
+      mutate:    () => newestLockRecord(),
     });
 
-    expect(written.result).toMatchObject({ processId: process.pid, state: 'held' });
+    expect(written.result).toMatchObject({ holder: { processId: process.pid }, state: 'held' });
   });
 
   test('the returned Board carries the mutation, and nothing is rendered: no progress.html is written', async () => {
     writeReadableTracker(workspace);
 
     const written = await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => addExampleRow(change),
+      mutate:    (change) => addExampleRow(change),
     });
 
     expect(written.board.tasks().map((task) => task.name)).toEqual(['Example rendered row']);
@@ -108,10 +111,11 @@ describe('writeTracker', () => {
     const filesBefore = storedFileContentsOf(workspace);
 
     const failure = await thrownFailureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         addExampleRow(change);
         change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
         change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
@@ -132,10 +136,11 @@ describe('writeTracker', () => {
     const thrownFailure = new Error('the mutation failed');
 
     const failure = await thrownFailureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         addExampleRow(change);
         throw thrownFailure;
       },
@@ -151,10 +156,11 @@ describe('writeTracker', () => {
     const thrownRefusal = new OperationRefusal('refused', 'Example refusal from the mutation.');
 
     const failure = await thrownFailureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: () => { throw thrownRefusal; },
+      mutate:    () => { throw thrownRefusal; },
     }));
 
     expect(failure).toBe(thrownRefusal);
@@ -166,10 +172,11 @@ describe('writeTracker', () => {
     let mutationWasCalled = false;
 
     const failure = await thrownFailureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: () => { mutationWasCalled = true; },
+      mutate:    () => { mutationWasCalled = true; },
     }));
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
@@ -182,10 +189,11 @@ describe('writeTracker', () => {
     const logBefore = readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8');
 
     const failure = await thrownFailureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         addExampleRow(change);
         change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
         rmSync(ticketFilePath());
@@ -204,10 +212,11 @@ describe('writeTracker', () => {
     const observedDeletions: { deletedTicketCount: number; progressAtDeletion: string }[] = [];
 
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         addExampleRow(change);
         change.deleteAllTicketFilesAfterwards((deletedTicketCount) => {
           observedDeletions.push({ deletedTicketCount, progressAtDeletion: readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8') });
@@ -224,10 +233,11 @@ describe('writeTracker', () => {
     writeReadableTracker(workspace);
 
     const written = await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         change.board.recordNote('Example note', change.at);
         return change.storedLogEntryCount;
       },
@@ -248,10 +258,11 @@ describe('writeTracker', () => {
     };
 
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         fileExampleTicket(change);
         fileExampleTicket(change);
       },
@@ -273,10 +284,11 @@ describe('writeTracker', () => {
     renameSync(ticketFilePath(), handNamedPath);
 
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastCommitted: true }, change.at),
+      mutate:    (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastCommitted: true }, change.at),
     });
 
     expect(readdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder)).toEqual(['001-named-by-hand.md']);
@@ -288,10 +300,11 @@ describe('writeTracker', () => {
     const storedBefore = storedFileContentsOf(workspace);
 
     const failure = await thrownFailureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         const [stored] = change.board.tickets();
         if (stored === undefined) throw new Error('the example tracker holds no ticket');
         change.board.fileTicket({ ...stored, frontmatter: { ...stored.frontmatter, id: '009' } }, change.at);
@@ -307,12 +320,20 @@ describe('writeTracker', () => {
     const addition = { key: 'example-epic', title: 'Example epic', body: 'Alex Example pays in one step.\n' };
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.addEpic(addition, change.at)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.addEpic(addition, change.at)
     });
     expect(readdirSync(localStoreLayoutOf(workspace).epicRecordsFolder)).toEqual(['example-epic.md']);
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.removeEpic('example-epic', change.at)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.removeEpic('example-epic', change.at)
     });
     expect(readdirSync(localStoreLayoutOf(workspace).epicRecordsFolder)).toEqual([]);
   });
@@ -326,10 +347,11 @@ describe('writeTracker', () => {
     writeFileSync(join(localStoreLayoutOf(workspace).draftRecordsFolder, 'D7.json'), '{');
 
     const written = await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => ({
+      mutate:    (change) => ({
         unreadableKeys: [change.unreadableRecords.tickets, change.unreadableRecords.epics, change.unreadableRecords.drafts]
           .map((unreadable) => unreadable.map(({ record, key }) => `${record} ${key}`)),
         newTicketId: change.records.newTicket({
@@ -356,7 +378,12 @@ describe('writeTracker', () => {
     const filesWritten: string[] = [];
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: () => {}, afterFileWritten: (filePath) => filesWritten.push(filePath),
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           () => {},
+      afterFileWritten: (filePath) => filesWritten.push(filePath),
     });
 
     expect(filesWritten).toEqual([]);
@@ -370,6 +397,7 @@ describe('writeTracker', () => {
     const filesWritten: string[] = [];
 
     await writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
       workspace,
       at:               CHANGED_AT,
       now,
@@ -394,10 +422,11 @@ describe('the pipeline a hold hands the Board', () => {
     if (pipelineText !== null) writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, pipelineText);
 
     const written = await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => ({ pipeline: change.board.pipeline(), unreadableVerdict: change.unreadablePipeline?.verdict ?? null }),
+      mutate:    (change) => ({ pipeline: change.board.pipeline(), unreadableVerdict: change.unreadablePipeline?.verdict ?? null }),
     });
 
     expect(written.result).toEqual({ pipeline: null, unreadableVerdict: verdict });
@@ -408,7 +437,11 @@ describe('the pipeline a hold hands the Board', () => {
     writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, '{ "version": 3, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }\n');
 
     const written = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipeline()
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.pipeline()
     });
 
     expect(written.result).toEqual({
@@ -427,7 +460,12 @@ describe('the setup record a hold reads and writes', () => {
     const writtenPaths: string[] = [];
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           (change) => change.board.openSetup(FIRST_SETUP, change.at),
+      afterFileWritten: (filePath) => writtenPaths.push(filePath)
     });
 
     const layout = localStoreLayoutOf(workspace);
@@ -435,12 +473,20 @@ describe('the setup record a hold reads and writes', () => {
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8'))).toMatchObject({ formatVersion: 2, setupId: 'S1', currentStep: 'research' });
     const written = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipelineSetup()?.setupId
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.pipelineSetup()?.setupId
     });
     expect(written.result).toBe('S1');
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.startOverSetup('S1', change.at)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.startOverSetup('S1', change.at)
     });
     expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
   });
@@ -449,10 +495,11 @@ describe('the setup record a hold reads and writes', () => {
     writeReadableTracker(workspace);
     const constitution = { path: 'CONSTITUTION.md', markdown: '# Example Agency\n\n- Keep the basket page fast.\n', blob: 'b'.repeat(40) };
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         const { setup } = change.board.openSetup(FIRST_SETUP, change.at);
         change.board.setConstitution(setup.setupId, {
           markdown:    constitution.markdown,
@@ -465,6 +512,7 @@ describe('the setup record a hold reads and writes', () => {
     const writtenPaths: string[] = [];
 
     await writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
       workspace,
       at:               CHANGED_AT,
       now,
@@ -487,10 +535,18 @@ describe('the setup record a hold reads and writes', () => {
     writeFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, '{ "formatVersion": 2 }\n');
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: addExampleRow
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    addExampleRow
     });
     const refusal = await thrownFailureOf(() => writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.openSetup(FIRST_SETUP, change.at)
     }));
 
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
@@ -510,14 +566,23 @@ describe('the gate profile runs a hold reads and writes', () => {
     const writtenPaths: string[] = [];
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:               CHANGED_AT,
+      now,
+      mutate:           (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at),
+      afterFileWritten: (filePath) => writtenPaths.push(filePath)
     });
 
     expect(writtenPaths).toEqual([localStoreLayoutOf(workspace).gateProfilesRecordPath, localStoreLayoutOf(workspace).logRecordPath]);
     const { gateProfilesRecordPath } = localStoreLayoutOf(workspace);
     expect(JSON.parse(readFileSync(gateProfilesRecordPath, 'utf8'))).toMatchObject({ formatVersion: 1, nextRunNumber: 2, runs: [{ profileRunId: 'P1' }] });
     const written = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.gateProfileRuns().map((run) => run.state)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.gateProfileRuns().map((run) => run.state)
     });
     expect(written.result).toEqual(['queued']);
   });
@@ -527,10 +592,18 @@ describe('the gate profile runs a hold reads and writes', () => {
     writeFileSync(localStoreLayoutOf(workspace).gateProfilesRecordPath, '{ "formatVersion": 1 }\n');
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: addExampleRow
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    addExampleRow
     });
     const refusal = await thrownFailureOf(() => writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at)
     }));
 
     expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');

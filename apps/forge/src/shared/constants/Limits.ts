@@ -1,6 +1,5 @@
 /** The app-wide tuning bounds. */
 export const LIMITS = {
-  LOCK_STALE_MILLISECONDS:            30_000,
   LOCK_RETRY_COUNT:                   50,
   LOCK_RETRY_INTERVAL_MILLISECONDS:   100,
   TICK_STEP_LADDER_MINUTES:           [5, 10, 15, 30, 60, 120, 180, 360, 720, 1440],

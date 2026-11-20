@@ -6,6 +6,7 @@
 import { readingBoardOf }                                           from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { Baton }                                                    from '../../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                          from '../../../src/services/overseer/OverseerFiles.ts';
+import { lockTakerOf }                                              from '../../../src/services/tracker/LockHolders.ts';
 import { projectLocationOf }                                        from '../../../src/services/tracker/ProjectLocation.ts';
 import { listTracker, readListedTrackers, repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { requireWorkspace }                                         from '../../../src/services/tracker/Workspace.ts';
@@ -72,7 +73,7 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
   if (list === null) return;
   const { trackerId } = boardStoreIn(context, workspace).reads.requireProgress();
   const tracker = { trackerId, prefix: projectLocationOf(workspace.rootDirectory).projectPrefix, branchNamespace };
-  const listing = await listTracker(list, tracker, context.now, context.platformPorts.processSupervision.processIsGone);
+  const listing = await listTracker(list, tracker, context.now, lockTakerOf(context.platformPorts.processSupervision));
   if (listing.verdict === 'not-listed') {
     context.standardError(`The repository's tracker list ${list.files.trackerListFilePath} was not written (${listing.reason}); another tracker could take this namespace.`);
   }

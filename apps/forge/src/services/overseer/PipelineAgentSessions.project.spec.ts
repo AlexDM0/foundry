@@ -22,6 +22,7 @@ import { WorktreesFolder }                                                    fr
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                                        from '../../testing/BoardFixtures.ts';
 import { fakeAgentAdapter }                                                   from '../../testing/FakeAgentAdapter.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                            from '../../testing/LockTakers.ts';
 import { useRecordedGit }                                                     from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                     from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                          from '../../testing/ToolGuard.ts';
@@ -95,7 +96,7 @@ function forgeTurnEndContext(): TurnEndContext {
     pathStyle:        { pathModule: path, foldsCase: false },
     agentNaming:      fakeAgentAdapter(),
     sharedRepository: {
-      trackerId: 'forge-tracker-example', files: landingFiles(), now: () => new Date(AT), lockHolderIsGone: () => false
+      trackerId: 'forge-tracker-example', files: landingFiles(), now: () => new Date(AT), lockTaker: LIVE_HOLDERS_LOCK_TAKER
     },
   };
 }

@@ -276,6 +276,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'no-tracker-found':         { kind: 'no-tracker-found', searchedFrom: ROOT },
   'tracker-lock-held':        { kind: 'tracker-lock-held', lockDirectoryPath: `${ROOT}/lock` },
   'lock-taken-over':          { kind: 'lock-taken-over', lockDirectoryPath: `${ROOT}/lock` },
+  'lock-record-unreadable':   { kind: 'lock-record-unreadable', recordPath: `${ROOT}/lock/generation-1` },
   'malformed-hold-journal':   { kind: 'malformed-hold-journal', journalFilePath: `${ROOT}/journal.json`, reason: 'Example reason' },
   'hold-journal-unremovable': { kind: 'hold-journal-unremovable', journalFilePath: `${ROOT}/journal.json`, reason: 'Example reason' },
   'install-version-mismatch': {

@@ -29,6 +29,7 @@ import type { ControlCommand }                            from '../../shared/@ty
 import { WorktreesFolder }                                from '../../shared/WorktreesFolder.ts';
 import { boardFixture }                                   from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, useRecordedGit }                from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
@@ -84,14 +85,22 @@ afterEach(() => {
 
 async function applied(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT)
   });
 }
 
 /** The board as stored, read in a hold that changes nothing. */
 async function storedBoard(): Promise<Board> {
   return (await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: () => undefined
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    () => undefined
   })).board;
 }
 
@@ -161,7 +170,11 @@ async function stoppableRun(request: GateLineRunRequest): Promise<GateLinesRun> 
 }
 
 const storedHold: GateProfilingContext['hold'] = async (mutate) => (await writeTracker({
-  workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+  lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+  workspace,
+  at:        CHANGED_AT,
+  now,
+  mutate:    (change) => mutate({ board: change.board, at: change.at })
 })).result;
 
 function profilingWith(
@@ -295,10 +308,11 @@ describe('a queued run', () => {
 
   testWhenGitIsRecorded('of an entity\'s gate runs its lines in the entity\'s folders from the worktree\'s root, and ends kept by its entity', async () => {
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => change.board.queueGateProfile({
+      mutate:    (change) => change.board.queueGateProfile({
         setupId: null,
         entity:  'web',
         phase:   'build',

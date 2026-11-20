@@ -1,20 +1,20 @@
 /** Creates a new tracker's files under the lock; an existing progress file is never replaced. */
 import { mkdirSync } from 'node:fs';
 
-import { createLogFileWriter }                                 from '../../adapters/log/LogFileWriter.ts';
-import { createProgressFileWriter }                            from '../../adapters/progress/ProgressFileWriter.ts';
-import { emptyProgressFor }                                    from '../../lib/tracker-model/EmptyProgress.ts';
-import type { NewTracker, TrackerCreation }                    from './@types/BoardRecords.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE } from './GenerationLock.ts';
-import { localStoreLayoutOf }                                  from './LocalStoreLayout.ts';
-import { withLock }                                            from './TrackerLock.ts';
-import type { Workspace }                                      from './Workspace.ts';
+import { createLogFileWriter }              from '../../adapters/log/LogFileWriter.ts';
+import { createProgressFileWriter }         from '../../adapters/progress/ProgressFileWriter.ts';
+import { emptyProgressFor }                 from '../../lib/tracker-model/EmptyProgress.ts';
+import type { NewTracker, TrackerCreation } from './@types/BoardRecords.ts';
+import type { LockTaker }                   from './GenerationLock.ts';
+import { localStoreLayoutOf }               from './LocalStoreLayout.ts';
+import { withLock }                         from './TrackerLock.ts';
+import type { Workspace }                   from './Workspace.ts';
 
 export async function createTracker(
   workspace: Workspace,
   newTracker: NewTracker,
   now: () => Date,
-  lockHolderIsGone: LockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE,
+  lockTaker: LockTaker,
 ): Promise<TrackerCreation> {
   const layout = localStoreLayoutOf(workspace);
   mkdirSync(layout.ticketRecordsFolder, { recursive: true });
@@ -27,5 +27,5 @@ export async function createTracker(
     // A crash between the two writes leaves that old log.jsonl beside the new progress file.
     createLogFileWriter(layout.logRecordPath).write([]);
     return { verdict: 'created' };
-  }, now, lockHolderIsGone);
+  }, now, lockTaker);
 }

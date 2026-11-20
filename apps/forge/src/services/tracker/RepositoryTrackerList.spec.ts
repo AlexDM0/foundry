@@ -15,8 +15,8 @@ import {
 
 import type { RepositoryTracker }                         from '../../lib/git/RepositoryLandings.ts';
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }                   from './GenerationLock.ts';
 import {
   listTracker,
   readListedTrackers,
@@ -95,8 +95,8 @@ describe('the repository\'s list', () => {
     const list = repositoryTrackerListOf(repositoryDirectory);
     if (list === null) throw new Error('the scratch repository keeps no list');
 
-    expect(await listTracker(list, FORGE_TRACKER, FROZEN_NOW, NO_LOCK_HOLDER_READS_AS_GONE)).toEqual({ verdict: 'listed' });
-    expect(await listTracker(list, GAIA_TRACKER, FROZEN_NOW, NO_LOCK_HOLDER_READS_AS_GONE)).toEqual({ verdict: 'listed' });
+    expect(await listTracker(list, FORGE_TRACKER, FROZEN_NOW, LIVE_HOLDERS_LOCK_TAKER)).toEqual({ verdict: 'listed' });
+    expect(await listTracker(list, GAIA_TRACKER, FROZEN_NOW, LIVE_HOLDERS_LOCK_TAKER)).toEqual({ verdict: 'listed' });
 
     expect(readFileSync(list.files.trackerListFilePath, 'utf8')).toContain(FORGE_TRACKER.trackerId);
     expect(readListedTrackers(list)).toEqual({ verdict: 'readable', trackers: [FORGE_TRACKER] });

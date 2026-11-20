@@ -71,6 +71,7 @@ import {
 } from '../../src/services/overseer/TalosStart.ts';
 import type { BoardStore }            from '../../src/services/store/BoardStore.ts';
 import { createLocalFilesBoardStore } from '../../src/services/store/LocalFilesBoardStore.ts';
+import { lockTakerOf }                from '../../src/services/tracker/LockHolders.ts';
 import { PictureStore }               from '../../src/services/tracker/PictureStore.ts';
 import { projectLocationOf }          from '../../src/services/tracker/ProjectLocation.ts';
 import type { Workspace }             from '../../src/services/tracker/Workspace.ts';
@@ -188,7 +189,7 @@ export function requireNoLiveOverseer(ports: PlatformPorts, files: OverseerFiles
 /** The Overseer's own store of its board, built from its workspace: the context of a start names no current directory. */
 function overseerBoardStoreOf(request: StoppedOverseerRequest): BoardStore {
   const { context, workspace } = request;
-  return createLocalFilesBoardStore({ workspace, now: context.now, lockHolderIsGone: context.platformPorts.processSupervision.processIsGone });
+  return createLocalFilesBoardStore({ workspace, now: context.now, lockTaker: lockTakerOf(context.platformPorts.processSupervision) });
 }
 
 async function registerOverseer(request: StoppedOverseerRequest, registration: BoardRegistration): Promise<void> {

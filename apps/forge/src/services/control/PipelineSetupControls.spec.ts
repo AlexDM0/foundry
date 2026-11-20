@@ -27,6 +27,7 @@ import { OperationRefusal }                                       from '../../sh
 import { boardFixture, type BoardFixture }                        from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }       from '../../testing/EchoedControlContext.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }   from '../../testing/FixtureRecordAllocation.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                from '../../testing/LockTakers.ts';
 import type { RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
@@ -263,10 +264,11 @@ describe('a draft edit', () => {
       const storedRecord = readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8');
 
       const failure = await rejectionOf(() => writeTracker({
+        lockTaker: LIVE_HOLDERS_LOCK_TAKER,
         workspace,
-        at:     CHANGED_AT,
-        now:    () => new Date(CHANGED_AT),
-        mutate: (change) => ControlService.apply({
+        at:        CHANGED_AT,
+        now:       () => new Date(CHANGED_AT),
+        mutate:    (change) => ControlService.apply({
           kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 0, edits: [{ target: 'approval', approval: 'merge', value: true }], isACopy: true
         }, change, ECHOED_CONTROL_CONTEXT).result,
       }));

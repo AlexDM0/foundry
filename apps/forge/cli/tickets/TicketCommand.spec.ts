@@ -20,11 +20,11 @@ import {
   test
 }                                                                             from 'bun:test';
 import * as AtomicFile                            from '../../src/lib/atomic-file/AtomicFile.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }           from '../../src/services/tracker/GenerationLock.ts';
 import { withLock }                               from '../../src/services/tracker/TrackerLock.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { parkingLockRetries }                     from '../../src/testing/LockRetryWaits.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                from '../../src/testing/LockTakers.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
@@ -181,7 +181,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
       ];
       await waitUntil(() => parkedRetries() === adds.length, 'both adds queueing on the lock');
       return adds;
-    }, () => new Date(), NO_LOCK_HOLDER_READS_AS_GONE));
+    }, () => new Date(), LIVE_HOLDERS_LOCK_TAKER));
 
     expect(await Promise.all(queuedAdds)).toEqual([0, 0]);
     const ticketFileNames = readdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets')).sort();

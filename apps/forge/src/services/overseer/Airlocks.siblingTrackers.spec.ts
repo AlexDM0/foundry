@@ -80,12 +80,15 @@ function siblingLands(current: AirlocksHarness, previousTip: string, commit: str
   });
 }
 
-const siblingLockPayload = { processId: SIBLING_PROCESS_ID, acquiredAt: LocalTimeUtil.formatLocalIso(new Date(HARNESS_AT)) };
+const siblingLockPayload = {
+  holder:     { processId: SIBLING_PROCESS_ID, startStamp: null, bootIdentity: null },
+  acquiredAt: LocalTimeUtil.formatLocalIso(new Date(HARNESS_AT)),
+};
 
 /** The sibling takes the landing lock as a live process would, and the returned call frees it. */
 function siblingTakesTheLock(current: AirlocksHarness): () => void {
   const { lockDirectoryPath } = sharedRepositoryOf(current).files;
-  const taken = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, siblingLockPayload, new Date(HARNESS_AT).getTime(), () => false);
+  const taken = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, siblingLockPayload, () => false);
   if (taken.verdict !== 'acquired') throw new Error(`The sibling could not take the lock: ${taken.verdict}.`);
   return () => LockGenerationSteps.release(lockDirectoryPath, taken.generation, siblingLockPayload);
 }
@@ -94,7 +97,7 @@ function siblingTakesTheLock(current: AirlocksHarness): () => void {
 function landingLockIsFree(current: AirlocksHarness): boolean {
   const { lockDirectoryPath } = sharedRepositoryOf(current).files;
   if (!existsSync(lockDirectoryPath)) return true;
-  const takenNow = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, siblingLockPayload, new Date(HARNESS_AT).getTime(), () => false);
+  const takenNow = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, siblingLockPayload, () => false);
   if (takenNow.verdict !== 'acquired') return false;
   LockGenerationSteps.release(lockDirectoryPath, takenNow.generation, siblingLockPayload);
   return true;

@@ -46,6 +46,7 @@ import {
   fakeStartedLine
 } from '../../src/testing/FakeAgentAdapter.ts';
 import { queueOnCurrentGreen }       from '../../src/testing/GreenQueue.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }   from '../../src/testing/LockTakers.ts';
 import { nativePlatformPorts }       from '../../src/testing/NativePlatformPorts.ts';
 import { stopProcessesReachingInto } from '../../src/testing/ProcessesInFolder.ts';
 import { useRecordedGit }            from '../../src/testing/RecordedGit.ts';
@@ -267,6 +268,7 @@ async function queueTheConflictingBranch(): Promise<void> {
   mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.WORKTREES_FOLDER, RECORDED_FLOW_TICKET_BRANCH), { recursive: true });
   const ticketTree = REPLAYED_OBJECT_IDS[RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE];
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace: requireWorkspace(repositoryDirectory),
     at:        SPEC_STAMP,
     now:       SPEC_CLOCK,

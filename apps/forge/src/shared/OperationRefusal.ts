@@ -18,6 +18,7 @@ export type OperationRefusalDetail =
   | { kind: 'no-tracker-found'; searchedFrom: string }
   | { kind: 'tracker-lock-held'; lockDirectoryPath: string }
   | { kind: 'lock-taken-over'; lockDirectoryPath: string }
+  | { kind: 'lock-record-unreadable'; recordPath: string }
   | { kind: 'malformed-hold-journal'; journalFilePath: string; reason: string }
   | { kind: 'hold-journal-unremovable'; journalFilePath: string; reason: string }
   | { kind: 'install-version-mismatch'; rootDirectory: string; manifestFilePath: string; installVersion: number; mismatch: InstallVersionMismatch }

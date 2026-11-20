@@ -15,6 +15,7 @@ import { localStoreLayoutOf }                      from '../../src/services/trac
 import { writeTracker }                            from '../../src/services/tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                       from '../../src/services/tracker/Workspace.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                 from '../../src/testing/LockTakers.ts';
 import { useRecordedGit }                          from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                  from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }               from '../../src/testing/ToolGuard.ts';
@@ -45,6 +46,7 @@ beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', title, '--type', 'ticket', '--priority', priority]);
   }
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace: workspacePathsFor(repositoryDirectory),
     at:        QUEUED_AT,
     now:       () => FROZEN_NOW,
@@ -82,6 +84,7 @@ describeWhenGitIsRecorded('the merges command', () => {
 
   test('with merge approval on lists the accepted tickets in User\'s press order, whatever their priority, then the ones waiting for an accept', async () => {
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: workspacePathsFor(repositoryDirectory),
       at:        QUEUED_AT,
       now:       () => FROZEN_NOW,

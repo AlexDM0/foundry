@@ -31,6 +31,8 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'A line planted in a scanned source text, never run: the main-thread guard must name it.',
   'src/lib/talos/TalosMainThread.spec.ts: [\'an atomics wait\', \'Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);\', \'Atomics.wait\'],':
     'The same planted form.',
+  'src/services/store/LocalFilesBoardStore.integration.spec.ts: Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0);':
+    'The script of a holder that must stay inside its hold until the case kills it; the case waits on the line it prints, never on time.',
   'src/lib/talos/ChildSupervisor.spec.ts: await Bun.sleep(IDENTITY_HELD_PAST_A_LEADERLESS_STOP_MILLISECONDS);':
     'A negative: a stop that does not wait for the identity ends unseen, so there is no state to wait on; load only shortens what the hold covers.',
   'src/lib/talos/Talos.lines.integration.spec.ts: const SLEEPS_PAST_THE_BOUND = \'await Bun.sleep(1200);\';':

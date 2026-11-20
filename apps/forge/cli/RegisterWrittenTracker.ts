@@ -3,6 +3,7 @@
  * error and never changes the command's exit code.
  */
 import type { StoreReadFace }                                                                        from '../src/services/store/BoardStore.ts';
+import { lockTakerOf }                                                                               from '../src/services/tracker/LockHolders.ts';
 import { type MonitorRegistrationRequest, type ProgressRegistrationReading, registerWithTheMonitor } from '../src/services/tracker/MonitorRegistration.ts';
 import type { Workspace }                                                                            from '../src/services/tracker/Workspace.ts';
 import { refusalIsOperationRefusal }                                                                 from '../src/shared/OperationRefusal.ts';
@@ -33,7 +34,7 @@ export function monitorRegistrationRequestOf(context: CommandContext, workspace:
     command:              context.commandVerb,
     program:              context.programPath,
     now:                  context.now,
-    lockHolderIsGone:     context.platformPorts.processSupervision.processIsGone,
+    lockTaker:            lockTakerOf(context.platformPorts.processSupervision),
   };
 }
 

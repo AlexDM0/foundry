@@ -426,9 +426,12 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/services/overseer/OverseerServer.integration.spec.ts` | 268 | real heartbeat interval, private deadline | Kept: the five-second heartbeat runs in the server under test; the verdict is the `: ping` read, and only the deadline became the shared one. |
 | `src/services/overseer/Regrouping.integration.spec.ts` | 70 | try-count loop | Redesigned: `waitUntil`. |
 | `src/services/overseer/Regrouping.integration.spec.ts` | 28 | processes signalled | Kept: real process groups are the subject. |
+| `src/services/store/LocalFilesBoardStore.integration.spec.ts` | 46 | clock read | Kept: a clock an hour ahead shows that a record's age frees nothing; no verdict reads the time. |
+| `src/services/store/LocalFilesBoardStore.integration.spec.ts` | 109 | process signalled | Kept: a holder killed inside its hold is the subject, and its exit is awaited. |
+| `src/services/store/LocalFilesBoardStore.integration.spec.ts` | 74 | blocking wait in a child's script | Kept: the holder must stay inside its hold until the case kills it; the case waits on the line it prints. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 104 | fixed hold while a call queues | Redesigned: the holder leaves once the second call parked a retry. |
 | `src/services/tracker/TrackerLock.integration.spec.ts` | 151 | elapsed time against the retry budget | Redesigned: the recorded lock waits are empty, under `lockRetryWaitsDuring`. |
-| `src/services/tracker/TrackerLock.integration.spec.ts` | 167 | clock read | Kept: backdates a lock an hour past the stale threshold, a margin no run approaches. |
+| `src/services/tracker/TrackerLock.integration.spec.ts` | 56 | clock read | Kept: a clock an hour ahead shows that a record's age frees nothing; no verdict reads the time. |
 | `src/testing/FakeAgentAdapter.integration.spec.ts` | 103 | process signalled | Kept: the fake agent's crash is the claim, and its exit is awaited. |
 | `src/LintRules.spec.ts` | 54 | clock read | Kept: planted text linted in memory, never run. |
 | `src/testing/fake-agent/FakeAgentChild.ts` | 27 | process signalled | Kept: the fake agent crashing itself is its scenario; a spec awaits its exit. |

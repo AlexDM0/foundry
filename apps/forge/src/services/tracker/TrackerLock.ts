@@ -2,10 +2,10 @@
  * One writer at a time in a tracker, across processes: the generation lock on the tracker's lock directory, under which any hold journal a
  * cut-short hold left is replayed before the action runs.
  */
-import { type HoldFence, type LockHolderIsGone, withLockAt } from './GenerationLock.ts';
-import { replayHoldJournal }                                 from './HoldJournal.ts';
-import { localStoreLayoutOf }                                from './LocalStoreLayout.ts';
-import type { Workspace }                                    from './Workspace.ts';
+import { type HoldFence, type LockTaker, withLockAt } from './GenerationLock.ts';
+import { replayHoldJournal }                          from './HoldJournal.ts';
+import { localStoreLayoutOf }                         from './LocalStoreLayout.ts';
+import type { Workspace }                             from './Workspace.ts';
 
 function replayingTheJournalFirst<ActionResult>(
   workspace: Workspace,
@@ -19,15 +19,14 @@ function replayingTheJournalFirst<ActionResult>(
 
 /**
  * Run `action` with this tracker's lock held, releasing it however `action` ends, after replaying any hold journal a cut-short hold left.
- * A held record is taken over once its process is gone or its stamp is more than `LIMITS.LOCK_STALE_MILLISECONDS` old, live holder or not;
- * one stamped in the future by a live holder never goes stale. Throws `OperationRefusal('unrepaired')`, its detail `tracker-lock-held` — exit
- * 2 — when the retry budget runs out.
+ * A held record is taken over only once the taker judges its holder's process gone, never by its age. Throws `OperationRefusal('unrepaired')`
+ * — exit 2 — its detail `tracker-lock-held` when the retry budget runs out, and `lock-record-unreadable` when the newest record cannot be read.
  */
 export function withLock<ActionResult>(
   workspace: Workspace,
   action: (hold: HoldFence) => Promise<ActionResult> | ActionResult,
   now: () => Date,
-  holderIsGone: LockHolderIsGone,
+  taker: LockTaker,
 ): Promise<ActionResult> {
-  return withLockAt(localStoreLayoutOf(workspace).storeLockFolder, replayingTheJournalFirst(workspace, action), now, holderIsGone);
+  return withLockAt(localStoreLayoutOf(workspace).storeLockFolder, replayingTheJournalFirst(workspace, action), now, taker);
 }

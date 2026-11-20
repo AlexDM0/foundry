@@ -15,6 +15,7 @@ import {
 import { OperationRefusalWordingUtil }                    from '../../adapters/utils/OperationRefusalWordingUtil.ts';
 import type { PipelineEntity }                            from '../../lib/tracker-model/@types/Pipeline.ts';
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { storedFileContentsOf, writeReadableTracker }     from '../../testing/TrackerFileFixtures.ts';
 import type { BoardTransaction }                          from './BoardTransaction.ts';
@@ -61,7 +62,11 @@ test('a pipeline with entities in a tracker in a folder is refused, naming the f
   const filesBefore = storedFileContentsOf(workspace);
 
   const failure = await thrownFailureOf(() => writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => storeNoGates(change, EXAMPLE_ENTITIES)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => storeNoGates(change, EXAMPLE_ENTITIES)
   }));
 
   const { pipelineRecordPath } = localStoreLayoutOf(workspace);
@@ -77,7 +82,11 @@ test('a pipeline with entities in a tracker at the repository\'s root is stored'
   const workspace = trackerIn('');
 
   await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => storeNoGates(change, EXAMPLE_ENTITIES)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => storeNoGates(change, EXAMPLE_ENTITIES)
   });
 
   expect(storedFileContentsOf(workspace)['pipeline.json']).toContain('"entities"');
@@ -87,7 +96,11 @@ test('a pipeline without entities in a tracker in a folder is stored as before',
   const workspace = trackerIn('apps/web');
 
   await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => storeNoGates(change, null)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => storeNoGates(change, null)
   });
 
   expect(JSON.parse(storedFileContentsOf(workspace)['pipeline.json'] ?? 'null')).toEqual({

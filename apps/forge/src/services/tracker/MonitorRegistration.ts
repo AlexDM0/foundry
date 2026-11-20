@@ -12,14 +12,14 @@ import {
   resolve
 } from 'node:path';
 
-import { storedFileTextOf }                                                from '../../adapters/StoredFileText.ts';
-import { writeFileAtomically }                                             from '../../lib/atomic-file/AtomicFile.ts';
-import { GitProcess }                                                      from '../../lib/git/GitProcess.ts';
-import { LocalTimeUtil }                                                   from '../../lib/local-time/LocalTimeUtil.ts';
-import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape }   from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
-import { refusalIsOperationRefusal }                                       from '../../shared/OperationRefusal.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from './GenerationLock.ts';
-import { MONITOR_REGISTRY_FILES }                                          from './constants/MonitorRegistryFiles.ts';
+import { storedFileTextOf }                                              from '../../adapters/StoredFileText.ts';
+import { writeFileAtomically }                                           from '../../lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                                                    from '../../lib/git/GitProcess.ts';
+import { LocalTimeUtil }                                                 from '../../lib/local-time/LocalTimeUtil.ts';
+import { VersionedRegistryUtil, type RegistryEntry, type RegistryShape } from '../../lib/versioned-registry/VersionedRegistryUtil.ts';
+import { refusalIsOperationRefusal }                                     from '../../shared/OperationRefusal.ts';
+import { type LockTaker, withLockAt }                                    from './GenerationLock.ts';
+import { MONITOR_REGISTRY_FILES }                                        from './constants/MonitorRegistryFiles.ts';
 
 /** The board's progress record as the caller read it through the store: the registry names the board by it. */
 export type ProgressRegistrationReading =
@@ -46,8 +46,8 @@ export interface MonitorRegistrationRequest {
   overseer?:            OverseerRegistration | 'removed';
   /** Whether the forge serves, stopped, handed over or crashed, written beside `overseer`; absent, a stored presence key is kept as it was. */
   presence?:            PresenceRegistration;
-  /** The platform's process check for the registry lock; absent, only a stale stamp frees it. */
-  lockHolderIsGone?:    LockHolderIsGone;
+  /** This process as the registry lock's taker, and how it judges a holder it finds. */
+  lockTaker:            LockTaker;
 }
 
 export interface OverseerRegistration {
@@ -165,8 +165,7 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    rootDirectory, htmlFilePath, progress, monitorFolder, temporaryDirectories, command, program, now, overseer, presence,
-    lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
+    rootDirectory, htmlFilePath, progress, monitorFolder, temporaryDirectories, command, program, now, overseer, presence, lockTaker
   } = request;
   if (trackerLiesInATemporaryFolder(rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
   if (progress.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
@@ -191,7 +190,7 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
   try {
     // Made before the lock, which would otherwise read a home it cannot write as a lock held until its retries ran out.
     mkdirSync(monitorFolder, { recursive: true });
-    return await withLockAt(join(monitorFolder, MONITOR_REGISTRY_FILES.LOCK_DIRECTORY_NAME), () => registerUnderTheLock(registration), now, lockHolderIsGone);
+    return await withLockAt(join(monitorFolder, MONITOR_REGISTRY_FILES.LOCK_DIRECTORY_NAME), () => registerUnderTheLock(registration), now, lockTaker);
   } catch (error) {
     return { verdict: 'not-registered-unwritable', registryFilePath, reason: errorReasonOf(error) };
   }

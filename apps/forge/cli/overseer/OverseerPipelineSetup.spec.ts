@@ -34,6 +34,7 @@ import { createScratchDrivePass }                                    from '../..
 import { ECHOED_CONTROL_CONTEXT }                                    from '../../src/testing/EchoedControlContext.ts';
 import { fakeAgentAdapter, fakeStartedLine }                         from '../../src/testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                       from '../../src/testing/FakeGateConfinement.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                   from '../../src/testing/LockTakers.ts';
 import { nativePlatformPorts }                                       from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                            from '../../src/testing/RecordedGit.ts';
 import { RECORDED_FLOW_MAIN_LINE }                                   from '../../src/testing/RecordedGitFlow.ts';
@@ -210,6 +211,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a session at an entity', () =
     await run(['gate', 'none']);
 
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: requireWorkspace(repositoryDirectory),
       at:        SPEC_STAMP,
       now:       SPEC_CLOCK,
@@ -235,6 +237,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a session at an entity', () =
     await run(['gate', 'none']);
 
     const attempt = writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: requireWorkspace(repositoryDirectory),
       at:        SPEC_STAMP,
       now:       SPEC_CLOCK,

@@ -15,6 +15,7 @@ import { environmentCopy }                                                      
 import { WorktreesFolder }                                                        from '../../shared/WorktreesFolder.ts';
 import { ECHOED_CONTROL_CONTEXT }                                                 from '../../testing/EchoedControlContext.ts';
 import { runsAsGiven }                                                            from '../../testing/FakeGateConfinement.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                                from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                                                    from '../../testing/NativePlatformPorts.ts';
 import { GIT_CALL_SHAPES, type RecordedGitStage, useRecordedGit }                 from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                         from '../../testing/ScratchWorkspace.ts';
@@ -51,13 +52,21 @@ afterEach(() => {
 
 async function applied(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT)
   });
 }
 
 async function storedBoard(): Promise<Board> {
   return (await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: () => undefined
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    () => undefined
   })).board;
 }
 
@@ -86,7 +95,11 @@ function realProfiling(): ReturnType<typeof GateProfiling.createGateProfiling> {
     gateEnvironment: environmentCopy,
     confinedLineIn:  () => runsAsGiven,
     hold:            async (mutate) => (await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => mutate({ board: change.board, at: change.at })
     })).result,
     wake:               () => undefined,
     log:                () => undefined,

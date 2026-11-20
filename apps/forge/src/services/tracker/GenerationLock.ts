@@ -1,35 +1,43 @@
 /**
  * One holder at a time on a lock directory, across processes. The lock is a directory of numbered generation
  * records, each created exclusively and never rewritten: taking the lock is creating the generation after
- * the newest once that one is released or stale, and releasing is creating the next as a released record,
- * so no step ever removes or replaces a record another process may have just written.
- *
- * A stated exception to "a clock decides nothing": it decides only lock staleness, against a time the tool
- * itself wrote; the fallback to the record's own mtime, reached only when the record is missing,
- * unparseable or holds an unparseable time, fails closed both ways.
+ * the newest once that one is released or its holder's process is gone, and releasing is creating the next as
+ * a released record, so no step ever removes or replaces a record another process may have just written.
+ * A record's age frees nothing: a live holder keeps the lock however long it holds.
  */
 import {
   mkdirSync,
   readdirSync,
   readFileSync,
-  statSync,
   unlinkSync
 } from 'node:fs';
 import { join } from 'node:path';
 
 import { createFileAtomically } from '../../lib/atomic-file/AtomicFile.ts';
 import type { FileReplace }     from '../../lib/atomic-file/FileReplace.ts';
+import { errorCodeOf }          from '../../lib/atomic-file/HeldFileFailure.ts';
 import { LocalTimeUtil }        from '../../lib/local-time/LocalTimeUtil.ts';
 import { OperationRefusal }     from '../../shared/OperationRefusal.ts';
 import { LIMITS }               from '../../shared/constants/Limits.ts';
 
-/** What a hold checks before each write: it throws once the hold's lock was taken over, so a stale holder writes nothing further. */
+/** What a hold checks before each write: it throws once the hold's lock was taken over, so a holder misjudged as gone writes nothing further. */
 export interface HoldFence {
   requireStillHeld(): void;
 }
 
+/**
+ * A lock record's holder by process identity: `null` where the platform cannot read the process's start or boot. Declared beside
+ * `LockHolderIsGone`, which names it: in `LockHolders.ts`, which returns that judgement, the two files would import each other.
+ */
+export interface LockHolder {
+  processId:    number;
+  startStamp:   string | null;
+  bootIdentity: string | null;
+}
+
+/** `acquiredAt` is a fact for a report, never judged. */
 interface LockPayload {
-  processId:  number;
+  holder:     LockHolder;
   acquiredAt: string;
 }
 
@@ -40,13 +48,20 @@ interface GenerationRecord extends LockPayload {
   state: GenerationState;
 }
 
-/** The platform's answer whether a holder's process is gone, which reads a zombie as gone; `false` when it cannot tell. */
-export type LockHolderIsGone = (processId: number) => boolean;
+/** True only when the platform knows the recorded holder's process is gone; `false` whenever it cannot tell. */
+export type LockHolderIsGone = (holder: LockHolder) => boolean;
 
-/** For a caller without the platform's check: every holder reads as live, so only a stale stamp frees the lock. */
-export const NO_LOCK_HOLDER_READS_AS_GONE: LockHolderIsGone = () => false;
+/** Who takes a lock: the holder this process writes, read once when first needed, and how it judges a holder it finds. */
+export interface LockTaker {
+  holderOfThisProcess: () => LockHolder;
+  holderIsGone:        LockHolderIsGone;
+}
 
-type AcquireAttempt = { verdict: 'acquired'; generation: number } | { verdict: 'held' } | { verdict: 'contended' };
+type AcquireAttempt =
+  | { verdict: 'acquired'; generation: number }
+  | { verdict: 'held' }
+  | { verdict: 'contended' }
+  | { verdict: 'unreadable'; recordPath: string };
 
 const ACQUIRE_STEPS = ['newest-judged-free', 'generation-created'] as const;
 type AcquireStep = typeof ACQUIRE_STEPS[number];
@@ -84,39 +99,51 @@ function generationsIn(lockDirectoryPath: string): number[] | null {
   }
 }
 
-function readGenerationRecord(generationPath: string): GenerationRecord | null {
-  try {
-    const parsed: unknown = JSON.parse(readFileSync(generationPath, 'utf8'));
-    if (typeof parsed !== 'object' || parsed === null) return null;
-    const { processId, acquiredAt, state } = parsed as { processId?: unknown; acquiredAt?: unknown; state?: unknown };
-    if (typeof processId !== 'number' || typeof acquiredAt !== 'string') return null;
-    const knownState = GENERATION_STATES.find((candidate) => candidate === state);
-    if (knownState === undefined) return null;
-    return { acquiredAt, processId, state: knownState };
-  } catch {
-    return null;
-  }
+function nullOrStringOf(value: unknown): string | null | undefined {
+  return value === null || typeof value === 'string' ? value : undefined;
+}
+
+function lockHolderOfStored(stored: unknown): LockHolder | null {
+  if (typeof stored !== 'object' || stored === null) return null;
+  const { processId, startStamp, bootIdentity } = stored as Record<string, unknown>;
+  const readStartStamp   = nullOrStringOf(startStamp);
+  const readBootIdentity = nullOrStringOf(bootIdentity);
+  if (typeof processId !== 'number' || readStartStamp === undefined || readBootIdentity === undefined) return null;
+  return { processId, startStamp: readStartStamp, bootIdentity: readBootIdentity };
+}
+
+/** A forge from before process identity named its holder by process id alone; that holder is judged by its process id. */
+function holderOfRecordBeforeProcessIdentity(processId: unknown): LockHolder | null {
+  return typeof processId === 'number' ? { processId, startStamp: null, bootIdentity: null } : null;
 }
 
 /**
- * An unreadable record is not free on that ground alone: the tool never writes one, so it is judged on
- * the age of its own mtime and waits when that cannot decide either.
+ * What judging the newest record needs: a released record is free whatever else it holds, a held one names its holder. `removed` is a
+ * record another holder removed after it moved past it, between the listing and this read.
  */
-function generationIsFree(generationPath: string, nowMilliseconds: number, holderIsGone: LockHolderIsGone): boolean {
-  const record = readGenerationRecord(generationPath);
-  if (record === null) return fileIsOlderThanTheStaleThreshold(generationPath, nowMilliseconds);
-  if (record.state === 'released' || holderIsGone(record.processId)) return true;
-  const acquiredAtMilliseconds = Date.parse(record.acquiredAt);
-  if (Number.isNaN(acquiredAtMilliseconds)) return fileIsOlderThanTheStaleThreshold(generationPath, nowMilliseconds);
-  return nowMilliseconds - acquiredAtMilliseconds > LIMITS.LOCK_STALE_MILLISECONDS;
+type GenerationReading = { state: 'released' } | { state: 'held'; holder: LockHolder } | { state: 'removed' } | { state: 'unreadable' };
+
+function generationTextOf(generationPath: string): string | null {
+  try {
+    return readFileSync(generationPath, 'utf8');
+  } catch (error) {
+    if (errorCodeOf(error) === 'ENOENT') return null;
+    throw error;
+  }
 }
 
-function fileIsOlderThanTheStaleThreshold(filePath: string, nowMilliseconds: number): boolean {
+function readGenerationRecord(generationPath: string): GenerationReading {
   try {
-    return nowMilliseconds - statSync(filePath).mtimeMs > LIMITS.LOCK_STALE_MILLISECONDS;
+    const generationText = generationTextOf(generationPath);
+    if (generationText === null) return { state: 'removed' };
+    const parsed: unknown = JSON.parse(generationText);
+    if (typeof parsed !== 'object' || parsed === null) return { state: 'unreadable' };
+    const { holder, processId, state } = parsed as { holder?: unknown; processId?: unknown; state?: unknown };
+    if (state === 'released') return { state: 'released' };
+    const readHolder = holder === undefined ? holderOfRecordBeforeProcessIdentity(processId) : lockHolderOfStored(holder);
+    return state === 'held' && readHolder !== null ? { state: 'held', holder: readHolder } : { state: 'unreadable' };
   } catch {
-    // Fail closed: a `stat` that errors is not an argument for taking someone else's lock.
-    return false;
+    return { state: 'unreadable' };
   }
 }
 
@@ -149,7 +176,6 @@ function removeGenerationsBelow(lockDirectoryPath: string, generation: number): 
 function attemptedAcquire(
   lockDirectoryPath: string,
   payload: LockPayload,
-  nowMilliseconds: number,
   holderIsGone: LockHolderIsGone,
   afterStep: (step: AcquireStep) => void = () => {},
 ): AcquireAttempt {
@@ -161,7 +187,14 @@ function attemptedAcquire(
   const generations = generationsIn(lockDirectoryPath);
   if (generations === null) return { verdict: 'held' };
   const newest = generations.at(-1);
-  if (newest !== undefined && !generationIsFree(generationPathFor(lockDirectoryPath, newest), nowMilliseconds, holderIsGone)) return { verdict: 'held' };
+  if (newest !== undefined) {
+    const newestPath = generationPathFor(lockDirectoryPath, newest);
+    const reading    = readGenerationRecord(newestPath);
+    // The tool creates every record whole, so only damage outside it leaves one unreadable, and no process can be judged from it.
+    if (reading.state === 'unreadable') return { verdict: 'unreadable', recordPath: newestPath };
+    if (reading.state === 'removed') return { verdict: 'contended' };
+    if (reading.state === 'held' && !holderIsGone(reading.holder)) return { verdict: 'held' };
+  }
   afterStep('newest-judged-free');
   const claimed = generationAfter(newest ?? 0);
   if (claimed === null) return { verdict: 'held' };
@@ -172,7 +205,7 @@ function attemptedAcquire(
   return { generation: claimed, verdict: 'acquired' };
 }
 
-/** A holder that was taken over as stale finds its successor generation taken, and so changes nothing. */
+/** A holder that was taken over finds its successor generation taken, and so changes nothing. */
 function release(lockDirectoryPath: string, heldGeneration: number, payload: LockPayload, fileReplace?: FileReplace): void {
   const releaseGeneration = generationAfter(heldGeneration);
   if (releaseGeneration === null) return;
@@ -183,12 +216,17 @@ function release(lockDirectoryPath: string, heldGeneration: number, payload: Loc
   }
 }
 
-/** The steps `withLockAt` interleaves between processes, exposed so a spec can replay a race step by step. */
+function lockPayloadOf(holder: LockHolder, moment: Date): LockPayload {
+  return { acquiredAt: LocalTimeUtil.formatLocalIso(moment), holder };
+}
+
+/** The steps `withLockAt` interleaves between processes: a spec replays a race by them, and the landing takes its lock by them without waiting. */
 export const LockGenerationSteps = {
   acquireSteps: ACQUIRE_STEPS,
   attemptedAcquire,
   generationPathFor,
   generationsIn,
+  lockPayloadOf,
   release,
 } as const;
 
@@ -201,30 +239,26 @@ function lockHoldOf(lockDirectoryPath: string, heldGeneration: number): HoldFenc
   };
 }
 
-function lockPayloadAt(moment: Date): LockPayload {
-  return { acquiredAt: LocalTimeUtil.formatLocalIso(moment), processId: process.pid };
-}
-
 /**
- * Run `action` with the lock at `lockDirectoryPath` held, releasing it however `action` ends. A held record is taken over once its process
- * is gone or its stamp is more than `LIMITS.LOCK_STALE_MILLISECONDS` old, live holder or not; one stamped in the future by a live holder
- * never goes stale. Throws `OperationRefusal('unrepaired')`, its detail `tracker-lock-held` — exit 2 — when the retry budget runs out.
+ * Run `action` with the lock at `lockDirectoryPath` held, releasing it however `action` ends. A held record is taken over only once the
+ * taker judges its holder's process gone, never by its age. Throws `OperationRefusal('unrepaired')` — exit 2 — its detail
+ * `tracker-lock-held` when the retry budget runs out, and `lock-record-unreadable` at once when the newest record cannot be read.
  */
 export async function withLockAt<ActionResult>(
   lockDirectoryPath: string,
   action: (hold: HoldFence) => Promise<ActionResult> | ActionResult,
   now: () => Date,
-  holderIsGone: LockHolderIsGone,
+  taker: LockTaker,
 ): Promise<ActionResult> {
+  const holder = taker.holderOfThisProcess();
   let heldGeneration: number | null = null;
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT; attempt++) {
-    // Stamped at each attempt, so the wait before it does not count against the holder's staleness budget.
-    const attemptedAt   = now();
-    const attemptResult = attemptedAcquire(lockDirectoryPath, lockPayloadAt(attemptedAt), attemptedAt.getTime(), holderIsGone);
+    const attemptResult = attemptedAcquire(lockDirectoryPath, lockPayloadOf(holder, now()), taker.holderIsGone);
     if (attemptResult.verdict === 'acquired') {
       heldGeneration = attemptResult.generation;
       break;
     }
+    if (attemptResult.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'lock-record-unreadable', recordPath: attemptResult.recordPath });
     // Contention retries immediately rather than sleeping: another process just moved the lock, and its newest record decides.
     if (attemptResult.verdict === 'contended') continue;
     await Bun.sleep(LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS);
@@ -237,6 +271,6 @@ export async function withLockAt<ActionResult>(
   try {
     return await action(lockHoldOf(lockDirectoryPath, heldGeneration));
   } finally {
-    release(lockDirectoryPath, heldGeneration, { acquiredAt: LocalTimeUtil.formatLocalIso(now()), processId: process.pid });
+    release(lockDirectoryPath, heldGeneration, lockPayloadOf(holder, now()));
   }
 }

@@ -45,7 +45,6 @@ import type { ControlCommand }                              from '../../shared/@
 import { refusalIsOperationRefusal }                        from '../../shared/OperationRefusal.ts';
 import { WorktreesFolder }                                  from '../../shared/WorktreesFolder.ts';
 import { LIFECYCLE_LIMITS }                                 from '../../shared/constants/LifecycleLimits.ts';
-import { LIMITS }                                           from '../../shared/constants/Limits.ts';
 import { FORCED_STOP_TRIES_BEFORE_BLOCKING }                from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                                    from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                      from '../../testing/BoardFixtures.ts';
@@ -59,35 +58,36 @@ import {
   fakeResultLine,
   fakeStartedLine
 } from '../../testing/FakeAgentAdapter.ts';
-import { fakeGateConfinement }                                 from '../../testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                                 from '../../testing/NativePlatformPorts.ts';
-import { GIT_CALL_SHAPES, useRecordedGit }                     from '../../testing/RecordedGit.ts';
-import { RECORDED_FLOW_MAIN_LINE }                             from '../../testing/RecordedGitFlow.ts';
-import { type RecordedTalosStages, useRecordedTalosStages }    from '../../testing/RecordedTalosStages.ts';
-import { createScratchDirectory, removeScratchDirectory }      from '../../testing/ScratchWorkspace.ts';
-import { childFilesIn, talosChildReadingsWith }                from '../../testing/TalosChildReadings.ts';
-import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }   from '../../testing/ToolGuard.ts';
-import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testing/TrackerFileFixtures.ts';
-import { waitUntil }                                           from '../../testing/WaitUntil.ts';
-import { ControlService }                                      from '../control/ControlService.ts';
-import { finishHalfAppliedSetup }                              from '../control/PipelineSetupControls.ts';
-import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
-import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/GenerationLock.ts';
-import { readHoldJournal }                                     from '../tracker/HoldJournal.ts';
-import { localStoreLayoutOf }                                  from '../tracker/LocalStoreLayout.ts';
-import { writeTracker }                                        from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
-import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
-import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
-import type { BoardChildren }                                  from './BoardChildren.ts';
-import type { DrivePass, JobLaunchFacts }                      from './DrivePass.ts';
-import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }        from './GateProfiling.ts';
-import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from './InstructionFiles.ts';
-import { IntakeSessions }                                      from './IntakeSessions.ts';
-import { JobResumption }                                       from './JobResumption.ts';
-import { jobFolderIn }                                         from './OverseerFiles.ts';
-import { RedHandoff }                                          from './RedHandoff.ts';
-import { Regrouping }                                          from './Regrouping.ts';
+import { fakeGateConfinement }                                              from '../../testing/FakeGateConfinement.ts';
+import { GONE_HOLDERS_LOCK_TAKER, LIVE_HOLDERS_LOCK_TAKER, specLockHolder } from '../../testing/LockTakers.ts';
+import { nativePlatformPorts }                                              from '../../testing/NativePlatformPorts.ts';
+import { GIT_CALL_SHAPES, useRecordedGit }                                  from '../../testing/RecordedGit.ts';
+import { RECORDED_FLOW_MAIN_LINE }                                          from '../../testing/RecordedGitFlow.ts';
+import { type RecordedTalosStages, useRecordedTalosStages }                 from '../../testing/RecordedTalosStages.ts';
+import { createScratchDirectory, removeScratchDirectory }                   from '../../testing/ScratchWorkspace.ts';
+import { childFilesIn, talosChildReadingsWith }                             from '../../testing/TalosChildReadings.ts';
+import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }                from '../../testing/ToolGuard.ts';
+import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }                   from '../../testing/TrackerFileFixtures.ts';
+import { waitUntil }                                                        from '../../testing/WaitUntil.ts';
+import { ControlService }                                                   from '../control/ControlService.ts';
+import { finishHalfAppliedSetup }                                           from '../control/PipelineSetupControls.ts';
+import type { BoardTransaction }                                            from '../tracker/BoardTransaction.ts';
+import { LockGenerationSteps }                                              from '../tracker/GenerationLock.ts';
+import { readHoldJournal }                                                  from '../tracker/HoldJournal.ts';
+import { localStoreLayoutOf }                                               from '../tracker/LocalStoreLayout.ts';
+import { writeTracker }                                                     from '../tracker/TrackerPipeline.ts';
+import { requireProgressFile }                                              from '../tracker/TrackerReader.ts';
+import { workspacePathsFor, type Workspace }                                from '../tracker/Workspace.ts';
+import { AirlockFactsFile }                                                 from './AirlockFactsFile.ts';
+import type { BoardChildren }                                               from './BoardChildren.ts';
+import type { DrivePass, JobLaunchFacts }                                   from './DrivePass.ts';
+import { GATE_PROFILE_WORKTREES_FOLDER, GateProfiling }                     from './GateProfiling.ts';
+import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf }              from './InstructionFiles.ts';
+import { IntakeSessions }                                                   from './IntakeSessions.ts';
+import { JobResumption }                                                    from './JobResumption.ts';
+import { jobFolderIn }                                                      from './OverseerFiles.ts';
+import { RedHandoff }                                                       from './RedHandoff.ts';
+import { Regrouping }                                                       from './Regrouping.ts';
 
 const recordedGit = useRecordedGit();
 
@@ -141,11 +141,11 @@ async function failureOf(action: () => Promise<unknown>): Promise<unknown> {
   return null;
 }
 
-/** Takes the lock over as stale from inside the current hold, as a command arriving after the holder slept past the threshold would. */
+/** Takes the lock over from inside the current hold, as a command whose platform misjudged the running holder as gone would. */
 function takeTheLockOver(): void {
-  const payload  = { processId: process.pid, acquiredAt: CHANGED_AT };
+  const payload  = { holder: specLockHolder(), acquiredAt: CHANGED_AT };
   const { storeLockFolder } = localStoreLayoutOf(workspace);
-  const takeover = LockGenerationSteps.attemptedAcquire(storeLockFolder, payload, now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1, NO_LOCK_HOLDER_READS_AS_GONE);
+  const takeover = LockGenerationSteps.attemptedAcquire(storeLockFolder, payload, GONE_HOLDERS_LOCK_TAKER.holderIsGone);
   if (takeover.verdict !== 'acquired') throw new Error(`the takeover found the lock ${takeover.verdict}`);
   LockGenerationSteps.release(localStoreLayoutOf(workspace).storeLockFolder, takeover.generation, payload);
 }
@@ -166,6 +166,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json a
     const crash        = new Error('the holder crashed');
 
     const failure = await failureOf(() => writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
       workspace,
       at:               CHANGED_AT,
       now,
@@ -177,7 +178,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json a
     expect(ticketText(), 'the board is torn: the ticket was not written').toBe(ticketBefore);
 
     const written = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: noteAnExample,
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    noteAnExample,
     });
 
     expect(ticketText()).toContain('Waiting on Alex Example');
@@ -203,7 +208,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
       gateEnvironment: () => ({}),
       confinedLineIn:  () => (argv) => ({ verdict: 'runs', argv }),
       hold:            async (mutate) => (await writeTracker({
-        workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+        lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+        workspace,
+        at:        CHANGED_AT,
+        now,
+        mutate:    (change) => mutate({ board: change.board, at: change.at })
       })).result,
       wake:         () => undefined,
       log:          () => undefined,
@@ -219,10 +228,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
   /** P1 marked running by an Overseer that then stopped, with its worktree left behind. */
   async function leaveARunRunning(): Promise<string> {
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         change.board.queueGateProfile({
           setupId: null, phase: 'build', gate: { name: 'tests', run: 'bun test' }, prepare: []
         }, change.at);
@@ -242,7 +252,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
 
     await recordedGit.playStage(removal, () => profiling.settleAtStart());
     const { board } = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: () => undefined
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    () => undefined
     });
     profiling.followRuns(board);
     await profiling.idle();
@@ -274,10 +288,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
     const progressBefore = readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8');
 
     const failure = await failureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         holdTheExampleTicket(change);
         takeTheLockOver();
       },
@@ -293,6 +308,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
     const ticketBefore = ticketText();
 
     const failure = await failureOf(() => writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
       workspace,
       at:               CHANGED_AT,
       now,
@@ -305,7 +321,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
     expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(true);
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: noteAnExample,
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    noteAnExample,
     });
 
     expect(ticketText()).toContain('Waiting on Alex Example');
@@ -316,7 +336,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
     const progressBefore = readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8');
 
     const failure = await failureOf(() => writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: () => { takeTheLockOver(); },
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    () => { takeTheLockOver(); },
     }));
 
     expect(refusalIsOperationRefusal(failure) ? failure.detail?.kind : null).toBe('lock-taken-over');
@@ -335,6 +359,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves p
     const crash               = new Error('the holder crashed');
 
     const failure = await failureOf(() => writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
       workspace,
       at:               CHANGED_AT,
       now,
@@ -346,7 +371,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves p
     expect(journal.verdict === 'readable' ? journal.files.map((file) => file.filePath) : journal.verdict).toEqual([ticketFilePath(), localStoreLayoutOf(workspace).logRecordPath]);
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: noteAnExample,
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    noteAnExample,
     });
 
     expect(ticketText()).toContain('Waiting on Alex Example');
@@ -367,10 +396,11 @@ describe('an Apply cut short', () => {
   /** A first setup S1 with its constitution drafted, at the apply step. */
   async function openSetupAtApply(): Promise<void> {
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     CHANGED_AT,
+      at:        CHANGED_AT,
       now,
-      mutate: (change) => {
+      mutate:    (change) => {
         const { setupId } = change.board.openSetup({
           mode: 'setup', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []
         }, change.at).setup;
@@ -388,6 +418,7 @@ describe('an Apply cut short', () => {
   async function applyCutAfter(cutFilePath: string, context: typeof MAIN_HOLDS_THE_TEXT): Promise<void> {
     const crash = new Error('the holder crashed');
     const failure = await failureOf(() => writeTracker({
+      lockTaker:        LIVE_HOLDERS_LOCK_TAKER,
       workspace,
       at:               CHANGED_AT,
       now,
@@ -402,7 +433,11 @@ describe('an Apply cut short', () => {
     await applyCutAfter(localStoreLayoutOf(workspace).logRecordPath, ECHOED_CONTROL_CONTEXT);
 
     const retried = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(APPLY_COMMAND, change, ECHOED_CONTROL_CONTEXT).result
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => ControlService.apply(APPLY_COMMAND, change, ECHOED_CONTROL_CONTEXT).result
     });
 
     expect(retried.result).toMatchObject({ outcome: 'committing', logged: [] });
@@ -420,7 +455,11 @@ describe('an Apply cut short', () => {
     await applyCutAfter(cutFilePathOf(), MAIN_HOLDS_THE_TEXT);
 
     const retried = await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(APPLY_COMMAND, change, MAIN_HOLDS_THE_TEXT).result
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => ControlService.apply(APPLY_COMMAND, change, MAIN_HOLDS_THE_TEXT).result
     });
 
     expect(retried.result).toMatchObject({ outcome: 'already-applied' });
@@ -439,7 +478,11 @@ describe('an Apply cut short', () => {
     await applyCutAfter(cutFilePathOf(), MAIN_HOLDS_THE_TEXT);
 
     await writeTracker({
-      workspace, at: CHANGED_AT, now, mutate: (change) => finishHalfAppliedSetup(change, MAIN_HOLDS_THE_TEXT)
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => finishHalfAppliedSetup(change, MAIN_HOLDS_THE_TEXT)
     });
 
     expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
@@ -638,6 +681,7 @@ function openDecisions(): readonly Readonly<Decision>[] {
 /** `decide`'s change, applied as the command line applies it: a hold of its own, with no Overseer pass in it. */
 async function decideWithTheOverseerDown(decisionId: string, choices: readonly string[]): Promise<void> {
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace: sessionWorkspace,
     at:        CHANGED_AT,
     now,
@@ -648,7 +692,11 @@ async function decideWithTheOverseerDown(decisionId: string, choices: readonly s
 /** A control applied as its verb applies it with the Overseer down: a hold of its own. */
 async function applyControl(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT),
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace: sessionWorkspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT),
   });
 }
 
@@ -702,6 +750,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       writeFileSync(join(repository, path), 'Example instructions.\n');
     }
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -828,6 +877,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
   test('overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance', async () => {
     let assistantJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -953,7 +1003,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     const drivePass = await startedOverseer(recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS }));
     const job       = await runningBuildSession(drivePass);
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.holdTicket('001', 'Waiting on Alex Example', change.at); },
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => { change.board.holdTicket('001', 'Waiting on Alex Example', change.at); },
     });
     await passOnce(drivePass);
     expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'running', childInstance: 1 });
@@ -971,6 +1025,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     };
     let airlockAgentJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -995,6 +1050,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     };
     let reReviewerJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1026,6 +1082,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     };
     let reReviewerJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1063,6 +1120,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     };
     let airlockAgentJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1086,6 +1144,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     let airlockAgentJobId = '';
     let incidentId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1113,7 +1172,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
   /** User's resume of the job, which a reboot leaves waiting for it. */
   async function instructResumeOf(jobId: string): Promise<void> {
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => change.board.instructResume(jobId, change.at),
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.instructResume(jobId, change.at),
     });
   }
 
@@ -1125,6 +1188,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     let endedBuildJobId = '';
     let nextBuildJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1218,6 +1282,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     await first.stop();
     rebootTheMachine(nextBuildJobId, 1);
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1260,7 +1325,11 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     await passUntil(drivePass, () => resumeFailed() !== undefined, 'resume-failed never opened');
 
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.defaultIncident(resumeFailed()?.id ?? '', 'turn-closed', change.at); },
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => { change.board.defaultIncident(resumeFailed()?.id ?? '', 'turn-closed', change.at); },
     });
     const freshBuildJobId = (): string | undefined => storedRecords().find((record) => (
       record.kind === 'job-launched' && record.fields['kind'] === 'build' && record.jobId !== endedBuildJobId && record.jobId !== nextBuildJobId
@@ -1275,6 +1344,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
 
   test('a finished session is never continued: a move of an ended job is refused job-finished', async () => {
     const failure = await failureOf(() => writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,

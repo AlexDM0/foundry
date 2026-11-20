@@ -28,6 +28,7 @@ import { RepositoryLandings }                                from '../../lib/git
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
 import { ticketFixture }                                     from '../../testing/BoardFixtures.ts';
 import { heldFileGit, type CountingCheckoutWritePrimitives } from '../../testing/HeldFileGit.ts';
+import { GONE_HOLDERS_LOCK_TAKER, LIVE_HOLDERS_LOCK_TAKER }  from '../../testing/LockTakers.ts';
 import {
   GIT_CALL_SHAPES,
   RECORDED_PLACEHOLDERS,
@@ -36,6 +37,7 @@ import {
 } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                from '../../testing/ToolGuard.ts';
+import { LockGenerationSteps }                                      from '../tracker/GenerationLock.ts';
 import { Landing, LANDING_OUTCOME_OF_REFUSAL, type LandingRequest } from './Landing.ts';
 
 const MAIN_TIP = '1'.repeat(40);
@@ -236,7 +238,7 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
 
   function sharedLandingAt(projectPrefix: string): ReturnType<typeof Landing.sharedRepositoryLandingOf> {
     const projectDirectory = projectPrefix === '' ? repositoryDirectory : join(repositoryDirectory, projectPrefix);
-    return Landing.sharedRepositoryLandingOf({ repositoryRoot: repositoryDirectory, projectDirectory, projectPrefix }, 'tracker-example', now, () => false);
+    return Landing.sharedRepositoryLandingOf({ repositoryRoot: repositoryDirectory, projectDirectory, projectPrefix }, 'tracker-example', now, LIVE_HOLDERS_LOCK_TAKER);
   }
 
   test('is none for a tracker at its repository\'s root, which asks git nothing for it', async () => {
@@ -258,11 +260,25 @@ describeWhenGitIsRecorded('the landing a tracker shares with its siblings', () =
     expect(LANDING_OUTCOME_OF_REFUSAL['landing-lock-held']).toBe('wait-for-the-landing-lock');
   });
 
+  test('an unreadable landing lock record is refused lock-record-unreadable, naming the record a repair removes, before git is asked anything', async () => {
+    const files = RepositoryLandings.landingFilesOf(join(repositoryDirectory, '.git'), PRODUCT_NAMES.PROGRAM);
+    mkdirSync(files.lockDirectoryPath, { recursive: true });
+    const recordPath = LockGenerationSteps.generationPathFor(files.lockDirectoryPath, 1);
+    writeFileSync(recordPath, '{"state": "held", "hol');
+    const sharedRepository = {
+      trackerId: 'tracker-example', files, now, lockTaker: GONE_HOLDERS_LOCK_TAKER
+    };
+
+    const landing = landedIn([], mainLanding({ sharedRepository }));
+
+    await expect(landing).rejects.toMatchObject({ status: 'unrepaired', detail: { kind: 'lock-record-unreadable', recordPath } });
+  });
+
   test('an already-landed rerun appends the journal line a stop cut off once, with the slot\'s tip as the previous tip, and a second rerun none', async () => {
     mkdirSync(join(repositoryDirectory, '.git'));
     const files = RepositoryLandings.landingFilesOf(join(repositoryDirectory, '.git'), PRODUCT_NAMES.PROGRAM);
     const sharedRepository = {
-      trackerId: 'tracker-example', files, now, lockHolderIsGone: () => false
+      trackerId: 'tracker-example', files, now, lockTaker: LIVE_HOLDERS_LOCK_TAKER
     };
     const alreadyLandedRerun: RecordedGitStage = [
       ...onBranch('main'),

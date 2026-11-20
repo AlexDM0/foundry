@@ -24,10 +24,6 @@ test('every rung is a whole number of minutes and at least one minute, because a
   expect(LIMITS.TICK_STEP_LADDER_MINUTES.every((step) => Number.isInteger(step) && step >= 1)).toBe(true);
 });
 
-test('a waiter gives up long before a lock could become stale, so a takeover only ever happens to a lock that was already old on arrival', () => {
-  expect(LIMITS.LOCK_RETRY_COUNT * LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS).toBeLessThan(LIMITS.LOCK_STALE_MILLISECONDS);
-});
-
 test('the patience budget is still long enough for several normal commands to pass through the lock', () => {
   expect(LIMITS.LOCK_RETRY_COUNT * LIMITS.LOCK_RETRY_INTERVAL_MILLISECONDS).toBeGreaterThanOrEqual(3 * MILLISECONDS_PER_SECOND);
 });

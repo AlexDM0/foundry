@@ -16,6 +16,7 @@ import {
   expect,
   test,
 } from 'bun:test';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { NewTracker }                                from './@types/BoardRecords.ts';
 import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
@@ -45,7 +46,7 @@ afterEach(() => {
 });
 
 test('a fresh workspace gets its tickets directory, a version 2 progress file and an empty log, renders no page, and answers created', async () => {
-  const creation = await createTracker(workspace, NEW_TRACKER, now);
+  const creation = await createTracker(workspace, NEW_TRACKER, now, LIVE_HOLDERS_LOCK_TAKER);
 
   expect(creation).toEqual({ verdict: 'created' });
   expect(statSync(localStoreLayoutOf(workspace).ticketRecordsFolder).isDirectory()).toBe(true);
@@ -58,7 +59,7 @@ test('a log.jsonl left from a removed tracker is emptied, never adopted', async 
   mkdirSync(workspace.trackerDirectory, { recursive: true });
   writeFileSync(localStoreLayoutOf(workspace).logRecordPath, EXISTING_LOG_TEXT);
 
-  await createTracker(workspace, NEW_TRACKER, now);
+  await createTracker(workspace, NEW_TRACKER, now, LIVE_HOLDERS_LOCK_TAKER);
 
   expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe('');
 });
@@ -68,7 +69,7 @@ test('an existing progress file answers already-exists, leaves progress.json and
   writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, EXISTING_PROGRESS_TEXT);
   writeFileSync(localStoreLayoutOf(workspace).logRecordPath, EXISTING_LOG_TEXT);
 
-  expect(await createTracker(workspace, NEW_TRACKER, now)).toEqual({ verdict: 'already-exists' });
+  expect(await createTracker(workspace, NEW_TRACKER, now, LIVE_HOLDERS_LOCK_TAKER)).toEqual({ verdict: 'already-exists' });
   expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe(EXISTING_PROGRESS_TEXT);
   expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(EXISTING_LOG_TEXT);
   expect(existsSync(workspace.htmlFilePath)).toBe(false);

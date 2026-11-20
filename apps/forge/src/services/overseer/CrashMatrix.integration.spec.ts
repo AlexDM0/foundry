@@ -72,6 +72,7 @@ import {
   fakeStartedLine,
   NETWORK_OUTAGE_FAKE_AGENT_STEPS
 } from '../../testing/FakeAgentAdapter.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                  from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                                      from '../../testing/NativePlatformPorts.ts';
 import { PlantedChild }                                             from '../../testing/PlantedChild.ts';
 import { stopProcessesReachingInto }                                from '../../testing/ProcessesInFolder.ts';
@@ -87,6 +88,7 @@ import { ControlService }                                           from '../con
 import type { StoreReadFace }                                       from '../store/BoardStore.ts';
 import { createLocalFilesBoardStore }                               from '../store/LocalFilesBoardStore.ts';
 import { localStoreLayoutOf }                                       from '../tracker/LocalStoreLayout.ts';
+import { lockTakerOf }                                              from '../tracker/LockHolders.ts';
 import { registerWithTheMonitor }                                   from '../tracker/MonitorRegistration.ts';
 import { writeTracker }                                             from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
@@ -386,6 +388,7 @@ function openDecisions(): readonly Readonly<Decision>[] {
 /** `decide`'s change, applied as the command line applies it: a hold of its own, with no Overseer pass in it. */
 async function decideWithTheOverseerDown(decisionId: string, choices: readonly string[]): Promise<void> {
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace: sessionWorkspace,
     at:        CHANGED_AT,
     now,
@@ -396,7 +399,11 @@ async function decideWithTheOverseerDown(decisionId: string, choices: readonly s
 /** A control applied as its verb applies it with the Overseer down: a hold of its own. */
 async function applyControl(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT),
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace: sessionWorkspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT),
   });
 }
 
@@ -454,6 +461,7 @@ async function registerTheForge(presence: Parameters<typeof registerWithTheMonit
   await registerWithTheMonitor({
     ...registeredBoardFactsOf(sessionWorkspace),
     monitorFolder,
+    lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
     temporaryDirectories: [],
     command:              'oversee',
     program:              join(repository, 'example-program'),
@@ -509,7 +517,7 @@ async function recordTheCrash(serving: ForgeServing, component: CrashedComponent
 
 function sessionBoardReads(): StoreReadFace {
   const now = (): Date => new Date(Date.parse(SESSION_STAMP));
-  return createLocalFilesBoardStore({ workspace: sessionWorkspace, now, lockHolderIsGone: ports.processSupervision.processIsGone }).reads;
+  return createLocalFilesBoardStore({ workspace: sessionWorkspace, now, lockTaker: lockTakerOf(ports.processSupervision) }).reads;
 }
 
 /**
@@ -625,6 +633,7 @@ function failedAssistantBoots(): number {
 
 async function openBlockedIncident(): Promise<void> {
   await writeTracker({
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
     workspace: sessionWorkspace,
     at:        CHANGED_AT,
     now,
@@ -668,6 +677,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
       writeFileSync(join(repository, path), 'Example instructions.\n');
     }
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -730,7 +740,11 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(eventLogTextOf(firstJobId, 1)).not.toContain(EARLIER_SESSION_NOTE);
 
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.defaultIncident(resumeFailed()?.id ?? '', 'turn-closed', change.at); },
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => { change.board.defaultIncident(resumeFailed()?.id ?? '', 'turn-closed', change.at); },
     });
     await passUntil(drivePass, () => launches.some((launch) => launch.jobId !== firstJobId), 'no fresh job was launched');
     const freshJobId = launches.find((launch) => launch.jobId !== firstJobId)?.jobId ?? '';
@@ -895,7 +909,11 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(storedRecords().find((record) => record.kind === 'job-ended' && record.jobId === firstJobId)?.fields).toMatchObject({ outcome: 'replaced', cause: 'resume-failed' });
 
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.defaultIncident(incident?.id ?? '', 'turn-closed', change.at); },
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => { change.board.defaultIncident(incident?.id ?? '', 'turn-closed', change.at); },
     });
     await passUntil(drivePass, () => launches.some((launch) => launch.jobId !== firstJobId), 'no fresh job was launched');
 
@@ -1014,7 +1032,11 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     expect(launches).toHaveLength(1);
 
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => change.board.escalateQuestionIncident('I1', change.at),
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => change.board.escalateQuestionIncident('I1', change.at),
     });
     await passOnce(restarted);
     expect(launches).toHaveLength(1);
@@ -1029,6 +1051,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
   test('overseer dies after the hold that launched a job, before the spawn: regroup re-spawns the same instance', async () => {
     let assistantJobId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,
@@ -1058,7 +1081,11 @@ describe('the session, Talos, Overseer and reboot rows', () => {
 
     const jobId = assistantId();
     await writeTracker({
-      workspace: sessionWorkspace, at: CHANGED_AT, now, mutate: (change) => { change.board.moveJob(jobId, 'stopping', change.at); },
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+      workspace: sessionWorkspace,
+      at:        CHANGED_AT,
+      now,
+      mutate:    (change) => { change.board.moveJob(jobId, 'stopping', change.at); },
     });
     killChildGroup(jobId, 1);
     await killTalos(jobId, 1);
@@ -1267,6 +1294,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     recordedGit.enterFlowStage('worktree made', repository);
     let openSetupId = '';
     await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace: sessionWorkspace,
       at:        CHANGED_AT,
       now,

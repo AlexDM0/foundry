@@ -4,6 +4,7 @@ import { basename }   from 'node:path';
 import { ensureIgnored }                                  from '../../../src/lib/git/GitIgnore.ts';
 import { LocalTimeUtil }                                  from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { CONSTITUTION_FILE_PATH }                         from '../../../src/services/overseer/InstructionFiles.ts';
+import { lockTakerOf }                                    from '../../../src/services/tracker/LockHolders.ts';
 import { listTracker }                                    from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { findWorkspace, workspacePathsFor }               from '../../../src/services/tracker/Workspace.ts';
 import { BranchNamespaceUtil, branchNamesOf }             from '../../../src/shared/BranchNames.ts';
@@ -142,7 +143,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
       placement.listToWrite,
       { trackerId, prefix: placement.location.projectPrefix, branchNamespace },
       context.now,
-      context.platformPorts.processSupervision.processIsGone,
+      lockTakerOf(context.platformPorts.processSupervision),
     );
     if (listing.verdict === 'not-listed') {
       throw new OperationRefusal(

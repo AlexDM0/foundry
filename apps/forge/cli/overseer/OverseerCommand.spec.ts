@@ -29,7 +29,6 @@ import { CrashLog }                                                             
 import { overseerFilesIn }                                                      from '../../src/services/overseer/OverseerFiles.ts';
 import { Presence }                                                             from '../../src/services/overseer/Presence.ts';
 import type { StoreReadFace }                                                   from '../../src/services/store/BoardStore.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }                                         from '../../src/services/tracker/GenerationLock.ts';
 import { registerWithTheMonitor }                                               from '../../src/services/tracker/MonitorRegistration.ts';
 import { withLock }                                                             from '../../src/services/tracker/TrackerLock.ts';
 import { requireWorkspace }                                                     from '../../src/services/tracker/Workspace.ts';
@@ -39,6 +38,7 @@ import { PRODUCT_NAMES }                                                        
 import { FAKE_MISSING_TOOLS_REASON, fakeGateConfinement }                       from '../../src/testing/FakeGateConfinement.ts';
 import { instantSleepsOf }                                                      from '../../src/testing/InstantSleeps.ts';
 import { lockRetryWaitsDuring }                                                 from '../../src/testing/LockRetryWaits.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                              from '../../src/testing/LockTakers.ts';
 import { nativePlatformPorts }                                                  from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                       from '../../src/testing/RecordedGit.ts';
 import { useRecordedProcessTable }                                              from '../../src/testing/RecordedProcessTable.ts';
@@ -233,6 +233,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     await registerWithTheMonitor({
       ...registeredBoardFactsOf(workspace),
       monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+      lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
       temporaryDirectories: [],
       command:              'oversee',
       program:              '/example/bin/forge',
@@ -290,6 +291,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     const registerPresence = (presence: Parameters<typeof registerWithTheMonitor>[0]['presence']) => registerWithTheMonitor({
       ...registeredBoardFactsOf(wedged.workspace),
       monitorFolder:        join(wedged.homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
+      lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
       temporaryDirectories: [],
       command:              'oversee',
       program:              '/example/bin/forge',
@@ -381,7 +383,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     await registerWedgedOverseer(wedged);
 
     const refused = wedged.stopContext();
-    const { outcome } = await withLock(wedged.workspace, () => lockRetryWaitsDuring(() => runCommandLine(['oversee', 'stop'], refused)), refused.now, NO_LOCK_HOLDER_READS_AS_GONE);
+    const { outcome } = await withLock(wedged.workspace, () => lockRetryWaitsDuring(() => runCommandLine(['oversee', 'stop'], refused)), refused.now, LIVE_HOLDERS_LOCK_TAKER);
     expect(outcome).toEqual({ settled: 'fulfilled', value: 2 });
     expect(Baton.newestBatonOf(wedged.platformPorts, wedged.overseerDirectory).verdict).toBe('dead');
     expect(registeredOverseersIn(wedged.homeDirectory)).toHaveLength(1);
@@ -418,6 +420,8 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
   test('restart over an Overseer found dead starts the successor with the port of its Baton record', async () => {
     const workspace = requireWorkspace(repositoryDirectory);
     const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
+    // The restart writes the board, whose lock reads this process's identity for its record.
+    processTable.callerProcess();
     const deadOverseer = processTable.bornProcess();
     const tablePorts = processTable.ports;
     let identityReads = 0;
@@ -466,6 +470,8 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
   test('restart over a Baton already dead at the hand-over keeps its port and closes it', async () => {
     const workspace = requireWorkspace(repositoryDirectory);
     const { overseerDirectory } = overseerFilesIn(workspace.trackerDirectory);
+    // The restart writes the board, whose lock reads this process's identity for its record.
+    processTable.callerProcess();
     const deadOverseer = processTable.bornProcess();
     const platformPorts: PlatformPorts = {
       ...processTable.ports,

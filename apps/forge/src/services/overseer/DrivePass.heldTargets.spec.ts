@@ -24,6 +24,7 @@ import { WorktreesFolder }                                          from '../../
 import { createScratchDrivePass }                                   from '../../testing/DrivePassHarness.ts';
 import { fakeAgentAdapter, fakeStartedLine }                        from '../../testing/FakeAgentAdapter.ts';
 import { fakeGateConfinement }                                      from '../../testing/FakeGateConfinement.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                  from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                                      from '../../testing/NativePlatformPorts.ts';
 import { commitResolved, createPlantedRepository, revisionMissing } from '../../testing/RecordedAirlockGit.ts';
 import {
@@ -133,7 +134,11 @@ beforeEach(async () => {
     writeFileSync(join(repository, path), 'Example instructions.\n');
   }
   await writeTracker({
-    workspace, at: HARNESS_AT, now: () => new Date(Date.parse(STAMP)), mutate: (change) => requestApply(change.board, change.at)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        HARNESS_AT,
+    now:       () => new Date(Date.parse(STAMP)),
+    mutate:    (change) => requestApply(change.board, change.at)
   });
 });
 

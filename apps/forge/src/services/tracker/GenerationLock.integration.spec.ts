@@ -1,7 +1,8 @@
 /**
  * The things the generation lock promises below any tracker: at most one holder when acquirers and releasers interleave at any step of an
  * acquire, a holder that was taken over never releasing its successor, a release that lands where hard links fail, and no generation past
- * the largest safe integer.
+ * the largest safe integer. A live holder is taken over only by a taker that misjudges it as gone; the platform's judgement reads this
+ * process, recorded without an identity, as alive.
  */
 import {
   existsSync,
@@ -13,12 +14,14 @@ import {
 import { join }                   from 'node:path';
 import { afterAll, expect, test } from 'bun:test';
 
-import { REAL_FILE_REPLACE_PRIMITIVES }                   from '../../lib/atomic-file/FileReplaceFor.ts';
-import { createPosixFileReplace }                         from '../../lib/atomic-file/PosixFileReplace.ts';
-import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }        from '../../testing/ChildProcessCaseTimeout.ts';
-import { nativePlatformPorts }                            from '../../testing/NativePlatformPorts.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { LockGenerationSteps }                            from './GenerationLock.ts';
+import { REAL_FILE_REPLACE_PRIMITIVES }                                from '../../lib/atomic-file/FileReplaceFor.ts';
+import { createPosixFileReplace }                                      from '../../lib/atomic-file/PosixFileReplace.ts';
+import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                     from '../../testing/ChildProcessCaseTimeout.ts';
+import { specLockHolder }                                              from '../../testing/LockTakers.ts';
+import { nativePlatformPorts }                                         from '../../testing/NativePlatformPorts.ts';
+import { createScratchDirectory, removeScratchDirectory }              from '../../testing/ScratchWorkspace.ts';
+import { LockGenerationSteps, type LockHolder, type LockHolderIsGone } from './GenerationLock.ts';
+import { lockHolderIsGoneOf }                                          from './LockHolders.ts';
 
 const {
   acquireSteps,
@@ -28,13 +31,12 @@ const {
   release
 } = LockGenerationSteps;
 
-const OVERRUN_HOLDER_ACQUIRED_AT = '2026-09-18T20:11:03+02:00';
-
-const RACE_MOMENT_MILLISECONDS = Date.parse('2026-09-24T15:00:30+02:00');
-
 const CLOCK_FIELD_DIGITS = 2;
 
-const HOLDER_IS_GONE = nativePlatformPorts().processSupervision.processIsGone;
+const HOLDER_IS_GONE = lockHolderIsGoneOf(nativePlatformPorts().processSupervision);
+
+/** A taker whose platform misjudged a running holder as gone: the one way a live holder's lock is taken over. */
+const MISJUDGING_HOLDER_IS_GONE: LockHolderIsGone = () => true;
 
 const scratchDirectories: string[] = [];
 
@@ -67,16 +69,16 @@ function newestRecordIn(lockDirectoryPath: string): unknown {
 }
 
 // Every waiter in a replayed race is this live process, told apart by its stamp, so none of them can be judged gone.
-function payloadOf(secondsPastTheHour: number): { processId: number; acquiredAt: string } {
-  return { acquiredAt: `2026-09-24T15:00:${String(secondsPastTheHour).padStart(CLOCK_FIELD_DIGITS, '0')}+02:00`, processId: process.pid };
+function payloadOf(secondsPastTheHour: number): { holder: LockHolder; acquiredAt: string } {
+  return { acquiredAt: `2026-09-24T15:00:${String(secondsPastTheHour).padStart(CLOCK_FIELD_DIGITS, '0')}+02:00`, holder: specLockHolder() };
 }
 
 function deadHolderRecord(deadProcessId: number): string {
-  return JSON.stringify({ acquiredAt: new Date().toISOString(), processId: deadProcessId, state: 'held' });
+  return JSON.stringify({ acquiredAt: new Date().toISOString(), holder: { processId: deadProcessId, startStamp: null, bootIdentity: null }, state: 'held' });
 }
 
-function overrunHolderRecord(processId: number): string {
-  return JSON.stringify({ acquiredAt: OVERRUN_HOLDER_ACQUIRED_AT, processId, state: 'held' });
+function liveHolderRecord(): string {
+  return JSON.stringify({ ...payloadOf(0), state: 'held' });
 }
 
 test('where hard links fail a release still lands, so no held generation is stranded', () => {
@@ -95,19 +97,19 @@ test('where hard links fail a release still lands, so no held generation is stra
   expect(generationsIn(lockDirectoryPath)).toEqual([2]);
 });
 
-// A taker that judged a live holder stale can act only after that holder released and a plain acquirer took the lock; exactly one must hold it.
-test('a holder that releases after a taker judged it stale, followed by a plain acquirer, still leaves exactly one holder', () => {
+// A taker that misjudged a live holder as gone can act only after that holder released and a plain acquirer took the lock; exactly one must hold it.
+test('a holder that releases after a taker misjudged it as gone, followed by a plain acquirer, still leaves exactly one holder', () => {
   const lockDirectoryPath = scratchLockDirectory('lock-release-during-takeover');
-  writeGeneration(lockDirectoryPath, 1, overrunHolderRecord(process.pid));
+  writeGeneration(lockDirectoryPath, 1, liveHolderRecord());
   const plainAcquirer = payloadOf(1);
   let plainAcquirerVerdict = '';
 
-  const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(2), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
+  const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(2), MISJUDGING_HOLDER_IS_GONE, (step) => {
     if (step !== 'newest-judged-free') return;
     release(lockDirectoryPath, 1, payloadOf(3));
-    plainAcquirerVerdict = attemptedAcquire(lockDirectoryPath, plainAcquirer, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict;
+    plainAcquirerVerdict = attemptedAcquire(lockDirectoryPath, plainAcquirer, HOLDER_IS_GONE).verdict;
   });
-  const fourthAcquirerVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(4), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict;
+  const fourthAcquirerVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(4), HOLDER_IS_GONE).verdict;
 
   expect(plainAcquirerVerdict).toBe('acquired');
   expect(takerAttempt.verdict, 'the taker finds the generation it judged already moved past').toBe('contended');
@@ -123,9 +125,9 @@ test('while a waiter takes over a dead holder\'s lock, another acquiring at any 
     const lockDirectoryPath = scratchLockDirectory('lock-dead-holder-intrusion');
     writeGeneration(lockDirectoryPath, 1, deadHolderRecord(await processIdOfAnExitedProcess()));
     let intruderVerdict = '';
-    const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(1), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
+    const takerAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(1), HOLDER_IS_GONE, (step) => {
       stepsReached.add(step);
-      if (step === intrusionStep) intruderVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(2), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict;
+      if (step === intrusionStep) intruderVerdict = attemptedAcquire(lockDirectoryPath, payloadOf(2), HOLDER_IS_GONE).verdict;
     });
 
     expect([intruderVerdict, takerAttempt.verdict].filter((verdict) => verdict === 'acquired').length, `holders with the intruder acquiring at ${intrusionStep}`).toBe(1);
@@ -140,11 +142,11 @@ test('an acquirer that recreates a generation removed while it was judging finds
   const secondHolder = payloadOf(2);
   let secondHolderGeneration = 0;
 
-  const slowAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
+  const slowAttempt = attemptedAcquire(lockDirectoryPath, payloadOf(3), HOLDER_IS_GONE, (step) => {
     if (step !== 'newest-judged-free') return;
-    const firstAttempt = attemptedAcquire(lockDirectoryPath, firstHolder, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE);
+    const firstAttempt = attemptedAcquire(lockDirectoryPath, firstHolder, HOLDER_IS_GONE);
     if (firstAttempt.verdict === 'acquired') release(lockDirectoryPath, firstAttempt.generation, firstHolder);
-    const secondAttempt = attemptedAcquire(lockDirectoryPath, secondHolder, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE);
+    const secondAttempt = attemptedAcquire(lockDirectoryPath, secondHolder, HOLDER_IS_GONE);
     if (secondAttempt.verdict === 'acquired') secondHolderGeneration = secondAttempt.generation;
   });
 
@@ -153,16 +155,16 @@ test('an acquirer that recreates a generation removed while it was judging finds
   expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...secondHolder, state: 'held' });
 });
 
-test('a holder taken over as stale releases nothing, and its successor keeps the lock', () => {
+test('a holder taken over by a misjudging taker releases nothing, and its successor keeps the lock', () => {
   const lockDirectoryPath = scratchLockDirectory('lock-release-after-takeover');
-  writeGeneration(lockDirectoryPath, 1, overrunHolderRecord(process.pid));
+  writeGeneration(lockDirectoryPath, 1, liveHolderRecord());
   const successor = payloadOf(1);
 
-  expect(attemptedAcquire(lockDirectoryPath, successor, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict).toBe('acquired');
+  expect(attemptedAcquire(lockDirectoryPath, successor, MISJUDGING_HOLDER_IS_GONE).verdict).toBe('acquired');
   release(lockDirectoryPath, 1, payloadOf(2));
 
   expect(newestRecordIn(lockDirectoryPath)).toEqual({ ...successor, state: 'held' });
-  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict).toBe('held');
+  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), HOLDER_IS_GONE).verdict).toBe('held');
 });
 
 // A generation past the largest safe integer is invisible to every listing, so claiming one would let a second acquirer start again at 1.
@@ -170,7 +172,7 @@ test('a free record at the largest safe generation is never moved past, so at mo
   const lockDirectoryPath = scratchLockDirectory('lock-largest-generation');
   writeGeneration(lockDirectoryPath, Number.MAX_SAFE_INTEGER, deadHolderRecord(await processIdOfAnExitedProcess()));
 
-  const verdicts = [payloadOf(1), payloadOf(2)].map((payload) => attemptedAcquire(lockDirectoryPath, payload, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict);
+  const verdicts = [payloadOf(1), payloadOf(2)].map((payload) => attemptedAcquire(lockDirectoryPath, payload, HOLDER_IS_GONE).verdict);
 
   expect(verdicts.filter((verdict) => verdict === 'acquired').length, 'holders after two acquirers').toBeLessThanOrEqual(1);
   expect(verdicts).toEqual(['held', 'held']);
@@ -185,14 +187,14 @@ test('a holder at the largest safe generation releases nothing it could not list
   release(lockDirectoryPath, Number.MAX_SAFE_INTEGER, payloadOf(2));
 
   expect(readdirSync(lockDirectoryPath)).toEqual([`generation-${Number.MAX_SAFE_INTEGER}`]);
-  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE).verdict).toBe('held');
+  expect(attemptedAcquire(lockDirectoryPath, payloadOf(3), HOLDER_IS_GONE).verdict).toBe('held');
 });
 
 test('a released lock is taken by the next acquirer, whose record is complete the moment it exists', () => {
   const lockDirectoryPath = scratchLockDirectory('lock-complete-record');
   const holder = payloadOf(1);
   let recordAtCreation: unknown = null;
-  attemptedAcquire(lockDirectoryPath, holder, RACE_MOMENT_MILLISECONDS, HOLDER_IS_GONE, (step) => {
+  attemptedAcquire(lockDirectoryPath, holder, HOLDER_IS_GONE, (step) => {
     if (step === 'generation-created') recordAtCreation = newestRecordIn(lockDirectoryPath);
   });
   expect(recordAtCreation).toEqual({ ...holder, state: 'held' });

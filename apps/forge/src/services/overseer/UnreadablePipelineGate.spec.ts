@@ -14,10 +14,10 @@ import {
   test
 } from 'bun:test';
 
+import { LIVE_HOLDERS_LOCK_TAKER }                            from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory }     from '../../testing/ScratchWorkspace.ts';
 import type { BoardStore }                                    from '../store/BoardStore.ts';
 import { createLocalFilesBoardStore }                         from '../store/LocalFilesBoardStore.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }                       from '../tracker/GenerationLock.ts';
 import { workspacePathsFor }                                  from '../tracker/Workspace.ts';
 import { UNREADABLE_PIPELINE_STEP, unreadablePipelineGateOf } from './UnreadablePipelineGate.ts';
 
@@ -69,7 +69,7 @@ describe('the merged-tree gate of a tracker in a folder whose stored pipeline ho
   async function initialisedStoreIn(projectFolder: string): Promise<BoardStore> {
     const workspace = workspacePathsFor(join(repositoryRoot, projectFolder));
     mkdirSync(workspace.trackerDirectory, { recursive: true });
-    const store = createLocalFilesBoardStore({ workspace, now: () => new Date(Date.parse(CHANGED_AT)), lockHolderIsGone: NO_LOCK_HOLDER_READS_AS_GONE });
+    const store = createLocalFilesBoardStore({ workspace, now: () => new Date(Date.parse(CHANGED_AT)), lockTaker: LIVE_HOLDERS_LOCK_TAKER });
     await store.initialise({ project: 'Example Agency', startedAt: STARTED_AT, trackerId: `example-tracker-${projectFolder === '' ? 'root' : 'web'}` });
     return store;
   }

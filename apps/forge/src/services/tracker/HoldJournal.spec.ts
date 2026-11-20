@@ -22,19 +22,19 @@ import {
   expect,
   test,
 } from 'bun:test';
-import type { JournaledFile }                                                from '../../adapters/hold-journal/HoldJournalIngestion.ts';
-import { createHoldJournalWriter }                                           from '../../adapters/hold-journal/HoldJournalWriter.ts';
-import type { FileReplace }                                                  from '../../lib/atomic-file/FileReplace.ts';
-import { fileReplaceOfThisProcess }                                          from '../../lib/atomic-file/FileReplaceFor.ts';
-import { refusalIsOperationRefusal }                                         from '../../shared/OperationRefusal.ts';
-import { LIMITS }                                                            from '../../shared/constants/Limits.ts';
-import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
-import { type HoldFence, LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE } from './GenerationLock.ts';
-import { commitHold, readHoldJournal, replayHoldJournal }                    from './HoldJournal.ts';
-import { localStoreLayoutOf }                                                from './LocalStoreLayout.ts';
-import { withLock }                                                          from './TrackerLock.ts';
-import { workspacePathsFor, type Workspace }                                 from './Workspace.ts';
-import { thrownFailureOf }                                                   from './testing/ThrownFailure.ts';
+import type { JournaledFile }                                               from '../../adapters/hold-journal/HoldJournalIngestion.ts';
+import { createHoldJournalWriter }                                          from '../../adapters/hold-journal/HoldJournalWriter.ts';
+import type { FileReplace }                                                 from '../../lib/atomic-file/FileReplace.ts';
+import { fileReplaceOfThisProcess }                                         from '../../lib/atomic-file/FileReplaceFor.ts';
+import { refusalIsOperationRefusal }                                        from '../../shared/OperationRefusal.ts';
+import { GONE_HOLDERS_LOCK_TAKER, LIVE_HOLDERS_LOCK_TAKER, specLockHolder } from '../../testing/LockTakers.ts';
+import { createScratchDirectory, removeScratchDirectory }                   from '../../testing/ScratchWorkspace.ts';
+import { type HoldFence, LockGenerationSteps }                              from './GenerationLock.ts';
+import { commitHold, readHoldJournal, replayHoldJournal }                   from './HoldJournal.ts';
+import { localStoreLayoutOf }                                               from './LocalStoreLayout.ts';
+import { withLock }                                                         from './TrackerLock.ts';
+import { workspacePathsFor, type Workspace }                                from './Workspace.ts';
+import { thrownFailureOf }                                                  from './testing/ThrownFailure.ts';
 
 const now = (): Date => new Date('2026-09-18T18:05:00Z');
 
@@ -228,13 +228,12 @@ describe('a hold under the real lock', () => {
     const failure = await thrownFailureOf(() => withLock(workspace, (hold) => {
       const takeover = LockGenerationSteps.attemptedAcquire(
         localStoreLayoutOf(workspace).storeLockFolder,
-        { processId: process.pid, acquiredAt: '2026-09-18T20:05:00+02:00' },
-        now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1,
-        NO_LOCK_HOLDER_READS_AS_GONE,
+        { holder: specLockHolder(), acquiredAt: '2026-09-18T20:05:00+02:00' },
+        GONE_HOLDERS_LOCK_TAKER.holderIsGone,
       );
       expect(takeover.verdict).toBe('acquired');
       commitHold(workspace, exampleFiles(), hold);
-    }, now, NO_LOCK_HOLDER_READS_AS_GONE));
+    }, now, LIVE_HOLDERS_LOCK_TAKER));
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: localStoreLayoutOf(workspace).storeLockFolder });
@@ -248,12 +247,11 @@ describe('a hold under the real lock', () => {
     const failure = await thrownFailureOf(() => withLock(workspace, (hold) => {
       LockGenerationSteps.attemptedAcquire(
         localStoreLayoutOf(workspace).storeLockFolder,
-        { processId: process.pid, acquiredAt: '2026-09-18T20:05:00+02:00' },
-        now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1,
-        NO_LOCK_HOLDER_READS_AS_GONE,
+        { holder: specLockHolder(), acquiredAt: '2026-09-18T20:05:00+02:00' },
+        GONE_HOLDERS_LOCK_TAKER.holderIsGone,
       );
       commitHold(workspace, exampleFiles(), hold);
-    }, now, NO_LOCK_HOLDER_READS_AS_GONE));
+    }, now, LIVE_HOLDERS_LOCK_TAKER));
 
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: localStoreLayoutOf(workspace).storeLockFolder });
   });
@@ -262,7 +260,7 @@ describe('a hold under the real lock', () => {
     const files = exampleFiles();
     createHoldJournalWriter(localStoreLayoutOf(workspace).holdJournalPath, workspace.trackerDirectory).write(files);
 
-    const bytesSeenByTheAction = await withLock(workspace, () => storedBytesOf(files), now, NO_LOCK_HOLDER_READS_AS_GONE);
+    const bytesSeenByTheAction = await withLock(workspace, () => storedBytesOf(files), now, LIVE_HOLDERS_LOCK_TAKER);
 
     expect(bytesSeenByTheAction).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
     expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
@@ -274,7 +272,7 @@ describe('a hold under the real lock', () => {
     writeFileSync(localStoreLayoutOf(workspace).logRecordPath, HAND_EDITED_LOG_TEXT);
     let actionRan = false;
 
-    const failure = await thrownFailureOf(() => withLock(workspace, () => { actionRan = true; }, now, NO_LOCK_HOLDER_READS_AS_GONE));
+    const failure = await thrownFailureOf(() => withLock(workspace, () => { actionRan = true; }, now, LIVE_HOLDERS_LOCK_TAKER));
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({
@@ -312,7 +310,7 @@ describe('replayHoldJournal', () => {
       { kind: 'written', filePath: win32.join(windowsDataDirectory, 'tickets', '001-example-checkout-page.md'), contents: 'Example body\n' },
     ]);
 
-    await withLock(workspace, () => {}, now, NO_LOCK_HOLDER_READS_AS_GONE);
+    await withLock(workspace, () => {}, now, LIVE_HOLDERS_LOCK_TAKER);
 
     expect(readFileSync(ticketFilePath(), 'utf8')).toBe('Example body\n');
     expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);

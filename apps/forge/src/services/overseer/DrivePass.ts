@@ -59,6 +59,7 @@ import { MergeRun }                                   from '../lifecycle/MergeRu
 import { ReviewOutcome }                              from '../lifecycle/ReviewOutcome.ts';
 import type { BoardStore }                            from '../store/BoardStore.ts';
 import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';
+import { lockTakerOf }                                from '../tracker/LockHolders.ts';
 import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
 import type { Workspace }                             from '../tracker/Workspace.ts';
 import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
@@ -1112,7 +1113,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const { platformPorts } = request;
   const sharedRepository = projectLocation.projectPrefix === ''
     ? null
-    : Landing.sharedRepositoryLandingOf(projectLocation, request.boardStore.reads.requireProgress().trackerId, request.now, platformPorts.processSupervision.processIsGone);
+    : Landing.sharedRepositoryLandingOf(projectLocation, request.boardStore.reads.requireProgress().trackerId, request.now, lockTakerOf(platformPorts.processSupervision));
   const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
   const gateSlots = GateRunSlots.createGateRunSlots({
     ports:             platformPorts,

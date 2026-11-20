@@ -31,6 +31,7 @@ import { writeTracker }                                                         
 import { requireWorkspace }                                                                          from '../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                                          from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                                             from '../src/shared/constants/ProductNames.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                                                   from '../src/testing/LockTakers.ts';
 import { useRecordedGit }                                                                            from '../src/testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                            from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                                 from '../src/testing/ToolGuard.ts';
@@ -392,10 +393,11 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
 
     const workspace = requireWorkspace(repositoryDirectory);
     const written   = await writeTracker({
+      lockTaker: LIVE_HOLDERS_LOCK_TAKER,
       workspace,
-      at:     '2026-09-18T22:11:03+02:00',
-      now:    SPEC_CLOCK,
-      mutate: (change) => ControlService.apply(verdict.command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT).result,
+      at:        '2026-09-18T22:11:03+02:00',
+      now:       SPEC_CLOCK,
+      mutate:    (change) => ControlService.apply(verdict.command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT).result,
     });
     const filed = written.result as { ticket: { frontmatter: { id: string } } };
     const text  = readFileSync(listTickets(workspace).ticketLocations.get(filed.ticket.frontmatter.id) ?? '', 'utf8');

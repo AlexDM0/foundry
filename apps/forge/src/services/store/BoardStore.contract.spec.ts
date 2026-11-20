@@ -11,11 +11,11 @@ import type { ControlCommand }                                from '../../shared
 import { refusalIsOperationRefusal }                          from '../../shared/OperationRefusal.ts';
 import { ECHOED_CONTROL_CONTEXT }                             from '../../testing/EchoedControlContext.ts';
 import { parkingLockRetries }                                 from '../../testing/LockRetryWaits.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                            from '../../testing/LockTakers.ts';
 import { type PortClause, type PortSubject, runPortContract } from '../../testing/PortContract.ts';
 import { createScratchDirectory }                             from '../../testing/ScratchWorkspace.ts';
 import { waitUntil }                                          from '../../testing/WaitUntil.ts';
 import type { BoardTransaction }                              from '../tracker/BoardTransaction.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }                       from '../tracker/GenerationLock.ts';
 import { workspacePathsFor }                                  from '../tracker/Workspace.ts';
 import type { BoardStore }                                    from './BoardStore.ts';
 import { createLocalFilesBoardStore }                         from './LocalFilesBoardStore.ts';
@@ -34,7 +34,7 @@ const LATER_AT   = '2026-11-20T11:00:00+01:00';
 const fixedNow = (): Date => new Date('2026-11-20T08:00:00Z');
 
 async function localFilesBoardStoreOnAScratchTracker(): Promise<BoardStoreUnderContract> {
-  const options = { workspace: workspacePathsFor(createScratchDirectory('board-store')), now: fixedNow, lockHolderIsGone: NO_LOCK_HOLDER_READS_AS_GONE };
+  const options = { workspace: workspacePathsFor(createScratchDirectory('board-store')), now: fixedNow, lockTaker: LIVE_HOLDERS_LOCK_TAKER };
   const store   = createLocalFilesBoardStore(options);
   await store.initialise({ project: 'Example Agency', startedAt: STARTED_AT, trackerId: 'example-tracker' });
   return { store, anotherClientOfTheSameBoard: () => createLocalFilesBoardStore(options) };

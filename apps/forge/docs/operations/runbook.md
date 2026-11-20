@@ -440,7 +440,8 @@ apps/forge/setup.sh --login-overseer /path/to/repository
 | Refusal | Cause | Fix |
 | --- | --- | --- |
 | `tracker-lock-held` | Another command held `<data>/.lock` past every retry. | Run the command again. If nothing else is running and it repeats, remove the path the message names. |
-| `lock-taken-over` | This command held the lock past `LOCK_STALE_MILLISECONDS` and another took it over. | Run it again; the next holder finishes what was committed. |
+| `lock-taken-over` | Another command read this command's process as gone and took the lock over. | Run it again; the next holder finishes what was committed. |
+| `lock-record-unreadable` | A record under `<data>/.lock`, or under the landing lock in the repository's git common directory, cannot be read, so no process can be judged from it. | If nothing else is running, remove the file the message names and run the command again. |
 | `malformed-hold-journal` | `<data>/hold-journal.json` cannot be read. | See [Stored file damage](#stored-file-damage). |
 | `hold-journal-unremovable` | The write finished, but `<data>/hold-journal.json` could not be removed. | Close what holds it and run a command; that command finishes it. |
 

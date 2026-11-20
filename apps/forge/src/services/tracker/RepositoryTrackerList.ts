@@ -11,7 +11,7 @@ import type { RepositoryLandingFiles, RepositoryTracker, TrackerListReading } fr
 import { repositoryRootWithoutGit }                                           from '../../lib/git/RepositoryRootWithoutGit.ts';
 import { GIT_ENTRY_NAME }                                                     from '../../lib/git/constants/GitConventions.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';
-import { type LockHolderIsGone, withLockAt }                                  from './GenerationLock.ts';
+import { type LockTaker, withLockAt }                                         from './GenerationLock.ts';
 
 const PREFIX_SEPARATOR = '/';
 
@@ -71,11 +71,11 @@ export function trackerPlacementRefusalOf(
 
 /** Under the list's own lock, since the write rewrites the whole list and a sibling tracker may be writing its entry. */
 export async function listTracker(
-  list: RepositoryTrackerList, tracker: RepositoryTracker, now: () => Date, lockHolderIsGone: LockHolderIsGone,
+  list: RepositoryTrackerList, tracker: RepositoryTracker, now: () => Date, lockTaker: LockTaker,
 ): Promise<TrackerListing> {
   try {
     mkdirSync(list.files.lockDirectoryPath, { recursive: true });
-    const write = await withLockAt(list.files.lockDirectoryPath, () => RepositoryLandings.writeTrackerEntry(list.files, tracker), now, lockHolderIsGone);
+    const write = await withLockAt(list.files.lockDirectoryPath, () => RepositoryLandings.writeTrackerEntry(list.files, tracker), now, lockTaker);
     if (write.verdict === 'written') return { verdict: 'listed' };
     if (write.verdict === 'newer-version') return { verdict: 'not-listed', reason: `it is of version ${write.version}, newer than this ${PRODUCT_NAMES.PROGRAM} writes` };
     if (write.verdict === 'malformed') return { verdict: 'not-listed', reason: write.problems.join('; ') };

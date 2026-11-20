@@ -27,6 +27,7 @@ import { WorktreesFolder }                                        from '../../sh
 import { boardFixture, entityPipelineFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }   from '../../testing/FixtureRecordAllocation.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                                from '../../testing/LockTakers.ts';
 import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
 import {
   GIT_CALL_SHAPES,
@@ -101,14 +102,22 @@ function changeOfFixture(fixture: BoardFixture): BoardTransaction {
 
 async function applied(command: ControlCommand): Promise<void> {
   await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT)
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT)
   });
 }
 
 /** The board as stored, read in a hold that changes nothing. */
 async function storedBoard(): Promise<Board> {
   return (await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: () => undefined
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    () => undefined
   })).board;
 }
 
@@ -152,7 +161,11 @@ function recordOf(request: ProposalRunRequest, output: string): ProposalRunRecor
 function checkingWith(
   runProposalTwice: PipelineCheckingContext['runProposalTwice'],
   hold: PipelineCheckingContext['hold'] = async (mutate) => (await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => mutate({ board: change.board, at: change.at })
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => mutate({ board: change.board, at: change.at })
   })).result,
 ): ReturnType<typeof PipelineChecking.createPipelineChecking> {
   const native = nativePlatformPorts();
@@ -332,7 +345,11 @@ testWhenGitIsRecorded('an Overseer stop sends stop to the running check\'s line,
 testWhenGitIsRecorded('an Overseer start stops the lines left running, then reads a check left running as stopped and removes every check worktree', async () => {
   await checkRequestedOnAnUpdate();
   await writeTracker({
-    workspace, at: CHANGED_AT, now, mutate: (change) => change.board.startPipelineCheck('S1')
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
+    workspace,
+    at:        CHANGED_AT,
+    now,
+    mutate:    (change) => change.board.startPipelineCheck('S1')
   });
   mkdirSync(worktreeOf('S1'), { recursive: true });
   const checking = checkingWith((request) => Promise.resolve(recordOf(request, '')));

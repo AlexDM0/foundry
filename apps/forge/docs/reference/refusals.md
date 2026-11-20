@@ -506,7 +506,7 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 [hold journal](../glossary.md#hold-journal). Recipe: [Lock refusals](../operations/runbook.md#lock-refusals).
 
 <details open>
-<summary>11 sentences</summary>
+<summary>12 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -518,7 +518,8 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 | `tracker was found in <directory> or any directory above it` | `no-tracker-found` | No tracker up the tree. | Run `init` in the repository. | |
 | `which FORGE_ROOT names` | `no-tracker-at-override` | The variable names a directory with no tracker. | Run `init` there, or unset it. | |
 | `is holding <path> and did not release it` | `tracker-lock-held` | The lock stayed held through `LIMITS.LOCK_RETRY_COUNT` tries. **Exit 2.** | If nothing runs, remove that path and retry. | |
-| `held <path> so long that another command took it over` | `lock-taken-over` | This command outlived the lock. **Exit 2.** | Run it again. The next command finishes what was committed. | |
+| `command's process as gone and took <path> over` | `lock-taken-over` | Another command misjudged this one's process as gone. **Exit 2.** | Run it again. The next command finishes what was committed. | |
+| `The lock record <path> cannot be read` | `lock-record-unreadable` | A record of the store's lock, or of a repository's landing lock, was damaged outside the tool; no process can be judged from it. **Exit 2.** | If nothing runs, remove that file and retry. | |
 | `holds an unfinished write that cannot be read` | `malformed-hold-journal` | `hold-journal.json` is broken. **Exit 2.** | Repair it, or remove it and leave that write unfinished. | |
 | `could not be removed` | `hold-journal-unremovable` | The write finished, but something holds `hold-journal.json`. **Exit 2.** | Close what holds it and run a command; that command finishes it. | |
 

@@ -20,6 +20,7 @@ import { PRODUCT_NAMES }                                  from '../../../shared/
 import { boardFixture, ticketFixture }                    from '../../../testing/BoardFixtures.ts';
 import { fakeAgentAdapter }                               from '../../../testing/FakeAgentAdapter.ts';
 import { queueOnCurrentGreen }                            from '../../../testing/GreenQueue.ts';
+import { LIVE_HOLDERS_LOCK_TAKER }                        from '../../../testing/LockTakers.ts';
 import { createPlantedRepository }                        from '../../../testing/RecordedAirlockGit.ts';
 import { removeScratchDirectory }                         from '../../../testing/ScratchWorkspace.ts';
 import type { ProjectScope }                              from '../../lifecycle/Customs.ts';
@@ -154,10 +155,10 @@ export function createRecordedAirlocksHarness(
 ): AirlocksHarness {
   const repository = createPlantedRepository('airlocks');
   const sharedRepository: SharedRepositoryLanding | null = besideSiblings ? {
-    trackerId:        HARNESS_TRACKER_ID,
-    files:            RepositoryLandings.landingFilesOf(join(repository, '.git'), PRODUCT_NAMES.PROGRAM),
-    now:              () => new Date(HARNESS_AT),
-    lockHolderIsGone: () => false,
+    trackerId: HARNESS_TRACKER_ID,
+    files:     RepositoryLandings.landingFilesOf(join(repository, '.git'), PRODUCT_NAMES.PROGRAM),
+    now:       () => new Date(HARNESS_AT),
+    lockTaker: LIVE_HOLDERS_LOCK_TAKER,
   } : null;
   const worktreesRoot = `${repository}-worktrees`;
   for (const ticket of tickets) {

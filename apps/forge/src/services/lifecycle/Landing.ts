@@ -10,11 +10,11 @@ import { GitProcess, type GitHookPolicy }                  from '../../lib/git/G
 import { GitWorktrees }                                    from '../../lib/git/GitWorktrees.ts';
 import type { CheckoutWritePrimitives }                    from '../../lib/git/HeldCheckout.ts';
 import { RepositoryLandings, type RepositoryLandingFiles } from '../../lib/git/RepositoryLandings.ts';
-import { LocalTimeUtil }                                   from '../../lib/local-time/LocalTimeUtil.ts';
 import type { Ticket }                                     from '../../lib/tracker-model/@types/Ticket.ts';
+import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
 import { LIMITS }                                          from '../../shared/constants/Limits.ts';
 import { PRODUCT_NAMES }                                   from '../../shared/constants/ProductNames.ts';
-import { LockGenerationSteps, type LockHolderIsGone }      from '../tracker/GenerationLock.ts';
+import { LockGenerationSteps, type LockTaker }             from '../tracker/GenerationLock.ts';
 import type { ProjectLocation }                            from '../tracker/ProjectLocation.ts';
 
 /**
@@ -22,10 +22,10 @@ import type { ProjectLocation }                            from '../tracker/Proj
  * check, the fast-forward and the journal line only, never across a gate, and a tip a sibling journaled is a recorded landing.
  */
 export interface SharedRepositoryLanding {
-  trackerId:        string;
-  files:            RepositoryLandingFiles;
-  now:              () => Date;
-  lockHolderIsGone: LockHolderIsGone;
+  trackerId: string;
+  files:     RepositoryLandingFiles;
+  now:       () => Date;
+  lockTaker: LockTaker;
 }
 
 /** Main is landed in the main checkout; a group branch in the worktree it is checked out in, never by `update-ref`. */
@@ -137,20 +137,22 @@ function landAlone(request: LandingRequest): LandingVerdict {
 
 /**
  * Never waits: a lock a live sibling holds is `null` at once, so a tracker's own hold is never spent waiting on another tracker, and the
- * slot tries again on a later sweep. A contended attempt, a sibling taking the lock at the same moment, is tried again at once.
+ * slot tries again on a later sweep. A contended attempt, a sibling taking the lock at the same moment, is tried again at once. An
+ * unreadable lock record judges no process, so it is refused for a repair, `lock-record-unreadable`, as the store's lock refuses it.
  */
 function underTheLandingLock(sharedRepository: SharedRepositoryLanding, land: () => LandingVerdict): LandingVerdict | null {
   const { lockDirectoryPath } = sharedRepository.files;
-  const payloadAt = (moment: Date): { processId: number; acquiredAt: string } => ({ processId: process.pid, acquiredAt: LocalTimeUtil.formatLocalIso(moment) });
+  const { lockTaker, now } = sharedRepository;
+  const holder = lockTaker.holderOfThisProcess();
   for (let attempt = 0; attempt < LIMITS.LOCK_RETRY_COUNT; attempt++) {
-    const attemptedAt = sharedRepository.now();
-    const acquired    = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, payloadAt(attemptedAt), attemptedAt.getTime(), sharedRepository.lockHolderIsGone);
+    const acquired = LockGenerationSteps.attemptedAcquire(lockDirectoryPath, LockGenerationSteps.lockPayloadOf(holder, now()), lockTaker.holderIsGone);
+    if (acquired.verdict === 'unreadable') throw new OperationRefusal('unrepaired', { kind: 'lock-record-unreadable', recordPath: acquired.recordPath });
     if (acquired.verdict === 'held') return null;
     if (acquired.verdict === 'contended') continue;
     try {
       return land();
     } finally {
-      LockGenerationSteps.release(lockDirectoryPath, acquired.generation, payloadAt(sharedRepository.now()));
+      LockGenerationSteps.release(lockDirectoryPath, acquired.generation, LockGenerationSteps.lockPayloadOf(holder, now()));
     }
   }
   return null;
@@ -186,7 +188,7 @@ function landOnTarget(request: LandingRequest): LandingVerdict {
  * its repository's root, and when git cannot name that directory, so that tracker lands alone.
  */
 function sharedRepositoryLandingOf(
-  location: ProjectLocation, trackerId: string, now: () => Date, lockHolderIsGone: LockHolderIsGone
+  location: ProjectLocation, trackerId: string, now: () => Date, lockTaker: LockTaker
 ): SharedRepositoryLanding | null {
   if (location.projectPrefix === '') return null;
   const { repositoryRoot } = location;
@@ -194,7 +196,7 @@ function sharedRepositoryLandingOf(
   const gitCommonDirectory = GitProcess.succeeded(run) ? run.standardOutput.trim() : '';
   if (gitCommonDirectory === '') return null;
   return {
-    trackerId, files: RepositoryLandings.landingFilesOf(gitCommonDirectory, PRODUCT_NAMES.PROGRAM), now, lockHolderIsGone
+    trackerId, files: RepositoryLandings.landingFilesOf(gitCommonDirectory, PRODUCT_NAMES.PROGRAM), now, lockTaker
   };
 }
 

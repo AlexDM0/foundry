@@ -25,7 +25,7 @@ import type { BoardContents, UnreadableRecords }                              fr
 import type { BoardTransaction }                                              from './BoardTransaction.ts';
 import { draftFilePathOf }                                                    from './DraftStore.ts';
 import { epicFilePathOf, everyEpicFilePathIn }                                from './EpicStore.ts';
-import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE }                from './GenerationLock.ts';
+import type { LockTaker }                                                     from './GenerationLock.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
 import { createLocalRecordAllocation, type LocalRecordAllocation }            from './LocalRecordAllocation.ts';
 import { localStoreLayoutOf }                                                 from './LocalStoreLayout.ts';
@@ -43,8 +43,8 @@ export interface TrackerWriteRequest<MutationResult> {
   mutate:            (change: BoardTransaction) => MutationResult | Promise<MutationResult>;
   /** Called after each file the hold writes; the step a spec interrupts to cut the hold short. */
   afterFileWritten?: (filePath: string) => void;
-  /** The platform's process check; absent, no holder reads as gone, and only a stale stamp frees the lock. */
-  lockHolderIsGone?: LockHolderIsGone;
+  /** This process as the lock's taker, and how it judges a holder it finds. */
+  lockTaker:         LockTaker;
 }
 
 export interface TrackerWritten<MutationResult> {
@@ -156,7 +156,7 @@ async function mutateWrappingBoardRefusals<MutationResult>(
 
 export function writeTracker<MutationResult>(request: TrackerWriteRequest<MutationResult>): Promise<TrackerWritten<MutationResult>> {
   const {
-    workspace, at, now, mutate, afterFileWritten, lockHolderIsGone = NO_LOCK_HOLDER_READS_AS_GONE
+    workspace, at, now, mutate, afterFileWritten, lockTaker
   } = request;
 
   return withLock(workspace, async (hold) => {
@@ -183,5 +183,5 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
     commitHold(workspace, plannedHold.files, hold, afterFileWritten);
     for (const onDeleted of deletionCallbacks) onDeleted(plannedHold.deletedTicketCount);
     return { result, board: openedBoard.board, unreadableRecords };
-  }, now, lockHolderIsGone);
+  }, now, lockTaker);
 }

@@ -2,8 +2,9 @@
  * What only the local files adapter promises, beyond the contract. What matters: a write cut short is finished by the next writer of
  * another store and reads as pending until then; a malformed hold journal names its file and stops every write; an unreadable ticket
  * file is reported with its key and its file and stays off the Board; the revision covers the progress record, the log and the gate
- * profile runs and no ticket; reads take no lock; and the pipeline is judged once, so a tracker in a folder reads a stored pipeline with
- * entities as malformed in every read, the reading a write opens the Board on. The `.git` folder is planted: finding the prefix runs no git.
+ * profile runs and no ticket; reads take no lock; the pipeline is judged once, so a tracker in a folder reads a stored pipeline with
+ * entities as malformed in every read, the reading a write opens the Board on; and a lock record whose holder is judged gone is taken over
+ * by the next write. The `.git` folder is planted: finding the prefix runs no git.
  */
 import {
   appendFileSync,
@@ -25,11 +26,13 @@ import type { PipelineEntity }                                          from '..
 import type { ControlCommand }                                          from '../../shared/@types/ControlCommand.ts';
 import { refusalIsOperationRefusal }                                    from '../../shared/OperationRefusal.ts';
 import { ECHOED_CONTROL_CONTEXT }                                       from '../../testing/EchoedControlContext.ts';
+import { lockRetryWaitsDuring }                                         from '../../testing/LockRetryWaits.ts';
+import { LIVE_HOLDERS_LOCK_TAKER, lockTakerJudgingHoldersBy }           from '../../testing/LockTakers.ts';
 import { createScratchDirectory, removeScratchDirectory }               from '../../testing/ScratchWorkspace.ts';
 import { storedFileContentsOf }                                         from '../../testing/TrackerFileFixtures.ts';
 import type { RecordReference }                                         from '../tracker/@types/BoardRecords.ts';
 import type { BoardTransaction }                                        from '../tracker/BoardTransaction.ts';
-import { NO_LOCK_HOLDER_READS_AS_GONE }                                 from '../tracker/GenerationLock.ts';
+import type { LockHolder, LockTaker }                                   from '../tracker/GenerationLock.ts';
 import { localStoreLayoutOf }                                           from '../tracker/LocalStoreLayout.ts';
 import { workspacePathsFor, type Workspace }                            from '../tracker/Workspace.ts';
 import type { BoardStore }                                              from './BoardStore.ts';
@@ -62,11 +65,11 @@ afterEach(() => {
   removeScratchDirectory(repositoryRoot);
 });
 
-function storeOptionsIn(projectFolder: string, afterFileWritten?: (location: string) => void): LocalFilesBoardStoreOptions {
+function storeOptionsIn(projectFolder: string, afterFileWritten?: (location: string) => void, lockTaker: LockTaker = LIVE_HOLDERS_LOCK_TAKER): LocalFilesBoardStoreOptions {
   return {
-    workspace:        workspacePathsFor(join(repositoryRoot, projectFolder)),
-    now:              fixedNow,
-    lockHolderIsGone: NO_LOCK_HOLDER_READS_AS_GONE,
+    workspace: workspacePathsFor(join(repositoryRoot, projectFolder)),
+    now:       fixedNow,
+    lockTaker,
     ...(afterFileWritten === undefined ? {} : { afterFileWritten }),
   };
 }
@@ -131,6 +134,26 @@ describe('a write cut short and a malformed hold journal', () => {
     expect(store.reads.readUnfinishedWrite()).toEqual({ verdict: 'malformed', location: journalPath, reason: 'its "files" is not a list' });
     expect(refusalDetailOf(await thrownFailureOf(() => applyCommand(store, { kind: 'concurrency-set', limit: 6 })))).toEqual(expectedRefusal);
     expect(refusalDetailOf(await thrownFailureOf(() => store.transactions.transact({ at: CHANGED_AT, mutate: () => 'Example' })))).toEqual(expectedRefusal);
+  });
+});
+
+describe('the lock', () => {
+  test('a lock record left by a holder judged gone is taken over by the next apply, which waits for no retry', async () => {
+    const { workspace } = await initialisedStoreIn('');
+    const lockFolder = localStoreLayoutOf(workspace).storeLockFolder;
+    const leftHolder = { processId: 4242, startStamp: '1763370000', bootIdentity: 'example-boot' };
+    writeFileSync(join(lockFolder, 'generation-99'), JSON.stringify({ holder: leftHolder, acquiredAt: STARTED_AT, state: 'held' }));
+    const judged: LockHolder[] = [];
+    const store = createLocalFilesBoardStore(storeOptionsIn('', undefined, lockTakerJudgingHoldersBy((holder) => {
+      judged.push(holder);
+      return true;
+    })));
+
+    const { sleepMilliseconds } = await lockRetryWaitsDuring(() => applyCommand(store, { kind: 'concurrency-set', limit: 6 }));
+
+    expect(judged).toEqual([leftHolder]);
+    expect(sleepMilliseconds).toEqual([]);
+    expect(store.reads.requireProgress().concurrencyLimit).toBe(6);
   });
 });
 

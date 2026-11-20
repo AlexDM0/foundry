@@ -31,9 +31,11 @@ import {
   talosRecordAt
 } from '../services/overseer/TalosStart.ts';
 import { createLocalFilesBoardStore } from '../services/store/LocalFilesBoardStore.ts';
+import type { LockHolder }            from '../services/tracker/GenerationLock.ts';
 import { requireProgressFile }        from '../services/tracker/TrackerReader.ts';
 import type { Workspace }             from '../services/tracker/Workspace.ts';
 import { branchNamesOf }              from '../shared/BranchNames.ts';
+import { lockTakerJudgingHoldersBy }  from './LockTakers.ts';
 import { firstValueOf }               from './WaitUntil.ts';
 
 interface ScratchDrivePassRequired {
@@ -72,8 +74,9 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
   const codeVersion = request.codeVersion ?? 'code-example';
   const boardChildren = createTalosChildren({ boardFolder: request.workspace.trackerDirectory, platformPorts: request.platformPorts, connection: request.talosConnection });
   const now = request.now ?? (() => new Date('2026-09-18T20:11:03Z'));
+  const holderIsGoneByProcessId = (holder: LockHolder): boolean => request.platformPorts.processSupervision.processIsGone(holder.processId);
   const defaults: Omit<DrivePassRequest, keyof ScratchDrivePassRequired> = {
-    boardStore:            createLocalFilesBoardStore({ workspace: request.workspace, now, lockHolderIsGone: request.platformPorts.processSupervision.processIsGone }),
+    boardStore:            createLocalFilesBoardStore({ workspace: request.workspace, now, lockTaker: lockTakerJudgingHoldersBy(holderIsGoneByProcessId) }),
     now,
     formatStamp:           () => '2026-09-18T22:11:03+02:00',
     overseerDirectory,
