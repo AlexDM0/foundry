@@ -149,9 +149,9 @@ describeWhenGitIsRecorded('initialising a repository', () => {
 
   test('a ticket file left from a removed tracker that will not parse is the first line on standard error, and init still exits 0', async () => {
     const repositoryDirectory = scratchRepository();
-    const ticketsDirectory    = join(realpathSync(repositoryDirectory), PRODUCT_NAMES.DATA_FOLDER, 'tickets');
-    const ticketFilePath      = join(ticketsDirectory, '001-broken-by-hand.md');
-    mkdirSync(ticketsDirectory, { recursive: true });
+    const ticketRecordsFolder    = join(realpathSync(repositoryDirectory), PRODUCT_NAMES.DATA_FOLDER, 'tickets');
+    const ticketFilePath      = join(ticketRecordsFolder, '001-broken-by-hand.md');
+    mkdirSync(ticketRecordsFolder, { recursive: true });
     writeFileSync(ticketFilePath, 'no frontmatter here\n');
 
     const { exitCode, context } = await runIn(repositoryDirectory, ['init', '--project', 'Example Agency'], INIT_IN_A_NEW_REPOSITORY);
@@ -287,16 +287,16 @@ describeWhenGitIsRecorded('a second init', () => {
   // The tracker walk misses a progress file that is not a readable regular file, so only the create-exclusive store write keeps it.
   test('a progress file the tracker walk does not recognise is refreshed around, never replaced', async () => {
     const repositoryDirectory = scratchRepository();
-    const progressFilePath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+    const progressRecordPath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
     const missingTargetPath   = join(repositoryDirectory, 'missing-progress-target.json');
     mkdirSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER), { recursive: true });
-    symlinkSync(missingTargetPath, progressFilePath);
+    symlinkSync(missingTargetPath, progressRecordPath);
 
     const { exitCode, context } = await runIn(repositoryDirectory, ['init'], INIT_IN_A_NEW_REPOSITORY);
     expect(exitCode).toBe(0);
 
     expect(context.outputText()).toContain('already initialised');
-    expect(readlinkSync(progressFilePath)).toBe(missingTargetPath);
+    expect(readlinkSync(progressRecordPath)).toBe(missingTargetPath);
     expect(existsSync(missingTargetPath)).toBe(false);
   });
 

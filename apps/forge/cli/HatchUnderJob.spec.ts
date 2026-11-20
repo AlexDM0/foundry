@@ -205,9 +205,9 @@ beforeAll(async () => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     expect(await runCommandLine(setupArguments, context), context.errorText()).toBe(0);
   }
-  const progressFilePath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
-  const progress         = JSON.parse(readFileSync(progressFilePath, 'utf8')) as Record<string, unknown>;
-  writeFileSync(progressFilePath, `${JSON.stringify({ ...progress, jobs: [sessionJob()] }, null, 2)}\n`);
+  const progressRecordPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+  const progress         = JSON.parse(readFileSync(progressRecordPath, 'utf8')) as Record<string, unknown>;
+  writeFileSync(progressRecordPath, `${JSON.stringify({ ...progress, jobs: [sessionJob()] }, null, 2)}\n`);
 });
 
 afterAll(() => {

@@ -42,10 +42,10 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
 }
 
 function storedTicketText(identifier: string): string {
-  const ticketsDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
-  const fileName = readdirSync(ticketsDirectory).find((name) => name.startsWith(`${identifier}-`));
+  const ticketRecordsFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
+  const fileName = readdirSync(ticketRecordsFolder).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return readFileSync(join(ticketsDirectory, fileName), 'utf8');
+  return readFileSync(join(ticketRecordsFolder, fileName), 'utf8');
 }
 
 /** The ticket file and the log stay as they were: the refusal wrote nothing. */

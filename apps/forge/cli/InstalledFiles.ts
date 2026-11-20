@@ -2,7 +2,7 @@
 import { join } from 'node:path';
 
 import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from '../src/services/overseer/InstructionFiles.ts';
-import { TRACKER_FILES }                                       from '../src/services/tracker/constants/TrackerFiles.ts';
+import { PRODUCT_NAMES }                                       from '../src/shared/constants/ProductNames.ts';
 
 const INSTALL_MANIFEST_FILE_NAME = 'version.json';
 
@@ -29,7 +29,7 @@ export interface InstalledFilePaths {
 
 export function installedFilePathsIn(rootDirectory: string): InstalledFilePaths {
   return {
-    reference:                 join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, REFERENCE_FILE_NAME),
+    reference:                 join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, REFERENCE_FILE_NAME),
     constitutionDefault:       join(rootDirectory, CONSTITUTION_DEFAULT_PATH),
     builderDefault:            join(rootDirectory, defaultInstructionPathOf('builder')),
     reviewerDefault:           join(rootDirectory, defaultInstructionPathOf('reviewer')),
@@ -38,7 +38,7 @@ export function installedFilePathsIn(rootDirectory: string): InstalledFilePaths 
     productOwnerDefault:       join(rootDirectory, defaultInstructionPathOf('productOwner')),
     pipelineAgentDefault:      join(rootDirectory, defaultInstructionPathOf('pipelineAgent')),
     assistantDefault:          join(rootDirectory, defaultInstructionPathOf('assistant')),
-    sessionInstructions:       join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, SESSION_INSTRUCTIONS_FILE_NAME),
-    installManifest:           join(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME, INSTALL_MANIFEST_FILE_NAME),
+    sessionInstructions:       join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, SESSION_INSTRUCTIONS_FILE_NAME),
+    installManifest:           join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, INSTALL_MANIFEST_FILE_NAME),
   };
 }

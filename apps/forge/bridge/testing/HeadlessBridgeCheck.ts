@@ -29,6 +29,7 @@ import { type RecordedGit, type RecordedGitStage }        from '../../src/testin
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { firstValueOf, waitUntil }                        from '../../src/testing/WaitUntil.ts';
 import { HashRouter }                                     from '../shell/HashRouter.ts';
+import { localStoreLayoutOf } from '../../src/services/tracker/LocalStoreLayout.ts';
 
 export const HEADLESS_CHECK_PROJECT = 'Example Agency';
 
@@ -225,7 +226,7 @@ export async function readTheBridgeHeadless(chromePath: string, recordedGit: Rec
   const repositoryDirectory = await createInitializedRecordedGitRepository(
     'headless-bridge', ['--project', HEADLESS_CHECK_PROJECT, '--no-hooks'], FIXED_CLOCK, recordedGit
   );
-  writeFileSync(workspacePathsFor(repositoryDirectory).pipelineFilePath, HEADLESS_CHECK_PIPELINE_TEXT);
+  writeFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).pipelineRecordPath, HEADLESS_CHECK_PIPELINE_TEXT);
   // Short, so the board's Talos endpoint under it fits the bytes macOS keeps for a socket path.
   const homeDirectory = createScratchDirectory('bridge-home');
   const chromeProfileDirectory = createScratchDirectory('headless-bridge-chrome');

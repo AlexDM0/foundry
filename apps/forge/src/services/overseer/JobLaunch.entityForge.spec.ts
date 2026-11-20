@@ -133,7 +133,7 @@ function launchedBuildOf(entity: EntityForgeEntity, ticketReview: TicketReview =
     kind: 'build', role: 'builder', ticketIds: [SHOP_TICKET.id], parentJobId: null, attempt: 1, target: ENTITY_FORGE_MAIN_LINE, entity: entity.key, stage: 1
   }, AT);
   const context = {
-    workspace:         { rootDirectory: repository, trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') },
+    workspace:         { rootDirectory: repository, trackerDirectory },
     mainLine:          ENTITY_FORGE_MAIN_LINE,
     branchNames:       branchNamesOf(null),
     log:               () => undefined,

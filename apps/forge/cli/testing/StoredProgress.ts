@@ -2,8 +2,9 @@
 import { readFileSync } from 'node:fs';
 
 import type { TrackerProgress } from '../../src/lib/tracker-model/@types/TrackerProgress.ts';
+import { localStoreLayoutOf }   from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }    from '../../src/services/tracker/Workspace.ts';
 
 export function storedProgressOf(repositoryDirectory: string): TrackerProgress {
-  return JSON.parse(readFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, 'utf8')) as TrackerProgress;
+  return JSON.parse(readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, 'utf8')) as TrackerProgress;
 }

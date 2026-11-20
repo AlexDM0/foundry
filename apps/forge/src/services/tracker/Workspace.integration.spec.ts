@@ -23,6 +23,7 @@ import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit }  from '../../t
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                   from '../../testing/ToolGuard.ts';
 import { writeMinimalTracker }                                     from '../../testing/TrackerFileFixtures.ts';
+import { localStoreLayoutOf }                                      from './LocalStoreLayout.ts';
 import {
   findWorkspace,
   requireWorkspace,
@@ -86,20 +87,17 @@ function refusalDetailFromAChildProcess(childEnvironment: Record<string, string>
   ]);
 }
 
-testWhenGitIsRecorded('every path a tracker owns is derived from one root and lands inside it', () => {
-  const workspace = workspacePathsFor('/example/repository');
-  expect(workspace.rootDirectory).toBe('/example/repository');
-  expect(workspace.trackerDirectory).toBe(`/example/repository/${PRODUCT_NAMES.DATA_FOLDER}`);
-  expect(workspace.progressFilePath).toBe('/example/repository/' + PRODUCT_NAMES.DATA_FOLDER + '/progress.json');
-  expect(workspace.logFilePath).toBe('/example/repository/' + PRODUCT_NAMES.DATA_FOLDER + '/log.jsonl');
-  expect(workspace.htmlFilePath).toBe('/example/repository/' + PRODUCT_NAMES.DATA_FOLDER + '/progress.html');
-  expect(workspace.ticketsDirectory).toBe('/example/repository/' + PRODUCT_NAMES.DATA_FOLDER + '/tickets');
-  expect(workspace.lockDirectoryPath).toBe('/example/repository/' + PRODUCT_NAMES.DATA_FOLDER + '/.lock');
+testWhenGitIsRecorded('the board\'s place is derived from one root and lands inside it, and names no record', () => {
+  expect(workspacePathsFor('/example/repository')).toEqual({
+    rootDirectory:    '/example/repository',
+    trackerDirectory: `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}`,
+    htmlFilePath:     `/example/repository/${PRODUCT_NAMES.DATA_FOLDER}/progress.html`,
+  });
 });
 
-testWhenGitIsRecorded('the paths are produced for a tracker that does not exist yet, because init needs them before it creates one', () => {
+testWhenGitIsRecorded('the place is produced for a tracker that does not exist yet, because init needs it before it creates one', () => {
   const missingRoot = join(scratchDirectory('workspace-not-yet'), 'never-created');
-  expect(workspacePathsFor(missingRoot).progressFilePath).toBe(join(missingRoot, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'));
+  expect(workspacePathsFor(missingRoot).trackerDirectory).toBe(join(missingRoot, PRODUCT_NAMES.DATA_FOLDER));
 });
 
 testWhenGitIsRecorded('a relative root is made absolute, so nothing is resolved against the process working directory later', () => {
@@ -177,7 +175,7 @@ testWhenGitIsRecorded('requireWorkspace refuses with an actionable status and th
 
 testWhenGitIsRecorded('requireWorkspace hands back the tracker when there is one, rather than refusing defensively', () => {
   const rootDirectory = writeMinimalTracker(scratchDirectory('workspace-required'));
-  expect(requireWorkspace(rootDirectory).progressFilePath).toBe(join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'));
+  expect(localStoreLayoutOf(requireWorkspace(rootDirectory)).progressRecordPath).toBe(join(rootDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'));
 });
 
 testWhenGitIsRecorded('the child-process harness can tell a found tracker from none, so its silences count', () => {

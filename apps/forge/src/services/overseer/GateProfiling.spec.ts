@@ -39,6 +39,7 @@ import { ControlService }                                 from '../control/Contr
 import { SLOW_GATE_MILLISECONDS }                         from '../lifecycle/CachingChecks.ts';
 import type { GateLineRunRequest, GateLinesRun }          from '../lifecycle/GateLineRun.ts';
 import type { LineRunEnd, LineRunRequest }                from '../lifecycle/GateRun.ts';
+import { localStoreLayoutOf }                             from '../tracker/LocalStoreLayout.ts';
 import { writeTracker }                                   from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }              from '../tracker/Workspace.ts';
 import {
@@ -115,7 +116,7 @@ function stepRunOf(runMilliseconds: number, ending: PipelineStepRun['ending']): 
 
 /** The `pipeline-step-ran` records the log holds, as stored. */
 function loggedStepRuns(): unknown[] {
-  return readFileSync(workspace.logFilePath, 'utf8').split('\n').filter((line) => line.includes('"kind":"pipeline-step-ran"'))
+  return readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8').split('\n').filter((line) => line.includes('"kind":"pipeline-step-ran"'))
     .map((line) => (JSON.parse(line) as { fields: unknown }).fields);
 }
 
@@ -234,7 +235,7 @@ describe('a queued run', () => {
     });
     expect(lineRequests[0]?.gates[0]).not.toHaveProperty('writes');
     expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ profileRunId: 'P1', state: 'passed', elapsedMilliseconds: PROFILED_MILLISECONDS }]);
-    const logged = readFileSync(workspace.logFilePath, 'utf8');
+    const logged = readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8');
     expect(logged).toContain('"kind":"gate-profiled"');
     expect(logged).not.toContain('"kind":"gate-ran"');
     expect(loggedStepRuns()).toEqual([{
@@ -363,7 +364,7 @@ testWhenGitIsRecorded('a Stop of a running run sends stop to its running line an
   });
 
   expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ state: 'stopped', elapsedMilliseconds: null, stopRequested: false }]);
-  expect(readFileSync(workspace.logFilePath, 'utf8')).toContain('"kind":"gate-profile-stopped"');
+  expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toContain('"kind":"gate-profile-stopped"');
   expect(loggedStepRuns()).toEqual([]);
 });
 
@@ -383,7 +384,7 @@ testWhenGitIsRecorded('an Overseer stop sends stop to a running run\'s line and 
   });
 
   expect((await storedBoard()).gateProfileRuns()).toMatchObject([{ state: 'stopped', elapsedMilliseconds: null, stopRequested: false }]);
-  expect(readFileSync(workspace.logFilePath, 'utf8')).toContain('"kind":"gate-profile-stopped"');
+  expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toContain('"kind":"gate-profile-stopped"');
 });
 
 testWhenGitIsRecorded('the next start stops the lines an earlier Overseer left before it removes their worktrees', async () => {

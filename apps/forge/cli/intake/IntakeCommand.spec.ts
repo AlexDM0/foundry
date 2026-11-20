@@ -14,6 +14,7 @@ import {
 } from 'bun:test';
 
 import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
+import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -63,7 +64,7 @@ function writeRunningBuildJob(): void {
     crashResumes:       0,
   };
   const progress = { ...storedProgressOf(repositoryDirectory), jobs: [buildJob], nextJobId: 2 };
-  writeFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, `${JSON.stringify(progress, null, 2)}\n`);
+  writeFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, `${JSON.stringify(progress, null, 2)}\n`);
 }
 
 const recordedGit = useRecordedGit();

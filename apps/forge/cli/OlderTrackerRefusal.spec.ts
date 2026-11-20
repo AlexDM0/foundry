@@ -10,6 +10,7 @@ import {
   expect,
   test
 }                                                             from 'bun:test';
+import { localStoreLayoutOf }                     from '../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
 import { JsonTextUtil }                           from '../src/shared/utils/JsonTextUtil.ts';
@@ -33,10 +34,10 @@ async function run(commandLineArguments: readonly string[]): Promise<{ exitCode:
 }
 
 function rewriteProgressFile(change: (stored: Record<string, unknown>) => Record<string, unknown>): string {
-  const { progressFilePath } = workspacePathsFor(repositoryDirectory);
-  const stored               = JSON.parse(readFileSync(progressFilePath, 'utf8')) as Record<string, unknown>;
+  const { progressRecordPath } = localStoreLayoutOf(workspacePathsFor(repositoryDirectory));
+  const stored               = JSON.parse(readFileSync(progressRecordPath, 'utf8')) as Record<string, unknown>;
   const olderText            = JsonTextUtil.storedFileTextOf(change(stored));
-  writeFileSync(progressFilePath, olderText);
+  writeFileSync(progressRecordPath, olderText);
   return olderText;
 }
 
@@ -60,7 +61,7 @@ describeWhenGitIsRecorded('a tracker in a format an earlier release wrote', () =
     expect(refused.exitCode).toBe(2);
     expect(refused.errorText).toContain(`version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 2`);
     expect(refused.errorText).toContain(UPDATE_SENTENCE);
-    expect(readFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, 'utf8')).toBe(olderText);
+    expect(readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, 'utf8')).toBe(olderText);
   });
 
   test('a row in a retired status word is refused at exit 2 with the update sentence', async () => {

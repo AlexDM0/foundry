@@ -33,6 +33,7 @@ import { createScratchDirectory, removeScratchDirectory }         from '../../te
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
 import { writeReadableTracker }                                   from '../../testing/TrackerFileFixtures.ts';
 import type { BoardTransaction }                                  from '../tracker/BoardTransaction.ts';
+import { localStoreLayoutOf }                                     from '../tracker/LocalStoreLayout.ts';
 import { writeTracker }                                           from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
 import { ControlService }                                         from './ControlService.ts';
@@ -254,12 +255,12 @@ describe('a draft edit', () => {
   test('a forge without entities never stores a batch: a copy is refused and the record file stays byte for byte', async () => {
     const workspace = workspacePathsFor(createScratchDirectory('pipeline-setup-copy'));
     try {
-      mkdirSync(workspace.ticketsDirectory, { recursive: true });
+      mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
       writeReadableTracker(workspace);
       const setup = boardAtDesign().board.pipelineSetup();
       if (setup === null) throw new Error('no setup record is open');
-      writeFileSync(workspace.pipelineSetupFilePath, PipelineSetupFile.contentsOf(setup));
-      const storedRecord = readFileSync(workspace.pipelineSetupFilePath, 'utf8');
+      writeFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, PipelineSetupFile.contentsOf(setup));
+      const storedRecord = readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8');
 
       const failure = await rejectionOf(() => writeTracker({
         workspace,
@@ -271,7 +272,7 @@ describe('a draft edit', () => {
       }));
 
       expect(failure instanceof OperationRefusal ? failure.detail : failure).toEqual({ kind: 'draft-copy-outside-entities', setupId: 'S1', fields: [] });
-      expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe(storedRecord);
+      expect(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8')).toBe(storedRecord);
       expect(storedRecord).not.toContain('"batch"');
     } finally {
       removeScratchDirectory(workspace.rootDirectory);

@@ -91,7 +91,7 @@ function contextOf(repository: string): JobLaunchContext {
   const trackerDirectory = join(repository, PRODUCT_NAMES.DATA_FOLDER);
   mkdirSync(trackerDirectory, { recursive: true });
   return {
-    workspace:         { rootDirectory: repository, trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') },
+    workspace:         { rootDirectory: repository, trackerDirectory },
     mainLine:          ENTITY_FORGE_MAIN_LINE,
     branchNames:       branchNamesOf(null),
     log:               () => undefined,

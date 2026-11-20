@@ -9,6 +9,7 @@ import { createLogFileWriter }      from '../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter } from '../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }   from '../adapters/tickets/TicketFileWriter.ts';
 import type { LogRecord }           from '../lib/tracker-model/@types/LogRecord.ts';
+import { localStoreLayoutOf }       from '../services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }        from '../services/tracker/Workspace.ts';
 import type { Workspace }           from '../services/tracker/Workspace.ts';
 import { ticketFixture }            from './BoardFixtures.ts';
@@ -24,21 +25,21 @@ export const EXAMPLE_SESSION_NOTE: LogRecord = { at: '2026-09-18T10:15:00+02:00'
 
 /** Just enough of a tracker for discovery to find one at this root: its directory and a progress file. */
 export function writeMinimalTracker(rootDirectory: string): string {
-  const { progressFilePath, trackerDirectory } = workspacePathsFor(rootDirectory);
-  mkdirSync(trackerDirectory, { recursive: true });
-  writeFileSync(progressFilePath, '{"version":1}');
+  const workspace = workspacePathsFor(rootDirectory);
+  mkdirSync(workspace.trackerDirectory, { recursive: true });
+  writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, '{"version":1}');
   return rootDirectory;
 }
 
 /** An empty progress file, one note in log.jsonl and one ticket. */
 export function writeReadableTracker(workspace: Workspace): void {
-  createProgressFileWriter(workspace.progressFilePath).write(emptyProgress());
-  createLogFileWriter(workspace.logFilePath).write([EXAMPLE_SESSION_NOTE]);
-  createTicketFileWriter().write(ticketFixture({ title: 'Example checkout page' }), join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME));
+  createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(emptyProgress());
+  createLogFileWriter(localStoreLayoutOf(workspace).logRecordPath).write([EXAMPLE_SESSION_NOTE]);
+  createTicketFileWriter().write(ticketFixture({ title: 'Example checkout page' }), join(localStoreLayoutOf(workspace).ticketRecordsFolder, EXAMPLE_TICKET_FILE_NAME));
 }
 
 /** Every stored file but the lock's records, which every lock hold writes. */
 export function storedFileContentsOf(workspace: Workspace): Record<string, string> {
-  const lockFolder = relative(workspace.trackerDirectory, workspace.lockDirectoryPath);
+  const lockFolder = relative(workspace.trackerDirectory, localStoreLayoutOf(workspace).storeLockFolder);
   return Object.fromEntries(folderFileContentsOf(workspace.trackerDirectory, (relativePath) => relativePath.startsWith(lockFolder)));
 }

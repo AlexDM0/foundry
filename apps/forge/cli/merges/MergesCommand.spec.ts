@@ -11,6 +11,7 @@ import {
   expect,
   test
 }                                             from 'bun:test';
+import { localStoreLayoutOf }                      from '../../src/services/tracker/LocalStoreLayout.ts';
 import { writeTracker }                            from '../../src/services/tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                       from '../../src/services/tracker/Workspace.ts';
 import { EXAMPLE_GREEN_TREE, queueOnCurrentGreen } from '../../src/testing/GreenQueue.ts';
@@ -66,8 +67,8 @@ afterEach(() => {
 
 describeWhenGitIsRecorded('the merges command', () => {
   test('lists the held slot, then the queued tickets in priority order, and the read leaves the progress file byte-identical', async () => {
-    const { progressFilePath } = workspacePathsFor(repositoryDirectory);
-    const before = readFileSync(progressFilePath, 'utf8');
+    const { progressRecordPath } = localStoreLayoutOf(workspacePathsFor(repositoryDirectory));
+    const before = readFileSync(progressRecordPath, 'utf8');
 
     const report = JSON.parse((await run(['merges', '--json'])).outputText()) as { slots: unknown[]; queue: { ticketId: string; priority: string }[] };
 
@@ -76,7 +77,7 @@ describeWhenGitIsRecorded('the merges command', () => {
     }]);
     expect(report.queue.map((queued) => [queued.ticketId, queued.priority])).toEqual([['001', 'normal'], ['003', 'low']]);
     expect((await run(['merges'])).outputText()).toContain('main: job ');
-    expect(readFileSync(progressFilePath, 'utf8')).toBe(before);
+    expect(readFileSync(progressRecordPath, 'utf8')).toBe(before);
   });
 
   test('with merge approval on lists the accepted tickets in User\'s press order, whatever their priority, then the ones waiting for an accept', async () => {

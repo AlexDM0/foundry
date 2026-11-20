@@ -37,6 +37,7 @@ import { createScratchDirectory, removeScratchDirectory }                       
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }                           from '../../testing/ToolGuard.ts';
 import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }                              from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                                                   from '../../testing/WaitUntil.ts';
+import { localStoreLayoutOf }                                                          from '../tracker/LocalStoreLayout.ts';
 import { writeTracker }                                                                from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }                                           from '../tracker/Workspace.ts';
 import type { DrivePass }                                                              from './DrivePass.ts';
@@ -111,7 +112,7 @@ function requestApply(board: Board, at: string): void {
 }
 
 function loggedKinds(): string[] {
-  return readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
+  return readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
 }
 
 async function passOnce(current: DrivePass, forced: boolean): Promise<void> {
@@ -124,9 +125,9 @@ beforeEach(async () => {
   repository    = createPlantedRepository('held-targets');
   workspace     = workspacePathsFor(repository);
   monitorFolder = createScratchDirectory('held-targets-monitor');
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   writeReadableTracker(workspace);
-  rmSync(join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME));
+  rmSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, EXAMPLE_TICKET_FILE_NAME));
   for (const path of [CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf('assistant')]) {
     mkdirSync(join(repository, path, '..'), { recursive: true });
     writeFileSync(join(repository, path), 'Example instructions.\n');

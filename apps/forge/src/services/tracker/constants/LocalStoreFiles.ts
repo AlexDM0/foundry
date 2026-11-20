@@ -1,15 +1,11 @@
-import { PRODUCT_NAMES } from '../../../shared/constants/ProductNames.ts';
-
-/** The names of the tracker's own files and folders, each a bare name joined onto the directory that holds it. */
-export const TRACKER_FILES = {
+/** The names of the local store's records and folders, each a bare name joined onto the tracker directory by `LocalStoreLayout.ts`. */
+export const LOCAL_STORE_FILES = {
   PROGRESS_FILE_NAME:             'progress.json',
   PIPELINE_FILE_NAME:             'pipeline.json',
   PIPELINE_SETUP_FILE_NAME:       'pipeline-setup.json',
   GATE_PROFILES_FILE_NAME:        'gate-profiles.json',
   CONSTITUTION_SOURCES_FILE_NAME: 'constitution-sources.json',
   LOG_FILE_NAME:                  'log.jsonl',
-  HTML_FILE_NAME:                 'progress.html',
-  TRACKER_DIRECTORY_NAME:         PRODUCT_NAMES.DATA_FOLDER,
   TICKETS_DIRECTORY_NAME:         'tickets',
   EPICS_DIRECTORY_NAME:           'epics',
   DRAFTS_DIRECTORY_NAME:          'filing-cabinet',

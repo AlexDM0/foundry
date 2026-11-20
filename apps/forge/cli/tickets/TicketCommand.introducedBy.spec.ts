@@ -57,14 +57,14 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return context;
 }
 
-function ticketsDirectory(): string {
+function ticketRecordsFolder(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
 }
 
 function storedTicketText(identifier: string): string {
-  const fileName = readdirSync(ticketsDirectory()).find((name) => name.startsWith(`${identifier}-`));
+  const fileName = readdirSync(ticketRecordsFolder()).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return readFileSync(join(ticketsDirectory(), fileName), 'utf8');
+  return readFileSync(join(ticketRecordsFolder(), fileName), 'utf8');
 }
 
 function storedLogText(): string {
@@ -72,7 +72,7 @@ function storedLogText(): string {
 }
 
 function trackerSnapshot(): string {
-  const ticketTexts = readdirSync(ticketsDirectory()).toSorted().map((fileName) => readFileSync(join(ticketsDirectory(), fileName), 'utf8'));
+  const ticketTexts = readdirSync(ticketRecordsFolder()).toSorted().map((fileName) => readFileSync(join(ticketRecordsFolder(), fileName), 'utf8'));
   return [storedLogText(), readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8'), ...ticketTexts].join('\n=====\n');
 }
 

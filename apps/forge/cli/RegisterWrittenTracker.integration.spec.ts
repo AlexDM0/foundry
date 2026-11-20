@@ -23,6 +23,7 @@ import { afterEach, beforeEach, expect } from 'bun:test';
 
 import { LocalTimeUtil }                            from '../src/lib/local-time/LocalTimeUtil.ts';
 import { NO_LOCK_HOLDER_READS_AS_GONE, withLockAt } from '../src/services/tracker/GenerationLock.ts';
+import { localStoreLayoutOf }                       from '../src/services/tracker/LocalStoreLayout.ts';
 import { registerWithTheMonitor }                   from '../src/services/tracker/MonitorRegistration.ts';
 import { workspacePathsFor }                        from '../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                            from '../src/shared/constants/ProductNames.ts';
@@ -124,7 +125,7 @@ function registry(): RegistryDocument {
 }
 
 function trackerIdOf(repositoryDirectory: string): string {
-  return (JSON.parse(readFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, 'utf8')) as { trackerId: string }).trackerId;
+  return (JSON.parse(readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, 'utf8')) as { trackerId: string }).trackerId;
 }
 
 type CapturedContext = ReturnType<typeof createCapturedCommandContext>;

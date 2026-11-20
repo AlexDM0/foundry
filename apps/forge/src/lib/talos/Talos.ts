@@ -166,7 +166,7 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
   const { startFile, secret } = start;
   const { boardFolder, startNumber } = startFile;
   const talosLogPath = talosLogPathOf(boardFolder, startNumber);
-  const talosRecordPath = talosRecordPathOf(boardFolder, startNumber);
+  const talosRecordFilePath = talosRecordPathOf(boardFolder, startNumber);
 
   let settleExitCode = (_exitCode: number): void => undefined;
   const exitCode = new Promise<number>((resolve) => {
@@ -212,13 +212,13 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
       quitReason:      null,
       lease:           { standing: 'unheld', lastRenewer: null },
     };
-    if (await calls.writeRecord(talosRecordPath, talosRecordTextOf(record), true) === 'already-exists') {
+    if (await calls.writeRecord(talosRecordFilePath, talosRecordTextOf(record), true) === 'already-exists') {
       finish(TALOS_DONE_EXIT_CODE);
       return;
     }
     const writeTalosRecord = (changes: Partial<TalosRecord>): Promise<unknown> => {
       record = { ...record, ...changes };
-      return calls.writeRecord(talosRecordPath, talosRecordTextOf(record), false);
+      return calls.writeRecord(talosRecordFilePath, talosRecordTextOf(record), false);
     };
     const refuseStart = async (reason: string): Promise<void> => {
       await calls.appendText(talosLogPath, `start refused: ${reason}\n`);

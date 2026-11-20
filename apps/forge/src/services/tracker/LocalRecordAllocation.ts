@@ -10,7 +10,7 @@ import type {
 import type { RecordAllocation } from './BoardTransaction.ts';
 import { draftFilePathOf }       from './DraftStore.ts';
 import { epicFilePathOf }        from './EpicStore.ts';
-import { holdJournalFilePathOf } from './HoldJournal.ts';
+import { localStoreLayoutOf }    from './LocalStoreLayout.ts';
 import { createTicket }          from './TicketStore.ts';
 import type { Workspace }        from './Workspace.ts';
 
@@ -23,14 +23,15 @@ function refuseAnUnreadableRecordOfKey(unreadable: readonly UnreadableRecord[], 
 
 /** Where the local files keep a record a board holds one of; the store's read side answers it too. */
 export function singleRecordFilePathOf(workspace: Workspace, reference: RecordReference): string {
+  const layout = localStoreLayoutOf(workspace);
   switch (reference.record) {
-    case 'progress':             return workspace.progressFilePath;
-    case 'pipeline':             return workspace.pipelineFilePath;
-    case 'pipeline-setup':       return workspace.pipelineSetupFilePath;
-    case 'gate-profiles':        return workspace.gateProfilesFilePath;
-    case 'constitution-sources': return workspace.constitutionSourcesFilePath;
-    case 'log':                  return workspace.logFilePath;
-    case 'unfinished-write':     return holdJournalFilePathOf(workspace);
+    case 'progress':             return layout.progressRecordPath;
+    case 'pipeline':             return layout.pipelineRecordPath;
+    case 'pipeline-setup':       return layout.pipelineSetupRecordPath;
+    case 'gate-profiles':        return layout.gateProfilesRecordPath;
+    case 'constitution-sources': return layout.constitutionSourcesRecordPath;
+    case 'log':                  return layout.logRecordPath;
+    case 'unfinished-write':     return layout.holdJournalPath;
   }
 }
 

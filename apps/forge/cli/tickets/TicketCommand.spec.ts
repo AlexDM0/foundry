@@ -198,8 +198,8 @@ describeWhenGitIsRecorded('filing a ticket', () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
     // The command writes through the resolved root, and the scratch directory's own path may pass through a symlink such as `/var`.
     const trackerDirectory = join(realpathSync(repositoryDirectory), PRODUCT_NAMES.DATA_FOLDER);
-    const progressFilePath = join(trackerDirectory, 'progress.json');
-    const ticketsDirectory = join(trackerDirectory, 'tickets');
+    const progressRecordPath = join(trackerDirectory, 'progress.json');
+    const ticketRecordsFolder = join(trackerDirectory, 'tickets');
     const atomicWrites     = spyOn(AtomicFile, 'writeFileAtomically');
     let recordedWrites: Array<[string, string]> = [];
 
@@ -211,9 +211,9 @@ describeWhenGitIsRecorded('filing a ticket', () => {
     }
 
     const trackerWrites = recordedWrites
-      .filter(([targetPath]) => targetPath === progressFilePath || targetPath.startsWith(ticketsDirectory))
+      .filter(([targetPath]) => targetPath === progressRecordPath || targetPath.startsWith(ticketRecordsFolder))
       .map(([targetPath, contents]) => ({ targetPath, contents }));
-    const ticketFilePath = join(ticketsDirectory, '002-show-the-role-history.md');
+    const ticketFilePath = join(ticketRecordsFolder, '002-show-the-role-history.md');
     const ticketWrites   = trackerWrites.filter((write) => write.targetPath === ticketFilePath);
     expect(ticketWrites).toHaveLength(1);
     expect(trackerWrites.at(-1)?.targetPath).toBe(ticketFilePath);

@@ -26,6 +26,7 @@ import type { TicketType }                                from '../../lib/tracke
 import { TaskRecordUtil }                                 from '../../lib/tracker-model/utils/TaskRecordUtil.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
 import {
   type CreatedTicket,
   createTicket,
@@ -47,7 +48,7 @@ const scratchRootDirectories: string[] = [];
 
 function scratchWorkspace(): Workspace {
   const workspace = workspacePathsFor(createScratchDirectory('tickets'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   scratchRootDirectories.push(workspace.rootDirectory);
   return workspace;
 }
@@ -137,7 +138,7 @@ describe('createTicket and listTickets', () => {
   test('a file that does not parse is reported with its key, path and line while the other tickets still list', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
-    const brokenPath = join(workspace.ticketsDirectory, '002-broken.md');
+    const brokenPath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, '002-broken.md');
     writeFileSync(brokenPath, '---\nid: "002"\ntitle: "No fence"\n');
 
     const listing = listTickets(workspace);
@@ -150,7 +151,7 @@ describe('createTicket and listTickets', () => {
 
   test('a file that does not parse and whose name carries no number is keyed null', () => {
     const workspace  = scratchWorkspace();
-    const brokenPath = join(workspace.ticketsDirectory, 'notes-by-hand.md');
+    const brokenPath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, 'notes-by-hand.md');
     writeFileSync(brokenPath, 'not a ticket at all\n');
 
     expect(listTickets(workspace).unreadable.map((unreadable) => [unreadable.key, unreadable.location])).toEqual([[null, brokenPath]]);
@@ -158,7 +159,7 @@ describe('createTicket and listTickets', () => {
 
   test('a tickets directory that does not exist reads as no tickets rather than as a failure', () => {
     const workspace = scratchWorkspace();
-    rmSync(workspace.ticketsDirectory, { recursive: true, force: true });
+    rmSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true, force: true });
 
     expect(listTickets(workspace)).toEqual({ tickets: [], unreadable: [], ticketLocations: new Map() });
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('001');
@@ -186,7 +187,7 @@ describe('readTicket', () => {
 
   test('a broken file reads as no ticket instead of throwing out of the store', () => {
     const workspace = scratchWorkspace();
-    writeFileSync(join(workspace.ticketsDirectory, '001-broken.md'), 'not a ticket at all\n');
+    writeFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, '001-broken.md'), 'not a ticket at all\n');
 
     expect(readTicket(workspace, '1')).toBeNull();
   });
@@ -246,7 +247,7 @@ describe('nextTicketId', () => {
 
   test('a malformed file still spends its number', () => {
     const workspace = scratchWorkspace();
-    writeFileSync(join(workspace.ticketsDirectory, '002-broken.md'), 'not a ticket at all\n');
+    writeFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, '002-broken.md'), 'not a ticket at all\n');
 
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('003');
   });
@@ -257,7 +258,7 @@ describe('a ticket file renamed by hand', () => {
   test('a file renamed without its number still spends its id, so the next ticket is not issued it again', () => {
     const workspace = scratchWorkspace();
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
-    renameSync(first.location, join(workspace.ticketsDirectory, 'renamed-by-hand.md'));
+    renameSync(first.location, join(localStoreLayoutOf(workspace).ticketRecordsFolder, 'renamed-by-hand.md'));
 
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('002');
     expect(readTicket(workspace, '1')?.frontmatter.title).toBe('Fix the export dialog');
@@ -266,7 +267,7 @@ describe('a ticket file renamed by hand', () => {
   test('a file renamed to another number answers for neither number, and is listed as unreadable naming both, keyed by its name', () => {
     const workspace   = scratchWorkspace();
     const first       = fileTicket(workspace, 'Fix the export dialog', 'bug');
-    const renamedPath = join(workspace.ticketsDirectory, '012-renamed.md');
+    const renamedPath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, '012-renamed.md');
     renameSync(first.location, renamedPath);
 
     expect(readTicket(workspace, '12')).toBeNull();
@@ -284,7 +285,7 @@ describe('a ticket file renamed by hand', () => {
   test('two files holding one id are both listed as unreadable keyed by that id, and neither answers for it', () => {
     const workspace = scratchWorkspace();
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
-    const copyPath  = join(workspace.ticketsDirectory, 'copy-of-the-first.md');
+    const copyPath  = join(localStoreLayoutOf(workspace).ticketRecordsFolder, 'copy-of-the-first.md');
     copyFileSync(first.location, copyPath);
 
     expect(readTicket(workspace, '1')).toBeNull();
@@ -307,7 +308,7 @@ describe('a ticket file renamed by hand', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
     const progress = emptyProgress();
-    createProgressFileWriter(workspace.progressFilePath).write({
+    createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write({
       ...progress,
       nextTaskId: 4,
       tasks:      [
@@ -323,7 +324,7 @@ describe('a ticket file renamed by hand', () => {
   test('a progress file that does not parse leaves the ids to the ticket files', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
-    writeFileSync(workspace.progressFilePath, '{ not json');
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, '{ not json');
 
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('002');
   });
@@ -334,9 +335,10 @@ describe('everyTicketFilePathIn', () => {
     const workspace = scratchWorkspace();
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
     const second    = fileTicket(workspace, 'Add a keyboard shortcut', 'research');
-    writeFileSync(join(workspace.ticketsDirectory, '003-broken-by-hand.md'), 'no frontmatter here\n');
+    writeFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, '003-broken-by-hand.md'), 'no frontmatter here\n');
 
-    expect(everyTicketFilePathIn(workspace).toSorted()).toEqual([first.location, second.location, join(workspace.ticketsDirectory, '003-broken-by-hand.md')].toSorted());
+    const brokenFilePath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, '003-broken-by-hand.md');
+    expect(everyTicketFilePathIn(workspace).toSorted()).toEqual([first.location, second.location, brokenFilePath].toSorted());
     expect(listTickets(workspace).tickets).toHaveLength(2);
   });
 });

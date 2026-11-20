@@ -127,7 +127,7 @@ function forgeWith(whitelists: EntityForgeWhitelists, pipelineOf: (stored: Pipel
   });
   const { board } = boardFixture({ tickets: [ticket], pipeline: pipelineOf(entityForgePipelineOf(whitelists)) });
   board.setOverseerState('running', AT);
-  const workspace = { rootDirectory: repository, trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') };
+  const workspace = { rootDirectory: repository, trackerDirectory };
   const needs: PackageNeedFacts[] = [];
   const context: EntityDecisionAnswerContext = {
     decisionWordingOf:    wordingOf,

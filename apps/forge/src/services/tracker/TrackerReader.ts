@@ -16,6 +16,7 @@ import { OperationRefusal }                                from '../../shared/Op
 import type { BoardContents }                              from './@types/BoardRecords.ts';
 import { listDrafts }                                      from './DraftStore.ts';
 import { listEpics }                                       from './EpicStore.ts';
+import { localStoreLayoutOf }                              from './LocalStoreLayout.ts';
 import { projectLocationOf }                               from './ProjectLocation.ts';
 import { listTickets, ticketListingOf }                    from './TicketStore.ts';
 import type { Workspace }                                  from './Workspace.ts';
@@ -31,13 +32,14 @@ export interface LocalBoardContents {
 type LocalTrackerReading = { verdict: 'readable' } & LocalBoardContents | UnreadableTracker;
 
 function progressFileReadingOf(workspace: Workspace): Extract<ProgressFileReading, { verdict: 'readable' }> | UnreadableTracker {
-  const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();
-  if (progressReading.verdict === 'absent') return { verdict: 'absent', filePath: workspace.progressFilePath };
+  const { progressRecordPath } = localStoreLayoutOf(workspace);
+  const progressReading = new ProgressFileIngestion(progressRecordPath).read();
+  if (progressReading.verdict === 'absent') return { verdict: 'absent', filePath: progressRecordPath };
   if (progressReading.verdict === 'unreadable') {
     return {
       verdict:        'unreadable',
       unreadableFile: 'progress-file',
-      filePath:       workspace.progressFilePath,
+      filePath:       progressRecordPath,
       reason:         progressReading.reason,
     };
   }
@@ -56,7 +58,7 @@ export function folderPrefixHoldingEntitiesOf(workspace: Workspace, pipeline: Re
 
 /** The stored pipeline as the store judges it: one with entities in a tracker in a folder reads as malformed, the reading a write opens the Board on. */
 export function storedPipelineReadingOf(workspace: Workspace): PipelineReading {
-  const reading = PipelineFile.read(workspace.pipelineFilePath);
+  const reading = PipelineFile.read(localStoreLayoutOf(workspace).pipelineRecordPath);
   if (reading.verdict !== 'readable') return reading;
   const projectPrefix = folderPrefixHoldingEntitiesOf(workspace, reading.pipeline);
   return projectPrefix === null ? reading : PipelineFile.entitiesInAFolderReadingOf(projectPrefix);
@@ -67,26 +69,27 @@ function readLocalTracker(workspace: Workspace): LocalTrackerReading {
   const progressReading = progressFileReadingOf(workspace);
   if (progressReading.verdict !== 'readable') return progressReading;
 
-  const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(workspace.logFilePath).read());
+  const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(localStoreLayoutOf(workspace).logRecordPath).read());
   if (storedLog.verdict === 'unreadable') {
     return {
       verdict:        'unreadable',
       unreadableFile: 'log-file',
-      filePath:       workspace.logFilePath,
+      filePath:       localStoreLayoutOf(workspace).logRecordPath,
       reason:         storedLog.reason,
     };
   }
 
   const ticketListing = listTickets(workspace);
+  const layout = localStoreLayoutOf(workspace);
   return {
     verdict:         'readable',
     ticketLocations: ticketListing.ticketLocations,
     contents:        {
       progress:                   progressReading.progress,
       pipelineReading:            storedPipelineReadingOf(workspace),
-      pipelineSetupReading:       PipelineSetupFile.read(workspace.pipelineSetupFilePath),
-      gateProfilesReading:        GateProfilesFile.read(workspace.gateProfilesFilePath),
-      constitutionSourcesReading: ConstitutionSourcesFile.read(workspace.constitutionSourcesFilePath),
+      pipelineSetupReading:       PipelineSetupFile.read(layout.pipelineSetupRecordPath),
+      gateProfilesReading:        GateProfilesFile.read(layout.gateProfilesRecordPath),
+      constitutionSourcesReading: ConstitutionSourcesFile.read(layout.constitutionSourcesRecordPath),
       storedLog:                  { records: storedLog.records },
       listing:                    ticketListingOf(ticketListing),
       epicListing:                listEpics(workspace),

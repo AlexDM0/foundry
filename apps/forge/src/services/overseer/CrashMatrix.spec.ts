@@ -73,7 +73,8 @@ import { ControlService }                                      from '../control/
 import { finishHalfAppliedSetup }                              from '../control/PipelineSetupControls.ts';
 import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
 import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/GenerationLock.ts';
-import { holdJournalFilePathOf, readHoldJournal }              from '../tracker/HoldJournal.ts';
+import { readHoldJournal }                                     from '../tracker/HoldJournal.ts';
+import { localStoreLayoutOf }                                  from '../tracker/LocalStoreLayout.ts';
 import { writeTracker }                                        from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
@@ -106,7 +107,7 @@ function childReadings(): BoardChildren {
 }
 
 function ticketFilePath(): string {
-  return join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME);
+  return join(localStoreLayoutOf(workspace).ticketRecordsFolder, EXAMPLE_TICKET_FILE_NAME);
 }
 
 function ticketText(): string {
@@ -114,7 +115,7 @@ function ticketText(): string {
 }
 
 function loggedKinds(): string[] {
-  return readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
+  return readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
 }
 
 function holdTheExampleTicket(change: BoardTransaction): void {
@@ -143,14 +144,15 @@ async function failureOf(action: () => Promise<unknown>): Promise<unknown> {
 /** Takes the lock over as stale from inside the current hold, as a command arriving after the holder slept past the threshold would. */
 function takeTheLockOver(): void {
   const payload  = { processId: process.pid, acquiredAt: CHANGED_AT };
-  const takeover = LockGenerationSteps.attemptedAcquire(workspace.lockDirectoryPath, payload, now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1, NO_LOCK_HOLDER_READS_AS_GONE);
+  const { storeLockFolder } = localStoreLayoutOf(workspace);
+  const takeover = LockGenerationSteps.attemptedAcquire(storeLockFolder, payload, now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1, NO_LOCK_HOLDER_READS_AS_GONE);
   if (takeover.verdict !== 'acquired') throw new Error(`the takeover found the lock ${takeover.verdict}`);
-  LockGenerationSteps.release(workspace.lockDirectoryPath, takeover.generation, payload);
+  LockGenerationSteps.release(localStoreLayoutOf(workspace).storeLockFolder, takeover.generation, payload);
 }
 
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('crash-matrix'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   writeReadableTracker(workspace);
 });
 
@@ -168,10 +170,10 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json a
       at:               CHANGED_AT,
       now,
       mutate:           holdTheExampleTicket,
-      afterFileWritten: (filePath) => { if (filePath === workspace.progressFilePath) throw crash; },
+      afterFileWritten: (filePath) => { if (filePath === localStoreLayoutOf(workspace).progressRecordPath) throw crash; },
     }));
     expect(failure).toBe(crash);
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example cut-short row');
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example cut-short row');
     expect(ticketText(), 'the board is torn: the ticket was not written').toBe(ticketBefore);
 
     const written = await writeTracker({
@@ -183,7 +185,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash between progress.json a
     const loggedKindsAfterReplay = loggedKinds();
     expect(loggedKindsAfterReplay.at(-1)).toBe('note');
     expect(loggedKindsAfterReplay.length, 'the cut-short hold\'s records are in the log before the next holder\'s note').toBeGreaterThan(2);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 });
 
@@ -269,7 +271,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a gate profile running when i
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after a lock takeover', () => {
   test('taken over before its journal, it refuses lock-taken-over as unrepaired and writes nothing', async () => {
-    const progressBefore = readFileSync(workspace.progressFilePath, 'utf8');
+    const progressBefore = readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8');
 
     const failure = await failureOf(() => writeTracker({
       workspace,
@@ -283,8 +285,8 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(failure) ? failure.detail?.kind : null).toBe('lock-taken-over');
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(progressBefore);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe(progressBefore);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('taken over after its journal, it writes no further file, and its successor replays the committed hold', async () => {
@@ -295,41 +297,41 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a stale holder resumes after 
       at:               CHANGED_AT,
       now,
       mutate:           holdTheExampleTicket,
-      afterFileWritten: (filePath) => { if (filePath === workspace.progressFilePath) takeTheLockOver(); },
+      afterFileWritten: (filePath) => { if (filePath === localStoreLayoutOf(workspace).progressRecordPath) takeTheLockOver(); },
     }));
 
     expect(refusalIsOperationRefusal(failure) ? failure.detail?.kind : null).toBe('lock-taken-over');
     expect(ticketText()).toBe(ticketBefore);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(true);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(true);
 
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: noteAnExample,
     });
 
     expect(ticketText()).toContain('Waiting on Alex Example');
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('a hold that changes nothing, taken over, refuses lock-taken-over and leaves no journal', async () => {
-    const progressBefore = readFileSync(workspace.progressFilePath, 'utf8');
+    const progressBefore = readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8');
 
     const failure = await failureOf(() => writeTracker({
       workspace, at: CHANGED_AT, now, mutate: () => { takeTheLockOver(); },
     }));
 
     expect(refusalIsOperationRefusal(failure) ? failure.detail?.kind : null).toBe('lock-taken-over');
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(progressBefore);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe(progressBefore);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 });
 
 describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves progress.json as it was', () => {
   test.each([
     ['after the ticket, before the log', () => ticketFilePath()],
-    ['after the log, before the journal goes', () => workspace.logFilePath],
+    ['after the log, before the journal goes', () => localStoreLayoutOf(workspace).logRecordPath],
   ])('cut short %s: the journal holds only the ticket and the log, and the next holder finishes it, progress.json never rewritten', async (_crashPoint, crashFilePathOf) => {
-    const progressBefore      = readFileSync(workspace.progressFilePath, 'utf8');
-    const progressInodeBefore = statSync(workspace.progressFilePath).ino;
+    const progressBefore      = readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8');
+    const progressInodeBefore = statSync(localStoreLayoutOf(workspace).progressRecordPath).ino;
     const crash               = new Error('the holder crashed');
 
     const failure = await failureOf(() => writeTracker({
@@ -341,7 +343,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves p
     }));
     expect(failure).toBe(crash);
     const journal = readHoldJournal(workspace);
-    expect(journal.verdict === 'readable' ? journal.files.map((file) => file.filePath) : journal.verdict).toEqual([ticketFilePath(), workspace.logFilePath]);
+    expect(journal.verdict === 'readable' ? journal.files.map((file) => file.filePath) : journal.verdict).toEqual([ticketFilePath(), localStoreLayoutOf(workspace).logRecordPath]);
 
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: noteAnExample,
@@ -349,9 +351,9 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'crash in a hold that leaves p
 
     expect(ticketText()).toContain('Waiting on Alex Example');
     expect(loggedKinds(), 'the cut-short hold\'s record is in the log once, before the next holder\'s note').toEqual(['note', 'ticket-held', 'note']);
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(progressBefore);
-    expect(statSync(workspace.progressFilePath).ino).toBe(progressInodeBefore);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe(progressBefore);
+    expect(statSync(localStoreLayoutOf(workspace).progressRecordPath).ino).toBe(progressInodeBefore);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 });
 
@@ -397,7 +399,7 @@ describe('an Apply cut short', () => {
 
   test('after the request, a retried Apply of the same revision answers with the waiting request and never refuses pipeline-apply-pending', async () => {
     await openSetupAtApply();
-    await applyCutAfter(workspace.logFilePath, ECHOED_CONTROL_CONTEXT);
+    await applyCutAfter(localStoreLayoutOf(workspace).logRecordPath, ECHOED_CONTROL_CONTEXT);
 
     const retried = await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => ControlService.apply(APPLY_COMMAND, change, ECHOED_CONTROL_CONTEXT).result
@@ -409,10 +411,10 @@ describe('an Apply cut short', () => {
   });
 
   test.each([
-    ['progress.json', () => workspace.progressFilePath],
-    ['pipeline.json', () => workspace.pipelineFilePath],
-    ['the sources file', () => workspace.constitutionSourcesFilePath],
-    ['the log', () => workspace.logFilePath],
+    ['progress.json', () => localStoreLayoutOf(workspace).progressRecordPath],
+    ['pipeline.json', () => localStoreLayoutOf(workspace).pipelineRecordPath],
+    ['the sources file', () => localStoreLayoutOf(workspace).constitutionSourcesRecordPath],
+    ['the log', () => localStoreLayoutOf(workspace).logRecordPath],
   ])('after %s, a retried Apply finishes every missing write once and never refuses pipeline-moved', async (_cutPoint, cutFilePathOf) => {
     await openSetupAtApply();
     await applyCutAfter(cutFilePathOf(), MAIN_HOLDS_THE_TEXT);
@@ -422,16 +424,16 @@ describe('an Apply cut short', () => {
     });
 
     expect(retried.result).toMatchObject({ outcome: 'already-applied' });
-    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
-    expect(JSON.parse(readFileSync(workspace.pipelineFilePath, 'utf8'))).toMatchObject({ constitution: { path: 'CONSTITUTION.md' } });
-    expect(JSON.parse(readFileSync(workspace.constitutionSourcesFilePath, 'utf8'))).toMatchObject({ blob: MAIN_CONSTITUTION.blob });
+    expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, 'utf8'))).toMatchObject({ constitution: { path: 'CONSTITUTION.md' } });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).constitutionSourcesRecordPath, 'utf8'))).toMatchObject({ blob: MAIN_CONSTITUTION.blob });
     expect(requireProgressFile(workspace).overseerState).toBe('running');
     expect(loggedKinds().filter((kind) => kind === 'pipeline-applied')).toHaveLength(1);
   });
 
   test.each([
-    ['pipeline.json', () => workspace.pipelineFilePath],
-    ['the log', () => workspace.logFilePath],
+    ['pipeline.json', () => localStoreLayoutOf(workspace).pipelineRecordPath],
+    ['the log', () => localStoreLayoutOf(workspace).logRecordPath],
   ])('after %s, the Overseer\'s start hold finishes the Apply and leaves no record open', async (_cutPoint, cutFilePathOf) => {
     await openSetupAtApply();
     await applyCutAfter(cutFilePathOf(), MAIN_HOLDS_THE_TEXT);
@@ -440,9 +442,9 @@ describe('an Apply cut short', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => finishHalfAppliedSetup(change, MAIN_HOLDS_THE_TEXT)
     });
 
-    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
     expect(loggedKinds().filter((kind) => kind === 'pipeline-applied')).toHaveLength(1);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 });
 
@@ -588,7 +590,7 @@ function requireBuildJob(): Readonly<Job> {
 }
 
 function storedRecords(): { kind: string; jobId?: string; fields: Record<string, unknown> }[] {
-  return readFileSync(sessionWorkspace.logFilePath, 'utf8').split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as never);
+  return readFileSync(localStoreLayoutOf(sessionWorkspace).logRecordPath, 'utf8').split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as never);
 }
 
 function sessionJobFolder(jobId: string): string {
@@ -692,7 +694,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
     launchFacts      = [];
     assistantLaunches = [];
     overseerLog        = [];
-    mkdirSync(sessionWorkspace.ticketsDirectory, { recursive: true });
+    mkdirSync(localStoreLayoutOf(sessionWorkspace).ticketRecordsFolder, { recursive: true });
     writeReadableTracker(sessionWorkspace);
     const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'conflictReReviewer', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
     for (const path of instructionDefaults) {

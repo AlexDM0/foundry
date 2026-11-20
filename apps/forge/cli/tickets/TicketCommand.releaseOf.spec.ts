@@ -46,18 +46,18 @@ async function runExpectingRefusal(commandLineArguments: readonly string[]): Pro
   return context;
 }
 
-function ticketsDirectory(): string {
+function ticketRecordsFolder(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
 }
 
 function storedTicketText(identifier: string): string {
-  const fileName = readdirSync(ticketsDirectory()).find((name) => name.startsWith(`${identifier}-`));
+  const fileName = readdirSync(ticketRecordsFolder()).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return readFileSync(join(ticketsDirectory(), fileName), 'utf8');
+  return readFileSync(join(ticketRecordsFolder(), fileName), 'utf8');
 }
 
 function trackerBytes(): string {
-  const ticketTexts = readdirSync(ticketsDirectory()).sort().map((name) => readFileSync(join(ticketsDirectory(), name), 'utf8'));
+  const ticketTexts = readdirSync(ticketRecordsFolder()).sort().map((name) => readFileSync(join(ticketRecordsFolder(), name), 'utf8'));
   const progressText = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8');
   return [progressText, storedLogTextOf(repositoryDirectory), ...ticketTexts].join('\n=====\n');
 }

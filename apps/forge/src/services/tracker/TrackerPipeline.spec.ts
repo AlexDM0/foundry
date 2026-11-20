@@ -33,6 +33,7 @@ import {
 } from '../../testing/TrackerFileFixtures.ts';
 import type { BoardTransaction }             from './BoardTransaction.ts';
 import { LockGenerationSteps }               from './GenerationLock.ts';
+import { localStoreLayoutOf }                from './LocalStoreLayout.ts';
 import { listTickets }                       from './TicketStore.ts';
 import { writeTracker }                      from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
@@ -46,13 +47,13 @@ const now = (): Date => new Date('2026-09-18T18:05:00Z');
 let workspace: Workspace;
 
 function ticketFilePath(): string {
-  return join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME);
+  return join(localStoreLayoutOf(workspace).ticketRecordsFolder, EXAMPLE_TICKET_FILE_NAME);
 }
 
 function newestLockRecord(): unknown {
-  const newestGeneration = (LockGenerationSteps.generationsIn(workspace.lockDirectoryPath) ?? []).at(-1);
+  const newestGeneration = (LockGenerationSteps.generationsIn(localStoreLayoutOf(workspace).storeLockFolder) ?? []).at(-1);
   if (newestGeneration === undefined) return null;
-  return JSON.parse(readFileSync(LockGenerationSteps.generationPathFor(workspace.lockDirectoryPath, newestGeneration), 'utf8'));
+  return JSON.parse(readFileSync(LockGenerationSteps.generationPathFor(localStoreLayoutOf(workspace).storeLockFolder, newestGeneration), 'utf8'));
 }
 
 /** An atomic replace lands a new inode, so a file keeping its inode was never written. */
@@ -66,7 +67,7 @@ function addExampleRow(change: BoardTransaction, name = 'Example rendered row'):
 
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('tracker-pipeline'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
 });
 
 afterEach(() => {
@@ -161,7 +162,7 @@ describe('writeTracker', () => {
 
   test('an unreadable tracker is refused as unrepaired, and the mutation is never called', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(workspace.logFilePath, BROKEN_LOG_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, BROKEN_LOG_TEXT);
     let mutationWasCalled = false;
 
     const failure = await thrownFailureOf(() => writeTracker({
@@ -178,7 +179,7 @@ describe('writeTracker', () => {
 
   test('a ticket write that fails does so after progress.json is written and before log.jsonl', async () => {
     writeReadableTracker(workspace);
-    const logBefore = readFileSync(workspace.logFilePath, 'utf8');
+    const logBefore = readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8');
 
     const failure = await thrownFailureOf(() => writeTracker({
       workspace,
@@ -193,13 +194,13 @@ describe('writeTracker', () => {
     }));
 
     expect(String(failure), 'the ticket write is what failed').toContain(`/${EXAMPLE_TICKET_FILE_NAME}'`);
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example rendered row');
-    expect(readFileSync(workspace.logFilePath, 'utf8')).toBe(logBefore);
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
+    expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(logBefore);
   });
 
   test('the ticket files are deleted after progress.json is written, and the callback is handed their count', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(join(workspace.ticketsDirectory, '002-broken-by-hand.md'), 'no frontmatter here\n');
+    writeFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, '002-broken-by-hand.md'), 'no frontmatter here\n');
     const observedDeletions: { deletedTicketCount: number; progressAtDeletion: string }[] = [];
 
     await writeTracker({
@@ -209,14 +210,14 @@ describe('writeTracker', () => {
       mutate: (change) => {
         addExampleRow(change);
         change.deleteAllTicketFilesAfterwards((deletedTicketCount) => {
-          observedDeletions.push({ deletedTicketCount, progressAtDeletion: readFileSync(workspace.progressFilePath, 'utf8') });
+          observedDeletions.push({ deletedTicketCount, progressAtDeletion: readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8') });
         });
       },
     });
 
     expect(observedDeletions.map((deletion) => deletion.deletedTicketCount)).toEqual([2]);
     expect(observedDeletions[0]?.progressAtDeletion ?? '').toContain('Example rendered row');
-    expect(readdirSync(workspace.ticketsDirectory)).toEqual([]);
+    expect(readdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder)).toEqual([]);
   });
 
   test('the stored log entry count is the count read before the mutation logged anything', async () => {
@@ -233,7 +234,7 @@ describe('writeTracker', () => {
     });
 
     expect(written.result).toBe(1);
-    expect(readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n')).toHaveLength(2);
+    expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8').trimEnd().split('\n')).toHaveLength(2);
   });
 
   // The Hatch inbox applies every pending relayed `ticket add` in one hold, before any ticket file is written.
@@ -268,7 +269,7 @@ describe('writeTracker', () => {
   // The model holds no location, so a retitle must not drift the ticket to a fresh `<id>-<slug>.md` beside its file.
   test('a changed ticket is written to the file it was read from, also after a retitle', async () => {
     writeReadableTracker(workspace);
-    const handNamedPath = join(workspace.ticketsDirectory, '001-named-by-hand.md');
+    const handNamedPath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, '001-named-by-hand.md');
     renameSync(ticketFilePath(), handNamedPath);
 
     await writeTracker({
@@ -278,7 +279,7 @@ describe('writeTracker', () => {
       mutate: (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastPending: true }, change.at),
     });
 
-    expect(readdirSync(workspace.ticketsDirectory)).toEqual(['001-named-by-hand.md']);
+    expect(readdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder)).toEqual(['001-named-by-hand.md']);
     expect(listTickets(workspace).tickets.map((ticket) => ticket.frontmatter.title)).toEqual(['Example retitled checkout']);
   });
 
@@ -308,21 +309,21 @@ describe('writeTracker', () => {
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.addEpic(addition, change.at)
     });
-    expect(readdirSync(workspace.epicsDirectory)).toEqual(['example-epic.md']);
+    expect(readdirSync(localStoreLayoutOf(workspace).epicRecordsFolder)).toEqual(['example-epic.md']);
 
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.removeEpic('example-epic', change.at)
     });
-    expect(readdirSync(workspace.epicsDirectory)).toEqual([]);
+    expect(readdirSync(localStoreLayoutOf(workspace).epicRecordsFolder)).toEqual([]);
   });
 
   test('the mutation gets the unreadable records, keyed, and the records a hold allocates from; the caller gets the same report', async () => {
     writeReadableTracker(workspace);
-    mkdirSync(workspace.epicsDirectory, { recursive: true });
-    mkdirSync(workspace.draftsDirectory, { recursive: true });
-    writeFileSync(join(workspace.ticketsDirectory, '004-broken-by-hand.md'), 'not a ticket at all\n');
-    writeFileSync(join(workspace.epicsDirectory, 'example-epic.md'), 'not an epic at all\n');
-    writeFileSync(join(workspace.draftsDirectory, 'D7.json'), '{');
+    mkdirSync(localStoreLayoutOf(workspace).epicRecordsFolder, { recursive: true });
+    mkdirSync(localStoreLayoutOf(workspace).draftRecordsFolder, { recursive: true });
+    writeFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, '004-broken-by-hand.md'), 'not a ticket at all\n');
+    writeFileSync(join(localStoreLayoutOf(workspace).epicRecordsFolder, 'example-epic.md'), 'not an epic at all\n');
+    writeFileSync(join(localStoreLayoutOf(workspace).draftRecordsFolder, 'D7.json'), '{');
 
     const written = await writeTracker({
       workspace,
@@ -341,15 +342,15 @@ describe('writeTracker', () => {
     expect(written.result).toEqual({
       unreadableKeys: [['ticket 004'], ['epic example-epic'], ['draft D7']],
       newTicketId:    '005',
-      progressPlace:  workspace.progressFilePath,
+      progressPlace:  localStoreLayoutOf(workspace).progressRecordPath,
     });
-    expect(written.unreadableRecords.tickets.map(({ location }) => location)).toEqual([join(workspace.ticketsDirectory, '004-broken-by-hand.md')]);
-    expect(written.unreadableRecords.epics.map(({ location }) => location)).toEqual([join(workspace.epicsDirectory, 'example-epic.md')]);
+    expect(written.unreadableRecords.tickets.map(({ location }) => location)).toEqual([join(localStoreLayoutOf(workspace).ticketRecordsFolder, '004-broken-by-hand.md')]);
+    expect(written.unreadableRecords.epics.map(({ location }) => location)).toEqual([join(localStoreLayoutOf(workspace).epicRecordsFolder, 'example-epic.md')]);
   });
 
   test('a hold that changes nothing writes no file: every stored file keeps its inode and its bytes', async () => {
     writeReadableTracker(workspace);
-    const storedFilePaths = [workspace.progressFilePath, workspace.logFilePath, ticketFilePath()];
+    const storedFilePaths = [localStoreLayoutOf(workspace).progressRecordPath, localStoreLayoutOf(workspace).logRecordPath, ticketFilePath()];
     const inodesBefore = inodesOf(storedFilePaths);
     const contentsBefore = storedFileContentsOf(workspace);
     const filesWritten: string[] = [];
@@ -365,7 +366,7 @@ describe('writeTracker', () => {
 
   test('a hold writes only the files whose bytes change: a held ticket rewrites its ticket and the log, and progress.json stays in place', async () => {
     writeReadableTracker(workspace);
-    const progressInodeBefore = inodesOf([workspace.progressFilePath]);
+    const progressInodeBefore = inodesOf([localStoreLayoutOf(workspace).progressRecordPath]);
     const filesWritten: string[] = [];
 
     await writeTracker({
@@ -376,8 +377,8 @@ describe('writeTracker', () => {
       afterFileWritten: (filePath) => filesWritten.push(filePath),
     });
 
-    expect(filesWritten).toEqual([ticketFilePath(), workspace.logFilePath]);
-    expect(inodesOf([workspace.progressFilePath])).toEqual(progressInodeBefore);
+    expect(filesWritten).toEqual([ticketFilePath(), localStoreLayoutOf(workspace).logRecordPath]);
+    expect(inodesOf([localStoreLayoutOf(workspace).progressRecordPath])).toEqual(progressInodeBefore);
     expect(readFileSync(ticketFilePath(), 'utf8')).toContain('Waiting on Alex Example');
   });
 });
@@ -390,7 +391,7 @@ describe('the pipeline a hold hands the Board', () => {
     ['a malformed file', '{ "version": 3, "prepare": [], "gates": [] }\n', 'malformed'],
   ])('%s gives the Board no pipeline, as unset, and names the unreadable verdict to the change', async (_case, pipelineText, verdict) => {
     writeReadableTracker(workspace);
-    if (pipelineText !== null) writeFileSync(workspace.pipelineFilePath, pipelineText);
+    if (pipelineText !== null) writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, pipelineText);
 
     const written = await writeTracker({
       workspace,
@@ -404,7 +405,7 @@ describe('the pipeline a hold hands the Board', () => {
 
   test('a readable minimal file gives the Board that pipeline, which counts as set', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(workspace.pipelineFilePath, '{ "version": 3, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }\n');
+    writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, '{ "version": 3, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }\n');
 
     const written = await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipeline()
@@ -429,9 +430,10 @@ describe('the setup record a hold reads and writes', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
     });
 
-    expect(writtenPaths).toEqual([workspace.progressFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath]);
-    expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
-    expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 2, setupId: 'S1', currentStep: 'research' });
+    const layout = localStoreLayoutOf(workspace);
+    expect(writtenPaths).toEqual([layout.progressRecordPath, layout.logRecordPath, layout.pipelineSetupRecordPath]);
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8'))).toMatchObject({ formatVersion: 2, setupId: 'S1', currentStep: 'research' });
     const written = await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipelineSetup()?.setupId
     });
@@ -440,7 +442,7 @@ describe('the setup record a hold reads and writes', () => {
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.startOverSetup('S1', change.at)
     });
-    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
   });
 
   test('an Apply writes the pipeline and the constitution\'s sources after progress.json, then log.jsonl, and removes the record last', async () => {
@@ -470,18 +472,19 @@ describe('the setup record a hold reads and writes', () => {
       afterFileWritten: (filePath) => writtenPaths.push(filePath),
     });
 
+    const layout = localStoreLayoutOf(workspace);
     expect(writtenPaths).toEqual([
-      workspace.progressFilePath, workspace.pipelineFilePath, workspace.constitutionSourcesFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath
+      layout.progressRecordPath, layout.pipelineRecordPath, layout.constitutionSourcesRecordPath, layout.logRecordPath, layout.pipelineSetupRecordPath
     ]);
-    expect(existsSync(workspace.pipelineSetupFilePath)).toBe(false);
-    expect(JSON.parse(readFileSync(workspace.pipelineFilePath, 'utf8'))).toMatchObject({ version: 2, constitution: { path: 'CONSTITUTION.md' } });
-    expect(JSON.parse(readFileSync(workspace.constitutionSourcesFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, blob: constitution.blob });
-    expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ overseerState: 'running' });
+    expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, 'utf8'))).toMatchObject({ version: 2, constitution: { path: 'CONSTITUTION.md' } });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).constitutionSourcesRecordPath, 'utf8'))).toMatchObject({ formatVersion: 1, blob: constitution.blob });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ overseerState: 'running' });
   });
 
   test('a malformed record is a verdict: other writes go on, a setup move is refused, and the file stays byte for byte', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(workspace.pipelineSetupFilePath, '{ "formatVersion": 2 }\n');
+    writeFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, '{ "formatVersion": 2 }\n');
 
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: addExampleRow
@@ -490,10 +493,10 @@ describe('the setup record a hold reads and writes', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.openSetup(FIRST_SETUP, change.at)
     }));
 
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example rendered row');
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
     const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
-    expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe('{ "formatVersion": 2 }\n');
+    expect(readFileSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath, 'utf8')).toBe('{ "formatVersion": 2 }\n');
   });
 });
 
@@ -510,8 +513,9 @@ describe('the gate profile runs a hold reads and writes', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at), afterFileWritten: (filePath) => writtenPaths.push(filePath)
     });
 
-    expect(writtenPaths).toEqual([workspace.gateProfilesFilePath, workspace.logFilePath]);
-    expect(JSON.parse(readFileSync(workspace.gateProfilesFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, nextRunNumber: 2, runs: [{ profileRunId: 'P1' }] });
+    expect(writtenPaths).toEqual([localStoreLayoutOf(workspace).gateProfilesRecordPath, localStoreLayoutOf(workspace).logRecordPath]);
+    const { gateProfilesRecordPath } = localStoreLayoutOf(workspace);
+    expect(JSON.parse(readFileSync(gateProfilesRecordPath, 'utf8'))).toMatchObject({ formatVersion: 1, nextRunNumber: 2, runs: [{ profileRunId: 'P1' }] });
     const written = await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.gateProfileRuns().map((run) => run.state)
     });
@@ -520,7 +524,7 @@ describe('the gate profile runs a hold reads and writes', () => {
 
   test('a malformed file is a verdict: other writes go on, a profile move is refused, and the file stays byte for byte', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(workspace.gateProfilesFilePath, '{ "formatVersion": 1 }\n');
+    writeFileSync(localStoreLayoutOf(workspace).gateProfilesRecordPath, '{ "formatVersion": 1 }\n');
 
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: addExampleRow
@@ -529,9 +533,9 @@ describe('the gate profile runs a hold reads and writes', () => {
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.queueGateProfile(PROFILE_REQUEST, change.at)
     }));
 
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example rendered row');
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example rendered row');
     const boardRefusal = { reason: 'gate-profiles-unreadable', problem: 'nextRunNumber is missing' } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
-    expect(readFileSync(workspace.gateProfilesFilePath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
+    expect(readFileSync(localStoreLayoutOf(workspace).gateProfilesRecordPath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
   });
 });

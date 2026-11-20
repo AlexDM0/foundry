@@ -28,6 +28,7 @@ import { epicFilePathOf, everyEpicFilePathIn }                                fr
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE }                from './GenerationLock.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
 import { createLocalRecordAllocation, type LocalRecordAllocation }            from './LocalRecordAllocation.ts';
+import { localStoreLayoutOf }                                                 from './LocalStoreLayout.ts';
 import { everyTicketFilePathIn }                                              from './TicketStore.ts';
 import { withLock }                                                           from './TrackerLock.ts';
 import { folderPrefixHoldingEntitiesOf, requireLocalTracker }                 from './TrackerReader.ts';
@@ -64,7 +65,7 @@ interface OpenBoard {
 function refuseEntitiesInAFolder(workspace: Workspace, board: Board): void {
   if (!board.pipelineChanged()) return;
   const projectPrefix = folderPrefixHoldingEntitiesOf(workspace, board.pipeline());
-  if (projectPrefix !== null) throw new OperationRefusal('refused', { kind: 'entities-in-a-folder', filePath: workspace.pipelineFilePath, projectPrefix });
+  if (projectPrefix !== null) throw new OperationRefusal('refused', { kind: 'entities-in-a-folder', filePath: localStoreLayoutOf(workspace).pipelineRecordPath, projectPrefix });
 }
 
 function openBoard(contents: BoardContents): OpenBoard {
@@ -105,12 +106,13 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, records: Lo
   const { contents, logRecordCollector, board } = openedBoard;
   const written = (filePath: string, fileContents: string): JournaledFile => ({ kind: 'written', filePath, contents: fileContents });
   const removed = (filePath: string): JournaledFile => ({ kind: 'removed', filePath });
+  const layout  = localStoreLayoutOf(workspace);
 
-  const files: JournaledFile[] = [written(workspace.progressFilePath, createProgressFileWriter(workspace.progressFilePath).contentsOf(contents.progress))];
+  const files: JournaledFile[] = [written(layout.progressRecordPath, createProgressFileWriter(layout.progressRecordPath).contentsOf(contents.progress))];
   const changedPipeline = board.pipelineChanged() ? board.pipeline() : null;
-  if (changedPipeline !== null) files.push(written(workspace.pipelineFilePath, PipelineFile.contentsOf(changedPipeline)));
+  if (changedPipeline !== null) files.push(written(layout.pipelineRecordPath, PipelineFile.contentsOf(changedPipeline)));
   const sourcesWrite = board.constitutionSourcesWrite();
-  if (sourcesWrite.write === 'sources') files.push(written(workspace.constitutionSourcesFilePath, ConstitutionSourcesFile.contentsOf(sourcesWrite.sources)));
+  if (sourcesWrite.write === 'sources') files.push(written(layout.constitutionSourcesRecordPath, ConstitutionSourcesFile.contentsOf(sourcesWrite.sources)));
   const ticketFileWriter = createTicketFileWriter();
   for (const ticket of board.changedTickets()) {
     const location = records.storedTicketLocationOf(ticket.frontmatter.id);
@@ -126,16 +128,16 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, records: Lo
   for (const draft of board.changedDrafts()) files.push(written(draftFilePathOf(workspace, draft.id), draftFileWriter.contentsOf(draft)));
   for (const draft of board.removedDrafts()) files.push(removed(draftFilePathOf(workspace, draft.id)));
   const profilesWrite = board.gateProfilesWrite();
-  if (profilesWrite.write === 'profiles') files.push(written(workspace.gateProfilesFilePath, GateProfilesFile.contentsOf(profilesWrite.profiles)));
+  if (profilesWrite.write === 'profiles') files.push(written(layout.gateProfilesRecordPath, GateProfilesFile.contentsOf(profilesWrite.profiles)));
   const deletedTicketFilePaths = deletesEveryTicketFile ? everyTicketFilePathIn(workspace) : [];
   files.push(...deletedTicketFilePaths.map(removed));
   if (deletesEveryTicketFile) files.push(...everyEpicFilePathIn(workspace).map(removed));
 
   const logRecordsToWrite = logRecordCollector.recordsToWrite();
-  if (logRecordsToWrite !== null) files.push(written(workspace.logFilePath, createLogFileWriter(workspace.logFilePath).contentsOf(logRecordsToWrite)));
+  if (logRecordsToWrite !== null) files.push(written(layout.logRecordPath, createLogFileWriter(layout.logRecordPath).contentsOf(logRecordsToWrite)));
   const setupWrite = board.pipelineSetupWrite();
-  if (setupWrite.write === 'record') files.push(written(workspace.pipelineSetupFilePath, PipelineSetupFile.contentsOf(setupWrite.setup)));
-  if (setupWrite.write === 'removed') files.push(removed(workspace.pipelineSetupFilePath));
+  if (setupWrite.write === 'record') files.push(written(layout.pipelineSetupRecordPath, PipelineSetupFile.contentsOf(setupWrite.setup)));
+  if (setupWrite.write === 'removed') files.push(removed(layout.pipelineSetupRecordPath));
   return { files, deletedTicketCount: deletedTicketFilePaths.length };
 }
 

@@ -6,6 +6,7 @@ import { join }                                    from 'node:path';
 import { EpicFileIngestion }                       from '../../adapters/epics/EpicFileIngestion.ts';
 import type { Epic }                               from '../../lib/tracker-model/@types/Epic.ts';
 import type { BoardContents }                      from './@types/BoardRecords.ts';
+import { localStoreLayoutOf }                      from './LocalStoreLayout.ts';
 import { listStoreFolder, storeFolderFileNamesIn } from './StoreFolderListing.ts';
 import type { Workspace }                          from './Workspace.ts';
 
@@ -17,7 +18,7 @@ const EPIC_FILE_EXTENSION = '.md';
 export function listEpics(workspace: Workspace): EpicListing {
   const listing = listStoreFolder<Epic>({
     record:    'epic',
-    directory: workspace.epicsDirectory,
+    directory: localStoreLayoutOf(workspace).epicRecordsFolder,
     extension: EPIC_FILE_EXTENSION,
     keyField:  'key',
     readingOf: (filePath) => {
@@ -31,9 +32,10 @@ export function listEpics(workspace: Workspace): EpicListing {
 /** `clear --all`: the Board already removed every epic it read, so this takes the files it could not read. */
 /** Every epic file `clear --all` removes, whether or not it parses. */
 export function everyEpicFilePathIn(workspace: Workspace): string[] {
-  return storeFolderFileNamesIn(workspace.epicsDirectory, EPIC_FILE_EXTENSION).map((fileName) => join(workspace.epicsDirectory, fileName));
+  const { epicRecordsFolder } = localStoreLayoutOf(workspace);
+  return storeFolderFileNamesIn(epicRecordsFolder, EPIC_FILE_EXTENSION).map((fileName) => join(epicRecordsFolder, fileName));
 }
 
 export function epicFilePathOf(workspace: Workspace, epicKey: string): string {
-  return join(workspace.epicsDirectory, `${epicKey}${EPIC_FILE_EXTENSION}`);
+  return join(localStoreLayoutOf(workspace).epicRecordsFolder, `${epicKey}${EPIC_FILE_EXTENSION}`);
 }

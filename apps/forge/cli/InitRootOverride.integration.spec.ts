@@ -50,13 +50,13 @@ async function runTheBinary(commandLineArguments: readonly string[], {
   return await recordedGit.playStage(parentStage, async () => runAgentProgress(commandLineArguments, { currentDirectory, environment, recordedGitStage: childStage }));
 }
 
-function progressFilePathOf(repositoryDirectory: string): string {
+function progressRecordPathOf(repositoryDirectory: string): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
 }
 
 function trackerFilesHashOf(repositoryDirectory: string): string {
   return createHash('sha256')
-    .update(readFileSync(progressFilePathOf(repositoryDirectory)))
+    .update(readFileSync(progressRecordPathOf(repositoryDirectory)))
     .update(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl')))
     .digest('hex');
 }
@@ -92,7 +92,7 @@ describeWhenGitIsRecorded('init with AGENT_PROGRESS_ROOT set', () => {
     expect(result.standardError).toContain(trackedDirectory);
     expect(result.standardError).toContain(untrackedDirectory);
     expect(trackerFilesHashOf(trackedDirectory)).toBe(hashBefore);
-    expect(existsSync(progressFilePathOf(untrackedDirectory))).toBe(false);
+    expect(existsSync(progressRecordPathOf(untrackedDirectory))).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an override naming the tracked repository itself refreshes it like update, at exit 0, with its progress file unchanged', async () => {
@@ -156,6 +156,6 @@ describeWhenGitIsRecorded('init with AGENT_PROGRESS_ROOT set', () => {
     });
 
     expect(result.exitCode, result.standardError).toBe(0);
-    expect(existsSync(progressFilePathOf(untrackedDirectory))).toBe(true);
+    expect(existsSync(progressRecordPathOf(untrackedDirectory))).toBe(true);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

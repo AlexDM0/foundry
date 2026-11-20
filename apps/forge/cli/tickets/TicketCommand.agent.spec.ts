@@ -45,18 +45,18 @@ async function runExpectingRefusal(commandLineArguments: readonly string[]): Pro
   return context;
 }
 
-function progressFilePath(): string {
+function progressRecordPath(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
 }
 
-function ticketsDirectory(): string {
+function ticketRecordsFolder(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
 }
 
 function ticketFilePath(identifier: string): string {
-  const fileName = readdirSync(ticketsDirectory()).find((name) => name.startsWith(`${identifier}-`));
+  const fileName = readdirSync(ticketRecordsFolder()).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return join(ticketsDirectory(), fileName);
+  return join(ticketRecordsFolder(), fileName);
 }
 
 function storedTicketText(identifier: string): string {
@@ -64,8 +64,8 @@ function storedTicketText(identifier: string): string {
 }
 
 function trackerBytes(): string {
-  const ticketTexts = readdirSync(ticketsDirectory()).sort().map((name) => readFileSync(join(ticketsDirectory(), name), 'utf8'));
-  return [readFileSync(progressFilePath(), 'utf8'), storedLogTextOf(repositoryDirectory), ...ticketTexts].join('\n=====\n');
+  const ticketTexts = readdirSync(ticketRecordsFolder()).sort().map((name) => readFileSync(join(ticketRecordsFolder(), name), 'utf8'));
+  return [readFileSync(progressRecordPath(), 'utf8'), storedLogTextOf(repositoryDirectory), ...ticketTexts].join('\n=====\n');
 }
 
 const recordedGit = useRecordedGit();

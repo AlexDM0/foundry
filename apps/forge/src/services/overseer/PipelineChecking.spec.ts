@@ -42,6 +42,7 @@ import { ControlService }                                 from '../control/Contr
 import type { LineRunEnd, LineRunRequest }                from '../lifecycle/GateRun.ts';
 import type { ProposalRunRecord, ProposalRunRequest }     from '../lifecycle/ProposalTwiceRun.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import { localStoreLayoutOf }                             from '../tracker/LocalStoreLayout.ts';
 import { writeTracker }                                   from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }              from '../tracker/Workspace.ts';
 import {
@@ -215,7 +216,7 @@ async function checkRequestedOnAnUpdate(): Promise<void> {
 }
 
 function messagesTo(jobId: string): unknown[] {
-  return readFileSync(workspace.logFilePath, 'utf8').split('\n').filter((line) => line !== '')
+  return readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8').split('\n').filter((line) => line !== '')
     .map((line) => JSON.parse(line) as { kind: string; jobId?: string; fields: { text?: string } })
     .filter((record) => record.kind === 'job-messaged' && record.jobId === jobId)
     .map((record) => JSON.parse(record.fields.text ?? '') as unknown);
@@ -253,7 +254,7 @@ testWhenGitIsRecorded('runs only the touched gates two times in a fresh worktree
   expect(check?.result?.gates[0]?.output).toHaveLength(CHECK_OUTPUT_LIMIT_CHARACTERS);
   expect(check?.result?.gates[0]?.output.endsWith('the end of the output\n')).toBe(true);
   expect(messagesTo('J1').at(-1)).toEqual({ kind: 'check-ended', setupId: 'S1', check });
-  expect(readFileSync(workspace.logFilePath, 'utf8')).not.toContain('"kind":"gate-ran"');
+  expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).not.toContain('"kind":"gate-ran"');
   expect(existsSync(worktreeOf('S1'))).toBe(false);
   expect(heldSlots).toEqual([]);
 });

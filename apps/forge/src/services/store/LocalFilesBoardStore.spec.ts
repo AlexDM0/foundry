@@ -30,6 +30,7 @@ import { storedFileContentsOf }                                         from '..
 import type { RecordReference }                                         from '../tracker/@types/BoardRecords.ts';
 import type { BoardTransaction }                                        from '../tracker/BoardTransaction.ts';
 import { NO_LOCK_HOLDER_READS_AS_GONE }                                 from '../tracker/GenerationLock.ts';
+import { localStoreLayoutOf }                                           from '../tracker/LocalStoreLayout.ts';
 import { workspacePathsFor, type Workspace }                            from '../tracker/Workspace.ts';
 import type { BoardStore }                                              from './BoardStore.ts';
 import { createLocalFilesBoardStore, type LocalFilesBoardStoreOptions } from './LocalFilesBoardStore.ts';
@@ -136,7 +137,7 @@ describe('a write cut short and a malformed hold journal', () => {
 describe('the records the read side reports', () => {
   test('an unreadable ticket file is listed with its key and its location, and is not on the Board', async () => {
     const { store, workspace } = await initialisedStoreIn('');
-    const brokenTicketPath     = join(workspace.ticketsDirectory, '012-broken-by-hand.md');
+    const brokenTicketPath     = join(localStoreLayoutOf(workspace).ticketRecordsFolder, '012-broken-by-hand.md');
     writeFileSync(brokenTicketPath, 'Not a ticket.\n');
 
     const listing = store.reads.listTickets();
@@ -154,13 +155,13 @@ describe('the records the read side reports', () => {
     await applyCommand(store, {
       kind: 'ticket-add', title: 'Example basket page', type: 'ticket', dependsOn: [], epics: [], network: [], introducedBy: null, foundInReview: null, bodyText: null
     });
-    const [ticketFileName] = readdirSync(workspace.ticketsDirectory);
+    const [ticketFileName] = readdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder);
     const revisionBefore   = store.reads.revision();
 
-    appendFileSync(join(workspace.ticketsDirectory, ticketFileName ?? ''), 'A line Alex Example added.\n');
+    appendFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, ticketFileName ?? ''), 'A line Alex Example added.\n');
     expect(store.reads.revision()).toBe(revisionBefore);
 
-    writeFileSync(workspace.progressFilePath, `${readFileSync(workspace.progressFilePath, 'utf8')}\n`);
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, `${readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')}\n`);
     expect(store.reads.revision()).not.toBe(revisionBefore);
   });
 

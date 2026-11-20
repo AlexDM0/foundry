@@ -46,15 +46,15 @@ async function runExpectingRefusal(commandLineArguments: readonly string[]): Pro
   return context;
 }
 
-function progressFilePath(): string {
+function progressRecordPath(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
 }
 
 function ticketFilePath(identifier: string): string {
-  const ticketsDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
-  const fileName         = readdirSync(ticketsDirectory).find((name) => name.startsWith(`${identifier}-`));
+  const ticketRecordsFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
+  const fileName         = readdirSync(ticketRecordsFolder).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return join(ticketsDirectory, fileName);
+  return join(ticketRecordsFolder, fileName);
 }
 
 function storedTicketText(identifier: string): string {
@@ -217,13 +217,13 @@ describeWhenGitIsRecorded('ticket priority', () => {
   test('lowering a ticket that is not pending is refused at exit 1 with both files unchanged', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fix the axis']);
     await run(['ticket', 'start', '1']);
-    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const progressBefore = readFileSync(progressRecordPath(), 'utf8');
     const ticketBefore   = storedTicketText('001');
 
     const context = await runExpectingRefusal(['ticket', 'priority', '1', 'low']);
 
     expect(context.errorText()).toContain('only a draft or pending ticket can be lowered to low');
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
     expect(storedTicketText('001')).toBe(ticketBefore);
   });
 

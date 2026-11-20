@@ -11,14 +11,14 @@ export type ProgressFileReading =
   | { verdict: 'unreadable'; reason: string };
 
 export class ProgressFileIngestion {
-  constructor(private readonly progressFilePath: string) {}
+  constructor(private readonly progressRecordPath: string) {}
 
   /**
    * Never throws: an unreadable file comes back as a verdict whose reason names the offending field.
    * A file that exists but cannot be read is `unreadable`, never `absent`, because `absent` is the answer that invites `init` to replace a good file.
    */
   read(): ProgressFileReading {
-    const storedText = storedFileTextOf(this.progressFilePath);
+    const storedText = storedFileTextOf(this.progressRecordPath);
     if (storedText.verdict !== 'readable') return storedText;
 
     const parsedJson = StoredValueUtil.parsedJsonOf(storedText.text);

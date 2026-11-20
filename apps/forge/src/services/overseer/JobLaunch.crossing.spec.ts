@@ -138,7 +138,7 @@ function crossingTicketOf(row: CrossingRow = {}): CrossingTicket {
   });
   board.setOverseerState('running', AT);
   const context = {
-    workspace:         { rootDirectory: repository, trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') },
+    workspace:         { rootDirectory: repository, trackerDirectory },
     mainLine:          ENTITY_FORGE_MAIN_LINE,
     branchNames:       branchNamesOf(null),
     log:               () => undefined,

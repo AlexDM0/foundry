@@ -18,6 +18,7 @@ import {
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { NewTracker }                                from './@types/BoardRecords.ts';
+import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
 import { createTracker }                                  from './TrackerCreation.ts';
 import { workspacePathsFor, type Workspace }              from './Workspace.ts';
 
@@ -47,28 +48,28 @@ test('a fresh workspace gets its tickets directory, a version 2 progress file an
   const creation = await createTracker(workspace, NEW_TRACKER, now);
 
   expect(creation).toEqual({ verdict: 'created' });
-  expect(statSync(workspace.ticketsDirectory).isDirectory()).toBe(true);
-  expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ version: 2, ...NEW_TRACKER, tasks: [] });
-  expect(readFileSync(workspace.logFilePath, 'utf8')).toBe('');
+  expect(statSync(localStoreLayoutOf(workspace).ticketRecordsFolder).isDirectory()).toBe(true);
+  expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ version: 2, ...NEW_TRACKER, tasks: [] });
+  expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe('');
   expect(existsSync(workspace.htmlFilePath)).toBe(false);
 });
 
 test('a log.jsonl left from a removed tracker is emptied, never adopted', async () => {
   mkdirSync(workspace.trackerDirectory, { recursive: true });
-  writeFileSync(workspace.logFilePath, EXISTING_LOG_TEXT);
+  writeFileSync(localStoreLayoutOf(workspace).logRecordPath, EXISTING_LOG_TEXT);
 
   await createTracker(workspace, NEW_TRACKER, now);
 
-  expect(readFileSync(workspace.logFilePath, 'utf8')).toBe('');
+  expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe('');
 });
 
 test('an existing progress file answers already-exists, leaves progress.json and log.jsonl byte for byte, and writes no page', async () => {
   mkdirSync(workspace.trackerDirectory, { recursive: true });
-  writeFileSync(workspace.progressFilePath, EXISTING_PROGRESS_TEXT);
-  writeFileSync(workspace.logFilePath, EXISTING_LOG_TEXT);
+  writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, EXISTING_PROGRESS_TEXT);
+  writeFileSync(localStoreLayoutOf(workspace).logRecordPath, EXISTING_LOG_TEXT);
 
   expect(await createTracker(workspace, NEW_TRACKER, now)).toEqual({ verdict: 'already-exists' });
-  expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe(EXISTING_PROGRESS_TEXT);
-  expect(readFileSync(workspace.logFilePath, 'utf8')).toBe(EXISTING_LOG_TEXT);
+  expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe(EXISTING_PROGRESS_TEXT);
+  expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(EXISTING_LOG_TEXT);
   expect(existsSync(workspace.htmlFilePath)).toBe(false);
 });

@@ -6,6 +6,7 @@ import { join }               from 'node:path';
 import { DraftFileIngestion } from '../../adapters/drafts/DraftFileIngestion.ts';
 import type { Draft }         from '../../lib/tracker-model/@types/Draft.ts';
 import type { BoardContents } from './@types/BoardRecords.ts';
+import { localStoreLayoutOf } from './LocalStoreLayout.ts';
 import { listStoreFolder }    from './StoreFolderListing.ts';
 import type { Workspace }     from './Workspace.ts';
 
@@ -17,7 +18,7 @@ const DRAFT_FILE_EXTENSION = '.json';
 export function listDrafts(workspace: Workspace): DraftListing {
   const listing = listStoreFolder<Draft>({
     record:    'draft',
-    directory: workspace.draftsDirectory,
+    directory: localStoreLayoutOf(workspace).draftRecordsFolder,
     extension: DRAFT_FILE_EXTENSION,
     keyField:  'id',
     readingOf: (filePath) => {
@@ -30,5 +31,5 @@ export function listDrafts(workspace: Workspace): DraftListing {
 }
 
 export function draftFilePathOf(workspace: Workspace, draftId: string): string {
-  return join(workspace.draftsDirectory, `${draftId}${DRAFT_FILE_EXTENSION}`);
+  return join(localStoreLayoutOf(workspace).draftRecordsFolder, `${draftId}${DRAFT_FILE_EXTENSION}`);
 }

@@ -58,9 +58,9 @@ const BUILD_OF_WEB: JobLaunch = {
 
 const folders: string[] = [];
 
-/** The local adapter's allocation over a scratch tickets folder, so a filed need gets the id the folder gives. */
-function scratchRecordAllocationOf(ticketsDirectory: string, board: Board): BoardTransaction['records'] {
-  return createLocalRecordAllocation({ ticketsDirectory } as Workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS);
+/** The local adapter's allocation over a scratch tracker folder, so a filed need gets the id its tickets folder gives. */
+function scratchRecordAllocationOf(trackerDirectory: string, board: Board): BoardTransaction['records'] {
+  return createLocalRecordAllocation({ trackerDirectory } as Workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS);
 }
 
 afterEach(() => {
@@ -80,10 +80,10 @@ function boardWithADeclaredNeed(pipeline: Pipeline = entityPipelineFixture(), ne
   fixture.board.setOverseerState('running', AT);
   fixture.board.launchJob(BUILD_OF_WEB, AT);
   fixture.board.declareNeed('J1', need, () => []);
-  const ticketsDirectory = createScratchDirectory('need-tickets');
-  folders.push(ticketsDirectory);
-  // The cast: filing reads only the Board, the stamp of the hold and the records, which allocate in the scratch tickets folder.
-  const change = { board: fixture.board, at: AT, records: scratchRecordAllocationOf(ticketsDirectory, fixture.board) } as unknown as BoardTransaction;
+  const trackerDirectory = createScratchDirectory('need-tickets');
+  folders.push(trackerDirectory);
+  // The cast: filing reads only the Board, the stamp of the hold and the records, which allocate in the scratch tracker folder.
+  const change = { board: fixture.board, at: AT, records: scratchRecordAllocationOf(trackerDirectory, fixture.board) } as unknown as BoardTransaction;
   return {
     board: fixture.board, records: fixture.records, progress: fixture.progress, change
   };
@@ -314,9 +314,9 @@ function packageBuildThatDeclared(needEntity: string): DeclaredBoard {
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: 'main', entity: UI_KIT.key, stage: 2
   }, AT);
   fixture.board.declareNeed('J1', { ...NEED, entity: needEntity }, () => []);
-  const ticketsDirectory = createScratchDirectory('need-tickets');
-  folders.push(ticketsDirectory);
-  const change = { board: fixture.board, at: AT, records: scratchRecordAllocationOf(ticketsDirectory, fixture.board) } as unknown as BoardTransaction;
+  const trackerDirectory = createScratchDirectory('need-tickets');
+  folders.push(trackerDirectory);
+  const change = { board: fixture.board, at: AT, records: scratchRecordAllocationOf(trackerDirectory, fixture.board) } as unknown as BoardTransaction;
   const declared = {
     board: fixture.board, records: fixture.records, progress: fixture.progress, change
   };

@@ -15,6 +15,7 @@ import {
   test
 }                                             from 'bun:test';
 import type { PipelineSetup }                     from '../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -31,12 +32,12 @@ const CONSTITUTION_TEXT = '# Example Agency\r\n\r\n- Keep the basket page fast.\
 let repositoryDirectory = '';
 
 function setupFilePath(): string {
-  return workspacePathsFor(repositoryDirectory).pipelineSetupFilePath;
+  return localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).pipelineSetupRecordPath;
 }
 
 function storedFiles(): string[] {
   const workspace = workspacePathsFor(repositoryDirectory);
-  return [workspace.progressFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath]
+  return [localStoreLayoutOf(workspace).progressRecordPath, localStoreLayoutOf(workspace).logRecordPath, localStoreLayoutOf(workspace).pipelineSetupRecordPath]
     .map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
 }
 

@@ -39,14 +39,14 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return await runWithExitCode(commandLineArguments, 0);
 }
 
-function ticketsDirectory(): string {
+function ticketRecordsFolder(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
 }
 
 function storedTicketText(identifier: string): string {
-  const fileName = readdirSync(ticketsDirectory()).find((name) => name.startsWith(`${identifier}-`));
+  const fileName = readdirSync(ticketRecordsFolder()).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return readFileSync(join(ticketsDirectory(), fileName), 'utf8');
+  return readFileSync(join(ticketRecordsFolder(), fileName), 'utf8');
 }
 
 const recordedGit = useRecordedGit();
@@ -76,7 +76,7 @@ describeWhenGitIsRecorded('a ticket entity in a forge without entities', () => {
     const refusal = await runWithExitCode(['ticket', 'add', '--type', 'ticket', 'Keep the basket', '--entity', 'web'], 1);
 
     expect(refusal.errorText()).toContain('the pipeline names no entity');
-    expect(readdirSync(ticketsDirectory())).toEqual([]);
+    expect(readdirSync(ticketRecordsFolder())).toEqual([]);
   });
 
   test.each([

@@ -30,15 +30,11 @@ import { refusalIsOperationRefusal }                                         fro
 import { LIMITS }                                                            from '../../shared/constants/Limits.ts';
 import { createScratchDirectory, removeScratchDirectory }                    from '../../testing/ScratchWorkspace.ts';
 import { type HoldFence, LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE } from './GenerationLock.ts';
-import {
-  commitHold,
-  holdJournalFilePathOf,
-  readHoldJournal,
-  replayHoldJournal
-} from './HoldJournal.ts';
-import { withLock }                          from './TrackerLock.ts';
-import { workspacePathsFor, type Workspace } from './Workspace.ts';
-import { thrownFailureOf }                   from './testing/ThrownFailure.ts';
+import { commitHold, readHoldJournal, replayHoldJournal }                    from './HoldJournal.ts';
+import { localStoreLayoutOf }                                                from './LocalStoreLayout.ts';
+import { withLock }                                                          from './TrackerLock.ts';
+import { workspacePathsFor, type Workspace }                                 from './Workspace.ts';
+import { thrownFailureOf }                                                   from './testing/ThrownFailure.ts';
 
 const now = (): Date => new Date('2026-09-18T18:05:00Z');
 
@@ -49,15 +45,15 @@ const HAND_EDITED_LOG_TEXT = '{"kind":"note","at":"2026-09-18T10:15:00+02:00","f
 let workspace: Workspace;
 
 function ticketFilePath(): string {
-  return join(workspace.ticketsDirectory, '001-example-checkout-page.md');
+  return join(localStoreLayoutOf(workspace).ticketRecordsFolder, '001-example-checkout-page.md');
 }
 
 function exampleFiles(): JournaledFile[] {
   return [
-    { kind: 'written', filePath: workspace.progressFilePath, contents: '{\n  "version": 1\n}\n' },
+    { kind: 'written', filePath: localStoreLayoutOf(workspace).progressRecordPath, contents: '{\n  "version": 1\n}\n' },
     { kind: 'written', filePath: ticketFilePath(), contents: '---\nid: 001\n---\nExample body\n' },
-    { kind: 'removed', filePath: join(workspace.epicsDirectory, 'example-epic.md') },
-    { kind: 'written', filePath: workspace.logFilePath, contents: '{"at":"2026-09-18T10:15:00+02:00","kind":"note","fields":{"text":"Example"}}\n' },
+    { kind: 'removed', filePath: join(localStoreLayoutOf(workspace).epicRecordsFolder, 'example-epic.md') },
+    { kind: 'written', filePath: localStoreLayoutOf(workspace).logRecordPath, contents: '{"at":"2026-09-18T10:15:00+02:00","kind":"note","fields":{"text":"Example"}}\n' },
   ];
 }
 
@@ -97,8 +93,8 @@ function recordingFileReplace(movedPaths: string[]): FileReplace {
 
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('hold-journal'));
-  mkdirSync(workspace.epicsDirectory, { recursive: true });
-  writeFileSync(join(workspace.epicsDirectory, 'example-epic.md'), 'an epic the hold removes\n');
+  mkdirSync(localStoreLayoutOf(workspace).epicRecordsFolder, { recursive: true });
+  writeFileSync(join(localStoreLayoutOf(workspace).epicRecordsFolder, 'example-epic.md'), 'an epic the hold removes\n');
 });
 
 afterEach(() => {
@@ -111,12 +107,12 @@ describe('commitHold', () => {
     const observed: { journal: ReturnType<typeof readHoldJournal>; ticketExisted: boolean }[] = [];
 
     commitHold(workspace, files, OPEN_FENCE, (filePath) => {
-      if (filePath === workspace.progressFilePath) observed.push({ journal: readHoldJournal(workspace), ticketExisted: existsSync(ticketFilePath()) });
+      if (filePath === localStoreLayoutOf(workspace).progressRecordPath) observed.push({ journal: readHoldJournal(workspace), ticketExisted: existsSync(ticketFilePath()) });
     });
 
     expect(observed).toEqual([{ journal: { verdict: 'readable', files }, ticketExisted: false }]);
     expect(storedBytesOf(files)).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('a fence that refuses before the journal leaves no journal and no file written', async () => {
@@ -124,8 +120,8 @@ describe('commitHold', () => {
     const failure = await thrownFailureOf(() => Promise.resolve(commitHold(workspace, exampleFiles(), { requireStillHeld: () => { throw refusal; } })));
 
     expect(failure).toBe(refusal);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
-    expect(existsSync(workspace.progressFilePath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).progressRecordPath)).toBe(false);
   });
 
   // A holder paused past the lock's staleness between its first fence and the journal write must not leave a stale journal to replay.
@@ -142,8 +138,8 @@ describe('commitHold', () => {
     const failure = await thrownFailureOf(() => Promise.resolve(commitHold(workspace, exampleFiles(), fence)));
 
     expect(failure).toBe(refusal);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
-    expect(existsSync(workspace.progressFilePath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).progressRecordPath)).toBe(false);
   });
 
   test('the fence runs before every file: refused after the first, the rest stay as they were and the journal stays for the successor', async () => {
@@ -158,7 +154,7 @@ describe('commitHold', () => {
 
     await thrownFailureOf(() => Promise.resolve(commitHold(workspace, exampleFiles(), fence)));
 
-    expect(existsSync(workspace.progressFilePath)).toBe(true);
+    expect(existsSync(localStoreLayoutOf(workspace).progressRecordPath)).toBe(true);
     expect(existsSync(ticketFilePath())).toBe(false);
     expect(readHoldJournal(workspace).verdict).toBe('readable');
   });
@@ -178,7 +174,7 @@ describe('commitHold', () => {
     expect(filesWritten).toEqual([]);
     expect(inodesOf(writtenFilePaths)).toEqual(inodesBefore);
     expect(fenceChecks).toBe(1);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('a mixed hold journals and writes only the files whose bytes change, in their order, and leaves the rest in place', () => {
@@ -199,31 +195,31 @@ describe('commitHold', () => {
     expect(filesWritten).toEqual([ticketFile.filePath, epicRemoval.filePath]);
     expect(inodesOf([progressFile.filePath, logFile.filePath])).toEqual(inodesBefore);
     expect(storedBytesOf(files)).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('bytes that differ are written though they decode to the same text', () => {
     mkdirSync(workspace.trackerDirectory, { recursive: true });
     const truncatedSequenceBytes = Buffer.from([0xf0, 0x90, 0x80]);
     const replacementCharacter = '\uFFFD';
-    writeFileSync(workspace.progressFilePath, truncatedSequenceBytes);
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, truncatedSequenceBytes);
     expect(truncatedSequenceBytes.toString('utf8')).toBe(replacementCharacter);
 
-    commitHold(workspace, [{ kind: 'written', filePath: workspace.progressFilePath, contents: replacementCharacter }], OPEN_FENCE);
+    commitHold(workspace, [{ kind: 'written', filePath: localStoreLayoutOf(workspace).progressRecordPath, contents: replacementCharacter }], OPEN_FENCE);
 
-    expect(readFileSync(workspace.progressFilePath)).toEqual(Buffer.from(replacementCharacter, 'utf8'));
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath)).toEqual(Buffer.from(replacementCharacter, 'utf8'));
   });
 
   test('an entry is written when an earlier entry of the hold changes its path, though the disk held its bytes before the hold', () => {
     mkdirSync(workspace.trackerDirectory, { recursive: true });
-    writeFileSync(workspace.progressFilePath, 'the bytes on disk\n');
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'the bytes on disk\n');
 
     commitHold(workspace, [
-      { kind: 'written', filePath: workspace.progressFilePath, contents: 'an earlier entry\n' },
-      { kind: 'written', filePath: workspace.progressFilePath, contents: 'the bytes on disk\n' },
+      { kind: 'written', filePath: localStoreLayoutOf(workspace).progressRecordPath, contents: 'an earlier entry\n' },
+      { kind: 'written', filePath: localStoreLayoutOf(workspace).progressRecordPath, contents: 'the bytes on disk\n' },
     ], OPEN_FENCE);
 
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toBe('the bytes on disk\n');
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toBe('the bytes on disk\n');
   });
 });
 
@@ -231,7 +227,7 @@ describe('a hold under the real lock', () => {
   test('a newer generation taken over the hold refuses lock-taken-over as unrepaired, and nothing further is written', async () => {
     const failure = await thrownFailureOf(() => withLock(workspace, (hold) => {
       const takeover = LockGenerationSteps.attemptedAcquire(
-        workspace.lockDirectoryPath,
+        localStoreLayoutOf(workspace).storeLockFolder,
         { processId: process.pid, acquiredAt: '2026-09-18T20:05:00+02:00' },
         now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1,
         NO_LOCK_HOLDER_READS_AS_GONE,
@@ -241,9 +237,9 @@ describe('a hold under the real lock', () => {
     }, now, NO_LOCK_HOLDER_READS_AS_GONE));
 
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
-    expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: workspace.lockDirectoryPath });
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
-    expect(existsSync(workspace.progressFilePath)).toBe(false);
+    expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: localStoreLayoutOf(workspace).storeLockFolder });
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).progressRecordPath)).toBe(false);
   });
 
   test('a hold that changes nothing still refuses lock-taken-over once taken over', async () => {
@@ -251,7 +247,7 @@ describe('a hold under the real lock', () => {
 
     const failure = await thrownFailureOf(() => withLock(workspace, (hold) => {
       LockGenerationSteps.attemptedAcquire(
-        workspace.lockDirectoryPath,
+        localStoreLayoutOf(workspace).storeLockFolder,
         { processId: process.pid, acquiredAt: '2026-09-18T20:05:00+02:00' },
         now().getTime() + LIMITS.LOCK_STALE_MILLISECONDS + 1,
         NO_LOCK_HOLDER_READS_AS_GONE,
@@ -259,23 +255,23 @@ describe('a hold under the real lock', () => {
       commitHold(workspace, exampleFiles(), hold);
     }, now, NO_LOCK_HOLDER_READS_AS_GONE));
 
-    expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: workspace.lockDirectoryPath });
+    expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'lock-taken-over', lockDirectoryPath: localStoreLayoutOf(workspace).storeLockFolder });
   });
 
   test('every acquisition replays a journal it finds before the action runs', async () => {
     const files = exampleFiles();
-    createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(files);
+    createHoldJournalWriter(localStoreLayoutOf(workspace).holdJournalPath, workspace.trackerDirectory).write(files);
 
     const bytesSeenByTheAction = await withLock(workspace, () => storedBytesOf(files), now, NO_LOCK_HOLDER_READS_AS_GONE);
 
     expect(bytesSeenByTheAction).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('a malformed journal is refused as unrepaired at acquisition, the action never runs and every file stays', async () => {
     mkdirSync(workspace.trackerDirectory, { recursive: true });
-    writeFileSync(holdJournalFilePathOf(workspace), '{"version":1,"files":"not a list"}\n');
-    writeFileSync(workspace.logFilePath, HAND_EDITED_LOG_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).holdJournalPath, '{"version":1,"files":"not a list"}\n');
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, HAND_EDITED_LOG_TEXT);
     let actionRan = false;
 
     const failure = await thrownFailureOf(() => withLock(workspace, () => { actionRan = true; }, now, NO_LOCK_HOLDER_READS_AS_GONE));
@@ -283,11 +279,11 @@ describe('a hold under the real lock', () => {
     expect(refusalIsOperationRefusal(failure) ? failure.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({
       kind:            'malformed-hold-journal',
-      journalFilePath: holdJournalFilePathOf(workspace),
+      journalFilePath: localStoreLayoutOf(workspace).holdJournalPath,
       reason:          'its "files" is not a list',
     });
     expect(actionRan).toBe(false);
-    expect(readFileSync(workspace.logFilePath, 'utf8')).toBe(HAND_EDITED_LOG_TEXT);
+    expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(HAND_EDITED_LOG_TEXT);
   });
 });
 
@@ -295,8 +291,8 @@ describe('replayHoldJournal', () => {
   test('replaying twice yields the same bytes, over a hand-edited log with a blank line and reordered keys', () => {
     const files = exampleFiles();
     mkdirSync(workspace.trackerDirectory, { recursive: true });
-    writeFileSync(workspace.logFilePath, HAND_EDITED_LOG_TEXT);
-    const journalWriter = createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory);
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, HAND_EDITED_LOG_TEXT);
+    const journalWriter = createHoldJournalWriter(localStoreLayoutOf(workspace).holdJournalPath, workspace.trackerDirectory);
 
     journalWriter.write(files);
     replayHoldJournal(workspace, OPEN_FENCE);
@@ -306,33 +302,33 @@ describe('replayHoldJournal', () => {
 
     expect(bytesAfterTheFirstReplay).toEqual(files.map((file) => (file.kind === 'written' ? file.contents : null)));
     expect(storedBytesOf(files)).toEqual(bytesAfterTheFirstReplay);
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test('a cut-short hold whose journal a Windows writer stored replays at the next lock acquisition, and the board stays up', async () => {
     const windowsDataDirectory = 'C:\\Users\\Alex Example\\.agent-progress';
-    mkdirSync(workspace.ticketsDirectory, { recursive: true });
-    createHoldJournalWriter(holdJournalFilePathOf(workspace), windowsDataDirectory, win32).write([
+    mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
+    createHoldJournalWriter(localStoreLayoutOf(workspace).holdJournalPath, windowsDataDirectory, win32).write([
       { kind: 'written', filePath: win32.join(windowsDataDirectory, 'tickets', '001-example-checkout-page.md'), contents: 'Example body\n' },
     ]);
 
     await withLock(workspace, () => {}, now, NO_LOCK_HOLDER_READS_AS_GONE);
 
     expect(readFileSync(ticketFilePath(), 'utf8')).toBe('Example body\n');
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   });
 
   test.each([
     ['commit', async (fileReplace: FileReplace) => commitHold(workspace, exampleFiles(), OPEN_FENCE, () => {}, fileReplace)],
     ['replay', async (fileReplace: FileReplace) => {
-      createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(exampleFiles());
+      createHoldJournalWriter(localStoreLayoutOf(workspace).holdJournalPath, workspace.trackerDirectory).write(exampleFiles());
       replayHoldJournal(workspace, OPEN_FENCE, fileReplace);
     }],
   ])('a journal that cannot be removed fails the %s and stays, never a stale replay nobody was told of', async (_step, hold) => {
     const realFileReplace = fileReplaceOfThisProcess();
     const heldJournalFileReplace: FileReplace = {
       ...realFileReplace,
-      removeHeldFile: (path) => (path === holdJournalFilePathOf(workspace)
+      removeHeldFile: (path) => (path === localStoreLayoutOf(workspace).holdJournalPath
         ? { verdict: 'held', failure: Object.assign(new Error('held'), { code: 'EBUSY' }) }
         : realFileReplace.removeHeldFile(path)),
     };
@@ -342,9 +338,9 @@ describe('replayHoldJournal', () => {
     expect(refusalIsOperationRefusal(refusal)).toBe(true);
     expect(refusal).toEqual(expect.objectContaining({
       status: 'unrepaired',
-      detail: { kind: 'hold-journal-unremovable', journalFilePath: holdJournalFilePathOf(workspace), reason: 'Error: held' },
+      detail: { kind: 'hold-journal-unremovable', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, reason: 'Error: held' },
     }));
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(true);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(true);
   });
 
   test('a journal already gone is the state the removal reaches for', () => {
@@ -360,10 +356,10 @@ describe('replayHoldJournal', () => {
 
   test('no journal leaves every file alone', () => {
     mkdirSync(workspace.trackerDirectory, { recursive: true });
-    writeFileSync(workspace.logFilePath, HAND_EDITED_LOG_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, HAND_EDITED_LOG_TEXT);
 
     replayHoldJournal(workspace, OPEN_FENCE);
 
-    expect(readFileSync(workspace.logFilePath, 'utf8')).toBe(HAND_EDITED_LOG_TEXT);
+    expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(HAND_EDITED_LOG_TEXT);
   });
 });

@@ -22,6 +22,7 @@ import {
 
 import { RepositoryLandings }      from '../../../src/lib/git/RepositoryLandings.ts';
 import type { Job }                from '../../../src/lib/tracker-model/@types/Job.ts';
+import { localStoreLayoutOf }      from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { workspacePathsFor }       from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
@@ -58,11 +59,12 @@ function branchListOf(branch: string): RecordedGitStage {
 
 function storedFiles(): string[] {
   const workspace = workspacePathsFor(repositoryDirectory);
-  return [workspace.progressFilePath, workspace.logFilePath].map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
+  const layout = localStoreLayoutOf(workspace);
+  return [layout.progressRecordPath, layout.logRecordPath].map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
 }
 
 function storedNamespace(): unknown {
-  return (JSON.parse(readFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, 'utf8')) as Record<string, unknown>)['branchNamespace'];
+  return (JSON.parse(readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, 'utf8')) as Record<string, unknown>)['branchNamespace'];
 }
 
 /** A job left running on the board, as an Overseer's stop leaves its Assistant. */
@@ -79,7 +81,7 @@ function writeRunningJobs(jobs: readonly Pick<Job, 'id' | 'kind' | 'role' | 'tic
     crashResumes:       0,
   }));
   const progress = { ...storedProgressOf(repositoryDirectory), jobs: runningJobs, nextJobId: runningJobs.length + 1 };
-  writeFileSync(workspacePathsFor(repositoryDirectory).progressFilePath, `${JSON.stringify(progress, null, 2)}\n`);
+  writeFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, `${JSON.stringify(progress, null, 2)}\n`);
 }
 
 async function runWithExitCode(commandLineArguments: readonly string[]): Promise<{ exitCode: number; context: ReturnType<typeof createCapturedCommandContext> }> {

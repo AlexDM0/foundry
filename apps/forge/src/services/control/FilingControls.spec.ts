@@ -18,6 +18,7 @@ import type { BoardTransaction }                          from '../tracker/Board
 import { listDrafts }                                     from '../tracker/DraftStore.ts';
 import { listEpics }                                      from '../tracker/EpicStore.ts';
 import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
+import { localStoreLayoutOf }                             from '../tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                              from '../tracker/Workspace.ts';
 import { ControlService }                                 from './ControlService.ts';
 
@@ -38,10 +39,10 @@ function boardBesideUnreadableFilings(): { fixture: BoardFixture; change: BoardT
   const root = createScratchDirectory('filing-controls');
   scratchDirectories.push(root);
   const workspace = workspacePathsFor(root);
-  mkdirSync(workspace.epicsDirectory, { recursive: true });
-  mkdirSync(workspace.draftsDirectory, { recursive: true });
-  writeFileSync(join(workspace.epicsDirectory, `${BROKEN_EPIC_KEY}.md`), HAND_EDIT_GONE_WRONG);
-  writeFileSync(join(workspace.draftsDirectory, `${BROKEN_DRAFT_ID}.json`), HAND_EDIT_GONE_WRONG);
+  mkdirSync(localStoreLayoutOf(workspace).epicRecordsFolder, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).draftRecordsFolder, { recursive: true });
+  writeFileSync(join(localStoreLayoutOf(workspace).epicRecordsFolder, `${BROKEN_EPIC_KEY}.md`), HAND_EDIT_GONE_WRONG);
+  writeFileSync(join(localStoreLayoutOf(workspace).draftRecordsFolder, `${BROKEN_DRAFT_ID}.json`), HAND_EDIT_GONE_WRONG);
   const unreadableRecords: UnreadableRecords = { tickets: [], epics: listEpics(workspace).unreadable, drafts: listDrafts(workspace).unreadable };
   const fixture = boardFixture();
   const change  = {
@@ -78,7 +79,7 @@ test('an epic whose key an unreadable epic file holds is refused unreadable-file
     kind: 'epic-add', key: BROKEN_EPIC_KEY, title: 'Example checkout', bodyText: 'Alex Example pays in one step.\n'
   }, change, ECHOED_CONTROL_CONTEXT));
 
-  expect(unreadableEpic.location).toBe(join(change.workspace.epicsDirectory, `${BROKEN_EPIC_KEY}.md`));
+  expect(unreadableEpic.location).toBe(join(localStoreLayoutOf(change.workspace).epicRecordsFolder, `${BROKEN_EPIC_KEY}.md`));
   expect(refusal.status).toBe('refused');
   expect(refusal.detail).toEqual({ kind: 'unreadable-file-in-the-way', filePath: unreadableEpic.location, record: 'epic' });
   expect(fixture.records).toEqual([]);
@@ -92,7 +93,7 @@ test('a draft whose id an unreadable draft file holds is refused unreadable-file
     kind: 'draft-open', title: 'Example basket', request: 'Alex Example wants a basket that keeps its items.', owner: 'User'
   }, change, ECHOED_CONTROL_CONTEXT));
 
-  expect(unreadableDraft.location).toBe(join(change.workspace.draftsDirectory, `${BROKEN_DRAFT_ID}.json`));
+  expect(unreadableDraft.location).toBe(join(localStoreLayoutOf(change.workspace).draftRecordsFolder, `${BROKEN_DRAFT_ID}.json`));
   expect(refusal.status).toBe('refused');
   expect(refusal.detail).toEqual({ kind: 'unreadable-file-in-the-way', filePath: unreadableDraft.location, record: 'draft' });
 });

@@ -4,62 +4,34 @@
  * sibling worktree, with nothing above it holding the tracker, resolve to the main checkout: the
  * start's place in its own checkout is applied to the main checkout, and the walk goes on up from there.
  */
-import { existsSync, realpathSync, statSync } from 'node:fs';
-import { dirname, join, resolve }             from 'node:path';
+import { existsSync, realpathSync } from 'node:fs';
+import { dirname, join, resolve }   from 'node:path';
 
 import { discoverRepositoryRoot }    from '../../lib/git/RepositoryRoot.ts';
 import { agentProgressRootOverride } from '../../shared/Environment.ts';
 import { OperationRefusal }          from '../../shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }             from '../../shared/constants/ProductNames.ts';
+import { boardIsStoredAt }           from './LocalStoreLayout.ts';
 import { projectLocationOf }         from './ProjectLocation.ts';
-import { TRACKER_FILES }             from './constants/TrackerFiles.ts';
 
-/** Every path one tracker owns, all absolute: a relative one would resolve against a subagent's working directory. */
+const PROGRESS_PAGE_FILE_NAME = 'progress.html';
+
+/** The board's place, all absolute: a relative path would resolve against a subagent's working directory. Where each record is kept is the store's. */
 export interface Workspace {
-  rootDirectory:               string;
-  trackerDirectory:            string;
-  progressFilePath:            string;
-  pipelineFilePath:            string;
-  pipelineSetupFilePath:       string;
-  gateProfilesFilePath:        string;
-  constitutionSourcesFilePath: string;
-  logFilePath:                 string;
-  htmlFilePath:                string;
-  ticketsDirectory:            string;
-  epicsDirectory:              string;
-  draftsDirectory:             string;
-  lockDirectoryPath:           string;
+  rootDirectory:    string;
+  trackerDirectory: string;
+  htmlFilePath:     string;
 }
 
-/** The paths a tracker would have whether or not it exists; touches no filesystem, because `init` needs the paths of one it is creating. */
+/** The place a tracker would have whether or not it exists; touches no filesystem, because `init` needs the place of one it is creating. */
 export function workspacePathsFor(rootDirectory: string): Workspace {
   const absoluteRoot = resolve(rootDirectory);
-  const trackerDirectory = join(absoluteRoot, TRACKER_FILES.TRACKER_DIRECTORY_NAME);
+  const trackerDirectory = join(absoluteRoot, PRODUCT_NAMES.DATA_FOLDER);
   return {
-    rootDirectory:               absoluteRoot,
+    rootDirectory: absoluteRoot,
     trackerDirectory,
-    progressFilePath:            join(trackerDirectory, TRACKER_FILES.PROGRESS_FILE_NAME),
-    pipelineFilePath:            join(trackerDirectory, TRACKER_FILES.PIPELINE_FILE_NAME),
-    pipelineSetupFilePath:       join(trackerDirectory, TRACKER_FILES.PIPELINE_SETUP_FILE_NAME),
-    gateProfilesFilePath:        join(trackerDirectory, TRACKER_FILES.GATE_PROFILES_FILE_NAME),
-    constitutionSourcesFilePath: join(trackerDirectory, TRACKER_FILES.CONSTITUTION_SOURCES_FILE_NAME),
-    logFilePath:                 join(trackerDirectory, TRACKER_FILES.LOG_FILE_NAME),
-    htmlFilePath:                join(trackerDirectory, TRACKER_FILES.HTML_FILE_NAME),
-    ticketsDirectory:            join(trackerDirectory, TRACKER_FILES.TICKETS_DIRECTORY_NAME),
-    epicsDirectory:              join(trackerDirectory, TRACKER_FILES.EPICS_DIRECTORY_NAME),
-    draftsDirectory:             join(trackerDirectory, TRACKER_FILES.DRAFTS_DIRECTORY_NAME),
-    lockDirectoryPath:           join(trackerDirectory, TRACKER_FILES.LOCK_DIRECTORY_NAME),
+    htmlFilePath:  join(trackerDirectory, PROGRESS_PAGE_FILE_NAME),
   };
-}
-
-/** A tracker means its progress file, not merely the directory, which a half-finished `init` also leaves behind. */
-function directoryHoldsATracker(candidateRoot: string): boolean {
-  const { progressFilePath } = workspacePathsFor(candidateRoot);
-  try {
-    return statSync(progressFilePath).isFile();
-  } catch {
-    // Fail closed: a `stat` that errors reads as "no tracker here" rather than as a reason to stop walking.
-    return false;
-  }
 }
 
 /**
@@ -70,7 +42,7 @@ export function findWorkspace(startDirectory: string): Workspace | null {
   const overrideRoot = agentProgressRootOverride();
   if (overrideRoot !== undefined) {
     const overriddenWorkspace = workspacePathsFor(overrideRoot);
-    return directoryHoldsATracker(overriddenWorkspace.rootDirectory) ? overriddenWorkspace : null;
+    return boardIsStoredAt(overriddenWorkspace.rootDirectory) ? overriddenWorkspace : null;
   }
 
   let candidate = resolve(startDirectory);
@@ -82,7 +54,7 @@ export function findWorkspace(startDirectory: string): Workspace | null {
 
   const realStartDirectory = candidate;
   for (;;) {
-    if (directoryHoldsATracker(candidate)) return workspacePathsFor(candidate);
+    if (boardIsStoredAt(candidate)) return workspacePathsFor(candidate);
     const parentDirectory = dirname(candidate);
     if (parentDirectory === candidate) break;
     candidate = parentDirectory;
@@ -97,7 +69,7 @@ export function findWorkspace(startDirectory: string): Workspace | null {
 function nearestTrackerInTheMainCheckout(repositoryRoot: string, startPrefix: string): Workspace | null {
   let candidate = startPrefix === '' ? repositoryRoot : join(repositoryRoot, startPrefix);
   for (;;) {
-    if (directoryHoldsATracker(candidate)) return workspacePathsFor(candidate);
+    if (boardIsStoredAt(candidate)) return workspacePathsFor(candidate);
     const parentDirectory = dirname(candidate);
     if (candidate === repositoryRoot || parentDirectory === candidate) return null;
     candidate = parentDirectory;

@@ -85,7 +85,7 @@ function launchedBuildOf(place: TrackerPlace, pipeline?: Pipeline, entity?: stri
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt: 1, target: MAIN_LINE, ...(entity === undefined ? {} : { entity, stage: 1 })
   }, AT);
   const context = {
-    workspace:         { rootDirectory, trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') },
+    workspace:         { rootDirectory, trackerDirectory },
     mainLine:          MAIN_LINE,
     branchNames:       branchNamesOf(place === 'in a folder' ? 'example' : null),
     log:               () => undefined,

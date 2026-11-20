@@ -25,6 +25,7 @@ import { CONCURRENCY_LIMIT_CEILING_AGENTS }              from '../../../src/lib/
 import type { FlintBrainRefusal }                        from '../../../src/services/overseer/@types/FlintBrainRun.ts';
 import type { FlintBrainVerdict }                        from '../../../src/services/overseer/FlintBrain.ts';
 import { FlintBrainWordingUtil }                         from '../../../src/services/overseer/utils/FlintBrainWordingUtil.ts';
+import { localStoreLayoutOf }                            from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                              from '../../../src/services/tracker/Workspace.ts';
 import type { OverseerApiCommandOf }                     from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../../src/shared/OperationRefusal.ts';
@@ -108,8 +109,8 @@ afterEach(() => {
   removeScratchDirectory(repositoryDirectory);
 });
 
-function progressFilePath(): string {
-  return requireWorkspace(repositoryDirectory).progressFilePath;
+function progressRecordPath(): string {
+  return localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath;
 }
 
 /** A brain that answers each command with the verdict a case gives it, `done` by default, and keeps who started it. */
@@ -168,7 +169,7 @@ describeWhenGitIsRecorded('the control contract', () => {
   }
 
   test('a body of a contract kind with a field of the wrong type or none answers 400 with its code and sentence, and writes nothing', async () => {
-    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const progressBefore = readFileSync(progressRecordPath(), 'utf8');
     for (const body of MALFORMED_BODIES) {
       const malformedAnswer = {
         status: 400,
@@ -178,11 +179,11 @@ describeWhenGitIsRecorded('the control contract', () => {
       };
       expect(await answerControlCommand(body, routeRequest(), API_CALLER), JSON.stringify(body)).toEqual(malformedAnswer);
     }
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
 
   test('a by-hand kind answers 400 malformed-body as any unknown kind, and writes nothing', async () => {
-    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const progressBefore = readFileSync(progressRecordPath(), 'utf8');
     const malformedAnswer = {
       status: 400,
       body:   {
@@ -201,11 +202,11 @@ describeWhenGitIsRecorded('the control contract', () => {
     ];
     expect(BY_HAND_COMMAND_KINDS.filter((kind) => COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
     for (const body of byHandBodies) expect(await answerControlCommand(body, routeRequest(), API_CALLER), body.kind).toEqual(malformedAnswer);
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
 
   test('a concurrency limit outside 1 to the ceiling answers 409 with its code and sentence, and writes nothing', async () => {
-    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const progressBefore = readFileSync(progressRecordPath(), 'utf8');
     for (const limit of [0, 2.5, CONCURRENCY_LIMIT_CEILING_AGENTS + 1]) {
       const detail: OperationRefusalDetail = { kind: 'concurrency-limit-out-of-range', limit, ceiling: CONCURRENCY_LIMIT_CEILING_AGENTS };
       const refusedBody = {
@@ -213,7 +214,7 @@ describeWhenGitIsRecorded('the control contract', () => {
       };
       expect(await answerControlCommand({ kind: 'concurrency-set', limit }, routeRequest(), API_CALLER)).toEqual({ status: 409, body: refusedBody });
     }
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
 
   test('a machine agent limit above the CPU count answers 409 with its code and sentence, and writes nothing', async () => {
@@ -237,7 +238,7 @@ describeWhenGitIsRecorded('the control contract', () => {
   });
 
   test('a resume of work that is not interrupted answers 409 with the refusal\'s code and sentence, and writes nothing', async () => {
-    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const progressBefore = readFileSync(progressRecordPath(), 'utf8');
     const answer = await answerControlCommand({ kind: 'interrupted-work-resume', target: { jobId: 'J9' } }, routeRequest(), API_CALLER);
     const detail: OperationRefusalDetail = { kind: 'board-refusal', boardRefusal: { reason: 'unknown-job', jobId: 'J9' } };
     expect(answer).toEqual({
@@ -246,7 +247,7 @@ describeWhenGitIsRecorded('the control contract', () => {
         controlVersion: 1, refusal: 'unknown-job', fields: { jobId: 'J9' }, text: commandLineSentenceOf(detail)
       }
     });
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
 
   test('a refused command answers the command line\'s sentence where the API\'s sentence differs', async () => {

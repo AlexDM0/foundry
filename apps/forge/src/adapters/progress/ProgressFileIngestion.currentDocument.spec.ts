@@ -87,11 +87,11 @@ function validatedDocumentOf(storedText: string): StoredProgressFile {
 }
 
 test('a current document reads to exactly what the mapper makes of it and keeps its bytes', () => {
-  const progressFilePath = scratchProgressFilePath('current-document');
+  const progressRecordPath = scratchProgressFilePath('current-document');
   const storedText       = currentDocumentText();
-  writeFileSync(progressFilePath, storedText);
+  writeFileSync(progressRecordPath, storedText);
 
-  const reading = new ProgressFileIngestion(progressFilePath).read();
+  const reading = new ProgressFileIngestion(progressRecordPath).read();
   expect(reading).toEqual({
     verdict:  'readable',
     progress: ProgressFileMappingUtil.progressOf(validatedDocumentOf(storedText)),
@@ -100,7 +100,7 @@ test('a current document reads to exactly what the mapper makes of it and keeps 
   expect(Object.keys(reading.progress.tasks.at(-3) ?? {}), 'no key added to a ticket row named like a bar').not.toContain('reviewBarRound');
   expect(reading.progress.tasks.at(-2)?.reviewOf, 'a ticket row keeps its reviewOf as written').toBe('3');
   expect(Object.keys(reading.progress.tasks.at(-1) ?? {}), 'a free-standing row is never linked by its name').not.toContain('reviewOf');
-  expect(readFileSync(progressFilePath, 'utf8')).toBe(storedText);
+  expect(readFileSync(progressRecordPath, 'utf8')).toBe(storedText);
 });
 
 test('a malformed current document is refused with the current validator\'s reason', () => {
@@ -112,11 +112,11 @@ test('a malformed current document is refused with the current validator\'s reas
     [1, 2, 3],
   ];
   for (const document of malformedDocuments) {
-    const progressFilePath = scratchProgressFilePath('current-document-malformed');
-    writeFileSync(progressFilePath, JSON.stringify(document));
+    const progressRecordPath = scratchProgressFilePath('current-document-malformed');
+    writeFileSync(progressRecordPath, JSON.stringify(document));
     const expectedReason = ProgressFileValidationUtil.documentProblemOf(document);
     expect(expectedReason, JSON.stringify(document)).not.toBeNull();
-    expect(new ProgressFileIngestion(progressFilePath).read()).toEqual({ verdict: 'unreadable', reason: expectedReason ?? '' });
+    expect(new ProgressFileIngestion(progressRecordPath).read()).toEqual({ verdict: 'unreadable', reason: expectedReason ?? '' });
   }
 });
 
@@ -127,9 +127,9 @@ test('a version 1 document, and a row in a retired status word, are refused sayi
     [{ ...currentDocument, tasks: [storedRow(1, { status: 'running' })] }, 'tasks[0].status is "running", which is not one of '],
   ];
   for (const [document, reasonStart] of olderDocuments) {
-    const progressFilePath = scratchProgressFilePath('older-document');
-    writeFileSync(progressFilePath, JSON.stringify(document));
-    const reading = new ProgressFileIngestion(progressFilePath).read();
+    const progressRecordPath = scratchProgressFilePath('older-document');
+    writeFileSync(progressRecordPath, JSON.stringify(document));
+    const reading = new ProgressFileIngestion(progressRecordPath).read();
 
     expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith(reasonStart);
     expect(reading.verdict === 'unreadable' ? reading.reason : '').toEndWith(`run \`${PRODUCT_NAMES.PROGRAM} update\` with a release that still reads it, then use this one`);

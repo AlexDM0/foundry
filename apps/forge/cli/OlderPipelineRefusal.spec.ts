@@ -16,6 +16,7 @@ import {
   test
 }                                                 from 'bun:test';
 import { OLDER_FORMAT_ADVICE }                    from '../src/adapters/constants/OlderFormatAdvice.ts';
+import { localStoreLayoutOf }                     from '../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../src/shared/constants/ProductNames.ts';
 import { useRecordedGit }                         from '../src/testing/RecordedGit.ts';
@@ -59,9 +60,9 @@ describeWhenGitIsRecorded('a pipeline.json an earlier release wrote', () => {
     _description,
     olderPipelineText,
   ) => {
-    const { pipelineFilePath } = workspacePathsFor(repositoryDirectory);
-    writeFileSync(pipelineFilePath, olderPipelineText);
-    const expectedText = `${pipelineFilePath} was written by an earlier ${PRODUCT_NAMES.PROGRAM}, in a pipeline format this one does not read, `
+    const { pipelineRecordPath } = localStoreLayoutOf(workspacePathsFor(repositoryDirectory));
+    writeFileSync(pipelineRecordPath, olderPipelineText);
+    const expectedText = `${pipelineRecordPath} was written by an earlier ${PRODUCT_NAMES.PROGRAM}, in a pipeline format this one does not read, `
       + 'and no release converts it, so the board holds new work as if no pipeline were set and nothing was written. Set the pipeline up '
       + `again on the Pipeline tab of the Bridge, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\`.`;
 
@@ -81,14 +82,14 @@ describeWhenGitIsRecorded('a pipeline.json an earlier release wrote', () => {
       expect(refused.errorText, verb.join(' ')).toContain(expectedText);
       expect(refused.errorText, verb.join(' ')).not.toContain(OLDER_FORMAT_ADVICE);
     }
-    expect(readFileSync(pipelineFilePath, 'utf8')).toBe(olderPipelineText);
+    expect(readFileSync(pipelineRecordPath, 'utf8')).toBe(olderPipelineText);
   });
 });
 
 describeWhenGitIsRecorded('a version 2 pipeline.json from before version 3', () => {
   test('is listed as version 2 with the content hash version 2 gave it, and a gate write keeps it version 2 until a reach needs version 3', async () => {
-    const { pipelineFilePath } = workspacePathsFor(repositoryDirectory);
-    writeFileSync(pipelineFilePath, VERSION_TWO_PIPELINE_TEXT);
+    const { pipelineRecordPath } = localStoreLayoutOf(workspacePathsFor(repositoryDirectory));
+    writeFileSync(pipelineRecordPath, VERSION_TWO_PIPELINE_TEXT);
 
     const listed = await run(['gate', 'list', '--json']);
     expect(listed.exitCode).toBe(0);
@@ -96,21 +97,21 @@ describeWhenGitIsRecorded('a version 2 pipeline.json from before version 3', () 
 
     expect((await run(['gate', 'approval', 'merge', 'on'])).exitCode).toBe(0);
     const versionTwoDocument = JSON.parse(VERSION_TWO_PIPELINE_TEXT) as { approvals: Record<string, boolean> };
-    expect(JSON.parse(readFileSync(pipelineFilePath, 'utf8'))).toEqual({ ...versionTwoDocument, approvals: { ...versionTwoDocument.approvals, merge: true } });
+    expect(JSON.parse(readFileSync(pipelineRecordPath, 'utf8'))).toEqual({ ...versionTwoDocument, approvals: { ...versionTwoDocument.approvals, merge: true } });
 
     expect((await run(['gate', 'reach', '/packages/shared'])).exitCode).toBe(0);
-    expect(JSON.parse(readFileSync(pipelineFilePath, 'utf8'))).toMatchObject({ version: 3, reach: ['/packages/shared'] });
+    expect(JSON.parse(readFileSync(pipelineRecordPath, 'utf8'))).toMatchObject({ version: 3, reach: ['/packages/shared'] });
   });
 });
 
 describeWhenGitIsRecorded('a version 3 pipeline.json, read beside versions 2 and 4', () => {
   test('is listed as version 3, and a gate write keeps it version 3, never the version 4 of a pipeline with entities', async () => {
-    const { pipelineFilePath } = workspacePathsFor(repositoryDirectory);
-    writeFileSync(pipelineFilePath, VERSION_TWO_PIPELINE_TEXT);
+    const { pipelineRecordPath } = localStoreLayoutOf(workspacePathsFor(repositoryDirectory));
+    writeFileSync(pipelineRecordPath, VERSION_TWO_PIPELINE_TEXT);
     expect((await run(['gate', 'reach', '/packages/shared'])).exitCode).toBe(0);
 
     expect((await run(['gate', 'approval', 'merge', 'on'])).exitCode).toBe(0);
-    const written = JSON.parse(readFileSync(pipelineFilePath, 'utf8')) as Record<string, unknown>;
+    const written = JSON.parse(readFileSync(pipelineRecordPath, 'utf8')) as Record<string, unknown>;
     expect(written).toMatchObject({ version: 3, reach: ['/packages/shared'] });
     expect(written).not.toHaveProperty('entities');
 

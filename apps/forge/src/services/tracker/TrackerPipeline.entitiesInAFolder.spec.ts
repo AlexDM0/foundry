@@ -18,6 +18,7 @@ import { refusalIsOperationRefusal }                      from '../../shared/Ope
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { storedFileContentsOf, writeReadableTracker }     from '../../testing/TrackerFileFixtures.ts';
 import type { BoardTransaction }                          from './BoardTransaction.ts';
+import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
 import { writeTracker }                                   from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }              from './Workspace.ts';
 import { thrownFailureOf }                                from './testing/ThrownFailure.ts';
@@ -45,7 +46,7 @@ afterEach(() => {
 
 function trackerIn(projectFolder: string): Workspace {
   const workspace = workspacePathsFor(join(repositoryRoot, projectFolder));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   writeReadableTracker(workspace);
   return workspace;
 }
@@ -63,8 +64,9 @@ test('a pipeline with entities in a tracker in a folder is refused, naming the f
     workspace, at: CHANGED_AT, now, mutate: (change) => storeNoGates(change, EXAMPLE_ENTITIES)
   }));
 
-  expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'entities-in-a-folder', filePath: workspace.pipelineFilePath, projectPrefix: 'apps/web' });
-  const expectedMessage = `The pipeline ${workspace.pipelineFilePath} of the tracker in the folder apps/web cannot hold entities: only a `
+  const { pipelineRecordPath } = localStoreLayoutOf(workspace);
+  expect(refusalIsOperationRefusal(failure) ? failure.detail : null).toEqual({ kind: 'entities-in-a-folder', filePath: pipelineRecordPath, projectPrefix: 'apps/web' });
+  const expectedMessage = `The pipeline ${pipelineRecordPath} of the tracker in the folder apps/web cannot hold entities: only a `
     + 'tracker at the repository\'s root holds them, since an entity\'s home is a folder of the repository. Nothing was written.';
   expect(refusalIsOperationRefusal(failure) ? OperationRefusalWordingUtil.messageOf(failure) : null).toBe(expectedMessage);
   expect(refusalIsOperationRefusal(failure) ? OperationRefusalWordingUtil.apiMessageOf(failure) : null).toBe(expectedMessage);

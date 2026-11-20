@@ -47,6 +47,7 @@ import { DataFolderWatch }                                      from '../../src/
 import type { DrivePass }                                       from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                           from '../../src/services/overseer/HatchInbox.ts';
 import { jobFolderIn }                                          from '../../src/services/overseer/OverseerFiles.ts';
+import { localStoreLayoutOf }                                   from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace, workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
 import { SESSION_STOP_GRACE_MILLISECONDS }                      from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../src/testing/DrivePassHarness.ts';
@@ -414,7 +415,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch inbox', () => {
     const jobId = buildJobId();
     const appliedWithoutReply = { requestId: 'request-1', commandKind: 'ticket-add', outcome: 'done' };
     appendFileSync(
-      workspacePathsFor(repositoryDirectory).logFilePath,
+      localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).logRecordPath,
       `${JSON.stringify({
         at: '2026-09-26T10:15:00+02:00', kind: 'hatch-applied', jobId, fields: appliedWithoutReply
       })}\n`,

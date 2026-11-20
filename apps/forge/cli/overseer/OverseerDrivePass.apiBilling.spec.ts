@@ -21,6 +21,7 @@ import type { ChildLaunch }                 from '../../src/lib/talos/ChildLaunc
 import type { PipelineBilling }             from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { DrivePass, DrivePassRequest } from '../../src/services/overseer/DrivePass.ts';
 import { jobFolderIn }                      from '../../src/services/overseer/OverseerFiles.ts';
+import { localStoreLayoutOf }               from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                 from '../../src/services/tracker/Workspace.ts';
 import { API_RATE_LIMIT_BACKOFF_SECONDS }   from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass }           from '../../src/testing/DrivePassHarness.ts';
@@ -283,7 +284,7 @@ interface LoggedRecord {
 }
 
 function logRecords(): LoggedRecord[] {
-  return readFileSync(requireWorkspace(repositoryDirectory).logFilePath, 'utf8').split('\n').filter((line) => line !== '')
+  return readFileSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).logRecordPath, 'utf8').split('\n').filter((line) => line !== '')
     .map((line) => JSON.parse(line) as LoggedRecord);
 }
 

@@ -18,6 +18,7 @@ import {
 import { LocalTimeUtil }                               from '../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                          from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { BatonRecord }                            from '../src/services/overseer/Baton.ts';
+import { localStoreLayoutOf }                          from '../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                            from '../src/services/tracker/Workspace.ts';
 import { refusalIsOperationRefusal }                   from '../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                               from '../src/shared/constants/ProductNames.ts';
@@ -133,7 +134,7 @@ describeWhenGitIsRecorded('the command face', () => {
   });
 
   test('an unreadable ticket file is named on standard error after the write, and the command exits 0', async () => {
-    writeFileSync(join(requireWorkspace(repositoryDirectory).ticketsDirectory, '0099-broken.md'), 'no frontmatter here\n');
+    writeFileSync(join(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).ticketRecordsFolder, '0099-broken.md'), 'no frontmatter here\n');
     const { exitCode, errorText } = await addTask();
     expect(exitCode).toBe(0);
     expect(errorText).toMatch(/^Ticket file ignored: .*0099-broken\.md/);

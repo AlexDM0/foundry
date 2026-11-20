@@ -22,6 +22,7 @@ import {
 
 import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
 import { jobFolderIn }                            from '../../src/services/overseer/OverseerFiles.ts';
+import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -70,21 +71,21 @@ const recordedGit = useRecordedGit();
 
 describeWhenGitIsRecorded('job attach following a job to its end', () => {
   let repositoryDirectory = '';
-  let progressFilePath    = '';
+  let progressRecordPath    = '';
   let eventLogPath        = '';
   let jobFolder           = '';
   let logFilePath         = '';
 
   function writeBoardJobs(jobs: readonly Job[]): void {
-    const progress = JSON.parse(readFileSync(progressFilePath, 'utf8')) as Record<string, unknown>;
-    writeFileSync(progressFilePath, `${JSON.stringify({ ...progress, jobs }, null, 2)}\n`);
+    const progress = JSON.parse(readFileSync(progressRecordPath, 'utf8')) as Record<string, unknown>;
+    writeFileSync(progressRecordPath, `${JSON.stringify({ ...progress, jobs }, null, 2)}\n`);
   }
 
   beforeEach(async () => {
     repositoryDirectory = await createInitializedRecordedGitRepository('job-attach', ['--project', 'Example Agency', '--no-hooks'], SPEC_CLOCK, recordedGit);
     const workspace = requireWorkspace(repositoryDirectory);
-    ({ logFilePath } = workspace);
-    progressFilePath = join(workspace.trackerDirectory, 'progress.json');
+    ({ logRecordPath: logFilePath } = localStoreLayoutOf(workspace));
+    progressRecordPath = join(workspace.trackerDirectory, 'progress.json');
     jobFolder        = jobFolderIn(workspace.trackerDirectory, JOB_ID);
     mkdirSync(jobFolder, { recursive: true });
     eventLogPath = join(jobFolder, 'events-1.ndjson');

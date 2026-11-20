@@ -130,7 +130,7 @@ function packageStagesSealed(crossing: CrossingBoard, exposedSurfaceChanged: boo
 function firstMessageOf(crossing: CrossingBoard, job: Readonly<Job>): string {
   const { trackerDirectory } = crossing;
   const request = {
-    workspace:     { rootDirectory: join(trackerDirectory, '..'), trackerDirectory, ticketsDirectory: join(trackerDirectory, 'tickets') },
+    workspace:     { rootDirectory: join(trackerDirectory, '..'), trackerDirectory },
     platformPorts: {
       shellLine:       { displayLineOf: () => 'bun test', lineGrammar: 'posix' },
       gateConfinement: { workerConfinement: () => 'confined' },

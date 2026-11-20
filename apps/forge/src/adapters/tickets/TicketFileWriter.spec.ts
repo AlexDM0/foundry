@@ -29,11 +29,11 @@ const scratchDirectories: string[] = [];
 
 function scratchTicketsDirectory(): string {
   const scratchDirectory = createScratchDirectory('ticket-writer');
-  const ticketsDirectory = join(scratchDirectory, 'tickets');
+  const ticketRecordsFolder = join(scratchDirectory, 'tickets');
 
-  mkdirSync(ticketsDirectory, { recursive: true });
+  mkdirSync(ticketRecordsFolder, { recursive: true });
   scratchDirectories.push(scratchDirectory);
-  return ticketsDirectory;
+  return ticketRecordsFolder;
 }
 
 function pendingTicket(): Ticket {
@@ -182,11 +182,11 @@ describe('createTicketFileWriter', () => {
   });
 
   test('recreates a tickets directory that `clear --all` removed', () => {
-    const ticketsDirectory = scratchTicketsDirectory();
-    rmSync(ticketsDirectory, { recursive: true, force: true });
+    const ticketRecordsFolder = scratchTicketsDirectory();
+    rmSync(ticketRecordsFolder, { recursive: true, force: true });
 
-    createTicketFileWriter().write(pendingTicket(), join(ticketsDirectory, '001-fix-the-export-dialog.md'));
+    createTicketFileWriter().write(pendingTicket(), join(ticketRecordsFolder, '001-fix-the-export-dialog.md'));
 
-    expect(ticketReadFrom(join(ticketsDirectory, '001-fix-the-export-dialog.md')).frontmatter.title).toBe('Fix the export dialog');
+    expect(ticketReadFrom(join(ticketRecordsFolder, '001-fix-the-export-dialog.md')).frontmatter.title).toBe('Fix the export dialog');
   });
 });

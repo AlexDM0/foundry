@@ -14,6 +14,7 @@ import { createProgressFileWriter }                       from '../../adapters/p
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
 import { readTracker, type TrackerReading }               from './TrackerReader.ts';
 import { workspacePathsFor, type Workspace }              from './Workspace.ts';
 
@@ -29,7 +30,7 @@ const FINISHED_RECORD: LogRecord = {
 let workspace: Workspace;
 
 function writeVersionTwoProgressFile(): void {
-  createProgressFileWriter(workspace.progressFilePath).write(emptyProgress());
+  createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(emptyProgress());
 }
 
 function storedLogOrVerdictOf(reading: TrackerReading): unknown {
@@ -38,7 +39,7 @@ function storedLogOrVerdictOf(reading: TrackerReading): unknown {
 
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('tracker-reader-log-file'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   writeVersionTwoProgressFile();
 });
 
@@ -48,7 +49,7 @@ afterEach(() => {
 
 test('a readable log.jsonl comes back as its records, whatever they hold', () => {
   for (const records of [[], [NOTE], [FINISHED_RECORD], [FINISHED_RECORD, NOTE], [NOTE, NOTE, FINISHED_RECORD]]) {
-    createLogFileWriter(workspace.logFilePath).write(records);
+    createLogFileWriter(localStoreLayoutOf(workspace).logRecordPath).write(records);
     expect(storedLogOrVerdictOf(readTracker(workspace)), JSON.stringify(records)).toEqual({ records });
   }
 });
@@ -58,11 +59,11 @@ test('an absent log.jsonl is an empty log', () => {
 });
 
 test('an unreadable log.jsonl keeps its own reason, which names no progress file', () => {
-  writeFileSync(workspace.logFilePath, 'not JSON\n');
+  writeFileSync(localStoreLayoutOf(workspace).logRecordPath, 'not JSON\n');
 
   const reading = readTracker(workspace);
 
   expect(reading.verdict === 'unreadable' ? reading.unreadableFile : null).toBe('log-file');
-  expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith(`${workspace.logFilePath}, line 1:`);
-  expect(reading.verdict === 'unreadable' ? reading.reason : workspace.progressFilePath).not.toContain(workspace.progressFilePath);
+  expect(reading.verdict === 'unreadable' ? reading.reason : '').toStartWith(`${localStoreLayoutOf(workspace).logRecordPath}, line 1:`);
+  expect(reading.verdict === 'unreadable' ? reading.reason : localStoreLayoutOf(workspace).progressRecordPath).not.toContain(localStoreLayoutOf(workspace).progressRecordPath);
 });

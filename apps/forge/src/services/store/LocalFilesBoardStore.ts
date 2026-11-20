@@ -18,12 +18,13 @@ import type {
   StoredBoardReading,
   UnfinishedWriteReading
 } from '../tracker/@types/BoardRecords.ts';
-import type { LockHolderIsGone }                  from '../tracker/GenerationLock.ts';
-import { holdJournalFilePathOf, readHoldJournal } from '../tracker/HoldJournal.ts';
-import { singleRecordFilePathOf }                 from '../tracker/LocalRecordAllocation.ts';
-import { listTickets, ticketListingOf }           from '../tracker/TicketStore.ts';
-import { createTracker }                          from '../tracker/TrackerCreation.ts';
-import { writeTracker }                           from '../tracker/TrackerPipeline.ts';
+import type { LockHolderIsGone }        from '../tracker/GenerationLock.ts';
+import { readHoldJournal }              from '../tracker/HoldJournal.ts';
+import { singleRecordFilePathOf }       from '../tracker/LocalRecordAllocation.ts';
+import { localStoreLayoutOf }           from '../tracker/LocalStoreLayout.ts';
+import { listTickets, ticketListingOf } from '../tracker/TicketStore.ts';
+import { createTracker }                from '../tracker/TrackerCreation.ts';
+import { writeTracker }                 from '../tracker/TrackerPipeline.ts';
 import {
   readTracker,
   requireProgressFile,
@@ -55,7 +56,7 @@ function unfinishedWriteOf(workspace: Workspace): UnfinishedWriteReading {
   switch (journalReading.verdict) {
     case 'absent':    return { verdict: 'none' };
     case 'readable':  return { verdict: 'pending' };
-    case 'malformed': return { verdict: 'malformed', location: holdJournalFilePathOf(workspace), reason: journalReading.reason };
+    case 'malformed': return { verdict: 'malformed', location: localStoreLayoutOf(workspace).holdJournalPath, reason: journalReading.reason };
   }
 }
 
@@ -66,12 +67,12 @@ function storedBoardReadingOf(workspace: Workspace): StoredBoardReading {
 }
 
 function storedPipelineTextOf(workspace: Workspace): string | null {
-  const stored = storedFileTextOf(workspace.pipelineFilePath);
+  const stored = storedFileTextOf(localStoreLayoutOf(workspace).pipelineRecordPath);
   return stored.verdict === 'readable' ? stored.text : null;
 }
 
 function logRecordsReadingOf(workspace: Workspace): LogRecordsReading {
-  const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(workspace.logFilePath).read());
+  const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(localStoreLayoutOf(workspace).logRecordPath).read());
   return storedLog.verdict === 'readable' ? { verdict: 'readable', records: storedLog.records } : { verdict: 'unreadable', reason: storedLog.reason };
 }
 
@@ -85,10 +86,11 @@ function fileTextOrEmpty(filePath: string): string {
 
 /** Only the progress record, the log and the gate profile runs: reading every ticket on every wake would cost too much. */
 function revisionOf(workspace: Workspace): string {
+  const layout = localStoreLayoutOf(workspace);
   const digest = createHash('sha256');
-  digest.update(fileTextOrEmpty(workspace.progressFilePath)).update('\0').update(fileTextOrEmpty(workspace.logFilePath)).update('\0');
+  digest.update(fileTextOrEmpty(layout.progressRecordPath)).update('\0').update(fileTextOrEmpty(layout.logRecordPath)).update('\0');
   // A Stop of a running profile changes only this file.
-  digest.update(fileTextOrEmpty(workspace.gateProfilesFilePath)).update('\0');
+  digest.update(fileTextOrEmpty(layout.gateProfilesRecordPath)).update('\0');
   return digest.digest('hex');
 }
 
@@ -123,7 +125,7 @@ export function createLocalFilesBoardStore(options: LocalFilesBoardStoreOptions)
     requireProgress:     () => requireProgressFile(workspace),
     readPipeline:        () => storedPipelineReadingOf(workspace),
     storedPipelineText:  () => storedPipelineTextOf(workspace),
-    readGateProfiles:    () => GateProfilesFile.read(workspace.gateProfilesFilePath),
+    readGateProfiles:    () => GateProfilesFile.read(localStoreLayoutOf(workspace).gateProfilesRecordPath),
     readLogRecords:      () => logRecordsReadingOf(workspace),
     listTickets:         () => ticketListingOf(listTickets(workspace)),
     readUnfinishedWrite: () => unfinishedWriteOf(workspace),

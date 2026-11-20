@@ -11,6 +11,7 @@ import type { Ticket, TicketFrontmatter }                          from '../../l
 import { FIRST_TICKET_NUMBER }                                     from '../../lib/tracker-model/constants/TicketFields.ts';
 import { TicketIdUtil }                                            from '../../lib/tracker-model/utils/TicketIdUtil.ts';
 import type { CreateTicketInput, TicketListing, UnreadableRecord } from './@types/BoardRecords.ts';
+import { localStoreLayoutOf }                                      from './LocalStoreLayout.ts';
 import { slugFromTitle }                                           from './SlugFromTitle.ts';
 import { storeFolderFileNamesIn }                                  from './StoreFolderListing.ts';
 import type { Workspace }                                          from './Workspace.ts';
@@ -48,7 +49,7 @@ export function listTickets(workspace: Workspace): LocalTicketListing {
   const unreadable: UnreadableRecord[]  = [];
 
   for (const fileName of ticketFileNamesIn(workspace)) {
-    const filePath = join(workspace.ticketsDirectory, fileName);
+    const filePath = join(localStoreLayoutOf(workspace).ticketRecordsFolder, fileName);
     const reading  = new TicketFileIngestion(filePath).read();
 
     if (reading.verdict === 'parsed') {
@@ -122,7 +123,7 @@ export function nextTicketId(workspace: Workspace, spentInHold: TicketsSpentInHo
 
   for (const fileName of ticketFileNamesIn(workspace)) {
     markIdentifierSpent(identifierInFileName(fileName));
-    const reading = new TicketFileIngestion(join(workspace.ticketsDirectory, fileName)).read();
+    const reading = new TicketFileIngestion(join(localStoreLayoutOf(workspace).ticketRecordsFolder, fileName)).read();
     if (reading.verdict === 'parsed') markIdentifierSpent(reading.ticket.frontmatter.id);
   }
   for (const identifier of ticketIdsNamedByTaskRows(workspace)) {
@@ -165,12 +166,13 @@ export function createTicket(
     task:        null,
     extra:       [],
   };
-  return { ticket: { frontmatter, body: input.bodyFor(identifier) }, location: join(workspace.ticketsDirectory, fileName) };
+  return { ticket: { frontmatter, body: input.bodyFor(identifier) }, location: join(localStoreLayoutOf(workspace).ticketRecordsFolder, fileName) };
 }
 
 /** Every ticket file `clear --all` removes, whether or not it parses. */
 export function everyTicketFilePathIn(workspace: Workspace): string[] {
-  return ticketFileNamesIn(workspace).map((fileName) => join(workspace.ticketsDirectory, fileName));
+  const { ticketRecordsFolder } = localStoreLayoutOf(workspace);
+  return ticketFileNamesIn(workspace).map((fileName) => join(ticketRecordsFolder, fileName));
 }
 
 interface ParsedTicketFile {
@@ -199,7 +201,7 @@ function identifierInFileName(fileName: string): string | null {
 
 /** A progress file that is absent or unreadable names nothing: every command that files a ticket has already refused an unreadable one. */
 function ticketIdsNamedByTaskRows(workspace: Workspace): string[] {
-  const reading = new ProgressFileIngestion(workspace.progressFilePath).read();
+  const reading = new ProgressFileIngestion(localStoreLayoutOf(workspace).progressRecordPath).read();
   if (reading.verdict !== 'readable') {
     return [];
   }
@@ -214,7 +216,7 @@ function ticketIdsNamedByTaskRows(workspace: Workspace): string[] {
 
 /** A missing tickets directory reads as "no tickets" rather than as a failure. */
 function ticketFileNamesIn(workspace: Workspace): string[] {
-  return storeFolderFileNamesIn(workspace.ticketsDirectory, TICKET_FILE_EXTENSION);
+  return storeFolderFileNamesIn(localStoreLayoutOf(workspace).ticketRecordsFolder, TICKET_FILE_EXTENSION);
 }
 
 /** The id already makes the path unique, so the `-2` suffix buys readability, not collision safety. */

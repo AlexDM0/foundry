@@ -30,9 +30,9 @@ function scratchProgressFilePath(prefix: string): string {
 }
 
 function readBack(prefix: string, document: unknown): ProgressFileReading {
-  const progressFilePath = scratchProgressFilePath(prefix);
-  writeFileSync(progressFilePath, typeof document === 'string' ? document : JSON.stringify(document));
-  return new ProgressFileIngestion(progressFilePath).read();
+  const progressRecordPath = scratchProgressFilePath(prefix);
+  writeFileSync(progressRecordPath, typeof document === 'string' ? document : JSON.stringify(document));
+  return new ProgressFileIngestion(progressRecordPath).read();
 }
 
 test('a tracker that has never been initialised is absent, not unreadable', () => {

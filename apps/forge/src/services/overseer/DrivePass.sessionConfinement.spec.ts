@@ -34,6 +34,7 @@ import { createScratchDirectory, removeScratchDirectory }      from '../../testi
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT }   from '../../testing/ToolGuard.ts';
 import { writeReadableTracker }                                from '../../testing/TrackerFileFixtures.ts';
 import { waitUntil }                                           from '../../testing/WaitUntil.ts';
+import { localStoreLayoutOf }                                  from '../tracker/LocalStoreLayout.ts';
 import { writeTracker }                                        from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
@@ -155,7 +156,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a session launched by the pas
     launchedPlans = [];
     adapterPlans  = [];
     workerArgvs   = [];
-    mkdirSync(workspace.ticketsDirectory, { recursive: true });
+    mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
     writeReadableTracker(workspace);
     const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'conflictReReviewer', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
     for (const path of instructionDefaults) {

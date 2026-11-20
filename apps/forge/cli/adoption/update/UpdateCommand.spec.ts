@@ -276,19 +276,19 @@ describeWhenGitIsRecorded('what update never touches', () => {
     await runIn(repositoryDirectory, ['ticket', 'add', 'Rename the export button', '--type', 'ticket'], []);
     await runIn(repositoryDirectory, ['log', 'The orchestrator started the board'], []);
 
-    const progressFilePath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+    const progressRecordPath = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
     const logFilePath      = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
-    const ticketsDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
-    const ticketFileName   = readdirSync(ticketsDirectory)[0] ?? '';
-    const ticketFilePath   = join(ticketsDirectory, ticketFileName);
-    const progressBefore   = readFileSync(progressFilePath, 'utf8');
+    const ticketRecordsFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
+    const ticketFileName   = readdirSync(ticketRecordsFolder)[0] ?? '';
+    const ticketFilePath   = join(ticketRecordsFolder, ticketFileName);
+    const progressBefore   = readFileSync(progressRecordPath, 'utf8');
     const logBefore        = readFileSync(logFilePath, 'utf8');
     const ticketBefore     = readFileSync(ticketFilePath, 'utf8');
     expect(ticketFileName, 'the fixture filed a ticket, so the comparison below is about a real file').toContain('export-button');
 
     expect((await update(repositoryDirectory)).exitCode).toBe(0);
 
-    expect(readFileSync(progressFilePath, 'utf8'), 'the rows, the log and the counters are none of this command\'s business').toBe(progressBefore);
+    expect(readFileSync(progressRecordPath, 'utf8'), 'the rows, the log and the counters are none of this command\'s business').toBe(progressBefore);
     expect(readFileSync(logFilePath, 'utf8')).toBe(logBefore);
     expect(readFileSync(ticketFilePath, 'utf8')).toBe(ticketBefore);
     expect(logBefore, 'the fixture holds a log line, so the comparison above is about something').toContain('The orchestrator started the board');
@@ -296,17 +296,17 @@ describeWhenGitIsRecorded('what update never touches', () => {
 
   test('an unreadable tracker still exits 0 with the untouched line, and its files are left byte for byte', async () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
-    const progressFilePath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+    const progressRecordPath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
     const logFilePath         = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
     const unreadableProgress  = '{ "version": 1, "tasks": [';
-    writeFileSync(progressFilePath, unreadableProgress);
+    writeFileSync(progressRecordPath, unreadableProgress);
     const logBefore = readFileSync(logFilePath, 'utf8');
 
     const { exitCode, context } = await update(repositoryDirectory);
     expect(exitCode).toBe(0);
 
     expect(context.outputText().split('\n')[0]).toEndWith('; the tracker itself was not touched.');
-    expect(readFileSync(progressFilePath, 'utf8')).toBe(unreadableProgress);
+    expect(readFileSync(progressRecordPath, 'utf8')).toBe(unreadableProgress);
     expect(readFileSync(logFilePath, 'utf8')).toBe(logBefore);
   });
 });

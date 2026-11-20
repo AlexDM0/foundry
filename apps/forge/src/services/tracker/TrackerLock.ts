@@ -4,6 +4,7 @@
  */
 import { type HoldFence, type LockHolderIsGone, withLockAt } from './GenerationLock.ts';
 import { replayHoldJournal }                                 from './HoldJournal.ts';
+import { localStoreLayoutOf }                                from './LocalStoreLayout.ts';
 import type { Workspace }                                    from './Workspace.ts';
 
 function replayingTheJournalFirst<ActionResult>(
@@ -28,5 +29,5 @@ export function withLock<ActionResult>(
   now: () => Date,
   holderIsGone: LockHolderIsGone,
 ): Promise<ActionResult> {
-  return withLockAt(workspace.lockDirectoryPath, replayingTheJournalFirst(workspace, action), now, holderIsGone);
+  return withLockAt(localStoreLayoutOf(workspace).storeLockFolder, replayingTheJournalFirst(workspace, action), now, holderIsGone);
 }

@@ -36,6 +36,7 @@ import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS } from '../../testing
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
+import { localStoreLayoutOf }                                from '../tracker/LocalStoreLayout.ts';
 import { listTickets }                                       from '../tracker/TicketStore.ts';
 import { workspacePathsFor }                                 from '../tracker/Workspace.ts';
 import { ControlService }                                    from './ControlService.ts';
@@ -71,7 +72,7 @@ function boardWithOneTicket(
   const root = createScratchDirectory('ticket-controls');
   scratchDirectories.push(root);
   const workspace = workspacePathsFor(root);
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   const { board } = boardFixture({ tickets: [ticket], ...(pipeline === undefined ? {} : { pipeline }) });
   const change = {
     board, workspace, at: AT, records: createLocalRecordAllocation(workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS), unreadableRecords: NO_UNREADABLE_RECORDS
@@ -345,10 +346,10 @@ const TICKET_SIX_TEXT = [
 /** Ticket 001 on the Board, beside three ticket files the store cannot read, listed and keyed as the local adapter keys them. */
 function boardBesideUnreadableTicketFiles(): BoardTransaction {
   const { change } = boardWithOneTicket();
-  const { ticketsDirectory } = change.workspace;
-  writeFileSync(join(ticketsDirectory, '004-broken-by-hand.md'), 'A hand edit that lost the frontmatter.\n');
-  writeFileSync(join(ticketsDirectory, '007.md'), 'A hand edit that lost the frontmatter.\n');
-  writeFileSync(join(ticketsDirectory, '005-renamed-by-hand.md'), TICKET_SIX_TEXT);
+  const { ticketRecordsFolder } = localStoreLayoutOf(change.workspace);
+  writeFileSync(join(ticketRecordsFolder, '004-broken-by-hand.md'), 'A hand edit that lost the frontmatter.\n');
+  writeFileSync(join(ticketRecordsFolder, '007.md'), 'A hand edit that lost the frontmatter.\n');
+  writeFileSync(join(ticketRecordsFolder, '005-renamed-by-hand.md'), TICKET_SIX_TEXT);
   return { ...change, unreadableRecords: { ...NO_UNREADABLE_RECORDS, tickets: listTickets(change.workspace).unreadable } };
 }
 
@@ -368,7 +369,7 @@ test.each([
   ['005', '005-renamed-by-hand.md'],
 ])('a reference %s to a ticket file the store cannot read is unrepaired malformed-ticket-file naming %s', (reference, fileName) => {
   const change     = boardBesideUnreadableTicketFiles();
-  const unreadable = change.unreadableRecords.tickets.find(({ location }) => location === join(change.workspace.ticketsDirectory, fileName));
+  const unreadable = change.unreadableRecords.tickets.find(({ location }) => location === join(localStoreLayoutOf(change.workspace).ticketRecordsFolder, fileName));
   if (unreadable === undefined) throw new Error(`the store listed no unreadable ${fileName}`);
 
   const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-ready', ticketReferences: [reference] }, change, ECHOED_CONTROL_CONTEXT));

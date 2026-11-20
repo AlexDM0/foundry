@@ -1,7 +1,7 @@
 /**
  * The forge reaches its stored board through the store port: no shipping line outside the store's adapter names where a record is kept. The
- * scan first proves it saw the tree and that the adapter really holds the forms, the allowlist is exact both ways (each entry names the
- * package that removes it), and each form is planted once. The adapter is an exact list of files and record format folders, never a folder
+ * scan first proves it saw the tree and that the adapter really holds the forms, the allowlist is exact both ways and holds only the two
+ * composition roots that pick the adapter, and each form is planted once. The adapter is an exact list of files and record format folders, never a folder
  * of `src/services/`. Comments, specs and testing folders are not scanned.
  */
 import { describe, expect, test } from 'bun:test';
@@ -25,10 +25,9 @@ interface BoundaryReport {
 
 const RECORD_FILE_NAMES = 'progress\\.json|pipeline\\.json|pipeline-setup\\.json|gate-profiles\\.json|constitution-sources\\.json|log\\.jsonl|hold-journal\\.json'
   + '|filing-cabinet';
-const RECORD_PATH_NAMES = 'progressFilePath|pipelineFilePath|pipelineSetupFilePath|gateProfilesFilePath|constitutionSourcesFilePath|ticketsDirectory|epicsDirectory'
-  + '|draftsDirectory|holdJournalFilePathOf|epicFilePathOf|draftFilePathOf|everyTicketFilePathIn|everyEpicFilePathIn';
+const RECORD_PATH_HELPER_NAMES = 'epicFilePathOf|draftFilePathOf|everyTicketFilePathIn|everyEpicFilePathIn';
 const STORE_MODULE_NAMES = 'TrackerPipeline|TrackerReader|TicketStore|EpicStore|DraftStore|StoreFolderListing|TrackerLock|HoldJournal|TrackerCreation'
-  + '|LocalRecordAllocation|LocalStoreLayout|LocalStoreFiles|TrackerFiles|LocalFilesBoardStore|ProgressFileIngestion|ProgressFileWriter|LogFileIngestion'
+  + '|LocalRecordAllocation|LocalStoreLayout|LocalStoreFiles|LocalFilesBoardStore|ProgressFileIngestion|ProgressFileWriter|LogFileIngestion'
   + '|LogFileWriter|TicketFileIngestion|TicketFileWriter|EpicFileIngestion|EpicFileWriter|DraftFileIngestion|DraftFileWriter|HoldJournalIngestion'
   + '|HoldJournalWriter';
 
@@ -37,11 +36,11 @@ const STORE_FORM_PATTERNS: Readonly<Record<StoreForm, readonly RegExp[]>> = {
   'record-file-name':   [new RegExp(`(['"\`])(?:${RECORD_FILE_NAMES})\\1`)],
   'record-folder-join': [/\bjoin\([^)]*(['"`])(?:tickets|epics|filing-cabinet)\1/],
   'record-path-name':   [
-    new RegExp(`\\b(?:${RECORD_PATH_NAMES})\\b`),
-    // The Overseer's own log and the registry's and the landing's locks use the same field names, so these match only on a workspace.
-    /\b(?:workspace|Workspace)\??\.(?:logFilePath|lockDirectoryPath)\b/,
+    new RegExp(`\\b(?:${RECORD_PATH_HELPER_NAMES})\\b`),
+    /\b(?:localStoreLayoutOf|LocalStoreLayout|boardIsStoredAt)\b/,
+    /\b\w+(?:RecordPath|RecordsFolder)\b|\bstoreLockFolder\b|\bholdJournalPath\b/,
   ],
-  'record-constant':       [/\bTRACKER_FILES\.(?!TRACKER_DIRECTORY_NAME\b|HTML_FILE_NAME\b)\w+/, /\bLOCAL_STORE_FILES\b/],
+  'record-constant':       [/\bLOCAL_STORE_FILES\b/],
   // An import spread over several lines is matched on its `from` line, the line the allowlist names.
   'store-internal-import': [new RegExp(`\\bfrom\\s+['"][^'"]*\\/(?:${STORE_MODULE_NAMES})\\.ts['"]`)],
   // The pure members of these adapters (`contentsOf`, `documentReadingOf`, `storedDocumentOf` and kin) stay usable.
@@ -50,7 +49,6 @@ const STORE_FORM_PATTERNS: Readonly<Record<StoreForm, readonly RegExp[]>> = {
 
 const STORE_FORMS = Object.keys(STORE_FORM_PATTERNS) as StoreForm[];
 
-/** A listed file that does not exist yet is allowed; a later package adds it. */
 const STORE_ADAPTER_FILES: readonly string[] = [
   'src/services/store/LocalFilesBoardStore.ts',
   'src/services/tracker/DraftStore.ts',
@@ -66,7 +64,6 @@ const STORE_ADAPTER_FILES: readonly string[] = [
   'src/services/tracker/TrackerReader.ts',
   'src/services/tracker/Workspace.ts',
   'src/services/tracker/constants/LocalStoreFiles.ts',
-  'src/services/tracker/constants/TrackerFiles.ts',
 ];
 
 /** The record format adapters: each reads and writes one stored record. */
@@ -81,24 +78,15 @@ const STORE_ADAPTER_FOLDERS: readonly string[] = [
   'src/adapters/tickets/',
 ];
 
-/** `<path>: <form>: <trimmed line>`, sorted by path, each naming the package that removes it. */
+const CLI_COMPOSITION_ROOT_REASON = 'The CLI\'s composition root picks the store\'s adapter.';
+const OVERSEER_COMPOSITION_ROOT_REASON = 'The Overseer\'s composition root picks the store\'s adapter.';
+
+/** `<path>: <form>: <trimmed line>`, sorted by path: only the composition roots, which pick the store's adapter. */
 const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
   'cli/BoardStoreOf.ts: store-internal-import: import { createLocalFilesBoardStore }       from \'../src/services/store/LocalFilesBoardStore.ts\';':
-    'The CLI\'s composition root picks the store\'s adapter.',
-  'cli/InstalledFiles.ts: store-internal-import: import { TRACKER_FILES }                                       from \'../src/services/tracker/constants/TrackerFiles.ts\';':
-    'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
-  [
-  'cli/adoption/init/InitCommand.ts: store-internal-import: import { TRACKER_FILES }                                  from'
-    + ' \'../../../src/services/tracker/constants/TrackerFiles.ts\';'
-  ]:
-    'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
+    CLI_COMPOSITION_ROOT_REASON,
   'cli/overseer/OverseerForeground.ts: store-internal-import: import { createLocalFilesBoardStore } from \'../../src/services/store/LocalFilesBoardStore.ts\';':
-    'The Overseer\'s composition root picks the store\'s adapter.',
-  [
-  'src/services/tracker/RepositoryTrackerList.ts: store-internal-import: import { TRACKER_FILES }                                                      from'
-    + ' \'./constants/TrackerFiles.ts\';'
-  ]:
-    'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
+    OVERSEER_COMPOSITION_ROOT_REASON,
 };
 
 const ALLOWED_LINES = Object.keys(ALLOWED_STORE_LINES);
@@ -143,15 +131,8 @@ function violationsOfPlanted(path: string, plantedLine: string): readonly string
   return boundaryReportOf([{ path, text: `${plantedLine}\n` }], []).violations;
 }
 
-const REMOVAL_REASON_PATTERN = /^Removed by WP5\.\d+: \S/;
-const COMPOSITION_ROOT_REASONS: readonly string[] = [
-  'The CLI\'s composition root picks the store\'s adapter.',
-  'The Overseer\'s composition root picks the store\'s adapter.',
-];
-
-function isAcceptedAllowanceReason(reason: string): boolean {
-  return REMOVAL_REASON_PATTERN.test(reason) || COMPOSITION_ROOT_REASONS.includes(reason);
-}
+const COMPOSITION_ROOT_PATHS: readonly string[] = ['cli/BoardStoreOf.ts', 'cli/overseer/OverseerForeground.ts'];
+const COMPOSITION_ROOT_REASONS: readonly string[] = [CLI_COMPOSITION_ROOT_REASON, OVERSEER_COMPOSITION_ROOT_REASON];
 
 describe('the scan saw the tree', () => {
   const shippingPaths = SOURCES.map((source) => source.path).filter(isShippingCode);
@@ -165,26 +146,15 @@ describe('the scan saw the tree', () => {
     expect(shippingPaths).not.toContain('src/StoreBoundary.spec.ts');
   });
 
-  test('it finds the adapter files that exist and a source in every record format folder', () => {
-    expect(shippingPaths.filter(isStoreAdapter)).toEqual(expect.arrayContaining([
-      'src/services/tracker/DraftStore.ts',
-      'src/services/tracker/EpicStore.ts',
-      'src/services/tracker/HoldJournal.ts',
-      'src/services/tracker/StoreFolderListing.ts',
-      'src/services/tracker/TicketStore.ts',
-      'src/services/tracker/TrackerCreation.ts',
-      'src/services/tracker/TrackerLock.ts',
-      'src/services/tracker/TrackerPipeline.ts',
-      'src/services/tracker/TrackerReader.ts',
-      'src/services/tracker/Workspace.ts',
-      'src/services/tracker/constants/TrackerFiles.ts',
-    ]));
+  test('it finds every adapter file and a source in every record format folder', () => {
+    expect(shippingPaths.filter(isStoreAdapter)).toEqual(expect.arrayContaining([...STORE_ADAPTER_FILES]));
     for (const folder of STORE_ADAPTER_FOLDERS) expect(shippingPaths.some((path) => path.startsWith(folder))).toBe(true);
   });
 
   test('the forms it looks for really stand in the adapter', () => {
     const formsOf = (path: string) => (SOURCES.find((source) => source.path === path)?.text ?? '').split('\n').flatMap(formsNamedBy);
-    expect(formsOf('src/services/tracker/constants/TrackerFiles.ts')).toContain('record-file-name');
+    expect(formsOf('src/services/tracker/constants/LocalStoreFiles.ts')).toContain('record-file-name');
+    expect(formsOf('src/services/tracker/LocalStoreLayout.ts')).toEqual(expect.arrayContaining(['record-path-name', 'record-constant']));
     expect(formsOf('src/services/tracker/TrackerPipeline.ts')).toContain('store-internal-import');
     const formsInAdapter = new Set(SOURCES.filter((source) => isStoreAdapter(source.path)).flatMap((source) => source.text.split('\n').flatMap(formsNamedBy)));
     expect([...formsInAdapter]).toEqual(expect.arrayContaining(['record-file-name', 'record-path-name', 'record-constant', 'store-internal-import', 'stored-record-read']));
@@ -194,15 +164,16 @@ describe('the scan saw the tree', () => {
     expect(boundaryReportOf(SOURCES, ALLOWED_LINES)).toEqual({ violations: [], unusedAllowances: [] });
   });
 
-  test('the allowlist is sorted by path, and each entry names what removes it', () => {
+  test('the allowlist is sorted by path and holds exactly the two composition roots', () => {
     expect(ALLOWED_LINES).toEqual([...ALLOWED_LINES].sort());
-    expect(Object.values(ALLOWED_STORE_LINES).filter((reason) => !isAcceptedAllowanceReason(reason))).toEqual([]);
+    expect(ALLOWED_LINES.map((line) => line.slice(0, line.indexOf(':')))).toEqual([...COMPOSITION_ROOT_PATHS]);
+    expect(Object.values(ALLOWED_STORE_LINES)).toEqual([...COMPOSITION_ROOT_REASONS]);
   });
 });
 
 describe('the allowlist is exact both ways', () => {
   const removedEntry = ALLOWED_LINES[0] ?? '';
-  const allowedEntry = 'src/services/overseer/Planted.ts: record-constant: const name = TRACKER_FILES.LOG_FILE_NAME;';
+  const allowedEntry = 'src/services/overseer/Planted.ts: record-constant: const name = LOCAL_STORE_FILES.LOG_FILE_NAME;';
 
   test('removing an entry leaves its line a violation', () => {
     expect(boundaryReportOf(SOURCES, ALLOWED_LINES.slice(1))).toEqual({ violations: [removedEntry], unusedAllowances: [] });
@@ -213,14 +184,14 @@ describe('the allowlist is exact both ways', () => {
   });
 
   test('a second copy of an allowed line in its own file is a violation', () => {
-    const doubledSite = { path: 'src/services/overseer/Planted.ts', text: 'const name = TRACKER_FILES.LOG_FILE_NAME;\nconst name = TRACKER_FILES.LOG_FILE_NAME;\n' };
+    const doubledSite = { path: 'src/services/overseer/Planted.ts', text: 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;\nconst name = LOCAL_STORE_FILES.LOG_FILE_NAME;\n' };
     expect(boundaryReportOf([doubledSite], [allowedEntry])).toEqual({ violations: [allowedEntry], unusedAllowances: [] });
   });
 
   test('an allowed line in another file is a violation', () => {
-    const plantedCopy = { path: 'src/services/overseer/PlantedCopy.ts', text: 'const name = TRACKER_FILES.LOG_FILE_NAME;\n' };
+    const plantedCopy = { path: 'src/services/overseer/PlantedCopy.ts', text: 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;\n' };
     expect(boundaryReportOf([plantedCopy], [allowedEntry])).toEqual({
-      violations:       ['src/services/overseer/PlantedCopy.ts: record-constant: const name = TRACKER_FILES.LOG_FILE_NAME;'],
+      violations:       ['src/services/overseer/PlantedCopy.ts: record-constant: const name = LOCAL_STORE_FILES.LOG_FILE_NAME;'],
       unusedAllowances: [allowedEntry],
     });
   });
@@ -236,11 +207,15 @@ describe('the guard names each form, planted in memory', () => {
     ['the hold journal\'s name', 'const name = \'hold-journal.json\';', ['record-file-name']],
     ['a record folder joined', 'const folder = join(trackerDirectory, \'tickets\');', ['record-folder-join']],
     ['the epics folder joined', 'const folder = join(root, ".forge", "epics");', ['record-folder-join']],
-    ['a record path field', 'const folder = workspace.ticketsDirectory;', ['record-path-name']],
-    ['a record path helper', 'const path = holdJournalFilePathOf(workspace);', ['record-path-name']],
-    ['the log path on a workspace', 'const path = request.workspace.logFilePath;', ['record-path-name']],
-    ['the lock path on an optional workspace', 'const path = workspace?.lockDirectoryPath;', ['record-path-name']],
-    ['a record name constant', 'const name = TRACKER_FILES.PIPELINE_FILE_NAME;', ['record-constant']],
+    ['a record path helper', 'const path = epicFilePathOf(workspace, epicKey);', ['record-path-name']],
+    ['the local store\'s layout', 'const layout = localStoreLayoutOf(workspace);', ['record-path-name']],
+    ['the layout\'s type', 'let layout: LocalStoreLayout;', ['record-path-name']],
+    ['the stored board check', 'const stored = boardIsStoredAt(rootDirectory);', ['record-path-name']],
+    ['a record path', 'const path = layout.progressRecordPath;', ['record-path-name']],
+    ['a record folder', 'const folder = layout.ticketRecordsFolder;', ['record-path-name']],
+    ['the store\'s lock folder', 'const folder = layout.storeLockFolder;', ['record-path-name']],
+    ['the hold journal\'s path', 'const path = layout.holdJournalPath;', ['record-path-name']],
+    ['a record name constant', 'const name = LOCAL_STORE_FILES.PIPELINE_FILE_NAME;', ['record-constant']],
     ['the local store\'s names', 'const names = LOCAL_STORE_FILES;', ['record-constant']],
     ['an import of a store module', 'import { requireTracker } from \'../tracker/TrackerReader.ts\';', ['store-internal-import']],
     ['the from line of a record format adapter\'s import', '} from \'../../adapters/log/LogFileWriter.ts\';', ['store-internal-import']],
@@ -264,8 +239,9 @@ describe('the guard names each form, planted in memory', () => {
       'const approval = \'tickets\';',
       'const path = overseerFiles.logFilePath;',
       'const path = registry.lockDirectoryPath;',
-      'const folder = TRACKER_FILES.TRACKER_DIRECTORY_NAME;',
-      'const page = TRACKER_FILES.HTML_FILE_NAME;',
+      'const folder = PRODUCT_NAMES.DATA_FOLDER;',
+      'const page = workspace.htmlFilePath;',
+      'const path = talosRecordPathOf(boardFolder, startNumber);',
       'const text = PipelineFile.contentsOf(storedText);',
       'const location = file.filePath;',
     ]) {
@@ -275,7 +251,7 @@ describe('the guard names each form, planted in memory', () => {
 });
 
 describe('what the boundary exempts is exact', () => {
-  const plantedLine = 'const name = TRACKER_FILES.LOG_FILE_NAME;';
+  const plantedLine = 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;';
 
   test('every adapter file and every record format folder may name a record', () => {
     for (const path of [...STORE_ADAPTER_FILES, ...STORE_ADAPTER_FOLDERS.map((folder) => `${folder}PlantedIngestion.ts`)]) {

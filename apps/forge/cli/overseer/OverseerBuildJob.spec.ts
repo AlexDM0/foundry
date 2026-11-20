@@ -35,6 +35,7 @@ import type { BoardChildren }                                  from '../../src/s
 import type { DrivePass }                                      from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                          from '../../src/services/overseer/HatchInbox.ts';
 import { jobFolderIn }                                         from '../../src/services/overseer/OverseerFiles.ts';
+import { localStoreLayoutOf }                                  from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                                    from '../../src/services/tracker/Workspace.ts';
 import { JOB_ID_VARIABLE }                                     from '../../src/shared/Environment.ts';
 import { DISPATCH_PROTOCOL }                                   from '../../src/shared/constants/DispatchProtocol.ts';
@@ -502,7 +503,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(buildJobEnding()).toMatchObject({ outcome: 'failed', cause: 'red-resumes-spent' });
     expect(ticketText()).toContain('parked:red-resumes-spent');
     expect(readFileSync(join(jobFolder, 'red-handoff.json'), 'utf8')).toContain('"resume": 3');
-    const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: { ticket: string | null }[] };
+    const progress = JSON.parse(readFileSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath, 'utf8')) as { tasks: { ticket: string | null }[] };
     expect(Object.keys(progress.tasks.find((task) => task.ticket === '001') ?? {})).not.toContain('greenTree');
   });
 
@@ -535,7 +536,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
 
     expect(buildJobEnding()).toMatchObject({ outcome: 'built' });
     type StoredRow = { ticket: string | null; pipelineHash?: string; greenPhase?: string; greenTree?: string };
-    const progress = JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8')) as { tasks: StoredRow[] };
+    const progress = JSON.parse(readFileSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath, 'utf8')) as { tasks: StoredRow[] };
     expect(progress.tasks.find((task) => task.ticket === '001')).toMatchObject({ pipelineHash: listed.phaseHashes.build, greenPhase: 'build' });
     const gatedTree = loggedEntries('gate-ran').at(-1)?.fields['tree'];
     expect(gatedTree).toEqual(expect.any(String));

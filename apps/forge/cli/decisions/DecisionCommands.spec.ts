@@ -13,6 +13,7 @@ import {
   test
 }                                             from 'bun:test';
 import type { DecisionOpening }                   from '../../src/lib/tracker-model/@types/Decision.ts';
+import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { writeTracker }                           from '../../src/services/tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
@@ -90,7 +91,7 @@ afterEach(() => {
 describeWhenGitIsRecorded('the decision commands', () => {
   test('decisions letters each option as decide takes it, marks the recommended one from its stored flag, and reads without writing', async () => {
     await openTheExampleDecision();
-    const progressPath = workspacePathsFor(repositoryDirectory).progressFilePath;
+    const progressPath = localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath;
     const before = readFileSync(progressPath, 'utf8');
 
     const listed = await run(['decisions']);
@@ -107,7 +108,7 @@ describeWhenGitIsRecorded('the decision commands', () => {
     await openTheExampleDecision();
     const answered = await run(['decide', 'E1', 'b', 'ab', '--json']);
     expect(JSON.parse(answered.outputText())).toEqual({ decisionId: 'E1', answer: { 'Which export format?': 'JSON', 'Which columns?': 'Name, Total' } });
-    const log = readFileSync(workspacePathsFor(repositoryDirectory).logFilePath, 'utf8');
+    const log = readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).logRecordPath, 'utf8');
     const storedAnswer = '{"answer":{"Which export format?":"JSON","Which columns?":"Name, Total"},"requestId":"request-1"}';
     expect(log).toContain(`"kind":"decision-answered","decisionId":"E1","fields":${storedAnswer}`);
     expect(JSON.parse((await run(['decisions', '--json'])).outputText())).toEqual({ decisions: [] });
@@ -126,7 +127,7 @@ describeWhenGitIsRecorded('the decision commands', () => {
   });
 
   test('await wakes on a decision-opened past its position, and waits for one opened after it started', async () => {
-    const logLength = readFileSync(workspacePathsFor(repositoryDirectory).logFilePath, 'utf8').split('\n').filter((line) => line !== '').length;
+    const logLength = readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).logRecordPath, 'utf8').split('\n').filter((line) => line !== '').length;
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
     let waitBegan = false;
     const waiting = runCommandLine(['await', '--json', '--after', String(logLength)], {

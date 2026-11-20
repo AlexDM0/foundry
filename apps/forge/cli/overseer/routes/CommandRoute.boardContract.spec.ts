@@ -16,6 +16,7 @@ import {
 import type { ForgeBoardCommand } from 'forge-contracts/BoardCommand';
 
 import type { PipelineSetup }                                                  from '../../../src/lib/tracker-model/@types/PipelineSetup.ts';
+import { localStoreLayoutOf }                                                  from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                                                    from '../../../src/services/tracker/Workspace.ts';
 import { BOARD_COMMAND_CONTRACT_KINDS, CONTROL_CONTRACT_KINDS }                from '../../../src/shared/constants/OverseerApiContracts.ts';
 import { useRecordedGit }                                                      from '../../../src/testing/RecordedGit.ts';
@@ -111,11 +112,11 @@ function routeRequest(): CommandRouteRequest {
 }
 
 function progressText(): string {
-  return readFileSync(requireWorkspace(repositoryDirectory).progressFilePath, 'utf8');
+  return readFileSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath, 'utf8');
 }
 
 function storedSetup(): PipelineSetup {
-  return JSON.parse(readFileSync(requireWorkspace(repositoryDirectory).pipelineSetupFilePath, 'utf8')) as PipelineSetup;
+  return JSON.parse(readFileSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).pipelineSetupRecordPath, 'utf8')) as PipelineSetup;
 }
 
 async function answerOf(body: unknown): Promise<{ status: number; body: unknown }> {

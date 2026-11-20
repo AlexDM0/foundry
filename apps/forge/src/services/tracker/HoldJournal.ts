@@ -3,7 +3,6 @@
  * before it touches one, so a hold cut short anywhere after that is finished, verbatim, by the next lock holder replaying it.
  */
 import { lstatSync, readFileSync, statSync } from 'node:fs';
-import { join }                              from 'node:path';
 import { isDeepStrictEqual }                 from 'node:util';
 
 import { HoldJournalIngestion, type HoldJournalReading, type JournaledFile } from '../../adapters/hold-journal/HoldJournalIngestion.ts';
@@ -14,16 +13,12 @@ import { fileReplaceOfThisProcess }                                          fro
 import { errorCodeOf }                                                       from '../../lib/atomic-file/HeldFileFailure.ts';
 import { OperationRefusal }                                                  from '../../shared/OperationRefusal.ts';
 import type { HoldFence }                                                    from './GenerationLock.ts';
+import { localStoreLayoutOf }                                                from './LocalStoreLayout.ts';
 import type { Workspace }                                                    from './Workspace.ts';
-import { TRACKER_FILES }                                                     from './constants/TrackerFiles.ts';
-
-export function holdJournalFilePathOf(workspace: Workspace): string {
-  return join(workspace.trackerDirectory, TRACKER_FILES.HOLD_JOURNAL_FILE_NAME);
-}
 
 /** Lock-free and never throws, for `status`. */
 export function readHoldJournal(workspace: Workspace): HoldJournalReading {
-  return new HoldJournalIngestion(holdJournalFilePathOf(workspace), workspace.trackerDirectory).read();
+  return new HoldJournalIngestion(localStoreLayoutOf(workspace).holdJournalPath, workspace.trackerDirectory).read();
 }
 
 function removeUnlessAbsent(path: string, fileReplace: FileReplace): void {
@@ -41,7 +36,7 @@ function apply(file: JournaledFile, fileReplace: FileReplace): void {
 
 /** A journal left behind unannounced would replay over whatever is hand-edited next, so one that stays fails the hold. */
 function deleteJournal(workspace: Workspace, fileReplace: FileReplace): void {
-  const journalFilePath = holdJournalFilePathOf(workspace);
+  const journalFilePath = localStoreLayoutOf(workspace).holdJournalPath;
   try {
     removeUnlessAbsent(journalFilePath, fileReplace);
   } catch (failure) {
@@ -99,12 +94,12 @@ function entriesThatChangeTheDisk(files: readonly JournaledFile[]): JournaledFil
  * hold removes the journal while it still holds this hold's entries.
  */
 function writeJournalWhileHeld(workspace: Workspace, changingFiles: readonly JournaledFile[], fence: HoldFence, fileReplace: FileReplace): void {
-  createHoldJournalWriter(holdJournalFilePathOf(workspace), workspace.trackerDirectory).write(changingFiles);
+  createHoldJournalWriter(localStoreLayoutOf(workspace).holdJournalPath, workspace.trackerDirectory).write(changingFiles);
   try {
     fence.requireStillHeld();
   } catch (failure) {
     const reading = readHoldJournal(workspace);
-    if (reading.verdict === 'readable' && isDeepStrictEqual(reading.files, changingFiles)) removeUnlessAbsent(holdJournalFilePathOf(workspace), fileReplace);
+    if (reading.verdict === 'readable' && isDeepStrictEqual(reading.files, changingFiles)) removeUnlessAbsent(localStoreLayoutOf(workspace).holdJournalPath, fileReplace);
     throw failure;
   }
 }
@@ -136,7 +131,7 @@ export function replayHoldJournal(workspace: Workspace, fence: HoldFence, fileRe
   const reading = readHoldJournal(workspace);
   if (reading.verdict === 'absent') return;
   if (reading.verdict === 'malformed') {
-    throw new OperationRefusal('unrepaired', { kind: 'malformed-hold-journal', journalFilePath: holdJournalFilePathOf(workspace), reason: reading.reason });
+    throw new OperationRefusal('unrepaired', { kind: 'malformed-hold-journal', journalFilePath: localStoreLayoutOf(workspace).holdJournalPath, reason: reading.reason });
   }
   applyThenDeleteJournal(workspace, reading.files, fence, () => {}, fileReplace);
 }

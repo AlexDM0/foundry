@@ -33,7 +33,7 @@ const BROKEN_PROGRESS_REASON = 'project is not a string';
 const BROKEN_LOG_TEXT = '{"at":"2026-09-18T20:05:00+02:00","kind":"note","fields":{"text":5}}\n';
 
 let repositoryDirectory = '';
-let progressFilePath    = '';
+let progressRecordPath    = '';
 let logFilePath         = '';
 
 interface CommandRun {
@@ -59,8 +59,8 @@ async function runSucceeding(commandLineArguments: readonly string[]): Promise<C
 }
 
 function breakTheProgressFile(): void {
-  const stored = JSON.parse(readFileSync(progressFilePath, 'utf8')) as Record<string, unknown>;
-  writeFileSync(progressFilePath, JsonTextUtil.storedFileTextOf({ ...stored, project: 5 }));
+  const stored = JSON.parse(readFileSync(progressRecordPath, 'utf8')) as Record<string, unknown>;
+  writeFileSync(progressRecordPath, JsonTextUtil.storedFileTextOf({ ...stored, project: 5 }));
 }
 
 function breakTheLogFile(): void {
@@ -73,7 +73,7 @@ function brokenLogReason(): string {
 
 beforeEach(async () => {
   repositoryDirectory = realpathSync(await createInitializedRecordedGitRepository('unreadable-tracker-wording', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit));
-  progressFilePath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+  progressRecordPath    = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
   logFilePath         = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
 });
 
@@ -89,7 +89,7 @@ describeWhenGitIsRecorded('a progress file that cannot be read', () => {
       const finished = await runWith(commandLine);
 
       expect(finished.exitCode, commandLine.join(' ')).toBe(2);
-      expect(finished.errorText, commandLine.join(' ')).toBe(`${progressFilePath} cannot be read: ${BROKEN_PROGRESS_REASON}`);
+      expect(finished.errorText, commandLine.join(' ')).toBe(`${progressRecordPath} cannot be read: ${BROKEN_PROGRESS_REASON}`);
       expect(finished.outputText, commandLine.join(' ')).toBe('');
     }
   });
@@ -98,7 +98,7 @@ describeWhenGitIsRecorded('a progress file that cannot be read', () => {
 describeWhenGitIsRecorded('a log.jsonl that cannot be read', () => {
   test('status and log exit 2 naming the log and its reason, and neither file is touched', async () => {
     breakTheLogFile();
-    const progressTextBefore = readFileSync(progressFilePath, 'utf8');
+    const progressTextBefore = readFileSync(progressRecordPath, 'utf8');
 
     for (const commandLine of [['status'], ['log', 'Example note']]) {
       const finished = await runWith(commandLine);
@@ -106,7 +106,7 @@ describeWhenGitIsRecorded('a log.jsonl that cannot be read', () => {
       expect(finished.exitCode, commandLine.join(' ')).toBe(2);
       expect(finished.errorText, commandLine.join(' ')).toBe(`The log cannot be read: ${brokenLogReason()}`);
     }
-    expect(readFileSync(progressFilePath, 'utf8')).toBe(progressTextBefore);
+    expect(readFileSync(progressRecordPath, 'utf8')).toBe(progressTextBefore);
     expect(readFileSync(logFilePath, 'utf8')).toBe(BROKEN_LOG_TEXT);
   });
 

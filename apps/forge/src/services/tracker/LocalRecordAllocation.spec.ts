@@ -13,6 +13,7 @@ import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS } from '../../testing
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import type { RecordReference, UnreadableRecords }           from './@types/BoardRecords.ts';
 import { createLocalRecordAllocation }                       from './LocalRecordAllocation.ts';
+import { localStoreLayoutOf }                                from './LocalStoreLayout.ts';
 import { workspacePathsFor, type Workspace }                 from './Workspace.ts';
 
 const AT = '2026-09-18T20:05:00+02:00';
@@ -31,7 +32,7 @@ let workspace: Workspace;
 
 function scratchWorkspace(): Workspace {
   workspace = workspacePathsFor(createScratchDirectory('local-record-allocation'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   return workspace;
 }
 
@@ -73,7 +74,7 @@ test('two tickets allocated in one hold get consecutive ids and distinct slugs',
 
 test('a listed ticket answers the file it was read from, and an id never listed nor allocated throws naming the id', () => {
   const listedWorkspace = scratchWorkspace();
-  const listedLocation  = `${listedWorkspace.ticketsDirectory}/007-an-older-title.md`;
+  const listedLocation  = `${localStoreLayoutOf(listedWorkspace).ticketRecordsFolder}/007-an-older-title.md`;
   const allocation      = createLocalRecordAllocation(listedWorkspace, boardFixture().board, NO_UNREADABLE_RECORDS, new Map([['007', listedLocation]]));
 
   expect(allocation.storedTicketLocationOf('007')).toBe(listedLocation);
@@ -82,7 +83,7 @@ test('a listed ticket answers the file it was read from, and an id never listed 
 
 test('an epic key held by an unreadable file is refused unreadable-file-in-the-way, and a free key is let through', () => {
   const heldWorkspace = scratchWorkspace();
-  const heldLocation  = `${heldWorkspace.epicsDirectory}/example-epic.md`;
+  const heldLocation  = `${localStoreLayoutOf(heldWorkspace).epicRecordsFolder}/example-epic.md`;
   const heldRecords   = unreadableRecordsHolding('epic', 'example-epic', heldLocation);
   const allocation    = createLocalRecordAllocation(heldWorkspace, boardFixture().board, heldRecords, NO_LISTED_TICKET_LOCATIONS);
 
@@ -95,7 +96,7 @@ test('an epic key held by an unreadable file is refused unreadable-file-in-the-w
 
 test('a draft key held by an unreadable file is refused unreadable-file-in-the-way, and a free key is let through', () => {
   const heldWorkspace = scratchWorkspace();
-  const heldLocation  = `${heldWorkspace.draftsDirectory}/D7.json`;
+  const heldLocation  = `${localStoreLayoutOf(heldWorkspace).draftRecordsFolder}/D7.json`;
   const allocation    = createLocalRecordAllocation(heldWorkspace, boardFixture().board, unreadableRecordsHolding('draft', 'D7', heldLocation), NO_LISTED_TICKET_LOCATIONS);
 
   expect(refusalDetailOf(() => allocation.requireDraftKeyIsFree('D7'))).toEqual({

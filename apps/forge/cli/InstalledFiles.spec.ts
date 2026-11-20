@@ -11,7 +11,7 @@ import {
 } from 'node:path';
 
 import { expect, test }  from 'bun:test';
-import { TRACKER_FILES } from '../src/services/tracker/constants/TrackerFiles.ts';
+import { PRODUCT_NAMES } from '../src/shared/constants/ProductNames.ts';
 
 import { installedFilePathsIn } from './InstalledFiles.ts';
 
@@ -19,8 +19,8 @@ const EXAMPLE_ROOT = join(sep, 'scratch', 'example-repository');
 
 test('the session instructions and the reference sit in the tracker directory, the eight instruction defaults in its briefs/defaults', () => {
   const paths = installedFilePathsIn(EXAMPLE_ROOT);
-  expect(relative(EXAMPLE_ROOT, paths.sessionInstructions)).toBe(join(TRACKER_FILES.TRACKER_DIRECTORY_NAME, 'session-instructions.md'));
-  expect(relative(EXAMPLE_ROOT, paths.reference)).toBe(join(TRACKER_FILES.TRACKER_DIRECTORY_NAME, 'reference.md'));
+  expect(relative(EXAMPLE_ROOT, paths.sessionInstructions)).toBe(join(PRODUCT_NAMES.DATA_FOLDER, 'session-instructions.md'));
+  expect(relative(EXAMPLE_ROOT, paths.reference)).toBe(join(PRODUCT_NAMES.DATA_FOLDER, 'reference.md'));
   const defaults = [
     paths.constitutionDefault,
     paths.builderDefault,
@@ -32,11 +32,11 @@ test('the session instructions and the reference sit in the tracker directory, t
     paths.assistantDefault,
   ].map((path) => relative(EXAMPLE_ROOT, path));
   expect(defaults).toEqual(['constitution', 'builder', 'reviewer', 'reReviewer', 'conflictReReviewer', 'productOwner', 'pipelineAgent', 'assistant']
-    .map((role) => join(TRACKER_FILES.TRACKER_DIRECTORY_NAME, 'briefs', 'defaults', `${role}.md`)));
+    .map((role) => join(PRODUCT_NAMES.DATA_FOLDER, 'briefs', 'defaults', `${role}.md`)));
 });
 
 test('the install manifest sits in the tracker directory, beside what it versions', () => {
-  expect(installedFilePathsIn(EXAMPLE_ROOT).installManifest).toBe(join(EXAMPLE_ROOT, TRACKER_FILES.TRACKER_DIRECTORY_NAME, 'version.json'));
+  expect(installedFilePathsIn(EXAMPLE_ROOT).installManifest).toBe(join(EXAMPLE_ROOT, PRODUCT_NAMES.DATA_FOLDER, 'version.json'));
 });
 
 test('every path is absolute and under the root it was given', () => {

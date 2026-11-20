@@ -73,10 +73,10 @@ async function run(commandLineArguments: readonly string[], standardInputText?: 
 }
 
 function ticketFilePath(): string {
-  const ticketsDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
-  const fileName         = readdirSync(ticketsDirectory).find((name) => name.startsWith('001-'));
+  const ticketRecordsFolder = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
+  const fileName         = readdirSync(ticketRecordsFolder).find((name) => name.startsWith('001-'));
   if (fileName === undefined) throw new Error('no ticket file for #001');
-  return join(ticketsDirectory, fileName);
+  return join(ticketRecordsFolder, fileName);
 }
 
 function storedTicketText(): string {

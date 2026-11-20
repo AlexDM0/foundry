@@ -12,6 +12,7 @@ import {
   test
 }                                                                             from 'bun:test';
 import type { Job, JobKind, JobRole }             from '../../../src/lib/tracker-model/@types/Job.ts';
+import { localStoreLayoutOf }                     from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
@@ -27,8 +28,8 @@ const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
 let repositoryDirectory = '';
 
-function progressFilePath(): string {
-  return workspacePathsFor(repositoryDirectory).progressFilePath;
+function progressRecordPath(): string {
+  return localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath;
 }
 
 function liveJobOf(id: string, kind: JobKind, role: JobRole, ticketId: string): Job {
@@ -80,10 +81,10 @@ describeWhenGitIsRecorded('the concurrency limit', () => {
     const progress = storedProgressOf(repositoryDirectory);
     delete progress.concurrencyLimit;
     const writtenWithoutLimit = JSON.stringify(progress);
-    writeFileSync(progressFilePath(), writtenWithoutLimit);
+    writeFileSync(progressRecordPath(), writtenWithoutLimit);
 
     expect((await run(['concurrency'])).outputText()).toBe('2');
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(writtenWithoutLimit);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(writtenWithoutLimit);
   });
 
   test('a stored limit is what a later command reads, and setting it logs one line', async () => {
@@ -95,13 +96,13 @@ describeWhenGitIsRecorded('the concurrency limit', () => {
   });
 
   test.each([['0'], ['-1'], ['x'], ['2.5'], ['11']])('"%s" is refused at exit 1 and the progress file is left byte-identical', async (written) => {
-    const before    = readFileSync(progressFilePath(), 'utf8');
+    const before    = readFileSync(progressRecordPath(), 'utf8');
     const logBefore = storedLogTextOf(repositoryDirectory);
 
     const { exitCode } = await runWithExitCode(['concurrency', written]);
 
     expect(exitCode).toBe(1);
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(before);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(before);
     expect(storedLogTextOf(repositoryDirectory)).toBe(logBefore);
   });
 
@@ -117,18 +118,18 @@ describeWhenGitIsRecorded('the concurrency limit', () => {
     const progress = storedProgressOf(repositoryDirectory);
     progress.concurrencyLimit = 12;
     const writtenAboveTheCeiling = JSON.stringify(progress);
-    writeFileSync(progressFilePath(), writtenAboveTheCeiling);
+    writeFileSync(progressRecordPath(), writtenAboveTheCeiling);
 
     expect((await run(['concurrency'])).outputText()).toBe('10');
     const document = JSON.parse((await run(['status', '--json'])).outputText()) as { concurrency: { limit: number; freeSlots: number } };
     expect(document.concurrency).toMatchObject({ limit: 10, freeSlots: 10 });
-    expect(readFileSync(progressFilePath(), 'utf8')).toBe(writtenAboveTheCeiling);
+    expect(readFileSync(progressRecordPath(), 'utf8')).toBe(writtenAboveTheCeiling);
   });
 
   // The user lowers the limit when the session is running out; the agents already at work are not stopped, only no new one may start.
   test('a limit below the build and review jobs already running is accepted, and status then reports no free slot', async () => {
     const progress = storedProgressOf(repositoryDirectory);
-    writeFileSync(progressFilePath(), JSON.stringify({ ...progress, jobs: [liveJobOf('J1', 'build', 'builder', '001'), liveJobOf('J2', 'review', 'reviewer', '002')] }));
+    writeFileSync(progressRecordPath(), JSON.stringify({ ...progress, jobs: [liveJobOf('J1', 'build', 'builder', '001'), liveJobOf('J2', 'review', 'reviewer', '002')] }));
     await run(['task', 'add', 'Hotfix the export', '--start']);
 
     await run(['concurrency', '1']);

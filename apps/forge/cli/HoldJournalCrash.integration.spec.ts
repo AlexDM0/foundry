@@ -14,7 +14,8 @@ import {
 } from 'bun:test';
 
 import type { HoldJournalReading }                 from '../src/adapters/hold-journal/HoldJournalIngestion.ts';
-import { holdJournalFilePathOf, readHoldJournal }  from '../src/services/tracker/HoldJournal.ts';
+import { readHoldJournal }                         from '../src/services/tracker/HoldJournal.ts';
+import { localStoreLayoutOf }                      from '../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor, type Workspace }       from '../src/services/tracker/Workspace.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS } from '../src/testing/ChildProcessCaseTimeout.ts';
 import { useRecordedGit }                          from '../src/testing/RecordedGit.ts';
@@ -39,6 +40,7 @@ function killedHolderSource(): string {
   return `
     const { writeTracker } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'TrackerPipeline.ts'))});
     const { workspacePathsFor } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'Workspace.ts'))});
+    const { localStoreLayoutOf } = await import(${JSON.stringify(join(SOURCE_FOLDER, 'services', 'tracker', 'LocalStoreLayout.ts'))});
     const workspace = workspacePathsFor(${JSON.stringify(repositoryDirectory)});
     const at = '2026-09-18T22:12:00+02:00';
     await writeTracker({
@@ -47,13 +49,13 @@ function killedHolderSource(): string {
         change.board.addTask({ name: 'Example row of the killed holder', startsNow: false, movesTheLink: false }, at);
         change.board.setTicketPriority('001', 'high', at);
       },
-      afterFileWritten: (filePath) => { if (filePath === workspace.progressFilePath) process.kill(process.pid, 'SIGKILL'); },
+      afterFileWritten: (filePath) => { if (filePath === localStoreLayoutOf(workspace).progressRecordPath) process.kill(process.pid, 'SIGKILL'); },
     });
   `;
 }
 
 function ticketFilePath(): string {
-  return join(workspace.ticketsDirectory, '001-example-checkout-page.md');
+  return join(localStoreLayoutOf(workspace).ticketRecordsFolder, '001-example-checkout-page.md');
 }
 
 function journaledContentsOf(journal: HoldJournalReading, filePath: string): string {
@@ -83,27 +85,27 @@ describeWhenGitIsRecorded('a holder killed between progress.json and the ticket 
     expect(holder.signalCode, await new Response(holder.stderr).text()).toBe('SIGKILL');
 
     const journal = readHoldJournal(workspace);
-    expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example row of the killed holder');
+    expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).toContain('Example row of the killed holder');
     expect(readFileSync(ticketFilePath(), 'utf8'), 'the board is torn: the ticket was not written').toBe(ticketBefore);
 
     const result = await runAgentProgress(['log', 'Example note after the crash'], { currentDirectory: repositoryDirectory, recordedGitStage: [] });
 
     expect(result.exitCode, result.standardError).toBe(0);
     expect(readFileSync(ticketFilePath(), 'utf8')).toBe(journaledContentsOf(journal, ticketFilePath()));
-    const logText = readFileSync(workspace.logFilePath, 'utf8');
-    expect(logText.startsWith(journaledContentsOf(journal, workspace.logFilePath)), 'the killed holder\'s log comes first').toBe(true);
+    const logText = readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8');
+    expect(logText.startsWith(journaledContentsOf(journal, localStoreLayoutOf(workspace).logRecordPath)), 'the killed holder\'s log comes first').toBe(true);
     expect(logText.trimEnd().split('\n').at(-1)).toContain('Example note after the crash');
-    expect(existsSync(holdJournalFilePathOf(workspace))).toBe(false);
+    expect(existsSync(localStoreLayoutOf(workspace).holdJournalPath)).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a malformed journal stops the next write at exit 2, and the files stay as they are', async () => {
-    writeFileSync(holdJournalFilePathOf(workspace), '{"version":1,"files":[{"path":"/etc/example","contents":""}]}\n');
-    const logBefore = readFileSync(workspace.logFilePath, 'utf8');
+    writeFileSync(localStoreLayoutOf(workspace).holdJournalPath, '{"version":1,"files":[{"path":"/etc/example","contents":""}]}\n');
+    const logBefore = readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8');
 
     const result = await runAgentProgress(['log', 'Example note'], { currentDirectory: repositoryDirectory, recordedGitStage: [] });
 
     expect(result.exitCode).toBe(2);
-    expect(result.standardError).toContain(holdJournalFilePathOf(workspace));
-    expect(readFileSync(workspace.logFilePath, 'utf8')).toBe(logBefore);
+    expect(result.standardError).toContain(localStoreLayoutOf(workspace).holdJournalPath);
+    expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe(logBefore);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

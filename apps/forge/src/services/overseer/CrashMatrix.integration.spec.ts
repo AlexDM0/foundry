@@ -86,6 +86,7 @@ import { blockUntil, waitUntil }                                    from '../../
 import { ControlService }                                           from '../control/ControlService.ts';
 import type { StoreReadFace }                                       from '../store/BoardStore.ts';
 import { createLocalFilesBoardStore }                               from '../store/LocalFilesBoardStore.ts';
+import { localStoreLayoutOf }                                       from '../tracker/LocalStoreLayout.ts';
 import { registerWithTheMonitor }                                   from '../tracker/MonitorRegistration.ts';
 import { writeTracker }                                             from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
@@ -290,7 +291,7 @@ function requireBuildJob(): Readonly<Job> {
 }
 
 function storedRecords(): { kind: string; jobId?: string; fields: Record<string, unknown> }[] {
-  return readFileSync(sessionWorkspace.logFilePath, 'utf8').split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as never);
+  return readFileSync(localStoreLayoutOf(sessionWorkspace).logRecordPath, 'utf8').split('\n').filter((line) => line !== '').map((line) => JSON.parse(line) as never);
 }
 
 function sessionJobFolder(jobId: string): string {
@@ -659,7 +660,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
     forgeStartsSoFar   = 0;
     leaseRenewals      = [];
     crashPathOutcomes  = [];
-    mkdirSync(sessionWorkspace.ticketsDirectory, { recursive: true });
+    mkdirSync(localStoreLayoutOf(sessionWorkspace).ticketRecordsFolder, { recursive: true });
     writeReadableTracker(sessionWorkspace);
     const instructionDefaults = [CONSTITUTION_DEFAULT_PATH, ...(['builder', 'reviewer', 'productOwner', 'assistant'] as const).map(defaultInstructionPathOf)];
     for (const path of instructionDefaults) {

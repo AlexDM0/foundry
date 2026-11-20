@@ -6,7 +6,6 @@ import { LocalTimeUtil }                                  from '../../../src/lib
 import { CONSTITUTION_FILE_PATH }                         from '../../../src/services/overseer/InstructionFiles.ts';
 import { listTracker }                                    from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { findWorkspace, workspacePathsFor }               from '../../../src/services/tracker/Workspace.ts';
-import { TRACKER_FILES }                                  from '../../../src/services/tracker/constants/TrackerFiles.ts';
 import { BranchNamespaceUtil, branchNamesOf }             from '../../../src/shared/BranchNames.ts';
 import { OperationRefusal }                               from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
@@ -155,7 +154,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
 
   // The ignore entries go in before the tracker directory exists, so the tracker is never briefly visible to git status, and before any
   // worktree can exist.
-  const ignoreOutcome = ensureIgnored(rootDirectory, TRACKER_FILES.TRACKER_DIRECTORY_NAME);
+  const ignoreOutcome = ensureIgnored(rootDirectory, PRODUCT_NAMES.DATA_FOLDER);
   ensureIgnored(rootDirectory, PRODUCT_NAMES.WORKTREES_FOLDER);
   const project  = commandArguments.option('project') ?? basename(rootDirectory);
   const creation = await store.initialise({

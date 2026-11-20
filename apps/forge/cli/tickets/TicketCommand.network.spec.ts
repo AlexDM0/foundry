@@ -42,14 +42,14 @@ async function run(commandLineArguments: readonly string[]): Promise<ReturnType<
   return await runWithExitCode(commandLineArguments, 0);
 }
 
-function ticketsDirectory(): string {
+function ticketRecordsFolder(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'tickets');
 }
 
 function storedTicketText(identifier: string): string {
-  const fileName = readdirSync(ticketsDirectory()).find((name) => name.startsWith(`${identifier}-`));
+  const fileName = readdirSync(ticketRecordsFolder()).find((name) => name.startsWith(`${identifier}-`));
   if (fileName === undefined) throw new Error(`no ticket file for #${identifier}`);
-  return readFileSync(join(ticketsDirectory(), fileName), 'utf8');
+  return readFileSync(join(ticketRecordsFolder(), fileName), 'utf8');
 }
 
 const recordedGit = useRecordedGit();
@@ -107,7 +107,7 @@ describeWhenGitIsRecorded('a ticket network line', () => {
   ])('%s is refused network-domain-not-public at exit 1, on add and on ticket network, with nothing written', async (_form, domain) => {
     const filingRefusal = await runWithExitCode(['ticket', 'add', '--type', 'ticket', 'Fetch the exchange rates', '--network', domain], 1);
     expect(filingRefusal.errorText()).toContain(`${domain} is not a public domain`);
-    expect(readdirSync(ticketsDirectory())).toEqual([]);
+    expect(readdirSync(ticketRecordsFolder())).toEqual([]);
 
     await run(['ticket', 'add', '--type', 'ticket', 'Fetch the exchange rates']);
     const before  = storedTicketText('001');

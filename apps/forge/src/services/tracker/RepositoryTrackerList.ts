@@ -12,7 +12,6 @@ import { repositoryRootWithoutGit }                                           fr
 import { GIT_ENTRY_NAME }                                                     from '../../lib/git/constants/GitConventions.ts';
 import { PRODUCT_NAMES }                                                      from '../../shared/constants/ProductNames.ts';
 import { type LockHolderIsGone, withLockAt }                                  from './GenerationLock.ts';
-import { TRACKER_FILES }                                                      from './constants/TrackerFiles.ts';
 
 const PREFIX_SEPARATOR = '/';
 
@@ -49,7 +48,7 @@ export function trackerBelongsInTheList(prefix: string, branchNamespace: string 
 export function readListedTrackers(list: RepositoryTrackerList): TrackerListReading {
   const reading = RepositoryLandings.readTrackerList(list.files);
   if (reading.verdict !== 'readable') return reading;
-  const trackerIsThere = (tracker: RepositoryTracker) => existsSync(join(list.repositoryRoot, tracker.prefix, TRACKER_FILES.TRACKER_DIRECTORY_NAME));
+  const trackerIsThere = (tracker: RepositoryTracker) => existsSync(join(list.repositoryRoot, tracker.prefix, PRODUCT_NAMES.DATA_FOLDER));
   return { verdict: 'readable', trackers: reading.trackers.filter(trackerIsThere) };
 }
 

@@ -27,6 +27,7 @@ import { taskFixture, ticketFixture }                     from '../../testing/Bo
 import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
 import { readTracker }                                    from './TrackerReader.ts';
 import { workspacePathsFor, type Workspace }              from './Workspace.ts';
 
@@ -157,7 +158,7 @@ let workspace: Workspace;
 
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('tracker-reader-stage-counts'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
 });
 
 afterEach(() => {
@@ -172,8 +173,8 @@ function boardReadFromDisk(): Board {
 
 test('E74: a crossing ticket\'s red handoffs, failed passes and review rounds per stage read back the same after the board is read again from disk', () => {
   const runningCounts = stageCountsOf(crossingBoardOf(crossingProgress(), CROSSING_LOG));
-  createProgressFileWriter(workspace.progressFilePath).write(crossingProgress());
-  createLogFileWriter(workspace.logFilePath).write(CROSSING_LOG);
+  createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(crossingProgress());
+  createLogFileWriter(localStoreLayoutOf(workspace).logRecordPath).write(CROSSING_LOG);
 
   const firstReadCounts  = stageCountsOf(boardReadFromDisk());
   const secondReadCounts = stageCountsOf(boardReadFromDisk());
@@ -192,5 +193,5 @@ test('E74: a crossing ticket\'s red handoffs, failed passes and review rounds pe
   });
   expect(firstReadCounts).toEqual(runningCounts);
   expect(secondReadCounts).toEqual(runningCounts);
-  expect(readFileSync(workspace.progressFilePath, 'utf8')).not.toContain('stageCounters');
+  expect(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8')).not.toContain('stageCounters');
 });

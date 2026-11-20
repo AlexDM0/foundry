@@ -25,6 +25,7 @@ import {
 }                                             from 'bun:test';
 import { PipelineFile }                           from '../../src/adapters/pipeline/PipelineFile.ts';
 import { platformPortsFor }                       from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                      from '../../src/services/tracker/Workspace.ts';
 import { PLATFORM_HOST_FACTS }                    from '../../src/shared/PlatformHostFacts.ts';
 import { entityForgePipelineTextOf }              from '../../src/testing/EntityForgeFixture.ts';
@@ -50,7 +51,7 @@ const ENTITY_PIPELINE_WRITES: readonly (readonly string[])[] = [
 
 let repositoryDirectory = '';
 
-const pipelineFilePath = (): string => workspacePathsFor(repositoryDirectory).pipelineFilePath;
+const pipelineFilePath = (): string => localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).pipelineRecordPath;
 
 async function runWithExitCode(commandLineArguments: readonly string[]): Promise<{ exitCode: number; context: ReturnType<typeof createCapturedCommandContext> }> {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
@@ -78,7 +79,8 @@ async function listed(): Promise<ListedPipeline> {
 
 function storedFiles(): string[] {
   const workspace = workspacePathsFor(repositoryDirectory);
-  return [workspace.progressFilePath, workspace.logFilePath, workspace.pipelineFilePath].map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
+  const layout = localStoreLayoutOf(workspace);
+  return [layout.progressRecordPath, layout.logRecordPath, layout.pipelineRecordPath].map((filePath) => (existsSync(filePath) ? readFileSync(filePath, 'utf8') : ''));
 }
 
 const recordedGit = useRecordedGit();

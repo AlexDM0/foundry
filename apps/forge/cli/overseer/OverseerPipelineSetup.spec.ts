@@ -25,6 +25,7 @@ import type { DrivePass }                                            from '../..
 import { HatchInbox }                                                from '../../src/services/overseer/HatchInbox.ts';
 import { jobFolderIn }                                               from '../../src/services/overseer/OverseerFiles.ts';
 import type { BoardTransaction }                                     from '../../src/services/tracker/BoardTransaction.ts';
+import { localStoreLayoutOf }                                        from '../../src/services/tracker/LocalStoreLayout.ts';
 import { writeTracker }                                              from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                          from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                          from '../../src/shared/OperationRefusal.ts';
@@ -109,7 +110,7 @@ function adviseAtWebOf(change: BoardTransaction): unknown {
 }
 
 function setupRecord(): PipelineSetup {
-  const reading = PipelineSetupFile.read(requireWorkspace(repositoryDirectory).pipelineSetupFilePath);
+  const reading = PipelineSetupFile.read(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).pipelineSetupRecordPath);
   if (reading.verdict !== 'readable') throw new Error(`no readable setup record: ${JSON.stringify(reading)}`);
   return reading.setup;
 }
@@ -199,7 +200,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'one setup end to end', () => 
     expect(setupRecord().applyRequest).toEqual({
       draftRevision: beforeApply.draftRevision, resumesBoard: true, commitJobId: null, state: 'committing', reason: null
     });
-    expect(existsSync(requireWorkspace(repositoryDirectory).pipelineFilePath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).pipelineRecordPath)).toBe(false);
     expect((storedProgressOf(repositoryDirectory).jobs ?? []).find((job) => job.id === agentJobId)?.kind).toBe('pipeline-agent');
   });
 });
@@ -242,7 +243,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a session at an entity', () =
 
     const refusal = await attempt.then(() => null, (thrown: unknown) => (thrown instanceof OperationRefusal ? thrown.detail : thrown));
     expect(refusal).toEqual({ kind: 'board-refusal', boardRefusal: { reason: 'setup-entity-unknown', entity: 'web', entityKeys: [] } });
-    expect(existsSync(requireWorkspace(repositoryDirectory).pipelineSetupFilePath)).toBe(false);
+    expect(existsSync(localStoreLayoutOf(requireWorkspace(repositoryDirectory)).pipelineSetupRecordPath)).toBe(false);
     expect(storedProgressOf(repositoryDirectory).jobs ?? []).toEqual([]);
   });
 });

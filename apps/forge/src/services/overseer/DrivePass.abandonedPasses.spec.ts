@@ -25,6 +25,7 @@ import { type RecordedTalosStages, useRecordedTalosStages }  from '../../testing
 import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
 import { describeWhenRecorded, EVERY_RECORDING_REQUIREMENT } from '../../testing/ToolGuard.ts';
 import { writeReadableTracker }                              from '../../testing/TrackerFileFixtures.ts';
+import { localStoreLayoutOf }                                from '../tracker/LocalStoreLayout.ts';
 import { workspacePathsFor, type Workspace }                 from '../tracker/Workspace.ts';
 import type { PresenceRecord }                               from './@types/PresenceRecord.ts';
 import type { DrivePass }                                    from './DrivePass.ts';
@@ -115,7 +116,7 @@ beforeEach(() => {
   recordedGit.enterFlowStage('tracker ready', repository);
   workspace = workspacePathsFor(repository);
   monitorFolder = createScratchDirectory('h');
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   writeReadableTracker(workspace);
   overseerLog = [];
   throwsOfThePasses = [];

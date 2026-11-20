@@ -184,8 +184,8 @@ describe('a tracker whose installed files are of another install version', () =>
   }
 
   test('every checked command exits 1 with the one paragraph on standard error and leaves progress.json byte for byte', async () => {
-    const progressFilePath   = join(trackedDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
-    const progressFileBefore = readFileSync(progressFilePath);
+    const progressRecordPath   = join(trackedDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json');
+    const progressFileBefore = readFileSync(progressRecordPath);
     expect(CHECKED_COMMAND_NAMES).toHaveLength(COMMAND_NAMES.length - COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN.size);
     for (const commandName of CHECKED_COMMAND_NAMES) {
       const context = trackedContext();
@@ -193,7 +193,7 @@ describe('a tracker whose installed files are of another install version', () =>
       expect(context.errorText(), commandName).toBe(unversionedParagraph());
       expect(context.outputText(), commandName).toBe('');
     }
-    expect(readFileSync(progressFilePath).equals(progressFileBefore)).toBe(true);
+    expect(readFileSync(progressRecordPath).equals(progressFileBefore)).toBe(true);
     expect(existsSync(installedFilePathsIn(trackedDirectory).installManifest)).toBe(false);
   });
 

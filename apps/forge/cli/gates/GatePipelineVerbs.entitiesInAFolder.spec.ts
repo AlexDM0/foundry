@@ -12,6 +12,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import { localStoreLayoutOf }                             from '../../src/services/tracker/LocalStoreLayout.ts';
 import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { entityForgePipelineTextOf }                      from '../../src/testing/EntityForgeFixture.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
@@ -36,14 +37,14 @@ afterEach(() => {
 test('gate list in a tracker in a folder whose stored pipeline holds entities is refused entities-in-a-folder, naming the pipeline', async () => {
   const projectDirectory = join(repositoryRoot, PROJECT_FOLDER);
   const workspace        = workspacePathsFor(projectDirectory);
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
   writeReadableTracker(workspace);
-  writeFileSync(workspace.pipelineFilePath, entityForgePipelineTextOf('strict-isolation'));
+  writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, entityForgePipelineTextOf('strict-isolation'));
 
   const context  = createCapturedCommandContext({ currentDirectory: projectDirectory });
   const exitCode = await runCommandLine(['gate', 'list', '--json'], context);
 
   expect(exitCode).toBe(1);
   expect(context.outputText()).toBe('');
-  expect(context.errorText()).toContain(`The pipeline ${workspace.pipelineFilePath} of the tracker in the folder ${PROJECT_FOLDER} cannot hold entities`);
+  expect(context.errorText()).toContain(`The pipeline ${localStoreLayoutOf(workspace).pipelineRecordPath} of the tracker in the folder ${PROJECT_FOLDER} cannot hold entities`);
 });

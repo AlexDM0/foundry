@@ -30,6 +30,7 @@ import { emptyProgress, fileRow }                         from '../../testing/Pr
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { BROKEN_LOG_TEXT }                                from '../../testing/TrackerFileFixtures.ts';
 import type { BoardContents }                             from './@types/BoardRecords.ts';
+import { localStoreLayoutOf }                             from './LocalStoreLayout.ts';
 import {
   readTracker,
   requireProgressFile,
@@ -55,10 +56,10 @@ function progressWithOneRow(): TrackerProgress {
 }
 
 function writeReadableTracker(): void {
-  createProgressFileWriter(workspace.progressFilePath).write(progressWithOneRow());
-  createLogFileWriter(workspace.logFilePath).write([NOTE_RECORD]);
-  createTicketFileWriter().write(ticketFixture({ title: 'Example checkout page' }), join(workspace.ticketsDirectory, '001-example-checkout-page.md'));
-  writeFileSync(join(workspace.ticketsDirectory, '002-broken-by-hand.md'), MALFORMED_TICKET_TEXT);
+  createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(progressWithOneRow());
+  createLogFileWriter(localStoreLayoutOf(workspace).logRecordPath).write([NOTE_RECORD]);
+  createTicketFileWriter().write(ticketFixture({ title: 'Example checkout page' }), join(localStoreLayoutOf(workspace).ticketRecordsFolder, '001-example-checkout-page.md'));
+  writeFileSync(join(localStoreLayoutOf(workspace).ticketRecordsFolder, '002-broken-by-hand.md'), MALFORMED_TICKET_TEXT);
 }
 
 function trackerFileContents(): Record<string, string> {
@@ -91,7 +92,7 @@ function refusalOf(read: () => unknown): unknown {
 
 beforeEach(() => {
   workspace = workspacePathsFor(createScratchDirectory('tracker-reader'));
-  mkdirSync(workspace.ticketsDirectory, { recursive: true });
+  mkdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder, { recursive: true });
 });
 
 afterEach(() => {
@@ -108,39 +109,39 @@ describe('readTracker', () => {
     expect(contents.progress).toEqual(progressWithOneRow());
     expect(contents.storedLog).toEqual({ records: [NOTE_RECORD] });
     expect(contents.listing.tickets.map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
-    expect(contents.listing.unreadable.map((unreadable) => unreadable.location)).toEqual([join(workspace.ticketsDirectory, '002-broken-by-hand.md')]);
+    expect(contents.listing.unreadable.map((unreadable) => unreadable.location)).toEqual([join(localStoreLayoutOf(workspace).ticketRecordsFolder, '002-broken-by-hand.md')]);
     expect(trackerFileContents()).toEqual(filesBefore);
   });
 
   test('an absent progress file is absent, with its path', () => {
-    expect(readTracker(workspace)).toEqual({ verdict: 'absent', filePath: workspace.progressFilePath });
+    expect(readTracker(workspace)).toEqual({ verdict: 'absent', filePath: localStoreLayoutOf(workspace).progressRecordPath });
   });
 
   test('a progress file that does not parse is an unreadable progress file, carrying the adapter\'s reason', () => {
-    writeFileSync(workspace.progressFilePath, UNPARSEABLE_PROGRESS_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, UNPARSEABLE_PROGRESS_TEXT);
 
     const reading = readTracker(workspace);
 
     expect(reading.verdict === 'unreadable' ? reading.unreadableFile : null).toBe('progress-file');
-    expect(reading.verdict === 'unreadable' ? reading.filePath : null).toBe(workspace.progressFilePath);
+    expect(reading.verdict === 'unreadable' ? reading.filePath : null).toBe(localStoreLayoutOf(workspace).progressRecordPath);
     expect(reading.verdict === 'unreadable' ? reading.reason : '').not.toBe('');
   });
 
   test('a broken log.jsonl is an unreadable log file, carrying the adapter\'s reason', () => {
-    createProgressFileWriter(workspace.progressFilePath).write(progressWithOneRow());
-    writeFileSync(workspace.logFilePath, BROKEN_LOG_TEXT);
+    createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(progressWithOneRow());
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, BROKEN_LOG_TEXT);
 
     expect(readTracker(workspace)).toEqual({
       verdict:        'unreadable',
       unreadableFile: 'log-file',
-      filePath:       workspace.logFilePath,
-      reason:         `${workspace.logFilePath}, line 1: fields.text is not a string`,
+      filePath:       localStoreLayoutOf(workspace).logRecordPath,
+      reason:         `${localStoreLayoutOf(workspace).logRecordPath}, line 1: fields.text is not a string`,
     });
   });
 
   test('when both files are broken, the progress file\'s verdict comes first', () => {
-    writeFileSync(workspace.progressFilePath, UNPARSEABLE_PROGRESS_TEXT);
-    writeFileSync(workspace.logFilePath, BROKEN_LOG_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, UNPARSEABLE_PROGRESS_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, BROKEN_LOG_TEXT);
 
     const reading = readTracker(workspace);
 
@@ -148,7 +149,7 @@ describe('readTracker', () => {
   });
 
   test('an absent log.jsonl beside a version 2 file reads as an empty log', () => {
-    createProgressFileWriter(workspace.progressFilePath).write(progressWithOneRow());
+    createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(progressWithOneRow());
 
     expect(contentsOf(readTracker(workspace)).storedLog).toEqual({ records: [] });
   });
@@ -162,8 +163,8 @@ describe('requireTracker', () => {
   });
 
   test('a tracker that cannot be read throws unrepaired, carrying the reading', () => {
-    createProgressFileWriter(workspace.progressFilePath).write(progressWithOneRow());
-    writeFileSync(workspace.logFilePath, BROKEN_LOG_TEXT);
+    createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(progressWithOneRow());
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, BROKEN_LOG_TEXT);
 
     const refusal = refusalOf(() => requireTracker(workspace));
 
@@ -175,8 +176,8 @@ describe('requireTracker', () => {
 
 describe('requireProgressFile', () => {
   test('it reads a tracker whose log.jsonl is broken, because it never reads the log', () => {
-    createProgressFileWriter(workspace.progressFilePath).write(progressWithOneRow());
-    writeFileSync(workspace.logFilePath, BROKEN_LOG_TEXT);
+    createProgressFileWriter(localStoreLayoutOf(workspace).progressRecordPath).write(progressWithOneRow());
+    writeFileSync(localStoreLayoutOf(workspace).logRecordPath, BROKEN_LOG_TEXT);
 
     expect(requireProgressFile(workspace)).toEqual(progressWithOneRow());
   });
@@ -187,12 +188,12 @@ describe('requireProgressFile', () => {
     expect(refusalIsOperationRefusal(refusal) ? refusal.status : null).toBe('unrepaired');
     expect(refusalIsOperationRefusal(refusal) ? refusal.detail : null).toEqual({
       kind:    'unreadable-tracker',
-      reading: { verdict: 'absent', filePath: workspace.progressFilePath },
+      reading: { verdict: 'absent', filePath: localStoreLayoutOf(workspace).progressRecordPath },
     });
   });
 
   test('a progress file that does not parse throws unrepaired, carrying the unreadable progress-file reading', () => {
-    writeFileSync(workspace.progressFilePath, UNPARSEABLE_PROGRESS_TEXT);
+    writeFileSync(localStoreLayoutOf(workspace).progressRecordPath, UNPARSEABLE_PROGRESS_TEXT);
 
     const refusal = refusalOf(() => requireProgressFile(workspace));
 
