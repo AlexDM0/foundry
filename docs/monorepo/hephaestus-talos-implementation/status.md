@@ -92,6 +92,12 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP3.12: read `/api/v1/presence` on a real serving forge (heartbeat, supervision) and `/api/v1/crash-log` on a forge
   that crashed and started again.
 
+- WP4.10: read `/api/v1/board` on a real scratch forge; check the offers and the Apply refusal against real commands.
+
+- WP4.11: check that a real pipeline agent acts on the standing entity refusals in its `draft-edited` message and in
+  `resources/prompts/PipelineAgentEntities.md`.
+
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -181,6 +187,12 @@ done: WP2.18 retook them all, unchanged but start stamps.
   `CLAUDE_CODE_MAX_RETRIES=2`); its result selector fills `connection_failed` and a null status into the recorded
   529 result line. Confirm by playing `NETWORK_OUTAGE_FAKE_AGENT_STEPS` once the recording lands.
 
+- WP4.10: `reviewRound` is the row's round; where the row counts none it is `FIRST_REPEAT_REVIEW_ROUND` only while the
+  ticket shows `re-review`, else `null` (`BoardReadingMappingUtil.ticketFactsOf`). Confirm against Gaia's views in stage 6.
+
+- WP4.11: an entity session hears the standing entity refusals too, not only the forge session. Confirm that is wanted.
+
+
 ### Blocked
 
 (none)
@@ -255,6 +267,15 @@ done: WP2.18 retook them all, unchanged but start stamps.
   `forge-registry.json` recording). Nothing breaks (Gaia reads `tokenPath` from the registry), but the examples are
   stale; Gaia's side can refresh them. WP2.4 also hand-edited three frozen fixtures (`FrozenDarwinWorkerProfiles.json`,
   `cli/FrozenPlatformPorts.json`, `frozen-session-settings.json`) for the rename only.
+
+- WP4.11: `PipelineSetupVocabulary.ts:22-24` gained `PIPELINE_SETUP_FORMAT_VERSION` between `PIPELINE_SETUP_STEPS`'s
+  docblock and its declaration, so the docblock now sits on the wrong constant. The draft-edit documents moved from
+  `BoardCommand.ts` to `BoardPipelineDocuments.ts` (import cycle); the forge-contracts README rows are for WP4.9.
+  Spec gaps: Continue on billing, some `shownOn` cases of `BoardEntityRefusalMappingUtil`.
+
+- `typecheck:bridge-specs` (outside the gates) fails at `bridge/testing/PipelineFixture.ts:616`: the fixture lacks
+  WP4.10's `applyRefusal`. The old Bridge may break in this transition; Gaia replaces it.
+
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -350,7 +371,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-B | WP4.12 | landed | c9fe2b42 | Second check failed on a scope point, overruled: the crash-log route's `no-crash-log` 404 (stage 3's `PresenceReader.ts:71-77`) still serves the API wording with no `fields`; WP4.12 does not name it, so WP4.8 serves it through `RefusalDocumentUtil.refusalDocumentOf` (and updates `overseer-api.md:53` and the `ForgeCrashLogDocument` docblock). `ForgeRefusalDocument` (`code`, `fields`, `sentence`, `ForgeJsonValue`); `RefusalDocumentUtil`; every refusal of a command or picture is served as code, fields and the command line's sentence; the non-JSON 400 carries `fields: {}`. An empty `POST /api/pictures` body still answers a bare 400 |
 | 4-C | WP4.8 | landed | a3e84abb | First round. Five board-document mappers in `src/adapters/board-document/utils/`, `BoardDocumentAssembly.boardDocumentOf(state)`; `GET /api/board` and `/api/v1/board` behind the reader token (`endpointAddedIn('board', 1, 1.21)`); the crash-log `no-crash-log` 404 is now a refusal document (WP4.12's handoff closed). `BoardState` part types moved to `src/adapters/@types/BoardStateParts.ts`, `MONITOR_INTERRUPTION_CAUSE_OF_CAUSE` to `src/adapters/constants/MonitorInterruptionCauseOfCause.ts`; `BoardState` jobs gain `lostLine` (reaching `/api/state` too; its doc row not updated). For WP4.9: the 'In the code' table lacks the assembly and mappers; `BoardState.lostLineOf` duplicates `PresenceDocumentAssembly.lostLineCauseOf` |
 | 4-D | WP4.10 | landed | a6eef519 | Resumed after the network outage and the owner's pause; first check failed (option served as `isRecommended`, three Apply refusal kinds untested, hold and priority rules inline), one fix round passed. `Board.ticketOffersOf(ticketId, mergeWait)` takes the merge queue's git forecast; the applied pipeline serves `pipeline.entityPipelines`, draft entities `pipelineSetup.draftEntities`. `boardDocumentOf` takes a source (state, Board, logs, Flint, now). The attention target's route is in `src/shared/monitor/AttentionEntries.ts`, so stage 8's N10 grep also names it. `reviewRound` falls back to `FIRST_REPEAT_REVIEW_ROUND` only in `re-review` (`BoardReadingMappingUtil.ticketFactsOf`); confirm against Gaia's views in stage 6 |
-| 4-E | WP4.11 | waiting | | |
+| 4-E | WP4.11 | landed | 854d2616 | First round. `PipelineFile.draftReadingOf` skips the entities' set check (kept for `pipeline.json`); setup record format 2 (a version 1 record is set up anew). `entity-refusals-stand` lives once in `refuseStandingEntityRefusals`, called by Continue and inside `applyRequestVerdictOf`. `pipelineSetup.entityRefusals` served by `BoardEntityRefusalMappingUtil`; `draft-edited` carries `standingEntityRefusals` (reason phrases, not the `pipeline-draft-invalid` sentence); undo messages do not. Draft-edit documents moved to `BoardPipelineDocuments.ts` |
 | 4-F | WP4.9 | waiting | | |
 | 5-A | WP5.1 | waiting | | |
 | 5-B | WP5.2 | waiting | | |
