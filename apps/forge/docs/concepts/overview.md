@@ -45,8 +45,9 @@ ready ticket, an answer, a stop request. It launches no agent and signals no job
 acts on it. `worktree repair` also runs its git step inside the lock hold, and `oversee stop|restart` act on the
 Overseer process, not the board.
 
-Every control command takes one code path, whether it arrives from a verb, an agent's request or the API. Verbs with
-no control command, such as `ticket status` and `log`, write the board directly under the same tracker lock.
+Every control command takes one code path, whether it arrives from a verb, an agent's request or the API. Verbs that
+are never relayed, such as `ticket status` and `log`, apply a by-hand command through the same path, which the API
+refuses.
 
 That split is why the terminal keeps working with the Overseer down. A verb writes the board itself, then nudges the
 Overseer if one is live, and the fact waits for the next Pass. The Bridge is different: the Overseer serves it, so its
@@ -189,7 +190,7 @@ its child.*
 
 | It is not | What is true instead | Evidence |
 | --- | --- | --- |
-| Event sourced | `progress.json` is read as current state; the log feeds counts and is never replayed into state | `openBoard` in `src/services/tracker/TrackerPipeline.ts` |
+| Event sourced | `progress.json` is read as current state; the log feeds counts and is never replayed into state | `openBoard` in `src/services/tracker/TrackerPipeline.ts`, where the store's local adapter opens every write |
 | Self-restarting | The Overseer never restarts itself; an install change stops launches until `forge oversee restart` or `forge update` runs a Baton pass | `src/services/overseer/InstallChangeWatch.ts` |
 | A machine-wide service | One Overseer per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/overseer/GateRunSlots.ts`, `setup.ts`, `cli/setup/LoginOverseer.ts` |
 | A static page | Nothing renders one: `progress.html` is a stub naming the live URL or saying the Overseer is down | `cli/adoption/WriteProgressPageStub.ts`, `cli/tracking/open/OpenCommand.ts` |
@@ -209,7 +210,7 @@ folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 | Next steps | `src/lib/tracker-model/Playbook.ts` | `Playbook` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Checking a report | `src/services/lifecycle/Customs.ts` | `VerificationCheck` | `src/services/lifecycle/Customs.spec.ts` |
 | Code-written Handoff | `src/services/overseer/JobLaunch.ts` | `bodyWithHandoffOf` | `cli/overseer/OverseerBuildJob.spec.ts` |
-| The one transaction | `src/services/tracker/TrackerPipeline.ts` | `writeTracker` | `src/services/tracker/HoldJournal.spec.ts` |
+| The one transaction | `src/services/store/BoardStore.ts`, `src/services/tracker/TrackerPipeline.ts` | the store's transaction face, `transactions.transact`, run by `writeTracker` in the local adapter | `src/services/store/BoardStore.contract.spec.ts`, `src/services/tracker/HoldJournal.spec.ts` |
 | Talos | `src/lib/talos/Talos.ts` | `runTalos` | `src/lib/talos/Talos.handshake.integration.spec.ts` |
 | Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.spec.ts` |
 | Trouble's three kinds | `src/lib/tracker-model/IncidentMoves.ts`, `src/services/overseer/DrivePass.ts` | `defaultIncident`, `OverseerNotice` | `src/lib/tracker-model/IncidentMoves.spec.ts` |

@@ -59,7 +59,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 ### Imports
 
 ```
-src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → overseer)  →  features (cli/, bridge/)
+src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → overseer)  →  features (cli/, bridge/)
 packages/design-system/  →  bridge/ (as the workspace package design-system, by the exports of its package.json)
 packages/flint/          →  bridge/ (as the workspace package flint, only through the entries of its package.json)
 packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
@@ -117,6 +117,11 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - The Board logs ids and values through one `log(record)` over a typed record union (the vocabulary, no method per
   record); an adapter util words the records, the collector gathers them, the writer stores
   `.forge/log.jsonl`.
+- The core reaches a stored record only through the store port, `BoardStore` in `src/services/store/BoardStore.ts`:
+  commands through its command face, the Overseer's pass through its transaction face, every read through its read
+  side. Its one adapter, `LocalFilesBoardStore`, is the only code that names a record's path or judges a stored
+  pipeline; `src/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
+  adapter must pass.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
   environment prefixes, login item, Overseer port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
   folder, marker, key and removal derives from it. The build is `forge` beside the released program, and
@@ -361,6 +366,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Code starts beside its only consumer. | `packages/design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. `packages/design-system/` is a workspace package, not a folder of the Bridge. | The owner ordered the design system first, so the views share one set of parts. The owner decided that the design system is a portable package, like Flint. |
 | Code starts beside its only consumer. | `packages/flint/` is a workspace package, not a folder of the Bridge. | The owner decided that Flint is a portable package. |
 | Code starts beside its only consumer; never in anticipation. | `src/services/overseer/SessionConfinement.ts` wraps a session in forge's `GateConfinement` when its agent adapter declares `ownConfinement: 'none'`, though Claude Code, the one adapter, confines its sessions itself. | The owner's rule of 2026-11-18 makes a session's confinement the port's declaration, not an assumption about the vendor; the path is held by specs over a planted adapter and by the contract integration spec. |
+| Code starts beside its only consumer and moves, generalised, on a second one. | The store port `BoardStore` (`src/services/store/BoardStore.ts`) has one adapter, `LocalFilesBoardStore`, and a contract spec, `src/services/store/BoardStore.contract.spec.ts`, that any adapter must pass; `src/StoreBoundary.spec.ts` holds that no shipping code outside the adapter names a record's path. | The forge keeps a remote store possible (`docs/monorepo/hephaestus-talos.md`, sections 4 and 5): the seam is fixed before a second adapter exists, and the contract is what a second adapter must pass. |
 | Code names no agent vendor (`src/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`). |
 | `bridge/styles/tokens.css` holds every colour. | `packages/flint/constants/Palette.ts` holds the default colour of each `--flint-*` custom property. The Bridge sets the `--flint-*` properties from its tokens in `bridge/styles/tokens.css`, with the same values in the light and the dark theme. | Flint is a portable package. It must show its colours on a page that sets no property. |
 
@@ -389,9 +395,11 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - `src/TestFileConventions.spec.ts` holds that no spec starts an Overseer without `--port 0`.
 - A new command is an entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts` and a folder in its set, held by
   `cli/CommandTable.spec.ts` and `cli/HelpText.spec.ts`.
-- Every mutating command writes through `writeTracker` in `src/services/tracker/TrackerPipeline.ts` (lock, read into
-  a Board, change, writes in `docs/cli.md`'s order, one lock hold; nothing renders), and `cli/RegisterWrittenTracker.ts`
-  registers the tracker with the monitor after every write and at the Overseer's start. `init` creates a tracker;
+- Every mutating command applies a `ControlCommand` through the store's command face (`cli/ApplyCommandOfVerb.ts`),
+  whose local adapter runs `writeTracker` in `src/services/tracker/TrackerPipeline.ts` (lock, read into a Board, change,
+  writes in `docs/cli.md`'s order, one lock hold; nothing renders), and `cli/RegisterWrittenTracker.ts` registers the
+  tracker with the monitor after every write and at the Overseer's start. A verb that changes the board and is never
+  relayed applies a by-hand kind, which the command endpoint refuses. `init` creates a tracker;
   `update`, and `init` on an existing one, never touch its files but the `progress.html` stub. `status` takes no
   lock.
 

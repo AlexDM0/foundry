@@ -100,7 +100,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | | a live child | `ChildLiveness`: `unlaunched` before Talos launched it, `live` while its child record says it runs, `ended` once Talos recorded its end, `lost` when its record cannot be read or says ended with no end |
 | | an agent | no verdict of its own: read through its child, and `agent-crashed` or `watcher-lost` says which died |
 | **hold** | a [ticket hold](#ticket-hold) | frontmatter `hold`, such as `parked:<cause>` |
-| | a [lock hold](#lock-hold) | one `writeTracker` run, as in "in the same hold" |
+| | a [lock hold](#lock-hold) | one write of the store's local adapter (one `writeTracker` run), as in "in the same hold" |
 | | an [install hold](#install-hold) | the runtime state `held-by-install-change` |
 | | a review that does not hold | job outcome `does-not-hold`: the review sent the build back; nothing is held |
 | **finding** | a recorded review finding | `ReviewFinding`, in a `review-recorded` record |
@@ -684,7 +684,8 @@ The verdict on one [child instance](#child-instance) from its [child record](#ch
 
 ### lock hold
 
-One `writeTracker` run under the board's lock, holding every write of one change.
+One write of the store's local adapter, a `writeTracker` run under the board's lock, holding every write of one
+change: a command through the store's command face or a transaction through its transaction face.
 
 ### log
 
