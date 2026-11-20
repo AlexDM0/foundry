@@ -25,6 +25,39 @@ export type ForgeSessionCodeAnswer = { readonly verdict: 'answered'; readonly co
  */
 export type MonitorFollowEnd = { readonly verdict: 'ended'; readonly ending: 'closed' | 'broken' | 'stopped' } | ForgeClientFailure;
 
+/**
+ * One whole event of a forge's stream: the last event id the stream has sent so far, as event streams carry it (`null` until one is sent,
+ * as for the handshake), its name and its data text.
+ */
+export interface ForgeStreamEvent {
+  readonly id:        string | null;
+  readonly eventName: string;
+  readonly data:      string;
+}
+
+/** Following one of a forge's event streams; its end reads as a monitor follow's does. */
+export interface ForgeStreamFollow {
+  /** Rejects only with what the caller's event handler threw, and closes the stream all the same. */
+  readonly ended: Promise<MonitorFollowEnd>;
+  /** Stops following and closes the stream; `ended` then answers `stopped`. */
+  readonly stop:  () => void;
+}
+
+/**
+ * A board command's or a picture upload's answer as the forge gave it: its status (200 applied, 423 held for an install change, any other a
+ * refusal) and its parsed body, unchecked, for an ingestion to read. `malformed`: a body that is no JSON.
+ */
+export type ForgeBoardCommandAnswer =
+  | { readonly verdict: 'answered'; readonly status: number; readonly body: unknown }
+  | ForgeClientFailure;
+
+export type ForgePictureUploadAnswer = ForgeBoardCommandAnswer;
+
+/** A picture as the forge served it: the bytes and their content type, or the forge's refusal's status with its body's bytes. */
+export type ForgePictureAnswer =
+  | { readonly verdict: 'answered'; readonly status: number; readonly contentType: string | null; readonly bytes: Uint8Array }
+  | ForgeClientFailure;
+
 export interface MonitorFollow {
   /** Rejects only with what the caller's snapshot handler threw, and closes the stream all the same. */
   readonly ended: Promise<MonitorFollowEnd>;

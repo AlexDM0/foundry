@@ -143,8 +143,8 @@ const STOREFRONT = READINGS.exampleStorefront;
 const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
   trackerId:      STOREFRONT.trackerId,
   project:        STOREFRONT.project,
-  codeVersion:    '3508409d9d36',
-  installVersion: 29,
+  codeVersion:    'fbc3c0ad0259',
+  installVersion: 42,
   processId:      48_107,
   contracts:      {
     summary: 1,
@@ -181,7 +181,7 @@ describe('Flint\'s brain', () => {
       state:     'running',
       tokens:    11,
       calls:     1,
-      startedAt: '2026-11-16T11:44:53.987Z',
+      startedAt: '2026-11-20T23:45:19.939Z',
       ticketIds: [],
       route:     null,
     });
@@ -218,8 +218,8 @@ describe('Flint\'s brain', () => {
     const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [await recordedBrainReadingOf('brain-ended')]));
     expect(snapshot.activity.filter((entry) => entry.kind === 'flint-brain')).toEqual([{
       trackerId:   STOREFRONT.trackerId,
-      logPosition: 5,
-      at:          '2026-11-16T12:44:54+01:00',
+      logPosition: 6,
+      at:          '2026-11-21T00:45:20+01:00',
       category:    'agent',
       text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
       route:       null,

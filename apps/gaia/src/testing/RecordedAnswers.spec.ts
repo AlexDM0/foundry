@@ -14,6 +14,7 @@ import type { OverseerRequest, OverseerStreamRequest } from '../lib/forge-client
 import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import {
+  BOARD_SITUATIONS,
   everyRecordedOverseerAnswerOf,
   everyRecordedVersionsAnswerOf,
   FLINT_BRAIN_SITUATIONS,
@@ -36,13 +37,20 @@ const EXAMPLE_TOKEN = 'example-token';
 
 function identityRequest(): OverseerRequest {
   return {
-    overseerUrl: OVERSEER_URL, method: 'GET', path: '/api/v1/identity', bearerToken: null, jsonBody: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
+    overseerUrl:         OVERSEER_URL,
+    method:              'GET',
+    path:                '/api/v1/identity',
+    bearerToken:         null,
+    jsonBody:            null,
+    byteBody:            null,
+    answerAs:            'text',
+    timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
   };
 }
 
 function monitorStreamRequest(): OverseerStreamRequest {
   return {
-    overseerUrl: OVERSEER_URL, path: '/api/v2/monitor/events', bearerToken: EXAMPLE_TOKEN, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
+    overseerUrl: OVERSEER_URL, path: '/api/v2/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
   };
 }
 
@@ -62,9 +70,9 @@ describe('the call shapes', () => {
 });
 
 describe('the recorded overseer answers', () => {
-  test('lead every call shape with a known situation, once over both recordings', () => {
+  test('lead every call shape with a known situation, once over every recording', () => {
     const callShapes = everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape);
-    const situations = [...OVERSEER_SITUATIONS, ...FLINT_BRAIN_SITUATIONS];
+    const situations = [...OVERSEER_SITUATIONS, ...FLINT_BRAIN_SITUATIONS, ...BOARD_SITUATIONS];
     for (const callShape of callShapes) expect([callShape, situations.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))]).toEqual([callShape, true]);
     expect(new Set(callShapes).size).toBe(callShapes.length);
   });
@@ -196,7 +204,7 @@ describe('the recorded versions of forges', () => {
   });
 
   test('answer a forge that serves no versions as every forge before 1.0 answers an unknown path', () => {
-    expect(recordedVersionsAnswersOf('versions-absent').map(({ answer }) => answer)).toEqual([{ verdict: 'answered', status: 404, bodyText: '{"refusal":"not-found"}' }]);
+    expect(recordedVersionsAnswersOf('versions-absent').map(({ answer }) => answer)).toMatchObject([{ verdict: 'answered', status: 404, bodyText: '{"refusal":"not-found"}' }]);
   });
 });
 
@@ -233,8 +241,12 @@ describe('the recorded overseer fetch', () => {
     await overseerFetch.request(commandRequest);
     await overseerFetch.openStream(monitorStreamRequest());
     expect(overseerFetch.callsAnswered()).toEqual([
-      { callShape: 'POST /api/v1/commands with bearer', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}' },
-      { callShape: MONITOR_STREAM_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null },
+      {
+        callShape: 'POST /api/v1/commands with bearer', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}', byteBody: null, answerAs: 'text', lastEventId: null,
+      },
+      {
+        callShape: MONITOR_STREAM_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null, byteBody: null, answerAs: null, lastEventId: null,
+      },
     ]);
   });
 

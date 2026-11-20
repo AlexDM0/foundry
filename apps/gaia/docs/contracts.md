@@ -115,11 +115,19 @@ version, major.minor.
 The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9, and forge 1.1 adds V7 and Flint's
 brain (G1 to G3), with the framed Bridge keeping its Agents-at-work strip (G4). Every fixture of a forge contract is recorded from a forge
 that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`. From this repository's
-forge 1.1: `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of
+forge 1.22: `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of
 Flint's brain, its fake agent playing the brain's session: running after one ask, ended by a stop, refused while the Overseer is paused,
-and absent through its test setting `FORGE_WITHOUT_FLINT_BRAIN`; and `overseer-fetch-versions`, the forge answering older (1.0), ahead
-(1.3) and newer (2.1) through its test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no
-`/api/versions`. Every situation is a forge at a system version.
+and absent through its test setting `FORGE_WITHOUT_FLINT_BRAIN`; `overseer-fetch-board`, Example Storefront's board as the relay reads it:
+the board document (with a draft ticket and a committed one the product owner gives an entity; an agent's question with its
+recommendation, escalated to User; an open incident and a defaulted one's notice, left in the forge's store as an ended Assistant turn
+leaves them, since the fake agent asks nothing; a pipeline applied over two app entities; and an update setup whose entities draft holds a
+standing `equal-homes` refusal with its fix, which Apply refuses as `entity-refusals-stand`), and refused
+another's token; the board's event stream from its start and from its first event's id; a board command applied,
+refused with its code, fields and sentence, of an unknown kind, and answered 423 while launches are held for an install change, with the
+board's notice in that hold; a picture accepted and read back, refused as too large and as no picture; a product owner job's stream (its handshake
+and an empty history, since the fake agent writes no conversation) and a gate profile run's output; and `overseer-fetch-versions`, the forge answering older (1.0), one minor ahead and newer (2.1) through its
+test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`. Every situation is a forge at a
+system version. Each answer keeps its content type, and an answer read as bytes, such as a picture, is recorded in base64.
 
 ## The install version
 

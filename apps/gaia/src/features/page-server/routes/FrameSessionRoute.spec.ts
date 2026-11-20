@@ -143,7 +143,9 @@ describe('a forge that serves the embed channel', () => {
   test('asks the Overseer the registry names for one code, with the token as the bearer and no body', async () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
     await exchangeOf(sourcesOver(exampleForgeOf(), overseerFetch));
-    expect(overseerFetch.callsAnswered()).toEqual([{ callShape: SESSION_CODES_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null }]);
+    expect(overseerFetch.callsAnswered()).toEqual([{
+      callShape: SESSION_CODES_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null, byteBody: null, answerAs: 'text', lastEventId: null,
+    }]);
   });
 
   test('asks a forge ahead of the one Gaia supports at the versioned path of the session codes Gaia knows', async () => {

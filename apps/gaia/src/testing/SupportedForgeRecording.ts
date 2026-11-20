@@ -73,8 +73,8 @@ const STARTING_LOOKS_PER_START = 20_000;
 const STARTS_TRIED_FOR_THE_STARTING_WINDOW = 10;
 const MONITOR_EVENT_PATTERN = /event: monitor\ndata: [^\n]*\n\n/g;
 const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
-/** The draft ticket, and the question the Overseer's first pass opens on a board with no checks set. */
-const SETTLED_ATTENTION_ENTRIES = 2;
+/** The question the Overseer's first pass opens on a board with no checks set. */
+const FIRST_PASS_QUESTION_KIND = 'question';
 const SETTLING_EVENTS_AT_MOST = 40;
 /** A brain the forge starts ends by itself after at most two minutes (G3), so its states are looked for within that and a margin. */
 const FLINT_BRAIN_TIMEOUT_MILLISECONDS = 180_000;
@@ -152,13 +152,13 @@ export function describeSupportedForgeRecording(recordingName: string, recording
 
   function requestOf(method: OverseerRequest['method'], path: string, token: string | null, jsonBody: string | null = null): OverseerRequest {
     return {
-      overseerUrl, method, path, bearerToken: token, jsonBody, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+      overseerUrl, method, path, bearerToken: token, jsonBody, byteBody: null, answerAs: 'text', timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
     };
   }
 
   function streamRequestOf(token: string, timeoutMilliseconds = GENEROUS_BOUND_MILLISECONDS): OverseerStreamRequest {
     return {
-      overseerUrl, path: PATHS.monitorEvents, bearerToken: token, timeoutMilliseconds,
+      overseerUrl, path: PATHS.monitorEvents, bearerToken: token, lastEventId: null, timeoutMilliseconds,
     };
   }
 
@@ -212,8 +212,8 @@ export function describeSupportedForgeRecording(recordingName: string, recording
     }
   }
 
-  async function openedStream(token: string): Promise<OverseerStream> {
-    const opening = await realOverseerFetch().openStream(streamRequestOf(token));
+  async function openedStream(token: string, streamUrl: string = overseerUrl): Promise<OverseerStream> {
+    const opening = await realOverseerFetch().openStream({ ...streamRequestOf(token), overseerUrl: streamUrl });
     if (opening.verdict !== 'streaming') throw new Error(`the monitor stream answered ${JSON.stringify(opening)}`);
     return opening.stream;
   }
@@ -223,12 +223,12 @@ export function describeSupportedForgeRecording(recordingName: string, recording
   }
 
   /** Waits on the stream until the Overseer's first pass has opened its question and its Assistant's job beside the draft ticket. */
-  async function boardHasSettled(): Promise<void> {
-    const stream = await openedStream(bearerToken);
+  async function boardHasSettled(streamUrl: string = overseerUrl, token: string = bearerToken): Promise<void> {
+    const stream = await openedStream(token, streamUrl);
     try {
       for (let event = 1; event <= SETTLING_EVENTS_AT_MOST; event += 1) {
         const { chunks } = await chunksUntil(stream, 1);
-        const settled = (snapshot: Record<string, unknown>): boolean => (snapshot['attention'] as unknown[]).length >= SETTLED_ATTENTION_ENTRIES
+        const settled = (snapshot: Record<string, unknown>): boolean => (snapshot['attention'] as { kind: string }[]).some((entry) => entry.kind === FIRST_PASS_QUESTION_KIND)
           && (snapshot['jobs'] as unknown[]).length > 0;
         if (snapshotsIn(chunks).some(settled)) return;
       }
@@ -357,7 +357,14 @@ export function describeSupportedForgeRecording(recordingName: string, recording
 
     function projectRequestOf(method: OverseerRequest['method'], path: string, token: string | null, jsonBody: string | null = null): OverseerRequest {
       return {
-        overseerUrl: projectOverseerUrl, method, path, bearerToken: token, jsonBody, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+        overseerUrl:         projectOverseerUrl,
+        method,
+        path,
+        bearerToken:         token,
+        jsonBody,
+        byteBody:            null,
+        answerAs:            'text',
+        timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
       };
     }
 
@@ -374,9 +381,11 @@ export function describeSupportedForgeRecording(recordingName: string, recording
       const projectTrackerId = String(initialised['trackerId']);
       scratchForge.exampleValueFor({ drawn: projectTrackerId, example: EXAMPLE_PROJECT.trackerId });
       await scratchForge.runForDocument(projectRepository, ['start', '--json']);
-      const overseer = scratchForge.registryEntryOf(projectTrackerId)?.['overseer'] as { url: string; processId: number } | undefined;
+      const overseer = scratchForge.registryEntryOf(projectTrackerId)?.['overseer'] as { url: string; processId: number; tokenPath: string } | undefined;
       if (overseer === undefined) throw new Error('the registry names no live Overseer of Example Project');
       projectOverseerUrl = overseer.url;
+      // Its summary is recorded once the first pass opened its question and launched its Assistant, as on a board a person opens.
+      await boardHasSettled(projectOverseerUrl, readFileSync(overseer.tokenPath, 'utf8').trim());
       scratchForge.exampleValueFor({ drawn: new URL(overseer.url).host, example: EXAMPLE_PROJECT.overseerAddress });
       scratchForge.exampleValueFor({ drawn: `"processId":${overseer.processId}`, example: `"processId":${EXAMPLE_PROJECT.processId}` });
     }, SETUP_TIMEOUT_MILLISECONDS);
@@ -407,7 +416,7 @@ export function describeSupportedForgeRecording(recordingName: string, recording
       ];
       for (const stoppedRequest of requests) expect(await keepProjectAnswer('stopped', stoppedRequest)).toEqual({ verdict: 'unreachable' });
       const streamRequest = {
-        overseerUrl: projectOverseerUrl, path: PATHS.monitorEvents, bearerToken: EXAMPLE_TOKEN, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS
+        overseerUrl: projectOverseerUrl, path: PATHS.monitorEvents, bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS
       };
       const streamAnswer = await realOverseerFetch().openStream(streamRequest);
       expect(streamAnswer).toEqual({ verdict: 'unreachable' });

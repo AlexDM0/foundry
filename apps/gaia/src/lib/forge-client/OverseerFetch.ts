@@ -5,13 +5,24 @@
 
 export type OverseerMethod = 'GET' | 'POST';
 
+export interface OverseerByteBody {
+  readonly bytes:     Uint8Array;
+  readonly mediaType: string;
+}
+
+/** `text`: the body is read as text; `bytes`: as the bytes it is, such as a picture, and `bodyText` is then empty. */
+export type OverseerAnswerForm = 'text' | 'bytes';
+
 export interface OverseerRequest {
   /** The Overseer's address as the registry names it, such as `http://127.0.0.1:4930/`. */
   readonly overseerUrl:         string;
   readonly method:              OverseerMethod;
   readonly path:                string;
   readonly bearerToken:         string | null;
+  /** At most one of `jsonBody` and `byteBody` is set; both set is a caller's defect and throws. */
   readonly jsonBody:            string | null;
+  readonly byteBody:            OverseerByteBody | null;
+  readonly answerAs:            OverseerAnswerForm;
   readonly timeoutMilliseconds: number;
 }
 
@@ -19,14 +30,19 @@ export interface OverseerStreamRequest {
   readonly overseerUrl:         string;
   readonly path:                string;
   readonly bearerToken:         string | null;
+  /** Sent as `Last-Event-ID`, so the stream replays what came after that event; `null` sends none. */
+  readonly lastEventId:         string | null;
   /** Bounds the wait for the answer's head only: a stream that is open may stay quiet for as long as it likes. */
   readonly timeoutMilliseconds: number;
 }
 
 export interface AnsweredRequest {
-  readonly verdict:  'answered';
-  readonly status:   number;
-  readonly bodyText: string;
+  readonly verdict:     'answered';
+  readonly status:      number;
+  readonly contentType: string | null;
+  readonly bodyText:    string;
+  /** Set only for a request answered as bytes. */
+  readonly bodyBytes:   Uint8Array | null;
 }
 
 /** `unreachable`: no connection, or one that broke before the answer was whole. `timed-out`: no whole answer within the bound. */
@@ -54,7 +70,9 @@ export interface OverseerFetch {
 
 const STREAMING_STATUS = 200;
 const EVENT_STREAM_CONTENT_TYPE = 'text/event-stream';
+const JSON_CONTENT_TYPE = 'application/json';
 const TIMEOUT_ERROR_NAME = 'TimeoutError';
+const LAST_EVENT_ID_HEADER = 'Last-Event-ID';
 
 function headersOf(bearerToken: string | null, extraHeaders: Readonly<Record<string, string>>): Record<string, string> {
   return bearerToken === null ? { ...extraHeaders } : { ...extraHeaders, Authorization: `Bearer ${bearerToken}` };
@@ -91,21 +109,37 @@ function streamOf(body: ReadableStream<Uint8Array>, abortController: AbortContro
   return { nextChunk, close };
 }
 
-/** The real boundary, over the runtime's `fetch`. A request that cannot be addressed is a caller's defect and throws. */
+function bodyOf({ jsonBody, byteBody }: OverseerRequest): { readonly contentType: string; readonly body: string | Uint8Array } | null {
+  if (jsonBody !== null && byteBody !== null) throw new Error('A request to an Overseer carries a JSON body or a byte body, never both.');
+  if (jsonBody !== null) return { contentType: JSON_CONTENT_TYPE, body: jsonBody };
+  if (byteBody !== null) return { contentType: byteBody.mediaType, body: byteBody.bytes };
+  return null;
+}
+
+async function answeredRequestOf(response: Response, answerAs: OverseerAnswerForm): Promise<AnsweredRequest> {
+  const contentType = response.headers.get('Content-Type');
+  if (answerAs === 'bytes') return {
+    verdict: 'answered', status: response.status, contentType, bodyText: '', bodyBytes: new Uint8Array(await response.arrayBuffer())
+  };
+  return {
+    verdict: 'answered', status: response.status, contentType, bodyText: await response.text(), bodyBytes: null
+  };
+}
+
+/** The real boundary, over the runtime's `fetch`. A request that cannot be addressed, or carries two bodies, is a caller's defect and throws. */
 export function realOverseerFetch(): OverseerFetch {
   async function request(overseerRequest: OverseerRequest): Promise<OverseerAnswer> {
     const address = new URL(overseerRequest.path, overseerRequest.overseerUrl);
-    const jsonHeaders: Record<string, string> = overseerRequest.jsonBody === null ? {} : { 'Content-Type': 'application/json' };
+    const requestBody = bodyOf(overseerRequest);
     const requestInit: RequestInit = {
       method:   overseerRequest.method,
-      headers:  headersOf(overseerRequest.bearerToken, jsonHeaders),
+      headers:  headersOf(overseerRequest.bearerToken, requestBody === null ? {} : { 'Content-Type': requestBody.contentType }),
       redirect: 'manual',
       signal:   AbortSignal.timeout(overseerRequest.timeoutMilliseconds),
     };
-    if (overseerRequest.jsonBody !== null) requestInit.body = overseerRequest.jsonBody;
+    if (requestBody !== null) requestInit.body = requestBody.body;
     try {
-      const response = await fetch(address, requestInit);
-      return { verdict: 'answered', status: response.status, bodyText: await response.text() };
+      return await answeredRequestOf(await fetch(address, requestInit), overseerRequest.answerAs);
     } catch (failure) {
       return failedAnswerOf(failure);
     }
@@ -116,13 +150,16 @@ export function realOverseerFetch(): OverseerFetch {
     const abortController = new AbortController();
     const headTimer       = setTimeout(() => abortController.abort(new DOMException('No answer within the bound', TIMEOUT_ERROR_NAME)), streamRequest.timeoutMilliseconds);
     try {
+      const streamHeaders: Record<string, string> = streamRequest.lastEventId === null
+        ? { Accept: EVENT_STREAM_CONTENT_TYPE }
+        : { Accept: EVENT_STREAM_CONTENT_TYPE, [LAST_EVENT_ID_HEADER]: streamRequest.lastEventId };
       const response = await fetch(address, {
-        headers:  headersOf(streamRequest.bearerToken, { Accept: EVENT_STREAM_CONTENT_TYPE }),
+        headers:  headersOf(streamRequest.bearerToken, streamHeaders),
         redirect: 'manual',
         signal:   abortController.signal,
       });
       const isEventStream = response.status === STREAMING_STATUS && (response.headers.get('Content-Type') ?? '').startsWith(EVENT_STREAM_CONTENT_TYPE);
-      if (!isEventStream || response.body === null) return { verdict: 'answered', status: response.status, bodyText: await response.text() };
+      if (!isEventStream || response.body === null) return await answeredRequestOf(response, 'text');
       return { verdict: 'streaming', stream: streamOf(response.body, abortController) };
     } catch (failure) {
       return failedAnswerOf(failure);

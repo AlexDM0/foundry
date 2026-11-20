@@ -105,6 +105,12 @@ export const RECORDED_BOUNDARIES: readonly RecordedBoundary[] = [
     system:         'forge',
   },
   {
+    recordingName:  'overseer-fetch-board',
+    boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
+    recordingSpec:  'src/lib/forge-client/OverseerFetch.board.recording.spec.ts',
+    system:         'forge',
+  },
+  {
     recordingName:  'overseer-fetch-versions',
     boundaryModule: 'src/lib/forge-client/OverseerFetch.ts',
     recordingSpec:  'src/lib/forge-client/OverseerFetch.versions.recording.spec.ts',

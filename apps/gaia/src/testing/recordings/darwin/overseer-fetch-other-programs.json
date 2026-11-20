@@ -14,7 +14,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {
@@ -22,7 +24,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {
@@ -30,7 +34,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {
@@ -38,7 +44,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {
@@ -46,7 +54,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {
@@ -54,7 +64,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {
@@ -62,7 +74,9 @@
       "answer": {
         "verdict": "answered",
         "status": 200,
-        "bodyText": "<!doctype html><title>Example Agency</title>"
+        "contentType": "text/html",
+        "bodyText": "<!doctype html><title>Example Agency</title>",
+        "bodyBytes": null
       }
     },
     {

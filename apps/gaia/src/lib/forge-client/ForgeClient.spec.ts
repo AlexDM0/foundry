@@ -10,18 +10,22 @@ import { describe, expect, test } from 'bun:test';
 
 import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 import {
+  BOARD_SITUATIONS,
   everyRecordedOverseerAnswerOf,
   OVERSEER_SITUATIONS,
+  recordedBoardAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
   situationCallShapeOf,
   recordedVersionsAnswersOf,
+  type BoardSituation,
   type OverseerSituation,
   type RecordedOverseerFetch,
 } from '../../testing/RecordedAnswers.ts';
 
-import type { OverseerAccess, OverseerAddress }                             from './@types/ForgeClientAnswer.ts';
+import type { ForgeStreamEvent, OverseerAccess, OverseerAddress }           from './@types/ForgeClientAnswer.ts';
 import { forgeClientOf, forgeEndpointVersionOf, type OverseerEndpointName } from './ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }                                          from './constants/SupportedForgeVersions.ts';
 
 const OVERSEER_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
@@ -69,7 +73,9 @@ interface OutcomeCase {
 }
 
 /** What a forge at the version this client supports answers at `/api/versions`. */
-const SUPPORTED_FORGE_VERSIONS = { current: { major: 1, minor: 1 }, minimumSupported: { major: 0, minor: 0 } };
+const SUPPORTED_FORGE_VERSIONS = { current: SUPPORTED_FORGE_VERSION, minimumSupported: { major: 0, minor: 0 } };
+/** The version the ahead forge was recorded at: one minor past the one this client supports. */
+const ONE_MINOR_AHEAD = { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor + 1 };
 
 const OUTCOME_CASES: readonly OutcomeCase[] = [
   ...(['serving', 'serving-every-contract', 'starting'] as const).map((situation): OutcomeCase => ({
@@ -432,7 +438,7 @@ describe('the paths an Overseer is called at', () => {
   test('are /api/versions for its versions, and each endpoint at the version this client knows, for a forge ahead of it too', async () => {
     const versionedFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead'));
     const client = clientOf(versionedFetch);
-    expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } });
+    expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: ONE_MINOR_AHEAD, minimumSupported: { major: 1, minor: 0 } } });
     await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
     await client.sessionCodeOf(ACCESS);
@@ -451,8 +457,21 @@ describe('the paths an Overseer is called at', () => {
   });
 
   test('take each endpoint\'s version from forge\'s compatibility registry at the forge version this client supports, which serves every one', () => {
-    const endpointNames: readonly OverseerEndpointName[] = ['identity', 'summary', 'monitor', 'monitorEvents', 'commands', 'sessionCodes'];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1]);
+    const endpointNames: readonly OverseerEndpointName[] = [
+      'identity',
+      'summary',
+      'monitor',
+      'monitorEvents',
+      'commands',
+      'sessionCodes',
+      'board',
+      'events',
+      'jobStream',
+      'profileStream',
+      'pictures',
+      'picture',
+    ];
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {
@@ -508,5 +527,307 @@ describe('a command', () => {
       '{"kind":"job-stop-all","mode":"wind-down"}',
       '{"kind":"machine-agent-limit-set","limit":8}',
     ]);
+  });
+});
+
+/** The ids the board's recording drew, read from the paths it was called at: the product owner's job, the profile run and the picture. */
+function recordedPathSegmentOf(situation: BoardSituation, pattern: RegExp): string {
+  for (const { callShape } of recordedBoardAnswersOf(situation)) {
+    const segment = pattern.exec(callShape)?.[1];
+    if (segment !== undefined) return segment;
+  }
+  throw new Error(`The ${situation} recording calls no path that matches ${String(pattern)}.`);
+}
+
+const RECORDED_JOB_ID = recordedPathSegmentOf('intake-conversation', /\/jobs\/([^/]+)\/stream/);
+const RECORDED_PROFILE_RUN_ID = recordedPathSegmentOf('gate-profile-run', /\/profiles\/([^/]+)\/stream/);
+const RECORDED_PICTURE_ID = recordedPathSegmentOf('picture-accepted', /\/pictures\/([0-9a-f]{64})/);
+/** The one-pixel PNG the recording uploaded and read back. */
+const RECORDED_PICTURE = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'));
+const EXAMPLE_COMMAND = { kind: 'ticket-hold', ticketReference: '002', reason: 'Waits for the example design' } as const;
+
+function boardFetchOf(situation: BoardSituation): RecordedOverseerFetch {
+  return recordedOverseerFetch(recordedBoardAnswersOf(situation));
+}
+
+/** Follows a stream until it answers `eventsWanted` events, then stops it; answers the events and how the follow ended. */
+async function followedEventsOf(
+  follow: (onEvent: (event: ForgeStreamEvent) => void) => { readonly ended: Promise<unknown>; readonly stop: () => void },
+  eventsWanted: number,
+): Promise<{ readonly events: readonly ForgeStreamEvent[]; readonly end: unknown }> {
+  const events: ForgeStreamEvent[] = [];
+  const following = follow((event) => {
+    events.push(event);
+    if (events.length === eventsWanted) following.stop();
+  });
+  return { events, end: await following.ended };
+}
+
+interface BoardOutcomeCase {
+  readonly call:      string;
+  readonly situation: BoardSituation;
+  readonly callShape: string;
+  readonly answerOf:  (overseerFetch: RecordedOverseerFetch) => Promise<unknown>;
+  readonly expected:  unknown;
+}
+
+const BOARD_STREAM_EVENT_OF_THE_HANDSHAKE = { id: null, eventName: 'handshake', data: JSON.stringify({ systemVersion: SUPPORTED_FORGE_VERSION }) };
+
+const STANDING_REFUSAL_WITH_ITS_FIX = expect.objectContaining({ reason: 'equal-homes', shownOn: 'api', fix: expect.objectContaining({ edits: expect.any(Array) }) });
+
+const APPLIED_PIPELINE_OVER_BOTH_APPS = expect.objectContaining({
+  readingVerdict:  'readable',
+  contentHash:     expect.any(String),
+  fileText:        expect.any(String),
+  application:     expect.objectContaining({ appliedRevision: 1, appliedBy: 'user' }),
+  entityPipelines: { web: expect.any(Object), api: expect.any(Object) },
+});
+
+const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
+  {
+    call:      'boardOf',
+    situation: 'board-at-work',
+    callShape: 'GET /api/v1/board with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    expected:  {
+      verdict:  'answered',
+      document: expect.objectContaining({
+        project:              'Example Storefront',
+        openDecisionIds:      ['E2'],
+        escalatedDecisionIds: ['E2'],
+        incidents:            [expect.objectContaining({ id: 'I1', kind: 'system-question' })],
+        notices:              [expect.objectContaining({ kind: 'incident-defaulted', causeSentence: expect.any(String) })],
+        pipeline:             APPLIED_PIPELINE_OVER_BOTH_APPS,
+        pipelineSetup:        expect.objectContaining({
+          draftEntities:  { web: expect.any(Object), api: expect.any(Object) },
+          entityRefusals: [STANDING_REFUSAL_WITH_ITS_FIX],
+          applyRefusal:   expect.objectContaining({ code: 'entity-refusals-stand', fields: { setupId: 'S2', reasons: ['equal-homes'] } }),
+        }),
+      }),
+    },
+  },
+  {
+    call:      'boardOf',
+    situation: 'board-token-rejected',
+    callShape: 'GET /api/v1/board with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    expected:  { verdict: 'unauthorized' },
+  },
+  {
+    call:      'boardOf',
+    situation: 'board-install-held',
+    callShape: 'GET /api/v1/board with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    expected:  {
+      verdict:  'answered',
+      document: expect.objectContaining({
+        overseer: expect.objectContaining({ state: 'held-by-install-change' }),
+        notices:  [expect.objectContaining({ kind: 'install-version-changed', sentence: expect.any(String) }), expect.objectContaining({ kind: 'incident-defaulted' })],
+      }),
+    },
+  },
+  {
+    call:      'followEvents',
+    situation: 'board-at-work',
+    callShape: 'STREAM /api/v1/events with bearer',
+    answerOf:  async (overseerFetch) => {
+      const { events, end } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, null, onEvent), 2);
+      return [events.map(({ id, eventName }) => [id === null, eventName]), end];
+    },
+    expected: [[[true, 'handshake'], [false, 'board']], { verdict: 'ended', ending: 'stopped' }],
+  },
+  {
+    call:      'followEvents',
+    situation: 'board-at-work',
+    callShape: 'STREAM /api/v1/events with bearer from a last event id',
+    answerOf:  async (overseerFetch) => {
+      const { events } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, '1-35', onEvent), 2);
+      return [events[0], overseerFetch.callsAnswered().map(({ lastEventId }) => lastEventId)];
+    },
+    expected: [BOARD_STREAM_EVENT_OF_THE_HANDSHAKE, ['1-35']],
+  },
+  {
+    call:      'followEvents',
+    situation: 'board-token-rejected',
+    callShape: 'STREAM /api/v1/events with bearer',
+    answerOf:  async (overseerFetch) => (await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, null, onEvent), 1)).end,
+    expected:  { verdict: 'unauthorized' },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'board-command-applied',
+    callShape: 'POST /api/v1/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 1, outcome: 'done' }) },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'board-command-refused',
+    callShape: 'POST /api/v1/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    expected:  {
+      verdict: 'answered',
+      status:  409,
+      body:    {
+        controlVersion: 1,
+        refusal:        'no-readable-ticket',
+        fields:         { reference: '999' },
+        text:           expect.stringContaining('There is no readable ticket 999.'),
+      },
+    },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'board-command-unknown-kind',
+    callShape: 'POST /api/v1/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'example-unknown-kind' }),
+    expected:  { verdict: 'answered', status: 400, body: expect.objectContaining({ refusal: 'malformed-body', fields: {} }) },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'board-install-held',
+    callShape: 'POST /api/v1/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    expected:  { verdict: 'answered', status: 423, body: expect.objectContaining({ refusal: 'launches-held-by-install-change', fields: {} }) },
+  },
+  {
+    call:      'uploadPicture',
+    situation: 'picture-accepted',
+    callShape: 'POST /api/v1/pictures with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
+    expected:  { verdict: 'answered', status: 200, body: { pictureId: RECORDED_PICTURE_ID, bytes: RECORDED_PICTURE.length, mediaType: 'image/png' } },
+  },
+  {
+    call:      'pictureOf',
+    situation: 'picture-accepted',
+    callShape: `GET /api/v1/pictures/${RECORDED_PICTURE_ID} with bearer`,
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).pictureOf(ACCESS, RECORDED_PICTURE_ID),
+    expected:  {
+      verdict: 'answered', status: 200, contentType: 'image/png', bytes: RECORDED_PICTURE,
+    },
+  },
+  {
+    call:      'uploadPicture',
+    situation: 'picture-too-large',
+    callShape: 'POST /api/v1/pictures with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
+    expected:  { verdict: 'answered', status: 413, body: expect.objectContaining({ refusal: 'picture-too-large', fields: { bytes: 3_932_161, sizeLimitBytes: 3_932_160 } }) },
+  },
+  {
+    call:      'uploadPicture',
+    situation: 'picture-not-a-picture',
+    callShape: 'POST /api/v1/pictures with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'text/plain'),
+    expected:  { verdict: 'answered', status: 415, body: expect.objectContaining({ refusal: 'picture-type-unsupported' }) },
+  },
+  {
+    call:      'uploadPicture',
+    situation: 'intake-conversation',
+    callShape: 'POST /api/v1/pictures with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ pictureId: RECORDED_PICTURE_ID }) },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'intake-conversation',
+    callShape: 'POST /api/v1/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'intake-start', text: 'Example: suggest searches.' }),
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ outcome: 'done' }) },
+  },
+  {
+    call:      'followJobStream',
+    situation: 'intake-conversation',
+    callShape: `STREAM /api/v1/jobs/${RECORDED_JOB_ID}/stream with bearer`,
+    answerOf:  async (overseerFetch) => {
+      const follow = (onEvent: (event: ForgeStreamEvent) => void) => clientOf(overseerFetch).followJobStream(ACCESS, RECORDED_JOB_ID, null, null, onEvent);
+      return (await followedEventsOf(follow, 2)).events.map(({ eventName }) => eventName);
+    },
+    expected: ['handshake', 'history'],
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'gate-profile-run',
+    callShape: 'POST /api/v1/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, {
+      kind: 'gate-profile-start', setupId: 'S1', gateName: 'unit', phase: 'build'
+    }),
+    expected: { verdict: 'answered', status: 200, body: expect.objectContaining({ outcome: 'done' }) },
+  },
+  {
+    call:      'followProfileStream',
+    situation: 'gate-profile-run',
+    callShape: `STREAM /api/v1/profiles/${RECORDED_PROFILE_RUN_ID}/stream with bearer`,
+    answerOf:  async (overseerFetch) => {
+      const follow = (onEvent: (event: ForgeStreamEvent) => void) => clientOf(overseerFetch).followProfileStream(ACCESS, RECORDED_PROFILE_RUN_ID, null, null, onEvent);
+      return (await followedEventsOf(follow, 2)).events;
+    },
+    expected: [BOARD_STREAM_EVENT_OF_THE_HANDSHAKE, { id: '1', eventName: 'line', data: JSON.stringify({ text: 'Example gate passed\n' }) }],
+  },
+];
+
+describe('each outcome of each board call', () => {
+  for (const outcomeCase of BOARD_OUTCOME_CASES) {
+    test(`${outcomeCase.call} answers ${JSON.stringify(outcomeCase.expected)} where the board is ${outcomeCase.situation}`, async () => {
+      expect(await outcomeCase.answerOf(boardFetchOf(outcomeCase.situation))).toEqual(outcomeCase.expected);
+    });
+  }
+
+  test('is proven by exactly the recorded answers of the board\'s situations, each used once', () => {
+    const provenCallShapes   = BOARD_OUTCOME_CASES.map(({ situation, callShape }) => situationCallShapeOf(situation, callShape));
+    const recordedCallShapes = everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape)
+      .filter((callShape) => BOARD_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, ''))));
+    expect([...provenCallShapes].sort()).toEqual([...recordedCallShapes].sort());
+  });
+
+  test('keep a refused token, an Overseer that is down and an answer that is no JSON as the verdicts a document call gives', async () => {
+    const outcomes = await Promise.all((['token-rejected', 'stopped', 'port-held-by-another-program'] as const).map(async (situation) => [
+      await clientOf(overseerFetchOf(situation)).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    ]));
+    expect(outcomes).toEqual([[{ verdict: 'unauthorized' }], [{ verdict: 'unreachable' }], [{ verdict: 'malformed' }]]);
+  });
+
+  test('fail on a call with no recorded answer, such as a board read where only a picture was recorded', async () => {
+    await expect(clientOf(boardFetchOf('picture-too-large')).boardOf(ACCESS)).rejects.toThrow('No recorded answer for GET /api/v1/board with bearer');
+  });
+});
+
+describe('following a board stream', () => {
+  test('hands on each whole event with its id, the handshake with none, and never one the stream left unfinished', async () => {
+    // The program that is no forge answers every path alike, so its stream cut inside an event stands for the board's stream too.
+    const cutStream = recordedOverseerAnswersOf('stream-cut-inside-event').map(({ answer }) => ({ callShape: 'STREAM /api/v1/events with bearer', answer }));
+    const events: ForgeStreamEvent[] = [];
+    const end = await clientOf(recordedOverseerFetch(cutStream)).followEvents(ACCESS, null, (event) => events.push(event)).ended;
+    expect([events.map(({ id, eventName }) => [id, eventName]), end]).toEqual([[[null, 'monitor']], { verdict: 'ended', ending: 'closed' }]);
+    const { events: boardEvents } = await followedEventsOf((onEvent) => clientOf(boardFetchOf('board-at-work')).followEvents(ACCESS, null, onEvent), 2);
+    const boardEventData = boardEvents.map((event) => JSON.parse(event.data) as unknown);
+    expect(boardEventData).toEqual([{ systemVersion: SUPPORTED_FORGE_VERSION }, expect.objectContaining({ project: 'Example Storefront' })]);
+  });
+
+  test('sends the cursor as after= in the query and the last event id as its header', async () => {
+    const overseerFetch = recordedOverseerFetch([]);
+    const follow = clientOf(overseerFetch).followJobStream(ACCESS, RECORDED_JOB_ID, '7', '7', () => undefined);
+    await expect(follow.ended).rejects.toThrow(`No recorded answer for STREAM /api/v1/jobs/${RECORDED_JOB_ID}/stream?after=7 with bearer from a last event id`);
+  });
+
+  test('ends stopped and leaves no stream open when stopped', async () => {
+    const overseerFetch = boardFetchOf('gate-profile-run');
+    const { end } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followProfileStream(ACCESS, RECORDED_PROFILE_RUN_ID, null, null, onEvent), 1);
+    expect([end, overseerFetch.streamsLeftOpen()]).toEqual([{ verdict: 'ended', ending: 'stopped' }, 0]);
+  });
+});
+
+describe('the token on the board\'s calls', () => {
+  test('travels as the bearer of every board request and stream', async () => {
+    const answered = await Promise.all(BOARD_OUTCOME_CASES.map(async (outcomeCase) => {
+      const overseerFetch = boardFetchOf(outcomeCase.situation);
+      await outcomeCase.answerOf(overseerFetch);
+      return overseerFetch.callsAnswered().map(({ bearerToken }) => bearerToken);
+    }));
+    expect(new Set(answered.flat())).toEqual(new Set([EXAMPLE_TOKEN]));
+  });
+
+  test('is carried by no answer of any board outcome', async () => {
+    const answers = await Promise.all(BOARD_OUTCOME_CASES.map(async (outcomeCase) => outcomeCase.answerOf(boardFetchOf(outcomeCase.situation))));
+    expect(JSON.stringify(answers)).not.toContain(EXAMPLE_TOKEN);
   });
 });

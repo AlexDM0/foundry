@@ -6,20 +6,26 @@
  * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
  * forge-program-refused` or an overseer-fetch recording.
  * The recording of the forge Gaia supports holds the brain's refusals (`usage-limit-holds`, `no-flint`), which reach the page through the
- * command answer.
+ * command answer. The board's answers are left out: the board contract shows a forge's sentence as the forge serves it (decision 45).
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { FleetDocumentForge }                                                                 from '../../../page/@types/FleetDocument.ts';
-import { CONTRACT_VERSIONS }                                                                       from '../../shared/constants/ContractVersions.ts';
-import { everyRecordedOverseerAnswerOf, everyRecordedVersionsAnswerOf, type RecordedStreamAnswer } from '../../testing/RecordedAnswers.ts';
-import { recordedRunsOf }                                                                          from '../../testing/RecordedRuns.ts';
-import type { ForgeIdentity, ForgeRegistryFacts }                                                  from '../forge-api/@types/ForgeDocumentReading.ts';
-import { MonitorSnapshotIngestion }                                                                from '../forge-api/MonitorSnapshotIngestion.ts';
-import { FleetDocumentMapUtil }                                                                    from './FleetDocumentMapUtil.ts';
-import { ForgeSentenceUtil }                                                                       from './ForgeSentenceUtil.ts';
-import { PageAnswerMapUtil }                                                                       from './PageAnswerMapUtil.ts';
-import { FLEET_SNAPSHOT_EMPTY }                                                                    from './testing/fleet-snapshot-empty.ts';
+import type { FleetDocumentForge } from '../../../page/@types/FleetDocument.ts';
+import { CONTRACT_VERSIONS }       from '../../shared/constants/ContractVersions.ts';
+import {
+  BOARD_SITUATIONS,
+  everyRecordedOverseerAnswerOf,
+  everyRecordedVersionsAnswerOf,
+  situationCallShapeOf,
+  type RecordedStreamAnswer,
+} from '../../testing/RecordedAnswers.ts';
+import { recordedRunsOf }                         from '../../testing/RecordedRuns.ts';
+import type { ForgeIdentity, ForgeRegistryFacts } from '../forge-api/@types/ForgeDocumentReading.ts';
+import { MonitorSnapshotIngestion }               from '../forge-api/MonitorSnapshotIngestion.ts';
+import { FleetDocumentMapUtil }                   from './FleetDocumentMapUtil.ts';
+import { ForgeSentenceUtil }                      from './ForgeSentenceUtil.ts';
+import { PageAnswerMapUtil }                      from './PageAnswerMapUtil.ts';
+import { FLEET_SNAPSHOT_EMPTY }                   from './testing/fleet-snapshot-empty.ts';
 
 const FORGE_PROGRAM_RECORDINGS = ['forge-program', 'forge-program-done', 'forge-program-refused'] as const;
 
@@ -65,9 +71,14 @@ function isStreamAnswer(answer: unknown): answer is Extract<RecordedStreamAnswer
   return isRecord(answer) && answer['verdict'] === 'streaming';
 }
 
-/** Every JSON document the recorded Overseers answered: whole bodies, and each event of a stream. */
+function isBoardAnswer(callShape: string): boolean {
+  return BOARD_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')));
+}
+
+/** Every JSON document the recorded Overseers answered outside the board: whole bodies, and each event of a stream. */
 function recordedOverseerDocuments(): unknown[] {
-  return [...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()].flatMap(({ answer }) => {
+  const answers = [...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()].filter(({ callShape }) => !isBoardAnswer(callShape));
+  return answers.flatMap(({ answer }) => {
     if (isStreamAnswer(answer)) {
       return answer.chunks.join('').split('\n')
         .filter((line) => line.startsWith(EVENT_DATA_PREFIX))

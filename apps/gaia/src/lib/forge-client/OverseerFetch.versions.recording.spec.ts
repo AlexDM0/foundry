@@ -48,7 +48,8 @@ const NOT_FOUND_STATUS = 404;
 /** Forge's test setting, `<current>/<minimum supported>`; empty reads as unset, so no setting of the recording's own shell reaches a forge. */
 const VERSIONS_ANSWER_VARIABLE = 'FORGE_VERSIONS_ANSWER';
 const OLDER_VERSIONS_ANSWER = '1.0/0.0';
-const AHEAD_VERSIONS_ANSWER = '1.3/1.0';
+/** One minor ahead of the version Gaia supports, still serving it. */
+const AHEAD_VERSIONS_ANSWER = `${SUPPORTED_FORGE_VERSION.major}.${SUPPORTED_FORGE_VERSION.minor + 1}/1.0`;
 const NEWER_VERSIONS_ANSWER = '2.1/2.0';
 const VERSIONS_ANSWER_UNSET = '';
 const MONITOR_EVENT_PATTERN = /event: monitor\ndata: [^\n]*\n\n/;
@@ -114,7 +115,14 @@ function requestOf(situation: VersionsSituation, method: OverseerRequest['method
   const { overseerUrl, bearerToken } = situationForgeOf(situation);
   const pathIsOpen = path === ApiPathUtil.VERSIONS_PATH || path === versionedPathOf('identity', 'identity');
   return {
-    overseerUrl, method, path, bearerToken: pathIsOpen ? null : bearerToken, jsonBody, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+    overseerUrl,
+    method,
+    path,
+    bearerToken:         pathIsOpen ? null : bearerToken,
+    jsonBody,
+    byteBody:            null,
+    answerAs:            'text',
+    timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
   };
 }
 
@@ -186,7 +194,7 @@ describe('forges at another system version than the one Gaia supports', () => {
   test('a forge from before system versions answers /api/versions as any unknown path, 404 not-found', async () => {
     expect(await versionsOf('versions-absent')).toBeNull();
     const absentAnswers = keptAnswers.filter(({ callShape }) => callShape.startsWith('versions-absent'));
-    expect(absentAnswers.map(({ answer }) => answer)).toEqual([{ verdict: 'answered', status: NOT_FOUND_STATUS, bodyText: '{"refusal":"not-found"}' }]);
+    expect(absentAnswers.map(({ answer }) => answer)).toMatchObject([{ verdict: 'answered', status: NOT_FOUND_STATUS, bodyText: '{"refusal":"not-found"}' }]);
   });
 
   test('the forge set ahead by its test setting is ahead, and answers each versioned path Gaia calls', async () => {
@@ -206,7 +214,7 @@ describe('forges at another system version than the one Gaia supports', () => {
   test('the forge set ahead streams its handshake and its first monitor event at the versioned path Gaia calls', async () => {
     const { overseerUrl, bearerToken } = situationForgeOf('versions-ahead');
     const streamRequest: OverseerStreamRequest = {
-      overseerUrl, path: versionedPathOf('monitorEvents', 'monitor/events'), bearerToken, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+      overseerUrl, path: versionedPathOf('monitorEvents', 'monitor/events'), bearerToken, lastEventId: null, timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
     };
     const opening = await realOverseerFetch().openStream(streamRequest);
     if (opening.verdict !== 'streaming') throw new Error(`the monitor stream answered ${JSON.stringify(opening)}`);

@@ -22,6 +22,7 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
 import { RegistryFile }                       from '../adapters/forge-registry/RegistryFile.ts';
 import { forgeClientOf }                      from '../lib/forge-client/ForgeClient.ts';
 import type { OverseerAnswer, OverseerFetch } from '../lib/forge-client/OverseerFetch.ts';
+import { SUPPORTED_FORGE_VERSION }            from '../lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ForgeReading }                  from '../shared/@types/ForgeReading.ts';
 import { ForgeVersionsUtil }                  from '../shared/utils/ForgeVersionsUtil.ts';
 import { manualTimers, type ManualTimers }    from '../testing/ManualTimers.ts';
@@ -599,6 +600,8 @@ describe('a stopped watch', () => {
 });
 
 describe('a forge\'s system version', () => {
+  /** The version the ahead forge was recorded at: one minor past the one this Gaia supports. */
+  const ONE_MINOR_AHEAD: SystemVersion = { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor + 1 };
   const VERSIONED_PATHS_ASKED = ['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v2/monitor/events with bearer'];
 
   async function onlyReadingOfAnswers(answers: readonly RecordedOverseerAnswer[], supportedForgeVersion: SystemVersion | null = null) {
@@ -613,13 +616,13 @@ describe('a forge\'s system version', () => {
   test('of a forge at the version this Gaia supports is current, and it is read in full at the versioned paths', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(answersOf('serving-every-contract'));
     expect([reading.fidelity, reading.condition, reading.versions])
-      .toEqual(['full', 'live', { verdict: 'current', current: { major: 1, minor: 1 }, minimumSupported: { major: 0, minor: 0 } }]);
+      .toEqual(['full', 'live', { verdict: 'current', current: SUPPORTED_FORGE_VERSION, minimumSupported: { major: 0, minor: 0 } }]);
     expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
   });
 
   test('of a forge ahead of this Gaia that still serves its version is ahead, and it is read in full with what this Gaia knows', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(recordedVersionsAnswersOf('versions-ahead'));
-    expect([reading.fidelity, reading.versions]).toEqual(['full', { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } }]);
+    expect([reading.fidelity, reading.versions]).toEqual(['full', { verdict: 'ahead', current: ONE_MINOR_AHEAD, minimumSupported: { major: 1, minor: 0 } }]);
     expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
   });
 
@@ -638,7 +641,7 @@ describe('a forge\'s system version', () => {
   });
 
   test('of the forge Gaia supports read by a Gaia that supports a later one is older too, read from the same answer', async () => {
-    const { reading, callShapes } = await onlyReadingOfAnswers(answersOf('serving-every-contract'), { major: 1, minor: 2 });
+    const { reading, callShapes } = await onlyReadingOfAnswers(answersOf('serving-every-contract'), ONE_MINOR_AHEAD);
     expect([reading.fidelity, reading.versions?.verdict]).toEqual(['older-contract', 'older']);
     expect(callShapes()).toEqual(['GET /api/versions']);
   });

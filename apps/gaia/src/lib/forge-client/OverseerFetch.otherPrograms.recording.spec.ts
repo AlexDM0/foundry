@@ -3,8 +3,8 @@
  * that are no forge, on the port a registry entry names, and the boundary's real `fetch` records what it answers at each path Gaia calls:
  * a web page on every route Gaia asks, `/api/versions` included, and a stream that sends an event no snapshot can be read from, or ends
  * inside an event. No forge sends these, and a forge cannot be brought to; the Bun that serves them stamps the recording. Local servers
- * prove the rest of the boundary against the real `fetch`, recording nothing: the bearer and the body it sends, a bound that runs out, and
- * a stream read until it ends, breaks or is closed.
+ * prove the rest of the boundary against the real `fetch`, recording nothing: the bearer and the body it sends, a byte body and a byte
+ * answer with their content types, a bound that runs out, and a stream, with its last event id, read until it ends, breaks or is closed.
  */
 import {
   afterEach,
@@ -83,13 +83,20 @@ function eventStreamOf(texts: readonly string[]): Response {
 
 function requestOf(overseerUrl: string, method: OverseerRequest['method'], path: string, bearerToken: string | null, jsonBody: string | null = null): OverseerRequest {
   return {
-    overseerUrl, method, path, bearerToken, jsonBody: jsonBody ?? (method === 'POST' ? '{"kind":"overseer-pause"}' : null), timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
+    overseerUrl,
+    method,
+    path,
+    bearerToken,
+    jsonBody:            jsonBody ?? (method === 'POST' ? '{"kind":"overseer-pause"}' : null),
+    byteBody:            null,
+    answerAs:            'text',
+    timeoutMilliseconds: GENEROUS_BOUND_MILLISECONDS,
   };
 }
 
 function streamRequestOf(overseerUrl: string, bearerToken = EXAMPLE_TOKEN, timeoutMilliseconds = GENEROUS_BOUND_MILLISECONDS): OverseerStreamRequest {
   return {
-    overseerUrl, path: PATHS.monitorEvents, bearerToken, timeoutMilliseconds,
+    overseerUrl, path: PATHS.monitorEvents, bearerToken, lastEventId: null, timeoutMilliseconds,
   };
 }
 
@@ -137,10 +144,10 @@ describe('another program on the Overseer\'s port', () => {
     ];
     for (const pageRequest of requests) {
       const answer = await realOverseerFetch().request(pageRequest);
-      expect(answer).toEqual({ verdict: 'answered', status: 200, bodyText: WEB_PAGE });
+      expect(answer).toMatchObject({ verdict: 'answered', status: 200, bodyText: WEB_PAGE });
       recordAnswer(RECORDING_NAME, situationCallShapeOf('port-held-by-another-program', requestCallShapeOf(pageRequest)), answer);
     }
-    expect(await recordStream('port-held-by-another-program', overseerUrl)).toEqual({ verdict: 'answered', status: 200, bodyText: WEB_PAGE });
+    expect(await recordStream('port-held-by-another-program', overseerUrl)).toMatchObject({ verdict: 'answered', status: 200, bodyText: WEB_PAGE });
   });
 });
 
@@ -169,11 +176,41 @@ describe('a request', () => {
     });
     try {
       const answer = await realOverseerFetch().request(requestOf(server.url.href, 'POST', PATHS.commands, EXAMPLE_TOKEN, '{"kind":"overseer-pause"}'));
-      expect(answer).toEqual({ verdict: 'answered', status: SUCCESS_STATUS, bodyText: '{"outcome":"done"}' });
+      expect(answer).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS, bodyText: '{"outcome":"done"}' });
       expect(seen).toEqual([{ authorization: `Bearer ${EXAMPLE_TOKEN}`, contentType: 'application/json', body: '{"kind":"overseer-pause"}' }]);
     } finally {
       await server.stop(true);
     }
+  });
+
+  test('sends a byte body with its media type, and keeps a byte answer\'s bytes and content type', async () => {
+    const pictureBytes = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0xff]);
+    const seen: { contentType: string | null; bytes: Uint8Array }[] = [];
+    const server = Bun.serve({
+      hostname: '127.0.0.1',
+      port:     0,
+      fetch:    async (request) => {
+        seen.push({ contentType: request.headers.get('Content-Type'), bytes: new Uint8Array(await request.arrayBuffer()) });
+        return new Response(pictureBytes, { headers: { 'Content-Type': 'image/png' } });
+      },
+    });
+    try {
+      const byteRequest: OverseerRequest = {
+        ...requestOf(server.url.href, 'POST', PATHS.commands, EXAMPLE_TOKEN), jsonBody: null, byteBody: { bytes: pictureBytes, mediaType: 'image/png' }, answerAs: 'bytes',
+      };
+      expect(await realOverseerFetch().request(byteRequest)).toEqual({
+        verdict: 'answered', status: SUCCESS_STATUS, contentType: 'image/png', bodyText: '', bodyBytes: pictureBytes,
+      });
+      expect(seen).toEqual([{ contentType: 'image/png', bytes: pictureBytes }]);
+    } finally {
+      await server.stop(true);
+    }
+  });
+
+  test('throws for a request that carries a JSON body and a byte body', async () => {
+    const byteBody = { bytes: new Uint8Array(1), mediaType: 'image/png' };
+    const twoBodies: OverseerRequest = { ...requestOf('http://127.0.0.1:1/', 'POST', PATHS.commands, EXAMPLE_TOKEN, '{}'), byteBody };
+    await expect(realOverseerFetch().request(twoBodies)).rejects.toThrow('never both');
   });
 
   test('sends no authorization without a token', async () => {
@@ -233,11 +270,31 @@ describe('a stream', () => {
     }
   });
 
+  test('sends the last event id it is given as Last-Event-ID, and none when it is given none', async () => {
+    const lastEventIds: (string | null)[] = [];
+    const server = Bun.serve({
+      hostname: '127.0.0.1',
+      port:     0,
+      fetch:    (request) => {
+        lastEventIds.push(request.headers.get('Last-Event-ID'));
+        return new Response('', { headers: { 'Content-Type': 'text/event-stream' } });
+      },
+    });
+    try {
+      for (const lastEventId of ['1-35', null]) {
+        streamOf(await realOverseerFetch().openStream({ ...streamRequestOf(server.url.href), lastEventId })).close();
+      }
+      expect(lastEventIds).toEqual(['1-35', null]);
+    } finally {
+      await server.stop(true);
+    }
+  });
+
   test('answers a head other than an event stream with its status and body', async () => {
     const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: () => Response.json({ refusal: 'unauthorized' }, { status: UNAUTHORIZED_STATUS }) });
     try {
       expect(await realOverseerFetch().openStream(streamRequestOf(server.url.href, WRONG_TOKEN)))
-        .toEqual({ verdict: 'answered', status: UNAUTHORIZED_STATUS, bodyText: '{"refusal":"unauthorized"}' });
+        .toMatchObject({ verdict: 'answered', status: UNAUTHORIZED_STATUS, bodyText: '{"refusal":"unauthorized"}' });
     } finally {
       await server.stop(true);
     }
