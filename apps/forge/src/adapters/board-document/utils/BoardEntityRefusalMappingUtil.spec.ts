@@ -1,8 +1,9 @@
 /**
  * The draft's entity refusals as the board document serves them. What matters: each is a verdict of the validator a stored pipeline must
- * pass, so entities it takes have none; each carries the command line's sentence of its `pipeline-draft-invalid` refusal, the entities it
- * names and the row that shows it; and where one gesture resolves it, that gesture's label and typed draft edits, which leave entities the
- * validator takes. The cases are those of the Bridge's `EntityRefusalsModel.spec.ts`, whose fixture this one copies.
+ * pass, so entities it takes have none; each carries a sentence that says what is wrong and that Continue and Apply wait for the fix, never
+ * that nothing was written, since the edit that left it is kept; the entities it names and the row that shows it; and where one gesture
+ * resolves it, that gesture's label and typed draft edits, which leave entities the validator takes. The cases are those of the Bridge's
+ * `EntityRefusalsModel.spec.ts`, whose fixture this one copies.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -42,8 +43,8 @@ function refusalsOf(draft: Pipeline | null): ReturnType<typeof BoardEntityRefusa
   return BoardEntityRefusalMappingUtil.entityRefusalsOf(SETUP_ID, draft);
 }
 
-function commandLineSentenceOf(reason: string): string {
-  return `The edit would leave pipeline setup ${SETUP_ID}'s draft a pipeline that cannot be stored: ${reason}. Nothing was written.`;
+function standingSentenceOf(reason: string): string {
+  return `Pipeline setup ${SETUP_ID}'s draft cannot be stored as it is: ${reason}. Continue and Apply wait until it is fixed.`;
 }
 
 function resolvedByItsFix(draft: Pipeline): boolean {
@@ -67,7 +68,7 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
       reason:     'unknown-whitelist-key',
       entityKeys: ['admin'],
       shownOn:    'admin',
-      sentence:   commandLineSentenceOf('entities.admin.whitelist names "shared", which is not an entity'),
+      sentence:   standingSentenceOf('entities.admin.whitelist names "shared", which is not an entity'),
       fix:        { label: 'Take shared off', edits: [{ target: 'within-entity', entityKey: 'admin', edit: { target: 'whitelist', value: null } }] },
     }]);
     expect(resolvedByItsFix(draft)).toBe(true);
@@ -76,7 +77,7 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
   test('a whitelisted package without review is resolved by giving it a review step', () => {
     const draft = draftWith({ admin: { whitelist: ['config'] } });
     const [refusal] = refusalsOf(draft);
-    expect(refusal?.sentence).toBe(commandLineSentenceOf('entities.admin.whitelist names "config", a package without a review'));
+    expect(refusal?.sentence).toBe(standingSentenceOf('entities.admin.whitelist names "config", a package without a review'));
     expect([refusal?.reason, refusal?.entityKeys, refusal?.fix?.label]).toEqual(['whitelisted-package-without-review', ['admin', 'config'], 'Give config a review step']);
     expect(resolvedByItsFix(draft)).toBe(true);
   });
@@ -84,7 +85,7 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
   test('a whitelisted app is no package, and taking it off keeps the rest of the whitelist', () => {
     const draft = draftWith({ web: { whitelist: ['ui', 'admin'] } });
     const [refusal] = refusalsOf(draft);
-    expect(refusal?.sentence).toBe(commandLineSentenceOf('entities.web.whitelist names "admin", which is not a package'));
+    expect(refusal?.sentence).toBe(standingSentenceOf('entities.web.whitelist names "admin", which is not a package'));
     expect(refusal?.fix?.edits).toEqual([{ target: 'within-entity', entityKey: 'web', edit: { target: 'whitelist', value: ['ui'] } }]);
     expect(resolvedByItsFix(draft)).toBe(true);
   });
@@ -92,7 +93,7 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
   test('two entities with one home folder show on the last one, which gives it up when it keeps another', () => {
     const draft = draftWith({ docs: { home: ['/docs', '/packages/ui'] } });
     const [refusal] = refusalsOf(draft);
-    expect(refusal?.sentence).toBe(commandLineSentenceOf('the entities ui, docs share the home "/packages/ui"'));
+    expect(refusal?.sentence).toBe(standingSentenceOf('the entities ui, docs share the home "/packages/ui"'));
     expect([refusal?.shownOn, refusal?.fix?.label]).toEqual(['docs', 'Remove packages/ui from docs']);
     expect(resolvedByItsFix(draft)).toBe(true);
   });
@@ -103,7 +104,7 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
 
   test('a circle of dependencies names its entities, shows on the first, and has no one-gesture fix', () => {
     const [refusal] = refusalsOf(draftWith({ config: { dependsOn: ['ui'] } }));
-    expect(refusal?.sentence).toBe(commandLineSentenceOf('the entities ui -> config -> ui depend on each other in a circle'));
+    expect(refusal?.sentence).toBe(standingSentenceOf('the entities ui -> config -> ui depend on each other in a circle'));
     expect([refusal?.entityKeys, refusal?.shownOn, refusal?.fix]).toEqual([['ui', 'config'], 'ui', null]);
   });
 
@@ -115,7 +116,7 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
   test('an unknown dependency is removed from what the entity depends on', () => {
     const draft = draftWith({ docs: { dependsOn: ['theme'] } });
     const [refusal] = refusalsOf(draft);
-    expect(refusal?.sentence).toBe(commandLineSentenceOf('entities.docs.dependsOn names "theme", which is not an entity'));
+    expect(refusal?.sentence).toBe(standingSentenceOf('entities.docs.dependsOn names "theme", which is not an entity'));
     expect(refusal?.fix?.label).toBe('Remove theme from what docs depends on');
     expect(resolvedByItsFix(draft)).toBe(true);
   });
@@ -123,11 +124,28 @@ describe('BoardEntityRefusalMappingUtil.entityRefusalsOf', () => {
   test('E9: a reach path inside another entity\'s home shows on the entity that names it, and taking it off resolves it', () => {
     const draft = draftWith({ admin: { reach: ['/bun.lock', '/packages/ui/generated/'] } });
     const [refusal] = refusalsOf(draft);
-    expect(refusal?.sentence).toBe(commandLineSentenceOf(
+    expect(refusal?.sentence).toBe(standingSentenceOf(
       'entities.admin.reach names "/packages/ui/generated/", which reaches into the home of the entity ui; reach names only paths the root entity owns'
     ));
     expect([refusal?.entityKeys, refusal?.shownOn, refusal?.fix?.label]).toEqual([['admin', 'ui'], 'admin', 'Take /packages/ui/generated/ off admin\'s reach']);
     expect(resolvedByItsFix(draft)).toBe(true);
+  });
+
+  test('no served sentence says nothing was written, since the edit that left the refusal is kept', () => {
+    const draft = draftWith({
+      admin:   { whitelist: ['shared', 'config'], dependsOn: ['theme'], reach: ['/packages/ui/generated/'] },
+      config:  { dependsOn: ['ui'] },
+      docs:    { home: ['/packages/ui'] },
+      web:     { whitelist: ['ui', 'admin'] },
+      tools:   entityOf('root', ['/tools']),
+      scripts: entityOf('root', ['/scripts']),
+    });
+    const sentences = refusalsOf(draft).map((refusal) => refusal.sentence);
+    expect(new Set(refusalsOf(draft).map((refusal) => refusal.reason)).size).toBe(8);
+    for (const sentence of sentences) {
+      expect(sentence.toLowerCase()).not.toContain('nothing was written');
+      expect(sentence).toEndWith('Continue and Apply wait until it is fixed.');
+    }
   });
 
   test('several refusals are served in the validator\'s order, one document each', () => {

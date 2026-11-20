@@ -531,7 +531,7 @@ export interface BoardEntityRefusalDocument {
   readonly entityKeys: readonly EntityKey[];
   /** The entity whose row shows the refusal. */
   readonly shownOn:    EntityKey;
-  /** The command line's sentence for this refusal, as its `pipeline-draft-invalid` refusal words it. */
+  /** What is wrong, and that Continue and Apply wait until it is fixed; the edit that left it is kept. */
   readonly sentence:   string;
   /** `null` when no one gesture resolves it. */
   readonly fix:        BoardEntityRefusalFixDocument | null;

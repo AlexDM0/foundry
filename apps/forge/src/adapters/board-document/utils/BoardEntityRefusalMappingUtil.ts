@@ -1,7 +1,7 @@
 /**
  * The refusals a setup draft's entities hold, mapped into the contract's entity refusal documents: each verdict of the entity validator
- * with the entity whose row shows it, the command line's sentence of its `pipeline-draft-invalid` refusal and, where one gesture resolves
- * it, that gesture as typed draft edits. Which gesture resolves a refusal is forge's rule, so a view shows the fix and sends its edits.
+ * with the entity whose row shows it, the sentence of a standing refusal (the edit is kept, Continue and Apply wait) and, where one
+ * gesture resolves it, that gesture as typed draft edits. Which gesture resolves a refusal is forge's rule, so a view shows the fix and sends its edits.
  */
 import type {
   BoardEntityRefusalDocument,
@@ -13,7 +13,6 @@ import type {
 import type { EntityKey, Pipeline, PipelineEntity }   from '../../../lib/tracker-model/@types/Pipeline.ts';
 import { EntityOwnershipUtil, type PipelineEntities } from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { EntityValidationUtil, type EntityRefusal }   from '../../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { OperationRefusal }                           from '../../../shared/OperationRefusal.ts';
 import { OperationRefusalWordingUtil }                from '../../utils/OperationRefusalWordingUtil.ts';
 
 /** The review step a whitelisted package gets when a fix gives it one. */
@@ -121,17 +120,12 @@ function shownOnOf(refusal: EntityRefusal): EntityKey {
   }
 }
 
-function sentenceOf(setupId: string, refusal: EntityRefusal): string {
-  const reason = OperationRefusalWordingUtil.entityRefusalReasonOf(refusal);
-  return OperationRefusalWordingUtil.messageOf(new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId, reason }));
-}
-
 function entityRefusalOf(setupId: string, entities: PipelineEntities, refusal: EntityRefusal): BoardEntityRefusalDocument {
   return {
     reason:     refusal.reason,
     entityKeys: entityKeysOf(refusal),
     shownOn:    shownOnOf(refusal),
-    sentence:   sentenceOf(setupId, refusal),
+    sentence:   OperationRefusalWordingUtil.standingEntityRefusalSentenceOf(setupId, refusal),
     fix:        fixOf(entities, refusal),
   };
 }

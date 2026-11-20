@@ -960,6 +960,15 @@ function entityRefusalReasonOf(refusal: EntityRefusal): string {
   }
 }
 
+/**
+ * The sentence a refusal the draft's entities hold is served with: the edit that left it is written and kept, so it says what is wrong
+ * and what waits for the fix, never that nothing was written.
+ */
+function standingEntityRefusalSentenceOf(setupId: string, refusal: EntityRefusal): string {
+  return `Pipeline setup ${setupId}'s draft cannot be stored as it is: ${entityRefusalReasonOf(refusal)}. `
+    + 'Continue and Apply wait until it is fixed.';
+}
+
 /** The sentence the command line prints. */
 function messageOf(refusal: OperationRefusal): string {
   return refusalSentenceOf(refusal, 'command-line');
@@ -977,6 +986,7 @@ export const OperationRefusalWordingUtil = {
   entityRefusalReasonOf,
   installVersionMismatchMessageOf,
   messageOf,
+  standingEntityRefusalSentenceOf,
   hatchAnsweredMessageOf,
   hatchQueuedMessageOf,
 } as const;
