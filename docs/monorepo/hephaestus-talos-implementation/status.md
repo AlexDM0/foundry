@@ -106,6 +106,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.14: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this checkout's
   `version`, no model call) to replace the hand-edited recording; commit it.
 
+- WP5.15: on a scratch forge, kill a live Overseer while it holds the store's lock; the next CLI write takes it over.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -206,6 +208,14 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.13: the Bridge's pipeline dialog is titled "Stored pipeline" and its footer button reads "View stored pipeline"
   (was `pipeline.json`). Confirm the wording; Gaia's view replaces it in stage 6.
 
+- WP5.15: an unreadable lock record can only be damage, because the tool creates each record whole. Not so where hard
+  links fail: `PosixFileReplace.createExclusively` falls back to `createNew`, and a racing reader is then refused
+  `lock-record-unreadable` where it used to wait. Confirm with two writers on exFAT or an SMB share.
+
+- WP5.15: a held lock record from forge 1.21 (`{processId, acquiredAt, state}`) is judged by its pid alone
+  (`GenerationLock.holderOfRecordBeforeProcessIdentity`). Confirm by updating a forge whose lock was left by a crashed
+  older forge.
+
 ### Blocked
 
 (none)
@@ -294,6 +304,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP5.14: four doc figures still show `pending` (PNG, alt text too): `docs/concepts/ticket-lifecycle.md:10`,
   `docs/operations/getting-started.md:276`, `runbook.md:304`, `running-a-board.md:522`. Redrawing needs `.readme-graphics`.
+
+- WP5.15: a lock holder with `processId` 0 or less reads as alive forever (`tracker-lock-held`; removing the record
+  frees it). A waiter now spawns `ps`/`sysctl` at each retry while a live holder holds the lock. Stale wording of the
+  old 30-second takeover: `WindowsFileReplace.ts:3`, `HoldJournal.spec.ts:127`, `CrashMatrix.spec.ts:286`.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -407,8 +421,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-I | WP5.11 | landed | 903ffd0d | First round, side by side with WP5.12. `LocalStoreLayout.ts` (`localStoreLayoutOf({trackerDirectory})`, not `Workspace`: a type import would make an import cycle; `boardIsStoredAt`); `TrackerFiles.ts` is `LocalStoreFiles.ts` (`LOCAL_STORE_FILES`); `Workspace` holds `rootDirectory`, `trackerDirectory`, `htmlFilePath`; `holdJournalFilePathOf` gone. The guard's final form: exactly the two composition roots, and the 'Removed by WP5.x' reason form dropped. Talos's local `talosRecordPath` renamed `talosRecordFilePath` (it matched the new pattern). `verify:integration` 872 pass, 1 skip, 0 fail |
 | 5-I | WP5.12 | landed | ac6f2609 | First round, rebased over WP5.11. apps/forge/CLAUDE.md: `store` in the layer order, the store-port rule, the command surface through `cli/ApplyCommandOfVerb.ts`, the `BoardStore` Deviations row; overview.md's transaction rows and line 49 (by-hand kinds go through the same path); glossary 'lock hold'. No `.claude/rules` file named the old names |
 | 5-J | WP5.14 | landed | d92558dd | First round. `pending` is `committed` in `TaskStatus`, `TASK_STATUSES`, `TICKET_STATUSES`; `TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP`; `allowsPastCommitted`; four refusal reasons; log record `ticket-committed` ("Ticket #003 committed"); `ticket-reopened` keeps its name. The contract already said `committed`, so `BoardPageMappingUtil.committedStatusOf` and the parity spec's mapping are gone; forge-contracts and Gaia unchanged (Gaia's `BoardSummaryIngestion.spec.ts:42` fixture still holds `pending`). `INSTALL_VERSION` 39 to 40; `SKILL.md` trimmed under its limit. The `InstallChangeWatch` recording was hand-edited (stamp and `installVersion` 40) because `bun run record` was refused to the agent |
-| 5-J | WP5.15 | running | | After stage 4 |
-| 5-K | WP5.16 | waiting | | |
+| 5-J | WP5.15 | landed | be631ad6 | Second round (first: a held lock record from before process identity was refused `lock-record-unreadable`; now read as a holder with a null identity, judged by pid alone). `LockHolders.ts` (`lockHolderOf`, read once per supervision; `lockHolderIsGoneOf`: gone when `processIsGone`, or the identity differs by stage 3's `sameProcess` with `sameBoot`); an unreadable identity counts as alive. The age rule, `LOCK_STALE_MILLISECONDS` and `NO_LOCK_HOLDER_READS_AS_GONE` are gone. `LockTaker`/`lockTakerOf` bundle the holder written and the judgement, so the store option is `lockTaker`; `LockHolder` lives in `GenerationLock.ts` (in `LockHolders.ts` it makes an import cycle). An unreadable store or landing lock record is refused `lock-record-unreadable` at once. Crash cases in `src/services/store/LocalFilesBoardStore.integration.spec.ts` (in `BOUNDARY_SPECS`). G4 `verify:integration` 874 pass, 1 skip, 0 fail |
+| 5-K | WP5.16 | running | | |
 | 5-L | WP5.17 | waiting | | |
 | 6-A | WP6.1 | waiting | | |
 | 6-B | WP6.2 | waiting | | |
