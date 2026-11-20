@@ -791,7 +791,9 @@ read is still reported with its location.
 - The epic filing: `src/services/control/FilingControls.ts`.
 - The outputs: `cli/tickets/TicketReadingSubcommands.ts` (`:51`), `src/adapters/utils/TicketJsonUtil.ts` (`:5`,
   `:18`), `cli/epics/EpicOutput.ts` (`:7`, `:32`), `cli/drafts/DraftOutput.ts` (`:12-19`), `cli/drafts/DraftCommand.ts`
-  (`:49`), `src/shared/@types/PagePayload.ts` (`:111`), `src/services/render/PagePayloadAssembly.ts` (`:61`).
+  (`:49`), `src/shared/@types/PagePayload.ts` (`:111`), `src/services/render/PagePayloadAssembly.ts` (`:61`), and, added by WP5.1,
+  `bridge/views/pipeline/live/PipelineFileDialog.tsx` (`title="pipeline.json"`) and `LiveFooter.tsx` ("View
+  pipeline.json").
 - The fixtures and specs: `src/testing/BoardFixtures.ts` (`:64`, `:75`),
   `src/lib/tracker-model/testing/LifecycleWorld.ts`, `src/testing/TrackerFileFixtures.ts`,
   `src/testing/WatcherJob.ts`, `src/testing/EveryBoardLogRecord.ts`, and every spec that builds a `Ticket` or an
@@ -985,7 +987,8 @@ only through `transactions.transact` and reads only through `reads`.
 in its place), `cli/overseer/OverseerForeground.ts`, `cli/overseer/OverseerFlintBrain.ts`,
 `cli/overseer/routes/BoardStateReader.ts`, `cli/overseer/routes/OverseerRoutes.ts`,
 `cli/overseer/routes/CommandRoute.ts` (the store from its request), `src/testing/DrivePassHarness.ts`, their specs, and
-`src/StoreBoundary.spec.ts`.
+`src/StoreBoundary.spec.ts`. Added by WP5.1, stage 3's files with a record path: `src/services/overseer/StartGate.ts`
+(`requireProgressFile`) and `cli/overseer/routes/PresenceReader.ts` (`requireTracker`).
 
 **What to do.**
 
@@ -1022,7 +1025,8 @@ unreadable pipeline's step, as the pass's write reads the pipeline unreadable. T
 (gate G4, `apps/forge/CLAUDE.md:20`).
 
 **Done when.** `src/StoreBoundary.spec.ts`'s allowlist holds no entry of `src/services/overseer/` or `cli/overseer/` but
-the composition-root import of `OverseerForeground.ts`; the root's `bun run verify` is green; the end-to-end check of
+the composition-root import of `OverseerForeground.ts` and the entries WP5.9 owns (`cli/overseer/OverseerCommand.ts`,
+`cli/overseer/StartCommand.ts`) while WP5.9 has not landed; the root's `bun run verify` is green; the end-to-end check of
 the whole stage passes in full.
 
 ### WP5.11 The record paths leave `Workspace`; the guard's final form
