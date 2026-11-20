@@ -9,16 +9,21 @@
  * no entity, is filed for the entity that owns the paths its Brief names, a builder's or a stage 5 reviewer's finding about a package's file
  * for the package (E83, E53), else for its finder job's entity; one whose paths span several owners is judged in the finder's entity and
  * refused before it is filed, as is one that would reach `pending` without an entity, leaving no ticket behind; a forge without entities
- * reads no Brief and files a finding with no entity. An assignment stamped with a job is the product owner's, any other User's.
+ * reads no Brief and files a finding with no entity. An assignment stamped with a job is the product owner's, any other User's. A filed
+ * ticket is the one the transaction's records allocate, and a reference to a ticket file the store cannot read finds it by the key the
+ * store gives it, the file name's number, so it is refused as malformed rather than as no ticket.
  */
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join }                     from 'node:path';
 
 import { afterEach, expect, test } from 'bun:test';
 
 import type { Pipeline }         from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Ticket }           from '../../lib/tracker-model/@types/Ticket.ts';
 import type { Board }            from '../../lib/tracker-model/Board.ts';
 import { PipelineUtil }          from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }      from '../../shared/OperationRefusal.ts';
 import {
   boardFixture,
   entityPipelineFixture,
@@ -29,6 +34,8 @@ import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/Ec
 import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
+import { listTickets }                                    from '../tracker/TicketStore.ts';
 import { workspacePathsFor }                              from '../tracker/Workspace.ts';
 import { ControlService }                                 from './ControlService.ts';
 
@@ -66,7 +73,7 @@ function boardWithOneTicket(
   mkdirSync(workspace.ticketsDirectory, { recursive: true });
   const { board } = boardFixture({ tickets: [ticket], ...(pipeline === undefined ? {} : { pipeline }) });
   const change = {
-    board, workspace, at: AT, unreadableRecords: NO_UNREADABLE_RECORDS
+    board, workspace, at: AT, records: createLocalRecordAllocation(workspace, board, NO_UNREADABLE_RECORDS), unreadableRecords: NO_UNREADABLE_RECORDS
   } as unknown as BoardTransaction;
   return { board, change };
 }
@@ -293,4 +300,89 @@ test('a forge without entities files a worker\'s finding with no entity, whateve
   ControlService.apply(findingOf(DESIGN_SYSTEM_FINDING_BODY), change, ECHOED_CONTROL_CONTEXT);
   expect(board.ticketByReference('002')?.frontmatter).not.toHaveProperty('entity');
   expect(board.ticketByReference('002')?.frontmatter.status).toBe('pending');
+});
+
+test('a filed ticket is the ticket the transaction\'s records answered, with the next free id', () => {
+  const { board, change } = boardWithOneTicket();
+  const answeredTickets: Ticket[] = [];
+  const recordingChange: BoardTransaction = {
+    ...change,
+    records: {
+      ...change.records,
+      newTicket: (input) => {
+        const answered = change.records.newTicket(input);
+        answeredTickets.push(answered);
+        return answered;
+      },
+    },
+  };
+
+  ControlService.apply(filingCommand([]), recordingChange, ECHOED_CONTROL_CONTEXT);
+
+  expect(answeredTickets.map((ticket) => ticket.frontmatter.id)).toEqual(['002']);
+  expect(board.tickets().find((ticket) => ticket.frontmatter.id === '002')).toBe(answeredTickets[0]);
+});
+
+/** A readable ticket file holding `id` 006, as the ticket writer stores a draft. */
+const TICKET_SIX_TEXT = [
+  '---',
+  'id: "006"',
+  'title: "Example checkout page"',
+  'type: "ticket"',
+  'status: "draft"',
+  'filed: "2026-09-18T09:00:00+02:00"',
+  'updated: "2026-09-18T09:00:00+02:00"',
+  'started: null',
+  'finished: null',
+  'delivered: null',
+  'abandonedAt: null',
+  'task: null',
+  '---',
+  '',
+].join('\n');
+
+/** Ticket 001 on the Board, beside three ticket files the store cannot read, listed and keyed as the local adapter keys them. */
+function boardBesideUnreadableTicketFiles(): BoardTransaction {
+  const { change } = boardWithOneTicket();
+  const { ticketsDirectory } = change.workspace;
+  writeFileSync(join(ticketsDirectory, '004-broken-by-hand.md'), 'A hand edit that lost the frontmatter.\n');
+  writeFileSync(join(ticketsDirectory, '007.md'), 'A hand edit that lost the frontmatter.\n');
+  writeFileSync(join(ticketsDirectory, '005-renamed-by-hand.md'), TICKET_SIX_TEXT);
+  return { ...change, unreadableRecords: { ...NO_UNREADABLE_RECORDS, tickets: listTickets(change.workspace).unreadable } };
+}
+
+function operationRefusalOf(attempt: () => unknown): OperationRefusal {
+  try {
+    attempt();
+  } catch (error) {
+    if (error instanceof OperationRefusal) return error;
+    throw error;
+  }
+  throw new Error('the command was not refused');
+}
+
+test.each([
+  ['4', '004-broken-by-hand.md'],
+  ['#7', '007.md'],
+  ['005', '005-renamed-by-hand.md'],
+])('a reference %s to a ticket file the store cannot read is unrepaired malformed-ticket-file naming %s', (reference, fileName) => {
+  const change     = boardBesideUnreadableTicketFiles();
+  const unreadable = change.unreadableRecords.tickets.find(({ location }) => location === join(change.workspace.ticketsDirectory, fileName));
+  if (unreadable === undefined) throw new Error(`the store listed no unreadable ${fileName}`);
+
+  const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-ready', ticketReferences: [reference] }, change, ECHOED_CONTROL_CONTEXT));
+
+  expect(refusal.status).toBe('unrepaired');
+  expect(refusal.detail).toEqual({
+    kind: 'malformed-ticket-file', filePath: unreadable.location, line: unreadable.line, reason: unreadable.reason
+  });
+});
+
+test('a reference to the id a renamed file holds finds no ticket: the file answers only for the number its name carries', () => {
+  const change = boardBesideUnreadableTicketFiles();
+
+  const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-ready', ticketReferences: ['6'] }, change, ECHOED_CONTROL_CONTEXT));
+
+  expect(refusal.status).toBe('refused');
+  expect(refusal.detail).toEqual({ kind: 'no-readable-ticket', reference: '6' });
 });

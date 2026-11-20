@@ -14,7 +14,6 @@ import type { Board }                          from '../../lib/tracker-model/Boa
 import { EntityOwnershipUtil }                 from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketDependencyUtil }                from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
 import type { BoardTransaction }               from '../tracker/BoardTransaction.ts';
-import { createTicket }                        from '../tracker/TicketStore.ts';
 
 type DecisionWordingOf = (draft: DecisionDraft) => DecisionWording;
 
@@ -97,7 +96,7 @@ function fileNeed(change: BoardTransaction, job: DeclaringJob, need: NeedToFile,
   if (needClosesAnEntityCircle(board.pipeline(), job.entity, need.entity)) {
     return [...declared, ...openNeedDecision(change, 'need-closes-circle', waitingTicketIds, needContext, decisionWordingOf)];
   }
-  const ticket = createTicket(change.workspace, board, {
+  const ticket = change.records.newTicket({
     title: need.title, type: 'ticket', bodyFor: () => need.body, at
   });
   ticket.frontmatter.entity     = need.entity;

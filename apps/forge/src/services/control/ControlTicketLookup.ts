@@ -2,8 +2,6 @@
  * A command's ticket reference resolved inside the hold: `3`, `003` and `#3` name one ticket. A reference with no ticket is refused, while
  * a file of that id that will not parse is unrepaired, a hand edit the tool will not repair; both leave as wordless details.
  */
-import { basename } from 'node:path';
-
 import { TicketIdUtil }          from '../../lib/tracker-model/utils/TicketIdUtil.ts';
 import { OperationRefusal }      from '../../shared/OperationRefusal.ts';
 import type { UnreadableRecord } from '../tracker/@types/BoardRecords.ts';
@@ -12,10 +10,7 @@ import type { BoardTransaction } from '../tracker/BoardTransaction.ts';
 function unreadableTicketNamedBy(change: Pick<BoardTransaction, 'unreadableRecords'>, reference: string): UnreadableRecord | undefined {
   const identifier = TicketIdUtil.parseTicketReference(reference);
   if (identifier === null) return undefined;
-  return change.unreadableRecords.tickets.find(({ location }) => {
-    const fileName = basename(location);
-    return fileName.startsWith(`${identifier}-`) || fileName === `${identifier}.md`;
-  });
+  return change.unreadableRecords.tickets.find(({ record, key }) => record === 'ticket' && key === identifier);
 }
 
 export function ticketIdOfReference(change: Pick<BoardTransaction, 'board' | 'unreadableRecords'>, reference: string): string {

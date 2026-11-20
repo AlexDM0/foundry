@@ -41,11 +41,13 @@ import {
 } from '../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
 import { fakeAgentAdapter }                                                                from '../../testing/FakeAgentAdapter.ts';
+import { NO_UNREADABLE_RECORDS }                                                           from '../../testing/FixtureRecordAllocation.ts';
 import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
 import { launchSnapshotOf }                                                                from '../lifecycle/Customs.ts';
 import type { BoardTransaction }                                                           from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                                                     from '../tracker/LocalRecordAllocation.ts';
 import { JobLaunch, type JobLaunchContext }                                                from './JobLaunch.ts';
 import { jobFolderIn }                                                                     from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }                                                from './RedHandoff.ts';
@@ -179,7 +181,9 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
-  JobLaunch.applyBuildJobObservations({ board, at: AT, workspace: context.workspace } as unknown as BoardTransaction, context, [{
+  JobLaunch.applyBuildJobObservations({
+    board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS)
+  } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
     setup:           'installed',
     installStepRuns: [],

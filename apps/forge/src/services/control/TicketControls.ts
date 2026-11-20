@@ -11,7 +11,6 @@ import { filledTemplateOf }                   from '../../shared/FilledTemplate.
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import { resourceFilePathOf }                 from '../../shared/ResourceFilePath.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
-import { createTicket }                       from '../tracker/TicketStore.ts';
 import { ticketIdOfReference }                from './ControlTicketLookup.ts';
 
 const TICKET_BODY_TEMPLATE_PATH = ['templates', 'TicketBody.md'];
@@ -59,7 +58,7 @@ function findingEntityOf(command: CommandOf<'ticket-add'>, change: BoardTransact
 function addTicket(command: CommandOf<'ticket-add'>, change: BoardTransaction) {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
   const group           = command.group ?? finderGroupOf(command, change);
-  const ticket = createTicket(change.workspace, change.board, {
+  const ticket = change.records.newTicket({
     title:   command.title,
     type:    command.type,
     ...(command.priority === undefined ? {} : { priority: command.priority }),

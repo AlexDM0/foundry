@@ -8,7 +8,7 @@ import type { BoardTransaction }              from '../tracker/BoardTransaction.
 /** A malformed or older `pipeline.json` is never written over: a hand edit gone wrong is repaired, not lost, and an older one set up again. */
 export function requireReadablePipeline(change: BoardTransaction): void {
   const { unreadablePipeline } = change;
-  const filePath = change.workspace.pipelineFilePath;
+  const filePath = change.records.locationOf({ record: 'pipeline' });
   if (unreadablePipeline === null) return;
   if (unreadablePipeline.verdict === 'older') throw new OperationRefusal('refused', { kind: 'older-pipeline', filePath });
   if (unreadablePipeline.unsupportedEntities !== undefined) throw new OperationRefusal('refused', { ...unreadablePipeline.unsupportedEntities, filePath });

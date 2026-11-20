@@ -32,8 +32,11 @@ import {
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
 import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
+import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
+import type { Workspace }                                 from '../tracker/Workspace.ts';
 import { NeedTickets }                                    from './NeedTickets.ts';
 
 const AT = '2026-11-17T12:00:00+01:00';
@@ -55,6 +58,11 @@ const BUILD_OF_WEB: JobLaunch = {
 
 const folders: string[] = [];
 
+/** The local adapter's allocation over a scratch tickets folder, so a filed need gets the id the folder gives. */
+function scratchRecordAllocationOf(ticketsDirectory: string, board: Board): BoardTransaction['records'] {
+  return createLocalRecordAllocation({ ticketsDirectory } as Workspace, board, NO_UNREADABLE_RECORDS);
+}
+
 afterEach(() => {
   for (const folder of folders.splice(0)) removeScratchDirectory(folder);
 });
@@ -74,8 +82,8 @@ function boardWithADeclaredNeed(pipeline: Pipeline = entityPipelineFixture(), ne
   fixture.board.declareNeed('J1', need, () => []);
   const ticketsDirectory = createScratchDirectory('need-tickets');
   folders.push(ticketsDirectory);
-  // The cast: filing reads only the Board, the stamp of the hold and the tickets folder of the workspace.
-  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as BoardTransaction;
+  // The cast: filing reads only the Board, the stamp of the hold and the records, which allocate in the scratch tickets folder.
+  const change = { board: fixture.board, at: AT, records: scratchRecordAllocationOf(ticketsDirectory, fixture.board) } as unknown as BoardTransaction;
   return {
     board: fixture.board, records: fixture.records, progress: fixture.progress, change
   };
@@ -308,7 +316,7 @@ function packageBuildThatDeclared(needEntity: string): DeclaredBoard {
   fixture.board.declareNeed('J1', { ...NEED, entity: needEntity }, () => []);
   const ticketsDirectory = createScratchDirectory('need-tickets');
   folders.push(ticketsDirectory);
-  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as BoardTransaction;
+  const change = { board: fixture.board, at: AT, records: scratchRecordAllocationOf(ticketsDirectory, fixture.board) } as unknown as BoardTransaction;
   const declared = {
     board: fixture.board, records: fixture.records, progress: fixture.progress, change
   };

@@ -126,7 +126,7 @@ describe('a start', () => {
   });
 
   const unknownGateOfTheDraft = { reason: 'unknown-gate', gateName: 'lint', gateNames: ['browser-tests', 'typecheck'] };
-  const olderPipelineRefusal = { kind: 'older-pipeline', filePath: workspacePathsFor(REPOSITORY_ROOT).pipelineFilePath };
+  const olderPipelineRefusal = { kind: 'older-pipeline', filePath: createFixtureRecordAllocation(boardFixture().board).locationOf({ record: 'pipeline' }) };
   const malformedFieldOf = (field: string): object => ({ kind: 'malformed-setup-command', commandKind: 'gate-profile-start', field });
   const misshapen = (change: Record<string, unknown>): ControlCommand => ({ ...start('S1', 'browser-tests'), ...change }) as unknown as ControlCommand;
 

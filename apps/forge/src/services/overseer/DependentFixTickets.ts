@@ -10,7 +10,6 @@ import type { Board }              from '../../lib/tracker-model/Board.ts';
 import { SETTLED_TICKET_STATUSES } from '../../lib/tracker-model/constants/Statuses.ts';
 import { TicketDependencyUtil }    from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
 import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';
-import { createTicket }            from '../tracker/TicketStore.ts';
 
 /** What the fix ticket of a dependent is worded from. */
 export interface DependentFixFacts {
@@ -88,7 +87,7 @@ function fileFixTicket(change: BoardTransaction, context: DependentFixContext, c
   const wording = context.dependentFixWordingOf({
     ticketId, ticketBranch: context.ticketBranchOf(ticketId), homeEntity, packageEntity, dependentEntity, group
   });
-  const fix = createTicket(change.workspace, board, {
+  const fix = change.records.newTicket({
     title: wording.title, type: 'ticket', group, bodyFor: () => wording.body, at
   });
   fix.frontmatter.entity    = dependentEntity;

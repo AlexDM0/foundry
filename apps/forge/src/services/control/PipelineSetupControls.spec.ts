@@ -221,7 +221,7 @@ describe('starting a record', () => {
   test('pipeline-update-start refuses an older pipeline.json with its own reason, and no pipeline as no-pipeline-to-update', () => {
     const older   = boardFixture();
     const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'pipeline-update-start' }, changeOf(older, { verdict: 'older' }), ECHOED_CONTROL_CONTEXT));
-    expect(refusal.detail).toEqual({ kind: 'older-pipeline', filePath: WORKSPACE.pipelineFilePath });
+    expect(refusal.detail).toEqual({ kind: 'older-pipeline', filePath: createFixtureRecordAllocation(older.board).locationOf({ record: 'pipeline' }) });
 
     const thrown = thrownBy(() => apply(boardFixture(), { kind: 'pipeline-update-start' }));
     expect(thrown instanceof BoardRefusal ? thrown.detail : thrown).toEqual({ reason: 'no-pipeline-to-update', mode: 'update' });

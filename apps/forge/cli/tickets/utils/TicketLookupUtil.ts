@@ -1,5 +1,3 @@
-import { basename } from 'node:path';
-
 import type { Ticket }           from '../../../src/lib/tracker-model/@types/Ticket.ts';
 import { TicketIdUtil }          from '../../../src/lib/tracker-model/utils/TicketIdUtil.ts';
 import type { UnreadableRecord } from '../../../src/services/tracker/@types/BoardRecords.ts';
@@ -11,10 +9,7 @@ import { OutputUtil }            from '../../utils/OutputUtil.ts';
 function unreadableTicketOf(unreadableTickets: readonly UnreadableRecord[], reference: string): UnreadableRecord | undefined {
   const identifier = TicketIdUtil.parseTicketReference(reference);
   if (identifier === null) return undefined;
-  return unreadableTickets.find(({ location }) => {
-    const fileName = basename(location);
-    return fileName.startsWith(`${identifier}-`) || fileName === `${identifier}.md`;
-  });
+  return unreadableTickets.find(({ record, key }) => record === 'ticket' && key === identifier);
 }
 
 /** A ticket file that is there and will not parse is exit 2: the tool will not repair a hand edit, and a missing ticket is the caller's to fix. */

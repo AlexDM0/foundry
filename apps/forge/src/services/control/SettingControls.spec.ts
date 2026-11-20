@@ -19,6 +19,8 @@ import { ControlService }                                       from './ControlS
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 
 const WORKSPACE = workspacePathsFor('/example-agency/storefront');
+/** A pipeline refusal names where the transaction's records keep the pipeline. */
+const PIPELINE_LOCATION = createFixtureRecordAllocation(boardFixture().board).locationOf({ record: 'pipeline' });
 
 const STORED_PIPELINE: Pipeline = {
   version: 3,
@@ -63,11 +65,11 @@ function refusalOf(attempt: () => unknown): OperationRefusal {
 
 describe('an unreadable pipeline.json', () => {
   test.each<[string, UnreadablePipelineReading, OperationRefusalDetail]>([
-    ['older', { verdict: 'older' }, { kind: 'older-pipeline', filePath: WORKSPACE.pipelineFilePath }],
+    ['older', { verdict: 'older' }, { kind: 'older-pipeline', filePath: PIPELINE_LOCATION }],
     [
       'malformed',
       { verdict: 'malformed', reason: 'gates[0] has no name' },
-      { kind: 'malformed-pipeline', filePath: WORKSPACE.pipelineFilePath, reason: 'gates[0] has no name' },
+      { kind: 'malformed-pipeline', filePath: PIPELINE_LOCATION, reason: 'gates[0] has no name' },
     ],
   ])('an %s file refuses every pipeline write before the Board changes', (_case, reading, detail) => {
     for (const command of PIPELINE_WRITES) {

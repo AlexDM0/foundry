@@ -210,24 +210,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.9: `status` reads the unfinished write through the store.',
   'cli/tracking/status/StatusCommand.ts: store-internal-import: import { requireTracker }                               from \'../../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'src/services/control/FilingControls.ts: record-path-name: const filePath = draftFilePathOf(change.workspace, result.draft.id);':
-    'Removed by WP5.5: the draft filing takes its location from the transaction\'s records.',
-  'src/services/control/FilingControls.ts: record-path-name: const filePath = epicFilePathOf(change.workspace, command.key);':
-    'Removed by WP5.5: the epic filing takes its location from the transaction\'s records.',
-  'src/services/control/FilingControls.ts: record-path-name: import { draftFilePathOf }                    from \'../tracker/DraftStore.ts\';':
-    'Removed by WP5.5: the draft filing takes its location from the transaction\'s records.',
-  'src/services/control/FilingControls.ts: record-path-name: import { epicFilePathOf }                     from \'../tracker/EpicStore.ts\';':
-    'Removed by WP5.5: the epic filing takes its location from the transaction\'s records.',
-  'src/services/control/FilingControls.ts: store-internal-import: import { draftFilePathOf }                    from \'../tracker/DraftStore.ts\';':
-    'Removed by WP5.5: the draft filing takes its location from the transaction\'s records.',
-  'src/services/control/FilingControls.ts: store-internal-import: import { epicFilePathOf }                     from \'../tracker/EpicStore.ts\';':
-    'Removed by WP5.5: the epic filing takes its location from the transaction\'s records.',
-  'src/services/control/SettingControls.ts: record-path-name: const filePath = change.workspace.pipelineFilePath;':
-    'Removed by WP5.5: the pipeline setting takes its location from the transaction\'s records.',
-  'src/services/control/TicketControls.ts: store-internal-import: import { createTicket }                       from \'../tracker/TicketStore.ts\';':
-    'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
-  'src/services/overseer/DependentFixTickets.ts: store-internal-import: import { createTicket }            from \'../tracker/TicketStore.ts\';':
-    'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
   'src/services/overseer/DrivePass.ts: record-path-name: const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);':
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
   'src/services/overseer/DrivePass.ts: record-path-name: const reading  = PipelineFile.read(request.workspace.pipelineFilePath);':
@@ -251,19 +233,10 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
   'src/services/overseer/DrivePass.ts: stored-record-read: const reading = PipelineFile.read(request.workspace.pipelineFilePath);':
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/NeedTickets.ts: store-internal-import: import { createTicket }                        from \'../tracker/TicketStore.ts\';':
-    'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
   'src/services/overseer/Regrouping.ts: store-internal-import: import { requireProgressFile }                              from \'../tracker/TrackerReader.ts\';':
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
   'src/services/overseer/StartGate.ts: store-internal-import: import { requireProgressFile }                               from \'../tracker/TrackerReader.ts\';':
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  [
-  'src/services/overseer/UnreadablePipelineGate.ts: record-constant: outcome: \'cannot-run\', step: TRACKER_FILES.PIPELINE_FILE_NAME, output: reading.verdict === \'malformed\' ?'
-    + ' reading.reason : reading.verdict, stamp: null'
-  ]:
-    'Removed by WP5.5: the unreadable pipeline\'s gate step is a constant of its own.',
-  'src/services/overseer/UnreadablePipelineGate.ts: store-internal-import: import { TRACKER_FILES }        from \'../tracker/constants/TrackerFiles.ts\';':
-    'Removed by WP5.5: the unreadable pipeline\'s gate step is a constant of its own.',
   'src/services/tracker/MonitorRegistration.ts: record-path-name: const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();':
     'Removed by WP5.9: the registry request carries the root, and an entry holds no `progressJson`.',
   'src/services/tracker/MonitorRegistration.ts: record-path-name: progressJson: workspace.progressFilePath,':

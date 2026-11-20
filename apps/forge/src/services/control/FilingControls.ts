@@ -1,28 +1,18 @@
 /** The filing cabinet's kinds of the control contract, `epic-add` and the mutating `draft-*` kinds, each applied in a `writeTracker` hold. */
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
-import { draftFilePathOf }                    from '../tracker/DraftStore.ts';
-import { epicFilePathOf }                     from '../tracker/EpicStore.ts';
 
 function addEpic(command: CommandOf<'epic-add'>, change: BoardTransaction) {
-  const filePath = epicFilePathOf(change.workspace, command.key);
-  // A malformed file is no epic to the Board, so without this the new epic would overwrite whatever hand edit broke it.
-  if (change.unreadableRecords.epics.some((unreadable) => unreadable.location === filePath)) {
-    throw new OperationRefusal('refused', { kind: 'unreadable-file-in-the-way', filePath, record: 'epic' });
-  }
+  const filePath = change.records.newEpicLocation(command.key);
   return change.board.addEpic({
     key: command.key, title: command.title, body: command.bodyText, filePath
   }, change.at);
 }
 
 function openDraft(command: CommandOf<'draft-open'>, change: BoardTransaction) {
-  const result   = change.board.openDraft({ title: command.title, request: command.request, owner: command.owner }, change.at);
-  const filePath = draftFilePathOf(change.workspace, result.draft.id);
-  // A malformed file is no draft to the Board, so without this the new draft would overwrite whatever hand edit broke it.
-  if (change.unreadableRecords.drafts.some((unreadable) => unreadable.location === filePath)) {
-    throw new OperationRefusal('refused', { kind: 'unreadable-file-in-the-way', filePath, record: 'draft' });
-  }
+  const result = change.board.openDraft({ title: command.title, request: command.request, owner: command.owner }, change.at);
+  // The refusal leaves before the hold writes, so the draft the Board just opened is dropped with it.
+  change.records.requireDraftKeyIsFree(result.draft.id);
   return result;
 }
 

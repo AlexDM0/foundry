@@ -48,8 +48,11 @@ import {
   entityForgePipelineOf,
   type EntityForgeWhitelists
 } from '../../testing/EntityForgeFixture.ts';
+import { NO_UNREADABLE_RECORDS }                                                          from '../../testing/FixtureRecordAllocation.ts';
 import { createScratchDirectory, removeScratchDirectory }                                 from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                                                    from '../tracker/LocalRecordAllocation.ts';
+import type { Workspace }                                                                 from '../tracker/Workspace.ts';
 import { CrossingStages }                                                                 from './CrossingStages.ts';
 import { EntityDecisionAnswers, type EntityDecisionAnswerContext, type PackageNeedFacts } from './EntityDecisionAnswers.ts';
 import { JobLaunch, type JobLaunchContext }                                               from './JobLaunch.ts';
@@ -138,7 +141,12 @@ function forgeWith(whitelists: EntityForgeWhitelists, pipelineOf: (stored: Pipel
     repositoryRoot:        repository,
   };
   return {
-    board, change: { board, at: AT, workspace } as unknown as BoardTransaction, context, needs
+    board,
+    change: {
+      board, at: AT, workspace, records: createLocalRecordAllocation(workspace as Workspace, board, NO_UNREADABLE_RECORDS)
+    } as unknown as BoardTransaction,
+    context,
+    needs
   };
 }
 

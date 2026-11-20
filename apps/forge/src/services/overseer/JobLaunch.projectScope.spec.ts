@@ -33,12 +33,14 @@ import { branchNamesOf }                                  from '../../shared/Bra
 import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
 import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
+import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
 import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
 import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
 import { definitionFileMatcherOf, launchSnapshotOf }      from '../lifecycle/Customs.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
@@ -125,7 +127,9 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
-  JobLaunch.applyBuildJobObservations({ board, at: AT, workspace: context.workspace } as unknown as BoardTransaction, context, [{
+  JobLaunch.applyBuildJobObservations({
+    board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS)
+  } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
     setup:           'installed',
     installStepRuns: [],
