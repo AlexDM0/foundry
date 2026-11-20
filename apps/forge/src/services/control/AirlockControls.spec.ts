@@ -17,6 +17,7 @@ import type { ControlCommand }                          from '../../shared/@type
 import { PRODUCT_NAMES }                                from '../../shared/constants/ProductNames.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                       from '../../testing/EchoedControlContext.ts';
+import { NO_UNREADABLE_RECORDS }                        from '../../testing/FixtureRecordAllocation.ts';
 import { queueOnCurrentGreen }                          from '../../testing/GreenQueue.ts';
 import {
   ancestryAsked,
@@ -36,7 +37,7 @@ import type { RecordedGitStage }                                  from '../../te
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { removeScratchDirectory }                                 from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
-import type { TrackerChange }                                     from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                  from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
 import { ControlService }                                         from './ControlService.ts';
 
@@ -69,8 +70,8 @@ function scenario(mergeApprovalIsOn = true): Scenario {
   queueOnCurrentGreen(board, '001', 'main', AT, plantedTreeOf(BRANCH));
   board.setApproval('merge', mergeApprovalIsOn, AT);
   const change = {
-    board, workspace: workspacePathsFor(root), at: AT, malformedTickets: []
-  } as unknown as TrackerChange;
+    board, workspace: workspacePathsFor(root), at: AT, unreadableRecords: NO_UNREADABLE_RECORDS
+  } as unknown as BoardTransaction;
   return { board, apply: (command, stage) => recordedGit.playStage(stage, () => Promise.resolve(ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT).result)) };
 }
 

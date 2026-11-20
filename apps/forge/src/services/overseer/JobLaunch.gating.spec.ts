@@ -55,7 +55,7 @@ import { createScratchDirectory, removeScratchDirectory } from '../../testing/Sc
 import { EVERY_TALOS_IS_LIVE, talosChildReadingsWith }    from '../../testing/TalosChildReadings.ts';
 import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
 import { GateRun }                                        from '../lifecycle/GateRun.ts';
-import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import {
   type BuildJobObservation,
   type GateRunManifest,
@@ -416,7 +416,7 @@ describe('the gate run\'s settlement', () => {
     for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(job.id, state, SETTLED_AT);
     const manifest: GateRunManifest = { ...PipelineUtil.gateRunStampOf(PIPELINE, 'build'), prepare: [], gates: PIPELINE.gates };
     const scene = gatingScene();
-    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+    const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
 
     JobLaunch.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [{
       jobId:           job.id,
@@ -502,7 +502,7 @@ describe('a gate\'s cache report', () => {
     for (const state of ['preparing', 'running', 'in-customs', 'gating'] as const) board.moveJob(job.id, state, SETTLED_AT);
     const manifest: GateRunManifest = { ...PipelineUtil.gateRunStampOf(PIPELINE, 'build'), prepare: [], gates: PIPELINE.gates };
     const cacheReports = [{ gateName: 'tests', cacheReport: 'partial' as const }, { gateName: 'lint', cacheReport: null }];
-    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+    const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
 
     JobLaunch.applyBuildJobObservations(change, { ...gatingScene().context, mainLine: 'main', log: () => undefined }, [{
       jobId:           job.id,
@@ -608,7 +608,7 @@ describe('the step run times', () => {
   }
 
   function applyTo(scene: GatingScene, board: ReturnType<typeof boardFixture>['board'], observation: BuildJobObservation): void {
-    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+    const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
     JobLaunch.applyBuildJobObservations(change, { ...scene.context, mainLine: 'main', log: () => undefined }, [observation]);
   }
 
@@ -747,7 +747,7 @@ describe('a gate line a start found lost', () => {
       } as unknown as JobLaunchContext['gateSlots'],
       lostLineCause: () => startCause.current,
     };
-    const change = { board, at: SETTLED_AT } as unknown as TrackerChange;
+    const change = { board, at: SETTLED_AT } as unknown as BoardTransaction;
     const pass = (stage: RecordedGitStage): Promise<void> => recordedGit.playStage(stage, async () => {
       const observations = JobLaunch.observeBuildJobs(context, board.jobs(), ONE_GATE);
       JobLaunch.applyBuildJobObservations(change, context, observations);

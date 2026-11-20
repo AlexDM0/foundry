@@ -57,8 +57,9 @@ import type { GateConfinement, LineRunner }           from '../lifecycle/GateRun
 import { Landing }                                    from '../lifecycle/Landing.ts';
 import { MergeRun }                                   from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                              from '../lifecycle/ReviewOutcome.ts';
+import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
-import { writeTracker, type TrackerChange }           from '../tracker/TrackerPipeline.ts';
+import { writeTracker }                               from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                        from '../tracker/TrackerReader.ts';
 import type { Workspace }                             from '../tracker/Workspace.ts';
 import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
@@ -578,7 +579,7 @@ function recognisedEndingCauseAt(childObservation: ChildObservation, sequence: n
  * result, a refused key and a budget stop. A result Talos recognised as an ending interrupts the job with its cause and stops its session.
  */
 function applyChildEvents(
-  change: TrackerChange,
+  change: BoardTransaction,
   adapter: AgentAdapter,
   childObservations: readonly ChildObservation[],
   children: BoardChildren,
@@ -669,7 +670,7 @@ function applyChildEvents(
 }
 
 /** One decision per folder, its context the folder itself, so a restart finding the same folder opens no second one. */
-function openLeftoverWorktreeDecisions(change: TrackerChange, decisionWordingOf: DrivePassRequest['decisionWordingOf'], folders: readonly string[]): void {
+function openLeftoverWorktreeDecisions(change: BoardTransaction, decisionWordingOf: DrivePassRequest['decisionWordingOf'], folders: readonly string[]): void {
   const draft = { kind: 'leftover-worktree', ticketIds: [], jobId: null } as const;
   for (const folder of folders) {
     if (change.board.decisions().some((decision) => decision.kind === draft.kind && decision.context === folder)) continue;
@@ -701,7 +702,7 @@ function withdrawApiKeyDecisions(board: Board, at: string): void {
  * tree yet, so it waits for the next pass. Answers whether another pass is due: the one that launches what the answer freed, or acts on it.
  */
 function actOnWaiverAnswers(
-  change: TrackerChange, steps: readonly PlaybookStep[], answeredWaiverTrees: ReadonlyMap<string, string | null>, trackerDirectory: string
+  change: BoardTransaction, steps: readonly PlaybookStep[], answeredWaiverTrees: ReadonlyMap<string, string | null>, trackerDirectory: string
 ): boolean {
   const waiverAnswerSteps = steps.flatMap((step) => (step.kind === 'act-on-waiver-answer' ? [step] : []));
   for (const step of waiverAnswerSteps) {

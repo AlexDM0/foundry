@@ -43,7 +43,7 @@ import {
 import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
-import type { TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                 from '../tracker/BoardTransaction.ts';
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import {
   BUILD_JOB_CAUSES,
@@ -158,7 +158,7 @@ function mergingMainScene(kind: 'review' | 'build', pipeline: Pipeline): Merging
     log:                  () => undefined,
     resolutionLinesOf:    () => resolution.lines,
   } as unknown as JobLaunchContext;
-  const change = { board, at: AT } as unknown as TrackerChange;
+  const change = { board, at: AT } as unknown as BoardTransaction;
   const pass = async (): Promise<BuildJobObservation[]> => {
     const observations = JobLaunch.observeBuildJobs(context, board.jobs(), board.pipeline());
     JobLaunch.applyBuildJobObservations(change, context, observations);
@@ -360,7 +360,7 @@ testWhenGitIsRecorded('a reviewer back from a resume merging-main sent it on goe
   for (const state of ['running', 'in-customs', 'gating'] as const) board.moveJob(scene.jobId, state, AT);
   const stamp = board.gateRunStampOf('review');
   if (stamp === null) throw new Error('The scene stores no pipeline.');
-  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as TrackerChange, context, [{
+  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
     jobId:           scene.jobId,
     setup:           'installed',
     installStepRuns: [],
@@ -399,7 +399,7 @@ testWhenGitIsRecorded('with no review step a green build waits in merging-main, 
   const stamp = board.gateRunStampOf('build');
   if (stamp === null) throw new Error('The scene stores no pipeline.');
   const manifest = { ...stamp, prepare: [], gates: [{ name: 'tests', run: 'bun test' }] };
-  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as TrackerChange, context, [{
+  JobLaunch.applyBuildJobObservations({ board, at: AT } as unknown as BoardTransaction, context, [{
     jobId:           gating.id,
     setup:           'installed',
     installStepRuns: [],
@@ -470,7 +470,7 @@ testWhenGitIsRecorded('a re-review that holds ends the re-reviewer reviewed, and
     const reReviewer = scene.reReviewer();
     if (reReviewer === undefined) throw new Error('No conflict re-reviewer was launched.');
     for (const state of ['running', 'in-customs'] as const) scene.board.moveJob(reReviewer.id, state, AT);
-    const change = { board: scene.board, at: AT } as unknown as TrackerChange;
+    const change = { board: scene.board, at: AT } as unknown as BoardTransaction;
     JobLaunch.applyBuildJobObservations(change, scene.context, [{
       jobId:            scene.jobId,
       setup:            'installed',

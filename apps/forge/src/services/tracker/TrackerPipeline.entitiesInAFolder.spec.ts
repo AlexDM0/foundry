@@ -17,7 +17,8 @@ import type { PipelineEntity }                            from '../../lib/tracke
 import { refusalIsOperationRefusal }                      from '../../shared/OperationRefusal.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { storedFileContentsOf, writeReadableTracker }     from '../../testing/TrackerFileFixtures.ts';
-import { writeTracker, type TrackerChange }               from './TrackerPipeline.ts';
+import type { BoardTransaction }                          from './BoardTransaction.ts';
+import { writeTracker }                                   from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }              from './Workspace.ts';
 import { thrownFailureOf }                                from './testing/ThrownFailure.ts';
 
@@ -49,7 +50,7 @@ function trackerIn(projectFolder: string): Workspace {
   return workspace;
 }
 
-function storeNoGates(change: TrackerChange, entities: Record<string, PipelineEntity> | null): void {
+function storeNoGates(change: BoardTransaction, entities: Record<string, PipelineEntity> | null): void {
   const { pipeline } = change.board.setNoGates(change.at);
   if (entities !== null) pipeline.entities = entities;
 }

@@ -33,7 +33,7 @@ import {
 } from '../../testing/BoardFixtures.ts';
 import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { NeedTickets }                                    from './NeedTickets.ts';
 
 const AT = '2026-11-17T12:00:00+01:00';
@@ -63,7 +63,7 @@ interface DeclaredBoard {
   board:    Board;
   records:  LogRecord[];
   progress: TrackerProgress;
-  change:   TrackerChange;
+  change:   BoardTransaction;
 }
 
 /** Ticket 001 of `web` in progress, its build J1 having declared `NEED` and nothing else logged yet. */
@@ -75,7 +75,7 @@ function boardWithADeclaredNeed(pipeline: Pipeline = entityPipelineFixture(), ne
   const ticketsDirectory = createScratchDirectory('need-tickets');
   folders.push(ticketsDirectory);
   // The cast: filing reads only the Board, the stamp of the hold and the tickets folder of the workspace.
-  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as TrackerChange;
+  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as BoardTransaction;
   return {
     board: fixture.board, records: fixture.records, progress: fixture.progress, change
   };
@@ -308,7 +308,7 @@ function packageBuildThatDeclared(needEntity: string): DeclaredBoard {
   fixture.board.declareNeed('J1', { ...NEED, entity: needEntity }, () => []);
   const ticketsDirectory = createScratchDirectory('need-tickets');
   folders.push(ticketsDirectory);
-  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as TrackerChange;
+  const change = { board: fixture.board, at: AT, workspace: { ticketsDirectory } } as unknown as BoardTransaction;
   const declared = {
     board: fixture.board, records: fixture.records, progress: fixture.progress, change
   };

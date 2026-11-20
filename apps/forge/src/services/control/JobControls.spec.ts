@@ -34,17 +34,17 @@ import {
 } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { PictureStore }                                   from '../tracker/PictureStore.ts';
-import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
 import { ControlService }                                 from './ControlService.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
 
 const COMPLETE_BODY = '## Acceptance\nA1. The basket shows its total.\n\n## Brief\nWork in the basket page.\n';
 
-function changeOf(board: Board): TrackerChange {
+function changeOf(board: Board): BoardTransaction {
   // The job and decision appliers read only the Board and the stamp of the hold.
-  return { board, at: AT } as unknown as TrackerChange;
+  return { board, at: AT } as unknown as BoardTransaction;
 }
 
 function apply(board: Board, command: ControlCommand): unknown {
@@ -346,7 +346,7 @@ describe('pictures', () => {
     const ownerOnlyFiles = { restrictFolder: () => undefined, restrictFile: () => undefined, isOwnerOnly: () => true };
     const storing = PictureStore.storePicture(ownerOnlyFiles, trackerDirectory, Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
     if (storing.verdict !== 'stored') throw new Error('the example picture was not stored');
-    const change = { board, at: AT, workspace: { trackerDirectory } } as unknown as TrackerChange;
+    const change = { board, at: AT, workspace: { trackerDirectory } } as unknown as BoardTransaction;
     return { board, pictureId: storing.pictureId, applyCommand: (command) => ControlService.apply(command, change, ECHOED_CONTROL_CONTEXT).result };
   }
 

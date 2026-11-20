@@ -76,7 +76,7 @@ describe('createTicket and listTickets', () => {
 
     const listing = listTickets(workspace);
 
-    expect(listing.malformed).toEqual([]);
+    expect(listing.unreadable).toEqual([]);
     expect(listing.tickets.map((ticket) => basename(ticket.filePath))).toEqual([
       '001-fix-the-export-dialog.md',
       '002-add-a-keyboard-shortcut.md',
@@ -132,7 +132,7 @@ describe('createTicket and listTickets', () => {
     expect(basename(third.filePath)).toBe('003-fix-the-export-dialog-3.md');
   });
 
-  test('a file that does not parse is reported with its path and line while the other tickets still list', () => {
+  test('a file that does not parse is reported with its key, path and line while the other tickets still list', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
     const brokenPath = join(workspace.ticketsDirectory, '002-broken.md');
@@ -141,14 +141,24 @@ describe('createTicket and listTickets', () => {
     const listing = listTickets(workspace);
 
     expect(listing.tickets.map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
-    expect(listing.malformed).toEqual([{ filePath: brokenPath, reason: 'the frontmatter has no closing `---` fence', line: 3 }]);
+    expect(listing.unreadable).toEqual([{
+      record: 'ticket', key: '002', location: brokenPath, reason: 'the frontmatter has no closing `---` fence', line: 3
+    }]);
+  });
+
+  test('a file that does not parse and whose name carries no number is keyed null', () => {
+    const workspace  = scratchWorkspace();
+    const brokenPath = join(workspace.ticketsDirectory, 'notes-by-hand.md');
+    writeFileSync(brokenPath, 'not a ticket at all\n');
+
+    expect(listTickets(workspace).unreadable.map((unreadable) => [unreadable.key, unreadable.location])).toEqual([[null, brokenPath]]);
   });
 
   test('a tickets directory that does not exist reads as no tickets rather than as a failure', () => {
     const workspace = scratchWorkspace();
     rmSync(workspace.ticketsDirectory, { recursive: true, force: true });
 
-    expect(listTickets(workspace)).toEqual({ verdict: 'listed', tickets: [], malformed: [] });
+    expect(listTickets(workspace)).toEqual({ tickets: [], unreadable: [] });
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('001');
   });
 });
@@ -188,7 +198,7 @@ describe('readTicket', () => {
     const listing = listTickets(workspace);
 
     expect(listing.tickets.map((listed) => listed.frontmatter.id)).toEqual(['001', '002']);
-    expect(listing.malformed).toEqual([]);
+    expect(listing.unreadable).toEqual([]);
   });
 });
 
@@ -252,7 +262,7 @@ describe('a ticket file renamed by hand', () => {
     expect(readTicket(workspace, '1')?.frontmatter.title).toBe('Fix the export dialog');
   });
 
-  test('a file renamed to another number answers for neither number, and is listed as malformed naming both', () => {
+  test('a file renamed to another number answers for neither number, and is listed as unreadable naming both, keyed by its name', () => {
     const workspace   = scratchWorkspace();
     const first       = fileTicket(workspace, 'Fix the export dialog', 'bug');
     const renamedPath = join(workspace.ticketsDirectory, '012-renamed.md');
@@ -261,14 +271,15 @@ describe('a ticket file renamed by hand', () => {
     expect(readTicket(workspace, '12')).toBeNull();
     expect(readTicket(workspace, '1')).toBeNull();
     expect(listTickets(workspace)).toEqual({
-      verdict:   'listed',
-      tickets:   [],
-      malformed: [{ filePath: renamedPath, reason: 'the file name says #012 but its `id` is 001', line: 2 }],
+      tickets:    [],
+      unreadable: [{
+        record: 'ticket', key: '012', location: renamedPath, reason: 'the file name says #012 but its `id` is 001', line: 2
+      }],
     });
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('013');
   });
 
-  test('two files holding one id are both listed as malformed, and neither answers for it', () => {
+  test('two files holding one id are both listed as unreadable keyed by that id, and neither answers for it', () => {
     const workspace = scratchWorkspace();
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
     const copyPath  = join(workspace.ticketsDirectory, 'copy-of-the-first.md');
@@ -276,11 +287,14 @@ describe('a ticket file renamed by hand', () => {
 
     expect(readTicket(workspace, '1')).toBeNull();
     expect(listTickets(workspace)).toEqual({
-      verdict:   'listed',
-      tickets:   [],
-      malformed: [
-        { filePath: first.filePath, reason: 'ticket #001 is also held by copy-of-the-first.md', line: 2 },
-        { filePath: copyPath, reason: 'ticket #001 is also held by 001-fix-the-export-dialog.md', line: 2 },
+      tickets:    [],
+      unreadable: [
+        {
+          record: 'ticket', key: '001', location: first.filePath, reason: 'ticket #001 is also held by copy-of-the-first.md', line: 2
+        },
+        {
+          record: 'ticket', key: '001', location: copyPath, reason: 'ticket #001 is also held by 001-fix-the-export-dialog.md', line: 2
+        },
       ],
     });
   });

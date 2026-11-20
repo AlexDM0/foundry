@@ -9,7 +9,7 @@ import type {
   FlintBrainCommand
 } from '../../shared/@types/ControlCommand.ts';
 import type { ControlContext }     from '../../shared/@types/ControlContext.ts';
-import type { TrackerChange }      from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';
 import { AIRLOCK_CONTROLS }        from './AirlockControls.ts';
 import { BOARD_LIFETIME_CONTROLS } from './BoardLifetimeControls.ts';
 import { DECISION_CONTROLS }       from './DecisionControls.ts';
@@ -41,7 +41,7 @@ const CONTROL_APPLIERS = {
   ...PIPELINE_AGENT_CONTROLS,
   ...BOARD_LIFETIME_CONTROLS,
 } as const satisfies {
-  [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: TrackerChange, context: ControlContext) => unknown
+  [Kind in ControlCommandKind]: (command: ControlCommandOf<Kind>, change: BoardTransaction, context: ControlContext) => unknown
 };
 
 type ControlAppliers = typeof CONTROL_APPLIERS;
@@ -66,9 +66,9 @@ function outcomeOf(result: unknown): ControlApplied<unknown>['outcome'] {
 }
 
 /** `context` words what a move sends to a session, since only `cli/` holds words. */
-function apply<Command extends ControlCommand>(command: Command, change: TrackerChange, context: ControlContext): ControlApplied<ControlResultOf<Command['kind']>> {
+function apply<Command extends ControlCommand>(command: Command, change: BoardTransaction, context: ControlContext): ControlApplied<ControlResultOf<Command['kind']>> {
   // The table pairs each kind with its applier, a correlation TypeScript cannot follow through an indexed union.
-  const applier = CONTROL_APPLIERS[command.kind] as unknown as (command: Command, change: TrackerChange, context: ControlContext) => ControlResultOf<Command['kind']>;
+  const applier = CONTROL_APPLIERS[command.kind] as unknown as (command: Command, change: BoardTransaction, context: ControlContext) => ControlResultOf<Command['kind']>;
   const result  = applier(command, change, context);
   return { outcome: outcomeOf(result), result };
 }

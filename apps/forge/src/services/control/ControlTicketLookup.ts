@@ -4,26 +4,27 @@
  */
 import { basename } from 'node:path';
 
-import { TicketIdUtil }       from '../../lib/tracker-model/utils/TicketIdUtil.ts';
-import { OperationRefusal }   from '../../shared/OperationRefusal.ts';
-import type { TrackerChange } from '../tracker/TrackerPipeline.ts';
+import { TicketIdUtil }          from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import { OperationRefusal }      from '../../shared/OperationRefusal.ts';
+import type { UnreadableRecord } from '../tracker/@types/BoardRecords.ts';
+import type { BoardTransaction } from '../tracker/BoardTransaction.ts';
 
-function malformedFileNamedBy(change: Pick<TrackerChange, 'malformedTickets'>, reference: string): TrackerChange['malformedTickets'][number] | undefined {
+function unreadableTicketNamedBy(change: Pick<BoardTransaction, 'unreadableRecords'>, reference: string): UnreadableRecord | undefined {
   const identifier = TicketIdUtil.parseTicketReference(reference);
   if (identifier === null) return undefined;
-  return change.malformedTickets.find(({ filePath }) => {
-    const fileName = basename(filePath);
+  return change.unreadableRecords.tickets.find(({ location }) => {
+    const fileName = basename(location);
     return fileName.startsWith(`${identifier}-`) || fileName === `${identifier}.md`;
   });
 }
 
-export function ticketIdOfReference(change: Pick<TrackerChange, 'board' | 'malformedTickets'>, reference: string): string {
+export function ticketIdOfReference(change: Pick<BoardTransaction, 'board' | 'unreadableRecords'>, reference: string): string {
   const ticket = change.board.ticketByReference(reference);
   if (ticket !== undefined) return ticket.frontmatter.id;
-  const malformed = malformedFileNamedBy(change, reference);
-  if (malformed !== undefined) {
+  const unreadable = unreadableTicketNamedBy(change, reference);
+  if (unreadable !== undefined) {
     throw new OperationRefusal('unrepaired', {
-      kind: 'malformed-ticket-file', filePath: malformed.filePath, line: malformed.line, reason: malformed.reason
+      kind: 'malformed-ticket-file', filePath: unreadable.location, line: unreadable.line, reason: unreadable.reason
     });
   }
   throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference });

@@ -10,8 +10,8 @@ import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlC
 import { filledTemplateOf }                   from '../../shared/FilledTemplate.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
 import { resourceFilePathOf }                 from '../../shared/ResourceFilePath.ts';
+import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
 import { createTicket }                       from '../tracker/TicketStore.ts';
-import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
 import { ticketIdOfReference }                from './ControlTicketLookup.ts';
 
 const TICKET_BODY_TEMPLATE_PATH = ['templates', 'TicketBody.md'];
@@ -22,7 +22,7 @@ function bodyForNewTicket(bodyText: string | null, ticketId: string, title: stri
 }
 
 /** The finders' first group, which a worker's finding joins; `undefined` for any other filing or a finder in no group. */
-function finderGroupOf(command: CommandOf<'ticket-add'>, change: TrackerChange): string | undefined {
+function finderGroupOf(command: CommandOf<'ticket-add'>, change: BoardTransaction): string | undefined {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
   return finderTicketIds.map((ticketId) => change.board.ticketByReference(ticketId)?.frontmatter.group).find((group) => group !== undefined);
 }
@@ -42,7 +42,7 @@ function refuseANetworkTheFilingCannotSet(ticketId: string, domains: readonly st
  * On a forge with entities a worker's finding belongs to the entity that owns the paths its Brief names (E83, E53): their single owner, else
  * the finder job's entity. Paths of several owners are then judged as work outside that entity (E85).
  */
-function findingEntityOf(command: CommandOf<'ticket-add'>, change: TrackerChange, body: string): string | undefined {
+function findingEntityOf(command: CommandOf<'ticket-add'>, change: BoardTransaction, body: string): string | undefined {
   const entities = change.board.pipeline()?.entities;
   if (entities === undefined || command.admission === undefined) return undefined;
   const owners = [...new Set(TicketAcceptanceUtil.workFilesOf(body).map((workFile) => EntityOwnershipUtil.ownerOf(entities, workFile)))];
@@ -56,7 +56,7 @@ function findingEntityOf(command: CommandOf<'ticket-add'>, change: TrackerChange
  * land, against their code. It is filed for the entity that owns its work, and its Brief's work outside that entity (E85), or a submit that
  * would leave it without one, is refused before it is filed.
  */
-function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
+function addTicket(command: CommandOf<'ticket-add'>, change: BoardTransaction) {
   const finderTicketIds = command.admission?.finderTicketIds ?? [];
   const group           = command.group ?? finderGroupOf(command, change);
   const ticket = createTicket(change.workspace, change.board, {
@@ -96,13 +96,13 @@ function addTicket(command: CommandOf<'ticket-add'>, change: TrackerChange) {
 }
 
 /** Only User readies, a draft or a ticket in `ready-for-review`: no role the Bouncer admits relays `ticket ready`. */
-function readyTickets(command: CommandOf<'ticket-ready'>, change: TrackerChange) {
+function readyTickets(command: CommandOf<'ticket-ready'>, change: BoardTransaction) {
   const ticketIds = command.ticketReferences.map((reference) => ticketIdOfReference(change, reference));
   return change.board.readyDraftTickets(ticketIds, TicketAcceptanceUtil.readinessGapsOf, change.at, TICKET_STATUSES_USER_READIES, TicketAcceptanceUtil.workFilesOf);
 }
 
 /** A stamped `jobId` is the product owner's job, which only the role policy writes; without one the command is User's own. */
-function setEntity(command: CommandOf<'ticket-entity'>, change: TrackerChange) {
+function setEntity(command: CommandOf<'ticket-entity'>, change: BoardTransaction) {
   return change.board.setTicketEntity(ticketIdOfReference(change, command.ticketReference), {
     entity: command.entity,
     reason: command.reason,
@@ -110,7 +110,7 @@ function setEntity(command: CommandOf<'ticket-entity'>, change: TrackerChange) {
   }, change.at);
 }
 
-function editTicket(command: CommandOf<'ticket-edit'>, change: TrackerChange) {
+function editTicket(command: CommandOf<'ticket-edit'>, change: BoardTransaction) {
   return change.board.editTicket(ticketIdOfReference(change, command.ticketReference), {
     ...(command.title === undefined ? {} : { title: command.title }),
     ...(command.bodyText === null ? {} : { body: { text: command.bodyText, appends: command.appendsBody } }),
@@ -118,21 +118,21 @@ function editTicket(command: CommandOf<'ticket-edit'>, change: TrackerChange) {
   }, change.at);
 }
 
-function setDependencies(command: CommandOf<'ticket-depends'>, change: TrackerChange) {
+function setDependencies(command: CommandOf<'ticket-depends'>, change: BoardTransaction) {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   if (command.edit === 'add') return change.board.addTicketDependencies(ticketId, command.ticketIds, change.at);
   if (command.edit === 'remove') return change.board.removeTicketDependencies(ticketId, command.ticketIds, change.at);
   return change.board.setTicketDependencies(ticketId, command.ticketIds, change.at);
 }
 
-function setEpics(command: CommandOf<'ticket-epic'>, change: TrackerChange) {
+function setEpics(command: CommandOf<'ticket-epic'>, change: BoardTransaction) {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   if (command.edit === 'add') return change.board.addTicketEpics(ticketId, command.epicKeys, change.at);
   if (command.edit === 'remove') return change.board.removeTicketEpics(ticketId, command.epicKeys, change.at);
   return change.board.setTicketEpics(ticketId, command.epicKeys, change.at);
 }
 
-function abandonTicket(command: CommandOf<'ticket-abandon'>, change: TrackerChange) {
+function abandonTicket(command: CommandOf<'ticket-abandon'>, change: BoardTransaction) {
   return change.board.moveTicket(ticketIdOfReference(change, command.ticketReference), 'abandoned', {
     checksLegality: true,
     ...(command.branch === undefined ? {} : { branch: command.branch }),
@@ -146,7 +146,7 @@ function abandonTicket(command: CommandOf<'ticket-abandon'>, change: TrackerChan
  * A ticket User finished and landed outside the Overseer, recorded delivered in the hold, merging, landing and spawning nothing. A live job
  * of the ticket refuses it, judged inside the hold; the verb refuses a live Overseer first, so on a live board only its own hold records it.
  */
-function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: TrackerChange) {
+function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: BoardTransaction) {
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   const liveJob  = change.board.liveJobOfTicket(ticketId);
   if (liveJob !== undefined) throw new OperationRefusal('refused', {
@@ -164,7 +164,7 @@ export const TICKET_CONTROLS = {
   'ticket-add':      addTicket,
   'ticket-edit':     editTicket,
   'ticket-depends':  setDependencies,
-  'ticket-priority': (command: CommandOf<'ticket-priority'>, change: TrackerChange) => change.board.setTicketPriority(
+  'ticket-priority': (command: CommandOf<'ticket-priority'>, change: BoardTransaction) => change.board.setTicketPriority(
     ticketIdOfReference(change, command.ticketReference),
     command.priority,
     change.at,
@@ -172,29 +172,29 @@ export const TICKET_CONTROLS = {
   'ticket-epic':    setEpics,
   'ticket-abandon': abandonTicket,
   'ticket-ready':   readyTickets,
-  'ticket-submit':  (command: CommandOf<'ticket-submit'>, change: TrackerChange) => change.board.submitDraftTickets(
+  'ticket-submit':  (command: CommandOf<'ticket-submit'>, change: BoardTransaction) => change.board.submitDraftTickets(
     command.ticketReferences.map((reference) => ticketIdOfReference(change, reference)),
     TicketAcceptanceUtil.readinessGapsOf,
     change.at,
     TicketAcceptanceUtil.workFilesOf,
   ),
-  'ticket-network': (command: CommandOf<'ticket-network'>, change: TrackerChange) => change.board.setTicketNetwork(
+  'ticket-network': (command: CommandOf<'ticket-network'>, change: BoardTransaction) => change.board.setTicketNetwork(
     ticketIdOfReference(change, command.ticketReference),
     command.domains,
     change.at,
   ),
   'ticket-entity': setEntity,
-  'ticket-group':  (command: CommandOf<'ticket-group'>, change: TrackerChange) => change.board.setTicketGroup(
+  'ticket-group':  (command: CommandOf<'ticket-group'>, change: BoardTransaction) => change.board.setTicketGroup(
     ticketIdOfReference(change, command.ticketReference),
     command.group,
     change.at,
   ),
-  'ticket-hold': (command: CommandOf<'ticket-hold'>, change: TrackerChange) => change.board.holdTicket(
+  'ticket-hold': (command: CommandOf<'ticket-hold'>, change: BoardTransaction) => change.board.holdTicket(
     ticketIdOfReference(change, command.ticketReference),
     command.reason,
     change.at,
   ),
-  'ticket-unhold': (command: CommandOf<'ticket-unhold'>, change: TrackerChange) => change.board.unholdTicket(
+  'ticket-unhold': (command: CommandOf<'ticket-unhold'>, change: BoardTransaction) => change.board.unholdTicket(
     ticketIdOfReference(change, command.ticketReference),
     change.at,
   ),

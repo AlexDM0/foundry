@@ -171,7 +171,7 @@ export const initCommand: CommandHandler = async (commandArguments, context) => 
     return;
   }
   // A ticket file left from a removed tracker is adopted as it stands, so one that will not parse is named.
-  OutputUtil.reportIgnoredTicketFiles(context, listTickets(workspace).malformed);
+  OutputUtil.reportIgnoredTicketFiles(context, listTickets(workspace).unreadable);
   writeProgressPageStub(context.platformPorts, workspace);
   await registerWrittenTracker(context, workspace);
 

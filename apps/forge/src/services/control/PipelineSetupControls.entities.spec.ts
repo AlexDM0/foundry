@@ -29,11 +29,12 @@ import {
   ticketFixture,
   type BoardFixture
 } from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }    from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }        from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }         from '../tracker/Workspace.ts';
-import { ControlService }            from './ControlService.ts';
-import { entityAssignmentRequestOf } from './EntityAssignmentRequest.ts';
+import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
+import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
+import { workspacePathsFor }                                    from '../tracker/Workspace.ts';
+import { ControlService }                                       from './ControlService.ts';
+import { entityAssignmentRequestOf }                            from './EntityAssignmentRequest.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 
@@ -41,14 +42,13 @@ const WORKSPACE = workspacePathsFor('/example-agency/storefront');
 
 const WEB_TEST_GATE = { name: 'test', run: 'bun test' };
 
-function changeOf(fixture: BoardFixture): TrackerChange {
+function changeOf(fixture: BoardFixture): BoardTransaction {
   return {
     board:                          fixture.board,
     workspace:                      WORKSPACE,
     at:                             CHANGED_AT,
-    malformedTickets:               [],
-    malformedEpics:                 [],
-    malformedDrafts:                [],
+    records:                        createFixtureRecordAllocation(fixture.board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
     unreadablePipeline:             null,
     storedLogEntryCount:            0,
     storedLogRecords:               [],

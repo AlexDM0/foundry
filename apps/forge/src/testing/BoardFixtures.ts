@@ -24,9 +24,9 @@ import { PipelineUtil }            from '../lib/tracker-model/utils/PipelineUtil
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 
-const FIXTURE_TICKETS_DIRECTORY = '/example-agency/storefront/.agent-progress/tickets';
+export const FIXTURE_TICKETS_DIRECTORY = '/example-agency/storefront/.agent-progress/tickets';
 
-const FIXTURE_EPICS_DIRECTORY = '/example-agency/storefront/.agent-progress/epics';
+export const FIXTURE_EPICS_DIRECTORY = '/example-agency/storefront/.agent-progress/epics';
 
 export interface BoardFixture {
   board:    Board;

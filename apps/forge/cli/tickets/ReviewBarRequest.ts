@@ -2,7 +2,7 @@
 import { TicketBodyUtil }                         from '../../src/adapters/utils/TicketBodyUtil.ts';
 import type { AgentAssignment, ReviewBarStarted } from '../../src/lib/tracker-model/@types/BoardChanges.ts';
 import type { Ticket }                            from '../../src/lib/tracker-model/@types/Ticket.ts';
-import type { TrackerChange }                     from '../../src/services/tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                  from '../../src/services/tracker/BoardTransaction.ts';
 import { OperationRefusal }                       from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import type { ArgumentParser }                    from '../arguments/ArgumentParser.ts';
@@ -32,7 +32,7 @@ export function reviewBarRequestFrom(commandArguments: ArgumentParser, subcomman
  * A reviewer's `rereview` hands the ticket's slot to the next reviewer. The round is the one a reviewer
  * states for itself: the `## Review` sections already in the ticket, plus one.
  */
-export function reviewBarStartedFor(change: TrackerChange, ticket: Readonly<Ticket>, request: AgentAssignment | null): ReviewBarStarted | null {
+export function reviewBarStartedFor(change: BoardTransaction, ticket: Readonly<Ticket>, request: AgentAssignment | null): ReviewBarStarted | null {
   if (request === null) return null;
   const round = TicketBodyUtil.nextReviewRoundOf(ticket.body);
   return change.board.startReviewBar(ticket.frontmatter.id, { round, ...request }, change.at);

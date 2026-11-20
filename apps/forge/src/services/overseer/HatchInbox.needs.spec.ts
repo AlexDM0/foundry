@@ -9,7 +9,7 @@ import { HatchFormatUtil }                                    from '../../adapte
 import type { JobLaunch }                                     from '../../lib/tracker-model/@types/Job.ts';
 import type { ControlCommandOf }                              from '../../shared/@types/ControlCommand.ts';
 import { boardFixture, entityPipelineFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import type { TrackerChange }                                 from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                              from '../tracker/BoardTransaction.ts';
 import { HatchInbox }                                         from './HatchInbox.ts';
 
 const AT = '2026-11-17T09:00:00+01:00';
@@ -33,7 +33,7 @@ function boardWithABuild(launch: JobLaunch) {
   const fixture = boardFixture({ pipeline: entityPipelineFixture(), tickets: [ticketFixture({ id: '003', status: 'in-progress' })] });
   fixture.board.launchJob(launch, AT);
   // The cast: applying a request reads only the Board and the stamp of the hold.
-  const change = { board: fixture.board, at: AT } as unknown as TrackerChange;
+  const change = { board: fixture.board, at: AT } as unknown as BoardTransaction;
   return { ...fixture, change };
 }
 

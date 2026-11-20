@@ -10,8 +10,8 @@ import { BoardRefusal }                        from '../../lib/tracker-model/Boa
 import type { ControlCommandOf }               from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
 import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/OverseerLimits.ts';
+import type { BoardTransaction }               from '../tracker/BoardTransaction.ts';
 import { PictureStore }                        from '../tracker/PictureStore.ts';
-import type { TrackerChange }                  from '../tracker/TrackerPipeline.ts';
 import { handledUnder, requireIncidentAllows } from './IncidentControls.ts';
 import { startAdvice }                         from './PipelineSetupControls.ts';
 
@@ -23,7 +23,7 @@ function isPictureReference(value: unknown): value is PictureReference {
  * The pictures a command names, refused before the Board: over `PICTURES_PER_MESSAGE_LIMIT` as `too-many-pictures`, one the board's store
  * does not hold as `picture-unknown`. A `pictures` that is no list of them fails on its shape, as a body lacking a field does.
  */
-function storedPicturesOf(pictures: unknown, change: TrackerChange): PictureReference[] {
+function storedPicturesOf(pictures: unknown, change: BoardTransaction): PictureReference[] {
   if (pictures === undefined) return [];
   if (!Array.isArray(pictures) || !pictures.every(isPictureReference)) throw new TypeError('pictures is not a list of { pictureId, name }');
   if (pictures.length > PICTURES_PER_MESSAGE_LIMIT) {
@@ -34,36 +34,36 @@ function storedPicturesOf(pictures: unknown, change: TrackerChange): PictureRefe
   return pictures.map((picture) => ({ pictureId: picture.pictureId, name: picture.name }));
 }
 
-function closeIntake(command: ControlCommandOf<'intake-close'>, change: TrackerChange) {
+function closeIntake(command: ControlCommandOf<'intake-close'>, change: BoardTransaction) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-close-without-job' });
   return change.board.closeIntake(command.jobId, command.proposedDraftSets, TicketAcceptanceUtil.readinessGapsOf, change.at, TicketAcceptanceUtil.workFilesOf);
 }
 
-function titleIntake(command: ControlCommandOf<'intake-title'>, change: TrackerChange) {
+function titleIntake(command: ControlCommandOf<'intake-title'>, change: BoardTransaction) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'intake-title-without-job' });
   return change.board.titleIntake(command.jobId, command.title, change.at);
 }
 
 /** The command's fields are read as untrusted JSON: the Board refuses notes that are not well formed. */
-function noteQuestionOptions(command: ControlCommandOf<'question-options'>, change: TrackerChange) {
+function noteQuestionOptions(command: ControlCommandOf<'question-options'>, change: BoardTransaction) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'question-options-without-job' });
   return change.board.noteQuestionOptions(command.jobId, { question: command.question, options: command.options });
 }
 
 /** Recorded only: the Overseer files the need as its entity's ticket. The body is read as `ticket ready` reads a draft's. */
-function declareNeed(command: ControlCommandOf<'need-declare'>, change: TrackerChange) {
+function declareNeed(command: ControlCommandOf<'need-declare'>, change: BoardTransaction) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'need-declare-without-job' });
   const declaration = { entity: command.entity, title: command.title, body: command.bodyText };
   return change.board.declareNeed(command.jobId, declaration, TicketAcceptanceUtil.readinessGapsOf);
 }
 
-function freshAgent(command: ControlCommandOf<'job-fresh'>, change: TrackerChange) {
+function freshAgent(command: ControlCommandOf<'job-fresh'>, change: BoardTransaction) {
   if (command.incidentId !== undefined) requireIncidentAllows(change, command.incidentId, command);
   return handledUnder(change, command.incidentId, 'job-fresh', change.board.requestJobStop(command.jobId, 'fresh', change.at));
 }
 
 /** A chat turn under an incident never reaches a job waiting on User's answer, nor User's own product-owner session. */
-function messageJob(command: ControlCommandOf<'job-message'>, change: TrackerChange) {
+function messageJob(command: ControlCommandOf<'job-message'>, change: BoardTransaction) {
   const pictures = storedPicturesOf(command.pictures, change);
   if (command.incidentId === undefined) return change.board.messageJob(command.jobId, command.text, pictures, change.at);
   requireIncidentAllows(change, command.incidentId, command);
@@ -76,11 +76,11 @@ function messageJob(command: ControlCommandOf<'job-message'>, change: TrackerCha
 }
 
 export const JOB_CONTROLS = {
-  'job-stop':     (command: ControlCommandOf<'job-stop'>, change: TrackerChange) => change.board.requestJobStop(command.jobId, command.mode, change.at),
+  'job-stop':     (command: ControlCommandOf<'job-stop'>, change: BoardTransaction) => change.board.requestJobStop(command.jobId, command.mode, change.at),
   'job-fresh':    freshAgent,
-  'job-stop-all': (command: ControlCommandOf<'job-stop-all'>, change: TrackerChange) => change.board.stopAllJobs(command.mode, change.at),
+  'job-stop-all': (command: ControlCommandOf<'job-stop-all'>, change: BoardTransaction) => change.board.stopAllJobs(command.mode, change.at),
   'job-message':  messageJob,
-  'intake-start': (command: ControlCommandOf<'intake-start'>, change: TrackerChange) => change.board.startIntake(
+  'intake-start': (command: ControlCommandOf<'intake-start'>, change: BoardTransaction) => change.board.startIntake(
     command.text, storedPicturesOf(command.pictures, change), change.at
   ),
   'pipeline-agent-advise': startAdvice,

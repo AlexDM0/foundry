@@ -8,9 +8,9 @@ import type { JobKind }                                                    from 
 import { readingBoardOf }                                                  from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { Baton }                                                           from '../../../src/services/overseer/Baton.ts';
 import { overseerFilesIn }                                                 from '../../../src/services/overseer/OverseerFiles.ts';
+import type { BoardTransaction }                                           from '../../../src/services/tracker/BoardTransaction.ts';
 import { projectLocationOf }                                               from '../../../src/services/tracker/ProjectLocation.ts';
 import { listTracker, readListedTrackers, repositoryTrackerListOf }        from '../../../src/services/tracker/RepositoryTrackerList.ts';
-import type { TrackerChange }                                              from '../../../src/services/tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                             from '../../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                                                from '../../../src/services/tracker/Workspace.ts';
 import { type BranchNamespaceRefusal, BranchNamespaceUtil, branchNamesOf } from '../../../src/shared/BranchNames.ts';
@@ -100,7 +100,7 @@ async function listTheBoard(context: CommandContext, branchNamespace: string): P
 }
 
 /** In the hold, so no job starts between the check and the write. */
-function setNamespace(change: TrackerChange, wantedNamespace: string) {
+function setNamespace(change: BoardTransaction, wantedNamespace: string) {
   const { board } = change;
   const jobsOnBranches = board.jobs().filter((job) => !JOB_KINDS_ON_NO_BRANCH.includes(job.kind));
   if (jobsOnBranches.length > 0) {

@@ -20,7 +20,7 @@ import { useRecordedGit }                                 from '../../testing/Re
 import { RECORDED_FLOW_TICKET_BRANCH }                    from '../../testing/RecordedGitFlow.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                      from '../../testing/ToolGuard.ts';
-import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
 import { jobFolderIn }                                    from './OverseerFiles.ts';
 import { RedHandoff }                                     from './RedHandoff.ts';
@@ -64,7 +64,7 @@ function retryScene(): RetryScene {
     platformPorts: { dataFolders: { pathModule: path, foldsCase: false } },
     agentAdapter:  fakeAgentAdapter(),
   } as unknown as JobLaunchContext;
-  const change = { board, at: AT } as unknown as TrackerChange;
+  const change = { board, at: AT } as unknown as BoardTransaction;
   const launchAttempt = (attempt: number): Readonly<Job> => {
     const { job } = board.launchJob({
       kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null, attempt, target: 'main'

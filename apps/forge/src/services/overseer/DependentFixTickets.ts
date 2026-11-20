@@ -9,8 +9,8 @@ import type { EntityKey }          from '../../lib/tracker-model/@types/Pipeline
 import type { Board }              from '../../lib/tracker-model/Board.ts';
 import { SETTLED_TICKET_STATUSES } from '../../lib/tracker-model/constants/Statuses.ts';
 import { TicketDependencyUtil }    from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
+import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';
 import { createTicket }            from '../tracker/TicketStore.ts';
-import type { TrackerChange }      from '../tracker/TrackerPipeline.ts';
 
 /** What the fix ticket of a dependent is worded from. */
 export interface DependentFixFacts {
@@ -75,7 +75,7 @@ function releaseTheGroupWithTheFix(board: Board, group: string, crossingTicketId
  * dependent's fix ticket is filed in it, waiting on the crossing ticket, submitted at once. A dependent that already has a ticket in the
  * group gets no second one, so acting on the answer again files nothing.
  */
-function fileFixTicket(change: TrackerChange, context: DependentFixContext, crossing: { ticketId: string; dependentEntity: EntityKey }): readonly LogRecord[] {
+function fileFixTicket(change: BoardTransaction, context: DependentFixContext, crossing: { ticketId: string; dependentEntity: EntityKey }): readonly LogRecord[] {
   const { board, at } = change;
   const { ticketId, dependentEntity } = crossing;
   const ticket = ticketOf(board, ticketId);

@@ -5,15 +5,16 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { UnreadablePipelineReading }                from '../../adapters/pipeline/PipelineFile.ts';
-import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
-import { boardFixture, type BoardFixture }               from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }                        from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }                            from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }                             from '../tracker/Workspace.ts';
-import { ControlService }                                from './ControlService.ts';
+import type { UnreadablePipelineReading }                       from '../../adapters/pipeline/PipelineFile.ts';
+import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal, type OperationRefusalDetail }        from '../../shared/OperationRefusal.ts';
+import { boardFixture, type BoardFixture }                      from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
+import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
+import { workspacePathsFor }                                    from '../tracker/Workspace.ts';
+import { ControlService }                                       from './ControlService.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 
@@ -36,14 +37,13 @@ const PIPELINE_WRITES: readonly ControlCommand[] = [
   { kind: 'pipeline-approval-set', approval: 'merge', on: true },
 ];
 
-function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null): TrackerChange {
+function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null): BoardTransaction {
   return {
     board:                          fixture.board,
     workspace:                      WORKSPACE,
     at:                             CHANGED_AT,
-    malformedTickets:               [],
-    malformedEpics:                 [],
-    malformedDrafts:                [],
+    records:                        createFixtureRecordAllocation(fixture.board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
     unreadablePipeline,
     storedLogEntryCount:            0,
     storedLogRecords:               [],

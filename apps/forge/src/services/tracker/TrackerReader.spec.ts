@@ -29,11 +29,11 @@ import { ticketFixture }                                  from '../../testing/Bo
 import { emptyProgress, fileRow }                         from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { BROKEN_LOG_TEXT }                                from '../../testing/TrackerFileFixtures.ts';
+import type { BoardContents }                             from './@types/BoardRecords.ts';
 import {
   readTracker,
   requireProgressFile,
   requireTracker,
-  type TrackerContents,
   type TrackerReading
 } from './TrackerReader.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
@@ -70,7 +70,7 @@ function trackerFileContents(): Record<string, string> {
   return contents;
 }
 
-function contentsOf(reading: TrackerReading): TrackerContents {
+function contentsOf(reading: TrackerReading): BoardContents {
   if (reading.verdict !== 'readable') throw new Error(`the tracker was expected to be readable, and reads ${reading.verdict}`);
   return reading.contents;
 }
@@ -108,7 +108,7 @@ describe('readTracker', () => {
     expect(contents.progress).toEqual(progressWithOneRow());
     expect(contents.storedLog).toEqual({ records: [NOTE_RECORD] });
     expect(contents.listing.tickets.map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
-    expect(contents.listing.malformed.map((malformed) => malformed.filePath)).toEqual([join(workspace.ticketsDirectory, '002-broken-by-hand.md')]);
+    expect(contents.listing.unreadable.map((unreadable) => unreadable.location)).toEqual([join(workspace.ticketsDirectory, '002-broken-by-hand.md')]);
     expect(trackerFileContents()).toEqual(filesBefore);
   });
 

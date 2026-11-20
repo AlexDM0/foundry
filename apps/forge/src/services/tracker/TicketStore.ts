@@ -3,45 +3,17 @@
  * file is a listing entry and a `null`, so one broken file cannot take down `status` or `render`.
  */
 
-import { basename, join }        from 'node:path';
-import { ProgressFileIngestion } from '../../adapters/progress/ProgressFileIngestion.ts';
-import { TicketFileIngestion }   from '../../adapters/tickets/TicketFileIngestion.ts';
-import type { LogRecord }        from '../../lib/tracker-model/@types/LogRecord.ts';
-import type {
-  Ticket,
-  TicketFrontmatter,
-  TicketPriority,
-  TicketType
-} from '../../lib/tracker-model/@types/Ticket.ts';
-import { FIRST_TICKET_NUMBER }    from '../../lib/tracker-model/constants/TicketFields.ts';
-import { TicketIdUtil }           from '../../lib/tracker-model/utils/TicketIdUtil.ts';
-import { slugFromTitle }          from './SlugFromTitle.ts';
-import { storeFolderFileNamesIn } from './StoreFolderListing.ts';
-import type { Workspace }         from './Workspace.ts';
-
-export interface MalformedTicketFile {
-  filePath: string;
-  reason:   string;
-  line:     number;
-}
-
-export interface TicketListing {
-  verdict:   'listed';
-  tickets:   Ticket[];
-  malformed: MalformedTicketFile[];
-}
-
-export interface CreateTicketInput {
-  title:     string;
-  type:      TicketType;
-  /** Written only when given, so a ticket filed without one reads as normal exactly like a ticket filed before priorities existed. */
-  priority?: TicketPriority;
-  group?:    string;
-  /** Given the id this store assigns, so a body that names its own ticket cannot name another. */
-  bodyFor:   (ticketId: string) => string;
-  /** The timestamp the ticket records as both `filed` and `updated`; the caller owns the clock. */
-  at:        string;
-}
+import { basename, join }                                          from 'node:path';
+import { ProgressFileIngestion }                                   from '../../adapters/progress/ProgressFileIngestion.ts';
+import { TicketFileIngestion }                                     from '../../adapters/tickets/TicketFileIngestion.ts';
+import type { LogRecord }                                          from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Ticket, TicketFrontmatter }                          from '../../lib/tracker-model/@types/Ticket.ts';
+import { FIRST_TICKET_NUMBER }                                     from '../../lib/tracker-model/constants/TicketFields.ts';
+import { TicketIdUtil }                                            from '../../lib/tracker-model/utils/TicketIdUtil.ts';
+import type { CreateTicketInput, TicketListing, UnreadableRecord } from './@types/BoardRecords.ts';
+import { slugFromTitle }                                           from './SlugFromTitle.ts';
+import { storeFolderFileNamesIn }                                  from './StoreFolderListing.ts';
+import type { Workspace }                                          from './Workspace.ts';
 
 /**
  * What a hold has spent beyond the disk: the Board's tickets, a filed one not yet written among them, and every ticket its log names as
@@ -58,11 +30,11 @@ const FILE_NAME_IDENTIFIER_MATCH = /^(\d+)(?:-|\.md$)/;
 
 /**
  * A ticket is known by its frontmatter `id`. A file whose name carries another number, and every file holding an id another
- * also holds, is listed as malformed with its reason, since which of them is the ticket cannot be judged. Ordered by id numerically.
+ * also holds, is listed as unreadable with its reason, since which of them is the ticket cannot be judged. Ordered by id numerically.
  */
 export function listTickets(workspace: Workspace): TicketListing {
-  const parsedFiles: ParsedTicketFile[]  = [];
-  const malformed: MalformedTicketFile[] = [];
+  const parsedFiles: ParsedTicketFile[] = [];
+  const unreadable: UnreadableRecord[]  = [];
 
   for (const fileName of ticketFileNamesIn(workspace)) {
     const filePath = join(workspace.ticketsDirectory, fileName);
@@ -71,7 +43,9 @@ export function listTickets(workspace: Workspace): TicketListing {
     if (reading.verdict === 'parsed') {
       parsedFiles.push({ fileName, ticket: reading.ticket, identifierLine: reading.identifierLine });
     } else {
-      malformed.push({ filePath, reason: reading.reason, line: reading.line });
+      unreadable.push({
+        record: 'ticket', key: identifierInFileName(fileName), location: filePath, reason: reading.reason, line: reading.line
+      });
     }
   }
 
@@ -81,7 +55,7 @@ export function listTickets(workspace: Workspace): TicketListing {
     const { id }           = parsedFile.ticket.frontmatter;
 
     if (identifierInName !== null && identifierInName !== id) {
-      malformed.push(malformedEntryOf(parsedFile, `the file name says #${identifierInName} but its \`id\` is ${id}`));
+      unreadable.push(unreadableEntryOf(parsedFile, `the file name says #${identifierInName} but its \`id\` is ${id}`));
     } else {
       namedConsistently.push(parsedFile);
     }
@@ -93,22 +67,21 @@ export function listTickets(workspace: Workspace): TicketListing {
 
     if (otherHolders.length > 0) {
       const otherFileNames = otherHolders.map((other) => other.fileName).join(', ');
-      malformed.push(malformedEntryOf(parsedFile, `ticket #${parsedFile.ticket.frontmatter.id} is also held by ${otherFileNames}`));
+      unreadable.push(unreadableEntryOf(parsedFile, `ticket #${parsedFile.ticket.frontmatter.id} is also held by ${otherFileNames}`));
     } else {
       listedFiles.push(parsedFile);
     }
   }
 
   listedFiles.sort((a, b) => Number(a.ticket.frontmatter.id) - Number(b.ticket.frontmatter.id));
-  malformed.sort((a, b) => (a.filePath < b.filePath ? -1 : Number(a.filePath > b.filePath)));
+  unreadable.sort((a, b) => (a.location < b.location ? -1 : Number(a.location > b.location)));
   return {
-    verdict: 'listed',
     tickets: listedFiles.map((listedFile) => listedFile.ticket),
-    malformed,
+    unreadable,
   };
 }
 
-/** Looked up by frontmatter `id`, never by file name; a ticket `listTickets` reports as malformed answers for no id. */
+/** Looked up by frontmatter `id`, never by file name; a ticket `listTickets` reports as unreadable answers for no id. */
 export function readTicket(workspace: Workspace, reference: string): Ticket | null {
   const identifier = TicketIdUtil.parseTicketReference(reference);
   if (identifier === null) {
@@ -179,8 +152,15 @@ interface ParsedTicketFile {
   identifierLine: number;
 }
 
-function malformedEntryOf(parsedFile: ParsedTicketFile, reason: string): MalformedTicketFile {
-  return { filePath: parsedFile.ticket.filePath, reason, line: parsedFile.identifierLine };
+/** Keyed as a reference finds it: by the file name's number, or by the `id` it holds when the name carries none. */
+function unreadableEntryOf(parsedFile: ParsedTicketFile, reason: string): UnreadableRecord {
+  return {
+    record:   'ticket',
+    key:      identifierInFileName(parsedFile.fileName) ?? parsedFile.ticket.frontmatter.id,
+    location: parsedFile.ticket.filePath,
+    reason,
+    line:     parsedFile.identifierLine,
+  };
 }
 
 /** `012-slug.md` and `012.md` carry a number; any other name carries none, and a number no ticket could have counts as none. */

@@ -17,7 +17,8 @@ import {
   test,
 } from 'bun:test';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { createTracker, type NewTracker }                 from './TrackerCreation.ts';
+import type { NewTracker }                                from './@types/BoardRecords.ts';
+import { createTracker }                                  from './TrackerCreation.ts';
 import { workspacePathsFor, type Workspace }              from './Workspace.ts';
 
 const NEW_TRACKER: NewTracker = {

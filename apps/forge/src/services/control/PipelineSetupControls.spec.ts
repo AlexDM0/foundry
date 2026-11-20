@@ -26,12 +26,14 @@ import type { ControlCommand }                                    from '../../sh
 import { OperationRefusal }                                       from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                        from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT, echoedControlContextWith }       from '../../testing/EchoedControlContext.ts';
+import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }   from '../../testing/FixtureRecordAllocation.ts';
 import type { RecordedGitStep }                                   from '../../testing/RecordedGit.ts';
 import { GIT_CALL_SHAPES, RECORDED_PLACEHOLDERS, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }         from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                  from '../../testing/ToolGuard.ts';
 import { writeReadableTracker }                                   from '../../testing/TrackerFileFixtures.ts';
-import { writeTracker, type TrackerChange }                       from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                  from '../tracker/BoardTransaction.ts';
+import { writeTracker }                                           from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor }                                      from '../tracker/Workspace.ts';
 import { ControlService }                                         from './ControlService.ts';
 
@@ -53,14 +55,13 @@ const STORED_PIPELINE: Pipeline = {
   billing: { mode: 'api', maxBudgetUsd: 40 },
 };
 
-function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null = null): TrackerChange {
+function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null = null): BoardTransaction {
   return {
     board:                          fixture.board,
     workspace:                      WORKSPACE,
     at:                             CHANGED_AT,
-    malformedTickets:               [],
-    malformedEpics:                 [],
-    malformedDrafts:                [],
+    records:                        createFixtureRecordAllocation(fixture.board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
     unreadablePipeline,
     storedLogEntryCount:            0,
     storedLogRecords:               [],

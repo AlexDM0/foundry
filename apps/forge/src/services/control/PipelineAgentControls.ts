@@ -12,8 +12,8 @@ import type { PipelineSetupChanged }                                      from '
 import type { EntityKey }                                                 from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { ControlCommandKind, ControlCommandOf }                      from '../../shared/@types/ControlCommand.ts';
 import { TreePortability }                                                from '../lifecycle/TreePortability.ts';
+import type { BoardTransaction }                                          from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }                                              from '../tracker/ProjectLocation.ts';
-import type { TrackerChange }                                             from '../tracker/TrackerPipeline.ts';
 import { refuseMalformedSetupCommand, requireStorableDraft, textFieldOf } from './PipelineSetupControls.ts';
 
 /** Who sent the command, which record and which entity it serves are the Overseer's stamps, not part of the payload. */
@@ -34,11 +34,11 @@ function readPayload<Value>(commandKind: ControlCommandKind, reading: PayloadRea
 }
 
 /** Only a tracker at its repository's root holds entities; the place is read only for a layout finding of the forge's session. */
-function findingMayProposeEntities(topic: string, entityKey: EntityKey | undefined, change: TrackerChange): boolean {
+function findingMayProposeEntities(topic: string, entityKey: EntityKey | undefined, change: BoardTransaction): boolean {
   return topic === 'layout' && entityKey === undefined && projectLocationOf(change.workspace.rootDirectory).projectPrefix === '';
 }
 
-function recordFinding(command: ControlCommandOf<'pipeline-finding-record'>, change: TrackerChange): PipelineSetupChanged {
+function recordFinding(command: ControlCommandOf<'pipeline-finding-record'>, change: BoardTransaction): PipelineSetupChanged {
   const setupId   = textFieldOf(command, 'setupId');
   const finding   = readPayload(command.kind, SetupPayloadSchemas.findingReadingOf(payloadOf(command)));
   const entityKey = stampedEntityOf(command);
@@ -48,13 +48,13 @@ function recordFinding(command: ControlCommandOf<'pipeline-finding-record'>, cha
   return { setup: walking.setup, logged: [...recorded.logged, ...walking.logged] };
 }
 
-function askQuestion(command: ControlCommandOf<'pipeline-question-ask'>, change: TrackerChange): PipelineSetupChanged {
+function askQuestion(command: ControlCommandOf<'pipeline-question-ask'>, change: BoardTransaction): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const asking  = readPayload(command.kind, SetupPayloadSchemas.questionReadingOf(payloadOf(command)));
   return change.board.askSetupQuestion(setupId, asking, change.at, stampedEntityOf(command));
 }
 
-function draftConstitution(command: ControlCommandOf<'pipeline-constitution-draft'>, change: TrackerChange): PipelineSetupChanged {
+function draftConstitution(command: ControlCommandOf<'pipeline-constitution-draft'>, change: BoardTransaction): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const setting = readPayload(command.kind, SetupPayloadSchemas.constitutionReadingOf(payloadOf(command)));
   return change.board.setConstitution(setupId, setting, change.at, stampedEntityOf(command));
@@ -64,7 +64,7 @@ function draftConstitution(command: ControlCommandOf<'pipeline-constitution-draf
  * What the snapshot's tree cannot hold on every OS, read once from git's index at the agent's first proposal: each finding a note of the
  * record, its kind the label and its paths the sources. It runs no script.
  */
-function withTreeFindings(changed: PipelineSetupChanged, change: TrackerChange): PipelineSetupChanged {
+function withTreeFindings(changed: PipelineSetupChanged, change: BoardTransaction): PipelineSetupChanged {
   const { setupId, snapshotCommit } = changed.setup;
   if (snapshotCommit === null) return changed;
   let latest = changed;
@@ -81,7 +81,7 @@ function withTreeFindings(changed: PipelineSetupChanged, change: TrackerChange):
  * The agent's edits never race a form, so they carry no revision; the draft they leave must still pass the validator, checked before the
  * Board is touched.
  */
-function proposeDraftEdits(command: ControlCommandOf<'pipeline-draft-propose'>, change: TrackerChange): PipelineSetupChanged {
+function proposeDraftEdits(command: ControlCommandOf<'pipeline-draft-propose'>, change: BoardTransaction): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const edits   = readPayload(command.kind, SetupPayloadSchemas.proposalReadingOf(payloadOf(command)));
   const isFirstProposal = !(change.board.pipelineSetup()?.edits.some((edit) => edit.by === 'agent') ?? false);
@@ -91,7 +91,7 @@ function proposeDraftEdits(command: ControlCommandOf<'pipeline-draft-propose'>, 
   return isFirstProposal ? withTreeFindings(changed, change) : changed;
 }
 
-function suggestStepReady(command: ControlCommandOf<'pipeline-step-ready'>, change: TrackerChange): PipelineSetupChanged {
+function suggestStepReady(command: ControlCommandOf<'pipeline-step-ready'>, change: BoardTransaction): PipelineSetupChanged {
   const setupId = textFieldOf(command, 'setupId');
   const step    = readPayload(command.kind, SetupPayloadSchemas.readyStepReadingOf(payloadOf(command)));
   return change.board.suggestSetupStepReady(setupId, step, change.at);

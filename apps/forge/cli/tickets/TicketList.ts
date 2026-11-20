@@ -82,7 +82,7 @@ export async function listAllTickets(commandArguments: ArgumentParser, context: 
     .filter((ticket) => writtenPriority === undefined || TicketDefaultsUtil.ticketPriorityOf(ticket.frontmatter) === writtenPriority);
 
   // Before the listing, so a reader piping the table still sees what was left out of it.
-  OutputUtil.reportIgnoredTicketFiles(context, listing.malformed);
+  OutputUtil.reportIgnoredTicketFiles(context, listing.unreadable);
 
   if (shown.length === 0) {
     const narrowing = [listedStatus, writtenPriority === undefined ? undefined : `${writtenPriority} priority`].filter((part) => part !== undefined);

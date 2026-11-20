@@ -45,7 +45,7 @@ import { useRecordedGit }                                                       
 import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
 import { launchSnapshotOf }                                                                from '../lifecycle/Customs.ts';
-import type { TrackerChange }                                                              from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                                           from '../tracker/BoardTransaction.ts';
 import { JobLaunch, type JobLaunchContext }                                                from './JobLaunch.ts';
 import { jobFolderIn }                                                                     from './OverseerFiles.ts';
 import { RedHandoff, type RedHandoffFacts }                                                from './RedHandoff.ts';
@@ -179,7 +179,7 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   writeFileSync(join(jobFolder, 'start.json'), JSON.stringify(jobStart));
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
-  JobLaunch.applyBuildJobObservations({ board, at: AT, workspace: context.workspace } as unknown as TrackerChange, context, [{
+  JobLaunch.applyBuildJobObservations({ board, at: AT, workspace: context.workspace } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
     setup:           'installed',
     installStepRuns: [],

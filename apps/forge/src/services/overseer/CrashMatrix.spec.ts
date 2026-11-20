@@ -71,9 +71,10 @@ import { EXAMPLE_TICKET_FILE_NAME, writeReadableTracker }      from '../../testi
 import { waitUntil }                                           from '../../testing/WaitUntil.ts';
 import { ControlService }                                      from '../control/ControlService.ts';
 import { finishHalfAppliedSetup }                              from '../control/PipelineSetupControls.ts';
+import type { BoardTransaction }                               from '../tracker/BoardTransaction.ts';
 import { LockGenerationSteps, NO_LOCK_HOLDER_READS_AS_GONE }   from '../tracker/GenerationLock.ts';
 import { holdJournalFilePathOf, readHoldJournal }              from '../tracker/HoldJournal.ts';
-import { writeTracker, type TrackerChange }                    from '../tracker/TrackerPipeline.ts';
+import { writeTracker }                                        from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                 from '../tracker/TrackerReader.ts';
 import { workspacePathsFor, type Workspace }                   from '../tracker/Workspace.ts';
 import { AirlockFactsFile }                                    from './AirlockFactsFile.ts';
@@ -116,17 +117,17 @@ function loggedKinds(): string[] {
   return readFileSync(workspace.logFilePath, 'utf8').trimEnd().split('\n').map((line) => (JSON.parse(line) as { kind: string }).kind);
 }
 
-function holdTheExampleTicket(change: TrackerChange): void {
+function holdTheExampleTicket(change: BoardTransaction): void {
   change.board.addTask({ name: 'Example cut-short row', startsNow: false, movesTheLink: false }, change.at);
   change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
 }
 
 /** The example tracker has no row, so holding its ticket changes the ticket and the log and leaves progress.json as it was. */
-function holdTheExampleTicketAlone(change: TrackerChange): void {
+function holdTheExampleTicketAlone(change: BoardTransaction): void {
   change.board.holdTicket('001', 'Waiting on Alex Example', change.at);
 }
 
-function noteAnExample(change: TrackerChange): void {
+function noteAnExample(change: BoardTransaction): void {
   change.board.recordNote('Example note of the next holder', change.at);
 }
 

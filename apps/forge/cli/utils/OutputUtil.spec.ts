@@ -12,7 +12,7 @@ import {
   test,
 } from 'bun:test';
 import { LogUtil }                                        from '../../src/adapters/utils/LogUtil.ts';
-import type { MalformedTicketFile }                       from '../../src/services/tracker/TicketStore.ts';
+import type { UnreadableRecord }                          from '../../src/services/tracker/@types/BoardRecords.ts';
 import { boardFixture, ticketFixture }                    from '../../src/testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
@@ -25,9 +25,13 @@ const {
   reportIgnoredTicketFiles,
 } = OutputUtil;
 
-const MALFORMED_TICKETS: MalformedTicketFile[] = [
-  { filePath: '/example/.agent-progress/tickets/004-broken.md', reason: 'the frontmatter has no closing fence', line: 1 },
-  { filePath: '/example/.agent-progress/tickets/005-unreadable.md', reason: 'the file could not be read: EACCES', line: 0 },
+const UNREADABLE_TICKETS: UnreadableRecord[] = [
+  {
+    record: 'ticket', key: '004', location: '/example/.agent-progress/tickets/004-broken.md', reason: 'the frontmatter has no closing fence', line: 1
+  },
+  {
+    record: 'ticket', key: '005', location: '/example/.agent-progress/tickets/005-unreadable.md', reason: 'the file could not be read: EACCES', line: 0
+  },
 ];
 
 const IGNORED_TICKET_LINES = [
@@ -49,7 +53,7 @@ describe('OutputUtil.reportIgnoredTicketFiles', () => {
   test('prints one ignored-ticket line per malformed file, all on standard error', () => {
     const context = createCapturedCommandContext({ currentDirectory: scratchDirectory });
 
-    reportIgnoredTicketFiles(context, MALFORMED_TICKETS);
+    reportIgnoredTicketFiles(context, UNREADABLE_TICKETS);
 
     expect(context.outputText()).toBe('');
     expect(context.errorText()).toBe(IGNORED_TICKET_LINES);
@@ -79,12 +83,16 @@ describe('OutputUtil.padColumn', () => {
 
 describe('OutputUtil.ignoredTicketFileText', () => {
   test('a malformed file with a line names the line after the path', () => {
-    expect(ignoredTicketFileText({ filePath: '/example/tickets/004-broken.md', line: 3, reason: 'the frontmatter has no closing `---` fence' }))
+    expect(ignoredTicketFileText({
+      record: 'ticket', key: '004', location: '/example/tickets/004-broken.md', line: 3, reason: 'the frontmatter has no closing `---` fence'
+    }))
       .toBe('Ticket file ignored: /example/tickets/004-broken.md (line 3): the frontmatter has no closing `---` fence');
   });
 
   test('a malformed file without a line, given as zero, names only the path', () => {
-    expect(ignoredTicketFileText({ filePath: '/example/tickets/005-unreadable.md', line: 0, reason: 'the file could not be read: EACCES' }))
+    expect(ignoredTicketFileText({
+      record: 'ticket', key: '005', location: '/example/tickets/005-unreadable.md', line: 0, reason: 'the file could not be read: EACCES'
+    }))
       .toBe('Ticket file ignored: /example/tickets/005-unreadable.md: the file could not be read: EACCES');
   });
 });

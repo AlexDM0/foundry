@@ -49,7 +49,7 @@ import {
   type EntityForgeWhitelists
 } from '../../testing/EntityForgeFixture.ts';
 import { createScratchDirectory, removeScratchDirectory }                                 from '../../testing/ScratchWorkspace.ts';
-import type { TrackerChange }                                                             from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { CrossingStages }                                                                 from './CrossingStages.ts';
 import { EntityDecisionAnswers, type EntityDecisionAnswerContext, type PackageNeedFacts } from './EntityDecisionAnswers.ts';
 import { JobLaunch, type JobLaunchContext }                                               from './JobLaunch.ts';
@@ -108,7 +108,7 @@ afterEach(() => {
 
 interface Forge {
   readonly board:   Board;
-  readonly change:  TrackerChange;
+  readonly change:  BoardTransaction;
   readonly context: EntityDecisionAnswerContext;
   readonly needs:   PackageNeedFacts[];
 }
@@ -138,7 +138,7 @@ function forgeWith(whitelists: EntityForgeWhitelists, pipelineOf: (stored: Pipel
     repositoryRoot:        repository,
   };
   return {
-    board, change: { board, at: AT, workspace } as unknown as TrackerChange, context, needs
+    board, change: { board, at: AT, workspace } as unknown as BoardTransaction, context, needs
   };
 }
 
@@ -327,7 +327,7 @@ describe('work-in-other-entity, answered', () => {
       return pipeline;
     });
     forge.board.answerDecision(decision.id, [`${ENTITY_DECISION_ANSWERS.moveToEntityPrefix}${ADMIN.key}`], AT);
-    EntityDecisionAnswers.actOnAnswers({ ...forge.change, board: withoutEntities.board } as TrackerChange, forge.context);
+    EntityDecisionAnswers.actOnAnswers({ ...forge.change, board: withoutEntities.board } as BoardTransaction, forge.context);
 
     expect(shopTicketOf(withoutEntities.board)?.entity).toBe(SHOP.key);
     expect(withoutEntities.board.logRecordsSoFar().some((record) => record.kind === 'entity-assigned')).toBe(false);

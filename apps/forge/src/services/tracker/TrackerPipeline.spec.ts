@@ -30,9 +30,10 @@ import {
   storedFileContentsOf,
   writeReadableTracker
 } from '../../testing/TrackerFileFixtures.ts';
+import type { BoardTransaction }             from './BoardTransaction.ts';
 import { LockGenerationSteps }               from './GenerationLock.ts';
 import { createTicket, listTickets }         from './TicketStore.ts';
-import { writeTracker, type TrackerChange }  from './TrackerPipeline.ts';
+import { writeTracker }                      from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
 import { thrownFailureOf }                   from './testing/ThrownFailure.ts';
 
@@ -58,7 +59,7 @@ function inodesOf(filePaths: readonly string[]): number[] {
   return filePaths.map((filePath) => statSync(filePath).ino);
 }
 
-function addExampleRow(change: TrackerChange, name = 'Example rendered row'): void {
+function addExampleRow(change: BoardTransaction, name = 'Example rendered row'): void {
   change.board.addTask({ name, startsNow: false, movesTheLink: false }, change.at);
 }
 
@@ -96,8 +97,7 @@ describe('writeTracker', () => {
     });
 
     expect(written.board.tasks().map((task) => task.name)).toEqual(['Example rendered row']);
-    expect(written.malformedTickets).toEqual([]);
-    expect(written.malformedEpics).toEqual([]);
+    expect(written.unreadableRecords).toEqual({ tickets: [], epics: [], drafts: [] });
     expect(existsSync(workspace.htmlFilePath)).toBe(false);
   });
 
@@ -238,7 +238,7 @@ describe('writeTracker', () => {
   // The Hatch inbox applies every pending relayed `ticket add` in one hold, before any ticket file is written.
   test('two tickets filed in one hold take two ids and two files, and both list', async () => {
     writeReadableTracker(workspace);
-    const fileExampleTicket = (change: TrackerChange): void => {
+    const fileExampleTicket = (change: BoardTransaction): void => {
       const ticket = createTicket(change.workspace, change.board, {
         title: 'Example finding', type: 'bug', bodyFor: () => '# Example finding\n', at: change.at
       });
@@ -256,12 +256,43 @@ describe('writeTracker', () => {
     });
 
     const listing = listTickets(workspace);
-    expect(listing.malformed).toEqual([]);
+    expect(listing.unreadable).toEqual([]);
     expect(listing.tickets.map((ticket) => basename(ticket.filePath))).toEqual([
       EXAMPLE_TICKET_FILE_NAME,
       '002-example-finding.md',
       '003-example-finding-2.md',
     ]);
+  });
+
+  test('the mutation gets the unreadable records, keyed, and the records a hold allocates from; the caller gets the same report', async () => {
+    writeReadableTracker(workspace);
+    mkdirSync(workspace.epicsDirectory, { recursive: true });
+    mkdirSync(workspace.draftsDirectory, { recursive: true });
+    writeFileSync(join(workspace.ticketsDirectory, '004-broken-by-hand.md'), 'not a ticket at all\n');
+    writeFileSync(join(workspace.epicsDirectory, 'example-epic.md'), 'not an epic at all\n');
+    writeFileSync(join(workspace.draftsDirectory, 'D7.json'), '{');
+
+    const written = await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => ({
+        unreadableKeys: [change.unreadableRecords.tickets, change.unreadableRecords.epics, change.unreadableRecords.drafts]
+          .map((unreadable) => unreadable.map(({ record, key }) => `${record} ${key}`)),
+        newTicketId: change.records.newTicket({
+          title: 'Example finding', type: 'bug', bodyFor: () => '', at: change.at
+        }).frontmatter.id,
+        progressPlace: change.records.locationOf({ record: 'progress' }),
+      }),
+    });
+
+    expect(written.result).toEqual({
+      unreadableKeys: [['ticket 004'], ['epic example-epic'], ['draft D7']],
+      newTicketId:    '005',
+      progressPlace:  workspace.progressFilePath,
+    });
+    expect(written.unreadableRecords.tickets.map(({ location }) => location)).toEqual([join(workspace.ticketsDirectory, '004-broken-by-hand.md')]);
+    expect(written.unreadableRecords.epics.map(({ location }) => location)).toEqual([join(workspace.epicsDirectory, 'example-epic.md')]);
   });
 
   test('a hold that changes nothing writes no file: every stored file keeps its inode and its bytes', async () => {

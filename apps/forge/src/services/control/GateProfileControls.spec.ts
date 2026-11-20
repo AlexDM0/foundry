@@ -9,17 +9,18 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { UnreadablePipelineReading }  from '../../adapters/pipeline/PipelineFile.ts';
-import type { Pipeline, PipelineEntity }   from '../../lib/tracker-model/@types/Pipeline.ts';
-import { BoardRefusal }                    from '../../lib/tracker-model/BoardRefusal.ts';
-import type { ControlCommand }             from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal }                from '../../shared/OperationRefusal.ts';
-import { boardFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }          from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }              from '../tracker/TrackerPipeline.ts';
-import { workspacePathsFor }               from '../tracker/Workspace.ts';
-import { Bouncer }                         from './Bouncer.ts';
-import { ControlService }                  from './ControlService.ts';
+import type { UnreadablePipelineReading }                       from '../../adapters/pipeline/PipelineFile.ts';
+import type { Pipeline, PipelineEntity }                        from '../../lib/tracker-model/@types/Pipeline.ts';
+import { BoardRefusal }                                         from '../../lib/tracker-model/BoardRefusal.ts';
+import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                     from '../../shared/OperationRefusal.ts';
+import { boardFixture, type BoardFixture }                      from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
+import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
+import { workspacePathsFor }                                    from '../tracker/Workspace.ts';
+import { Bouncer }                                              from './Bouncer.ts';
+import { ControlService }                                       from './ControlService.ts';
 
 const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 
@@ -34,14 +35,13 @@ const STORED_PIPELINE: Pipeline = {
   phases: { build: [], review: [], merge: ['browser-tests'] },
 };
 
-function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null = null): TrackerChange {
+function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null = null): BoardTransaction {
   return {
     board:                          fixture.board,
     workspace:                      workspacePathsFor(REPOSITORY_ROOT),
     at:                             CHANGED_AT,
-    malformedTickets:               [],
-    malformedEpics:                 [],
-    malformedDrafts:                [],
+    records:                        createFixtureRecordAllocation(fixture.board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
     unreadablePipeline,
     storedLogEntryCount:            0,
     storedLogRecords:               [],

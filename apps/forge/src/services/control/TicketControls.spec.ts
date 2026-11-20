@@ -26,8 +26,9 @@ import {
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
+import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { TrackerChange }                             from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
 import { workspacePathsFor }                              from '../tracker/Workspace.ts';
 import { ControlService }                                 from './ControlService.ts';
 
@@ -58,15 +59,15 @@ const COMPLETE_BODY = '## Acceptance\n\nA1. The basket keeps its items.\n\n## Br
 function boardWithOneTicket(
   ticket = ticketFixture({ id: '001', status: 'pending' }),
   pipeline: Pipeline | undefined = undefined,
-): { board: Board; change: TrackerChange } {
+): { board: Board; change: BoardTransaction } {
   const root = createScratchDirectory('ticket-controls');
   scratchDirectories.push(root);
   const workspace = workspacePathsFor(root);
   mkdirSync(workspace.ticketsDirectory, { recursive: true });
   const { board } = boardFixture({ tickets: [ticket], ...(pipeline === undefined ? {} : { pipeline }) });
   const change = {
-    board, workspace, at: AT, malformedTickets: []
-  } as unknown as TrackerChange;
+    board, workspace, at: AT, unreadableRecords: NO_UNREADABLE_RECORDS
+  } as unknown as BoardTransaction;
   return { board, change };
 }
 
@@ -184,7 +185,7 @@ function webCrossingPipeline(approvals: Pipeline['approvals'] = {}): Pipeline {
   return { ...pipeline, approvals, entities: { ...entities, web: { ...web, whitelist: ['design-system'], reach: ['/bun.lock'] } } };
 }
 
-function draftOfWeb(body: string, pipeline: Pipeline): { board: Board; change: TrackerChange } {
+function draftOfWeb(body: string, pipeline: Pipeline): { board: Board; change: BoardTransaction } {
   const fixture = boardWithOneTicket(ticketFixture({ id: '001', status: 'draft', entity: 'web' }), pipeline);
   fixture.board.editTicket('001', { body: { text: body, appends: false }, allowsPastPending: false }, AT);
   return fixture;
@@ -224,7 +225,7 @@ test('a forge without entities readies a draft whatever files its Brief names', 
 function finderAt(
   pipeline: Pipeline,
   launch: { role: 'builder' | 'reviewer'; jobEntity?: string; stage?: number },
-): { board: Board; change: TrackerChange } {
+): { board: Board; change: BoardTransaction } {
   const status = launch.role === 'builder' ? 'in-progress' : 'in-review';
   const fixture = boardWithOneTicket(ticketFixture({ id: '001', status, ...(pipeline.entities === undefined ? {} : { entity: 'web' }) }), pipeline);
   fixture.board.setOverseerState('running', AT);

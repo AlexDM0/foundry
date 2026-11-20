@@ -23,7 +23,7 @@ function readingBoardFor(context: CommandContext): { board: Board; workspace: Wo
   const {
     progress, listing, epicListing, draftListing
   } = requireTracker(workspace);
-  OutputUtil.reportIgnoredDraftFiles(context, draftListing.malformed);
+  OutputUtil.reportIgnoredDraftFiles(context, draftListing.unreadable);
   return { board: readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts), workspace };
 }
 

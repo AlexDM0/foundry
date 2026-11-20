@@ -7,22 +7,28 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { OperationRefusalWordingUtil }                   from '../../adapters/utils/OperationRefusalWordingUtil.ts';
-import type { Board }                                    from '../../lib/tracker-model/Board.ts';
-import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
-import { boardFixture, ticketFixture }                   from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }                        from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }                            from '../tracker/TrackerPipeline.ts';
-import { ControlService }                                from './ControlService.ts';
+import { OperationRefusalWordingUtil }                          from '../../adapters/utils/OperationRefusalWordingUtil.ts';
+import type { Board }                                           from '../../lib/tracker-model/Board.ts';
+import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal, type OperationRefusalDetail }        from '../../shared/OperationRefusal.ts';
+import { boardFixture, ticketFixture }                          from '../../testing/BoardFixtures.ts';
+import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
+import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
+import { ControlService }                                       from './ControlService.ts';
 
 const AT = '2026-09-26T10:15:00+02:00';
 
-function changeOf(board: Board): TrackerChange {
+function changeOf(board: Board): BoardTransaction {
   // The chart and clear appliers read the Board, the stamp of the hold and the stored log's length; a plain clear deletes no file.
   return {
-    board, at: AT, storedLogEntryCount: 4, deleteAllTicketFilesAfterwards: () => undefined
-  } as unknown as TrackerChange;
+    board,
+    at:                             AT,
+    records:                        createFixtureRecordAllocation(board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
+    storedLogEntryCount:            4,
+    deleteAllTicketFilesAfterwards: () => undefined,
+  } as unknown as BoardTransaction;
 }
 
 function apply(board: Board, command: ControlCommand): unknown {

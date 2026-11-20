@@ -26,6 +26,7 @@ import type { ControlCommand }                                    from '../../sh
 import { WorktreesFolder }                                        from '../../shared/WorktreesFolder.ts';
 import { boardFixture, entityPipelineFixture, type BoardFixture } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                                 from '../../testing/EchoedControlContext.ts';
+import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS }   from '../../testing/FixtureRecordAllocation.ts';
 import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
 import {
   GIT_CALL_SHAPES,
@@ -40,7 +41,8 @@ import { waitUntil }                                      from '../../testing/Wa
 import { ControlService }                                 from '../control/ControlService.ts';
 import type { LineRunEnd, LineRunRequest }                from '../lifecycle/GateRun.ts';
 import type { ProposalRunRecord, ProposalRunRequest }     from '../lifecycle/ProposalTwiceRun.ts';
-import { type TrackerChange, writeTracker }               from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
+import { writeTracker }                                   from '../tracker/TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace }              from '../tracker/Workspace.ts';
 import {
   PIPELINE_CHECK_RUNS_FOLDER,
@@ -82,14 +84,13 @@ afterEach(() => {
   removeScratchDirectory(repository);
 });
 
-function changeOfFixture(fixture: BoardFixture): TrackerChange {
+function changeOfFixture(fixture: BoardFixture): BoardTransaction {
   return {
     board:                          fixture.board,
     workspace,
     at:                             CHANGED_AT,
-    malformedTickets:               [],
-    malformedEpics:                 [],
-    malformedDrafts:                [],
+    records:                        createFixtureRecordAllocation(fixture.board),
+    unreadableRecords:              NO_UNREADABLE_RECORDS,
     unreadablePipeline:             null,
     storedLogEntryCount:            0,
     storedLogRecords:               [],

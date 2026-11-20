@@ -13,8 +13,8 @@ import type { TicketStatus }                   from '../../lib/tracker-model/@ty
 import type { Board }                          from '../../lib/tracker-model/Board.ts';
 import { EntityOwnershipUtil }                 from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { TicketDependencyUtil }                from '../../lib/tracker-model/utils/TicketDependencyUtil.ts';
+import type { BoardTransaction }               from '../tracker/BoardTransaction.ts';
 import { createTicket }                        from '../tracker/TicketStore.ts';
-import type { TrackerChange }                  from '../tracker/TrackerPipeline.ts';
 
 type DecisionWordingOf = (draft: DecisionDraft) => DecisionWording;
 
@@ -49,7 +49,7 @@ function rootEntityHasNoGates(pipeline: Readonly<Pipeline> | null, entityKey: En
 }
 
 function openNeedDecision(
-  change: TrackerChange, kind: DecisionKind, ticketIds: readonly string[], context: string, decisionWordingOf: DecisionWordingOf
+  change: BoardTransaction, kind: DecisionKind, ticketIds: readonly string[], context: string, decisionWordingOf: DecisionWordingOf
 ): readonly LogRecord[] {
   const draft: DecisionDraft = {
     kind, ticketIds, jobId: null, subject: { need: context }
@@ -86,7 +86,7 @@ export type NeedToFile = Readonly<Pick<DeclaredNeed, 'entity' | 'title' | 'body'
  * The need's ticket is the need's entity's, filed by the declaring job and submitted at once: `pending` with ticket review off, else
  * `ready-for-review`. Every ticket of the job waits on it, and it waits on none of them.
  */
-function fileNeed(change: TrackerChange, job: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf): LogRecord[] {
+function fileNeed(change: BoardTransaction, job: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf): LogRecord[] {
   const { board, at } = change;
   const waitingTicketIds = need.ticketIds.filter((ticketId) => board.tickets().some((ticket) => ticket.frontmatter.id === ticketId));
   const declared = waitingTicketIds.flatMap((ticketId) => board.recordNeedDeclared(ticketId, { entity: need.entity, title: need.title, byJob: job.id }, at).logged);
@@ -114,7 +114,7 @@ function fileNeed(change: TrackerChange, job: DeclaringJob, need: NeedToFile, de
 }
 
 /** In the hold that ends the job: every need it kept is taken off the board and filed, in declaring order. */
-function fileNeedsOf(change: TrackerChange, job: Readonly<Job>, decisionWordingOf: DecisionWordingOf): NeedsFiled {
+function fileNeedsOf(change: BoardTransaction, job: Readonly<Job>, decisionWordingOf: DecisionWordingOf): NeedsFiled {
   const needs = change.board.takeNeedsOf(job.id);
   return { logged: needs.flatMap((need) => fileNeed(change, job, need, decisionWordingOf)), filedNeedCount: needs.length };
 }
@@ -124,7 +124,7 @@ function fileNeedsOf(change: TrackerChange, job: Readonly<Job>, decisionWordingO
  * worked on the package change, which the crossing ticket waits on, as a need its build declared.
  */
 function filePackageChangeNeed(
-  change: TrackerChange, declaringJob: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf
+  change: BoardTransaction, declaringJob: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf
 ): LogRecord[] {
   return fileNeed(change, declaringJob, need, decisionWordingOf);
 }

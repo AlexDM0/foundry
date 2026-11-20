@@ -87,7 +87,7 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.13: no output names where a readable record is kept, and the pipeline dialog is titled with the stored file\'s name.',
   'cli/InstalledFiles.ts: store-internal-import: import { TRACKER_FILES }                                       from \'../src/services/tracker/constants/TrackerFiles.ts\';':
     'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
-  'cli/OpenTrackerForWriting.ts: store-internal-import: import { writeTracker, type TrackerChange, type TrackerWritten } from \'../src/services/tracker/TrackerPipeline.ts\';':
+  'cli/OpenTrackerForWriting.ts: store-internal-import: import { writeTracker, type TrackerWritten }   from \'../src/services/tracker/TrackerPipeline.ts\';':
     'Removed by WP5.8: the CLI writes through the store\'s command face.',
   [
   'cli/adoption/init/InitCommand.ts: store-internal-import: import { TRACKER_FILES }                                  from'
@@ -191,23 +191,12 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
   'cli/setup/login-item/LoginItemCommand.ts: store-internal-import: import { requireProgressFile }                from \'../../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/tickets/ReviewBarRequest.ts: store-internal-import: import type { TrackerChange }                     from \'../../src/services/tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'cli/tickets/TicketList.ts: store-internal-import: import { listTickets }          from \'../../src/services/tracker/TicketStore.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
   'cli/tickets/TicketReadingSubcommands.ts: store-internal-import: import { listTickets, readTicket }          from \'../../src/services/tracker/TicketStore.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/tickets/utils/TicketLookupUtil.ts: store-internal-import: import type { MalformedTicketFile } from \'../../../src/services/tracker/TicketStore.ts\';':
-    'Removed by WP5.3: the unreadable records\' types leave the adapter\'s stores.',
-  'cli/tickets/utils/TicketLookupUtil.ts: store-internal-import: import type { TrackerChange }       from \'../../../src/services/tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'cli/tracking/await/AwaitCommand.ts: store-internal-import: import { requireTracker }                 from \'../../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  [
-  'cli/tracking/namespace/NamespaceCommand.ts: store-internal-import: import type { TrackerChange }                                              from'
-    + ' \'../../../src/services/tracker/TrackerPipeline.ts\';'
-  ]:
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   [
   'cli/tracking/namespace/NamespaceCommand.ts: store-internal-import: import { requireProgressFile }                                             from'
     + ' \'../../../src/services/tracker/TrackerReader.ts\';'
@@ -221,22 +210,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.9: `status` reads the unfinished write through the store.',
   'cli/tracking/status/StatusCommand.ts: store-internal-import: import { requireTracker }                               from \'../../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/utils/OutputUtil.ts: store-internal-import: import type { MalformedDraftFile }  from \'../../src/services/tracker/DraftStore.ts\';':
-    'Removed by WP5.3: the unreadable records\' types leave the adapter\'s stores.',
-  'cli/utils/OutputUtil.ts: store-internal-import: import type { MalformedEpicFile }   from \'../../src/services/tracker/EpicStore.ts\';':
-    'Removed by WP5.3: the unreadable records\' types leave the adapter\'s stores.',
-  'cli/utils/OutputUtil.ts: store-internal-import: import type { MalformedTicketFile } from \'../../src/services/tracker/TicketStore.ts\';':
-    'Removed by WP5.3: the unreadable records\' types leave the adapter\'s stores.',
-  'src/services/control/AirlockControls.ts: store-internal-import: import type { TrackerChange }               from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/BoardLifetimeControls.ts: store-internal-import: import type { TrackerChange }                 from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/ControlService.ts: store-internal-import: import type { TrackerChange }      from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/ControlTicketLookup.ts: store-internal-import: import type { TrackerChange } from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/DecisionControls.ts: store-internal-import: import type { TrackerChange }    from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/control/FilingControls.ts: record-path-name: const filePath = draftFilePathOf(change.workspace, result.draft.id);':
     'Removed by WP5.5: the draft filing takes its location from the transaction\'s records.',
   'src/services/control/FilingControls.ts: record-path-name: const filePath = epicFilePathOf(change.workspace, command.key);':
@@ -245,41 +218,14 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.5: the draft filing takes its location from the transaction\'s records.',
   'src/services/control/FilingControls.ts: record-path-name: import { epicFilePathOf }                     from \'../tracker/EpicStore.ts\';':
     'Removed by WP5.5: the epic filing takes its location from the transaction\'s records.',
-  'src/services/control/FilingControls.ts: store-internal-import: import type { TrackerChange }                 from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/control/FilingControls.ts: store-internal-import: import { draftFilePathOf }                    from \'../tracker/DraftStore.ts\';':
     'Removed by WP5.5: the draft filing takes its location from the transaction\'s records.',
   'src/services/control/FilingControls.ts: store-internal-import: import { epicFilePathOf }                     from \'../tracker/EpicStore.ts\';':
     'Removed by WP5.5: the epic filing takes its location from the transaction\'s records.',
-  'src/services/control/GateProfileControls.ts: store-internal-import: import type { TrackerChange }                       from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/IncidentControls.ts: store-internal-import: import type { TrackerChange }                 from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/JobControls.ts: store-internal-import: import type { TrackerChange }                  from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/OverseerControls.ts: store-internal-import: import type { TrackerChange }  from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  [
-  'src/services/control/PipelineAgentControls.ts: store-internal-import: import type { TrackerChange }                                             from'
-    + ' \'../tracker/TrackerPipeline.ts\';'
-  ]:
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/PipelineSetupControls.ts: store-internal-import: import type { TrackerChange }                                     from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/RepairControls.ts: store-internal-import: import type { TrackerChange }            from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/ResumeControls.ts: store-internal-import: import type { TrackerChange }      from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/control/SettingControls.ts: record-path-name: const filePath = change.workspace.pipelineFilePath;':
     'Removed by WP5.5: the pipeline setting takes its location from the transaction\'s records.',
-  'src/services/control/SettingControls.ts: store-internal-import: import type { TrackerChange }                 from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/control/TicketControls.ts: store-internal-import: import type { TrackerChange }                 from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/control/TicketControls.ts: store-internal-import: import { createTicket }                       from \'../tracker/TicketStore.ts\';':
     'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
-  'src/services/overseer/DependentFixTickets.ts: store-internal-import: import type { TrackerChange }      from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/overseer/DependentFixTickets.ts: store-internal-import: import { createTicket }            from \'../tracker/TicketStore.ts\';':
     'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
   'src/services/overseer/DrivePass.ts: record-path-name: const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);':
@@ -297,7 +243,7 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.10: the pass fingerprint reads the stored files.',
   'src/services/overseer/DrivePass.ts: store-internal-import: import { requireProgressFile }                        from \'../tracker/TrackerReader.ts\';':
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'src/services/overseer/DrivePass.ts: store-internal-import: import { writeTracker, type TrackerChange }           from \'../tracker/TrackerPipeline.ts\';':
+  'src/services/overseer/DrivePass.ts: store-internal-import: import { writeTracker }                               from \'../tracker/TrackerPipeline.ts\';':
     'Removed by WP5.10: the pass holds the board through the store\'s transaction.',
   'src/services/overseer/DrivePass.ts: stored-record-read: const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);':
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
@@ -305,21 +251,8 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
   'src/services/overseer/DrivePass.ts: stored-record-read: const reading = PipelineFile.read(request.workspace.pipelineFilePath);':
     'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  [
-  'src/services/overseer/EntityDecisionAnswers.ts: store-internal-import: import type { TrackerChange }                                                         from'
-    + ' \'../tracker/TrackerPipeline.ts\';'
-  ]:
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/overseer/HatchInbox.ts: store-internal-import: import type { TrackerChange }                            from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/overseer/JobLaunch.ts: store-internal-import: import type { TrackerChange }                                          from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
-  'src/services/overseer/NeedTickets.ts: store-internal-import: import type { TrackerChange }                  from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/overseer/NeedTickets.ts: store-internal-import: import { createTicket }                        from \'../tracker/TicketStore.ts\';':
     'Removed by WP5.5: a new ticket is allocated through the transaction\'s records.',
-  'src/services/overseer/PipelineAgentSessions.ts: store-internal-import: import type { TrackerChange }           from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.3: the change a write hands its applier becomes `BoardTransaction`, imported from its own module.',
   'src/services/overseer/Regrouping.ts: store-internal-import: import { requireProgressFile }                              from \'../tracker/TrackerReader.ts\';':
     'Removed by WP5.10: the Overseer reads through the store\'s read side.',
   'src/services/overseer/StartGate.ts: store-internal-import: import { requireProgressFile }                               from \'../tracker/TrackerReader.ts\';':

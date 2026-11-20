@@ -4,20 +4,10 @@ import { mkdirSync } from 'node:fs';
 import { createLogFileWriter }                                 from '../../adapters/log/LogFileWriter.ts';
 import { createProgressFileWriter }                            from '../../adapters/progress/ProgressFileWriter.ts';
 import { emptyProgressFor }                                    from '../../lib/tracker-model/EmptyProgress.ts';
+import type { NewTracker, TrackerCreation }                    from './@types/BoardRecords.ts';
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE } from './GenerationLock.ts';
 import { withLock }                                            from './TrackerLock.ts';
 import type { Workspace }                                      from './Workspace.ts';
-
-export interface NewTracker {
-  project:          string;
-  startedAt:        string;
-  /** The page's localStorage namespace; the caller supplies it, so this module has no randomness to fake in a spec. */
-  trackerId:        string;
-  /** Absent for a tracker whose branches keep their bare names. */
-  branchNamespace?: string;
-}
-
-export type TrackerCreation = { verdict: 'created' } | { verdict: 'already-exists' };
 
 export async function createTracker(
   workspace: Workspace,

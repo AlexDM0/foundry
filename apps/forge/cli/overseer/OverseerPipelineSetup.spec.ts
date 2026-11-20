@@ -24,7 +24,8 @@ import { ControlService }                                            from '../..
 import type { DrivePass }                                            from '../../src/services/overseer/DrivePass.ts';
 import { HatchInbox }                                                from '../../src/services/overseer/HatchInbox.ts';
 import { jobFolderIn }                                               from '../../src/services/overseer/OverseerFiles.ts';
-import { type TrackerChange, writeTracker }                          from '../../src/services/tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                     from '../../src/services/tracker/BoardTransaction.ts';
+import { writeTracker }                                              from '../../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                          from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                          from '../../src/shared/OperationRefusal.ts';
 import { entityPipelineFixture }                                     from '../../src/testing/BoardFixtures.ts';
@@ -96,7 +97,7 @@ async function relayAsTheAgent(jobId: string, commandLineArguments: readonly str
  * The real advise command at `web`. This build refuses a stored pipeline or a record's draft that holds entities, so the hold's pipeline
  * holds `web` only while the command runs, and the stored draft keeps none.
  */
-function adviseAtWebOf(change: TrackerChange): unknown {
+function adviseAtWebOf(change: BoardTransaction): unknown {
   const storedPipeline = change.board.pipeline() as Pipeline | null;
   const webEntity = entityPipelineFixture().entities?.['web'];
   if (storedPipeline === null || webEntity === undefined) throw new Error('no stored pipeline to advise on');

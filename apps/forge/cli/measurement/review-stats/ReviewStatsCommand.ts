@@ -19,7 +19,7 @@ export const reviewStatsCommand: CommandHandler = (commandArguments, context) =>
   const {
     progress, storedLog, listing, epicListing, draftListing
   } = requireTracker(workspace);
-  OutputUtil.reportIgnoredTicketFiles(context, listing.malformed);
+  OutputUtil.reportIgnoredTicketFiles(context, listing.unreadable);
 
   const report    = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts).reviewStatisticsOf(storedLog.records);
   const humanText = report.recordedTicketCount === 0 ? noRecordedReviewsTextOf(report) : reviewStatsTextOf(report);

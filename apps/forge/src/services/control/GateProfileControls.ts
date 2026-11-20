@@ -17,7 +17,7 @@ import { BoardRefusal }                             from '../../lib/tracker-mode
 import { PipelineUtil }                             from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import type { ControlCommandOf as CommandOf }       from '../../shared/@types/ControlCommand.ts';
 import { EntityFoldersUtil }                        from '../../shared/utils/EntityFoldersUtil.ts';
-import type { TrackerChange }                       from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                    from '../tracker/BoardTransaction.ts';
 import { refuseMalformedSetupCommand, textFieldOf } from './PipelineSetupControls.ts';
 import { requireReadablePipeline }                  from './SettingControls.ts';
 
@@ -44,7 +44,7 @@ function entityFieldOf(command: GateProfileStartCommand): EntityKey | null {
 }
 
 /** The open setup's draft, refused `no-setup-open` for another record; with no setup named, the stored pipeline as it reads. */
-function sourcePipelineOf(change: TrackerChange, setupId: string | null): Pipeline | null {
+function sourcePipelineOf(change: BoardTransaction, setupId: string | null): Pipeline | null {
   if (setupId === null) {
     requireReadablePipeline(change);
     return change.board.pipeline();
@@ -83,7 +83,7 @@ function preparedStepsOf(steps: readonly PipelineStep[], firstHome: string | nul
   return firstHome === null ? steps : EntityFoldersUtil.rootedStepsOf(steps, firstHome);
 }
 
-function startGateProfile(command: GateProfileStartCommand, change: TrackerChange): GateProfileChanged {
+function startGateProfile(command: GateProfileStartCommand, change: BoardTransaction): GateProfileChanged {
   const setupId  = setupIdFieldOf(command);
   const gateName = textFieldOf(command, 'gateName');
   const phase    = phaseFieldOf(command);
@@ -102,7 +102,7 @@ function startGateProfile(command: GateProfileStartCommand, change: TrackerChang
   }, change.at);
 }
 
-function stopGateProfile(command: CommandOf<'gate-profile-stop'>, change: TrackerChange): GateProfileChanged & { changed?: false } {
+function stopGateProfile(command: CommandOf<'gate-profile-stop'>, change: BoardTransaction): GateProfileChanged & { changed?: false } {
   return change.board.stopGateProfile(textFieldOf(command, 'profileRunId'), change.at);
 }
 

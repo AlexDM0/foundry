@@ -9,6 +9,8 @@ import { OperationRefusalWordingUtil }               from '../../adapters/utils/
 import type { ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                          from '../../shared/OperationRefusal.ts';
 import { boardFixture, ticketFixture }               from '../../testing/BoardFixtures.ts';
+import { NO_UNREADABLE_RECORDS }                     from '../../testing/FixtureRecordAllocation.ts';
+import type { UnreadableRecords }                    from '../tracker/@types/BoardRecords.ts';
 import { CONTROL_COMMAND_KINDS }                     from './ControlService.ts';
 import { ticketIdOfReference }                       from './ControlTicketLookup.ts';
 
@@ -229,14 +231,19 @@ describe('ControlCommand', () => {
 
 describe('ticketIdOfReference', () => {
   const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' }), ticketFixture({ id: '003' })] });
-  const malformedTickets = [{ filePath: '/example-agency/.agent-progress/tickets/004-broken.md', reason: 'the frontmatter has no closing fence', line: 1 }];
+  const unreadableRecords: UnreadableRecords = {
+    ...NO_UNREADABLE_RECORDS,
+    tickets: [{
+      record: 'ticket', key: '004', location: '/example-agency/.agent-progress/tickets/004-broken.md', reason: 'the frontmatter has no closing fence', line: 1
+    }],
+  };
 
   test('3, 003 and #3 resolve to ticket 003', () => {
-    for (const reference of ['3', '003', '#3']) expect(ticketIdOfReference({ board, malformedTickets }, reference), reference).toBe('003');
+    for (const reference of ['3', '003', '#3']) expect(ticketIdOfReference({ board, unreadableRecords }, reference), reference).toBe('003');
   });
 
   test('a reference with nothing there is refused with a wordless detail the adapter words', () => {
-    const refusal = refusalOf(() => ticketIdOfReference({ board, malformedTickets }, '2'));
+    const refusal = refusalOf(() => ticketIdOfReference({ board, unreadableRecords }, '2'));
 
     expect(refusal.status).toBe('refused');
     expect(refusal.detail).toEqual({ kind: 'no-readable-ticket', reference: '2' });
@@ -244,7 +251,7 @@ describe('ticketIdOfReference', () => {
   });
 
   test('a reference whose file will not parse is unrepaired, naming the file, its line and why', () => {
-    const refusal = refusalOf(() => ticketIdOfReference({ board, malformedTickets }, '#4'));
+    const refusal = refusalOf(() => ticketIdOfReference({ board, unreadableRecords }, '#4'));
 
     expect(refusal.status).toBe('unrepaired');
     expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(

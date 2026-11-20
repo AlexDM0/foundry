@@ -5,33 +5,38 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { MalformedTicketFile }    from '../../../src/services/tracker/TicketStore.ts';
+import type { UnreadableRecord }       from '../../../src/services/tracker/@types/BoardRecords.ts';
 import { PRODUCT_NAMES }               from '../../../src/shared/constants/ProductNames.ts';
 import { boardFixture, ticketFixture } from '../../../src/testing/BoardFixtures.ts';
+import { NO_UNREADABLE_RECORDS }       from '../../../src/testing/FixtureRecordAllocation.ts';
 import { refusalFrom }                 from '../../testing/RefusalFrom.ts';
 import { TicketLookupUtil }            from './TicketLookupUtil.ts';
 
 const { requireTicket, refuseAMissingTicket } = TicketLookupUtil;
 
-const MALFORMED_THIRD_TICKET: MalformedTicketFile = {
-  filePath: '/example-agency/storefront/.agent-progress/tickets/004-broken.md',
+const UNREADABLE_FOURTH_TICKET: UnreadableRecord = {
+  record:   'ticket',
+  key:      '004',
+  location: '/example-agency/storefront/.agent-progress/tickets/004-broken.md',
   reason:   'the frontmatter has no closing fence',
   line:     1,
 };
+
+const ONLY_THE_FOURTH_TICKET_UNREADABLE = { ...NO_UNREADABLE_RECORDS, tickets: [UNREADABLE_FOURTH_TICKET] };
 
 describe('TicketLookupUtil.requireTicket', () => {
   test('3, 003 and #3 resolve to the one ticket 003', () => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' }), ticketFixture({ id: '003', title: 'Example basket page' })] });
 
     for (const reference of ['3', '003', '#3']) {
-      expect(requireTicket({ board, malformedTickets: [] }, reference).frontmatter.title, reference).toBe('Example basket page');
+      expect(requireTicket({ board, unreadableRecords: NO_UNREADABLE_RECORDS }, reference).frontmatter.title, reference).toBe('Example basket page');
     }
   });
 
   test('a reference with no ticket and no broken file is refused, pointing at ticket list', () => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
 
-    const refusal = refusalFrom(() => requireTicket({ board, malformedTickets: [MALFORMED_THIRD_TICKET] }, '2'));
+    const refusal = refusalFrom(() => requireTicket({ board, unreadableRecords: ONLY_THE_FOURTH_TICKET_UNREADABLE }, '2'));
 
     expect(refusal.status).toBe('refused');
     expect(refusal.message).toBe(
@@ -43,7 +48,7 @@ describe('TicketLookupUtil.requireTicket', () => {
   test('a reference whose file will not parse is unrepaired, naming the file, its line and why', () => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001' })] });
 
-    const refusal = refusalFrom(() => requireTicket({ board, malformedTickets: [MALFORMED_THIRD_TICKET] }, '#4'));
+    const refusal = refusalFrom(() => requireTicket({ board, unreadableRecords: ONLY_THE_FOURTH_TICKET_UNREADABLE }, '#4'));
 
     expect(refusal.status).toBe('unrepaired');
     expect(refusal.message).toBe(
@@ -54,14 +59,16 @@ describe('TicketLookupUtil.requireTicket', () => {
 
 describe('TicketLookupUtil.refuseAMissingTicket', () => {
   test('a reference that is not an id at all is refused as missing, never matched to a broken file', () => {
-    const refusal = refusalFrom(() => refuseAMissingTicket('broken', [MALFORMED_THIRD_TICKET]));
+    const refusal = refusalFrom(() => refuseAMissingTicket('broken', [UNREADABLE_FOURTH_TICKET]));
 
     expect(refusal.status).toBe('refused');
     expect(refusal.message).toStartWith('There is no readable ticket broken.');
   });
 
   test('a broken file named by its bare padded id is matched as well as one with a slug', () => {
-    const bareFile: MalformedTicketFile = { filePath: '/example-agency/storefront/.agent-progress/tickets/004.md', reason: 'unreadable', line: 0 };
+    const bareFile: UnreadableRecord = {
+      record: 'ticket', key: '004', location: '/example-agency/storefront/.agent-progress/tickets/004.md', reason: 'unreadable', line: 0
+    };
 
     const refusal = refusalFrom(() => refuseAMissingTicket('004', [bareFile]));
 

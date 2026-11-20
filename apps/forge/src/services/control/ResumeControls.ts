@@ -11,7 +11,7 @@ import { BoardRefusal }            from '../../lib/tracker-model/BoardRefusal.ts
 import { INTERRUPTED_HOLD_PREFIX } from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import type { ControlCommandOf }   from '../../shared/@types/ControlCommand.ts';
 import { LIFECYCLE_LIMITS }        from '../../shared/constants/LifecycleLimits.ts';
-import type { TrackerChange }      from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }   from '../tracker/BoardTransaction.ts';
 import { ticketIdOfReference }     from './ControlTicketLookup.ts';
 
 interface ResumeRecorded extends Logged {
@@ -37,7 +37,7 @@ function liftEveryInterruptedHold(board: Board, at: string): Logged['logged'] {
 }
 
 /** Refused `ticket-not-interrupted` when the ticket has neither a job that waits for a resume nor an `interrupted:` hold. */
-function resumeTicket(ticketReference: string, change: TrackerChange): ResumeRecorded {
+function resumeTicket(ticketReference: string, change: BoardTransaction): ResumeRecorded {
   const { board, at } = change;
   const ticketId      = ticketIdOfReference(change, ticketReference);
   const jobIds        = waitingJobIdsOfTicket(board, ticketId);
@@ -48,7 +48,7 @@ function resumeTicket(ticketReference: string, change: TrackerChange): ResumeRec
   return recordedFrom([...instructed, ...lifted]);
 }
 
-function resumeInterruptedWork(command: ControlCommandOf<'interrupted-work-resume'>, change: TrackerChange): ResumeRecorded {
+function resumeInterruptedWork(command: ControlCommandOf<'interrupted-work-resume'>, change: BoardTransaction): ResumeRecorded {
   const { board, at } = change;
   const { target }    = command;
   if (target === 'all') {

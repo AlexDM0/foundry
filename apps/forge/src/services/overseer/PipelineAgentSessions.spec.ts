@@ -37,7 +37,7 @@ import { GIT_SCENARIOS }                                            from '../../
 import { createScratchDirectory, removeScratchDirectory }           from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                    from '../../testing/ToolGuard.ts';
 import { launchSnapshotOf }                                         from '../lifecycle/Customs.ts';
-import type { TrackerChange }                                       from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                    from '../tracker/BoardTransaction.ts';
 import type { Workspace }                                           from '../tracker/Workspace.ts';
 import { CONSTITUTION_DEFAULT_PATH }                                from './InstructionFiles.ts';
 import { jobFolderIn }                                              from './OverseerFiles.ts';
@@ -81,8 +81,8 @@ function turnEndContext(branchNamespace: string | null = null) {
   };
 }
 
-function changeOf(board: Board): TrackerChange {
-  return { board, at: AT, workspace: workspace() } as unknown as TrackerChange;
+function changeOf(board: Board): BoardTransaction {
+  return { board, at: AT, workspace: workspace() } as unknown as BoardTransaction;
 }
 
 /** A first setup on API billing whose agent runs, its snapshot at the start commit. */

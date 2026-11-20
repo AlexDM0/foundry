@@ -19,7 +19,7 @@ const SHOW_OPTION_NAMES = ['json'];
 
 /** `ticket show` changes nothing, so it reads the ticket files as they are, with no lock and no Board. */
 function requireTicketToShow(workspace: Workspace, reference: string): Ticket {
-  return readTicket(workspace, reference) ?? TicketLookupUtil.refuseAMissingTicket(reference, listTickets(workspace).malformed);
+  return readTicket(workspace, reference) ?? TicketLookupUtil.refuseAMissingTicket(reference, listTickets(workspace).unreadable);
 }
 
 function stampText(stamp: string): string {

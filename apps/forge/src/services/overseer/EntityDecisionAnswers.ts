@@ -18,7 +18,7 @@ import type { Board }                                                           
 import { DECISION_KINDS_ACTED_ON, type DecisionKindActedOn, ENTITY_DECISION_ANSWERS } from '../../lib/tracker-model/constants/EntityDecisionAnswers.ts';
 import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                        from '../../lib/tracker-model/constants/Statuses.ts';
 import type { BranchNames }                                                           from '../../shared/BranchNames.ts';
-import type { TrackerChange }                                                         from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                                      from '../tracker/BoardTransaction.ts';
 import { CrossingStages }                                                             from './CrossingStages.ts';
 import { type DependentFixContext, DependentFixTickets }                              from './DependentFixTickets.ts';
 import { NeedTickets }                                                                from './NeedTickets.ts';
@@ -155,7 +155,7 @@ interface PackageChange {
 }
 
 /** The package change becomes a ticket of the package, which the crossing ticket waits on as on a need its build declared. */
-function fileThePackageChangeAsANeed(change: TrackerChange, context: EntityDecisionAnswerContext, packageChange: PackageChange): void {
+function fileThePackageChangeAsANeed(change: BoardTransaction, context: EntityDecisionAnswerContext, packageChange: PackageChange): void {
   const { board } = change;
   const {
     ticketId, homeEntity, packageEntity, declaringJobId, refusedReason
@@ -178,7 +178,7 @@ function fileThePackageChangeAsANeed(change: TrackerChange, context: EntityDecis
  * E22: dropped or turned into a need, the refused package change goes back to stage 1 of the home, which is told the reason and may no
  * longer write in the package; a need also files the change as a ticket of the package that the crossing ticket waits on.
  */
-function actOnPackageRefused(change: TrackerChange, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
+function actOnPackageRefused(change: BoardTransaction, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
   const { board, at } = change;
   if (answer.answer === ENTITY_DECISION_ANSWERS.abandon) {
     abandon(board, answer, at);
@@ -203,7 +203,7 @@ function actOnPackageRefused(change: TrackerChange, context: EntityDecisionAnswe
  * E19: finishing under the old whitelist needs no act, since the crossing reads the answer; turning the package change into a need takes the
  * removed packages out of the crossing, their seals lifted, the ticket back in progress at stage 1, and files each change as a need.
  */
-function actOnWhitelistRemoved(change: TrackerChange, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
+function actOnWhitelistRemoved(change: BoardTransaction, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
   const { board, at } = change;
   if (answer.answer !== ENTITY_DECISION_ANSWERS.turnThePackageChangeIntoANeed) return;
   const homeEntity = homeEntityOf(board, answer.ticketId);
@@ -225,7 +225,7 @@ function actOnWhitelistRemoved(change: TrackerChange, context: EntityDecisionAns
  * E26: the dependent's fix ticket goes into the ticket's group, waiting on it, and the group's release lands both; the ticket's next package
  * build leaves out that dependent's gates, which run at the release. Abandoning abandons the ticket.
  */
-function actOnDependentBroken(change: TrackerChange, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
+function actOnDependentBroken(change: BoardTransaction, context: EntityDecisionAnswerContext, answer: AnswerToActOn): void {
   if (answer.answer === ENTITY_DECISION_ANSWERS.abandon) {
     abandon(change.board, answer, change.at);
     return;
@@ -238,7 +238,7 @@ function actOnDependentBroken(change: TrackerChange, context: EntityDecisionAnsw
 }
 
 /** Acts on every answer that waits for it, oldest first, in the hold before the Playbook, so the same pass launches what it freed. */
-function actOnAnswers(change: TrackerChange, context: EntityDecisionAnswerContext): void {
+function actOnAnswers(change: BoardTransaction, context: EntityDecisionAnswerContext): void {
   if (change.board.pipeline()?.entities === undefined) return;
   for (const answer of answersToActOnOf(change.board)) {
     if (answer.kind === 'work-in-other-entity') actOnWorkInOtherEntity(change.board, answer, change.at);

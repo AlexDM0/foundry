@@ -4,9 +4,9 @@
  */
 import type { DecisionAnswered } from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
-import type { TrackerChange }    from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction } from '../tracker/BoardTransaction.ts';
 
-function answerDecision(command: ControlCommandOf<'decision-answer'>, change: TrackerChange): DecisionAnswered {
+function answerDecision(command: ControlCommandOf<'decision-answer'>, change: BoardTransaction): DecisionAnswered {
   return change.board.answerDecisionInForm(command.decisionId, command.answer, change.at);
 }
 

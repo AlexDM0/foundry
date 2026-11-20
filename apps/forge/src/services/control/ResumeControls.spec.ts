@@ -16,7 +16,8 @@ import type { ResumeTarget }                            from '../../shared/@type
 import { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
 import { boardFixture, refusalDetailOf, ticketFixture } from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                       from '../../testing/EchoedControlContext.ts';
-import type { TrackerChange }                           from '../tracker/TrackerPipeline.ts';
+import { NO_UNREADABLE_RECORDS }                        from '../../testing/FixtureRecordAllocation.ts';
+import type { BoardTransaction }                        from '../tracker/BoardTransaction.ts';
 import { ControlService }                               from './ControlService.ts';
 
 const AT = '2026-11-19T02:15:00+01:00';
@@ -47,9 +48,9 @@ function buildOf(board: Board, ticketId: string, cause: InterruptionCause | null
   return job.id;
 }
 
-function changeOf(board: Board): TrackerChange {
+function changeOf(board: Board): BoardTransaction {
   // The resume applier reads only the Board, the ticket files that would not parse and the stamp of the hold.
-  return { board, at: AT, malformedTickets: [] } as unknown as TrackerChange;
+  return { board, at: AT, unreadableRecords: NO_UNREADABLE_RECORDS } as unknown as BoardTransaction;
 }
 
 function resume(board: Board, target: ResumeTarget) {

@@ -1,7 +1,7 @@
 /**
  * The store folder listing the ticket, epic and draft stores share. What matters: a missing folder is an empty store, only files of the
  * extension count, never a folder named like one, and come in file-name order, and a file whose stored key differs from its name is
- * malformed, never listed, while a malformed reading keeps its own reason and line.
+ * unreadable, never listed, while a malformed reading keeps its own reason and line; each unreadable file is keyed by its name.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join }                                   from 'node:path';
@@ -34,8 +34,8 @@ afterEach(() => {
 test('a missing folder lists no file and no item', () => {
   expect(storeFolderFileNamesIn(directory, '.md')).toEqual([]);
   expect(listStoreFolder({
-    directory, extension: '.md', keyField: 'key', readingOf
-  })).toEqual({ items: [], malformed: [] });
+    record: 'epic', directory, extension: '.md', keyField: 'key', readingOf
+  })).toEqual({ items: [], unreadable: [] });
 });
 
 test('only files of the extension are listed, in file-name order', () => {
@@ -51,19 +51,23 @@ test('a folder named with the extension is not listed', () => {
   expect(storeFolderFileNamesIn(directory, '.md')).toEqual(['a.md']);
 });
 
-test('a file whose key differs from its name is malformed, and a refused reading keeps its reason and line', () => {
+test('a file whose key differs from its name is unreadable, and a refused reading keeps its reason and line, each keyed by its file name', () => {
   mkdirSync(directory, { recursive: true });
   writeFileSync(join(directory, 'alpha.md'), 'alpha');
   writeFileSync(join(directory, 'beta.md'), 'gamma');
   writeFileSync(join(directory, 'delta.md'), 'broken');
 
   expect(listStoreFolder({
-    directory, extension: '.md', keyField: 'key', readingOf
+    record: 'draft', directory, extension: '.md', keyField: 'key', readingOf
   })).toEqual({
-    items:     ['item alpha'],
-    malformed: [
-      { filePath: join(directory, 'beta.md'), reason: 'the file name says beta but its `key` is gamma', line: 0 },
-      { filePath: join(directory, 'delta.md'), reason: 'example refusal', line: 3 },
+    items:      ['item alpha'],
+    unreadable: [
+      {
+        record: 'draft', key: 'beta', location: join(directory, 'beta.md'), reason: 'the file name says beta but its `key` is gamma', line: 0
+      },
+      {
+        record: 'draft', key: 'delta', location: join(directory, 'delta.md'), reason: 'example refusal', line: 3
+      },
     ],
   });
 });

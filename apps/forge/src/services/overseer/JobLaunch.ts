@@ -103,8 +103,8 @@ import {
   type TargetMergeSettlement
 } from '../lifecycle/MergeRun.ts';
 import { type PackageReviewSettlement, ReviewOutcome }                 from '../lifecycle/ReviewOutcome.ts';
+import type { BoardTransaction }                                       from '../tracker/BoardTransaction.ts';
 import { type ProjectLocation, projectLocationOf }                     from '../tracker/ProjectLocation.ts';
-import type { TrackerChange }                                          from '../tracker/TrackerPipeline.ts';
 import type { Workspace }                                              from '../tracker/Workspace.ts';
 import type { BoardChildren }                                          from './BoardChildren.ts';
 import { ConstitutionCommits }                                         from './ConstitutionCommits.ts';
@@ -1246,7 +1246,7 @@ function bodyWithHandoffOf(body: string, handoffSection: string): string {
 }
 
 interface HoldContext {
-  change:         TrackerChange;
+  change:         BoardTransaction;
   context:        JobLaunchContext;
   pipelineStored: boolean;
   logged:         LogRecord[];
@@ -1554,7 +1554,7 @@ function ticketIdsTouchingAgentConfigOf(context: JobLaunchContext, jobs: readonl
 }
 
 /** In the hold: each observed hit opens its decision once, and holds the ticket until User answered it. */
-function holdAgentConfigHits(change: TrackerChange, context: JobLaunchContext, touchingTicketIds: readonly string[]): { held: string[]; logged: LogRecord[] } {
+function holdAgentConfigHits(change: BoardTransaction, context: JobLaunchContext, touchingTicketIds: readonly string[]): { held: string[]; logged: LogRecord[] } {
   const hold: HoldContext = {
     change, context, pipelineStored: false, logged: []
   };
@@ -2342,7 +2342,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
 }
 
 /** In the hold, after the relayed requests and child events, before the policy: so a ticket finished here gets its review job in this hold. */
-function applyBuildJobObservations(change: TrackerChange, context: JobLaunchContext, observations: readonly BuildJobObservation[]): LogRecord[] {
+function applyBuildJobObservations(change: BoardTransaction, context: JobLaunchContext, observations: readonly BuildJobObservation[]): LogRecord[] {
   const hold: HoldContext = {
     change, context, pipelineStored: change.board.pipeline() !== null, logged: []
   };

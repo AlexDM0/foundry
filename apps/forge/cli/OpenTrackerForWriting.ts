@@ -1,21 +1,22 @@
 /** Runs the tracker service's write pipeline for a command: the workspace, the `--at` stamp and the skipped-file report are the command line's. */
-import { Baton }                                                 from '../src/services/overseer/Baton.ts';
-import { overseerFilesIn }                                       from '../src/services/overseer/OverseerFiles.ts';
-import { writeTracker, type TrackerChange, type TrackerWritten } from '../src/services/tracker/TrackerPipeline.ts';
-import { requireWorkspace }                                      from '../src/services/tracker/Workspace.ts';
-import { OperationRefusal }                                      from '../src/shared/OperationRefusal.ts';
-import { OVERSEER_NUDGE_TIMEOUT_MILLISECONDS }                   from '../src/shared/constants/OverseerLimits.ts';
-import type { CommandContext }                                   from './CommandContext.ts';
-import { registerWrittenTracker }                                from './RegisterWrittenTracker.ts';
-import type { ArgumentParser }                                   from './arguments/ArgumentParser.ts';
-import { NextLineUtil }                                          from './utils/NextLineUtil.ts';
-import { OptionValueUtil }                                       from './utils/OptionValueUtil.ts';
-import { OutputUtil }                                            from './utils/OutputUtil.ts';
+import { Baton }                               from '../src/services/overseer/Baton.ts';
+import { overseerFilesIn }                     from '../src/services/overseer/OverseerFiles.ts';
+import type { BoardTransaction }               from '../src/services/tracker/BoardTransaction.ts';
+import { writeTracker, type TrackerWritten }   from '../src/services/tracker/TrackerPipeline.ts';
+import { requireWorkspace }                    from '../src/services/tracker/Workspace.ts';
+import { OperationRefusal }                    from '../src/shared/OperationRefusal.ts';
+import { OVERSEER_NUDGE_TIMEOUT_MILLISECONDS } from '../src/shared/constants/OverseerLimits.ts';
+import type { CommandContext }                 from './CommandContext.ts';
+import { registerWrittenTracker }              from './RegisterWrittenTracker.ts';
+import type { ArgumentParser }                 from './arguments/ArgumentParser.ts';
+import { NextLineUtil }                        from './utils/NextLineUtil.ts';
+import { OptionValueUtil }                     from './utils/OptionValueUtil.ts';
+import { OutputUtil }                          from './utils/OutputUtil.ts';
 
 async function writeTrackerForCommand<MutationResult>(
   commandArguments: ArgumentParser,
   context: CommandContext,
-  mutate: (change: TrackerChange) => MutationResult | Promise<MutationResult>,
+  mutate: (change: BoardTransaction) => MutationResult | Promise<MutationResult>,
 ): Promise<TrackerWritten<MutationResult>> {
   // A relayed verb ended at its Hatch; one reaching the tracker under a job wrote something no control command carries.
   if (context.job !== undefined) {
@@ -27,8 +28,8 @@ async function writeTrackerForCommand<MutationResult>(
     workspace, at, now: context.now, mutate, lockHolderIsGone: context.platformPorts.processSupervision.processIsGone
   });
   // The store is already written, so a skipped file never fails the command: exit 0, named on standard error.
-  OutputUtil.reportIgnoredTicketFiles(context, written.malformedTickets);
-  OutputUtil.reportIgnoredEpicFiles(context, written.malformedEpics);
+  OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
+  OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
   await registerWrittenTracker(context, workspace);
   await nudgeTheOverseer(context, workspace.trackerDirectory);
   return written;
@@ -51,7 +52,7 @@ async function nudgeTheOverseer(context: CommandContext, trackerDirectory: strin
 export async function openTrackerForWriting<MutationResult>(
   commandArguments: ArgumentParser,
   context: CommandContext,
-  mutate: (change: TrackerChange) => MutationResult | Promise<MutationResult>,
+  mutate: (change: BoardTransaction) => MutationResult | Promise<MutationResult>,
 ): Promise<MutationResult> {
   const written = await writeTrackerForCommand(commandArguments, context, mutate);
   return written.result;
@@ -61,7 +62,7 @@ export async function openTrackerForWriting<MutationResult>(
 export async function openTrackerForWritingThenReadNextLine<MutationResult>(
   commandArguments: ArgumentParser,
   context: CommandContext,
-  mutate: (change: TrackerChange) => MutationResult | Promise<MutationResult>,
+  mutate: (change: BoardTransaction) => MutationResult | Promise<MutationResult>,
 ): Promise<{ result: MutationResult; nextLine: string }> {
   const written = await writeTrackerForCommand(commandArguments, context, mutate);
   return { result: written.result, nextLine: NextLineUtil.nextLineOf(written.board) };

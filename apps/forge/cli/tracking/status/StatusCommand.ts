@@ -56,9 +56,9 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   const logNewestFirst  = logNewestFirstOf(wordedLog);
   const board           = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records);
 
-  OutputUtil.reportIgnoredTicketFiles(context, listing.malformed);
-  OutputUtil.reportIgnoredEpicFiles(context, epicListing.malformed);
-  OutputUtil.reportIgnoredDraftFiles(context, draftListing.malformed);
+  OutputUtil.reportIgnoredTicketFiles(context, listing.unreadable);
+  OutputUtil.reportIgnoredEpicFiles(context, epicListing.unreadable);
+  OutputUtil.reportIgnoredDraftFiles(context, draftListing.unreadable);
 
   const showsEverything  = commandArguments.flag('full');
   const showsTicketsOnly = commandArguments.flag('tickets-only');

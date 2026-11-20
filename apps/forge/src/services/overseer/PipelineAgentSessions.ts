@@ -36,8 +36,8 @@ import {
   type RefMovesAllowed
 } from '../lifecycle/Customs.ts';
 import type { SharedRepositoryLanding } from '../lifecycle/Landing.ts';
+import type { BoardTransaction }        from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }            from '../tracker/ProjectLocation.ts';
-import type { TrackerChange }           from '../tracker/TrackerPipeline.ts';
 import type { Workspace }               from '../tracker/Workspace.ts';
 import { ConstitutionCommits }          from './ConstitutionCommits.ts';
 import { GroupWorktrees }               from './GroupWorktrees.ts';
@@ -129,7 +129,7 @@ function launchBillingOf(board: Board, job: Readonly<Job>): PipelineBilling | un
  * In the hold: a record whose agents have no snapshot commit yet takes main's tip, the commit its snapshot is made at. The read runs git
  * only until the record holds one.
  */
-function pinSnapshotCommit(change: TrackerChange, mainLine: string): void {
+function pinSnapshotCommit(change: BoardTransaction, mainLine: string): void {
   const setup = change.board.pipelineSetup();
   const session = setup === null ? null : firstSessionOf(setup);
   if (setup === null || session === null || setup.snapshotCommit !== null || setup.applyRequest !== null) return;
@@ -267,7 +267,7 @@ function turnEndVerdictOf(context: TurnEndContext, board: Board, job: Readonly<J
  * In the hold that reads each turn's `result`: Customs on the snapshot. A refusal marks the record's snapshot touched, so Apply refuses
  * `setup-snapshot-touched`, and opens one incident; a snapshot already touched, or an agent with an open incident, opens nothing again.
  */
-function verifyTurnEnds(change: TrackerChange, context: TurnEndContext, jobIds: readonly string[]): void {
+function verifyTurnEnds(change: BoardTransaction, context: TurnEndContext, jobIds: readonly string[]): void {
   const { board, at } = change;
   for (const jobId of jobIds) {
     const job = board.jobById(jobId);

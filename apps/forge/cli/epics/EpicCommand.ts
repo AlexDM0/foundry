@@ -22,7 +22,7 @@ const READING_OPTION_NAMES = ['json'];
 
 function readingBoardFor(context: CommandContext): Board {
   const { progress, listing, epicListing } = requireTracker(requireWorkspace(context.currentDirectory));
-  OutputUtil.reportIgnoredEpicFiles(context, epicListing.malformed);
+  OutputUtil.reportIgnoredEpicFiles(context, epicListing.unreadable);
   return readingBoardOf(progress, listing.tickets, epicListing.epics);
 }
 

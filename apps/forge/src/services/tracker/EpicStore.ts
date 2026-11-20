@@ -5,23 +5,18 @@
 import { join }                                    from 'node:path';
 import { EpicFileIngestion }                       from '../../adapters/epics/EpicFileIngestion.ts';
 import type { Epic }                               from '../../lib/tracker-model/@types/Epic.ts';
+import type { BoardContents }                      from './@types/BoardRecords.ts';
 import { listStoreFolder, storeFolderFileNamesIn } from './StoreFolderListing.ts';
-import type { MalformedTicketFile }                from './TicketStore.ts';
 import type { Workspace }                          from './Workspace.ts';
 
-/** The same report a malformed ticket file makes: the file, why, and the line. */
-export type MalformedEpicFile = MalformedTicketFile;
-
-export interface EpicListing {
-  epics:     Epic[];
-  malformed: MalformedEpicFile[];
-}
+export type EpicListing = BoardContents['epicListing'];
 
 const EPIC_FILE_EXTENSION = '.md';
 
-/** An epic is its file name: a file whose `key` says otherwise is listed as malformed. */
+/** An epic is its file name: a file whose `key` says otherwise is listed as unreadable. */
 export function listEpics(workspace: Workspace): EpicListing {
   const listing = listStoreFolder<Epic>({
+    record:    'epic',
     directory: workspace.epicsDirectory,
     extension: EPIC_FILE_EXTENSION,
     keyField:  'key',
@@ -30,7 +25,7 @@ export function listEpics(workspace: Workspace): EpicListing {
       return reading.verdict === 'malformed' ? reading : { verdict: 'read', item: reading.epic, key: reading.epic.frontmatter.key };
     },
   });
-  return { epics: listing.items, malformed: listing.malformed };
+  return { epics: listing.items, unreadable: listing.unreadable };
 }
 
 /** `clear --all`: the Board already removed every epic it read, so this takes the files it could not read. */

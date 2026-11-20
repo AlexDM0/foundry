@@ -93,7 +93,7 @@ export const mergesCommand: CommandHandler = (commandArguments, context) => {
   const {
     progress, storedLog, listing, epicListing, draftListing, pipelineReading
   } = requireTracker(workspace);
-  OutputUtil.reportIgnoredTicketFiles(context, listing.malformed);
+  OutputUtil.reportIgnoredTicketFiles(context, listing.unreadable);
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const board    = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);
   const report = mergesReportOf(board, storedLog.records);

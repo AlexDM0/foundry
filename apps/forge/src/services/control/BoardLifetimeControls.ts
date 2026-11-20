@@ -9,8 +9,8 @@ import type { LogRecord }                     from '../../lib/tracker-model/@typ
 import type { ViewRange }                     from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
+import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
 import { PictureStore }                       from '../tracker/PictureStore.ts';
-import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
 
 export interface TrackerCleared {
   logged:              readonly LogRecord[];
@@ -78,7 +78,7 @@ function viewRangeOf(range: CommandOf<'chart-range-set'>['range'], now: Date): V
 }
 
 /** A bound relative to now is read against the hold's own time, which the Board stamps the change with. */
-function setChartRange(command: CommandOf<'chart-range-set'>, change: TrackerChange) {
+function setChartRange(command: CommandOf<'chart-range-set'>, change: BoardTransaction) {
   const view = viewRangeOf(command.range, LocalTimeUtil.parseIso(change.at) ?? new Date(change.at));
   return { view, ...change.board.setChartRange(view, change.at) };
 }
@@ -87,7 +87,7 @@ function setChartRange(command: CommandOf<'chart-range-set'>, change: TrackerCha
  * A live job would run on against rows, a log and, with `everything`, tickets that are gone, so the clear waits until none is live. The
  * Assistant is the exception: it is booted again whenever none is live, and its incidents are kept on the board, not in the log.
  */
-function clearTracker(command: CommandOf<'tracker-clear'>, change: TrackerChange): TrackerCleared {
+function clearTracker(command: CommandOf<'tracker-clear'>, change: BoardTransaction): TrackerCleared {
   const liveJobIds = change.board.jobs().filter((job) => job.kind !== ASSISTANT_JOB_KIND).map((job) => job.id);
   if (liveJobIds.length > 0) throw new OperationRefusal('refused', { kind: 'tracker-has-live-jobs', jobIds: liveJobIds });
   const deletesTickets = command.scope === 'everything';

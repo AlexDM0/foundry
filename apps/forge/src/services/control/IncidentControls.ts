@@ -9,12 +9,12 @@ import { BoardRefusal }                       from '../../lib/tracker-model/Boar
 import type { ControlCommand }                from '../../shared/@types/ControlCommand.ts';
 import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                   from '../../shared/OperationRefusal.ts';
-import type { TrackerChange }                 from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
 import { Bouncer }                            from './Bouncer.ts';
 import { ticketIdOfReference }                from './ControlTicketLookup.ts';
 
 /** Refuses a move the named incident does not allow, as the Hatch refuses it; the board refuses an unknown or closed incident. */
-export function requireIncidentAllows(change: TrackerChange, incidentId: string, command: ControlCommand): void {
+export function requireIncidentAllows(change: BoardTransaction, incidentId: string, command: ControlCommand): void {
   const incident = change.board.requireOpenIncident(incidentId);
   const reason = Bouncer.incidentMoveVerdictOf(incident, command);
   if (reason !== null) throw new OperationRefusal('refused', { kind: 'role-command-refused', reason, commandKind: command.kind });
@@ -32,7 +32,7 @@ export interface MoveSubject {
  * on its subject's one open incident that allows it, or applies as a plain User control, except where `requiresIncident`.
  */
 export function incidentForMove(
-  change: TrackerChange,
+  change: BoardTransaction,
   command: ControlCommand & { incidentId?: string },
   subject: MoveSubject,
   requiresIncident: boolean,
@@ -56,27 +56,27 @@ export function incidentForMove(
 }
 
 /** The move, then the incident marked handled by it, unless the move closed it already (a park). */
-export function handledUnder(change: TrackerChange, incidentId: string | undefined, move: IncidentMove, applied: Logged): Logged {
+export function handledUnder(change: BoardTransaction, incidentId: string | undefined, move: IncidentMove, applied: Logged): Logged {
   if (incidentId === undefined || change.board.incidentById(incidentId) === undefined) return applied;
   return { ...applied, logged: [...applied.logged, ...change.board.handleIncident(incidentId, move, change.at).logged] };
 }
 
-function answerIncident(command: CommandOf<'incident-answer'>, change: TrackerChange) {
+function answerIncident(command: CommandOf<'incident-answer'>, change: BoardTransaction) {
   requireIncidentAllows(change, command.incidentId, command);
   return change.board.answerIncident(command.incidentId, command.text, change.at);
 }
 
-function noteIncident(command: CommandOf<'incident-note'>, change: TrackerChange) {
+function noteIncident(command: CommandOf<'incident-note'>, change: BoardTransaction) {
   requireIncidentAllows(change, command.incidentId, command);
   return change.board.noteIncident(command.incidentId, command.text, change.at);
 }
 
-function escalateIncident(command: CommandOf<'incident-escalate'>, change: TrackerChange) {
+function escalateIncident(command: CommandOf<'incident-escalate'>, change: BoardTransaction) {
   requireIncidentAllows(change, command.incidentId, command);
   return change.board.escalateQuestionIncident(command.incidentId, change.at);
 }
 
-function parkTicket(command: CommandOf<'ticket-park'>, change: TrackerChange) {
+function parkTicket(command: CommandOf<'ticket-park'>, change: BoardTransaction) {
   if (command.incidentId !== undefined) requireIncidentAllows(change, command.incidentId, command);
   return change.board.parkTicket(ticketIdOfReference(change, command.ticketReference), command.reason, command.incidentId ?? null, change.at);
 }

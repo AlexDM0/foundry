@@ -14,7 +14,7 @@ import type { Board }                                                 from '../.
 import { RED_HANDOFF_RESUME_CALL_BUDGET, WIND_DOWN_GRACE_CALLS }      from '../../shared/constants/OverseerLimits.ts';
 import { boardFixture, ticketFixture }                                from '../../testing/BoardFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
-import type { TrackerChange }                                         from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
 import { jobFolderIn }                                                from './OverseerFiles.ts';
 import { RedHandoff }                                                 from './RedHandoff.ts';
@@ -61,7 +61,7 @@ function resumedScene(): ResumedScene {
     interruptedInstance: 1,
   }, 'expected 2, received 3');
   const context = { workspace: { rootDirectory, trackerDirectory }, log: () => undefined } as unknown as JobLaunchContext;
-  const change = { board, at: AT } as unknown as TrackerChange;
+  const change = { board, at: AT } as unknown as BoardTransaction;
   const observe = (overrides: Partial<BuildJobObservation>): void => {
     JobLaunch.applyBuildJobObservations(change, context, [{
       jobId:            job.id,

@@ -27,7 +27,7 @@ seventh step.
 | `createTicket`'s initial frontmatter moves to a util in `src/lib/tracker-model/utils/` or a Board method. | Nothing beyond its behaviour. | The next change to ticket filing |
 | `forge ticket show` (`cli/tickets/TicketReadingSubcommands.ts`) reads through `board.ticketByReference` in place of `readTicket`. | The command reads with no lock and no Board, so it works on an unreadable `progress.json` or [log](glossary.md#log). Reaching a Board goes through `requireTracker` (`src/services/tracker/TrackerReader.ts`), which refuses both. The move keeps that behaviour or drops it on purpose. | The next change to `ticket show` |
 | `nextTicketId` takes the ticket ids that [rows](glossary.md#row) name from the Board, replacing `ticketIdsNamedByTaskRows`, which reads `progress.json` a second time. | Nothing beyond its behaviour. | The next change to ticket filing |
-| A Board query replaces `TrackerChange.deleteAllTicketFilesAfterwards` in `src/services/tracker/TrackerPipeline.ts`. | Reaching malformed ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `forge clear` prints. | The next change to `forge clear --all` |
+| A Board query replaces `BoardTransaction.deleteAllTicketFilesAfterwards` in `src/services/tracker/BoardTransaction.ts`. | Reaching unreadable ticket and epic files, which `listTickets` and `listEpics` keep out of the Board, and the deleted-ticket count `forge clear` prints. | The next change to `forge clear --all` |
 
 ## Incident trail steps with no log record
 

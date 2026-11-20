@@ -20,7 +20,7 @@ import { OperationRefusal, type OperationRefusalDetail } from '../../shared/Oper
 import { WorktreesFolder }                               from '../../shared/WorktreesFolder.ts';
 import { Bouncer, type RelayingJob }                     from '../control/Bouncer.ts';
 import { ControlService }                                from '../control/ControlService.ts';
-import type { TrackerChange }                            from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                         from '../tracker/BoardTransaction.ts';
 import { PipelineAgentSessions }                         from './PipelineAgentSessions.ts';
 
 export interface PendingHatchRequest {
@@ -159,7 +159,7 @@ function replyOfRefusal(requestId: string, thrown: unknown): HatchReply {
   throw thrown;
 }
 
-function replyOf(change: TrackerChange, job: Readonly<Job>, request: PendingHatchRequest): { reply: HatchReply; commandKind: string } {
+function replyOf(change: BoardTransaction, job: Readonly<Job>, request: PendingHatchRequest): { reply: HatchReply; commandKind: string } {
   const reading = HatchFormatUtil.requestReadingOf(request.text);
   if (reading.verdict === 'refused') {
     const detail: OperationRefusalDetail = reading.reason === 'hatch-identity-mismatch'
@@ -221,7 +221,7 @@ function replyRebuiltFrom(applied: HatchAppliedRecord): HatchReply | null {
  * and logged with its reply. A request already applied whose reply was lost after its hold committed gets that reply again, unapplied. The
  * replies are returned for the Overseer to write once the hold has committed.
  */
-function applyPendingRequests(change: TrackerChange, repositoryRoot: string, pending: readonly PendingHatchRequest[]): HatchReplyToWrite[] {
+function applyPendingRequests(change: BoardTransaction, repositoryRoot: string, pending: readonly PendingHatchRequest[]): HatchReplyToWrite[] {
   const replies: HatchReplyToWrite[] = [];
   for (const request of pending) {
     const job = change.board.jobById(request.jobId);

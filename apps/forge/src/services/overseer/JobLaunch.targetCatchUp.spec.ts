@@ -40,7 +40,7 @@ import {
 import { GIT_CALL_SHAPES, type RecordedGitStep, useRecordedGit } from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }        from '../../testing/ScratchWorkspace.ts';
 import { testWhenGitIsRecorded }                                 from '../../testing/ToolGuard.ts';
-import type { TrackerChange }                                    from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                 from '../tracker/BoardTransaction.ts';
 import type { GateRunSlots }                                     from './GateRunSlots.ts';
 import { BUILD_JOB_CAUSES, JobLaunch, type JobLaunchContext }    from './JobLaunch.ts';
 import { jobFolderIn }                                           from './OverseerFiles.ts';
@@ -164,7 +164,7 @@ function catchUpScene(pipeline: Pipeline = PIPELINE, packageRuns = 0, reviewsThe
       context: '',
     }),
   } as unknown as JobLaunchContext;
-  const change = { board, at: AT } as unknown as TrackerChange;
+  const change = { board, at: AT } as unknown as BoardTransaction;
   const pass = async (): Promise<void> => {
     const observations = JobLaunch.observeBuildJobs(context, board.jobs(), board.pipeline());
     JobLaunch.applyBuildJobObservations(change, context, observations);

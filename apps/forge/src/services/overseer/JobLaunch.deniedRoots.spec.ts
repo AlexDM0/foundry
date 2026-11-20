@@ -27,7 +27,7 @@ import { fakeAgentAdapter }                                           from '../.
 import { nativePlatformPorts }                                        from '../../testing/NativePlatformPorts.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                                     from '../../testing/TalosChildReadings.ts';
-import type { TrackerChange }                                         from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                      from '../tracker/BoardTransaction.ts';
 import { type BuildJobObservation, JobLaunch, type JobLaunchContext } from './JobLaunch.ts';
 import { jobFolderIn }                                                from './OverseerFiles.ts';
 
@@ -110,7 +110,7 @@ describe('the denied roots a launch makes', () => {
     const refusal = { step: 'worker', reason: `the denied folder ${join(scene.worktree, '.claude')} could not be made, so it would get no read-only mount` };
     expect(observation.sandboxRefusal).toEqual(refusal);
     expect(JobLaunch.someBuildJobAwaitsAPass(scene.board, [observation])).toBe(true);
-    JobLaunch.applyBuildJobObservations({ board: scene.board, at: AT } as unknown as TrackerChange, scene.context, [observation]);
+    JobLaunch.applyBuildJobObservations({ board: scene.board, at: AT } as unknown as BoardTransaction, scene.context, [observation]);
     expect(scene.board.incidents().map((incident) => [incident.kind, incident.facts])).toEqual([['sandbox-unavailable', refusal]]);
     expect(scene.board.jobById(scene.job.id)).toBeUndefined();
   });

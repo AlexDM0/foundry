@@ -6,7 +6,7 @@
 import { OperationRefusalWordingUtil }               from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { TicketJsonUtil }                            from '../../src/adapters/utils/TicketJsonUtil.ts';
 import type { TicketStatus }                         from '../../src/lib/tracker-model/@types/Ticket.ts';
-import type { TrackerChange }                        from '../../src/services/tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                     from '../../src/services/tracker/BoardTransaction.ts';
 import { refusalIsOperationRefusal }                 from '../../src/shared/OperationRefusal.ts';
 import type { CommandContext }                       from '../CommandContext.ts';
 import { runCommandLine }                            from '../Main.ts';
@@ -30,7 +30,7 @@ function optionalEntry<Key extends string>(key: Key, value: string | undefined):
   return value === undefined ? {} : { [key]: value } as Record<Key, string>;
 }
 
-function claimOnTheBoard(commandArguments: ArgumentParser, change: TrackerChange): unknown {
+function claimOnTheBoard(commandArguments: ArgumentParser, change: BoardTransaction): unknown {
   const ticketIds      = commandArguments.positionals().slice(1).map((reference) => TicketLookupUtil.requireTicket(change, reference).frontmatter.id);
   const afterReference = commandArguments.option('after');
   const claimed        = change.board.claimTickets(ticketIds, {
@@ -42,7 +42,7 @@ function claimOnTheBoard(commandArguments: ArgumentParser, change: TrackerChange
   return documents.length === 1 ? documents[0] : documents;
 }
 
-function moveOnTheBoard(targetStatus: TicketStatus, commandArguments: ArgumentParser, change: TrackerChange): unknown {
+function moveOnTheBoard(targetStatus: TicketStatus, commandArguments: ArgumentParser, change: BoardTransaction): unknown {
   const ticketId = TicketLookupUtil.requireTicket(change, commandArguments.positionals()[1] ?? '').frontmatter.id;
   const details  = { ...optionalEntry('branch', commandArguments.option('branch')), ...optionalEntry('commit', commandArguments.option('commit')) };
   const tokens   = OptionValueUtil.tokenCountFrom(commandArguments);
@@ -53,7 +53,7 @@ function moveOnTheBoard(targetStatus: TicketStatus, commandArguments: ArgumentPa
   return ReviewBarOutputUtil.ticketWithReviewBarAsJson(move.ticket, reviewBarStartedFor(change, move.ticket, reviewBarRequest), move.closedReviewBars);
 }
 
-function boardMoveOf(commandLineArguments: readonly string[]): ((commandArguments: ArgumentParser, change: TrackerChange) => unknown) | null {
+function boardMoveOf(commandLineArguments: readonly string[]): ((commandArguments: ArgumentParser, change: BoardTransaction) => unknown) | null {
   const [command, word] = commandLineArguments;
   if (command !== 'ticket' || word === undefined || commandLineArguments.includes('--by-hand')) return null;
   if (word === CLAIM_VERB) return claimOnTheBoard;

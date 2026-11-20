@@ -14,7 +14,7 @@ import { ENTITY_FORGE_MAIN_LINE }                                               
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../../testing/EntityForgeScenarios.ts';
 import type { RecordedGit }                                                                from '../../../testing/RecordedGit.ts';
 import { launchSnapshotOf }                                                                from '../../lifecycle/Customs.ts';
-import type { TrackerChange }                                                              from '../../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }                                                           from '../../tracker/BoardTransaction.ts';
 import { JobLaunch, type JobLaunchContext }                                                from '../JobLaunch.ts';
 import { jobFolderIn }                                                                     from '../OverseerFiles.ts';
 import { RedHandoff }                                                                      from '../RedHandoff.ts';
@@ -171,7 +171,7 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   mkdirSync(jobFolder, { recursive: true });
   writeEarlierRedHandoffs(jobFolder, run);
   writeJobStart(place, job, jobFolder, commits[run.startCommit] ?? '');
-  const change = { board, at, workspace: context.workspace } as unknown as TrackerChange;
+  const change = { board, at, workspace: context.workspace } as unknown as BoardTransaction;
   JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, null, { verdict: 'pending' })]);
   for (const state of ['running', 'in-customs'] as const) board.moveJob(job.id, state, at);
   const report = run.reportOf(GitProcess.resolvedCommitOf(JobLaunch.worktreeOf(context.workspace, job), 'HEAD') ?? '');

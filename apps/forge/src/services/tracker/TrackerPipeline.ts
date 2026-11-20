@@ -17,38 +17,23 @@ import { PipelineFile, type PipelineReading, type UnreadablePipelineReading } fr
 import { PipelineSetupFile }                                                  from '../../adapters/pipeline/PipelineSetupFile.ts';
 import { createProgressFileWriter }                                           from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
-import type { LogRecord }                                                     from '../../lib/tracker-model/@types/LogRecord.ts';
 import type { Pipeline }                                                      from '../../lib/tracker-model/@types/Pipeline.ts';
 import { Board }                                                              from '../../lib/tracker-model/Board.ts';
 import { refusalIsBoardRefusal }                                              from '../../lib/tracker-model/BoardRefusal.ts';
 import { createLogger }                                                       from '../../lib/tracker-model/Logger.ts';
 import { OperationRefusal }                                                   from '../../shared/OperationRefusal.ts';
-import { draftFilePathOf, type MalformedDraftFile }                           from './DraftStore.ts';
-import { everyEpicFilePathIn, type MalformedEpicFile }                        from './EpicStore.ts';
+import type { BoardContents, UnreadableRecords }                              from './@types/BoardRecords.ts';
+import type { BoardTransaction }                                              from './BoardTransaction.ts';
+import { draftFilePathOf }                                                    from './DraftStore.ts';
+import { everyEpicFilePathIn }                                                from './EpicStore.ts';
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE }                from './GenerationLock.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
+import { createLocalRecordAllocation }                                        from './LocalRecordAllocation.ts';
 import { projectLocationOf }                                                  from './ProjectLocation.ts';
-import { everyTicketFilePathIn, type MalformedTicketFile }                    from './TicketStore.ts';
+import { everyTicketFilePathIn }                                              from './TicketStore.ts';
 import { withLock }                                                           from './TrackerLock.ts';
-import { requireTracker, type TrackerContents }                               from './TrackerReader.ts';
+import { requireTracker }                                                     from './TrackerReader.ts';
 import type { Workspace }                                                     from './Workspace.ts';
-
-export interface TrackerChange {
-  board:                          Board;
-  workspace:                      Workspace;
-  at:                             string;
-  malformedTickets:               readonly MalformedTicketFile[];
-  malformedEpics:                 readonly MalformedEpicFile[];
-  malformedDrafts:                readonly MalformedDraftFile[];
-  /** The stored `pipeline.json` when the board cannot use it, older or malformed; `null` when it was read, or none is stored. */
-  unreadablePipeline:             UnreadablePipelineReading | null;
-  /** How many entries the log held when it was read, before anything this invocation logged. */
-  storedLogEntryCount:            number;
-  /** The log as it was read, before anything this invocation logged. */
-  storedLogRecords:               readonly LogRecord[];
-  /** `clear --all`: after the progress file and the changed tickets, epic files too; the callback gets the ticket file count. */
-  deleteAllTicketFilesAfterwards: (onDeleted: (deletedTicketCount: number) => void) => void;
-}
 
 export interface TrackerWriteRequest<MutationResult> {
   workspace:         Workspace;
@@ -56,7 +41,7 @@ export interface TrackerWriteRequest<MutationResult> {
   at:                string;
   /** The caller's clock, for the lock's records. */
   now:               () => Date;
-  mutate:            (change: TrackerChange) => MutationResult | Promise<MutationResult>;
+  mutate:            (change: BoardTransaction) => MutationResult | Promise<MutationResult>;
   /** Called after each file the hold writes; the step a spec interrupts to cut the hold short. */
   afterFileWritten?: (filePath: string) => void;
   /** The platform's process check; absent, no holder reads as gone, and only a stale stamp frees the lock. */
@@ -64,16 +49,15 @@ export interface TrackerWriteRequest<MutationResult> {
 }
 
 export interface TrackerWritten<MutationResult> {
-  result:           MutationResult;
+  result:            MutationResult;
   /** The Board just written; only this invocation holds it, so reading it after the lock is released reads what was written. */
-  board:            Board;
-  /** The ticket and epic files the read skipped, for the caller to report. */
-  malformedTickets: readonly MalformedTicketFile[];
-  malformedEpics:   readonly MalformedEpicFile[];
+  board:             Board;
+  /** The records the read skipped, for the caller to report. */
+  unreadableRecords: UnreadableRecords;
 }
 
 interface OpenBoard {
-  contents:           TrackerContents;
+  contents:           BoardContents;
   logRecordCollector: ReturnType<typeof createLogRecordCollector>;
   board:              Board;
 }
@@ -101,7 +85,7 @@ function refuseEntitiesInAFolder(workspace: Workspace, board: Board): void {
   if (projectPrefix !== null) throw new OperationRefusal('refused', { kind: 'entities-in-a-folder', filePath: workspace.pipelineFilePath, projectPrefix });
 }
 
-function openBoard(contents: TrackerContents): OpenBoard {
+function openBoard(contents: BoardContents): OpenBoard {
   const logRecordCollector = createLogRecordCollector(contents.storedLog);
   const board              = new Board({
     progress:            contents.progress,
@@ -116,6 +100,10 @@ function openBoard(contents: TrackerContents): OpenBoard {
     constitutionSources: contents.constitutionSourcesReading,
   });
   return { contents, logRecordCollector, board };
+}
+
+function unreadableRecordsOf(contents: BoardContents): UnreadableRecords {
+  return { tickets: contents.listing.unreadable, epics: contents.epicListing.unreadable, drafts: contents.draftListing.unreadable };
 }
 
 function unreadablePipelineOf(reading: PipelineReading): UnreadablePipelineReading | null {
@@ -165,8 +153,8 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEver
 
 /** A Board refusal is one the caller can act on, wrapped with its detail for the command line to word; nothing has been written when it is thrown. */
 async function mutateWrappingBoardRefusals<MutationResult>(
-  mutate: (change: TrackerChange) => MutationResult | Promise<MutationResult>,
-  change: TrackerChange,
+  mutate: (change: BoardTransaction) => MutationResult | Promise<MutationResult>,
+  change: BoardTransaction,
 ): Promise<MutationResult> {
   try {
     return await mutate(change);
@@ -182,17 +170,17 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
   } = request;
 
   return withLock(workspace, async (hold) => {
-    const contents    = requireTracker(workspace);
-    const openedBoard = openBoard({ ...contents, pipelineReading: pipelineReadingInPlaceOf(workspace, contents.pipelineReading) });
+    const contents          = requireTracker(workspace);
+    const openedBoard       = openBoard({ ...contents, pipelineReading: pipelineReadingInPlaceOf(workspace, contents.pipelineReading) });
+    const unreadableRecords = unreadableRecordsOf(openedBoard.contents);
 
     const deletionCallbacks: ((deletedTicketCount: number) => void)[] = [];
     const result = await mutateWrappingBoardRefusals(mutate, {
       at,
       board:                          openedBoard.board,
       workspace,
-      malformedTickets:               openedBoard.contents.listing.malformed,
-      malformedEpics:                 openedBoard.contents.epicListing.malformed,
-      malformedDrafts:                openedBoard.contents.draftListing.malformed,
+      records:                        createLocalRecordAllocation(workspace, openedBoard.board, unreadableRecords),
+      unreadableRecords,
       unreadablePipeline:             unreadablePipelineOf(openedBoard.contents.pipelineReading),
       storedLogEntryCount:            openedBoard.contents.storedLog.records.length,
       storedLogRecords:               openedBoard.contents.storedLog.records,
@@ -203,11 +191,6 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
     const plannedHold = plannedHoldOf(workspace, openedBoard, deletionCallbacks.length > 0);
     commitHold(workspace, plannedHold.files, hold, afterFileWritten);
     for (const onDeleted of deletionCallbacks) onDeleted(plannedHold.deletedTicketCount);
-    return {
-      result,
-      board:            openedBoard.board,
-      malformedTickets: openedBoard.contents.listing.malformed,
-      malformedEpics:   openedBoard.contents.epicListing.malformed,
-    };
+    return { result, board: openedBoard.board, unreadableRecords };
   }, now, lockHolderIsGone);
 }

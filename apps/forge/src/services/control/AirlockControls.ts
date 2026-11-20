@@ -16,7 +16,7 @@ import { OperationRefusal }                 from '../../shared/OperationRefusal.
 import { WorktreesFolder }                  from '../../shared/WorktreesFolder.ts';
 import { MergeRun }                         from '../lifecycle/MergeRun.ts';
 import { mainLineOf, mergeTargetRuleOf }    from '../lifecycle/MergeTargets.ts';
-import type { TrackerChange }               from '../tracker/TrackerPipeline.ts';
+import type { BoardTransaction }            from '../tracker/BoardTransaction.ts';
 import { ticketIdOfReference }              from './ControlTicketLookup.ts';
 
 interface MergeApprovalSubject {
@@ -34,7 +34,7 @@ function branchTreeIn(repositoryRoot: string, branchNames: BranchNames): BranchT
   };
 }
 
-function subjectOf(change: TrackerChange, ticketReference: string): MergeApprovalSubject {
+function subjectOf(change: BoardTransaction, ticketReference: string): MergeApprovalSubject {
   const ticket = change.board.ticketByReference(ticketIdOfReference(change, ticketReference));
   if (ticket === undefined) throw new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: ticketReference });
   const ticketId = ticket.frontmatter.id;
@@ -47,7 +47,7 @@ function subjectOf(change: TrackerChange, ticketReference: string): MergeApprova
 }
 
 /** Only a ticket waiting for merge, its green current, is accepted, and only while git predicts a clean merge into its target's tip. */
-function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: TrackerChange): Logged & { changed?: false } {
+function acceptMerge(command: ControlCommandOf<'merge-accept'>, change: BoardTransaction): Logged & { changed?: false } {
   const {
     ticketId, status, target, targetOf, branchNames
   } = subjectOf(change, command.ticketReference);
@@ -80,7 +80,7 @@ function undoMergeUpdate(worktree: string, startTip: string): void {
  * gates it again: green queues it again, red returns it to its reviewer. A conflict is aborted and the ticket leaves the queue, so its
  * reviewer takes it back.
  */
-function updateBranch(command: ControlCommandOf<'merge-update'>, change: TrackerChange): Logged & { changed?: false } {
+function updateBranch(command: ControlCommandOf<'merge-update'>, change: BoardTransaction): Logged & { changed?: false } {
   const { ticketId, status, target } = subjectOf(change, command.ticketReference);
   if (!change.board.mergeUpdateIsOpenTo(ticketId)) throw new BoardRefusal({ reason: 'merge-update-of-a-ticket-not-waiting', ticketId, status });
   const worktree = WorktreesFolder.ticketWorktreeOf(change.workspace.rootDirectory, ticketId);

@@ -1,11 +1,9 @@
-import { LogUtil }                  from '../../src/adapters/utils/LogUtil.ts';
-import type { LogRecord }           from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import type { MalformedDraftFile }  from '../../src/services/tracker/DraftStore.ts';
-import type { MalformedEpicFile }   from '../../src/services/tracker/EpicStore.ts';
-import type { MalformedTicketFile } from '../../src/services/tracker/TicketStore.ts';
-import { JsonTextUtil }             from '../../src/shared/utils/JsonTextUtil.ts';
-import type { CommandContext }      from '../CommandContext.ts';
-import type { ArgumentParser }      from '../arguments/ArgumentParser.ts';
+import { LogUtil }               from '../../src/adapters/utils/LogUtil.ts';
+import type { LogRecord }        from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import type { UnreadableRecord } from '../../src/services/tracker/@types/BoardRecords.ts';
+import { JsonTextUtil }          from '../../src/shared/utils/JsonTextUtil.ts';
+import type { CommandContext }   from '../CommandContext.ts';
+import type { ArgumentParser }   from '../arguments/ArgumentParser.ts';
 
 export const SHORT_COMMIT_LENGTH_CHARACTERS = 8;
 
@@ -13,24 +11,24 @@ function padColumn(text: string, width: number): string {
   return text.length >= width ? `${text} ` : text.padEnd(width);
 }
 
-function ignoredTicketFileText(malformed: MalformedTicketFile): string {
-  const place = malformed.line > 0 ? ` (line ${malformed.line})` : '';
-  return `Ticket file ignored: ${malformed.filePath}${place}: ${malformed.reason}`;
+function ignoredTicketFileText(unreadable: UnreadableRecord): string {
+  const place = unreadable.line > 0 ? ` (line ${unreadable.line})` : '';
+  return `Ticket file ignored: ${unreadable.location}${place}: ${unreadable.reason}`;
 }
 
-function reportIgnoredTicketFiles(context: CommandContext, malformedTickets: readonly MalformedTicketFile[]): void {
-  for (const malformed of malformedTickets) context.standardError(ignoredTicketFileText(malformed));
+function reportIgnoredTicketFiles(context: CommandContext, unreadableTickets: readonly UnreadableRecord[]): void {
+  for (const unreadable of unreadableTickets) context.standardError(ignoredTicketFileText(unreadable));
 }
 
-function reportIgnoredEpicFiles(context: CommandContext, malformedEpics: readonly MalformedEpicFile[]): void {
-  for (const malformed of malformedEpics) {
-    const place = malformed.line > 0 ? ` (line ${malformed.line})` : '';
-    context.standardError(`Epic file ignored: ${malformed.filePath}${place}: ${malformed.reason}`);
+function reportIgnoredEpicFiles(context: CommandContext, unreadableEpics: readonly UnreadableRecord[]): void {
+  for (const unreadable of unreadableEpics) {
+    const place = unreadable.line > 0 ? ` (line ${unreadable.line})` : '';
+    context.standardError(`Epic file ignored: ${unreadable.location}${place}: ${unreadable.reason}`);
   }
 }
 
-function reportIgnoredDraftFiles(context: CommandContext, malformedDrafts: readonly MalformedDraftFile[]): void {
-  for (const malformed of malformedDrafts) context.standardError(`Draft file ignored: ${malformed.filePath}: ${malformed.reason}`);
+function reportIgnoredDraftFiles(context: CommandContext, unreadableDrafts: readonly UnreadableRecord[]): void {
+  for (const unreadable of unreadableDrafts) context.standardError(`Draft file ignored: ${unreadable.location}: ${unreadable.reason}`);
 }
 
 function loggedSentencesOf(logged: readonly LogRecord[]): string {
