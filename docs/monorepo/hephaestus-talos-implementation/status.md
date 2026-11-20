@@ -103,10 +103,13 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.13: on a scratch forge, retitle a ticket and check its file keeps its name; check that a real session reads the
   new session instructions and uses `ticket edit` instead of editing ticket files.
 
-- WP5.14: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this checkout's
-  `version`, no model call) to replace the hand-edited recording; commit it.
+- WP5.14 and WP5.16: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this
+  checkout's `version`, no model call) to replace the hand-edited recording (install version 41 now); commit it.
 
 - WP5.15: on a scratch forge, kill a live Overseer while it holds the store's lock; the next CLI write takes it over.
+
+- WP5.16: on a scratch forge, hand-edit a committed ticket's file; `ticket show` and the next build launch carry the
+  kept content, and the next write restores the file.
 
 ### Assumptions to confirm
 
@@ -215,6 +218,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.15: a held lock record from forge 1.21 (`{processId, acquiredAt, state}`) is judged by its pid alone
   (`GenerationLock.holderOfRecordBeforeProcessIdentity`). Confirm by updating a forge whose lock was left by a crashed
   older forge.
+
+- WP5.16: the board's own ticket edits are named `writtenBy: 'board'` (`TicketEdits.ts:23`), since a `'forge'` literal
+  fails `ProductNameLiterals.spec`. Accept the name, or ask for `'forge'` with allowlist entries.
 
 ### Blocked
 
@@ -422,8 +428,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-I | WP5.12 | landed | ac6f2609 | First round, rebased over WP5.11. apps/forge/CLAUDE.md: `store` in the layer order, the store-port rule, the command surface through `cli/ApplyCommandOfVerb.ts`, the `BoardStore` Deviations row; overview.md's transaction rows and line 49 (by-hand kinds go through the same path); glossary 'lock hold'. No `.claude/rules` file named the old names |
 | 5-J | WP5.14 | landed | d92558dd | First round. `pending` is `committed` in `TaskStatus`, `TASK_STATUSES`, `TICKET_STATUSES`; `TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP`; `allowsPastCommitted`; four refusal reasons; log record `ticket-committed` ("Ticket #003 committed"); `ticket-reopened` keeps its name. The contract already said `committed`, so `BoardPageMappingUtil.committedStatusOf` and the parity spec's mapping are gone; forge-contracts and Gaia unchanged (Gaia's `BoardSummaryIngestion.spec.ts:42` fixture still holds `pending`). `INSTALL_VERSION` 39 to 40; `SKILL.md` trimmed under its limit. The `InstallChangeWatch` recording was hand-edited (stamp and `installVersion` 40) because `bun run record` was refused to the agent |
 | 5-J | WP5.15 | landed | be631ad6 | Second round (first: a held lock record from before process identity was refused `lock-record-unreadable`; now read as a holder with a null identity, judged by pid alone). `LockHolders.ts` (`lockHolderOf`, read once per supervision; `lockHolderIsGoneOf`: gone when `processIsGone`, or the identity differs by stage 3's `sameProcess` with `sameBoot`); an unreadable identity counts as alive. The age rule, `LOCK_STALE_MILLISECONDS` and `NO_LOCK_HOLDER_READS_AS_GONE` are gone. `LockTaker`/`lockTakerOf` bundle the holder written and the judgement, so the store option is `lockTaker`; `LockHolder` lives in `GenerationLock.ts` (in `LockHolders.ts` it makes an import cycle). An unreadable store or landing lock record is refused `lock-record-unreadable` at once. Crash cases in `src/services/store/LocalFilesBoardStore.integration.spec.ts` (in `BOUNDARY_SPECS`). G4 `verify:integration` 874 pass, 1 skip, 0 fail |
-| 5-K | WP5.16 | running | | |
-| 5-L | WP5.17 | waiting | | |
+| 5-K | WP5.16 | landed | 76c314d0 | Second round (first: `ticket-body-changed-after-claim` kept as a retired log kind against decisions 3 and 46, now deleted; `TicketMoves.putBeforeReview` kept a stale `contentHash`, now dropped). `contentHash` (FNV-1a over title and body) set at commit and reopen; the kept file in `src/adapters/tickets/CommittedContentFile.ts`, written through the hold journal and never rewritten; `content-of-a-committed-ticket` replaces `edit-of-a-ticket-past-committed`; `ticket edit --force` gone. `TicketEdit.writtenBy` is `'command' \| 'board'`, not `'forge'` (`ProductNameLiterals.spec` forbids the literal). A `contentHash` must be 16 hex digits (path guard). Not served in the board document; reaches `status --json`. `INSTALL_VERSION` 40 to 41, the `InstallChangeWatch` recording stamp hand-edited again |
+| 5-L | WP5.17 | running | | |
 | 6-A | WP6.1 | waiting | | |
 | 6-B | WP6.2 | waiting | | |
 | 6-B | WP6.4 | waiting | | |
