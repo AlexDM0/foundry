@@ -985,7 +985,7 @@ The specs that matter most, inside each workspace folder:
   ./src/adapters/utils/RefusalDocumentUtil.spec.ts ./src/services/overseer/ ./cli/overseer/routes/ \
   ./src/lib/tracker-model/PipelineSetups.spec.ts ./bridge/CommandKindsInContract.spec.ts)
 (cd apps/gaia && bun run check)      # the warning that Gaia supports an older forge; exit 0
-grep -rn "tracker-model\|apps/" packages/forge-contracts --include='*.ts'      # prints nothing
+grep -rn "tracker-model\|apps/" packages/forge-contracts --include='*.ts' | grep -v PackageIsolation.spec.ts      # prints nothing
 ```
 
 The Bridge on a real Overseer in a headless browser (skips without Chrome; one named file, as

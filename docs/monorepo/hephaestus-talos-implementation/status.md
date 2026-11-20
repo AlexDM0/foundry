@@ -192,6 +192,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP4.11: an entity session hears the standing entity refusals too, not only the forge session. Confirm that is wanted.
 
+- Stage 4 verification: after `stop`, Talos keeps running (the design: "Talos itself stays, and waits for a
+  Hephaestus"); the scratch forge's cleanup ends it. Confirm that a user `stop` should leave an idle Talos running.
+
 
 ### Blocked
 
@@ -275,6 +278,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - `typecheck:bridge-specs` (outside the gates) fails at `bridge/testing/PipelineFixture.ts:616`: the fixture lacks
   WP4.10's `applyRefusal`. The old Bridge may break in this transition; Gaia replaces it.
+
+- Stage 4 verification: `equal-homes` serves `fix: null` when the shared home is the entity's only home. On the scratch
+  forge the Bridge showed the Kanban only after setup S1 was discarded and a minimal `pipeline.json` written by hand.
 
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
@@ -373,6 +379,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-D | WP4.10 | landed | a6eef519 | Resumed after the network outage and the owner's pause; first check failed (option served as `isRecommended`, three Apply refusal kinds untested, hold and priority rules inline), one fix round passed. `Board.ticketOffersOf(ticketId, mergeWait)` takes the merge queue's git forecast; the applied pipeline serves `pipeline.entityPipelines`, draft entities `pipelineSetup.draftEntities`. `boardDocumentOf` takes a source (state, Board, logs, Flint, now). The attention target's route is in `src/shared/monitor/AttentionEntries.ts`, so stage 8's N10 grep also names it. `reviewRound` falls back to `FIRST_REPEAT_REVIEW_ROUND` only in `re-review` (`BoardReadingMappingUtil.ticketFactsOf`); confirm against Gaia's views in stage 6 |
 | 4-E | WP4.11 | landed | 854d2616 | First round. `PipelineFile.draftReadingOf` skips the entities' set check (kept for `pipeline.json`); setup record format 2 (a version 1 record is set up anew). `entity-refusals-stand` lives once in `refuseStandingEntityRefusals`, called by Continue and inside `applyRequestVerdictOf`. `pipelineSetup.entityRefusals` served by `BoardEntityRefusalMappingUtil`; `draft-edited` carries `standingEntityRefusals` (reason phrases, not the `pipeline-draft-invalid` sentence); undo messages do not. Draft-edit documents moved to `BoardPipelineDocuments.ts` |
 | 4-F | WP4.9 | landed | ce83ea5f | First round. Documents only: design.md, overseer-api.md (BoardState internal, `jobs.lostLine`, 'In the code' rows for the assembly, mappers, offers, board commands and refusal documents), apps/forge/CLAUDE.md (typed mapper rule), forge-contracts README (rows after WP4.11, `FrameAncestorRecord` added). Left alone: overseer-api.md 'The embed contract' says `frame-hosts/`, the code `frame-ancestors` |
+| 4-V | Stage 4 verification | passed | (no commit) | Run by a checker in a fresh worktree at `84f77f2f`: install, gate:gaia, the contract and forge spec sets (14 and 1753 pass), Gaia's check (the expected older-forge warning), the headless Bridge spec, `verify:integration` in apps/forge 871 pass, 1 skip, 0 fail, and end-to-end steps 1-7 on a scratch forge with the fake agent. `verify` and `gate:forge` failed only on `forge#check`, which read the checker's `claude` trap as "claude not installed" for the fake-agent recording; the same tree's `verify` at the integration root was green. The contracts grep also matched the planted string in `PackageIsolation.spec.ts`; the stage file's line now leaves that spec out. One defect handed to WP4.11b: an `entityRefusals` sentence ends "Nothing was written." although the edit was written |
+| 4-W | WP4.11b | running | | Fix package: the served entity refusal's sentence |
 | 5-A | WP5.1 | waiting | | |
 | 5-B | WP5.2 | waiting | | |
 | 5-C | WP5.3 | waiting | | |
