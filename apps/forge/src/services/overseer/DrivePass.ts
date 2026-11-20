@@ -846,6 +846,7 @@ export function launchFactsOf(
   const needsSettled = NeedTickets.needsSettledOf(board, job, { mainLine: request.mainLine, resumesSession });
   const crossingStage = CrossingStages.crossingStageFactsOf(board, trackerDirectory, job, resumesSession);
   const rootEntityKey = pipeline?.entities === undefined ? ROOT_ENTITY_KEY : EntityOwnershipUtil.rootEntityKeyOf(pipeline.entities);
+  const pipelineAgentLaunch = { lineGrammar: request.platformPorts.shellLine.lineGrammar, rootDirectory: request.workspace.rootDirectory, agentAdapter: request.agentAdapter };
   return {
     instructions: IntakeSessions.productOwnerInstructionsOf(board, job, instructions),
     confinement:  SessionConfinement.launchConfinementOf(request.agentAdapter.capabilities, request.platformPorts.gateConfinement),
@@ -867,7 +868,7 @@ export function launchFactsOf(
     ...(rootEntityKey === ROOT_ENTITY_KEY ? {} : { rootEntityKey }),
     intake:                 IntakeSessions.intakeFactsOf(board, job, request.agentAdapter),
     assistant:              AssistantBoot.assistantFactsOf(board, job),
-    pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, request.platformPorts.shellLine.lineGrammar, request.workspace.rootDirectory),
+    pipelineAgent:          PipelineAgentSessions.pipelineAgentFactsOf(board, job, pipelineAgentLaunch),
   };
 }
 

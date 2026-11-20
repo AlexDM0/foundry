@@ -421,8 +421,11 @@ export const RECORDED_FOLDER_FLOW_COMMIT = { path: `${RECORDED_FOLDER_FLOW_PROJE
 export const RECORDED_FOLDER_FLOW_CONFLICT_PATH = `${RECORDED_FOLDER_FLOW_PROJECT.prefix}/${RECORDED_FLOW_CONFLICT.path}`;
 /** The file an Airlock agent's fix of the red merged tree commits in the project folder, and the message of its commit. */
 export const RECORDED_FOLDER_FLOW_MERGED_TREE_FIX = { path: `${RECORDED_FOLDER_FLOW_PROJECT.prefix}/fixed.txt`, text: 'fixed\n', message: 'Fix the merged tree' } as const;
+/** The folder the agent adapter installs each skill in, and the skills `init` installs, in its order. */
+const RECORDED_FLOW_SKILLS_FOLDER = '.claude/skills';
+const RECORDED_FLOW_INSTALLED_SKILLS = [PRODUCT_NAMES.PRODUCT_OWNER_SKILL, PRODUCT_NAMES.ORCHESTRATE_SKILL, PRODUCT_NAMES.PIPELINE_SETUP_SKILL];
 /** The `.gitignore` lines `init` adds to the project folder's own for the skills it installs, which are not ignored yet. */
-export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\n`;
+export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = RECORDED_FLOW_INSTALLED_SKILLS.map((skill) => `${RECORDED_FLOW_SKILLS_FOLDER}/${skill}/\n`).join('');
 
 const { MOVED_MAIN_TIP: FOLDER_MOVED_MAIN_TIP, MERGED_TIP: FOLDER_MERGED_TIP, AUTOMATIC_MERGE_TREE } = RECORDED_FLOW_PLACEHOLDERS;
 
@@ -433,8 +436,7 @@ const FOLDER_INIT_READS = [
     ['version'],
     ['check-ignore', '-q', `${PRODUCT_NAMES.DATA_FOLDER}/`],
     ['check-ignore', '-q', `${PRODUCT_NAMES.WORKTREES_FOLDER}/`],
-    { gitArguments: ['check-ignore', '-q', `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/`], exitCode: NEGATIVE },
-    { gitArguments: ['check-ignore', '-q', `.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/`], exitCode: NEGATIVE },
+    ...RECORDED_FLOW_INSTALLED_SKILLS.map((skill) => ({ gitArguments: ['check-ignore', '-q', `${RECORDED_FLOW_SKILLS_FOLDER}/${skill}/`], exitCode: NEGATIVE })),
   ]),
   ...callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['for-each-ref', '--format=%(refname:short)', 'refs/heads']]),
 ];

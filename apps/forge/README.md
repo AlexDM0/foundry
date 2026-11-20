@@ -115,7 +115,7 @@ finished tickets on the [main line](docs/glossary.md#main-line).
 | The [tracker](docs/glossary.md#tracker): state, log, tickets and installed guidance, shared by every worktree | `.forge/` | ignored |
 | Ignore entries for the folders in this table | `.gitignore` | commit it |
 | A `SessionStart` hook that tells each session how the board works | `.claude/settings.local.json` | untracked: do not commit |
-| The two skills, for this repository only | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | ignored |
+| The three skills, for this repository only | `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/`, `.claude/skills/forge-pipeline/` | ignored |
 | One [worktree](docs/glossary.md#worktree) per ticket, plus group and session folders, created as work starts | `.forge-worktrees/` | ignored |
 
 > **As built.** A landed ticket's worktree stays in that folder. See

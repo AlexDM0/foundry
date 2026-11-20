@@ -14,6 +14,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 
+import type { AgentAdapter }                                                              from '../../lib/agent-launch/AgentAdapter.ts';
 import type { WorkerProfile }                                                             from '../../lib/agent-launch/WorkerProfile.ts';
 import { type GitPathStyle }                                                              from '../../lib/git/GitPaths.ts';
 import { GitProcess }                                                                     from '../../lib/git/GitProcess.ts';
@@ -24,6 +25,7 @@ import type { EntityKey, Pipeline, PipelineBilling }                            
 import type { PipelineSetup, PipelineSetupMode }                                          from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import type { Board }                                                                     from '../../lib/tracker-model/Board.ts';
 import type { BranchNames }                                                               from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                                                  from '../../shared/constants/ProductNames.ts';
 import {
   clearCustoms,
   launchSnapshotOf,
@@ -177,6 +179,8 @@ function snapshotStartOf(trackerDirectory: string, jobId: string): SnapshotStart
 export interface PipelineAgentFacts {
   /** The record's mode; with no record, `setup` while no pipeline is stored and `advise` on a stored one. */
   mode:                  PipelineSetupMode;
+  /** The line that runs the pipeline setup skill, as the agent adapter writes it; the first message starts with it. */
+  firstLine:             string;
   /** Null for an agent no record names. */
   setup:                 Readonly<PipelineSetup> | null;
   /** The entity whose session this is, stamped by the Overseer; null for the forge's session and for an agent no record names. */
@@ -200,7 +204,11 @@ function installedConstitutionOf(rootDirectory: string): string | null {
   }
 }
 
-function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: ShellLineGrammar, rootDirectory: string): PipelineAgentFacts | null {
+function pipelineAgentFactsOf(
+  board: Board,
+  job: Readonly<Job>,
+  launch: { lineGrammar: ShellLineGrammar; rootDirectory: string; agentAdapter: Pick<AgentAdapter, 'instructionBundleLineOf'> },
+): PipelineAgentFacts | null {
   if (!isPipelineAgentJob(job)) return null;
   const gateHistory = board.logRecordsSoFar()
     .flatMap((record) => (record.kind === 'gate-ran' ? [`${record.at} ${record.fields.outcome}${record.fields.cached ? ' (cached)' : ''} tree ${record.fields.tree}`] : []))
@@ -210,14 +218,21 @@ function pipelineAgentFactsOf(board: Board, job: Readonly<Job>, lineGrammar: She
   const storedPipeline = board.pipeline();
   const mode = setup?.mode ?? (storedPipeline === null ? 'setup' : 'advise');
   return {
-    mode, setup, entity: served?.entityKey ?? null, storedPipeline, installedConstitution: installedConstitutionOf(rootDirectory), gateHistory, lineGrammar
+    mode,
+    firstLine:             launch.agentAdapter.instructionBundleLineOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL, ''),
+    setup,
+    entity:                served?.entityKey ?? null,
+    storedPipeline,
+    installedConstitution: installedConstitutionOf(launch.rootDirectory),
+    gateHistory,
+    lineGrammar:           launch.lineGrammar,
   };
 }
 
-/** It reads the snapshot and writes only its Hatch folder; no network, no question, no skill. */
+/** It reads the snapshot and writes only its Hatch folder; no network, no question. Its first line loads the pipeline setup skill, so skills stay on. */
 function pipelineAgentProfileOf(sessionProfile: WorkerProfile, hatchDirectory: string): WorkerProfile {
   return {
-    ...sessionProfile, writableRoots: [hatchDirectory], shellNetworkDomains: [], webNetworkDomains: 'none', askUser: false, skills: false, networkDomainGuard: null
+    ...sessionProfile, writableRoots: [hatchDirectory], shellNetworkDomains: [], webNetworkDomains: 'none', askUser: false, skills: true, networkDomainGuard: null
   };
 }
 

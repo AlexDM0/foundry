@@ -42,10 +42,11 @@ folders and environment prefix, so both can be installed on one machine and neit
 | `<PREFIX>` | `FORGE_`, the start of every environment variable | `ENVIRONMENT_PREFIX` |
 | `forge-po` | the [product owner](#product-owner) skill | `PRODUCT_OWNER_SKILL` |
 | `forge-orchestrate` | the [orchestrator](#orchestrator) wrapper skill | `ORCHESTRATE_SKILL` |
+| `forge-pipeline` | the pipeline setup skill the pipeline agent runs | `PIPELINE_SETUP_SKILL` |
 
 Other files show the released spelling, listed in `ORIGINAL_PRODUCT_NAMES`, for three reasons:
 
-- Source paths keep it: `agent-progress.ts`, `skills/agent-po/`, `skills/agent-progress-orchestrate/`.
+- Source paths keep it: `agent-progress.ts`, `skills/agent-po/`, `skills/agent-progress-orchestrate/`, `skills/agent-pipeline/`.
 - This repository's `CLAUDE.md` block and this checkout's own `.agent-progress/` folder belong to the released program,
   not to this code.
 - Templates hold placeholders such as `{{program}}`, and an install fills them from `PRODUCT_NAMES`.

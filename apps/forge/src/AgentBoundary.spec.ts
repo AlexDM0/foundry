@@ -194,14 +194,7 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   'src/testing/RecordedGitFlow.ts: vendor-name: \'agent config changed\':      { path: \'.claude/settings.json\', message: \'Build the example\' },':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  [
-  'src/testing/RecordedGitFlow.ts: vendor-name: export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = '
-    + '`.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/\\n.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/\\n`;'
-  ]:
-    'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: { gitArguments: [\'check-ignore\', \'-q\', `.claude/skills/${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}/`], exitCode: NEGATIVE },':
-    'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
-  'src/testing/RecordedGitFlow.ts: vendor-name: { gitArguments: [\'check-ignore\', \'-q\', `.claude/skills/${PRODUCT_NAMES.ORCHESTRATE_SKILL}/`], exitCode: NEGATIVE },':
+  'src/testing/RecordedGitFlow.ts: vendor-name: const RECORDED_FLOW_SKILLS_FOLDER = \'.claude/skills\';':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',
   'src/testing/RecordedGitScenarios.ts: vendor-name: * A scenario is one named git state of a repository, such as "a commit under .claude/ undone by a later one".':
     'Permanent: a fixture plants the vendor\'s files the fake agent\'s adapter and Customs read.',

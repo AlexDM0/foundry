@@ -747,7 +747,7 @@ function stepPromptFilesOf(mode: PipelineSetupMode, step: PipelineSetupStep): re
 }
 
 function stepInstructionsOf(mode: PipelineSetupMode, step: PipelineSetupStep, promptFills: PromptFills): string {
-  const fills = { ...promptFills, program: PRODUCT_NAMES.PROGRAM };
+  const fills = { ...promptFills, program: PRODUCT_NAMES.PROGRAM, pipelineSetupSkill: PRODUCT_NAMES.PIPELINE_SETUP_SKILL };
   return stepPromptFilesOf(mode, step).map((fileName) => filledTemplateOf(promptOf(fileName), fills).trim()).join('\n\n');
 }
 
@@ -839,7 +839,10 @@ function setupFactsTextOf(facts: PipelineAgentFacts): string {
   return sections.join('\n\n');
 }
 
-/** The current step's block and the record's facts; with no record, a first setup reads the research block. */
+/**
+ * The first line runs the pipeline setup skill, which holds the procedure; the current step's block and the record's facts follow, and with
+ * no record a first setup reads the research block.
+ */
 function pipelineAgentTextOf(
   job: Readonly<Job>,
   facts: PipelineAgentFacts,
@@ -848,16 +851,15 @@ function pipelineAgentTextOf(
   promptFills: PromptFills,
 ): JobLaunchText {
   const fills = { jobId: job.id, program: PRODUCT_NAMES.PROGRAM };
-  return {
-    firstMessage: filledTemplateOf(promptOf('PipelineAgentPrompt.md'), {
-      ...fills,
-      pipelineAgentLimits: CONFINEMENT_WORDING[confinement].pipelineAgentLimits,
-      lineGrammar:         LINE_GRAMMAR_WORDING[facts.lineGrammar],
-      setupFacts:          setupFactsTextOf(facts),
-      stepInstructions:    stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research', promptFills),
-    }),
-    roleBrief: filledTemplateOf(instructions, fills),
-  };
+  const procedure = filledTemplateOf(promptOf('PipelineAgentPrompt.md'), {
+    ...fills,
+    skill:               PRODUCT_NAMES.PIPELINE_SETUP_SKILL,
+    pipelineAgentLimits: CONFINEMENT_WORDING[confinement].pipelineAgentLimits,
+    lineGrammar:         LINE_GRAMMAR_WORDING[facts.lineGrammar],
+    setupFacts:          setupFactsTextOf(facts),
+    stepInstructions:    stepInstructionsOf(facts.mode, facts.setup?.currentStep ?? 'research', promptFills),
+  });
+  return { firstMessage: `${facts.firstLine}\n\n${procedure}`, roleBrief: filledTemplateOf(instructions, fills) };
 }
 
 /**

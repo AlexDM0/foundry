@@ -204,7 +204,8 @@ describeWhenGitIsRecorded('updating a tracked repository', () => {
     const repositoryDirectory = await trackedRepositoryWithStaleFiles();
     writeFileSync(join(repositoryDirectory, '.gitignore'), `${PRODUCT_NAMES.DATA_FOLDER}/\n`);
     const { installer } = agentAdapterOfThisProcess();
-    const bundleFolders = [PRODUCT_NAMES.PRODUCT_OWNER_SKILL, PRODUCT_NAMES.ORCHESTRATE_SKILL].map((bundleName) => installer.instructionBundleFolderOf(bundleName));
+    const bundleNames = [PRODUCT_NAMES.PRODUCT_OWNER_SKILL, PRODUCT_NAMES.ORCHESTRATE_SKILL, PRODUCT_NAMES.PIPELINE_SETUP_SKILL];
+    const bundleFolders = bundleNames.map((bundleName) => installer.instructionBundleFolderOf(bundleName));
     const refreshIgnoringNothing = [...bundleFolders, PRODUCT_NAMES.WORKTREES_FOLDER]
       .map((folder) => checkIgnoreOf(folder, GIT_CALL_SHAPES.CHECK_IGNORE_NOT_IGNORED));
 

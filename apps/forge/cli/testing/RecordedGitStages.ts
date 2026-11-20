@@ -35,7 +35,8 @@ export function checkIgnoreOf(folder: string, answeredAs: GitCallShape): Recorde
 }
 
 function skillFoldersChecked(productNames: Readonly<ProductNames>, answeredAs: GitCallShape): RecordedGitStep[] {
-  return [productNames.PRODUCT_OWNER_SKILL, productNames.ORCHESTRATE_SKILL].map((skill) => checkIgnoreOf(`${INSTALLED_SKILLS_FOLDER}/${skill}`, answeredAs));
+  const skills = [productNames.PRODUCT_OWNER_SKILL, productNames.ORCHESTRATE_SKILL, productNames.PIPELINE_SETUP_SKILL];
+  return skills.map((skill) => checkIgnoreOf(`${INSTALLED_SKILLS_FOLDER}/${skill}`, answeredAs));
 }
 
 /** The git calls `init` makes in a repository with no `.gitignore`: the second worktrees check runs after `init` wrote the line. */

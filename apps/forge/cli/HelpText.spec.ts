@@ -18,6 +18,7 @@ const HELP_TEXT = helpText('posix-shell');
 const FILING_SKILL_TEXT = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-po', 'SKILL.md'), 'utf8');
 const REFERENCE_TEXT    = readFileSync(join(import.meta.dir, '..', 'resources', 'templates', 'Reference.md'), 'utf8');
 const ORCHESTRATE_TEXT  = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-progress-orchestrate', 'SKILL.md'), 'utf8');
+const PIPELINE_SETUP_SKILL_TEXT = readFileSync(join(import.meta.dir, '..', 'skills', 'agent-pipeline', 'SKILL.md'), 'utf8');
 
 /**
  * What `skills/agent-po/SKILL.md` may grow to. Its trigger fires in every session asked to file a ticket, and each
@@ -124,7 +125,8 @@ function ticketSubcommandsDocumented(): string[] {
 const BUNDLED_SKILL_FILES = [
   { path: 'skills/agent-po/SKILL.md',                    text: FILING_SKILL_TEXT },
   { path: 'resources/templates/Reference.md',            text: REFERENCE_TEXT },
-  { path: 'skills/agent-progress-orchestrate/SKILL.md',  text: ORCHESTRATE_TEXT }
+  { path: 'skills/agent-progress-orchestrate/SKILL.md',  text: ORCHESTRATE_TEXT },
+  { path: 'skills/agent-pipeline/SKILL.md',              text: PIPELINE_SETUP_SKILL_TEXT }
 ] as const;
 
 describe('the bundled skills leave the command reference to the tool', () => {
@@ -135,6 +137,7 @@ describe('the bundled skills leave the command reference to the tool', () => {
     }
     expect(FILING_SKILL_TEXT).toContain('name: {{skillName}}');
     expect(ORCHESTRATE_TEXT).toContain('name: {{skillName}}');
+    expect(PIPELINE_SETUP_SKILL_TEXT).toContain('name: {{skillName}}');
     expect(ticketSubcommandsDocumented().length, 'ticket subcommands found in the help').toBeGreaterThanOrEqual(8);
   });
 
@@ -148,8 +151,8 @@ describe('the bundled skills leave the command reference to the tool', () => {
     expect(carryingOne.map(({ path }) => path), 'the reference `agent-progress help` prints may not be duplicated into a skill').toEqual([]);
   });
 
-  test('both skills send their reader to the help for a flag and to the installed reference for the formats', () => {
-    for (const { path, text } of [BUNDLED_SKILL_FILES[0], BUNDLED_SKILL_FILES[2]]) {
+  test('every skill sends its reader to the help for a flag and to the installed reference for the formats', () => {
+    for (const { path, text } of [BUNDLED_SKILL_FILES[0], BUNDLED_SKILL_FILES[2], BUNDLED_SKILL_FILES[3]]) {
       expect(text, `${path}: an agent that is not told to run it will guess the flag instead`).toContain('`{{program}} help` prints every command and flag');
       expect(text, `${path}: a reference nothing mentions is a file no agent opens`).toContain('`{{dataFolder}}/reference.md`');
     }

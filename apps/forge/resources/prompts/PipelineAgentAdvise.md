@@ -9,5 +9,5 @@ history below the setup record: the time, the outcome and the tree of each gate 
   - a gate in a phase that does not need it;
   - a missing prepare step.
 - Propose each improvement as edits of the draft with `{{program}} pipeline propose`. Obey the rules of the pipeline
-  design below.
+  design step of the `{{pipelineSetupSkill}}` skill.
 - Do not file a ticket. User applies the edits that User accepts.

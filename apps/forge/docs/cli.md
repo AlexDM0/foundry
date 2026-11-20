@@ -53,7 +53,7 @@ Look a command up by its first word, or a stored file by its name.
   line](#the-next-line)
 - [Environment variables](#environment-variables)
 - [Adopting a repository](#adopting-a-repository): [Re-running](#re-running), [Install version](#install-version)
-- [The two skills](#the-two-skills)
+- [The three skills](#the-three-skills)
 - [Commands](#commands), by the table above
 - [Job contracts](#job-contracts): [A build job](#a-build-job), [The Airlocks](#the-airlocks), [A review
   job](#a-review-job), [The Assistant](#the-assistant), [Under a job: the Hatch](#under-a-job-the-hatch)
@@ -244,7 +244,7 @@ a worktree path past 260 characters still checks out on Windows; no repository's
 | [2](#2-the-gitignore-entries) | `.gitignore` entries for the tracker (`init` only) and for the worktrees folder | `.gitignore` | `init`, `update` | none |
 | [3](#3-the-files-beside-the-tracker) | The session instructions, from `resources/templates/SessionInstructions.md`, the reference, from `Reference.md`, and the eight instruction defaults, from `Constitution.md`, `ReReviewerBrief.md`, `ConflictReReviewerBrief.md`, `PipelineAgentBrief.md` and `AssistantBrief.md` there and `BuildPrompt.md`, `ReviewPrompt.md` and `ProductOwnerPrompt.md` under `resources/prompts/` | `<data>/session-instructions.md`, `reference.md`, `briefs/defaults/<constitution\|builder\|reviewer\|reReviewer\|conflictReReviewer\|productOwner\|pipelineAgent\|assistant>.md` | `init`, `update` | none |
 | [4](#4-the-hook) | The agent's session-start entry running `forge hook session-start`, written by the agent adapter; for Claude Code a `SessionStart` hook, kept current in `.claude/settings.json` when that file already holds it | for Claude Code `.claude/settings.local.json` | `init`, `update` | `--no-hooks` |
-| [5](#5-the-skills) | The two skills, copied from this checkout's `skills/agent-po/` and `skills/agent-progress-orchestrate/` into the folder the agent loads instruction bundles from, each with its `.gitignore` entry | for Claude Code `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/` | `init`, `update` | none |
+| [5](#5-the-skills) | The three skills, copied from this checkout's `skills/agent-po/`, `skills/agent-progress-orchestrate/` and `skills/agent-pipeline/` into the folder the agent loads instruction bundles from, each with its `.gitignore` entry | for Claude Code `.claude/skills/forge-po/`, `.claude/skills/forge-orchestrate/`, `.claude/skills/forge-pipeline/` | `init`, `update` | none |
 | [6](#6-the-install-version) | The install version | `<data>/version.json` | `init`, `update` | none |
 
 ### Re-running
@@ -330,10 +330,10 @@ itself. Until then the file this tool creates shows up in `git status`; this too
 
 #### 5. The skills
 
-`forge-po` and `forge-orchestrate` ([The two skills](#the-two-skills)) are copied file for file from this
-checkout's `skills/` into the folder the agent adapter names for each, Claude Code's `.claude/skills/<name>/`, where it
-reads a project's skills. Where a skill quotes the line that runs a skill, the adapter gives the line (`/<name>` for
-Claude Code).
+`forge-po`, `forge-orchestrate` and `forge-pipeline` ([The three skills](#the-three-skills)) are copied file for
+file from this checkout's `skills/` into the folder the agent adapter names for each, Claude Code's
+`.claude/skills/<name>/`, where it reads a project's skills. Where a skill quotes the line that runs a skill, the
+adapter gives the line (`/<name>` for Claude Code).
 
 - Every `init` and `update` rewrites each file the skill ships, so a hand edit is undone.
 - A file somebody else put in the folder is never touched, so one a newer skill no longer ships stays behind until
@@ -383,17 +383,19 @@ These commands do not take the refusal above:
 | `oversee --successor-of` | It skips this check and compares the manifest as a step of the [Baton pass](glossary.md#baton-pass), so a mismatch is reported as that Baton pass's failure. |
 | a verb relayed [under a job](#under-a-job-the-hatch) | It relays before any check. |
 
-## The two skills
+## The three skills
 
-`init` and `update` copy two skills from this checkout's `skills/` into the tracked repository's git-ignored folder the
-agent loads instruction bundles from, Claude Code's `.claude/skills/` (item 5 of
-[Adopting a repository](#adopting-a-repository)). Neither lists commands: `forge help` is the reference, and both name
-it and `<data>/reference.md`.
+`init` and `update` copy three skills from this checkout's `skills/` into the tracked repository's git-ignored folder
+the agent loads instruction bundles from, Claude Code's `.claude/skills/` (item 5 of
+[Adopting a repository](#adopting-a-repository)). None lists commands: `forge help` is the reference, and each names
+it and `<data>/reference.md`. The pipeline setup skill alone holds the table of the pipeline agent's five relayed
+verbs, which help does not print.
 
 | installed skill | source folder | loads |
 |---|---|---|
 | `forge-po` | `skills/agent-po/` | by itself in any session asked to file, report or track a ticket, bug or research question, or with `/forge-po`; by the [orchestrator](glossary.md#orchestrator) wrapper session for its intake; and as the first line of an Overseer's product-owner job |
 | `forge-orchestrate` | `skills/agent-progress-orchestrate/` | only with `/forge-orchestrate` or when asked to run the board |
+| `forge-pipeline` | `skills/agent-pipeline/` | by itself in any session asked to set up the pipeline, change the gates or review the pipeline, or with `/forge-pipeline`; and as the first line of an Overseer's pipeline agent job, whose step messages name its steps |
 
 ## Commands
 
@@ -405,7 +407,7 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 | command | what it does |
 |---|---|
 | `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the six items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
-| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the agent's session-start entry, the two skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
+| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the agent's session-start entry, the three skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
 | `help` | The command reference. |
 
 #### `init` and `update` refusals
@@ -1721,8 +1723,10 @@ jobId, logged }`. The agent is a session, like the
 product owner: a turn's `result` never ends it, `job stop` closes it, and a message opens it again with its
 conversation. A crashed one resumes, also while no pipeline is stored.
 
-The Overseer launches it in a detached snapshot of the main line, writing only its Hatch folder, with no network and
-no skill. The snapshot belongs to the [setup record](#datapipeline-setupjson), not to the job:
+The Overseer launches it in a detached snapshot of the main line, writing only its Hatch folder, with no network. Its
+first message starts with the line that runs the `forge-pipeline` skill, which holds the setup procedure; the
+message then gives the record's facts and the current step, and each step message names the step of the skill. The
+snapshot belongs to the [setup record](#datapipeline-setupjson), not to the job:
 `<worktrees>/pipeline-agent/<S>/`, at the record's `snapshotCommit` (main's tip when the agent first launched), kept
 across the record's jobs and checked out at a new `snapshotCommit` after `pipeline resume` moved it. An agent no record
 names has its own, `<worktrees>/pipeline-agent/<J>/`. Once no open record and no live pipeline agent holds a snapshot,

@@ -28,6 +28,7 @@ import {
 import { REAL_WORKTREE_REMOVAL_PRIMITIVES, WORKTREE_REMOVAL_TRIES } from '../../lib/git/GitWorktrees.ts';
 import type { Board }                                               from '../../lib/tracker-model/Board.ts';
 import { branchNamesOf }                                            from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                            from '../../shared/constants/ProductNames.ts';
 import { boardFixture }                                             from '../../testing/BoardFixtures.ts';
 import { fakeAgentAdapter }                                         from '../../testing/FakeAgentAdapter.ts';
 import type { RecordedGitStep }                                     from '../../testing/RecordedGit.ts';
@@ -48,6 +49,10 @@ const SNAPSHOT_START_FILE = 'pipeline-agent-start.json';
 const START_COMMIT = '1'.repeat(40);
 const MOVED_COMMIT = '2'.repeat(40);
 const SETUP_ID = 'S1';
+
+function factsLaunch(): Parameters<typeof PipelineAgentSessions.pipelineAgentFactsOf>[2] {
+  return { lineGrammar: 'posix-shell', rootDirectory: repositoryDirectory, agentAdapter: fakeAgentAdapter() };
+}
 
 const recordedGit = useRecordedGit();
 
@@ -221,12 +226,13 @@ test('the record gives its agent the billing, before any pipeline is stored, and
   mkdirSync(path.dirname(installedConstitutionPath), { recursive: true });
   writeFileSync(installedConstitutionPath, '# Constitution\n');
 
-  const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell', repositoryDirectory);
+  const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, factsLaunch());
 
   expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
   expect(facts?.mode).toBe('setup');
   expect(facts?.setup).toEqual(board.pipelineSetup());
   expect(facts?.installedConstitution).toBe('# Constitution\n');
+  expect(facts?.firstLine).toBe(fakeAgentAdapter().instructionBundleLineOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL, ''));
 });
 
 test('an agent no record names advises on the stored pipeline, and a missing installed constitution is no fact', () => {
@@ -234,7 +240,7 @@ test('an agent no record names advises on the stored pipeline, and a missing ins
   board.setNoGates(AT);
   const { job } = board.startPipelineAgent(AT);
 
-  const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell', repositoryDirectory);
+  const facts = PipelineAgentSessions.pipelineAgentFactsOf(board, job, factsLaunch());
 
   expect(facts?.mode).toBe('advise');
   expect(facts?.setup).toBeNull();
@@ -270,8 +276,8 @@ test('an entity\'s session serves its entity\'s part of the record, from the rec
   expect(PipelineAgentSessions.servedLevelOf(board, job.id)).toMatchObject({ entityKey: 'web' });
   expect(PipelineAgentSessions.servedLevelOf(board, 'J99')).toBeNull();
   expect(PipelineAgentSessions.launchBillingOf(board, job)).toEqual({ mode: 'api', maxBudgetUsd: 5 });
-  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, job, 'posix-shell', repositoryDirectory)).toMatchObject({ mode: 'setup', entity: 'web' });
-  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, { ...job, id: jobId }, 'posix-shell', repositoryDirectory)?.entity).toBeNull();
+  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, job, factsLaunch())).toMatchObject({ mode: 'setup', entity: 'web' });
+  expect(PipelineAgentSessions.pipelineAgentFactsOf(board, { ...job, id: jobId }, factsLaunch())?.entity).toBeNull();
 });
 
 testWhenGitIsRecorded('a record whose sessions are only at entities takes main\'s tip, once', async () => {
