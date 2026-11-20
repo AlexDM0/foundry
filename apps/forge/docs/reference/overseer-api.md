@@ -409,7 +409,9 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 ## BoardState
 
 `BoardState` is the `status --json --full` document with the live parts laid over it, all from one reading of the board.
-`GET /api/state` and the `board` event carry the same shape, and they read it on two roads.
+`GET /api/state` and the `board` event carry the same shape, and they read it on two roads. It is internal: the Bridge
+reads it in the `board` event and the command line at `GET /api/state`, at no versioned path, and no registry entry
+names `state`. The contract's document is [the board document](#the-board-document).
 
 ![A GET of /api/state or /api/summary calls readBoardState for that request and answers the BoardState, or its summary. A Pass end, a sweep or the start also calls readBoardState, and publishState compares the result with the last state and sends events. Both read the board files with no lock. A malformed file gives a route Bun's plain 500, and leaves the stream logging the failure and keeping its last board.](../figures/overseer-api/two-roads-to-board-state.png)
 
@@ -427,7 +429,7 @@ reloads when `codeVersion` differs from the one it first read. The page's bundle
 | Status keys | `fullDocumentOf` | Stored progress fields, `tasks`, the worded `log`, `tickets`, `epics`, `drafts`, `concurrency`, `readyTickets`, `reviewWaitingTickets`, `pausedBuilds`, `ticketRows`, `tokensByOwner`, `ticketCountByStatus`. Their meaning is in the [CLI reference](../cli.md). |
 | `concurrency` | `ConcurrencyUtil.concurrencyOf`, a status key | `{limit, agentsInFlight, freeSlots}`. `agentsInFlight` counts the live build and review jobs (`LaunchSlotUtil`), the count the Overseer's launch gate reads; the Bridge header shows it against `limit`. |
 | `page` | `assemblePagePayload` | `{payload, tickets}`: the rendered ticket bodies and the `boardFacts` the views read |
-| `jobs` | `Board.jobs`, `JobLiveFactsReader` | Every stored job plus `launchedAt`, the stamp of its newest `job-launched` record (`null` when the log lost it), and `live`. A stored job carries `pendingOptionNotes` only while its notes wait for their question. Replaces the status document's `jobs`. |
+| `jobs` | `Board.jobs`, `JobLiveFactsReader` | Every stored job plus `launchedAt`, the stamp of its newest `job-launched` record (`null` when the log lost it), `live`, and `lostLine`, `{line, cause}` of its newest `job-line-lost` record while that line waits for a resume, else `null`. A stored job carries `pendingOptionNotes` only while its notes wait for their question. Replaces the status document's `jobs`. |
 | `decisions`, `incidents` | The Board | The open ones. Replaces the status document's. An option of an `agent-question` decision carries `touches`, `tradeOff` and `acceptanceEffect` only where the asking agent noted them with `question options`. |
 | `notices` | The Pass's own state | The current [notices](../glossary.md#notice), held in memory |
 | `mergeQueue` | `mergeQueueOf` | `queuedTicketIds`, `slots`, `targets`, below |
@@ -908,9 +910,6 @@ The offers come from the predicates the Board's moves check (`MoveOffers.ts`), s
 accepts in the ticket's or job's state, and a command not offered is one it refuses; a command's content (a body's
 readiness, a domain list) is judged only when it comes. A reader words state names, counts and tokens itself.
 
-`GET /api/state` and the `board` event stay internal: the Bridge and the command line read them, at no versioned path,
-and no registry entry names `state`.
-
 ## The summary contract
 
 **Finding a board.** The Overseer adds `overseer: {url, processId, startedAt, tokenPath}` to its entry in
@@ -1010,6 +1009,11 @@ and `session-lost`, and follows `navigate`.
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |
 | Board state | `src/services/overseer/BoardState.ts` | `BoardStateAssembly` | `src/services/overseer/BoardState.spec.ts`, `src/services/overseer/BoardState.mergeQueue.spec.ts` |
+| The board document | `src/services/overseer/BoardDocumentAssembly.ts` | `BoardDocumentAssembly.boardDocumentOf` | `src/services/overseer/BoardDocumentAssembly.spec.ts` |
+| The board document's mappers | `src/adapters/board-document/utils/` | `BoardPageMappingUtil`, `BoardJobMappingUtil`, `BoardConversationMappingUtil`, `BoardPipelineMappingUtil`, `BoardMergeQueueMappingUtil`, `BoardReadingMappingUtil`, `BoardEntityRefusalMappingUtil` | the `.spec.ts` beside each, `src/adapters/board-document/BoardVocabulary.parity.spec.ts` |
+| Offered moves | `src/lib/tracker-model/MoveOffers.ts` | `Board.ticketOffersOf`, `Board.jobOffersOf` | `src/lib/tracker-model/Board.ticketMoves.spec.ts`, `src/services/overseer/BoardOffers.parity.spec.ts` |
+| Board commands | `src/adapters/board-commands/utils/`, `src/shared/constants/OverseerApiContracts.ts` | `BoardCommandReadingUtil`, `BoardCommandMappingUtil.controlCommandOf`, `BOARD_COMMAND_CONTRACT_KINDS` | the `.spec.ts` beside each, `cli/overseer/routes/CommandRoute.boardContract.spec.ts` |
+| Refusal documents | `src/adapters/utils/RefusalDocumentUtil.ts` | `RefusalDocumentUtil.refusalDocumentOf` | `src/adapters/utils/RefusalDocumentUtil.spec.ts` |
 | Pipeline facts | `src/services/render/PipelineFactsAssembly.ts`, `src/services/render/PipelineFlowGraph.ts` | `pipelineFactsOf`, `pipelineFlowGraphOf` | `src/services/render/PipelineFactsAssembly.spec.ts`, `src/services/render/PipelineFlowGraph.spec.ts` |
 | Main line reads of a state read | `src/services/overseer/MainLineReads.ts` | `MainLineReads`, `BoardStateAssembly.mainLineTextsOf` | `src/services/overseer/MainLineReads.spec.ts`, `src/services/overseer/BoardState.spec.ts` |
 | Ticket forecast | `src/lib/tracker-model/TicketForecasts.ts` | `TicketForecasts`, `Board.ticketForecastsOf` | `src/lib/tracker-model/TicketForecasts.spec.ts`, `src/lib/tracker-model/Playbook.forecast.spec.ts` |

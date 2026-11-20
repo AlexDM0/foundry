@@ -63,6 +63,7 @@ src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → t
 packages/design-system/  →  bridge/ (as the workspace package design-system, by the exports of its package.json)
 packages/flint/          →  bridge/ (as the workspace package flint, only through the entries of its package.json)
 packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
+packages/forge-contracts/  →  src/adapters/board-document/ (the board document's mappers), src/adapters/board-commands/ (the commands')
 ```
 
 - `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, feature and sibling-command isolation, the bin
@@ -88,6 +89,9 @@ packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/
   prints it; command verbs are literals, so they grep.
 - `src/adapters/` holds only translations: a refusal's detail and exit code to output, the domain model to an output
   format.
+- A served contract document is built only by a typed mapper that names each field, never by spreading a model record
+  into it, so a field the model gains reaches no client until a mapper names it. The model, the readings and the
+  refusal wording stay in forge; `packages/forge-contracts/README.md` says what the contract holds.
 - JSON output, stored files, a reason naming stored values, and a command the output suggests carry the values
   themselves, since the parser reads them back.
 - User runs no command. A sentence that the API, a monitor or the Bridge shows names no command line and no flag. It

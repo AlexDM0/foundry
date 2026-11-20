@@ -20,13 +20,14 @@ names no client.
 | `forge-contracts/BoardPageDocuments` | the board document's `page`: the tickets, the task rows, the worded log, the epics, the open filing drafts and the Board's facts of each row and ticket |
 | `forge-contracts/BoardJobDocuments` | the board document's jobs with their live facts, the jobs that left the board, and each open ticket's forecast |
 | `forge-contracts/BoardConversationDocuments` | the board document's open decisions and incidents, the records a settled one leaves, and the picture limits |
-| `forge-contracts/BoardPipelineDocuments` | the board document's pipeline facts: the stored pipeline, the open setup record, the flow, the gates' runs and the pipeline's records |
+| `forge-contracts/BoardPipelineDocuments` | the board document's pipeline facts: the stored pipeline, the open setup record with its entity refusals and its Apply refusal, the flow, the gates' runs and the pipeline's records; and `PipelineDraftEditDocument`, the typed draft edit a `pipeline-draft-edit` carries |
 | `forge-contracts/BoardMergeQueueDocument` | the board document's merge queue, per target |
 | `forge-contracts/BoardLimitsDocument` | the board document's `limits`: how a view cuts a stamp and lays out the progress chart, and the bounds and defaults forge's rules apply |
-| `forge-contracts/BoardReadingDocuments` | the board document's finished readings: what waits on the user and what it opens, worded notices and warnings, today's figures, each ticket's facts and each ticket's and job's offered commands |
+| `forge-contracts/BoardReadingDocuments` | the board document's finished readings: what waits on the user and what it opens, worded notices and warnings, today's figures, each ticket's facts, each ticket's and job's offered commands and the hold each stop mode leaves |
 | `forge-contracts/BoardVocabulary` | the values of the board document's unions a view iterates or compares, each as a list in forge's order and its type |
-| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v1/commands` from forge 1.21, with their payloads and the typed draft edit |
+| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v1/commands` from forge 1.21, with their payloads (the typed draft edit is `BoardPipelineDocuments`') |
 | `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
+| `forge-contracts/FrameAncestorRecord` | the record a framing page writes in the monitor folder's `frame-ancestors` folder, one per host, so every forge lets its origin frame the Bridge; its folder, extension and format version |
 | `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |
 | `forge-contracts/OverseerContractVersions` | the integer version each document has always carried |
 
@@ -35,7 +36,9 @@ names no client.
 ## What it holds, and what it does not
 
 Types, versions, the registry, and the value lists of the unions its documents carry, only. No ingestion, migration, check or mapping lives here: each client maps the documents into its own
-model at its own boundary. A type names the keys a client checks; a key no client checks may be left out.
+model at its own boundary. A type names the keys a client checks; a key no client checks may be left out. Forge's model, its readings and
+its refusal wording stay in forge, which maps its model into these documents and these commands into its model in typed mappers of
+its own.
 
 ## Versions
 

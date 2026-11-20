@@ -38,7 +38,8 @@ Decisions taken on 2026-11-14 and 2026-11-15:
   apps/gaia/              Gaia (src, page, resources, docs, bunfig.toml, tsconfigs, eslint.config.js, CLAUDE.md)
   packages/design-system/ the design system both apps draw with, under its CONSTITUTION.md
   packages/flint/         forge's Flint
-  packages/forge-contracts/  forge's contract with any client: documents, system versions, compatibility registry
+  packages/forge-contracts/  forge's contract with any client: documents, the board document, the board commands, the
+                          refusal document, system versions, compatibility registry
   packages/brand/         forge's mark, its tokens and the geometry a host's mark may draw alike
   packages/system-versions/  the version model and the compatibility registry's logic, naming no server
 ```
@@ -112,8 +113,11 @@ of 2026-11-13's "nine shared names, forge's version as base", the `board.css` sp
 
 ### The shared contracts
 
-`packages/forge-contracts` (the design's proposed `overseer-contracts`) exists: forge's documents as types, forge's system versions and
-its compatibility registry, with the raise-the-minimum report and guard. `packages/system-versions` holds the version model any server
+`packages/forge-contracts` (the design's proposed `overseer-contracts`) exists: forge's documents as types, the board document at
+`GET /api/v1/board`, the board commands and the refusal document among them, forge's system versions and its compatibility registry, with
+the raise-the-minimum report and guard. Its types import nothing from forge: forge's tracker model, its readings and its refusal wording
+stay in `apps/forge`, which maps them into the documents in typed mappers of its own. The package's `README.md` lists what it holds, and
+forge's `docs/reference/overseer-api.md` the routes and versions. `packages/system-versions` holds the version model any server
 and client share. `packages/brand` holds forge's mark. None names Gaia. The recorded fixtures stay with Gaia, the reader, because a
 recording is of a released forge, never of the source beside it.
 
