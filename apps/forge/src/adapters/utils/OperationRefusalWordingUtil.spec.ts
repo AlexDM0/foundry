@@ -151,3 +151,39 @@ test('a refused agent program names its job and the reason, then the repair it i
     .toBe('job J7 is not launched: C:\\example\\agent.cmd is a batch file; run the example repair');
   expect(OperationRefusalWordingUtil.agentProgramRefusalTextOf('J7', 'no agent program is on PATH', null)).toBe('job J7 is not launched: no agent program is on PATH');
 });
+
+test('the by-hand task and namespace refusals are worded as their verbs printed them, the same sentence in both channels', () => {
+  const { PROGRAM } = PRODUCT_NAMES;
+  const listAdvice = `Run \`${PROGRAM} ticket list\` to see the tickets this tracker holds.`;
+  const sentenceOfDetail: readonly (readonly [OperationRefusal, string])[] = [
+    [new OperationRefusal('refused', { kind: 'task-ticket-missing', option: 'ticket', reference: '9' }), `There is no ticket 9. ${listAdvice}`],
+    [
+      new OperationRefusal('refused', { kind: 'task-ticket-missing', option: 'review-of', reference: '#9' }),
+      `--review-of names ticket #9, and there is none. ${listAdvice}`,
+    ],
+    [
+      new OperationRefusal('refused', { kind: 'namespace-board-has-jobs', jobCount: 2 }),
+      'The board has 2 job(s) on it, which run under its current branch names; let them end first. Nothing was written.',
+    ],
+    [
+      new OperationRefusal('refused', { kind: 'namespace-branch-list-failed', reason: 'git exited 128' }),
+      'git did not list the branches (git exited 128). Nothing was written.',
+    ],
+    [
+      new OperationRefusal('refused', { kind: 'namespace-not-free', refusal: { reason: 'branch-blocks-namespace', branch: PROGRAM }, wantedNamespace: 'web' }),
+      `The branch ${PROGRAM} leaves git no room for branches named ${PROGRAM}/web/ticket-<id>; rename it, or choose another name. Nothing was written.`,
+    ],
+    [
+      new OperationRefusal('refused', { kind: 'namespace-not-free', refusal: { reason: 'namespace-has-branches', branches: ['a', 'b'] }, wantedNamespace: 'web' }),
+      'The namespace web already holds the branches a, b, so it is another board\'s; choose another name. Nothing was written.',
+    ],
+    [
+      new OperationRefusal('refused', { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' }),
+      'The board\'s branches ticket-003 are under its current names; land or remove them first. Nothing was written.',
+    ],
+  ];
+  for (const [refusal, sentence] of sentenceOfDetail) {
+    expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(sentence);
+    expect(OperationRefusalWordingUtil.apiMessageOf(refusal)).toBe(sentence);
+  }
+});

@@ -1,8 +1,10 @@
 /** `task add`: files a row, linked to a ticket it works or reviews, and starts it at once with `--start`. */
-import { TicketBodyUtil }                        from '../../../src/adapters/utils/TicketBodyUtil.ts';
+import { ControlService }                        from '../../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }                 from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                         from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                   from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }               from '../../CommandControlContext.ts';
 import { openTrackerForWritingThenReadNextLine } from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
 import { OptionValueUtil }                       from '../../utils/OptionValueUtil.ts';
@@ -27,34 +29,22 @@ export async function addOneTask(commandArguments: ArgumentParser, context: Comm
   const startsNow         = commandArguments.flag('start');
   const movesTheLink      = commandArguments.flag('force');
 
-  const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, ({ board, at }) => {
-    const ticket = ticketReference === undefined ? undefined : board.ticketByReference(ticketReference);
-    if (ticketReference !== undefined && ticket === undefined) {
-      throw new OperationRefusal(
-        'refused',
-        `There is no ticket ${ticketReference}. Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see the tickets this tracker holds.`,
-      );
-    }
-
-    const reviewedTicket = reviewedReference === undefined ? undefined : board.ticketByReference(reviewedReference);
-    if (reviewedReference !== undefined && reviewedTicket === undefined) {
-      throw new OperationRefusal(
-        'refused',
-        `--review-of names ticket ${reviewedReference}, and there is none. Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see the tickets this tracker holds.`,
-      );
-    }
-
-    return board.addTask({
-      name,
-      startsNow,
-      movesTheLink,
-      ...(owner === undefined ? {} : { owner }),
-      ...(note === undefined ? {} : { note }),
-      ...(tokens === undefined ? {} : { tokens }),
-      ...(ticket === undefined ? {} : { ticketId: ticket.frontmatter.id }),
-      ...(reviewedTicket === undefined ? {} : { reviewOf: { ticketId: reviewedTicket.frontmatter.id, round: TicketBodyUtil.nextReviewRoundOf(reviewedTicket.body) } }),
-    }, at);
-  });
+  const command: ControlCommandOf<'task-add'> = {
+    kind: 'task-add',
+    name,
+    startsNow,
+    movesTheLink,
+    ...(ticketReference === undefined ? {} : { ticketReference }),
+    ...(reviewedReference === undefined ? {} : { reviewOfReference: reviewedReference }),
+    ...(owner === undefined ? {} : { owner }),
+    ...(note === undefined ? {} : { note }),
+    ...(tokens === undefined ? {} : { tokens }),
+  };
+  const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+  );
 
   const humanLine = `Task #${task.id} added: ${task.name}`;
   // Only a row started as it is added takes a slot; a pending one moves nothing the Next line reads.

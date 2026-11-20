@@ -42,7 +42,24 @@ export const UNRELAYED_VERB_OF_CONTROL_KIND = {
   'ticket-deliver-by-hand': 'ticket deliver --by-hand',
 } as const satisfies Partial<Record<ControlCommandKind, string>>;
 
-export type RelayedControlCommandKind = Exclude<ControlCommandKind, keyof typeof UNRELAYED_VERB_OF_CONTROL_KIND>;
+/**
+ * Kinds of the verbs User runs by hand outside a job, which once wrote the board in place: never relayed from a job, never accepted by
+ * `POST /api/commands`.
+ */
+export const BY_HAND_VERB_OF_CONTROL_KIND = {
+  'task-add':      'task',
+  'task-move':     'task',
+  'task-correct':  'task',
+  'task-remove':   'task',
+  'log-note':      'log',
+  'namespace-set': 'namespace',
+} as const satisfies Partial<Record<ControlCommandKind, string>>;
+
+export type ByHandControlCommandKind = keyof typeof BY_HAND_VERB_OF_CONTROL_KIND;
+
+export const BY_HAND_COMMAND_KINDS = Object.freeze(Object.keys(BY_HAND_VERB_OF_CONTROL_KIND)) as readonly ByHandControlCommandKind[];
+
+export type RelayedControlCommandKind = Exclude<ControlCommandKind, keyof typeof UNRELAYED_VERB_OF_CONTROL_KIND | ByHandControlCommandKind>;
 
 /** The verb each relayed control command is typed as; under a job the verb parses its arguments as usual and relays the command it built. */
 export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommandKind, string>> = {

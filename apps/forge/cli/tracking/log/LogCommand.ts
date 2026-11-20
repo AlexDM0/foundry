@@ -1,8 +1,11 @@
-import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandHandler }   from '../../CommandHandler.ts';
-import { openTrackerForWriting } from '../../OpenTrackerForWriting.ts';
-import { OutputUtil }            from '../../utils/OutputUtil.ts';
+import { ControlService }          from '../../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
+import { COMMAND_CONTROL_CONTEXT } from '../../CommandControlContext.ts';
+import type { CommandHandler }     from '../../CommandHandler.ts';
+import { openTrackerForWriting }   from '../../OpenTrackerForWriting.ts';
+import { OutputUtil }              from '../../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} log "<text>" [--at <when>]`;
 
@@ -17,10 +20,8 @@ export const logCommand: CommandHandler = async (commandArguments, context) => {
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} log needs something to record.\n  Usage: ${USAGE}`);
   }
 
-  const entry = await openTrackerForWriting(commandArguments, context, (change) => {
-    change.board.recordNote(text, change.at);
-    return { at: change.at, text };
-  });
+  const command: ControlCommandOf<'log-note'> = { kind: 'log-note', text };
+  const entry = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 
   OutputUtil.printEntity(commandArguments, context, entry, `Logged: ${entry.text}`);
 };

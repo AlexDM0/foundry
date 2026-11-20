@@ -1,7 +1,7 @@
 /**
  * The API sentence of every refusal the type knows. What matters: the sample tables are keyed by every Board reason and every detail kind,
- * so the type checker fails when a new one has no sample, and no API sentence of any sample names a command line or a flag. The two
- * kinds only a session's relayed command meets keep their command-line words, and the exemption list is exact both ways.
+ * so the type checker fails when a new one has no sample, and no API sentence of any sample names a command line or a flag. The kinds
+ * only a session's relayed command or a by-hand verb meets keep their command-line words, and the exemption list is exact both ways.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -348,10 +348,17 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'pipeline-draft-invalid':         { kind: 'pipeline-draft-invalid', setupId: 'S1', reason: 'Example reason' },
   'draft-copy-outside-entities':    { kind: 'draft-copy-outside-entities', setupId: 'S1', fields: ['gate:test'] },
   'main-constitution-unreadable':   { kind: 'main-constitution-unreadable', reason: 'Example reason' },
+  'task-ticket-missing':            { kind: 'task-ticket-missing', option: 'review-of', reference: '9' },
+  'namespace-board-has-jobs':       { kind: 'namespace-board-has-jobs', jobCount: 2 },
+  'namespace-branch-list-failed':   { kind: 'namespace-branch-list-failed', reason: 'Example reason' },
+  'namespace-not-free':             { kind: 'namespace-not-free', refusal: { reason: 'board-has-branches', branches: ['ticket-003'] }, wantedNamespace: 'web' },
 };
 
-/** Only a session's own relayed command meets these: the Hatch answers them, and no API route words them. */
-const SESSION_ONLY_KINDS: readonly DetailKind[] = ['role-command-refused', 'verb-not-relayable'];
+/**
+ * Only a session's own relayed command meets these, or a verb User runs by hand, whose kind no job relays and the API refuses: the Hatch
+ * or the command line answers them, and no API route words them.
+ */
+const KINDS_NO_API_ROUTE_WORDS: readonly DetailKind[] = ['role-command-refused', 'verb-not-relayable', 'task-ticket-missing'];
 
 function apiSentenceOf(detail: OperationRefusalDetail): string {
   return OperationRefusalWordingUtil.apiMessageOf(new OperationRefusal('refused', detail));
@@ -365,8 +372,8 @@ describe('OperationRefusalWordingUtil.apiMessageOf over every refusal', () => {
     expect(reasonsNamingOne).toEqual([]);
   });
 
-  test('no detail kind names a command line or a flag through the API, but the session-only kinds, which are exactly those that do', () => {
+  test('no detail kind names a command line or a flag through the API, but the kinds no API route words, which are exactly those that do', () => {
     const kindsNamingOne = Object.values(SAMPLE_OF_KIND).filter((detail) => COMMAND_LINE_FORM.test(apiSentenceOf(detail))).map((detail) => detail.kind);
-    expect(kindsNamingOne).toEqual([...SESSION_ONLY_KINDS]);
+    expect(kindsNamingOne).toEqual([...KINDS_NO_API_ROUTE_WORDS]);
   });
 });

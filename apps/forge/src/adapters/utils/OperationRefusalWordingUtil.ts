@@ -14,6 +14,7 @@ import type { OptionNotesProblem }                           from '../../lib/tra
 import { TicketMoveUtil }                                    from '../../lib/tracker-model/utils/TicketMoveUtil.ts';
 import type { RoleCommandRefusalReason }                     from '../../shared/@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }                            from '../../shared/@types/UnreadableTracker.ts';
+import { type BranchNamespaceRefusal, branchNamesOf }        from '../../shared/BranchNames.ts';
 import type { OperationRefusal }                             from '../../shared/OperationRefusal.ts';
 import type { OperationRefusalDetail }                       from '../../shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
@@ -40,6 +41,8 @@ const TALOS_UNAVAILABLE_REASON_WORDING: Readonly<Record<Extract<OperationRefusal
 };
 
 const NOTHING_WAS_WRITTEN = 'Nothing was written.';
+
+const EXAMPLE_TICKET_ID = '<id>';
 
 const CHART_RANGE_BOUND_TEXT: Readonly<Record<'from' | 'to', string>> = { from: 'The start', to: 'The end' };
 
@@ -652,6 +655,25 @@ function installVersionMismatchSentenceOf(detail: InstallVersionMismatchDetail, 
   }
 }
 
+/** The by-hand `task add` is never relayed or posted, so both channels carry the command line's sentence. */
+function taskTicketMissingText(detail: Extract<OperationRefusalDetail, { kind: 'task-ticket-missing' }>): string {
+  const listAdvice = `Run \`${PRODUCT_NAMES.PROGRAM} ticket list\` to see the tickets this tracker holds.`;
+  if (detail.option === 'ticket') return `There is no ticket ${detail.reference}. ${listAdvice}`;
+  return `--review-of names ticket ${detail.reference}, and there is none. ${listAdvice}`;
+}
+
+function namespaceRefusalText(refusal: BranchNamespaceRefusal, wantedNamespace: string): string {
+  switch (refusal.reason) {
+    case 'branch-blocks-namespace':
+      return `The branch ${refusal.branch} leaves git no room for branches named ${branchNamesOf(wantedNamespace).ticketBranchOf(EXAMPLE_TICKET_ID)}; `
+        + 'rename it, or choose another name.';
+    case 'namespace-has-branches':
+      return `The namespace ${wantedNamespace} already holds the branches ${refusal.branches.join(', ')}, so it is another board's; choose another name.`;
+    case 'board-has-branches':
+      return `The board's branches ${refusal.branches.join(', ')} are under its current names; land or remove them first.`;
+  }
+}
+
 function noTrackerAtOverrideText(overrideDirectory: string, channel: RefusalChannel): string {
   return sentencesOf(
     `No ${PRODUCT_NAMES.PROGRAM} tracker was found in ${overrideDirectory}, which ${ROOT_OVERRIDE_VARIABLE} names.`,
@@ -891,6 +913,14 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'hatch-identity-mismatch':
       return `The relayed request ${detail.requestId} names a job or role of its own; a request takes job ${detail.jobId}'s from its folder. `
         + NOTHING_WAS_WRITTEN;
+    case 'task-ticket-missing':
+      return taskTicketMissingText(detail);
+    case 'namespace-board-has-jobs':
+      return `The board has ${detail.jobCount} job(s) on it, which run under its current branch names; let them end first. ${NOTHING_WAS_WRITTEN}`;
+    case 'namespace-branch-list-failed':
+      return `git did not list the branches (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
+    case 'namespace-not-free':
+      return `${namespaceRefusalText(detail.refusal, detail.wantedNamespace)} ${NOTHING_WAS_WRITTEN}`;
   }
 }
 

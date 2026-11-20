@@ -10,6 +10,7 @@ import { CONTROL_COMMAND_KINDS }                 from '../src/services/control/C
 import type { ControlCommandKind, ResumeTarget } from '../src/shared/@types/ControlCommand.ts';
 import { COMMAND_NAMES }                         from './CommandTable.ts';
 import {
+  BY_HAND_VERB_OF_CONTROL_KIND,
   OTHER_VERBS_OF_CONTROL_KIND,
   READ_ONLY_VERBS_UNDER_A_JOB,
   RELAYED_VERB_OF_CONTROL_KIND,
@@ -36,12 +37,17 @@ type IsTheSameTypeAs<Left, Right> = [Left] extends [Right] ? ([Right] extends [L
 
 const RESUME_TARGET_IS_THE_CONTRACTS: IsTheSameTypeAs<ResumeTarget, ForgeResumeTarget> = true;
 
-const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = { ...RELAYED_VERB_OF_CONTROL_KIND, ...UNRELAYED_VERB_OF_CONTROL_KIND };
+const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = {
+  ...RELAYED_VERB_OF_CONTROL_KIND,
+  ...UNRELAYED_VERB_OF_CONTROL_KIND,
+  ...BY_HAND_VERB_OF_CONTROL_KIND,
+};
 
-/** Mutating verbs User runs by hand: never relayed, never offered in the UI (design section 9.1). */
+/**
+ * Mutating verbs that apply no control command, never relayed and never offered in the UI (design section 9.1): the ticket and epic verbs
+ * User runs by hand that still write the board in place, machine setup, and the Overseer's own start and stop.
+ */
 const NOT_RELAYABLE_MUTATING_VERBS = [
-  'task',
-  'log',
   'ticket agent',
   'ticket size',
   'ticket status',
@@ -54,7 +60,6 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
   'epic remove',
   'init',
   'update',
-  'namespace',
   'oversee',
   'start',
   'stop',

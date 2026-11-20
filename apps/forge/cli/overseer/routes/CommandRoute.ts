@@ -22,6 +22,7 @@ import type { CommandContext }                                              from
 import { COMMAND_CONTROL_CONTEXT }                                          from '../../CommandControlContext.ts';
 import { openTrackerForWriting }                                            from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                              from '../../arguments/ArgumentParser.ts';
+import { BY_HAND_COMMAND_KINDS }                                            from '../../constants/JobVerbs.ts';
 
 export interface RuntimeOverseerCommand {
   kind: 'overseer-stop' | 'overseer-restart';
@@ -50,8 +51,11 @@ const HTTP_STATUS = {
 
 const RUNTIME_COMMAND_KINDS: readonly string[] = ['overseer-stop', 'overseer-restart'];
 
-/** Every kind the route takes: the control service's and Flint's brain's. */
-export const COMMAND_ROUTE_KINDS: readonly string[] = Object.freeze([...CONTROL_COMMAND_KINDS, ...FLINT_BRAIN_COMMAND_KINDS]);
+/** Every kind the route takes: the control service's but the by-hand kinds, and Flint's brain's. */
+export const COMMAND_ROUTE_KINDS: readonly string[] = Object.freeze([
+  ...CONTROL_COMMAND_KINDS.filter((kind) => !(BY_HAND_COMMAND_KINDS as readonly string[]).includes(kind)),
+  ...FLINT_BRAIN_COMMAND_KINDS,
+]);
 
 const CONTROL_VERSION = SERVED_CONTRACT_VERSIONS.control;
 

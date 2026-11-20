@@ -205,6 +205,25 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'ticket-deliver-by-hand': {
     kind: 'ticket-deliver-by-hand', ticketReference: '1', branch: 'ticket-001', commit: 'abc1234'
   },
+  'task-add': {
+    kind:              'task-add',
+    name:              'Review the basket page',
+    reviewOfReference: '#3',
+    owner:             'Alex Example',
+    note:              'Second pass',
+    tokens:            1200,
+    startsNow:         true,
+    movesTheLink:      false,
+  },
+  'task-move': {
+    kind: 'task-move', taskId: 4, status: 'in-review', movesAnyway: false, annotation: { owner: 'Alex Example', tokens: 300 }
+  },
+  'task-correct': {
+    kind: 'task-correct', taskId: 4, correction: { name: 'Basket page', status: 'pending' }, movesAnyway: true, annotation: {}
+  },
+  'task-remove':   { kind: 'task-remove', taskId: 4 },
+  'log-note':      { kind: 'log-note', text: 'Alex Example tried the basket by hand' },
+  'namespace-set': { kind: 'namespace-set', namespace: 'web' },
 };
 
 function refusalOf(attempt: () => unknown): OperationRefusal {

@@ -31,7 +31,7 @@ const TRACKER_FOLDER_GIT_CALLERS: Readonly<Record<string, string>> = {
   'src/services/tracker/MonitorRegistration.ts': 'the origin it reads is the same from every folder of a checkout, under no ceiling',
   'src/services/overseer/BoardState.ts':         'reads the main line\'s tip under no ceiling; not yet moved to the repository root',
   'src/services/control/AirlockControls.ts':     'reads a target\'s tip under no ceiling; not yet moved to the repository root',
-  'cli/tracking/namespace/NamespaceCommand.ts':  'lists branches under no ceiling; not yet moved to the repository root',
+  'src/services/control/ByHandBoardControls.ts': 'lists branches under no ceiling; not yet moved to the repository root',
 };
 
 function trackerFolderGitCallsOf(sources: readonly RepositorySource[]): string[] {

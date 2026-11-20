@@ -2,9 +2,12 @@
 import type { TaskStatus }                        from '../../../src/lib/tracker-model/@types/Task.ts';
 import { TASK_STATUSES }                          from '../../../src/lib/tracker-model/constants/Statuses.ts';
 import { VocabularyUtil }                         from '../../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+import { ControlService }                         from '../../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }                  from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                    from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                from '../../CommandControlContext.ts';
 import { openTrackerForWriting }                  from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                    from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                             from '../../utils/OutputUtil.ts';
@@ -37,13 +40,17 @@ export async function updateOneTask(commandArguments: ArgumentParser, context: C
   }
 
   const name = commandArguments.option('name');
-  const task = await openTrackerForWriting(commandArguments, context, ({ board }) => {
-    board.correctTask(taskId, {
+  const command: ControlCommandOf<'task-correct'> = {
+    kind:       'task-correct',
+    taskId,
+    movesAnyway,
+    correction: {
       ...(name === undefined ? {} : { name }),
       ...(status === undefined ? {} : { status }),
-    }, { movesAnyway });
-    return board.annotateTask(taskId, annotationFrom(commandArguments));
-  });
+    },
+    annotation: annotationFrom(commandArguments),
+  };
+  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 
   OutputUtil.printEntity(commandArguments, context, task, `Task #${task.id} updated: ${task.name}`);
 }
@@ -54,7 +61,8 @@ export async function removeOneTask(commandArguments: ArgumentParser, context: C
 
   const taskId = taskIdFrom(commandArguments.positionals()[1], 'remove');
 
-  const task = await openTrackerForWriting(commandArguments, context, ({ board }) => board.removeTask(taskId));
+  const command: ControlCommandOf<'task-remove'> = { kind: 'task-remove', taskId };
+  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result);
 
   OutputUtil.printEntity(commandArguments, context, task, `Task #${task.id} removed: ${task.name}`);
 }

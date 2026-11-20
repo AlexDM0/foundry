@@ -7,6 +7,7 @@ import type { BoardRefusalDetail }       from '../lib/tracker-model/BoardRefusal
 import type { InstallVersionMismatch }   from './@types/InstallVersionMismatch.ts';
 import type { RoleCommandRefusalReason } from './@types/RoleCommandRefusalReason.ts';
 import type { UnreadableTracker }        from './@types/UnreadableTracker.ts';
+import type { BranchNamespaceRefusal }   from './BranchNames.ts';
 
 export type OperationRefusalStatus = 'refused' | 'unrepaired';
 
@@ -88,7 +89,12 @@ export type OperationRefusalDetail =
   | { kind: 'machine-agent-limit-above-cpus'; limit: number; ceiling: number }
   | { kind: 'machine-agent-limit-not-whole'; limit: number }
   | { kind: 'concurrency-limit-out-of-range'; limit: number; ceiling: number }
-  | { kind: 'machine-limits-newer-version'; filePath: string; version: number };
+  | { kind: 'machine-limits-newer-version'; filePath: string; version: number }
+  | { kind: 'task-ticket-missing'; option: 'ticket' | 'review-of'; reference: string }
+  | { kind: 'namespace-board-has-jobs'; jobCount: number }
+  /** `reason` is git's own. */
+  | { kind: 'namespace-branch-list-failed'; reason: string }
+  | { kind: 'namespace-not-free'; refusal: BranchNamespaceRefusal; wantedNamespace: string };
 
 export function reasonCodeOf(detail: OperationRefusalDetail): string {
   if (detail.kind === 'role-command-refused') return detail.reason;

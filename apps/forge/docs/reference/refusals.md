@@ -84,7 +84,7 @@ These lines come from a session's relayed command or from a hook, and each exits
 
 ## Every printed refusal
 
-- [Tickets and rows](#tickets-and-rows) (53)
+- [Tickets and rows](#tickets-and-rows) (55)
 - [Jobs and worktrees](#jobs-and-worktrees) (22)
 - [Epics](#epics) (4)
 - [Filing drafts](#filing-drafts) (10)
@@ -95,9 +95,9 @@ These lines come from a session's relayed command or from a hook, and each exits
 - [Overseer and Baton](#overseer-and-baton) (17)
 - [Hatch and roles](#hatch-and-roles) (11)
 - [Install and version](#install-and-version) (6)
-- [Tracker, lock and journal](#tracker-lock-and-journal) (6)
+- [Tracker, lock and journal](#tracker-lock-and-journal) (11)
 - [Stored files](#stored-files) (5)
-- [Refusals with no code](#refusals-with-no-code) (10)
+- [Refusals with no code](#refusals-with-no-code) (8)
 
 A browser's find works on the page as it stands: every family is open.
 
@@ -113,13 +113,15 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 [Customs](../glossary.md#customs).
 
 <details open>
-<summary>60 sentences</summary>
+<summary>62 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `There is no task #<task>` | `unknown-task` | The row id names no row. | Read the ids with `status`. | |
 | `Task #<task> belongs to ticket #<ticket>, so moving it here` | `ticket-owned-row` | A `task` verb tried to move a row a ticket owns. | Run the `ticket` verb the sentence names, or `--force` to move the row alone. | |
 | `Ticket #<ticket> already has task #<task>` | `ticket-already-has-row` | `task add --ticket` named a ticket that has a row. | Add `--force` to move the ticket to the added row, or drop `--ticket`. | |
+| `There is no ticket <reference>.` | `task-ticket-missing` | `task add --ticket` named no ticket the board can read. | Run `ticket list`. | |
+| `--review-of names ticket <reference>, and there is none` | `task-ticket-missing` | `task add --review-of` named no ticket the board can read. | Run `ticket list`. | |
 | `is already on the board, so a second ticket cannot take its id` | `ticket-id-already-filed` | Two filings in one hold were given one id. | File the ticket again. | |
 | `Task #<task> already belongs to ticket #<ticket>` | `task-belongs-to-another-ticket` | `ticket link` named a row another ticket owns. | Add `--force` to move it. | |
 | `Ticket #<ticket> is already <status>, so nothing was changed` | `ticket-already-in-status` | The move targets the status the ticket holds. | Nothing. Exit 1 still, so a script sees the move did not happen. | |
@@ -504,10 +506,15 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 [hold journal](../glossary.md#hold-journal). Recipe: [Lock refusals](../operations/runbook.md#lock-refusals).
 
 <details open>
-<summary>6 sentences</summary>
+<summary>11 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
+| `job(s) on it, which run under its current branch names` | `namespace-board-has-jobs` | `namespace <name>` while a job other than the Assistant or the product owner is on the board. | Let the jobs end first. | [cli.md](../cli.md#the-boards-lifetime) |
+| `git did not list the branches` | `namespace-branch-list-failed` | `namespace <name>`, and git refused `for-each-ref`. The sentence ends with git's reason. | Fix what git names. | [cli.md](../cli.md#the-boards-lifetime) |
+| `leaves git no room for branches named` | `namespace-not-free` | `namespace <name>` while a branch is named as the namespace's folder would be. | Rename that branch, or choose another name. | [cli.md](../cli.md#the-boards-lifetime) |
+| `already holds the branches <branches>, so it is another board's` | `namespace-not-free` | `namespace <name>` naming a namespace whose branches exist. | Choose another name. | [cli.md](../cli.md#the-boards-lifetime) |
+| `are under its current names; land or remove them first` | `namespace-not-free` | `namespace <name>` while the board's branches stand under its current names. | Land or remove them first. | [cli.md](../cli.md#the-boards-lifetime) |
 | `tracker was found in <directory> or any directory above it` | `no-tracker-found` | No tracker up the tree. | Run `init` in the repository. | |
 | `which FORGE_ROOT names` | `no-tracker-at-override` | The variable names a directory with no tracker. | Run `init` there, or unset it. | |
 | `is holding <path> and did not release it` | `tracker-lock-held` | The lock stayed held through `LIMITS.LOCK_RETRY_COUNT` tries. **Exit 2.** | If nothing runs, remove that path and retry. | |
@@ -537,7 +544,7 @@ Words here: [tracker](../glossary.md#tracker), [lock hold](../glossary.md#lock-h
 These sentences come from `cli/` as text and carry no code.
 
 <details open>
-<summary>10 entries</summary>
+<summary>8 entries</summary>
 
 | Printed words | Exit | Cause | What to do |
 | --- | --- | --- | --- |
@@ -547,8 +554,6 @@ These sentences come from `cli/` as text and carry no code.
 | `The skill folder <path> could not be read` | 2 | The program checkout lacks a skill folder. | Reinstall or restore the program checkout. |
 | `No text was generated for the installed file` | 2 | The install table and the program checkout disagree. Three more sentences share this cause: `An installed part lists no file.`, `No files were read for the installed skill`, `The install lists no briefs.` | Reinstall or restore the program checkout. |
 | `There is no job <job>.` | 1 | `job show` or `job attach`, with a usage line. | Run `jobs`. |
-| `There is no ticket <reference>.` | 1 | `task add --ticket`. | Run `ticket list`. |
-| `--review-of names ticket <reference>, and there is none` | 1 | `task add --review-of`. | Run `ticket list`. |
 | `clear needs --yes when standard input is not a terminal` | 1 | `clear` with nobody to confirm. | Pass `--yes`, knowing what `clear` removes. |
 | `- reads standard input, and standard input is a terminal` | 1 | `--body-file -`, `--request-file -` or `--file -` typed with nothing piped in. | Pipe the text in, or name a file. |
 

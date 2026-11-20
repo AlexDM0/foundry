@@ -3,6 +3,7 @@
  * Every value is plain JSON, so a command survives a Hatch file or an HTTP body unchanged; a body or request file is read before the
  * command is built, which carries its text. A ticket is named as it was written (`3`, `003`, `#3`), resolved inside the hold.
  */
+import type { TaskAnnotation, TaskCorrection }     from '../../lib/tracker-model/@types/BoardChanges.ts';
 import type { DecisionAnswerForm }                 from '../../lib/tracker-model/@types/Decision.ts';
 import type { DraftNoteKind, DraftQuestionAsking } from '../../lib/tracker-model/@types/Draft.ts';
 import type { GatePhase }                          from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -25,6 +26,7 @@ import type {
   SetupQuestionSubject,
   SourceAnnotation
 } from '../../lib/tracker-model/@types/PipelineSetup.ts';
+import type { TaskStatus } from '../../lib/tracker-model/@types/Task.ts';
 import type {
   AgentEffort,
   AgentModel,
@@ -267,7 +269,24 @@ export type ControlCommand =
    * Records a ticket User finished and landed outside the Overseer, refused while a job of the ticket is live. The verb is refused while an
    * Overseer is live; the live Overseer applies this command in its own hold. Never relayed from a job.
    */
-  | { kind: 'ticket-deliver-by-hand'; ticketReference: string; branch?: string; commit?: string };
+  | { kind: 'ticket-deliver-by-hand'; ticketReference: string; branch?: string; commit?: string }
+  /** The by-hand kinds below are User's own verbs outside a job: never relayed from a job, never accepted by `POST /api/commands`. */
+  | {
+    kind:               'task-add';
+    name:               string;
+    ticketReference?:   string;
+    reviewOfReference?: string;
+    owner?:             string;
+    note?:              string;
+    tokens?:            number;
+    startsNow:          boolean;
+    movesTheLink:       boolean;
+  }
+  | { kind: 'task-move'; taskId: number; status: Exclude<TaskStatus, 'abandoned'>; movesAnyway: boolean; annotation: TaskAnnotation }
+  | { kind: 'task-correct'; taskId: number; correction: TaskCorrection; movesAnyway: boolean; annotation: TaskAnnotation }
+  | { kind: 'task-remove'; taskId: number }
+  | { kind: 'log-note'; text: string }
+  | { kind: 'namespace-set'; namespace: string };
 
 export type ControlCommandKind = ControlCommand['kind'];
 

@@ -1,8 +1,11 @@
 import type { MovedToStatus }                     from '../../../src/adapters/utils/StatusWordingUtil.ts';
 import { StatusWordingUtil }                      from '../../../src/adapters/utils/StatusWordingUtil.ts';
+import { ControlService }                         from '../../../src/services/control/ControlService.ts';
+import type { ControlCommandOf }                  from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                    from '../../CommandContext.ts';
+import { COMMAND_CONTROL_CONTEXT }                from '../../CommandControlContext.ts';
 import type { CommandHandler }                    from '../../CommandHandler.ts';
 import { openTrackerForWritingThenReadNextLine }  from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                    from '../../arguments/ArgumentParser.ts';
@@ -34,10 +37,14 @@ async function transitionOneTask(
   const taskId      = taskIdFrom(commandArguments.positionals()[1], subcommand);
   const movesAnyway = commandArguments.flag('force');
 
-  const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, ({ board, at }) => {
-    board.moveTask(taskId, targetStatus, { movesAnyway }, at);
-    return board.annotateTask(taskId, annotationFrom(commandArguments));
-  });
+  const command: ControlCommandOf<'task-move'> = {
+    kind: 'task-move', taskId, status: targetStatus, movesAnyway, annotation: annotationFrom(commandArguments)
+  };
+  const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(
+    commandArguments,
+    context,
+    (change) => ControlService.apply(command, change, COMMAND_CONTROL_CONTEXT).result,
+  );
 
   OutputUtil.printEntityThenNextLine(commandArguments, context, task, `Task #${task.id} ${StatusWordingUtil.movedPhraseFor(targetStatus)}: ${task.name}`, nextLine);
 }

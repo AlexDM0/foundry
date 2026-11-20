@@ -3,7 +3,7 @@
  * hold with the Overseer up or down. An answer and an escalation close the incident; a note leaves it open.
  */
 import { ControlService }            from '../../src/services/control/ControlService.ts';
-import type { ControlCommand }       from '../../src/shared/@types/ControlCommand.ts';
+import type { ControlCommandOf }     from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }             from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }       from '../CommandContext.ts';
 import { COMMAND_CONTROL_CONTEXT }   from '../CommandControlContext.ts';
@@ -22,7 +22,7 @@ export const INCIDENT_SUBCOMMAND_NAMES = ['answer', 'note', 'escalate'] as const
 
 type IncidentSubcommand = typeof INCIDENT_SUBCOMMAND_NAMES[number];
 
-function commandOf(subcommand: IncidentSubcommand, commandArguments: ArgumentParser): ControlCommand {
+function commandOf(subcommand: IncidentSubcommand, commandArguments: ArgumentParser): ControlCommandOf<'incident-answer' | 'incident-note' | 'incident-escalate'> {
   const incidentId = incidentIdOf(commandArguments.positionalsBeforeSeparator()[1], USAGE);
   if (commandArguments.positionalsBeforeSeparator().length > 2) refuseUsage(subcommand === 'escalate' ? 'escalate takes the incident alone.' : 'Write the text after --.', USAGE);
   if (subcommand === 'escalate') {

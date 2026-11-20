@@ -198,7 +198,7 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
   'cli/tracking/await/AwaitCommand.ts: store-internal-import: import { requireTracker }                 from \'../../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
   [
-  'cli/tracking/namespace/NamespaceCommand.ts: store-internal-import: import { requireProgressFile }                                             from'
+  'cli/tracking/namespace/NamespaceCommand.ts: store-internal-import: import { requireProgressFile }                                      from'
     + ' \'../../../src/services/tracker/TrackerReader.ts\';'
   ]:
     'Removed by WP5.9: the CLI reads through the store\'s read side.',

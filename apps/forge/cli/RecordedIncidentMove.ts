@@ -3,13 +3,14 @@
  * `--incident <I>`, and the command recorded in a hold (relayed when run under a job), printed as what it logged.
  */
 import { ControlService }                      from '../src/services/control/ControlService.ts';
-import type { ControlCommand }                 from '../src/shared/@types/ControlCommand.ts';
+import type { ControlCommandOf }               from '../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../src/shared/OperationRefusal.ts';
 import type { CommandContext }                 from './CommandContext.ts';
 import { COMMAND_CONTROL_CONTEXT }             from './CommandControlContext.ts';
 import { hatchWhenUnderJob }                   from './HatchUnderJob.ts';
 import { openTrackerForWriting }               from './OpenTrackerForWriting.ts';
 import type { ArgumentParser }                 from './arguments/ArgumentParser.ts';
+import type { RelayedControlCommandKind }      from './constants/JobVerbs.ts';
 import { INCIDENT_ID_PATTERN, JOB_ID_PATTERN } from './constants/RecordIdPatterns.ts';
 import { OutputUtil }                          from './utils/OutputUtil.ts';
 
@@ -44,7 +45,7 @@ function nothingToDoUnlessLogged(sentences: string): string {
 export async function recordIncidentMove(
   commandArguments: ArgumentParser,
   context: CommandContext,
-  command: ControlCommand,
+  command: ControlCommandOf<RelayedControlCommandKind>,
   printedTextOf: (loggedSentences: string) => string = nothingToDoUnlessLogged,
 ): Promise<void> {
   await hatchWhenUnderJob(context, command);

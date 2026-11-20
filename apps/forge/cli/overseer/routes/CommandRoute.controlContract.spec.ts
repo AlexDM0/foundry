@@ -19,23 +19,29 @@ import {
 import type { ForgeControlCommand }        from 'forge-contracts/ForgeControlCommand';
 import type { MonitorFlintBrainStartedBy } from 'forge-contracts/MonitorSnapshotDocument';
 
-import { MachineLimitsFile }                                                   from '../../../src/adapters/machine-limits/MachineLimitsFile.ts';
-import { OperationRefusalWordingUtil }                                         from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { CONCURRENCY_LIMIT_CEILING_AGENTS }                                    from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
-import type { FlintBrainRefusal }                                              from '../../../src/services/overseer/@types/FlintBrainRun.ts';
-import type { FlintBrainVerdict }                                              from '../../../src/services/overseer/FlintBrain.ts';
-import { FlintBrainWordingUtil }                                               from '../../../src/services/overseer/utils/FlintBrainWordingUtil.ts';
-import { requireWorkspace }                                                    from '../../../src/services/tracker/Workspace.ts';
-import type { OverseerApiCommandOf }                                           from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
-import { CONTROL_CONTRACT_KINDS }                                              from '../../../src/shared/constants/OverseerApiContracts.ts';
-import { useRecordedGit }                                                      from '../../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                                              from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                                           from '../../../src/testing/ToolGuard.ts';
-import { createArgumentParser }                                                from '../../arguments/ArgumentParser.ts';
-import { createCapturedCommandContext }                                        from '../../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }                              from '../../testing/InitializedScratchRepository.ts';
-import { COMMAND_ROUTE_KINDS, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
+import { MachineLimitsFile }                             from '../../../src/adapters/machine-limits/MachineLimitsFile.ts';
+import { OperationRefusalWordingUtil }                   from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
+import { CONCURRENCY_LIMIT_CEILING_AGENTS }              from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
+import type { FlintBrainRefusal }                        from '../../../src/services/overseer/@types/FlintBrainRun.ts';
+import type { FlintBrainVerdict }                        from '../../../src/services/overseer/FlintBrain.ts';
+import { FlintBrainWordingUtil }                         from '../../../src/services/overseer/utils/FlintBrainWordingUtil.ts';
+import { requireWorkspace }                              from '../../../src/services/tracker/Workspace.ts';
+import type { OverseerApiCommandOf }                     from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal, type OperationRefusalDetail } from '../../../src/shared/OperationRefusal.ts';
+import { CONTROL_CONTRACT_KINDS }                        from '../../../src/shared/constants/OverseerApiContracts.ts';
+import { useRecordedGit }                                from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                        from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                     from '../../../src/testing/ToolGuard.ts';
+import { createArgumentParser }                          from '../../arguments/ArgumentParser.ts';
+import { BY_HAND_COMMAND_KINDS }                         from '../../constants/JobVerbs.ts';
+import { createCapturedCommandContext }                  from '../../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }        from '../../testing/InitializedScratchRepository.ts';
+import {
+  COMMAND_ROUTE_KINDS,
+  MALFORMED_BODY_TEXT,
+  answerControlCommand,
+  type CommandRouteRequest
+} from './CommandRoute.ts';
 
 const FROZEN_NOW = new Date('2026-11-12T10:00:00+01:00');
 const MACHINE_AGENT_CEILING = 4;
@@ -167,6 +173,26 @@ describeWhenGitIsRecorded('the control contract', () => {
       };
       expect(await answerControlCommand(body, routeRequest(), API_CALLER), JSON.stringify(body)).toEqual(malformedAnswer);
     }
+    expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
+  });
+
+  test('a by-hand kind answers 400 malformed-body as any unknown kind, and writes nothing', async () => {
+    const progressBefore = readFileSync(progressFilePath(), 'utf8');
+    const malformedAnswer = {
+      status: 400,
+      body:   {
+        controlVersion: 1, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
+      }
+    };
+    const byHandBodies = [
+      {
+        kind: 'task-add', name: 'Example row', startsNow: false, movesTheLink: false
+      },
+      { kind: 'log-note', text: 'Example note' },
+      { kind: 'namespace-set', namespace: 'web' },
+    ];
+    expect(BY_HAND_COMMAND_KINDS.filter((kind) => COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
+    for (const body of byHandBodies) expect(await answerControlCommand(body, routeRequest(), API_CALLER), body.kind).toEqual(malformedAnswer);
     expect(readFileSync(progressFilePath(), 'utf8')).toBe(progressBefore);
   });
 
