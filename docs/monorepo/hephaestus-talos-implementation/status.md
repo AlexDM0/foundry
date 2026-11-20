@@ -100,6 +100,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.7: on a scratch forge with a live Overseer, `ticket deliver --by-hand` is refused `overseer-owns-the-lifecycle`
   and writes nothing (the specs cover the context through a fake).
 
+- WP5.13: on a scratch forge, retitle a ticket and check its file keeps its name; check that a real session reads the
+  new session instructions and uses `ticket edit` instead of editing ticket files.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -197,6 +200,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - Stage 4 verification: after `stop`, Talos keeps running (the design: "Talos itself stays, and waits for a
   Hephaestus"); the scratch forge's cleanup ends it. Confirm that a user `stop` should leave an idle Talos running.
 
+- WP5.13: the Bridge's pipeline dialog is titled "Stored pipeline" and its footer button reads "View stored pipeline"
+  (was `pipeline.json`). Confirm the wording; Gaia's view replaces it in stage 6.
 
 ### Blocked
 
@@ -390,8 +395,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-D | WP5.5 | landed | b63a6e88 | First round, rebased over WP5.4. Filings through `change.records.newTicket`; `addEpic` keeps `newEpicLocation` (the interim form). The 12 WP5.5 guard entries removed. WP5.3's keying holds: a file whose name and `id` disagree answers by its name's number; the key match also takes `12-x.md` and `0012-x.md` for reference 12, where the old match needed `012-`. Specs asserting `WORKSPACE.pipelineFilePath` now ask `records.locationOf({ record: 'pipeline' })` |
 | 5-D | WP5.6 | landed | cfa8e376 | First round, rebased over WP5.4 and WP5.5. `TaskControls.ts` (`task-add`, `-move`, `-correct`, `-remove`) and `ByHandBoardControls.ts` (`log-note`, `namespace-set`); `BY_HAND_VERB_OF_CONTROL_KIND`, `BY_HAND_COMMAND_KINDS` in `JobVerbs.ts`; the endpoint refuses a by-hand kind 400 `malformed-body`. `task-move.status` typed `Exclude<TaskStatus,'abandoned'>` (src/shared may not import src/adapters). `GitRunsAtAToplevel.spec.ts` now names `ByHandBoardControls.ts`, where the namespace's git call moved. `namespace-branch-list-failed` is covered by the wording spec only (no git recording of a failed branch list) |
 | 5-E | WP5.7 | landed | b269f10b | First round. `TicketByHandControls.ts` (8 ticket kinds; `reviewBarStartedFor` moved there) and `EpicByHandControls.ts` (`epic-edit`, `epic-remove`); the 10 kinds are by-hand, `NOT_RELAYABLE_MUTATING_VERBS` holds only machine setup and the Overseer's start and stop. `ControlContext.liveOverseerOf`: `deliverTicketByHand` refuses `overseer-owns-the-lifecycle` inside the hold. `cli/CommandControlContext.ts`: `commandControlContextOf(platformPorts)` (the Baton lookup) for all ~35 CLI callers, `INSIDE_THE_OVERSEER_CONTROL_CONTEXT` (null) for the endpoint and OverseerForeground. No by-hand kind is in the board contract |
-| 5-F | WP5.13 | running | | |
-| 5-G | WP5.8 | waiting | | |
+| 5-F | WP5.13 | landed | 69a742a1 | First round. `Ticket.filePath`, `Epic.filePath`, `EpicAddition.filePath`, `PageTicket.filePath` gone; `listTickets` answers a `LocalTicketListing` (exported, used only as a return type), `createTicket` answers `{ticket, location}`, `storedTicketLocationOf`, `requireEpicKeyIsFree`; `TrackerReader.requireLocalTracker` seeds the allocation from the same listing. No output prints a ticket, epic or draft path (also `ticket add/edit`, `epic add/edit/remove`, HelpText); unreadable records keep theirs. Hand-editing ends in SessionInstructions, Reference.md ('A ticket'), both skills, CLAUDE.md and cli.md (`#### A ticket`, paired in ReferenceCopies.spec). INSTALL_VERSION 38 to 39 (FrozenClaudeInstall.json retaken, InstallChangeWatch rerecorded from this checkout's `version`). The board document and forge-contracts carry no record path. The 4 WP5.13 guard entries removed |
+| 5-G | WP5.8 | running | | |
 | 5-H | WP5.9 | waiting | | |
 | 5-H | WP5.10 | waiting | | |
 | 5-I | WP5.11 | waiting | | |
