@@ -11,15 +11,16 @@ import type { RouteAnswer }                                from '../../../src/se
 import { Presence }                                        from '../../../src/services/overseer/Presence.ts';
 import { PresenceDocumentAssembly, type NumberedCrashLog } from '../../../src/services/overseer/PresenceDocumentAssembly.ts';
 import { PresenceStatus }                                  from '../../../src/services/overseer/PresenceStatus.ts';
-import { requireTracker }                                  from '../../../src/services/tracker/TrackerReader.ts';
+import type { StoreReadFace }                              from '../../../src/services/store/BoardStore.ts';
 import type { Workspace }                                  from '../../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                from '../../../src/shared/OperationRefusal.ts';
 import { LIFECYCLE_LIMITS }                                from '../../../src/shared/constants/LifecycleLimits.ts';
 
 export interface PresenceSource {
-  ports:     PlatformPorts;
-  workspace: Workspace;
-  files:     OverseerFiles;
+  ports:      PlatformPorts;
+  workspace:  Workspace;
+  boardReads: StoreReadFace;
+  files:      OverseerFiles;
 }
 
 const PRESENCE_STATUS = {
@@ -46,7 +47,9 @@ function readableCrashLogsOf(files: OverseerFiles): NumberedCrashLog[] {
 
 /** 503 `starting` until the serving generation wrote its presence with the classification its start gate handed in. */
 function presenceAnswerOf(source: PresenceSource, servedGeneration: number | null): RouteAnswer {
-  const { ports, workspace, files } = source;
+  const {
+    ports, workspace, boardReads, files
+  } = source;
   const presenceReading = Presence.readPresence(files);
   if (servedGeneration === null || presenceReading.verdict !== 'read' || presenceReading.record.generation !== servedGeneration) return STARTING_ANSWER;
   const { record } = presenceReading;
@@ -54,7 +57,7 @@ function presenceAnswerOf(source: PresenceSource, servedGeneration: number | nul
   if (startClassification === null) return STARTING_ANSWER;
   const {
     progress, listing, epicListing, draftListing, storedLog, pipelineReading
-  } = requireTracker(workspace);
+  } = boardReads.requireBoard();
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const heartbeatReading = Presence.readHeartbeat(files);
   const document = PresenceDocumentAssembly.presenceDocumentOf({

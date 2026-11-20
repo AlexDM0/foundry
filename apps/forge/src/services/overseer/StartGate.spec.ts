@@ -22,6 +22,8 @@ import { nativePlatformPorts }                            from '../../testing/Na
 import { PlantedChild }                                   from '../../testing/PlantedChild.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { writeReadableTracker }                           from '../../testing/TrackerFileFixtures.ts';
+import { createLocalFilesBoardStore }                     from '../store/LocalFilesBoardStore.ts';
+import { NO_LOCK_HOLDER_READS_AS_GONE }                   from '../tracker/GenerationLock.ts';
 import { type Workspace, workspacePathsFor }              from '../tracker/Workspace.ts';
 import type { CrashLogError }                             from './@types/CrashLogRecord.ts';
 import type { PresenceEndingToWrite }                     from './@types/PresenceRecord.ts';
@@ -112,9 +114,13 @@ function beatBeforeBoot(millisecondsBeforeBoot: number): void {
   Presence.writeHeartbeat(files, CRASHED_GENERATION, LocalTimeUtil.formatLocalIso(new Date(BOOT_STARTED_AT_MILLISECONDS - millisecondsBeforeBoot)));
 }
 
+function boardReads() {
+  return createLocalFilesBoardStore({ workspace, now: () => new Date(RECORDED_AT), lockHolderIsGone: NO_LOCK_HOLDER_READS_AS_GONE }).reads;
+}
+
 function admit(origin: StartOriginReading, ports = portsInBoot()) {
   return StartGate.admit({
-    ports, files, workspace, origin, stampNow: () => RECORDED_AT
+    ports, files, workspace, boardReads: boardReads(), origin, stampNow: () => RECORDED_AT
   });
 }
 
@@ -171,7 +177,7 @@ describe('after a crash in this boot', () => {
     const firstLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
     const again = StartGate.admit({
-      ports: portsInBoot(), files, workspace, origin: LOGIN_ITEM, stampNow: () => '2026-11-19T10:00:00+01:00'
+      ports: portsInBoot(), files, workspace, boardReads: boardReads(), origin: LOGIN_ITEM, stampNow: () => '2026-11-19T10:00:00+01:00'
     });
 
     expect(again).toMatchObject({ verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER });

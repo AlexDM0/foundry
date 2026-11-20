@@ -8,6 +8,7 @@ import type { GateConfinement }                                          from '.
 import type { OverseerFiles }                                            from '../../src/services/overseer/OverseerFiles.ts';
 import type { Workspace }                                                from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                              from '../../src/shared/OperationRefusal.ts';
+import { boardStoreIn }                                                  from '../BoardStoreOf.ts';
 import type { CommandContext }                                           from '../CommandContext.ts';
 import { requireGitAtTheFloor }                                          from '../GitVersionFloor.ts';
 import type { ArgumentParser }                                           from '../arguments/ArgumentParser.ts';
@@ -43,7 +44,7 @@ export async function startTheOverseerDetached({
 }: DetachedOverseerStartRequest): Promise<string> {
   requireNoLiveOverseer(context.platformPorts, files);
   await admitTheStart({
-    context, workspace, files, origin: { startOrigin }, log: overseerLoggerOf(context, files)
+    context, workspace, boardStore: boardStoreIn(context, workspace), files, origin: { startOrigin }, log: overseerLoggerOf(context, files)
   });
   return OverseerRemote.startDetached(context, workspace.rootDirectory, files, [...portArguments, ...startOriginArgumentsOf(startOrigin)]);
 }

@@ -10,9 +10,6 @@ import { join }                     from 'node:path';
 
 import bridgePage from '../../../bridge/index.html';
 
-import { LogFileIngestion }                                   from '../../../src/adapters/log/LogFileIngestion.ts';
-import { LogRecordMappingUtil }                               from '../../../src/adapters/log/utils/LogRecordMappingUtil.ts';
-import { GateProfilesFile }                                   from '../../../src/adapters/pipeline/GateProfilesFile.ts';
 import { RefusalDocumentUtil }                                from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import type { LogRecord }                                     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import { BoardDocumentAssembly }                              from '../../../src/services/overseer/BoardDocumentAssembly.ts';
@@ -31,6 +28,7 @@ import type {
   TranscriptFollower
 } from '../../../src/services/overseer/OverseerServer.ts';
 import { FlintBrainDigestUtil }                                                from '../../../src/services/overseer/utils/FlintBrainDigestUtil.ts';
+import type { StoreReadFace }                                                  from '../../../src/services/store/BoardStore.ts';
 import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
 import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
 import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES }              from '../../../src/shared/constants/OverseerLimits.ts';
@@ -40,7 +38,7 @@ import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } f
 import { FrameOrigins }                                                        from './FrameOrigins.ts';
 import { PresenceReader }                                                      from './PresenceReader.ts';
 
-export interface OverseerRouteRequest extends BoardStateSource, Omit<CommandRouteRequest, 'context' | 'flintBrain'> {
+export interface OverseerRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context' | 'flintBrain'> {
   flintBrain:    Pick<FlintBrain, 'start' | 'stop' | 'ask'>;
   token:         () => string | null;
   started:       () => boolean;
@@ -74,16 +72,16 @@ function profileOutputCursorOf(after: string | null): number | null {
   return /^\d+$/.test(after) ? Number(after) : null;
 }
 
-/** A run the board's `gate-profiles.json` holds now; an unreadable file holds none. */
-function boardHoldsProfileRun(gateProfilesFilePath: string, profileRunId: string): boolean {
-  const reading = GateProfilesFile.read(gateProfilesFilePath);
+/** A run the board's gate profiles hold now; unreadable gate profiles hold none. */
+function boardHoldsProfileRun(boardReads: StoreReadFace, profileRunId: string): boolean {
+  const reading = boardReads.readGateProfiles();
   return reading.verdict === 'readable' && reading.profiles.runs.some((run) => run.profileRunId === profileRunId);
 }
 
 /** An unreadable log names no sender, so every client line of the job reads as the Overseer's. */
-function logRecordsIn(logFilePath: string): readonly LogRecord[] {
-  const storedLog = LogRecordMappingUtil.storedLogOf(new LogFileIngestion(logFilePath).read());
-  return storedLog.verdict === 'readable' ? storedLog.records : [];
+function logRecordsOf(boardReads: StoreReadFace): readonly LogRecord[] {
+  const reading = boardReads.readLogRecords();
+  return reading.verdict === 'readable' ? reading.records : [];
 }
 
 const PICTURE_STATUS = {
@@ -110,7 +108,11 @@ function pictureUploadAnswerOf(storing: PictureStoring): RouteAnswer {
 
 export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes {
   const { context, workspace } = request;
-  const presenceSource = { ports: context.platformPorts, workspace, files: overseerFilesIn(workspace.trackerDirectory) };
+  const boardReads = request.boardStore.reads;
+  const boardStateSource: BoardStateSource = { ...request, boardReads };
+  const presenceSource = {
+    ports: context.platformPorts, workspace, boardReads, files: overseerFilesIn(workspace.trackerDirectory)
+  };
   const jobFolderOf = (jobId: string): string | null => {
     if (!JOB_ID_PATTERN.test(jobId)) return null;
     const jobFolder = request.boardChildren.jobFolderOf(jobId);
@@ -126,16 +128,16 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       return { status: FLINT_BRAIN_ASK_STATUS.ANSWERED, body: await request.flintBrain.ask(digest) };
     },
     onNudge: request.wake,
-    state:   () => readBoardState(request).state,
-    board:   () => BoardDocumentAssembly.boardDocumentOf({ ...readBoardState(request), now: context.now() }),
+    state:   () => readBoardState(boardStateSource).state,
+    board:   () => BoardDocumentAssembly.boardDocumentOf({ ...readBoardState(boardStateSource), now: context.now() }),
     summary: () => {
-      const { state, project, readyTicketIds } = readBoardState(request);
+      const { state, project, readyTicketIds } = readBoardState(boardStateSource);
       return BoardStateAssembly.summaryOf(state, project, readyTicketIds);
     },
     monitor: (): RouteAnswer => {
       const overseer = request.monitorFacts();
       if (overseer === null) return { status: MONITOR_STATUS.STARTING, body: { refusal: 'starting' } };
-      return { status: MONITOR_STATUS.ANSWERED, body: MonitorSnapshotAssembly.monitorSnapshotOf({ ...readBoardState(request), overseer, now: context.now() }) };
+      return { status: MONITOR_STATUS.ANSWERED, body: MonitorSnapshotAssembly.monitorSnapshotOf({ ...readBoardState(boardStateSource), overseer, now: context.now() }) };
     },
     presence:      () => PresenceReader.presenceAnswerOf(presenceSource, request.monitorFacts()?.generation ?? null),
     crashLog:      (writtenNumber) => PresenceReader.crashLogAnswerOf(presenceSource.files, writtenNumber),
@@ -152,7 +154,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
           eventsAfter:   request.boardChildren.eventsAfter,
           eventsOf:      (line) => context.agentAdapter.eventsOf(line),
           sentLineOf:    (line) => context.agentAdapter.sentLineOf(line),
-          senderFactsOf: () => JobTranscript.senderFactsOf(logRecordsIn(workspace.logFilePath), workspace.trackerDirectory, jobId),
+          senderFactsOf: () => JobTranscript.senderFactsOf(logRecordsOf(boardReads), workspace.trackerDirectory, jobId),
         });
         ({ cursor } = read);
         return read.entries;
@@ -160,7 +162,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
     },
     profileOutputOf: (profileRunId, after) => {
       const afterLineNumber = profileOutputCursorOf(after);
-      if (afterLineNumber === null || !boardHoldsProfileRun(workspace.gateProfilesFilePath, profileRunId)) return null;
+      if (afterLineNumber === null || !boardHoldsProfileRun(boardReads, profileRunId)) return null;
       return GateProfiling.outputFollowerOf(workspace.trackerDirectory, profileRunId, afterLineNumber);
     },
     jobFileText: (jobId, fileName) => {

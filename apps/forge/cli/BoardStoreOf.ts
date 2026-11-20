@@ -4,8 +4,8 @@ import { createLocalFilesBoardStore }       from '../src/services/store/LocalFil
 import { requireWorkspace, type Workspace } from '../src/services/tracker/Workspace.ts';
 import type { CommandContext }              from './CommandContext.ts';
 
-/** The board of a workspace the caller already found or, for `init`, is about to create. */
-export function boardStoreIn(context: CommandContext, workspace: Workspace): BoardStore {
+/** The store of a board whose workspace the command already resolved. */
+export function boardStoreIn(context: Pick<CommandContext, 'now' | 'platformPorts'>, workspace: Workspace): BoardStore {
   return createLocalFilesBoardStore({ workspace, now: context.now, lockHolderIsGone: context.platformPorts.processSupervision.processIsGone });
 }
 

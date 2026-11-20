@@ -9,17 +9,17 @@ import type { BoardChildren }                                                   
 import { type FlintBrain, REAL_FLINT_BRAIN_TIMERS, createFlintBrain }                           from '../../src/services/overseer/FlintBrain.ts';
 import { type FlintBrainSessionHost, FlintBrainSessionHosts, createFlintBrainSessionHost }      from '../../src/services/overseer/FlintBrainSessionHost.ts';
 import { UsageLimits }                                                                          from '../../src/services/overseer/UsageLimits.ts';
-import { requireProgressFile }                                                                  from '../../src/services/tracker/TrackerReader.ts';
+import type { BoardStore, StoreReadFace }                                                       from '../../src/services/store/BoardStore.ts';
 import type { Workspace }                                                                       from '../../src/services/tracker/Workspace.ts';
 import { environmentCopy, flintBrainIsWithheld, flintBrainMaximumOverride }                     from '../../src/shared/Environment.ts';
 import { FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS } from '../../src/shared/constants/OverseerLimits.ts';
-import { boardStoreOf }                                                                         from '../BoardStoreOf.ts';
 import type { CommandContext }                                                                  from '../CommandContext.ts';
 import { writeAsTheOverseer }                                                                   from './OverseerBoardWrites.ts';
 
 export interface OverseerFlintBrainRequest {
   context:        CommandContext;
   workspace:      Workspace;
+  boardStore:     BoardStore;
   trackerId:      string;
   /** The repository's root, which the brain's session may not write. */
   repositoryRoot: string;
@@ -37,9 +37,9 @@ export interface OverseerFlintBrain {
 }
 
 /** A board that cannot be read is not taken as paused: the drive pass reports that read's failure. */
-function boardIsPaused(workspace: Workspace): boolean {
+function boardIsPaused(boardReads: StoreReadFace): boolean {
   try {
-    return readingBoardOf(requireProgressFile(workspace), [], []).overseerState() === 'paused';
+    return readingBoardOf(boardReads.requireProgress(), [], []).overseerState() === 'paused';
   } catch {
     return false;
   }
@@ -63,13 +63,15 @@ function sessionHostLoggingLaunches(sessionHost: FlintBrainSessionHost, log: (li
 }
 
 export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): OverseerFlintBrain {
-  const { context, workspace, log } = request;
+  const {
+    context, workspace, boardStore, log
+  } = request;
   const { platformPorts } = context;
   const monitorFolder = platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
   const pendingLogWrites = new Set<Promise<void>>();
 
   const recordEndedRun = async (run: FlintBrainEndedRun): Promise<void> => {
-    await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordFlintBrainEnded(run, transaction.at));
+    await writeAsTheOverseer(boardStore, context, workspace, (transaction) => transaction.board.recordFlintBrainEnded(run, transaction.at));
   };
 
   const logEndedRun = (run: FlintBrainEndedRun): void => {
@@ -101,7 +103,7 @@ export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): Ov
     }), log),
     timers:           REAL_FLINT_BRAIN_TIMERS,
     now:              context.now,
-    overseerIsPaused: () => boardIsPaused(workspace),
+    overseerIsPaused: () => boardIsPaused(boardStore.reads),
     usageLimitHolds,
     onChange:         request.publish,
     onEnded:          logEndedRun,

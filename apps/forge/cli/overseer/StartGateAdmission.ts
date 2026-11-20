@@ -9,6 +9,7 @@ import { CrashLog }                from '../../src/services/overseer/CrashLog.ts
 import type { OverseerFiles }      from '../../src/services/overseer/OverseerFiles.ts';
 import type { StartOriginReading } from '../../src/services/overseer/StartClassification.ts';
 import { StartGate }               from '../../src/services/overseer/StartGate.ts';
+import type { BoardStore }         from '../../src/services/store/BoardStore.ts';
 import type { RegisteredCrash }    from '../../src/services/tracker/MonitorRegistration.ts';
 import type { Workspace }          from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
@@ -41,11 +42,12 @@ export function startOriginArgumentsOf(origin: StartOriginByHand): string[] {
 }
 
 export interface StartAdmissionRequest {
-  context:   CommandContext;
-  workspace: Workspace;
-  files:     OverseerFiles;
-  origin:    StartOriginReading;
-  log:       (line: string) => void;
+  context:    CommandContext;
+  workspace:  Workspace;
+  boardStore: BoardStore;
+  files:      OverseerFiles;
+  origin:     StartOriginReading;
+  log:        (line: string) => void;
 }
 
 /** A crash suspected before a reboot names no component: the beat that went stale is the Overseer's own. */
@@ -62,11 +64,11 @@ function registeredCrashOf(files: OverseerFiles, stayingOff: StayingOff): Regist
 }
 
 export async function admitTheStart({
-  context, workspace, files, origin, log
+  context, workspace, boardStore, files, origin, log
 }: StartAdmissionRequest): Promise<ServingAdmission> {
   const stampNow = (): string => LocalTimeUtil.formatLocalIso(context.now());
   const verdict = StartGate.admit({
-    ports: context.platformPorts, files, workspace, origin, stampNow
+    ports: context.platformPorts, files, workspace, boardReads: boardStore.reads, origin, stampNow
   });
   if (verdict.verdict === 'serve') return verdict;
   const crash = registeredCrashOf(files, verdict);

@@ -1,13 +1,13 @@
 /**
  * The Overseer's one serial pass, design section 2.5: wake-ups coalesce into one queue, and each pass observes outside the lock (child
  * liveness under Talos, events past each job's stored cursor, then Hatch folders, target tips and ended children), applies relayed commands,
- * then the children's events with their cursors, then the Playbook in one `writeTracker` hold, and runs its effects after the Baton check.
+ * then the children's events with their cursors, then the Playbook in one transaction of the board's store, and runs its effects after the
+ * Baton check.
  */
 import { createHash }              from 'node:crypto';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync }               from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 
-import { PipelineFile }    from '../../adapters/pipeline/PipelineFile.ts';
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,
   AIRLOCK_AGENT_REPORT_SCHEMA,
@@ -57,10 +57,9 @@ import type { GateConfinement, LineRunner }           from '../lifecycle/GateRun
 import { Landing }                                    from '../lifecycle/Landing.ts';
 import { MergeRun }                                   from '../lifecycle/MergeRun.ts';
 import { ReviewOutcome }                              from '../lifecycle/ReviewOutcome.ts';
+import type { BoardStore }                            from '../store/BoardStore.ts';
 import type { BoardTransaction }                      from '../tracker/BoardTransaction.ts';
 import { projectLocationOf }                          from '../tracker/ProjectLocation.ts';
-import { writeTracker }                               from '../tracker/TrackerPipeline.ts';
-import { requireProgressFile }                        from '../tracker/TrackerReader.ts';
 import type { Workspace }                             from '../tracker/Workspace.ts';
 import type { StartClassificationVerdict }            from './@types/StartClassification.ts';
 import { AbandonedPassReason, type PassThrowReading } from './AbandonedPassReason.ts';
@@ -227,6 +226,8 @@ export interface AirlockFacts {
 export interface DrivePassRequest {
   platformPorts:                 PlatformPorts;
   workspace:                     Workspace;
+  /** The pass changes the board only through its transactions and reads it only through its read side. */
+  boardStore:                    BoardStore;
   now:                           () => Date;
   formatStamp:                   (moment: Date) => string;
   overseerDirectory:             string;
@@ -445,21 +446,13 @@ function reportSchemaOf(board: Board, job: Readonly<Job>): JsonSchema | null {
   return REPORT_SCHEMA_OF_JOB_KIND[job.kind] ?? null;
 }
 
-function fileTextOrEmpty(filePath: string): string {
-  try {
-    return readFileSync(filePath, 'utf8');
-  } catch {
-    return '';
-  }
-}
-
 function targetTipOf(repositoryRoot: string, target: string): string | null {
   return GitProcess.resolvedCommitOf(repositoryRoot, target);
 }
 
-/** Identity, never time: the stored board and log, the pending requests, the unread events, the target tips and each child's verdict. */
+/** Identity, never time: the store's revision, the pending requests, the unread events, the target tips and each child's verdict. */
 function fingerprintOf(
-  workspace: Workspace,
+  boardRevision: string,
   childObservations: readonly ChildObservation[],
   pending: readonly PendingHatchRequest[],
   tips: Readonly<Record<string, string | null>>,
@@ -469,9 +462,7 @@ function fingerprintOf(
 ): string {
   const digest = createHash('sha256');
   digest.update(`agent-config ${ticketIdsTouchingAgentConfig.join(',')}\n`);
-  digest.update(fileTextOrEmpty(workspace.progressFilePath)).update('\0').update(fileTextOrEmpty(workspace.logFilePath)).update('\0');
-  // A Stop of a running profile changes only this file.
-  digest.update(fileTextOrEmpty(workspace.gateProfilesFilePath)).update('\0');
+  digest.update(`revision ${boardRevision}\n`);
   digest.update(`usage ${JSON.stringify(usageMarker)}\n`);
   for (const request of pending) digest.update(`request ${request.jobId} ${request.requestId}\n`);
   for (const buildJob of buildJobs) {
@@ -488,8 +479,8 @@ function fingerprintOf(
 
 /** A refused forced stop is tried again only for the jobs in `forcedStopRetryJobIds`, so a pass's own writes never retry it. */
 function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, forcedStopRetryJobIds: ReadonlySet<string> = new Set()): Observation {
-  const { workspace } = request;
-  const progress      = requireProgressFile(workspace);
+  const { workspace, boardStore } = request;
+  const progress      = boardStore.reads.requireProgress();
   const jobs          = progress.jobs ?? [];
   // Events before Hatch folders: a request a session wrote before its turn's `result` is seen in the same pass as that result.
   const children      = request.boardChildren;
@@ -522,7 +513,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
   const location        = projectLocationOf(workspace.rootDirectory);
   const targets         = [...new Set([request.mainLine, ...jobs.flatMap((job) => (job.target === null ? [] : [job.target]))])].sort();
   const targetTips      = Object.fromEntries(targets.map((target) => [target, targetTipOf(location.repositoryRoot, target)]));
-  const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);
+  const pipelineReading = boardStore.reads.readPipeline();
   const pipeline        = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const buildJobs = JobLaunch.observeBuildJobs(jobLaunchContext, jobs, pipeline);
   const answeredWaiverTrees = JobLaunch.answeredWaiverTreesOf(jobLaunchContext, jobs, progress.decisions ?? []);
@@ -540,7 +531,7 @@ function observe(request: DrivePassRequest, jobLaunchContext: JobLaunchContext, 
     answeredWaiverTrees,
     usageMarker,
     assistantReadings,
-    fingerprint: fingerprintOf(workspace, childObservations, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
+    fingerprint: fingerprintOf(boardStore.reads.revision(), childObservations, pendingRequests, targetTips, buildJobs, usageMarker, ticketIdsTouchingAgentConfig),
     trackerId:   progress.trackerId,
   };
 }
@@ -1121,7 +1112,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const { platformPorts } = request;
   const sharedRepository = projectLocation.projectPrefix === ''
     ? null
-    : Landing.sharedRepositoryLandingOf(projectLocation, requireProgressFile(request.workspace).trackerId, request.now, platformPorts.processSupervision.processIsGone);
+    : Landing.sharedRepositoryLandingOf(projectLocation, request.boardStore.reads.requireProgress().trackerId, request.now, platformPorts.processSupervision.processIsGone);
   const sessionStopGraceMilliseconds = request.sessionStopGraceMilliseconds ?? SESSION_STOP_GRACE_MILLISECONDS;
   const gateSlots = GateRunSlots.createGateRunSlots({
     ports:             platformPorts,
@@ -1204,9 +1195,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     return overseerGateLineOf(worktreePath, join(profileFolder, `${basename(worktreePath)}.sb`), pipeline, commandArguments, confinement);
   }
 
-  /** The pipeline as it stands on disk, read at each confined line of a gate profile or a pipeline check; `null` when it cannot be read. */
-  function pipelineOnDisk(): Readonly<Pipeline> | null {
-    const reading = PipelineFile.read(request.workspace.pipelineFilePath);
+  /** The stored pipeline as the store judges it, read at each confined line of a gate profile or a pipeline check; `null` when unreadable. */
+  function storedPipeline(): Readonly<Pipeline> | null {
+    const reading = request.boardStore.reads.readPipeline();
     return reading.verdict === 'readable' ? reading.pipeline : null;
   }
 
@@ -1226,12 +1217,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     return await gateSlots.acquire(holder, stopSignal);
   }
 
-  const holdTracker: AirlockHoldRunner = async (mutate) => (await writeTracker({
-    workspace:        request.workspace,
-    at:               request.formatStamp(request.now()),
-    now:              request.now,
-    lockHolderIsGone: platformPorts.processSupervision.processIsGone,
-    mutate:           (change) => {
+  const holdTracker: AirlockHoldRunner = async (mutate) => (await request.boardStore.transactions.transact({
+    at:     request.formatStamp(request.now()),
+    mutate: (change) => {
       Baton.requireNewestGeneration(request.overseerDirectory, request.generation);
       // A copy: ending a job splices it out of the Board's live list.
       const jobsAtTheHoldStart = [...change.board.jobs()];
@@ -1250,7 +1238,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
     confinedLineIn:  (worktreePath, profileRunId) => (commandArguments, confinement) => {
       const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, GATE_PROFILE_SANDBOXES_FOLDER);
-      return overseerGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), pipelineOnDisk(), commandArguments, confinement);
+      return overseerGateLineOf(worktreePath, join(profileFolder, `${profileRunId}.sb`), storedPipeline(), commandArguments, confinement);
     },
     hold:         holdTracker,
     wake:         () => wake(true),
@@ -1269,7 +1257,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     gateEnvironment: () => JobLaunch.gateEnvironmentOf(jobLaunchContext),
     confinedLineIn:  (worktreePath, setupId) => (commandArguments, confinement) => {
       const profileFolder = join(overseerFilesIn(request.workspace.trackerDirectory).overseerDirectory, PIPELINE_CHECK_SANDBOXES_FOLDER);
-      return overseerGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), pipelineOnDisk(), commandArguments, confinement);
+      return overseerGateLineOf(worktreePath, join(profileFolder, `${setupId}.sb`), storedPipeline(), commandArguments, confinement);
     },
     hold:                  holdTracker,
     wake:                  () => wake(true),
@@ -1312,7 +1300,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     mergedTreeGateOf: (worktreePath, treeId, phase, gatedEntities, ownerJobId) => {
       // Read afresh at every ask, so a pipeline changed by hand or by a `gate` verb gates the next tree without a restart, and the stamp
       // keys the run: a changed pipeline is another run, and its outcome names the gates it ran.
-      const reading  = PipelineFile.read(request.workspace.pipelineFilePath);
+      const reading  = request.boardStore.reads.readPipeline();
       const unreadable = unreadablePipelineGateOf(reading);
       if (unreadable !== null) return unreadable;
       const pipeline = reading.verdict === 'readable' ? reading.pipeline : null;
@@ -1361,7 +1349,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     jobFolderOf:           (job) => request.boardChildren.jobFolderOf(job.id),
     jobFolderOfId:         (jobId) => request.boardChildren.jobFolderOf(jobId),
     redHandoffResumes:     LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
-    dispatchIsStopped:     () => requireProgressFile(request.workspace).overseerState === 'paused',
+    dispatchIsStopped:     () => request.boardStore.reads.requireProgress().overseerState === 'paused',
     reportDeclinedCleanup: (declined) => {
       request.log(`Git declined the ${declined.cleanup} cleanup of ${declined.groupBranch}: ${declined.reason}`);
       declinedCleanups = [...declinedCleanups.filter((earlier) => earlier.cleanup !== declined.cleanup || earlier.groupBranch !== declined.groupBranch), declined];
@@ -1430,12 +1418,9 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     await request.installVersionsKnown?.();
     const at = request.formatStamp(request.now());
     const installVersionChanged = request.installVersionChanged();
-    const written = await writeTracker({
-      workspace:        request.workspace,
+    const written = await request.boardStore.transactions.transact({
       at,
-      now:              request.now,
-      lockHolderIsGone: platformPorts.processSupervision.processIsGone,
-      mutate:           (change) => {
+      mutate: (change) => {
         openLeftoverWorktreeDecisions(change, request.decisionWordingOf, leftoverWorktrees.splice(0));
         const replies = HatchInbox.applyPendingRequests(change, request.workspace.rootDirectory, observation.pendingRequests);
         request.afterHoldPhase?.('relayed-commands', change.board);
@@ -1732,7 +1717,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   async function regroup(): Promise<RegroupingReport> {
-    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace);
+    const report = Regrouping.regroup(request.boardChildren, platformPorts, request.workspace, request.boardStore.reads);
     await mergedTreeGateRuns.settleAtStart();
     await gateProfiling.settleAtStart();
     await pipelineChecking.settleAtStart();

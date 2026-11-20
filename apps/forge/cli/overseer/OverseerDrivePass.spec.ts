@@ -6,10 +6,11 @@
  * an end `paused` interrupts `talos-paused` and resumes on the next pass, and an end `lease-ended` interrupts `lease-ended` and nothing resumes it; a
  * request in another job's folder, or naming a job, is refused and a replay is never applied twice; a reply lost after its hold committed is
  * written again from its `hatch-applied` record, unapplied, and a record carrying no reply leaves it unanswered; a pass with nothing changed does not run,
- * however late; one pass reads the install version once, so its runtime state and notices never disagree; a launched job's Hatch folder
- * watch closes once the job has left the board; and a job the pass hold ends has its session's tokens on its ticket's row by the end of
- * that hold. At a start after a reboot, a stop or a crash, a job whose child is gone with no end of its own takes the start's cause and waits for
- * User's resume, a child that ended keeps the cause of its end, and new work still launches.
+ * however late, and a write by another client of the store between two wakes is seen by the next one; one pass reads the install version
+ * once, so its runtime state and notices never disagree; a launched job's Hatch folder watch closes once the job has left the board; and a
+ * job the pass hold ends has its session's tokens on its ticket's row by the end of that hold. At a start after a reboot, a stop or a crash,
+ * a job whose child is gone with no end of its own takes the start's cause and waits for User's resume, a child that ended keeps the cause
+ * of its end, and new work still launches.
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
@@ -572,6 +573,24 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'waking', () => {
     drivePass.wake();
     drivePass.wake();
     await drivePass.idle();
+    expect(drivePass.state().passes).toBe(settled + 1);
+  });
+
+  test('a write by another client of the store between two wakes is seen by the next unforced pass; with no write the wake is skipped', async () => {
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    await passOnce(drivePass);
+    await waitUntil(async () => {
+      await passOnce(drivePass, false);
+      return everyJobHasReadItsWholeStart();
+    }, () => `every job reading its whole start: ${overseerLog.join('\n')}`);
+    const settled = drivePass.state().passes;
+    await passOnce(drivePass, false);
+    expect(drivePass.state().passes).toBe(settled);
+
+    await run(['log', 'Example note from another client']);
+    await passOnce(drivePass, false);
+    expect(drivePass.state().passes).toBe(settled + 1);
+    await passOnce(drivePass, false);
     expect(drivePass.state().passes).toBe(settled + 1);
   });
 });

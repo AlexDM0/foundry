@@ -17,6 +17,7 @@ import { useRecordedGit }                         from '../src/testing/RecordedG
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                 from '../src/testing/TalosChildReadings.ts';
 import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
+import { boardStoreIn }                           from './BoardStoreOf.ts';
 import { helpText }                               from './HelpText.ts';
 import { INSTALL_VERSION }                        from './constants/InstallVersion.ts';
 import { readBoardState }                         from './overseer/routes/BoardStateReader.ts';
@@ -72,6 +73,7 @@ async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Prom
   const overseerState = readBoardState({
     context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
     workspace:     requireWorkspace(repositoryDirectory),
+    boardReads:    boardStoreIn(createCapturedCommandContext({ currentDirectory: repositoryDirectory }), requireWorkspace(repositoryDirectory)).reads,
     boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
     notices:       () => [],
     overseer:      () => ({

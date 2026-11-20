@@ -21,6 +21,7 @@ import { BOARD_COMMAND_CONTRACT_KINDS, CONTROL_CONTRACT_KINDS }                f
 import { useRecordedGit }                                                      from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                                              from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                           from '../../../src/testing/ToolGuard.ts';
+import { boardStoreIn }                                                        from '../../BoardStoreOf.ts';
 import { createArgumentParser }                                                from '../../arguments/ArgumentParser.ts';
 import { createCapturedCommandContext }                                        from '../../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                              from '../../testing/InitializedScratchRepository.ts';
@@ -95,10 +96,14 @@ afterEach(() => {
 });
 
 function routeRequest(): CommandRouteRequest {
+  const context   = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
+  const workspace = requireWorkspace(repositoryDirectory);
   return {
     flintBrain:       { start: async () => await Promise.resolve({ verdict: 'done' }), stop: async () => await Promise.resolve({ verdict: 'done' }) },
     commandArguments: createArgumentParser([]),
-    context:          createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW }),
+    context,
+    workspace,
+    boardStore:       boardStoreIn(context, workspace),
     launchesHeld:     () => false,
     onRuntimeCommand: () => undefined,
     wake:             () => undefined,

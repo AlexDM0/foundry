@@ -69,11 +69,12 @@ import {
   TALOS_START_BOUNDS,
   TALOS_START_WAITS
 } from '../../src/services/overseer/TalosStart.ts';
-import { PictureStore }        from '../../src/services/tracker/PictureStore.ts';
-import { projectLocationOf }   from '../../src/services/tracker/ProjectLocation.ts';
-import { requireProgressFile } from '../../src/services/tracker/TrackerReader.ts';
-import type { Workspace }      from '../../src/services/tracker/Workspace.ts';
-import { branchNamesOf }       from '../../src/shared/BranchNames.ts';
+import type { BoardStore }            from '../../src/services/store/BoardStore.ts';
+import { createLocalFilesBoardStore } from '../../src/services/store/LocalFilesBoardStore.ts';
+import { PictureStore }               from '../../src/services/tracker/PictureStore.ts';
+import { projectLocationOf }          from '../../src/services/tracker/ProjectLocation.ts';
+import type { Workspace }             from '../../src/services/tracker/Workspace.ts';
+import { branchNamesOf }              from '../../src/shared/BranchNames.ts';
 import {
   agentVariableIsSet,
   environmentCopy,
@@ -89,7 +90,6 @@ import {
   BATON_PASS_RELEASE_TRIES,
   OVERSEER_STOP_WAIT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
-import { boardStoreOf }                                                 from '../BoardStoreOf.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
 import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
@@ -185,6 +185,12 @@ export function requireNoLiveOverseer(ports: PlatformPorts, files: OverseerFiles
   if (newest.verdict === 'live') throw alreadyRunningRefusal(files, newest.generation, newest.record);
 }
 
+/** The Overseer's own store of its board, built from its workspace: the context of a start names no current directory. */
+function overseerBoardStoreOf(request: StoppedOverseerRequest): BoardStore {
+  const { context, workspace } = request;
+  return createLocalFilesBoardStore({ workspace, now: context.now, lockHolderIsGone: context.platformPorts.processSupervision.processIsGone });
+}
+
 async function registerOverseer(request: StoppedOverseerRequest, registration: BoardRegistration): Promise<void> {
   await registerTheBoard(request.context, request.workspace, registration);
 }
@@ -193,9 +199,14 @@ async function registerOverseer(request: StoppedOverseerRequest, registration: B
  * What ends a generation, run by its Overseer or, for one that ended before its stop finished, by the CLI once its process is gone. An Overseer
  * that started meanwhile keeps its registry entry and its page; only the record of the stop is written for it.
  */
-export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, files: OverseerFiles, generation: number): Promise<void> {
+export async function closeTheStoppedOverseer(
+  request: StoppedOverseerRequest,
+  files: OverseerFiles,
+  generation: number,
+  boardStore: BoardStore = overseerBoardStoreOf(request),
+): Promise<void> {
   const { context, workspace } = request;
-  await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordOverseerStopped('stopped', transaction.at));
+  await writeAsTheOverseer(boardStore, context, workspace, (transaction) => transaction.board.recordOverseerStopped('stopped', transaction.at));
   if (Baton.batonGenerationsIn(files.overseerDirectory).at(-1) !== generation) return;
   const stoppedAt = LocalTimeUtil.formatLocalIso(context.now());
   await registerOverseer(request, { overseer: 'removed', presence: { state: 'stopped', generation, at: stoppedAt } });
@@ -208,13 +219,19 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
  * The ending of a generation that released the board to its successor: presence, then the registry, say `handed-over`, and the board log
  * `baton-passed`. `endingWritten` runs once presence holds the ending, so no crash is recorded over it.
  */
-export async function recordTheHandover(request: StoppedOverseerRequest, files: OverseerFiles, generation: number, endingWritten: () => void): Promise<void> {
+export async function recordTheHandover(
+  request: StoppedOverseerRequest,
+  files: OverseerFiles,
+  generation: number,
+  endingWritten: () => void,
+  boardStore: BoardStore = overseerBoardStoreOf(request),
+): Promise<void> {
   const { context, workspace } = request;
   const handedOverAt = LocalTimeUtil.formatLocalIso(context.now());
   Presence.writeEnding(files, generation, { kind: 'handed-over' }, handedOverAt);
   endingWritten();
   await registerOverseer(request, { presence: { state: 'handed-over', generation, at: handedOverAt } });
-  await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordOverseerStopped('baton-passed', transaction.at));
+  await writeAsTheOverseer(boardStore, context, workspace, (transaction) => transaction.board.recordOverseerStopped('baton-passed', transaction.at));
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
@@ -314,11 +331,11 @@ function manifestMatchesIn(repositoryRoot: string): boolean {
 }
 
 /** What the successor proves before it reports `ready`, holding no Baton and writing nothing. */
-function preparationSteps(request: ForegroundRunRequest, boardChildren: BoardChildren): readonly BatonPassStepRun[] {
+function preparationSteps(request: ForegroundRunRequest, boardStore: BoardStore, boardChildren: BoardChildren): readonly BatonPassStepRun[] {
   const { workspace } = request;
-  const jobsOf = () => requireProgressFile(workspace).jobs ?? [];
+  const jobsOf = () => boardStore.reads.requireProgress().jobs ?? [];
   const steps: readonly BatonPassStepRun[] = [
-    { step: 'read-board', run: () => { readingBoardOf(requireProgressFile(workspace), [], []); } },
+    { step: 'read-board', run: () => { readingBoardOf(boardStore.reads.requireProgress(), [], []); } },
     {
       step: 'read-jobs',
       run:  () => {
@@ -410,8 +427,9 @@ export async function runOverseerInTheForeground(request: ForegroundRunRequest):
 
 async function serveInTheForeground(request: ForegroundRunRequest, crashPathReach: CrashPathReach): Promise<void> {
   const { context, workspace } = request;
-  const progress = requireProgressFile(workspace);
-  const files    = overseerFilesIn(workspace.trackerDirectory);
+  const boardStore = overseerBoardStoreOf(request);
+  const progress   = boardStore.reads.requireProgress();
+  const files      = overseerFilesIn(workspace.trackerDirectory);
   const { platformPorts } = context;
   const tokenFilePath = overseerTokenPathOf(platformPorts.dataFolders.monitorFolderOf(context.homeDirectory), progress.trackerId);
   // Read before anything is written, so a malformed test setting refuses the start rather than an Overseer half started.
@@ -434,7 +452,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   // its predecessor released the board or is gone.
   let startAdmission: ServingAdmission | null = request.successorOf === undefined
     ? await admitTheStart({
-      context, workspace, files, origin: { startOrigin: request.startOrigin }, log
+      context, workspace, boardStore, files, origin: { startOrigin: request.startOrigin }, log
     })
     : null;
   // A rebind after a failed Baton pass serves again under the same admission; only the process's first serving period logs it.
@@ -511,7 +529,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const crashPathContextOf = (generation: number): CrashPathContext => ({
     files,
     generation,
-    activeJobs:         () => (requireProgressFile(workspace).jobs ?? []).map(CrashLog.activeJobOf),
+    activeJobs:         () => (boardStore.reads.requireProgress().jobs ?? []).map(CrashLog.activeJobOf),
     talosChildren:      () => (followedTalosStartNumber === null ? null : persistedChildRecordsOf(workspace.trackerDirectory, followedTalosStartNumber)),
     stopLeaseRenewal:   () => leaseRenewal?.stop(),
     writeRegistryCrash: (report) => registerOverseer(request, { presence: report }),
@@ -595,6 +613,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     const overseerFlintBrain = createOverseerFlintBrain({
       context,
       workspace,
+      boardStore,
       trackerId: progress.trackerId,
       repositoryRoot,
       boardChildren,
@@ -654,6 +673,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         commandArguments: request.commandArguments,
         context,
         workspace,
+        boardStore,
         boardChildren,
         token:            () => token,
         started:          () => started,
@@ -719,6 +739,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         const read = readBoardState({
           context,
           workspace,
+          boardReads:     boardStore.reads,
           boardChildren,
           notices:        () => overseerState()?.notices ?? [],
           overseer:       overseerFactsNow,
@@ -757,7 +778,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       lifetime = overseerLifetime(request, files, generation, log);
       lifetimeBeingStarted = lifetime;
       enterStep('regroup');
-      await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => {
+      await writeAsTheOverseer(boardStore, context, workspace, (transaction) => {
         // Before the record it looks for: only the first start on a board submits the v16 leftovers.
         transaction.board.submitFirstRunLeftovers(transaction.at);
         // In the hold, so no command names a picture between the read of the references and the sweep.
@@ -774,6 +795,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       drivePass = createDrivePass({
         platformPorts,
         workspace,
+        boardStore,
         now:                   context.now,
         formatStamp:           (moment) => LocalTimeUtil.formatLocalIso(moment),
         overseerDirectory:     files.overseerDirectory,
@@ -897,7 +919,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     }
     await recordTheHandover(request, files, serving.generation, () => {
       crashableGeneration = null;
-    });
+    }, boardStore);
     await serving.server.stop();
     log('Released the board to the successor.');
   }
@@ -919,7 +941,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   async function recordBatonPassFailure(failure: BatonPassFailure): Promise<void> {
     batonPassWarning = failure;
     log(`The Baton pass failed at ${failure.step}: ${failure.error}. This Overseer keeps driving.`);
-    await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
+    await writeAsTheOverseer(boardStore, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
   }
 
   /** A taken-back board whose port never came free: the failure, naming the port, is logged and recorded before the Overseer exits 1. */
@@ -932,7 +954,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     };
     batonPassWarning = failure;
     log(`Taking the board back failed: ${failure.error}. This Overseer exits with no Overseer on the board.`);
-    await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
+    await writeAsTheOverseer(boardStore, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
     return new OperationRefusal('refused', { kind: 'baton-pass-failed', ...failure, url: null });
   }
 
@@ -947,7 +969,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         return newest.verdict === 'live' && newest.generation === predecessorGeneration;
       },
       schedule: batonPassSchedule(),
-    }, preparationSteps(request, boardChildren));
+    }, preparationSteps(request, boardStore, boardChildren));
     if (admission === 'failed') {
       const report = BatonPass.readBatonPass(batonPassFilePath);
       const reported = report?.state === 'successor-failed' || report?.state === 'failed';
@@ -959,7 +981,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     log(admission === 'released' ? `Baton ${predecessorGeneration} released the board; taking it over.` : `Baton ${predecessorGeneration} is gone; classifying the start.`);
     try {
       startAdmission = await admitTheStart({
-        context, workspace, files, origin: { startOrigin: 'successor', predecessorGeneration }, log
+        context, workspace, boardStore, files, origin: { startOrigin: 'successor', predecessorGeneration }, log
       });
     } catch (refusal) {
       const worded = refusal instanceof OperationRefusal ? new Error(OperationRefusalWordingUtil.messageOf(refusal)) : refusal;
@@ -1052,7 +1074,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         log('A newer Overseer took the board over; stopping without acting.');
         throw end.refusal;
       }
-      await closeTheStoppedOverseer(request, files, serving.generation);
+      await closeTheStoppedOverseer(request, files, serving.generation, boardStore);
       crashableGeneration = null;
       log('Overseer stopped; its Baton is released.');
     } finally {

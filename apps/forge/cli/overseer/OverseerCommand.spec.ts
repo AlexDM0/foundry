@@ -28,6 +28,7 @@ import { Baton }                                                                
 import { CrashLog }                                                             from '../../src/services/overseer/CrashLog.ts';
 import { overseerFilesIn }                                                      from '../../src/services/overseer/OverseerFiles.ts';
 import { Presence }                                                             from '../../src/services/overseer/Presence.ts';
+import type { StoreReadFace }                                                   from '../../src/services/store/BoardStore.ts';
 import { NO_LOCK_HOLDER_READS_AS_GONE }                                         from '../../src/services/tracker/GenerationLock.ts';
 import { registerWithTheMonitor }                                               from '../../src/services/tracker/MonitorRegistration.ts';
 import { withLock }                                                             from '../../src/services/tracker/TrackerLock.ts';
@@ -45,6 +46,7 @@ import { registeredBoardFactsOf }                                               
 import { removeScratchDirectory }                                               from '../../src/testing/ScratchWorkspace.ts';
 import { talosChildReadingsWith }                                               from '../../src/testing/TalosChildReadings.ts';
 import { describeWhenRecorded }                                                 from '../../src/testing/ToolGuard.ts';
+import { boardStoreIn }                                                         from '../BoardStoreOf.ts';
 import { runCommandLine }                                                       from '../Main.ts';
 import { createArgumentParser }                                                 from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                                      from '../constants/InstallVersion.ts';
@@ -65,6 +67,11 @@ const READS_WHILE_THE_STOP_LANDS = 2;
 const recordedGit = useRecordedGit();
 const processTable = useRecordedProcessTable(nativePlatformPorts());
 const overseerStoppedRecordsIn = (logKinds: readonly string[]): number => logKinds.filter((kind) => kind === 'overseer-stopped').length;
+
+/** The read side of the board in `directory`, as the Overseer's one store reads it. */
+function boardReadsIn(directory: string): StoreReadFace {
+  return boardStoreIn(createCapturedCommandContext({ currentDirectory: directory }), requireWorkspace(directory)).reads;
+}
 
 function storedLogKindsOf(repository: string): string[] {
   const logFilePath = join(repository, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl');
@@ -124,6 +131,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
     const { state } = readBoardState({
       context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
       workspace:     requireWorkspace(repositoryDirectory),
+      boardReads:    boardReadsIn(repositoryDirectory),
       boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
       notices:       () => [],
       overseer:      () => ({
@@ -149,6 +157,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
     const { state } = readBoardState({
       context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
       workspace:     requireWorkspace(repositoryDirectory),
+      boardReads:    boardReadsIn(repositoryDirectory),
       boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
       notices:       () => [],
       overseer:      () => ({
@@ -634,6 +643,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run pause an
       const boardState = readBoardState({
         context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts }),
         workspace:     requireWorkspace(repositoryDirectory),
+        boardReads:    boardReadsIn(repositoryDirectory),
         boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
         notices:       () => [],
         overseer:      () => ({

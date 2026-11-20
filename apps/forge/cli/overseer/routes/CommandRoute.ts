@@ -15,10 +15,11 @@ import { CONTROL_COMMAND_KINDS, FLINT_BRAIN_COMMAND_KINDS }         from '../../
 import type { FlintBrain }                                          from '../../../src/services/overseer/FlintBrain.ts';
 import { MachineAgentLimit }                                        from '../../../src/services/overseer/MachineAgentLimit.ts';
 import type { CommandCaller, RouteAnswer }                          from '../../../src/services/overseer/OverseerServer.ts';
+import type { BoardStore }                                          from '../../../src/services/store/BoardStore.ts';
+import type { Workspace }                                           from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommand, ControlCommandOf, FlintBrainCommand } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                         from '../../../src/shared/OperationRefusal.ts';
 import { SERVED_CONTRACT_VERSIONS }                                 from '../../../src/shared/constants/OverseerApiContracts.ts';
-import { boardStoreOf }                                             from '../../BoardStoreOf.ts';
 import type { CommandContext }                                      from '../../CommandContext.ts';
 import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                      from '../../CommandControlContext.ts';
 import { registerWrittenTracker }                                   from '../../RegisterWrittenTracker.ts';
@@ -35,6 +36,9 @@ export interface RuntimeOverseerCommand {
 export interface CommandRouteRequest {
   commandArguments:     ArgumentParser;
   context:              CommandContext;
+  workspace:            Workspace;
+  /** The Overseer's one store; a command goes through its command face, never inside a transaction of the pass. */
+  boardStore:           BoardStore;
   launchesHeld:         () => boolean;
   onRuntimeCommand:     (command: RuntimeOverseerCommand) => void;
   /** After a command was applied, so the pass acts on it at once. */
@@ -169,11 +173,10 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
       body:   refusalBodyOf({ code: INSTALL_HELD_REFUSAL, fields: {}, sentence: INSTALL_HELD_TEXT }),
     };
   }
-  const { context } = request;
+  const { context, workspace, boardStore } = request;
   try {
-    const { workspace, store } = boardStoreOf(context);
-    const at                   = OptionValueUtil.atStampFrom(request.commandArguments, context.now());
-    const written              = await store.commands.apply({ command, at, context: INSIDE_THE_OVERSEER_CONTROL_CONTEXT });
+    const at      = OptionValueUtil.atStampFrom(request.commandArguments, context.now());
+    const written = await boardStore.commands.apply({ command, at, context: INSIDE_THE_OVERSEER_CONTROL_CONTEXT });
     OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
     OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
     await registerWrittenTracker(context, workspace);

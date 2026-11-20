@@ -32,6 +32,7 @@ import { CONTROL_CONTRACT_KINDS }                        from '../../../src/shar
 import { useRecordedGit }                                from '../../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                        from '../../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                     from '../../../src/testing/ToolGuard.ts';
+import { boardStoreIn }                                  from '../../BoardStoreOf.ts';
 import { createArgumentParser }                          from '../../arguments/ArgumentParser.ts';
 import { BY_HAND_COMMAND_KINDS }                         from '../../constants/JobVerbs.ts';
 import { createCapturedCommandContext }                  from '../../testing/CapturedCommandContext.ts';
@@ -136,10 +137,14 @@ function scriptedFlintBrain() {
 }
 
 function routeRequest(launchesHeld = false, flintBrain = scriptedFlintBrain().brain): CommandRouteRequest {
+  const context   = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
+  const workspace = requireWorkspace(repositoryDirectory);
   return {
     flintBrain,
     commandArguments:    createArgumentParser([]),
-    context:             createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW }),
+    context,
+    workspace,
+    boardStore:          boardStoreIn(context, workspace),
     launchesHeld:        () => launchesHeld,
     onRuntimeCommand:    () => undefined,
     wake:                () => undefined,

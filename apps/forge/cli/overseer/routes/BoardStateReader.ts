@@ -5,7 +5,6 @@
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { OverseerFacts, UsageFacts } from '../../../src/adapters/@types/BoardStateParts.ts';
-import { storedFileTextOf }               from '../../../src/adapters/StoredFileText.ts';
 import { UsageMarkerFile }                from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }               from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
 import { LogUtil }                        from '../../../src/adapters/utils/LogUtil.ts';
@@ -25,7 +24,7 @@ import {
 import { JobLiveFactsReader }                        from '../../../src/services/overseer/JobLiveFactsReader.ts';
 import { MainLineReads }                             from '../../../src/services/overseer/MainLineReads.ts';
 import { UsageLimits }                               from '../../../src/services/overseer/UsageLimits.ts';
-import { requireTracker }                            from '../../../src/services/tracker/TrackerReader.ts';
+import type { StoreReadFace }                        from '../../../src/services/store/BoardStore.ts';
 import type { Workspace }                            from '../../../src/services/tracker/Workspace.ts';
 import { type BranchNames, branchNamesOf }           from '../../../src/shared/BranchNames.ts';
 import { flintBrainRunsOf, type TodayFlintBrainRun } from '../../../src/shared/monitor/TodayFigures.ts';
@@ -35,6 +34,7 @@ import { fullDocumentOf }                            from '../../StatusDocuments
 export interface BoardStateSource {
   context:             CommandContext;
   workspace:           Workspace;
+  boardReads:          StoreReadFace;
   boardChildren:       BoardChildren;
   notices:             () => readonly unknown[];
   /** Everything but `paused`, which the board's stored drain flag says. */
@@ -130,13 +130,6 @@ function usageOf(context: CommandContext, apiBilling: boolean): UsageFacts {
   return UsageLimits.usageFactsOf(UsageMarkerFile.read(monitorFolder), UsageWindowsFile.read(monitorFolder), apiBilling);
 }
 
-/** The stored text, for "View stored pipeline"; null when none is stored or it could not be read. */
-function pipelineFileTextOf(workspace: Workspace, verdict: string): string | null {
-  if (verdict === 'absent') return null;
-  const stored = storedFileTextOf(workspace.pipelineFilePath);
-  return stored.verdict === 'readable' ? stored.text : null;
-}
-
 /** The state, and the Board and the log records it was read from, which the monitor snapshot reads beside it. */
 export interface BoardStateRead {
   state:          BoardStateWithFlintBrain;
@@ -148,10 +141,10 @@ export interface BoardStateRead {
 }
 
 export function readBoardState(source: BoardStateSource): BoardStateRead {
-  const { context, workspace } = source;
+  const { context, workspace, boardReads } = source;
   const {
     progress, pipelineReading, pipelineSetupReading, gateProfilesReading, storedLog, listing, epicListing, draftListing
-  } = requireTracker(workspace);
+  } = boardReads.requireBoard();
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
   const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);
   const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
@@ -187,7 +180,7 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
     agentTakesPictures: context.agentAdapter.capabilities.pictures,
     pipelineSources:    {
       pipelineReading,
-      pipelineFileText: pipelineFileTextOf(workspace, pipelineReading.verdict),
+      pipelineFileText: boardReads.storedPipelineText(),
       pipelineSetupReading,
       gateProfilesReading,
       mainLine:         source.mainLine ?? null,

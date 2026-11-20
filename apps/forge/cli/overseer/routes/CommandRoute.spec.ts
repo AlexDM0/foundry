@@ -16,7 +16,9 @@ import {
 import type { MonitorFlintBrainStartedBy } from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { CommandCaller }                                                     from '../../../src/services/overseer/OverseerServer.ts';
+import { workspacePathsFor }                                                      from '../../../src/services/tracker/Workspace.ts';
 import { createScratchDirectory, removeScratchDirectory }                         from '../../../src/testing/ScratchWorkspace.ts';
+import { boardStoreIn }                                                           from '../../BoardStoreOf.ts';
 import { createArgumentParser }                                                   from '../../arguments/ArgumentParser.ts';
 import { createCapturedCommandContext }                                           from '../../testing/CapturedCommandContext.ts';
 import { MALFORMED_BODY_TEXT, answerControlCommand, type RuntimeOverseerCommand } from './CommandRoute.ts';
@@ -37,9 +39,13 @@ function heldRoute(launchesHeld: boolean) {
   const runtimeCommands: RuntimeOverseerCommand[] = [];
   const wakes: string[] = [];
   const brainStarters: MonitorFlintBrainStartedBy[] = [];
+  const context   = createCapturedCommandContext({ currentDirectory: directory });
+  const workspace = workspacePathsFor(directory);
   const request = {
     commandArguments: createArgumentParser([]),
-    context:          createCapturedCommandContext({ currentDirectory: directory }),
+    context,
+    workspace,
+    boardStore:       boardStoreIn(context, workspace),
     launchesHeld:     () => launchesHeld,
     onRuntimeCommand: (command: RuntimeOverseerCommand) => runtimeCommands.push(command),
     wake:             () => wakes.push('wake'),

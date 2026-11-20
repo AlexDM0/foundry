@@ -92,67 +92,8 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     + ' \'../../../src/services/tracker/constants/TrackerFiles.ts\';'
   ]:
     'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
-  [
-  'cli/overseer/OverseerFlintBrain.ts: store-internal-import: import { requireProgressFile }                                                                  from'
-    + ' \'../../src/services/tracker/TrackerReader.ts\';'
-  ]:
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'cli/overseer/OverseerForeground.ts: store-internal-import: import { requireProgressFile } from \'../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'cli/overseer/routes/BoardStateReader.ts: record-path-name: const stored = storedFileTextOf(workspace.pipelineFilePath);':
-    'Removed by WP5.10: the board state shows the stored pipeline text from the store.',
-  'cli/overseer/routes/BoardStateReader.ts: store-internal-import: import { requireTracker }                            from \'../../../src/services/tracker/TrackerReader.ts\';':
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'cli/overseer/routes/OverseerRoutes.ts: record-path-name: const reading = GateProfilesFile.read(gateProfilesFilePath);':
-    'Removed by WP5.10: the server reads the gate profiles through the store.',
-  'cli/overseer/routes/OverseerRoutes.ts: record-path-name: function boardHoldsProfileRun(gateProfilesFilePath: string, profileRunId: string): boolean {':
-    'Removed by WP5.10: the server reads the gate profiles through the store.',
-  'cli/overseer/routes/OverseerRoutes.ts: record-path-name: if (afterLineNumber === null || !boardHoldsProfileRun(workspace.gateProfilesFilePath, profileRunId)) return null;':
-    'Removed by WP5.10: the server reads the gate profiles through the store.',
-  [
-  'cli/overseer/routes/OverseerRoutes.ts: record-path-name: senderFactsOf: () => JobTranscript.senderFactsOf(logRecordsIn(workspace.logFilePath), workspace.trackerDirectory,'
-    + ' jobId),'
-  ]:
-    'Removed by WP5.10: the server reads the log records through the store.',
-  [
-  'cli/overseer/routes/OverseerRoutes.ts: store-internal-import: import { LogFileIngestion }                                   from'
-    + ' \'../../../src/adapters/log/LogFileIngestion.ts\';'
-  ]:
-    'Removed by WP5.10: the server reads the log records through the store.',
-  'cli/overseer/routes/OverseerRoutes.ts: stored-record-read: const reading = GateProfilesFile.read(gateProfilesFilePath);':
-    'Removed by WP5.10: the server reads the gate profiles through the store.',
-  [
-  'cli/overseer/routes/PresenceReader.ts: store-internal-import: import { requireTracker }                                  from'
-    + ' \'../../../src/services/tracker/TrackerReader.ts\';'
-  ]:
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'src/services/overseer/DrivePass.ts: record-path-name: const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);':
-    'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/DrivePass.ts: record-path-name: const reading  = PipelineFile.read(request.workspace.pipelineFilePath);':
-    'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/DrivePass.ts: record-path-name: const reading = PipelineFile.read(request.workspace.pipelineFilePath);':
-    'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/DrivePass.ts: record-path-name: digest.update(fileTextOrEmpty(workspace.gateProfilesFilePath)).update(\'\\0\');':
-    'Removed by WP5.10: the pass fingerprint reads the stored files.',
-  [
-  'src/services/overseer/DrivePass.ts: record-path-name:'
-    + ' digest.update(fileTextOrEmpty(workspace.progressFilePath)).update(\'\\0\').update(fileTextOrEmpty(workspace.logFilePath)).update(\'\\0\');'
-  ]:
-    'Removed by WP5.10: the pass fingerprint reads the stored files.',
-  'src/services/overseer/DrivePass.ts: store-internal-import: import { requireProgressFile }                        from \'../tracker/TrackerReader.ts\';':
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'src/services/overseer/DrivePass.ts: store-internal-import: import { writeTracker }                               from \'../tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.10: the pass holds the board through the store\'s transaction.',
-  'src/services/overseer/DrivePass.ts: stored-record-read: const pipelineReading = PipelineFile.read(workspace.pipelineFilePath);':
-    'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/DrivePass.ts: stored-record-read: const reading  = PipelineFile.read(request.workspace.pipelineFilePath);':
-    'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/DrivePass.ts: stored-record-read: const reading = PipelineFile.read(request.workspace.pipelineFilePath);':
-    'Removed by WP5.10: the pass reads the one judged pipeline through the store.',
-  'src/services/overseer/Regrouping.ts: store-internal-import: import { requireProgressFile }                              from \'../tracker/TrackerReader.ts\';':
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
-  'src/services/overseer/StartGate.ts: store-internal-import: import { requireProgressFile }                               from \'../tracker/TrackerReader.ts\';':
-    'Removed by WP5.10: the Overseer reads through the store\'s read side.',
+  'cli/overseer/OverseerForeground.ts: store-internal-import: import { createLocalFilesBoardStore } from \'../../src/services/store/LocalFilesBoardStore.ts\';':
+    'The Overseer\'s composition root picks the store\'s adapter.',
   [
   'src/services/tracker/RepositoryTrackerList.ts: store-internal-import: import { TRACKER_FILES }                                                      from'
     + ' \'./constants/TrackerFiles.ts\';'

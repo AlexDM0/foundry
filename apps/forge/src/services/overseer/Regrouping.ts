@@ -20,7 +20,7 @@ import { GitProcess }                                       from '../../lib/git/
 import type { PlatformPorts }                               from '../../lib/platform-ports/PlatformPortsFor.ts';
 import type { InterruptionCause, Job }                      from '../../lib/tracker-model/@types/Job.ts';
 import { HATCH_FOLDER, WorktreesFolder }                    from '../../shared/WorktreesFolder.ts';
-import { requireProgressFile }                              from '../tracker/TrackerReader.ts';
+import type { StoreReadFace }                               from '../store/BoardStore.ts';
 import type { Workspace }                                   from '../tracker/Workspace.ts';
 import type { BoardChildren }                               from './BoardChildren.ts';
 import { CONSTITUTION_COMMITS_FOLDER, ConstitutionCommits } from './ConstitutionCommits.ts';
@@ -138,8 +138,8 @@ function awaitsItsSpawn(job: Readonly<Job>): boolean {
 }
 
 /** Reads and acts outside the lock; the first pass's one hold then applies everything it found. A live child is read by the passes alone. */
-function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Workspace): RegroupingReport {
-  const jobs   = requireProgressFile(workspace).jobs ?? [];
+function regroup(children: BoardChildren, ports: PlatformPorts, workspace: Workspace, boardReads: StoreReadFace): RegroupingReport {
+  const jobs   = boardReads.requireProgress().jobs ?? [];
   const report: RegroupingReport = { lost: [], respawnJobIds: [], leftoverWorktrees: leftoverWorktreesOf(workspace, jobs) };
   children.beginPass();
   for (const job of jobs.filter((candidate) => candidate.role !== null)) {

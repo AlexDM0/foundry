@@ -84,6 +84,8 @@ import { testWhenTheFakeAgentOutageIsRecorded }                     from '../../
 import { writeReadableTracker }                                     from '../../testing/TrackerFileFixtures.ts';
 import { blockUntil, waitUntil }                                    from '../../testing/WaitUntil.ts';
 import { ControlService }                                           from '../control/ControlService.ts';
+import type { StoreReadFace }                                       from '../store/BoardStore.ts';
+import { createLocalFilesBoardStore }                               from '../store/LocalFilesBoardStore.ts';
 import { registerWithTheMonitor }                                   from '../tracker/MonitorRegistration.ts';
 import { writeTracker }                                             from '../tracker/TrackerPipeline.ts';
 import { requireProgressFile }                                      from '../tracker/TrackerReader.ts';
@@ -504,6 +506,11 @@ async function recordTheCrash(serving: ForgeServing, component: CrashedComponent
   crashPathOutcomes.push(await CrashPath.record(crashPathContextOf(serving), { component, error }));
 }
 
+function sessionBoardReads(): StoreReadFace {
+  const now = (): Date => new Date(Date.parse(SESSION_STAMP));
+  return createLocalFilesBoardStore({ workspace: sessionWorkspace, now, lockHolderIsGone: ports.processSupervision.processIsGone }).reads;
+}
+
 /**
  * A start in the foreground entry's order: the start gate before any Baton, then the Baton, the presence record of the new generation and a
  * drive pass reconciling by the gate's classification. A start that stays off takes nothing; its registry write and its refusal are the
@@ -511,7 +518,12 @@ async function recordTheCrash(serving: ForgeServing, component: CrashedComponent
  */
 async function forgeStart(origin: StartOriginReading, adapter: AgentAdapter, options: ForgeStartOptions = {}): Promise<ForgeStart> {
   const verdict = StartGate.admit({
-    ports, files: forgeFiles(), workspace: sessionWorkspace, origin, stampNow: () => SESSION_STAMP
+    ports,
+    files:      forgeFiles(),
+    workspace:  sessionWorkspace,
+    boardReads: sessionBoardReads(),
+    origin,
+    stampNow:   () => SESSION_STAMP,
   });
   if (verdict.verdict === 'stay-off') return { verdict, serving: null };
   forgeStartsSoFar += 1;

@@ -4,7 +4,7 @@
  */
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
 import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY }    from '../../lib/process-identity/ProcessIdentity.ts';
-import { requireProgressFile }                               from '../tracker/TrackerReader.ts';
+import type { StoreReadFace }                                from '../store/BoardStore.ts';
 import type { Workspace }                                    from '../tracker/Workspace.ts';
 import type { CrashLogJob, CrashLogRecord }                  from './@types/CrashLogRecord.ts';
 import type { PresenceRecord }                               from './@types/PresenceRecord.ts';
@@ -27,11 +27,12 @@ import {
 } from './TalosStart.ts';
 
 export interface StartGateRequest {
-  ports:     PlatformPorts;
-  files:     OverseerFiles;
-  workspace: Workspace;
-  origin:    StartOriginReading;
-  stampNow:  () => string;
+  ports:      PlatformPorts;
+  files:      OverseerFiles;
+  workspace:  Workspace;
+  boardReads: StoreReadFace;
+  origin:     StartOriginReading;
+  stampNow:   () => string;
 }
 
 /** A Talos record that cannot be read, or names no process, keeps no boot of its own, so it reads as lost in this boot, as the crash path reads it. */
@@ -71,8 +72,8 @@ function readingOrNull<Value>(read: () => Value): Value | null {
   }
 }
 
-function activeJobsOf(workspace: Workspace): CrashLogJob[] | null {
-  return readingOrNull(() => (requireProgressFile(workspace).jobs ?? []).map(CrashLog.activeJobOf));
+function activeJobsOf(boardReads: StoreReadFace): CrashLogJob[] | null {
+  return readingOrNull(() => (boardReads.requireProgress().jobs ?? []).map(CrashLog.activeJobOf));
 }
 
 function talosChildrenOf(boardFolder: string): unknown[] | null {
@@ -115,7 +116,9 @@ function loggedCrashLogOf(files: OverseerFiles, evidence: StartEvidence, classif
 
 /** Written once: the crash path, or an earlier start, may have logged this crash already, and that log stays. Answers the log's number. */
 function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, classification: StartClassificationVerdict): number {
-  const { files, workspace, origin } = request;
+  const {
+    files, workspace, boardReads, origin
+  } = request;
   const crashedGeneration = classification.previousGeneration;
   const { heartbeat } = evidence;
   const presenceOfTheCrash = presenceOfTheCrashIn(evidence, classification);
@@ -134,7 +137,7 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
     presence:      presenceOfTheCrash,
     batonHolder:   batonHolderOf(evidence, crashedGeneration),
     heartbeat:     heartbeatOfTheCrash,
-    activeJobs:    activeJobsOf(workspace),
+    activeJobs:    activeJobsOf(boardReads),
     talosChildren: talosChildrenOf(workspace.trackerDirectory),
     logTail:       CrashLog.logTailOf(files.logFilePath),
   })).crashLogNumber;
