@@ -12,7 +12,8 @@
  * refused as the same field at the top would be. A finding of one entity goes to that entity's part. A first setup starts to walk the
  * `entities` step at the forge's second layout finding while research is current, and nothing else starts it: one layout finding, an
  * update, an entity's finding or a record past research keep today's steps, unchanged and unlogged. The agent asks at the `entities` step,
- * and User's answer there from a later step reopens it.
+ * and User's answer there from a later step reopens it. A draft whose entities the validator refuses is kept, and Continue of any step
+ * and Apply are refused `entity-refusals-stand` until an edit clears every refusal.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -770,6 +771,74 @@ describe('the draft over entities', () => {
       .toEqual({ reason: 'draft-edit-name-mismatch', field: 'entity:web/gate:test', name: 'lint' });
     expect(refusalOf({ target: 'within-entity', entityKey: 'web', edit: { target: 'prepare-order', names: ['build'] } }))
       .toEqual({ reason: 'prepare-order-not-a-reorder', names: ['build'], prepareNames: ['install', 'build'] });
+  });
+});
+
+describe('an unfinished entities draft', () => {
+  const NO_PHASES = { build: [], review: [], merge: [] };
+
+  const STORED_WEB_AND_API: Pipeline = {
+    version:  3,
+    prepare:  [],
+    gates:    [],
+    phases:   NO_PHASES,
+    entities: {
+      web: {
+        kind: 'app', home: ['/apps/web'], prepare: [], gates: [], phases: NO_PHASES
+      },
+      api: {
+        kind: 'app', home: ['/apps/api'], prepare: [], gates: [], phases: NO_PHASES
+      },
+    },
+  };
+
+  const MAIN_READING = { mainConstitution: null, entityConstitutions: { root: null, web: null, api: null } };
+
+  function apiHomeEdit(home: string): PipelineDraftEdit {
+    return { target: 'entity', entityKey: 'api', value: { kind: 'app', home: [home] } };
+  }
+
+  function editedTo(board: Board, setupId: string, home: string): Readonly<PipelineSetup> {
+    const revision = openSetupOf(board).draftRevision;
+    return board.editDraft(setupId, { by: 'user', revision, edits: [{ edit: apiHomeEdit(home), summary: 'Move api.' }] }, AT).setup;
+  }
+
+  const REFUSAL_STANDS: BoardRefusalDetail = { reason: 'entity-refusals-stand', setupId: 'S1', reasons: ['equal-homes'] };
+
+  test('an edit that leaves two entities on one home lands at the next revision, the refusal kept in the draft', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_WEB_AND_API);
+
+    const setup = editedTo(board, setupId, '/apps/web');
+
+    expect(setup.draftRevision).toBe(1);
+    expect(setup.draft?.entities?.['api']?.home).toEqual(['/apps/web']);
+  });
+
+  test.each(['research', 'entities', 'constitution', 'design'] as const)('Continue of %s is refused entity-refusals-stand while a refusal stands', (step) => {
+    const opened = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_WEB_AND_API);
+    editedTo(opened.board, opened.setupId, '/apps/web');
+    const atStep: PipelineSetup = { ...structuredClone(openSetupOf(opened.board)), currentStep: step };
+    atStep.stepStates[step] = 'in-progress';
+    const { board } = boardFixture({ pipeline: STORED_WEB_AND_API, pipelineSetup: { verdict: 'readable', setup: atStep } });
+
+    expect(refusalDetailOf(() => board.continueSetupStep('S1', step, AT))).toEqual(REFUSAL_STANDS);
+    expect(openSetupOf(board).currentStep).toBe(step);
+  });
+
+  test('Continue and Apply proceed once an edit clears the refusal, and the Apply refusal reads it until then', () => {
+    const { board, setupId } = openedBoard({ ...FIRST_SETUP, mode: 'update' }, STORED_WEB_AND_API);
+    editedTo(board, setupId, '/apps/web');
+    const requesting = { ...MAIN_READING, draftRevision: 1, resumesBoard: false };
+
+    expect(refusalDetailOf(() => board.requestApply(setupId, requesting, AT))).toEqual(REFUSAL_STANDS);
+    expect(board.applyRefusalOf(setupId, MAIN_READING)).toEqual(REFUSAL_STANDS);
+    expect(refusalDetailOf(() => board.continueSetupStep(setupId, 'design', AT))).toEqual(REFUSAL_STANDS);
+
+    editedTo(board, setupId, '/apps/api');
+
+    expect(board.applyRefusalOf(setupId, MAIN_READING)).toBeNull();
+    expect(board.continueSetupStep(setupId, 'design', AT).setup.currentStep).toBe('apply');
+    expect(board.requestApply(setupId, { ...requesting, draftRevision: 2 }, AT).outcome).toBe('applied');
   });
 });
 

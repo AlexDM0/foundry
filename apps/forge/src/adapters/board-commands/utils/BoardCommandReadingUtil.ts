@@ -7,10 +7,9 @@ import type {
   ChartRangeRequest,
   DecisionAnswerFormDocument,
   ForgeBoardCommand,
-  PictureReferenceDocument,
-  PipelineDraftEditDocument
+  PictureReferenceDocument
 } from 'forge-contracts/BoardCommand';
-import type { ConstitutionSourcesDocument, PipelineBillingDocument } from 'forge-contracts/BoardPipelineDocuments';
+import type { ConstitutionSourcesDocument, PipelineBillingDocument, PipelineDraftEditDocument } from 'forge-contracts/BoardPipelineDocuments';
 
 import { JsonRecordUtil }               from '../../../lib/json-record/JsonRecordUtil.ts';
 import { GATE_PHASES }                  from '../../../lib/tracker-model/@types/GatePhase.ts';

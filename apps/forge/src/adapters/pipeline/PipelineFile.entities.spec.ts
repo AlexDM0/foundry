@@ -4,7 +4,8 @@
  * writes back byte for byte; an entity whose whitelist names a package is read with its whitelist, the setup draft's read among them,
  * since a crossing's stages run, and an empty whitelist names none and is read too; beside
  * entities the forge's own prepare steps, gates, constitution and reach stay empty; only the root entity's home may be `/`, alone; version
- * 4 exists only for entities, and only version 4 holds them; and a pipeline with entities is written as version 4 in the read's key order.
+ * 4 exists only for entities, and only version 4 holds them; a pipeline with entities is written as version 4 in the read's key order;
+ * and a setup record's draft is read and written the same way but for the entities' set check, so its refused entities are kept.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -175,6 +176,29 @@ describe('the entities checked together', () => {
       'the entities base, other are each of kind root, and one at most is'],
   ])('%s is refused', (_label, entities, reason) => {
     expect(reasonOf(withEntities(entities))).toBe(reason);
+  });
+});
+
+describe('a setup record\'s draft', () => {
+  const TWO_ROOTS = { base: entity({ kind: 'root', home: ['/tools'] }), other: entity({ kind: 'root', home: ['/scripts'] }) };
+
+  test('a stored pipeline with two root entities is unreadable, while a draft with them reads, the refusal kept for User', () => {
+    expect(reasonOf(withEntities(TWO_ROOTS))).toBe('the entities base, other are each of kind root, and one at most is');
+    const reading = PipelineFile.draftReadingOf(withEntities(TWO_ROOTS));
+    expect(reading.verdict === 'readable' ? Object.keys(reading.pipeline.entities ?? {}) : reading).toEqual(['base', 'other']);
+  });
+
+  test('a draft with two root entities is written in the read\'s order, as a stored pipeline is', () => {
+    const draft = withEntities(TWO_ROOTS) as unknown as Pipeline;
+    const text  = PipelineFile.draftContentsOf(draft);
+    const reading = PipelineFile.draftReadingOf(JSON.parse(text));
+    expect(reading.verdict === 'readable' ? PipelineFile.draftContentsOf(reading.pipeline) : reading.verdict).toBe(text);
+    expect(Object.keys(JSON.parse(text) as object)[0]).toBe('version');
+  });
+
+  test('a draft whose entity is malformed on its own is still malformed', () => {
+    const reading = PipelineFile.draftReadingOf(withEntities({ web: entity({ home: [] }) }));
+    expect(reading.verdict).toBe('malformed');
   });
 });
 

@@ -75,7 +75,7 @@ function partWith(constitution: ConstitutionDraft | null): PipelineSetupEntity {
 /** A record at Apply whose draft is the three-entity pipeline: `web` drafted, the others with no draft of their own. */
 function recordOver(stored: Pipeline | null, draft: Pipeline = entityPipelineFixture()): PipelineSetup {
   return {
-    formatVersion:   1,
+    formatVersion:   2,
     setupId:         SETUP_ID,
     mode:            stored === null ? 'setup' : 'update',
     baseContentHash: stored === null ? null : PipelineUtil.contentHashOf(stored),

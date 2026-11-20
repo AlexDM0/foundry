@@ -367,6 +367,7 @@ describe('the message to the pipeline agent', () => {
             { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
             { field: 'phase-order:merge', value: ['test', 'lint'] },
           ],
+          standingEntityRefusals: [],
         }
       },
       {

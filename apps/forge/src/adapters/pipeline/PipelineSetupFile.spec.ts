@@ -4,7 +4,8 @@
  * byte; a record with no check is written with no `check` key, and one with a check keeps it before `nextNumbers`; a record of a forge
  * without entities, as an open record stored before them, reads and writes back byte for byte with no `entities` key and no `entities`
  * step state, while a record over entities keeps its step state and each entity's part, the part's own check only once set, and an
- * update or advise opened at an entity keeps `openedAtEntity` after the parts, while a record opened at the forge has no such key; an edit
+ * update or advise opened at an entity keeps `openedAtEntity` after the parts, while a record opened at the forge has no such key; a draft
+ * whose entities the validator refuses reads and writes back unchanged, since User resolves its refusals before Continue; an edit
  * stored without `batch`, as every edit but a copy's is, reads and writes back byte for byte with no `batch` key, while a copy's edits
  * keep theirs after `undone`, an entity's field included; no file is `absent`; and a file nobody could trust whole, a nested key the read
  * does not know included, is `malformed` with a reason naming the offending part, never a throw.
@@ -19,12 +20,13 @@ import {
   test,
 } from 'bun:test';
 
+import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { PipelineSetup }                             from '../../lib/tracker-model/@types/PipelineSetup.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import { PipelineSetupFile }                              from './PipelineSetupFile.ts';
 
 const EXAMPLE_SETUP: PipelineSetup = {
-  formatVersion:   1,
+  formatVersion:   2,
   setupId:         'S2',
   mode:            'setup',
   baseContentHash: null,
@@ -119,7 +121,7 @@ const EXAMPLE_CHECKED: PipelineSetup = {
 
 /** An open record as a build that knew no entities stored it, written by hand so the new build cannot shape it. */
 const STORED_BEFORE_ENTITIES_TEXT = `{
-  "formatVersion": 1,
+  "formatVersion": 2,
   "setupId": "S1",
   "mode": "setup",
   "baseContentHash": null,
@@ -331,6 +333,24 @@ describe('a readable record', () => {
     expect(Object.hasOwn(document, 'openedAtEntity')).toBe(false);
   });
 
+  test('a record whose draft holds refused entities reads and writes back unchanged, the refusals kept for User to resolve', () => {
+    const appOn = (home: string): PipelineEntity => ({
+      kind: 'app', home: [home], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    });
+    const refusedDraft: Pipeline = {
+      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: appOn('/apps/web'), admin: appOn('/apps/web') }
+    };
+    const record: PipelineSetup = { ...EXAMPLE_OVER_ENTITIES, draft: refusedDraft };
+    const text = PipelineSetupFile.contentsOf(record);
+    writeFileSync(setupFilePath, text);
+
+    const reading = PipelineSetupFile.read(setupFilePath);
+
+    expect(reading).toEqual({ verdict: 'readable', setup: record });
+    if (reading.verdict !== 'readable') throw new Error('the record did not read');
+    expect(PipelineSetupFile.contentsOf(reading.setup)).toBe(text);
+  });
+
   test('a record opened at an entity keeps openedAtEntity after the parts and writes back byte for byte', () => {
     const openedAtWeb: PipelineSetup = { ...EXAMPLE_OVER_ENTITIES, mode: 'advise', openedAtEntity: 'web' };
     const text = PipelineSetupFile.contentsOf(openedAtWeb);
@@ -385,7 +405,7 @@ describe('a readable record', () => {
 describe('a malformed record', () => {
   test.each<[string, (document: Record<string, unknown>) => unknown, string]>([
     ['not an object', () => [], 'the document is not a JSON object'],
-    ['another format version', (document) => ({ ...document, formatVersion: 2 }), 'formatVersion is 2, and this build reads 1'],
+    ['an older format version', (document) => ({ ...document, formatVersion: 1 }), 'formatVersion is 1, and this build reads 2'],
     ['a missing key', ({ setupId: _setupId, ...rest }) => rest, 'setupId is missing'],
     ['a setup id of another shape', (document) => ({ ...document, setupId: 'D1' }), 'setupId is "D1", and it has to be a setup id such as S1'],
     ['an unknown step state',

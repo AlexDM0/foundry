@@ -9,8 +9,9 @@
  * entity's constitution path on main and starts the product owner with the request's words; a draft edit that whitelists a package
  * with a review is accepted; and a copy to another entity stores its edits under one `batch`, the first of their edit ids, which
  * `wholeBatch` undoes at once with the entity's session hearing every edit of it in one message, while a copy that names a field outside an
- * entity is refused with the record untouched. A forge without entities keeps one session and stores no batch, which
- * `PipelineSetupControls.spec.ts` holds.
+ * entity is refused with the record untouched. An edit that leaves entities the validator refuses lands, and the forge's session hears
+ * each refusal that stands, while a malformed value is still refused. A forge without entities keeps one session and stores no batch,
+ * which `PipelineSetupControls.spec.ts` holds.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -421,6 +422,41 @@ describe('a whitelist in the draft', () => {
     });
 
     expect(setupOf(fixture).draft?.entities?.['web']?.whitelist).toEqual(['design-system']);
+  });
+});
+
+describe('an unfinished entities draft', () => {
+  const SHARED_HOME_EDIT: PipelineDraftEdit = { target: 'entity', entityKey: 'admin', value: { kind: 'app', home: ['/apps/web'] } };
+
+  test('an edit that leaves two entities on one home lands at the next revision, and the forge\'s session hears the refusal that stands', () => {
+    const fixture  = boardAtEntitiesStep();
+    const revision = setupOf(fixture).draftRevision;
+
+    apply(fixture, {
+      kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: revision, edits: [SHARED_HOME_EDIT]
+    });
+
+    expect(setupOf(fixture).draftRevision).toBe(revision + 1);
+    expect(setupOf(fixture).draft?.entities?.['admin']?.home).toEqual(['/apps/web']);
+    expect(messagesOf(fixture)).toEqual([{
+      jobId:   'J1',
+      message: expect.objectContaining({ kind: 'draft-edited', standingEntityRefusals: ['the entities web, admin share the home "/apps/web"'] }),
+    }]);
+  });
+
+  test('an edit with a malformed entity value is still refused pipeline-draft-invalid, with the record untouched', () => {
+    const fixture = boardAtEntitiesStep();
+    const before  = structuredClone(setupOf(fixture));
+
+    const detail = operationRefusalDetailOf(() => apply(fixture, {
+      kind:          'pipeline-draft-edit',
+      setupId:       'S1',
+      draftRevision: before.draftRevision,
+      edits:         [{ target: 'entity', entityKey: 'admin', value: { kind: 'app', home: [] } }],
+    }));
+
+    expect(detail).toMatchObject({ kind: 'pipeline-draft-invalid', setupId: 'S1' });
+    expect(setupOf(fixture)).toEqual(before);
   });
 });
 

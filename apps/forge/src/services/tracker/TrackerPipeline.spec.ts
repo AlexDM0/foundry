@@ -348,7 +348,7 @@ describe('the setup record a hold reads and writes', () => {
 
     expect(writtenPaths).toEqual([workspace.progressFilePath, workspace.logFilePath, workspace.pipelineSetupFilePath]);
     expect(JSON.parse(readFileSync(workspace.progressFilePath, 'utf8'))).toMatchObject({ nextSetupId: 2 });
-    expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 1, setupId: 'S1', currentStep: 'research' });
+    expect(JSON.parse(readFileSync(workspace.pipelineSetupFilePath, 'utf8'))).toMatchObject({ formatVersion: 2, setupId: 'S1', currentStep: 'research' });
     const written = await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: (change) => change.board.pipelineSetup()?.setupId
     });
@@ -398,7 +398,7 @@ describe('the setup record a hold reads and writes', () => {
 
   test('a malformed record is a verdict: other writes go on, a setup move is refused, and the file stays byte for byte', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(workspace.pipelineSetupFilePath, '{ "formatVersion": 1 }\n');
+    writeFileSync(workspace.pipelineSetupFilePath, '{ "formatVersion": 2 }\n');
 
     await writeTracker({
       workspace, at: CHANGED_AT, now, mutate: addExampleRow
@@ -410,7 +410,7 @@ describe('the setup record a hold reads and writes', () => {
     expect(readFileSync(workspace.progressFilePath, 'utf8')).toContain('Example rendered row');
     const boardRefusal = { reason: 'pipeline-setup-unreadable', problem: 'setupId is missing' } as const;
     expect(refusalIsOperationRefusal(refusal) && refusal.detail).toEqual({ kind: 'board-refusal', boardRefusal });
-    expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe('{ "formatVersion": 1 }\n');
+    expect(readFileSync(workspace.pipelineSetupFilePath, 'utf8')).toBe('{ "formatVersion": 2 }\n');
   });
 });
 

@@ -35,4 +35,9 @@ finding. Some examples:
 When User changes an entity, keep the change in your next proposal. When User keeps one pipeline for the repository,
 do not propose entities again.
 
+The draft can hold refusals of its entities while User works on them, such as two entities with the same folder.
+When User changes the draft, the message names each refusal that stands after the change. Continue and Apply wait
+until no refusal stands. Do not resolve a refusal on your own. When User asks you to fix a refusal, propose the edits
+that resolve it with `{{program}} pipeline propose`.
+
 When you proposed the entities, run `{{program}} pipeline ready entities`.

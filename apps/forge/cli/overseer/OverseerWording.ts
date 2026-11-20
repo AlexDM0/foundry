@@ -972,6 +972,13 @@ function draftChangesTextOf(changes: readonly DraftFieldValue[]): string {
   return ['The draft now holds these values:', ...lines].join('\n');
 }
 
+/** The refusals the draft's entities still hold, which Continue and Apply wait on; nothing when none stands. */
+function standingEntityRefusalsTextOf(standingEntityRefusals: readonly string[]): string[] {
+  if (standingEntityRefusals.length === 0) return [];
+  const lines = standingEntityRefusals.map((refusal) => `- ${refusal}`);
+  return [['The draft\'s entities still hold these refusals, so Continue and Apply wait until User resolves them:', ...lines].join('\n')];
+}
+
 /**
  * What the pipeline agent reads when User answers, edits, undoes, discards, continues or asks for a check on its setup record, and when
  * User's check ends. The agent has no read of the record, so each message carries what changed.
@@ -987,8 +994,12 @@ function setupMessageWordingOf(message: SetupMessage, promptFills: PromptFills):
     case 'constitution-edited':
       return constitutionEditedMessageOf(message.revision, message.markdown, message.draftedFrom);
     case 'draft-edited':
-      return `User changed the draft pipeline (revision ${message.draftRevision}): ${message.fields.join(', ')}. `
-        + `Keep User's change when you propose a change.\n\n${draftChangesTextOf(message.changes)}`;
+      return [
+        `User changed the draft pipeline (revision ${message.draftRevision}): ${message.fields.join(', ')}. `
+          + 'Keep User\'s change when you propose a change.',
+        draftChangesTextOf(message.changes),
+        ...standingEntityRefusalsTextOf(message.standingEntityRefusals),
+      ].join('\n\n');
     case 'draft-edit-undone':
       return `User undid edit ${message.editId} (${message.field}) of the draft pipeline (revision ${message.draftRevision}).\n\n`
         + draftChangesTextOf(message.changes);

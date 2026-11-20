@@ -87,6 +87,7 @@ test('a draft edit carries each changed field with its value now as JSON, so the
       { field: 'gate:lint', value: { name: 'lint', run: 'bun run lint' } },
       { field: 'phase-order:build', value: ['lint', 'test'] },
     ],
+    standingEntityRefusals: [],
   }, PROMPT_FILLS);
   expect(wording).toBe([
     'User changed the draft pipeline (revision 5): gate:lint, phase-order:build. Keep User\'s change when you propose a change.',
@@ -95,6 +96,22 @@ test('a draft edit carries each changed field with its value now as JSON, so the
     '- `gate:lint`: {"name":"lint","run":"bun run lint"}',
     '- `phase-order:build`: ["lint","test"]',
   ].join('\n'));
+});
+
+test('a draft edit that leaves the entities refused names each refusal that stands, which Continue and Apply wait on', () => {
+  const wording = OverseerWording.setupMessageWordingOf({
+    kind:                   'draft-edited',
+    setupId:                'S1',
+    draftRevision:          6,
+    editIds:                ['E8'],
+    fields:                 ['entity:admin'],
+    changes:                [{ field: 'entity:admin', value: { kind: 'app', home: ['/apps/web'] } }],
+    standingEntityRefusals: ['the entities web, admin share the home "/apps/web"'],
+  }, PROMPT_FILLS);
+  expect(wording.endsWith([
+    'The draft\'s entities still hold these refusals, so Continue and Apply wait until User resolves them:',
+    '- the entities web, admin share the home "/apps/web"',
+  ].join('\n'))).toBe(true);
 });
 
 test.each([

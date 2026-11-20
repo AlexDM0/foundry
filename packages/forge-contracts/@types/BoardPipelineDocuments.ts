@@ -1,7 +1,8 @@
 /**
  * The board document's pipeline facts: the stored pipeline as read, the open setup, update or advise record with what it holds, the flow a
- * view draws with its nodes, edges and marks, the gates' profile runs, cache marks and step run times, the newest pipeline records, and the
- * choices a step may take. Values only, never words: a view words every kind, role and label.
+ * view draws with its nodes, edges and marks, the gates' profile runs, cache marks and step run times, the newest pipeline records, the
+ * choices a step may take, and the typed draft edits a command sends and an entity refusal's fix holds. Values only, never words: a view
+ * words every kind, role and label, but the sentence of a refusal and the label of its fix, which are forge's.
  */
 import type {
   AgentEffort,
@@ -470,6 +471,70 @@ export interface BoardPipelineSetupDocument {
   readonly draftEntities:       Readonly<Record<EntityKey, BoardDraftEntityFactsDocument>>;
   /** The refusal an Apply of the current draft meets now, as the command would answer it; `null` when it would proceed. */
   readonly applyRefusal:        ForgeRefusalDocument | null;
+  /** Each refusal the draft's entities hold, which Continue and Apply wait on; empty while none stands. */
+  readonly entityRefusals:      readonly BoardEntityRefusalDocument[];
+}
+
+export interface PipelineEntityDefinitionDocument {
+  readonly kind:     EntityKind;
+  readonly home:     readonly string[];
+  readonly summary?: string;
+}
+
+/** An edit of what a pipeline and an entity both hold; a `null` value removes what it names. */
+export type PipelineStepsDraftEditDocument =
+  | { readonly target: 'gate'; readonly name: string; readonly value: PipelineGateDocument | null }
+  | { readonly target: 'phase-order'; readonly phase: GatePhase; readonly names: readonly string[] }
+  | { readonly target: 'prepare'; readonly name: string; readonly value: PipelineStepDocument | null }
+  | { readonly target: 'prepare-order'; readonly names: readonly string[] }
+  | { readonly target: 'review'; readonly value: PipelineReviewDocument | null }
+  | { readonly target: 'constitution'; readonly value: PipelineConstitutionDocument | null };
+
+/** An edit inside one entity; a `null` value removes the key. */
+export type EntityDraftEditDocument =
+  | PipelineStepsDraftEditDocument
+  | { readonly target: 'role'; readonly role: EntityAgentRole; readonly value: AgentStepSettingsDocument | null }
+  | { readonly target: 'whitelist'; readonly value: readonly EntityKey[] | null }
+  | { readonly target: 'reach'; readonly value: readonly string[] | null }
+  | { readonly target: 'depends-on'; readonly value: readonly EntityKey[] | null }
+  | { readonly target: 'concurrency'; readonly value: number | null };
+
+/** One edit of the draft pipeline; a `null` value removes what it names, or writes its default back. */
+export type PipelineDraftEditDocument =
+  | PipelineStepsDraftEditDocument
+  | { readonly target: 'role'; readonly role: PipelineAgentRole; readonly value: AgentStepSettingsDocument | null }
+  | { readonly target: 'airlock'; readonly value: PipelineAirlockDocument | null }
+  | { readonly target: 'approval'; readonly approval: PipelineApproval; readonly value: boolean | null }
+  | { readonly target: 'entity'; readonly entityKey: EntityKey; readonly value: PipelineEntityDefinitionDocument | null }
+  | { readonly target: 'within-entity'; readonly entityKey: EntityKey; readonly edit: EntityDraftEditDocument };
+
+export type BoardEntityRefusalReason =
+  | 'more-than-one-root'
+  | 'equal-homes'
+  | 'reach-inside-another-home'
+  | 'unknown-whitelist-key'
+  | 'unknown-dependency-key'
+  | 'whitelisted-entity-not-package'
+  | 'whitelisted-package-without-review'
+  | 'dependency-circle';
+
+/** The one gesture that resolves a refusal, as the draft edits it sends. */
+export interface BoardEntityRefusalFixDocument {
+  readonly label: string;
+  readonly edits: readonly PipelineDraftEditDocument[];
+}
+
+/** One refusal of the draft's entities by the validator a stored pipeline must pass. */
+export interface BoardEntityRefusalDocument {
+  readonly reason:     BoardEntityRefusalReason;
+  /** Every entity the refusal names. */
+  readonly entityKeys: readonly EntityKey[];
+  /** The entity whose row shows the refusal. */
+  readonly shownOn:    EntityKey;
+  /** The command line's sentence for this refusal, as its `pipeline-draft-invalid` refusal words it. */
+  readonly sentence:   string;
+  /** `null` when no one gesture resolves it. */
+  readonly fix:        BoardEntityRefusalFixDocument | null;
 }
 
 /** What a view shows of one entity of the draft. */

@@ -31,6 +31,7 @@ import {
   FIRST_SETUP_ITEM_NUMBER,
   GATE_CANDIDACIES,
   PIPELINE_CHECK_STATES,
+  PIPELINE_SETUP_FORMAT_VERSION,
   PIPELINE_SETUP_MODES,
   PIPELINE_SETUP_STEP_STATES,
   PIPELINE_SETUP_STEPS,
@@ -45,8 +46,6 @@ import { JsonTextUtil }          from '../../shared/utils/JsonTextUtil.ts';
 import { storedFileTextOf }      from '../StoredFileText.ts';
 import { StoredValueUtil }       from '../utils/StoredValueUtil.ts';
 import { PipelineFile }          from './PipelineFile.ts';
-
-const SETUP_FORMAT_VERSION = 1;
 
 const OWNED_KEYS = [
   'formatVersion',
@@ -289,7 +288,7 @@ function constitutionOf(value: unknown, path: string): Mapped<ConstitutionDraft 
 
 function draftOf(value: unknown): Mapped<Pipeline | null> {
   if (value === null) return { value: null };
-  const reading = PipelineFile.documentReadingOf(value);
+  const reading = PipelineFile.draftReadingOf(value);
   if (reading.verdict === 'readable') return { value: reading.pipeline };
   return problemOf(`draft is not a pipeline: ${reading.verdict === 'malformed' ? reading.reason : 'its version is older'}`);
 }
@@ -461,7 +460,7 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
   const extra = Object.entries(document).filter(([key]) => !ownedKeys.includes(key));
   return {
     value: {
-      formatVersion: SETUP_FORMAT_VERSION,
+      formatVersion: PIPELINE_SETUP_FORMAT_VERSION,
       ...mapped.value,
       ...(check === null ? {} : { check: check.value }),
       ...(entities === null ? {} : { entities: entities.value }),
@@ -474,8 +473,8 @@ function setupOf(document: Record<string, unknown>): Mapped<PipelineSetup> {
 function documentReadingOf(document: unknown): PipelineSetupReading {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
   const { formatVersion } = document;
-  if (formatVersion !== SETUP_FORMAT_VERSION) {
-    return { verdict: 'malformed', reason: `formatVersion is ${JSON.stringify(formatVersion) ?? 'missing'}, and this build reads ${SETUP_FORMAT_VERSION}` };
+  if (formatVersion !== PIPELINE_SETUP_FORMAT_VERSION) {
+    return { verdict: 'malformed', reason: `formatVersion is ${JSON.stringify(formatVersion) ?? 'missing'}, and this build reads ${PIPELINE_SETUP_FORMAT_VERSION}` };
   }
   const setup = setupOf(document);
   return 'problem' in setup ? { verdict: 'malformed', reason: setup.problem } : { verdict: 'readable', setup: setup.value };
@@ -501,10 +500,10 @@ function setupEntitiesDocumentOf(entities: Readonly<Record<string, PipelineSetup
 }
 
 function documentOf(setup: Readonly<PipelineSetup>): Record<string, unknown> {
-  const draft = setup.draft === null ? null : JSON.parse(PipelineFile.contentsOf(setup.draft)) as unknown;
+  const draft = setup.draft === null ? null : JSON.parse(PipelineFile.draftContentsOf(setup.draft)) as unknown;
   // `fromEntries` makes every stored key an own property, so a stored `__proto__` stays data instead of setting the prototype.
   return Object.fromEntries([
-    ['formatVersion', SETUP_FORMAT_VERSION],
+    ['formatVersion', PIPELINE_SETUP_FORMAT_VERSION],
     ['setupId', setup.setupId],
     ['mode', setup.mode],
     ['baseContentHash', setup.baseContentHash],

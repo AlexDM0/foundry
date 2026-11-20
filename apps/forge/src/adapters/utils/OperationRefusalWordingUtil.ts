@@ -350,6 +350,9 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Pipeline setup ${detail.setupId} still asks ${detail.questionIds.join(', ')}: answer every question before the Apply. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-step-needs-recheck':
       return `Pipeline setup ${detail.setupId} needs a recheck of ${detail.steps.join(', ')}: continue each before the Apply. ${NOTHING_WAS_WRITTEN}`;
+    case 'entity-refusals-stand':
+      return `Pipeline setup ${detail.setupId}'s draft still holds ${detail.reasons.length === 1 ? '1 entity refusal' : `${detail.reasons.length} entity refusals`} `
+        + `(${[...new Set(detail.reasons)].join(', ')}): resolve every one before a step continues or the draft is applied. ${NOTHING_WAS_WRITTEN}`;
     case 'setup-snapshot-touched':
       return `The pipeline agent of pipeline setup ${detail.setupId} changed its snapshot, so its findings cannot be trusted: resume the setup `
         + `to check the snapshot out again, then apply. ${NOTHING_WAS_WRITTEN}`;

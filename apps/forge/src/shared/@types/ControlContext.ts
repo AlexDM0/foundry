@@ -30,12 +30,14 @@ export type SetupMessage =
   | { kind: 'step-continued'; setupId: string; mode: PipelineSetupMode; step: PipelineSetupStep; currentStep: PipelineSetupStep }
   | { kind: 'constitution-edited'; setupId: string; revision: number; markdown: string | null; draftedFrom: ConstitutionSources | null }
   | {
-    kind:          'draft-edited';
-    setupId:       string;
-    draftRevision: number;
-    editIds:       readonly string[];
-    fields:        readonly PipelineDraftField[];
-    changes:       readonly DraftFieldValue[];
+    kind:                   'draft-edited';
+    setupId:                string;
+    draftRevision:          number;
+    editIds:                readonly string[];
+    fields:                 readonly PipelineDraftField[];
+    changes:                readonly DraftFieldValue[];
+    /** Why the entity validator refuses the draft's entities after the edit, each as the refusal's reason; empty when none stands. */
+    standingEntityRefusals: readonly string[];
   }
   | {
     kind: 'draft-edit-undone'; setupId: string; draftRevision: number; editId: string; field: PipelineDraftField; changes: readonly DraftFieldValue[]

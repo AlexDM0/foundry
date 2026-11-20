@@ -556,7 +556,7 @@ const PROPOSAL_CHANGES: readonly PipelineChange[] = [
 
 function setupRecord(changes: Partial<PipelineSetup> = {}): PipelineSetup {
   return {
-    formatVersion:   1,
+    formatVersion:   2,
     setupId:         PIPELINE_FIXTURE_SETUP_ID,
     mode:            'setup',
     baseContentHash: null,

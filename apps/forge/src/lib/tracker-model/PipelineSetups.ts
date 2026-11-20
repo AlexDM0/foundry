@@ -68,6 +68,7 @@ import {
   LAYOUT_FINDINGS_PROPOSING_ENTITIES,
   MINIMUM_SETUP_QUESTION_OPTIONS,
   PENDING_APPLY_REQUEST_STATES,
+  PIPELINE_SETUP_FORMAT_VERSION,
   PIPELINE_SETUP_STEPS,
   SETUP_EDIT_ID_PREFIX,
   SETUP_ID_PREFIX,
@@ -75,6 +76,7 @@ import {
   SETUP_QUESTION_OPTION_LETTERS,
   UNFINISHED_PIPELINE_CHECK_STATES
 } from './constants/PipelineSetupVocabulary.ts';
+import { EntityValidationUtil }  from './utils/EntityValidationUtil.ts';
 import { PipelineChangeUtil }    from './utils/PipelineChangeUtil.ts';
 import { PipelineDraftEditUtil } from './utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }          from './utils/PipelineUtil.ts';
@@ -238,6 +240,12 @@ function existingCheckHolderOf(setup: PipelineSetup, entityKey: EntityKey | unde
   return setup.entities !== undefined && Object.hasOwn(setup.entities, entityKey) ? setup.entities[entityKey] : undefined;
 }
 
+/** The draft may hold entities the validator refuses while User works on them; Continue and Apply wait until none stands. */
+function refuseStandingEntityRefusals(setup: Readonly<PipelineSetup>): void {
+  const reasons = EntityValidationUtil.refusalsOf(setup.draft?.entities ?? {}).map((refusal) => refusal.reason);
+  if (reasons.length > 0) throw new BoardRefusal({ reason: 'entity-refusals-stand', setupId: setup.setupId, reasons });
+}
+
 function entityOf(pipeline: Readonly<Pipeline>, entityKey: EntityKey): Readonly<PipelineEntity> | undefined {
   return pipeline.entities !== undefined && Object.hasOwn(pipeline.entities, entityKey) ? pipeline.entities[entityKey] : undefined;
 }
@@ -263,7 +271,7 @@ export class PipelineSetups {
     const isUpdate = opening.mode !== 'setup';
     const stepStates = isUpdate ? updateStepStatesOf(stored) : { ...FIRST_SETUP_STEP_STATES };
     const setup: PipelineSetup = {
-      formatVersion:              1,
+      formatVersion:              PIPELINE_SETUP_FORMAT_VERSION,
       setupId:                    `${SETUP_ID_PREFIX}${this.takeNextSetupNumber()}`,
       mode:                       opening.mode,
       baseContentHash:            isUpdate && stored !== null ? PipelineUtil.contentHashOf(stored) : null,
@@ -299,13 +307,17 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-setup-billing-set', setupId, fields }, at)], setup };
   }
 
-  /** User's Continue on the current step: it is done, and the next step opens; on a step that needs a recheck, this is its only exit. */
+  /**
+   * User's Continue on the current step: it is done, and the next step opens; on a step that needs a recheck, this is its only exit. It
+   * waits while the draft's entities hold a refusal.
+   */
   continueSetupStep(setupId: string, step: PipelineSetupStep, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
     if (step === 'apply') throw new BoardRefusal({ reason: 'setup-step-not-continued', setupId, step });
     if (setup.currentStep !== step) throw new BoardRefusal({
       reason: 'setup-step-not-current', setupId, step, currentStep: setup.currentStep
     });
+    refuseStandingEntityRefusals(setup);
 
     const walkedSteps = walkedStepsOf(setup);
     const nextStep    = walkedSteps[walkedSteps.indexOf(step) + 1] ?? 'apply';
@@ -726,11 +738,11 @@ export class PipelineSetups {
 
   /**
    * Stage 1. The request of the revision already waiting answers with it, and the revision an earlier Apply closed answers
-   * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, the removal of an entity
-   * a ticket names (E91), a stored pipeline without entities turning into entities while a ticket is in flight (E94), a stored pipeline
-   * that moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already holds every draft's text, stage 2
-   * runs at once, else the request waits for the constitution commit and nothing else is written. Each entity's draft takes main's blob
-   * of its file as its base, which its commit must find.
+   * `already-applied`. Otherwise it refuses an open question, a step that needs a recheck, a touched snapshot, an entity refusal that
+   * stands, the removal of an entity a ticket names (E91), a stored pipeline without entities turning into entities while a ticket is in
+   * flight (E94), a stored pipeline that moved since the record opened, and a `CONSTITUTION.md` main changed since; when main already
+   * holds every draft's text, stage 2 runs at once, else the request waits for the constitution commit and nothing else is written. Each
+   * entity's draft takes main's blob of its file as its base, which its commit must find.
    */
   requestApply(setupId: string, requesting: ApplyRequesting, at: string): PipelineApplyChanged {
     const reading = this.records.pipelineSetupReading;
@@ -959,7 +971,7 @@ export class PipelineSetups {
 
   /**
    * Stage 1's refusals that do not read main: a stale revision, an open question of the forge or of any entity, a step to recheck, a
-   * touched snapshot, a moved pipeline.
+   * touched snapshot, an entity refusal that stands.
    */
   private refuseUnappliable(setup: Readonly<PipelineSetup>, draftRevision: number): void {
     const { setupId } = setup;
@@ -973,6 +985,7 @@ export class PipelineSetups {
     const steps = PIPELINE_SETUP_STEPS.filter((step) => step !== 'apply' && setup.stepStates[step] === 'needs-recheck');
     if (steps.length > 0) throw new BoardRefusal({ reason: 'setup-step-needs-recheck', setupId, steps });
     if (this.setupSnapshotIsTouched(setupId)) throw new BoardRefusal({ reason: 'setup-snapshot-touched', setupId });
+    refuseStandingEntityRefusals(setup);
   }
 
   /**

@@ -100,7 +100,7 @@ const NO_TEXTS: MainLineTexts = { textOf: () => null, mainConstitution: () => ({
 
 function setupRecordOf(changes: Partial<PipelineSetup> = {}): PipelineSetup {
   return {
-    formatVersion:   1,
+    formatVersion:   2,
     setupId:         'S1',
     mode:            'setup',
     baseContentHash: null,

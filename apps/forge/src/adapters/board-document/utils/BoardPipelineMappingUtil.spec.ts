@@ -4,15 +4,17 @@
  * setup record with no check reads `null` and keeps no stored bookkeeping (next numbers, extra keys); each pipeline record the contract
  * declares maps to its history entry and a record of any other kind to none; no open setup, flow or entity assignment reads `null`. Each
  * entity carries the pipeline it runs, the forge's approvals and billing joined in; each draft entity names every entity that consumes it,
- * the root's dependents being every other; and the Apply refusal is served as the command words it, or `null`.
+ * the root's dependents being every other; the Apply refusal is served as the command words it, or `null`; and the draft's entity
+ * refusals are served as `BoardEntityRefusalMappingUtil` maps them, none for entities the validator takes.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { LogRecord }           from '../../../lib/tracker-model/@types/LogRecord.ts';
-import type { Pipeline }            from '../../../lib/tracker-model/@types/Pipeline.ts';
-import type { PipelineSetupFacts }  from '../../../lib/tracker-model/@types/PipelineFacts.ts';
-import { PipelineUtil }             from '../../../lib/tracker-model/utils/PipelineUtil.ts';
-import { BoardPipelineMappingUtil } from './BoardPipelineMappingUtil.ts';
+import type { LogRecord }                from '../../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                 from '../../../lib/tracker-model/@types/Pipeline.ts';
+import type { PipelineSetupFacts }       from '../../../lib/tracker-model/@types/PipelineFacts.ts';
+import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
+import { BoardPipelineMappingUtil }      from './BoardPipelineMappingUtil.ts';
 
 const AT = '2026-11-19T10:00:00+01:00';
 
@@ -92,7 +94,7 @@ describe('BoardPipelineMappingUtil.appliedPipelineOf', () => {
 describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
   const setup: PipelineSetupFacts = {
     record: {
-      formatVersion:   1,
+      formatVersion:   2,
       setupId:         'S2',
       mode:            'advise',
       baseContentHash: 'example-hash',
@@ -187,6 +189,18 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     const unreadable = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, applyRefusal: { kind: 'main-constitution-unreadable', reason: 'git failed' } });
     expect([unreadable?.applyRefusal?.code, unreadable?.applyRefusal?.fields]).toEqual(['main-constitution-unreadable', { reason: 'git failed' }]);
     expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.applyRefusal).toBeNull();
+  });
+
+  test('serves each refusal the draft\'s entities hold, in the validator\'s order, and none for entities it takes or no draft', () => {
+    const appOn = (home: string): NonNullable<Pipeline['entities']>[string] => ({
+      kind: 'app', home: [home], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    });
+    const refusedDraft: Pipeline = { ...PipelineUtil.minimalPipelineOf(), entities: { web: appOn('/apps/web'), shop: appOn('/apps/web') } };
+    const document = BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, record: { ...setup.record, draft: refusedDraft } });
+    expect(document?.entityRefusals).toEqual(BoardEntityRefusalMappingUtil.entityRefusalsOf('S2', refusedDraft));
+    expect(document?.entityRefusals.map((refusal) => [refusal.reason, refusal.shownOn])).toEqual([['equal-homes', 'shop']]);
+    expect(BoardPipelineMappingUtil.pipelineSetupOf({ ...setup, record: { ...setup.record, draft: draftOverEntities } })?.entityRefusals).toEqual([]);
+    expect(BoardPipelineMappingUtil.pipelineSetupOf(setup)?.entityRefusals).toEqual([]);
   });
 
   test('reads no open setup as null', () => {

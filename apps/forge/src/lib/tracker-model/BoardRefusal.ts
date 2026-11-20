@@ -13,7 +13,8 @@ import type {
   TicketType,
   RowedTicketStatus
 } from './@types/Ticket.ts';
-import type { OptionNotesProblem } from './utils/OptionConsequencesUtil.ts';
+import type { EntityRefusalReason } from './utils/EntityValidationUtil.ts';
+import type { OptionNotesProblem }  from './utils/OptionConsequencesUtil.ts';
 
 /** A ticket whose Brief names files that neither its entity nor a package it whitelists owns, outside its `reach` (E85). */
 export interface TicketWorkOutsideEntity {
@@ -118,6 +119,8 @@ export type BoardRefusalDetail =
   | { reason: 'setup-entity-unknown'; entity: string; entityKeys: readonly string[] }
   | { reason: 'setup-question-open'; setupId: string; questionIds: readonly string[] }
   | { reason: 'setup-step-needs-recheck'; setupId: string; steps: readonly PipelineSetupStep[] }
+  /** Continue and Apply wait while the draft's entities hold any refusal of the entity validator. */
+  | { reason: 'entity-refusals-stand'; setupId: string; reasons: readonly EntityRefusalReason[] }
   | { reason: 'setup-snapshot-touched'; setupId: string }
   | { reason: 'pipeline-moved'; setupId: string; baseContentHash: string | null; contentHash: string | null }
   /** `entity` names the entity whose constitution file moved; absent for the forge's own `CONSTITUTION.md`. */

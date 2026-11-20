@@ -900,6 +900,7 @@ The document serves as finished facts what a view would otherwise recompute with
 | The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
 | Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
 | The refusal an Apply of the current draft meets now, as `POST /api/v1/commands` would answer it | `pipelineSetup.applyRefusal` | forge |
+| Each refusal the draft's entities hold, with the entities it names, the row that shows it, the command line's sentence and the one gesture that resolves it as typed draft edits | `pipelineSetup.entityRefusals` | forge |
 | The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step | `limits` | a reader |
 | A question option's recommendation, as the agent adapter stored it (`isRecommended` in the store) | `decisions[].questions[].options[].recommended` | a reader |
 

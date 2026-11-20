@@ -90,11 +90,12 @@ import type {
   SetupQuestion,
   SourceAnnotation
 } from '../../../lib/tracker-model/@types/PipelineSetup.ts';
-import type { AgentPair }      from '../../../lib/tracker-model/@types/Ticket.ts';
-import { EntityOwnershipUtil } from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
-import { PipelineUtil }        from '../../../lib/tracker-model/utils/PipelineUtil.ts';
-import { OperationRefusal }    from '../../../shared/OperationRefusal.ts';
-import { RefusalDocumentUtil } from '../../utils/RefusalDocumentUtil.ts';
+import type { AgentPair }                from '../../../lib/tracker-model/@types/Ticket.ts';
+import { EntityOwnershipUtil }           from '../../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
+import { PipelineUtil }                  from '../../../lib/tracker-model/utils/PipelineUtil.ts';
+import { OperationRefusal }              from '../../../shared/OperationRefusal.ts';
+import { RefusalDocumentUtil }           from '../../utils/RefusalDocumentUtil.ts';
+import { BoardEntityRefusalMappingUtil } from './BoardEntityRefusalMappingUtil.ts';
 
 function stepOf(step: PipelineStep): PipelineStepDocument {
   return { name: step.name, run: step.run, ...(step.in === undefined ? {} : { in: step.in }) };
@@ -443,6 +444,7 @@ function pipelineSetupOf(setup: PipelineSetupFacts | null): BoardPipelineSetupDo
     applyState:          applyStateOf(setup.applyState),
     draftEntities:       draftEntitiesOf(setup.record.draft),
     applyRefusal:        applyRefusalOf(setup.applyRefusal),
+    entityRefusals:      BoardEntityRefusalMappingUtil.entityRefusalsOf(setup.record.setupId, setup.record.draft),
     ...(setup.entities === undefined ? {} : { entities: byEntityOf(setup.entities, setupEntityFactsOf) }),
   };
 }

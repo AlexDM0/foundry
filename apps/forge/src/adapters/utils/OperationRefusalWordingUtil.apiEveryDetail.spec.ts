@@ -214,6 +214,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'setup-entity-unknown':      { reason: 'setup-entity-unknown', entity: 'shop', entityKeys: ['root', 'web'] },
   'setup-question-open':       { reason: 'setup-question-open', setupId: 'S1', questionIds: ['Q1'] },
   'setup-step-needs-recheck':  { reason: 'setup-step-needs-recheck', setupId: 'S1', steps: ['design'] },
+  'entity-refusals-stand':     { reason: 'entity-refusals-stand', setupId: 'S1', reasons: ['equal-homes', 'dependency-circle'] },
   'setup-snapshot-touched':    { reason: 'setup-snapshot-touched', setupId: 'S1' },
   'pipeline-moved':            {
     reason: 'pipeline-moved', setupId: 'S1', baseContentHash: 'hash-example', contentHash: null

@@ -33,7 +33,7 @@ export const BOARD_STATE_FIXTURE_PIPELINE: Pipeline = {
 };
 
 const SETUP: PipelineSetup = {
-  formatVersion:   1,
+  formatVersion:   2,
   setupId:         'S1',
   mode:            'update',
   baseContentHash: 'example-content-hash',

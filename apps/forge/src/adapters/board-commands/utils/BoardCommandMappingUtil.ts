@@ -5,14 +5,18 @@
 import type {
   ChartRangeRequest,
   DecisionAnswerFormDocument,
-  EntityDraftEditDocument,
   ForgeBoardCommand,
-  PictureReferenceDocument,
+  PictureReferenceDocument
+} from 'forge-contracts/BoardCommand';
+import type {
+  AgentStepSettingsDocument,
+  EntityDraftEditDocument,
+  InstructionEntryDocument,
   PipelineDraftEditDocument,
   PipelineEntityDefinitionDocument,
+  PipelineGateDocument,
   PipelineStepsDraftEditDocument
-} from 'forge-contracts/BoardCommand';
-import type { AgentStepSettingsDocument, InstructionEntryDocument, PipelineGateDocument } from 'forge-contracts/BoardPipelineDocuments';
+} from 'forge-contracts/BoardPipelineDocuments';
 
 import type { DecisionAnswerForm }                                from '../../../lib/tracker-model/@types/Decision.ts';
 import type { PictureReference }                                  from '../../../lib/tracker-model/@types/Job.ts';

@@ -3,25 +3,12 @@
  * kinds: each kind with the payload types the contract declares itself. A draft edit is typed, addressed by its target as the forge's
  * draft names it, never as a field string.
  */
+import type { EntityKey, GatePhase, TicketPriority } from '../constants/BoardVocabulary.ts';
 import type {
-  EntityAgentRole,
-  EntityKey,
-  EntityKind,
-  GatePhase,
-  PipelineAgentRole,
-  TicketPriority
-} from '../constants/BoardVocabulary.ts';
-import type {
-  AgentStepSettingsDocument,
   ConstitutionSourcesDocument,
-  PipelineAirlockDocument,
-  PipelineApproval,
   PipelineBillingDocument,
-  PipelineConstitutionDocument,
-  PipelineGateDocument,
-  PipelineReviewDocument,
-  PipelineSetupStep,
-  PipelineStepDocument
+  PipelineDraftEditDocument,
+  PipelineSetupStep
 } from './BoardPipelineDocuments.ts';
 import type { ForgeJobStopMode } from './ForgeControlCommand.ts';
 
@@ -43,39 +30,6 @@ export interface PictureReferenceDocument {
   readonly pictureId: string;
   readonly name:      string;
 }
-
-export interface PipelineEntityDefinitionDocument {
-  readonly kind:     EntityKind;
-  readonly home:     readonly string[];
-  readonly summary?: string;
-}
-
-/** An edit of what a pipeline and an entity both hold; a `null` value removes what it names. */
-export type PipelineStepsDraftEditDocument =
-  | { readonly target: 'gate'; readonly name: string; readonly value: PipelineGateDocument | null }
-  | { readonly target: 'phase-order'; readonly phase: GatePhase; readonly names: readonly string[] }
-  | { readonly target: 'prepare'; readonly name: string; readonly value: PipelineStepDocument | null }
-  | { readonly target: 'prepare-order'; readonly names: readonly string[] }
-  | { readonly target: 'review'; readonly value: PipelineReviewDocument | null }
-  | { readonly target: 'constitution'; readonly value: PipelineConstitutionDocument | null };
-
-/** An edit inside one entity; a `null` value removes the key. */
-export type EntityDraftEditDocument =
-  | PipelineStepsDraftEditDocument
-  | { readonly target: 'role'; readonly role: EntityAgentRole; readonly value: AgentStepSettingsDocument | null }
-  | { readonly target: 'whitelist'; readonly value: readonly EntityKey[] | null }
-  | { readonly target: 'reach'; readonly value: readonly string[] | null }
-  | { readonly target: 'depends-on'; readonly value: readonly EntityKey[] | null }
-  | { readonly target: 'concurrency'; readonly value: number | null };
-
-/** One edit of the draft pipeline; a `null` value removes what it names, or writes its default back. */
-export type PipelineDraftEditDocument =
-  | PipelineStepsDraftEditDocument
-  | { readonly target: 'role'; readonly role: PipelineAgentRole; readonly value: AgentStepSettingsDocument | null }
-  | { readonly target: 'airlock'; readonly value: PipelineAirlockDocument | null }
-  | { readonly target: 'approval'; readonly approval: PipelineApproval; readonly value: boolean | null }
-  | { readonly target: 'entity'; readonly entityKey: EntityKey; readonly value: PipelineEntityDefinitionDocument | null }
-  | { readonly target: 'within-entity'; readonly entityKey: EntityKey; readonly edit: EntityDraftEditDocument };
 
 export type ForgeBoardCommand =
   | { readonly kind: 'chart-range-set'; readonly range: ChartRangeRequest }

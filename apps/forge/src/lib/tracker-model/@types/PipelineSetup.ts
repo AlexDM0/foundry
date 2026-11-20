@@ -276,7 +276,7 @@ export interface PipelineSetupEntity {
 }
 
 export interface PipelineSetup {
-  formatVersion:              1;
+  formatVersion:              2;
   /** `S1`, `S2`, …: never reused. */
   setupId:                    string;
   mode:                       PipelineSetupMode;

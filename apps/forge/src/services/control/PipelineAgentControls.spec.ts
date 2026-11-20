@@ -3,7 +3,8 @@
  * that entity, whose part of the record takes its finding, question and constitution. What matters: a misshapen
  * payload or a missing setup is `malformed-setup-command` naming the field, with the Board untouched; a question takes two to four
  * options and exactly one recommendation unless it takes several, and never "Other"; a proposed edit outside the closed field union, or
- * one that leaves a draft the `pipeline.json` validator refuses, is refused; the constitution is stored byte for byte, and an empty,
+ * one that leaves a draft the `pipeline.json` validator refuses for any reason but its entities' set check, is refused, while entities
+ * the validator refuses land for User to resolve; the constitution is stored byte for byte, and an empty,
  * overlong, unanchored or doubly sourced one, one with a malformed source path, or one naming a source whose SOURCES tick is off, is
  * refused; a ready step is a suggestion only; and only the first proposal reads the snapshot's tree from git's index, each finding a note.
  * The forge session's second layout finding starts a first setup's `entities` step in a tracker at its repository's root only: a tracker
@@ -309,6 +310,21 @@ describe('a proposal', () => {
       ['note', 'reserved-name'], ['note', 'symbolic-link'], ['note', 'case-collision'],
     ]));
     expect(findings.every((finding) => finding.topic === 'note' && finding.sourcePaths.length > 0 && finding.value === null)).toBe(true);
+  });
+
+  test('a proposal that leaves two entities on one home lands, refusals kept for User to resolve', () => {
+    const fixture = boardAt('design');
+    apply(fixture, {
+      kind:    'pipeline-draft-propose',
+      jobId:   'J4',
+      setupId: 'S1',
+      edits:   [
+        { field: 'entity:web', value: { kind: 'app', home: ['/apps/web'] }, summary: 'The storefront.' },
+        { field: 'entity:admin', value: { kind: 'app', home: ['/apps/web'] }, summary: 'The back office.' },
+      ],
+    });
+    expect(fixture.board.pipelineSetup()?.draftRevision).toBe(1);
+    expect(Object.keys(fixture.board.pipelineSetup()?.draft?.entities ?? {})).toEqual(['web', 'admin']);
   });
 
   test.each([

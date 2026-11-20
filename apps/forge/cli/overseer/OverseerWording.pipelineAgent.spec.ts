@@ -37,7 +37,7 @@ const CONSTITUTION_MARKDOWN = '# Constitution\n\n## Tests\n\n- Each module has a
 
 function setupAt(currentStep: PipelineSetup['currentStep']): PipelineSetup {
   return {
-    formatVersion:   1,
+    formatVersion:   2,
     setupId:         'S1',
     mode:            'setup',
     baseContentHash: null,

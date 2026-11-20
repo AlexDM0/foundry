@@ -2,7 +2,8 @@
  * One body of each board command kind of the contract, with every optional field it takes, and one typed draft edit of each target: what
  * the board commands' reading and mapping specs read and map.
  */
-import type { ForgeBoardCommand, PipelineDraftEditDocument } from 'forge-contracts/BoardCommand';
+import type { ForgeBoardCommand }         from 'forge-contracts/BoardCommand';
+import type { PipelineDraftEditDocument } from 'forge-contracts/BoardPipelineDocuments';
 
 type BoardCommandSamples = { readonly [Kind in ForgeBoardCommand['kind']]: Extract<ForgeBoardCommand, { kind: Kind }> };
 

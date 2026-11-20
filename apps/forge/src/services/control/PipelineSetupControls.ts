@@ -12,6 +12,7 @@
  */
 import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
 import { SetupPayloadSchemas }                             from '../../adapters/pipeline-setup/SetupPayloadSchemas.ts';
+import { OperationRefusalWordingUtil }                     from '../../adapters/utils/OperationRefusalWordingUtil.ts';
 import { GitProcess }                                      from '../../lib/git/GitProcess.ts';
 import { commitCountAheadOf }                              from '../../lib/git/MergeTree.ts';
 import { JsonRecordUtil }                                  from '../../lib/json-record/JsonRecordUtil.ts';
@@ -32,6 +33,7 @@ import type {
 import type { Board }                                             from '../../lib/tracker-model/Board.ts';
 import { BoardRefusal }                                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { PENDING_APPLY_REQUEST_STATES, PIPELINE_SETUP_STEPS }     from '../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
+import { EntityValidationUtil }                                   from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
 import { PipelineChangeUtil }                                     from '../../lib/tracker-model/utils/PipelineChangeUtil.ts';
 import { PipelineDraftEditUtil }                                  from '../../lib/tracker-model/utils/PipelineDraftEditUtil.ts';
 import { PipelineUtil }                                           from '../../lib/tracker-model/utils/PipelineUtil.ts';
@@ -438,12 +440,13 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
 }
 
 /**
- * The draft a move would leave must pass the `pipeline.json` validator, as the stored record's read requires. It is checked before the
- * move touches the Board: a relayed command shares the Overseer's hold, which a refusal does not undo, so no move leaves a record the
+ * The draft a move would leave must pass the draft's read of the setup record, which is the `pipeline.json` validator but for the entities'
+ * set check: entities the validator refuses are kept while User works on them, and Continue and Apply wait for none. It is checked before
+ * the move touches the Board: a relayed command shares the Overseer's hold, which a refusal does not undo, so no move leaves a record the
  * board cannot read.
  */
 export function requireStorableDraft(setupId: string, draft: Readonly<Pipeline>): void {
-  const reading = PipelineFile.documentReadingOf(PipelineFile.storedDocumentOf(draft));
+  const reading = PipelineFile.draftReadingOf(PipelineFile.storedDocumentOf(draft));
   if (reading.verdict === 'readable') return;
   const reason = reading.verdict === 'malformed' ? reading.reason : reading.verdict;
   throw new OperationRefusal('refused', { kind: 'pipeline-draft-invalid', setupId, reason });
@@ -464,7 +467,12 @@ function changeFieldsOf(changes: readonly DraftFieldValue[]): PipelineDraftField
   return changes.map((fieldChange) => fieldChange.field);
 }
 
-/** The edits land together at the next revision. */
+/** Every refusal of the draft's entities, worded as the reason a stored pipeline would be refused for, which the pipeline agent hears. */
+function standingEntityRefusalsOf(draft: Readonly<Pipeline> | null): string[] {
+  return EntityValidationUtil.refusalsOf(draft?.entities ?? {}).map(OperationRefusalWordingUtil.entityRefusalReasonOf);
+}
+
+/** The edits land together at the next revision, entities the validator refuses included. */
 function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerChange, context: ControlContext): PipelineSetupChanged {
   const setupId  = textFieldOf(command, 'setupId');
   const revision = revisionFieldOf(command, 'draftRevision');
@@ -479,6 +487,7 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
   const changed  = change.board.editDraft(setupId, request, change.at);
   const newEdits = changed.setup.edits.slice(-edits.length);
   const changes  = draftChangesOf(before, changed);
+  const standingEntityRefusals = standingEntityRefusalsOf(changed.setup.draft);
   return messagedPerLevel(changed, change, context, [...newEdits.map((edit) => edit.field), ...changeFieldsOf(changes)], (keeps) => {
     const keptEdits = newEdits.filter((edit) => keeps(edit.field));
     return {
@@ -488,6 +497,7 @@ function editDraft(command: CommandOf<'pipeline-draft-edit'>, change: TrackerCha
       editIds:       keptEdits.map((edit) => edit.editId),
       fields:        keptEdits.map((edit) => edit.field),
       changes:       changes.filter((fieldChange) => keeps(fieldChange.field)),
+      standingEntityRefusals,
     };
   });
 }

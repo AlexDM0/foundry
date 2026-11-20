@@ -1,7 +1,8 @@
 /**
  * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in version
  * 2, 3 or 4. A file that cannot be read whole is `malformed` with the reason, and one below version 2 is `older`, never a throw. Version 4
- * holds entities, which this build maps and validates in full, a whitelist that names a package included.
+ * holds entities, which this build maps and validates in full, a whitelist that names a package included; a setup record's draft is read
+ * the same way but for the entities' set check, so it may hold the refusals User has not resolved yet.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type { GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -480,7 +481,7 @@ function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineF
   };
 }
 
-/** Each entity mapped, then the entities checked together by the validator the Bridge shares. */
+/** Each entity mapped on its own; whether the entities stand together is `entitySetProblemOf`'s. */
 function entitiesOf(value: unknown, formatVersion: PipelineFormatVersion): Mapped<Record<EntityKey, PipelineEntity> | undefined> {
   if (value === undefined) return { value: undefined };
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('entities is not an object');
@@ -491,8 +492,13 @@ function entitiesOf(value: unknown, formatVersion: PipelineFormatVersion): Mappe
     if ('problem' in entity) return entity;
     entities[entityKey] = entity.value;
   }
-  const firstRefusal = EntityValidationUtil.refusalsOf(entities)[0];
-  return firstRefusal === undefined ? { value: entities } : problemOf(OperationRefusalWordingUtil.entityRefusalReasonOf(firstRefusal));
+  return { value: entities };
+}
+
+/** The first refusal of the entities checked together by the validator the Bridge shares, which a stored pipeline must pass. */
+function entitySetProblemOf(entities: Readonly<Record<EntityKey, PipelineEntity>> | undefined): { problem: string } | null {
+  const firstRefusal = entities === undefined ? undefined : EntityValidationUtil.refusalsOf(entities)[0];
+  return firstRefusal === undefined ? null : problemOf(OperationRefusalWordingUtil.entityRefusalReasonOf(firstRefusal));
 }
 
 /** A version 4 file holds entities, the only reason it exists, and beside them the forge's own steps, gates, constitution and reach stay empty. */
@@ -507,7 +513,13 @@ function entitiesProblemOf(document: Record<string, unknown>, formatVersion: Pip
   return keyNotEmpty === undefined ? null : problemOf(`${keyNotEmpty} is not empty beside entities; each entity holds its own`);
 }
 
-function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFormatVersion): Mapped<Pipeline> {
+/**
+ * `stored`: the pipeline a board runs, whose entities must stand together. `draft`: a setup record's unfinished draft, whose entities are
+ * mapped each on its own and may hold refusals while User works on them.
+ */
+type PipelineReadingPurpose = 'stored' | 'draft';
+
+function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFormatVersion, purpose: PipelineReadingPurpose): Mapped<Pipeline> {
   const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS_OF_VERSION[formatVersion], '');
   if (unknownKeyProblem !== null) return problemOf(unknownKeyProblem);
   const missingKey = REQUIRED_KEYS.find((key) => document[key] === undefined);
@@ -532,6 +544,8 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
   if ('problem' in billing) return billing;
   if ('problem' in reach) return reach;
   if ('problem' in entities) return entities;
+  const entitySetProblem = purpose === 'stored' ? entitySetProblemOf(entities.value) : null;
+  if (entitySetProblem !== null) return entitySetProblem;
   return {
     value: {
       version: PIPELINE_FORMAT_VERSION,
@@ -552,7 +566,7 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
  * Version 2, 3 and 4 are mapped, each by its exact version with its own keys; no release converts an earlier file, so one with no version
  * or a lower one is `older`, never mapped, and a higher one is malformed.
  */
-function documentReadingOf(document: unknown): PipelineReading {
+function readingOf(document: unknown, purpose: PipelineReadingPurpose): PipelineReading {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
   const { version } = document;
   if (version === undefined) return { verdict: 'older' };
@@ -562,8 +576,17 @@ function documentReadingOf(document: unknown): PipelineReading {
   if (formatVersion === undefined) {
     return { verdict: 'malformed', reason: `version is ${version}, a newer format than version ${Math.max(...READABLE_FORMAT_VERSIONS)}, which this build reads (newer-format)` };
   }
-  const pipeline = pipelineOf(document, formatVersion);
+  const pipeline = pipelineOf(document, formatVersion, purpose);
   return 'problem' in pipeline ? { verdict: 'malformed', reason: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
+}
+
+function documentReadingOf(document: unknown): PipelineReading {
+  return readingOf(document, 'stored');
+}
+
+/** A setup record's draft, read as a stored pipeline is but for the entities' set check, so a draft with refused entities is kept. */
+function draftReadingOf(document: unknown): PipelineReading {
+  return readingOf(document, 'draft');
 }
 
 /** A stored pipeline with entities in a tracker in a folder, which the board cannot use, as any malformed one. */
@@ -593,12 +616,21 @@ function storedDocumentOf(pipeline: Readonly<Pipeline>): Record<string, unknown>
  * Mapped through the read, so `version` is written first and every key in the order the read lists them; the required keys are always
  * written, so an empty gate list stays the deliberate "no gates" it was set as, and an optional key only once set.
  */
-function contentsOf(pipeline: Readonly<Pipeline>): string {
+function textOf(pipeline: Readonly<Pipeline>, purpose: PipelineReadingPurpose): string {
   const document = storedDocumentOf(pipeline);
-  const reading  = documentReadingOf(document);
+  const reading  = readingOf(document, purpose);
   return JsonTextUtil.storedFileTextOf(reading.verdict === 'readable' ? { ...reading.pipeline, version: document['version'] } : document);
 }
 
+function contentsOf(pipeline: Readonly<Pipeline>): string {
+  return textOf(pipeline, 'stored');
+}
+
+/** A setup record's draft as its record stores it, mapped through the draft's read, refused entities included. */
+function draftContentsOf(pipeline: Readonly<Pipeline>): string {
+  return textOf(pipeline, 'draft');
+}
+
 export const PipelineFile = Object.freeze({
-  read, contentsOf, documentReadingOf, entitiesInAFolderReadingOf, storedDocumentOf, billingOf
+  read, contentsOf, documentReadingOf, draftReadingOf, draftContentsOf, entitiesInAFolderReadingOf, storedDocumentOf, billingOf
 });
