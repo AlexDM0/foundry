@@ -104,8 +104,7 @@ function newBoard(
       task:        null,
       extra:       [],
     },
-    body:     storedBody,
-    filePath: '/example-agency/.agent-progress/tickets/001-example.md',
+    body: storedBody,
   };
   return new Board({
     progress,

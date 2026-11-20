@@ -20,8 +20,19 @@ import type { Workspace }                                          from './Works
  * filed, a ticket deleted by hand among them. A Board satisfies it.
  */
 export interface TicketsSpentInHold {
-  tickets():         readonly Readonly<Pick<Ticket, 'frontmatter' | 'filePath'>>[];
+  tickets():         readonly Readonly<Pick<Ticket, 'frontmatter'>>[];
   logRecordsSoFar(): readonly LogRecord[];
+}
+
+/** The port's listing with each listed ticket's file by its id: the local adapter's alone, never answered past the store. */
+export interface LocalTicketListing extends TicketListing {
+  ticketLocations: ReadonlyMap<string, string>;
+}
+
+/** A ticket filed in a hold and the file this hold stores it in. */
+export interface CreatedTicket {
+  ticket:   Ticket;
+  location: string;
 }
 
 const TICKET_FILE_EXTENSION      = '.md';
@@ -32,7 +43,7 @@ const FILE_NAME_IDENTIFIER_MATCH = /^(\d+)(?:-|\.md$)/;
  * A ticket is known by its frontmatter `id`. A file whose name carries another number, and every file holding an id another
  * also holds, is listed as unreadable with its reason, since which of them is the ticket cannot be judged. Ordered by id numerically.
  */
-export function listTickets(workspace: Workspace): TicketListing {
+export function listTickets(workspace: Workspace): LocalTicketListing {
   const parsedFiles: ParsedTicketFile[] = [];
   const unreadable: UnreadableRecord[]  = [];
 
@@ -41,7 +52,9 @@ export function listTickets(workspace: Workspace): TicketListing {
     const reading  = new TicketFileIngestion(filePath).read();
 
     if (reading.verdict === 'parsed') {
-      parsedFiles.push({ fileName, ticket: reading.ticket, identifierLine: reading.identifierLine });
+      parsedFiles.push({
+        fileName, location: filePath, ticket: reading.ticket, identifierLine: reading.identifierLine
+      });
     } else {
       unreadable.push({
         record: 'ticket', key: identifierInFileName(fileName), location: filePath, reason: reading.reason, line: reading.line
@@ -76,9 +89,15 @@ export function listTickets(workspace: Workspace): TicketListing {
   listedFiles.sort((a, b) => Number(a.ticket.frontmatter.id) - Number(b.ticket.frontmatter.id));
   unreadable.sort((a, b) => (a.location < b.location ? -1 : Number(a.location > b.location)));
   return {
-    tickets: listedFiles.map((listedFile) => listedFile.ticket),
+    tickets:         listedFiles.map((listedFile) => listedFile.ticket),
     unreadable,
+    ticketLocations: new Map(listedFiles.map((listedFile) => [listedFile.ticket.frontmatter.id, listedFile.location])),
   };
+}
+
+/** The port's listing alone, for an answer that leaves the store. */
+export function ticketListingOf(listing: LocalTicketListing): TicketListing {
+  return { tickets: listing.tickets, unreadable: listing.unreadable };
 }
 
 /** Looked up by frontmatter `id`, never by file name; a ticket `listTickets` reports as unreadable answers for no id. */
@@ -118,10 +137,18 @@ export function nextTicketId(workspace: Workspace, spentInHold: TicketsSpentInHo
   return TicketIdUtil.padTicketId(Math.max(highest + 1, FIRST_TICKET_NUMBER));
 }
 
-/** Writes nothing: the caller holds the lock and writes the ticket after the progress file, so the id it assigns is only safe to use inside that hold. */
-export function createTicket(workspace: Workspace, spentInHold: TicketsSpentInHold, input: CreateTicketInput): Ticket {
+/**
+ * Writes nothing: the caller holds the lock and writes the ticket after the progress file, so the id it assigns is only safe to use inside that
+ * hold. `heldTicketLocations` are the files the hold already holds tickets in, those filed in it and not yet written among them.
+ */
+export function createTicket(
+  workspace: Workspace,
+  spentInHold: TicketsSpentInHold,
+  heldTicketLocations: Iterable<string>,
+  input: CreateTicketInput,
+): CreatedTicket {
   const identifier  = nextTicketId(workspace, spentInHold);
-  const fileName    = `${identifier}-${unusedSlugFor(workspace, spentInHold, slugFromTitle(input.title))}${TICKET_FILE_EXTENSION}`;
+  const fileName    = `${identifier}-${unusedSlugFor(workspace, heldTicketLocations, slugFromTitle(input.title))}${TICKET_FILE_EXTENSION}`;
   const frontmatter: TicketFrontmatter = {
     id:          identifier,
     title:       input.title,
@@ -138,7 +165,7 @@ export function createTicket(workspace: Workspace, spentInHold: TicketsSpentInHo
     task:        null,
     extra:       [],
   };
-  return { frontmatter, body: input.bodyFor(identifier), filePath: join(workspace.ticketsDirectory, fileName) };
+  return { ticket: { frontmatter, body: input.bodyFor(identifier) }, location: join(workspace.ticketsDirectory, fileName) };
 }
 
 /** Every ticket file `clear --all` removes, whether or not it parses. */
@@ -148,6 +175,7 @@ export function everyTicketFilePathIn(workspace: Workspace): string[] {
 
 interface ParsedTicketFile {
   fileName:       string;
+  location:       string;
   ticket:         Ticket;
   identifierLine: number;
 }
@@ -157,7 +185,7 @@ function unreadableEntryOf(parsedFile: ParsedTicketFile, reason: string): Unread
   return {
     record:   'ticket',
     key:      identifierInFileName(parsedFile.fileName) ?? parsedFile.ticket.frontmatter.id,
-    location: parsedFile.ticket.filePath,
+    location: parsedFile.location,
     reason,
     line:     parsedFile.identifierLine,
   };
@@ -190,11 +218,11 @@ function ticketFileNamesIn(workspace: Workspace): string[] {
 }
 
 /** The id already makes the path unique, so the `-2` suffix buys readability, not collision safety. */
-function unusedSlugFor(workspace: Workspace, spentInHold: TicketsSpentInHold, slug: string): string {
-  const heldFileNames = spentInHold.tickets().map((ticket) => basename(ticket.filePath));
+function unusedSlugFor(workspace: Workspace, heldTicketLocations: Iterable<string>, slug: string): string {
+  const heldFileNames = [...heldTicketLocations].map((location) => basename(location));
   const takenSlugs    = new Set([...ticketFileNamesIn(workspace), ...heldFileNames].map(slugPortionOf));
-  let candidate    = slug;
-  let attempt      = 2;
+  let candidate       = slug;
+  let attempt         = 2;
 
   while (takenSlugs.has(candidate)) {
     candidate = `${slug}-${attempt}`;

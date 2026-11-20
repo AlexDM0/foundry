@@ -1,4 +1,4 @@
-/** The local files adapter's record allocation: a new ticket's id and file, a new epic's file, and the file of each single record. */
+/** The local files adapter's record allocation: a new ticket's id and file, the file of each ticket the hold holds, and of each single record. */
 import type { Board }       from '../../lib/tracker-model/Board.ts';
 import { OperationRefusal } from '../../shared/OperationRefusal.ts';
 import type {
@@ -34,18 +34,40 @@ export function singleRecordFilePathOf(workspace: Workspace, reference: RecordRe
   }
 }
 
-/** Built inside the hold after the Board is opened: the Board satisfies `TicketsSpentInHold`, so two tickets of one hold get two ids. */
-export function createLocalRecordAllocation(workspace: Workspace, board: Board, unreadableRecords: UnreadableRecords): RecordAllocation {
+/** The transaction's allocation, and for the adapter alone the file each ticket of the hold is stored in. */
+export interface LocalRecordAllocation extends RecordAllocation {
+  /** Throws for a ticket neither listed at the hold's start nor allocated in it: the Board changed a ticket the store never held. */
+  storedTicketLocationOf(ticketId: string): string;
+}
+
+/**
+ * Built inside the hold after the Board is opened: the Board satisfies `TicketsSpentInHold`, so two tickets of one hold get two ids. Seeded
+ * with the listing's ticket files, so a retitled ticket keeps the file it was read from.
+ */
+export function createLocalRecordAllocation(
+  workspace: Workspace,
+  board: Board,
+  unreadableRecords: UnreadableRecords,
+  listedTicketLocations: ReadonlyMap<string, string>,
+): LocalRecordAllocation {
+  const ticketLocations = new Map(listedTicketLocations);
   return {
-    newTicket:       (input) => createTicket(workspace, board, input),
-    newEpicLocation: (epicKey) => {
-      const filePath = epicFilePathOf(workspace, epicKey);
-      refuseAnUnreadableRecordOfKey(unreadableRecords.epics, epicKey, filePath, 'epic');
-      return filePath;
+    newTicket: (input) => {
+      const created = createTicket(workspace, board, ticketLocations.values(), input);
+      ticketLocations.set(created.ticket.frontmatter.id, created.location);
+      return created.ticket;
+    },
+    requireEpicKeyIsFree: (epicKey) => {
+      refuseAnUnreadableRecordOfKey(unreadableRecords.epics, epicKey, epicFilePathOf(workspace, epicKey), 'epic');
     },
     requireDraftKeyIsFree: (draftId) => {
       refuseAnUnreadableRecordOfKey(unreadableRecords.drafts, draftId, draftFilePathOf(workspace, draftId), 'draft');
     },
-    locationOf: (reference) => singleRecordFilePathOf(workspace, reference),
+    locationOf:             (reference) => singleRecordFilePathOf(workspace, reference),
+    storedTicketLocationOf: (ticketId) => {
+      const location = ticketLocations.get(ticketId);
+      if (location === undefined) throw new Error(`Ticket #${ticketId} was changed in a hold that neither listed nor allocated it, so the store holds no file for it.`);
+      return location;
+    },
   };
 }

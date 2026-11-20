@@ -30,7 +30,6 @@ export class TicketFileIngestion {
     const ticket: Ticket = {
       frontmatter: parsed.frontmatter,
       body:        parsed.body,
-      filePath:    this.ticketFilePath,
       lineEnding:  parsed.lineEnding,
       ...(parsed.storedType === undefined ? {} : { storedType: parsed.storedType }),
     };

@@ -17,10 +17,10 @@ drives every ticket through its build, review and merge; no session drives the b
   ticket review is off, it is pending at once. When ticket review is on, it waits for User in ready-for-review.
 - Work User finished and landed outside the Overseer is recorded with `{{program}} ticket deliver <id> --by-hand`,
   refused while an Overseer is live; no other lifecycle move is made by hand.
-- `{{dataFolder}}/reference.md` holds the ticket format, the moves and the exit codes; `{{program}} help` holds
+- `{{dataFolder}}/reference.md` holds a ticket's fields, the moves and the exit codes; `{{program}} help` holds
   every command.
 - Record milestones with `{{program}} log "<what happened>"`; `--at -5m` backfills a stamp nobody registered at the
   time.
-- Never edit `{{dataFolder}}/progress.json` by hand, and edit a ticket only below its frontmatter:
-  `{{program}} ticket show <id>` prints the file path to edit.
+- Never edit a file under `{{dataFolder}}`. Change a ticket's title or body with `{{program}} ticket edit`, and each
+  other field with its own `ticket` verb; the board refuses what it does not allow.
 - Run `{{program}} open` once per session so User has the board in the browser.

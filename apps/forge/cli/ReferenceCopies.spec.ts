@@ -1,8 +1,8 @@
 /**
  * `resources/templates/Reference.md`, installed as `.agent-progress/reference.md`, carries three sections of `docs/cli.md` for agents that
- * cannot read the docs: the ticket file, the ticket moves and the exit codes. Each copy must hold its source's body byte for byte, so an edit
- * to either side alone fails here. The Reference section may add lines of its own around the copy (a path line above the ticket file, a
- * paragraph after the moves), never inside it. The scan is fence-aware, because the ticket file's example holds markdown headings that would
+ * cannot read the docs: a ticket, the ticket moves and the exit codes. Each copy must hold its source's body byte for byte, so an edit
+ * to either side alone fails here. The Reference section may add lines of its own around the copy (a paragraph after the moves), never
+ * inside it. The scan is fence-aware, because a ticket's example holds markdown headings that would
  * otherwise end its section early. Both sides name the program and the data folder through the same `{{program}}` and `{{dataFolder}}`
  * placeholders the install fills, so the raw texts are compared and a rename of either name touches neither file.
  */
@@ -19,8 +19,8 @@ const SMALLEST_COPIED_SECTION_CHARACTERS = 1_000;
 /** Each section with a phrase that occurs once in it and a word of that phrase the mutation tests swap. */
 const COPIED_SECTIONS = [
   {
-    sourceHeading: '### `{{dataFolder}}/tickets/003-double-click-a-role-to-edit-it.md`',
-    copyHeading:   '## The ticket file',
+    sourceHeading: '#### A ticket',
+    copyHeading:   '## A ticket',
     mutation:      { phrase: 'The frontmatter is a deliberately small YAML subset.', word: 'small' },
   },
   {
@@ -97,7 +97,7 @@ describe('resources/templates/Reference.md copies its three docs/cli.md sections
     expect(`${DOCUMENTATION_TEXT}${REFERENCE_TEXT}`).toContain('{{program}} init');
   });
 
-  test('the ticket file section runs past the markdown headings inside its example', () => {
+  test('the ticket section runs past the markdown headings inside its example', () => {
     expect(sectionBodyOf(DOCUMENTATION_TEXT, COPIED_SECTIONS[0].sourceHeading)).toContain('gaps are tolerated, never filled.');
   });
 

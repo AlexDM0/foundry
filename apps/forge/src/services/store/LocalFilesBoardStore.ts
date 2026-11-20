@@ -21,7 +21,7 @@ import type {
 import type { LockHolderIsGone }                  from '../tracker/GenerationLock.ts';
 import { holdJournalFilePathOf, readHoldJournal } from '../tracker/HoldJournal.ts';
 import { singleRecordFilePathOf }                 from '../tracker/LocalRecordAllocation.ts';
-import { listTickets }                            from '../tracker/TicketStore.ts';
+import { listTickets, ticketListingOf }           from '../tracker/TicketStore.ts';
 import { createTracker }                          from '../tracker/TrackerCreation.ts';
 import { writeTracker }                           from '../tracker/TrackerPipeline.ts';
 import {
@@ -125,7 +125,7 @@ export function createLocalFilesBoardStore(options: LocalFilesBoardStoreOptions)
     storedPipelineText:  () => storedPipelineTextOf(workspace),
     readGateProfiles:    () => GateProfilesFile.read(workspace.gateProfilesFilePath),
     readLogRecords:      () => logRecordsReadingOf(workspace),
-    listTickets:         () => listTickets(workspace),
+    listTickets:         () => ticketListingOf(listTickets(workspace)),
     readUnfinishedWrite: () => unfinishedWriteOf(workspace),
     revision:            () => revisionOf(workspace),
     locationOf:          (reference: RecordReference) => singleRecordFilePathOf(workspace, reference),

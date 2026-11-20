@@ -55,8 +55,7 @@ function newBoard(): Board {
       task:        null,
       extra:       [],
     },
-    body:     '## Acceptance\nA1. The example page loads.\n',
-    filePath: '/example-agency/.agent-progress/tickets/001-example.md',
+    body: '## Acceptance\nA1. The example page loads.\n',
   };
   return new Board({
     progress,

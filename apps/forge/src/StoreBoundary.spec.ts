@@ -83,8 +83,6 @@ const STORE_ADAPTER_FOLDERS: readonly string[] = [
 
 /** `<path>: <form>: <trimmed line>`, sorted by path, each naming the package that removes it. */
 const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
-  'bridge/views/pipeline/live/PipelineFileDialog.tsx: record-file-name: title="pipeline.json"':
-    'Removed by WP5.13: no output names where a readable record is kept, and the pipeline dialog is titled with the stored file\'s name.',
   'cli/InstalledFiles.ts: store-internal-import: import { TRACKER_FILES }                                       from \'../src/services/tracker/constants/TrackerFiles.ts\';':
     'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
   'cli/OpenTrackerForWriting.ts: store-internal-import: import { writeTracker, type TrackerWritten }   from \'../src/services/tracker/TrackerPipeline.ts\';':
@@ -104,12 +102,6 @@ const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
   'cli/dispatch/concurrency/ConcurrencyCommand.ts: store-internal-import: import { requireProgressFile }              from \'../../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
-  'cli/drafts/DraftCommand.ts: record-path-name: draftSummaryOf(draft, board.draftStateOf(draft), draftFilePathOf(workspace, draftId)),':
-    'Removed by WP5.13: no output names where a readable draft is kept.',
-  'cli/drafts/DraftCommand.ts: record-path-name: import { draftFilePathOf }                                         from \'../../src/services/tracker/DraftStore.ts\';':
-    'Removed by WP5.13: no output names where a readable draft is kept.',
-  'cli/drafts/DraftCommand.ts: store-internal-import: import { draftFilePathOf }                                         from \'../../src/services/tracker/DraftStore.ts\';':
-    'Removed by WP5.13: no output names where a readable draft is kept.',
   'cli/drafts/DraftCommand.ts: store-internal-import: import { requireTracker }                                          from \'../../src/services/tracker/TrackerReader.ts\';':
     'Removed by WP5.9: the CLI reads through the store\'s read side.',
   'cli/epics/EpicCommand.ts: store-internal-import: import { requireTracker }          from \'../../src/services/tracker/TrackerReader.ts\';':

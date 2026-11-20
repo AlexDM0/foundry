@@ -397,8 +397,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Tickets
 
-- Tickets are hand-edited between runs; the CLI owns a frontmatter subset (`docs/cli.md`) and writes back every
-  other line.
+- Nobody hand-edits a ticket file: a ticket's title and body change through `ticket edit` (`ticket-edit`), each other
+  field through its verb, and every change is a command the board accepts or refuses. The local store reads the
+  frontmatter subset of `docs/cli.md` and keeps any other line it finds.
 - A ticket is its frontmatter `id`, never its file name. Ticket and task ids are never reused or gap-filled.
 - Only a transition stamps `updated`. The named verbs enforce the legality matrix; `ticket status` skips it on purpose.
 - `ticket add` files a draft ticket, `draft`, with no row at any priority; only `ticket ready`, after the readiness

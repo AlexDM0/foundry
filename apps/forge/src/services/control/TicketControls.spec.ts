@@ -31,14 +31,14 @@ import {
   refusalDetailOf,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
-import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
-import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
-import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
-import { listTickets }                                    from '../tracker/TicketStore.ts';
-import { workspacePathsFor }                              from '../tracker/Workspace.ts';
-import { ControlService }                                 from './ControlService.ts';
+import { ECHOED_CONTROL_CONTEXT }                            from '../../testing/EchoedControlContext.ts';
+import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
+import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
+import { listTickets }                                       from '../tracker/TicketStore.ts';
+import { workspacePathsFor }                                 from '../tracker/Workspace.ts';
+import { ControlService }                                    from './ControlService.ts';
 
 const AT = '2026-11-03T10:00:00+01:00';
 
@@ -74,7 +74,7 @@ function boardWithOneTicket(
   mkdirSync(workspace.ticketsDirectory, { recursive: true });
   const { board } = boardFixture({ tickets: [ticket], ...(pipeline === undefined ? {} : { pipeline }) });
   const change = {
-    board, workspace, at: AT, records: createLocalRecordAllocation(workspace, board, NO_UNREADABLE_RECORDS), unreadableRecords: NO_UNREADABLE_RECORDS
+    board, workspace, at: AT, records: createLocalRecordAllocation(workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS), unreadableRecords: NO_UNREADABLE_RECORDS
   } as unknown as BoardTransaction;
   return { board, change };
 }

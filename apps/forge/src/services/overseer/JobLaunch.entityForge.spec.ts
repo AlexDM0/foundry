@@ -41,7 +41,7 @@ import {
 } from '../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../testing/EntityForgeScenarios.ts';
 import { fakeAgentAdapter }                                                                from '../../testing/FakeAgentAdapter.ts';
-import { NO_UNREADABLE_RECORDS }                                                           from '../../testing/FixtureRecordAllocation.ts';
+import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS }                               from '../../testing/FixtureRecordAllocation.ts';
 import { useRecordedGit }                                                                  from '../../testing/RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory }                                  from '../../testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                                                       from '../../testing/ToolGuard.ts';
@@ -182,7 +182,7 @@ function verify(build: ForgeBuild, scenario: EntityForgeScenario, outcome: 'buil
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
   JobLaunch.applyBuildJobObservations({
-    board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS)
+    board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
   } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
     setup:           'installed',

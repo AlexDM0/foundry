@@ -28,7 +28,6 @@ export class EpicFileIngestion {
       epic:    {
         frontmatter: parsed.frontmatter,
         body:        parsed.body,
-        filePath:    this.epicFilePath,
         lineEnding:  parsed.lineEnding,
       },
     };

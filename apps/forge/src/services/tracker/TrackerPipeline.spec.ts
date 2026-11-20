@@ -10,6 +10,7 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   statSync,
   writeFileSync,
@@ -32,7 +33,7 @@ import {
 } from '../../testing/TrackerFileFixtures.ts';
 import type { BoardTransaction }             from './BoardTransaction.ts';
 import { LockGenerationSteps }               from './GenerationLock.ts';
-import { createTicket, listTickets }         from './TicketStore.ts';
+import { listTickets }                       from './TicketStore.ts';
 import { writeTracker }                      from './TrackerPipeline.ts';
 import { workspacePathsFor, type Workspace } from './Workspace.ts';
 import { thrownFailureOf }                   from './testing/ThrownFailure.ts';
@@ -239,7 +240,7 @@ describe('writeTracker', () => {
   test('two tickets filed in one hold take two ids and two files, and both list', async () => {
     writeReadableTracker(workspace);
     const fileExampleTicket = (change: BoardTransaction): void => {
-      const ticket = createTicket(change.workspace, change.board, {
+      const ticket = change.records.newTicket({
         title: 'Example finding', type: 'bug', bodyFor: () => '# Example finding\n', at: change.at
       });
       change.board.fileTicket(ticket, change.at);
@@ -257,11 +258,62 @@ describe('writeTracker', () => {
 
     const listing = listTickets(workspace);
     expect(listing.unreadable).toEqual([]);
-    expect(listing.tickets.map((ticket) => basename(ticket.filePath))).toEqual([
+    expect(listing.tickets.map((ticket) => basename(listing.ticketLocations.get(ticket.frontmatter.id) ?? ''))).toEqual([
       EXAMPLE_TICKET_FILE_NAME,
       '002-example-finding.md',
       '003-example-finding-2.md',
     ]);
+  });
+
+  // The model holds no location, so a retitle must not drift the ticket to a fresh `<id>-<slug>.md` beside its file.
+  test('a changed ticket is written to the file it was read from, also after a retitle', async () => {
+    writeReadableTracker(workspace);
+    const handNamedPath = join(workspace.ticketsDirectory, '001-named-by-hand.md');
+    renameSync(ticketFilePath(), handNamedPath);
+
+    await writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastPending: true }, change.at),
+    });
+
+    expect(readdirSync(workspace.ticketsDirectory)).toEqual(['001-named-by-hand.md']);
+    expect(listTickets(workspace).tickets.map((ticket) => ticket.frontmatter.title)).toEqual(['Example retitled checkout']);
+  });
+
+  test('a ticket the Board changed that the store never listed nor allocated throws, and nothing is written', async () => {
+    writeReadableTracker(workspace);
+    const storedBefore = storedFileContentsOf(workspace);
+
+    const failure = await thrownFailureOf(() => writeTracker({
+      workspace,
+      at:     CHANGED_AT,
+      now,
+      mutate: (change) => {
+        const [stored] = change.board.tickets();
+        if (stored === undefined) throw new Error('the example tracker holds no ticket');
+        change.board.fileTicket({ ...stored, frontmatter: { ...stored.frontmatter, id: '009' } }, change.at);
+      },
+    }));
+
+    expect(String(failure)).toContain('#009');
+    expect(storedFileContentsOf(workspace)).toEqual(storedBefore);
+  });
+
+  test('an added epic is written to <key>.md and a removed one is removed from there', async () => {
+    writeReadableTracker(workspace);
+    const addition = { key: 'example-epic', title: 'Example epic', body: 'Alex Example pays in one step.\n' };
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.addEpic(addition, change.at)
+    });
+    expect(readdirSync(workspace.epicsDirectory)).toEqual(['example-epic.md']);
+
+    await writeTracker({
+      workspace, at: CHANGED_AT, now, mutate: (change) => change.board.removeEpic('example-epic', change.at)
+    });
+    expect(readdirSync(workspace.epicsDirectory)).toEqual([]);
   });
 
   test('the mutation gets the unreadable records, keyed, and the records a hold allocates from; the caller gets the same report', async () => {

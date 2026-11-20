@@ -35,7 +35,6 @@ const PAGE_TICKET: PageTicket = {
   abandonedAt:     null,
   task:            null,
   extra:           [['owner-note', 'kept']],
-  filePath:        '/example/tickets/001-example.md',
   bodyHtml:        '<p>Example</p>',
   sections:        [{ heading: 'Brief', markdown: 'Example brief.' }],
   acceptanceItems: [{ label: 'A1', text: 'The page loads.', waived: false }],

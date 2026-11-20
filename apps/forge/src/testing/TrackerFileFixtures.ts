@@ -34,7 +34,7 @@ export function writeMinimalTracker(rootDirectory: string): string {
 export function writeReadableTracker(workspace: Workspace): void {
   createProgressFileWriter(workspace.progressFilePath).write(emptyProgress());
   createLogFileWriter(workspace.logFilePath).write([EXAMPLE_SESSION_NOTE]);
-  createTicketFileWriter().write({ ...ticketFixture({ title: 'Example checkout page' }), filePath: join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME) });
+  createTicketFileWriter().write(ticketFixture({ title: 'Example checkout page' }), join(workspace.ticketsDirectory, EXAMPLE_TICKET_FILE_NAME));
 }
 
 /** Every stored file but the lock's records, which every lock hold writes. */

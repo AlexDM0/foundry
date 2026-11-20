@@ -31,13 +31,13 @@ import {
   taskFixture,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
-import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }   from '../../testing/EntityForgeFixture.ts';
-import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
-import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
-import type { Workspace }                                 from '../tracker/Workspace.ts';
-import { NeedTickets }                                    from './NeedTickets.ts';
+import { ENTITY_FORGE_ENTITIES, entityForgePipelineOf }      from '../../testing/EntityForgeFixture.ts';
+import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
+import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
+import type { Workspace }                                    from '../tracker/Workspace.ts';
+import { NeedTickets }                                       from './NeedTickets.ts';
 
 const AT = '2026-11-17T12:00:00+01:00';
 
@@ -60,7 +60,7 @@ const folders: string[] = [];
 
 /** The local adapter's allocation over a scratch tickets folder, so a filed need gets the id the folder gives. */
 function scratchRecordAllocationOf(ticketsDirectory: string, board: Board): BoardTransaction['records'] {
-  return createLocalRecordAllocation({ ticketsDirectory } as Workspace, board, NO_UNREADABLE_RECORDS);
+  return createLocalRecordAllocation({ ticketsDirectory } as Workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS);
 }
 
 afterEach(() => {

@@ -16,6 +16,6 @@ describe('TicketJsonUtil.ticketAsJson', () => {
 
     expect(document).toEqual({ ...TicketJsonUtil.ticketDocumentOf(ticket), body: '## Example\n\nThe body.\n' });
     expect(Object.keys(document).at(-1)).toBe('body');
-    expect(Object.keys(document).at(-2)).toBe('filePath');
+    expect(Object.keys(document).at(-2)).toBe('epics');
   });
 });

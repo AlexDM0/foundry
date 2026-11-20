@@ -4,18 +4,15 @@
 itself and therefore never out of step with it. Run it when you need a flag you do not remember;
 nothing here repeats it.
 
-What is here is what the tool does not print: the ticket file an agent edits and the Brief it carries, what each
+What is here is what the tool does not print: the ticket's fields and the Brief it carries, what each
 move does to the Gantt row, the jobs, decisions and incidents the Overseer keeps, how a finding travels, what a session
 under a job may run, where a review bar is drawn, how a row's tokens are credited, what counts against the limit,
 the time axis and the exit codes. `{{program}} init` and `update` install it as `{{dataFolder}}/reference.md` and
 rewrite it on every run, so a hand edit is undone; read it when a skill or a prompt sends you here, not before.
 
-## The ticket file
+## A ticket
 
-`{{dataFolder}}/tickets/003-double-click-a-role-to-edit-it.md`.
-
-The file name is the padded id and a slug of the title; the ticket is known by its frontmatter `id`.
-The CLI writes its keys in this order, omitting an optional key it does not have:
+The ticket is known by its `id`. The CLI writes its keys in this order, omitting an optional key it does not have:
 
 ```
 ---
@@ -46,7 +43,6 @@ crosses: "design-system"
 filedByJob: "J12"
 claimedBodyHash: "5f1d3c9a0b7e2468"
 task: 17
-owner: Alex Example
 ---
 # 003 — Double-click a role to edit it
 
@@ -87,14 +83,9 @@ A ticket stored with a status that is not a ticket status, the retired `open` or
 malformed at its status line, the reason ending in the advice to run `{{program}} update` with a
 release that still reads it.
 
-**Unknown keys, comments and blank lines are kept and written back**, so a field you add by hand —
-`owner: Alex Example` above — survives every transition. The CLI's own keys are rewritten at the top
-in the order above and everything else follows, keeping its order among itself, so a hand-written
-line moves below the CLI's block once and never again.
-
 The body is preserved byte for byte from the ticket template (Report, Wanted, Acceptance, Handoff),
 `--body` or `--body-file`; an empty body falls back to the template. `ticket edit` replaces the body or
-appends to it and leaves the frontmatter's bytes as they are, a hand-written layout included; `ticket edit --title`
+appends to it; `ticket edit --title`
 rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name; on a
 started ticket whose body is unchanged since its build started it moves `claimedBodyHash` along. Past `pending`,
 `ticket edit` needs `--force`. A malformed ticket file is listed as ignored rather than failing `status`.

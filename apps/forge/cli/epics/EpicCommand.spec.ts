@@ -7,7 +7,6 @@ import {
   existsSync,
   readdirSync,
   readFileSync,
-  realpathSync,
   writeFileSync
 } from 'node:fs';
 import { join } from 'node:path';
@@ -159,8 +158,7 @@ describeWhenGitIsRecorded('epic', () => {
       },
     ]);
     const listed = JSON.parse((await run(['epic', 'list', '--json'])).outputText()) as unknown;
-    const storedEpicsDirectory = realpathSync(epicsDirectory());
-    expect(listed).toEqual((status['epics'] as { key: string }[]).map((rollup) => ({ ...rollup, filePath: join(storedEpicsDirectory, `${rollup.key}.md`) })));
+    expect(listed).toEqual(status['epics']);
   });
 
   test('edit changes the title and appends to the description; remove deletes an epic no ticket names', async () => {
@@ -174,5 +172,12 @@ describeWhenGitIsRecorded('epic', () => {
     await run(['epic', 'remove', 'search']);
 
     expect(existsSync(join(epicsDirectory(), 'search.md'))).toBe(false);
+  });
+
+  test('show prints no file: line, and show --json carries no filePath', async () => {
+    await run(['epic', 'add', 'search', 'Search', '--body', 'First.']);
+
+    expect((await run(['epic', 'show', 'search'])).outputText()).not.toContain('file:');
+    expect(await jsonOf(['epic', 'show', 'search'])).not.toHaveProperty('filePath');
   });
 });

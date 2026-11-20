@@ -58,7 +58,6 @@ function pageLimits(): PagePayload['limits'] {
 function pageTicketsFor(tickets: readonly Ticket[], renderMarkdown: (markdown: string) => string): PageTicket[] {
   return tickets.map((ticket) => ({
     ...ticket.frontmatter,
-    filePath:        ticket.filePath,
     bodyHtml:        renderMarkdown(withAcceptanceItemsSeparated(ticket.body)),
     sections:        TicketAcceptanceUtil.sectionsOf(ticket.body),
     acceptanceItems: TicketAcceptanceUtil.acceptanceItemsOf(ticket.body)

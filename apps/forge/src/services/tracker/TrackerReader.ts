@@ -17,10 +17,18 @@ import type { BoardContents }                              from './@types/BoardR
 import { listDrafts }                                      from './DraftStore.ts';
 import { listEpics }                                       from './EpicStore.ts';
 import { projectLocationOf }                               from './ProjectLocation.ts';
-import { listTickets }                                     from './TicketStore.ts';
+import { listTickets, ticketListingOf }                    from './TicketStore.ts';
 import type { Workspace }                                  from './Workspace.ts';
 
 export type TrackerReading = { verdict: 'readable'; contents: BoardContents } | UnreadableTracker;
+
+/** The board as a write opens it: the contents, and each listed ticket's file by its id, which only the adapter knows. */
+export interface LocalBoardContents {
+  contents:        BoardContents;
+  ticketLocations: ReadonlyMap<string, string>;
+}
+
+type LocalTrackerReading = { verdict: 'readable' } & LocalBoardContents | UnreadableTracker;
 
 function progressFileReadingOf(workspace: Workspace): Extract<ProgressFileReading, { verdict: 'readable' }> | UnreadableTracker {
   const progressReading = new ProgressFileIngestion(workspace.progressFilePath).read();
@@ -55,7 +63,7 @@ export function storedPipelineReadingOf(workspace: Workspace): PipelineReading {
 }
 
 /** A broken progress file is the verdict even beside a broken log. */
-export function readTracker(workspace: Workspace): TrackerReading {
+function readLocalTracker(workspace: Workspace): LocalTrackerReading {
   const progressReading = progressFileReadingOf(workspace);
   if (progressReading.verdict !== 'readable') return progressReading;
 
@@ -69,27 +77,39 @@ export function readTracker(workspace: Workspace): TrackerReading {
     };
   }
 
+  const ticketListing = listTickets(workspace);
   return {
-    verdict:  'readable',
-    contents: {
+    verdict:         'readable',
+    ticketLocations: ticketListing.ticketLocations,
+    contents:        {
       progress:                   progressReading.progress,
       pipelineReading:            storedPipelineReadingOf(workspace),
       pipelineSetupReading:       PipelineSetupFile.read(workspace.pipelineSetupFilePath),
       gateProfilesReading:        GateProfilesFile.read(workspace.gateProfilesFilePath),
       constitutionSourcesReading: ConstitutionSourcesFile.read(workspace.constitutionSourcesFilePath),
       storedLog:                  { records: storedLog.records },
-      listing:                    listTickets(workspace),
+      listing:                    ticketListingOf(ticketListing),
       epicListing:                listEpics(workspace),
       draftListing:               listDrafts(workspace),
     },
   };
 }
 
+export function readTracker(workspace: Workspace): TrackerReading {
+  const reading = readLocalTracker(workspace);
+  return reading.verdict === 'readable' ? { verdict: 'readable', contents: reading.contents } : reading;
+}
+
 /** Unrepaired: no command repairs a tracker it cannot read, and under the lock the files were there a moment ago. */
 export function requireTracker(workspace: Workspace): BoardContents {
-  const reading = readTracker(workspace);
+  return requireLocalTracker(workspace).contents;
+}
+
+/** `requireTracker` with each listed ticket's file, for the hold that writes the tickets back. */
+export function requireLocalTracker(workspace: Workspace): LocalBoardContents {
+  const reading = readLocalTracker(workspace);
   if (reading.verdict !== 'readable') throw new OperationRefusal('unrepaired', { kind: 'unreadable-tracker', reading });
-  return reading.contents;
+  return { contents: reading.contents, ticketLocations: reading.ticketLocations };
 }
 
 /** For the progress-only reads (`concurrency`, `oversee status`, `decisions`): log.jsonl is not read, so a broken log does not stop them. */

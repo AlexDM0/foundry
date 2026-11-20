@@ -12,17 +12,17 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import { PRODUCT_NAMES }                                                   from '../../src/shared/constants/ProductNames.ts';
-import { useRecordedGit }                                                  from '../../src/testing/RecordedGit.ts';
-import { removeScratchDirectory }                                          from '../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                                       from '../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }                                    from '../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }                          from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }                                 from '../testing/OverseerTicketMoves.ts';
-import { READY_TICKET_BODY_ARGUMENTS, fileReadyTicket, filedTicketFileOf } from '../testing/ReadyTicketFiling.ts';
-import { dropTicketRow }                                                   from '../testing/RowlessTicket.ts';
-import { storedLogEntriesOf }                                              from '../testing/StoredLogEntries.ts';
-import { storedProgressOf }                                                from '../testing/StoredProgress.ts';
+import { PRODUCT_NAMES }                                                 from '../../src/shared/constants/ProductNames.ts';
+import { useRecordedGit }                                                from '../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                                        from '../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                                     from '../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }                                  from '../testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }                        from '../testing/InitializedScratchRepository.ts';
+import { runCommandLineWithOverseerMoves }                               from '../testing/OverseerTicketMoves.ts';
+import { READY_TICKET_BODY_ARGUMENTS, fileReadyTicket, filedTicketIdOf } from '../testing/ReadyTicketFiling.ts';
+import { dropTicketRow }                                                 from '../testing/RowlessTicket.ts';
+import { storedLogEntriesOf }                                            from '../testing/StoredLogEntries.ts';
+import { storedProgressOf }                                              from '../testing/StoredProgress.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -74,7 +74,7 @@ function logLinesAbout(identifier: string): string[] {
 
 async function fileLowPendingTicketWithoutRow(title: string): Promise<void> {
   const filing = await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', title, '--priority', 'low']);
-  dropTicketRow(repositoryDirectory, filedTicketFileOf(filing.outputText()));
+  dropTicketRow(repositoryDirectory, filedTicketIdOf(filing.outputText()));
 }
 
 const recordedGit = useRecordedGit();

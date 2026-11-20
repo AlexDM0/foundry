@@ -21,10 +21,10 @@ user says go, tell the user what it is doing, and turn what the user wants into 
 lifecycle yourself and never handle an incident.
 
 **Filing is the `{{productOwnerSkill}}` skill's**, which Intake loads; nothing of it is repeated here.
-`{{program}} help` prints every command and flag, and `{{dataFolder}}/reference.md` holds the ticket file's format,
+`{{program}} help` prints every command and flag, and `{{dataFolder}}/reference.md` holds the ticket's fields,
 the moves, jobs, decisions and incidents, and the exit codes. Run every command on a line of its own and parse its
-`--json`; never write a file under `{{dataFolder}}/` with a file tool, nor a ticket above its frontmatter's closing
-line, and never commit the tracker.
+`--json`; never write a file under `{{dataFolder}}/` with a file tool (a ticket's title and body change with
+`{{program}} ticket edit`), and never commit the tracker.
 
 ## Opening sequence
 

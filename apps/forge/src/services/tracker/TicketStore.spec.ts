@@ -22,11 +22,12 @@ import {
 import { createProgressFileWriter }                       from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                         from '../../adapters/tickets/TicketFileWriter.ts';
 import type { LogRecord }                                 from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Ticket, TicketType }                        from '../../lib/tracker-model/@types/Ticket.ts';
+import type { TicketType }                                from '../../lib/tracker-model/@types/Ticket.ts';
 import { TaskRecordUtil }                                 from '../../lib/tracker-model/utils/TaskRecordUtil.ts';
 import { emptyProgress }                                  from '../../testing/ProgressFixtures.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import {
+  type CreatedTicket,
   createTicket,
   everyTicketFilePathIn,
   listTickets,
@@ -40,6 +41,7 @@ const FILED_AT    = '2026-09-18T09:00:00+02:00';
 const TICKET_BODY = '# Example\n\n## Report\n\nReported by Alex Example.\n';
 
 const NOTHING_SPENT_IN_HOLD: TicketsSpentInHold = { tickets: () => [], logRecordsSoFar: () => [] };
+const NO_HELD_TICKET_LOCATIONS: readonly string[] = [];
 
 const scratchRootDirectories: string[] = [];
 
@@ -50,15 +52,15 @@ function scratchWorkspace(): Workspace {
   return workspace;
 }
 
-function fileTicket(workspace: Workspace, title: string, type: TicketType): Ticket {
-  const ticket = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
+function fileTicket(workspace: Workspace, title: string, type: TicketType): CreatedTicket {
+  const created = createTicket(workspace, NOTHING_SPENT_IN_HOLD, NO_HELD_TICKET_LOCATIONS, {
     title,
     type,
     bodyFor: () => TICKET_BODY,
     at:      FILED_AT,
   });
-  createTicketFileWriter().write(ticket);
-  return ticket;
+  createTicketFileWriter().write(created.ticket, created.location);
+  return created;
 }
 
 afterEach(() => {
@@ -67,7 +69,7 @@ afterEach(() => {
 });
 
 describe('createTicket and listTickets', () => {
-  test('files three tickets as <id>-<slug>.md and lists them in id order', () => {
+  test('files three tickets as <id>-<slug>.md and lists them in id order, each with its file by its id', () => {
     const workspace = scratchWorkspace();
 
     fileTicket(workspace, 'Fix the export dialog', 'bug');
@@ -77,7 +79,7 @@ describe('createTicket and listTickets', () => {
     const listing = listTickets(workspace);
 
     expect(listing.unreadable).toEqual([]);
-    expect(listing.tickets.map((ticket) => basename(ticket.filePath))).toEqual([
+    expect(listing.tickets.map((ticket) => basename(listing.ticketLocations.get(ticket.frontmatter.id) ?? ''))).toEqual([
       '001-fix-the-export-dialog.md',
       '002-add-a-keyboard-shortcut.md',
       '003-tidy-the-seed-data.md',
@@ -87,7 +89,7 @@ describe('createTicket and listTickets', () => {
 
   test('a new ticket opens as a draft with no timeline and no task row of its own', () => {
     const workspace = scratchWorkspace();
-    const ticket    = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
+    const { ticket } = createTicket(workspace, NOTHING_SPENT_IN_HOLD, NO_HELD_TICKET_LOCATIONS, {
       title:   'Fix the export dialog',
       type:    'bug',
       group:   'export-dialog',
@@ -110,7 +112,7 @@ describe('createTicket and listTickets', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
 
-    const ticket = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
+    const { ticket } = createTicket(workspace, NOTHING_SPENT_IN_HOLD, NO_HELD_TICKET_LOCATIONS, {
       title:   'Add a keyboard shortcut',
       type:    'research',
       bodyFor: (ticketId) => `# ${ticketId} — Add a keyboard shortcut\n`,
@@ -128,8 +130,8 @@ describe('createTicket and listTickets', () => {
     const second = fileTicket(workspace, 'Fix the export dialog', 'bug');
     const third  = fileTicket(workspace, 'Fix the export dialog', 'bug');
 
-    expect(basename(second.filePath)).toBe('002-fix-the-export-dialog-2.md');
-    expect(basename(third.filePath)).toBe('003-fix-the-export-dialog-3.md');
+    expect(basename(second.location)).toBe('002-fix-the-export-dialog-2.md');
+    expect(basename(third.location)).toBe('003-fix-the-export-dialog-3.md');
   });
 
   test('a file that does not parse is reported with its key, path and line while the other tickets still list', () => {
@@ -158,20 +160,19 @@ describe('createTicket and listTickets', () => {
     const workspace = scratchWorkspace();
     rmSync(workspace.ticketsDirectory, { recursive: true, force: true });
 
-    expect(listTickets(workspace)).toEqual({ tickets: [], unreadable: [] });
+    expect(listTickets(workspace)).toEqual({ tickets: [], unreadable: [], ticketLocations: new Map() });
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('001');
   });
 });
 
 describe('readTicket', () => {
-  test('resolves 2, 002, #2 and #002 to the same file', () => {
+  test('resolves 2, 002, #2 and #002 to the same ticket', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
     fileTicket(workspace, 'Add a keyboard shortcut', 'research');
-    const expectedPath = join(workspace.ticketsDirectory, '002-add-a-keyboard-shortcut.md');
 
     for (const reference of ['2', '002', '#2', '#002']) {
-      expect(readTicket(workspace, reference)?.filePath).toBe(expectedPath);
+      expect(readTicket(workspace, reference)?.frontmatter.title).toBe('Add a keyboard shortcut');
     }
   });
 
@@ -208,7 +209,7 @@ describe('nextTicketId', () => {
     fileTicket(workspace, 'Fix the export dialog', 'bug');
     const second = fileTicket(workspace, 'Add a keyboard shortcut', 'research');
     fileTicket(workspace, 'Tidy the seed data', 'ticket');
-    unlinkSync(second.filePath);
+    unlinkSync(second.location);
 
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('004');
   });
@@ -218,7 +219,7 @@ describe('nextTicketId', () => {
     const workspace = scratchWorkspace();
     fileTicket(workspace, 'Fix the export dialog', 'bug');
     const draft = fileTicket(workspace, 'Add a keyboard shortcut', 'research');
-    unlinkSync(draft.filePath);
+    unlinkSync(draft.location);
     const filingRecord: LogRecord = {
       at: FILED_AT, kind: 'ticket-filed', ticketId: '002', fields: { title: 'Add a keyboard shortcut' }
     };
@@ -229,18 +230,18 @@ describe('nextTicketId', () => {
   // Two relayed filings applied in one hold: the first is on the Board but not yet on disk when the second takes its id.
   test('a ticket filed earlier in the same hold, not yet written, spends its id and its slug', () => {
     const workspace  = scratchWorkspace();
-    const unwritten  = createTicket(workspace, NOTHING_SPENT_IN_HOLD, {
+    const unwritten  = createTicket(workspace, NOTHING_SPENT_IN_HOLD, NO_HELD_TICKET_LOCATIONS, {
       title: 'Fix the export dialog', type: 'bug', bodyFor: () => TICKET_BODY, at: FILED_AT
     });
-    const second     = createTicket(workspace, { tickets: () => [unwritten], logRecordsSoFar: () => [] }, {
+    const second     = createTicket(workspace, { tickets: () => [unwritten.ticket], logRecordsSoFar: () => [] }, [unwritten.location], {
       title:   'Fix the export dialog',
       type:    'bug',
       bodyFor: () => TICKET_BODY,
       at:      FILED_AT,
     });
 
-    expect(second.frontmatter.id).toBe('002');
-    expect(basename(second.filePath)).toBe('002-fix-the-export-dialog-2.md');
+    expect(second.ticket.frontmatter.id).toBe('002');
+    expect(basename(second.location)).toBe('002-fix-the-export-dialog-2.md');
   });
 
   test('a malformed file still spends its number', () => {
@@ -256,7 +257,7 @@ describe('a ticket file renamed by hand', () => {
   test('a file renamed without its number still spends its id, so the next ticket is not issued it again', () => {
     const workspace = scratchWorkspace();
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
-    renameSync(first.filePath, join(workspace.ticketsDirectory, 'renamed-by-hand.md'));
+    renameSync(first.location, join(workspace.ticketsDirectory, 'renamed-by-hand.md'));
 
     expect(nextTicketId(workspace, NOTHING_SPENT_IN_HOLD)).toBe('002');
     expect(readTicket(workspace, '1')?.frontmatter.title).toBe('Fix the export dialog');
@@ -266,13 +267,14 @@ describe('a ticket file renamed by hand', () => {
     const workspace   = scratchWorkspace();
     const first       = fileTicket(workspace, 'Fix the export dialog', 'bug');
     const renamedPath = join(workspace.ticketsDirectory, '012-renamed.md');
-    renameSync(first.filePath, renamedPath);
+    renameSync(first.location, renamedPath);
 
     expect(readTicket(workspace, '12')).toBeNull();
     expect(readTicket(workspace, '1')).toBeNull();
     expect(listTickets(workspace)).toEqual({
-      tickets:    [],
-      unreadable: [{
+      tickets:         [],
+      ticketLocations: new Map(),
+      unreadable:      [{
         record: 'ticket', key: '012', location: renamedPath, reason: 'the file name says #012 but its `id` is 001', line: 2
       }],
     });
@@ -283,14 +285,15 @@ describe('a ticket file renamed by hand', () => {
     const workspace = scratchWorkspace();
     const first     = fileTicket(workspace, 'Fix the export dialog', 'bug');
     const copyPath  = join(workspace.ticketsDirectory, 'copy-of-the-first.md');
-    copyFileSync(first.filePath, copyPath);
+    copyFileSync(first.location, copyPath);
 
     expect(readTicket(workspace, '1')).toBeNull();
     expect(listTickets(workspace)).toEqual({
-      tickets:    [],
-      unreadable: [
+      tickets:         [],
+      ticketLocations: new Map(),
+      unreadable:      [
         {
-          record: 'ticket', key: '001', location: first.filePath, reason: 'ticket #001 is also held by copy-of-the-first.md', line: 2
+          record: 'ticket', key: '001', location: first.location, reason: 'ticket #001 is also held by copy-of-the-first.md', line: 2
         },
         {
           record: 'ticket', key: '001', location: copyPath, reason: 'ticket #001 is also held by 001-fix-the-export-dialog.md', line: 2
@@ -333,7 +336,7 @@ describe('everyTicketFilePathIn', () => {
     const second    = fileTicket(workspace, 'Add a keyboard shortcut', 'research');
     writeFileSync(join(workspace.ticketsDirectory, '003-broken-by-hand.md'), 'no frontmatter here\n');
 
-    expect(everyTicketFilePathIn(workspace).toSorted()).toEqual([first.filePath, second.filePath, join(workspace.ticketsDirectory, '003-broken-by-hand.md')].toSorted());
+    expect(everyTicketFilePathIn(workspace).toSorted()).toEqual([first.location, second.location, join(workspace.ticketsDirectory, '003-broken-by-hand.md')].toSorted());
     expect(listTickets(workspace).tickets).toHaveLength(2);
   });
 });

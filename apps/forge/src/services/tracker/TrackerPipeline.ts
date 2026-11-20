@@ -24,13 +24,13 @@ import { OperationRefusal }                                                   fr
 import type { BoardContents, UnreadableRecords }                              from './@types/BoardRecords.ts';
 import type { BoardTransaction }                                              from './BoardTransaction.ts';
 import { draftFilePathOf }                                                    from './DraftStore.ts';
-import { everyEpicFilePathIn }                                                from './EpicStore.ts';
+import { epicFilePathOf, everyEpicFilePathIn }                                from './EpicStore.ts';
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE }                from './GenerationLock.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
-import { createLocalRecordAllocation }                                        from './LocalRecordAllocation.ts';
+import { createLocalRecordAllocation, type LocalRecordAllocation }            from './LocalRecordAllocation.ts';
 import { everyTicketFilePathIn }                                              from './TicketStore.ts';
 import { withLock }                                                           from './TrackerLock.ts';
-import { folderPrefixHoldingEntitiesOf, requireTracker }                      from './TrackerReader.ts';
+import { folderPrefixHoldingEntitiesOf, requireLocalTracker }                 from './TrackerReader.ts';
 import type { Workspace }                                                     from './Workspace.ts';
 
 export interface TrackerWriteRequest<MutationResult> {
@@ -101,7 +101,7 @@ interface PlannedHold {
  * Every file the hold writes, in the order it writes them: a log line never describes an unstored change, so the log follows every file
  * but the setup record, which goes last so an Apply's close follows everything it stored.
  */
-function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEveryTicketFile: boolean): PlannedHold {
+function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, records: LocalRecordAllocation, deletesEveryTicketFile: boolean): PlannedHold {
   const { contents, logRecordCollector, board } = openedBoard;
   const written = (filePath: string, fileContents: string): JournaledFile => ({ kind: 'written', filePath, contents: fileContents });
   const removed = (filePath: string): JournaledFile => ({ kind: 'removed', filePath });
@@ -112,10 +112,16 @@ function plannedHoldOf(workspace: Workspace, openedBoard: OpenBoard, deletesEver
   const sourcesWrite = board.constitutionSourcesWrite();
   if (sourcesWrite.write === 'sources') files.push(written(workspace.constitutionSourcesFilePath, ConstitutionSourcesFile.contentsOf(sourcesWrite.sources)));
   const ticketFileWriter = createTicketFileWriter();
-  for (const ticket of board.changedTickets()) files.push(written(ticket.filePath, ticketFileWriter.contentsOf(ticket)));
+  for (const ticket of board.changedTickets()) {
+    const location = records.storedTicketLocationOf(ticket.frontmatter.id);
+    files.push(written(location, ticketFileWriter.contentsOf(ticket, location)));
+  }
   const epicFileWriter = createEpicFileWriter();
-  for (const epic of board.changedEpics()) files.push(written(epic.filePath, epicFileWriter.contentsOf(epic)));
-  for (const epic of board.removedEpics()) files.push(removed(epic.filePath));
+  for (const epic of board.changedEpics()) {
+    const location = epicFilePathOf(workspace, epic.frontmatter.key);
+    files.push(written(location, epicFileWriter.contentsOf(epic, location)));
+  }
+  for (const epic of board.removedEpics()) files.push(removed(epicFilePathOf(workspace, epic.frontmatter.key)));
   const draftFileWriter = createDraftFileWriter((draftId) => draftFilePathOf(workspace, draftId));
   for (const draft of board.changedDrafts()) files.push(written(draftFilePathOf(workspace, draft.id), draftFileWriter.contentsOf(draft)));
   for (const draft of board.removedDrafts()) files.push(removed(draftFilePathOf(workspace, draft.id)));
@@ -152,15 +158,17 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
   } = request;
 
   return withLock(workspace, async (hold) => {
-    const openedBoard       = openBoard(requireTracker(workspace));
-    const unreadableRecords = unreadableRecordsOf(openedBoard.contents);
+    const { contents, ticketLocations } = requireLocalTracker(workspace);
+    const openedBoard                   = openBoard(contents);
+    const unreadableRecords             = unreadableRecordsOf(contents);
+    const records                       = createLocalRecordAllocation(workspace, openedBoard.board, unreadableRecords, ticketLocations);
 
     const deletionCallbacks: ((deletedTicketCount: number) => void)[] = [];
     const result = await mutateWrappingBoardRefusals(mutate, {
       at,
       board:                          openedBoard.board,
       workspace,
-      records:                        createLocalRecordAllocation(workspace, openedBoard.board, unreadableRecords),
+      records,
       unreadableRecords,
       unreadablePipeline:             unreadablePipelineOf(openedBoard.contents.pipelineReading),
       storedLogEntryCount:            openedBoard.contents.storedLog.records.length,
@@ -169,7 +177,7 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
     });
 
     refuseEntitiesInAFolder(workspace, openedBoard.board);
-    const plannedHold = plannedHoldOf(workspace, openedBoard, deletionCallbacks.length > 0);
+    const plannedHold = plannedHoldOf(workspace, openedBoard, records, deletionCallbacks.length > 0);
     commitHold(workspace, plannedHold.files, hold, afterFileWritten);
     for (const onDeleted of deletionCallbacks) onDeleted(plannedHold.deletedTicketCount);
     return { result, board: openedBoard.board, unreadableRecords };

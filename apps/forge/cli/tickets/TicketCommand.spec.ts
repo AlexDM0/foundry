@@ -32,7 +32,7 @@ import { waitUntil }                              from '../../src/testing/WaitUn
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
 import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket, filedTicketFileOf }     from '../testing/ReadyTicketFiling.ts';
+import { fileReadyTicket, filedTicketIdOf }       from '../testing/ReadyTicketFiling.ts';
 import { dropTicketRow }                          from '../testing/RowlessTicket.ts';
 import { storedLogEntriesOf }                     from '../testing/StoredLogEntries.ts';
 import { storedProgressOf }                       from '../testing/StoredProgress.ts';
@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('filing a ticket', () => {
-  test('writes the file as a draft with no row, logs the line, and prints the path', async () => {
+  test('writes the file as a draft with no row, logs the line, and prints no path', async () => {
     const context = await run(['ticket', 'add', 'Double-click a role to edit it', '--type', 'ticket', '--group', 'role-editor']);
 
     const ticketText = storedTicketText();
@@ -89,7 +89,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
     expect(storedLogEntriesOf(repositoryDirectory).at(-1)?.text).toBe('Ticket #001 filed: Double-click a role to edit it');
 
     expect(context.outputText()).toContain('Ticket #001 filed: Double-click a role to edit it');
-    expect(context.outputText()).toContain(FIRST_TICKET_FILE_NAME);
+    expect(context.outputText()).not.toContain(FIRST_TICKET_FILE_NAME);
   });
 
   test('--body replaces the template and is stored byte for byte', async () => {
@@ -276,7 +276,7 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
 
   test('a low pending ticket with no row still gets its row when it starts', async () => {
     const filing = await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--priority', 'low']);
-    dropTicketRow(repositoryDirectory, filedTicketFileOf(filing.outputText()));
+    dropTicketRow(repositoryDirectory, filedTicketIdOf(filing.outputText()));
     expect(storedProgressOf(repositoryDirectory).tasks.filter((task) => task.ticket === '001' && task.status !== 'abandoned')).toEqual([]);
 
     await run(['ticket', 'start', '1']);
@@ -467,21 +467,22 @@ describeWhenGitIsRecorded('reading tickets back', () => {
     await run(['ticket', 'approve', '2']);
   });
 
-  test('show prints the frontmatter summary, the file path and the body', async () => {
+  test('show prints the frontmatter summary and the body, with no file: line', async () => {
     const context = await run(['ticket', 'show', '1']);
 
     expect(context.outputText()).toContain('Ticket #001: Double-click a role to edit it');
     expect(context.outputText()).toContain('status:   pending');
-    expect(context.outputText()).toContain(FIRST_TICKET_FILE_NAME);
+    expect(context.outputText()).not.toContain('file:');
+    expect(context.outputText()).not.toContain(FIRST_TICKET_FILE_NAME);
     expect(context.outputText()).toContain('## Acceptance');
   });
 
-  test('show --json carries the path and the body alongside the frontmatter', async () => {
+  test('show --json carries the body alongside the frontmatter, and no filePath', async () => {
     const context = await run(['ticket', 'show', '1', '--json']);
 
-    const printed = JSON.parse(context.outputText()) as { id: string; filePath: string; body: string };
+    const printed = JSON.parse(context.outputText()) as { id: string; body: string };
     expect(printed.id).toBe('001');
-    expect(printed.filePath).toContain(FIRST_TICKET_FILE_NAME);
+    expect(printed).not.toHaveProperty('filePath');
     expect(printed.body).toContain('## Report');
   });
 
@@ -715,7 +716,7 @@ describeWhenGitIsRecorded('what ticket add refuses and what it falls back to', (
 
     const listed = JSON.parse((await run(['ticket', 'list', '--json'])).outputText()) as Array<Record<string, unknown>>;
     expect(listed[0]).not.toHaveProperty('body');
-    expect(listed[0]?.['filePath']).toContain('001-double-click-a-role-to-edit-it.md');
+    expect(listed[0]).not.toHaveProperty('filePath');
 
     const shown = JSON.parse((await run(['ticket', 'show', '1', '--json'])).outputText()) as Record<string, unknown>;
     expect(shown['body']).toContain('## Report');

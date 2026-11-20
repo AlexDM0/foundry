@@ -3,10 +3,8 @@ import type { ControlCommandOf as CommandOf } from '../../shared/@types/ControlC
 import type { BoardTransaction }              from '../tracker/BoardTransaction.ts';
 
 function addEpic(command: CommandOf<'epic-add'>, change: BoardTransaction) {
-  const filePath = change.records.newEpicLocation(command.key);
-  return change.board.addEpic({
-    key: command.key, title: command.title, body: command.bodyText, filePath
-  }, change.at);
+  change.records.requireEpicKeyIsFree(command.key);
+  return change.board.addEpic({ key: command.key, title: command.title, body: command.bodyText }, change.at);
 }
 
 function openDraft(command: CommandOf<'draft-open'>, change: BoardTransaction) {

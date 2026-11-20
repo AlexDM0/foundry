@@ -150,6 +150,15 @@ describeWhenGitIsRecorded('draft', () => {
     expect(await jsonOf(['draft', 'list'])).toEqual([opened]);
   });
 
+  test('draft show prints no file: line, and show --json carries no filePath', async () => {
+    await run(['draft', 'open', 'Example feature', '--owner', 'opus', '--request', 'Export the cart']);
+
+    const shown = (await run(['draft', 'show', 'D1'])).outputText();
+    expect(shown).toContain('Draft D1: Example feature');
+    expect(shown).not.toContain('file:');
+    expect(await jsonOf(['draft', 'show', 'D1'])).not.toHaveProperty('filePath');
+  });
+
   test('no draft id is reused: after D2 is abandoned the next open makes D3, and after D3 is closed the next makes D4', async () => {
     await run(['ticket', 'add', '--type', 'ticket', 'Example cart']);
     await run(['draft', 'open', 'First', '--owner', 'opus']);

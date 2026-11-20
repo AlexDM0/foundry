@@ -103,7 +103,7 @@ function worldTicket(id: string, overrides: Partial<TicketFrontmatter> = {}): Ti
     extra:       [],
     ...overrides,
   };
-  return { frontmatter, body: '', filePath: `/example-agency/world/.agent-progress/tickets/${id}-example.md` };
+  return { frontmatter, body: '' };
 }
 
 export class LifecycleWorld {

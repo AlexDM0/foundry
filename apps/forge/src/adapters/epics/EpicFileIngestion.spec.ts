@@ -26,10 +26,10 @@ function epicFileHolding(bytes: Uint8Array): string {
   return epicPath;
 }
 
-test('an epic file parses into the epic at its path', () => {
+test('an epic file parses into the epic, which carries no location', () => {
   const epicPath = epicFileHolding(Buffer.from(EPIC_DOCUMENT));
   const reading  = new EpicFileIngestion(epicPath).read();
-  expect(reading.verdict === 'parsed' ? reading.epic.filePath : null).toBe(epicPath);
+  expect(reading.verdict === 'parsed' ? Object.keys(reading.epic).sort() : null).toEqual(['body', 'frontmatter', 'lineEnding']);
 });
 
 test('a file that is not UTF-8, such as one saved in cp1252, is malformed at line 0', () => {

@@ -53,8 +53,7 @@ function ticketWith(id: string, overrides: Partial<TicketFrontmatter> = {}): Tic
       extra:       [],
       ...overrides,
     },
-    body:     '',
-    filePath: `/example-agency/storefront/.agent-progress/tickets/${id}-example.md`,
+    body: '',
   };
 }
 

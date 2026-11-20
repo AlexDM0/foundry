@@ -2,7 +2,7 @@ import type { Ticket, TicketPriority } from '../../lib/tracker-model/@types/Tick
 import { TicketBodyHashUtil }          from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
 import { TicketDefaultsUtil }          from '../../lib/tracker-model/utils/TicketDefaultsUtil.ts';
 
-type TicketDocument = Ticket['frontmatter'] & { priority: TicketPriority; epics: string[]; bodyChangedSinceClaim?: boolean; filePath: string };
+type TicketDocument = Ticket['frontmatter'] & { priority: TicketPriority; epics: string[]; bodyChangedSinceClaim?: boolean };
 
 /**
  * The priority and epics are spelled out even where the file leaves them out, so a script never has to know what an absent key means.
@@ -15,7 +15,6 @@ function ticketDocumentOf(ticket: Ticket): TicketDocument {
     priority: TicketDefaultsUtil.ticketPriorityOf(ticket.frontmatter),
     epics:    ticket.frontmatter.epics ?? [],
     ...(bodyChangedSinceClaim === undefined ? {} : { bodyChangedSinceClaim }),
-    filePath: ticket.filePath,
   };
 }
 

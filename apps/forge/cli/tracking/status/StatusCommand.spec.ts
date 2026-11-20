@@ -35,7 +35,7 @@ import { fileReadyTicket }                                 from '../../testing/R
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
 type StatusDocument = WordedProgressDocument & {
-  tickets:             Array<TicketFrontmatter & { filePath: string }>;
+  tickets:             TicketFrontmatter[];
   omitted?:            { settledTasks: number; settledTickets: number; olderLogEntries: number; freeStandingTasks?: number };
   ticketCountByStatus: Record<string, number>;
   pipelineIsSet:       boolean;
@@ -160,7 +160,7 @@ describeWhenGitIsRecorded('the --json --full document', () => {
 
     expect(document.tickets).toHaveLength(1);
     expect(document.tickets[0]).toMatchObject({ id: '001', status: 'in-progress', task: 1 });
-    expect(document.tickets[0]?.filePath).toContain('001-double-click-a-role-to-edit-it.md');
+    expect(document.tickets[0]).not.toHaveProperty('filePath');
 
     expect(document.log.map((entry) => entry.text)).toContain('Halfway through the role editor');
     expect(document.omitted).toBeUndefined();

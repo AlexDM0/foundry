@@ -26,8 +26,8 @@ export interface BoardTransaction {
 export interface RecordAllocation {
   /** A ticket with the next free id, stored by this transaction's commit; only safe inside it. */
   newTicket(input: CreateTicketInput): Ticket;
-  /** The new epic's place; refuses `unreadable-file-in-the-way` (record `epic`) when an unreadable record holds the key. */
-  newEpicLocation(epicKey: string): string;
+  /** Refuses `unreadable-file-in-the-way` (record `epic`) when an unreadable record holds the key. */
+  requireEpicKeyIsFree(epicKey: string): void;
   /** Refuses `unreadable-file-in-the-way` (record `draft`) when an unreadable record holds the key. */
   requireDraftKeyIsFree(draftId: string): void;
   locationOf(record: RecordReference): string;

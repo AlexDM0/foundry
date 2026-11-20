@@ -59,5 +59,5 @@ export async function editTicket(commandArguments: ArgumentParser, context: Comm
       ...(text === undefined ? [] : [`Ticket #${ticketId} body ${appends ? 'appended to' : 'replaced'}`]),
     ]
     : [`Ticket #${ticketId} ${title === undefined ? 'body ' : ''}unchanged: nothing to write`];
-  OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(edited.ticket), `${sentences.join('\n')}\n  ${edited.ticket.filePath}`);
+  OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(edited.ticket), sentences.join('\n'));
 }

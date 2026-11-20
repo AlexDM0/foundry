@@ -52,13 +52,13 @@ afterEach(() => {
 });
 
 describe('TicketFileIngestion', () => {
-  test('a ticket file parses into the ticket at its path, with the line its id sits on', () => {
+  test('a ticket file parses into the ticket, which carries no location, with the line its id sits on', () => {
     const ticketPath = ticketFileHolding(TICKET_WITH_A_COMMENT_ABOVE_ITS_ID);
 
     const reading = new TicketFileIngestion(ticketPath).read();
 
     expect(reading.verdict === 'parsed' ? reading.ticket.frontmatter.id : null).toBe('004');
-    expect(reading.verdict === 'parsed' ? reading.ticket.filePath : null).toBe(ticketPath);
+    expect(reading.verdict === 'parsed' ? Object.keys(reading.ticket).sort() : null).toEqual(['body', 'frontmatter', 'lineEnding']);
     expect(reading.verdict === 'parsed' ? reading.identifierLine : null).toBe(3);
   });
 

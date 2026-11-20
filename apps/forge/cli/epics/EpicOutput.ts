@@ -3,12 +3,12 @@ import { TokenCountUtil }        from '../../src/lib/token-count/TokenCountUtil.
 import type { Epic, EpicRollup } from '../../src/lib/tracker-model/@types/Epic.ts';
 import { TICKET_STATUSES }       from '../../src/lib/tracker-model/constants/Statuses.ts';
 
-export function epicDocumentOf(epic: Readonly<Epic>, rollup: EpicRollup): Record<string, unknown> {
-  return { ...rollup, filePath: epic.filePath };
+export function epicDocumentOf(rollup: EpicRollup): Record<string, unknown> {
+  return { ...rollup };
 }
 
 export function epicDocumentWithBodyOf(epic: Readonly<Epic>, rollup: EpicRollup): Record<string, unknown> {
-  return { ...epicDocumentOf(epic, rollup), body: epic.body };
+  return { ...epicDocumentOf(rollup), body: epic.body };
 }
 
 function ticketCountsText(rollup: EpicRollup): string {
@@ -21,7 +21,7 @@ export function epicListingLineOf(rollup: EpicRollup): string {
   return `${rollup.key}  ${rollup.title}  ${ticketCountsText(rollup)}`;
 }
 
-export function epicSummaryOf(epic: Readonly<Epic>, rollup: EpicRollup): string {
+export function epicSummaryOf(rollup: EpicRollup): string {
   return [
     `Epic ${rollup.key}: ${rollup.title}`,
     `  slot:     ${rollup.slot}`,
@@ -29,6 +29,5 @@ export function epicSummaryOf(epic: Readonly<Epic>, rollup: EpicRollup): string 
     `  status:   ${ticketCountsText(rollup)}`,
     `  tokens:   ${TokenCountUtil.formatTokenCount(rollup.tokens)}`,
     `  span:     ${rollup.span === null ? '-' : `${rollup.span.start} → ${rollup.span.end ?? 'open'}`}`,
-    `  file:     ${epic.filePath}`,
   ].join('\n');
 }

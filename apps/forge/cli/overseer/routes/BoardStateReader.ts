@@ -130,7 +130,7 @@ function usageOf(context: CommandContext, apiBilling: boolean): UsageFacts {
   return UsageLimits.usageFactsOf(UsageMarkerFile.read(monitorFolder), UsageWindowsFile.read(monitorFolder), apiBilling);
 }
 
-/** The stored text, for "View pipeline.json"; null when none is stored or it could not be read. */
+/** The stored text, for "View stored pipeline"; null when none is stored or it could not be read. */
 function pipelineFileTextOf(workspace: Workspace, verdict: string): string | null {
   if (verdict === 'absent') return null;
   const stored = storedFileTextOf(workspace.pipelineFilePath);

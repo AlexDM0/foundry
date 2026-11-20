@@ -26,6 +26,7 @@ import { OperationRefusalWordingUtil }                                          
 import type { Job }                                                                                  from '../src/lib/tracker-model/@types/Job.ts';
 import { Bouncer }                                                                                   from '../src/services/control/Bouncer.ts';
 import { ControlService }                                                                            from '../src/services/control/ControlService.ts';
+import { listTickets }                                                                               from '../src/services/tracker/TicketStore.ts';
 import { writeTracker }                                                                              from '../src/services/tracker/TrackerPipeline.ts';
 import { requireWorkspace }                                                                          from '../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                                                          from '../src/shared/OperationRefusal.ts';
@@ -389,14 +390,15 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
     }, reading.command);
     if (verdict.verdict !== 'admitted') throw new Error(`the filing was refused: ${verdict.reason}`);
 
-    const written = await writeTracker({
-      workspace: requireWorkspace(repositoryDirectory),
-      at:        '2026-09-18T22:11:03+02:00',
-      now:       SPEC_CLOCK,
-      mutate:    (change) => ControlService.apply(verdict.command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT).result,
+    const workspace = requireWorkspace(repositoryDirectory);
+    const written   = await writeTracker({
+      workspace,
+      at:     '2026-09-18T22:11:03+02:00',
+      now:    SPEC_CLOCK,
+      mutate: (change) => ControlService.apply(verdict.command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT).result,
     });
-    const filed = written.result as { ticket: { filePath: string } };
-    const text  = readFileSync(filed.ticket.filePath, 'utf8');
+    const filed = written.result as { ticket: { frontmatter: { id: string } } };
+    const text  = readFileSync(listTickets(workspace).ticketLocations.get(filed.ticket.frontmatter.id) ?? '', 'utf8');
     // The body has no numbered Acceptance, so the filing's own submit leaves it a draft.
     expect(text).toContain('status: "draft"');
     expect(text).toContain('group: "checkout"');
@@ -409,7 +411,8 @@ describeWhenGitIsRecorded('outside a job', () => {
   test('a ticket filed directly carries no filedByJob', async () => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     expect(await runCommandLine(['ticket', 'add', 'Direct filing', '--type', 'bug', '--priority', 'low', '--json'], context)).toBe(0);
-    const filed = JSON.parse(context.outputText()) as { filePath: string };
-    expect(readFileSync(filed.filePath, 'utf8')).not.toContain('filedByJob');
+    const filed = JSON.parse(context.outputText()) as { id: string };
+    const { ticketLocations } = listTickets(requireWorkspace(repositoryDirectory));
+    expect(readFileSync(ticketLocations.get(filed.id) ?? '', 'utf8')).not.toContain('filedByJob');
   });
 });

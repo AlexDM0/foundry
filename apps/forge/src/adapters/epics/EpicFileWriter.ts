@@ -5,31 +5,35 @@ import type { Epic }                       from '../../lib/tracker-model/@types/
 import { EpicDocumentUtil }                from './utils/EpicDocumentUtil.ts';
 
 /** Writes through `src/lib/atomic-file/AtomicFile.ts`; an epic whose frontmatter would read back unchanged keeps the stored frontmatter text. */
-export function createEpicFileWriter(): { write(epic: Readonly<Epic>): void; remove(epic: Readonly<Epic>): void; contentsOf(epic: Readonly<Epic>): string } {
-  /** Reads the stored file, so it is taken before anything replaces it. */
-  function contentsOf(epic: Readonly<Epic>): string {
-    const storedFrontmatterText = unchangedStoredFrontmatterTextOf(epic);
+export function createEpicFileWriter(): {
+  write(epic: Readonly<Epic>, location: string): void;
+  remove(location: string): void;
+  contentsOf(epic: Readonly<Epic>, location: string): string;
+} {
+  /** Reads the stored file at `location`, so it is taken before anything replaces it. */
+  function contentsOf(epic: Readonly<Epic>, location: string): string {
+    const storedFrontmatterText = unchangedStoredFrontmatterTextOf(epic, location);
     return storedFrontmatterText === null
       ? EpicDocumentUtil.epicDocumentTextOf(epic.frontmatter, epic.body, epic.lineEnding)
       : `${storedFrontmatterText}${epic.body}`;
   }
 
-  function write(epic: Readonly<Epic>): void {
-    mkdirSync(dirname(epic.filePath), { recursive: true });
-    writeFileAtomically(epic.filePath, contentsOf(epic));
+  function write(epic: Readonly<Epic>, location: string): void {
+    mkdirSync(dirname(location), { recursive: true });
+    writeFileAtomically(location, contentsOf(epic, location));
   }
 
-  function remove(epic: Readonly<Epic>): void {
-    rmSync(epic.filePath, { force: true });
+  function remove(location: string): void {
+    rmSync(location, { force: true });
   }
 
   return { write, remove, contentsOf };
 }
 
-function unchangedStoredFrontmatterTextOf(epic: Readonly<Epic>): string | null {
+function unchangedStoredFrontmatterTextOf(epic: Readonly<Epic>, location: string): string | null {
   let storedText: string;
   try {
-    storedText = readFileSync(epic.filePath, 'utf8');
+    storedText = readFileSync(location, 'utf8');
   } catch {
     return null;
   }

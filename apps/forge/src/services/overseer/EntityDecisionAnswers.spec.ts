@@ -48,7 +48,7 @@ import {
   entityForgePipelineOf,
   type EntityForgeWhitelists
 } from '../../testing/EntityForgeFixture.ts';
-import { NO_UNREADABLE_RECORDS }                                                          from '../../testing/FixtureRecordAllocation.ts';
+import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS }                              from '../../testing/FixtureRecordAllocation.ts';
 import { createScratchDirectory, removeScratchDirectory }                                 from '../../testing/ScratchWorkspace.ts';
 import type { BoardTransaction }                                                          from '../tracker/BoardTransaction.ts';
 import { createLocalRecordAllocation }                                                    from '../tracker/LocalRecordAllocation.ts';
@@ -143,7 +143,7 @@ function forgeWith(whitelists: EntityForgeWhitelists, pipelineOf: (stored: Pipel
   return {
     board,
     change: {
-      board, at: AT, workspace, records: createLocalRecordAllocation(workspace as Workspace, board, NO_UNREADABLE_RECORDS)
+      board, at: AT, workspace, records: createLocalRecordAllocation(workspace as Workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
     } as unknown as BoardTransaction,
     context,
     needs

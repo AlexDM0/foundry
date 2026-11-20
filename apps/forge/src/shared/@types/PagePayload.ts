@@ -108,7 +108,6 @@ export interface PageAcceptanceItem {
 }
 
 export interface PageTicket extends TicketFrontmatter {
-  filePath:        string;
   bodyHtml:        string;
   sections:        PageTicketSection[];
   /** Empty when the body has no `## Acceptance` or it numbers no item. */

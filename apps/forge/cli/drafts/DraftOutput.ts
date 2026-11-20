@@ -9,13 +9,12 @@ export function draftListingLineOf(draft: Readonly<Draft>): string {
   return `${draft.id}  ${draft.title}  ${claimText(draft)}`;
 }
 
-export function draftSummaryOf(draft: Readonly<Draft>, state: DraftState, filePath: string): string {
+export function draftSummaryOf(draft: Readonly<Draft>, state: DraftState): string {
   return [
     `Draft ${draft.id}: ${draft.title}`,
     `  opened:   ${draft.openedAt}`,
     `  claim:    ${draft.claim === null ? '-' : `${draft.claim.owner} since ${draft.claim.claimedAt}`}`,
     `  state:    ${state}`,
-    `  file:     ${filePath}`,
   ].join('\n');
 }
 

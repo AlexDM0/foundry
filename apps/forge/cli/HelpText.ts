@@ -251,8 +251,8 @@ never carries it.
       [--json]                \`ticket show\` for one ticket's prose.
 
   ticket show <id> [--json]   One ticket: its frontmatter, its priority, its model and effort
-                              where it names them, its body, and always its file path — which is
-                              what an agent needs in order to edit that body.
+                              where it names them, and its body. A ticket changes only through
+                              its verbs: \`ticket edit\` for its title and body.
 
   ticket edit <id>            Rename a ticket with --title, replace its body with --body or
       [--title "<title>"]     --body-file (\`-\` reads standard input), or with --append add to its
@@ -469,7 +469,7 @@ never carries it.
                               status, the tokens of each ticket's own row and review rows, and its
                               span from the first start to the last end (open while a row runs,
                               null before any starts). An epic has no status of its own.
-  epic show <key> [--json]    One epic: its roll-up, its file path and its description.
+  epic show <key> [--json]    One epic: its roll-up and its description.
   epic remove <key> [--at <when>] [--json]
                               Delete an epic's file. Refused at exit 1 while any ticket names it.
 
@@ -509,7 +509,7 @@ never carries it.
   draft abandon D<n> --reason <text> [--json]
                               Remove a draft, logging the reason; without --reason it is refused
                               at exit 1.
-  draft show D<n> [--json]    One draft: its title, claim, state, file, request, notes and question
+  draft show D<n> [--json]    One draft: its title, claim, state, request, notes and question
                               tree. The state is waiting while a question is open, else
                               researching while claimed and resumable once released. --json prints
                               the whole stored draft, so a rebooted session resumes from it alone.

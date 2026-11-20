@@ -22,28 +22,28 @@ import {
   test
 } from 'bun:test';
 
-import { GitProcess }                                     from '../../lib/git/GitProcess.ts';
-import type { Job }                                       from '../../lib/tracker-model/@types/Job.ts';
-import type { Pipeline, PipelineEntity }                  from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { Ticket }                                    from '../../lib/tracker-model/@types/Ticket.ts';
-import type { Board }                                     from '../../lib/tracker-model/Board.ts';
-import { PipelineUtil }                                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
-import { TicketBodyHashUtil }                             from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
-import { branchNamesOf }                                  from '../../shared/BranchNames.ts';
-import { PRODUCT_NAMES }                                  from '../../shared/constants/ProductNames.ts';
-import { boardFixture, ticketFixture }                    from '../../testing/BoardFixtures.ts';
-import { fakeAgentAdapter }                               from '../../testing/FakeAgentAdapter.ts';
-import { NO_UNREADABLE_RECORDS }                          from '../../testing/FixtureRecordAllocation.ts';
-import { useRecordedGit }                                 from '../../testing/RecordedGit.ts';
-import { GIT_SCENARIOS }                                  from '../../testing/RecordedGitScenarios.ts';
-import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
-import { testWhenGitIsRecorded }                          from '../../testing/ToolGuard.ts';
-import { definitionFileMatcherOf, launchSnapshotOf }      from '../lifecycle/Customs.ts';
-import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
-import { createLocalRecordAllocation }                    from '../tracker/LocalRecordAllocation.ts';
-import { JobLaunch, type JobLaunchContext }               from './JobLaunch.ts';
-import { jobFolderIn }                                    from './OverseerFiles.ts';
-import { RedHandoff, type RedHandoffFacts }               from './RedHandoff.ts';
+import { GitProcess }                                        from '../../lib/git/GitProcess.ts';
+import type { Job }                                          from '../../lib/tracker-model/@types/Job.ts';
+import type { Pipeline, PipelineEntity }                     from '../../lib/tracker-model/@types/Pipeline.ts';
+import type { Ticket }                                       from '../../lib/tracker-model/@types/Ticket.ts';
+import type { Board }                                        from '../../lib/tracker-model/Board.ts';
+import { PipelineUtil }                                      from '../../lib/tracker-model/utils/PipelineUtil.ts';
+import { TicketBodyHashUtil }                                from '../../lib/tracker-model/utils/TicketBodyHashUtil.ts';
+import { branchNamesOf }                                     from '../../shared/BranchNames.ts';
+import { PRODUCT_NAMES }                                     from '../../shared/constants/ProductNames.ts';
+import { boardFixture, ticketFixture }                       from '../../testing/BoardFixtures.ts';
+import { fakeAgentAdapter }                                  from '../../testing/FakeAgentAdapter.ts';
+import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
+import { useRecordedGit }                                    from '../../testing/RecordedGit.ts';
+import { GIT_SCENARIOS }                                     from '../../testing/RecordedGitScenarios.ts';
+import { createScratchDirectory, removeScratchDirectory }    from '../../testing/ScratchWorkspace.ts';
+import { testWhenGitIsRecorded }                             from '../../testing/ToolGuard.ts';
+import { definitionFileMatcherOf, launchSnapshotOf }         from '../lifecycle/Customs.ts';
+import type { BoardTransaction }                             from '../tracker/BoardTransaction.ts';
+import { createLocalRecordAllocation }                       from '../tracker/LocalRecordAllocation.ts';
+import { JobLaunch, type JobLaunchContext }                  from './JobLaunch.ts';
+import { jobFolderIn }                                       from './OverseerFiles.ts';
+import { RedHandoff, type RedHandoffFacts }                  from './RedHandoff.ts';
 
 const AT = '2026-11-16T10:00:00+01:00';
 const MAIN_LINE = 'main';
@@ -128,7 +128,7 @@ function verifyBuild(place: TrackerPlace, pipeline?: Pipeline, entity?: string, 
   for (const state of ['preparing', 'running', 'in-customs'] as const) board.moveJob(job.id, state, AT);
   const headCommit = GitProcess.resolvedCommitOf(worktree, 'HEAD');
   JobLaunch.applyBuildJobObservations({
-    board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS)
+    board, at: AT, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
   } as unknown as BoardTransaction, context, [{
     jobId:           job.id,
     setup:           'installed',

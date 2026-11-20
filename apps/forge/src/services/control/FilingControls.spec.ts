@@ -11,6 +11,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { OperationRefusal }                               from '../../shared/OperationRefusal.ts';
 import { boardFixture, type BoardFixture }                from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                         from '../../testing/EchoedControlContext.ts';
+import { NO_LISTED_TICKET_LOCATIONS }                     from '../../testing/FixtureRecordAllocation.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../testing/ScratchWorkspace.ts';
 import type { UnreadableRecord, UnreadableRecords }       from '../tracker/@types/BoardRecords.ts';
 import type { BoardTransaction }                          from '../tracker/BoardTransaction.ts';
@@ -44,7 +45,11 @@ function boardBesideUnreadableFilings(): { fixture: BoardFixture; change: BoardT
   const unreadableRecords: UnreadableRecords = { tickets: [], epics: listEpics(workspace).unreadable, drafts: listDrafts(workspace).unreadable };
   const fixture = boardFixture();
   const change  = {
-    board: fixture.board, workspace, at: AT, records: createLocalRecordAllocation(workspace, fixture.board, unreadableRecords), unreadableRecords
+    board:   fixture.board,
+    workspace,
+    at:      AT,
+    records: createLocalRecordAllocation(workspace, fixture.board, unreadableRecords, NO_LISTED_TICKET_LOCATIONS),
+    unreadableRecords,
   } as unknown as BoardTransaction;
   return { fixture, change };
 }
@@ -92,7 +97,7 @@ test('a draft whose id an unreadable draft file holds is refused unreadable-file
   expect(refusal.detail).toEqual({ kind: 'unreadable-file-in-the-way', filePath: unreadableDraft.location, record: 'draft' });
 });
 
-test('an epic of a key no unreadable record holds is filed', () => {
+test('an epic of a key no unreadable record holds is filed, with no location in the model', () => {
   const { fixture, change } = boardBesideUnreadableFilings();
 
   const applied = ControlService.apply({
@@ -101,4 +106,5 @@ test('an epic of a key no unreadable record holds is filed', () => {
 
   expect(applied.outcome).toBe('done');
   expect(fixture.records.map((record) => record.kind)).toEqual(['epic-added']);
+  expect(Object.keys(applied.result.epic).sort()).toEqual(['body', 'frontmatter']);
 });

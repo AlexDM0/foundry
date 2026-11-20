@@ -49,7 +49,6 @@ function pageTicketWith(changes: Partial<PageTicket>): PageTicket {
     abandonedAt:     null,
     task:            null,
     extra:           [],
-    filePath:        '/example/tickets/001-example.md',
     bodyHtml:        '',
     sections:        [],
     acceptanceItems: [],

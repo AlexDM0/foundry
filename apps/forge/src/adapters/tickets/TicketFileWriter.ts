@@ -5,19 +5,22 @@ import type { Ticket }             from '../../lib/tracker-model/@types/Ticket.t
 import { TicketDocumentUtil }      from './utils/TicketDocumentUtil.ts';
 
 /** Writes through `src/lib/atomic-file/AtomicFile.ts` and never touches `updated`; only `src/lib/tracker-model/Board.ts` knows that a ticket changed. */
-export function createTicketFileWriter(): { write(ticket: Readonly<Ticket>): void; contentsOf(ticket: Readonly<Ticket>): string } {
-  /** Reads the stored file, so it is taken before anything replaces it. */
-  function contentsOf(ticket: Readonly<Ticket>): string {
-    const storedFrontmatterText = unchangedStoredFrontmatterTextOf(ticket);
+export function createTicketFileWriter(): {
+  write(ticket: Readonly<Ticket>, location: string): void;
+  contentsOf(ticket: Readonly<Ticket>, location: string): string;
+} {
+  /** Reads the stored file at `location`, so it is taken before anything replaces it. */
+  function contentsOf(ticket: Readonly<Ticket>, location: string): string {
+    const storedFrontmatterText = unchangedStoredFrontmatterTextOf(ticket, location);
     return storedFrontmatterText === null
       ? TicketDocumentUtil.ticketDocumentTextOf(ticket.frontmatter, ticket.body, ticket.lineEnding, ticket.storedType)
       : `${storedFrontmatterText}${ticket.body}`;
   }
 
-  function write(ticket: Readonly<Ticket>): void {
+  function write(ticket: Readonly<Ticket>, location: string): void {
     // The directory is recreated rather than assumed: `clear --all` may have removed it.
-    mkdirSync(dirname(ticket.filePath), { recursive: true });
-    writeFileAtomically(ticket.filePath, contentsOf(ticket));
+    mkdirSync(dirname(location), { recursive: true });
+    writeFileAtomically(location, contentsOf(ticket, location));
   }
 
   return { write, contentsOf };
@@ -28,10 +31,10 @@ export function createTicketFileWriter(): { write(ticket: Readonly<Ticket>): voi
  * only in its title and stored `claimedBodyHash`, whose lines alone are then rewritten, so a body edit or a rename leaves a hand-written
  * frontmatter alone; null when anything else changed or the stored file is gone or unreadable.
  */
-function unchangedStoredFrontmatterTextOf(ticket: Readonly<Ticket>): string | null {
+function unchangedStoredFrontmatterTextOf(ticket: Readonly<Ticket>, location: string): string | null {
   let storedText: string;
   try {
-    storedText = readFileSync(ticket.filePath, 'utf8');
+    storedText = readFileSync(location, 'utf8');
   } catch {
     return null;
   }

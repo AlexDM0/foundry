@@ -3,8 +3,6 @@
  * no launch slot, so what matters is the round each bar stores, that every move out of review closes the running bar, and that a running bar
  * refuses a claim of its ticket.
  */
-import { readFileSync } from 'node:fs';
-
 import {
   afterEach,
   beforeEach,
@@ -65,9 +63,7 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
   test('ticket rereview --start-review closes the round\'s running bar and starts the next, numbered from the ticket\'s review sections', async () => {
     await run(['ticket', 'finish', '1', '--start-review']);
     const [firstBar] = inProgressBarsReviewing('001');
-    const ticketFilePath = JSON.parse((await run(['ticket', 'show', '1', '--json'])).outputText()) as { filePath: string };
-    const ticketText     = readFileSync(ticketFilePath.filePath, 'utf8');
-    await Bun.write(ticketFilePath.filePath, `${ticketText}\n## Review\nRound 1 reworked 900 lines.\n`);
+    await run(['ticket', 'edit', '1', '--force', '--append', '--body', '## Review\nRound 1 reworked 900 lines.\n']);
 
     await run(['ticket', 'rereview', '1', '--start-review', '--owner', 'opus']);
 
@@ -81,9 +77,7 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
     await run(['ticket', 'finish', '1', '--start-review']);
     expect(inProgressBarsReviewing('001')[0]).toMatchObject({ reviewOf: '001', reviewBarRound: 1 });
 
-    const { filePath: ticketFilePath } = JSON.parse((await run(['ticket', 'show', '1', '--json'])).outputText()) as { filePath: string };
-    const ticketText                   = readFileSync(ticketFilePath, 'utf8');
-    await Bun.write(ticketFilePath, `${ticketText}\n## Review\nExample round.\n`);
+    await run(['ticket', 'edit', '1', '--force', '--append', '--body', '## Review\nExample round.\n']);
     await run(['ticket', 'rereview', '1', '--start-review']);
 
     expect(inProgressBarsReviewing('001')[0]).toMatchObject({ reviewOf: '001', reviewBarRound: 2 });

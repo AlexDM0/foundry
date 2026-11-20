@@ -76,7 +76,6 @@ export interface TicketFrontmatter {
 export interface Ticket {
   frontmatter: TicketFrontmatter;
   body:        string;
-  filePath:    string;
   /** The frontmatter's line ending as read, which a rewrite keeps; absent for a ticket not read from a file, which is written with `\n`. */
   lineEnding?: LineEnding;
   /** A retired type the file holds, which reads as `ticket` and every rewrite keeps; absent on a ticket stored with a current type. */

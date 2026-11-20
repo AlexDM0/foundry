@@ -13,13 +13,12 @@ import {
   taskFixture,
   ticketFixture
 } from '../../testing/BoardFixtures.ts';
+import type { EpicAddition } from './@types/Epic.ts';
 
 const AT = '2026-10-01T12:00:00+02:00';
 
-function additionOf(key: string): { key: string; title: string; body: string; filePath: string } {
-  return {
-    key, title: `Example ${key}`, body: '', filePath: `/example-agency/.agent-progress/epics/${key}.md`
-  };
+function additionOf(key: string): EpicAddition {
+  return { key, title: `Example ${key}`, body: '' };
 }
 
 describe('adding an epic', () => {

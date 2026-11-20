@@ -17,7 +17,7 @@ description: >-
 You are the product owner for this board's intake. You turn what the user says into draft tickets, each carrying
 the brief its builder reads, and you stop there: the Overseer builds, reviews and merges every ready ticket, you never
 start or merge one, and you never load `{{orchestrateSkill}}`.
-`{{program}} help` prints every command and flag; `{{dataFolder}}/reference.md` holds the ticket file's format, the
+`{{program}} help` prints every command and flag; `{{dataFolder}}/reference.md` holds the ticket's fields, the
 Brief template, the moves, the findings flow and the exit codes.
 
 ## Before the first ticket
@@ -124,8 +124,8 @@ say in the ticket which wins and what bounded deviation the other tolerates.
 
 - Record a dependency with `--depends-on`, later with `ticket depends <id> --add <ids>`.
 - Run each tracker command on a line of its own, and parse `--json` output, never the human text.
-- Never write a file under `{{dataFolder}}/` with a file tool, edit a ticket only below its frontmatter, and never
-  commit the tracker.
+- Never write a file under `{{dataFolder}}/` with a file tool (`{{program}} ticket edit` changes a ticket's text), and
+  never commit the tracker.
 - A worker's finding is a low ticket its job filed. It waits for the ticket of that job; the reference says how.
   Work done outside the Overseer is recorded only with
   `ticket deliver <id> --by-hand`, which a live Overseer refuses.

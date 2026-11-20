@@ -36,7 +36,7 @@ function scratchTicketsDirectory(): string {
   return ticketsDirectory;
 }
 
-function pendingTicketAt(filePath: string): Ticket {
+function pendingTicket(): Ticket {
   return {
     frontmatter: {
       id:          '001',
@@ -53,7 +53,6 @@ function pendingTicketAt(filePath: string): Ticket {
       extra:       [],
     },
     body: TICKET_BODY,
-    filePath,
   };
 }
 
@@ -91,21 +90,22 @@ describe('createTicketFileWriter', () => {
     ].join('\r\n');
     writeFileSync(ticketPath, windowsTicket);
 
-    createTicketFileWriter().write(ticketReadFrom(ticketPath));
+    createTicketFileWriter().write(ticketReadFrom(ticketPath), ticketPath);
 
     expect(readFileSync(ticketPath, 'utf8')).toBe(windowsTicket);
   });
 
   test('writes exactly the ticket it is given, leaving updated for the transition that owns it', () => {
     const ticketFileWriter = createTicketFileWriter();
-    const filed            = pendingTicketAt(join(scratchTicketsDirectory(), '001-fix-the-export-dialog.md'));
-    ticketFileWriter.write(filed);
+    const ticketPath       = join(scratchTicketsDirectory(), '001-fix-the-export-dialog.md');
+    const filed            = pendingTicket();
+    ticketFileWriter.write(filed, ticketPath);
 
     filed.frontmatter.branch = 'ticket/export-dialog';
     filed.body               = `${TICKET_BODY}\n## Acceptance\n\nThe folder is remembered.\n`;
-    ticketFileWriter.write(filed);
+    ticketFileWriter.write(filed, ticketPath);
 
-    const reread = ticketReadFrom(filed.filePath);
+    const reread = ticketReadFrom(ticketPath);
 
     expect(reread.frontmatter.branch).toBe('ticket/export-dialog');
     expect(reread.frontmatter.updated).toBe(FILED_AT);
@@ -136,11 +136,11 @@ describe('createTicketFileWriter', () => {
 
     const ticket = ticketReadFrom(ticketPath);
     ticket.body  = 'New body.\n';
-    createTicketFileWriter().write(ticket);
+    createTicketFileWriter().write(ticket, ticketPath);
     expect(readFileSync(ticketPath, 'utf8')).toBe(`${handWrittenLayout}New body.\n`);
 
     ticket.frontmatter.branch = 'ticket/hand-written';
-    createTicketFileWriter().write(ticket);
+    createTicketFileWriter().write(ticket, ticketPath);
     const rewritten = readFileSync(ticketPath, 'utf8');
     expect(rewritten).toContain('\nstatus: "pending"\n');
     expect(rewritten).toContain('\nbranch: "ticket/hand-written"\n');
@@ -170,14 +170,14 @@ describe('createTicketFileWriter', () => {
 
     const ticket = ticketReadFrom(ticketPath);
     ticket.frontmatter.title = 'Renamed: "quoted" by hand';
-    createTicketFileWriter().write(ticket);
+    createTicketFileWriter().write(ticket, ticketPath);
     const renamedLines = handWrittenLines.map((line) => (line === 'title: Hand written' ? 'title: "Renamed: \\"quoted\\" by hand"' : line));
     expect(readFileSync(ticketPath, 'utf8')).toBe(`${renamedLines.join('\r\n')}Body.\r\n`);
     expect(ticketReadFrom(ticketPath).frontmatter.title).toBe('Renamed: "quoted" by hand');
 
     ticket.frontmatter.title  = 'Renamed again';
     ticket.frontmatter.branch = 'ticket/hand-written';
-    createTicketFileWriter().write(ticket);
+    createTicketFileWriter().write(ticket, ticketPath);
     expect(readFileSync(ticketPath, 'utf8')).toContain('\r\nstatus: "pending"\r\n');
   });
 
@@ -185,7 +185,7 @@ describe('createTicketFileWriter', () => {
     const ticketsDirectory = scratchTicketsDirectory();
     rmSync(ticketsDirectory, { recursive: true, force: true });
 
-    createTicketFileWriter().write(pendingTicketAt(join(ticketsDirectory, '001-fix-the-export-dialog.md')));
+    createTicketFileWriter().write(pendingTicket(), join(ticketsDirectory, '001-fix-the-export-dialog.md'));
 
     expect(ticketReadFrom(join(ticketsDirectory, '001-fix-the-export-dialog.md')).frontmatter.title).toBe('Fix the export dialog');
   });

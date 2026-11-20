@@ -98,7 +98,7 @@ async function addOneTicket(commandArguments: ArgumentParser, context: CommandCo
     commandArguments,
     context,
     TicketJsonUtil.ticketAsJson(filed.ticket),
-    `${OutputUtil.loggedSentencesOf(filed.logged)}${draftFilingNoteOf(filed.ticket.frontmatter.id)}\n  ${filed.ticket.filePath}`,
+    `${OutputUtil.loggedSentencesOf(filed.logged)}${draftFilingNoteOf(filed.ticket.frontmatter.id)}`,
     nextLine,
   );
 }

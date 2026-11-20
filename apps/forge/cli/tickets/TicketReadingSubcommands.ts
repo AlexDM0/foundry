@@ -48,7 +48,6 @@ function summaryOf(ticket: Ticket, statusById: ReadonlyMap<string, TicketStatus>
     `  commit:   ${frontmatter.commit ?? '-'}`,
     `  reason:   ${frontmatter.reason ?? '-'}`,
     ...(bodyChangedSinceClaim === undefined ? [] : [`  body:     ${bodyChangedSinceClaim ? 'changed since the claim' : 'unchanged since the claim'}`]),
-    `  file:     ${ticket.filePath}`,
   ].join('\n');
 }
 

@@ -103,7 +103,7 @@ Airlock is letting onto main and the tickets queued for the merge train. The asi
 items under "Now", each with its step, its model and effort when an agent runs it, and how long it has been there, then
 the newest pipeline records under "Earlier". **Ask the pipeline agent** starts an advise session, which opens as an edit
 with the agent's tab first. The footer names the applied version, when you applied it, the pipeline's content hash and
-the commit the newest Apply made of `CONSTITUTION.md`; **View pipeline.json** shows the stored file, and **Update
+the commit the newest Apply made of `CONSTITUTION.md`; **View stored pipeline** shows the stored pipeline, and **Update
 pipeline** opens an edit. After an Apply from this page, a toast says the pipeline is applied, and "Board resumed" only
 when the Apply resumed the board.
 

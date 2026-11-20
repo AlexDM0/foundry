@@ -32,7 +32,7 @@ function listEpics(commandArguments: ArgumentParser, context: CommandContext): P
   const board   = readingBoardFor(context);
   const entries = board.epics().map((epic) => ({ epic, rollup: board.epicRollupOf(epic) }));
   const human   = entries.length === 0 ? 'No epics.' : entries.map(({ rollup }) => epicListingLineOf(rollup)).join('\n');
-  OutputUtil.printEntity(commandArguments, context, entries.map(({ epic, rollup }) => epicDocumentOf(epic, rollup)), human);
+  OutputUtil.printEntity(commandArguments, context, entries.map(({ rollup }) => epicDocumentOf(rollup)), human);
   return Promise.resolve();
 }
 
@@ -46,7 +46,7 @@ function showEpic(commandArguments: ArgumentParser, context: CommandContext): Pr
   const epic  = board.epicByKey(key);
   if (epic === undefined) throw new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal: { reason: 'unknown-epic', missingEpicKeys: [key] } });
   const rollup = board.epicRollupOf(epic);
-  OutputUtil.printEntity(commandArguments, context, epicDocumentWithBodyOf(epic, rollup), `${epicSummaryOf(epic, rollup)}\n\n${epic.body}`);
+  OutputUtil.printEntity(commandArguments, context, epicDocumentWithBodyOf(epic, rollup), `${epicSummaryOf(rollup)}\n\n${epic.body}`);
   return Promise.resolve();
 }
 

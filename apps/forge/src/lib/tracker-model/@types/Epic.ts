@@ -13,16 +13,14 @@ export interface EpicFrontmatter {
 export interface Epic {
   frontmatter: EpicFrontmatter;
   body:        string;
-  filePath:    string;
   /** The frontmatter's line ending as read, which a rewrite keeps; absent for an epic not read from a file, which is written with `\n`. */
   lineEnding?: LineEnding;
 }
 
 export interface EpicAddition {
-  key:      string;
-  title:    string;
-  body:     string;
-  filePath: string;
+  key:   string;
+  title: string;
+  body:  string;
 }
 
 export interface EpicEdit {

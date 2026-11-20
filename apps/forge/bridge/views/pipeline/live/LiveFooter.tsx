@@ -1,6 +1,6 @@
 /**
  * The live flow's footer bar (A5Live), as FlowLive draws it: the green Applied pill, the applied version with its time and who applied
- * it, the content hash and the constitution commit the newest Apply made (each entity's constitutions over entities); View pipeline.json
+ * it, the content hash and the constitution commit the newest Apply made (each entity's constitutions over entities); View stored pipeline
  * opens the stored text, and Update pipeline opens an update of it with `pipeline-update-start` and moves to `#pipeline/edit`.
  */
 import { ActionBar } from 'design-system/ActionBar';
@@ -38,7 +38,7 @@ export function LiveFooter({ footer }: LiveFooterProps) {
         )}
         end={(
           <>
-            <Button label="View pipeline.json" expanded={fileIsShown} onPress={() => setFileIsShown(true)} />
+            <Button label="View stored pipeline" expanded={fileIsShown} onPress={() => setFileIsShown(true)} />
             <CommandButton label="Update pipeline" command={UPDATE_START_COMMAND} primary onApplied={() => HashRouter.navigateTo(EDIT_ROUTE)} />
           </>
         )}

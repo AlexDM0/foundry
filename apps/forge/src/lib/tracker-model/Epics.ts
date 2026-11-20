@@ -32,8 +32,7 @@ export class Epics {
       frontmatter: {
         key, title, slot, extra: []
       },
-      body:     addition.body,
-      filePath: addition.filePath,
+      body: addition.body,
     };
     this.records.epicRecords.push(epic);
     this.records.epicRecords.sort((a, b) => (a.frontmatter.key < b.frontmatter.key ? -1 : Number(a.frontmatter.key > b.frontmatter.key)));

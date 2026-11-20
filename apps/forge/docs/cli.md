@@ -71,7 +71,7 @@ against the parsers, and where their prose differs this page is right.
 > **As built.** The help prose lags this page in places.
 
 `resources/templates/Reference.md`, installed as `<data>/reference.md`, copies three sections of this page word for
-word: the ticket file, the ticket moves and the exit codes. `cli/ReferenceCopies.spec.ts` holds the copies, so a change
+word: a ticket, the ticket moves and the exit codes. `cli/ReferenceCopies.spec.ts` holds the copies, so a change
 to either side changes both. Inside those sections `{{program}}` stands for `forge` and `{{dataFolder}}` for
 `<data>`, which the install fills in.
 
@@ -301,7 +301,7 @@ worktrees folder's before any worktree can exist, and `update` adds it to a repo
 
 - `session-instructions.md` is what the session-start entry prints to every session User opens: how this repository
   tracks its work, which skill to load for what, and where the reference is. Its presence marks the files installed.
-- `reference.md` is the ticket file's format, the ticket moves and the exit codes copied from this file, which a session
+- `reference.md` is a ticket's fields, the ticket moves and the exit codes copied from this file, which a session
   reads on demand.
 - `briefs/defaults/` holds the instruction file each role reads when the pipeline names none (see [Files on
   disk](#files-on-disk)), which the Overseer fills with the job's values at each launch.
@@ -440,7 +440,7 @@ standing. With no live Overseer it does nothing more.
 |---|---|
 | `status [--json] [--full] [--tickets-only]` | The project, the counts, the rows that are not delivered or abandoned, and the last five log entries newest first, then the Next line. With the forge [off after a crash](#after-a-crash), one line on standard error says so ("The forge is off after a crash: run `forge crash-log` to read why, `forge start` to start it again."); standard output is unchanged. [The flags](#status-flags) and [the `--json` documents](#what-status---json-holds) are below. |
 | `ticket list [--status <s>] [--priority <p>] [--json]` | The tickets with their status, priority, type and row id, the model and effort after the title where the ticket names them, and "waiting on #003" where a dependency is unsettled. `--status` and `--priority` narrow the listing. `--json` carries no bodies. |
-| `ticket show <id> [--json]` | One ticket: its frontmatter, its priority, its model and effort where it names them, its body, and always its file path, which an agent needs to edit that body. Once the ticket started it says whether the body changed since: a hash of the body now against the stored `claimedBodyHash`, never a clock; under `--json`, and in `status --json` and `ticket list --json`, that is `bodyChangedSinceClaim`, absent on a ticket never started. |
+| `ticket show <id> [--json]` | One ticket: its frontmatter, its priority, its model and effort where it names them, and its body; never where it is kept, since a ticket changes only through its verbs (`ticket edit` for its title and body). Once the ticket started it says whether the body changed since: a hash of the body now against the stored `claimedBodyHash`, never a clock; under `--json`, and in `status --json` and `ticket list --json`, that is `bodyChangedSinceClaim`, absent on a ticket never started. |
 
 #### `status` flags
 
@@ -735,7 +735,7 @@ ticket belongs to any number of epics through `ticket epic` or `ticket add --epi
 | `epic add <key> "<title>" [--body <markdown>] [--body-file <path\|->] [--at <when>] [--json]` | Write `<data>/epics/<key>.md` with the key, the title and an [epic colour slot](glossary.md#epic-colour-slot), 1 to 6, then the description from `--body` or `--body-file` (`-` reads standard input), kept byte for byte. One log line; [the rules](#epic-add) are below. |
 | `epic edit <key> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--at <when>] [--json]` | Change the title, replace the description, or with `--append` add to its end as `ticket edit` does. One log line; an edit that changes nothing writes and logs nothing and exits 0; an empty replacement or `--title`, none of `--title`, `--body` and `--body-file`, or both body options are refused at exit 1. |
 | `epic list [--json]` | Every epic, ordered by key, with its roll-up. |
-| `epic show <key> [--json]` | One epic: its roll-up, its file path and its description. |
+| `epic show <key> [--json]` | One epic: its roll-up and its description. |
 | `epic remove <key> [--at <when>] [--json]` | Delete the epic's file, with one log line. Refused at exit 1 while any ticket, of any status, names it. |
 
 #### `epic add`
@@ -778,7 +778,7 @@ holds a filing draft; no other `draft` command looks at the claim.
 | `draft drop D<n> N<k>\|Q<k> [--json]` | Remove a note or question made moot; dropping a question drops its follow-ups too, logging one line each. An item the filing draft does not hold is refused at exit 1. |
 | `draft close D<n> --tickets <ids> [--json]` | End a filing draft once its tickets are filed: remove its file and log the ticket ids it became. `<ids>` are comma- or space-separated ticket references (`5`, `#005`); one that names no ticket is refused at exit 1 with nothing written, and so is no `--tickets`. While any question is unanswered, follow-ups included, it is refused at exit 1 with nothing written, naming the open question numbers in number order. A filing draft with no question closes at once, so a simple request goes open, note, tickets, close in one run. |
 | `draft abandon D<n> --reason <text> [--json]` | Remove the filing draft's file, logging the reason. Refused at exit 1 without `--reason` or with a blank one. |
-| `draft show D<n> [--json]` | One filing draft: its title, claim, state, file path, request, notes and question tree. `--json` prints the whole stored filing draft. |
+| `draft show D<n> [--json]` | One filing draft: its title, claim, state, request, notes and question tree. `--json` prints the whole stored filing draft. |
 | `draft list [--json]` | Every open filing draft, ordered by id; `--json` prints their stored documents. |
 
 #### `draft ask`
@@ -3168,8 +3168,16 @@ stamp `resetsAt` is malformed: it shows no window, never stops the Overseer, and
 
 ### `{{dataFolder}}/tickets/003-double-click-a-role-to-edit-it.md`
 
-The file name is the padded id and a slug of the title; the ticket is known by its frontmatter `id`.
-The CLI writes its keys in this order, omitting an optional key it does not have:
+The file is the local store's format of a ticket, never edited by hand: a ticket's title and body change with
+`{{program}} ticket edit`, each other field with its own `ticket` verb, and the board refuses what it does not allow.
+The file name is the padded id and a slug of the title, given when the ticket is filed and kept through a retitle; the
+ticket is known by its frontmatter `id`. The store reads the frontmatter subset below and keeps any other line it
+finds: unknown keys, comments and blank lines are written back below the CLI's own keys, in their order among
+themselves.
+
+#### A ticket
+
+The ticket is known by its `id`. The CLI writes its keys in this order, omitting an optional key it does not have:
 
 ```
 ---
@@ -3200,7 +3208,6 @@ crosses: "design-system"
 filedByJob: "J12"
 claimedBodyHash: "5f1d3c9a0b7e2468"
 task: 17
-owner: Alex Example
 ---
 # 003 — Double-click a role to edit it
 
@@ -3241,14 +3248,9 @@ A ticket stored with a status that is not a ticket status, the retired `open` or
 malformed at its status line, the reason ending in the advice to run `{{program}} update` with a
 release that still reads it.
 
-**Unknown keys, comments and blank lines are kept and written back**, so a field you add by hand —
-`owner: Alex Example` above — survives every transition. The CLI's own keys are rewritten at the top
-in the order above and everything else follows, keeping its order among itself, so a hand-written
-line moves below the CLI's block once and never again.
-
 The body is preserved byte for byte from the ticket template (Report, Wanted, Acceptance, Handoff),
 `--body` or `--body-file`; an empty body falls back to the template. `ticket edit` replaces the body or
-appends to it and leaves the frontmatter's bytes as they are, a hand-written layout included; `ticket edit --title`
+appends to it; `ticket edit --title`
 rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name; on a
 started ticket whose body is unchanged since its build started it moves `claimedBodyHash` along. Past `pending`,
 `ticket edit` needs `--force`. A malformed ticket file is listed as ignored rather than failing `status`.

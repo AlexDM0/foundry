@@ -12,7 +12,7 @@ import { TicketBodyHashUtil }                                                   
 import { LIFECYCLE_LIMITS }                                                                from '../../../shared/constants/LifecycleLimits.ts';
 import { ENTITY_FORGE_MAIN_LINE }                                                          from '../../../testing/EntityForgeFixture.ts';
 import { ENTITY_FORGE_SCENARIO_COMMITS, ENTITY_FORGE_SCENARIOS, type EntityForgeScenario } from '../../../testing/EntityForgeScenarios.ts';
-import { NO_UNREADABLE_RECORDS }                                                           from '../../../testing/FixtureRecordAllocation.ts';
+import { NO_LISTED_TICKET_LOCATIONS, NO_UNREADABLE_RECORDS }                               from '../../../testing/FixtureRecordAllocation.ts';
 import type { RecordedGit }                                                                from '../../../testing/RecordedGit.ts';
 import { launchSnapshotOf }                                                                from '../../lifecycle/Customs.ts';
 import type { BoardTransaction }                                                           from '../../tracker/BoardTransaction.ts';
@@ -174,7 +174,7 @@ function verifiedStageJobOf(place: CrossingStagePlace, job: Readonly<Job>, run: 
   writeEarlierRedHandoffs(jobFolder, run);
   writeJobStart(place, job, jobFolder, commits[run.startCommit] ?? '');
   const change = {
-    board, at, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS)
+    board, at, workspace: context.workspace, records: createLocalRecordAllocation(context.workspace, board, NO_UNREADABLE_RECORDS, NO_LISTED_TICKET_LOCATIONS)
   } as unknown as BoardTransaction;
   JobLaunch.applyBuildJobObservations(change, context, [observationOf(job.id, null, { verdict: 'pending' })]);
   for (const state of ['running', 'in-customs'] as const) board.moveJob(job.id, state, at);

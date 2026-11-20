@@ -48,9 +48,9 @@ async function addEpic(commandArguments: ArgumentParser, context: CommandContext
     commandArguments,
     context,
     {
-      key: frontmatter.key, title: frontmatter.title, slot: frontmatter.slot, filePath: added.epic.filePath, body: added.epic.body
+      key: frontmatter.key, title: frontmatter.title, slot: frontmatter.slot, body: added.epic.body
     },
-    `${OutputUtil.loggedSentencesOf(added.logged)}\n  ${added.epic.filePath}`,
+    OutputUtil.loggedSentencesOf(added.logged),
   );
 }
 
@@ -81,7 +81,7 @@ async function editEpic(commandArguments: ArgumentParser, context: CommandContex
   };
   const edited = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
   const sentence = edited.changed ? OutputUtil.loggedSentencesOf(edited.logged) : `Epic ${key} unchanged: nothing to write`;
-  OutputUtil.printEntity(commandArguments, context, epicDocumentWithBodyOf(edited.epic, edited.rollup), `${sentence}\n  ${edited.epic.filePath}`);
+  OutputUtil.printEntity(commandArguments, context, epicDocumentWithBodyOf(edited.epic, edited.rollup), sentence);
 }
 
 async function removeEpic(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
@@ -92,7 +92,7 @@ async function removeEpic(commandArguments: ArgumentParser, context: CommandCont
 
   const command: ControlCommandOf<'epic-remove'> = { kind: 'epic-remove', key };
   const removed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
-  OutputUtil.printEntity(commandArguments, context, { key, removed: true, filePath: removed.epic.filePath }, OutputUtil.loggedSentencesOf(removed.logged));
+  OutputUtil.printEntity(commandArguments, context, { key, removed: true }, OutputUtil.loggedSentencesOf(removed.logged));
 }
 
 export const EPIC_CHANGE_SUBCOMMANDS = { add: addEpic, edit: editEpic, remove: removeEpic } as const;

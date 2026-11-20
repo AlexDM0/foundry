@@ -2,9 +2,8 @@
 import { DraftDocumentUtil }                                       from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
 import type { Board }                                              from '../../src/lib/tracker-model/Board.ts';
 import { readingBoardOf }                                          from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { draftFilePathOf }                                         from '../../src/services/tracker/DraftStore.ts';
 import { requireTracker }                                          from '../../src/services/tracker/TrackerReader.ts';
-import { requireWorkspace, type Workspace }                        from '../../src/services/tracker/Workspace.ts';
+import { requireWorkspace }                                        from '../../src/services/tracker/Workspace.ts';
 import { OperationRefusal }                                        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                           from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                     from '../CommandContext.ts';
@@ -18,19 +17,18 @@ import { DRAFT_USAGE }                                             from './const
 
 const READING_OPTION_NAMES = ['json'];
 
-function readingBoardFor(context: CommandContext): { board: Board; workspace: Workspace } {
-  const workspace = requireWorkspace(context.currentDirectory);
+function readingBoardFor(context: CommandContext): Board {
   const {
     progress, listing, epicListing, draftListing
-  } = requireTracker(workspace);
+  } = requireTracker(requireWorkspace(context.currentDirectory));
   OutputUtil.reportIgnoredDraftFiles(context, draftListing.unreadable);
-  return { board: readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts), workspace };
+  return readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts);
 }
 
 function listDrafts(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(READING_OPTION_NAMES, DRAFT_USAGE);
   commandArguments.rejectExtraPositionals(1, DRAFT_USAGE);
-  const { board } = readingBoardFor(context);
+  const board     = readingBoardFor(context);
   const drafts    = board.drafts();
   const human     = drafts.length === 0 ? 'No open drafts.' : drafts.map(draftListingLineOf).join('\n');
   OutputUtil.printEntity(commandArguments, context, drafts.map(DraftDocumentUtil.draftDocumentOf), human);
@@ -40,13 +38,13 @@ function listDrafts(commandArguments: ArgumentParser, context: CommandContext): 
 function showDraft(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(READING_OPTION_NAMES, DRAFT_USAGE);
   commandArguments.rejectExtraPositionals(2, DRAFT_USAGE);
-  const draftId              = draftIdArgumentOf(commandArguments, 'show');
-  const { board, workspace } = readingBoardFor(context);
-  const draft                = board.drafts().find((candidate) => candidate.id === draftId);
+  const draftId = draftIdArgumentOf(commandArguments, 'show');
+  const board   = readingBoardFor(context);
+  const draft   = board.drafts().find((candidate) => candidate.id === draftId);
   if (draft === undefined) throw new OperationRefusal('refused', { kind: 'board-refusal', boardRefusal: { reason: 'unknown-draft', draftId } });
-  const contentLines         = draftContentLinesOf(draft);
-  const human                = [
-    draftSummaryOf(draft, board.draftStateOf(draft), draftFilePathOf(workspace, draftId)),
+  const contentLines = draftContentLinesOf(draft);
+  const human        = [
+    draftSummaryOf(draft, board.draftStateOf(draft)),
     ...(draft.request === '' ? [] : [draft.request]),
     ...(contentLines.length === 0 ? [] : [contentLines.join('\n')]),
   ].join('\n\n');

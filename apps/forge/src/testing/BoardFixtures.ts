@@ -24,10 +24,6 @@ import { PipelineUtil }            from '../lib/tracker-model/utils/PipelineUtil
 
 const FIXTURE_STARTED_AT = '2026-09-18T09:00:00+02:00';
 
-export const FIXTURE_TICKETS_DIRECTORY = '/example-agency/storefront/.agent-progress/tickets';
-
-export const FIXTURE_EPICS_DIRECTORY = '/example-agency/storefront/.agent-progress/epics';
-
 export interface BoardFixture {
   board:    Board;
   progress: TrackerProgress;
@@ -66,7 +62,7 @@ export function ticketFixture(overrides: Partial<TicketFrontmatter> = {}): Ticke
     extra:       [],
     ...overrides,
   };
-  return { frontmatter, body: '', filePath: `${FIXTURE_TICKETS_DIRECTORY}/${frontmatter.id}-example.md` };
+  return { frontmatter, body: '' };
 }
 
 export function epicFixture(overrides: Partial<EpicFrontmatter> = {}): Epic {
@@ -77,7 +73,7 @@ export function epicFixture(overrides: Partial<EpicFrontmatter> = {}): Epic {
     extra: [],
     ...overrides,
   };
-  return { frontmatter, body: '', filePath: `${FIXTURE_EPICS_DIRECTORY}/${frontmatter.key}.md` };
+  return { frontmatter, body: '' };
 }
 
 function entityFixture(kind: PipelineEntity['kind'], home: string): PipelineEntity {

@@ -57,7 +57,7 @@ function progressWithOneRow(): TrackerProgress {
 function writeReadableTracker(): void {
   createProgressFileWriter(workspace.progressFilePath).write(progressWithOneRow());
   createLogFileWriter(workspace.logFilePath).write([NOTE_RECORD]);
-  createTicketFileWriter().write({ ...ticketFixture({ title: 'Example checkout page' }), filePath: join(workspace.ticketsDirectory, '001-example-checkout-page.md') });
+  createTicketFileWriter().write(ticketFixture({ title: 'Example checkout page' }), join(workspace.ticketsDirectory, '001-example-checkout-page.md'));
   writeFileSync(join(workspace.ticketsDirectory, '002-broken-by-hand.md'), MALFORMED_TICKET_TEXT);
 }
 
