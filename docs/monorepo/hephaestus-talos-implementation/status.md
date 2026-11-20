@@ -383,10 +383,10 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 4-W | WP4.11b | landed | 6d3dcb3e | Fix package from stage 4's verification, first round. `OperationRefusalWordingUtil.standingEntityRefusalSentenceOf`: "Pipeline setup <S>'s draft cannot be stored as it is: <reason>. Continue and Apply wait until it is fixed." `pipeline-draft-invalid` unchanged; the old Bridge's `EntityRefusalsModel` keeps its own sentence until stage 8 |
 | 5-A | WP5.1 | landed | 0dc16c0a | Third round, after a targeted fix (first: the Bridge's `PipelineFileDialog.tsx` entry named stage 8, not a package, so it is WP5.13's; second: the reason check refused the composition-root reasons WP5.8 and WP5.10 add, so `COMPOSITION_ROOT_REASONS` accepts exactly those two). `StoreBoundary.spec.ts`: 92 allowlisted lines, 74 of them store imports; each entry is a key line and a reason line, sorted by key (lint's 180 columns rule out one line); a test holds the order. Stage 3's `StartGate.ts` and `PresenceReader.ts` go to WP5.10. The stage file now names them in WP5.10's files, the Bridge's dialog and footer in WP5.13's, and WP5.10's done-when leaves WP5.9's `cli/overseer/` entries to WP5.9 (79bb7263). Removal packages were matched by file names; confirm as each runs |
 | 5-B | WP5.2 | landed | 9bfe524c | First round. `GenerationLock.ts` holds the moved lock and `HoldFence`; `TrackerLock.ts` keeps `withLock` and `replayingTheJournalFirst`; `withLockIfFree` gone. `TrackerLock.spec.ts` had no journal case, so it became `GenerationLock.spec.ts` whole; the integration spec split 8 generic cases into `GenerationLock.integration.spec.ts` (11 through `withLock` stay), both in `BOUNDARY_SPECS` (boundary not re-recorded). The 3 WP5.2 guard entries removed. Line drift: `OverseerCommand.spec.ts:32`, `CrashMatrix.spec.ts:75`, `MonitorRegistration.ts:160`. `docs/research/remote-state/findings.md` still names the old lock names |
-| 5-C | WP5.3 | running | | |
-| 5-D | WP5.4 | waiting | | |
-| 5-D | WP5.5 | waiting | | |
-| 5-D | WP5.6 | waiting | | |
+| 5-C | WP5.3 | landed | f04365ff | First round. `BoardTransaction.ts`, `@types/BoardRecords.ts`, `LocalRecordAllocation.ts`, `src/testing/FixtureRecordAllocation.ts` (with `NO_UNREADABLE_RECORDS`); `TrackerChange` is `BoardTransaction` in 60 files (30 shipping), `TrackerContents` is `BoardContents`, `TrackerWritten.unreadableRecords`. All 29 WP5.3 guard entries removed; the WP5.8 and WP5.10 entries' keys rewritten with their import lines. A ticket file whose name and `id` disagree is keyed by the file name's number (the Traps win over step 3; `TicketStore.unreadableEntryOf`): WP5.5 confirms. Lookups still match by `basename(location)` until WP5.5. `docs/backlog.md:30` already reworded (WP5.12's line). Line drift recorded in the check |
+| 5-D | WP5.4 | running | | |
+| 5-D | WP5.5 | running | | |
+| 5-D | WP5.6 | running | | |
 | 5-E | WP5.7 | waiting | | |
 | 5-F | WP5.13 | waiting | | |
 | 5-G | WP5.8 | waiting | | |
