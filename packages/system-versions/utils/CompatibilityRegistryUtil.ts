@@ -1,6 +1,7 @@
 /**
- * The logic of a compatibility registry, for any server: which entries a client of a version needs, what raising the minimum supported
- * version lets the server remove, and the guard that fails while the registry keeps an entry no supported client needs.
+ * The logic of a compatibility registry, for any server: which entries a client of a version needs, which entry a versioned path names,
+ * what raising the minimum supported version lets the server remove, and the guard that fails while the registry keeps an entry no
+ * supported client needs.
  */
 import type { CompatibilityEntry, EndpointEntry, RaiseMinimumReport } from '../@types/CompatibilityEntry.ts';
 import type { SystemVersion, VersionsDocument }                       from '../@types/VersionsDocument.ts';
@@ -12,6 +13,11 @@ export interface RaiseMinimumAnswer {
 }
 
 const { isOlder, textOf } = SystemVersionUtil;
+
+const ENDPOINT_PATH_SEPARATOR = '/';
+const TEMPLATE_SEGMENT = /^\{(.*)\}$/;
+// The characters a server's own path patterns accept in a variable segment, so a percent-escape never matches one.
+const TEMPLATE_VALUE = /^[A-Za-z0-9_.-]+$/;
 
 function labelOf(entry: CompatibilityEntry): string {
   return entry.kind === 'endpoint' ? `endpoint ${entry.endpoint} at v${entry.version}` : entry.name;
@@ -39,10 +45,61 @@ function endpointVersionAt(registry: readonly CompatibilityEntry[], endpoint: st
   return served?.version ?? null;
 }
 
+/** The name a template segment `{<name>}` gives its value; `null` for a literal segment. */
+function templateNameOf(segment: string): string | null {
+  return TEMPLATE_SEGMENT.exec(segment)?.[1] ?? null;
+}
+
+function segmentMatches(templateSegment: string, pathSegment: string): boolean {
+  return templateNameOf(templateSegment) === null ? templateSegment === pathSegment : TEMPLATE_VALUE.test(pathSegment);
+}
+
+function endpointMatchesPath(endpoint: string, endpointPath: string): boolean {
+  const templateSegments = endpoint.split(ENDPOINT_PATH_SEPARATOR);
+  const pathSegments = endpointPath.split(ENDPOINT_PATH_SEPARATOR);
+  return templateSegments.length === pathSegments.length && templateSegments.every((segment, index) => segmentMatches(segment, pathSegments[index] ?? ''));
+}
+
+/**
+ * The endpoint entry at `version` whose endpoint names `endpointPath`, the path below the version; `null` when none does. A template
+ * segment `{<name>}` matches one non-empty segment of `[A-Za-z0-9_.-]`, a literal segment only itself.
+ */
+function endpointEntryForPath<Entry extends CompatibilityEntry>(registry: readonly Entry[], endpointPath: string, version: number): (Entry & EndpointEntry) | null {
+  const isMatchingEndpoint = (entry: Entry): entry is Entry & EndpointEntry => (
+    entry.kind === 'endpoint' && entry.version === version && endpointMatchesPath(entry.endpoint, endpointPath)
+  );
+  return registry.find(isMatchingEndpoint) ?? null;
+}
+
+/** The concrete path of a template endpoint, each `{<name>}` filled from `values` and percent-encoded; a missing value is a caller's defect. */
+function endpointPathOf(template: string, values: Readonly<Record<string, string>>): string {
+  return template.split(ENDPOINT_PATH_SEPARATOR).map((segment) => {
+    const name = templateNameOf(segment);
+    if (name === null) return segment;
+    const value = Object.hasOwn(values, name) ? values[name] : undefined;
+    if (value === undefined) throw new Error(`The endpoint ${template} needs a value for {${name}}.`);
+    return encodeURIComponent(value);
+  }).join(ENDPOINT_PATH_SEPARATOR);
+}
+
+function templateSentencesOf(entry: EndpointEntry): string[] {
+  const label = labelOf(entry);
+  const names = entry.endpoint.split(ENDPOINT_PATH_SEPARATOR).flatMap((segment) => {
+    const name = templateNameOf(segment);
+    return name === null ? [] : [name];
+  });
+  const sentences: string[] = [];
+  if (names.includes('')) sentences.push(`${label} has a template segment with no name`);
+  const namedTwice = new Set(names.filter((name, index) => name !== '' && names.indexOf(name) !== index));
+  for (const name of namedTwice) sentences.push(`${label} names {${name}} twice`);
+  return sentences;
+}
+
 function entrySentencesOf(entry: CompatibilityEntry, versions: VersionsDocument): string[] {
   const label = labelOf(entry);
   const sentences: string[] = [];
   if (entry.kind === 'endpoint' && (!Number.isSafeInteger(entry.version) || entry.version < 1)) sentences.push(`${label} has no whole version of at least 1`);
+  if (entry.kind === 'endpoint') sentences.push(...templateSentencesOf(entry));
   if (isOlder(versions.current, entry.introducedIn)) {
     sentences.push(`${label} is introduced in ${textOf(entry.introducedIn)}, after the current version ${textOf(versions.current)}`);
   }
@@ -130,6 +187,8 @@ export const CompatibilityRegistryUtil = {
   labelOf,
   removableAt,
   endpointVersionAt,
+  endpointEntryForPath,
+  endpointPathOf,
   inconsistenciesOf,
   raiseReportOf,
   reportTextOf,

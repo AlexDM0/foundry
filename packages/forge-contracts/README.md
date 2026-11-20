@@ -15,6 +15,7 @@ names no client.
 | `forge-contracts/ForgePresenceDocument` | `GET /api/v1/presence` from forge 1.20: the last start, Talos's supervision, the work that waits by cause, the held merges and the crash logs |
 | `forge-contracts/ForgeCrashLogDocument` | `GET /api/v1/crash-log?number=<n>` from forge 1.20, the newest log without the query |
 | `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands`, Flint's brain's two kinds from forge 1.1 |
+| `forge-contracts/ForgeControlCommandKinds` | `FORGE_CONTROL_COMMAND_KINDS`, every kind a client may send to `POST /api/v1/commands`: the control kinds, then the board kinds |
 | `forge-contracts/ForgeRefusalDocument` | a refusal as forge serves it from forge 1.21: its reason code, its fields and the sentence its command line prints, as `POST /api/v1/commands` answers it |
 | `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v1/board` from forge 1.21: a board's every fact a view reads, its parts in the seven files below |
 | `forge-contracts/BoardPageDocuments` | the board document's `page`: the tickets, the task rows, the worded log, the epics, the open filing drafts and the Board's facts of each row and ticket |
@@ -26,6 +27,7 @@ names no client.
 | `forge-contracts/BoardReadingDocuments` | the board document's finished readings: what waits on the user and what it opens, worded notices and warnings, today's figures, each ticket's facts, each ticket's and job's offered commands and the hold each stop mode leaves |
 | `forge-contracts/BoardVocabulary` | the values of the board document's unions a view iterates or compares, each as a list in forge's order and its type |
 | `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v1/commands` from forge 1.21, with their payloads (the typed draft edit is `BoardPipelineDocuments`') |
+| `forge-contracts/BoardStreamHandshake` | the first event of `GET /api/v1/events`, `/api/v1/jobs/<jobId>/stream` and `/api/v1/profiles/<profileRunId>/stream` from forge 1.22, with the forge's system version and no id |
 | `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
 | `forge-contracts/FrameAncestorRecord` | the record a framing page writes in the monitor folder's `frame-ancestors` folder, one per host, so every forge lets its origin frame the Bridge; its folder, extension and format version |
 | `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |

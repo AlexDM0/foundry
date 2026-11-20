@@ -8,7 +8,9 @@
  * every endpoint the registry serves answers at its versioned path exactly as at its unversioned one, behind the same guards, and a version
  * or an endpoint the registry does not serve is a 404. Presence and the crash log answer behind the token at both paths, the crash log's
  * number reaching its route from the query. The board document answers at v1 behind the token with the assembly's document, while the
- * internal state answers as before at no versioned path.
+ * internal state answers as before at no versioned path. A templated endpoint, a job's or a profile's stream or a picture, answers at the
+ * concrete path its template matches, and a path one segment longer is a 404. Each of the three board streams opens with the handshake,
+ * which carries no id, so a reconnect at the versioned path replays from its `Last-Event-ID` as at the unversioned one.
  */
 import {
   afterEach,
@@ -79,6 +81,8 @@ const EXAMPLE_API_ORIGIN = 'http://127.0.0.1:4100';
 // Long enough that no ping lands in a case; the profile output is read on its own, short schedule.
 const QUIET_HEARTBEAT_MILLISECONDS = 60_000;
 const SHORT_FOLLOW_MILLISECONDS = 5;
+
+const HANDSHAKE_TEXT = `event: handshake\ndata: ${JSON.stringify({ systemVersion: FORGE_SYSTEM_VERSIONS.current })}\n\n`;
 
 const eventStreams = OverseerServer.eventStreamsOf({ heartbeatMilliseconds: QUIET_HEARTBEAT_MILLISECONDS, followMilliseconds: SHORT_FOLLOW_MILLISECONDS });
 
@@ -166,7 +170,7 @@ describe('the gate profile stream', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toBe('text/event-stream');
     const text = await streamTextUntil(response, (soFar) => soFar.includes('id: 4\n'), { whenFirstRead: () => pending.push({ lineNumber: 4, text: 'fourth "quoted"' }), });
-    expect(text).toBe('id: 3\nevent: line\ndata: {"text":"third"}\n\nid: 4\nevent: line\ndata: {"text":"fourth \\"quoted\\""}\n\n');
+    expect(text).toBe(`${HANDSHAKE_TEXT}id: 3\nevent: line\ndata: {"text":"third"}\n\nid: 4\nevent: line\ndata: {"text":"fourth \\"quoted\\""}\n\n`);
     expect(asked).toEqual([['P4', '2']]);
   });
 
@@ -199,7 +203,7 @@ describe('the gate profile stream', () => {
     pending.push({ lineNumber: 1, text: 'gate output' });
     broker.publishState(exampleState(2));
     const profileText = await streamTextUntil(profileStream, (soFar) => soFar.includes('id: 1\n'));
-    expect(profileText).toBe('id: 1\nevent: line\ndata: {"text":"gate output"}\n\n');
+    expect(profileText).toBe(`${HANDSHAKE_TEXT}id: 1\nevent: line\ndata: {"text":"gate output"}\n\n`);
     const boardText = await streamTextUntil(boardStream, (soFar) => soFar.includes('id: 1-2\n'));
     expect(boardText).toContain('event: board');
     expect(boardText).not.toContain('event: line');
@@ -218,7 +222,23 @@ const PORT = 4100;
 const TOKEN = 'example-token';
 const HOST_HEADERS = { host: `127.0.0.1:${PORT}` };
 const TOKEN_HEADERS = { ...HOST_HEADERS, authorization: `Bearer ${TOKEN}` };
-const VERSIONED_ENDPOINTS = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes', 'presence', 'crash-log', 'board'];
+const VERSIONED_ENDPOINTS = [
+  'identity',
+  'summary',
+  'monitor',
+  'monitor/events',
+  'commands',
+  'session-codes',
+  'presence',
+  'crash-log',
+  'board',
+  'events',
+  'jobs/{jobId}/stream',
+  'profiles/{profileRunId}/stream',
+  'pictures',
+  'pictures/{pictureId}',
+];
+const EXAMPLE_PICTURE_ID = 'a'.repeat(64);
 
 const openHandlers: OverseerRequestHandler[] = [];
 
@@ -234,6 +254,9 @@ const BOARD_STATE = BOARD_DOCUMENT_SOURCE.state;
 function versionedRoutesOf(started: () => boolean): OverseerRoutes {
   const monitorStream = MonitorStream.createMonitorStream();
   monitorStream.publish({ monitorVersion: 3, openIncidents: 0 } as unknown as MonitorSnapshot);
+  const broker = EventBroker.createEventBroker(1);
+  broker.publishState(exampleState(1));
+  broker.publishState(exampleState(2));
   return {
     token:         () => TOKEN,
     started,
@@ -247,6 +270,13 @@ function versionedRoutesOf(started: () => boolean): OverseerRoutes {
     monitorStream: () => monitorStream,
     refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
     frameOrigins:  () => [],
+    events:        () => broker,
+    transcriptOf:  (jobId, after) => (jobId === 'J1' ? () => [{
+      cursor: '1.1', role: 'assistant', text: `after ${after ?? 'nothing'}`, entryKey: '1.1.0', at: null
+    }] : null),
+    profileOutputOf: (profileRunId, after) => (profileRunId === 'P1' ? () => [{ lineNumber: 1, text: `after ${after ?? 'nothing'}` }] : null),
+    storePicture:    (upload) => ({ status: 200, body: { stored: upload.verdict === 'read' ? upload.bytes.length : null } }),
+    picture:         (pictureId) => (pictureId === EXAMPLE_PICTURE_ID ? { mediaType: 'image/png', bytes: Uint8Array.from([1, 2, 3]) } : null),
   } as Partial<OverseerRoutes> as OverseerRoutes;
 }
 
@@ -269,14 +299,22 @@ function requestTo(path: string, { method = 'GET', headers = TOKEN_HEADERS, body
   return new Request(`${EXAMPLE_API_ORIGIN}${path}`, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 }
 
-/** The status, and the body read as JSON, or the first event of a stream. */
-async function answerFactsOf(response: Response): Promise<[number, unknown]> {
-  if (response.headers.get('content-type') !== 'text/event-stream') return [response.status, await response.json()];
-  return [response.status, await streamTextUntil(response, (soFar) => soFar.includes('event: monitor'))];
+/** A stream's text up to its first event after the handshake. */
+async function streamOpeningOf(response: Response): Promise<string> {
+  return await streamTextUntil(response, (soFar) => soFar.split('\n\n').length > 2);
 }
 
-function servedPathOf(endpoint: string): string {
-  return `/api/v${CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, FORGE_SYSTEM_VERSIONS.current)}/${endpoint}`;
+/** The status, and the body read as JSON or as bytes, or a stream's opening. */
+async function answerFactsOf(response: Response): Promise<[number, unknown]> {
+  const contentType = response.headers.get('content-type') ?? '';
+  if (contentType === 'text/event-stream') return [response.status, await streamOpeningOf(response)];
+  if (contentType.startsWith('application/json')) return [response.status, await response.json()];
+  return [response.status, [...new Uint8Array(await response.arrayBuffer())]];
+}
+
+function servedPathOf(endpoint: string, values: Readonly<Record<string, string>> = {}): string {
+  const version = CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, FORGE_SYSTEM_VERSIONS.current);
+  return `/api/v${version}/${CompatibilityRegistryUtil.endpointPathOf(endpoint, values)}`;
 }
 
 describe('GET /api/versions', () => {
@@ -312,7 +350,7 @@ describe('the versioned paths', () => {
   });
 
   test('every endpoint answers at the version the registry serves exactly as at its unversioned path', async () => {
-    const calls: { endpoint: string; method?: string; body?: unknown }[] = [
+    const calls: { endpoint: string; values?: Record<string, string>; method?: string; body?: unknown }[] = [
       { endpoint: 'identity' },
       { endpoint: 'summary' },
       { endpoint: 'monitor' },
@@ -321,11 +359,19 @@ describe('the versioned paths', () => {
       { endpoint: 'presence' },
       { endpoint: 'crash-log' },
       { endpoint: 'board' },
+      { endpoint: 'events' },
+      { endpoint: 'jobs/{jobId}/stream', values: { jobId: 'J1' } },
+      { endpoint: 'profiles/{profileRunId}/stream', values: { profileRunId: 'P1' } },
+      { endpoint: 'pictures', method: 'POST', body: [1, 2, 3] },
+      { endpoint: 'pictures/{pictureId}', values: { pictureId: EXAMPLE_PICTURE_ID } },
     ];
-    for (const { endpoint, method, body } of calls) {
+    for (const {
+      endpoint, values = {}, method, body
+    } of calls) {
       const options = { ...(method === undefined ? {} : { method }), ...(body === undefined ? {} : { body }) };
-      const unversioned = await answerFactsOf(await versionedHandlerOf().answer(requestTo(`/api/${endpoint}`, options), PORT));
-      const versioned = await answerFactsOf(await versionedHandlerOf().answer(requestTo(servedPathOf(endpoint), options), PORT));
+      const concretePath = CompatibilityRegistryUtil.endpointPathOf(endpoint, values);
+      const unversioned = await answerFactsOf(await versionedHandlerOf().answer(requestTo(`/api/${concretePath}`, options), PORT));
+      const versioned = await answerFactsOf(await versionedHandlerOf().answer(requestTo(servedPathOf(endpoint, values), options), PORT));
       expect(versioned, endpoint).toEqual(unversioned);
       expect(unversioned[0], endpoint).toBe(200);
     }
@@ -355,7 +401,22 @@ describe('the versioned paths', () => {
 
   test('a version or an endpoint the registry does not serve is a 404 not-found', async () => {
     const handler = versionedHandlerOf();
-    for (const path of ['/api/v9/identity', '/api/v1/monitor', '/api/v0/summary', '/api/v01/summary', '/api/v1/state', '/api/v1/events', '/api/v2/']) {
+    const unservedPaths = [
+      '/api/v9/identity',
+      '/api/v1/monitor',
+      '/api/v0/summary',
+      '/api/v01/summary',
+      '/api/v1/state',
+      '/api/v2/events',
+      '/api/v2/',
+      '/api/v1/jobs/J1/extra',
+      '/api/v1/jobs/J1/stream/extra',
+      '/api/v1/jobs//stream',
+      '/api/v1/jobs/J%201/stream',
+      '/api/v1/profiles/P1',
+      '/api/v1/jobs/J1/files/report.json',
+    ];
+    for (const path of unservedPaths) {
       const answer = await handler.answer(requestTo(path), PORT);
       expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
     }
@@ -407,5 +468,35 @@ describe('the board document', () => {
     const state = await handler.answer(requestTo('/api/state'), PORT);
     expect([state.status, await state.json()]).toEqual([200, JSON.parse(JSON.stringify(BOARD_STATE))]);
     expect((await handler.answer(requestTo('/api/v1/state'), PORT)).status).toBe(404);
+  });
+});
+
+describe('the board streams at their versioned paths', () => {
+  test('a job\'s and a profile\'s stream reach their routes with the id from the path', async () => {
+    const handler = versionedHandlerOf();
+    const jobStream = await streamOpeningOf(await handler.answer(requestTo('/api/v1/jobs/J1/stream?after=0.9'), PORT));
+    expect(jobStream).toContain('"text":"after 0.9"');
+    const profileStream = await streamOpeningOf(await handler.answer(requestTo('/api/v1/profiles/P1/stream?after=4'), PORT));
+    expect(profileStream).toContain('{"text":"after 4"}');
+    const unknownJob = await handler.answer(requestTo('/api/v1/jobs/J9/stream'), PORT);
+    expect([unknownJob.status, await unknownJob.json()]).toEqual([404, { refusal: 'not-found' }]);
+  });
+
+  test('each of the three streams writes the handshake with no id before any other event', async () => {
+    const handler = versionedHandlerOf();
+    for (const path of ['/api/v1/events', '/api/v1/jobs/J1/stream', '/api/v1/profiles/P1/stream']) {
+      const opening = await streamOpeningOf(await handler.answer(requestTo(path), PORT));
+      expect(opening, path).toStartWith(HANDSHAKE_TEXT);
+      expect(opening.slice(HANDSHAKE_TEXT.length), path).toStartWith('id: ');
+    }
+  });
+
+  test('a Last-Event-ID replay at /api/v1/events sends what was missed, as at /api/events', async () => {
+    const replayedAt = async (path: string): Promise<string[] | null> => {
+      const text = await streamOpeningOf(await versionedHandlerOf().answer(requestTo(path, { headers: { ...TOKEN_HEADERS, 'last-event-id': '1-1' } }), PORT));
+      return text.match(/^id: .+$/gm);
+    };
+    expect(await replayedAt('/api/v1/events')).toEqual(['id: 1-2']);
+    expect(await replayedAt('/api/v1/events')).toEqual(await replayedAt('/api/events'));
   });
 });

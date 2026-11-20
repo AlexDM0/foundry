@@ -296,9 +296,15 @@ describe('the Overseer API on a scratch board', () => {
     const stream = await fetch(new URL('api/profiles/P1/stream?after=1', url), { headers });
     expect(stream.headers.get('content-type')).toBe('text/event-stream');
     const reader = stream.body?.getReader();
-    const firstChunk = await reader?.read();
+    const decoder = new TextDecoder();
+    let opening = '';
+    while (reader !== undefined && !opening.includes('event: line')) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      opening += decoder.decode(chunk.value);
+    }
     await reader?.cancel();
-    expect(new TextDecoder().decode(firstChunk?.value)).toBe('id: 2\nevent: line\ndata: {"text":"second"}\n\n');
+    expect(opening).toBe(`event: handshake\ndata: ${JSON.stringify({ systemVersion: FORGE_SYSTEM_VERSIONS.current })}\n\nid: 2\nevent: line\ndata: {"text":"second"}\n\n`);
     expect((await fetch(new URL('api/profiles/P2/stream', url), { headers })).status).toBe(404);
     expect((await fetch(new URL('api/profiles/P1/stream?after=last', url), { headers })).status).toBe(404);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

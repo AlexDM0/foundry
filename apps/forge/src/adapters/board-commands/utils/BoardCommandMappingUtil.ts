@@ -226,4 +226,6 @@ function controlCommandOf(command: ForgeBoardCommand): ControlCommand {
 export const BoardCommandMappingUtil = Object.freeze({
   controlCommandOf,
   draftEditOf,
+  /** The mapper of each board kind, keyed by kind, so a spec can hold that every kind a client sends is ingested. */
+  mapperOfKind: MAPPER_OF_KIND,
 });

@@ -1,6 +1,6 @@
 {
   "name": "forge-contracts",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "What a forge serves and reads, as types: its documents, its commands, its embed channel, the record a framing page writes, its system versions and its compatibility registry",
   "type": "module",
   "engines": { "bun": "1.4.2" },
@@ -11,7 +11,9 @@
     "./MonitorSnapshotDocument": "./@types/MonitorSnapshotDocument.ts",
     "./MonitorInterruptionCauses": "./constants/MonitorInterruptionCauses.ts",
     "./ForgeControlCommand": "./@types/ForgeControlCommand.ts",
+    "./ForgeControlCommandKinds": "./constants/ForgeControlCommandKinds.ts",
     "./BoardCommand": "./@types/BoardCommand.ts",
+    "./BoardStreamHandshake": "./@types/BoardStreamHandshake.ts",
     "./ForgePresenceDocument": "./@types/ForgePresenceDocument.ts",
     "./ForgeCrashLogDocument": "./@types/ForgeCrashLogDocument.ts",
     "./ForgeRefusalDocument": "./@types/ForgeRefusalDocument.ts",

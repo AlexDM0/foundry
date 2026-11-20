@@ -3,6 +3,7 @@
  * compatibility path that is no endpoint, with the forge version that introduced it and the last forge version whose clients still need
  * it. `bun run versions:raise-minimum <major.minor>` lists what a raise of `FORGE_SYSTEM_VERSIONS.minimumSupported` makes removable, and
  * `ForgeCompatibilityRegistry.spec.ts` fails while an entry is kept below that minimum. `GET /api/versions` is in no entry: it is never removed.
+ * An endpoint segment `{<name>}` is a template a concrete path fills (`CompatibilityRegistryUtil.endpointEntryForPath`).
  */
 import type { CompatibilityEntry } from 'system-versions/CompatibilityEntry';
 import type { SystemVersion }      from 'system-versions/VersionsDocument';
@@ -16,6 +17,7 @@ const FIRST_VERSIONED_FORGE: SystemVersion = { major: 1, minor: 0 };
 /** The forge version that first served the endpoint at this version: `versions:raise-minimum` dates it by this, and it gates nothing. */
 const PRESENCE_ADDED_IN: SystemVersion = { major: 1, minor: 20 };
 const BOARD_DOCUMENT_ADDED_IN: SystemVersion = { major: 1, minor: 21 };
+const VERSIONED_STREAMS_AND_PICTURES_ADDED_IN: SystemVersion = { major: 1, minor: 22 };
 
 function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
   return {
@@ -54,6 +56,11 @@ export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = 
   endpointAddedIn('presence', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('crash-log', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('board', 1, BOARD_DOCUMENT_ADDED_IN),
+  endpointAddedIn('events', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
+  endpointAddedIn('jobs/{jobId}/stream', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
+  endpointAddedIn('profiles/{profileRunId}/stream', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
+  endpointAddedIn('pictures', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
+  endpointAddedIn('pictures/{pictureId}', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
   keptForReleasedClientsOf('the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>'),
   keptForReleasedClientsOf('the integer version keys of the documents: identityVersion, contracts, summaryVersion, monitorVersion, controlVersion'),
   keptForReleasedClientsOf('channelVersion 1 on every embed message, which a released Bridge and host compare for equality'),

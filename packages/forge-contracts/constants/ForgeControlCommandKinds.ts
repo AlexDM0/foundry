@@ -1,0 +1,55 @@
+/**
+ * Every command kind a client may send to `POST /api/v1/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
+ * `ForgeBoardCommand`, each in its contract's order. A kind the forge takes only from its own command line is in neither.
+ */
+import type { ForgeBoardCommand }   from '../@types/BoardCommand.ts';
+import type { ForgeControlCommand } from '../@types/ForgeControlCommand.ts';
+
+export type ForgeClientCommandKind = (ForgeControlCommand | ForgeBoardCommand)['kind'];
+
+export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Object.freeze([
+  'overseer-pause',
+  'overseer-resume',
+  'interrupted-work-resume',
+  'overseer-stop',
+  'overseer-restart',
+  'concurrency-set',
+  'job-stop-all',
+  'machine-agent-limit-set',
+  'flint-brain-start',
+  'flint-brain-stop',
+  'chart-range-set',
+  'decision-answer',
+  'gate-profile-start',
+  'gate-profile-stop',
+  'intake-close',
+  'intake-start',
+  'job-fresh',
+  'job-message',
+  'job-stop',
+  'merge-accept',
+  'merge-update',
+  'pipeline-agent-advise',
+  'pipeline-apply',
+  'pipeline-apply-cancel',
+  'pipeline-check',
+  'pipeline-constitution-edit',
+  'pipeline-draft-discard',
+  'pipeline-draft-edit',
+  'pipeline-draft-undo',
+  'pipeline-setup-answer',
+  'pipeline-setup-billing',
+  'pipeline-setup-resume',
+  'pipeline-setup-start',
+  'pipeline-setup-start-over',
+  'pipeline-setup-step',
+  'pipeline-update-start',
+  'ticket-deliver-by-hand',
+  'ticket-hold',
+  'ticket-network',
+  'ticket-park',
+  'ticket-priority',
+  'ticket-ready',
+  'ticket-unhold',
+  'tracker-clear',
+]);

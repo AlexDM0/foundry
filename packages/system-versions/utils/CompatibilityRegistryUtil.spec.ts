@@ -1,8 +1,9 @@
 /**
  * The registry logic against its own contract, on an example server's registry. What matters: a raise of the minimum lists exactly the
  * entries no client at the new minimum needs, and keeps the rest; the guard names every entry the current minimum already lets go, so it
- * fails from the raise until the entry is removed; a client of a version calls the one endpoint version that serves it; and each other way
- * a registry can contradict itself or the server's versions is named.
+ * fails from the raise until the entry is removed; a client of a version calls the one endpoint version that serves it; a versioned path
+ * names its entry by template, segment for segment, and a template is filled with its values encoded; and each other way a registry can
+ * contradict itself or the server's versions is named.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -135,6 +136,44 @@ describe('the registry guard', () => {
       'needed by the current version is named twice',
       'endpoint health at v1 is last needed by 2.1, below the minimum supported 3.4: remove it and what it keeps',
       'endpoint health at v1 and endpoint health at v2 are both needed by one client version',
+    ]);
+  });
+});
+
+describe('the entry a versioned path names', () => {
+  const EXAMPLE_ORDER_LINES_V1 = endpointOf('orders/{orderId}/lines', 1, versionOf(1, 0), null);
+  const EXAMPLE_ORDER_V1 = endpointOf('orders/{orderId}', 1, versionOf(1, 0), null);
+  const TEMPLATED_REGISTRY: readonly CompatibilityEntry[] = [...EXAMPLE_REGISTRY, EXAMPLE_ORDER_LINES_V1, EXAMPLE_ORDER_V1];
+
+  test('a template matches a concrete path of the same length, a literal endpoint only itself, each at its own version', () => {
+    expect(CompatibilityRegistryUtil.endpointEntryForPath(TEMPLATED_REGISTRY, 'orders/O-1.a_b/lines', 1)).toBe(EXAMPLE_ORDER_LINES_V1);
+    expect(CompatibilityRegistryUtil.endpointEntryForPath(TEMPLATED_REGISTRY, 'orders/O1', 1)).toBe(EXAMPLE_ORDER_V1);
+    expect(CompatibilityRegistryUtil.endpointEntryForPath(TEMPLATED_REGISTRY, 'orders', 3)).toBe(EXAMPLE_ORDERS_V3);
+    expect(CompatibilityRegistryUtil.endpointEntryForPath(TEMPLATED_REGISTRY, 'orders/O1/lines', 2)).toBeNull();
+  });
+
+  test('refuses an empty segment, an extra or a missing segment, a percent-escape and a compatibility path of the same name', () => {
+    const refusedPaths = ['orders//lines', 'orders/O1/lines/extra', 'orders/O1/extra', 'orders/O%2F1/lines', 'orders/', 'health/extra'];
+    expect(refusedPaths.map((endpointPath) => CompatibilityRegistryUtil.endpointEntryForPath(TEMPLATED_REGISTRY, endpointPath, 1))).toEqual(refusedPaths.map(() => null));
+    expect(CompatibilityRegistryUtil.endpointEntryForPath([pathOf('orders', versionOf(1, 0), null)], 'orders', 1)).toBeNull();
+  });
+
+  test('a template is filled from its values, each encoded, and a missing value throws', () => {
+    expect(CompatibilityRegistryUtil.endpointPathOf('orders/{orderId}/lines', { orderId: 'O 1/2' })).toBe('orders/O%201%2F2/lines');
+    expect(CompatibilityRegistryUtil.endpointPathOf('health', {})).toBe('health');
+    expect(() => CompatibilityRegistryUtil.endpointPathOf('orders/{orderId}/lines', { lineId: 'L1' })).toThrow('{orderId}');
+    expect(() => CompatibilityRegistryUtil.endpointPathOf('orders/{constructor}', {})).toThrow('{constructor}');
+  });
+
+  test('a template with an empty name or with two equal names is an inconsistency', () => {
+    const planted: readonly CompatibilityEntry[] = [
+      endpointOf('orders/{}/lines', 1, versionOf(1, 0), null),
+      endpointOf('orders/{orderId}/lines/{orderId}', 1, versionOf(1, 0), null),
+      EXAMPLE_ORDER_LINES_V1,
+    ];
+    expect(CompatibilityRegistryUtil.inconsistenciesOf(planted, EXAMPLE_VERSIONS)).toEqual([
+      'endpoint orders/{}/lines at v1 has a template segment with no name',
+      'endpoint orders/{orderId}/lines/{orderId} at v1 names {orderId} twice',
     ]);
   });
 });

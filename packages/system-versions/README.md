@@ -8,7 +8,7 @@ names no server; each server keeps its own versions and its own registry, and us
 | `system-versions/VersionsDocument` | `SystemVersion` and `GET /api/versions`, unversioned and never removed: a server's current version and its minimum supported |
 | `system-versions/CompatibilityEntry` | an entry of a compatibility registry, endpoint or compatibility path, and the raise-the-minimum report |
 | `system-versions/SystemVersionUtil` | comparing, writing and reading `major.minor` |
-| `system-versions/CompatibilityRegistryUtil` | the endpoint version a client calls, what a raise of the minimum makes removable, the dry run's text, and the guard |
+| `system-versions/CompatibilityRegistryUtil` | the endpoint version a client calls, the entry a versioned path names and a template endpoint's concrete path, what a raise of the minimum makes removable, the dry run's text, and the guard |
 
 ## The model
 
@@ -21,6 +21,8 @@ names no server; each server keeps its own versions and its own registry, and us
   and every compatibility path that is no endpoint (an unversioned alias, a payload migration, an older message form). Each entry names
   the version that introduced it and the last version whose clients still need it, or none while the current version needs it.
 - A client of version `v` calls, of each endpoint, the one version whose lifetime holds `v` (`endpointVersionAt`).
+- An endpoint may be a template, such as `jobs/{jobId}/stream`: a segment `{<name>}` matches one non-empty segment of `[A-Za-z0-9_.-]`
+  (`endpointEntryForPath`), and a client fills it with `endpointPathOf`.
 
 ## Raising the minimum
 

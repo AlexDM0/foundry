@@ -11,10 +11,12 @@
 import { timingSafeEqual } from 'node:crypto';
 
 import type { HTMLBundle }                                   from 'bun';
+import type { BoardStreamHandshake }                         from 'forge-contracts/BoardStreamHandshake';
 import { FORGE_COMPATIBILITY_REGISTRY }                      from 'forge-contracts/ForgeCompatibilityRegistry';
 import { FORGE_SYSTEM_VERSIONS }                             from 'forge-contracts/ForgeSystemVersions';
 import type { IdentityDocument }                             from 'forge-contracts/IdentityDocument';
 import type { MonitorEventDocument, MonitorStreamHandshake } from 'forge-contracts/MonitorSnapshotDocument';
+import type { EndpointEntry }                                from 'system-versions/CompatibilityEntry';
 import { CompatibilityRegistryUtil }                         from 'system-versions/CompatibilityRegistryUtil';
 import type { SystemVersion, VersionsDocument }              from 'system-versions/VersionsDocument';
 
@@ -420,10 +422,17 @@ function eventText(event: Pick<OverseerEvent, 'id' | 'kind' | 'data'>): string {
   return `id: ${event.id}\nevent: ${event.kind}\ndata: ${JSON.stringify(event.data)}\n\n`;
 }
 
-function eventsResponse(request: Request, routes: OverseerRoutes, eventStreams: EventStreams): Response {
+/** Every stream opens with it; it carries no id, so it never moves a client's `Last-Event-ID` and a reconnect still replays. */
+function handshakeEventText(systemVersion: SystemVersion): string {
+  const handshake: BoardStreamHandshake & MonitorStreamHandshake = { systemVersion };
+  return `event: handshake\ndata: ${JSON.stringify(handshake)}\n\n`;
+}
+
+function eventsResponse(request: Request, routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): Response {
   const broker = routes.events();
   if (broker === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-ready' } });
   return eventStreamResponse(eventStreams, (write) => {
+    write(handshakeEventText(systemVersion));
     const replay = broker.replayAfter(request.headers.get('last-event-id'));
     const snapshot = broker.snapshot();
     if (replay.verdict === 'replayed') replay.events.forEach((event) => write(eventText(event)));
@@ -431,11 +440,6 @@ function eventsResponse(request: Request, routes: OverseerRoutes, eventStreams: 
     const unsubscribe = broker.subscribe((event) => write(eventText(event)));
     return { tick: () => undefined, stop: unsubscribe };
   });
-}
-
-function handshakeEventText(systemVersion: SystemVersion): string {
-  const handshake: MonitorStreamHandshake = { systemVersion };
-  return `event: handshake\ndata: ${JSON.stringify(handshake)}\n\n`;
 }
 
 function monitorEventText(snapshot: MonitorSnapshot, systemVersion: SystemVersion): string {
@@ -459,11 +463,19 @@ function monitorEventsResponse(routes: OverseerRoutes, eventStreams: EventStream
   });
 }
 
-function transcriptResponse(request: Request, routes: OverseerRoutes, jobId: string, eventStreams: EventStreams): Response {
+/** What a stream route needs beyond the request: the routes, the open streams, and the system version its handshake names. */
+interface StreamContext {
+  routes:        OverseerRoutes;
+  eventStreams:  EventStreams;
+  systemVersion: SystemVersion;
+}
+
+function transcriptResponse(request: Request, jobId: string, { routes, eventStreams, systemVersion }: StreamContext): Response {
   const after = request.headers.get('last-event-id') ?? new URL(request.url).searchParams.get('after');
   const follow = routes.transcriptOf(jobId, after);
   if (follow === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
   return eventStreamResponse(eventStreams, (write) => {
+    write(handshakeEventText(systemVersion));
     const history = follow();
     const lastCursor = history.at(-1)?.cursor ?? after ?? '';
     write(`id: ${lastCursor}\nevent: history\ndata: ${JSON.stringify(history)}\n\n`);
@@ -477,11 +489,12 @@ function transcriptResponse(request: Request, routes: OverseerRoutes, jobId: str
  * A gate profile's output: each line after the cursor, then each line appended later, as a `line` event with its line number as the id.
  * The output is read on its own schedule, never from the board's events, so the board event stream carries no output line.
  */
-function profileOutputResponse(request: Request, routes: OverseerRoutes, profileRunId: string, eventStreams: EventStreams): Response {
+function profileOutputResponse(request: Request, profileRunId: string, { routes, eventStreams, systemVersion }: StreamContext): Response {
   const after = request.headers.get('last-event-id') ?? new URL(request.url).searchParams.get('after');
   const follow = routes.profileOutputOf(profileRunId, after);
   if (follow === null) return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
   return eventStreamResponse(eventStreams, (write) => {
+    write(handshakeEventText(systemVersion));
     const sendNew = () => follow().forEach((line) => write(`id: ${line.lineNumber}\nevent: line\ndata: ${JSON.stringify({ text: line.text })}\n\n`));
     sendNew();
     const following = setInterval(sendNew, eventStreams.followMilliseconds);
@@ -548,18 +561,19 @@ type PageFiles = (() => Promise<BuiltPageOutcome>) | null;
 function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): (() => Response) | null {
   const { pathname, searchParams } = new URL(request.url);
   if (request.method !== 'GET') return null;
+  const streamContext: StreamContext = { routes, eventStreams, systemVersion };
   if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
   if (pathname === BOARD_PATH) return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.board() });
-  if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams);
+  if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams, systemVersion);
   if (pathname === MONITOR_PATH) return () => jsonResponse(routes.monitor());
   if (pathname === PRESENCE_PATH) return () => jsonResponse(routes.presence());
   if (pathname === CRASH_LOG_PATH) return () => jsonResponse(routes.crashLog(searchParams.get(CRASH_LOG_NUMBER_PARAMETER)));
   if (pathname === MONITOR_EVENTS_PATH) return () => monitorEventsResponse(routes, eventStreams, systemVersion);
   const jobStreamId = JOB_STREAM_PATH.exec(pathname)?.[1];
-  if (jobStreamId !== undefined) return () => transcriptResponse(request, routes, jobStreamId, eventStreams);
+  if (jobStreamId !== undefined) return () => transcriptResponse(request, jobStreamId, streamContext);
   const profileRunId = PROFILE_STREAM_PATH.exec(pathname)?.[1];
-  if (profileRunId !== undefined) return () => profileOutputResponse(request, routes, profileRunId, eventStreams);
+  if (profileRunId !== undefined) return () => profileOutputResponse(request, profileRunId, streamContext);
   const [, jobId, fileName] = JOB_FILE_PATH.exec(pathname) ?? [];
   if (jobId !== undefined && fileName !== undefined) return () => jobFileResponse(routes, jobId, fileName);
   const pictureId = PICTURE_PATH.exec(pathname)?.[1];
@@ -613,24 +627,23 @@ export interface OverseerRequestHandler {
   closeEveryStream: () => void;
 }
 
-/** Each endpoint served at a versioned path, as `<endpoint>@<version>`: every registry entry that a client of a supported version needs. */
-function servedEndpointsOf(versions: VersionsDocument): ReadonlySet<string> {
+/** Each endpoint served at a versioned path: every registry entry that a client of a supported version needs. */
+function servedEndpointsOf(versions: VersionsDocument): readonly EndpointEntry[] {
   const removable = CompatibilityRegistryUtil.removableAt(FORGE_COMPATIBILITY_REGISTRY, versions.minimumSupported);
-  return new Set(FORGE_COMPATIBILITY_REGISTRY.flatMap((entry) => (
-    entry.kind === 'endpoint' && !removable.includes(entry) ? [`${entry.endpoint}@${entry.version}`] : []
-  )));
+  return FORGE_COMPATIBILITY_REGISTRY.flatMap((entry) => (entry.kind === 'endpoint' && !removable.includes(entry) ? [entry] : []));
 }
 
 /**
- * The request at its unversioned path, which every route answers: a served `/api/v<n>/<endpoint>` becomes `/api/<endpoint>`, keeping its
- * method, headers and body, so the token, session, CSP and stream rules are the unversioned route's. `null` for a version not served.
+ * The request at its unversioned path, which every route answers: a `/api/v<n>/<path>` a served endpoint names, by its template, becomes
+ * `/api/<path>`, keeping its method, headers and body, so the token, session, CSP and stream rules are the unversioned route's. `null`
+ * for a version or a path not served.
  */
-function requestAtUnversionedPath(request: Request, servedEndpoints: ReadonlySet<string>): Request | null {
+function requestAtUnversionedPath(request: Request, servedEndpoints: readonly EndpointEntry[]): Request | null {
   const url = new URL(request.url);
-  const [, version, endpoint] = VERSIONED_PATH.exec(url.pathname) ?? [];
-  if (version === undefined || endpoint === undefined) return request;
-  if (!servedEndpoints.has(`${endpoint}@${version}`)) return null;
-  url.pathname = `${API_PATH_PREFIX}${endpoint}`;
+  const [, version, endpointPath] = VERSIONED_PATH.exec(url.pathname) ?? [];
+  if (version === undefined || endpointPath === undefined) return request;
+  if (CompatibilityRegistryUtil.endpointEntryForPath(servedEndpoints, endpointPath, Number(version)) === null) return null;
+  url.pathname = `${API_PATH_PREFIX}${endpointPath}`;
   return new Request(url.href, request);
 }
 

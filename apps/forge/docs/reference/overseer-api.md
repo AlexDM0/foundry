@@ -348,6 +348,11 @@ Pass, at every [sweep](../glossary.md#sweep), and once at start. Each reads the 
 | `pipeline` | `{pipeline, pipelineSetup, pipelineFlow}` of the `BoardState` | The stored pipeline, the setup record, its draft or the flow changed; always directly before `board`, so the flow can animate its marks |
 | `board` | The whole `BoardState` | Anything changed; always last |
 
+On connect, before any other event, the stream sends one `handshake` event, `data: {"systemVersion": …}`, the `current`
+of [System versions](#system-versions), from forge 1.22. It carries no `id:` line, so it never moves a client's
+`Last-Event-ID` and a reconnect still replays from the last real event. The transcript stream and the gate profile
+stream open with the same handshake; the package type is `BoardStreamHandshake`.
+
 The rules of one publish:
 
 - An event id is `<generation>-<n>`, `n` counting from 1 within one broker.
@@ -612,8 +617,9 @@ report the monitor's `usage` shows.
 
 `GET /api/jobs/<J>/stream` follows one job as entries read from `events-<instance>.ndjson`. Entries are vendor-neutral:
 the adapter reads each line, the lines written to the session among them. It reads a finished job and a job whose
-child is gone the same way. A client gets one `history` event holding a list of every entry after its
-[cursor](../glossary.md#cursor), then a `message` event per later entry, each with the cursor as its id.
+child is gone the same way. A client gets the `handshake` of [the event stream](#the-event-stream), with no id, then one
+`history` event holding a list of every entry after its [cursor](../glossary.md#cursor), then a `message` event per
+later entry, each with the cursor as its id.
 
 ![Two event logs, events-1.ndjson and events-2.ndjson, each numbered from 1. A cursor at 1.5, from Last-Event-ID or else the after parameter, gets entries 1.6 to 2.2 in one history event, because they already existed, and 2.3, written later, as a message event.](../figures/overseer-api/transcript-cursor.png)
 
@@ -679,7 +685,7 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.21` and `0.0`: 1.1 adds [Flint's
+moment the server answers, while the Overseer starts too. This forge answers `1.22` and `0.0`: 1.1 adds [Flint's
 brain](#flint-brain) to the monitor and the commands, 1.2 adds a ticket's and a filing draft's entity and crosses, the
 entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity` command, a
 ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields and a setup
@@ -720,7 +726,9 @@ surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `ta
 `interrupted-work-resume` command, the `ticket-not-interrupted` refusal, the `ticket-interrupted-hold-lifted` record,
 and the presence and crash-log endpoints with the `no-crash-log` refusal, and 1.21 adds the board document at
 `/api/v1/board`, the board command kinds, the refusal's structured fields and the command line's sentence on a refused
-command, and keeps an unfinished entities draft, each minor only adds, and version 0.0 stands for every forge released before system versions.
+command, and keeps an unfinished entities draft, and 1.22 serves the event stream, a job's transcript stream, a gate
+profile's stream and the pictures at versioned paths and opens each of the three streams with a `handshake`, each minor
+only adds, and version 0.0 stands for every forge released before system versions.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -740,10 +748,12 @@ client can record a forge ahead of it or of another major ([the CLI reference](.
 ### Versioned paths
 
 Every endpoint of `FORGE_COMPATIBILITY_REGISTRY` (`packages/forge-contracts`) answers at `/api/v<n>/<endpoint>`, at each
-version an entry serves to a client the server still supports. The server turns the path into the unversioned one and
-answers it through that route, so the token, the session cookie, the CSP and a stream's held connection are the same.
-An answer carries no endpoint version. A version or an endpoint no entry serves is 404 `not-found`, `/api/v1/versions`
-among them.
+version an entry serves to a client the server still supports. An endpoint segment `{<name>}` is a template: it matches
+one non-empty path segment of `[A-Za-z0-9_.-]`, so `jobs/{jobId}/stream` serves `/api/v1/jobs/J12/stream`, and a
+percent escape, an empty segment or an extra one matches nothing. The server turns the path into the unversioned one and
+answers it through that route, so the token, the session cookie, the CSP, a stream's held connection and the route's own
+id check are the same. An answer carries no endpoint version. A version or an endpoint no entry serves is 404
+`not-found`, `/api/v1/versions` and `/api/v1/jobs/<J>/files/<name>` among them.
 
 | Endpoint | Versioned path |
 | --- | --- |
@@ -756,6 +766,11 @@ among them.
 | presence | `GET /api/v1/presence`, from 1.20 |
 | crash log | `GET /api/v1/crash-log?number=<n>`, from 1.20 |
 | board | `GET /api/v1/board`, from 1.21 |
+| events | `GET /api/v1/events`, from 1.22 |
+| jobs/{jobId}/stream | `GET /api/v1/jobs/<J>/stream?after=<cursor>`, from 1.22 |
+| profiles/{profileRunId}/stream | `GET /api/v1/profiles/<P>/stream?after=<line>`, from 1.22 |
+| pictures | `POST /api/v1/pictures`, from 1.22 |
+| pictures/{pictureId} | `GET /api/v1/pictures/<id>`, from 1.22 |
 
 The monitor starts at v2: its warnings became objects before system versions. The unversioned paths stay as a
 compatibility path of the registry, for clients built before system versions, and the Bridge's own routes stay
@@ -841,8 +856,8 @@ whole snapshot of its own.
 
 `GET /api/profiles/<P>/stream` follows one [gate profile](../cli.md#gate-profiles) run's output, as the run appends it
 to `<data>/gate-profile-runs/<P>.ndjson`. Each piece of output is one line of that file, numbered from 1. A client gets
-a `line` event per line after its cursor, `data: {"text": …}` and the line number as its id, then a `line` event per line
-appended later.
+the `handshake` of [the event stream](#the-event-stream), with no id, then a `line` event per line after its cursor,
+`data: {"text": …}` and the line number as its id, then a `line` event per line appended later.
 
 - The run must be one that `gate-profiles.json` holds now: an unknown id, a run that a newer run of the same gate and
   phase replaced, and an unreadable file are 404. A queued run with no output yet streams nothing until its first line.
@@ -998,7 +1013,7 @@ and `session-lost`, and follows `navigate`.
 | --- | --- | --- | --- |
 | Guards, routes, CSP, page build | `src/services/overseer/OverseerServer.ts` | `OverseerServer.start`, `OverseerServer.requestHandlerOf`, `routeOf`, `contentSecurityPolicyOf`, `pageFilesOf` | `src/services/overseer/OverseerServer.integration.spec.ts`, `src/services/overseer/OverseerServer.monitor.spec.ts` |
 | Contract versions | `src/shared/constants/OverseerApiContracts.ts`, `packages/forge-contracts/constants/OverseerContractVersions.ts` | `IDENTITY_VERSION`, `SERVED_CONTRACT_VERSIONS`, `OVERSEER_CONTRACT_VERSIONS` | `src/services/overseer/OverseerServer.monitor.spec.ts`, `packages/forge-contracts/constants/OverseerContractVersions.spec.ts` |
-| System versions, versioned paths | `src/services/overseer/OverseerServer.ts`, `packages/forge-contracts/constants/ForgeSystemVersions.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts` | `requestAtUnversionedPath`, `FORGE_SYSTEM_VERSIONS`, `FORGE_COMPATIBILITY_REGISTRY` | `src/services/overseer/OverseerServer.spec.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts` |
+| System versions, versioned paths | `src/services/overseer/OverseerServer.ts`, `packages/forge-contracts/constants/ForgeSystemVersions.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts`, `packages/system-versions/utils/CompatibilityRegistryUtil.ts` | `requestAtUnversionedPath`, `FORGE_SYSTEM_VERSIONS`, `FORGE_COMPATIBILITY_REGISTRY`, `CompatibilityRegistryUtil.endpointEntryForPath` | `src/services/overseer/OverseerServer.spec.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts` |
 | The versions test setting | `src/shared/Environment.ts` | `versionsAnswerOverride` | `src/shared/Environment.integration.spec.ts` |
 | Monitor snapshot | `src/services/overseer/MonitorSnapshotAssembly.ts` | `MonitorSnapshotAssembly` | `src/services/overseer/MonitorSnapshotAssembly.spec.ts` |
 | Monitor stream | `src/services/overseer/MonitorStream.ts` | `MonitorStream.createMonitorStream` | `src/services/overseer/MonitorStream.spec.ts` |
@@ -1013,6 +1028,7 @@ and `session-lost`, and follows `navigate`.
 | The board document's mappers | `src/adapters/board-document/utils/` | `BoardPageMappingUtil`, `BoardJobMappingUtil`, `BoardConversationMappingUtil`, `BoardPipelineMappingUtil`, `BoardMergeQueueMappingUtil`, `BoardReadingMappingUtil`, `BoardEntityRefusalMappingUtil` | the `.spec.ts` beside each, `src/adapters/board-document/BoardVocabulary.parity.spec.ts` |
 | Offered moves | `src/lib/tracker-model/MoveOffers.ts` | `Board.ticketOffersOf`, `Board.jobOffersOf` | `src/lib/tracker-model/Board.ticketMoves.spec.ts`, `src/services/overseer/BoardOffers.parity.spec.ts` |
 | Board commands | `src/adapters/board-commands/utils/`, `src/shared/constants/OverseerApiContracts.ts` | `BoardCommandReadingUtil`, `BoardCommandMappingUtil.controlCommandOf`, `BOARD_COMMAND_CONTRACT_KINDS` | the `.spec.ts` beside each, `cli/overseer/routes/CommandRoute.boardContract.spec.ts` |
+| Every kind a client sends | `packages/forge-contracts/constants/ForgeControlCommandKinds.ts` | `FORGE_CONTROL_COMMAND_KINDS`, the control and the board kinds | `src/shared/constants/OverseerApiContracts.parity.spec.ts`, `cli/overseer/routes/CommandRoute.clientKinds.spec.ts` |
 | Refusal documents | `src/adapters/utils/RefusalDocumentUtil.ts` | `RefusalDocumentUtil.refusalDocumentOf` | `src/adapters/utils/RefusalDocumentUtil.spec.ts` |
 | Pipeline facts | `src/services/render/PipelineFactsAssembly.ts`, `src/services/render/PipelineFlowGraph.ts` | `pipelineFactsOf`, `pipelineFlowGraphOf` | `src/services/render/PipelineFactsAssembly.spec.ts`, `src/services/render/PipelineFlowGraph.spec.ts` |
 | Main line reads of a state read | `src/services/overseer/MainLineReads.ts` | `MainLineReads`, `BoardStateAssembly.mainLineTextsOf` | `src/services/overseer/MainLineReads.spec.ts`, `src/services/overseer/BoardState.spec.ts` |

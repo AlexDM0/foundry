@@ -5,10 +5,10 @@
  * agent-dashboard frame Origin and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
  * routed; the data routes answer only the bearer token or the HttpOnly session cookie a one-time code buys, never headers a local
  * program can forge, and the code is spent by one exchange; every answer carries the page CSP but a served job file, which is sandboxed
- * plain text and only `report.json` or `gate.log`; the event stream replays after a `Last-Event-ID` of its generation and pings; a
- * job stream sends its history then each new entry; a gate profile stream sends each output line after the cursor, then each appended
- * line, while the board event stream carries none, and an unknown run is a 404; a picture upload needs the token and a body, and a served
- * picture is never sniffed, never cached and sandboxed.
+ * plain text and only `report.json` or `gate.log`; each of the three streams opens with the handshake, which carries no id; the event
+ * stream replays after a `Last-Event-ID` of its generation and pings; a job stream sends its history then each new entry; a gate profile
+ * stream sends each output line after the cursor, then each appended line, while the board event stream carries none, and an unknown run
+ * is a 404; a picture upload needs the token and a body, and a served picture is never sniffed, never cached and sandboxed.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -17,6 +17,7 @@ import {
   expect,
   test
 } from 'bun:test';
+import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
 import { TALOS_PROTOCOL_VERSION }                             from '../../lib/talos/constants/TalosProtocol.ts';
 import type { TranscriptEntry }                               from '../../shared/@types/TranscriptEntry.ts';
@@ -44,6 +45,8 @@ const TOKEN_HEADERS      = { authorization: `Bearer ${TOKEN}` };
 const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/board', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json', 'api/profiles/P1/stream'];
 
 const SHORT_HEARTBEAT_MILLISECONDS = 20;
+
+const HANDSHAKE_TEXT = `event: handshake\ndata: ${JSON.stringify({ systemVersion: FORGE_SYSTEM_VERSIONS.current })}\n\n`;
 
 const EXAMPLE_PICTURE_BYTES = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const EXAMPLE_PICTURE_ID    = 'a'.repeat(64);
@@ -417,7 +420,7 @@ describe('OverseerServer streams', () => {
     const response = await fetch(new URL('api/events', server.url), { headers: TOKEN_HEADERS });
     expect(response.headers.get('content-type')).toBe('text/event-stream');
     const text = await streamTextUntil(response, (soFar) => soFar.includes('id: 1-2\nevent: board'), { whenFirstRead: () => broker.publishState(exampleState(2)), });
-    expect(text).toStartWith('id: 1-1\nevent: board\n');
+    expect(text).toStartWith(`${HANDSHAKE_TEXT}id: 1-1\nevent: board\n`);
     expect(text).toContain('"ticketCount":2');
   });
 
@@ -433,9 +436,9 @@ describe('OverseerServer streams', () => {
     expect(replayed.match(/^id: .+$/gm)).toEqual(['id: 1-2', 'id: 1-3']);
     const fresh = await streamTextUntil(
       await fetch(new URL('api/events', server.url), { headers: { ...TOKEN_HEADERS, 'last-event-id': '7-2' } }),
-      (text) => text.includes('\n\n'),
+      (text) => text.split('\n\n').length > 2,
     );
-    expect(fresh).toStartWith('id: 1-3\nevent: board\n');
+    expect(fresh).toStartWith(`${HANDSHAKE_TEXT}id: 1-3\nevent: board\n`);
   });
 
   test('a quiet event stream gets a ": ping" every heartbeat', async () => {
@@ -467,7 +470,7 @@ describe('OverseerServer streams', () => {
         broker.publishState(exampleState(1));
       },
     });
-    expect(text).toStartWith('id: 1.1\nevent: history\ndata: [{"cursor":"1.1"');
+    expect(text).toStartWith(`${HANDSHAKE_TEXT}id: 1.1\nevent: history\ndata: [{"cursor":"1.1"`);
     expect(text).toContain('id: 2.1\nevent: message\ndata: {"cursor":"2.1","role":"tool-call"');
     expect(cursorsAsked).toEqual([null, '1.0']);
   });
@@ -493,7 +496,7 @@ describe('OverseerServer gate profile streams', () => {
         broker.publishState(exampleState(2));
       },
     });
-    expect(text).toStartWith('id: 2\nevent: line\ndata: {"text":"second"}\n\n');
+    expect(text).toStartWith(`${HANDSHAKE_TEXT}id: 2\nevent: line\ndata: {"text":"second"}\n\n`);
     expect(text).toContain('id: 3\nevent: line\ndata: {"text":"third"}\n\n');
     expect(text).not.toContain('event: board');
     const boardText = await streamTextUntil(events, (soFar) => soFar.includes('id: 1-2\n'));
