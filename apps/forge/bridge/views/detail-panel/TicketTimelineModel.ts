@@ -386,7 +386,7 @@ function ticketTimelineModelOf(input: TicketTimelineInput): TicketTimelineModel 
   const firstSegment = buildSegments[0];
   const lastSegment = buildSegments.at(-1);
   const queueIsOpen = firstSegment === undefined && closedState === null;
-  const queue = spanOf('pending', stateLabelOf('pending'), filedEpochMilliseconds, firstSegment?.startEpochMilliseconds ?? lastMoment, queueIsOpen);
+  const queue = spanOf('committed', stateLabelOf('committed'), filedEpochMilliseconds, firstSegment?.startEpochMilliseconds ?? lastMoment, queueIsOpen);
   const queuedMilliseconds = queue.endEpochMilliseconds - queue.startEpochMilliseconds;
   const reviews = reviewSpansOf(input.reviewRows, lastMoment, closedState !== null);
   const afterBuild = afterBuildSpansOf({

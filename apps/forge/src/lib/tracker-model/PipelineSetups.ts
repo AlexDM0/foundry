@@ -787,7 +787,7 @@ export class PipelineSetups {
    * constitution's sources keyed by its blob id, the withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied`, and
    * last the record's close. A pipeline already stored from this draft is no move of anyone else's, so a retry finishes the rest. E91 and
    * E94 refuse again, since a ticket can start or take an entity while the request waits. The first Apply that stores entities names the
-   * pending tickets without one, which the product owner then gives one.
+   * committed tickets without one, which the product owner then gives one.
    */
   finishApply(setupId: string, finishing: ApplyFinishing, at: string): PipelineApplyChanged {
     const setup = this.requireOpenSetup(setupId);
@@ -804,7 +804,7 @@ export class PipelineSetups {
     const base   = this.records.pipeline ?? PipelineUtil.minimalPipelineOf();
     const forgeTextChanged = !draftHasEntities(setup) && (setup.constitution?.baseBlob ?? null) !== (finishing.mainConstitution?.blob ?? null);
     const fields = PipelineChangeUtil.changedFieldNamesOf(base, applied, forgeTextChanged);
-    const ticketsAwaitingEntity = base.entities === undefined && applied.entities !== undefined ? this.pendingTicketIdsWithoutEntity() : [];
+    const ticketsAwaitingEntity = base.entities === undefined && applied.entities !== undefined ? this.committedTicketIdsWithoutEntity() : [];
     this.trackerChanges.applyPipeline(applied);
     if (!draftHasEntities(setup)) this.storeConstitutionSources(setup, finishing.mainConstitution);
     const logged = this.decisionRules.decisions().filter((decision) => decision.kind === 'checks-not-set')
@@ -1044,10 +1044,10 @@ export class PipelineSetups {
     });
   }
 
-  /** The pending tickets that name no entity, which a pipeline over entities does not build until each has one. */
-  private pendingTicketIdsWithoutEntity(): string[] {
+  /** The committed tickets that name no entity, which a pipeline over entities does not build until each has one. */
+  private committedTicketIdsWithoutEntity(): string[] {
     return this.records.ticketRecords
-      .filter(({ frontmatter }) => frontmatter.status === 'pending' && frontmatter.entity === undefined)
+      .filter(({ frontmatter }) => frontmatter.status === 'committed' && frontmatter.entity === undefined)
       .map(({ frontmatter }) => frontmatter.id);
   }
 

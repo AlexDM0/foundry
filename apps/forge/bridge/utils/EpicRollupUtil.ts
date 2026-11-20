@@ -13,7 +13,7 @@ import { StateToneUtil }                                      from './StateToneU
 import { TimeUtil, type DurationUnits, type TimestampSlices } from './TimeUtil.ts';
 
 /** The roll-up bar's segments, settled work first. */
-const ROLLUP_STATUS_ORDER: readonly DisplayState[] = ['delivered', 'reviewed', 'in-review', 'in-progress', 'pending', 'abandoned'];
+const ROLLUP_STATUS_ORDER: readonly DisplayState[] = ['delivered', 'reviewed', 'in-review', 'in-progress', 'committed', 'abandoned'];
 
 export interface EpicRollupSegment {
   readonly state: DisplayState;

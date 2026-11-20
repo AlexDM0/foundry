@@ -437,7 +437,7 @@ names `state`. The contract's document is [the board document](#the-board-docume
 | `usage` | The [usage marker](../glossary.md#usage-marker) and `<monitor>/usage-windows.json` | `{resetsAt, window, windows}`: `resetsAt` and `window` both `null` when no limit was hit; `windows` the newest observation of each window seen (`{window, lengthHours, utilization, resetsAt}`, `utilization` a whole percent), empty before the first observation and under API billing |
 | `questionHistory` | `questionHistoryOf` | Every log record naming a decision or incident, every record of an [Assistant](../glossary.md#assistant), [product owner](../glossary.md#product-owner) or pipeline agent job. Unbounded. |
 | `endedJobs` | `endedJobsOf` | The newest `ENDED_JOBS_SHOWN` (32) that left, oldest first. A reopened job keeps only its latest ending. |
-| `ticketForecasts` | `Board.ticketForecastsOf` | One per `pending`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
+| `ticketForecasts` | `Board.ticketForecastsOf` | One per `committed`, `in-progress` or `in-review` ticket, none while no pipeline is set: its `steps` to the landing, its `currentStepIndex` and its `dependents`, below. Not in `status --json`. |
 | `launchSlots` | `Board.launchSlots` | `{limit, slotJobIds, inProgressTicketIdsWithoutJob}`: the jobs holding a launch slot in launch order, counted through `LaunchSlotUtil` as `concurrency.agentsInFlight` is, so there are always as many; and, in board order, the `in-progress` tickets that no live job names. A view joins on these ids and copies no rule. Not in `status --json`. |
 | `pipeline` | `pipelineFactsOf` | The stored pipeline as read: `readingVerdict` `absent`, `older` or `malformed` (with its `reason`), each but `absent` with `fileText`; or `readable` with the `pipeline`, its `contentHash`, its `fileText` and `application`, the newest `pipeline-applied` record (`appliedRevision` counting the Applies from 1, `appliedAt`, `appliedBy`, `constitutionCommit`), `null` for a pipeline only the `gate` verbs wrote. Not in `status --json`. |
 | `pipelineSetup` | `pipelineFactsOf` | `null` with no readable setup record; else the `record` and what the Bridge reads off it, below. Not in `status --json`. |
@@ -448,7 +448,7 @@ names `state`. The contract's document is [the board document](#the-board-docume
 | `pipelineHistory` | `pipelineFactsOf` | The newest `PIPELINE_HISTORY_RECORDS_SHOWN` (32) records that change the pipeline or pause and resume the board, newest first, for the live flow's "Earlier" list. A setup's own steps, findings and questions stay out. Not in `status --json`. |
 | `pipelineChoices` | `pipelineFactsOf` | `{models, efforts}`: every model and effort in their order, so the Bridge keeps no copy of the vocabulary. Not in `status --json`. |
 | `pipelineAgentDefaults` | `pipelineFactsOf`, from `LaunchSettings.defaultAgentPairOf` | `{model, effort}`: the pair a pipeline agent launches on where the pipeline names none, which the setup steps show until the draft names one, so the Bridge keeps no copy. Not in `status --json`. |
-| `entityAssignment` | `pipelineFactsOf` | Only once the first Apply over entities started a product owner for the pending tickets without an entity: `{jobId, jobState, tickets}`, `jobState` the job's state while it is on the board, else `null`; each ticket `{ticketId, title, entity, reason, assignedBy}` in the order the job's `job-launched` record names them, `entity`, `reason` and `assignedBy` from the ticket's newest `entity-assigned` record since that launch, all `null` while it waits, `title` `null` for a ticket the board no longer holds. Read-only: no control assigns an entity. Not in `status --json`. |
+| `entityAssignment` | `pipelineFactsOf` | Only once the first Apply over entities started a product owner for the committed tickets without an entity: `{jobId, jobState, tickets}`, `jobState` the job's state while it is on the board, else `null`; each ticket `{ticketId, title, entity, reason, assignedBy}` in the order the job's `job-launched` record names them, `entity`, `reason` and `assignedBy` from the ticket's newest `entity-assigned` record since that launch, all `null` while it waits, `title` `null` for a ticket the board no longer holds. Read-only: no control assigns an entity. Not in `status --json`. |
 | `pictureLimits` | `boardStateOf`, from `OverseerLimits.ts` | `{perMessage, sizeLimitBytes, mediaTypes}`, the bounds a picture is refused by, so the Bridge refuses one before its upload and keeps no copy; `null` when the agent adapter's `capabilities.pictures` is false. Not in `status --json`. |
 
 `questionHistory` exists because a settled record leaves the board, and the views still show it.
@@ -549,7 +549,7 @@ decides nothing. `src/lib/tracker-model/Playbook.forecast.spec.ts` holds its fir
 | `ticketId` | The ticket |
 | `steps[]` | From the step under way, or the next one, to the landing, each with a `kind` below |
 | `currentStepIndex` | `0` while a live build, review or merge job works on the ticket; `null` while nothing runs on it |
-| `dependents[]` | Each `pending`, `in-progress` or `in-review` ticket whose unsettled dependencies name this one: `ticketId`, and `stillWaitingOnTicketIds`, its other unsettled dependencies |
+| `dependents[]` | Each `committed`, `in-progress` or `in-review` ticket whose unsettled dependencies name this one: `ticketId`, and `stillWaitingOnTicketIds`, its other unsettled dependencies |
 
 | Step `kind` | Fields | When |
 | --- | --- | --- |
@@ -884,8 +884,8 @@ could not be read at the crash. A crash log's number is its own, never a Baton g
 documents beside it), which is the one description of its fields. It carries no version key: the path carries it.
 `BoardDocumentAssembly.boardDocumentOf` in `src/services/overseer/BoardDocumentAssembly.ts` builds it from the same
 reading as `BoardState`, through the mappers in `src/adapters/board-document/utils/`, which name every field: a field
-the model gains reaches no client until a mapper names it. A status the model still calls `pending` is `committed`
-there, and a job's `interruption` and lost line use the monitor's cause names.
+the model gains reaches no client until a mapper names it. A status reads as the model names it, and a job's
+`interruption` and lost line use the monitor's cause names.
 
 The document serves as finished facts what a view would otherwise recompute with forge's rules
 (`BoardReadingDocuments`, mapped by `BoardReadingMappingUtil`):

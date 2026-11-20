@@ -40,7 +40,7 @@ not a ticket. A builder or reviewer session, in the [Airlock](../glossary.md#air
 findings through the [Hatch](../glossary.md#hatch), up to `WORKER_FILINGS_PER_JOB`; that is how a
 [finding](../glossary.md#finding) reaches the [Assistant](../glossary.md#assistant).
 
-**Ready.** User runs `forge ticket ready 003`, which moves it to `pending` and gives it a row. The verb
+**Ready.** User runs `forge ticket ready 003`, which moves it to `committed` and gives it a row. The verb
 refuses a ticket without a numbered `## Acceptance` and a [`## Brief`](../glossary.md#brief) holding a non-blank line,
 because those two sections are what the builder is held to.
 
@@ -134,7 +134,7 @@ Most 'why is this not moving?' questions end on one of these:
 | `in-review`, no job, a hold | held; the hold's text says why |
 | `in-review`, no job, no mark, no hold | with a review phase, usually waiting for a launch slot to start review, or to relaunch it after a refused merge; with no review phase, a refused merge waiting for User. An open [incident](../glossary.md#incident), or a waiver or agent-config [decision](../glossary.md#decision), also blocks a launch with no hold set |
 | `in-progress` or `in-review`, job `waiting-for-answer` | a question to User, keeping its launch slot |
-| `pending`, no job, no hold | usually a dependency unsettled, no launch slot free, or an open incident or a blocking decision |
+| `committed`, no job, no hold | usually a dependency unsettled, no launch slot free, or an open incident or a blocking decision |
 
 These are the common readings. A launch also waits on the board as a whole: the runbook's
 [Not moving](../operations/runbook.md#not-moving) ladder walks the full check.

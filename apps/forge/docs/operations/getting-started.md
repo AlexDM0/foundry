@@ -300,7 +300,7 @@ forge ticket add "Double-click a role to edit it" --type ticket --body-file role
 forge ticket ready <id>
 ```
 
-Expect `Ticket #<id> ready to build`, then a `Next` line naming it as ready. With no `--body-file`, the default ticket
+Expect `Ticket #<id> committed`, then a `Next` line naming it as ready. With no `--body-file`, the default ticket
 body lacks `## Brief`, so `ticket ready` refuses it `brief-missing`. The body format is in the
 [CLI reference](../cli.md).
 
@@ -378,7 +378,7 @@ Each row is one stage; stop at the first that does not match.
 | Gates | `forge gate list` | Your gates, or `none, on purpose` | Set the pipeline up; see [Set up the pipeline](#set-up-the-pipeline) |
 | Resume | `forge oversee status` | `not paused` | `oversee resume` |
 | Drafts | `forge ticket list` | Your ticket as `draft` | Check the Intake tab |
-| Ready | `forge ticket list` | Your ticket as `pending` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |
+| Ready | `forge ticket list` | Your ticket as `committed` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |
 | Worktree | `git worktree list` | A line for `<worktrees>/ticket-<id>` | Check the board is not paused |
 | Merged | `git log --oneline -3` | The ticket's commit on your main line | Check Questions and the header's notices |
 

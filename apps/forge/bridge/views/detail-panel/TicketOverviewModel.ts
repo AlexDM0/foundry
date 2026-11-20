@@ -290,7 +290,7 @@ function noteOf(reading: TicketOverviewReading): string | null {
   if (ticket.hold !== undefined) return ticket.hold === '' ? 'Held, with no reason given.' : `Held: ${ticket.hold}`;
   if (waitingOn.length > 0) return `Waits on ${listTextOf(waitingOn.map(idTextOf))}.`;
   if (controls.mergeWait !== undefined) return `Waiting for merge: ${controls.mergeWait.predictionText}.`;
-  if (ticket.status === 'pending') return QUEUED_NOTE;
+  if (ticket.status === 'committed') return QUEUED_NOTE;
   return closedNoteOf(ticket, reading.format);
 }
 
@@ -365,7 +365,7 @@ function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: Detai
     moves.push({
       move:     'ready',
       label:    'Ready',
-      effect:   [textOf('Makes '), emphasisOf(id), textOf(' pending with its row, so a builder can take it.')],
+      effect:   [textOf('Makes '), emphasisOf(id), textOf(' committed with its row, so a builder can take it.')],
       opens:    null,
       sendable: true,
     });

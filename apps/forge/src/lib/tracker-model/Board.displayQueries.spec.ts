@@ -25,10 +25,10 @@ function firstTicketOf(board: Board): Readonly<Ticket> {
 }
 
 const ROW_AND_TICKET_DISPLAY_STATES: readonly (readonly [TaskStatus, TicketStatus, DisplayState])[] = [
-  ['pending', 'pending', 'pending'],
+  ['committed', 'committed', 'committed'],
   ['in-progress', 'in-progress', 'in-progress'],
   ['paused', 'in-progress', 'paused'],
-  ['in-review', 'pending', 'in-review'],
+  ['in-review', 'committed', 'in-review'],
   ['in-review', 'in-review', 'in-review'],
   ['re-review', 'in-review', 're-review'],
   ['reviewed', 'reviewed', 'reviewed'],
@@ -204,7 +204,7 @@ describe('ticketDisplayStateOf', () => {
 
   // A low ticket never started has no row; its status alone decides what it shows.
   test.each([
-    ['pending', 'pending'],
+    ['committed', 'committed'],
     ['in-progress', 'in-progress'],
     ['in-review', 'in-review'],
     ['reviewed', 'reviewed'],
@@ -218,9 +218,9 @@ describe('ticketDisplayStateOf', () => {
 
   // Two ticket files a hand edit gave one id each keep their own card state, as they did before the page read the facts.
   test('reads a ticket whose id another ticket file shares by its own status', () => {
-    const { board } = boardFixture({ tickets: [ticketFixture({ id: '005', status: 'pending' }), ticketFixture({ id: '005', status: 'delivered' })] });
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '005', status: 'committed' }), ticketFixture({ id: '005', status: 'delivered' })] });
 
-    expect(board.tickets().map((ticket) => board.ticketDisplayStateOf(ticket))).toEqual(['pending', 'delivered']);
+    expect(board.tickets().map((ticket) => board.ticketDisplayStateOf(ticket))).toEqual(['committed', 'delivered']);
   });
 });
 
@@ -256,7 +256,7 @@ describe('deliveredRowCountsAsReviewed', () => {
   test('the same unstamped row does not count once its ticket is no longer delivered, as after a reopen', () => {
     const { board } = boardFixture({
       tasks:   [taskFixture({ id: 1, status: 'delivered', ticket: '003' })],
-      tickets: [ticketFixture({ id: '003', status: 'pending', task: 1 })],
+      tickets: [ticketFixture({ id: '003', status: 'committed', task: 1 })],
     });
 
     expect(board.deliveredRowCountsAsReviewed(firstRowOf(board))).toBe(false);

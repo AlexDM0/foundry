@@ -1,7 +1,7 @@
 /**
  * The board document a client reads. What matters: the document a client reads is built from the same reading the Bridge's state is, field
  * for field where both carry a field. On a scratch board with a ticket, a job, a decision, an incident and an open pipeline setup, every
- * value of the document whose path the state also holds equals the state's, a model's `pending` read as `committed`; the limits and the
+ * value of the document whose path the state also holds equals the state's; the limits and the
  * concurrency, which the state keeps in its page, stand at the document's top level; and the model's fields no reader names stay out. The
  * readings a view would recompute arrive finished: each ticket's facts and offers, each job's stop holds and offers, what waits on User
  * with its target, the open decisions in answering order, today's figures dated by the reading's clock, the worded notices, the Apply
@@ -53,21 +53,17 @@ function sharedLeavesOf(document: unknown, state: unknown, documentPath: readonl
   return found ? [{ path: documentPath.join('.'), documentValue: document, stateValue: value }] : [];
 }
 
-function committedInPlaceOfPending(value: unknown): unknown {
-  return value === 'pending' ? 'committed' : value;
-}
-
 describe('BoardDocumentAssembly.boardDocumentOf', () => {
   const source = boardDocumentSourceFixture();
   const { state } = source;
   const document = BoardDocumentAssembly.boardDocumentOf(source);
 
-  test('every field the document and the state both carry holds the state\'s value, a pending status read as committed', () => {
+  test('every field the document and the state both carry holds the state\'s value', () => {
     const comparisons = Object.entries(document)
       .filter(([field]) => !FIELDS_COMPARED_ELSEWHERE.has(field))
       .flatMap(([field, value]) => sharedLeavesOf({ [field]: value }, state, [], []));
     expect(comparisons.length).toBeGreaterThan(200);
-    const differing = comparisons.filter((comparison) => !Bun.deepEquals(comparison.documentValue, committedInPlaceOfPending(comparison.stateValue)));
+    const differing = comparisons.filter((comparison) => !Bun.deepEquals(comparison.documentValue, comparison.stateValue));
     expect(differing).toEqual([]);
   });
 

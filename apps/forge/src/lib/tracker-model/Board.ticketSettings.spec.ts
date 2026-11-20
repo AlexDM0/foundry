@@ -136,13 +136,13 @@ describe('setTicketSize', () => {
     const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', size: 'S' })] });
     const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketSize('001', 'S', CHANGED_AT), 'size-unchanged');
     expect(detail).toEqual({
-      reason: 'size-unchanged', ticketId: '001', status: 'pending', size: 'S'
+      reason: 'size-unchanged', ticketId: '001', status: 'committed', size: 'S'
     });
   });
 });
 
 describe('setTicketNetwork', () => {
-  test.each(['draft', 'pending'] as const)('a %s ticket gains its domains lower-cased, and an empty list clears the key, each change logged', (status) => {
+  test.each(['draft', 'committed'] as const)('a %s ticket gains its domains lower-cased, and an empty list clears the key, each change logged', (status) => {
     const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', status })] });
     board.setTicketNetwork('001', ['API.example.com', 'cdn.example.com'], CHANGED_AT);
     expect(tickets[0]?.frontmatter.network).toEqual(['api.example.com', 'cdn.example.com']);
@@ -164,9 +164,9 @@ describe('setTicketNetwork', () => {
     const detail  = expectRefusedWithNothingChanged(
       fixture,
       () => fixture.board.setTicketNetwork('001', ['api.example.com'], CHANGED_AT),
-      'network-of-a-ticket-past-pending',
+      'network-of-a-ticket-past-committed',
     );
-    expect(detail).toEqual({ reason: 'network-of-a-ticket-past-pending', ticketId: '001', status });
+    expect(detail).toEqual({ reason: 'network-of-a-ticket-past-committed', ticketId: '001', status });
   });
 
   test('a list naming any domain that is not public is refused whole, naming only those domains', () => {
@@ -189,7 +189,7 @@ describe('setTicketNetwork', () => {
 describe('setTicketEntity', () => {
   const ASSIGNMENT = { entity: 'web', reason: 'The basket page lives in the web app', by: 'product-owner' } as const;
 
-  test.each(['draft', 'ready-for-review', 'pending'] as const)('a %s ticket takes a key the pipeline names, the reason and its author logged only', (status) => {
+  test.each(['draft', 'ready-for-review', 'committed'] as const)('a %s ticket takes a key the pipeline names, the reason and its author logged only', (status) => {
     const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', status })], pipeline: entityPipelineFixture() });
     const changed = board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT);
     expect(tickets[0]?.frontmatter.entity).toBe('web');
@@ -229,8 +229,8 @@ describe('setTicketEntity', () => {
 
   test.each(['in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const)('a ticket %s is refused, with nothing written', (status) => {
     const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status })], pipeline: entityPipelineFixture() });
-    const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT), 'entity-of-a-ticket-past-pending');
-    expect(detail).toEqual({ reason: 'entity-of-a-ticket-past-pending', ticketId: '001', status });
+    const detail  = expectRefusedWithNothingChanged(fixture, () => fixture.board.setTicketEntity('001', ASSIGNMENT, CHANGED_AT), 'entity-of-a-ticket-past-committed');
+    expect(detail).toEqual({ reason: 'entity-of-a-ticket-past-committed', ticketId: '001', status });
   });
 
   test('the entity the ticket already has is refused as unchanged, and a blank reason as missing, each with nothing written', () => {
@@ -245,7 +245,7 @@ describe('setTicketEntity', () => {
 });
 
 describe('setTicketGroup', () => {
-  test.each(['draft', 'pending', 'in-progress', 'in-review', 'reviewed'] as const)('a ticket %s with no group joins it, logging ticket-grouped', (status) => {
+  test.each(['draft', 'committed', 'in-progress', 'in-review', 'reviewed'] as const)('a ticket %s with no group joins it, logging ticket-grouped', (status) => {
     const { board, tickets, records } = boardFixture({ tickets: [ticketFixture({ id: '001', status })] });
     const changed = board.setTicketGroup('001', 'checkout-redesign', CHANGED_AT);
 
@@ -305,7 +305,7 @@ describe('setTicketAgents', () => {
     expect(detail).toEqual({
       reason:   'agents-unchanged',
       ticketId: '001',
-      status:   'pending',
+      status:   'committed',
       agents:   { model: 'opus', effort: 'medium' },
     });
   });

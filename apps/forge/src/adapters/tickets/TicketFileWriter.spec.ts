@@ -36,13 +36,13 @@ function scratchTicketsDirectory(): string {
   return ticketRecordsFolder;
 }
 
-function pendingTicket(): Ticket {
+function committedTicket(): Ticket {
   return {
     frontmatter: {
       id:          '001',
       title:       'Fix the export dialog',
       type:        'bug',
-      status:      'pending',
+      status:      'committed',
       filed:       FILED_AT,
       updated:     FILED_AT,
       started:     null,
@@ -77,7 +77,7 @@ describe('createTicketFileWriter', () => {
       'id: "001"',
       'title: "Windows"',
       'type: "bug"',
-      'status: "pending"',
+      'status: "committed"',
       'filed: "2026-09-18T09:00:00+02:00"',
       'updated: "2026-09-18T09:00:00+02:00"',
       'started: null',
@@ -98,7 +98,7 @@ describe('createTicketFileWriter', () => {
   test('writes exactly the ticket it is given, leaving updated for the transition that owns it', () => {
     const ticketFileWriter = createTicketFileWriter();
     const ticketPath       = join(scratchTicketsDirectory(), '001-fix-the-export-dialog.md');
-    const filed            = pendingTicket();
+    const filed            = committedTicket();
     ticketFileWriter.write(filed, ticketPath);
 
     filed.frontmatter.branch = 'ticket/export-dialog';
@@ -117,7 +117,7 @@ describe('createTicketFileWriter', () => {
     const handWrittenLayout = [
       '---',
       'id: "001"',
-      'status: pending',
+      'status: committed',
       'title: "Hand written"',
       'type: bug',
       '# kept by hand',
@@ -142,7 +142,7 @@ describe('createTicketFileWriter', () => {
     ticket.frontmatter.branch = 'ticket/hand-written';
     createTicketFileWriter().write(ticket, ticketPath);
     const rewritten = readFileSync(ticketPath, 'utf8');
-    expect(rewritten).toContain('\nstatus: "pending"\n');
+    expect(rewritten).toContain('\nstatus: "committed"\n');
     expect(rewritten).toContain('\nbranch: "ticket/hand-written"\n');
     expect(rewritten.endsWith('---\nNew body.\n')).toBe(true);
   });
@@ -152,7 +152,7 @@ describe('createTicketFileWriter', () => {
     const handWrittenLines  = [
       '---',
       'id: "001"',
-      'status: pending',
+      'status: committed',
       'title: Hand written',
       'type: bug',
       '# title: kept by hand',
@@ -178,14 +178,14 @@ describe('createTicketFileWriter', () => {
     ticket.frontmatter.title  = 'Renamed again';
     ticket.frontmatter.branch = 'ticket/hand-written';
     createTicketFileWriter().write(ticket, ticketPath);
-    expect(readFileSync(ticketPath, 'utf8')).toContain('\r\nstatus: "pending"\r\n');
+    expect(readFileSync(ticketPath, 'utf8')).toContain('\r\nstatus: "committed"\r\n');
   });
 
   test('recreates a tickets directory that `clear --all` removed', () => {
     const ticketRecordsFolder = scratchTicketsDirectory();
     rmSync(ticketRecordsFolder, { recursive: true, force: true });
 
-    createTicketFileWriter().write(pendingTicket(), join(ticketRecordsFolder, '001-fix-the-export-dialog.md'));
+    createTicketFileWriter().write(committedTicket(), join(ticketRecordsFolder, '001-fix-the-export-dialog.md'));
 
     expect(ticketReadFrom(join(ticketRecordsFolder, '001-fix-the-export-dialog.md')).frontmatter.title).toBe('Fix the export dialog');
   });

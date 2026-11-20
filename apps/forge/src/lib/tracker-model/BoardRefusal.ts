@@ -63,14 +63,14 @@ export type BoardRefusalDetail =
   | { reason: 'introduced-by-an-undelivered-ticket'; ticketId: string; causeTicketId: string; status: TicketStatus }
   | { reason: 'priority-unchanged'; ticketId: string; status: TicketStatus; priority: TicketPriority }
   | { reason: 'size-unchanged'; ticketId: string; status: TicketStatus; size: TicketSize }
-  | { reason: 'lowering-a-ticket-that-is-not-pending'; ticketId: string; status: TicketStatus }
-  | { reason: 'edit-of-a-ticket-past-pending'; ticketId: string; status: TicketStatus }
-  | { reason: 'network-of-a-ticket-past-pending'; ticketId: string; status: TicketStatus }
+  | { reason: 'lowering-a-ticket-that-is-not-committed'; ticketId: string; status: TicketStatus }
+  | { reason: 'edit-of-a-ticket-past-committed'; ticketId: string; status: TicketStatus }
+  | { reason: 'network-of-a-ticket-past-committed'; ticketId: string; status: TicketStatus }
   | { reason: 'network-domain-not-public'; ticketId: string; domains: readonly string[] }
   | { reason: 'network-unchanged'; ticketId: string; domains: readonly string[] }
   /** `entityKeys` is empty when the pipeline names no entity. */
   | { reason: 'unknown-entity'; ticketId: string; entity: string; entityKeys: readonly string[] }
-  | { reason: 'entity-of-a-ticket-past-pending'; ticketId: string; status: TicketStatus }
+  | { reason: 'entity-of-a-ticket-past-committed'; ticketId: string; status: TicketStatus }
   | { reason: 'entity-unchanged'; ticketId: string; entity: string }
   | { reason: 'entity-without-reason'; ticketId: string }
   /** A need declared by a job that is not a build job of an entity, as every job of a forge without entities. */

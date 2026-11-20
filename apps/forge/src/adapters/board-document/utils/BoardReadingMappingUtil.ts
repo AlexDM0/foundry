@@ -22,7 +22,7 @@ import { jobStopHoldOf }                                                        
 import { DEFAULT_INSTRUCTIONS_OF_ROLE, RE_REVIEW_THRESHOLD_STEP_LINES }                                        from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
 import { FIRST_REPEAT_REVIEW_ROUND }                                                                           from '../../../lib/tracker-model/constants/ReviewRounds.ts';
 import {
-  TICKET_STATUSES_EDITABLE_WITHOUT_FORCE,
+  TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP,
   TICKET_STATUSES_THAT_CLOSE_A_TICKET,
   TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY
 } from '../../../lib/tracker-model/constants/Statuses.ts';
@@ -103,7 +103,7 @@ function ticketFactsOf(ticket: PageTicket, boardFacts: PageTicketFacts | undefin
     resolvedPriority:     TicketDefaultsUtil.ticketPriorityOf(ticket),
     settlesADependency:   TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY.includes(status),
     isClosed:             TICKET_STATUSES_THAT_CLOSE_A_TICKET.includes(status),
-    noAgentHasPickedItUp: TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status),
+    noAgentHasPickedItUp: TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(status),
     reviewRound:          ownRow?.reviewRound ?? (isRepeatReview ? FIRST_REPEAT_REVIEW_ROUND : null),
     isRepeatReview,
   };

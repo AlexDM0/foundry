@@ -142,8 +142,8 @@ export function exampleQuestionPanelBoard(fields: ExampleQuestionPanelBoardField
     page:            {
       tickets: fields.tickets ?? [
         DARK_MODE_TICKET,
-        examplePanelTicket('005', { status: 'pending', dependsOn: ['004'] }),
-        examplePanelTicket('006', { status: 'pending', dependsOn: ['005'] }),
+        examplePanelTicket('005', { status: 'committed', dependsOn: ['004'] }),
+        examplePanelTicket('006', { status: 'committed', dependsOn: ['005'] }),
       ],
       payload: { boardFacts: { epics: [{ key: 'customer-account', title: 'Customer account', slot: 2 }] } },
     },

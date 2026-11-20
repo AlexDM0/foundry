@@ -127,7 +127,7 @@ function actOnWorkInOtherEntity(board: Board, answer: AnswerToActOn, at: string)
   const entityKey = answer.answer.slice(ENTITY_DECISION_ANSWERS.moveToEntityPrefix.length).trim();
   const entities = board.pipeline()?.entities ?? {};
   if (!Object.hasOwn(entities, entityKey) || homeEntityOf(board, answer.ticketId) === entityKey) return;
-  board.setTicketEntity(answer.ticketId, { entity: entityKey, reason: reasonOf(answer), by: 'user' }, at, { allowsPastPending: true });
+  board.setTicketEntity(answer.ticketId, { entity: entityKey, reason: reasonOf(answer), by: 'user' }, at, { allowsPastCommitted: true });
   board.clearTicketStage(answer.ticketId);
 }
 

@@ -24,7 +24,7 @@ import { TicketArgumentUtil }                             from './utils/TicketAr
 
 const TRANSITION_VERBS: readonly (readonly [string, TicketStatus])[] = [
   ['abandon', 'abandoned'],
-  ['reopen', 'pending'],
+  ['reopen', 'committed'],
 ];
 
 const REREVIEW_OPTION_NAMES = ['at', 'json', ...REVIEW_BAR_OPTION_NAMES];

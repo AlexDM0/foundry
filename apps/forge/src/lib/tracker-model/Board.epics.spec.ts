@@ -138,7 +138,7 @@ describe('the roll-up', () => {
         ticketFixture({
           id: '002', status: 'delivered', task: 3, epics: ['example-a']
         }),
-        ticketFixture({ id: '003', status: 'pending', epics: ['example-b'] }),
+        ticketFixture({ id: '003', status: 'committed', epics: ['example-b'] }),
       ],
       tasks: [
         taskFixture({
@@ -161,7 +161,7 @@ describe('the roll-up', () => {
       slot:                1,
       ticketIds:           ['001', '002'],
       ticketCountByStatus: {
-        'draft': 0, 'ready-for-review': 0, 'pending': 0, 'in-progress': 0, 'in-review': 1, 'reviewed': 0, 'delivered': 1, 'abandoned': 0
+        'draft': 0, 'ready-for-review': 0, 'committed': 0, 'in-progress': 0, 'in-review': 1, 'reviewed': 0, 'delivered': 1, 'abandoned': 0
       },
       tokens: 140,
       // Text order would pick the other stamp each time: 07:30Z is 09:30+02:00, after the 09:00 start; 09:45Z is 11:45+02:00, the last end.

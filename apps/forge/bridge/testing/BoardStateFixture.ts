@@ -25,7 +25,7 @@ export const FIXTURE_TICKETS: readonly PageTicketDocument[] = [
     id: '3', title: 'Example in progress', status: 'in-progress', updated: '2026-10-29T08:00:00', delivered: null, abandonedAt: null
   },
   {
-    id: '4', title: 'Example waiting', status: 'pending', updated: '2026-10-28T08:00:00', delivered: null, abandonedAt: null
+    id: '4', title: 'Example waiting', status: 'committed', updated: '2026-10-28T08:00:00', delivered: null, abandonedAt: null
   },
   {
     id: '5', title: 'Example abandoned yesterday', status: 'abandoned', updated: '2026-10-28T20:00:00', delivered: null, abandonedAt: '2026-10-28T20:00:00'
@@ -37,7 +37,7 @@ export const OPEN_EPIC: EpicRollupDocument = {
   title:               'Example checkout',
   slot:                1,
   ticketIds:           ['2', '3', '4'],
-  ticketCountByStatus: { 'delivered': 1, 'in-progress': 1, 'pending': 1 },
+  ticketCountByStatus: { 'delivered': 1, 'in-progress': 1, 'committed': 1 },
   tokens:              12_400,
   span:                { start: '2026-10-28T08:00:00', end: null },
 };

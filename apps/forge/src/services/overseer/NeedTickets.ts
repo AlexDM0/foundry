@@ -82,7 +82,7 @@ export type DeclaringJob = Readonly<Pick<Job, 'id' | 'entity'>>;
 export type NeedToFile = Readonly<Pick<DeclaredNeed, 'entity' | 'title' | 'body' | 'ticketIds'>>;
 
 /**
- * The need's ticket is the need's entity's, filed by the declaring job and submitted at once: `pending` with ticket review off, else
+ * The need's ticket is the need's entity's, filed by the declaring job and submitted at once: `committed` with ticket review off, else
  * `ready-for-review`. Every ticket of the job waits on it, and it waits on none of them.
  */
 function fileNeed(change: BoardTransaction, job: DeclaringJob, need: NeedToFile, decisionWordingOf: DecisionWordingOf): LogRecord[] {

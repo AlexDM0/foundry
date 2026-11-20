@@ -138,10 +138,10 @@ describe('the tickets waiting on a review', () => {
     expect(board.reviewWaitingTickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001', '003']);
   });
 
-  test('never list a pending, in-progress or reviewed ticket', () => {
+  test('never list a committed, in-progress or reviewed ticket', () => {
     const { board } = boardFixture({
       tickets: [
-        ticketFixture({ id: '001', status: 'pending' }),
+        ticketFixture({ id: '001', status: 'committed' }),
         ticketFixture({ id: '002', status: 'in-progress' }),
         ticketFixture({ id: '003', status: 'reviewed' }),
       ],
@@ -317,7 +317,7 @@ describe('held normal and high work', () => {
 });
 
 describe('unheld normal and high work', () => {
-  test.each(['pending', 'in-progress', 'in-review'] as const)('holds no low work back while %s', (status) => {
+  test.each(['committed', 'in-progress', 'in-review'] as const)('holds no low work back while %s', (status) => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status }), ticketFixture({ id: '002', priority: 'low' })] });
 
     expect(board.dispatchCapacity().readyTicketIds).toContain('002');

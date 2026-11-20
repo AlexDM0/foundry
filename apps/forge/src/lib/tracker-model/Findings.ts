@@ -11,7 +11,7 @@ import type { TicketDependencies } from './TicketDependencies.ts';
 import type { TicketMoves }        from './TicketMoves.ts';
 import { TicketDefaultsUtil }      from './utils/TicketDefaultsUtil.ts';
 
-const UNSTARTED_STATUSES: readonly TicketStatus[] = ['draft', 'pending', 'ready-for-review'];
+const UNSTARTED_STATUSES: readonly TicketStatus[] = ['draft', 'committed', 'ready-for-review'];
 
 const CLOSED_STATUSES: readonly TicketStatus[] = ['delivered', 'abandoned'];
 
@@ -41,14 +41,14 @@ export class Findings {
   }
 
   /**
-   * The Overseer's first start on a board puts every unheld low `pending` ticket v16 left in `ready-for-review`, whatever the ticket review
+   * The Overseer's first start on a board puts every unheld low `committed` ticket v16 left in `ready-for-review`, whatever the ticket review
    * switch says; a board that stored its first Overseer start, or whose log holds an `overseer-started` record, moves nothing.
    */
   submitFirstRunLeftovers(at: string): Logged {
     const overseerStartedBefore = this.records.progress.overseerFirstStartedAt !== undefined
       || [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'overseer-started');
     if (overseerStartedBefore) return { logged: [] };
-    const leftovers = this.records.ticketRecords.filter(({ frontmatter }) => frontmatter.status === 'pending'
+    const leftovers = this.records.ticketRecords.filter(({ frontmatter }) => frontmatter.status === 'committed'
       && TicketDefaultsUtil.ticketPriorityOf(frontmatter) === 'low' && frontmatter.hold === undefined);
     return { logged: leftovers.map((leftover) => this.ticketMoves.putBeforeReview(leftover, at)) };
   }

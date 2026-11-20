@@ -39,7 +39,7 @@ describe('counting a ticket\'s failed passes', () => {
     expect(failedPassesOf('001', records)).toBe(0);
   });
 
-  test('a start from review keeps the count, a start from pending begins it again', () => {
+  test('a start from review keeps the count, a start from committed begins it again', () => {
     const rework: LogRecord[] = [...finishedJobRecords('J1', 'build', '001', 'failed'), ticketRecord('ticket-finished', '001'), ticketRecord('ticket-started', '001')];
     expect(failedPassesOf('001', rework)).toBe(1);
     const reopened: LogRecord[] = [...finishedJobRecords('J1', 'build', '001', 'failed'), {

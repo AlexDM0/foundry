@@ -129,7 +129,7 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `and no move returns a ticket to draft` | `move-to-draft` | A move targeted `draft`. Filing is the only way in. | Run `ticket hold` to keep it from being built. | |
 | `is a draft ticket, so it was not moved` | `move-of-a-draft` | A move other than abandon named a draft ticket. | Run `ticket ready` first. | |
 | `not a draft ticket, so nothing was readied` | `ready-of-a-ticket-not-in-draft` | `ticket ready` named a ticket past `draft`. | Nothing. A ticket past `draft` needs no readying; an abandoned one is settled. | |
-| `has no entity, and each ticket builds in the pipeline of its entity` | `ticket-without-entity` | In a forge with entities, `ticket ready` named a ticket with no `entity`, or `ticket submit`, `intake close` or a worker's finding would make one `pending` with ticket review off. | Give it one with `ticket entity`, then ready it again. | [cli.md](../cli.md#ticket-ready) |
+| `has no entity, and each ticket builds in the pipeline of its entity` | `ticket-without-entity` | In a forge with entities, `ticket ready` named a ticket with no `entity`, or `ticket submit`, `intake close` or a worker's finding would make one `committed` with ticket review off. | Give it one with `ticket entity`, then ready it again. | [cli.md](../cli.md#ticket-ready) |
 | `as its work, outside its entity and the packages it may cross into` | `work-outside-entity` | In a forge with entities, the `Work belongs in:` line of a draft's Brief names a path that neither its entity nor a package it whitelists owns, outside its `reach`, at `ticket ready`, `ticket submit`, `intake close` or a worker's finding. | File that work as a ticket of the entity that owns it, or correct the Brief, then ready it again. | [cli.md](../cli.md#ticket-ready) |
 | `Nothing was readied: ticket #<ticket> is incomplete` | `incomplete-tickets` | The body lacks a numbered Acceptance or a `## Brief`. The sentence names `acceptance-unnumbered` or `brief-missing`. | Number items `A1.`, write the Brief, ready again. | [cli.md](../cli.md) |
 | `was not moved: abandon needs --reason` | `abandon-without-reason` | `ticket abandon` had no reason, or a blank one. | Pass `--reason`. | |
@@ -155,13 +155,13 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `and only a delivered ticket's change lets a bug escape` | `introduced-by-an-undelivered-ticket` | The named cause is not delivered. | Name a delivered ticket. | |
 | `and its priority was not changed: it is already` | `priority-unchanged` | The ticket has that priority. | Nothing. | |
 | `and its size was not changed: it is already` | `size-unchanged` | The ticket has that size. | Nothing. | |
-| `only a draft or pending ticket can be lowered to low` | `lowering-a-ticket-that-is-not-pending` | `priority low` past `pending`. | Leave the priority. | |
-| `and it was not edited: an agent may already be working from it` | `edit-of-a-ticket-past-pending` | `ticket edit` past `pending`. | Add `--force` only when no job is running on it: a body changed after launch makes Customs refuse the job's report (`ticket-body-changed`). | |
-| `and its network line was not changed: it is set only while` | `network-of-a-ticket-past-pending` | `ticket network` past `pending`. | Abandon and refile, or leave it. | |
+| `only a draft or committed ticket can be lowered to low` | `lowering-a-ticket-that-is-not-committed` | `priority low` past `committed`. | Leave the priority. | |
+| `and it was not edited: an agent may already be working from it` | `edit-of-a-ticket-past-committed` | `ticket edit` past `committed`. | Add `--force` only when no job is running on it: a body changed after launch makes Customs refuse the job's report (`ticket-body-changed`). | |
+| `and its network line was not changed: it is set only while` | `network-of-a-ticket-past-committed` | `ticket network` past `committed`. | Abandon and refile, or leave it. | |
 | `is not a public domain` | `network-domain-not-public` | A loopback name, a `.local` name or a private address. The plural reads `are not public domains`. | Name a public domain. | |
 | `network line was not changed: it already reads` | `network-unchanged` | The line holds those domains. | Nothing. | |
 | `was not given the entity <key>: the pipeline names` | `unknown-entity` | `ticket entity` or `ticket add --entity` named a key the pipeline's entities do not have, or the forge has no entities. | Name a key the sentence lists. | [cli.md](../cli.md#ticket-entity) |
-| `and its entity was not changed: it is set only while` | `entity-of-a-ticket-past-pending` | `ticket entity` past `pending`. | Leave it, or abandon and refile. | |
+| `and its entity was not changed: it is set only while` | `entity-of-a-ticket-past-committed` | `ticket entity` past `committed`. | Leave it, or abandon and refile. | |
 | `entity was not changed: it already is` | `entity-unchanged` | The ticket has that entity. | Nothing. | |
 | `entity was not changed: it needs` | `entity-without-reason` | `ticket entity` with a blank reason. | Say why the ticket belongs to that entity. | |
 | `declared no need: only a build job of an entity declares one` | `need-outside-an-entity-build` | `need declare` for a job that is not a build job, or runs no entity's stage, as every job of a forge without entities. | Nothing: make the change in the job's own ticket, or file a ticket. | [cli.md](../cli.md#need-declare) |
@@ -470,7 +470,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | `a worker files only a low finding` | `worker-filing-flag` | A worker's filing with flags a finding may not take. | A worker files with `--priority low` and the allowed flags; the Overseer adds the finder dependency and group. | |
 | `this job has already filed as many findings as one job may` | `worker-filing-limit` | `WORKER_FILINGS_PER_JOB` (10) reached. | Put the rest in the Handoff. | |
 | `it changes only a draft ticket this job filed` | `not-own-draft` | A product owner reached for a ticket it did not file, or one past `draft`. | Touch only its own draft tickets. | |
-| `it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or pending` | `not-own-draft-or-unclaimed-ticket` | A product owner's `ticket entity` named another job's draft, or a ticket past `pending`. | Assign only its own draft tickets and tickets ready for review or pending. | |
+| `it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or committed` | `not-own-draft-or-unclaimed-ticket` | A product owner's `ticket entity` named another job's draft, or a ticket past `committed`. | Assign only its own draft tickets and tickets ready for review or committed. | |
 | `only a build job of an entity declares a need` | `need-outside-an-entity` | A session that is not the builder of an entity's stage relayed `need declare`. | Nothing to do from the job: report the change in the Handoff. | [cli.md](../cli.md#need-declare) |
 | `a need names its entity and a title, and its body holds` | `need-incomplete` | A builder relayed a need with a blank entity or title, or a body without a numbered `## Acceptance` or a `## Brief`. | Write the missing part, and declare the need again. | [cli.md](../cli.md#need-declare) |
 | `the change of this ticket in that package is sealed` | `need-for-sealed-package` | The builder of a crossing ticket's stage relayed a need for a package whose change for the ticket a package review sealed (E42). | The adapt builder ends with the outcome `package-return` and writes the change in `packageReturnReason`. | [cli.md](../cli.md#need-declare) |
@@ -575,7 +575,7 @@ These rows print as listed above, and the sentence is not the whole truth.
 
 | Code | What the sentence implies | What holds |
 | --- | --- | --- |
-| `tokens-without-a-row`, `lowering-a-ticket-that-is-not-pending` | A low ticket has no row until it is started. | `ticket ready` gives a row at any priority. |
+| `tokens-without-a-row`, `lowering-a-ticket-that-is-not-committed` | A low ticket has no row until it is started. | `ticket ready` gives a row at any priority. |
 | `worktree-repair-failed`, `worktree-has-uncommitted-work` | Nothing was written at all. | Only the tracker is untouched. See [When something was written](#when-something-was-written). |
 | `job-finished` from `intake close` or `job message` | The job has ended. | It is `stopping`: it is ending, and takes no close or message. |
 | `baton-pass-failed` from `update` or `oversee restart` after the old Overseer let go | The old Overseer keeps driving. | Both commands print before the old Overseer has taken its port back. If that fails, it exits and nobody drives. Only `oversee status` shows the end state. |

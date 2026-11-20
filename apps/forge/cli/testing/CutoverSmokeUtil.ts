@@ -56,7 +56,7 @@ const EVIDENCE_FOLDER_PATH = ['.claude', '.evidence', 'cutover-smoke'] as const;
 const MINIMUM_PASSED_GATE_RUNS = 3;
 
 const STATUS_OF_TICKET_MOVE: Readonly<Record<string, string>> = {
-  'ticket-readied':   'pending',
+  'ticket-committed': 'committed',
   'ticket-started':   'in-progress',
   'ticket-finished':  'in-review',
   'ticket-approved':  'approved',

@@ -205,7 +205,7 @@ export interface BoardStateDocument {
   readonly pipelineChoices?:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them. */
   readonly pipelineAgentDefaults?: AgentPair;
-  /** Absent until the first Apply over entities started a product owner to give pending tickets an entity: its progress per ticket. */
+  /** Absent until the first Apply over entities started a product owner to give committed tickets an entity: its progress per ticket. */
   readonly entityAssignment?:      EntityAssignmentFacts;
   /** Optional, so a board document built without Flint's brain, as a spec's, still reads. */
   readonly flintBrain?:            FlintBrainBoardFactsDocument;

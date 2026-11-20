@@ -127,7 +127,7 @@ describeWhenGitIsRecorded('filing and moving a low ticket', () => {
 
     await run(['ticket', 'reopen', '1']);
 
-    expect(storedProgressOf(repositoryDirectory).tasks[0]).toMatchObject({ status: 'pending', ticket: '001' });
+    expect(storedProgressOf(repositoryDirectory).tasks[0]).toMatchObject({ status: 'committed', ticket: '001' });
   });
 
   test('ticket abandon on a low ticket without a row exits 0 and adds no row', async () => {
@@ -161,13 +161,13 @@ describeWhenGitIsRecorded('filing and moving a low ticket', () => {
     await run(['clear', '--yes']);
 
     expect(storedProgressOf(repositoryDirectory).tasks).toHaveLength(1);
-    expect(storedProgressOf(repositoryDirectory).tasks[0]).toMatchObject({ status: 'pending', ticket: '001' });
+    expect(storedProgressOf(repositoryDirectory).tasks[0]).toMatchObject({ status: 'committed', ticket: '001' });
   });
 });
 
 describeWhenGitIsRecorded('ticket priority', () => {
   // Priority only orders the queue: a lowered ticket is still ready, so it keeps its row.
-  test('lowering a pending normal ticket keeps its row, and raising it again keeps the same row, each with one log line', async () => {
+  test('lowering a committed normal ticket keeps its row, and raising it again keeps the same row, each with one log line', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fix the axis']);
     const rowsBefore = storedProgressOf(repositoryDirectory).tasks;
     expect(rowsBefore).toHaveLength(1);
@@ -183,18 +183,18 @@ describeWhenGitIsRecorded('ticket priority', () => {
     expect(logLinesAbout('001')).toEqual(['Ticket #001 priority normal → low', 'Ticket #001 priority low → normal']);
   });
 
-  test('raising a pending low ticket with no row files a pending row for it', async () => {
+  test('raising a committed low ticket with no row files a committed row for it', async () => {
     await fileLowPendingTicketWithoutRow('Reword the empty-log note');
 
     await run(['ticket', 'priority', '1', 'normal']);
 
     const { tasks } = storedProgressOf(repositoryDirectory);
     expect(tasks).toHaveLength(1);
-    expect(tasks[0]).toMatchObject({ status: 'pending', ticket: '001' });
+    expect(tasks[0]).toMatchObject({ status: 'committed', ticket: '001' });
     expect(storedTicketText('001')).toContain(`task: ${tasks[0]?.id}`);
   });
 
-  test('raising an abandoned low ticket gives it an abandoned row, not a pending one', async () => {
+  test('raising an abandoned low ticket gives it an abandoned row, not a committed one', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Reword the empty-log note', '--priority', 'low']);
     await run(['ticket', 'abandon', '1', '--reason', 'superseded']);
 
@@ -214,7 +214,7 @@ describeWhenGitIsRecorded('ticket priority', () => {
     expect(logLinesAbout('001')).toEqual(['Ticket #001 priority normal → high']);
   });
 
-  test('lowering a ticket that is not pending is refused at exit 1 with both files unchanged', async () => {
+  test('lowering a ticket that is not committed is refused at exit 1 with both files unchanged', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fix the axis']);
     await run(['ticket', 'start', '1']);
     const progressBefore = readFileSync(progressRecordPath(), 'utf8');
@@ -222,7 +222,7 @@ describeWhenGitIsRecorded('ticket priority', () => {
 
     const context = await runExpectingRefusal(['ticket', 'priority', '1', 'low']);
 
-    expect(context.errorText()).toContain('only a draft or pending ticket can be lowered to low');
+    expect(context.errorText()).toContain('only a draft or committed ticket can be lowered to low');
     expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
     expect(storedTicketText('001')).toBe(ticketBefore);
   });
@@ -236,15 +236,15 @@ describeWhenGitIsRecorded('ticket priority', () => {
 });
 
 describeWhenGitIsRecorded('readiness and claiming', () => {
-  // Ready means build: priority only orders, so a pending normal ticket holds no low one back, in the list or in a claim.
-  test('a low ticket is listed after a pending normal one and claimable while it is owed', async () => {
+  // Ready means build: priority only orders, so a committed normal ticket holds no low one back, in the list or in a claim.
+  test('a low ticket is listed after a committed normal one and claimable while it is owed', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Reword the empty-log note', '--priority', 'low']);
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fix the axis']);
 
     expect(await readyTicketIds()).toEqual(['002', '001']);
     await run(['ticket', 'claim', '1', '--owner', 'opus']);
     expect(storedProgressOf(repositoryDirectory).tasks.find((task) => task.ticket === '001')).toMatchObject({ status: 'in-progress', owner: 'opus' });
-    expect(storedTicketText('002')).toContain('status: "pending"');
+    expect(storedTicketText('002')).toContain('status: "committed"');
   });
 
   test('within a priority the ticket readied first is listed first, whatever its id', async () => {
@@ -298,7 +298,7 @@ describeWhenGitIsRecorded('reading priorities', () => {
     expect((await run(['ticket', 'show', '2'])).outputText()).toContain('priority: low');
     const everything = (await run(['ticket', 'list'])).outputText();
     expect(everything).toContain('priority');
-    expect(everything).toMatch(/#002 +pending +low /);
+    expect(everything).toMatch(/#002 +committed +low /);
 
     const narrowed = (await run(['ticket', 'list', '--priority', 'low'])).outputText();
     expect(narrowed).toContain('#002');

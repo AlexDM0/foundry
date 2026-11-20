@@ -22,8 +22,8 @@ function record(second: number, kind: string, subject: Partial<SmokeLogRecord>, 
 }
 
 const DELIVERED_BOARD: SmokeLogRecord[] = [
-  record(1, 'ticket-readied', { ticketId: '001' }),
-  record(1, 'ticket-readied', { ticketId: '002' }),
+  record(1, 'ticket-committed', { ticketId: '001' }),
+  record(1, 'ticket-committed', { ticketId: '002' }),
   record(2, 'job-launched', { jobId: 'J2' }, {
     kind: 'build', role: 'builder', ticketIds: ['001'], parentJobId: null
   }),
@@ -156,7 +156,7 @@ describe('item 5: the event stream', () => {
   const boardEvent = (tickets: { id: string; status: string }[]): SmokeStreamedEvent => ({ kind: 'board', receivedAt: at(1), data: { tickets } });
   const jobEvent = (id: string, state: string): SmokeStreamedEvent => ({ kind: 'job', receivedAt: at(1), data: { id, state } });
   const everyMove = [
-    boardEvent([{ id: '001', status: 'pending' }, { id: '002', status: 'pending' }]),
+    boardEvent([{ id: '001', status: 'committed' }, { id: '002', status: 'committed' }]),
     boardEvent([{ id: '001', status: 'in-review' }, { id: '002', status: 'in-review' }]),
     boardEvent([{ id: '001', status: 'delivered' }, { id: '002', status: 'delivered' }]),
     ...['J2', 'J3', 'J4', 'J5', 'J8'].map((jobId) => jobEvent(jobId, 'running')),
@@ -168,7 +168,7 @@ describe('item 5: the event stream', () => {
 
   test('fails naming the unseen move and the unpublished job', () => {
     const verdict = CutoverSmokeUtil.eventVerdictOf(DELIVERED_BOARD, everyMove.filter((event) => event.data['id'] !== 'J8').slice(1), at(0));
-    expect(verdict.detail).toContain('#001 pending');
+    expect(verdict.detail).toContain('#001 committed');
     expect(verdict.detail).toContain('no job event for J8');
   });
 

@@ -18,13 +18,12 @@ import type {
   BoardTicketDocument
 } from 'forge-contracts/BoardPageDocuments';
 import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                 from 'forge-contracts/BoardReadingDocuments';
-import type { DisplayState, TaskStatus, TicketStatus }                              from 'forge-contracts/BoardVocabulary';
 import type { BoardConcurrencyDocument, BoardOverseerDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
 
-import type { DraftQuestion, DraftSummary }                                            from '../../../lib/tracker-model/@types/Draft.ts';
-import type { EpicRollup }                                                             from '../../../lib/tracker-model/@types/Epic.ts';
-import type { DisplayState as ModelDisplayState, Task, TaskStatus as ModelTaskStatus } from '../../../lib/tracker-model/@types/Task.ts';
-import type { ReadyTicket, TicketStatus as ModelTicketStatus }                         from '../../../lib/tracker-model/@types/Ticket.ts';
+import type { DraftQuestion, DraftSummary } from '../../../lib/tracker-model/@types/Draft.ts';
+import type { EpicRollup }                  from '../../../lib/tracker-model/@types/Epic.ts';
+import type { Task }                        from '../../../lib/tracker-model/@types/Task.ts';
+import type { ReadyTicket }                 from '../../../lib/tracker-model/@types/Ticket.ts';
 import type {
   PageBoardFacts,
   PageConcurrency,
@@ -45,21 +44,12 @@ export interface TicketReadings {
   readonly offers: BoardTicketOffersDocument;
 }
 
-/** Where the model has not yet renamed `pending`, the contract says `committed`; the model's rename removes this function. */
-function committedStatusOf(status: ModelTicketStatus): TicketStatus;
-function committedStatusOf(status: ModelTaskStatus): TaskStatus;
-function committedStatusOf(status: ModelDisplayState): DisplayState;
-
-function committedStatusOf(status: ModelDisplayState): DisplayState {
-  return status === 'pending' ? 'committed' : status;
-}
-
 function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocument {
   return {
     id:              ticket.id,
     title:           ticket.title,
     type:            ticket.type,
-    status:          committedStatusOf(ticket.status),
+    status:          ticket.status,
     ...(ticket.priority === undefined ? {} : { priority: ticket.priority }),
     ...(ticket.size === undefined ? {} : { size: ticket.size }),
     ...(ticket.hold === undefined ? {} : { hold: ticket.hold }),
@@ -95,7 +85,7 @@ function taskOf(task: Readonly<Task>): BoardTaskDocument {
   return {
     id:     task.id,
     name:   task.name,
-    status: committedStatusOf(task.status),
+    status: task.status,
     start:  task.start,
     end:    task.end,
     owner:  task.owner,
@@ -104,7 +94,7 @@ function taskOf(task: Readonly<Task>): BoardTaskDocument {
     tokens: task.tokens,
     ...(task.reviewed === undefined ? {} : { reviewed: task.reviewed }),
     ...(task.reviewRound === undefined ? {} : { reviewRound: task.reviewRound }),
-    ...(task.history === undefined ? {} : { history: task.history.map((phase) => ({ status: committedStatusOf(phase.status), at: phase.at })) }),
+    ...(task.history === undefined ? {} : { history: task.history.map((phase) => ({ status: phase.status, at: phase.at })) }),
     ...(task.reviewOf === undefined ? {} : { reviewOf: task.reviewOf }),
     ...(task.reviewBarRound === undefined ? {} : { reviewBarRound: task.reviewBarRound }),
   };
@@ -134,7 +124,7 @@ function progressOf(progress: PagePayload['progress']): BoardProgressDocument {
 
 function rowFactsOf(row: PageRowFacts): BoardRowFactsDocument {
   return {
-    displayState:                   committedStatusOf(row.displayState),
+    displayState:                   row.displayState,
     deliveredRowCountsAsReviewed:   row.deliveredRowCountsAsReviewed,
     ownRowPositionOfReviewedTicket: row.ownRowPositionOfReviewedTicket,
   };
@@ -145,7 +135,7 @@ function ticketFactsOf(facts: PageTicketFacts): BoardPageTicketFactsDocument {
     ticketId:           facts.ticketId,
     ownRowPosition:     facts.ownRowPosition,
     reviewBarPositions: [...facts.reviewBarPositions],
-    displayState:       committedStatusOf(facts.displayState),
+    displayState:       facts.displayState,
     waitingOnTicketIds: [...facts.waitingOnTicketIds],
     ...(facts.entity === undefined ? {} : { entity: facts.entity }),
     ...(facts.stage === undefined ? {} : { stage: { name: facts.stage.name, entity: facts.stage.entity } }),
@@ -162,7 +152,7 @@ function epicRollupOf(epic: EpicRollup): BoardEpicRollupDocument {
     ticketCountByStatus: {
       'draft':            counts.draft,
       'ready-for-review': counts['ready-for-review'],
-      'committed':        counts.pending,
+      'committed':        counts.committed,
       'in-progress':      counts['in-progress'],
       'in-review':        counts['in-review'],
       'reviewed':         counts.reviewed,
@@ -274,7 +264,6 @@ function usageOf(usage: UsageFacts): BoardUsageDocument {
 }
 
 export const BoardPageMappingUtil = Object.freeze({
-  committedStatusOf,
   pageOf,
   limitsOf,
   concurrencyOf,

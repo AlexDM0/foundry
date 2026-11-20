@@ -22,7 +22,7 @@ test('a row status the format does not know gets the message listing every statu
   fileRow(progress, { name: 'Example build' });
   const document = { ...progress, tasks: [{ ...progress.tasks[0], status: 'blocked' }] };
   expect(ProgressFileValidationUtil.documentProblemOf(document))
-    .toBe(`tasks[0].status is "blocked", which is not one of pending, in-progress, paused, in-review, re-review, reviewed, delivered, abandoned; ${OLDER_FORMAT_ADVICE}`);
+    .toBe(`tasks[0].status is "blocked", which is not one of committed, in-progress, paused, in-review, re-review, reviewed, delivered, abandoned; ${OLDER_FORMAT_ADVICE}`);
 });
 
 test('a history phase in a status the file format does not know is a problem', () => {

@@ -58,7 +58,7 @@ const BOARD = exampleBoard({
 });
 
 const CHECKOUT_ROLLUP: EpicRollupDocument = {
-  key: 'checkout', title: 'Example checkout', slot: 2, ticketIds: ['001'], ticketCountByStatus: { pending: 1 }, tokens: 1_200, span: null,
+  key: 'checkout', title: 'Example checkout', slot: 2, ticketIds: ['001'], ticketCountByStatus: { committed: 1 }, tokens: 1_200, span: null,
 };
 
 function storeOver(storage: Map<string, string>): PreferenceStore {

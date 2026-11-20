@@ -122,7 +122,7 @@ export interface PipelineFacts {
   pipelineChoices:       PipelineChoices;
   /** The pipeline agent's model and effort while no draft names them, which the setup steps show. */
   pipelineAgentDefaults: AgentPair;
-  /** Absent until the first Apply over entities started a product owner to give pending tickets an entity: its progress per ticket. */
+  /** Absent until the first Apply over entities started a product owner to give committed tickets an entity: its progress per ticket. */
   entityAssignment?:     EntityAssignmentFacts;
 }
 
@@ -612,7 +612,7 @@ function stepRunTimesOf(logRecords: readonly LogRecord[]): PipelineStepRunTimeFa
 }
 
 /**
- * The newest product owner launched to give pending tickets an entity, from its launch record, with each ticket's entity and reason from
+ * The newest product owner launched to give committed tickets an entity, from its launch record, with each ticket's entity and reason from
  * its newest `entity-assigned` record after that launch; absent when no such product owner was launched.
  */
 function entityAssignmentOf(input: PipelineFactsInput): Pick<PipelineFacts, 'entityAssignment'> {

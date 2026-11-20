@@ -222,7 +222,7 @@ const BOARD = {
   concurrency:         () => ({ limit: 3, agentsInFlight: 2, freeSlots: 1 }),
   readyTicketEntries:  () => [{ id: '003' }, { id: '004' }],
   ticketCountByStatus: () => ({
-    'draft': 1, 'ready-for-review': 1, 'pending': 2, 'in-progress': 1, 'in-review': 0, 'reviewed': 1, 'delivered': 1, 'abandoned': 0,
+    'draft': 1, 'ready-for-review': 1, 'committed': 2, 'in-progress': 1, 'in-review': 0, 'reviewed': 1, 'delivered': 1, 'abandoned': 0,
   }),
 } as unknown as MonitorSnapshotSource['board'];
 
@@ -478,7 +478,7 @@ const ENTITY_PIPELINE = {
 const ENTITY_TICKETS = [
   { frontmatter: { id: '001', status: 'in-progress', entity: 'forge' } },
   { frontmatter: { id: '002', status: 'delivered', entity: 'forge' } },
-  { frontmatter: { id: '003', status: 'pending', entity: 'contracts' } },
+  { frontmatter: { id: '003', status: 'committed', entity: 'contracts' } },
   { frontmatter: { id: '008', status: 'abandoned' } },
   { frontmatter: { id: '009', status: 'draft' } },
 ] as unknown as Ticket[];

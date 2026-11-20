@@ -462,7 +462,7 @@ describe('the group merge rows', () => {
   test('a released group that a later ticket of the group uses again is left standing at the start', async () => {
     harness = createRecordedGroupHarness([
       { id: '012', group: 'example', releasesGroup: true },
-      { id: '014', group: 'example', status: 'pending' },
+      { id: '014', group: 'example', status: 'committed' },
     ]);
     const current = harness;
     current.board.releaseTickets(['012'], { branch: 'ticket-012', commit: TICKET_TIP }, HARNESS_AT);

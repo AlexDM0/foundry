@@ -101,8 +101,8 @@ export class TicketMoves {
   }
 
   /**
-   * Every named draft moves to `pending` with a row at any priority, or none does: a ticket not in `draft` is refused first, then, in a
-   * forge with entities, every ticket without one, then every ticket the reading finds gaps in, all named at once. Every way to `pending`
+   * Every named draft moves to `committed` with a row at any priority, or none does: a ticket not in `draft` is refused first, then, in a
+   * forge with entities, every ticket without one, then every ticket the reading finds gaps in, all named at once. Every way to `committed`
    * passes here, so a ticket is never built without its entity. Only User's own `ticket ready` passes `ready-for-review` as readiable. A
    * filer's move passes `workFilesOf`, so a ticket whose Brief names work outside its entity is refused (E85); a need's ticket, filed by
    * the Overseer for the entity the need names, passes none.
@@ -129,17 +129,17 @@ export class TicketMoves {
 
     const logged = readiedTickets.map((ticket) => {
       const { frontmatter } = ticket;
-      frontmatter.status    = 'pending';
+      frontmatter.status    = 'committed';
       frontmatter.updated   = at;
       this.records.ensureTaskForTicket(ticket, at);
       this.records.markChanged(ticket);
-      return this.records.logger.log({ kind: 'ticket-readied', ticketId: frontmatter.id, fields: {} }, at);
+      return this.records.logger.log({ kind: 'ticket-committed', ticketId: frontmatter.id, fields: {} }, at);
     });
     return { logged, tickets: readiedTickets };
   }
 
   /**
-   * The filer's close of its drafts: a complete draft moves to `pending` with its row when ticket review is off, or to `ready-for-review`
+   * The filer's close of its drafts: a complete draft moves to `committed` with its row when ticket review is off, or to `ready-for-review`
    * with no row when it is on. An incomplete draft stays a draft and is returned with its gaps. A ticket not in `draft` is refused.
    */
   submitDraftTickets(
@@ -183,7 +183,7 @@ export class TicketMoves {
 
   /**
    * The `ticket-without-entity` judgement of a submit with ticket review off, run before anything it would undo moves: a complete ticket
-   * without an entity, which that submit would make `pending`. A ticket not yet filed may be judged too.
+   * without an entity, which that submit would make `committed`. A ticket not yet filed may be judged too.
    */
   refuseASubmitWithoutAnEntity(
     tickets: readonly Readonly<Ticket>[],
@@ -201,7 +201,7 @@ export class TicketMoves {
     return TICKET_STATUSES_USER_READIES.includes(ticket.frontmatter.status) && !this.ticketNeedsAnEntity(ticket);
   }
 
-  /** In a forge with entities, a ticket without one: it cannot reach `pending`, since it would build in no entity's pipeline. */
+  /** In a forge with entities, a ticket without one: it cannot reach `committed`, since it would build in no entity's pipeline. */
   private ticketNeedsAnEntity(ticket: Readonly<Ticket>): boolean {
     return this.records.pipeline?.entities !== undefined && ticket.frontmatter.entity === undefined;
   }
@@ -295,12 +295,12 @@ export class TicketMoves {
     return this.logTicketMove(frontmatter, targetStatus, fields.byHand === true, at);
   }
 
-  /** `pending` is logged as a reopen: a ticket first reaches `pending` by `readyDraftTickets`, which logs `ticket-readied`. */
+  /** `committed` is logged as a reopen: a ticket first reaches `committed` by `readyDraftTickets`, which logs `ticket-committed`. */
   private logTicketMove(frontmatter: Readonly<TicketFrontmatter>, targetStatus: RowedTicketStatus, byHand: boolean, at: string): LogRecord {
     const ticketId = frontmatter.id;
     const { logger } = this.records;
     switch (targetStatus) {
-      case 'pending':
+      case 'committed':
         return logger.log({ kind: 'ticket-reopened', ticketId, fields: {} }, at);
       case 'in-progress':
         return logger.log({ kind: 'ticket-started', ticketId, fields: {} }, at);

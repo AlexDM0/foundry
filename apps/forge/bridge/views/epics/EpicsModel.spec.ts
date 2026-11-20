@@ -33,7 +33,7 @@ describe('the epic cards', () => {
   test('the done mark, the roll-up segments and the facts', () => {
     expect([checkout?.doneText, archive?.doneText]).toEqual(['1 of 3 done', 'all settled']);
     expect(checkout?.segments.map((segment) => [segment.state, segment.count, segment.label])).toEqual([
-      ['delivered', 1, 'Done'], ['in-progress', 1, 'In progress'], ['pending', 1, 'To do'],
+      ['delivered', 1, 'Done'], ['in-progress', 1, 'In progress'], ['committed', 1, 'To do'],
     ]);
     expect(checkout?.facts).toEqual([
       { label: 'open', value: '2', title: null },

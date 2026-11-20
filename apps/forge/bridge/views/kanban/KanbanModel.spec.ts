@@ -152,7 +152,7 @@ describe('the card', () => {
       filingDraftId:      null,
       idText:             '#040',
       title:              'Example ticket 040',
-      stateToken:         'pending',
+      stateToken:         'committed',
       hasRow:             true,
       isLive:             false,
       isDashed:           false,
@@ -483,7 +483,7 @@ describe('the lane heads', () => {
 
   test('In review takes the reviewing colours, every other lane its own state\'s', () => {
     expect(modelOf(exampleBoard({ tickets: [] })).lanes.map((lane) => lane.dotState))
-      .toEqual(['pending', 'in-progress', 'reviewing', 'reviewed', 'delivered', 'abandoned']);
+      .toEqual(['committed', 'in-progress', 'reviewing', 'reviewed', 'delivered', 'abandoned']);
   });
 });
 

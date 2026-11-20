@@ -98,7 +98,7 @@ const USER_SPEAKER = 'User';
 /** The palette row a product-owner turn's dot takes. */
 const PRODUCT_OWNER_TURN_STATE: DisplayState = 'reviewed';
 
-const NEW_CHAT_TAG: TagProps = { text: 'No message yet: sending starts the session', ...StateToneUtil.tagLookOf('pending'), dot: true };
+const NEW_CHAT_TAG: TagProps = { text: 'No message yet: sending starts the session', ...StateToneUtil.tagLookOf('committed'), dot: true };
 
 const CLOSED_TAG: TagProps = { text: 'Closed: a message resumes it', ...StateToneUtil.tagLookOf('abandoned'), dot: true };
 
@@ -216,7 +216,7 @@ function readOnlyTagOf(session: Pick<IntakeSession, 'state' | 'ended' | 'closed'
 function draftPillOf(ticket: Pick<TicketDocument, 'status'>): IntakePill {
   return DisplayStateWordingUtil.isDisplayState(ticket.status)
     ? { state: ticket.status, label: DisplayStateWordingUtil.labelOf(ticket.status) }
-    : { state: 'pending', label: ticket.status };
+    : { state: 'committed', label: ticket.status };
 }
 
 function draftsOf(tickets: readonly TicketDocument[]): TicketDocument[] {

@@ -54,7 +54,7 @@ function sceneOfChart(): FlintHabitatScene<ProgressBoardState> {
   return flintHabitatSceneOf<ProgressBoardState>({
     storedHabitatKind: 'timeline',
     viewOf:            (boardState) => <ChartRows boardState={boardState} />,
-    firstProps:        boardOf('pending', 1),
+    firstProps:        boardOf('committed', 1),
     placeView:         () => {
       placeAt(elementOf('.example-chart'), 100, 100, 800, 400);
       placeAt(elementOf('.example-shown-bar'), 300, 160, 300, 12);

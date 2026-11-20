@@ -19,21 +19,21 @@ import { ALLOWED_MOVES_BY_INCIDENT_KIND }                            from './con
  * delivered.
  */
 export interface RelayingJob {
-  id:                               string;
-  role:                             JobRole | null;
-  ticketIds:                        readonly string[];
-  filedTickets:                     ReadonlyArray<{ id: string; status: TicketStatus }>;
-  deliveredIncidents:               ReadonlyArray<Pick<Incident, 'id' | 'kind' | 'ticketIds' | 'jobId'>>;
-  /** The board's tickets in `ready-for-review` or `pending`, whatever job filed them, since a product owner assigns the entity of each. */
-  ticketIdsReadyForReviewOrPending: readonly string[];
+  id:                                 string;
+  role:                               JobRole | null;
+  ticketIds:                          readonly string[];
+  filedTickets:                       ReadonlyArray<{ id: string; status: TicketStatus }>;
+  deliveredIncidents:                 ReadonlyArray<Pick<Incident, 'id' | 'kind' | 'ticketIds' | 'jobId'>>;
+  /** The board's tickets in `ready-for-review` or `committed`, whatever job filed them, since a product owner assigns the entity of each. */
+  ticketIdsReadyForReviewOrCommitted: readonly string[];
   /** For a pipeline agent: the open setup record whose agent this job is; null when it serves none. */
-  setupId:                          string | null;
+  setupId:                            string | null;
   /** For a pipeline agent of one entity's part of that record: the entity; absent for the forge's session. */
-  setupEntity?:                     EntityKey;
+  setupEntity?:                       EntityKey;
   /** The entity whose stage the job runs; absent on a forge without entities. */
-  entity?:                          EntityKey;
+  entity?:                            EntityKey;
   /** The packages whose change for the job's ticket a package review sealed; absent when none is sealed. */
-  sealedPackages?:                  readonly EntityKey[];
+  sealedPackages?:                    readonly EntityKey[];
 }
 
 function incidentListsTicket(incident: Pick<Incident, 'ticketIds'>, reference: unknown): boolean {
@@ -157,12 +157,12 @@ function isOwnDraft(job: RelayingJob, ticketId: string | null): boolean {
 }
 
 /**
- * Its own draft at intake, and any ticket in `ready-for-review` or `pending` after its close or a first Apply; stamped with its job, so the
+ * Its own draft at intake, and any ticket in `ready-for-review` or `committed` after its close or a first Apply; stamped with its job, so the
  * log names the product owner.
  */
 function entityAssignmentVerdictOf(job: RelayingJob, command: ControlCommandOf<'ticket-entity'>): BouncerVerdict {
   const ticketId = namedTicketIdOf(command);
-  const reaches  = isOwnDraft(job, ticketId) || (ticketId !== null && job.ticketIdsReadyForReviewOrPending.includes(ticketId));
+  const reaches  = isOwnDraft(job, ticketId) || (ticketId !== null && job.ticketIdsReadyForReviewOrCommitted.includes(ticketId));
   return reaches ? { verdict: 'admitted', command: { ...command, jobId: job.id } } : refused('not-own-draft-or-unclaimed-ticket');
 }
 

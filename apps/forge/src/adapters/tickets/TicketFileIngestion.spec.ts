@@ -20,7 +20,7 @@ const TICKET_WITH_A_COMMENT_ABOVE_ITS_ID = [
   'id: "004"',
   'title: "Fix the export dialog"',
   'type: "bug"',
-  'status: "pending"',
+  'status: "committed"',
   'filed: "2026-09-18T09:00:00+02:00"',
   'updated: "2026-09-18T09:00:00+02:00"',
   'started: null',

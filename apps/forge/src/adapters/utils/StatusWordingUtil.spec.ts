@@ -16,7 +16,7 @@ import type { MovedToStatus }             from './StatusWordingUtil.ts';
 import { StatusWordingUtil }              from './StatusWordingUtil.ts';
 
 const EXPECTED_VERB_FOR_STATUS: Readonly<Record<TaskStatus, string>> = Object.freeze({
-  'pending':     'reopen',
+  'committed':   'reopen',
   'in-progress': 'start',
   'paused':      'pause',
   'in-review':   'finish',
@@ -27,7 +27,7 @@ const EXPECTED_VERB_FOR_STATUS: Readonly<Record<TaskStatus, string>> = Object.fr
 });
 
 const EXPECTED_MOVED_PHRASE_FOR_STATUS: Readonly<Record<MovedToStatus, string>> = Object.freeze({
-  'pending':     'reopened',
+  'committed':   'reopened',
   'in-progress': 'started',
   'paused':      'paused',
   'in-review':   'in review',

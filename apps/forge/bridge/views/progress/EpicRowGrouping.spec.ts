@@ -25,7 +25,7 @@ const AXIS: EpicGroupingAxis = {
 };
 
 const CHECKOUT = exampleProgressEpic('checkout', {
-  title: 'Checkout redesign', slot: 2, ticketIds: ['5', '6', '7'], ticketCountByStatus: { delivered: 1, pending: 2 }, span: { start: '2026-09-18T10:00:00+02:00', end: null },
+  title: 'Checkout redesign', slot: 2, ticketIds: ['5', '6', '7'], ticketCountByStatus: { delivered: 1, committed: 2 }, span: { start: '2026-09-18T10:00:00+02:00', end: null },
 });
 const SETTLED = exampleProgressEpic('settled', {
   title: 'Settled work', slot: 1, ticketIds: ['8'], ticketCountByStatus: { delivered: 1 }, span: { start: '2026-09-18T09:00:00+02:00', end: '2026-09-18T10:00:00+02:00' },

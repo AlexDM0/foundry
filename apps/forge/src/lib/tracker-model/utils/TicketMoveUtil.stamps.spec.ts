@@ -30,7 +30,7 @@ const FULLY_STAMPED: TicketStamps = {
 };
 
 test('each move stamps only the moment it reaches, and only when that stamp is still empty', () => {
-  const expectedForUnstamped: Record<Exclude<TicketStatus, 'pending' | 'draft' | 'ready-for-review'>, TicketStamps> = {
+  const expectedForUnstamped: Record<Exclude<TicketStatus, 'committed' | 'draft' | 'ready-for-review'>, TicketStamps> = {
     'in-progress': { ...UNSTAMPED, started: MOVED_AT },
     'in-review':   { ...UNSTAMPED, finished: MOVED_AT },
     reviewed:      { ...UNSTAMPED, finished: MOVED_AT },
@@ -51,7 +51,7 @@ test('abandoning twice moves abandonedAt to the second decision', () => {
 });
 
 test('a reopen clears all four stamps and asks for the reason to be cleared', () => {
-  expect(stampsAfterMoveOf(FULLY_STAMPED, 'pending', MOVED_AT)).toEqual({ ...UNSTAMPED, clearsReason: true });
+  expect(stampsAfterMoveOf(FULLY_STAMPED, 'committed', MOVED_AT)).toEqual({ ...UNSTAMPED, clearsReason: true });
 });
 
 test('leaves the stamps it was given untouched', () => {

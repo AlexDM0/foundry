@@ -372,20 +372,20 @@ const RESUME_POLICY_CLAIMS: PolicyClaim[] = [
 const CLAIMS: PolicyClaim[] = [
   {
     name:   'a resume comes before any launch',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'pending')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD] }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'committed')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD] }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job launch-build',
     mutant: policyLine('  steps.push(...crashBoundStepsOf(facts, limits, { resumesAreHeld, pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds }));', ''),
   },
   {
     name:   'a review goes ahead of a ready build of its own rank',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending'), ticketOf('002', 'in-review')], concurrencyLimit: 1 }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed'), ticketOf('002', 'in-review')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['002']),
     mutant: policyLine('review: 0, stage: 1, rebuild: 2, build: 3', 'review: 4, stage: 1, rebuild: 2, build: 3'),
   },
   {
     name:  'a rebuild goes ahead of a ready build of its own rank',
     facts: factsWith({
-      tickets:          [ticketOf('001', 'pending'), ticketOf('002', 'in-progress')],
+      tickets:          [ticketOf('001', 'committed'), ticketOf('002', 'in-progress')],
       logRecords:       finishedJobRecords('J1', 'build', '002', 'failed'),
       concurrencyLimit: 1,
     }),
@@ -394,25 +394,29 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'a review never goes ahead of a ready build of a higher rank',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending', { priority: 'high' }), ticketOf('002', 'in-review')], concurrencyLimit: 1 }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed', { priority: 'high' }), ticketOf('002', 'in-review')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['001']),
     mutant: policyLine('    rankOf(a) - rankOf(b)\n', '    0\n'),
   },
   {
-    name:   'within a rank the ticket readied first launches first',
-    facts:  factsWith({ tickets: [ticketOf('002', 'pending'), ticketOf('003', 'pending')], readinessPositionByTicketId: new Map([['002', 5], ['003', 1]]), concurrencyLimit: 1 }),
+    name:  'within a rank the ticket readied first launches first',
+    facts: factsWith({
+      tickets:                     [ticketOf('002', 'committed'), ticketOf('003', 'committed')],
+      readinessPositionByTicketId: new Map([['002', 5], ['003', 1]]),
+      concurrencyLimit:            1,
+    }),
     holds:  launchesExactly(['003']),
     mutant: policyLine('    || readinessOf(a) - readinessOf(b)\n', ''),
   },
   {
     name:   'with readiness equal the lower id launches first',
-    facts:  factsWith({ tickets: [ticketOf('010', 'pending'), ticketOf('009', 'pending')], concurrencyLimit: 1 }),
+    facts:  factsWith({ tickets: [ticketOf('010', 'committed'), ticketOf('009', 'committed')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['009']),
     mutant: policyLine('Number(a.ticket.id) - Number(b.ticket.id)', 'Number(b.ticket.id) - Number(a.ticket.id)'),
   },
   {
-    name:   'a held pending ticket is not ready',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending', { hold: 'by User' })] }),
+    name:   'a held committed ticket is not ready',
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed', { hold: 'by User' })] }),
     holds:  launchesExactly([]),
     mutant: policyLine('  if (ticket.hold !== undefined || ticket.mergeQueued === true) return true;\n', '  if (ticket.mergeQueued === true) return true;\n'),
   },
@@ -476,21 +480,21 @@ const CLAIMS: PolicyClaim[] = [
     mutant: policyLine('    if (!launched) continue;\n', ''),
   },
   {
-    name:   'a pending ticket waits for its dependencies to be reviewed or delivered',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'pending', { dependsOn: ['001'] })] }),
+    name:   'a committed ticket waits for its dependencies to be reviewed or delivered',
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'committed', { dependsOn: ['001'] })] }),
     holds:  launchesExactly([]),
     mutant: policyLine('  if (TicketDependencyUtil.unsettledDependenciesOf(ticket.dependsOn ?? [], statusById).length > 0) return null;\n', ''),
   },
   {
     name:   'a group ticket builds from its group branch',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending', { group: 'lifecycle' })] }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed', { group: 'lifecycle' })] }),
     holds:  (steps) => steps.some((step) => step.kind === 'launch-build' && step.base === 'group-lifecycle'),
     mutant: policyLine('`${observations.groupTargetPrefix}${ticket.group}`', 'observations.mainLine'),
   },
   {
     name:  'a ticket with a live job gets no second one',
     facts: factsWith({
-      tickets: [ticketOf('001', 'pending')],
+      tickets: [ticketOf('001', 'committed')],
       jobs:    [LIVE_ASSISTANT, jobFixture({
         id: 'J1', ticketIds: ['001'], kind: 'merge', role: null
       })]
@@ -501,7 +505,7 @@ const CLAIMS: PolicyClaim[] = [
   {
     name:  'a job waiting for an answer keeps its slot',
     facts: factsWith({
-      tickets:          [ticketOf('001', 'in-progress'), ticketOf('002', 'pending'), ticketOf('003', 'pending')],
+      tickets:          [ticketOf('001', 'in-progress'), ticketOf('002', 'committed'), ticketOf('003', 'committed')],
       jobs:             [LIVE_ASSISTANT, jobFixture({ id: 'J1', ticketIds: ['001'], state: 'waiting-for-answer' })],
       concurrencyLimit: 2,
     }),
@@ -538,20 +542,20 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'an Assistant job takes no slot',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending')], concurrencyLimit: 1 }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['001']),
     mutant: launchSlotLine('= [\'build\', \'review\'];', '= [\'build\', \'review\', \'assistant\'];'),
   },
   {
     name:   'launches stop at the concurrency limit',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending'), ticketOf('002', 'pending')], concurrencyLimit: 1 }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed'), ticketOf('002', 'committed')], concurrencyLimit: 1 }),
     holds:  launchesExactly(['001']),
     mutant: policyLine('    .slice(0, freeSlotsOf(facts));\n', ';\n'),
   },
   {
     name:  'launches stop at the machine slots reserved, and each other launchable ticket waits for a machine slot',
     facts: factsWith({
-      tickets:          [ticketOf('001', 'pending'), ticketOf('002', 'pending')],
+      tickets:          [ticketOf('001', 'committed'), ticketOf('002', 'committed')],
       concurrencyLimit: 2,
       observations:     { ...FIXTURE_OBSERVATIONS, machineAgentSlotsFree: 1 },
     }),
@@ -711,7 +715,7 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'a paused board resumes interrupted jobs but launches nothing new',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'pending')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD], overseerState: 'paused' }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'committed')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD], overseerState: 'paused' }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
     mutant: policyLine('resumesAreHeld || facts.overseerState === \'paused\'', 'resumesAreHeld'),
   },
@@ -737,7 +741,7 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'with no checks line nothing launches, no pipeline agent either, and one checks-not-set decision opens',
-    facts:  factsWith({ tickets: [ticketOf('001', 'pending')], pipelineIsSet: false }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'committed')], pipelineIsSet: false }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'open-decision',
     mutant: policyLine(' || !facts.pipelineIsSet', ''),
   },
@@ -770,7 +774,7 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'a usage limit holds launches and resumes until its reset',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'pending')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD] }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'committed')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD] }),
     limits: USAGE_LIMIT_AHEAD,
     holds:  (steps) => steps.length === 0,
     mutant: policyLine('limits.usageResetsAt !== null && Date.parse(limits.now) < Date.parse(limits.usageResetsAt)', 'false'),
@@ -778,7 +782,7 @@ const CLAIMS: PolicyClaim[] = [
   {
     name:  'a changed install version holds launches and resumes',
     facts: factsWith({
-      tickets:      [ticketOf('001', 'in-progress'), ticketOf('002', 'pending')],
+      tickets:      [ticketOf('001', 'in-progress'), ticketOf('002', 'committed')],
       jobs:         [LIVE_ASSISTANT, INTERRUPTED_BUILD],
       observations: { ...FIXTURE_OBSERVATIONS, installVersionChanged: true },
     }),

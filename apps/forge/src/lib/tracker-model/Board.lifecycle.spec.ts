@@ -1,7 +1,7 @@
 /**
  * `Board.followPlaybook` over real board records. What matters: the steps the policy derives are applied in the same pass (jobs launched as
  * records, a park held and asked about, decisions and incidents opened, defaults taken), every record stamped with `limits.now`; a ready
- * ticket is any pending, unheld one, a low one and one with an open question alike; failed passes, crashes on one ticket and usage limits
+ * ticket is any committed, unheld one, a low one and one with an open question alike; failed passes, crashes on one ticket and usage limits
  * are acted on with no incident, and an Overseer restart counts toward no outage; a review past its first round launches as a
  * `re-reviewer`; and a group builds in parallel, each ticket as soon as the
  * group tickets it names are integrated.
@@ -42,7 +42,7 @@ function ticketWith(id: string, overrides: Partial<TicketFrontmatter> = {}): Tic
       id,
       title:       `Example ticket ${id}`,
       type:        'ticket',
-      status:      'pending',
+      status:      'committed',
       filed:       FIXTURE_AT,
       updated:     FIXTURE_AT,
       started:     null,
@@ -233,7 +233,7 @@ describe('a review round is stamped with its role', () => {
   });
 });
 
-describe('ready is pending and unheld', () => {
+describe('ready is committed and unheld', () => {
   test('a low-priority ticket launches with no triage', () => {
     const { board } = lifecycleBoardOf({ tickets: [ticketWith('001', { priority: 'low' })] });
 
@@ -292,7 +292,7 @@ describe('a group builds in parallel', () => {
   }
 
   test('the two independent tickets launch together on the group branch, the dependants wait', () => {
-    const { board } = lifecycleBoardOf({ tickets: groupOfFour('pending') });
+    const { board } = lifecycleBoardOf({ tickets: groupOfFour('committed') });
 
     expect(advance(board).steps).toEqual([
       {

@@ -5,13 +5,13 @@ import { TicketDefaultsUtil }     from './TicketDefaultsUtil.ts';
 
 /**
  * A draft at any priority, and a ticket ready for review, live off the chart: `ticket ready` files its row. A low ticket never started
- * waits off it while pending, and a ticket abandoned before it was ever started, a draft above all, stays off at any priority. Callers
+ * waits off it while committed, and a ticket abandoned before it was ever started, a draft above all, stays off at any priority. Callers
  * ask only about a rowless ticket, so a row it was given is kept.
  */
 function ticketStaysOffTheChart(frontmatter: Pick<TicketFrontmatter, 'priority' | 'started' | 'status'>): boolean {
   if (frontmatter.status === 'draft' || frontmatter.status === 'ready-for-review') return true;
   if (frontmatter.started !== null) return false;
-  return frontmatter.status === 'abandoned' || (frontmatter.status === 'pending' && TicketDefaultsUtil.ticketPriorityOf(frontmatter) === 'low');
+  return frontmatter.status === 'abandoned' || (frontmatter.status === 'committed' && TicketDefaultsUtil.ticketPriorityOf(frontmatter) === 'low');
 }
 
 function rowNameOf(frontmatter: Pick<TicketFrontmatter, 'id' | 'title'>): string {
@@ -27,8 +27,8 @@ function seededFilingOf(frontmatter: Readonly<TicketFrontmatter>): TaskFiling {
   return {
     name:   rowNameOf(frontmatter),
     ticket: frontmatter.id,
-    // A draft or a ticket ready for review stays off the chart, so it is never seeded; were one seeded, it would wait as a pending row.
-    status: frontmatter.status === 'draft' || frontmatter.status === 'ready-for-review' ? 'pending' : frontmatter.status,
+    // A draft or a ticket ready for review stays off the chart, so it is never seeded; were one seeded, it would wait as a committed row.
+    status: frontmatter.status === 'draft' || frontmatter.status === 'ready-for-review' ? 'committed' : frontmatter.status,
     ...(frontmatter.started === null ? {} : { start: frontmatter.started }),
     ...(endTimestamp === null ? {} : { end: endTimestamp }),
     ...(frontmatter.status === 'reviewed' || frontmatter.status === 'delivered' ? { reviewed: frontmatter.finished ?? frontmatter.updated } : {}),

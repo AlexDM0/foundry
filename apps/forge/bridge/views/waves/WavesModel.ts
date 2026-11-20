@@ -35,7 +35,7 @@ export interface DependencyNodeEpic {
   readonly slot:  number;
 }
 
-/** A chip in a node's head: Ready only as the Board lists it, Held for a held pending ticket, the state while it is built or reviewed. */
+/** A chip in a node's head: Ready only as the Board lists it, Held for a held committed ticket, the state while it is built or reviewed. */
 export type DependencyNodeChip =
   | { readonly kind: 'ready' }
   | { readonly kind: 'held'; readonly title: string }
@@ -145,7 +145,7 @@ function columnsInRowOrder(graph: DependencyGraph, ticketById: ReadonlyMap<strin
 
 function chipsOf(ticket: ProgressTicketDocument, displayState: DisplayState, readyTicketIds: ReadonlySet<string>): DependencyNodeChip[] {
   if (readyTicketIds.has(ticket.id)) return [{ kind: 'ready' }];
-  if (ticket.status === 'pending' && ticket.hold !== undefined) return [{ kind: 'held', title: ticket.hold === '' ? 'Held' : `Held: ${ticket.hold}` }];
+  if (ticket.status === 'committed' && ticket.hold !== undefined) return [{ kind: 'held', title: ticket.hold === '' ? 'Held' : `Held: ${ticket.hold}` }];
   if (ticket.status !== 'in-progress' && ticket.status !== 'in-review') return [];
   return [{ kind: 'state', displayState, label: DisplayStateWordingUtil.labelOf(displayState) }];
 }

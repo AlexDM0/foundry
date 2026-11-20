@@ -28,7 +28,7 @@ export const NO_LOG_LINES_NOTE = 'No log line names this row or its ticket.';
 
 /** How far up the ladder a status is, so a derived phase a row never reached is left out; `abandoned` sits above everything it could follow. */
 const LADDER_RANK_FOR_TASK_STATUS: Readonly<Record<TaskStatus, number>> = {
-  'pending':     0,
+  'committed':   0,
   'in-progress': 1,
   'paused':      1,
   'in-review':   2,
@@ -112,12 +112,12 @@ function taskFactsOf(task: DetailTaskDocument, format: DetailFormat): DetailFact
 
 /**
  * A round is counted off the list rather than read from the row, because a row stays in `re-review` between rounds and carries only the
- * last; the count restarts at a `pending` phase, as a row sent back restarts its rounds.
+ * last; the count restarts at a `committed` phase, as a row sent back restarts its rounds.
  */
 function recordedPhaseLines(history: readonly TaskPhase[]): PhaseLine[] {
   let repeatReviews = 0;
   return history.map((phase) => {
-    if (phase.status === 'pending') repeatReviews = 0;
+    if (phase.status === 'committed') repeatReviews = 0;
     if (phase.status === 're-review') repeatReviews += 1;
     return { state: phase.status, reviewRound: FIRST_REPEAT_REVIEW_ROUND + Math.max(0, repeatReviews - 1), at: phase.at };
   });
@@ -131,7 +131,7 @@ function derivedPhaseLines(task: DetailTaskDocument, ticket: DetailTicketDocumen
   const reachedRank = LADDER_RANK_FOR_TASK_STATUS[task.status];
   const rowWasAbandoned = task.status === 'abandoned';
   const candidates: (readonly [TaskStatus, string | null | undefined])[] = [
-    ['pending', ticket?.filed],
+    ['committed', ticket?.filed],
     ['in-progress', task.start ?? ticket?.started],
     ['in-review', rowWasAbandoned ? ticket?.finished : task.end ?? ticket?.finished],
     ['reviewed', task.reviewed],

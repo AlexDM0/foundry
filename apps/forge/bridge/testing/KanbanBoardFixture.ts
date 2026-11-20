@@ -25,7 +25,7 @@ export function exampleTicket(id: string, fields: Partial<KanbanTicketDocument> 
     id,
     title:       `Example ticket ${id}`,
     type:        'ticket',
-    status:      'pending',
+    status:      'committed',
     filed:       EXAMPLE_FILED_STAMP,
     updated:     EXAMPLE_FILED_STAMP,
     started:     null,

@@ -58,9 +58,9 @@ const USER_SPEAKER = 'User';
 /** The palette row an Assistant turn's dot takes. */
 const ASSISTANT_TURN_STATE: DisplayState = 'reviewed';
 
-const QUEUED_TAG: TagProps = { text: 'Queued until the Assistant is idle', ...StateToneUtil.tagLookOf('pending'), dot: true };
+const QUEUED_TAG: TagProps = { text: 'Queued until the Assistant is idle', ...StateToneUtil.tagLookOf('committed'), dot: true };
 
-const BOOTING_TAG: TagProps = { text: 'No session: a fresh one is booting', ...StateToneUtil.tagLookOf('pending'), dot: true };
+const BOOTING_TAG: TagProps = { text: 'No session: a fresh one is booting', ...StateToneUtil.tagLookOf('committed'), dot: true };
 
 const TAG_OF_TURN: Readonly<Record<SessionTurnDocument, TagProps>> = {
   'mid-turn':      { text: 'Busy: the next message queues', ...StateToneUtil.tagLookOf('in-progress'), dot: true },

@@ -4,7 +4,7 @@
  * tool call, since when, the elapsed time left off for a stamp later than now) and the cue of its Flint slot, idle while that job does not
  * run, or with no job why nothing works on the ticket; the lead is Watch for a live job, else Accept, Ready or Unhold by state, Accept
  * never sendable on a prediction that is not clean; the other moves keep their order without the lead, Park names the running job only
- * while one runs, Priority… opens the other priorities only for a pending ticket, and Delivered by hand… confirms first and waits while a
+ * while one runs, Priority… opens the other priorities only for a committed ticket, and Delivered by hand… confirms first and waits while a
  * job of the ticket runs; Next words each forecast step, marks exactly the current one (none while nothing runs), links the tickets the
  * landing lets start and says what still holds the others, and is absent without a forecast; the facts carry their second lines; the live
  * job's controls offer a message while it takes one and Wind down, Stop and Fresh agent by its kind (nothing while stopping), each worded
@@ -226,9 +226,9 @@ describe('a ticket with no job', () => {
   const WAITING_BOARD = exampleDetailBoard({
     tickets: [
       exampleDetailTicket('013', { status: 'draft' }),
-      exampleDetailTicket('015', { status: 'pending', hold: 'waiting on the example vendor' }),
-      exampleDetailTicket('016', { status: 'pending' }),
-      exampleDetailTicket('017', { status: 'pending' }),
+      exampleDetailTicket('015', { status: 'committed', hold: 'waiting on the example vendor' }),
+      exampleDetailTicket('016', { status: 'committed' }),
+      exampleDetailTicket('017', { status: 'committed' }),
       exampleDetailTicket('020', { status: 'in-review' }),
       exampleDetailTicket('021', { status: 'in-review' }),
       exampleDetailTicket('022', { status: 'delivered', delivered: exampleStampAt('12:00') }),
@@ -311,8 +311,8 @@ describe('the other moves', () => {
     expect(parkOf([])?.opens).toBe('reason');
   });
 
-  test('a pending ticket offers Priority… after Hold…, opening a row of the other priorities, and says it changes its place in Ready', () => {
-    const board = exampleDetailBoard({ tickets: [exampleDetailTicket('030', { status: 'pending', priority: 'high' })] });
+  test('a committed ticket offers Priority… after Hold…, opening a row of the other priorities, and says it changes its place in Ready', () => {
+    const board = exampleDetailBoard({ tickets: [exampleDetailTicket('030', { status: 'committed', priority: 'high' })] });
     const { otherMoves } = overviewOf(board, '030');
     expect(otherMoves.map((move) => move.label)).toEqual(['Hold…', 'Priority…', 'Park…', 'Set network…', 'Delivered by hand…']);
     const priority = otherMoves.find((move) => move.move === 'priority');

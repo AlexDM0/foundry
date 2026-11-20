@@ -28,7 +28,7 @@ interface NextLineCase {
 }
 
 /**
- * Each case starts from three pending tickets (rows #1 to #3) and a free-standing row #4 under the default
+ * Each case starts from three committed tickets (rows #1 to #3) and a free-standing row #4 under the default
  * limit of 2, with the Overseer running. No case launches a job, and only a build or review job takes a launch slot, so every
  * line has both slots free. The expected line is written out from that state by hand, never taken from a run.
  */

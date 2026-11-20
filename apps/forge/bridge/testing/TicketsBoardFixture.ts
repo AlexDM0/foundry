@@ -14,7 +14,7 @@ export function exampleTicketsTicket(id: string, fields: Partial<TicketsTicketDo
     id,
     title:       `Example ticket ${id}`,
     type:        'ticket',
-    status:      'pending',
+    status:      'committed',
     updated:     '2026-09-18T09:00:00+02:00',
     task:        null,
     filed:       '2026-09-18T09:00:00+02:00',

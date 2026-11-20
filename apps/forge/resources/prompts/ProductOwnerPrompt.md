@@ -20,5 +20,5 @@ Do not use this rule for human-facing documentation. Do not rewrite existing tex
 - When you know what the request is, give the intake a short title: `{{program}} intake title -- "<title>"`. Use at
   most eight words. Do this one time. Do it again only when the request changes.
 - When the intake is done, run `{{program}} intake close`. It submits each complete draft that you filed. When ticket
-  review is off, the draft becomes `pending` and the Overseer builds it. When ticket review is on, the draft becomes
+  review is off, the draft becomes `committed` and the Overseer builds it. When ticket review is on, the draft becomes
   `ready-for-review` and waits for User. An incomplete draft stays a draft.{{entityMap}}

@@ -35,7 +35,7 @@ finished step, or one that needs a recheck, links back to its page. Each tab has
 the link survives an Overseer restart. A fragment that names no tab opens the tab you last chose, or else the first tab
 shown. Until the first board update arrives the panel says it is waiting for the Overseer.
 
-With no setup open, Pipeline opens on the setup landing: it counts the pending tickets that wait for a pipeline, asks who
+With no setup open, Pipeline opens on the setup landing: it counts the committed tickets that wait for a pipeline, asks who
 pays for the agents (the subscription, or the API key with an optional cap per launch) and shows the pipeline agent's
 model and effort. **Set up the pipeline** sends `pipeline-setup-start` with that billing and opens the research step; an
 unreadable `pipeline.json` is named in a banner, and the start then says that Apply replaces it. With a setup open, the
@@ -76,7 +76,7 @@ so. The footer counts the proposed prepare steps and gates. **Discard proposal**
 proposal and keeps the agent; **Apply pipeline** stays disabled while any question is open. Nothing profiles a gate
 until you press its time chip.
 
-**Apply pipeline** asks first: "Resume the board" (on by default) says how many pending tickets start building and
+**Apply pipeline** asks first: "Resume the board" (on by default) says how many committed tickets start building and
 how many at a time. Apply commits `CONSTITUTION.md` to main first, so the dialog stays open while the commit waits for
 the merge train, and shows why when main holds it (for example uncommitted changes to `CONSTITUTION.md`) or git refused
 it. **Cancel apply** drops the pending request; after a signing failure, **View CONSTITUTION.md** shows the exact text
@@ -166,7 +166,7 @@ count in the lane's colour, and a card's left edge is its row's bar, absent whil
 | Open a ticket | press its card, or Enter on it: the detail panel opens in place on the ticket's Overview; a filing draft opens read-only |
 | Ready a draft ticket | open its card; Ready leads the ticket form's Overview for a draft or a ticket ready for review |
 | Hold or lift a hold | open its card; Hold… is under Other moves, and Unhold leads for a held ticket |
-| Change a priority | open a pending ticket's card; Priority… under Other moves opens the other priorities |
+| Change a priority | open a committed ticket's card; Priority… under Other moves opens the other priorities |
 | Filter by [epic](../glossary.md#epic) | tick its row under Epic in the filter line's menu; the filter line names it, and the choice is kept in the browser |
 | See the Ready order by [wave](../glossary.md#wave) | filed or by wave under Order Ready in the same menu, offered once any ticket has a dependency; by wave wins over the swimlanes in the Ready lane |
 | Filter by entity | on a forge with entities, press an entity in the rail beside the lanes; a package also shows the crossing tickets whose package stage runs in it, and All entities shows every ticket again |
@@ -219,7 +219,7 @@ Progress answers how the work went.
 The filter line at the right of the tab row says how many finished tickets and epics are hidden. Its menu chooses 1h,
 1d, 3d, all or a since date; the default is 1d.
 
-The **Waves** tab shows a Done column, then one column per wave, once any ticket has a dependency. Drafts and pending
+The **Waves** tab shows a Done column, then one column per wave, once any ticket has a dependency. Drafts and committed
 low-priority tickets enter no wave, yet the tickets waiting on them still wait. Point at a ticket to light everything it
 depends on and everything waiting on it; click it to open its row in place. The **Epics** tab shows one
 card per shown epic: its summary, roll-up bar and facts, what it waits on outside itself, its tickets in the waves, the
@@ -247,7 +247,7 @@ The red path walks back from the last wave, taking the ticket with the most wait
 | Custom | timestamps, or `start`, `now` and `-2h` |
 | Fit's default | stored by `forge range` |
 | Row options | "Review passes as rows" and "Wide titles" |
-| A chart pill reading `Waiting` | a `pending` row with an unsettled dependency |
+| A chart pill reading `Waiting` | a `committed` row with an unsettled dependency |
 | A ✓ on a Done pill | the row was reviewed |
 
 </details>
@@ -273,17 +273,17 @@ The Timeline tab holds the mini Gantt of its build and reviews, Activity the log
 Description the ticket's text. A stamp from today shows only its clock, an older one gains its date, and hover gives it
 in full.
 
-Status names below are stored values: `draft` shows in the Drafts group at the top of Ready and `pending` below it. See
+Status names below are stored values: `draft` shows in the Drafts group at the top of Ready and `committed` below it. See
 [Reading lanes and pills](#reading-lanes-and-pills).
 
 | Control | Offered while | What it does |
 | --- | --- | --- |
 | Ready | `draft` or `ready-for-review` | moves it to Ready, if it passes the [readiness check](#file-work) |
-| Hold, with an optional Reason | `draft`, `ready-for-review` or `pending`, unheld | keeps the ticket from its next launch |
-| Priority, high, normal or low | `pending` | changes where the ticket waits in Ready; the row offers the two priorities it does not have |
+| Hold, with an optional Reason | `draft`, `ready-for-review` or `committed`, unheld | keeps the ticket from its next launch |
+| Priority, high, normal or low | `committed` | changes where the ticket waits in Ready; the row offers the two priorities it does not have |
 | Unhold | any open ticket with a hold | lifts the hold |
 | Park, with the same Reason box | any open ticket | holds it and opens a `parked` decision |
-| Set network | `draft`, `ready-for-review` or `pending` | sets the public domains this ticket's agents may reach |
+| Set network | `draft`, `ready-for-review` or `committed` | sets the public domains this ticket's agents may reach |
 
 On the ticket form Hold… and Park… ask for the reason only after you choose them, Set network… opens its domains
 field the same way, and Priority… opens a row of the other priorities, which closes once one applies; Cancel closes the
@@ -457,7 +457,7 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 9 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |
 | 10 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says. The [concurrency limit](../glossary.md#concurrency-limit) itself is set on the Agents tab, see [Adjust concurrency](#adjust-concurrency) |
 | 10 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
-| 10 | waiting in queue | every `pending` ticket, held and blocked ones included |
+| 10 | waiting in queue | every `committed` ticket, held and blocked ones included |
 | 10 | open incidents | incidents the Assistant has not settled |
 | 11 | Waiting on User | a pill counting everything that waits on you: open decisions (escalated ones apart), draft tickets, filing drafts waiting on an answer, tickets ready for review and tickets waiting for your merge accept. Rose while anything waits, neutral `· 0` when nothing does, with a red dot while a decision is escalated. A click opens its inbox: the escalated items first, then the rest oldest first, each with its age and one action (Answer, Ready, Review or Accept) that opens its place; the foot links to Questions and to the drafts on the Kanban. The browser tab's title still counts the open decisions alone |
 | 12 | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Overseer job, which opens the Agents tab |

@@ -15,7 +15,7 @@ export interface TaskFiling {
   reviewRound?:    number;
   reviewOf?:       string;
   reviewBarRound?: number;
-  /** When the row was filed. It is the stamp a `pending` row's first phase carries, and the only way the queue interval is ever measurable. */
+  /** When the row was filed. It is the stamp a `committed` row's first phase carries, and the only way the queue interval is ever measurable. */
   filedAt?:        string;
 }
 
@@ -24,11 +24,11 @@ const TASK_STATUSES_THAT_CLOSE_THE_BAR: readonly TaskStatus[] = ['in-review', 'r
 
 /**
  * The stamp follows the status: a phase that opens the row's interval is stamped where it opens, a terminal one where it closes, and a
- * `pending` row is stamped where it was filed. A caller that supplied no stamp at all leaves the row with nothing to record.
+ * `committed` row is stamped where it was filed. A caller that supplied no stamp at all leaves the row with nothing to record.
  */
 function seededHistoryFor(filing: TaskFiling): TaskPhase[] | null {
-  const status = filing.status ?? 'pending';
-  if (status === 'pending') {
+  const status = filing.status ?? 'committed';
+  if (status === 'committed') {
     return filing.filedAt === undefined ? null : [{ status, at: filing.filedAt }];
   }
   const reachedAt = TASK_STATUSES_THAT_CLOSE_THE_BAR.includes(status) ? filing.end ?? filing.start : filing.start ?? filing.end;
@@ -41,7 +41,7 @@ function filedTaskOf(taskId: number, filing: TaskFiling): Task {
   return {
     id:     taskId,
     name:   filing.name,
-    status: filing.status ?? 'pending',
+    status: filing.status ?? 'committed',
     start:  filing.start ?? null,
     end:    filing.end ?? null,
     owner:  filing.owner ?? '',

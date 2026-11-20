@@ -25,7 +25,7 @@ function namingThisProgram(message: string): string {
  * standard error. Rows no command reaches easily (the singular limit, a ticket-owned row sent to re-review) are read from the wording in
  * bc42604:cli/task/TaskCommand.ts, bc42604:cli/ticket/TicketCommand.ts and bc42604:lib/tickets/TicketTransitions.ts. The two review-record
  * reasons are newer than bc42604, and their rows were taken from the wording util when they were added, as were the four draft reasons, the
- * lowering row's "draft or pending", the three network reasons, the five entity reasons and the already-filed ticket id.
+ * lowering row's "draft or committed", the three network reasons, the five entity reasons and the already-filed ticket id.
  */
 const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = [
   [{ reason: 'unknown-task', taskId: 99 }, 'There is no task #99. Run `agent-progress status` to see the rows this tracker holds.'],
@@ -44,7 +44,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
       reason:       'ticket-owned-row',
       taskId:       3,
       ticketId:     '004',
-      targetStatus: 'pending',
+      targetStatus: 'committed',
     },
     'Task #3 belongs to ticket #004, so moving it here would leave the row and the ticket disagreeing. '
     + 'Run `agent-progress ticket reopen 004` instead, which moves both, or pass --force to move only the row.',
@@ -89,10 +89,10 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     {
       reason:       'illegal-ticket-move',
       ticketId:     '001',
-      status:       'pending',
+      status:       'committed',
       targetStatus: 'reviewed',
     },
-    'Ticket #001 is pending, and a move to reviewed takes a ticket that is in-progress or in-review. '
+    'Ticket #001 is committed, and a move to reviewed takes a ticket that is in-progress or in-review. '
     + 'Run `agent-progress ticket status 001 reviewed` if you mean to set it directly.',
   ],
   [
@@ -126,8 +126,8 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     + 'Pass --bar the review bar of the bundle holding the ticket.',
   ],
   [
-    { reason: 'rereview-outside-review', ticketId: '001', status: 'pending' },
-    'Ticket #001 is pending, and another review pass needs a ticket that is in-review.',
+    { reason: 'rereview-outside-review', ticketId: '001', status: 'committed' },
+    'Ticket #001 is committed, and another review pass needs a ticket that is in-review.',
   ],
   [
     { reason: 'rereview-outside-review', ticketId: '003', status: 'in-progress' },
@@ -135,7 +135,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
   [
     { reason: 'unclaimable-status', ticketId: '003', status: 'in-progress' },
-    'Ticket #003 is in-progress, and a claim takes a ticket that is pending or in-review. Nothing was written.',
+    'Ticket #003 is in-progress, and a claim takes a ticket that is committed or in-review. Nothing was written.',
   ],
   [
     { reason: 'claim-waits-on-dependencies', ticketId: '007', unsettledTicketIds: ['001'] },
@@ -146,8 +146,8 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     'Ticket #001 is held, so it is not claimed. Nothing was written; `agent-progress ticket unhold 001` lets it be claimed.',
   ],
   [
-    { reason: 'network-of-a-ticket-past-pending', ticketId: '006', status: 'in-progress' },
-    'Ticket #006 is in-progress, and its network line was not changed: it is set only while the ticket is draft or pending. Nothing was written.',
+    { reason: 'network-of-a-ticket-past-committed', ticketId: '006', status: 'in-progress' },
+    'Ticket #006 is in-progress, and its network line was not changed: it is set only while the ticket is draft or committed. Nothing was written.',
   ],
   [
     { reason: 'network-domain-not-public', ticketId: '002', domains: ['localhost'] },
@@ -176,8 +176,8 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     'Ticket #002 was not given the entity shop: the pipeline names no such entity, only root, web. Nothing was written.',
   ],
   [
-    { reason: 'entity-of-a-ticket-past-pending', ticketId: '006', status: 'in-progress' },
-    'Ticket #006 is in-progress, and its entity was not changed: it is set only while the ticket is draft, ready for review or pending. '
+    { reason: 'entity-of-a-ticket-past-committed', ticketId: '006', status: 'in-progress' },
+    'Ticket #006 is in-progress, and its entity was not changed: it is set only while the ticket is draft, ready for review or committed. '
       + 'Nothing was written.',
   ],
   [{ reason: 'entity-unchanged', ticketId: '002', entity: 'web' }, 'Ticket #002\'s entity was not changed: it already is web. Nothing was written.'],
@@ -261,19 +261,19 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
     {
       reason:   'priority-unchanged',
       ticketId: '001',
-      status:   'pending',
+      status:   'committed',
       priority: 'normal',
     },
-    'Ticket #001 is pending, and its priority was not changed: it is already normal priority. Nothing was written.',
+    'Ticket #001 is committed, and its priority was not changed: it is already normal priority. Nothing was written.',
   ],
   [
-    { reason: 'lowering-a-ticket-that-is-not-pending', ticketId: '003', status: 'in-progress' },
-    'Ticket #003 is in-progress, and its priority was not changed: only a draft or pending ticket can be lowered to low, since a low ticket has no row until it is started. '
+    { reason: 'lowering-a-ticket-that-is-not-committed', ticketId: '003', status: 'in-progress' },
+    'Ticket #003 is in-progress, and its priority was not changed: only a draft or committed ticket can be lowered to low, since a low ticket has no row until it is started. '
     + 'Nothing was written.',
   ],
   [
-    { reason: 'move-to-draft', ticketId: '003', status: 'pending' },
-    'Ticket #003 is pending, and no move returns a ticket to draft: filing is the only way in. '
+    { reason: 'move-to-draft', ticketId: '003', status: 'committed' },
+    'Ticket #003 is committed, and no move returns a ticket to draft: filing is the only way in. '
     + 'Run `agent-progress ticket hold 003` to keep it from being built for now.',
   ],
   [
@@ -408,11 +408,11 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
       reason:          'reopen-beside-an-open-release-ticket',
       ticketId:        '001',
       status:          'abandoned',
-      targetStatus:    'pending',
+      targetStatus:    'committed',
       group:           'example-shop',
       releaseTicketId: '002',
     },
-    'Ticket #001 is abandoned and carries the release mark of group example-shop, so it was not moved to pending: '
+    'Ticket #001 is abandoned and carries the release mark of group example-shop, so it was not moved to committed: '
       + 'the group already has its open release ticket, #002, and a group has one. '
       + 'Clear that mark with `agent-progress ticket release-of 002 --clear` first. Nothing was written.',
   ],

@@ -89,7 +89,7 @@ const OPTION_NOTES_PROBLEM_TEXT: Readonly<Record<OptionNotesProblem, string>> = 
   'unknown-key':   'is not a field of the notes: write question and options, each option with label, touches, tradeOff and acceptanceEffect',
 };
 
-const STATUSES_A_TICKET_VERB_REACHES: ReadonlySet<TaskStatus> = new Set(['pending', 're-review', 'abandoned']);
+const STATUSES_A_TICKET_VERB_REACHES: ReadonlySet<TaskStatus> = new Set(['committed', 're-review', 'abandoned']);
 
 function ticketMoveArgumentsFor(ticketId: string, targetStatus: TaskStatus): string {
   return STATUSES_A_TICKET_VERB_REACHES.has(targetStatus) ? `${StatusWordingUtil.verbFor(targetStatus)} ${ticketId}` : `status ${ticketId} ${targetStatus}`;
@@ -446,17 +446,17 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
     case 'size-unchanged':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its size was not changed: `
         + `it is already ${detail.size}. ${NOTHING_WAS_WRITTEN}`;
-    case 'lowering-a-ticket-that-is-not-pending':
+    case 'lowering-a-ticket-that-is-not-committed':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its priority was not changed: `
-        + 'only a draft or pending ticket can be lowered to low, '
+        + 'only a draft or committed ticket can be lowered to low, '
         + `since a low ticket has no row until it is started. ${NOTHING_WAS_WRITTEN}`;
-    case 'edit-of-a-ticket-past-pending':
+    case 'edit-of-a-ticket-past-committed':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and it was not edited: an agent may already be working from it. `
         + NOTHING_WAS_WRITTEN
         + adviceFor(channel, ' Pass --force to edit it anyway; the change shows as the body changed since the claim.', '');
-    case 'network-of-a-ticket-past-pending':
+    case 'network-of-a-ticket-past-committed':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its network line was not changed: `
-        + `it is set only while the ticket is draft or pending. ${NOTHING_WAS_WRITTEN}`;
+        + `it is set only while the ticket is draft or committed. ${NOTHING_WAS_WRITTEN}`;
     case 'network-domain-not-public':
       return `Ticket #${detail.ticketId}'s network line was not changed: ${detail.domains.join(', ')} `
         + `${detail.domains.length === 1 ? 'is not a public domain' : 'are not public domains'}, `
@@ -469,9 +469,9 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
         ? `Ticket #${detail.ticketId} was not given the entity ${detail.entity}: the pipeline names no entity. ${NOTHING_WAS_WRITTEN}`
         : `Ticket #${detail.ticketId} was not given the entity ${detail.entity}: the pipeline names no such entity, only `
           + `${detail.entityKeys.join(', ')}. ${NOTHING_WAS_WRITTEN}`;
-    case 'entity-of-a-ticket-past-pending':
+    case 'entity-of-a-ticket-past-committed':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its entity was not changed: `
-        + `it is set only while the ticket is draft, ready for review or pending. ${NOTHING_WAS_WRITTEN}`;
+        + `it is set only while the ticket is draft, ready for review or committed. ${NOTHING_WAS_WRITTEN}`;
     case 'entity-unchanged':
       return `Ticket #${detail.ticketId}'s entity was not changed: it already is ${detail.entity}. ${NOTHING_WAS_WRITTEN}`;
     case 'entity-without-reason':
@@ -930,7 +930,7 @@ const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, strin
   'worker-filing-flag':                'a worker files only a low finding, with --priority low and the flags a finding takes, and no group or dependency',
   'worker-filing-limit':               'this job has already filed as many findings as one job may',
   'not-own-draft':                     'it changes only a draft ticket this job filed',
-  'not-own-draft-or-unclaimed-ticket': 'it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or pending',
+  'not-own-draft-or-unclaimed-ticket': 'it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or committed',
   'incident-move-not-allowed':         'it is legal only as a move the named delivered incident allows',
   'incident-target-mismatch':          'the named incident is about another job or ticket',
   'job-serves-no-setup':               'this job is the agent of no open pipeline setup record',

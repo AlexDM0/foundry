@@ -104,7 +104,7 @@ const BOARD: ConversationBoardDocument = {
         id: '063', title: 'Export as JSON', status: 'draft', filedByJob: 'J7'
       },
       {
-        id: '061', title: 'Older request', status: 'pending', filedByJob: 'J2'
+        id: '061', title: 'Older request', status: 'committed', filedByJob: 'J2'
       },
     ]
   },

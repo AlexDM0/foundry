@@ -1,6 +1,6 @@
 /**
- * `readyDraftTickets` is the one way out of `draft` but abandoning: every named draft becomes `pending` with a row at every priority and
- * logs `ticket-readied`, or nothing changes. A ticket not in `draft` is refused before the body is read, and an incomplete body is
+ * `readyDraftTickets` is the one way out of `draft` but abandoning: every named draft becomes `committed` with a row at every priority and
+ * logs `ticket-committed`, or nothing changes. A ticket not in `draft` is refused before the body is read, and an incomplete body is
  * refused for every ticket at once. Refusals are asserted by reason code, never by wording.
  */
 import { describe, expect, test } from 'bun:test';
@@ -16,7 +16,7 @@ const NO_GAPS         = (): readonly ReadinessGap[] => [];
 const GAPS_BY_BODY    = (body: string): readonly ReadinessGap[] => (body === COMPLETE_BODY ? [] : ['acceptance-unnumbered', 'brief-missing']);
 
 describe('readyDraftTickets', () => {
-  test('every named draft, at every priority, becomes pending with a pending row and logs ticket-readied', () => {
+  test('every named draft, at every priority, becomes committed with a committed row and logs ticket-committed', () => {
     const { board, progress, records } = boardFixture({
       tickets: [
         ticketFixture({
@@ -28,17 +28,17 @@ describe('readyDraftTickets', () => {
     const readied = board.readyDraftTickets(['001', '002', '001'], NO_GAPS, READIED_AT);
 
     expect(readied.tickets.map((ticket) => [ticket.frontmatter.status, ticket.frontmatter.updated])).toEqual([
-      ['pending', READIED_AT],
-      ['pending', READIED_AT],
+      ['committed', READIED_AT],
+      ['committed', READIED_AT],
     ]);
     expect(progress.tasks.map((task) => [task.name, task.status, task.ticket])).toEqual([
-      ['#001 Example basket badge', 'pending', '001'],
-      ['#002 Example checkout page', 'pending', '002'],
+      ['#001 Example basket badge', 'committed', '001'],
+      ['#002 Example checkout page', 'committed', '002'],
     ]);
     expect(readied.tickets.map((ticket) => ticket.frontmatter.task)).toEqual(progress.tasks.map((task) => task.id));
     expect(records.map((record) => [record.kind, 'ticketId' in record ? record.ticketId : null])).toEqual([
-      ['ticket-readied', '001'],
-      ['ticket-readied', '002'],
+      ['ticket-committed', '001'],
+      ['ticket-committed', '002'],
     ]);
   });
 
@@ -88,13 +88,13 @@ describe('submitDraftTickets', () => {
     expect(records.map((record) => record.kind)).toEqual(['ticket-submitted-for-review']);
   });
 
-  test('with ticket review off, a complete draft becomes pending with its row', () => {
+  test('with ticket review off, a complete draft becomes committed with its row', () => {
     const { board, progress } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'draft' })] });
     board.setNoGates(READIED_AT);
     board.setApproval('tickets', false, READIED_AT);
     board.submitDraftTickets(['001'], NO_GAPS, READIED_AT);
 
-    expect(progress.tasks.map((task) => [task.ticket, task.status])).toEqual([['001', 'pending']]);
+    expect(progress.tasks.map((task) => [task.ticket, task.status])).toEqual([['001', 'committed']]);
   });
 
   test('a ticket not in draft is refused, and the draft named beside it stays a draft', () => {

@@ -2,7 +2,7 @@
  * A body edit changes the body alone: no stamp, no log record, and the ticket is marked for writing only when its body changed. The text
  * takes the body's own line ending, and a body holding none takes the frontmatter's, so a one-line CRLF body does not gain an LF. A new
  * title renames the ticket's own row and a heading reading exactly as `ticket add` generates it, logs one record, stamps nothing, and
- * never renames a review bar or a heading someone changed by hand. Past `pending` an edit is refused unless allowed, since a builder may
+ * never renames a review bar or a heading someone changed by hand. Past `committed` an edit is refused unless allowed, since a builder may
  * already work from the body; a claim records the body's hash, so an allowed body edit reads as changed while a rename alone does not, and
  * only a ticket carrying that hash logs the change, since one claimed without it has no claim to compare against.
  */
@@ -48,7 +48,7 @@ describe('editTicket, the body', () => {
   });
 });
 
-describe('editTicket past pending, and the claimed body hash', () => {
+describe('editTicket past committed, and the claimed body hash', () => {
   function claimedFixture(): ReturnType<typeof boardFixture> & { ticket: ReturnType<typeof ticketFixture> } {
     const ticket  = { ...ticketFixture(), body: '# 001 — Example checkout page\n\n## Report\n' };
     const fixture = boardFixture({ tickets: [ticket] });
@@ -57,9 +57,9 @@ describe('editTicket past pending, and the claimed body hash', () => {
     return { ...fixture, ticket };
   }
 
-  test('a pending ticket carries no hash, and a claim and a start each record the body\'s', () => {
-    const pending = ticketFixture();
-    expect(pending.frontmatter.claimedBodyHash).toBeUndefined();
+  test('a committed ticket carries no hash, and a claim and a start each record the body\'s', () => {
+    const committed = ticketFixture();
+    expect(committed.frontmatter.claimedBodyHash).toBeUndefined();
 
     const { ticket } = claimedFixture();
     expect(ticket.frontmatter.claimedBodyHash).toBe(TicketBodyHashUtil.bodyHashOf(ticket.body));
@@ -70,13 +70,13 @@ describe('editTicket past pending, and the claimed body hash', () => {
     expect(started.frontmatter.claimedBodyHash).toBe(TicketBodyHashUtil.bodyHashOf('Started from this.\n'));
   });
 
-  test('every status past pending refuses an edit that does not allow it, changing and marking nothing', () => {
+  test('every status past committed refuses an edit that does not allow it, changing and marking nothing', () => {
     for (const status of ['in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const) {
       const ticket = { ...ticketFixture({ status }), body: 'Kept.\n' };
       const { board, records } = boardFixture({ tickets: [ticket] });
 
       expect(() => board.editTicket('001', { body: { text: 'Replaced.\n', appends: false } }, EDITED_AT)).toThrow(
-        expect.objectContaining({ detail: { reason: 'edit-of-a-ticket-past-pending', ticketId: '001', status } }),
+        expect.objectContaining({ detail: { reason: 'edit-of-a-ticket-past-committed', ticketId: '001', status } }),
       );
       expect(() => board.editTicket('001', { title: 'Example payment page' }, EDITED_AT)).toThrow(BoardRefusal);
       expect(ticket.body).toBe('Kept.\n');
@@ -85,7 +85,7 @@ describe('editTicket past pending, and the claimed body hash', () => {
     }
   });
 
-  test('a held pending ticket is edited', () => {
+  test('a held committed ticket is edited', () => {
     const ticket = ticketFixture({ hold: 'waiting on Example Agency' });
     const { board } = boardFixture({ tickets: [ticket] });
 
@@ -95,7 +95,7 @@ describe('editTicket past pending, and the claimed body hash', () => {
   test('an allowed body edit after the claim logs once and reads as changed since the claim', () => {
     const { board, records, ticket } = claimedFixture();
 
-    board.editTicket('001', { body: { text: 'Rewritten.\n', appends: true }, allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { body: { text: 'Rewritten.\n', appends: true }, allowsPastCommitted: true }, EDITED_AT);
 
     expect(records).toEqual([{
       at: EDITED_AT, kind: 'ticket-body-changed-after-claim', ticketId: '001', fields: {}
@@ -107,7 +107,7 @@ describe('editTicket past pending, and the claimed body hash', () => {
     const ticket = { ...ticketFixture({ status: 'in-progress' }), body: 'Claimed before hashing.\n' };
     const { board, records } = boardFixture({ tickets: [ticket] });
 
-    const edited = board.editTicket('001', { body: { text: 'Rewritten.\n', appends: false }, allowsPastPending: true }, EDITED_AT);
+    const edited = board.editTicket('001', { body: { text: 'Rewritten.\n', appends: false }, allowsPastCommitted: true }, EDITED_AT);
 
     expect(edited.changed).toBe(true);
     expect(ticket.body).toBe('Rewritten.\n');
@@ -118,7 +118,7 @@ describe('editTicket past pending, and the claimed body hash', () => {
   test('a rename after the claim retitles the heading but does not read as a body change', () => {
     const { board, records, ticket } = claimedFixture();
 
-    board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(ticket.body).toBe('# 001 — Example payment page\n\n## Report\n');
     expect(records.map((record) => record.kind)).toEqual(['ticket-retitled']);
@@ -127,9 +127,9 @@ describe('editTicket past pending, and the claimed body hash', () => {
 
   test('a rename after a body change keeps it reading as changed', () => {
     const { board, ticket } = claimedFixture();
-    board.editTicket('001', { body: { text: 'Rewritten.\n', appends: true }, allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { body: { text: 'Rewritten.\n', appends: true }, allowsPastCommitted: true }, EDITED_AT);
 
-    board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(TicketBodyHashUtil.bodyChangedSinceClaimOf(ticket)).toBe(true);
   });
@@ -158,7 +158,7 @@ describe('editTicket, the title', () => {
     } = retitlingFixture('## Report\n');
     const updatedBefore = ticket.frontmatter.updated;
 
-    const edited = board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+    const edited = board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(edited.changed).toBe(true);
     expect(ticket.frontmatter.title).toBe('Example payment page');
@@ -174,7 +174,7 @@ describe('editTicket, the title', () => {
   test('the generated heading follows the title, keeping its CRLF, and nothing else in the body changes', () => {
     const { board, ticket } = retitlingFixture('# 001 — Example checkout page\r\n\r\n# 001 — Example checkout page\r\n');
 
-    board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(ticket.body).toBe('# 001 — Example payment page\r\n\r\n# 001 — Example checkout page\r\n');
   });
@@ -182,7 +182,7 @@ describe('editTicket, the title', () => {
   test('a hand-changed heading, or a heading-only body without a line ending that reads otherwise, is kept byte for byte', () => {
     for (const body of ['# 001 — Example checkout page, revised\n', '# Example checkout page\n', '#  001 — Example checkout page']) {
       const { board, ticket } = retitlingFixture(body);
-      board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+      board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
       expect(ticket.body).toBe(body);
     }
   });
@@ -190,7 +190,7 @@ describe('editTicket, the title', () => {
   test('a body that is only the generated heading without a line ending is retitled', () => {
     const { board, ticket } = retitlingFixture('# 001 — Example checkout page');
 
-    board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(ticket.body).toBe('# 001 — Example payment page');
   });
@@ -198,7 +198,7 @@ describe('editTicket, the title', () => {
   test('a title and an append apply together, the append landing on the retitled body', () => {
     const { board, records, ticket } = retitlingFixture('# 001 — Example checkout page\n');
 
-    board.editTicket('001', { title: 'Example payment page', body: { text: 'Appended.\n', appends: true }, allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { title: 'Example payment page', body: { text: 'Appended.\n', appends: true }, allowsPastCommitted: true }, EDITED_AT);
 
     expect(ticket.body).toBe('# 001 — Example payment page\nAppended.\n');
     expect(records.map((record) => record.kind)).toEqual(['ticket-retitled']);
@@ -209,7 +209,7 @@ describe('editTicket, the title', () => {
       board, records, progress, ticket
     } = retitlingFixture('# 001 — Example checkout page\n');
 
-    const edited = board.editTicket('001', { title: 'Example checkout page', allowsPastPending: true }, EDITED_AT);
+    const edited = board.editTicket('001', { title: 'Example checkout page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(edited.changed).toBe(false);
     expect(ticket.body).toBe('# 001 — Example checkout page\n');
@@ -222,7 +222,7 @@ describe('editTicket, the title', () => {
     const ticket = ticketFixture({ priority: 'low' });
     const { board, progress } = boardFixture({ tickets: [ticket] });
 
-    board.editTicket('001', { title: 'Example payment page', allowsPastPending: true }, EDITED_AT);
+    board.editTicket('001', { title: 'Example payment page', allowsPastCommitted: true }, EDITED_AT);
 
     expect(ticket.frontmatter.title).toBe('Example payment page');
     expect(progress.tasks).toEqual([]);

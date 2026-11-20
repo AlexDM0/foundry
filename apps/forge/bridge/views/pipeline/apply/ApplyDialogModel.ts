@@ -1,7 +1,7 @@
 /**
- * The first Apply's model, pure: the "Resume the board" line from the pending tickets and the concurrency limit, the note that
+ * The first Apply's model, pure: the "Resume the board" line from the committed tickets and the concurrency limit, the note that
  * Apply commits the constitution first, and the `pipeline-apply` command, which carries the checkbox's value as it shows.
- * Over entities (MonoApply) it also words what Apply stores, the pending tickets that the product owner gives an entity after Apply,
+ * Over entities (MonoApply) it also words what Apply stores, the committed tickets that the product owner gives an entity after Apply,
  * the entities worth a look, which never block Apply, and, only in update mode over a stored pipeline without entities, the refusal
  * that tickets in flight cause (E94), with a link to each ticket's detail.
  */
@@ -70,12 +70,12 @@ function paceTextOf(concurrencyLimit: number | null, pace: ResumePace): string {
   return pace === 'at-a-time' ? `, ${concurrencyLimit} at a time` : `, ${ForgeLevelPageModel.jobsAtOnceTextOf(concurrencyLimit)}`;
 }
 
-/** "The 3 pending tickets start building, 2 at a time."; over entities "…, 2 jobs at once." */
+/** "The 3 committed tickets start building, 2 at a time."; over entities "…, 2 jobs at once." */
 function resumeTextOf(pendingTicketCount: number, concurrencyLimit: number | null, pace: ResumePace = 'at-a-time'): string {
   const paceText = paceTextOf(concurrencyLimit, pace);
-  if (pendingTicketCount === 0) return `No ticket is pending yet. New tickets start building${paceText}.`;
-  if (pendingTicketCount === 1) return `The pending ticket starts building${paceText}.`;
-  return `The ${pendingTicketCount} pending tickets start building${paceText}.`;
+  if (pendingTicketCount === 0) return `No ticket is committed yet. New tickets start building${paceText}.`;
+  if (pendingTicketCount === 1) return `The committed ticket starts building${paceText}.`;
+  return `The ${pendingTicketCount} committed tickets start building${paceText}.`;
 }
 
 /** Monorepo mode is a fact: the draft holds entities. */
@@ -109,18 +109,18 @@ function resumePaceOf(record: PipelineSetup): ResumePace {
 }
 
 /**
- * After an Apply that turns the pipeline into entities, the product owner gives each pending ticket without an entity one; null when no
+ * After an Apply that turns the pipeline into entities, the product owner gives each committed ticket without an entity one; null when no
  * ticket waits for it, or when the stored pipeline already holds entities.
  */
 function pendingWithoutEntityTextOf(record: PipelineSetup, storedPipeline: AppliedPipelineFacts | undefined, ticketCount: number): string | null {
   if (!draftHasEntities(record) || ticketCount === 0) return null;
   if (storedPipelineOf(storedPipeline)?.entities !== undefined) return null;
-  if (ticketCount === 1) return '1 pending ticket names no entity. After Apply the product owner gives it an entity.';
-  return `${ticketCount} pending tickets name no entity. After Apply the product owner gives each one an entity.`;
+  if (ticketCount === 1) return '1 committed ticket names no entity. After Apply the product owner gives it an entity.';
+  return `${ticketCount} committed tickets name no entity. After Apply the product owner gives each one an entity.`;
 }
 
 function pendingTicketWithoutEntityCountOf(tickets: readonly { readonly status: string; readonly entity?: string }[]): number {
-  return tickets.filter((ticket) => ticket.status === 'pending' && ticket.entity === undefined).length;
+  return tickets.filter((ticket) => ticket.status === 'committed' && ticket.entity === undefined).length;
 }
 
 function ticketLinkOf(ticketId: string): TicketLinkView {

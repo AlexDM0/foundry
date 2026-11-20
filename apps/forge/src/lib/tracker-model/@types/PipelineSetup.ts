@@ -345,7 +345,7 @@ export interface ApplyMainReading {
   /** Absent on a draft without entities; on a draft over entities, the file at each entity's constitution path. */
   entityConstitutions?:       EntityConstitutionsOnMain;
   /**
-   * The words of the request that the product owner gets after the first Apply over entities, for the pending tickets without an
+   * The words of the request that the product owner gets after the first Apply over entities, for the committed tickets without an
    * entity; absent, no product owner starts.
    */
   entityAssignmentRequestOf?: (ticketIds: readonly string[]) => string;

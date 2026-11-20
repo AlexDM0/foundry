@@ -126,7 +126,7 @@ describe('computeTimeline', () => {
   });
 
   test('falls back to startedAt when no visible row has started', () => {
-    const timeline = timelineFor({ tasks: [exampleTask(1, null, null, 'pending')], nowOffsetMinutes: 40 });
+    const timeline = timelineFor({ tasks: [exampleTask(1, null, null, 'committed')], nowOffsetMinutes: 40 });
 
     expect(timeline.fromEpochMilliseconds).toBe(EXAMPLE_START_EPOCH_MILLISECONDS);
   });
@@ -226,7 +226,7 @@ describe('computeTimeline', () => {
   });
 
   test('hides a task that has never started instead of placing it at the origin', () => {
-    const timeline = timelineFor({ tasks: [exampleTask(1, null, null, 'pending')], nowOffsetMinutes: 30 });
+    const timeline = timelineFor({ tasks: [exampleTask(1, null, null, 'committed')], nowOffsetMinutes: 30 });
     const [bar]    = timeline.bars;
 
     expect(bar?.visible).toBe(false);
@@ -235,7 +235,7 @@ describe('computeTimeline', () => {
   });
 
   test('still produces an axis when every timestamp is null', () => {
-    const timeline = timelineFor({ tasks: [exampleTask(1, null, null, 'pending'), exampleTask(2, null, null, 'pending')], nowOffsetMinutes: 10 });
+    const timeline = timelineFor({ tasks: [exampleTask(1, null, null, 'committed'), exampleTask(2, null, null, 'committed')], nowOffsetMinutes: 10 });
 
     expect(timeline.toEpochMilliseconds - timeline.fromEpochMilliseconds).toBe(minutesAsMilliseconds(60));
     expect(timeline.ticks.length).toBeGreaterThan(0);

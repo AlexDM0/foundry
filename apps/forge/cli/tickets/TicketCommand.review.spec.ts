@@ -105,7 +105,7 @@ describeWhenGitIsRecorded('starting the review bar with the move to review', () 
       ['ticket', 'abandon', '1', '--reason', 'superseded by #2'],
       ['ticket', 'reopen', '1'],
       ['ticket', 'status', '1', 'reviewed'],
-      ['ticket', 'status', '1', 'pending'],
+      ['ticket', 'status', '1', 'committed'],
     ];
     for (const moveOutOfReview of movesOutOfReview) {
       await run(['ticket', 'status', '1', 'in-review']);

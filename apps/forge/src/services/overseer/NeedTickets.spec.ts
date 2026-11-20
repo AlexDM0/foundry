@@ -1,6 +1,6 @@
 /**
  * A need from declaration to its rerun, strategy section 4.3 steps 1 to 6, on a board of a forge with entities. What matters: the need is filed as its
- * entity's ticket, stamped `filedByJob`, with its title and body, `pending` with ticket review off and `ready-for-review` with it on; every ticket of
+ * entity's ticket, stamped `filedByJob`, with its title and body, `committed` with ticket review off and `ready-for-review` with it on; every ticket of
  * the declaring job waits on it, it waits on none of them, and each waiting ticket logs `need-declared`; the needs leave the board, which then holds no
  * `needs` key, also when the declaring job ends another way; a need for a root entity without gates opens `need-for-root` and files nothing, and one
  * with gates is filed; the waiting ticket keeps its status and launches nothing until the need is delivered, a reviewed need not being on the main line
@@ -123,7 +123,7 @@ function launchesOf(steps: readonly PlaybookStep[]): PlaybookStep[] {
 }
 
 describe('filing a declared need', () => {
-  test('files it as its entity\'s ticket, filed by the job, pending with ticket review off, and the job\'s ticket waits on it', () => {
+  test('files it as its entity\'s ticket, filed by the job, committed with ticket review off, and the job\'s ticket waits on it', () => {
     const declared = boardWithADeclaredNeed(withTicketReviewOff(entityPipelineFixture()));
     const job = declared.board.jobById('J1');
     if (job === undefined) throw new Error('The declaring job is gone.');
@@ -131,7 +131,7 @@ describe('filing a declared need', () => {
 
     expect(filed.filedNeedCount).toBe(1);
     expect(ticketOf(declared.board, '002')?.frontmatter).toMatchObject({
-      title: NEED.title, entity: 'design-system', filedByJob: 'J1', status: 'pending'
+      title: NEED.title, entity: 'design-system', filedByJob: 'J1', status: 'committed'
     });
     expect(ticketOf(declared.board, '002')?.body).toBe(NEED_BODY);
     expect(ticketOf(declared.board, '002')?.frontmatter.dependsOn).toBeUndefined();
@@ -249,7 +249,7 @@ describe('the waiting ticket', () => {
     declared.board.setConcurrencyLimit(1, AT);
     declared.board.setTicketPriority('002', 'low', AT);
     declared.board.fileTicket(ticketFixture({
-      id: '003', status: 'pending', priority: 'normal', entity: 'web'
+      id: '003', status: 'committed', priority: 'normal', entity: 'web'
     }), AT);
     const launchedTicketIds = (): string[] => launchesOf(followThePlaybook(declared.board)).map((step) => (step.kind === 'launch-build' ? step.ticketId : ''));
     const beforeTheRaise = launchedTicketIds();
@@ -330,7 +330,7 @@ describe('a need the package build of a crossing ticket declares (E24)', () => {
 
     expect(board.logRecordsSoFar().find((record) => record.kind === 'job-ended' && record.jobId === 'J1'))
       .toMatchObject({ fields: { outcome: 'needs-declared' } });
-    expect(ticketOf(board, '002')?.frontmatter).toMatchObject({ entity: ICONS, filedByJob: 'J1', status: 'pending' });
+    expect(ticketOf(board, '002')?.frontmatter).toMatchObject({ entity: ICONS, filedByJob: 'J1', status: 'committed' });
     expect(ticketOf(board, '001')?.frontmatter).toMatchObject({ status: 'in-progress', dependsOn: ['002'] });
     expect(board.ticketStageOf('001')).toEqual(PACKAGE_BUILD);
     expect(launchesOf(followThePlaybook(board))).toEqual([{

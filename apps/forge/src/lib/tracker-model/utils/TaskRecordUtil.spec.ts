@@ -109,14 +109,14 @@ test('abandoning a task that never started leaves it with no timestamps at all',
   expect(task.status).toBe('abandoned');
 });
 
-test('putting a task back to pending clears both timestamps', () => {
+test('putting a task back to committed clears both timestamps', () => {
   const task = filed({
     name: 'Review pass', status: 'in-review', start: STARTED_AT, end: FINISHED_AT
   });
-  const pending = transitionedTaskOf(task, 'pending', NEXT_MORNING_AT);
-  expect(pending.start).toBeNull();
-  expect(pending.end).toBeNull();
-  expect(pending.status).toBe('pending');
+  const committed = transitionedTaskOf(task, 'committed', NEXT_MORNING_AT);
+  expect(committed.start).toBeNull();
+  expect(committed.end).toBeNull();
+  expect(committed.status).toBe('committed');
 });
 
 test('reviewing stamps the review once, and delivery keeps it so the delivered row still says it was reviewed', () => {
@@ -155,13 +155,13 @@ test('the round is kept as history once the row is reviewed and delivered', () =
   expect(transitionedTaskOf(reviewed, 'delivered', DELIVERED_AT).reviewRound).toBe(3);
 });
 
-test('putting a row that was on its third pass back to pending drops the round with the review stamp', () => {
+test('putting a row that was on its third pass back to committed drops the round with the review stamp', () => {
   const task = filed({
     name: 'Review pass', status: 're-review', start: STARTED_AT, end: FINISHED_AT, reviewRound: 3
   });
-  const pending = transitionedTaskOf(task, 'pending', NEXT_MORNING_AT);
-  expect(pending.reviewRound).toBeUndefined();
-  expect(pending.status).toBe('pending');
+  const committed = transitionedTaskOf(task, 'committed', NEXT_MORNING_AT);
+  expect(committed.reviewRound).toBeUndefined();
+  expect(committed.status).toBe('committed');
 });
 
 test('a task delivered straight from in-review carries no review stamp', () => {
@@ -171,9 +171,9 @@ test('a task delivered straight from in-review carries no review stamp', () => {
   expect(transitionedTaskOf(task, 'delivered', FINISHED_AT).reviewed).toBeUndefined();
 });
 
-test('putting a reviewed task back to pending drops its review stamp', () => {
+test('putting a reviewed task back to committed drops its review stamp', () => {
   const task = filed({ name: 'Review pass', status: 'reviewed', reviewed: FINISHED_AT });
-  expect(transitionedTaskOf(task, 'pending', NEXT_MORNING_AT).reviewed).toBeUndefined();
+  expect(transitionedTaskOf(task, 'committed', NEXT_MORNING_AT).reviewed).toBeUndefined();
 });
 
 test('every move a row really makes is appended as a phase, oldest first', () => {
@@ -212,17 +212,17 @@ test('a further review round is a phase of its own although the status does not 
   expect(task.reviewRound).toBe(3);
 });
 
-// The phases are the record of what happened; a row sent back to pending went back, which is itself something that happened.
-test('sending a row back to pending files that as a phase and keeps the phases that led there', () => {
+// The phases are the record of what happened; a row sent back to committed went back, which is itself something that happened.
+test('sending a row back to committed files that as a phase and keeps the phases that led there', () => {
   const task = movedThrough(filed({ name: 'Review pass', filedAt: FILED_AT }), [
     ['in-progress', STARTED_AT],
-    ['pending', FINISHED_AT],
+    ['committed', FINISHED_AT],
   ]);
 
   expect(task.history).toEqual([
-    { status: 'pending', at: FILED_AT },
+    { status: 'committed', at: FILED_AT },
     { status: 'in-progress', at: STARTED_AT },
-    { status: 'pending', at: FINISHED_AT },
+    { status: 'committed', at: FINISHED_AT },
   ]);
 });
 

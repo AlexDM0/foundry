@@ -1,6 +1,6 @@
 /**
  * The ticket command's vocabulary: every verb of the subcommand groups reaches its own handler, and every current status is taken by
- * `ticket status` and `ticket list --status`, so none is ever answered as an unknown one.
+ * `ticket status` and `ticket list --status`, so none is ever answered as an unknown one, while the retired status `pending` is.
  */
 import {
   afterEach,
@@ -68,14 +68,23 @@ describeWhenGitIsRecorded('the ticket command with current words only', () => {
   });
 
   test('every current status but draft and ready-for-review is taken by ticket status and stored as written', async () => {
-    // A readied ticket is already pending, and a move to the status it holds is refused, so pending comes last; no move returns to draft,
+    // A readied ticket is already committed, and a move to the status it holds is refused, so committed comes last; no move returns to draft,
     // and only the filer's close reaches ready-for-review.
-    const reachableStatuses = TICKET_STATUSES.filter((status) => status !== 'draft' && status !== 'ready-for-review' && status !== 'pending');
-    for (const status of [...reachableStatuses, 'pending']) {
+    const reachableStatuses = TICKET_STATUSES.filter((status) => status !== 'draft' && status !== 'ready-for-review' && status !== 'committed');
+    for (const status of [...reachableStatuses, 'committed']) {
       await run(['ticket', 'status', '1', status, '--reason', 'Example reason']);
       const shown = await run(['ticket', 'show', '1', '--json']);
       expect((JSON.parse(shown.outputText()) as { status: string }).status, status).toBe(status);
     }
+  });
+
+  test('ticket status 001 pending is refused as an unknown status, and the ticket stays committed', async () => {
+    const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
+    const exitCode = await runCommandLine(['ticket', 'status', '001', 'pending'], context);
+    expect(exitCode).toBe(1);
+    expect(context.errorText()).toContain('"pending" is not a ticket status.');
+    const shown = await run(['ticket', 'show', '1', '--json']);
+    expect((JSON.parse(shown.outputText()) as { status: string }).status).toBe('committed');
   });
 
   test('every current status is taken by ticket list --status', async () => {

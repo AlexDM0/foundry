@@ -74,7 +74,7 @@ describe('parsedTicketDocumentOf', () => {
       '# filed while pairing with Alex Example',
       'title: "Tidy the seed data"',
       'type: "change"',
-      'status: "pending"',
+      'status: "committed"',
       'filed: "2026-09-18T09:00:00+02:00"',
       'updated: "2026-09-18T09:00:00+02:00"',
       '',
@@ -99,7 +99,7 @@ describe('parsedTicketDocumentOf', () => {
       'id: "004"',
       'title: "Split the settings page"',
       'type: "feature"',
-      'status: "pending"',
+      'status: "committed"',
       'filed: "2026-09-18T09:00:00+02:00"',
       'updated: "2026-09-18T09:00:00+02:00"',
       '---',
@@ -431,7 +431,7 @@ describe('model and effort', () => {
 
 describe('status words', () => {
   test('reading a current word, quoted or bare, parses', () => {
-    for (const storedStatus of ['"in-progress"', 'pending', '"reviewed"']) {
+    for (const storedStatus of ['"in-progress"', 'committed', '"reviewed"']) {
       const parsed = TicketDocumentUtil.parsedTicketDocumentOf(FULL_TICKET.replace('status: "in-progress"', `status: ${storedStatus}`));
 
       expect(parsed.verdict).toBe('parsed');
@@ -459,7 +459,7 @@ describe('ticketDocumentTextOf', () => {
       'id: "007"',
       'title: "Tidy the seed data"',
       'type: "change"',
-      'status: "pending"',
+      'status: "committed"',
       'filed: "2026-09-18T09:00:00+02:00"',
       'updated: "2026-09-18T09:00:00+02:00"',
       'started: null',

@@ -227,7 +227,7 @@ test('no role relays a start or a stop: only User\'s press sends them', () => {
   for (const role of roles) {
     for (const command of [start(null, 'browser-tests'), { kind: 'gate-profile-stop', profileRunId: 'P1' } as const]) {
       const job = {
-        id: 'J12', role, ticketIds: [], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrPending: [], setupId: 'S1'
+        id: 'J12', role, ticketIds: [], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrCommitted: [], setupId: 'S1'
       };
       expect(Bouncer.verdictOf(job, command).verdict, `${role} ${command.kind}`).toBe('refused');
     }

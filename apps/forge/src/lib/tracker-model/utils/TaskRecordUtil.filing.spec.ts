@@ -16,7 +16,7 @@ test('a task filed with nothing but a name gets the defaults a fresh row has', (
   expect(filedTaskOf(1, { name: 'Review pass' })).toEqual({
     id:     1,
     name:   'Review pass',
-    status: 'pending',
+    status: 'committed',
     start:  null,
     end:    null,
     owner:  '',
@@ -45,9 +45,9 @@ test('a task filed with everything keeps everything', () => {
  * How long a row sat in the queue before anybody picked it up is the interval an Assistant most wants, and it is
  * measurable only if the filing is a phase of its own. Without a stamp to file it at there is still nothing to record.
  */
-test('a row filed as pending records that it was filed, at the moment it was filed', () => {
-  expect(filedTaskOf(1, { name: 'Queued', filedAt: FILED_AT }).history).toEqual([{ status: 'pending', at: FILED_AT }]);
-  expect(filedTaskOf(2, { name: 'Queued explicitly', status: 'pending', filedAt: FILED_AT }).history).toEqual([{ status: 'pending', at: FILED_AT }]);
+test('a row filed as committed records that it was filed, at the moment it was filed', () => {
+  expect(filedTaskOf(1, { name: 'Queued', filedAt: FILED_AT }).history).toEqual([{ status: 'committed', at: FILED_AT }]);
+  expect(filedTaskOf(2, { name: 'Queued explicitly', status: 'committed', filedAt: FILED_AT }).history).toEqual([{ status: 'committed', at: FILED_AT }]);
   expect(filedTaskOf(3, { name: 'Filed by a caller that said nothing' }).history).toBeUndefined();
 });
 

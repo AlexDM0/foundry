@@ -411,7 +411,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A ticket is its frontmatter `id`, never its file name. Ticket and task ids are never reused or gap-filled.
 - Only a transition stamps `updated`. The named verbs enforce the legality matrix; `ticket status` skips it on purpose.
 - `ticket add` files a draft ticket, `draft`, with no row at any priority; only `ticket ready`, after the readiness
-  reading the landing shares (`TicketAcceptanceUtil`), moves it to `pending` and files its row, and no move returns a
+  reading the landing shares (`TicketAcceptanceUtil`), moves it to `committed` and files its row, and no move returns a
   ticket to `draft`, not even `ticket status`. The filing cabinet's drafts are "filing drafts" in help and wording.
 - A ticket's `epics` is an ordered list, the first its primary epic, written only when non-empty. An epic has no
   lifecycle: its progress is a Board roll-up over its tickets, and it never touches dispatch, claiming, concurrency or
@@ -422,12 +422,12 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   the crossing ticket. The package build of that ticket then does not run the gates of that dependent: the release of
   the group runs them.
 - In a forge with entities, `ticket add --entity` and `ticket entity` set a ticket's `entity`. The product owner sets it
-  on its own draft ticket or on a ticket in `ready-for-review` or `pending`, and User sets it on the command line. The
+  on its own draft ticket or on a ticket in `ready-for-review` or `committed`, and User sets it on the command line. The
   Overseer sets it on a started ticket when User answers `work-in-other-entity` with a move (E15). No Bridge control
   sets it. The reason goes on the `entity-assigned` log record, not on the ticket. A worker names no
   entity. The Overseer gives a worker's finding the entity that owns the paths of its Brief's `Work belongs in:` line.
   When the line names no path, or paths of more than one entity, the finding gets the entity of the job that found it
-  (E83, E53). The Board refuses to move a ticket without an entity to `pending` (`ticket-without-entity`), so
+  (E83, E53). The Board refuses to move a ticket without an entity to `committed` (`ticket-without-entity`), so
   `ticket ready`, `ticket submit`, `intake close` and a worker's finding all refuse it, a finding before it is filed.
 - In a forge with entities, these filer's moves also refuse a draft when its Brief's `Work belongs in:` line names a
   path outside its entity, the packages that it whitelists and its `reach` (`work-outside-entity`, E85). A need's ticket
@@ -447,4 +447,4 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   forge without entities lists `CONSTITUTION.md` alone (`docs/cli.md`, "The constitution commit"). An entity with no
   draft keeps the file that main holds, byte for byte. Apply refuses to remove an entity that a ticket names (E91), and
   refuses to change a pipeline into entities while a ticket is in progress, in review or reviewed (E94). The first Apply
-  that stores entities starts a `product-owner` job, which gives each pending ticket without an entity one.
+  that stores entities starts a `product-owner` job, which gives each committed ticket without an entity one.

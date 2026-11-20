@@ -78,7 +78,7 @@ const BRIDGE_CONTROLS: Readonly<Record<HoldState, Readonly<Record<TicketStatus, 
   unheld: {
     'draft':            ['ticket-ready', 'ticket-hold', 'ticket-park', 'ticket-network'],
     'ready-for-review': ['ticket-ready', 'ticket-hold', 'ticket-park', 'ticket-network', 'ticket-deliver-by-hand'],
-    'pending':          ['ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'committed':        ['ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
     'in-progress':      ['ticket-park', 'ticket-deliver-by-hand'],
     'in-review':        ['ticket-park', 'ticket-deliver-by-hand'],
     'reviewed':         ['ticket-park', 'ticket-deliver-by-hand'],
@@ -88,7 +88,7 @@ const BRIDGE_CONTROLS: Readonly<Record<HoldState, Readonly<Record<TicketStatus, 
   held: {
     'draft':            ['ticket-ready', 'ticket-unhold', 'ticket-park', 'ticket-network'],
     'ready-for-review': ['ticket-ready', 'ticket-unhold', 'ticket-park', 'ticket-network', 'ticket-deliver-by-hand'],
-    'pending':          ['ticket-unhold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'committed':        ['ticket-unhold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
     'in-progress':      ['ticket-unhold', 'ticket-park', 'ticket-deliver-by-hand'],
     'in-review':        ['ticket-unhold', 'ticket-park', 'ticket-deliver-by-hand'],
     'reviewed':         ['ticket-unhold', 'ticket-park', 'ticket-deliver-by-hand'],
@@ -99,7 +99,7 @@ const BRIDGE_CONTROLS: Readonly<Record<HoldState, Readonly<Record<TicketStatus, 
 
 /**
  * Where the Board's offers differ from the Bridge's controls, each a rule the Bridge copied wrongly: the Board takes a priority change in
- * every status but lowering past `pending`, holds a started ticket, refuses delivering a ticket that is ready for review, and delivers an
+ * every status but lowering past `committed`, holds a started ticket, refuses delivering a ticket that is ready for review, and delivers an
  * abandoned one by hand.
  */
 const EXPECTED_DIFFERENCES: readonly string[] = [

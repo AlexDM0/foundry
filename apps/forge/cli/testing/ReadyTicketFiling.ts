@@ -1,6 +1,6 @@
 /**
  * Files a ticket the way one meant to be built is filed: `ticket add`, the sections `ticket ready` asks for appended to the filed body with
- * `ticket edit --append` when it lacks them, then `ticket ready`, so a spec of a later move starts from a `pending` ticket with its row rather
+ * `ticket edit --append` when it lacks them, then `ticket ready`, so a spec of a later move starts from a `committed` ticket with its row rather
  * than a draft. No file is edited by hand.
  */
 const ACCEPTANCE_SECTION    = '\n## Acceptance\n\nA1. The example holds.\n';

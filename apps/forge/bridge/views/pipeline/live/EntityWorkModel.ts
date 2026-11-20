@@ -8,7 +8,7 @@
 import type { EntityKey, PipelineEntity }                                              from '../../../../src/lib/tracker-model/@types/Pipeline.ts';
 import type { AppliedPipelineFacts, PipelineFlowFacts }                                from '../../../../src/lib/tracker-model/@types/PipelineFacts.ts';
 import type { TicketStage }                                                            from '../../../../src/lib/tracker-model/@types/Task.ts';
-import { TICKET_STATUSES_EDITABLE_WITHOUT_FORCE, TICKET_STATUSES_THAT_CLOSE_A_TICKET } from '../../../../src/lib/tracker-model/constants/Statuses.ts';
+import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP, TICKET_STATUSES_THAT_CLOSE_A_TICKET } from '../../../../src/lib/tracker-model/constants/Statuses.ts';
 import { PipelinePhaseModel }                                                          from '../flow/PipelinePhaseModel.ts';
 import { FlowActivityPanelModel, type OccupantChipView }                               from './FlowActivityPanelModel.ts';
 
@@ -103,7 +103,7 @@ function openTicketsOf(facts: Pick<EntityWorkFacts, 'page'>): EntityWorkTicket[]
 function ticketIsOnAPhase(ticket: Pick<EntityWorkTicket, 'displayState'>): boolean {
   return ticketIsOpen(ticket)
     && ticket.displayState !== 'ready'
-    && !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.some((status) => status === ticket.displayState);
+    && !TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.some((status) => status === ticket.displayState);
 }
 
 /** The package stage a ticket of another entity runs now; null for any other stage, and for a ticket that names no entity. */

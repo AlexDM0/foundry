@@ -24,7 +24,7 @@
   "ticketCountByStatus": {
     "draft": 1,
     "ready-for-review": 1,
-    "pending": 2,
+    "committed": 2,
     "in-progress": 1,
     "in-review": 0,
     "reviewed": 1,

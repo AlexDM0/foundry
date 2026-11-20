@@ -40,7 +40,7 @@ function pageTicketWith(changes: Partial<PageTicket>): PageTicket {
     id:              '001',
     title:           'Example checkout page',
     type:            'ticket',
-    status:          'pending',
+    status:          'committed',
     filed:           AT,
     updated:         AT,
     started:         null,
@@ -111,7 +111,7 @@ describe('BoardReadingMappingUtil.todayOf', () => {
 
 describe('BoardReadingMappingUtil.ticketFactsOf', () => {
   test('resolves an absent priority to the default and reads the status classes of a committed ticket', () => {
-    expect(BoardReadingMappingUtil.ticketFactsOf(pageTicketWith({}), ticketFactsWith('pending'), undefined)).toEqual({
+    expect(BoardReadingMappingUtil.ticketFactsOf(pageTicketWith({}), ticketFactsWith('committed'), undefined)).toEqual({
       resolvedPriority: 'normal', settlesADependency: false, isClosed: false, noAgentHasPickedItUp: true, reviewRound: null, isRepeatReview: false
     });
   });

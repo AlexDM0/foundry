@@ -87,7 +87,7 @@ describe('a build paused, resumed and still running', () => {
     status:  'in-progress',
     start:   exampleStampAt('10:00'),
     history: [
-      { status: 'pending', at: exampleStampAt('09:00') },
+      { status: 'committed', at: exampleStampAt('09:00') },
       { status: 'in-progress', at: exampleStampAt('10:00') },
       { status: 'paused', at: exampleStampAt('11:00') },
       { status: 'in-progress', at: exampleStampAt('12:00') },

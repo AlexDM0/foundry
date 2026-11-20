@@ -12,7 +12,7 @@
  * successor of a stage job that was stopped or replaced by a fresh job stays in its stage (E75), as does that of a package build or adapt
  * that wound down (E17); a usage limit holds a ticket between stages (E76); and an open decision of the package stages (`package-refused`,
  * `second-return`, `dependent-broken`, `whitelist-removed-mid-crossing`) holds the ticket it names until User answers (E22, E45, E26, E19).
- * A pending ticket without an entity launches nothing on a pipeline with entities until it has one, since its build would read the
+ * A committed ticket without an entity launches nothing on a pipeline with entities until it has one, since its build would read the
  * forge-level pipeline, while a forge without entities launches it as today (E94).
  */
 import { describe, expect, test } from 'bun:test';
@@ -112,7 +112,7 @@ const CLAIMS: StageClaim[] = [
   {
     name:   'a ticket in a build stage launches the stage\'s builder in the stage\'s entity and number',
     holds:  (policy) => launchesExactly(policy, entityFacts({ tickets: [crossingTicket(PACKAGE_BUILD)] }), [packageBuildOf('001')]),
-    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'committed\') return', 'false) return'),
   },
   {
     name:  'a ticket in a review stage launches the reviewer of the stage\'s entity, whatever its status',
@@ -223,7 +223,7 @@ const CLAIMS: StageClaim[] = [
   },
   {
     name:  'a ticket that crosses into no package builds as stage 1 of its entity and is reviewed as stage 5, its attempt and round as today',
-    holds: (policy) => launchesExactly(policy, entityFacts({ logRecords: [], tickets: [ticketOf('001', 'in-review', SHOP_TICKET), ticketOf('002', 'pending', SHOP_TICKET)] }), [
+    holds: (policy) => launchesExactly(policy, entityFacts({ logRecords: [], tickets: [ticketOf('001', 'in-review', SHOP_TICKET), ticketOf('002', 'committed', SHOP_TICKET)] }), [
       {
         kind: 'launch-review', ticketId: '001', round: 1, target: 'main', entity: SHOP.key, stage: 5
       },
@@ -255,7 +255,7 @@ const CLAIMS: StageClaim[] = [
   },
   {
     name:  'a forge without entities launches exactly as today, naming no entity or stage',
-    holds: (policy) => launchesExactly(policy, factsWith({ tickets: [ticketOf('001', 'pending', { entity: SHOP.key })] }), [{
+    holds: (policy) => launchesExactly(policy, factsWith({ tickets: [ticketOf('001', 'committed', { entity: SHOP.key })] }), [{
       kind: 'launch-build', ticketId: '001', attempt: 1, base: 'main'
     }]),
     mutant: policyLine('  if (!facts.pipelineHasEntities || ticket.entity === undefined) return {};\n', '  if (ticket.entity === undefined) return {};\n'),
@@ -274,7 +274,7 @@ const CLAIMS: StageClaim[] = [
       concurrencyLimit:    2,
       tickets:             [
         crossingTicket(PACKAGE_BUILD),
-        ticketOf('002', 'pending', { entity: SHOP.key }),
+        ticketOf('002', 'committed', { entity: SHOP.key }),
         ticketOf('003', 'in-progress', { entity: SHOP.key, stage: PACKAGE_BUILD }),
       ],
       jobs: [LIVE_ASSISTANT, jobFixture({
@@ -288,7 +288,7 @@ const CLAIMS: StageClaim[] = [
     holds: (policy) => launchesExactly(policy, factsWith({
       pipelineHasEntities:         true,
       concurrencyLimit:            1,
-      tickets:                     [ticketOf('002', 'pending', { entity: SHOP.key }), crossingTicket(PACKAGE_BUILD)],
+      tickets:                     [ticketOf('002', 'committed', { entity: SHOP.key }), crossingTicket(PACKAGE_BUILD)],
       readinessPositionByTicketId: new Map([['002', 1], ['001', 2]]),
       logRecords:                  HOME_BUILT,
     }), [packageBuildOf('001')]),
@@ -350,7 +350,7 @@ const CLAIMS: StageClaim[] = [
       tickets:             [crossingTicket(PACKAGE_BUILD)],
       logRecords:          [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), endedRecord('J2', 'stopped')],
     }), [packageBuildOf('001', 2)]),
-    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'committed\') return', 'false) return'),
   },
   {
     name:  'E75: a fresh job asked of a stage job, which ends it replaced, launches its successor in the same stage',
@@ -359,7 +359,7 @@ const CLAIMS: StageClaim[] = [
       tickets:             [crossingTicket(PACKAGE_BUILD)],
       logRecords:          [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), endedRecord('J2', 'replaced')],
     }), [packageBuildOf('001', 2)]),
-    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'committed\') return', 'false) return'),
   },
   {
     name:  'E17: a package build that wound down at its call budget is relaunched as stage 2 of the package',
@@ -368,7 +368,7 @@ const CLAIMS: StageClaim[] = [
       tickets:             [crossingTicket(PACKAGE_BUILD)],
       logRecords:          [...HOME_BUILT, stagedLaunchedRecord('J2', 'build', '001', UI_KIT.key, 2), endedRecord('J2', 'wound-down')],
     }), [packageBuildOf('001', 2)]),
-    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'committed\') return', 'false) return'),
   },
   {
     name:  'E17: an adapt job that wound down at its call budget is relaunched as stage 4 of the home',
@@ -385,7 +385,7 @@ const CLAIMS: StageClaim[] = [
     }), [{
       kind: 'launch-build', ticketId: '001', attempt: 2, base: 'main', entity: SHOP.key, stage: 4
     }]),
-    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'pending\') return', 'false) return'),
+    mutant: policyLine('ticket.stage !== undefined && ticket.status !== \'committed\') return', 'false) return'),
   },
   ...(['package-refused', 'second-return', 'dependent-broken', 'whitelist-removed-mid-crossing'] as const).map((kind) => ({
     name:   `${kind === 'whitelist-removed-mid-crossing' ? 'E19: ' : ''}an open ${kind} decision holds the crossing ticket it names`,
@@ -393,18 +393,18 @@ const CLAIMS: StageClaim[] = [
     mutant: policyLine('[\'package-refused\', \'second-return\', \'dependent-broken\', \'whitelist-removed-mid-crossing\']', '[]'),
   })),
   {
-    name:  'E94: a pending ticket without an entity launches nothing on a pipeline with entities until it has one',
+    name:  'E94: a committed ticket without an entity launches nothing on a pipeline with entities until it has one',
     holds: (policy) => {
-      const withoutAnEntity = factsWith({ pipelineHasEntities: true, tickets: [ticketOf('002', 'pending')] });
-      const withAnEntity = factsWith({ pipelineHasEntities: true, tickets: [ticketOf('002', 'pending', SHOP_TICKET)] });
+      const withoutAnEntity = factsWith({ pipelineHasEntities: true, tickets: [ticketOf('002', 'committed')] });
+      const withAnEntity = factsWith({ pipelineHasEntities: true, tickets: [ticketOf('002', 'committed', SHOP_TICKET)] });
       return launchedTicketIdsOf(policy.nextStepsOf(withoutAnEntity, FIXTURE_LIMITS)).length === 0
         && Bun.deepEquals(launchedTicketIdsOf(policy.nextStepsOf(withAnEntity, FIXTURE_LIMITS)), ['002'], true);
     },
     mutant: policyLine('if (facts.pipelineHasEntities && ticket.entity === undefined) return null;', ''),
   },
   {
-    name:  'E94: a forge without entities still launches a pending ticket without an entity',
-    holds: (policy) => Bun.deepEquals(launchedTicketIdsOf(policy.nextStepsOf(factsWith({ tickets: [ticketOf('002', 'pending')] }), FIXTURE_LIMITS)), ['002'], true),
+    name:  'E94: a forge without entities still launches a committed ticket without an entity',
+    holds: (policy) => Bun.deepEquals(launchedTicketIdsOf(policy.nextStepsOf(factsWith({ tickets: [ticketOf('002', 'committed')] }), FIXTURE_LIMITS)), ['002'], true),
   },
   {
     name:  'E76: a usage limit holds a ticket between stages, with no stage rule of its own',

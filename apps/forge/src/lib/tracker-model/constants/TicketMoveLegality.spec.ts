@@ -1,6 +1,6 @@
 /**
  * The ticket move graph: every status but `draft` is reachable, and none from itself. Filing is the only way into `draft`, so no source
- * status reaches it, and a draft leaves only for `pending` (through `ticket ready`) or `abandoned`.
+ * status reaches it, and a draft leaves only for `committed` (through `ticket ready`) or `abandoned`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -22,13 +22,13 @@ describe('the legality matrix', () => {
     for (const status of TICKET_STATUSES) expect(TicketMoveUtil.ticketMoveIsLegal(status, 'draft'), status).toBe(false);
   });
 
-  test('a draft moves on only to ready-for-review, pending or abandoned', () => {
+  test('a draft moves on only to ready-for-review, committed or abandoned', () => {
     const targets = TICKET_STATUSES.filter((target) => TicketMoveUtil.ticketMoveIsLegal('draft', target));
-    expect(targets).toEqual(['ready-for-review', 'pending', 'abandoned']);
+    expect(targets).toEqual(['ready-for-review', 'committed', 'abandoned']);
   });
 
-  test('a ticket ready for review moves on only to pending or abandoned, and only a draft reaches it', () => {
-    expect(TICKET_STATUSES.filter((target) => TicketMoveUtil.ticketMoveIsLegal('ready-for-review', target))).toEqual(['pending', 'abandoned']);
+  test('a ticket ready for review moves on only to committed or abandoned, and only a draft reaches it', () => {
+    expect(TICKET_STATUSES.filter((target) => TicketMoveUtil.ticketMoveIsLegal('ready-for-review', target))).toEqual(['committed', 'abandoned']);
     expect(TICKET_STATUSES.filter((source) => TicketMoveUtil.ticketMoveIsLegal(source, 'ready-for-review'))).toEqual(['draft']);
   });
 });

@@ -8,12 +8,12 @@ import { ChangeHighlightUtil } from './ChangeHighlightUtil.ts';
 
 describe('changedKeysBetween', () => {
   test('marks nothing on the first board', () => {
-    expect([...ChangeHighlightUtil.changedKeysBetween(null, new Map([['1', 'pending']]))]).toEqual([]);
+    expect([...ChangeHighlightUtil.changedKeysBetween(null, new Map([['1', 'committed']]))]).toEqual([]);
   });
 
   test('marks the new items and the items whose signature moved, never an unchanged one or one that went', () => {
-    const previous = new Map([['1', 'pending'], ['2', 'in-progress'], ['3', 'delivered']]);
-    const current = new Map([['1', 'in-progress'], ['2', 'in-progress'], ['4', 'pending']]);
+    const previous = new Map([['1', 'committed'], ['2', 'in-progress'], ['3', 'delivered']]);
+    const current = new Map([['1', 'in-progress'], ['2', 'in-progress'], ['4', 'committed']]);
 
     expect([...ChangeHighlightUtil.changedKeysBetween(previous, current)]).toEqual(['1', '4']);
   });

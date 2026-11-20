@@ -226,21 +226,21 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
   const UNBRIEFED_BODY  = '## Acceptance\n\nA1. The role opens for editing.\n';
   const UNNUMBERED_BODY = '## Acceptance\n\nThe role opens for editing.\n\n## Brief\n\nEdit the role in place.\n';
 
-  test('ready makes every named draft pending with a row at any priority, logging one line each', async () => {
+  test('ready makes every named draft committed with a row at any priority, logging one line each', async () => {
     await run(['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body', READY_BODY]);
     await run(['ticket', 'add', '--type', 'ticket', 'Show the role history', '--priority', 'low', '--body', READY_BODY]);
 
     await run(['ticket', 'ready', '1', '#2']);
 
-    expect(storedTicketText()).toContain('status: "pending"');
-    expect(storedTicketText('002-show-the-role-history.md')).toContain('status: "pending"');
+    expect(storedTicketText()).toContain('status: "committed"');
+    expect(storedTicketText('002-show-the-role-history.md')).toContain('status: "committed"');
     expect(storedProgressOf(repositoryDirectory).tasks).toMatchObject([
-      { id: 1, status: 'pending', ticket: '001' },
-      { id: 2, status: 'pending', ticket: '002' },
+      { id: 1, status: 'committed', ticket: '001' },
+      { id: 2, status: 'committed', ticket: '002' },
     ]);
     expect(storedLogEntriesOf(repositoryDirectory).slice(-2).map((entry) => entry.text)).toEqual([
-      'Ticket #001 ready to build',
-      'Ticket #002 ready to build',
+      'Ticket #001 committed',
+      'Ticket #002 committed',
     ]);
   });
 
@@ -252,7 +252,7 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
     const context = contextHere();
     expect(await runCommandLineWithOverseerMoves(['ticket', 'ready', '2', '1'], context)).toBe(1);
 
-    expect(context.errorText()).toContain('Ticket #001 is pending, not a draft ticket');
+    expect(context.errorText()).toContain('Ticket #001 is committed, not a draft ticket');
     expect(storedTicketText('002-show-the-role-history.md')).toContain('status: "draft"');
     expect(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8')).toBe(progressBefore);
   });
@@ -274,7 +274,7 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
     expect(storedProgressOf(repositoryDirectory).tasks).toEqual([]);
   });
 
-  test('a low pending ticket with no row still gets its row when it starts', async () => {
+  test('a low committed ticket with no row still gets its row when it starts', async () => {
     const filing = await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--priority', 'low']);
     dropTicketRow(repositoryDirectory, filedTicketIdOf(filing.outputText()));
     expect(storedProgressOf(repositoryDirectory).tasks.filter((task) => task.ticket === '001' && task.status !== 'abandoned')).toEqual([]);
@@ -314,35 +314,35 @@ describeWhenGitIsRecorded('moving a ticket', () => {
 
   // The row a ticket files starts in the queue, and how long it waited there is only measurable if the filing is a phase.
   test('the row a ticket files records its filing, and every later move adds one', async () => {
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['pending']);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['committed']);
 
     await run(['ticket', 'start', '1']);
     await run(['ticket', 'finish', '1']);
     await run(['ticket', 'rereview', '1']);
     await run(['ticket', 'approve', '1']);
 
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['pending', 'in-progress', 'in-review', 're-review', 'reviewed']);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['committed', 'in-progress', 'in-review', 're-review', 'reviewed']);
   });
 
   // Reopening is something that happened to the row, and it is what restarts the review rounds the panel counts.
-  test('reopen files a pending phase of its own after the phases that led to it', async () => {
+  test('reopen files a committed phase of its own after the phases that led to it', async () => {
     await run(['ticket', 'start', '1']);
     await run(['ticket', 'approve', '1']);
 
     await run(['ticket', 'reopen', '1']);
 
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['pending', 'in-progress', 'reviewed', 'pending']);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['committed', 'in-progress', 'reviewed', 'committed']);
   });
 
-  test('reopen clears the stamps and returns the row to pending', async () => {
+  test('reopen clears the stamps and returns the row to committed', async () => {
     await run(['ticket', 'start', '1']);
     await run(['ticket', 'approve', '1']);
 
     await run(['ticket', 'reopen', '1']);
 
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('pending');
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('committed');
     const ticketText = storedTicketText();
-    expect(ticketText).toContain('status: "pending"');
+    expect(ticketText).toContain('status: "committed"');
     expect(ticketText).toContain('started: null');
     expect(ticketText).toContain('finished: null');
   });
@@ -353,7 +353,7 @@ describeWhenGitIsRecorded('moving a ticket', () => {
 
     expect(exitCode).toBe(1);
     expect(refused.errorText()).toContain('--reason');
-    expect(storedTicketText()).toContain('status: "pending"');
+    expect(storedTicketText()).toContain('status: "committed"');
 
     await run(['ticket', 'abandon', '1', '--reason', 'superseded by ticket #007']);
 
@@ -434,10 +434,10 @@ describeWhenGitIsRecorded('a second review pass', () => {
     const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'rereview', '2'], context);
 
     expect(exitCode).toBe(1);
-    expect(context.errorText()).toContain('Ticket #002 is pending');
+    expect(context.errorText()).toContain('Ticket #002 is committed');
     expect(context.errorText()).toContain('needs a ticket that is in-review');
     expect(context.errorText()).not.toContain('ticket finish 002');
-    expect(storedProgressOf(repositoryDirectory).tasks[1]?.status).toBe('pending');
+    expect(storedProgressOf(repositoryDirectory).tasks[1]?.status).toBe('committed');
   });
 
   test('a refused rereview names the move to review only where it would be accepted', async () => {
@@ -471,7 +471,7 @@ describeWhenGitIsRecorded('reading tickets back', () => {
     const context = await run(['ticket', 'show', '1']);
 
     expect(context.outputText()).toContain('Ticket #001: Double-click a role to edit it');
-    expect(context.outputText()).toContain('status:   pending');
+    expect(context.outputText()).toContain('status:   committed');
     expect(context.outputText()).not.toContain('file:');
     expect(context.outputText()).not.toContain(FIRST_TICKET_FILE_NAME);
     expect(context.outputText()).toContain('## Acceptance');
@@ -545,7 +545,7 @@ describeWhenGitIsRecorded('the transition matrix', () => {
     const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'deliver', '1'], context);
 
     expect(exitCode).toBe(1);
-    expect(context.errorText()).toContain('Ticket #001 is pending');
+    expect(context.errorText()).toContain('Ticket #001 is committed');
     expect(context.errorText()).toContain('a move to delivered takes a ticket that is reviewed');
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} ticket status 001 delivered`);
   });
@@ -556,7 +556,7 @@ describeWhenGitIsRecorded('the transition matrix', () => {
     expect(await runCommandLineWithOverseerMoves(['ticket', 'deliver', '1'], contextHere())).toBe(1);
 
     expect(storedLogEntriesOf(repositoryDirectory)).toHaveLength(logBefore);
-    expect(storedTicketText()).toContain('status: "pending"');
+    expect(storedTicketText()).toContain('status: "committed"');
   });
 
   test('moving a ticket to the status it already has is refused, under both spellings', async () => {
@@ -592,12 +592,12 @@ describeWhenGitIsRecorded('the transition matrix', () => {
     expect(storedTicketText()).toContain('status: "delivered"');
   });
 
-  test('abandon reaches anything but the two end states, and reopen anything but pending', async () => {
+  test('abandon reaches anything but the two end states, and reopen anything but committed', async () => {
     await run(['ticket', 'status', '1', 'delivered']);
 
     const refused = contextHere();
     expect(await runCommandLineWithOverseerMoves(['ticket', 'abandon', '1', '--reason', 'superseded'], refused)).toBe(1);
-    expect(refused.errorText()).toContain('a move to abandoned takes a ticket that is draft or ready-for-review or pending');
+    expect(refused.errorText()).toContain('a move to abandoned takes a ticket that is draft or ready-for-review or committed');
 
     await run(['ticket', 'reopen', '1']);
     await run(['ticket', 'abandon', '1', '--reason', 'superseded by #7']);
@@ -741,7 +741,7 @@ describeWhenGitIsRecorded('ticket dependencies', () => {
 
     expect(storedTicketText('003-report-the-import.md')).toContain('dependsOn: "001, 002"');
     expect((await run(['ticket', 'list'])).outputText()).toContain('Report the import  (waiting on #001, #002)');
-    expect((await run(['ticket', 'show', '3'])).outputText()).toContain('waits on: #001 (pending), #002 (pending)');
+    expect((await run(['ticket', 'show', '3'])).outputText()).toContain('waits on: #001 (committed), #002 (committed)');
   });
 
   test('depends replaces the list and logs it, and with no ids clears it', async () => {

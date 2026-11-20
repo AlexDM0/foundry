@@ -17,7 +17,7 @@ import { PipelineUtil }                                             from './util
 import { TicketDependencyUtil }                                     from './utils/TicketDependencyUtil.ts';
 
 /** The statuses whose work still lies ahead under the Overseer: every other ticket is unready, landed or closed. */
-const FORECAST_TICKET_STATUSES: readonly TicketStatus[] = ['pending', 'in-progress', 'in-review'];
+const FORECAST_TICKET_STATUSES: readonly TicketStatus[] = ['committed', 'in-progress', 'in-review'];
 
 /** A filed ticket no builder can take yet, which can neither start nor be said to wait. */
 const UNREADY_TICKET_STATUSES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
@@ -47,7 +47,7 @@ export class TicketForecasts {
     private readonly mergeQueueMarks: MergeQueueMarks,
   ) {}
 
-  /** In board order, one per pending, in-progress or in-review ticket; none while no pipeline is set, since nothing launches then. */
+  /** In board order, one per committed, in-progress or in-review ticket; none while no pipeline is set, since nothing launches then. */
   ticketForecastsOf(targetOf: MergeTargetOf | null): TicketForecast[] {
     const { pipeline } = this.records;
     if (pipeline === null) return [];

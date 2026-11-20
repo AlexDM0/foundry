@@ -52,14 +52,14 @@ const PRIORITY_RANK: Record<TicketPriority, number> = { high: 0, normal: 1, low:
 const UNRECORDED_READINESS_POSITION = -1;
 
 /**
- * The pending tickets whose every dependency is reviewed or delivered, in the order to take them: by priority, then by readiness (the log
+ * The committed tickets whose every dependency is reviewed or delivered, in the order to take them: by priority, then by readiness (the log
  * position that last put the ticket in the queue), then lowest id first. Priority only orders: a low ticket is as ready as any other.
  */
 function readyTicketIdsOf(tickets: readonly ReadinessTicket[], readinessPositionByTicketId: ReadonlyMap<string, number> = new Map()): string[] {
   const statusById          = new Map(tickets.map((ticket) => [ticket.id, ticket.status]));
   const readinessPositionOf = (ticket: ReadinessTicket): number => readinessPositionByTicketId.get(ticket.id) ?? UNRECORDED_READINESS_POSITION;
   return tickets
-    .filter((ticket) => ticket.status === 'pending' && unsettledDependenciesOf(ticket.dependsOn ?? [], statusById).length === 0)
+    .filter((ticket) => ticket.status === 'committed' && unsettledDependenciesOf(ticket.dependsOn ?? [], statusById).length === 0)
     .sort((a, b) => (
       PRIORITY_RANK[TicketDefaultsUtil.ticketPriorityOf(a)] - PRIORITY_RANK[TicketDefaultsUtil.ticketPriorityOf(b)]
       || readinessPositionOf(a) - readinessPositionOf(b)

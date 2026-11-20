@@ -22,7 +22,7 @@ const TICKETS: readonly EntityWorkTicket[] = [
   {
     ticketId: '25', displayState: 'in-progress', entity: 'web', stage: { name: 'adapt', entity: 'web' },
   },
-  { ticketId: '26', displayState: 'pending' },
+  { ticketId: '26', displayState: 'committed' },
 ];
 
 describe('railActivityTextOf', () => {

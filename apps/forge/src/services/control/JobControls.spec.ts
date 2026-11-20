@@ -2,7 +2,7 @@
  * User's job controls and the product owner's intake, applied through the control service to a Board as a hold carries it. What matters: a
  * stop or wind-down holds the job's ticket in the same hold, before any child exists too, and logs its mode; a message to a finished job
  * is refused `job-finished`; an intake is a product-owner job with no ticket; closing it submits its complete drafts in the same hold, to
- * `ready-for-review` while ticket review is on and to `pending` while it is off, and in a forge with entities refuses one without an
+ * `ready-for-review` while ticket review is on and to `committed` while it is off, and in a forge with entities refuses one without an
  * entity, and refuses work outside a draft's entity (E85) before the job moves, so a corrected retry closes; and ends the job once no
  * child is live; only User's own `ticket ready` moves a ticket on from `ready-for-review`; a stopped
  * product owner's questions are withdrawn; and past the crash bound a product owner waits on its open question, then a fresh one takes the
@@ -243,15 +243,15 @@ describe('intake', () => {
     expect(board.decisions()).toEqual([]);
   });
 
-  test('with ticket review off, intake-close readies its complete drafts to pending with their rows; an incomplete one stays a draft', () => {
+  test('with ticket review off, intake-close readies its complete drafts to committed with their rows; an incomplete one stays a draft', () => {
     const { board, progress } = boardFixture({ tickets: [draftFiledBy('004', 'J1'), draftFiledBy('005', 'J1', ''), draftFiledBy('007', 'J9')] });
     board.setNoGates(AT);
     board.setApproval('tickets', false, AT);
     apply(board, { kind: 'intake-start', text: 'A basket' });
     const closed = apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
 
-    expect(loggedKindsOf(closed)).toEqual(['ticket-readied']);
-    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['pending', 'draft', 'draft']);
+    expect(loggedKindsOf(closed)).toEqual(['ticket-committed']);
+    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['committed', 'draft', 'draft']);
     expect(progress.tasks.map((task) => task.ticket)).toEqual(['004']);
   });
 
@@ -279,20 +279,20 @@ describe('intake', () => {
     expect(board.jobById('J1')?.state).toBe(jobStateBefore);
     expect(board.tickets()[0]?.frontmatter.status).toBe('draft');
 
-    board.editTicket('004', { body: { text: COMPLETE_BODY, appends: false }, allowsPastPending: false }, AT);
+    board.editTicket('004', { body: { text: COMPLETE_BODY, appends: false }, allowsPastCommitted: false }, AT);
     expect(loggedKindsOf(apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] }))).toContain('ticket-submitted-for-review');
     expect(board.tickets()[0]?.frontmatter.status).toBe('ready-for-review');
   });
 
-  test('User\'s ticket ready moves a ticket ready for review to pending; a draft-only ready refuses it', () => {
+  test('User\'s ticket ready moves a ticket ready for review to committed; a draft-only ready refuses it', () => {
     const { board } = boardFixture({ tickets: [draftFiledBy('004', 'J1')] });
     apply(board, { kind: 'intake-start', text: 'A basket' });
     apply(board, { kind: 'intake-close', jobId: 'J1', proposedDraftSets: [] });
 
     expect(refusalDetailOf(() => board.readyDraftTickets(['004'], TicketAcceptanceUtil.readinessGapsOf, AT)))
       .toEqual({ reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'ready-for-review' });
-    expect(loggedKindsOf(apply(board, { kind: 'ticket-ready', ticketReferences: ['4'] }))).toEqual(['ticket-readied']);
-    expect(board.tickets()[0]?.frontmatter.status).toBe('pending');
+    expect(loggedKindsOf(apply(board, { kind: 'ticket-ready', ticketReferences: ['4'] }))).toEqual(['ticket-committed']);
+    expect(board.tickets()[0]?.frontmatter.status).toBe('committed');
   });
 
   test('a reopened product owner files and closes again: the second close submits only the draft filed since', () => {

@@ -17,13 +17,13 @@ const FILED_AT = '2026-09-18T09:30:00+02:00';
 
 const MOVED_AT = '2026-09-18T11:15:00+02:00';
 
-function ticketOwnedRowFixture(status: 'pending' | 'in-progress' | 'paused' = 'in-progress'): BoardFixture {
+function ticketOwnedRowFixture(status: 'committed' | 'in-progress' | 'paused' = 'in-progress'): BoardFixture {
   return boardFixture({
     tasks: [taskFixture({
       id:     4,
       name:   '#001 Example checkout page',
       status,
-      start:  status === 'pending' ? null : FILED_AT,
+      start:  status === 'committed' ? null : FILED_AT,
       ticket: '001',
     })],
     tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 4 })],
@@ -69,13 +69,13 @@ describe('task ids', () => {
 });
 
 describe('addTask', () => {
-  test('a row is filed pending with its first phase at the moment it was filed, and starts at once when asked', () => {
+  test('a row is filed committed with its first phase at the moment it was filed, and starts at once when asked', () => {
     const { board } = boardFixture();
     const waiting   = board.addTask({ name: 'Example waiting task', startsNow: false, movesTheLink: false }, FILED_AT);
     const started   = board.addTask({ name: 'Example started task', startsNow: true, movesTheLink: false }, FILED_AT);
 
-    expect(waiting.status).toBe('pending');
-    expect(waiting.history).toEqual([{ status: 'pending', at: FILED_AT }]);
+    expect(waiting.status).toBe('committed');
+    expect(waiting.history).toEqual([{ status: 'committed', at: FILED_AT }]);
     expect(started.status).toBe('in-progress');
     expect(started.start).toBe(FILED_AT);
   });
@@ -204,7 +204,7 @@ describe('moveTask and correctTask', () => {
   });
 
   test('starting a ticket\'s row that is not paused is a move, not a resume', () => {
-    const { board } = ticketOwnedRowFixture('pending');
+    const { board } = ticketOwnedRowFixture('committed');
     expect(refusalDetailOf(() => board.moveTask(4, 'in-progress', { movesAnyway: false }, MOVED_AT))).toMatchObject({ reason: 'ticket-owned-row' });
   });
 
@@ -233,7 +233,7 @@ describe('moveTask and correctTask', () => {
     const held = taskFixture({
       id:      1,
       name:    'Bundle part',
-      history: [{ status: 'pending', at: FILED_AT }],
+      history: [{ status: 'committed', at: FILED_AT }],
       agent:   '003,004',
     });
     const { board, progress } = boardFixture({ tasks: [held] });

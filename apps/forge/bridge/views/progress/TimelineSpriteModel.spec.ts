@@ -15,18 +15,18 @@ function facts(status: string, ownRowPosition: number | null = 1, tickets: Timel
 const LAY_ALONG_TASK_SEVEN = { intent: 'lay-bar-along', elementKey: '7', fallbackCue: 'started-bar-is-not-shown' } as const;
 
 test('a ticket that becomes in-progress has the bar laid along its own row', () => {
-  expect(TimelineSpriteModel.happeningsBetween(facts('pending'), facts('in-progress'))).toEqual({ cueNames: [], elementHappenings: [LAY_ALONG_TASK_SEVEN] });
+  expect(TimelineSpriteModel.happeningsBetween(facts('committed'), facts('in-progress'))).toEqual({ cueNames: [], elementHappenings: [LAY_ALONG_TASK_SEVEN] });
 });
 
 test('with no own row the bar is known not to be shown', () => {
-  expect(TimelineSpriteModel.happeningsBetween(facts('pending', null), facts('in-progress', null)).elementHappenings).toEqual([
+  expect(TimelineSpriteModel.happeningsBetween(facts('committed', null), facts('in-progress', null)).elementHappenings).toEqual([
     { ...LAY_ALONG_TASK_SEVEN, elementKey: null },
   ]);
 });
 
 test.each<readonly [string, TimelineFacts, TimelineFacts]>([
   ['a ticket that stays in progress', facts('in-progress'), facts('in-progress')],
-  ['a new ticket already in progress', facts('pending', 1, []), facts('in-progress')],
+  ['a new ticket already in progress', facts('committed', 1, []), facts('in-progress')],
   ['a ticket that leaves in-progress', facts('in-progress'), facts('in-review')],
 ])('%s is no change', (_description, previous, next) => {
   expect(TimelineSpriteModel.happeningsBetween(previous, next)).toEqual({ cueNames: [], elementHappenings: [] });

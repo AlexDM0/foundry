@@ -28,7 +28,7 @@ function storedRow(id: number, fields: Record<string, unknown>): Record<string, 
   return {
     id,
     name:   `Example row ${id}`,
-    status: 'pending',
+    status: 'committed',
     start:  null,
     end:    null,
     owner:  '',

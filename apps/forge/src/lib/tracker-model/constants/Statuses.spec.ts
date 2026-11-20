@@ -31,6 +31,12 @@ test('every member of each status union is a name the matching tuple also carrie
   expect([TASK_STATUS_TUPLE_COVERS_THE_UNION, TICKET_STATUS_TUPLE_COVERS_THE_UNION]).toEqual([true, true]);
 });
 
+test('the ticket ladder reads draft, ready-for-review, committed and on to abandoned, and the task ladder starts at committed', () => {
+  expect([...TICKET_STATUSES]).toEqual(['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned']);
+  expect([...TASK_STATUSES]).toEqual(['committed', 'in-progress', 'paused', 'in-review', 're-review', 'reviewed', 'delivered', 'abandoned']);
+  expect(taskStatusIsKnown('pending')).toBe(false);
+});
+
 test('the task ladder carries paused between in-progress and in-review, and no ticket status reaches it', () => {
   expect(TASK_STATUSES.indexOf('paused')).toBe(TASK_STATUSES.indexOf('in-progress') + 1);
   expect(TASK_STATUSES.indexOf('in-review')).toBe(TASK_STATUSES.indexOf('paused') + 1);

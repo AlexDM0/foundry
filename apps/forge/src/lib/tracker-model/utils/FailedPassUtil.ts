@@ -1,5 +1,5 @@
 /**
- * A ticket's failed passes as a log reading: its jobs ended `failed` or `does-not-hold` since it was last started from `pending` or unheld.
+ * A ticket's failed passes as a log reading: its jobs ended `failed` or `does-not-hold` since it was last started from `committed` or unheld.
  * Clock-free and restart-proof; an interruption, a resume, `replaced`, `stopped` or a usage limit is never a failed pass, and neither is a
  * review that does not hold while the ticket's newest build was `built`: that review resumes the builder, counted against its cycle's resumes.
  * On a forge with entities the passes count per entity and stage, from zero when a stage starts, once the ticket crosses into a package.
@@ -16,7 +16,7 @@ const CROSSING_STAGE_NUMBERS: readonly number[] = [TICKET_STAGE_NUMBERS['package
 /** The records that move a ticket's status, which say whether a later start comes from review. */
 const STATUS_MOVE_KINDS: readonly LogRecordKind[] = [
   'ticket-filed',
-  'ticket-readied',
+  'ticket-committed',
   'ticket-reopened',
   'ticket-started',
   'ticket-finished',

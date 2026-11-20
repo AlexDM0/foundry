@@ -1,5 +1,5 @@
 /**
- * Leaves a filed ticket with no row, as an older board stored a pending low ticket: no command makes one now that a ready ticket keeps its
+ * Leaves a filed ticket with no row, as an older board stored a committed low ticket: no command makes one now that a ready ticket keeps its
  * row at every priority, so the scratch board's stored files are edited the way that board wrote them.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';

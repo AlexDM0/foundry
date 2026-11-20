@@ -1,5 +1,5 @@
 /**
- * A worker's finding past its filing, on the Board. What matters: with ticket review off a complete finding is `pending` at once, yet the
+ * A worker's finding past its filing, on the Board. What matters: with ticket review off a complete finding is `committed` at once, yet the
  * Playbook launches no build for it until its finder is `reviewed`; with review on it waits in `ready-for-review`; an abandoned finder
  * leaves no finding waiting on it, each unstarted one moved to `ready-for-review` in the same hold, a started one keeping its status and
  * another job's ticket left alone; and only a board's first Overseer start puts the v16 low leftovers in `ready-for-review`, whatever the switch says.
@@ -73,9 +73,9 @@ function buildLaunchedFor(board: Board, ticketId: string): boolean {
 }
 
 describe('a finding waits for its finder', () => {
-  test('with ticket review off it is pending at filing, and builds only once its finder is reviewed', () => {
+  test('with ticket review off it is committed at filing, and builds only once its finder is reviewed', () => {
     const { board } = boardWithFinding(false);
-    expect(board.ticketByReference('002')?.frontmatter.status).toBe('pending');
+    expect(board.ticketByReference('002')?.frontmatter.status).toBe('committed');
     expect(buildLaunchedFor(board, '002')).toBe(false);
 
     board.moveTicket('001', 'reviewed', { checksLegality: false }, AT);
@@ -121,13 +121,13 @@ describe('the Overseer\'s first start', () => {
   function boardOfV16Tickets(): ReturnType<typeof boardFixture> {
     const fixture = boardFixture({
       tickets: [
-        ticketFixture({ id: '001', status: 'pending', priority: 'low' }),
-        ticketFixture({ id: '002', status: 'pending', priority: 'normal' }),
-        ticketFixture({ id: '003', status: 'pending', priority: 'high' }),
+        ticketFixture({ id: '001', status: 'committed', priority: 'low' }),
+        ticketFixture({ id: '002', status: 'committed', priority: 'normal' }),
+        ticketFixture({ id: '003', status: 'committed', priority: 'high' }),
         ticketFixture({
-          id: '004', status: 'pending', priority: 'low', hold: 'Example hold'
+          id: '004', status: 'committed', priority: 'low', hold: 'Example hold'
         }),
-        ticketFixture({ id: '005', status: 'pending', priority: 'low' }),
+        ticketFixture({ id: '005', status: 'committed', priority: 'low' }),
       ],
     });
     fixture.board.setNoGates(AT);
@@ -135,10 +135,10 @@ describe('the Overseer\'s first start', () => {
     return fixture;
   }
 
-  test('puts every unheld low pending ticket in ready-for-review, though ticket review is off, asking User nothing', () => {
+  test('puts every unheld low committed ticket in ready-for-review, though ticket review is off, asking User nothing', () => {
     const { board } = boardOfV16Tickets();
     board.submitFirstRunLeftovers(AT);
-    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['ready-for-review', 'pending', 'pending', 'pending', 'ready-for-review']);
+    expect(board.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['ready-for-review', 'committed', 'committed', 'committed', 'ready-for-review']);
     expect(board.incidents()).toEqual([]);
     expect(board.decisions()).toEqual([]);
   });
@@ -151,16 +151,16 @@ describe('the Overseer\'s first start', () => {
   });
 
   test('a start after clear threw the log away moves nothing: the first start is kept in progress.json', () => {
-    const { board, progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'pending', priority: 'normal' })] });
+    const { board, progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'committed', priority: 'normal' })] });
     board.submitFirstRunLeftovers(AT);
     board.recordOverseerStarted({ codeVersion: 'example', installVersion: 17 }, AT);
     board.clearTracker({ ticketsSurvive: true }, AT);
 
-    const ticketsAfterClear = [...tickets, ticketFixture({ id: '002', status: 'pending', priority: 'low' })];
+    const ticketsAfterClear = [...tickets, ticketFixture({ id: '002', status: 'committed', priority: 'low' })];
     const restarted         = new Board({
       progress, tickets: ticketsAfterClear, epics: [], logger: createLogger(() => undefined)
     });
     expect(restarted.submitFirstRunLeftovers(AT).logged).toEqual([]);
-    expect(restarted.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['pending', 'pending']);
+    expect(restarted.tickets().map((ticket) => ticket.frontmatter.status)).toEqual(['committed', 'committed']);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * MonoAssignTickets, read-only: the product owner that the first Apply over entities started, giving each pending ticket an entity. The
+ * MonoAssignTickets, read-only: the product owner that the first Apply over entities started, giving each committed ticket an entity. The
  * dialog lists each ticket with its title, the product owner's reason and the entity, or that it waits; Close is its one action. The
  * forge level's line counts the progress and opens the dialog.
  */

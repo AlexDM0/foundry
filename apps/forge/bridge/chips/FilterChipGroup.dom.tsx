@@ -19,7 +19,7 @@ import {
 import { FilterChipGroup, type FilterChip } from './FilterChipGroup.tsx';
 
 const CHIPS: readonly FilterChip[] = [
-  { value: 'pending', label: 'To do', stateToken: 'pending' },
+  { value: 'committed', label: 'To do', stateToken: 'committed' },
   { value: 'checkout', label: 'Example checkout', slot: 3 },
   { value: 'planted', label: '<b>planted</b>' },
 ];
@@ -31,7 +31,7 @@ function renderChips(pressed: readonly string[], onToggle: (value: string) => vo
       labelIsShown={labelIsShown}
       chips={CHIPS}
       pressed={pressed}
-      countByChip={new Map([['pending', 4], ['checkout', 0], ['planted', 1]])}
+      countByChip={new Map([['committed', 4], ['checkout', 0], ['planted', 1]])}
       onToggle={onToggle}
     />,
   );
@@ -62,13 +62,13 @@ describe('the filter chips', () => {
     const toggled: string[] = [];
     renderChips([], (value) => toggled.push(value));
     fireEvent.click(chipOf('checkout'));
-    fireEvent.click(chipOf('pending'));
-    expect(toggled).toEqual(['checkout', 'pending']);
+    fireEvent.click(chipOf('committed'));
+    expect(toggled).toEqual(['checkout', 'committed']);
   });
 
   test('a state chip leads with its state dot in its tone and shape, and an epic chip with its swatch', () => {
     renderChips([]);
-    const dot = chipOf('pending').querySelector('.design-system-state-dot');
+    const dot = chipOf('committed').querySelector('.design-system-state-dot');
     expect([dot?.getAttribute('data-state-tone'), dot?.getAttribute('data-shape')]).toEqual(['neutral', 'dashed-ring']);
     expect([chipOf('checkout').getAttribute('data-epic-slot'), chipOf('checkout').querySelectorAll('.bridge-epic-swatch').length]).toEqual(['3', 1]);
     expect(chipOf('planted').querySelector('.design-system-state-dot, .bridge-epic-swatch')).toBeNull();

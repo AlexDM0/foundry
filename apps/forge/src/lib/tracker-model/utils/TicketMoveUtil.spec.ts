@@ -10,7 +10,7 @@ const { ticketMoveIsLegal } = TicketMoveUtil;
 
 describe('a ticket move', () => {
   test('the build, review and deliver pipeline is legal at every step', () => {
-    expect(ticketMoveIsLegal('pending', 'in-progress')).toBe(true);
+    expect(ticketMoveIsLegal('committed', 'in-progress')).toBe(true);
     expect(ticketMoveIsLegal('in-progress', 'in-review')).toBe(true);
     expect(ticketMoveIsLegal('in-review', 'reviewed')).toBe(true);
     expect(ticketMoveIsLegal('reviewed', 'delivered')).toBe(true);
@@ -19,19 +19,19 @@ describe('a ticket move', () => {
   });
 
   test('the steps that skip the pipeline are refused', () => {
-    expect(ticketMoveIsLegal('pending', 'delivered')).toBe(false);
-    expect(ticketMoveIsLegal('pending', 'in-review')).toBe(false);
-    expect(ticketMoveIsLegal('pending', 'reviewed')).toBe(false);
+    expect(ticketMoveIsLegal('committed', 'delivered')).toBe(false);
+    expect(ticketMoveIsLegal('committed', 'in-review')).toBe(false);
+    expect(ticketMoveIsLegal('committed', 'reviewed')).toBe(false);
     expect(ticketMoveIsLegal('delivered', 'in-progress')).toBe(false);
   });
 
-  test('abandon reaches anything but the two end states; reopen anything but pending', () => {
-    for (const status of ['pending', 'in-progress', 'in-review', 'reviewed'] as const) {
+  test('abandon reaches anything but the two end states; reopen anything but committed', () => {
+    for (const status of ['committed', 'in-progress', 'in-review', 'reviewed'] as const) {
       expect(ticketMoveIsLegal(status, 'abandoned'), status).toBe(true);
-      expect(ticketMoveIsLegal(status === 'pending' ? 'reviewed' : status, 'pending'), status).toBe(true);
+      expect(ticketMoveIsLegal(status === 'committed' ? 'reviewed' : status, 'committed'), status).toBe(true);
     }
     expect(ticketMoveIsLegal('delivered', 'abandoned')).toBe(false);
     expect(ticketMoveIsLegal('abandoned', 'abandoned')).toBe(false);
-    expect(ticketMoveIsLegal('pending', 'pending')).toBe(false);
+    expect(ticketMoveIsLegal('committed', 'committed')).toBe(false);
   });
 });

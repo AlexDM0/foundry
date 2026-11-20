@@ -4,7 +4,7 @@ import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
 const STATE_LABEL_FOR_DISPLAY_STATE: Readonly<Record<DisplayState, string>> = {
   'draft':            'Draft',
   'ready-for-review': 'Ready for review',
-  'pending':          'To do',
+  'committed':        'To do',
   'in-progress':      'In progress',
   'paused':           'Paused',
   'in-review':        'Awaiting review',

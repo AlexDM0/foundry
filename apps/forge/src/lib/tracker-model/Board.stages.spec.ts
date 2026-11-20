@@ -31,10 +31,10 @@ function boardWithTheShopTicket(pipeline: Pipeline, stage?: TicketStage): Board 
   const { board } = boardFixture({
     pipeline,
     tasks: [taskFixture({
-      id: 1, ticket: '001', status: stage === undefined ? 'pending' : 'in-progress', ...(stage === undefined ? {} : { stage })
+      id: 1, ticket: '001', status: stage === undefined ? 'committed' : 'in-progress', ...(stage === undefined ? {} : { stage })
     })],
     tickets: [ticketFixture({
-      id: '001', status: stage === undefined ? 'pending' : 'in-progress', task: 1, entity: SHOP.key
+      id: '001', status: stage === undefined ? 'committed' : 'in-progress', task: 1, entity: SHOP.key
     })],
   });
   board.setOverseerState('running', AT);

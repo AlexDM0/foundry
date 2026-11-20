@@ -15,7 +15,7 @@ function stampAfterStart(minutes: number): string {
 }
 
 describe('segmentStateOf', () => {
-  test.each<TaskStatus>(['in-progress', 'paused', 'in-review', 're-review', 'reviewed', 'delivered', 'abandoned', 'pending'])(
+  test.each<TaskStatus>(['in-progress', 'paused', 'in-review', 're-review', 'reviewed', 'delivered', 'abandoned', 'committed'])(
     'reads a %s phase as that state, whatever state the row is in now',
     (status) => {
       expect(BarPhaseUtil.segmentStateOf(status, null)).toBe(status);
@@ -32,7 +32,7 @@ describe('segmentStateOf', () => {
 describe('phaseSpansOf', () => {
   test('runs each phase to the next one, the last to the bar\'s end, and drops the phases outside the bar', () => {
     const history = [
-      { status: 'pending' as const, at: stampAfterStart(-30) },
+      { status: 'committed' as const, at: stampAfterStart(-30) },
       { status: 'in-progress' as const, at: stampAfterStart(0) },
       { status: 'paused' as const, at: stampAfterStart(10) },
       { status: 'in-progress' as const, at: stampAfterStart(25) },

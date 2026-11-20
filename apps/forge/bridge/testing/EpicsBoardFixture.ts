@@ -23,10 +23,10 @@ const EPICS_FIXTURE_TICKETS: readonly EpicsTicketDocument[] = [
     id: '3', title: 'Example in progress', status: 'in-progress', updated: '2026-10-29T08:00:00', delivered: null, abandonedAt: null, epics: ['checkout']
   },
   {
-    id: '4', title: 'Example waiting', status: 'pending', updated: '2026-10-28T08:00:00', delivered: null, abandonedAt: null, epics: ['checkout', 'billing'], dependsOn: ['3']
+    id: '4', title: 'Example waiting', status: 'committed', updated: '2026-10-28T08:00:00', delivered: null, abandonedAt: null, epics: ['checkout', 'billing'], dependsOn: ['3']
   },
   {
-    id: '5', title: 'Example billing step', status: 'pending', updated: '2026-10-28T08:00:00', delivered: null, abandonedAt: null, epics: ['billing'], dependsOn: ['3']
+    id: '5', title: 'Example billing step', status: 'committed', updated: '2026-10-28T08:00:00', delivered: null, abandonedAt: null, epics: ['billing'], dependsOn: ['3']
   },
 ];
 
@@ -35,7 +35,7 @@ export const OPEN_FIXTURE_EPIC: EpicRollupDocument = {
   title:               'Example checkout',
   slot:                1,
   ticketIds:           ['2', '3', '4'],
-  ticketCountByStatus: { 'delivered': 1, 'in-progress': 1, 'pending': 1 },
+  ticketCountByStatus: { 'delivered': 1, 'in-progress': 1, 'committed': 1 },
   tokens:              12_400,
   span:                { start: '2026-10-28T08:00:00', end: null },
 };
@@ -45,7 +45,7 @@ const BILLING_FIXTURE_EPIC: EpicRollupDocument = {
   title:               'Example billing',
   slot:                3,
   ticketIds:           ['4', '5'],
-  ticketCountByStatus: { pending: 2 },
+  ticketCountByStatus: { committed: 2 },
   tokens:              0,
   span:                null,
 };

@@ -4,7 +4,7 @@
  * without one, an empty append writes nothing, `--body-file -` in a terminal is refused rather than read as empty text, and the frontmatter's
  * bytes (unknown keys, comments, a hand-written layout) survive an edit while `updated` is not stamped and nothing is logged. A rename
  * touches the title line, the ticket's own row and a generated heading only, keeping the file path, a review bar's name and a hand-changed
- * heading, and logs one line. Past `pending` an edit needs `--force`, checked inside the same lock hold as the write, and a forced body edit
+ * heading, and logs one line. Past `committed` an edit needs `--force`, checked inside the same lock hold as the write, and a forced body edit
  * reads as changed since the claim while a rename does not.
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -33,7 +33,7 @@ const FROZEN_NOW = new Date('2026-09-24T09:25:00Z');
 const HAND_WRITTEN_FRONTMATTER_LINES = [
   '---',
   'id: "001"',
-  'status: pending',
+  'status: committed',
   'title: "Example checkout page"',
   'type: feature',
   '# kept by hand',
@@ -200,8 +200,8 @@ describeWhenGitIsRecorded('editing a ticket body', () => {
   });
 });
 
-describeWhenGitIsRecorded('editing a ticket past pending', () => {
-  test('a draft ticket is edited without --force, as a pending one is', async () => {
+describeWhenGitIsRecorded('editing a ticket past committed', () => {
+  test('a draft ticket is edited without --force, as a committed one is', async () => {
     await run(['ticket', 'add', '--type', 'ticket', 'Example cart']);
 
     await run(['ticket', 'edit', '2', '--append', '--body', 'Appended to the draft.\n']);
@@ -318,7 +318,7 @@ describeWhenGitIsRecorded('renaming a ticket', () => {
   test('a forced rename of a claimed hand-written frontmatter rewrites only its title and claimedBodyHash lines', async () => {
     const body = '# 001 — Example checkout page\n\n## Report\n';
     const frontmatterText = HAND_WRITTEN_FRONTMATTER_LINES
-      .map((line) => (line === 'status: pending' ? 'status: in-progress' : line))
+      .map((line) => (line === 'status: committed' ? 'status: in-progress' : line))
       .flatMap((line) => (line === 'task: 1' ? [`claimedBodyHash: "${TicketBodyHashUtil.bodyHashOf(body)}"`, line] : [line]))
       .join('\n');
     writeFileSync(ticketFilePath(), `${frontmatterText}\n${body}`);

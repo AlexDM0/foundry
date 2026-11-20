@@ -121,7 +121,7 @@ export const LOG_RECORD_SCHEMA = {
   'merge-acceptance-set':            { subject: 'ticket', fields: { state: 'text' } },
   // `merge update`: the target merged into the ticket's worktree (`merged`), or conflicted and was aborted (`conflicted`).
   'merge-updated':                   { subject: 'ticket', fields: { target: 'text', outcome: 'text' } },
-  'ticket-readied':                  { subject: 'ticket', fields: NO_FIELDS },
+  'ticket-committed':                { subject: 'ticket', fields: NO_FIELDS },
   // The ticket waits for User's `ticket ready`: its filer closed it while ticket review is on, its finder was abandoned, or it is a v16 leftover.
   'ticket-submitted-for-review':     { subject: 'ticket', fields: NO_FIELDS },
   // A code-implemented repair of the ticket's worktree ran; `patchPath` is where `recreate` saved its changes, when there were any.
@@ -342,7 +342,7 @@ export const LOG_RECORD_SCHEMA = {
       // Set only on a forge with entities: the entity and the stage the job runs, which scope its red handoffs and failed passes.
       entity:           'optional-text',
       stage:            'optional-count',
-      // Set only on the product owner the first Apply over entities starts: the pending tickets it gives an entity.
+      // Set only on the product owner the first Apply over entities starts: the committed tickets it gives an entity.
       entitiesToAssign: 'optional-ticket-ids',
     },
   },

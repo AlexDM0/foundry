@@ -14,11 +14,11 @@ export interface DetailControlsModel {
   readonly holdMove:        'hold' | 'unhold' | null;
   /** Any open ticket: `ticket-park`. */
   readonly parks:           boolean;
-  /** Only while `draft` or `pending`: `ticket-network`. */
+  /** Only while `draft` or `committed`: `ticket-network`. */
   readonly setsNetwork:     boolean;
   /** The domains stored now, which the network control starts from. */
   readonly network:         readonly string[];
-  /** Only while `pending`: the priorities `ticket-priority` may move the ticket to, every one but its own; empty otherwise. */
+  /** Only while `committed`: the priorities `ticket-priority` may move the ticket to, every one but its own; empty otherwise. */
   readonly priorityChoices: readonly TicketPriority[];
   /** Any open ticket past `draft`: `ticket-deliver-by-hand`, for work User landed outside the Overseer. */
   readonly deliversByHand:  boolean;
@@ -55,7 +55,7 @@ function mergeWaitOf(mergeQueue: DetailBoardState['mergeQueue'], ticketId: strin
 function controlsOf(ticket: DetailTicketDocument, mergeQueue: DetailBoardState['mergeQueue']): DetailControlsModel {
   const isOpen = ticket.status !== 'delivered' && ticket.status !== 'abandoned';
   const awaitsReady   = ticket.status === 'draft' || ticket.status === 'ready-for-review';
-  const notYetStarted = awaitsReady || ticket.status === 'pending';
+  const notYetStarted = awaitsReady || ticket.status === 'committed';
   let holdMove: DetailControlsModel['holdMove'] = null;
   if (isOpen && ticket.hold !== undefined) holdMove = 'unhold';
   else if (notYetStarted) holdMove = 'hold';
@@ -66,7 +66,7 @@ function controlsOf(ticket: DetailTicketDocument, mergeQueue: DetailBoardState['
     parks:           isOpen,
     setsNetwork:     notYetStarted,
     network:         ticket.network ?? [],
-    priorityChoices: ticket.status === 'pending' ? PRIORITY_CHOICE_ORDER.filter((priority) => priority !== currentPriority) : [],
+    priorityChoices: ticket.status === 'committed' ? PRIORITY_CHOICE_ORDER.filter((priority) => priority !== currentPriority) : [],
     deliversByHand:  isOpen && ticket.status !== 'draft',
     ...mergeWaitOf(mergeQueue, ticket.id),
   };

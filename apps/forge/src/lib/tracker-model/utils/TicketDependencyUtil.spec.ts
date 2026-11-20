@@ -36,9 +36,9 @@ test('a dependency on a ticket that cannot be found counts as unsettled', () => 
 });
 
 test('a ticket still to be worked on waits on the dependencies not yet reviewed or delivered', () => {
-  expect(waitingOnOf({ status: 'pending', dependsOn: ['001', '003'] }, STATUS_BY_ID)).toEqual(['003']);
+  expect(waitingOnOf({ status: 'committed', dependsOn: ['001', '003'] }, STATUS_BY_ID)).toEqual(['003']);
   expect(waitingOnOf({ status: 'in-progress', dependsOn: ['004'] }, STATUS_BY_ID)).toEqual(['004']);
-  expect(waitingOnOf({ status: 'pending' }, STATUS_BY_ID)).toEqual([]);
+  expect(waitingOnOf({ status: 'committed' }, STATUS_BY_ID)).toEqual([]);
 });
 
 // A closed ticket's list is history; showing it as waiting would suggest work that is not coming.
@@ -71,14 +71,14 @@ test('the ticket being changed is judged by its new list, not by the one it has 
 });
 
 // What `status --json` hands a dispatcher as claimable: in-progress work and work waiting on anything unfinished must not appear.
-test('only a pending ticket whose every dependency is reviewed or delivered is ready, and the ids come back lowest first', () => {
+test('only a committed ticket whose every dependency is reviewed or delivered is ready, and the ids come back lowest first', () => {
   const tickets = [
-    { id: '010', status: 'pending' as const },
+    { id: '010', status: 'committed' as const },
     { id: '002', status: 'delivered' as const },
-    { id: '003', status: 'pending' as const, dependsOn: ['002'] },
-    { id: '004', status: 'pending' as const, dependsOn: ['005'] },
+    { id: '003', status: 'committed' as const, dependsOn: ['002'] },
+    { id: '004', status: 'committed' as const, dependsOn: ['005'] },
     { id: '005', status: 'in-progress' as const },
-    { id: '006', status: 'pending' as const, dependsOn: ['009'] },
+    { id: '006', status: 'committed' as const, dependsOn: ['009'] },
   ];
 
   expect(readyTicketIdsOf(tickets)).toEqual(['003', '010']);
@@ -87,10 +87,10 @@ test('only a pending ticket whose every dependency is reviewed or delivered is r
 // A dispatcher takes the first ready id, so the order is the priority: high work filed late still goes first.
 test('a high ticket is listed before every normal one, and each priority is lowest id first within itself', () => {
   const tickets = [
-    { id: '001', status: 'pending' as const },
-    { id: '002', status: 'pending' as const, priority: 'high' as const },
-    { id: '003', status: 'pending' as const, priority: 'normal' as const },
-    { id: '004', status: 'pending' as const, priority: 'high' as const },
+    { id: '001', status: 'committed' as const },
+    { id: '002', status: 'committed' as const, priority: 'high' as const },
+    { id: '003', status: 'committed' as const, priority: 'normal' as const },
+    { id: '004', status: 'committed' as const, priority: 'high' as const },
   ];
 
   expect(readyTicketIdsOf(tickets)).toEqual(['002', '004', '001', '003']);
@@ -99,8 +99,8 @@ test('a high ticket is listed before every normal one, and each priority is lowe
 // Ready means build: priority only orders, so unsettled normal or high work holds no low ticket back.
 test('a low ticket is ready beside normal and high work that is still owed, and listed after it', () => {
   const tickets = [
-    { id: '001', status: 'pending' as const, priority: 'low' as const },
-    { id: '002', status: 'pending' as const },
+    { id: '001', status: 'committed' as const, priority: 'low' as const },
+    { id: '002', status: 'committed' as const },
     { id: '003', status: 'in-review' as const, priority: 'high' as const },
     { id: '004', status: 'reviewed' as const },
   ];
@@ -110,9 +110,9 @@ test('a low ticket is ready beside normal and high work that is still owed, and 
 
 test('within a priority the ticket readied earlier comes first, before the id decides', () => {
   const tickets = [
-    { id: '001', status: 'pending' as const },
-    { id: '002', status: 'pending' as const },
-    { id: '003', status: 'pending' as const, priority: 'high' as const },
+    { id: '001', status: 'committed' as const },
+    { id: '002', status: 'committed' as const },
+    { id: '003', status: 'committed' as const, priority: 'high' as const },
   ];
   const readinessPositionByTicketId = new Map([['001', 9], ['002', 4], ['003', 12]]);
 
@@ -122,10 +122,10 @@ test('within a priority the ticket readied earlier comes first, before the id de
 // A ticket readied before readiness was logged, under v16 or behind a clearing, has waited longest.
 test('a ticket with no readiness position ranks before every positioned one of its priority, and ids order those without one', () => {
   const tickets = [
-    { id: '001', status: 'pending' as const },
-    { id: '002', status: 'pending' as const },
-    { id: '003', status: 'pending' as const },
-    { id: '004', status: 'pending' as const, priority: 'low' as const },
+    { id: '001', status: 'committed' as const },
+    { id: '002', status: 'committed' as const },
+    { id: '003', status: 'committed' as const },
+    { id: '004', status: 'committed' as const, priority: 'low' as const },
   ];
 
   expect(readyTicketIdsOf(tickets, new Map([['001', 0], ['004', 1]]))).toEqual(['002', '003', '001', '004']);

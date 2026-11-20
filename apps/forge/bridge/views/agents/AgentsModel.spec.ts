@@ -72,8 +72,8 @@ describe('which card a job sits in', () => {
     expect(AgentsModel.roleMarkOf({ role: 'product-owner', kind: 'product-owner' })).toEqual({ icon: 'inbox', state: 'draft', word: 'intake' });
     expect(AgentsModel.roleMarkOf({ role: 'assistant', kind: 'assistant' })).toEqual({ icon: 'lifebuoy', state: 'reviewing', word: 'Assistant' });
     expect(AgentsModel.roleMarkOf({ role: 'pipeline-agent', kind: 'pipeline-agent' }))
-      .toEqual({ icon: 'flow', state: 'pending', word: 'pipeline agent' });
-    expect(AgentsModel.roleMarkOf({ role: null, kind: 'merge' })).toEqual({ icon: 'merge', state: 'pending', word: 'merge' });
+      .toEqual({ icon: 'flow', state: 'committed', word: 'pipeline agent' });
+    expect(AgentsModel.roleMarkOf({ role: null, kind: 'merge' })).toEqual({ icon: 'merge', state: 'committed', word: 'merge' });
   });
 
   test('a re-reviewer and a conflict re-reviewer draw the reviewer\'s icon, each with its own word', () => {
@@ -89,8 +89,8 @@ describe('which card a job sits in', () => {
     const everyIcon = [...roleIcons, ...rolelessIcons];
     expect(new Set(everyIcon).size).toBe(everyIcon.length);
     expect(everyIcon).not.toContain('dot');
-    expect(AgentsModel.roleMarkOf({ role: 'example-role', kind: 'build' })).toEqual({ icon: 'dot', state: 'pending', word: 'example-role' });
-    expect(AgentsModel.roleMarkOf({ role: null, kind: 'example-kind' })).toEqual({ icon: 'dot', state: 'pending', word: 'example-kind' });
+    expect(AgentsModel.roleMarkOf({ role: 'example-role', kind: 'build' })).toEqual({ icon: 'dot', state: 'committed', word: 'example-role' });
+    expect(AgentsModel.roleMarkOf({ role: null, kind: 'example-kind' })).toEqual({ icon: 'dot', state: 'committed', word: 'example-kind' });
     expect(AgentsModel.roleMarkOf({ role: null, kind: 'toString' }).icon).toBe('dot');
   });
 });

@@ -8,8 +8,8 @@ import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
 const NOT_YET_UP_STATES: ReadonlySet<string> = new Set(['launching', 'preparing', 'interrupted', 'stopping']);
 
 const DISPLAY_STATE_OF_JOB_STATE: Readonly<Record<string, DisplayState>> = {
-  'launching':          'pending',
-  'preparing':          'pending',
+  'launching':          'committed',
+  'preparing':          'committed',
   'running':            'in-progress',
   'waiting-for-answer': 'paused',
   'awaiting-answer':    'paused',
@@ -22,7 +22,7 @@ const DISPLAY_STATE_OF_JOB_STATE: Readonly<Record<string, DisplayState>> = {
   'landing':            'reviewed',
 };
 
-const UNKNOWN_JOB_STATE_DISPLAY_STATE: DisplayState = 'pending';
+const UNKNOWN_JOB_STATE_DISPLAY_STATE: DisplayState = 'committed';
 
 /** Fresh agent replaces a builder or reviewer on its worktree; the other kinds have no worktree of their own to hand on. */
 const FRESH_AGENT_KINDS: readonly string[] = ['build', 'review'];

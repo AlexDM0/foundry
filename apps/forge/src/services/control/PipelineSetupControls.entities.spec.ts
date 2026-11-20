@@ -378,7 +378,7 @@ describe('the pipeline check per entity', () => {
 
 describe('an Apply over entities', () => {
   test('reads each entity\'s constitution path on main, adopts a file main holds, and starts the product owner with its request', () => {
-    const fixture = boardWithEntitySessions([ticketFixture({ id: '021', status: 'pending' })]);
+    const fixture = boardWithEntitySessions([ticketFixture({ id: '021', status: 'committed' })]);
     for (const step of ['constitution', 'design'] as const) {
       apply(fixture, {
         kind: 'pipeline-setup-step', setupId: 'S1', step, move: 'continue'

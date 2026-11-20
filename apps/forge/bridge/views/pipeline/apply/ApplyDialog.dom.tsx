@@ -1,6 +1,6 @@
 /**
  * The first Apply (A4Confirm) in a happy-dom document, opened from the design step against fake controls. What matters: Apply sends
- * `pipeline-apply` with `resumesBoard` exactly as the checkbox shows, on by default; the checkbox counts the pending tickets and the
+ * `pipeline-apply` with `resumesBoard` exactly as the checkbox shows, on by default; the checkbox counts the committed tickets and the
  * concurrency limit; a refusal shows verbatim and the dialog stays open; with the facts' `applyState` committing, held or refused, the
  * dialog opens on that state's text from the facts, its Cancel is Cancel apply, which sends `pipeline-apply-cancel`, and a signing
  * failure offers the exact text of CONSTITUTION.md; Cancel, on the foot's start side, closes the dialog; once the facts show the
@@ -67,11 +67,11 @@ async function openApply(name: PipelineFixtureName = 'A4') {
 }
 
 describe('Resume the board', () => {
-  test('is on by default and says how many pending tickets start, and how many at a time', async () => {
+  test('is on by default and says how many committed tickets start, and how many at a time', async () => {
     await openApply();
     const checkbox = within(applyDialog()).getByRole<HTMLInputElement>('checkbox', { name: /Resume the board/u });
     expect(checkbox.checked).toBe(true);
-    expect(within(applyDialog()).getByText('The 4 pending tickets start building, 2 at a time.')).toBeDefined();
+    expect(within(applyDialog()).getByText('The 4 committed tickets start building, 2 at a time.')).toBeDefined();
     expect(within(applyDialog()).getByText('Apply commits CONSTITUTION.md to main, then stores the pipeline.')).toBeDefined();
   });
 
@@ -200,8 +200,8 @@ describe('over entities', () => {
     ]);
     expect(within(applyDialog()).getByText('1 constitution goes to main in one commit')).toBeDefined();
     expect(within(within(applyDialog()).getByRole('list', { name: 'Constitutions in the commit' })).getByText('web')).toBeDefined();
-    expect(within(applyDialog()).getByText('The 4 pending tickets start building, 2 jobs at once.')).toBeDefined();
-    expect(within(applyDialog()).getByText('4 pending tickets name no entity. After Apply the product owner gives each one an entity.')).toBeDefined();
+    expect(within(applyDialog()).getByText('The 4 committed tickets start building, 2 jobs at once.')).toBeDefined();
+    expect(within(applyDialog()).getByText('4 committed tickets name no entity. After Apply the product owner gives each one an entity.')).toBeDefined();
     expect(within(applyDialog()).queryByText('Apply is refused')).toBeNull();
   });
 

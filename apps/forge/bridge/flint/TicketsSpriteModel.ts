@@ -37,7 +37,7 @@ function happeningsBetween(previous: readonly CuedTicket[], next: readonly CuedT
     return before !== undefined && change(before, ticket);
   });
   const happenings: readonly (readonly [string, boolean])[] = [
-    [TICKETS_CUES.DRAFT_READIED, changed(becameStatus('pending', 'draft'))],
+    [TICKETS_CUES.DRAFT_READIED, changed(becameStatus('committed', 'draft'))],
     [TICKETS_CUES.TICKET_FILED, appeared.some((ticket) => ticket.foundInReview === undefined && ticket.introducedBy === undefined)],
     [TICKETS_CUES.PRIORITY_CHANGED, changed(priorityChanged)],
     [TICKETS_CUES.DEPENDENCY_ADDED, changed(dependencyAdded)],

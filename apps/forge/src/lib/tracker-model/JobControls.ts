@@ -120,7 +120,7 @@ export class JobControls {
   }
 
   /**
-   * The product owner the first Apply over entities starts, as an intake of `request`: it gives each of the pending tickets without an
+   * The product owner the first Apply over entities starts, as an intake of `request`: it gives each of the committed tickets without an
    * entity one. The launch record names those tickets, so their progress can be shown.
    */
   startEntityAssignment(request: string, ticketIds: readonly string[], at: string): JobChanged {

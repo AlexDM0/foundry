@@ -8,10 +8,10 @@ import type { TicketStatus } from '../@types/Ticket.ts';
 export const LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS: Record<TicketStatus, readonly TicketStatus[]> = {
   'draft':            [],
   'ready-for-review': ['draft'],
-  'pending':          ['draft', 'ready-for-review', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'],
-  'in-progress':      ['pending', 'in-review'],
+  'committed':        ['draft', 'ready-for-review', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'],
+  'in-progress':      ['committed', 'in-review'],
   'in-review':        ['in-progress'],
   'reviewed':         ['in-progress', 'in-review'],
   'delivered':        ['reviewed'],
-  'abandoned':        ['draft', 'ready-for-review', 'pending', 'in-progress', 'in-review', 'reviewed'],
+  'abandoned':        ['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed'],
 };

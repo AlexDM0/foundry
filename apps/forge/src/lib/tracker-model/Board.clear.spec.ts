@@ -41,8 +41,8 @@ describe('with the tickets surviving', () => {
 
     expect(progress.tasks.map((task) => [task.id, task.ticket, task.status, task.start, task.end])).toEqual([
       [9, '001', 'delivered', STARTED_AT, FINISHED_AT],
-      [10, '002', 'pending', null, null],
-      [11, '004', 'pending', null, null],
+      [10, '002', 'committed', null, null],
+      [11, '004', 'committed', null, null],
     ]);
     expect(progress.tasks[0]?.reviewed).toBe(FINISHED_AT);
     expect(tickets.map((ticket) => ticket.frontmatter.task)).toEqual([9, 10, null, 11]);

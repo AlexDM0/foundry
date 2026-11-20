@@ -4,7 +4,7 @@
  */
 import type { TicketFrontmatter, TicketPriority, TicketStatus }            from '../@types/Ticket.ts';
 import type { BoardRefusalDetail }                                         from '../BoardRefusal.ts';
-import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_EDITABLE_WITHOUT_FORCE } from '../constants/Statuses.ts';
+import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP } from '../constants/Statuses.ts';
 import { TICKET_PRIORITIES }                                               from '../constants/TicketFields.ts';
 import { TicketDefaultsUtil }                                              from './TicketDefaultsUtil.ts';
 
@@ -29,7 +29,7 @@ function holdRefusalOf(frontmatter: Pick<TicketFrontmatter, 'id' | 'status' | 'h
 
 /** Only while no agent has claimed the ticket, so no agent already at work gains a grant. */
 function networkCanChange(status: TicketStatus): boolean {
-  return TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status);
+  return TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(status);
 }
 
 /**
@@ -43,7 +43,7 @@ function priorityRefusalOf(frontmatter: Pick<TicketFrontmatter, 'id' | 'status' 
       reason: 'priority-unchanged', ticketId, status, priority
     };
   }
-  if (priority === 'low' && !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) return { reason: 'lowering-a-ticket-that-is-not-pending', ticketId, status };
+  if (priority === 'low' && !TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(status)) return { reason: 'lowering-a-ticket-that-is-not-committed', ticketId, status };
   return null;
 }
 

@@ -1,5 +1,5 @@
 /**
- * A filed ticket joins with a pending row, except a low one, and a dependency that is missing or closes a circle is refused before
+ * A filed ticket joins with a committed row, except a low one, and a dependency that is missing or closes a circle is refused before
  * anything changes. Refusals are asserted by reason code, never by wording.
  */
 import { describe, expect, test } from 'bun:test';
@@ -11,7 +11,7 @@ const FILED_AT   = '2026-09-18T09:30:00+02:00';
 const CHANGED_AT = '2026-09-18T11:15:00+02:00';
 
 describe('fileTicket', () => {
-  test('a filed ticket joins the board with a pending row filed at the same moment', () => {
+  test('a filed ticket joins the board with a committed row filed at the same moment', () => {
     const {
       board,
       progress,
@@ -25,9 +25,9 @@ describe('fileTicket', () => {
     expect(progress.tasks).toHaveLength(1);
     expect(progress.tasks[0]).toMatchObject({
       name:    '#002 Example basket badge',
-      status:  'pending',
+      status:  'committed',
       ticket:  '002',
-      history: [{ status: 'pending', at: FILED_AT }],
+      history: [{ status: 'committed', at: FILED_AT }],
     });
     expect(filed.ticket.frontmatter.task).toBe(progress.tasks[0]?.id ?? 0);
     expect(records).toEqual([{

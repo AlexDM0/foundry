@@ -152,7 +152,7 @@ describe('the finished-work window', () => {
   const RECENT_ROW = exampleProgressTask(2, {
     name: 'Recent work', status: 'delivered', start: '2026-09-18T10:00:00+02:00', end: '2026-09-18T11:00:00+02:00'
   });
-  const OPEN_ROW = exampleProgressTask(3, { name: 'Open work', status: 'pending' });
+  const OPEN_ROW = exampleProgressTask(3, { name: 'Open work', status: 'committed' });
 
   test('drops a row that finished before the window, keeps open rows, and fits the range to the rows drawn', () => {
     const board = exampleProgressBoard({ tasks: [OLD_ROW, RECENT_ROW, OPEN_ROW] });
@@ -254,7 +254,7 @@ describe('progressBoardStateOf', () => {
 
 describe('changedTaskIdsBetween', () => {
   test('marks nothing on the first board, then the new rows and the rows whose state or review round moved', () => {
-    const firstTasks = [exampleProgressTask(1, { status: 'pending' }), exampleProgressTask(2, { status: 'in-progress', reviewRound: 1 }), exampleProgressTask(3)];
+    const firstTasks = [exampleProgressTask(1, { status: 'committed' }), exampleProgressTask(2, { status: 'in-progress', reviewRound: 1 }), exampleProgressTask(3)];
     const before = exampleProgressBoard({ tasks: firstTasks });
     const after = exampleProgressBoard({
       tasks: [

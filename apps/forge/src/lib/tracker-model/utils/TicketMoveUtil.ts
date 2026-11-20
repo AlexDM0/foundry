@@ -55,7 +55,7 @@ function stampsAfterMoveOf(frontmatter: Readonly<TicketStamps>, targetStatus: Ti
   switch (targetStatus) {
     case 'draft':
     case 'ready-for-review':
-    case 'pending':
+    case 'committed':
       return {
         started:      null,
         finished:     null,

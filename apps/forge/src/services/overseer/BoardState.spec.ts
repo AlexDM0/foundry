@@ -46,7 +46,7 @@ const UNREAD_STATUS_DOCUMENT = {} as FullStatusDocument;
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'summary-v1.json');
 
 const EXAMPLE_STATE = {
-  ticketCountByStatus: { pending: 1, 'in-progress': 1 },
+  ticketCountByStatus: { committed: 1, 'in-progress': 1 },
   page:                { payload: {}, tickets: [] },
   jobs:                [{
     id: 'J1', kind: 'build', ticketIds: ['001'], state: 'running', role: 'builder', attempt: 1, live: { tokens: 1200, toolCalls: 4 }
@@ -102,7 +102,7 @@ describe('BoardStateAssembly.questionHistoryOf', () => {
         kind: 'incident-defaulted', at, incidentId: 'I1', fields: { move: 'ticket-park', cause: 'turn-closed' }
       },
       {
-        kind: 'ticket-readied', at, ticketId: '005', fields: {}
+        kind: 'ticket-committed', at, ticketId: '005', fields: {}
       },
     ] as unknown as Parameters<typeof BoardStateAssembly.questionHistoryOf>[0];
     expect(BoardStateAssembly.questionHistoryOf(records).map((record) => ('jobId' in record ? `${record.kind} ${record.jobId}` : record.kind))).toEqual([
@@ -190,7 +190,7 @@ describe('BoardStateAssembly.boardStateOf', () => {
     pipelineSources: PipelineSources = NO_PIPELINE_SOURCES,
   ): BoardStateReading {
     const { board, progress, tickets } = boardFixture({
-      tickets:  [ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'pending', dependsOn: ['001'] })],
+      tickets:  [ticketFixture({ id: '001', status: 'committed' }), ticketFixture({ id: '002', status: 'committed', dependsOn: ['001'] })],
       pipeline: EXAMPLE_PIPELINE,
     });
     return {

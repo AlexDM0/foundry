@@ -30,10 +30,10 @@ function storefrontFixture(): BoardFixture {
   return boardFixture({
     tasks:   [taskFixture({ id: 1, name: 'Example chore' })],
     tickets: [
-      ticketFixture({ id: '003', status: 'pending', group: 'checkout' }),
+      ticketFixture({ id: '003', status: 'committed', group: 'checkout' }),
       { ...ticketFixture({ id: '004', status: 'in-review' }), body: REVIEWED_BODY },
       ticketFixture({ id: '005', status: 'delivered' }),
-      ticketFixture({ id: '006', type: 'bug', status: 'pending' }),
+      ticketFixture({ id: '006', type: 'bug', status: 'committed' }),
     ],
   });
 }
@@ -126,7 +126,7 @@ const TWIN_CASES: readonly TwinCase[] = [
     command: {
       kind: 'ticket-reopen', ticketReference: '5', reason: 'The basket total is wrong', tokens: 400
     },
-    verbBoardCall: (board) => board.moveTicket('005', 'pending', { checksLegality: true, reason: 'The basket total is wrong', tokens: 400 }, CHANGED_AT),
+    verbBoardCall: (board) => board.moveTicket('005', 'committed', { checksLegality: true, reason: 'The basket total is wrong', tokens: 400 }, CHANGED_AT),
   },
   {
     name:    'ticket-status-set past the legality matrix',
@@ -170,7 +170,7 @@ describe('the by-hand ticket kinds', () => {
     expect(fixture.board.ticketByReference('6')?.frontmatter.introducedBy).toBeUndefined();
   });
 
-  test('ticket-reopen keeps the legality matrix: a ticket already pending is refused by the Board', () => {
+  test('ticket-reopen keeps the legality matrix: a ticket already committed is refused by the Board', () => {
     const fixture = storefrontFixture();
     const before  = fixture.board.tickets();
 

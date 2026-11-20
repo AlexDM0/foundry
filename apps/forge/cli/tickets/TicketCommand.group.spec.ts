@@ -1,6 +1,6 @@
 /**
  * `ticket group`: putting an existing ticket into a group, which owner answer A11 asks for so a ticket already in flight can join the group
- * its dependents' fix tickets are filed in (E26). The cases that matter: a pending ticket and a started one each gain the `group` line, one
+ * its dependents' fix tickets are filed in (E26). The cases that matter: a committed ticket and a started one each gain the `group` line, one
  * `ticket-grouped` log line and no `updated` stamp, so their next landing goes to the group's branch; the refusals are those of a filing's
  * group (a name that is not portable; the case twin of a stored group is held in `src/lib/tracker-model/Board.ticketSettings.spec.ts`) plus
  * a ticket already in a group and a settled one, each at exit 1 with the ticket file and the log as they were; and the verb without its
@@ -69,7 +69,7 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('putting a ticket into a group', () => {
-  test('a pending ticket gains the group line and one ticket-grouped log line, and updated is not stamped', async () => {
+  test('a committed ticket gains the group line and one ticket-grouped log line, and updated is not stamped', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Example cart']);
     const updatedLine = /\nupdated: .*\n/u.exec(storedTicketText('001'))?.[0];
 

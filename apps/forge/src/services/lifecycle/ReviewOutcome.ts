@@ -227,7 +227,7 @@ function settleReviewPass(request: ReviewPassRequest): ReviewPassOutcome {
   if (packageReview === undefined) {
     const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId);
     const bodyWithReview = appendSection(ticket?.body ?? '', reviewSection);
-    logged.push(...board.editTicket(ticketId, { body: { text: bodyWithReview, appends: false }, allowsPastPending: true }, at).logged);
+    logged.push(...board.editTicket(ticketId, { body: { text: bodyWithReview, appends: false }, allowsPastCommitted: true }, at).logged);
   }
 
   const failed = claims.some((claim) => claim.result === 'does-not-hold');
@@ -346,7 +346,7 @@ function actOnWaiverAnswer(board: Board, jobId: string, answers: readonly string
   const reading = readWaiverProposals(jobFolder);
   if (reading.verdict === 'unreadable') return endAsFailedPass('waiver-proposals-unreadable');
   const body = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
-  logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, allowsPastPending: true }, at).logged);
+  logged.push(...board.editTicket(ticketId, { body: { text: bodyWithWaivedItems(body, reading.proposals), appends: false }, allowsPastCommitted: true }, at).logged);
   logged.push(...board.endJob(job.id, { outcome: 'reviewed' }, at).logged);
   if (board.greenIsCurrent(ticketId, headTree, board.greenPhaseOf(ticketId))) logged.push(...board.queueTicketForMerge(ticketId, job.target ?? '', headTree, at).logged);
   return logged;

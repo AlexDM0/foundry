@@ -1,11 +1,11 @@
 /**
  * Apply of a draft over entities. What matters: the Apply refuses to remove or rename an entity a ticket that is not delivered or abandoned
  * names (E91), and refuses to turn a stored pipeline without entities into entities while a ticket is in progress, in review or reviewed
- * (E94), where a first setup and a pending ticket refuse nothing. The forge has no constitution of its own beside entities, so its empty
+ * (E94), where a first setup and a committed ticket refuse nothing. The forge has no constitution of its own beside entities, so its empty
  * draft refuses nothing: each entity's drafted text that main lacks waits for the commit, each drafted entity takes main's blob of its file
  * as its base, an entity with no draft adopts the file main holds byte for byte, and stage 2 refuses an entity's text main does not hold,
  * naming the entity. Stage 2 refuses E91 and E94 again, for a ticket that started or took the removed entity while the request waited. The
- * first Apply that stores entities starts one product owner, as an intake of the words the caller gives, for the pending tickets without an
+ * first Apply that stores entities starts one product owner, as an intake of the words the caller gives, for the committed tickets without an
  * entity, its launch record naming them; an Apply over a pipeline that already had entities, or one with no such ticket, starts none. An
  * Apply over a pipeline with entities that adds an entity touches no open ticket and starts no product owner (E90), and one that moves an
  * entity's home keeps the entity's key on its open tickets (E92).
@@ -119,7 +119,7 @@ function wordsOf(ticketIds: readonly string[]): string {
 
 describe('stage 1 refuses', () => {
   test('E91: removing an entity that a ticket not yet landed names, naming the entity and the tickets', () => {
-    const tickets = [ticketFixture({ id: '019', entity: 'docs', status: 'pending' }), ticketFixture({ id: '020', entity: 'docs', status: 'draft' })];
+    const tickets = [ticketFixture({ id: '019', entity: 'docs', status: 'committed' }), ticketFixture({ id: '020', entity: 'docs', status: 'draft' })];
     const board = boardOver(STORED_WITH_DOCS, tickets);
 
     expect(refusalDetailOf(() => board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT))).toEqual({
@@ -137,7 +137,7 @@ describe('stage 1 refuses', () => {
   });
 
   test('E94: a stored pipeline without entities turning into entities while tickets are in progress, in review or reviewed', () => {
-    const statuses: Ticket['frontmatter']['status'][] = ['in-progress', 'in-review', 'reviewed', 'pending'];
+    const statuses: Ticket['frontmatter']['status'][] = ['in-progress', 'in-review', 'reviewed', 'committed'];
     const tickets = statuses.map((status, index) => ticketFixture({ id: `01${index}`, status }));
     const board = boardOver(SINGLE_PIPELINE, tickets);
 
@@ -145,17 +145,17 @@ describe('stage 1 refuses', () => {
     expect(refusal).toEqual({ reason: 'entities-while-tickets-in-flight', setupId: SETUP_ID, ticketIds: ['010', '011', '012'] });
   });
 
-  test('E94 not for a first setup, nor for pending tickets alone', () => {
+  test('E94 not for a first setup, nor for committed tickets alone', () => {
     const tickets = [ticketFixture({ id: '010', status: 'in-progress' })];
     expect(boardOver(null, tickets).requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
-    const pendingOnly = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '010', status: 'pending' })]);
+    const pendingOnly = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '010', status: 'committed' })]);
     expect(pendingOnly.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
   });
 });
 
 describe('stage 2 refuses again', () => {
-  test('E94 when a pending ticket started while the request waited, and the record stays as the request left it', () => {
-    const board = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '010', status: 'pending' })]);
+  test('E94 when a committed ticket started while the request waited, and the record stays as the request left it', () => {
+    const board = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '010', status: 'committed' })]);
     expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
     board.moveTicket('010', 'in-progress', { checksLegality: false }, AT);
 
@@ -168,7 +168,7 @@ describe('stage 2 refuses again', () => {
   });
 
   test('E91 when a ticket took the entity the draft removes while the request waited', () => {
-    const board = boardOver(STORED_WITH_DOCS, [ticketFixture({ id: '019', entity: 'web', status: 'pending' })]);
+    const board = boardOver(STORED_WITH_DOCS, [ticketFixture({ id: '019', entity: 'web', status: 'committed' })]);
     expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITHOUT_WEB_TEXT }, AT).outcome).toBe('committing');
     expect(board.entityChangeRefusalOf(SETUP_ID)).toBeNull();
     board.setTicketEntity('019', { entity: 'docs', reason: 'It changes the guides.', by: 'user' }, AT);
@@ -232,12 +232,12 @@ describe('the constitutions of a draft over entities', () => {
 });
 
 describe('the product owner of the first Apply over entities', () => {
-  test('starts once, as an intake of the caller\'s words, for the pending tickets without an entity, its launch record naming them', () => {
+  test('starts once, as an intake of the caller\'s words, for the committed tickets without an entity, its launch record naming them', () => {
     const tickets = [
-      ticketFixture({ id: '021', status: 'pending' }),
-      ticketFixture({ id: '022', status: 'pending', entity: 'web' }),
+      ticketFixture({ id: '021', status: 'committed' }),
+      ticketFixture({ id: '022', status: 'committed', entity: 'web' }),
       ticketFixture({ id: '023', status: 'draft' }),
-      ticketFixture({ id: '024', status: 'pending' }),
+      ticketFixture({ id: '024', status: 'committed' }),
     ];
     const board = boardOver(SINGLE_PIPELINE, tickets);
 
@@ -250,13 +250,13 @@ describe('the product owner of the first Apply over entities', () => {
     expect(applied.ticketsAwaitingEntity).toEqual(['021', '024']);
   });
 
-  test('starts none over a pipeline that already had entities, nor with no pending ticket without one', () => {
-    const tickets = [ticketFixture({ id: '021', status: 'pending' })];
+  test('starts none over a pipeline that already had entities, nor with no committed ticket without one', () => {
+    const tickets = [ticketFixture({ id: '021', status: 'committed' })];
     const overEntities = boardOver(entityPipelineFixture(), tickets);
     overEntities.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith(MAIN_WITH_WEB_TEXT.entityConstitutions ?? {}, wordsOf) }, AT);
     expect(overEntities.jobs().filter((job) => job.kind === 'product-owner')).toEqual([]);
 
-    const noneWaiting = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '021', status: 'pending', entity: 'web' })]);
+    const noneWaiting = boardOver(SINGLE_PIPELINE, [ticketFixture({ id: '021', status: 'committed', entity: 'web' })]);
     noneWaiting.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...readingWith(MAIN_WITH_WEB_TEXT.entityConstitutions ?? {}, wordsOf) }, AT);
     expect(noneWaiting.jobs().filter((job) => job.kind === 'product-owner')).toEqual([]);
   });
@@ -264,7 +264,7 @@ describe('the product owner of the first Apply over entities', () => {
 
 describe('an Apply that changes the entities of a stored pipeline with entities', () => {
   const OPEN_TICKETS = (): Ticket[] => [
-    ticketFixture({ id: '031', status: 'pending', entity: 'web' }),
+    ticketFixture({ id: '031', status: 'committed', entity: 'web' }),
     ticketFixture({ id: '032', status: 'in-progress', entity: 'design-system' }),
   ];
 
@@ -298,7 +298,7 @@ describe('an Apply that changes the entities of a stored pipeline with entities'
     const web = stored.entities?.['web'];
     if (web === undefined) throw new Error('The fixture names web.');
     const webMoved: Pipeline = { ...stored, entities: { ...stored.entities, web: { ...web, home: ['/apps/storefront'] } } };
-    const tickets = [ticketFixture({ id: '031', status: 'pending', entity: 'web' }), ticketFixture({ id: '033', status: 'in-progress', entity: 'web' })];
+    const tickets = [ticketFixture({ id: '031', status: 'committed', entity: 'web' }), ticketFixture({ id: '033', status: 'in-progress', entity: 'web' })];
     const board = boardOver(stored, tickets, webMoved);
 
     expect(board.requestApply(SETUP_ID, { draftRevision: 2, resumesBoard: false, ...MAIN_WITH_WEB_TEXT }, AT).outcome).toBe('applied');

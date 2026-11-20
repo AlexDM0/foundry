@@ -2,7 +2,7 @@
  * The billing step's model. What matters: the start carries the chosen billing, with the cap as typed once it is a number (the Overseer,
  * not the Bridge, refuses a cap that is not positive) and the unreadable file's replacement; a reopened step sends a billing change only
  * when the choice differs from the record's, and a record still at billing continues from here, never loops back to it; the waiting
- * tickets are the pending ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one; the
+ * tickets are the committed ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one; the
  * panel head says the agent is not started before a setup, then whether its job runs; the cards and the footer word the chosen billing and
  * its cap without naming the agent's vendor or its key variable, which the Overseer's decision names once the key is missing.
  */
@@ -74,8 +74,8 @@ describe('a reopened billing step', () => {
 });
 
 describe('the waiting tickets', () => {
-  test('are the pending tickets of the page', () => {
-    expect(pendingTicketCountOf([{ status: 'pending' }, { status: 'in-progress' }, { status: 'pending' }])).toBe(2);
+  test('are the committed tickets of the page', () => {
+    expect(pendingTicketCountOf([{ status: 'committed' }, { status: 'in-progress' }, { status: 'committed' }])).toBe(2);
   });
 
   test('are counted in words', () => {

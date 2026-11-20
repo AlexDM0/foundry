@@ -37,7 +37,7 @@ function deliveredTicket(buildMinutes: number, size?: TicketSize): ForecastTicke
 
 function pendingTicket(id: string, changes: Partial<ForecastTicket> = {}): ForecastTicket {
   return {
-    id, status: 'pending', ownRow: { status: 'pending' }, reviewBars: [], ...changes
+    id, status: 'committed', ownRow: { status: 'committed' }, reviewBars: [], ...changes
   };
 }
 

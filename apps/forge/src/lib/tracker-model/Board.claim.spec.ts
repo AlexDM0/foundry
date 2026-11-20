@@ -186,7 +186,7 @@ describe('a claim that goes through', () => {
 
 /**
  * Group `checkout`, release ticket 003: 001 in review under an in-progress review bar and a live review job, 002 waiting on it alone, 004
- * on it and on the pending 007, 006 on 005 of group `payments`, 008 on nothing, and 009 on 001 outside the bundle.
+ * on it and on the committed 007, 006 on 005 of group `payments`, 008 on nothing, and 009 on 001 outside the bundle.
  */
 function pipelinedGroupFixture(concurrencyLimit: number): BoardFixture {
   const fixture = boardFixture({
@@ -268,7 +268,7 @@ describe('a claim --after a predecessor in review', () => {
       reason:        'claim-after-a-ticket-not-in-review',
       ticketId:      '002',
       afterTicketId: '008',
-      status:        'pending',
+      status:        'committed',
     });
   });
 

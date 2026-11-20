@@ -912,7 +912,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the reconcile at start', () =
     expect(interruptionCausesOf(jobId)).toEqual(['lease-ended']);
   });
 
-  test('a pending ticket with no job still launches after a start that waits: new work is not interrupted work', async () => {
+  test('a committed ticket with no job still launches after a start that waits: new work is not interrupted work', async () => {
     await run(['ticket', 'hold', '001', '--reason', 'Waiting on Alex Example']);
     const before = await drivePassWith(WAITING_SESSION);
     await waitUntil(async () => {

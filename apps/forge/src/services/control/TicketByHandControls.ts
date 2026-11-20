@@ -68,6 +68,6 @@ export const TICKET_BY_HAND_CONTROLS = {
   ),
   'ticket-release-of': markOrClearRelease,
   'ticket-rereview':   rereview,
-  'ticket-reopen':     (command: CommandOf<'ticket-reopen'>, change: BoardTransaction) => moveTicket(command, 'pending', true, change),
+  'ticket-reopen':     (command: CommandOf<'ticket-reopen'>, change: BoardTransaction) => moveTicket(command, 'committed', true, change),
   'ticket-status-set': (command: CommandOf<'ticket-status-set'>, change: BoardTransaction) => moveTicket(command, command.status, false, change),
 } as const;

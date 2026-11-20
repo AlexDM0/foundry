@@ -109,7 +109,7 @@ const CALLS_THAT_CHANGE_A_TICKET: readonly (readonly [string, (board: Board) => 
   ['moveTicket', (board) => board.moveTicket('001', 'in-review', { checksLegality: true }, CHANGED_AT), ['001']],
   ['moveTicket that closes a review bar', (board) => {
     board.startReviewBar('001', { round: 1 }, CHANGED_AT);
-    return board.moveTicket('001', 'pending', { checksLegality: true }, CHANGED_AT);
+    return board.moveTicket('001', 'committed', { checksLegality: true }, CHANGED_AT);
   }, ['001']],
   ['rereviewTicket', (board) => {
     // Put in review by hand rather than by a move, so the only change that can mark the ticket is the review pass itself.

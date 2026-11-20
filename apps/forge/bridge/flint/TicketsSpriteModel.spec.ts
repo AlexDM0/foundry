@@ -9,14 +9,14 @@ import { describe, expect, test } from 'bun:test';
 import { TicketsSpriteModel, type CuedTicket } from './TicketsSpriteModel.ts';
 
 function ticket(id: string, changes: Partial<Omit<CuedTicket, 'id'>> = {}): CuedTicket {
-  return { id, status: 'pending', ...changes };
+  return { id, status: 'committed', ...changes };
 }
 
 const PENDING = [ticket('001')];
 
 describe('the rows of the table', () => {
   test.each<readonly [string, readonly CuedTicket[], readonly CuedTicket[], readonly string[]]>([
-    ['a ticket goes from draft to pending', [ticket('001', { status: 'draft' })], PENDING, ['draft-readied']],
+    ['a ticket goes from draft to committed', [ticket('001', { status: 'draft' })], PENDING, ['draft-readied']],
     ['a ticket appears', PENDING, [...PENDING, ticket('002')], ['ticket-filed']],
     ['a ticket\'s priority changes', PENDING, [ticket('001', { priority: 'high' })], ['priority-changed']],
     ['a ticket\'s dependsOn gets an id', [ticket('001', { dependsOn: ['002'] })], [ticket('001', { dependsOn: ['002', '003'] })], ['dependency-added']],
@@ -39,7 +39,7 @@ describe('what is no change', () => {
   test.each<readonly [string, readonly CuedTicket[], readonly CuedTicket[]]>([
     ['the same tickets', [ticket('001', { hold: 'waits', dependsOn: ['002'], priority: 'high' })], [ticket('001', { hold: 'waits', dependsOn: ['002'], priority: 'high' })]],
     ['an absent priority and normal', PENDING, [ticket('001', { priority: 'normal' })]],
-    ['a ticket that goes from ready-for-review to pending', [ticket('001', { status: 'ready-for-review' })], PENDING],
+    ['a ticket that goes from ready-for-review to committed', [ticket('001', { status: 'ready-for-review' })], PENDING],
     ['a dependency that goes', [ticket('001', { dependsOn: ['002'] })], PENDING],
     ['a hold whose reason changes', [ticket('001', { hold: '' })], [ticket('001', { hold: 'waits on User' })]],
     ['a ticket that leaves', [...PENDING, ticket('002')], PENDING],

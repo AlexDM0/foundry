@@ -40,12 +40,12 @@ export async function editTicket(commandArguments: ArgumentParser, context: Comm
   }
 
   const command: ControlCommandOf<'ticket-edit'> = {
-    kind:              'ticket-edit',
-    ticketReference:   reference,
+    kind:                'ticket-edit',
+    ticketReference:     reference,
     ...(title === undefined ? {} : { title }),
-    bodyText:          text ?? null,
-    appendsBody:       appends,
-    allowsPastPending: forced,
+    bodyText:            text ?? null,
+    appendsBody:         appends,
+    allowsPastCommitted: forced,
   };
   await hatchWhenUnderJob(context, command);
   const edited = (await applyCommandOfVerb(commandArguments, context, command)).result;

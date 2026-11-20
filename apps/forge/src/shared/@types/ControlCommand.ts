@@ -97,13 +97,13 @@ export type ControlCommand =
     admission?:    FilingAdmission;
   }
   | {
-    kind:              'ticket-edit';
-    ticketReference:   string;
-    title?:            string;
+    kind:                'ticket-edit';
+    ticketReference:     string;
+    title?:              string;
     /** Null leaves the body as it is. */
-    bodyText:          string | null;
-    appendsBody:       boolean;
-    allowsPastPending: boolean;
+    bodyText:            string | null;
+    appendsBody:         boolean;
+    allowsPastCommitted: boolean;
   }
   | { kind: 'ticket-depends'; ticketReference: string; edit: ListEdit; ticketIds: string[] }
   | { kind: 'ticket-priority'; ticketReference: string; priority: TicketPriority }
@@ -296,7 +296,7 @@ export type ControlCommand =
   | { kind: 'ticket-release-of'; ticketReference: string; clears: boolean }
   /** With a review bar, the next reviewer's bar opens in the same hold. */
   | { kind: 'ticket-rereview'; ticketReference: string; reviewBar: AgentAssignment | null }
-  /** Back to `pending` through the legality matrix. */
+  /** Back to `committed` through the legality matrix. */
   | { kind: 'ticket-reopen'; ticketReference: string; branch?: string; commit?: string; reason?: string; tokens?: number }
   /** The documented override: any status, skipping the legality matrix. */
   | { kind: 'ticket-status-set'; ticketReference: string; status: TicketStatus; branch?: string; commit?: string; reason?: string; tokens?: number }

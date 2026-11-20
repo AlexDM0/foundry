@@ -1,7 +1,7 @@
 /**
  * A ticket's `network` line as the command surface sees it. The cases that matter: `ticket add --network` and `ticket network` set it and
  * `--clear` removes it, each with a log line; a domain that is not public is refused at exit 1 with nothing written, each form planted;
- * the line is legal only while the ticket is a draft or pending; `status --json` and `ticket show --json` carry it once set; and a ticket
+ * the line is legal only while the ticket is a draft or committed; `status --json` and `ticket show --json` carry it once set; and a ticket
  * whose line is cleared is the same bytes as one that never had it.
  */
 import { readFileSync, readdirSync } from 'node:fs';
@@ -116,12 +116,12 @@ describeWhenGitIsRecorded('a ticket network line', () => {
     expect(storedTicketText('001')).toBe(before);
   });
 
-  test('a ticket past pending is refused at exit 1, and domains beside --clear are refused as ambiguous', async () => {
+  test('a ticket past committed is refused at exit 1, and domains beside --clear are refused as ambiguous', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Fetch the exchange rates']);
     await run(['ticket', 'start', '1']);
     const before = storedTicketText('001');
 
-    expect((await runWithExitCode(['ticket', 'network', '1', 'api.example.com'], 1)).errorText()).toContain('set only while the ticket is draft or pending');
+    expect((await runWithExitCode(['ticket', 'network', '1', 'api.example.com'], 1)).errorText()).toContain('set only while the ticket is draft or committed');
     expect((await runWithExitCode(['ticket', 'network', '1', 'api.example.com', '--clear'], 1)).errorText()).toContain('its domains or --clear, not both');
     expect(storedTicketText('001')).toBe(before);
   });

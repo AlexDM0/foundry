@@ -154,7 +154,7 @@ const STORE_CLAUSES: readonly PortClause<BoardStoreSubject>[] = [
       const ticketId = added.result.ticket.frontmatter.id;
 
       await applyCommand(store, {
-        kind: 'ticket-edit', ticketReference: ticketId, bodyText: 'The basket shows its total.\n', appendsBody: true, allowsPastPending: false
+        kind: 'ticket-edit', ticketReference: ticketId, bodyText: 'The basket shows its total.\n', appendsBody: true, allowsPastCommitted: false
       }, LATER_AT);
 
       const storedBody = store.reads.listTickets().tickets.map((ticket) => ticket.body).join('');

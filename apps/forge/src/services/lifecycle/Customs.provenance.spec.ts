@@ -198,7 +198,7 @@ describeWhenGitIsRecorded('V12: every filed finding is this job\'s own low draft
 
   test('the filing record is read, never the ticket now: a ticket submitted since still passes', () => {
     const submittedSince: LogRecord = {
-      at: AT, kind: 'ticket-readied', ticketId: '012', fields: {}
+      at: AT, kind: 'ticket-committed', ticketId: '012', fields: {}
     };
     expect(refusal('V12', reviewerSubject([filedFinding({ filedTicketId: '#12' })], [filingRecord('012'), submittedSince]))).toBeNull();
   });
@@ -207,7 +207,7 @@ describeWhenGitIsRecorded('V12: every filed finding is this job\'s own low draft
     const cases: [Record<string, unknown>, LogRecord[]][] = [
       [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { filedByJob: 'J3' })]],
       [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { priority: 'normal' })]],
-      [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { status: 'pending' })]],
+      [filedFinding({ filedTicketId: '012' }), [filingRecord('012', { status: 'committed' })]],
       [filedFinding({ hatchRequestId: 'R9' }), [filingRecord('012'), hatchAppliedRecord('R1')]],
     ];
     for (const [finding, records] of cases) {

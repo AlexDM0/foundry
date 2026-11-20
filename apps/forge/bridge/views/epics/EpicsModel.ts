@@ -119,7 +119,7 @@ function primaryEpicOf(ticketId: string, board: EpicsBoard): EpicRollupDocument 
 }
 
 function displayStateOf(ticketId: string, board: EpicsBoard): DisplayState {
-  return board.displayStateById.get(ticketId) ?? board.ticketById.get(ticketId)?.status ?? 'pending';
+  return board.displayStateById.get(ticketId) ?? board.ticketById.get(ticketId)?.status ?? 'committed';
 }
 
 function boardOf(state: EpicsBoardState): EpicsBoard {

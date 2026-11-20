@@ -104,7 +104,7 @@ function billingChangeCommandOf(record: PipelineSetup, choice: BillingChoice): C
 }
 
 function pendingTicketCountOf(tickets: readonly { readonly status: string }[]): number {
-  return tickets.filter((ticket) => ticket.status === 'pending').length;
+  return tickets.filter((ticket) => ticket.status === 'committed').length;
 }
 
 function waitingTicketsTextOf(pendingTicketCount: number): string {

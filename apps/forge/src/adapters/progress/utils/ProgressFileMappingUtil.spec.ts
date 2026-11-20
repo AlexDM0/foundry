@@ -298,7 +298,7 @@ describe('a row\'s stage keys', () => {
     const progress = ProgressFileMappingUtil.progressOf(storedDocumentOf(stored));
     const [row]    = progress.tasks;
     if (row === undefined) throw new Error('the file holds one row');
-    const { board } = boardFixture({ tasks: progress.tasks, tickets: [ticketFixture({ id: '001', status: 'pending', task: row.id })] });
+    const { board } = boardFixture({ tasks: progress.tasks, tickets: [ticketFixture({ id: '001', status: 'committed', task: row.id })] });
 
     for (const status of ['in-progress', 'in-review', 'reviewed', 'delivered'] as const) board.moveTicket('001', status, { checksLegality: true }, AT);
 

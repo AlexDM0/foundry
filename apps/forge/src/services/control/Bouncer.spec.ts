@@ -22,7 +22,7 @@ import { ALLOWED_MOVES_BY_INCIDENT_KIND }                 from './constants/Allo
 
 function jobOf(role: JobRole | null, overrides: Partial<RelayingJob> = {}): RelayingJob {
   return {
-    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrPending: [], setupId: null, ...overrides
+    id: 'J12', role, ticketIds: ['003'], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrCommitted: [], setupId: null, ...overrides
   };
 }
 
@@ -43,7 +43,7 @@ function lowFinding(overrides: Partial<ControlCommandOf<'ticket-add'>> = {}): Co
 }
 
 const EDIT_OF_TICKET_7: ControlCommand = {
-  kind: 'ticket-edit', ticketReference: '#7', title: 'Sharper title', bodyText: null, appendsBody: false, allowsPastPending: false
+  kind: 'ticket-edit', ticketReference: '#7', title: 'Sharper title', bodyText: null, appendsBody: false, allowsPastCommitted: false
 };
 
 describe('builder and reviewer', () => {
@@ -116,7 +116,7 @@ describe('product-owner', () => {
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'draft' }] }), EDIT_OF_TICKET_7).verdict).toBe('admitted');
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '008', status: 'draft' }] }), EDIT_OF_TICKET_7))
       .toEqual({ verdict: 'refused', reason: 'not-own-draft' });
-    expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'pending' }] }), EDIT_OF_TICKET_7))
+    expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'committed' }] }), EDIT_OF_TICKET_7))
       .toEqual({ verdict: 'refused', reason: 'not-own-draft' });
   });
 
@@ -160,23 +160,23 @@ describe('ticket entity', () => {
   test('a product owner assigns the entity of its own draft and of any ticket ready for review or pending, stamped with its own job', () => {
     const admitted: BouncerVerdict = { verdict: 'admitted', command: { ...ASSIGNMENT_OF_TICKET_7, jobId: 'J12' } };
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'draft' }] }), ASSIGNMENT_OF_TICKET_7)).toEqual(admitted);
-    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrPending: ['005', '007'] }), ASSIGNMENT_OF_TICKET_7)).toEqual(admitted);
+    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrCommitted: ['005', '007'] }), ASSIGNMENT_OF_TICKET_7)).toEqual(admitted);
   });
 
   test('a draft another job filed, and a ticket neither its own draft nor ready for review or pending, are refused not-own-draft-or-unclaimed-ticket', () => {
     const refusedVerdict: BouncerVerdict = { verdict: 'refused', reason: 'not-own-draft-or-unclaimed-ticket' };
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '008', status: 'draft' }] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
     expect(Bouncer.verdictOf(jobOf('product-owner', { filedTickets: [{ id: '007', status: 'in-progress' }] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
-    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrPending: ['008'] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
+    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrCommitted: ['008'] }), ASSIGNMENT_OF_TICKET_7)).toEqual(refusedVerdict);
   });
 
   test('an assignment naming a job of its own choosing is refused hatch-identity-mismatch, so no session words itself the product owner', () => {
     const forged = { ...ASSIGNMENT_OF_TICKET_7, jobId: 'J1' };
-    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrPending: ['007'] }), forged)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
+    expect(Bouncer.verdictOf(jobOf('product-owner', { ticketIdsReadyForReviewOrCommitted: ['007'] }), forged)).toEqual({ verdict: 'refused', reason: 'hatch-identity-mismatch' });
   });
 
   test.each(['builder', 'reviewer', 'assistant', 'pipeline-agent'] as const)('a %s is refused it, whatever the ticket', (role) => {
-    const job = jobOf(role, { filedTickets: [{ id: '007', status: 'draft' }], ticketIdsReadyForReviewOrPending: ['007'], setupId: 'S2' });
+    const job = jobOf(role, { filedTickets: [{ id: '007', status: 'draft' }], ticketIdsReadyForReviewOrCommitted: ['007'], setupId: 'S2' });
     expect(Bouncer.verdictOf(job, ASSIGNMENT_OF_TICKET_7).verdict).toBe('refused');
   });
 });

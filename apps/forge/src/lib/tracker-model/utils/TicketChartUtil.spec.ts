@@ -1,5 +1,5 @@
 /**
- * Where a ticket stands on the chart. What callers rely on: only a draft, a low ticket never started while pending, and any ticket abandoned
+ * Where a ticket stands on the chart. What callers rely on: only a draft, a low ticket never started while committed, and any ticket abandoned
  * before it was ever started (an abandoned draft) have no row to be given;
  * the two stored row names; and the row a ticket is seeded as after `clear`, drawn from its own stamps.
  */
@@ -31,7 +31,7 @@ function frontmatterFixture(overrides: Partial<TicketFrontmatter> = {}): TicketF
     id:          '003',
     title:       'Fix the export dialog',
     type:        'bug',
-    status:      'pending',
+    status:      'committed',
     filed:       FILED_AT,
     updated:     FILED_AT,
     started:     null,
@@ -50,7 +50,7 @@ function seededRowOf(frontmatter: TicketFrontmatter): Task {
 
 describe('ticketStaysOffTheChart', () => {
   // A low ticket waits in the list until somebody starts it; once started it keeps its row through a reopen or an abandon.
-  test('only a low ticket never started, while pending or abandoned, stays off the chart', () => {
+  test('only a low ticket never started, while committed or abandoned, stays off the chart', () => {
     expect(ticketStaysOffTheChart(frontmatterFixture({ priority: 'low' }))).toBe(true);
     expect(ticketStaysOffTheChart(frontmatterFixture({ priority: 'low', status: 'abandoned' }))).toBe(true);
     expect(ticketStaysOffTheChart(frontmatterFixture({ priority: 'low', started: STARTED_AT }))).toBe(false);
@@ -118,7 +118,7 @@ describe('seededFilingOf', () => {
   });
 
   // `clear` re-seeds rows from tickets; a delivered ticket passed `reviewed`, so its row has to come back marked reviewed.
-  test('a reviewed or delivered ticket comes back marked reviewed, and a pending one does not', () => {
+  test('a reviewed or delivered ticket comes back marked reviewed, and a committed one does not', () => {
     for (const status of ['reviewed', 'delivered'] as const) {
       expect(seededRowOf(frontmatterFixture({ status, finished: FINISHED_AT })).reviewed, status).toBe(FINISHED_AT);
     }
@@ -132,10 +132,10 @@ describe('seededFilingOf', () => {
     expect(seeded.end).toBe(FINISHED_AT);
   });
 
-  test('a pending ticket comes back as a pending row with no bar at all', () => {
+  test('a committed ticket comes back as a committed row with no bar at all', () => {
     const seeded = seededRowOf(frontmatterFixture());
 
-    expect(seeded.status).toBe('pending');
+    expect(seeded.status).toBe('committed');
     expect(seeded.start).toBeNull();
     expect(seeded.end).toBeNull();
   });

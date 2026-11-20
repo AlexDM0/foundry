@@ -104,7 +104,7 @@ describe('the note and the reviewed mark', () => {
     expect(KanbanCardTextUtil.cardNoteOf(reviewed, FORMAT)).toBe('reviewed 10-09 13:28');
     expect(KanbanCardTextUtil.cardNoteOf(abandoned, FORMAT)).toBe('Example vendor dropped the feature');
     expect(KanbanCardTextUtil.cardNoteOf(sourceOf('abandoned'), FORMAT)).toBeNull();
-    expect(KanbanCardTextUtil.cardNoteOf(sourceOf('pending'), FORMAT)).toBeNull();
+    expect(KanbanCardTextUtil.cardNoteOf(sourceOf('committed'), FORMAT)).toBeNull();
   });
 
   test('the reviewed mark\'s hover names the review stamp in full, or only that it was reviewed', () => {

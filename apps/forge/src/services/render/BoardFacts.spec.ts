@@ -131,7 +131,7 @@ describe('boardFactsOf', () => {
       ticketId:           '003',
       ownRowPosition:     null,
       reviewBarPositions: [],
-      displayState:       'pending',
+      displayState:       'committed',
       waitingOnTicketIds: [],
     }]);
   });

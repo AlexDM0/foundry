@@ -35,7 +35,7 @@ export function taskFixture(overrides: Partial<Task> = {}): Task {
   return {
     id:     1,
     name:   'Example storefront task',
-    status: 'pending',
+    status: 'committed',
     start:  null,
     end:    null,
     owner:  'Alex Example',
@@ -51,7 +51,7 @@ export function ticketFixture(overrides: Partial<TicketFrontmatter> = {}): Ticke
     id:          '001',
     title:       'Example checkout page',
     type:        'ticket',
-    status:      'pending',
+    status:      'committed',
     filed:       FIXTURE_STARTED_AT,
     updated:     FIXTURE_STARTED_AT,
     started:     null,

@@ -45,7 +45,7 @@ export interface CrossGroupLink {
 export interface DependencyGraph {
   /** Lowest id first. */
   settledNodeIds:  readonly string[];
-  /** Lowest id first, only those entering the waves: a draft or a pending low-priority ticket is in neither list. */
+  /** Lowest id first, only those entering the waves: a draft or a committed low-priority ticket is in neither list. */
   openNodeIds:     readonly string[];
   /** Only open nodes have a wave. */
   waveOfNode:      ReadonlyMap<string, number>;

@@ -190,7 +190,7 @@ export interface JobLaunch {
   intake?:           JobIntake;
   entity?:           EntityKey;
   stage?:            number;
-  /** Only on the launch record, never on the job: the pending tickets a product owner gives an entity after the first Apply over entities. */
+  /** Only on the launch record, never on the job: the committed tickets a product owner gives an entity after the first Apply over entities. */
   entitiesToAssign?: readonly string[];
 }
 

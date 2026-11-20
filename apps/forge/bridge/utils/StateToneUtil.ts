@@ -45,7 +45,7 @@ const UNDER_WAY_LOOK: Omit<StateLook, 'tone'> = { ...PLAIN_LOOK, pulsing: true }
 const LOOK_OF_DISPLAY_STATE: Readonly<Record<DisplayState, StateLook>> = Object.freeze({
   'draft':            { ...NOT_STARTED_LOOK, tone: 'accent-outline' },
   'ready-for-review': { ...NOT_STARTED_LOOK, tone: 'accent-outline' },
-  'pending':          { ...NOT_STARTED_LOOK, tone: 'neutral' },
+  'committed':        { ...NOT_STARTED_LOOK, tone: 'neutral' },
   'in-progress':      { ...UNDER_WAY_LOOK, tone: 'accent' },
   'paused':           { ...PLAIN_LOOK, tone: 'neutral' },
   'in-review':        {

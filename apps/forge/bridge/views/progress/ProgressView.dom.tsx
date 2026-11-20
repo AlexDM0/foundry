@@ -248,7 +248,7 @@ describe('the epic grouping', () => {
       exampleProgressTask(2, { start: '2026-09-18T10:00:00+02:00' }),
     ],
     tickets: [exampleProgressTicket('5', { epics: ['checkout'] })],
-    epics:   [exampleProgressEpic('checkout', { title: 'Checkout redesign', ticketIds: ['5'], ticketCountByStatus: { pending: 1 } })],
+    epics:   [exampleProgressEpic('checkout', { title: 'Checkout redesign', ticketIds: ['5'], ticketCountByStatus: { committed: 1 } })],
   });
 
   test('draws the rows under their epic\'s head and No epic, and folds a group across a reload', () => {
@@ -352,15 +352,15 @@ test('marks nothing on the first board, then each moved or new row until its hig
     'progress',
     <ProgressView boardState={boardState} boardStore={null} nowEpochMilliseconds={Date.parse('2026-09-18T13:00:00+02:00')} todayCalendarDate="2026-09-18" />,
   ).element;
-  const firstBoard = exampleProgressBoard({ tasks: [exampleProgressTask(1, { status: 'pending' }), exampleProgressTask(2, { status: 'pending' })] });
+  const firstBoard = exampleProgressBoard({ tasks: [exampleProgressTask(1, { status: 'committed' }), exampleProgressTask(2, { status: 'committed' })] });
   const { rerender } = render(view(firstBoard));
   expect(document.querySelectorAll('.bridge-progress-row[data-changed]')).toHaveLength(0);
 
   rerender(view(exampleProgressBoard({
     tasks: [
       exampleProgressTask(1, { status: 'in-progress', start: '2026-09-18T12:00:00+02:00' }),
-      exampleProgressTask(2, { status: 'pending' }),
-      exampleProgressTask(3, { status: 'pending' }),
+      exampleProgressTask(2, { status: 'committed' }),
+      exampleProgressTask(3, { status: 'committed' }),
     ],
   })));
   expect(rowTaskIds(document.body).filter((taskId) => document.querySelector(`[data-task-id="${String(taskId)}"]`)?.hasAttribute('data-changed'))).toEqual(['3', '1']);

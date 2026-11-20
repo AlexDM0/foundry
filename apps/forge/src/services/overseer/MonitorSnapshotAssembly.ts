@@ -75,7 +75,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'merge-queued':                    'forge',
   'merge-acceptance-set':            null,
   'merge-updated':                   null,
-  'ticket-readied':                  'forge',
+  'ticket-committed':                'forge',
   'ticket-submitted-for-review':     'needs-user',
   'worktree-repaired':               null,
   'ticket-reopened':                 'forge',

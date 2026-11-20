@@ -49,7 +49,7 @@ test('the launch slots name the build and review jobs, never a merge agent or th
   const { board, progress } = boardFixture({
     tickets: [
       ticketFixture({ id: '001', status: 'in-progress' }),
-      ticketFixture({ id: '002', status: 'pending' }),
+      ticketFixture({ id: '002', status: 'committed' }),
       ticketFixture({ id: '003', status: 'in-progress' }),
       ticketFixture({ id: '004', status: 'in-review' }),
       ticketFixture({ id: '005', status: 'in-progress' }),
@@ -104,7 +104,7 @@ test('a ticket waits on its unsettled dependencies only while it is still to be 
   expect(board.tickets().map((ticket) => board.waitingOnOf(ticket))).toEqual([[], ['001', '009'], []]);
 });
 
-test('ready tickets come high first and then by id, each pending and with every dependency settled', () => {
+test('ready tickets come high first and then by id, each committed and with every dependency settled', () => {
   const { board } = boardFixture({
     tickets: [
       ticketFixture({ id: '001', status: 'reviewed' }),
@@ -119,7 +119,7 @@ test('ready tickets come high first and then by id, each pending and with every 
 });
 
 // Ready means build: priority only orders, so owed normal work holds no low ticket back.
-test('a low ticket is ready while a normal one is pending and another in review, listed after the normal one', () => {
+test('a low ticket is ready while a normal one is committed and another in review, listed after the normal one', () => {
   const { board } = boardFixture({
     tickets: [
       ticketFixture({ id: '001', status: 'in-review' }),
@@ -140,14 +140,14 @@ test('within a priority the readiness order is the log position of the latest re
     logger:           createLogger(() => undefined),
     storedLogRecords: [
       {
-        at, kind: 'ticket-readied', ticketId: '001', fields: {}
+        at, kind: 'ticket-committed', ticketId: '001', fields: {}
       },
       { at, kind: 'tracker-cleared', fields: {} },
       {
-        at, kind: 'ticket-readied', ticketId: '003', fields: {}
+        at, kind: 'ticket-committed', ticketId: '003', fields: {}
       },
       {
-        at, kind: 'ticket-readied', ticketId: '002', fields: {}
+        at, kind: 'ticket-committed', ticketId: '002', fields: {}
       },
       {
         at, kind: 'ticket-reopened', ticketId: '003', fields: {}
@@ -157,7 +157,7 @@ test('within a priority the readiness order is the log position of the latest re
   expect(board.readyTickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001', '004', '002', '003']);
 
   board.moveTicket('002', 'in-progress', { checksLegality: true }, at);
-  board.moveTicket('002', 'pending', { checksLegality: false }, at);
+  board.moveTicket('002', 'committed', { checksLegality: false }, at);
   expect(board.readyTickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001', '004', '003', '002']);
 });
 
@@ -235,12 +235,12 @@ test('the ready entries list the ready tickets in the same order with every defa
 // Rows or tickets sharing a hand-duplicated id must each be judged on their own status, never on the first one found by that id.
 test('the settled checks read the record handed in, so a hand-duplicated id cannot borrow a verdict', () => {
   const deliveredRow    = taskFixture({ id: 3, status: 'delivered' });
-  const pendingRow      = taskFixture({ id: 3, status: 'pending' });
+  const committedRow      = taskFixture({ id: 3, status: 'committed' });
   const settledTicket   = ticketFixture({ id: '001', status: 'abandoned' });
   const unsettledTicket = ticketFixture({ id: '001', status: 'in-review' });
-  const { board }       = boardFixture({ tasks: [deliveredRow, pendingRow], tickets: [settledTicket, unsettledTicket] });
+  const { board }       = boardFixture({ tasks: [deliveredRow, committedRow], tickets: [settledTicket, unsettledTicket] });
 
-  expect([board.taskIsSettled(deliveredRow), board.taskIsSettled(pendingRow)]).toEqual([true, false]);
+  expect([board.taskIsSettled(deliveredRow), board.taskIsSettled(committedRow)]).toEqual([true, false]);
   expect([board.ticketIsSettled(settledTicket), board.ticketIsSettled(unsettledTicket)]).toEqual([true, false]);
 });
 
@@ -255,6 +255,6 @@ test('the ticket count by status covers every ticket, settled ones included, and
   });
 
   expect(board.ticketCountByStatus()).toEqual({
-    'draft': 0, 'ready-for-review': 0, 'pending': 0, 'in-progress': 1, 'in-review': 0, 'reviewed': 0, 'delivered': 2, 'abandoned': 1,
+    'draft': 0, 'ready-for-review': 0, 'committed': 0, 'in-progress': 1, 'in-review': 0, 'reviewed': 0, 'delivered': 2, 'abandoned': 1,
   });
 });

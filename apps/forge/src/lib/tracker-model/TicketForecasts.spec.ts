@@ -1,5 +1,5 @@
 /**
- * The ticket forecast the Overseer serves. What matters: only a pending, in-progress or in-review ticket has one, and none while no pipeline
+ * The ticket forecast the Overseer serves. What matters: only a committed, in-progress or in-review ticket has one, and none while no pipeline
  * is set, since nothing launches then; the steps start at the step under way, named by its live job and marked current, or at the next one
  * with nothing current; Customs and its gates name the build phase's gates; a review phase that is not set adds no review step, and merge
  * approval adds a step only until User accepted; a group's ticket integrates into its group's branch while its release ticket lands; the
@@ -49,21 +49,21 @@ function forecastOf(board: Board, ticketId: string, rule: MergeTargetOf | null =
 }
 
 describe('which tickets have a forecast', () => {
-  test('only a pending, in-progress or in-review ticket, in board order', () => {
-    const statuses: TicketStatus[] = ['draft', 'ready-for-review', 'pending', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'];
+  test('only a committed, in-progress or in-review ticket, in board order', () => {
+    const statuses: TicketStatus[] = ['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'];
     const board = boardOf(statuses.map((status, index) => ticketFixture({ id: `00${index + 1}`, status })));
     expect(board.ticketForecastsOf(targetOf).map((forecast) => forecast.ticketId)).toEqual(['003', '004', '005']);
   });
 
   test('none while no pipeline is set', () => {
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending' })], null);
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed' })], null);
     expect(board.ticketForecastsOf(targetOf)).toEqual([]);
   });
 });
 
 describe('the steps of a ticket nothing runs on', () => {
-  test('a pending ticket goes through a build, Customs and its gates, a first review round and its landing, none of it current', () => {
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending' })]);
+  test('a committed ticket goes through a build, Customs and its gates, a first review round and its landing, none of it current', () => {
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed' })]);
     expect(forecastOf(board, '001')).toEqual({
       ticketId: '001',
       steps:    [
@@ -83,7 +83,7 @@ describe('the steps of a ticket nothing runs on', () => {
       gates:  [...PIPELINE_WITH_REVIEW.gates, { name: 'audit', run: 'bun run audit' }],
       phases: { build: ['test', 'typecheck'], review: ['typecheck', 'test', 'audit'], merge: ['audit'] },
     };
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending' })], pipeline);
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed' })], pipeline);
     expect(forecastOf(board, '001')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['test', 'typecheck'], jobId: null });
   });
 
@@ -96,7 +96,7 @@ describe('the steps of a ticket nothing runs on', () => {
       phases:  { build: [gateName], review: [], merge: [gateName] },
     });
     const pipeline: Pipeline = { ...PIPELINE_WITHOUT_REVIEW, entities: { 'web': entityOf('gate:web', '/apps/web'), 'api': entityOf('gate:api', '/apps/api') } };
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending', entity: 'web' }), ticketFixture({ id: '002', status: 'pending', entity: 'api' })], pipeline);
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed', entity: 'web' }), ticketFixture({ id: '002', status: 'committed', entity: 'api' })], pipeline);
     expect(forecastOf(board, '001')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['gate:web'], jobId: null });
     expect(forecastOf(board, '002')?.steps[1]).toEqual({ kind: 'customs-and-gates', gateNames: ['gate:api'], jobId: null });
   });
@@ -176,12 +176,12 @@ describe('the step under way', () => {
 
 describe('what the pipeline and the targets add', () => {
   test('a pipeline with no review phase adds no review step', () => {
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending' })], PIPELINE_WITHOUT_REVIEW);
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed' })], PIPELINE_WITHOUT_REVIEW);
     expect(forecastOf(board, '001')?.steps.map((step) => step.kind)).toEqual(['build', 'customs-and-gates', 'land']);
   });
 
   test('merge approval adds User\'s accept into the target before the landing, until User accepted', () => {
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending' }), ticketFixture({ id: '002', status: 'in-review' })]);
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed' }), ticketFixture({ id: '002', status: 'in-review' })]);
     board.setApproval('merge', true, AT);
     queueOnCurrentGreen(board, '002', 'main', AT);
     expect(forecastOf(board, '001')?.steps.slice(-2)).toEqual([{ kind: 'merge-approval', target: 'main' }, { kind: 'land', target: 'main' }]);
@@ -192,9 +192,9 @@ describe('what the pipeline and the targets add', () => {
 
   test('a group\'s ticket integrates into its group\'s branch, and its release ticket lands', () => {
     const board = boardOf([
-      ticketFixture({ id: '001', status: 'pending', group: 'account' }),
+      ticketFixture({ id: '001', status: 'committed', group: 'account' }),
       ticketFixture({
-        id: '002', status: 'pending', group: 'account', releasesGroup: true
+        id: '002', status: 'committed', group: 'account', releasesGroup: true
       }),
     ]);
     expect(forecastOf(board, '001')?.steps.at(-1)).toEqual({ kind: 'integrate', target: 'group-account', group: 'account' });
@@ -202,7 +202,7 @@ describe('what the pipeline and the targets add', () => {
   });
 
   test('without a target rule every target is null', () => {
-    const board = boardOf([ticketFixture({ id: '001', status: 'pending', group: 'account' }), ticketFixture({ id: '002', status: 'pending' })]);
+    const board = boardOf([ticketFixture({ id: '001', status: 'committed', group: 'account' }), ticketFixture({ id: '002', status: 'committed' })]);
     board.setApproval('merge', true, AT);
     expect(forecastOf(board, '001', null)?.steps.slice(-2)).toEqual([
       { kind: 'merge-approval', target: null },
@@ -216,10 +216,10 @@ describe('the dependents', () => {
   test('a dependent lists the other unsettled dependencies it still waits on', () => {
     const board = boardOf([
       ticketFixture({ id: '001', status: 'in-progress' }),
-      ticketFixture({ id: '002', status: 'pending' }),
+      ticketFixture({ id: '002', status: 'committed' }),
       ticketFixture({ id: '003', status: 'reviewed' }),
-      ticketFixture({ id: '004', status: 'pending', dependsOn: ['001'] }),
-      ticketFixture({ id: '005', status: 'pending', dependsOn: ['001', '002', '003'] }),
+      ticketFixture({ id: '004', status: 'committed', dependsOn: ['001'] }),
+      ticketFixture({ id: '005', status: 'committed', dependsOn: ['001', '002', '003'] }),
     ]);
     expect(forecastOf(board, '001')?.dependents).toEqual([
       { ticketId: '004', stillWaitingOnTicketIds: [] },
@@ -229,7 +229,7 @@ describe('the dependents', () => {
 
   test('an unready or closed ticket is no dependent', () => {
     const board = boardOf([
-      ticketFixture({ id: '001', status: 'pending' }),
+      ticketFixture({ id: '001', status: 'committed' }),
       ticketFixture({ id: '002', status: 'draft', dependsOn: ['001'] }),
       ticketFixture({ id: '003', status: 'ready-for-review', dependsOn: ['001'] }),
       ticketFixture({ id: '004', status: 'abandoned', dependsOn: ['001'] }),

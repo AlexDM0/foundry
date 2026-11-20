@@ -1,8 +1,8 @@
 /**
- * The first Apply's model. What matters: the "Resume the board" line counts the pending tickets and names the concurrency limit only when
+ * The first Apply's model. What matters: the "Resume the board" line counts the committed tickets and names the concurrency limit only when
  * the facts carry one; the constitution note shows only while the draft holds a constitution; the command carries the record, its draft
  * revision and the checkbox's value as given. Over entities: the description counts the entities and the version; the pace is worded in
- * jobs; the line about pending tickets without an entity shows only when Apply turns the pipeline into entities; E94 shows only in update
+ * jobs; the line about committed tickets without an entity shows only when Apply turns the pipeline into entities; E94 shows only in update
  * mode over a stored pipeline without entities while tickets are in flight, never on a first Apply, worded as the Overseer's API words
  * that refusal, each ticket a link to its detail; an
  * entity without gates or with the default constitution is worth a look, and the root kept for a person is not.
@@ -23,10 +23,10 @@ function record() {
 }
 
 describe('Resume the board', () => {
-  test('counts the pending tickets and names the limit when the facts carry one', () => {
-    expect(ApplyDialogModel.resumeTextOf(3, 2)).toBe('The 3 pending tickets start building, 2 at a time.');
-    expect(ApplyDialogModel.resumeTextOf(1, 2)).toBe('The pending ticket starts building, 2 at a time.');
-    expect(ApplyDialogModel.resumeTextOf(0, null)).toBe('No ticket is pending yet. New tickets start building.');
+  test('counts the committed tickets and names the limit when the facts carry one', () => {
+    expect(ApplyDialogModel.resumeTextOf(3, 2)).toBe('The 3 committed tickets start building, 2 at a time.');
+    expect(ApplyDialogModel.resumeTextOf(1, 2)).toBe('The committed ticket starts building, 2 at a time.');
+    expect(ApplyDialogModel.resumeTextOf(0, null)).toBe('No ticket is committed yet. New tickets start building.');
   });
 });
 
@@ -72,17 +72,17 @@ describe('over entities', () => {
   });
 
   test('the pace is worded in jobs, and the single note of CONSTITUTION.md gives way to the list', () => {
-    expect(ApplyDialogModel.resumeTextOf(3, 2, ApplyDialogModel.resumePaceOf(monorepoRecord()))).toBe('The 3 pending tickets start building, 2 jobs at once.');
+    expect(ApplyDialogModel.resumeTextOf(3, 2, ApplyDialogModel.resumePaceOf(monorepoRecord()))).toBe('The 3 committed tickets start building, 2 jobs at once.');
     expect(ApplyDialogModel.resumePaceOf(record())).toBe('at-a-time');
     expect(ApplyDialogModel.constitutionNoteOf(monorepoRecord())).toBeNull();
   });
 
-  test('the pending tickets without an entity are counted only when Apply turns the pipeline into entities', () => {
-    expect(ApplyDialogModel.pendingTicketWithoutEntityCountOf([{ status: 'pending' }, { status: 'pending', entity: 'web' }, { status: 'draft' }])).toBe(1);
+  test('the committed tickets without an entity are counted only when Apply turns the pipeline into entities', () => {
+    expect(ApplyDialogModel.pendingTicketWithoutEntityCountOf([{ status: 'committed' }, { status: 'committed', entity: 'web' }, { status: 'draft' }])).toBe(1);
     expect(ApplyDialogModel.pendingWithoutEntityTextOf(monorepoRecord(), undefined, 2))
-      .toBe('2 pending tickets name no entity. After Apply the product owner gives each one an entity.');
+      .toBe('2 committed tickets name no entity. After Apply the product owner gives each one an entity.');
     expect(ApplyDialogModel.pendingWithoutEntityTextOf(monorepoRecord(), undefined, 1))
-      .toBe('1 pending ticket names no entity. After Apply the product owner gives it an entity.');
+      .toBe('1 committed ticket names no entity. After Apply the product owner gives it an entity.');
     expect(ApplyDialogModel.pendingWithoutEntityTextOf(monorepoRecord(), undefined, 0)).toBeNull();
     expect(ApplyDialogModel.pendingWithoutEntityTextOf(monorepoRecord(), STORED_MONOREPO_PIPELINE, 2)).toBeNull();
     expect(ApplyDialogModel.pendingWithoutEntityTextOf(record(), undefined, 2)).toBeNull();

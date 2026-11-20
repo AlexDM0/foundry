@@ -2,7 +2,7 @@
  * The constitution commit of a draft over entities. What matters: the request lists each entity's drafted constitution and none of the
  * forge's own, the Airlock reads every entity's constitution path on main, and once main holds every drafted text, as after a commit
  * landed or a hand commit of it, stage 2 runs with no commit: the drafted entity names its file, an entity with no draft adopts the file
- * main holds, and the first Apply over entities starts the product owner for the pending tickets without one; a ticket that started while
+ * main holds, and the first Apply over entities starts the product owner for the committed tickets without one; a ticket that started while
  * the request waited refuses it E94 before anything is stored, the same check the landing makes before it lands. A forge without entities
  * lists `CONSTITUTION.md` alone, which `Airlocks.constitutionCommit.spec.ts` holds.
  */
@@ -35,7 +35,7 @@ afterEach(() => {
 
 /** An update of the stored pipeline into the entities `web` and `design-system`, `web`'s constitution drafted, Apply requested. */
 function harnessWithAnEntityApply(): { current: AirlocksHarness; setupId: string } {
-  const current = createRecordedAirlocksHarness([{ id: '021', status: 'pending' }]);
+  const current = createRecordedAirlocksHarness([{ id: '021', status: 'committed' }]);
   harness = current;
   const { board } = current;
   board.addGate({ name: 'merge-tests', run: 'bun test' }, HARNESS_AT, ['merge']);
@@ -80,7 +80,7 @@ describe('a constitution commit over entities', () => {
     expect(productOwner?.intake?.text).toBe(entityAssignmentRequestOf(['021']));
   });
 
-  test('refuses the request entities-while-tickets-in-flight when a pending ticket started while it waited, and stores nothing', async () => {
+  test('refuses the request entities-while-tickets-in-flight when a committed ticket started while it waited, and stores nothing', async () => {
     const { current } = harnessWithAnEntityApply();
     current.board.moveTicket('021', 'in-progress', { checksLegality: false }, HARNESS_AT);
     const storedBefore = current.board.pipeline();

@@ -87,15 +87,15 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
     'The start "now" is not before the end "-2h", so the axis would have no width. Swap them, or widen the window.',
   ],
   [
-    boardRefusal({ reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'pending' }),
+    boardRefusal({ reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'committed' }),
     'Ticket #004 is a draft ticket, so it was not moved: ready it to build, which checks its Acceptance and Brief.',
   ],
   [boardRefusal({ reason: 'abandon-without-reason', ticketId: '004' }), 'Ticket #004 was not moved: abandon needs a reason. Say why the work was dropped.'],
   [
     boardRefusal({
-      reason: 'claim-after-a-ticket-not-in-review', ticketId: '004', afterTicketId: '003', status: 'pending'
+      reason: 'claim-after-a-ticket-not-in-review', ticketId: '004', afterTicketId: '003', status: 'committed'
     }),
-    'Ticket #004 was not claimed after #003: #003 is pending, and a claim after another ticket takes a predecessor that is in-review. '
+    'Ticket #004 was not claimed after #003: #003 is committed, and a claim after another ticket takes a predecessor that is in-review. '
     + 'Nothing was written.',
   ],
   [boardRefusal({ reason: 'claim-of-a-held-ticket', ticketId: '004' }), 'Ticket #004 is held, so it is not claimed. Nothing was written; unholding it lets it be claimed.'],

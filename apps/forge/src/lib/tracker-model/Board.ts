@@ -789,7 +789,7 @@ export class Board {
     return this.incidentRules.escalateIncident(incidentId, escalation, at);
   }
 
-  /** The Overseer's first start puts the v16 low `pending` tickets in `ready-for-review`, whatever the ticket review switch says. */
+  /** The Overseer's first start puts the v16 low `committed` tickets in `ready-for-review`, whatever the ticket review switch says. */
   submitFirstRunLeftovers(at: string): Logged {
     return this.findings.submitFirstRunLeftovers(at);
   }
@@ -1317,7 +1317,7 @@ export class Board {
   /**
    * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
    * over stops them, and the Overseer removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
-   * nothing. The first Apply over entities starts the product owner that gives the pending tickets without an entity one, in the same hold.
+   * nothing. The first Apply over entities starts the product owner that gives the committed tickets without an entity one, in the same hold.
    */
   private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, reading: ApplyMainReading, at: string): PipelineApplyChanged {
     const setup = changed.outcome === 'applied' ? changed.setup : null;
@@ -1411,7 +1411,7 @@ export class Board {
     this.ticketMoves.refuseWorkOutsideTheEntityOfCompleteTickets(tickets, readinessGapsOf, workFilesOf);
   }
 
-  /** Refuses `ticket-without-entity` for the complete tickets a submit with ticket review off would make `pending`, judged before anything moves. */
+  /** Refuses `ticket-without-entity` for the complete tickets a submit with ticket review off would make `committed`, judged before anything moves. */
   refuseASubmitWithoutAnEntity(tickets: readonly Readonly<Ticket>[], readinessGapsOf: (body: string) => readonly ReadinessGap[]): void {
     this.ticketMoves.refuseASubmitWithoutAnEntity(tickets, this.ticketReviewIsOn(), readinessGapsOf);
   }
@@ -1474,7 +1474,7 @@ export class Board {
     this.ticketSettings.refuseAnUnknownEntity(ticketId, entity);
   }
 
-  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastPending?: boolean } = {}): TicketChanged {
+  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastCommitted?: boolean } = {}): TicketChanged {
     return this.ticketSettings.setTicketEntity(ticketId, assignment, at, options);
   }
 

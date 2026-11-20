@@ -108,7 +108,7 @@ describeWhenGitIsRecorded('a whole session through the binary', () => {
       await recordedGit.playStage([COMMON_FOLDER_AT_THE_ROOT], async () => run(['init', '--project', 'Example Agency'], BINARY_INIT_IN_A_NEW_REPOSITORY));
       expect(programNamesInstalledIn(repositoryDirectory)).toEqual([PRODUCT_NAMES.PROGRAM]);
       expect(await run(['ticket', 'add', 'Double-click a role to edit it', '--type', 'ticket', ...READY_TICKET_BODY_ARGUMENTS])).toContain('Ticket #001 filed');
-      expect(await run(['ticket', 'ready', '1'])).toContain('Ticket #001 ready to build');
+      expect(await run(['ticket', 'ready', '1'])).toContain('Ticket #001 committed');
 
       const [, suggestedCommand = ''] = /`([^`]+)`/.exec(await refused(['ticket', 'show', '9'])) ?? [];
       const [suggestedProgram, ...suggestedArguments] = suggestedCommand.split(' ');
@@ -164,7 +164,7 @@ describeWhenGitIsRecorded('a whole session through the binary', () => {
 
       expect(document.log.map((entry) => entry.text)).toEqual([
         'Ticket #001 filed: Double-click a role to edit it',
-        'Ticket #001 ready to build',
+        'Ticket #001 committed',
         'Ticket #001 started',
         'Halfway through the role editor',
         'Ticket #001 in review',

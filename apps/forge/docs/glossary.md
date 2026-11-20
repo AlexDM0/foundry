@@ -149,7 +149,7 @@ The stored value is what `<data>/progress.json`, tickets, `status --json` and ve
 | Stored value | Stored on | The Bridge shows |
 | --- | --- | --- |
 | `draft` | ticket only | Draft |
-| `pending` | ticket, row (none yet on a low-priority ticket) | To do |
+| `committed` | ticket, row (none yet on a low-priority ticket) | To do |
 | `in-progress` | ticket, row | In progress |
 | `paused` | row only | Paused |
 | `in-review` | ticket, row | Awaiting review |
@@ -436,7 +436,7 @@ words](#status-words).
 
 ### draft ticket
 
-A ticket with status `draft`: filed, not yet ready, with no row. `ticket ready` moves it to `pending`. It differs from a
+A ticket with status `draft`: filed, not yet ready, with no row. `ticket ready` moves it to `committed`. It differs from a
 [filing draft](#filing-draft).
 
 ### epic
@@ -846,12 +846,12 @@ allowed files. Home: [Guards and testing](development/guards-and-testing.md).
 
 ### readiness position
 
-A ticket's place in the [log](#log): the position of its latest `ticket-readied` or `ticket-reopened` record. Among
+A ticket's place in the [log](#log): the position of its latest `ticket-committed` or `ticket-reopened` record. Among
 ready tickets of one priority it sorts the earlier first (`readinessPositionByTicketId`).
 
 ### ready
 
-As a verb, to move a [draft ticket](#draft-ticket) to `pending` with `ticket ready`, which checks its Acceptance and
+As a verb, to move a [draft ticket](#draft-ticket) to `committed` with `ticket ready`, which checks its Acceptance and
 Brief. As an adjective, a ticket `readyTicketIdsOf` lists, which may start now.
 
 ### recorded ticket
@@ -1141,7 +1141,7 @@ The retired name of the per-session process [Talos](#talos) replaced. Dated reco
 
 ### wave
 
-A Bridge grouping of open tickets by the open dependencies in front of them (`DependencyGraphUtil`). Drafts and pending
+A Bridge grouping of open tickets by the open dependencies in front of them (`DependencyGraphUtil`). Drafts and committed
 low-priority tickets enter no wave, yet still hold their dependents out of Now. It says nothing about readiness, which
 the `Board` class decides. Home: [Running a board](operations/running-a-board.md).
 

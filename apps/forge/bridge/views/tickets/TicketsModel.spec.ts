@@ -92,7 +92,7 @@ describe('the search and the chips', () => {
     const model = TicketsModel.ticketsModelOf(BOARD, { ...DEFAULT_TICKET_VIEW, typeChips: ['bug'], epicChips: ['billing'] }, false, EVERY_TICKET);
     expect(Object.fromEntries(model.countByChip.type)).toEqual({ ticket: 0, bug: 1, research: 1 });
     expect(Object.fromEntries(model.countByChip.epic)).toEqual({ billing: 1 });
-    expect(model.countByChip.status.get('pending')).toBe(1);
+    expect(model.countByChip.status.get('committed')).toBe(1);
   });
 });
 
@@ -239,7 +239,7 @@ describe('the epic head rows', () => {
     });
     const [head] = TicketsModel.ticketsModelOf(board, DEFAULT_TICKET_VIEW, true, EVERY_TICKET).groups.map((group) => group.head);
     expect([head?.epic.key, head?.segments.map((segment) => [segment.state, segment.count]), head?.doneText, head?.rollupLabel]).toEqual([
-      'billing', [['delivered', 1], ['pending', 1]], '1 of 2 done', '1 of 2 done tickets',
+      'billing', [['delivered', 1], ['committed', 1]], '1 of 2 done', '1 of 2 done tickets',
     ]);
     expect(head?.facts.map((fact) => `${fact.label} ${fact.value}`)).toEqual(['open 1', 'done 1', 'tokens 0', 'span not started']);
   });

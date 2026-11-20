@@ -5,7 +5,7 @@
  * the Overview's state card names the live job and its calls beside Flint's slot (no slot while the question panel shows over the panel's
  * slide out, so a page has one), and leads with Watch, a link no stream outage disables, else with Ready, Unhold or Accept by state, Accept
  * disabled unless the prediction is clean; Park…, Hold… and Delivered by hand… open their row before anything is sent, Cancel sending
- * nothing; a pending ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once applied and
+ * nothing; a committed ticket's Priority… opens a row of the other priorities, each posting `ticket-priority`, closing once applied and
  * showing a refusal verbatim; a closed move row hands the focus back to its opener; Next marks exactly one current step and links the
  * tickets the landing lets start, and is absent without a forecast; the Facts grid carries its second lines; a refusal shows verbatim
  * beside the control that drew it; and a live job's controls sit under Watch, after the open incident naming the ticket: a message box
@@ -54,7 +54,7 @@ const BOARD = exampleDetailBoard({
     }),
     exampleDetailTicket('005', { title: 'Example delivery ETA', dependsOn: ['004'] }),
     exampleDetailTicket('013', { status: 'draft' }),
-    exampleDetailTicket('015', { status: 'pending', hold: 'waiting on the example vendor' }),
+    exampleDetailTicket('015', { status: 'committed', hold: 'waiting on the example vendor' }),
     exampleDetailTicket('020', { status: 'in-review' }),
     exampleDetailTicket('021', { status: 'in-review' }),
   ],
@@ -326,8 +326,8 @@ describe('the Overview', () => {
     expect(draft.sent).toEqual([{ kind: 'ticket-hold', ticketReference: '013', reason: 'waiting on the example vendor' }]);
   });
 
-  test('a ticket ready for review leads with Ready; a pending ticket offers Hold…, whose Hold with no reason posts ticket-hold', async () => {
-    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('016', { status: 'ready-for-review' }), exampleDetailTicket('017', { status: 'pending' })], });
+  test('a ticket ready for review leads with Ready; a committed ticket offers Hold…, whose Hold with no reason posts ticket-hold', async () => {
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('016', { status: 'ready-for-review' }), exampleDetailTicket('017', { status: 'committed' })], });
     const forReview = renderTicket({ form: 'ticket', ticketId: '016' }, { boardState });
     await clicked(screen.getByRole('button', { name: 'Ready' }));
     expect(forReview.sent).toEqual([{ kind: 'ticket-ready', ticketReferences: ['016'] }]);
@@ -339,8 +339,8 @@ describe('the Overview', () => {
     expect(pending.sent).toEqual([{ kind: 'ticket-hold', ticketReference: '017', reason: '' }]);
   });
 
-  test('a pending ticket\'s Priority… opens one row of the two other priorities; each posts ticket-priority, and the row closes once applied', async () => {
-    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('018', { status: 'pending', priority: 'low' })] });
+  test('a committed ticket\'s Priority… opens one row of the two other priorities; each posts ticket-priority, and the row closes once applied', async () => {
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('018', { status: 'committed', priority: 'low' })] });
     const pending = renderTicket({ form: 'ticket', ticketId: '018' }, { boardState });
     expect(screen.queryByRole('group', { name: 'Priority' })).toBeNull();
     await clicked(region('Other moves').getByRole('button', { name: 'Priority…' }));
@@ -352,7 +352,7 @@ describe('the Overview', () => {
   });
 
   test('a refused priority shows verbatim in its row, which stays open; Cancel closes it with nothing more sent', async () => {
-    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('019', { status: 'pending' })] });
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('019', { status: 'committed' })] });
     const pending = renderTicket({ form: 'ticket', ticketId: '019' }, { boardState });
     pending.answerWith({ verdict: 'refused', refusal: 'Ticket 019 is already at priority low.' });
     await clicked(region('Other moves').getByRole('button', { name: 'Priority…' }));
@@ -371,7 +371,7 @@ describe('the Overview', () => {
     await clicked(cancel);
     expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Park…' }));
     cleanup();
-    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('018', { status: 'pending', priority: 'low' })] });
+    const boardState = exampleDetailBoard({ tickets: [exampleDetailTicket('018', { status: 'committed', priority: 'low' })] });
     renderTicket({ form: 'ticket', ticketId: '018' }, { boardState });
     await clicked(region('Other moves').getByRole('button', { name: 'Priority…' }));
     const high = screen.getByRole('button', { name: 'Priority high' });

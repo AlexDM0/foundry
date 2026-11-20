@@ -95,7 +95,7 @@ describeWhenGitIsRecorded('clearing while keeping the tickets', () => {
    * would be indistinguishable from one the tool watched — so the row comes back knowing only the state it came back in.
    */
   test('a re-seeded row carries the one phase it was re-seeded into, not a history read off the ticket', async () => {
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status), 'the row before the clear').toEqual(['pending', 'in-progress', 'reviewed']);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status), 'the row before the clear').toEqual(['committed', 'in-progress', 'reviewed']);
 
     await run(['clear', '--yes']);
 

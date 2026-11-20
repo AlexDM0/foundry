@@ -1,7 +1,7 @@
 /**
  * The contract's vocabulary against the tracker model's. What matters: the contract's vocabulary is the model's, so a value added on either
  * side fails here before a reader meets it. A union that differs is a compile error in `UNION_AGREEMENTS`, which the typecheck watches; a
- * list in another order fails the runtime comparison. Where the model still says `pending`, the contract says `committed`.
+ * list in another order fails the runtime comparison.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -70,13 +70,10 @@ import { TICKET_STAGE_NAMES as MODEL_TICKET_STAGE_NAMES } from '../../lib/tracke
 /** `true` only when each union is assignable to the other; the brackets keep a union from being compared member by member. */
 type MutuallyAssignable<First, Second> = [First] extends [Second] ? ([Second] extends [First] ? true : false) : false;
 
-/** The model's status union as the contract names it, until the model's own rename. */
-type CommittedInPlaceOfPending<ModelUnion extends string> = Exclude<ModelUnion, 'pending'> | 'committed';
-
 interface UnionAgreements {
-  readonly TicketStatus:        MutuallyAssignable<TicketStatus, CommittedInPlaceOfPending<ModelTicketStatus>>;
-  readonly TaskStatus:          MutuallyAssignable<TaskStatus, CommittedInPlaceOfPending<ModelTaskStatus>>;
-  readonly DisplayState:        MutuallyAssignable<DisplayState, CommittedInPlaceOfPending<ModelDisplayState>>;
+  readonly TicketStatus:        MutuallyAssignable<TicketStatus, ModelTicketStatus>;
+  readonly TaskStatus:          MutuallyAssignable<TaskStatus, ModelTaskStatus>;
+  readonly DisplayState:        MutuallyAssignable<DisplayState, ModelDisplayState>;
   readonly TicketPriority:      MutuallyAssignable<TicketPriority, ModelTicketPriority>;
   readonly TicketType:          MutuallyAssignable<TicketType, ModelTicketType>;
   readonly TicketSize:          MutuallyAssignable<TicketSize, ModelTicketSize>;
@@ -115,10 +112,6 @@ function valuesOf(list: readonly string[]): string[] {
   return [...list];
 }
 
-function committedInPlaceOfPending(modelStatuses: readonly string[]): string[] {
-  return modelStatuses.map((status) => (status === 'pending' ? 'committed' : status));
-}
-
 describe('the contract\'s vocabulary is the tracker model\'s', () => {
   test('every union agrees with the model\'s, which the typecheck holds', () => {
     expect(Object.values(UNION_AGREEMENTS).every((agrees) => agrees)).toBe(true);
@@ -133,9 +126,9 @@ describe('the contract\'s vocabulary is the tracker model\'s', () => {
     expect(plantedAgreements).toEqual([true, true]);
   });
 
-  test('each status list is the model\'s, in its order, naming committed for pending', () => {
-    expect(valuesOf(TICKET_STATUSES)).toEqual(committedInPlaceOfPending(MODEL_TICKET_STATUSES));
-    expect(valuesOf(TASK_STATUSES)).toEqual(committedInPlaceOfPending(MODEL_TASK_STATUSES));
+  test('each status list is the model\'s, in its order, with no mapping between them', () => {
+    expect(valuesOf(TICKET_STATUSES)).toEqual(valuesOf(MODEL_TICKET_STATUSES));
+    expect(valuesOf(TASK_STATUSES)).toEqual(valuesOf(MODEL_TASK_STATUSES));
   });
 
   test('each other list the model keeps is the model\'s, in its order', () => {

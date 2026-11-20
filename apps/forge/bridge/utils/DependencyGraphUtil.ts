@@ -64,11 +64,11 @@ const TICKET_READERS: DependencyGraphReaders<DependencyGraphTicket> = {
   settlesDependents: (ticket) => TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY.includes(ticket.status),
   primaryGroupKeyOf: (ticket) => ticket.memberOfEpics[0]?.key ?? null,
   entersWaves:       (ticket) => ticket.status !== 'draft' && ticket.status !== 'ready-for-review'
-    && !(ticket.status === 'pending' && TicketDefaultsUtil.ticketPriorityOf(ticket) === 'low'),
+    && !(ticket.status === 'committed' && TicketDefaultsUtil.ticketPriorityOf(ticket) === 'low'),
 };
 
 /**
- * Tickets are read by their status, priority and primary epic, abandoned ones leaving the graph and drafts and pending low ones the waves;
+ * Tickets are read by their status, priority and primary epic, abandoned ones leaving the graph and drafts and committed low ones the waves;
  * any other item needs its readers.
  */
 function dependencyGraphOf(tickets: readonly DependencyGraphTicket[], concurrencyLimit: number): DependencyGraph;

@@ -130,9 +130,9 @@ function relayingJobOf(board: Board, job: Readonly<Job>): RelayingJob {
     filedTickets: board.tickets()
       .filter((ticket) => ticket.frontmatter.filedByJob === job.id)
       .map((ticket) => ({ id: ticket.frontmatter.id, status: ticket.frontmatter.status })),
-    deliveredIncidents:               board.incidents().filter((incident) => incident.deliveredInTurn?.jobId === job.id),
-    ticketIdsReadyForReviewOrPending: board.tickets()
-      .filter((ticket) => ticket.frontmatter.status === 'ready-for-review' || ticket.frontmatter.status === 'pending')
+    deliveredIncidents:                 board.incidents().filter((incident) => incident.deliveredInTurn?.jobId === job.id),
+    ticketIdsReadyForReviewOrCommitted: board.tickets()
+      .filter((ticket) => ticket.frontmatter.status === 'ready-for-review' || ticket.frontmatter.status === 'committed')
       .map((ticket) => ticket.frontmatter.id),
     setupId: served?.setup.setupId ?? null,
     ...(served === null || served.entityKey === null ? {} : { setupEntity: served.entityKey }),

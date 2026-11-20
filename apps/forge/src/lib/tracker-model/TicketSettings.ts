@@ -12,7 +12,7 @@ import type {
 import type { BoardRecords }                                               from './BoardRecords.ts';
 import { BoardRefusal }                                                    from './BoardRefusal.ts';
 import { INTERRUPTED_HOLD_PREFIX }                                         from './constants/DecisionAndIncidentVocabulary.ts';
-import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_EDITABLE_WITHOUT_FORCE } from './constants/Statuses.ts';
+import { SETTLED_TICKET_STATUSES, TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP } from './constants/Statuses.ts';
 import { NetworkDomainUtil }                                               from './utils/NetworkDomainUtil.ts';
 import { TicketChartUtil }                                                 from './utils/TicketChartUtil.ts';
 import { TicketDefaultsUtil }                                              from './utils/TicketDefaultsUtil.ts';
@@ -22,9 +22,9 @@ export class TicketSettings {
   constructor(private readonly records: BoardRecords) {}
 
   /**
-   * Lowering to low is refused unless the ticket is draft, ready for review or pending, and keeps its row, since priority only orders the
-   * queue; raising a low ticket that has no row gives it a row at once, seeded from its stamps when it is no longer pending, the way a
-   * clearing would, so an abandoned ticket does not come back as a pending bar.
+   * Lowering to low is refused unless the ticket is draft, ready for review or committed, and keeps its row, since priority only orders the
+   * queue; raising a low ticket that has no row gives it a row at once, seeded from its stamps when it is no longer committed, the way a
+   * clearing would, so an abandoned ticket does not come back as a committed bar.
    */
   setTicketPriority(ticketId: string, priority: TicketPriority, at: string): TicketChanged {
     const ticket          = this.records.requireTicket(ticketId);
@@ -38,7 +38,7 @@ export class TicketSettings {
     const linkedTask     = this.records.linkedTaskRecordOf(ticket);
     // A draft, or a ticket abandoned before it was ever started, has no row at any priority.
     const raisingFilesARow = priority !== 'low' && linkedTask === undefined && !TicketChartUtil.ticketStaysOffTheChart(frontmatter);
-    if (raisingFilesARow && status === 'pending') this.records.ensureTaskForTicket(ticket, at);
+    if (raisingFilesARow && status === 'committed') this.records.ensureTaskForTicket(ticket, at);
     else if (raisingFilesARow) this.records.seedTaskFromTicket(ticket);
     this.records.markChanged(ticket);
     return { logged: [this.records.logger.log({ kind: 'ticket-priority-changed', ticketId, fields: { from: currentPriority, to: priority } }, at)], ticket };
@@ -83,14 +83,14 @@ export class TicketSettings {
   }
 
   /**
-   * Set only while the ticket is draft or pending, so no agent already at work gains a grant; an empty list clears the line. Every domain
+   * Set only while the ticket is draft or committed, so no agent already at work gains a grant; an empty list clears the line. Every domain
    * must be public, judged after lower-casing, and the line is written only once it names one.
    */
   setTicketNetwork(ticketId: string, domains: readonly string[], at: string): TicketChanged {
     const ticket          = this.records.requireTicket(ticketId);
     const { frontmatter } = ticket;
     const { status }      = frontmatter;
-    if (!TicketSettingRuleUtil.networkCanChange(status)) throw new BoardRefusal({ reason: 'network-of-a-ticket-past-pending', ticketId, status });
+    if (!TicketSettingRuleUtil.networkCanChange(status)) throw new BoardRefusal({ reason: 'network-of-a-ticket-past-committed', ticketId, status });
     const requestedDomains = NetworkDomainUtil.normalisedDomainListOf(domains);
     const nonPublicDomains = requestedDomains.filter((domain) => !NetworkDomainUtil.domainIsPublic(domain));
     if (nonPublicDomains.length > 0) throw new BoardRefusal({ reason: 'network-domain-not-public', ticketId, domains: nonPublicDomains });
@@ -115,13 +115,13 @@ export class TicketSettings {
    * Set only while no agent has claimed the ticket, as its network is; `updated` is not stamped, and the reason is logged, never stored. The
    * Overseer acting on User's answer to `work-in-other-entity` moves a started ticket too (E15), so its next build starts afresh there.
    */
-  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastPending?: boolean } = {}): TicketChanged {
+  setTicketEntity(ticketId: string, assignment: EntityAssignment, at: string, options: { allowsPastCommitted?: boolean } = {}): TicketChanged {
     const ticket          = this.records.requireTicket(ticketId);
     const { frontmatter } = ticket;
     const { status }      = frontmatter;
     this.refuseAnUnknownEntity(ticketId, assignment.entity);
-    if (options.allowsPastPending !== true && !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(status)) {
-      throw new BoardRefusal({ reason: 'entity-of-a-ticket-past-pending', ticketId, status });
+    if (options.allowsPastCommitted !== true && !TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(status)) {
+      throw new BoardRefusal({ reason: 'entity-of-a-ticket-past-committed', ticketId, status });
     }
     if (frontmatter.entity === assignment.entity) throw new BoardRefusal({ reason: 'entity-unchanged', ticketId, entity: assignment.entity });
     if (assignment.reason.trim() === '') throw new BoardRefusal({ reason: 'entity-without-reason', ticketId });

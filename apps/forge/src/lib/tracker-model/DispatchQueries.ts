@@ -49,12 +49,12 @@ export class DispatchQueries {
     return this.withoutGroupRunTickets(readyTicketIds.flatMap((ticketId) => this.records.ticketRecordById(ticketId) ?? []));
   }
 
-  /** The log position of each ticket's latest `ticket-readied` or `ticket-reopened` record; a clearing forgets every earlier one. */
+  /** The log position of each ticket's latest `ticket-committed` or `ticket-reopened` record; a clearing forgets every earlier one. */
   readinessPositionByTicketId(): Map<string, number> {
     const positionByTicketId = new Map<string, number>();
     [...this.records.storedLogRecords, ...this.records.loggedRecords].forEach((record, position) => {
       if (record.kind === 'tracker-cleared') positionByTicketId.clear();
-      if (record.kind === 'ticket-readied' || record.kind === 'ticket-reopened') positionByTicketId.set(record.ticketId, position);
+      if (record.kind === 'ticket-committed' || record.kind === 'ticket-reopened') positionByTicketId.set(record.ticketId, position);
     });
     return positionByTicketId;
   }

@@ -28,7 +28,7 @@ const CHECKED = { checksLegality: true } as const;
 
 const EXAMPLE_REASON = 'the export dialog is being replaced';
 
-function pendingTicketFixture(): BoardFixture {
+function committedTicketFixture(): BoardFixture {
   return boardFixture({ tickets: [ticketFixture({ id: '003', title: 'Example export dialog', type: 'bug' })] });
 }
 
@@ -39,7 +39,7 @@ describe('a move and its row', () => {
       progress,
       tickets,
       records,
-    } = pendingTicketFixture();
+    } = committedTicketFixture();
     const moved = board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
 
     expect(tickets[0]).toBe(moved.ticket);
@@ -62,7 +62,7 @@ describe('a move and its row', () => {
   });
 
   test('a move to in-review stamps finished and sets the row in-review', () => {
-    const { board, progress, records } = pendingTicketFixture();
+    const { board, progress, records } = committedTicketFixture();
     board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
     const moved = board.moveTicket('003', 'in-review', CHECKED, FINISHED_AT);
 
@@ -72,7 +72,7 @@ describe('a move and its row', () => {
   });
 
   test('a move to reviewed sets the row reviewed and stamps finished when the ticket never went through review', () => {
-    const { board, progress, records } = pendingTicketFixture();
+    const { board, progress, records } = committedTicketFixture();
     const moved                        = board.moveTicket('003', 'reviewed', { checksLegality: false }, FINISHED_AT);
 
     expect(moved.ticket.frontmatter.finished).toBe(FINISHED_AT);
@@ -81,7 +81,7 @@ describe('a move and its row', () => {
   });
 
   test('deliver stamps delivered, sets the row delivered, and leaves an earlier finish alone', () => {
-    const { board, progress, records } = pendingTicketFixture();
+    const { board, progress, records } = committedTicketFixture();
     board.moveTicket('003', 'reviewed', { checksLegality: false }, FINISHED_AT);
     const moved = board.moveTicket('003', 'delivered', CHECKED, DELIVERED_AT);
 
@@ -91,7 +91,7 @@ describe('a move and its row', () => {
   });
 
   test('abandon stamps abandonedAt, records the reason, and puts it in the log line', () => {
-    const { board, progress, records } = pendingTicketFixture();
+    const { board, progress, records } = committedTicketFixture();
     board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
     const moved = board.moveTicket('003', 'abandoned', { checksLegality: true, reason: EXAMPLE_REASON }, FINISHED_AT);
 
@@ -105,27 +105,27 @@ describe('a move and its row', () => {
     });
   });
 
-  test('reopen clears every timestamp and the reason, and the row goes back to pending', () => {
-    const { board, progress, records } = pendingTicketFixture();
+  test('reopen clears every timestamp and the reason, and the row goes back to committed', () => {
+    const { board, progress, records } = committedTicketFixture();
     board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
     board.moveTicket('003', 'abandoned', { checksLegality: true, reason: 'superseded' }, FINISHED_AT);
-    const moved = board.moveTicket('003', 'pending', CHECKED, DELIVERED_AT);
+    const moved = board.moveTicket('003', 'committed', CHECKED, DELIVERED_AT);
 
     expect(moved.ticket.frontmatter).toMatchObject({
-      status:      'pending',
+      status:      'committed',
       started:     null,
       finished:    null,
       delivered:   null,
       abandonedAt: null,
     });
     expect(moved.ticket.frontmatter.reason).toBeUndefined();
-    expect(progress.tasks[0]).toMatchObject({ status: 'pending', start: null });
+    expect(progress.tasks[0]).toMatchObject({ status: 'committed', start: null });
     expect(records.at(-1)?.kind).toBe('ticket-reopened');
   });
 
   // `ticket start` on a ticket back from review is rework: the bar still began when the work first did.
   test('a ticket started again after review keeps its first start and only moves updated', () => {
-    const { board, progress } = pendingTicketFixture();
+    const { board, progress } = committedTicketFixture();
     board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
     board.moveTicket('003', 'in-review', CHECKED, FINISHED_AT);
     const moved = board.moveTicket('003', 'in-progress', CHECKED, DELIVERED_AT);
@@ -145,7 +145,7 @@ describe('a move and its row', () => {
   });
 
   test('a branch and a commit handed to a transition are recorded on the ticket', () => {
-    const { board } = pendingTicketFixture();
+    const { board } = committedTicketFixture();
     const moved     = board.moveTicket('003', 'reviewed', {
       checksLegality: false,
       branch:         'ticket/export-dialog',
@@ -165,11 +165,11 @@ describe('refusals', () => {
         progress,
         tickets,
         records,
-      } = pendingTicketFixture();
+      } = committedTicketFixture();
       const ticketsAsRead = structuredClone(tickets);
 
-      expect(refusalDetailOf(() => board.moveTicket('003', 'pending', { checksLegality }, STARTED_AT)), String(checksLegality))
-        .toEqual({ reason: 'ticket-already-in-status', ticketId: '003', status: 'pending' });
+      expect(refusalDetailOf(() => board.moveTicket('003', 'committed', { checksLegality }, STARTED_AT)), String(checksLegality))
+        .toEqual({ reason: 'ticket-already-in-status', ticketId: '003', status: 'committed' });
       expect(tickets).toEqual(ticketsAsRead);
       expect(progress.tasks).toEqual([]);
       expect(board.changedTickets()).toEqual([]);
@@ -178,11 +178,11 @@ describe('refusals', () => {
   });
 
   test('a move the table does not allow is refused, and skipping the check lets it through', () => {
-    const { board } = pendingTicketFixture();
+    const { board } = committedTicketFixture();
     expect(refusalDetailOf(() => board.moveTicket('003', 'delivered', CHECKED, DELIVERED_AT))).toEqual({
       reason:       'illegal-ticket-move',
       ticketId:     '003',
-      status:       'pending',
+      status:       'committed',
       targetStatus: 'delivered',
     });
     expect(board.moveTicket('003', 'delivered', { checksLegality: false }, DELIVERED_AT).ticket.frontmatter.status).toBe('delivered');
@@ -193,7 +193,7 @@ describe('refusals', () => {
     const rowedStatuses = TICKET_STATUSES.filter((candidate): candidate is RowedTicketStatus => candidate !== 'draft' && candidate !== 'ready-for-review');
     for (const status of rowedStatuses) {
       for (const targetStatus of rowedStatuses.filter((candidate) => candidate !== status)) {
-        const { board } = boardFixture({ tickets: [ticketFixture({ id: '003', status, started: status === 'pending' ? null : FILED_AT })] });
+        const { board } = boardFixture({ tickets: [ticketFixture({ id: '003', status, started: status === 'committed' ? null : FILED_AT })] });
         const move      = (): unknown => board.moveTicket('003', targetStatus, { checksLegality: true, reason: 'Example reason' }, STARTED_AT);
         const pair      = `${status} → ${targetStatus}`;
 
@@ -270,12 +270,12 @@ describe('refusals', () => {
         progress,
         tickets,
         records,
-      } = pendingTicketFixture();
+      } = committedTicketFixture();
       const request = { checksLegality: true, ...(reason === undefined ? {} : { reason }) };
 
       expect(refusalDetailOf(() => board.moveTicket('003', 'abandoned', request, FINISHED_AT)), String(reason))
         .toEqual({ reason: 'abandon-without-reason', ticketId: '003' });
-      expect(tickets[0]?.frontmatter).toMatchObject({ status: 'pending', abandonedAt: null, updated: FILED_AT });
+      expect(tickets[0]?.frontmatter).toMatchObject({ status: 'committed', abandonedAt: null, updated: FILED_AT });
       expect(progress.tasks).toEqual([]);
       expect(board.changedTickets()).toEqual([]);
       expect(records).toEqual([]);
@@ -296,7 +296,7 @@ describe('tokens', () => {
   // A low ticket reopened before it was ever started has no row, so the count has nowhere to go and must not be dropped silently.
   test('a count for a ticket the move leaves without a row is refused', () => {
     const { board, progress } = boardFixture({ tickets: [ticketFixture({ id: '003', priority: 'low', status: 'in-review' })] });
-    expect(refusalDetailOf(() => board.moveTicket('003', 'pending', { checksLegality: true, tokens: 500 }, STARTED_AT)))
+    expect(refusalDetailOf(() => board.moveTicket('003', 'committed', { checksLegality: true, tokens: 500 }, STARTED_AT)))
       .toEqual({ reason: 'tokens-without-a-row', ticketId: '003' });
     expect(progress.tasks).toEqual([]);
   });
@@ -307,12 +307,12 @@ describe('a low ticket and the chart', () => {
     const { board, progress } = boardFixture({ tickets: [ticketFixture({ id: '003', priority: 'low' })] });
     const started             = board.moveTicket('003', 'in-progress', CHECKED, STARTED_AT);
     const rowId               = started.ticket.frontmatter.task;
-    const reopened            = board.moveTicket('003', 'pending', CHECKED, FINISHED_AT);
+    const reopened            = board.moveTicket('003', 'committed', CHECKED, FINISHED_AT);
 
     expect(rowId).not.toBeNull();
     expect(reopened.ticket.frontmatter.task).toBe(rowId);
     expect([rowId]).toEqual(progress.tasks.map((task) => task.id));
-    expect(progress.tasks[0]?.status).toBe('pending');
+    expect(progress.tasks[0]?.status).toBe('committed');
   });
 
   test('a low ticket abandoned before it was ever started gets no row', () => {
@@ -389,7 +389,7 @@ describe('review bars a move ends', () => {
     });
   }
 
-  const TARGETS_THAT_END_REVIEW: readonly TicketStatus[] = ['pending', 'in-progress', 'reviewed', 'delivered', 'abandoned'];
+  const TARGETS_THAT_END_REVIEW: readonly TicketStatus[] = ['committed', 'in-progress', 'reviewed', 'delivered', 'abandoned'];
 
   for (const targetStatus of TARGETS_THAT_END_REVIEW) {
     test(`a move to ${targetStatus} finishes and delivers the ticket's in-progress bar and logs it after the move`, () => {
@@ -437,7 +437,7 @@ describe('the moves a ticket offers', () => {
   const KINDS_OFFERED_UNHELD: Readonly<Record<TicketStatus, readonly TicketOfferKind[]>> = {
     'draft':            ['ticket-ready', 'ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority'],
     'ready-for-review': ['ticket-ready', 'ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority'],
-    'pending':          ['ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
+    'committed':        ['ticket-hold', 'ticket-park', 'ticket-network', 'ticket-priority', 'ticket-deliver-by-hand'],
     'in-progress':      ['ticket-hold', 'ticket-park', 'ticket-priority', 'ticket-deliver-by-hand'],
     'in-review':        ['ticket-hold', 'ticket-park', 'ticket-priority', 'ticket-deliver-by-hand'],
     'reviewed':         ['ticket-hold', 'ticket-park', 'ticket-priority', 'ticket-deliver-by-hand'],
@@ -456,7 +456,7 @@ describe('the moves a ticket offers', () => {
   }
 
   test('offers every other priority, the highest first, and low only while no agent has claimed the ticket', () => {
-    expect(ticketInStatusFixture('pending', null).board.ticketOffersOf('001', null).priorityChoices).toEqual(['high', 'low']);
+    expect(ticketInStatusFixture('committed', null).board.ticketOffersOf('001', null).priorityChoices).toEqual(['high', 'low']);
     expect(ticketInStatusFixture('in-progress', null).board.ticketOffersOf('001', null).priorityChoices).toEqual(['high']);
   });
 

@@ -32,7 +32,7 @@ const FROZEN_FRONTMATTER_FILED_WITHOUT_LINKS = [
   'id: "001"',
   'title: "Example checkout page"',
   'type: "ticket"',
-  'status: "pending"',
+  'status: "committed"',
   'filed: "2026-09-18T20:11:03+00:00"',
   'updated: "2026-09-18T20:11:03+00:00"',
   'started: null',
@@ -86,7 +86,7 @@ async function expectRefusedWritingNothing(commandLineArguments: readonly string
   expect(trackerSnapshot()).toBe(before);
 }
 
-/** #001 delivered, #002 a pending bug, #003 a pending ticket. */
+/** #001 delivered, #002 a committed bug, #003 a committed ticket. */
 async function fileDeliveredCauseAndPendingBug(): Promise<void> {
   await fileReadyTicket(run, ['ticket', 'add', 'Example checkout page', '--type', 'ticket']);
   await run(['ticket', 'status', '001', 'delivered']);
@@ -136,7 +136,7 @@ describeWhenGitIsRecorded('filing with a link', () => {
 
     await expectRefusedWritingNothing(['ticket', 'add', 'Example ticket', '--type', 'ticket', '--introduced-by', '1'], 'only a bug names the ticket that introduced it');
     await expectRefusedWritingNothing(['ticket', 'add', 'Example bug', '--type', 'bug', '--introduced-by', '99'], 'There is no ticket #099');
-    await expectRefusedWritingNothing(['ticket', 'add', 'Example bug', '--type', 'bug', '--introduced-by', '3'], 'it is pending');
+    await expectRefusedWritingNothing(['ticket', 'add', 'Example bug', '--type', 'bug', '--introduced-by', '3'], 'it is committed');
     await expectRefusedWritingNothing(['ticket', 'add', 'Example finding', '--type', 'ticket', '--found-in-review', '99'], 'There is no ticket #099');
   });
 });
@@ -170,7 +170,7 @@ describeWhenGitIsRecorded('ticket introduced-by', () => {
     await expectRefusedWritingNothing(['ticket', 'introduced-by', '3', '1'], 'Ticket #003 is a ticket, and only a bug names the ticket that introduced it');
     await expectRefusedWritingNothing(['ticket', 'introduced-by', '2', '99'], 'There is no ticket #099');
     await expectRefusedWritingNothing(['ticket', 'introduced-by', '2', '2'], 'Ticket #002 cannot be introduced by itself');
-    await expectRefusedWritingNothing(['ticket', 'introduced-by', '2', '3'], 'Ticket #002 cannot be introduced by #003: it is pending');
+    await expectRefusedWritingNothing(['ticket', 'introduced-by', '2', '3'], 'Ticket #002 cannot be introduced by #003: it is committed');
   });
 
   test('ticket priority round-trips a file holding both keys, and one holding neither, apart from its own line', async () => {

@@ -420,7 +420,7 @@ describe('the flow', () => {
 
   test('names the tickets in flight, which take the new pipeline at their next gate run', () => {
     const tickets = [
-      ticketFixture({ id: '001', status: 'pending' }),
+      ticketFixture({ id: '001', status: 'committed' }),
       ticketFixture({ id: '002', status: 'in-progress' }),
       ticketFixture({ id: '003', status: 'in-review' }),
       ticketFixture({ id: '004', status: 'delivered' }),

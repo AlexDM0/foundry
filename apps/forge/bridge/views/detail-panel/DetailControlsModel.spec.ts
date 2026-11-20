@@ -1,6 +1,6 @@
 /**
  * The Bridge's controls on a ticket. What matters: they follow the stored status (Ready only while a draft or ready for review, Hold only
- * before a start, Unhold while held, network only while `draft` or `pending`, the other priorities only while `pending`, nothing once
+ * before a start, Unhold while held, network only while `draft` or `committed`, the other priorities only while `committed`, nothing once
  * closed), and the merge wait carries git's prediction, Accept pressable only on a clean one.
  */
 import { describe, expect, test } from 'bun:test';
@@ -27,15 +27,15 @@ describe('the ticket controls', () => {
     });
   });
 
-  test('a pending ticket offers Hold, Park, network and every priority but its own, highest first, and no Ready', () => {
-    expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('016', { status: 'pending', priority: 'low' }), undefined)).toEqual({
+  test('a committed ticket offers Hold, Park, network and every priority but its own, highest first, and no Ready', () => {
+    expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('016', { status: 'committed', priority: 'low' }), undefined)).toEqual({
       readies: false, holdMove: 'hold', parks: true, setsNetwork: true, network: [], priorityChoices: ['high', 'normal'], deliversByHand: true
     });
-    expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('017', { status: 'pending' }), undefined).priorityChoices).toEqual(['high', 'low']);
+    expect(DetailControlsModelUtil.controlsOf(exampleDetailTicket('017', { status: 'committed' }), undefined).priorityChoices).toEqual(['high', 'low']);
   });
 
-  test('a held pending ticket offers Unhold and still every other priority', () => {
-    const controls = DetailControlsModelUtil.controlsOf(exampleDetailTicket('018', { status: 'pending', hold: '', priority: 'high' }), undefined);
+  test('a held committed ticket offers Unhold and still every other priority', () => {
+    const controls = DetailControlsModelUtil.controlsOf(exampleDetailTicket('018', { status: 'committed', hold: '', priority: 'high' }), undefined);
     expect([controls.holdMove, controls.priorityChoices]).toEqual(['unhold', ['normal', 'low']]);
   });
 

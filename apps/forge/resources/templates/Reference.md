@@ -52,7 +52,7 @@ task: 17
 
 | key | written | value |
 |---|---|---|
-| `id`, `title`, `type`, `status`, `filed`, `updated` | always; required | `type`: ticket, bug, research; a stored change or feature reads as ticket and is written back as stored. `status`: draft, ready-for-review, pending, in-progress, in-review, reviewed, delivered, abandoned. `updated` is stamped on every move. |
+| `id`, `title`, `type`, `status`, `filed`, `updated` | always; required | `type`: ticket, bug, research; a stored change or feature reads as ticket and is written back as stored. `status`: draft, ready-for-review, committed, in-progress, in-review, reviewed, delivered, abandoned. `updated` is stamped on every move. |
 | `priority`, `size`, `model`, `effort` | only once named | `priority`: low, normal, high. `size`: XS, S, M, L, XL, XXL, in capitals. `model`: haiku, sonnet, opus, fable. `effort`: low, medium, high, xhigh, max. Absent reads as normal, as no size, and as opus and medium, so an older ticket is never rewritten to gain them. |
 | `hold` | only while held | the hold's reason, empty without one; any value but `null`, a bare `hold:` included, is held. Set and remove it with `ticket hold` and `unhold`. |
 | `started`, `finished`, `delivered`, `abandonedAt` | always | a timestamp or `null`; an absent one reads as `null` |
@@ -60,8 +60,8 @@ task: 17
 | `releasesGroup` | only on a group's release ticket | `true`; absent or `null` is not the release ticket, any other value makes the file malformed. Set and remove it with `ticket release-of`. |
 | `dependsOn` | when non-empty | ticket ids, written `"001, 002"`, read from any mix of commas and spaces with or without `#` or padding. Set it with `ticket depends`, which refuses a missing id or a circle; bare ids replace the list, `--add` and `--remove` change it. |
 | `epics` | when non-empty | epic keys, written `"loyalty-programme, checkout-redesign"` and read like `dependsOn`, in order: the first is the primary epic. A part that is not an epic key makes the file malformed; a key whose epic is gone is kept. Set it with `ticket epic`, which refuses an epic that does not exist. |
-| `network` | only once set | the public domains the ticket's agents may reach, written `"api.example.com, cdn.example.com"` and read like `epics`, lower case, in order. A domain that is not public makes the file malformed. Set it with `ticket add --network` or `ticket network`, only while the ticket is a draft or pending; `--clear` removes it. |
-| `entity` | only once assigned | the key of the entity whose pipeline builds the ticket, in a forge with entities, written `"web"`; a blank one makes the file malformed. Set it with `ticket add --entity` or `ticket entity`, only while the ticket is a draft, ready for review or pending; the reason goes to the `entity-assigned` log record, never the file. In a forge with entities a ticket without one never becomes `pending`. |
+| `network` | only once set | the public domains the ticket's agents may reach, written `"api.example.com, cdn.example.com"` and read like `epics`, lower case, in order. A domain that is not public makes the file malformed. Set it with `ticket add --network` or `ticket network`, only while the ticket is a draft or committed; `--clear` removes it. |
+| `entity` | only once assigned | the key of the entity whose pipeline builds the ticket, in a forge with entities, written `"web"`; a blank one makes the file malformed. Set it with `ticket add --entity` or `ticket entity`, only while the ticket is a draft, ready for review or committed; the reason goes to the `entity-assigned` log record, never the file. In a forge with entities a ticket without one never becomes `committed`. |
 | `crosses` | only once set | the keys of the whitelisted packages intake expects the ticket to cross into, written `"design-system, contracts"` and read like `epics`: a forecast for the board, never what decides the stages. No verb sets it. |
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
@@ -87,7 +87,7 @@ The body is preserved byte for byte from the ticket template (Report, Wanted, Ac
 `--body` or `--body-file`; an empty body falls back to the template. `ticket edit` replaces the body or
 appends to it; `ticket edit --title`
 rewrites only the `title` line, and a first body line still reading `# <id> — <old title>`, never the file name; on a
-started ticket whose body is unchanged since its build started it moves `claimedBodyHash` along. Past `pending`,
+started ticket whose body is unchanged since its build started it moves `claimedBodyHash` along. Past `committed`,
 `ticket edit` needs `--force`. A malformed ticket file is listed as ignored rather than failing `status`.
 A new ticket id is one past the highest of every file name, every parsed id and every ticket a row names;
 gaps are tolerated, never filled.
@@ -137,19 +137,19 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | move | from | ticket status | its row | pill | stamps written | log line |
 |---|---|---|---|---|---|---|
 | `ticket add` | — | draft | none, at any priority | `Draft` | `filed` | `Ticket #003 filed: <title>` |
-| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity` and no path on its `Work belongs in:` line outside that entity (`work-outside-entity`); ready-for-review too when User runs it without `--incident` | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
+| `ticket ready` | draft, for every id named, each with a numbered `## Acceptance`, a `## Brief` holding a non-blank line and, in a forge with entities, an `entity` and no path on its `Work belongs in:` line outside that entity (`work-outside-entity`); ready-for-review too when User runs it without `--incident` | committed | created `committed`, at any priority | `To do` | — | `Ticket #003 committed`, one per ticket |
 | `ticket submit`, `intake close` with ticket review on | draft, each complete one, with no path on its `Work belongs in:` line outside its `entity` in a forge with entities; an incomplete one stays draft | ready-for-review | none | `Ready for review` | — | `Ticket #003 ready for review`, one per ticket |
-| `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` and no path on its `Work belongs in:` line outside that entity in a forge with entities; an incomplete one stays draft | pending | created `pending`, at any priority | `To do` | — | `Ticket #003 ready to build`, one per ticket |
-| a build job prepares its worktree, or a review finds an item that does not hold | pending; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
+| `ticket submit`, `intake close` with ticket review off | draft, each complete one, with an `entity` and no path on its `Work belongs in:` line outside that entity in a forge with entities; an incomplete one stays draft | committed | created `committed`, at any priority | `To do` | — | `Ticket #003 committed`, one per ticket |
+| a build job prepares its worktree, or a review finds an item that does not hold | committed; in-review | in-progress | `in-progress`; created for a ticket without one | `In progress` | `started` if null; the row's end cleared | `Ticket #003 started` |
 | a build job passes its gate | in-progress | in-review | `in-review` | `Awaiting review`; `Reviewing` while a review bar of the ticket is in progress | `finished` if null | `Ticket #003 in review` |
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |
 | a group ticket's merge lands on its group branch | in-review | reviewed | `reviewed`, its `reviewed` stamp set if unset | `Awaiting merge` | `finished` if null | `Ticket #003 reviewed` |
 | a merge lands on the main line | in-review; reviewed for a release bundle's ticket landed with its group's release ticket | reviewed (unless already), then delivered | `delivered`; in-progress review rows delivered | `Done` | `finished` and `delivered` if null; `branch`, `commit` | the reviewed and delivered lines, and one per review row closed |
 | `ticket deliver --by-hand` | anything but draft, while no Overseer is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
 | `ticket abandon` | anything but delivered, abandoned | abandoned | `abandoned`; none created for a ticket without one | `Abandoned` | `abandonedAt`, always; the row's end if it had started | `Ticket #003 abandoned: <reason>` |
-| `ticket reopen` | anything but draft and pending; a group's release ticket only while no other release ticket of its group is open | pending | `pending`, its start, end, `reviewed` and `reviewRound` cleared | `To do` | all four cleared; `reason` dropped | `Ticket #003 reopened` |
-| `ticket priority … low` | draft, pending | unchanged | kept | — | — | `Ticket #003 priority normal → low` |
-| `ticket priority` from low | any | unchanged | created when it has none and is not a draft: `pending` while the ticket is pending, else seeded from its stamps | per status | — | `Ticket #003 priority low → normal` |
+| `ticket reopen` | anything but draft and committed; a group's release ticket only while no other release ticket of its group is open | committed | `committed`, its start, end, `reviewed` and `reviewRound` cleared | `To do` | all four cleared; `reason` dropped | `Ticket #003 reopened` |
+| `ticket priority … low` | draft, committed | unchanged | kept | — | — | `Ticket #003 priority normal → low` |
+| `ticket priority` from low | any | unchanged | created when it has none and is not a draft: `committed` while the ticket is committed, else seeded from its stamps | per status | — | `Ticket #003 priority low → normal` |
 
 A closing stamp is written only while it is still null, while `abandonedAt` is written every time:
 re-entering a status is a correction, abandoning twice is deciding twice. Every move to a status other
@@ -200,7 +200,7 @@ install version that changed, a dirty main checkout, an attribution trailer, rev
 through its Hatch. The Overseer writes the tickets of the filing job (the finders) into its `dependsOn`. When a finder
 has a group, the finding goes into that group. The worker cannot set either.
 
-- When ticket review is off, a complete finding is pending at once. It builds only after its finders are reviewed or
+- When ticket review is off, a complete finding is committed at once. It builds only after its finders are reviewed or
   delivered, so it builds on the code of its finders.
 - When ticket review is on, a complete finding goes to ready-for-review and waits for User's `ticket ready`.
 - A finding with an incomplete body stays a draft.
@@ -295,7 +295,7 @@ marked, never dropped.
 | code | meaning | examples |
 |---|---|---|
 | **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `oversee stop` with no live Overseer, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
-| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or pending, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
+| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
 | **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, an Overseer whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
 
 Check the code rather than the wording.

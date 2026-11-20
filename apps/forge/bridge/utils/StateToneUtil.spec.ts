@@ -9,7 +9,7 @@ import type { DisplayState } from '../../src/lib/tracker-model/@types/Task.ts';
 import { StateToneUtil }     from './StateToneUtil.ts';
 
 const EVERY_DISPLAY_STATE: readonly DisplayState[] = [
-  'draft', 'ready-for-review', 'pending', 'in-progress', 'paused', 'in-review', 'reviewing', 're-review', 'reviewed', 'delivered', 'abandoned',
+  'draft', 'ready-for-review', 'committed', 'in-progress', 'paused', 'in-review', 'reviewing', 're-review', 'reviewed', 'delivered', 'abandoned',
 ];
 
 describe('the look of a display state', () => {
@@ -47,7 +47,7 @@ describe('the look of a display state', () => {
   });
 
   test('the dot of a state is its tone and its dot shape', () => {
-    expect([StateToneUtil.dotOf('pending'), StateToneUtil.dotOf('abandoned'), StateToneUtil.dotOf('reviewed')]).toEqual([
+    expect([StateToneUtil.dotOf('committed'), StateToneUtil.dotOf('abandoned'), StateToneUtil.dotOf('reviewed')]).toEqual([
       { tone: 'neutral', shape: 'dashed-ring' }, { tone: 'muted', shape: 'ring' }, { tone: 'success', shape: 'solid' },
     ]);
   });
@@ -66,7 +66,7 @@ describe('the look of a job state', () => {
   test('a job state looks like its nearest display state, and an unknown one like a waiting ticket', () => {
     expect(['running', 'gating', 'merging', 'interrupted', 'someday', 'constructor'].map((jobState) => StateToneUtil.lookOfJobState(jobState).tone))
       .toEqual(['accent', 'info-outline', 'success', 'neutral', 'neutral', 'neutral']);
-    expect(StateToneUtil.lookOfJobState('launching')).toEqual(StateToneUtil.lookOf('pending'));
+    expect(StateToneUtil.lookOfJobState('launching')).toEqual(StateToneUtil.lookOf('committed'));
   });
 });
 

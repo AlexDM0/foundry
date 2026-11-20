@@ -92,7 +92,7 @@ function worldTicket(id: string, overrides: Partial<TicketFrontmatter> = {}): Ti
     id,
     title:       `Example world ticket ${id}`,
     type:        'ticket',
-    status:      'pending',
+    status:      'committed',
     filed:       FIXTURE_AT,
     updated:     FIXTURE_AT,
     started:     null,
@@ -374,7 +374,7 @@ export class LifecycleWorld {
     const roll = this.random();
     if (job.state === 'launching') {
       this.board.moveJob(job.id, 'running', FIXTURE_AT);
-      job.ticketIds.forEach((ticketId) => this.moveTicketWhenBuilt(ticketId, 'pending', 'in-progress'));
+      job.ticketIds.forEach((ticketId) => this.moveTicketWhenBuilt(ticketId, 'committed', 'in-progress'));
       return;
     }
     if (job.state !== 'running') return;

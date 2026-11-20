@@ -186,11 +186,11 @@ const STATUS_DOCUMENT = { project: 'Example Agency', confinement: 'confined' } a
 export function boardDocumentSourceFixture(): BoardDocumentSource {
   const { board, progress, tickets } = boardFixture({
     tasks: [taskFixture({
-      id: 1, ticket: '002', status: 'in-progress', start: AT, history: [{ status: 'pending', at: AT }, { status: 'in-progress', at: AT }]
+      id: 1, ticket: '002', status: 'in-progress', start: AT, history: [{ status: 'committed', at: AT }, { status: 'in-progress', at: AT }]
     })],
     tickets: [
       ticketFixture({
-        id: '001', status: 'pending', priority: 'high', epics: ['example-checkout'], model: 'opus', claimedBodyHash: 'example-hash'
+        id: '001', status: 'committed', priority: 'high', epics: ['example-checkout'], model: 'opus', claimedBodyHash: 'example-hash'
       }),
       ticketFixture({
         id: '002', status: 'in-progress', dependsOn: ['001'], task: 1, started: AT

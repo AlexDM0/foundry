@@ -120,7 +120,7 @@ export function resumeInstructedRecord(jobId: string): LogRecord {
   };
 }
 
-export function ticketRecord(kind: 'ticket-started' | 'ticket-finished' | 'ticket-unheld' | 'ticket-readied', ticketId: string): LogRecord {
+export function ticketRecord(kind: 'ticket-started' | 'ticket-finished' | 'ticket-unheld' | 'ticket-committed', ticketId: string): LogRecord {
   return {
     kind, ticketId, fields: {}, at: FIXTURE_AT,
   };

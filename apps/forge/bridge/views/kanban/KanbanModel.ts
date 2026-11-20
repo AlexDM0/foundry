@@ -94,7 +94,7 @@ interface LaneDesign {
 
 const LANE_DESIGN: Readonly<Record<KanbanLaneKey, LaneDesign>> = {
   'ready': {
-    title: 'Ready', dotState: 'pending', emptyText: 'Nothing waiting to start.', leading: null
+    title: 'Ready', dotState: 'committed', emptyText: 'Nothing waiting to start.', leading: null
   },
   'building': {
     title: 'Building', dotState: 'in-progress', emptyText: 'Nothing being built.', leading: null
@@ -363,7 +363,7 @@ function laneOf(ticket: KanbanTicketDocument, queuedTicketIds: ReadonlySet<strin
   switch (ticket.status) {
     case 'draft':
     case 'ready-for-review':
-    case 'pending':
+    case 'committed':
       return 'ready';
     case 'in-progress':
       return 'building';

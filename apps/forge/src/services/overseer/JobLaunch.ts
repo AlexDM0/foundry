@@ -1719,7 +1719,7 @@ function settleBuilt(hold: HoldContext, job: Readonly<Job>, report: unknown, hea
   const { board, at } = hold.change;
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job))?.body ?? '';
   const body = { text: bodyWithBuildHandoffOf(ticketBody, job, report, board.ticketStageOf(ticketIdOf(job)) !== null), appends: false };
-  hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastPending: true }, at).logged);
+  hold.logged.push(...board.editTicket(ticketIdOf(job), { body, allowsPastCommitted: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-review', { checksLegality: true, branch: branchOf(hold.context, job), commit: headCommit }, at).logged);
 }
@@ -1756,7 +1756,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
     const exposedSurfaceChanged = reportFieldOf(report, 'exposedSurfaceChanged') !== false;
     const packageBuildBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
     const body = { text: bodyWithBuildHandoffOf(packageBuildBody, job, report, true), appends: false };
-    hold.logged.push(...board.editTicket(ticketId, { body, allowsPastPending: true }, at).logged);
+    hold.logged.push(...board.editTicket(ticketId, { body, allowsPastCommitted: true }, at).logged);
     CrossingStages.writeStageStatement(hold.context.workspace.trackerDirectory, job.id, { stage: 'package-build', exposedSurfaceChanged });
     endJob(hold, job, { outcome: 'built', commit: headCommit });
     board.moveTicketStage(ticketId, { name: 'package-review', entity: jobStage.entity }, at);
@@ -1777,7 +1777,7 @@ function settledAsAStage(hold: HoldContext, job: Readonly<Job>, report: unknown,
   const [firstPackage] = crossedPackages;
   if (firstPackage === undefined) return settledOutsideAnyCrossing(hold, ticketId);
   const ticketBody = board.tickets().find((candidate) => candidate.frontmatter.id === ticketId)?.body ?? '';
-  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithBuildHandoffOf(ticketBody, job, report, true), appends: false }, allowsPastPending: true }, at).logged);
+  hold.logged.push(...board.editTicket(ticketId, { body: { text: bodyWithBuildHandoffOf(ticketBody, job, report, true), appends: false }, allowsPastCommitted: true }, at).logged);
   endJob(hold, job, { outcome: 'built', commit: headCommit });
   board.moveTicketStage(ticketId, { name: 'package-build', entity: firstPackage }, at);
   return true;
@@ -2299,7 +2299,7 @@ function applyObservation(hold: HoldContext, observation: BuildJobObservation): 
         return;
       }
       const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === ticketIdOf(job));
-      if (ticket?.frontmatter.status !== 'pending') return;
+      if (ticket?.frontmatter.status !== 'committed') return;
       hold.logged.push(...board.moveTicket(ticketIdOf(job), 'in-progress', { checksLegality: true, branch: branchOf(hold.context, job) }, at).logged);
       return;
     }

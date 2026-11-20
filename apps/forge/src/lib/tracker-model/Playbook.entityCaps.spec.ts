@@ -52,7 +52,7 @@ describe('Playbook: an entity\'s cap', () => {
     expect(launchesOf(entityFacts({
       concurrencyByEntity:         { [SHOP.key]: 1 },
       jobs:                        [LIVE_ASSISTANT, SHOP_BUILD_RUNNING],
-      tickets:                     [ticketOf('001', 'pending', { entity: SHOP.key }), ticketOf('002', 'pending', { entity: ADMIN.key })],
+      tickets:                     [ticketOf('001', 'committed', { entity: SHOP.key }), ticketOf('002', 'committed', { entity: ADMIN.key })],
       readinessPositionByTicketId: new Map([['001', 1], ['002', 2]]),
     }))).toEqual([buildOf('002', ADMIN.key, 1)]);
   });
@@ -60,7 +60,7 @@ describe('Playbook: an entity\'s cap', () => {
   test('the launches of one pass count against the cap: two ready tickets of an entity capped at one launch one', () => {
     expect(launchedTicketIdsOf(entityFacts({
       concurrencyByEntity:         { [SHOP.key]: 1 },
-      tickets:                     [ticketOf('001', 'pending', { entity: SHOP.key }), ticketOf('002', 'pending', { entity: SHOP.key })],
+      tickets:                     [ticketOf('001', 'committed', { entity: SHOP.key }), ticketOf('002', 'committed', { entity: SHOP.key })],
       readinessPositionByTicketId: new Map([['001', 1], ['002', 2]]),
     }))).toEqual(['001']);
   });
@@ -73,7 +73,7 @@ describe('Playbook: an entity\'s cap', () => {
       })],
       tickets: [
         ticketOf('003', 'in-progress', { entity: SHOP.key, stage: PACKAGE_BUILD }),
-        ticketOf('004', 'pending', { entity: UI_KIT.key }),
+        ticketOf('004', 'committed', { entity: UI_KIT.key }),
         ticketOf('005', 'in-progress', { entity: SHOP.key, stage: PACKAGE_BUILD }),
       ],
     }))).toEqual([]);
@@ -83,7 +83,7 @@ describe('Playbook: an entity\'s cap', () => {
     expect(launchedTicketIdsOf(entityFacts({
       concurrencyLimit:            1,
       concurrencyByEntity:         { [SHOP.key]: 5 },
-      tickets:                     [ticketOf('001', 'pending', { entity: SHOP.key }), ticketOf('002', 'pending', { entity: SHOP.key })],
+      tickets:                     [ticketOf('001', 'committed', { entity: SHOP.key }), ticketOf('002', 'committed', { entity: SHOP.key })],
       readinessPositionByTicketId: new Map([['001', 1], ['002', 2]]),
     }))).toEqual(['001']);
   });
@@ -94,7 +94,7 @@ describe('Playbook: an entity\'s cap', () => {
       jobs:                [LIVE_ASSISTANT, jobFixture({
         id: 'J7', kind: 'merge', role: null, ticketIds: ['009'], entity: SHOP.key
       })],
-      tickets: [ticketOf('001', 'pending', { entity: SHOP.key })],
+      tickets: [ticketOf('001', 'committed', { entity: SHOP.key })],
     }))).toEqual(['001']);
   });
 
@@ -102,13 +102,13 @@ describe('Playbook: an entity\'s cap', () => {
     expect(launchedTicketIdsOf(entityFacts({
       concurrencyByEntity:         { [ADMIN.key]: 1 },
       jobs:                        [LIVE_ASSISTANT, SHOP_BUILD_RUNNING],
-      tickets:                     [ticketOf('001', 'pending', { entity: SHOP.key }), ticketOf('002', 'pending', { entity: SHOP.key })],
+      tickets:                     [ticketOf('001', 'committed', { entity: SHOP.key }), ticketOf('002', 'committed', { entity: SHOP.key })],
       readinessPositionByTicketId: new Map([['001', 1], ['002', 2]]),
     }))).toEqual(['001', '002']);
   });
 
   test('a forge without entities launches as before, whatever cap a fact names', () => {
-    const tickets = [ticketOf('001', 'pending'), ticketOf('002', 'pending')];
+    const tickets = [ticketOf('001', 'committed'), ticketOf('002', 'committed')];
     const withoutCaps = factsWith({ tickets });
     expect(launchesOf(factsWith({ tickets, concurrencyByEntity: { [SHOP.key]: 1 } }))).toEqual(launchesOf(withoutCaps));
     expect(launchesOf(withoutCaps)).toHaveLength(2);

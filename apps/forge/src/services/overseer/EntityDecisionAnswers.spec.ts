@@ -572,7 +572,7 @@ describe('dependent-broken, answered', () => {
     const released = brokenAdminApp((forge) => {
       forge.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
       forge.board.fileTicket(ticketFixture({
-        id: '002', status: 'pending', entity: SHOP.key, group: 'example-release'
+        id: '002', status: 'committed', entity: SHOP.key, group: 'example-release'
       }), AT);
       forge.board.markReleaseTicket('002', AT);
     });
@@ -603,7 +603,7 @@ describe('dependent-broken, answered', () => {
     const { forge, decision } = brokenAdminApp((prepared) => {
       prepared.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
       prepared.board.fileTicket(ticketFixture({
-        id: '002', status: 'pending', entity: ADMIN.key, group: 'example-release'
+        id: '002', status: 'committed', entity: ADMIN.key, group: 'example-release'
       }), AT);
     });
     answer(forge, decision, FIX_ANSWER);

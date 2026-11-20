@@ -19,12 +19,12 @@ describe('the display state of a job state', () => {
     expect([
       'launching', 'running', 'waiting-for-answer', 'interrupted', 'stopping', 'in-customs', 'gating', 'merging', 'landing',
     ].map(JobStateUtil.displayStateOf)).toEqual([
-      'pending', 'in-progress', 'paused', 'paused', 'paused', 'in-review', 'in-review', 'reviewed', 'reviewed',
+      'committed', 'in-progress', 'paused', 'paused', 'paused', 'in-review', 'in-review', 'reviewed', 'reviewed',
     ]);
   });
 
   test('an unknown state, also one named like an object property, reads as waiting', () => {
-    expect(['someday', 'constructor', 'toString'].map(JobStateUtil.displayStateOf)).toEqual(['pending', 'pending', 'pending']);
+    expect(['someday', 'constructor', 'toString'].map(JobStateUtil.displayStateOf)).toEqual(['committed', 'committed', 'committed']);
   });
 });
 

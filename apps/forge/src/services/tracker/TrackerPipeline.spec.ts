@@ -276,7 +276,7 @@ describe('writeTracker', () => {
       workspace,
       at:     CHANGED_AT,
       now,
-      mutate: (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastPending: true }, change.at),
+      mutate: (change) => change.board.editTicket('001', { title: 'Example retitled checkout', allowsPastCommitted: true }, change.at),
     });
 
     expect(readdirSync(localStoreLayoutOf(workspace).ticketRecordsFolder)).toEqual(['001-named-by-hand.md']);

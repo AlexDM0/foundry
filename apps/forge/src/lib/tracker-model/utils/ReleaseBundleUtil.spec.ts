@@ -10,7 +10,7 @@ import { ReleaseBundleUtil }        from './ReleaseBundleUtil.ts';
 
 const { releaseTicketOf, bundleOf, releaseBundleIdsOf } = ReleaseBundleUtil;
 
-function groupTicket(id: string, dependsOn: string[], releasesGroup: boolean = false, status: string = 'pending'): ReleaseBundleTicket {
+function groupTicket(id: string, dependsOn: string[], releasesGroup: boolean = false, status: string = 'committed'): ReleaseBundleTicket {
   return {
     id,
     status,

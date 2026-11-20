@@ -28,7 +28,7 @@ import { TicketPhraseUtil }                        from './TicketPhraseUtil.ts';
 type TicketMoveKind = 'ticket-reopened' | 'ticket-started' | 'ticket-finished' | 'ticket-approved' | 'ticket-delivered';
 
 const STATUS_REACHED_BY_MOVE_KIND: Readonly<Record<TicketMoveKind, MovedToStatus>> = {
-  'ticket-reopened':  'pending',
+  'ticket-reopened':  'committed',
   'ticket-started':   'in-progress',
   'ticket-finished':  'in-review',
   'ticket-approved':  'reviewed',
@@ -84,8 +84,8 @@ function sentenceOf(record: LogRecordContent): string {
       return record.fields.text;
     case 'ticket-filed':
       return `Ticket #${record.ticketId} filed: ${record.fields.title}`;
-    case 'ticket-readied':
-      return `Ticket #${record.ticketId} ready to build`;
+    case 'ticket-committed':
+      return `Ticket #${record.ticketId} committed`;
     case 'ticket-submitted-for-review':
       return `Ticket #${record.ticketId} ready for review`;
     case 'merge-queued':

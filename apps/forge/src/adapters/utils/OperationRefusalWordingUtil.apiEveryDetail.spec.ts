@@ -25,15 +25,15 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'task-belongs-to-another-ticket': {
     reason: 'task-belongs-to-another-ticket', taskId: 3, owningTicketId: '004', ticketId: '005'
   },
-  'ticket-already-in-status': { reason: 'ticket-already-in-status', ticketId: '004', status: 'pending' },
+  'ticket-already-in-status': { reason: 'ticket-already-in-status', ticketId: '004', status: 'committed' },
   'illegal-ticket-move':      {
-    reason: 'illegal-ticket-move', ticketId: '004', status: 'pending', targetStatus: 'delivered'
+    reason: 'illegal-ticket-move', ticketId: '004', status: 'committed', targetStatus: 'delivered'
   },
-  'move-to-draft':                                   { reason: 'move-to-draft', ticketId: '004', status: 'pending' },
-  'move-of-a-draft':                                 { reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'pending' },
+  'move-to-draft':                                   { reason: 'move-to-draft', ticketId: '004', status: 'committed' },
+  'move-of-a-draft':                                 { reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'committed' },
   'move-to-ready-for-review':                        { reason: 'move-to-ready-for-review', ticketId: '004', status: 'draft' },
-  'move-of-a-ticket-ready-for-review':               { reason: 'move-of-a-ticket-ready-for-review', ticketId: '004', targetStatus: 'pending' },
-  'ready-of-a-ticket-not-in-draft':                  { reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'pending' },
+  'move-of-a-ticket-ready-for-review':               { reason: 'move-of-a-ticket-ready-for-review', ticketId: '004', targetStatus: 'committed' },
+  'ready-of-a-ticket-not-in-draft':                  { reason: 'ready-of-a-ticket-not-in-draft', ticketId: '004', status: 'committed' },
   'incomplete-tickets':                              { reason: 'incomplete-tickets', incompleteTickets: [{ ticketId: '004', gaps: ['acceptance-unnumbered', 'brief-missing'] }] },
   'ticket-without-entity':                           { reason: 'ticket-without-entity', ticketIds: ['004', '005'] },
   'work-outside-entity':                             { reason: 'work-outside-entity', ticketsOutside: [{ ticketId: '004', entity: 'shop', paths: ['/apps/admin/Example.ts'] }] },
@@ -51,7 +51,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'claim-of-a-held-ticket':             { reason: 'claim-of-a-held-ticket', ticketId: '004' },
   'claim-under-review':                 { reason: 'claim-under-review', ticketId: '004', reviewBarTaskId: 3 },
   'claim-after-a-ticket-not-in-review': {
-    reason: 'claim-after-a-ticket-not-in-review', ticketId: '004', afterTicketId: '003', status: 'pending'
+    reason: 'claim-after-a-ticket-not-in-review', ticketId: '004', afterTicketId: '003', status: 'committed'
   },
   'claim-after-a-ticket-outside-the-bundle':  { reason: 'claim-after-a-ticket-outside-the-bundle', ticketId: '004', afterTicketId: '003' },
   'claim-after-a-ticket-it-does-not-wait-on': { reason: 'claim-after-a-ticket-it-does-not-wait-on', ticketId: '004', afterTicketId: '003' },
@@ -64,27 +64,27 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'introduced-by-on-a-non-bug':          { reason: 'introduced-by-on-a-non-bug', ticketId: '004', type: 'ticket' },
   'introduced-by-itself':                { reason: 'introduced-by-itself', ticketId: '004' },
   'introduced-by-an-undelivered-ticket': {
-    reason: 'introduced-by-an-undelivered-ticket', ticketId: '004', causeTicketId: '003', status: 'pending'
+    reason: 'introduced-by-an-undelivered-ticket', ticketId: '004', causeTicketId: '003', status: 'committed'
   },
   'priority-unchanged': {
-    reason: 'priority-unchanged', ticketId: '004', status: 'pending', priority: 'high'
+    reason: 'priority-unchanged', ticketId: '004', status: 'committed', priority: 'high'
   },
   'size-unchanged': {
-    reason: 'size-unchanged', ticketId: '004', status: 'pending', size: 'M'
+    reason: 'size-unchanged', ticketId: '004', status: 'committed', size: 'M'
   },
-  'lowering-a-ticket-that-is-not-pending': { reason: 'lowering-a-ticket-that-is-not-pending', ticketId: '004', status: 'in-progress' },
-  'edit-of-a-ticket-past-pending':         { reason: 'edit-of-a-ticket-past-pending', ticketId: '004', status: 'in-progress' },
-  'network-of-a-ticket-past-pending':      { reason: 'network-of-a-ticket-past-pending', ticketId: '004', status: 'in-progress' },
-  'network-domain-not-public':             { reason: 'network-domain-not-public', ticketId: '004', domains: ['localhost'] },
-  'network-unchanged':                     { reason: 'network-unchanged', ticketId: '004', domains: ['example.com'] },
-  'unknown-entity':                        {
+  'lowering-a-ticket-that-is-not-committed': { reason: 'lowering-a-ticket-that-is-not-committed', ticketId: '004', status: 'in-progress' },
+  'edit-of-a-ticket-past-committed':         { reason: 'edit-of-a-ticket-past-committed', ticketId: '004', status: 'in-progress' },
+  'network-of-a-ticket-past-committed':      { reason: 'network-of-a-ticket-past-committed', ticketId: '004', status: 'in-progress' },
+  'network-domain-not-public':               { reason: 'network-domain-not-public', ticketId: '004', domains: ['localhost'] },
+  'network-unchanged':                       { reason: 'network-unchanged', ticketId: '004', domains: ['example.com'] },
+  'unknown-entity':                          {
     reason: 'unknown-entity', ticketId: '004', entity: 'shop', entityKeys: ['root', 'web']
   },
-  'entity-of-a-ticket-past-pending': { reason: 'entity-of-a-ticket-past-pending', ticketId: '004', status: 'in-progress' },
-  'entity-unchanged':                { reason: 'entity-unchanged', ticketId: '004', entity: 'web' },
-  'entity-without-reason':           { reason: 'entity-without-reason', ticketId: '004' },
-  'need-outside-an-entity-build':    { reason: 'need-outside-an-entity-build', jobId: 'J3' },
-  'need-entity-unknown':             {
+  'entity-of-a-ticket-past-committed': { reason: 'entity-of-a-ticket-past-committed', ticketId: '004', status: 'in-progress' },
+  'entity-unchanged':                  { reason: 'entity-unchanged', ticketId: '004', entity: 'web' },
+  'entity-without-reason':             { reason: 'entity-without-reason', ticketId: '004' },
+  'need-outside-an-entity-build':      { reason: 'need-outside-an-entity-build', jobId: 'J3' },
+  'need-entity-unknown':               {
     reason: 'need-entity-unknown', jobId: 'J3', entity: 'shop', entityKeys: ['root', 'web']
   },
   'need-of-own-entity':         { reason: 'need-of-own-entity', jobId: 'J3', entity: 'web' },
@@ -92,7 +92,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'need-limit-reached':         { reason: 'need-limit-reached', jobId: 'J3', limit: 5 },
   'agents-of-a-settled-ticket': { reason: 'agents-of-a-settled-ticket', ticketId: '004', status: 'delivered' },
   'agents-unchanged':           {
-    reason: 'agents-unchanged', ticketId: '004', status: 'pending', agents: { model: 'opus', effort: 'medium' }
+    reason: 'agents-unchanged', ticketId: '004', status: 'committed', agents: { model: 'opus', effort: 'medium' }
   },
   'hold-of-a-settled-ticket': {
     reason: 'hold-of-a-settled-ticket', ticketId: '004', status: 'delivered', action: 'hold'
@@ -109,7 +109,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   },
   'ticket-is-not-a-release-ticket':       { reason: 'ticket-is-not-a-release-ticket', ticketId: '004' },
   'reopen-beside-an-open-release-ticket': {
-    reason: 'reopen-beside-an-open-release-ticket', ticketId: '004', status: 'delivered', targetStatus: 'pending', group: 'checkout-redesign', releaseTicketId: '005'
+    reason: 'reopen-beside-an-open-release-ticket', ticketId: '004', status: 'delivered', targetStatus: 'committed', group: 'checkout-redesign', releaseTicketId: '005'
   },
   'malformed-epic-key':                { reason: 'malformed-epic-key', epicKey: 'Checkout Redesign' },
   'malformed-group-name':              { reason: 'malformed-group-name', group: 'Checkout Redesign' },
@@ -151,17 +151,17 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'job-move-illegal':   {
     reason: 'job-move-illegal', jobId: 'J3', state: 'running', targetState: 'landing'
   },
-  'merge-queue-of-a-ticket-not-in-review': { reason: 'merge-queue-of-a-ticket-not-in-review', ticketId: '004', status: 'pending' },
+  'merge-queue-of-a-ticket-not-in-review': { reason: 'merge-queue-of-a-ticket-not-in-review', ticketId: '004', status: 'committed' },
   'merge-queue-without-a-current-green':   { reason: 'merge-queue-without-a-current-green', ticketId: '004', headTree: 'abc123' },
   'merge-approval-off':                    { reason: 'merge-approval-off', ticketId: '004' },
-  'merge-accept-of-a-ticket-not-waiting':  { reason: 'merge-accept-of-a-ticket-not-waiting', ticketId: '004', status: 'pending' },
+  'merge-accept-of-a-ticket-not-waiting':  { reason: 'merge-accept-of-a-ticket-not-waiting', ticketId: '004', status: 'committed' },
   'merge-accept-would-conflict':           {
     reason: 'merge-accept-would-conflict', ticketId: '004', target: 'main', conflictedFiles: ['README.md']
   },
   'merge-accept-prediction-failed': {
     reason: 'merge-accept-prediction-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
   },
-  'merge-update-of-a-ticket-not-waiting': { reason: 'merge-update-of-a-ticket-not-waiting', ticketId: '004', status: 'pending' },
+  'merge-update-of-a-ticket-not-waiting': { reason: 'merge-update-of-a-ticket-not-waiting', ticketId: '004', status: 'committed' },
   'merge-update-failed':                  {
     reason: 'merge-update-failed', ticketId: '004', target: 'main', gitReason: 'Example reason'
   },

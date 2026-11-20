@@ -33,7 +33,7 @@ export function exampleDetailTicket(id: string, fields: Partial<DetailTicketDocu
     id,
     title:       `Example ticket ${id}`,
     type:        'ticket',
-    status:      'pending',
+    status:      'committed',
     task:        null,
     filed:       exampleStampAt('09:00'),
     updated:     exampleStampAt('09:00'),
@@ -50,7 +50,7 @@ export function exampleDetailRow(id: number, fields: Partial<DetailTaskDocument>
   return {
     id,
     name:   `Example row ${String(id)}`,
-    status: 'pending',
+    status: 'committed',
     start:  null,
     end:    null,
     owner:  '',
@@ -82,7 +82,7 @@ export function exampleDetailIncident(id: string, ticketId: string, fields: Part
   };
 }
 
-/** A pending ticket's forecast: a builder takes it, Customs and the gate, a review, then it lands on main; nothing waits on it. */
+/** A committed ticket's forecast: a builder takes it, Customs and the gate, a review, then it lands on main; nothing waits on it. */
 export function exampleTicketForecast(ticketId: string, fields: Partial<DetailTicketForecastDocument> = {}): DetailTicketForecastDocument {
   return {
     ticketId,

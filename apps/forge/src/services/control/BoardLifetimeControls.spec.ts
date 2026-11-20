@@ -108,7 +108,7 @@ describe('chart-range-set', () => {
 
 describe('tracker-clear', () => {
   test('tasks-and-log keeps the tickets and reports what it removed', () => {
-    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'pending' })] });
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'committed' })] });
     const result = apply(board, { kind: 'tracker-clear', scope: 'tasks-and-log' });
     expect(result).toMatchObject({ removedLogCount: 4, deletedTicketCount: 0, reseededTicketCount: 1 });
     expect(board.tickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
@@ -139,7 +139,7 @@ describe('tracker-clear', () => {
 
 describe('ticket-deliver-by-hand', () => {
   test('a ticket with no live job is recorded delivered by hand, with its branch', () => {
-    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'pending' })] });
+    const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'committed' })] });
     apply(board, { kind: 'ticket-deliver-by-hand', ticketReference: '#1', branch: 'ticket-001' });
     expect(board.tickets()[0]?.frontmatter.status).toBe('delivered');
   });

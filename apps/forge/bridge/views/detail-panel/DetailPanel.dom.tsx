@@ -6,7 +6,7 @@
  * row the row form (Controls, Task, Phases, Ticket, Log) and a filing draft the draft form (Request, Questions); links inside open other
  * details over the same tab; × closes; a closing panel slides out and reports itself gone; a switch of item cross-fades the contents, a
  * switch of section does not. On the row form, Ready, Hold, Park and network each post their `ControlCommand`, network only while `draft`
- * or `pending`; a refusal shows verbatim; every control is disabled while the stream is down; and a ticket waiting for merge shows its
+ * or `committed`; a refusal shows verbatim; every control is disabled while the stream is down; and a ticket waiting for merge shows its
  * prediction and conflicted files, Accept posting `merge-accept` only on a clean prediction, Update branch `merge-update` always. The
  * ticket form's own controls are `TicketDetail.dom.tsx`'s.
  */
@@ -55,7 +55,7 @@ const BOARD = exampleDetailBoard({
     exampleDetailTicket('014', {
       status: 'in-progress', started: exampleStampAt('10:15'), task: 9, dependsOn: ['013']
     }),
-    exampleDetailTicket('015', { status: 'pending', hold: 'waiting on the example vendor' }),
+    exampleDetailTicket('015', { status: 'committed', hold: 'waiting on the example vendor' }),
   ],
   rows: [exampleDetailRow(9, {
     ticket: '014', status: 'in-progress', start: exampleStampAt('10:15'), history: [{ status: 'in-progress', at: exampleStampAt('10:15') }]
@@ -303,7 +303,7 @@ describe('the row form\'s controls', () => {
     ]);
   });
 
-  test('a held pending ticket offers Unhold and network; a ticket being built offers only Park', async () => {
+  test('a held committed ticket offers Unhold and network; a ticket being built offers only Park', async () => {
     const held = renderPanel({ form: 'ticket-row', ticketId: '015' });
     await clicked(screen.getByRole('button', { name: 'Unhold' }));
     expect(held.sent).toEqual([{ kind: 'ticket-unhold', ticketReference: '015' }]);

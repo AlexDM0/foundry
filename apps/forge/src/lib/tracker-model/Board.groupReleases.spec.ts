@@ -78,8 +78,8 @@ describe('marking a release ticket', () => {
     }
   });
 
-  test('is refused when the group\'s release ticket is open in any status, in review as much as pending', () => {
-    for (const status of ['pending', 'in-progress', 'in-review', 'reviewed'] as const) {
+  test('is refused when the group\'s release ticket is open in any status, in review as much as committed', () => {
+    for (const status of ['committed', 'in-progress', 'in-review', 'reviewed'] as const) {
       const fixture = boardFixture({
         tickets: [ticketFixture({
           id: '001', group: GROUP, status, releasesGroup: true
@@ -133,13 +133,13 @@ describe('moving a settled release ticket back open', () => {
       fixture.board.markReleaseTicket('002', CHANGED_AT);
       fixture.records.length = 0;
 
-      const detail = refusalDetailOf(() => fixture.board.moveTicket('001', 'pending', request, CHANGED_AT));
+      const detail = refusalDetailOf(() => fixture.board.moveTicket('001', 'committed', request, CHANGED_AT));
 
       expect(detail).toEqual({
         reason:          'reopen-beside-an-open-release-ticket',
         ticketId:        '001',
         status:          'abandoned',
-        targetStatus:    'pending',
+        targetStatus:    'committed',
         group:           GROUP,
         releaseTicketId: '002',
       });
@@ -154,9 +154,9 @@ describe('moving a settled release ticket back open', () => {
       fixture.board.markReleaseTicket('001', CHANGED_AT);
       fixture.board.moveTicket('001', 'abandoned', { checksLegality: true, reason: 'paused for now' }, CHANGED_AT);
 
-      fixture.board.moveTicket('001', 'pending', request, CHANGED_AT);
+      fixture.board.moveTicket('001', 'committed', request, CHANGED_AT);
 
-      expect(fixture.tickets[0]?.frontmatter.status).toBe('pending');
+      expect(fixture.tickets[0]?.frontmatter.status).toBe('committed');
       expect(openReleaseTicketIdsOf(fixture)).toEqual(['001']);
       expect(fixture.board.releaseBundleOf(GROUP)).toEqual(['001']);
     });
@@ -197,7 +197,7 @@ describe('moving a settled release ticket back open', () => {
       ]
     });
     fixture.board.moveTicket('001', 'abandoned', { checksLegality: false, reason: 'withdrawn' }, CHANGED_AT);
-    fixture.board.moveTicket('003', 'pending', { checksLegality: true }, CHANGED_AT);
+    fixture.board.moveTicket('003', 'committed', { checksLegality: true }, CHANGED_AT);
     expect(openReleaseTicketIdsOf(fixture)).toEqual(['002']);
   });
 });

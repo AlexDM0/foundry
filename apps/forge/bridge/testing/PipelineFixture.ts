@@ -136,7 +136,7 @@ const RE_REVIEWER_PAIR: AgentPair = { model: 'sonnet', effort: 'high' };
 const FIXTURE_THRESHOLD_LINES = 750;
 
 const PENDING_TICKETS: readonly PageTicketDocument[] = ['11', '12', '13'].map((ticketId) => ({
-  id: ticketId, title: `Example pending ticket ${ticketId}`, status: 'pending', updated: '2026-11-12T09:00:00', delivered: null, abandonedAt: null,
+  id: ticketId, title: `Example committed ticket ${ticketId}`, status: 'committed', updated: '2026-11-12T09:00:00', delivered: null, abandonedAt: null,
 }));
 
 const CONSTITUTION_MARKDOWN = [

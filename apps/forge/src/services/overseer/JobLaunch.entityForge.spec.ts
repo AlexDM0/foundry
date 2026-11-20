@@ -106,7 +106,7 @@ function withoutTheAdminApp(pipeline: Pipeline): Pipeline {
 }
 
 /** A ticket body edit whose Brief names the package's constitution as its work. */
-const NAMING_THE_UI_KIT_CONSTITUTION = { body: { text: `## Brief\nWork belongs in: \`/${constitutionFileOf(UI_KIT)}\`.\n`, appends: false }, allowsPastPending: true };
+const NAMING_THE_UI_KIT_CONSTITUTION = { body: { text: `## Brief\nWork belongs in: \`/${constitutionFileOf(UI_KIT)}\`.\n`, appends: false }, allowsPastCommitted: true };
 
 /** The shop crossing into the package, as step 4's pipeline whitelists it. */
 function withTheShopCrossingIntoTheUiKit(pipeline: Pipeline): Pipeline {
@@ -361,7 +361,7 @@ describeWhenGitIsRecorded('a need the shop\'s build declares', () => {
 
   test('for the admin app with ticket review off runs the admin app\'s ticket first, then the shop\'s stage again once it is delivered', () => {
     const declared = declaredNeedOf(SHOP, ADMIN, 'off');
-    expect(ticketOf(declared.board, NEED_TICKET.id)?.frontmatter).toMatchObject({ entity: ADMIN.key, status: 'pending' });
+    expect(ticketOf(declared.board, NEED_TICKET.id)?.frontmatter).toMatchObject({ entity: ADMIN.key, status: 'committed' });
     expect(launchedTicketIdsOf(declared.board)).toEqual([NEED_TICKET.id]);
 
     declared.board.endJob(declared.board.jobs().find((job) => job.kind === 'build')?.id ?? '', { outcome: 'stopped' }, AT);

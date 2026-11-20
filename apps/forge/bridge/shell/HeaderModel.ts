@@ -147,7 +147,7 @@ function boardFiguresOf(state: BoardStateDocument, activity: ActivityStripFacts,
     pausedCount:         (state.page?.payload.boardFacts.tickets ?? []).filter((facts) => facts.displayState === PAUSED_DISPLAY_STATE).length,
     deliveredTodayCount: today.deliveredTickets,
     tokensToday:         today.tokens,
-    waitingInQueueCount: tickets.filter((ticket) => ticket.status === 'pending').length,
+    waitingInQueueCount: tickets.filter((ticket) => ticket.status === 'committed').length,
   };
 }
 

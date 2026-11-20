@@ -65,7 +65,7 @@ describeWhenGitIsRecorded('the lifecycle of a row', () => {
       id:     1,
       name:   'Review pass',
       owner:  'Alex Example',
-      status: 'pending',
+      status: 'committed',
     });
 
     await run(['task', 'start', '1']);
@@ -144,20 +144,20 @@ describeWhenGitIsRecorded('the lifecycle of a row', () => {
     await run(['task', 'add', 'Review pass', '--start']);
 
     await run(['task', 'update', '1', '--status', 'in-review']);
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['pending', 'in-progress']);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['committed', 'in-progress']);
 
     await run(['task', 'approve', '1']);
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['pending', 'in-progress', 'reviewed']);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history?.map((phase) => phase.status)).toEqual(['committed', 'in-progress', 'reviewed']);
   });
 
   // The queue interval is what an orchestrator reads the panel for, and it is measurable only if the filing itself is a phase.
   test('a row is filed as a phase of its own, so the time it waited to be picked up is on the record', async () => {
     await run(['task', 'add', 'Review pass', '--at', '-2h']);
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history).toEqual([{ status: 'pending', at: expect.any(String) }]);
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.history).toEqual([{ status: 'committed', at: expect.any(String) }]);
 
     await run(['task', 'start', '1']);
     const history = storedProgressOf(repositoryDirectory).tasks[0]?.history ?? [];
-    expect(history.map((phase) => phase.status)).toEqual(['pending', 'in-progress']);
+    expect(history.map((phase) => phase.status)).toEqual(['committed', 'in-progress']);
     expect(Date.parse(history[1]?.at ?? '') - Date.parse(history[0]?.at ?? ''), 'two hours in the queue').toBe(2 * 60 * 60 * 1000);
   });
 });
@@ -351,7 +351,7 @@ describeWhenGitIsRecorded('a row a ticket owns', () => {
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('belongs to ticket #001');
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} ticket status 001 in-review`);
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('pending');
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('committed');
   });
 
   test('is refused by rereview too, naming the ticket verb that moves both', async () => {
@@ -360,7 +360,7 @@ describeWhenGitIsRecorded('a row a ticket owns', () => {
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} ticket rereview 001`);
-    expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('pending');
+    expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('committed');
   });
 
   test('is refused by task update --status too, and --force moves only the row', async () => {
@@ -369,7 +369,7 @@ describeWhenGitIsRecorded('a row a ticket owns', () => {
 
     await run(['task', 'update', '1', '--status', 'in-review', '--force']);
     expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).toBe('in-review');
-    expect(storedTicketText('001-double-click-a-role-to-edit-it.md')).toContain('status: "pending"');
+    expect(storedTicketText('001-double-click-a-role-to-edit-it.md')).toContain('status: "committed"');
   });
 
   test('may still be paused and resumed, because no ticket status can say either', async () => {

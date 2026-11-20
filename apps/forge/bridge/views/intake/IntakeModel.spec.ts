@@ -56,7 +56,7 @@ const BOARD: ConversationBoardDocument = {
         id: '060', title: 'Export as CSV', status: 'draft', filedByJob: 'J7'
       },
       {
-        id: '061', title: 'Older', status: 'pending', filedByJob: 'J2'
+        id: '061', title: 'Older', status: 'committed', filedByJob: 'J2'
       },
       {
         id: '062', title: 'Older still', status: 'draft', filedByJob: 'J2'
@@ -197,11 +197,11 @@ describe('IntakeModelUtil.closeIntakeCaptionOf and paneMetaOf', () => {
   });
 
   test('the Close intake caption offers every draft of the session to ready, and is absent without drafts', () => {
-    expect(IntakeModelUtil.closeIntakeCaptionOf([ticket('015', 'draft'), ticket('016', 'pending'), ticket('017', 'draft')]))
+    expect(IntakeModelUtil.closeIntakeCaptionOf([ticket('015', 'draft'), ticket('016', 'committed'), ticket('017', 'draft')]))
       .toBe('Close intake offers #015 and #017 to ready.');
     expect(IntakeModelUtil.closeIntakeCaptionOf([ticket('015', 'draft'), ticket('016', 'draft'), ticket('017', 'draft')]))
       .toBe('Close intake offers #015, #016 and #017 to ready.');
-    expect(IntakeModelUtil.closeIntakeCaptionOf([ticket('016', 'pending')])).toBeNull();
+    expect(IntakeModelUtil.closeIntakeCaptionOf([ticket('016', 'committed')])).toBeNull();
   });
 
   test('the head counts turns and, on a live session, calls', () => {
@@ -323,7 +323,7 @@ describe('the pills', () => {
 
   test('a filed ticket takes its status badge, and a status that is no display state shows its word on the waiting row', () => {
     expect(IntakeModelUtil.draftPillOf({ status: 'draft' })).toEqual({ state: 'draft', label: 'Draft' });
-    expect(IntakeModelUtil.draftPillOf({ status: 'pending' })).toEqual({ state: 'pending', label: 'To do' });
-    expect(IntakeModelUtil.draftPillOf({ status: 'parked' })).toEqual({ state: 'pending', label: 'parked' });
+    expect(IntakeModelUtil.draftPillOf({ status: 'committed' })).toEqual({ state: 'committed', label: 'To do' });
+    expect(IntakeModelUtil.draftPillOf({ status: 'parked' })).toEqual({ state: 'committed', label: 'parked' });
   });
 });

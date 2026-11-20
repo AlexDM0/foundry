@@ -37,7 +37,7 @@ const BOARD = exampleDetailBoard({
       tokens:      1800000,
       reviewRound: 2,
       history:     [
-        { status: 'pending', at: exampleStampAt('09:00') },
+        { status: 'committed', at: exampleStampAt('09:00') },
         { status: 'in-progress', at: exampleStampAt('10:15') },
         { status: 'in-review', at: exampleStampAt('11:00') },
         { status: 're-review', at: exampleStampAt('12:00') },
@@ -49,7 +49,7 @@ const BOARD = exampleDetailBoard({
     exampleDetailRow(11, {
       ticket: '013', status: 'delivered', start: exampleStampAt('10:00'), end: exampleStampAt('11:30')
     }),
-    exampleDetailRow(12, { ticket: null, status: 'pending' }),
+    exampleDetailRow(12, { ticket: null, status: 'committed' }),
   ],
   displayStates: { 9: 'reviewing', 10: 'reviewing' },
   log:           [{
@@ -101,7 +101,7 @@ describe('the phases', () => {
       note:  null,
       lines: [
         {
-          stateToken: 'pending', label: 'To do', stamp: { shortText: '09:00', fullText: '2026-09-18 09:00' }, gapText: null
+          stateToken: 'committed', label: 'To do', stamp: { shortText: '09:00', fullText: '2026-09-18 09:00' }, gapText: null
         },
         {
           stateToken: 'in-progress', label: 'In progress', stamp: { shortText: '10:15', fullText: '2026-09-18 10:15' }, gapText: 'after 1h 15m'
@@ -120,7 +120,7 @@ describe('the phases', () => {
     const { phases } = taskRowModelOf(11);
     expect(phases?.note).toBe(PHASES_WERE_NOT_RECORDED_NOTE);
     expect(phases?.lines.map((line) => [line.stateToken, line.stamp.shortText])).toEqual([
-      ['pending', '09:00'],
+      ['committed', '09:00'],
       ['in-progress', '10:00'],
       ['in-review', '11:30'],
       ['delivered', '12:00'],

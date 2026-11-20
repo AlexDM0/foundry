@@ -26,7 +26,7 @@ function moveCommandOf(
     kind: 'ticket-status-set', ticketReference, status: targetStatus, ...moveDetails
   };
   if (targetStatus === 'abandoned') return { kind: 'ticket-abandon', ticketReference, ...moveDetails };
-  if (targetStatus === 'pending') return { kind: 'ticket-reopen', ticketReference, ...moveDetails };
+  if (targetStatus === 'committed') return { kind: 'ticket-reopen', ticketReference, ...moveDetails };
   throw new Error(`No ticket verb moves a ticket to ${targetStatus} through the legality matrix.`);
 }
 

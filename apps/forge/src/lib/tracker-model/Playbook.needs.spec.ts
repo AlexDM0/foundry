@@ -69,7 +69,7 @@ const CLAIMS: NeedClaim[] = [
     facts: factsWith({
       pipelineHasEntities: true,
       entitiesWithReview:  ['web'],
-      tickets:             [ticketOf('001', 'in-review', { dependsOn: ['002'], entity: 'web' }), ticketOf('002', 'pending', { entity: 'design-system' })],
+      tickets:             [ticketOf('001', 'in-review', { dependsOn: ['002'], entity: 'web' }), ticketOf('002', 'committed', { entity: 'design-system' })],
       concurrencyLimit:    1,
     }),
     holds:  launchesExactly(['002']),
@@ -102,7 +102,7 @@ const CLAIMS: NeedClaim[] = [
     name:  'a need\'s ticket runs at the highest priority of the tickets that wait on it',
     facts: factsWith({
       pipelineHasEntities: true,
-      tickets:             [{ ...WAITING_TICKET, priority: 'high' }, needTicket('pending', { priority: 'low' }), ticketOf('003', 'pending', { entity: 'web' })],
+      tickets:             [{ ...WAITING_TICKET, priority: 'high' }, needTicket('committed', { priority: 'low' }), ticketOf('003', 'committed', { entity: 'web' })],
       logRecords:          NEED_DECLARED,
       concurrencyLimit:    1,
     }),
@@ -116,8 +116,8 @@ const CLAIMS: NeedClaim[] = [
       tickets:             [
         { ...WAITING_TICKET, priority: 'high' },
         needTicket('in-progress', { dependsOn: ['004'] }),
-        ticketOf('003', 'pending', { entity: 'web' }),
-        ticketOf('004', 'pending', { filedByJob: 'J2', priority: 'low', entity: 'design-tokens' }),
+        ticketOf('003', 'committed', { entity: 'web' }),
+        ticketOf('004', 'committed', { filedByJob: 'J2', priority: 'low', entity: 'design-tokens' }),
       ],
       logRecords:       [...NEED_DECLARED, stagedLaunchedRecord('J2', 'build', '002', 'design-system', 1), endedRecord('J2', 'needs-declared')],
       concurrencyLimit: 1,
@@ -132,10 +132,10 @@ const CLAIMS: NeedClaim[] = [
       entitiesWithReview:  ['web'],
       tickets:             [
         ticketOf('001', 'in-review', { priority: 'high', entity: 'web' }),
-        ticketOf('002', 'pending', {
+        ticketOf('002', 'committed', {
           filedByJob: 'J1', priority: 'low', dependsOn: [], entity: 'web'
         }),
-        ticketOf('003', 'pending', { entity: 'web' }),
+        ticketOf('003', 'committed', { entity: 'web' }),
       ],
       logRecords:       finishedJobRecords('J1', 'build', '001', 'built'),
       concurrencyLimit: 2,

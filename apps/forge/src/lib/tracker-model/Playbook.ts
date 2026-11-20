@@ -696,11 +696,11 @@ function reviewIsSetFor(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): bo
 }
 
 function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candidate | null {
-  if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'pending') return null;
+  if (ticket.status !== 'in-review' && ticket.status !== 'in-progress' && ticket.status !== 'committed') return null;
   // On a pipeline with entities a ticket builds only in its entity's pipeline (E94), and a started one also waits for its dependencies and needs.
   if (facts.pipelineHasEntities && ticket.entity === undefined) return null;
   if (facts.pipelineHasEntities && waitsOnADependency(ticket, facts)) return null;
-  if (facts.pipelineHasEntities && ticket.stage !== undefined && ticket.status !== 'pending') return stageCandidateOf(ticket, ticket.stage, facts);
+  if (facts.pipelineHasEntities && ticket.stage !== undefined && ticket.status !== 'committed') return stageCandidateOf(ticket, ticket.stage, facts);
   const base = targetOf(ticket, facts.observations);
   if (ticket.status === 'in-review') {
     if (!reviewIsSetFor(ticket, facts)) return null;
@@ -720,7 +720,7 @@ function candidateOf(ticket: PlaybookTicket, facts: IndexedPlaybookFacts): Candi
       kind: 'launch-build', ticketId: ticket.id, attempt, base, ...ownEntityLaunchStageOf(ticket, facts, 'build')
     }
   };
-  if (ticket.status !== 'pending') return null;
+  if (ticket.status !== 'committed') return null;
   const { statusById } = facts;
   if (TicketDependencyUtil.unsettledDependenciesOf(ticket.dependsOn ?? [], statusById).length > 0) return null;
   return {

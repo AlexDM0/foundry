@@ -93,7 +93,7 @@ describeWhenGitIsRecorded('a ticket entity in a forge without entities', () => {
   test('ticket ready readies a draft with no entity as before, and the file and the log gain no entity', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Keep the basket']);
 
-    expect(storedTicketText('001')).toContain('status: "pending"');
+    expect(storedTicketText('001')).toContain('status: "committed"');
     expect(storedTicketText('001')).not.toContain('entity');
     expect(storedLogEntriesOf(repositoryDirectory).map((entry) => entry.text).some((text) => text.includes('entity'))).toBe(false);
   });

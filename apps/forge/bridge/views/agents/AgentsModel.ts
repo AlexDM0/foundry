@@ -123,7 +123,7 @@ const ROLE_MARKS: Readonly<Record<string, RoleMark>> = {
   'conflict-re-reviewer': { icon: 'magnifier', state: 'reviewing', word: 'conflict re-reviewer' },
   'product-owner':        { icon: 'inbox', state: 'draft', word: 'intake' },
   'assistant':            { icon: 'lifebuoy', state: 'reviewing', word: 'Assistant' },
-  'pipeline-agent':       { icon: 'flow', state: 'pending', word: 'pipeline agent' },
+  'pipeline-agent':       { icon: 'flow', state: 'committed', word: 'pipeline agent' },
 };
 
 /** The drawing of each roleless job kind; any other role or kind takes `UNKNOWN_ROLE_ICON`. */
@@ -135,7 +135,7 @@ const ROLELESS_KIND_ICONS: Readonly<Record<string, IconName>> = {
 
 const UNKNOWN_ROLE_ICON: IconName = 'dot';
 
-const ROLELESS_JOB_STATE: DisplayState = 'pending';
+const ROLELESS_JOB_STATE: DisplayState = 'committed';
 
 /** A record without live facts is not shown rather than breaking the table: the next `board` carries the whole job again. */
 function isAgentJob(record: IdentifiedRecord): record is AgentJobDocument {

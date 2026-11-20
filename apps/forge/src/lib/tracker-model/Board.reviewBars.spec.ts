@@ -142,16 +142,16 @@ describe('startReviewBar', () => {
   });
 
   // The bar's round and the row's repeat-pass count are two fields with two meanings, so a transition moves only the latter.
-  test('a bar keeps the round it was filed with through a repeat review and a move back to pending', () => {
+  test('a bar keeps the round it was filed with through a repeat review and a move back to committed', () => {
     const { board } = ticketInReviewFixture();
     const { bar }   = board.startReviewBar('003', { round: 1 }, FINISHED_AT);
 
     const rereviewed = board.moveTask(bar.id, 're-review', { movesAnyway: false }, REREVIEWED_AT);
     expect(rereviewed).toMatchObject({ reviewRound: 2, reviewBarRound: 1 });
 
-    const pending = board.moveTask(bar.id, 'pending', { movesAnyway: false }, REREVIEWED_AGAIN_AT);
-    expect(pending.reviewBarRound).toBe(1);
-    expect('reviewRound' in pending).toBe(false);
+    const committed = board.moveTask(bar.id, 'committed', { movesAnyway: false }, REREVIEWED_AGAIN_AT);
+    expect(committed.reviewBarRound).toBe(1);
+    expect('reviewRound' in committed).toBe(false);
   });
 
   // A bundle is one agent: its reviewer shares the builder's slot while the claim's other tickets are still being built.

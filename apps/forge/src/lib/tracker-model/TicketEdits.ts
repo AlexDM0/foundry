@@ -9,15 +9,15 @@ import type { BoardRecords }                      from './BoardRecords.ts';
 import { BoardRefusal }                           from './BoardRefusal.ts';
 import type { MarkdownBodyEdit }                  from './MarkdownBodyEdit.ts';
 import { editedBodyOf }                           from './MarkdownBodyEdit.ts';
-import { TICKET_STATUSES_EDITABLE_WITHOUT_FORCE } from './constants/Statuses.ts';
+import { TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP } from './constants/Statuses.ts';
 import { TicketBodyHashUtil }                     from './utils/TicketBodyHashUtil.ts';
 import { TicketChartUtil }                        from './utils/TicketChartUtil.ts';
 
 export interface TicketEdit {
-  title?:             string;
-  body?:              MarkdownBodyEdit;
-  /** Lets the edit reach a ticket that was claimed or started, or has moved on since; without it only a `pending` ticket is edited. */
-  allowsPastPending?: boolean;
+  title?:               string;
+  body?:                MarkdownBodyEdit;
+  /** Lets the edit reach a ticket that was claimed or started, or has moved on since; without it only a `committed` ticket is edited. */
+  allowsPastCommitted?: boolean;
 }
 
 export interface TicketEdited extends Logged {
@@ -45,16 +45,16 @@ export class TicketEdits {
   constructor(private readonly records: BoardRecords) {}
 
   /**
-   * A ticket past `pending` is refused unless the edit allows it, before anything is read, so a claim and an edit sharing one lock hold
+   * A ticket past `committed` is refused unless the edit allows it, before anything is read, so a claim and an edit sharing one lock hold
    * never both act on a stale status. The heading is retitled before the body edit applies, so a replacement is written as given and an
    * append lands on the retitled body; a retitled heading alone moves the claimed body hash along, since a rename is no body change.
    */
   editTicket(ticketId: string, edit: TicketEdit, at: string): TicketEdited {
     const ticket            = this.records.requireTicket(ticketId);
     const { frontmatter }   = ticket;
-    const pastPending       = !TICKET_STATUSES_EDITABLE_WITHOUT_FORCE.includes(frontmatter.status);
-    if (pastPending && edit.allowsPastPending !== true) {
-      throw new BoardRefusal({ reason: 'edit-of-a-ticket-past-pending', ticketId, status: frontmatter.status });
+    const pastCommitted     = !TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP.includes(frontmatter.status);
+    if (pastCommitted && edit.allowsPastCommitted !== true) {
+      throw new BoardRefusal({ reason: 'edit-of-a-ticket-past-committed', ticketId, status: frontmatter.status });
     }
     const previousTitle     = frontmatter.title;
     const title             = edit.title ?? previousTitle;
@@ -75,7 +75,7 @@ export class TicketEdits {
       if (ownRow !== undefined) ownRow.name = TicketChartUtil.rowNameOf(frontmatter);
       logged.push(this.records.logger.log({ kind: 'ticket-retitled', ticketId, fields: { from: previousTitle, to: title } }, at));
     }
-    if (pastPending && body !== retitledBody && TicketBodyHashUtil.bodyChangedSinceClaimOf(ticket) !== undefined) {
+    if (pastCommitted && body !== retitledBody && TicketBodyHashUtil.bodyChangedSinceClaimOf(ticket) !== undefined) {
       logged.push(this.records.logger.log({ kind: 'ticket-body-changed-after-claim', ticketId, fields: {} }, at));
     }
     return { logged, ticket, changed: true };

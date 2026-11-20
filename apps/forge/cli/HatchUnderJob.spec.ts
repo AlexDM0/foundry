@@ -386,7 +386,7 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
     const reading = HatchFormatUtil.requestReadingOf(JSON.stringify(requestsWritten()[0]));
     if (reading.verdict !== 'read') throw new Error(`the request did not read back: ${reading.reason}`);
     const verdict = Bouncer.verdictOf({
-      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrPending: [], setupId: null
+      id: 'J7', role: 'builder', ticketIds: [finder.id], filedTickets: [], deliveredIncidents: [], ticketIdsReadyForReviewOrCommitted: [], setupId: null
     }, reading.command);
     if (verdict.verdict !== 'admitted') throw new Error(`the filing was refused: ${verdict.reason}`);
 

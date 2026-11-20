@@ -64,7 +64,7 @@ export interface PipelineViewFacts {
   readonly pipelineAgentDefaults?: AgentPair;
   /** The newest pipeline records, newest first, for the live flow's "Earlier" list. */
   readonly pipelineHistory?:       readonly LogRecord[];
-  /** The setup landing and the first Apply count the pending tickets in it; the live flow cuts its stamps by the payload's limits. */
+  /** The setup landing and the first Apply count the committed tickets in it; the live flow cuts its stamps by the payload's limits. */
   readonly page?:            {
     readonly tickets:  readonly { readonly status: string; readonly entity?: string }[];
     readonly payload?: { readonly limits?: TimestampSlices; readonly boardFacts?: EntityWorkBoardFacts };

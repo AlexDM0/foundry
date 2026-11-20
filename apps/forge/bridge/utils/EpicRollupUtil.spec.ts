@@ -15,7 +15,7 @@ const OPEN_EPIC: EpicRollupDocument = {
   slot:                1,
   ticketIds:           ['1', '2', '3', '4'],
   ticketCountByStatus: {
-    'pending': 1, 'abandoned': 1, 'delivered': 1, 'in-review': 1
+    'committed': 1, 'abandoned': 1, 'delivered': 1, 'in-review': 1
   },
   tokens: 3_500_000,
   span:   { start: '2026-10-29T09:15:00', end: null },
@@ -46,7 +46,7 @@ describe('the segments and the facts', () => {
         state: 'in-review', tone: 'info-outline', count: 1, label: 'Awaiting review'
       },
       {
-        state: 'pending', tone: 'neutral', count: 1, label: 'To do'
+        state: 'committed', tone: 'neutral', count: 1, label: 'To do'
       },
       {
         state: 'abandoned', tone: 'muted', count: 1, label: 'Abandoned'

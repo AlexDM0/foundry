@@ -4,7 +4,7 @@
  */
 import type { GatePhase } from './GatePhase.ts';
 
-export type TaskStatus = 'pending' | 'in-progress' | 'paused' | 'in-review' | 're-review' | 'reviewed' | 'delivered' | 'abandoned';
+export type TaskStatus = 'committed' | 'in-progress' | 'paused' | 'in-review' | 're-review' | 'reviewed' | 'delivered' | 'abandoned';
 
 /**
  * What a row, or a ticket through its row, shows: its status, except that an in-review row of an in-review ticket is being reviewed. A

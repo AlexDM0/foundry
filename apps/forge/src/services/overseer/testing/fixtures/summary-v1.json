@@ -7,7 +7,7 @@
     "url": "http://127.0.0.1:4100/"
   },
   "ticketCountByStatus": {
-    "pending": 1,
+    "committed": 1,
     "in-progress": 1
   },
   "readyTicketIds": ["002"],

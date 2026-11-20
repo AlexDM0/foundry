@@ -43,7 +43,7 @@ export interface TicketView {
 }
 
 export const TICKET_STATUS_CHIPS: readonly TicketStatusChip[] = [
-  'draft', 'ready-for-review', 'pending', 'in-progress', 'paused', 'in-review', 'reviewing', 'reviewed', 'delivered', 'abandoned',
+  'draft', 'ready-for-review', 'committed', 'in-progress', 'paused', 'in-review', 'reviewing', 'reviewed', 'delivered', 'abandoned',
 ];
 
 export const TICKET_TYPE_CHIPS: readonly TicketType[] = ['ticket', 'bug', 'research'];
@@ -68,7 +68,7 @@ export const DEFAULT_TICKET_VIEW: TicketView = {
 };
 
 const LIFECYCLE_ORDER: readonly DisplayState[] = [
-  'draft', 'ready-for-review', 'pending', 'in-progress', 'paused', 'in-review', 'reviewing', 're-review', 'reviewed', 'delivered', 'abandoned',
+  'draft', 'ready-for-review', 'committed', 'in-progress', 'paused', 'in-review', 'reviewing', 're-review', 'reviewed', 'delivered', 'abandoned',
 ];
 
 /** A query of digits, with or without its `#`, looks for a ticket id and nothing else, so "12" does not match every body naming a twelve. */

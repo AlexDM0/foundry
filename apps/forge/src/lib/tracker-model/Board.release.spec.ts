@@ -197,7 +197,7 @@ describe('releaseTickets', () => {
       progress,
       tickets,
       records,
-    } = boardFixture({ tickets: [ticketInReviewFixture('001', 1), ticketFixture({ id: '002', status: 'pending' })] });
+    } = boardFixture({ tickets: [ticketInReviewFixture('001', 1), ticketFixture({ id: '002', status: 'committed' })] });
     const progressBefore = structuredClone(progress);
     const ticketsBefore  = structuredClone(tickets);
 

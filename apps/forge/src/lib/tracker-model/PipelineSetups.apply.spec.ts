@@ -173,7 +173,7 @@ describe('the Apply refusal a view reads', () => {
   }
 
   function entityRemovedThatATicketNames(): RefusalWorld {
-    const { board, setupId } = updateOver(entityPipelineFixture(), [ticketFixture({ id: '019', entity: 'web', status: 'pending' })], null);
+    const { board, setupId } = updateOver(entityPipelineFixture(), [ticketFixture({ id: '019', entity: 'web', status: 'committed' })], null);
     board.editDraft(setupId, { by: 'agent', revision: null, edits: [{ edit: { target: 'entity', entityKey: 'web', value: null }, summary: 'Drop the web app.' }] }, AT);
     return { board, setupId, reading: MAIN_WITHOUT_CONSTITUTION };
   }

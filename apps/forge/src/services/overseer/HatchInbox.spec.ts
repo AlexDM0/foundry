@@ -1,6 +1,6 @@
 /**
  * A product owner's `ticket entity` relayed through the Hatch inbox, which builds the job record the Bouncer reads from the Board. What
- * matters: the record lists every ticket in `ready-for-review` or `pending`, whatever job filed it, so the product owner sets the entity of
+ * matters: the record lists every ticket in `ready-for-review` or `committed`, whatever job filed it, so the product owner sets the entity of
  * one another job filed, stamped with its own job and logged `by: product-owner`; a ticket already claimed by a builder is out of its reach.
  */
 import { expect, test } from 'bun:test';
@@ -26,7 +26,7 @@ function productOwnerBoard() {
   const fixture = boardFixture({
     pipeline: entityPipelineFixture(),
     tickets:  [
-      ticketFixture({ id: '004', status: 'pending', filedByJob: 'J9' }),
+      ticketFixture({ id: '004', status: 'committed', filedByJob: 'J9' }),
       ticketFixture({ id: '005', status: 'ready-for-review', filedByJob: 'J9' }),
       ticketFixture({ id: '006', status: 'in-progress' }),
     ],
@@ -37,7 +37,7 @@ function productOwnerBoard() {
   return { ...fixture, change };
 }
 
-test('a product owner sets the entity of a pending ticket and of a ticket ready for review that another job filed', () => {
+test('a product owner sets the entity of a committed ticket and of a ticket ready for review that another job filed', () => {
   const { board, change, records } = productOwnerBoard();
   const replies = HatchInbox.applyPendingRequests(change, REPOSITORY_ROOT, [
     { jobId: 'J1', requestId: 'R1', text: assignmentRequestText('R1', '4') },

@@ -32,7 +32,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     bodyText:      '## Report\nAlex Example saw the basket empty itself.\n',
   },
   'ticket-edit': {
-    kind: 'ticket-edit', ticketReference: '#3', title: 'Example title', bodyText: null, appendsBody: false, allowsPastPending: true
+    kind: 'ticket-edit', ticketReference: '#3', title: 'Example title', bodyText: null, appendsBody: false, allowsPastCommitted: true
   },
   'ticket-depends': {
     kind: 'ticket-depends', ticketReference: '3', edit: 'add', ticketIds: ['001', '002']
@@ -219,7 +219,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
     kind: 'task-move', taskId: 4, status: 'in-review', movesAnyway: false, annotation: { owner: 'Alex Example', tokens: 300 }
   },
   'task-correct': {
-    kind: 'task-correct', taskId: 4, correction: { name: 'Basket page', status: 'pending' }, movesAnyway: true, annotation: {}
+    kind: 'task-correct', taskId: 4, correction: { name: 'Basket page', status: 'committed' }, movesAnyway: true, annotation: {}
   },
   'task-remove':   { kind: 'task-remove', taskId: 4 },
   'log-note':      { kind: 'log-note', text: 'Alex Example tried the basket by hand' },

@@ -1,6 +1,6 @@
 /**
- * A priority only orders the queue: lowering keeps a pending ticket's row and is refused past pending, and raising a low ticket that has no
- * row seeds one from the stamps, so an abandoned ticket never returns as a pending bar. Refusals are asserted by reason code.
+ * A priority only orders the queue: lowering keeps a committed ticket's row and is refused past committed, and raising a low ticket that has no
+ * row seeds one from the stamps, so an abandoned ticket never returns as a committed bar. Refusals are asserted by reason code.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -18,17 +18,17 @@ const CHANGED_AT   = '2026-09-18T15:00:00+02:00';
 
 describe('lowering', () => {
   // Priority only orders the queue: a lowered ticket stays ready, so it keeps the row a ready ticket has.
-  test('lowering a pending ticket to low keeps its row and logs the change', () => {
-    const pendingRow = taskFixture({ id: 1, name: '#001 Example checkout page', ticket: '001' });
+  test('lowering a committed ticket to low keeps its row and logs the change', () => {
+    const committedRow = taskFixture({ id: 1, name: '#001 Example checkout page', ticket: '001' });
     const {
       board,
       progress,
       tickets,
       records,
-    } = boardFixture({ tasks: [pendingRow], tickets: [ticketFixture({ id: '001', task: 1 })] });
+    } = boardFixture({ tasks: [committedRow], tickets: [ticketFixture({ id: '001', task: 1 })] });
     const changed = board.setTicketPriority('001', 'low', CHANGED_AT);
 
-    expect(progress.tasks).toEqual([pendingRow]);
+    expect(progress.tasks).toEqual([committedRow]);
     expect(tickets[0]?.frontmatter).toMatchObject({ priority: 'low', task: 1, updated: FILED_AT });
     expect(records).toEqual([{
       at:       CHANGED_AT,
@@ -40,7 +40,7 @@ describe('lowering', () => {
     expect(tickets).toEqual([changed.ticket]);
   });
 
-  test('a ticket that is not pending is refused a lowering, and nothing changes', () => {
+  test('a ticket that is not committed is refused a lowering, and nothing changes', () => {
     const fixture        = boardFixture({
       tasks:   [taskFixture({ id: 1, status: 'in-progress', ticket: '001' })],
       tickets: [ticketFixture({ id: '001', status: 'in-progress', task: 1 })],
@@ -49,7 +49,7 @@ describe('lowering', () => {
     const ticketsBefore  = structuredClone(fixture.tickets);
 
     expect(refusalDetailOf(() => fixture.board.setTicketPriority('001', 'low', CHANGED_AT)))
-      .toEqual({ reason: 'lowering-a-ticket-that-is-not-pending', ticketId: '001', status: 'in-progress' });
+      .toEqual({ reason: 'lowering-a-ticket-that-is-not-committed', ticketId: '001', status: 'in-progress' });
     expect(fixture.progress).toEqual(progressBefore);
     expect(fixture.tickets).toEqual(ticketsBefore);
     expect(fixture.records).toEqual([]);
@@ -57,16 +57,16 @@ describe('lowering', () => {
 });
 
 describe('raising', () => {
-  test('raising a pending low ticket files a pending row at the moment of the change', () => {
+  test('raising a committed low ticket files a committed row at the moment of the change', () => {
     const { board, progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', priority: 'low' })] });
     board.setTicketPriority('001', 'high', CHANGED_AT);
 
     expect(progress.tasks).toHaveLength(1);
     expect(progress.tasks[0]).toMatchObject({
       name:    '#001 Example checkout page',
-      status:  'pending',
+      status:  'committed',
       ticket:  '001',
-      history: [{ status: 'pending', at: CHANGED_AT }],
+      history: [{ status: 'committed', at: CHANGED_AT }],
     });
     expect(tickets[0]?.frontmatter).toMatchObject({ priority: 'high', task: progress.tasks[0]?.id ?? 0, updated: FILED_AT });
   });
@@ -153,7 +153,7 @@ test('a priority the ticket already has is refused, a ticket that names none cou
   expect(refusalDetailOf(() => fixture.board.setTicketPriority('001', 'normal', CHANGED_AT))).toEqual({
     reason:   'priority-unchanged',
     ticketId: '001',
-    status:   'pending',
+    status:   'committed',
     priority: 'normal',
   });
   expect(fixture.progress).toEqual(progressBefore);

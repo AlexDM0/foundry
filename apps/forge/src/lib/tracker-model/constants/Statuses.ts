@@ -2,9 +2,9 @@
 import type { TaskStatus }   from '../@types/Task.ts';
 import type { TicketStatus } from '../@types/Ticket.ts';
 
-export const TASK_STATUSES = ['pending', 'in-progress', 'paused', 'in-review', 're-review', 'reviewed', 'delivered', 'abandoned'] as const;
+export const TASK_STATUSES = ['committed', 'in-progress', 'paused', 'in-review', 're-review', 'reviewed', 'delivered', 'abandoned'] as const;
 
-export const TICKET_STATUSES = ['draft', 'ready-for-review', 'pending', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const;
+export const TICKET_STATUSES = ['draft', 'ready-for-review', 'committed', 'in-progress', 'in-review', 'reviewed', 'delivered', 'abandoned'] as const;
 
 /** Nothing more will happen to a row or ticket in one of these: it is completed work, never open work. */
 export const SETTLED_TASK_STATUSES: readonly TaskStatus[] = ['delivered', 'abandoned'];
@@ -15,8 +15,8 @@ export const SETTLED_TICKET_STATUSES: readonly TicketStatus[] = ['delivered', 'a
 /** The statuses User's own `ticket ready` takes a ticket from: a draft, or one a filer closed for User's review. */
 export const TICKET_STATUSES_USER_READIES: readonly TicketStatus[] = ['draft', 'ready-for-review'];
 
-/** No agent has claimed a ticket in one of these, so an edit cannot change work under way. */
-export const TICKET_STATUSES_EDITABLE_WITHOUT_FORCE: readonly TicketStatus[] = ['draft', 'ready-for-review', 'pending'];
+/** No agent has claimed a ticket in one of these, so a change cannot reach work under way. */
+export const TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP: readonly TicketStatus[] = ['draft', 'ready-for-review', 'committed'];
 
 /** Abandoned is left out on purpose: the work a dependent ticket waited for never happened. */
 export const TICKET_STATUSES_THAT_SETTLE_A_DEPENDENCY: readonly TicketStatus[] = ['reviewed', 'delivered'];

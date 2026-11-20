@@ -321,7 +321,7 @@ function rowModelOf(placed: PlacedRow, state: ProgressBoardState, todayCalendarD
     nameTitle:              nameTitleOf(row),
     stateToken:             row.displayState,
     isLive:                 row.displayState === 'in-progress' || row.displayState === 'reviewing' || row.displayState === 're-review',
-    chipText:               row.displayState === 'pending' && row.waitingOn.length > 0 ? WAITING_CHIP_LABEL : fullLabel,
+    chipText:               row.displayState === 'committed' && row.waitingOn.length > 0 ? WAITING_CHIP_LABEL : fullLabel,
     chipTitle:              row.deliveredRowCountsAsReviewed ? `${fullLabel} · ${reviewedTitle}` : fullLabel,
     chipShowsReviewedCheck: row.deliveredRowCountsAsReviewed,
     nestedWithTicket,

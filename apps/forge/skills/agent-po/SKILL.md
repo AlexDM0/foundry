@@ -24,7 +24,7 @@ Brief template, the moves, the findings flow and the exit codes.
 
 Send these as separate calls in one message, never joined into one shell line:
 
-1. `{{program}} status --json`: the drafts, what is pending, in flight and settled. On exit 1 with no
+1. `{{program}} status --json`: the drafts, what is committed, in flight and settled. On exit 1 with no
    tracker, say so, and do not create one uninvited.
 2. `{{program}} epic list`: the epics a new ticket may belong to.
 3. Read `{{dataFolder}}/reference.md` once: its Brief section is the `## Brief` every ticket carries.
@@ -67,8 +67,8 @@ is too big for one builder's budget: a small request stays one ticket, and so do
 
 **Merge what shares a blast radius.** Drafts that touch the same files or mechanism as each other, or as the one you
 are filing, become one draft carrying each one's Report and Acceptance; each merged one is abandoned with
-`ticket abandon <id> --reason "merged into #<survivor>"`. A pending ticket is built as soon as a slot frees and one
-past `pending` is never edited, so a request that would merge into either is filed as its own draft depending on it.
+`ticket abandon <id> --reason "merged into #<survivor>"`. A committed ticket builds once a slot frees and one
+past `committed` is never edited, so a request that would merge into either is filed as its own draft depending on it.
 
 **Two tickets that edit one file wait on each other.** The Overseer starts every ready ticket a slot allows and knows
 nothing about files: record the order with `--depends-on` while they are drafts. A `--group`'s tickets carry their
@@ -142,7 +142,7 @@ the filing draft closed or left open with its open question numbers. Then:
 
 The board's ticket review switch (`gate approval tickets on|off`) sets what the submit does to a complete draft:
 
-- **Ticket review off**: the draft becomes `pending` with its row. The Overseer builds it.
+- **Ticket review off**: the draft becomes `committed` with its row. The Overseer builds it.
 - **Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`, with no row. Only
   the user moves it on, with `{{program}} ticket ready <ids>` or the Ready button on the Bridge.
 

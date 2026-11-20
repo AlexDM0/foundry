@@ -83,7 +83,7 @@ describeWhenGitIsRecorded('the retired verbs', () => {
     expect(storedTrackerText()).toBe(before);
   });
 
-  test('ticket claim, start, finish, approve and a bare deliver are not ticket subcommands, and the ticket stays pending', async () => {
+  test('ticket claim, start, finish, approve and a bare deliver are not ticket subcommands, and the ticket stays committed', async () => {
     const before = storedTrackerText();
     for (const commandLine of RETIRED_TICKET_LINES) {
       const { exitCode, errorText } = await runHere(commandLine);

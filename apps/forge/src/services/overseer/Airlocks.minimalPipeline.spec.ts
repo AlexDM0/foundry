@@ -1,7 +1,7 @@
 /**
  * The minimal pipeline end to end: no gates in any phase and no review step. The world turns the Board's lifecycle pass, as the Overseer's
  * DrivePass does, and the Airlocks' sweep, with the harness's fake launcher; a fake builder reports the way a verified build report settles.
- * What matters: a pending ticket is built, waits in review only for its Airlock and lands with no review job launched; a merge-in conflict
+ * What matters: a committed ticket is built, waits in review only for its Airlock and lands with no review job launched; a merge-in conflict
  * goes to its builder, the last worker, who resolves it in the Airlock; and the same world with a merge-train re-review runs the conflict
  * re-reviewer before the ticket lands. Git answers from the recorded answer sets of `src/services/overseer/testing/AirlockAnswerSets.ts`.
  */
@@ -62,9 +62,9 @@ afterEach(() => {
   world = null;
 });
 
-/** One pending ticket on a running board whose pipeline is the minimal one, with the merge train's re-review when one is given. */
+/** One committed ticket on a running board whose pipeline is the minimal one, with the merge train's re-review when one is given. */
 function minimalPipelineWorld(airlock: PipelineAirlock | null): AirlocksHarness {
-  const current = createRecordedAirlocksHarness([{ id: TICKET_ID, status: 'pending' }], {}, false, airlock);
+  const current = createRecordedAirlocksHarness([{ id: TICKET_ID, status: 'committed' }], {}, false, airlock);
   current.board.setOverseerState('running', HARNESS_AT);
   return current;
 }
@@ -111,7 +111,7 @@ async function conflictResolvedInTheAirlock(current: AirlocksHarness, resolution
 }
 
 describeWhenGitIsRecorded('a ticket on the minimal pipeline', () => {
-  test('goes from pending to landed with no gate in its pipeline and no review job, its branch already holding the main line', async () => {
+  test('goes from committed to landed with no gate in its pipeline and no review job, its branch already holding the main line', async () => {
     world = minimalPipelineWorld(null);
     expect(world.board.pipeline()?.phases).toEqual({ build: [], review: [], merge: [] });
 

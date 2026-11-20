@@ -41,7 +41,7 @@ export async function addOneTask(commandArguments: ArgumentParser, context: Comm
   const { written: { result: task }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   const humanLine = `Task #${task.id} added: ${task.name}`;
-  // Only a row started as it is added takes a slot; a pending one moves nothing the Next line reads.
+  // Only a row started as it is added takes a slot; a committed one moves nothing the Next line reads.
   if (startsNow) {
     OutputUtil.printEntityThenNextLine(commandArguments, context, task, humanLine, nextLine);
   } else {

@@ -11,7 +11,7 @@ const DRAFT_TICKET_TEXT = 'a draft ticket';
 export type MovedToStatus = Exclude<TaskStatus, 'abandoned'>;
 
 const VERB_FOR_STATUS: Readonly<Record<TaskStatus, string>> = {
-  'pending':     'reopen',
+  'committed':   'reopen',
   'in-progress': 'start',
   'paused':      'pause',
   'in-review':   'finish',
@@ -22,7 +22,7 @@ const VERB_FOR_STATUS: Readonly<Record<TaskStatus, string>> = {
 };
 
 const MOVED_PHRASE_FOR_STATUS: Readonly<Partial<Record<MovedToStatus, string>>> = {
-  'pending':     'reopened',
+  'committed':   'reopened',
   'in-progress': 'started',
   'in-review':   'in review',
   're-review':   'under review again',
@@ -36,7 +36,7 @@ function movedPhraseFor(status: MovedToStatus): string {
   return MOVED_PHRASE_FOR_STATUS[status] ?? status;
 }
 
-/** A status as a sentence's complement: `Ticket #3 is pending`, `Ticket #3 is a draft ticket`. */
+/** A status as a sentence's complement: `Ticket #3 is committed`, `Ticket #3 is a draft ticket`. */
 function statusTextFor(status: TaskStatus | TicketStatus): string {
   if (status === 'ready-for-review') return 'ready for review';
   return status === 'draft' ? DRAFT_TICKET_TEXT : status;

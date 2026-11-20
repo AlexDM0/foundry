@@ -113,7 +113,7 @@ describeWhenGitIsRecorded('a ticket of the shop that crosses into the whiteliste
     expect(pipeline.entities?.[SHOP.key]?.whitelist).toEqual([UI_KIT.key]);
 
     const shopTicket = {
-      id: SHOP_TICKET.id, entity: SHOP.key, status: 'pending' as const, body: SHOP_TICKET_BODY
+      id: SHOP_TICKET.id, entity: SHOP.key, status: 'committed' as const, body: SHOP_TICKET_BODY
     };
     harness = createRecordedAirlocksHarness([shopTicket], {}, true, null, false, null, pipeline.entities);
     const { board } = harness;

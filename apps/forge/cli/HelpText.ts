@@ -97,7 +97,7 @@ never carries it.
                               everything, and with --json prints the whole progress file plus
                               every ticket's frontmatter. Both --json documents carry
                               \`concurrency\`: the limit, the agents in flight, the free slots and
-                              the ids of the ready tickets — pending, every dependency settled —
+                              the ids of the ready tickets — committed, every dependency settled —
                               high priority first, then normal, then low, each in the order they
                               were readied, then lowest id first. Priority only orders them: it
                               never keeps a ticket from being ready. Beside it, \`readyTickets\` lists the same
@@ -265,7 +265,7 @@ never carries it.
                               byte is kept and \`updated\` is not stamped. Nothing to change writes
                               nothing and exits 0; an empty replacement or title, none of --title,
                               --body and --body-file, or both body options are refused at exit 1.
-                              Only a pending ticket is edited: past it, the edit is refused at
+                              Only a committed ticket is edited: past it, the edit is refused at
                               exit 1 unless --force, and a forced body change is logged and shows
                               in \`ticket show\` as the body changed since the claim.
 
@@ -301,7 +301,7 @@ never carries it.
 
   ticket priority <id> low|normal|high [--at <when>]
                               Change a ticket's priority, with one log line. Lowering to low is
-                              refused unless the ticket is a draft ticket or pending, and keeps
+                              refused unless the ticket is a draft ticket or committed, and keeps
                               its row: priority only orders the ready tickets. A draft ticket has
                               none at any priority; raising a low ticket that has no row gives it
                               one at once. A low ticket with no row gets
@@ -317,7 +317,7 @@ never carries it.
                               Set the public domains a ticket's agents may reach, comma or space
                               separated and stored lower case as \`network\`; --clear removes the
                               line. One log line. Refused at exit 1, writing nothing, unless the
-                              ticket is a draft ticket or pending, on a loopback name, a .local
+                              ticket is a draft ticket or committed, on a loopback name, a .local
                               name or a loopback or private IP address (network-domain-not-public),
                               and when nothing would change.
 
@@ -326,10 +326,10 @@ never carries it.
                               ticket, and why: the key is stored as \`entity\`, the reason only in
                               the log line, which also names who assigned it. The product owner
                               runs it under its job, on its own draft ticket or on any ticket
-                              ready for review or pending.
+                              ready for review or committed.
                               Refused at exit 1, writing nothing, on a key the pipeline does not
                               name (every key when it names no entity), unless the ticket is
-                              a draft ticket, ready for review or pending, with a blank reason,
+                              a draft ticket, ready for review or committed, with a blank reason,
                               and when nothing would change.
 
   ticket group <id> <name> [--at <when>] [--json]
@@ -340,8 +340,8 @@ never carries it.
                               ticket, and on a name \`ticket add --group\` refuses.
 
   ticket ready <id> [<id>...] [--at <when>] [--json]
-                              Ready draft tickets to build, all or nothing: each becomes pending
-                              with a pending row at any priority, one log line each. Refused at
+                              Ready draft tickets to build, all or nothing: each becomes committed
+                              with a committed row at any priority, one log line each. Refused at
                               exit 1 with nothing written when a ticket named is not a draft
                               ticket, or is incomplete: \`acceptance-unnumbered\` with no numbered
                               Acceptance item, \`brief-missing\` with no \`## Brief\` holding a
@@ -354,7 +354,7 @@ never carries it.
                               ticket and path named.
   ticket submit <id> [<id>...] [--at <when>] [--json]
                               The filer's close of its draft tickets. With ticket review off, each
-                              complete draft becomes pending with its row (ticket-readied); with
+                              complete draft becomes committed with its row (ticket-committed); with
                               it on, each becomes ready-for-review with no row
                               (ticket-submitted-for-review) and waits for User's ticket ready.
                               An incomplete draft stays a draft and is named with its gaps.
@@ -372,7 +372,7 @@ never carries it.
       [--reason <text>] [--tokens <n>] [--at <when>]
                               Move a ticket and its Gantt row together, stamping both: abandon
                               from anything not already delivered or abandoned, reopen from
-                              anything but a draft ticket or pending. The Overseer makes every other
+                              anything but a draft ticket or committed. The Overseer makes every other
                               lifecycle move. A draft ticket moves only through \`ticket ready\` or
                               \`abandon\`.
                               Moving a ticket to the status it already has is refused and logs
@@ -381,7 +381,7 @@ never carries it.
                               review bar, with one log line each. A move to in-progress warns on
                               standard error, and still moves it, when the ticket is held.
                               \`abandon\` requires --reason; \`reopen\` clears the stamps and returns
-                              the row to pending. --branch and --commit record where the work
+                              the row to committed. --branch and --commit record where the work
                               landed, and --tokens what it cost; --tokens on a ticket with no
                               row (a low one never started) is refused at exit 1.
 
@@ -409,7 +409,7 @@ never carries it.
                               the row's figure is the builder's, and a review pass has its own row.
 
   ticket status <id> <status>
-                              The same move, naming the target status directly: pending,
+                              The same move, naming the target status directly: committed,
                               in-progress, in-review, reviewed, delivered or abandoned. It takes
                               the same options and is the documented way to make a move the verbs above refuse.
 
@@ -574,7 +574,7 @@ never carries it.
   gate approval tickets|merge on|off [--json]
                               Switch ticket review, stored as approvals.tickets. On, as with no
                               key, a filer's closed draft waits in ready-for-review for User's
-                              ticket ready; off, it becomes pending at once. One log line.
+                              ticket ready; off, it becomes committed at once. One log line.
                               Refused at exit 1 while no pipeline is stored: set the gates first.
                               Merge approval, approvals.merge, is off without the key; on, a
                               reviewed ticket waits for merge until User's merge accept.

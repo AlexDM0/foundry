@@ -189,7 +189,7 @@ export class BoardRecords {
     const filed           = this.fileTask({
       name:    TicketChartUtil.rowNameOf(frontmatter),
       ticket:  frontmatter.id,
-      status:  'pending',
+      status:  'committed',
       filedAt: at,
     });
     frontmatter.task = filed.id;

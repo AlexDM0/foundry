@@ -26,7 +26,7 @@ test('each guard accepts every member of its own tuple', () => {
 });
 
 test('a guard refuses a plausible near-miss rather than rounding it to the nearest member', () => {
-  for (const nearMiss of ['', 'Pending', 'in progress', 'complete', 'todo', 'delivered ', 'pendin']) {
+  for (const nearMiss of ['', 'Committed', 'in progress', 'complete', 'todo', 'delivered ', 'committe']) {
     expect(taskStatusIsKnown(nearMiss), `task status "${nearMiss}"`).toBe(false);
     expect(ticketStatusIsKnown(nearMiss), `ticket status "${nearMiss}"`).toBe(false);
     expect(ticketTypeIsKnown(nearMiss), `ticket type "${nearMiss}"`).toBe(false);

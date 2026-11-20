@@ -1,17 +1,16 @@
 /**
  * The board's page and its forge-wide figures against the contract's documents. What matters: a ticket, a row, a row's and a ticket's facts
- * and an epic map field by field with the model's `pending` as `committed`; an optional field the model leaves absent stays absent, and a
+ * and an epic map field by field, their statuses as the model names them; an optional field the model leaves absent stays absent, and a
  * field no reader names (a ticket's model, its stored extra lines, its body hash) never reaches the document; an unset Overseer setting
  * reads as paused and an absent draft list as none; a notice keeps its kind and its other fields as facts, and a value that is no notice is
  * dropped; a Baton warning that does not read as one is `null`.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { EpicRollup }                        from '../../../lib/tracker-model/@types/Epic.ts';
-import type { DisplayState as ModelDisplayState } from '../../../lib/tracker-model/@types/Task.ts';
-import type { PageTicket }                        from '../../../shared/@types/PagePayload.ts';
-import type { PagePayload }                       from '../../../shared/@types/PagePayload.ts';
-import { BoardPageMappingUtil }                   from './BoardPageMappingUtil.ts';
+import type { EpicRollup }      from '../../../lib/tracker-model/@types/Epic.ts';
+import type { PageTicket }      from '../../../shared/@types/PagePayload.ts';
+import type { PagePayload }     from '../../../shared/@types/PagePayload.ts';
+import { BoardPageMappingUtil } from './BoardPageMappingUtil.ts';
 
 const AT = '2026-11-19T10:00:00+01:00';
 
@@ -19,7 +18,7 @@ const PAGE_TICKET: PageTicket = {
   id:              '001',
   title:           'Example checkout page',
   type:            'bug',
-  status:          'pending',
+  status:          'committed',
   priority:        'high',
   model:           'opus',
   effort:          'max',
@@ -46,7 +45,7 @@ const EPIC: EpicRollup = {
   slot:                1,
   ticketIds:           ['001'],
   ticketCountByStatus: {
-    'draft': 0, 'ready-for-review': 0, 'pending': 1, 'in-progress': 0, 'in-review': 0, 'reviewed': 0, 'delivered': 0, 'abandoned': 0
+    'draft': 0, 'ready-for-review': 0, 'committed': 1, 'in-progress': 0, 'in-review': 0, 'reviewed': 0, 'delivered': 0, 'abandoned': 0
   },
   tokens: 0,
   span:   null,
@@ -66,14 +65,14 @@ function payloadWith(changes: Partial<PagePayload>): PagePayload {
       tasks:      [{
         id:      1,
         name:    'Example checkout page',
-        status:  'pending',
+        status:  'committed',
         start:   null,
         end:     null,
         owner:   'Alex Example',
         note:    '',
         ticket:  '001',
         tokens:  null,
-        history: [{ status: 'pending', at: AT }],
+        history: [{ status: 'committed', at: AT }],
         agent:   '001',
       }],
       log: [{
@@ -86,9 +85,9 @@ function payloadWith(changes: Partial<PagePayload>): PagePayload {
     pageScriptFailure:            null,
     epicDescriptions:             [{ key: 'example-checkout', descriptionHtml: '<p>Epic</p>' }],
     boardFacts:                   {
-      rows:    [{ displayState: 'pending', deliveredRowCountsAsReviewed: false, ownRowPositionOfReviewedTicket: null }],
+      rows:    [{ displayState: 'committed', deliveredRowCountsAsReviewed: false, ownRowPositionOfReviewedTicket: null }],
       tickets: [{
-        ticketId: '001', ownRowPosition: 0, reviewBarPositions: [], displayState: 'pending', waitingOnTicketIds: []
+        ticketId: '001', ownRowPosition: 0, reviewBarPositions: [], displayState: 'committed', waitingOnTicketIds: []
       }],
       epics:        [EPIC],
       readyTickets: [{
@@ -98,13 +97,6 @@ function payloadWith(changes: Partial<PagePayload>): PagePayload {
     ...changes,
   };
 }
-
-describe('BoardPageMappingUtil.committedStatusOf', () => {
-  test('reads the model\'s pending as committed and keeps every other status', () => {
-    const displayStates: ModelDisplayState[] = ['pending', 'in-progress', 'draft', 'reviewing'];
-    expect(displayStates.map((displayState) => BoardPageMappingUtil.committedStatusOf(displayState))).toEqual(['committed', 'in-progress', 'draft', 'reviewing']);
-  });
-});
 
 const TICKET_READINGS = {
   facts: {
@@ -143,7 +135,7 @@ describe('BoardPageMappingUtil.pageOf', () => {
     expect(page.tickets[0] === undefined ? [] : Object.keys(page.tickets[0]).filter((field) => fieldsNoReaderNames.includes(field))).toEqual([]);
   });
 
-  test('maps a row, its phases and its facts with pending as committed, leaving out the claim it was started by', () => {
+  test('maps a row, its phases and its facts, leaving out the claim it was started by', () => {
     expect(page.payload.progress.tasks).toEqual([{
       id:      1,
       name:    'Example checkout page',

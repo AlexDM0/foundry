@@ -354,13 +354,13 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     expect(DependentFixTickets.dependentsFixedInGroupOf(board, SHOP_TICKET.id, dependents)).toEqual([]);
 
     board.fileTicket(ticketFixture({
-      id: '002', status: 'pending', entity: ADMIN.key, group: 'example-elsewhere'
+      id: '002', status: 'committed', entity: ADMIN.key, group: 'example-elsewhere'
     }), AT);
     board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
     expect(DependentFixTickets.dependentsFixedInGroupOf(board, SHOP_TICKET.id, dependents)).toEqual([]);
 
     board.fileTicket(ticketFixture({
-      id: '003', status: 'pending', entity: ADMIN.key, group: 'example-release'
+      id: '003', status: 'committed', entity: ADMIN.key, group: 'example-release'
     }), AT);
     expect(DependentFixTickets.dependentsFixedInGroupOf(board, SHOP_TICKET.id, dependents)).toEqual([ADMIN.key]);
 
@@ -372,7 +372,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     const ticket = crossingTicketOf({ stage: PACKAGE_BUILD });
     ticket.board.setTicketGroup(SHOP_TICKET.id, 'example-release', AT);
     ticket.board.fileTicket(ticketFixture({
-      id: '002', status: 'pending', entity: ADMIN.key, group: 'example-release', dependsOn: [SHOP_TICKET.id]
+      id: '002', status: 'committed', entity: ADMIN.key, group: 'example-release', dependsOn: [SHOP_TICKET.id]
     }), AT);
     const { job } = ticket.board.launchJob({
       kind: 'build', role: 'builder', ticketIds: [SHOP_TICKET.id], parentJobId: null, attempt: 2, target: ENTITY_FORGE_MAIN_LINE, entity: UI_KIT.key, stage: 2

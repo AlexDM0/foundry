@@ -166,7 +166,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.recordPipelineStepsRan([{
     stepKind: 'gate', stepName: 'tests', entity: 'web', runMilliseconds: 4200, ending: 'passed'
   }], 'build', at);
-  board.editTicket('001', { body: { text: 'Example rewritten report.\n', appends: false }, allowsPastPending: true }, at);
+  board.editTicket('001', { body: { text: 'Example rewritten report.\n', appends: false }, allowsPastCommitted: true }, at);
   board.moveTicket('001', 'in-review', { checksLegality: true }, at);
   board.startReviewBar('001', { round: 1 }, at);
   board.recordReview('001', {
@@ -217,7 +217,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.moveTicket('001', 'reviewed', { checksLegality: true }, at);
   board.moveTicket('001', 'delivered', { checksLegality: true }, at);
   board.setTicketIntroducedBy('004', '001', at);
-  board.moveTicket('001', 'pending', { checksLegality: false }, at);
+  board.moveTicket('001', 'committed', { checksLegality: false }, at);
   board.moveTicket('003', 'abandoned', { checksLegality: true, reason: 'superseded by #001' }, at);
   board.setChartRange({
     kind:        'relative',
