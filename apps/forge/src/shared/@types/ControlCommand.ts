@@ -297,6 +297,8 @@ export type ControlCommand =
   | { kind: 'ticket-rereview'; ticketReference: string; reviewBar: AgentAssignment | null }
   /** Back to `committed` through the legality matrix. */
   | { kind: 'ticket-reopen'; ticketReference: string; branch?: string; commit?: string; reason?: string; tokens?: number }
+  /** A committed ticket no job has taken goes back into `draft`, to be edited there. */
+  | { kind: 'ticket-unready'; ticketReference: string }
   /** The documented override: any status, skipping the legality matrix. */
   | { kind: 'ticket-status-set'; ticketReference: string; status: TicketStatus; branch?: string; commit?: string; reason?: string; tokens?: number }
   | { kind: 'epic-edit'; key: string; title?: string; body?: { text: string; appends: boolean } }

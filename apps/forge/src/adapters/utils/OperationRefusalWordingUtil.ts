@@ -8,6 +8,7 @@ import type { TaskStatus }                                   from '../../lib/tra
 import type { IncompleteTicket, ReadinessGap, TicketStatus } from '../../lib/tracker-model/@types/Ticket.ts';
 import type { BoardRefusalDetail }                           from '../../lib/tracker-model/BoardRefusal.ts';
 import { LEGAL_SOURCE_STATES_FOR_JOB_MOVE }                  from '../../lib/tracker-model/constants/JobMoveLegality.ts';
+import { TICKET_STATUSES_WITH_EDITABLE_CONTENT }             from '../../lib/tracker-model/constants/Statuses.ts';
 import { LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS }           from '../../lib/tracker-model/constants/TicketMoveLegality.ts';
 import type { EntityRefusal }                                from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
 import type { OptionNotesProblem }                           from '../../lib/tracker-model/utils/OptionConsequencesUtil.ts';
@@ -48,6 +49,16 @@ const CHART_RANGE_BOUND_TEXT: Readonly<Record<'from' | 'to', string>> = { from: 
 
 function adviceFor(channel: RefusalChannel, commandLineAdvice: string, apiAdvice: string): string {
   return channel === 'command-line' ? commandLineAdvice : apiAdvice;
+}
+
+/** What puts a ticket past committed back into draft: its work stopped, the ticket reopened, then unreadied. */
+function backIntoDraftPastCommittedAdviceOf(ticketId: string, channel: RefusalChannel): string {
+  return adviceFor(
+    channel,
+    `An agent has picked it up: stop its work first (\`${PRODUCT_NAMES.PROGRAM} job stop <job>\`), `
+      + `then reopen it (\`${PRODUCT_NAMES.PROGRAM} ticket reopen ${ticketId}\`) and put it back into draft.`,
+    'An agent has picked it up: stop its work first, then reopen it and put it back into draft.'
+  );
 }
 
 /** The sentences joined by a space, an empty one left out. */
@@ -126,8 +137,23 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
         + `and a move to ${detail.targetStatus} takes a ticket that is ${legalSourcesText(detail.targetStatus)}.`
         + adviceFor(channel, ` Run \`${PRODUCT_NAMES.PROGRAM} ticket status ${detail.ticketId} ${detail.targetStatus}\` if you mean to set it directly.`, '');
     case 'move-to-draft':
-      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and no move returns a ticket to draft: `
-        + `filing is the only way in. ${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket hold ${detail.ticketId}\``, 'Hold it')} to keep it from being built for now.`;
+      return sentencesOf(
+        `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and `
+          + `${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} ticket status\``, 'a status change')} does not move a ticket into draft.`,
+        detail.status === 'committed'
+          ? adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket unready ${detail.ticketId}\` to put it back into draft.`, 'Put it back into draft instead.')
+          : `${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} ticket hold ${detail.ticketId}\``, 'Hold it')} to keep it from being built for now.`
+      );
+    case 'unready-of-a-ticket-not-committed':
+      return sentencesOf(
+        `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, not committed, so it was not put back into draft.`,
+        TICKET_STATUSES_WITH_EDITABLE_CONTENT.includes(detail.status)
+          ? `Its content can be edited as it is. ${NOTHING_WAS_WRITTEN}`
+          : backIntoDraftPastCommittedAdviceOf(detail.ticketId, channel)
+      );
+    case 'unready-of-a-ticket-with-a-job':
+      return `Ticket #${detail.ticketId} is committed and job ${detail.jobId} is starting on it, so it stays committed. `
+        + `Stop the job first${adviceFor(channel, ` (\`${PRODUCT_NAMES.PROGRAM} job stop ${detail.jobId}\`)`, '')}.`;
     case 'move-of-a-draft':
       return `Ticket #${detail.ticketId} is a draft ticket, so it was not moved: `
         + adviceFor(channel, `run \`${PRODUCT_NAMES.PROGRAM} ticket ready ${detail.ticketId}\` to ready it to build`, 'ready it to build')
@@ -451,9 +477,18 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
         + 'only a draft or committed ticket can be lowered to low, '
         + `since a low ticket has no row until it is started. ${NOTHING_WAS_WRITTEN}`;
     case 'content-of-a-committed-ticket':
-      return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its title and body were not edited: `
-        + `a committed ticket's content is fixed${detail.status === 'committed' ? ', since an agent may pick it up at any moment' : ''}. `
-        + NOTHING_WAS_WRITTEN;
+      return sentencesOf(
+        `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its title and body were not edited: `
+          + `a committed ticket's content is fixed${detail.status === 'committed' ? ', since an agent may pick it up at any moment' : ''}.`,
+        NOTHING_WAS_WRITTEN,
+        detail.status === 'committed'
+          ? adviceFor(
+            channel,
+            `Run \`${PRODUCT_NAMES.PROGRAM} ticket unready ${detail.ticketId}\` to put it back into draft and edit it there.`,
+            'Put it back into draft and edit it there.'
+          )
+          : backIntoDraftPastCommittedAdviceOf(detail.ticketId, channel)
+      );
     case 'network-of-a-ticket-past-committed':
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, and its network line was not changed: `
         + `it is set only while the ticket is draft or committed. ${NOTHING_WAS_WRITTEN}`;

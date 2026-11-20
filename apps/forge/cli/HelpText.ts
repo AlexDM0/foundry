@@ -267,7 +267,8 @@ never carries it.
                               --body and --body-file, or both body options are refused at exit 1.
                               Only a draft or a ticket ready for review is edited: a committed
                               ticket's content is fixed, so from committed onward the edit is
-                              refused at exit 1 and nothing is written.
+                              refused at exit 1 and nothing is written; \`ticket unready\` puts a
+                              committed ticket back into draft.
 
   ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]
                               Change the model or the effort a ticket's agents run on, or both,
@@ -346,12 +347,20 @@ never carries it.
                               ticket, or is incomplete: \`acceptance-unnumbered\` with no numbered
                               Acceptance item, \`brief-missing\` with no \`## Brief\` holding a
                               non-blank line, each ticket named. \`ticket add\` files every ticket
-                              as a draft ticket, with no row; no move returns a ticket there.
+                              as a draft ticket, with no row; only \`ticket unready\` returns a
+                              committed one there.
                               It also readies a ticket in ready-for-review; only User does that.
                               Where the pipeline names entities, a ticket with no entity is refused
                               (\`ticket-without-entity\`), each ticket named, and so is a ticket whose
                               Brief names work outside its entity (\`work-outside-entity\`), each
                               ticket and path named.
+  ticket unready <id> [--at <when>] [--json]
+                              Put a committed ticket back into draft to edit it there: its row and
+                              its kept content go, everything else stays, one log line
+                              (ticket-unreadied). It is committed again as any draft is, by
+                              \`ticket ready\` or a filer's \`ticket submit\`. Refused at exit 1
+                              with nothing written on a ticket that is not committed, and while
+                              a job of the ticket is on the board: stop the job first.
   ticket submit <id> [<id>...] [--at <when>] [--json]
                               The filer's close of its draft tickets. With ticket review off, each
                               complete draft becomes committed with its row (ticket-committed); with

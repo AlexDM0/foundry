@@ -13,6 +13,7 @@ import {
   ticketFixture,
   ticketInStatusFixture
 } from '../../testing/BoardFixtures.ts';
+import type { Job }                             from './@types/Job.ts';
 import type { RowedTicketStatus, TicketStatus } from './@types/Ticket.ts';
 import type { TicketOfferKind }                 from './MoveOffers.ts';
 import { TICKET_STATUSES }                      from './constants/Statuses.ts';
@@ -228,7 +229,7 @@ describe('refusals', () => {
     }
   });
 
-  test('no move returns a ticket of any status to draft, not even the override, and nothing is written', () => {
+  test('no status move takes a ticket of any status to draft, not even the override, and nothing is written', () => {
     for (const status of TICKET_STATUSES.filter((candidate) => candidate !== 'draft')) {
       for (const checksLegality of [true, false]) {
         const { board, progress, records } = boardFixture({ tickets: [ticketFixture({ id: '003', status })] });
@@ -297,6 +298,105 @@ describe('refusals', () => {
       expect(board.changedTickets()).toEqual([]);
       expect(records).toEqual([]);
     }
+  });
+});
+
+/** A build job is `launching` while its ticket is still committed: the board holds the job before the ticket moves on. */
+function launchingBuildJobOf(ticketId: string): Job {
+  return {
+    id:                 'J7',
+    kind:               'build',
+    role:               'builder',
+    ticketIds:          [ticketId],
+    parentJobId:        null,
+    attempt:            1,
+    target:             'main',
+    state:              'launching',
+    childInstance:      1,
+    eventCursor:        { instance: 1, sequence: 0 },
+    answeredRequestIds: [],
+    crashResumes:       0,
+  };
+}
+
+/** A draft carrying every setting a move back into draft keeps, committed by `ticket ready` with its row and its kept content. */
+function committedFromADraftFixture(): BoardFixture {
+  const fixture = boardFixture({
+    tickets: [
+      ticketFixture({ id: '001', title: 'Example basket badge' }),
+      ticketFixture({
+        id:        '003',
+        title:     'Example export dialog',
+        status:    'draft',
+        task:      null,
+        priority:  'high',
+        group:     'example-shop',
+        epics:     ['example-checkout'],
+        dependsOn: ['001'],
+        hold:      'waiting on Example Agency',
+      }),
+    ],
+  });
+  fixture.board.readyDraftTickets(['003'], () => [], FILED_AT);
+  return fixture;
+}
+
+describe('back into draft', () => {
+  test('a committed ticket with no job becomes a draft, loses its kept content and its row, logs ticket-unreadied and keeps its settings', () => {
+    const { board, progress, records } = committedFromADraftFixture();
+    expect(progress.tasks.map((task) => task.ticket)).toEqual(['003']);
+
+    const unreadied = board.unreadyTicket('003', STARTED_AT);
+
+    expect(unreadied.ticket.frontmatter).toMatchObject({
+      status:    'draft',
+      updated:   STARTED_AT,
+      task:      null,
+      priority:  'high',
+      group:     'example-shop',
+      epics:     ['example-checkout'],
+      dependsOn: ['001'],
+      hold:      'waiting on Example Agency',
+    });
+    expect(unreadied.ticket.frontmatter.contentHash).toBeUndefined();
+    expect(progress.tasks).toEqual([]);
+    expect(unreadied.logged).toEqual([{
+      at: STARTED_AT, kind: 'ticket-unreadied', ticketId: '003', fields: {}
+    }]);
+    expect(records.at(-1)?.kind).toBe('ticket-unreadied');
+  });
+
+  test('a command edit of the unreadied ticket lands, as it does on any draft', () => {
+    const { board, tickets } = committedFromADraftFixture();
+    board.unreadyTicket('003', STARTED_AT);
+
+    board.editTicket('003', { title: 'Example export dialog, reworded', body: { text: 'Example reworded body.\n', appends: false }, writtenBy: 'command' }, FINISHED_AT);
+
+    const ticket = tickets.find((candidate) => candidate.frontmatter.id === '003');
+    expect([ticket?.frontmatter.title, ticket?.body]).toEqual(['Example export dialog, reworded', 'Example reworded body.\n']);
+  });
+
+  test('every status but committed is refused naming it, and nothing is written', () => {
+    for (const status of TICKET_STATUSES.filter((candidate) => candidate !== 'committed')) {
+      const { board, progress, records } = ticketInStatusFixture(status, null);
+      const tasksBefore = structuredClone(progress.tasks);
+      expect(refusalDetailOf(() => board.unreadyTicket('001', STARTED_AT)), status).toEqual({ reason: 'unready-of-a-ticket-not-committed', ticketId: '001', status });
+      expect(progress.tasks, status).toEqual(tasksBefore);
+      expect(records, status).toEqual([]);
+    }
+  });
+
+  test('a committed ticket the board holds a launching job of stays committed, its row and kept content with it', () => {
+    const { board, progress, records } = committedFromADraftFixture();
+    progress.jobs = [launchingBuildJobOf('003')];
+    const recordCountBefore = records.length;
+
+    expect(refusalDetailOf(() => board.unreadyTicket('003', STARTED_AT))).toEqual({ reason: 'unready-of-a-ticket-with-a-job', ticketId: '003', jobId: 'J7' });
+    const ticket = board.tickets().find((candidate) => candidate.frontmatter.id === '003');
+    expect(ticket?.frontmatter.status).toBe('committed');
+    expect(ticket?.frontmatter.contentHash).toBeString();
+    expect(progress.tasks.map((task) => task.ticket)).toEqual(['003']);
+    expect(records).toHaveLength(recordCountBefore);
   });
 });
 

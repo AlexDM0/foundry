@@ -30,6 +30,8 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
     reason: 'illegal-ticket-move', ticketId: '004', status: 'committed', targetStatus: 'delivered'
   },
   'move-to-draft':                                   { reason: 'move-to-draft', ticketId: '004', status: 'committed' },
+  'unready-of-a-ticket-not-committed':               { reason: 'unready-of-a-ticket-not-committed', ticketId: '004', status: 'in-progress' },
+  'unready-of-a-ticket-with-a-job':                  { reason: 'unready-of-a-ticket-with-a-job', ticketId: '004', jobId: 'J7' },
   'move-of-a-draft':                                 { reason: 'move-of-a-draft', ticketId: '004', targetStatus: 'committed' },
   'move-to-ready-for-review':                        { reason: 'move-to-ready-for-review', ticketId: '004', status: 'draft' },
   'move-of-a-ticket-ready-for-review':               { reason: 'move-of-a-ticket-ready-for-review', ticketId: '004', targetStatus: 'committed' },

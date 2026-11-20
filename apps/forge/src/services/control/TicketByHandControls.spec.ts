@@ -135,6 +135,11 @@ const TWIN_CASES: readonly TwinCase[] = [
     },
     verbBoardCall: (board) => board.moveTicket('003', 'reviewed', { checksLegality: false, branch: 'ticket-003', commit: 'abc1234' }, CHANGED_AT),
   },
+  {
+    name:          'ticket-unready of a committed ticket no job has taken',
+    command:       { kind: 'ticket-unready', ticketReference: '6' },
+    verbBoardCall: (board) => board.unreadyTicket('006', CHANGED_AT),
+  },
 ];
 
 describe('the by-hand ticket kinds', () => {
@@ -189,6 +194,7 @@ describe('the by-hand ticket kinds', () => {
     { kind: 'ticket-rereview', ticketReference: '9', reviewBar: null },
     { kind: 'ticket-reopen', ticketReference: '9' },
     { kind: 'ticket-status-set', ticketReference: '9', status: 'abandoned' },
+    { kind: 'ticket-unready', ticketReference: '9' },
   ] satisfies ControlCommand[] as ControlCommand[])('$kind of a reference with no ticket is refused no-readable-ticket and changes nothing', (command) => {
     const fixture = storefrontFixture();
     const before  = fixture.board.tickets();

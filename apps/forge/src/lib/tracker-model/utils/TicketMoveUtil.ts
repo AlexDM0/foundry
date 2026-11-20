@@ -19,9 +19,9 @@ function ticketMoveIsLegal(currentStatus: TicketStatus, targetStatus: TicketStat
 }
 
 /**
- * Whether a move of the ticket between the two statuses may run, else its first refusal: no move stays in its status, filing is the only
- * way into `draft` and the filer's close the only way into `ready-for-review`, a draft or a ticket ready for review leaves only by `ticket
- * ready` or abandonment, and the legality table holds unless `checksLegality` is false, the deliberate override.
+ * Whether a move of the ticket between the two statuses may run, else its first refusal: no move stays in its status, no move reaches
+ * `draft` (filing and `ticket unready` do) and only the filer's close reaches `ready-for-review`, a draft or a ticket ready for review leaves
+ * only by `ticket ready` or abandonment, and the legality table holds unless `checksLegality` is false, the deliberate override.
  */
 function moveVerdictOf(ticketId: string, status: TicketStatus, targetStatus: TicketStatus, checksLegality: boolean): TicketMoveVerdict {
   const refused = (refusal: BoardRefusalDetail): TicketMoveVerdict => ({ verdict: 'refused', refusal });

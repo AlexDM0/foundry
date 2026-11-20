@@ -344,11 +344,12 @@ describe('the kinds only User\'s own surfaces send', () => {
     }
   });
 
-  test('no Overseer-launched session relays range, clear or a by-hand delivery, not even naming a delivered incident', () => {
+  test('no Overseer-launched session relays range, clear, a by-hand delivery or an unready, not even naming a delivered incident', () => {
     const commands: ControlCommand[] = [
       { kind: 'chart-range-set', range: { kind: 'automatic' } },
       { kind: 'tracker-clear', scope: 'everything' },
       { kind: 'ticket-deliver-by-hand', ticketReference: '7' },
+      { kind: 'ticket-unready', ticketReference: '7' },
     ];
     for (const role of ROLES) {
       const job = jobOf(role, { deliveredIncidents: [SYSTEM_QUESTION_ON_TICKET_7], filedTickets: [{ id: '007', status: 'draft' }] });

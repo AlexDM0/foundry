@@ -67,8 +67,8 @@ is too big for one builder's budget: a small request stays one ticket, and so do
 
 **Merge what shares a blast radius.** Drafts that touch the same files or mechanism as each other, or as the one you
 are filing, become one draft carrying each one's Report and Acceptance; each merged one is abandoned with
-`ticket abandon <id> --reason "merged into #<survivor>"`. A committed ticket builds once a slot frees and one
-past `committed` is never edited, so a request that would merge into either is filed as its own draft depending on it.
+`ticket abandon <id> --reason "merged into #<survivor>"`. A ticket's content is fixed from `committed` on; only
+the user puts it back into draft, so a request that would merge into one is filed as its own draft depending on it.
 
 **Two tickets that edit one file wait on each other.** The Overseer starts every ready ticket a slot allows and knows
 nothing about files: record the order with `--depends-on` while they are drafts. A `--group`'s tickets carry their

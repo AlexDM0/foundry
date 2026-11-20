@@ -148,11 +148,14 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   [
     { reason: 'content-of-a-committed-ticket', ticketId: '003', status: 'committed' },
     'Ticket #003 is committed, and its title and body were not edited: a committed ticket\'s content is fixed, '
-    + 'since an agent may pick it up at any moment. Nothing was written.',
+    + 'since an agent may pick it up at any moment. Nothing was written. '
+    + 'Run `agent-progress ticket unready 003` to put it back into draft and edit it there.',
   ],
   [
     { reason: 'content-of-a-committed-ticket', ticketId: '003', status: 'in-progress' },
-    'Ticket #003 is in-progress, and its title and body were not edited: a committed ticket\'s content is fixed. Nothing was written.',
+    'Ticket #003 is in-progress, and its title and body were not edited: a committed ticket\'s content is fixed. Nothing was written. '
+    + 'An agent has picked it up: stop its work first (`agent-progress job stop <job>`), '
+    + 'then reopen it (`agent-progress ticket reopen 003`) and put it back into draft.',
   ],
   [
     { reason: 'network-of-a-ticket-past-committed', ticketId: '006', status: 'in-progress' },
@@ -282,8 +285,31 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
   [
     { reason: 'move-to-draft', ticketId: '003', status: 'committed' },
-    'Ticket #003 is committed, and no move returns a ticket to draft: filing is the only way in. '
+    'Ticket #003 is committed, and `agent-progress ticket status` does not move a ticket into draft. '
+    + 'Run `agent-progress ticket unready 003` to put it back into draft.',
+  ],
+  [
+    { reason: 'move-to-draft', ticketId: '003', status: 'in-review' },
+    'Ticket #003 is in-review, and `agent-progress ticket status` does not move a ticket into draft. '
     + 'Run `agent-progress ticket hold 003` to keep it from being built for now.',
+  ],
+  [
+    { reason: 'unready-of-a-ticket-not-committed', ticketId: '003', status: 'draft' },
+    'Ticket #003 is a draft ticket, not committed, so it was not put back into draft. Its content can be edited as it is. Nothing was written.',
+  ],
+  [
+    { reason: 'unready-of-a-ticket-not-committed', ticketId: '003', status: 'ready-for-review' },
+    'Ticket #003 is ready for review, not committed, so it was not put back into draft. Its content can be edited as it is. Nothing was written.',
+  ],
+  [
+    { reason: 'unready-of-a-ticket-not-committed', ticketId: '003', status: 'in-progress' },
+    'Ticket #003 is in-progress, not committed, so it was not put back into draft. '
+    + 'An agent has picked it up: stop its work first (`agent-progress job stop <job>`), '
+    + 'then reopen it (`agent-progress ticket reopen 003`) and put it back into draft.',
+  ],
+  [
+    { reason: 'unready-of-a-ticket-with-a-job', ticketId: '003', jobId: 'J7' },
+    'Ticket #003 is committed and job J7 is starting on it, so it stays committed. Stop the job first (`agent-progress job stop J7`).',
   ],
   [
     { reason: 'move-of-a-draft', ticketId: '003', targetStatus: 'in-progress' },
@@ -472,7 +498,7 @@ const MESSAGE_FOR_REFUSAL: readonly (readonly [BoardRefusalDetail, string])[] = 
   ],
 ];
 
-const REFUSAL_REASON_COUNT = 64;
+const REFUSAL_REASON_COUNT = 66;
 
 test('every reason words as the refusal the command printed before the Board refused for it', () => {
   expect(new Set(MESSAGE_FOR_REFUSAL.map(([detail]) => detail.reason)).size, 'the table covers every reason').toBe(REFUSAL_REASON_COUNT);

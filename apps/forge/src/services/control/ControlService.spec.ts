@@ -240,7 +240,8 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'ticket-status-set': {
     kind: 'ticket-status-set', ticketReference: '3', status: 'in-review', branch: 'ticket-003', commit: 'abc1234'
   },
-  'epic-edit': {
+  'ticket-unready': { kind: 'ticket-unready', ticketReference: '3' },
+  'epic-edit':      {
     kind: 'epic-edit', key: 'checkout', title: 'Checkout', body: { text: 'The basket and the payment.', appends: true }
   },
   'epic-remove': { kind: 'epic-remove', key: 'checkout' },

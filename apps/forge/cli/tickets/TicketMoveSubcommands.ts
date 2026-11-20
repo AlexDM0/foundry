@@ -2,25 +2,25 @@
  * The named verbs enforce the legality matrix of `src/lib/tracker-model/constants/TicketMoveLegality.ts`; `ticket status` is the
  * documented override that skips it.
  */
-import { TicketJsonUtil }                                 from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { IncompleteTicket, TicketStatus }            from '../../src/lib/tracker-model/@types/Ticket.ts';
-import { VocabularyUtil }                                 from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
-import type { ControlCommandOf }                          from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
-import { applyCommandOfVerbThenReadNextLine }             from '../ApplyCommandOfVerb.ts';
-import type { CommandContext }                            from '../CommandContext.ts';
-import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
-import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
-import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
-import { OutputUtil }                                     from '../utils/OutputUtil.ts';
-import type { TicketSubcommandHandler }                   from './@types/TicketSubcommandHandler.ts';
-import { REVIEW_BAR_OPTION_NAMES, reviewBarRequestFrom }  from './ReviewBarRequest.ts';
-import { parkTicket }                                     from './TicketPark.ts';
-import { TRANSITION_OPTION_NAMES, transitionOneTicket }   from './TicketTransition.ts';
-import { TICKET_USAGE }                                   from './constants/TicketUsage.ts';
-import { ReviewBarOutputUtil }                            from './utils/ReviewBarOutputUtil.ts';
-import { TicketArgumentUtil }                             from './utils/TicketArgumentUtil.ts';
+import { TicketJsonUtil }                                         from '../../src/adapters/utils/TicketJsonUtil.ts';
+import type { IncompleteTicket, TicketStatus }                    from '../../src/lib/tracker-model/@types/Ticket.ts';
+import { VocabularyUtil }                                         from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
+import type { ControlCommandOf }                                  from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                       from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                          from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb, applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';
+import type { CommandContext }                                    from '../CommandContext.ts';
+import { hatchWhenUnderJob }                                      from '../HatchUnderJob.ts';
+import type { ArgumentParser }                                    from '../arguments/ArgumentParser.ts';
+import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT }         from '../arguments/constants/SubcommandPositionalCounts.ts';
+import { OutputUtil }                                             from '../utils/OutputUtil.ts';
+import type { TicketSubcommandHandler }                           from './@types/TicketSubcommandHandler.ts';
+import { REVIEW_BAR_OPTION_NAMES, reviewBarRequestFrom }          from './ReviewBarRequest.ts';
+import { parkTicket }                                             from './TicketPark.ts';
+import { TRANSITION_OPTION_NAMES, transitionOneTicket }           from './TicketTransition.ts';
+import { TICKET_USAGE }                                           from './constants/TicketUsage.ts';
+import { ReviewBarOutputUtil }                                    from './utils/ReviewBarOutputUtil.ts';
+import { TicketArgumentUtil }                                     from './utils/TicketArgumentUtil.ts';
 
 const TRANSITION_VERBS: readonly (readonly [string, TicketStatus])[] = [
   ['abandon', 'abandoned'],
@@ -29,6 +29,7 @@ const TRANSITION_VERBS: readonly (readonly [string, TicketStatus])[] = [
 
 const REREVIEW_OPTION_NAMES = ['at', 'json', ...REVIEW_BAR_OPTION_NAMES];
 const READY_OPTION_NAMES    = ['at', 'json'];
+const UNREADY_OPTION_NAMES  = ['at', 'json'];
 const SUBMIT_OPTION_NAMES   = ['at', 'json'];
 const BY_HAND_FLAG          = 'by-hand';
 const BY_HAND_OPTION_NAMES  = [BY_HAND_FLAG, 'branch', 'commit', 'at', 'json'];
@@ -118,6 +119,20 @@ async function readyTheNamedTickets(commandArguments: ArgumentParser, context: C
   OutputUtil.printEntityThenNextLine(commandArguments, context, document, OutputUtil.loggedSentencesOf(readied.logged), nextLine);
 }
 
+/** User puts a committed ticket no job has taken back into draft, to edit it there and commit it again as any draft is. */
+async function unreadyOneTicket(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  commandArguments.rejectUnknownOptions(UNREADY_OPTION_NAMES, TICKET_USAGE);
+  const reference = requireTicketReference(commandArguments, 'unready');
+
+  const command: ControlCommandOf<'ticket-unready'> = { kind: 'ticket-unready', ticketReference: reference };
+  const { result: unreadied } = await applyCommandOfVerb(commandArguments, context, command);
+
+  const ticketId  = unreadied.ticket.frontmatter.id;
+  const humanText = `Ticket #${ticketId} is a draft again\n`
+    + `Edit it with \`${PRODUCT_NAMES.PROGRAM} ticket edit ${ticketId}\`, then commit it with \`${PRODUCT_NAMES.PROGRAM} ticket ready ${ticketId}\`.`;
+  OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(unreadied.ticket), humanText);
+}
+
 function incompleteDraftsText(incompleteTickets: readonly IncompleteTicket[]): string {
   if (incompleteTickets.length === 0) return '';
   const named = incompleteTickets.map(({ ticketId, gaps }) => `#${ticketId} (${gaps.join(', ')})`).join(', ');
@@ -144,6 +159,7 @@ export const TICKET_MOVE_SUBCOMMANDS: Readonly<Record<string, TicketSubcommandHa
   status:   setTicketStatus,
   rereview: rereviewOneTicket,
   ready:    readyTheNamedTickets,
+  unready:  unreadyOneTicket,
   submit:   submitTheNamedDrafts,
   park:     parkTicket,
 };

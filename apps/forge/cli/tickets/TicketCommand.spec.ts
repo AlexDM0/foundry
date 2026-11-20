@@ -285,6 +285,69 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
   });
 });
 
+describeWhenGitIsRecorded('putting a ticket back into draft', () => {
+  beforeEach(async () => {
+    await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
+  });
+
+  test('unready makes a committed ticket a draft with no row and no kept content, logs it, and says how to go on', async () => {
+    const context = await run(['ticket', 'unready', '1']);
+
+    expect(context.outputText()).toBe('Ticket #001 is a draft again\n'
+      + `Edit it with \`${PRODUCT_NAMES.PROGRAM} ticket edit 001\`, then commit it with \`${PRODUCT_NAMES.PROGRAM} ticket ready 001\`.`);
+    expect(storedTicketText()).toContain('status: "draft"');
+    expect(storedTicketText()).toContain('task: null');
+    expect(storedTicketText()).not.toContain('contentHash');
+    expect(storedProgressOf(repositoryDirectory).tasks.filter((task) => task.ticket === '001')).toEqual([]);
+    expect(storedLogEntriesOf(repositoryDirectory).at(-1)?.text).toBe('Ticket #001 unreadied');
+  });
+
+  test('--json prints the ticket as a draft', async () => {
+    const context = await run(['ticket', 'unready', '1', '--json']);
+
+    const printed = JSON.parse(context.outputText()) as { id: string; status: string; task: number | null };
+    expect([printed.id, printed.status, printed.task]).toEqual(['001', 'draft', null]);
+  });
+
+  test('a ticket that is not committed is refused at exit 1 naming its status, and nothing is written', async () => {
+    await run(['ticket', 'start', '1']);
+    const progressBefore = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8');
+    const ticketBefore   = storedTicketText();
+
+    const context = contextHere();
+    expect(await runCommandLineWithOverseerMoves(['ticket', 'unready', '1'], context)).toBe(1);
+
+    expect(context.errorText()).toContain('Ticket #001 is in-progress, not committed, so it was not put back into draft.');
+    expect(context.errorText()).toContain(`\`${PRODUCT_NAMES.PROGRAM} ticket reopen 001\``);
+    expect(storedTicketText()).toBe(ticketBefore);
+    expect(readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8')).toBe(progressBefore);
+  });
+
+  test('a draft is refused at exit 1, since its content is edited as it is', async () => {
+    await run(['ticket', 'unready', '1']);
+
+    const context = contextHere();
+    expect(await runCommandLineWithOverseerMoves(['ticket', 'unready', '1'], context)).toBe(1);
+
+    expect(context.errorText()).toContain('Ticket #001 is a draft ticket, not committed, so it was not put back into draft. Its content can be edited as it is.');
+  });
+
+  test('under a job it is refused verb-not-relayable, and nothing is written', async () => {
+    const ticketBefore = storedTicketText();
+    const context = {
+      ...contextHere(),
+      job: {
+        jobId: 'J4', hatchDirectory: join(repositoryDirectory, 'hatch'), replyTries: 1, replyIntervalMilliseconds: 1
+      },
+    };
+
+    expect(await runCommandLineWithOverseerMoves(['ticket', 'unready', '1'], context)).toBe(1);
+
+    expect(context.errorText()).toContain(`\`${PRODUCT_NAMES.PROGRAM} ticket unready\` cannot run under job J4`);
+    expect(storedTicketText()).toBe(ticketBefore);
+  });
+});
+
 describeWhenGitIsRecorded('moving a ticket', () => {
   beforeEach(async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it']);
@@ -898,6 +961,7 @@ describeWhenGitIsRecorded('the subcommand groups', () => {
       'status',
       'submit',
       'unhold',
+      'unready',
     ]);
   });
 

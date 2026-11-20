@@ -120,6 +120,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   records.push(...entityAssignedRecordsOf(at));
   board.submitDraftTickets(['003'], () => [], at);
   board.readyDraftTickets(['003'], () => [], at, ['ready-for-review']);
+  board.unreadyTicket('003', at);
   board.setTicketPriority('001', 'high', at);
   board.setTicketSize('001', 'M', at);
   board.setTicketDependencies('002', ['001'], at);

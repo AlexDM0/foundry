@@ -148,6 +148,7 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | `ticket deliver --by-hand` | anything but draft, while no Overseer is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
 | `ticket abandon` | anything but delivered, abandoned | abandoned | `abandoned`; none created for a ticket without one | `Abandoned` | `abandonedAt`, always; the row's end if it had started | `Ticket #003 abandoned: <reason>` |
 | `ticket reopen` | anything but draft and committed; a group's release ticket only while no other release ticket of its group is open | committed | `committed`, its start, end, `reviewed` and `reviewRound` cleared | `To do` | all four cleared; `reason` dropped | `Ticket #003 reopened` |
+| `ticket unready` | committed, while no job of the ticket is on the board | draft | removed | `Draft` | — | `Ticket #003 unreadied` |
 | `ticket priority … low` | draft, committed | unchanged | kept | — | — | `Ticket #003 priority normal → low` |
 | `ticket priority` from low | any | unchanged | created when it has none and is not a draft: `committed` while the ticket is committed, else seeded from its stamps | per status | — | `Ticket #003 priority low → normal` |
 

@@ -560,6 +560,7 @@ model and effort are stored and shown, and no launch reads them.
 | `ticket add "<title>" --type ticket\|bug\|research [--priority low\|normal\|high] [--size XS\|S\|M\|L\|XL\|XXL] [--model <m>] [--effort <e>] [--group <name>] [--depends-on <ids>] [--epic <keys>] [--network <domains>] [--entity <key>] [--introduced-by <id>] [--found-in-review <id>] [--body <markdown>] [--body-file <path\|->] [--at <when>]` | File a draft ticket, status `draft`, with no row at any priority and no task id spent: `ticket ready` makes it `committed` and files its row. [Its options and refusals](#ticket-add) are below. |
 | `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or a ticket in `ready-for-review` is edited: a committed ticket's content is fixed; [the rules](#ticket-edit) are below. |
 | `ticket ready <id> [<id>...] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `committed` with a `committed` row at any priority, and one `ticket-committed` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
+| `ticket unready <id> [--at <when>] [--json]` | Put a committed ticket no job has taken back into `draft` in one lock hold, to edit it there: its row and its kept content go, everything else stays, and one `ticket-unreadied` line is logged. [Its refusals](#ticket-unready) are below. |
 | `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `committed` with its row (`ticket-committed`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`), and so, with ticket review off in a forge with entities, is a complete draft with no `entity` (`ticket-without-entity`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
 | `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
 | `ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]` | Change the model or effort stored on a ticket, or both, with one log line such as `Ticket #003 agents opus/medium → sonnet/medium`. No launch reads them (see above). Refused at exit 1, writing nothing, on a delivered or abandoned ticket, with neither option, with a value outside the lists, and when the resolved pair would not change. |
@@ -625,7 +626,9 @@ written.
 - A ticket's title and body are fixed from `committed` onward (committed, started, in review, reviewed, delivered,
   abandoned): the edit is refused at exit 1 with nothing written (`content-of-a-committed-ticket`), held or not, since
   an agent may pick a committed ticket up at any moment. Its status is read inside the same lock hold as the write, so
-  no move slips between them. Nothing overrides the refusal; `--force` is an unknown option.
+  no move slips between them. Nothing overrides the refusal; `--force` is an unknown option. A committed ticket is put
+  back into draft with [`ticket unready`](#ticket-unready) and edited there; past committed, its work is stopped and the
+  ticket reopened first.
 - An edit that changes nothing, an empty append or the current title included, writes nothing and exits 0.
 - An empty replacement or `--title`, none of `--title`, `--body` and `--body-file`, or both body options are refused at
   exit 1.
@@ -652,11 +655,28 @@ entity whitelists owns it, or it is in the entity's `reach`. `ticket submit`, `i
 refuse it too, with ticket review on or off. A need's ticket, which the Overseer files for the entity the need names, is
 not read.
 
-No move returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`, `ticket submit`,
-`intake close` or `ticket abandon`. It also readies a ticket in `ready-for-review`: that is User's ticket review, and
-no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through `ticket ready` or
-`ticket abandon`; every other move, `ticket status` included, is refused (`move-of-a-ticket-ready-for-review`), and no
-move reaches `ready-for-review` (`move-to-ready-for-review`). `--json` prints the ticket, or with several ids the list.
+Only `ticket unready` returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`,
+`ticket submit`, `intake close` or `ticket abandon`. It also readies a ticket in `ready-for-review`: that is User's
+ticket review, and no role an agent runs under may relay it. A ticket in `ready-for-review` moves on only through
+`ticket ready` or `ticket abandon`; every other move, `ticket status` included, is refused
+(`move-of-a-ticket-ready-for-review`), and no move reaches `ready-for-review` (`move-to-ready-for-review`). `--json`
+prints the ticket, or with several ids the list.
+
+#### `ticket unready`
+
+Puts a committed ticket back into `draft`, where its title and body are edited; it is the only way back, since `ticket
+status` refuses a move to `draft` (`move-to-draft`). The ticket loses its row and its `contentHash`, its `updated` is
+stamped, and `Ticket #003 unreadied` is logged; its priority, entity, group, epics, dependencies and hold stay. It
+prints `Ticket #003 is a draft again` and how to edit and commit it; `--json` prints the ticket. It is committed again
+as any draft is: User's `ticket ready`, which is itself the review, or a filer's `ticket submit`, which stops at
+`ready-for-review` while ticket review is on. Refused at exit 1 with nothing written:
+
+- a ticket that is not committed (`unready-of-a-ticket-not-committed`): a draft or a ticket ready for review is edited
+  as it is, and a ticket past committed has its work stopped and is reopened first;
+- a committed ticket while the board holds a job of it (`unready-of-a-ticket-with-a-job`): a build job is `launching`
+  while its ticket is still committed, so the job is stopped first.
+
+Only User runs it: no role an agent runs under may relay it, and `POST /api/commands` does not accept it.
 
 #### `ticket network`
 
@@ -2807,7 +2827,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | kind | ids | fields |
 |---|---|---|
 | `ticket-filed` | `ticketId` | `title`; for a ticket a job filed also `status`, `priority` and `filedByJob` as filed |
-| `ticket-committed`, `ticket-submitted-for-review`, `ticket-reopened`, `ticket-started`, `ticket-finished`, `ticket-approved`, `ticket-unheld`, `ticket-release-cleared` | `ticketId` | none |
+| `ticket-committed`, `ticket-submitted-for-review`, `ticket-unreadied`, `ticket-reopened`, `ticket-started`, `ticket-finished`, `ticket-approved`, `ticket-unheld`, `ticket-release-cleared` | `ticketId` | none |
 | `ticket-delivered` | `ticketId` | `byHand`: `true`, only when `ticket deliver --by-hand` recorded it |
 | `ticket-abandoned`, `ticket-held` | `ticketId` | `reason` |
 | `ticket-interrupted-hold-lifted` | `ticketId` | `hold`: the `interrupted:` hold that `resume` lifted, logged in place of `ticket-unheld`, so no count resets |
@@ -3383,6 +3403,7 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | `ticket deliver --by-hand` | anything but draft, while no Overseer is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
 | `ticket abandon` | anything but delivered, abandoned | abandoned | `abandoned`; none created for a ticket without one | `Abandoned` | `abandonedAt`, always; the row's end if it had started | `Ticket #003 abandoned: <reason>` |
 | `ticket reopen` | anything but draft and committed; a group's release ticket only while no other release ticket of its group is open | committed | `committed`, its start, end, `reviewed` and `reviewRound` cleared | `To do` | all four cleared; `reason` dropped | `Ticket #003 reopened` |
+| `ticket unready` | committed, while no job of the ticket is on the board | draft | removed | `Draft` | — | `Ticket #003 unreadied` |
 | `ticket priority … low` | draft, committed | unchanged | kept | — | — | `Ticket #003 priority normal → low` |
 | `ticket priority` from low | any | unchanged | created when it has none and is not a draft: `committed` while the ticket is committed, else seeded from its stamps | per status | — | `Ticket #003 priority low → normal` |
 

@@ -127,6 +127,8 @@ export const LOG_RECORD_SCHEMA = {
   // A code-implemented repair of the ticket's worktree ran; `patchPath` is where `recreate` saved its changes, when there were any.
   'worktree-repaired':              { subject: 'ticket', fields: { step: 'text', patchPath: 'nullable-text' } },
   'ticket-reopened':                { subject: 'ticket', fields: NO_FIELDS },
+  // User's `ticket unready`: a committed ticket no job had taken went back into draft, its row and kept content gone.
+  'ticket-unreadied':               { subject: 'ticket', fields: NO_FIELDS },
   'ticket-started':                 { subject: 'ticket', fields: NO_FIELDS },
   'ticket-finished':                { subject: 'ticket', fields: NO_FIELDS },
   'ticket-approved':                { subject: 'ticket', fields: NO_FIELDS },

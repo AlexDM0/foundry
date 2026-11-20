@@ -671,5 +671,16 @@
     "statusJsonFields": ["abandoned", "abandonedAt", "committed", "contentHash", "decisions", "delivered", "draft", "effort", "epics", "filed",
       "finished", "group", "history", "hold", "id", "incidents", "jobs", "mergeQueue", "model", "note", "overseer", "priority", "reviewOf",
       "reviewed", "started", "status", "task", "ticket", "title", "type", "updated", "usage", "version"]
+  },
+  "42": {
+    "commands": ["await", "decisions", "draft", "epic list", "help", "incidents", "init", "intake close", "intake title", "jobs", "log",
+      "need declare", "open", "oversee", "oversee status", "pipeline", "question options", "range", "status", "task deliver", "ticket add",
+      "ticket deliver", "ticket edit", "ticket entity", "ticket ready", "ticket show", "ticket submit", "update"],
+    "flags": ["--add", "--after", "--assumption", "--at", "--body", "--body-file", "--by-hand", "--clear", "--depends-on", "--detach", "--entity",
+      "--epic", "--file", "--force", "--found-in-review", "--from", "--group", "--incident", "--introduced-by", "--json", "--multiple", "--network",
+      "--priority", "--reason", "--remove", "--size", "--status", "--title", "--to", "--tokens", "--type", "--under"],
+    "statusJsonFields": ["abandoned", "abandonedAt", "committed", "contentHash", "decisions", "delivered", "draft", "effort", "epics", "filed",
+      "finished", "group", "history", "hold", "id", "incidents", "jobs", "mergeQueue", "model", "note", "overseer", "priority", "reviewOf",
+      "reviewed", "started", "status", "task", "ticket", "title", "type", "updated", "usage", "version"]
   }
 }

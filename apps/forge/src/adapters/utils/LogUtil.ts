@@ -88,6 +88,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Ticket #${record.ticketId} committed`;
     case 'ticket-submitted-for-review':
       return `Ticket #${record.ticketId} ready for review`;
+    case 'ticket-unreadied':
+      return `Ticket #${record.ticketId} unreadied`;
     case 'merge-queued':
       return `Ticket #${record.ticketId} queued to merge into ${record.fields.target}`;
     case 'merge-acceptance-set':

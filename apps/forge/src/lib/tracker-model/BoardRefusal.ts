@@ -32,6 +32,9 @@ export type BoardRefusalDetail =
   | { reason: 'ticket-already-in-status'; ticketId: string; status: TicketStatus }
   | { reason: 'illegal-ticket-move'; ticketId: string; status: TicketStatus; targetStatus: RowedTicketStatus }
   | { reason: 'move-to-draft'; ticketId: string; status: TicketStatus }
+  | { reason: 'unready-of-a-ticket-not-committed'; ticketId: string; status: TicketStatus }
+  /** A build job is `launching` while its ticket is still committed, so a job of the ticket keeps it committed. */
+  | { reason: 'unready-of-a-ticket-with-a-job'; ticketId: string; jobId: string }
   | { reason: 'move-of-a-draft'; ticketId: string; targetStatus: RowedTicketStatus }
   | { reason: 'move-to-ready-for-review'; ticketId: string; status: TicketStatus }
   | { reason: 'move-of-a-ticket-ready-for-review'; ticketId: string; targetStatus: RowedTicketStatus }

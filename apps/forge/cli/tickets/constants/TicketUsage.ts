@@ -11,6 +11,7 @@ export const TICKET_USAGE = [
   'deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>]',
   'rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]',
   'ready <id> [<id>...] [--at <when>] [--json]',
+  'unready <id> [--at <when>] [--json]',
   'submit <id> [<id>...] [--at <when>] [--json]',
   'park <id> [--incident <I>] -- <reason> [--at <when>] [--json]',
   'rereview <id> [--at <when>]',

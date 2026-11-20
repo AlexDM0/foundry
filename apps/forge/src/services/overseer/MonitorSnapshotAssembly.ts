@@ -79,6 +79,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'ticket-submitted-for-review':    'needs-user',
   'worktree-repaired':              null,
   'ticket-reopened':                'forge',
+  'ticket-unreadied':               'forge',
   'ticket-started':                 'agent',
   'ticket-finished':                'agent',
   'ticket-approved':                'agent',

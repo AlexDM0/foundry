@@ -1381,6 +1381,11 @@ export class Board {
     return this.ticketMoves.rereviewTicket(ticketId, at);
   }
 
+  /** Refused while the board holds any job of the ticket: a build job launches while its ticket is still committed. */
+  unreadyTicket(ticketId: string, at: string): TicketChanged {
+    return this.ticketMoves.unreadyTicket(ticketId, this.jobs(), at);
+  }
+
   /** The caller reads each body for its gaps, since what a complete ticket holds is its document's format, not a Board rule. */
   readyDraftTickets(
     ticketIds: readonly string[],

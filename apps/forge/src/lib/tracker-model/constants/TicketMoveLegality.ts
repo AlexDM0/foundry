@@ -2,8 +2,8 @@ import type { TicketStatus } from '../@types/Ticket.ts';
 
 /**
  * Read as "to reach the key, the ticket has to be in one of these"; no row holds its own key, so a move to the current
- * status is never legal. A repeat review pass is the one move deliberately outside this table. Filing is the only way into `draft`, and
- * the filer's close the only way into `ready-for-review`.
+ * status is never legal. A repeat review pass is the one move deliberately outside this table. Filing and `ticket unready` are
+ * the only ways into `draft`, and the filer's close the only way into `ready-for-review`.
  */
 export const LEGAL_SOURCE_STATUSES_FOR_TICKET_STATUS: Record<TicketStatus, readonly TicketStatus[]> = {
   'draft':            [],

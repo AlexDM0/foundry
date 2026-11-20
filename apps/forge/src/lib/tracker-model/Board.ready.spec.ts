@@ -88,6 +88,53 @@ describe('readyDraftTickets', () => {
   });
 });
 
+describe('a ticket put back into draft', () => {
+  const EDITED_AT = '2026-09-18T11:00:00+02:00';
+  const EDITED_BODY = 'Example body as edited in draft.\n';
+
+  /** Committed by `ticket ready`, put back into draft and edited there: a draft like any other. */
+  function unreadiedAndEditedFixture(): ReturnType<typeof boardFixture> & { firstRowId: number | null } {
+    const fixture = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'draft', task: null })] });
+    const firstRowId = fixture.board.readyDraftTickets(['001'], NO_GAPS, READIED_AT).tickets[0]?.frontmatter.task ?? null;
+    fixture.board.unreadyTicket('001', EDITED_AT);
+    fixture.board.editTicket('001', { body: { text: EDITED_BODY, appends: false }, writtenBy: 'command' }, EDITED_AT);
+    return { ...fixture, firstRowId };
+  }
+
+  test('becomes committed again by ticket ready, keeping the hash of its new content, with a new row', () => {
+    const {
+      board, progress, tickets, firstRowId
+    } = unreadiedAndEditedFixture();
+    const readied = board.readyDraftTickets(['001'], NO_GAPS, READIED_AT);
+
+    const ticket = readied.tickets[0];
+    expect(ticket?.frontmatter.status).toBe('committed');
+    expect(ticket?.frontmatter.contentHash).toBe(TicketBodyHashUtil.contentHashOf(tickets[0]?.frontmatter.title ?? '', EDITED_BODY));
+    expect(progress.tasks.map((task) => [task.ticket, task.status])).toEqual([['001', 'committed']]);
+    expect(firstRowId).toBeNumber();
+    expect(ticket?.frontmatter.task).not.toBe(firstRowId);
+  });
+
+  test('with ticket review on, a filer\'s submit stops it at ready-for-review with no row', () => {
+    const { board, progress } = unreadiedAndEditedFixture();
+    const submitted = board.submitDraftTickets(['001'], NO_GAPS, READIED_AT);
+
+    expect(submitted.tickets.map((ticket) => [ticket.frontmatter.status, ticket.frontmatter.contentHash])).toEqual([['ready-for-review', undefined]]);
+    expect(progress.tasks).toEqual([]);
+  });
+
+  test('with ticket review off, a filer\'s submit commits it with the hash of its new content and a row', () => {
+    const { board, progress, tickets } = unreadiedAndEditedFixture();
+    board.setNoGates(READIED_AT);
+    board.setApproval('tickets', false, READIED_AT);
+    const submitted = board.submitDraftTickets(['001'], NO_GAPS, READIED_AT);
+
+    expect(submitted.tickets.map((ticket) => [ticket.frontmatter.status, ticket.frontmatter.contentHash]))
+      .toEqual([['committed', TicketBodyHashUtil.contentHashOf(tickets[0]?.frontmatter.title ?? '', EDITED_BODY)]]);
+    expect(progress.tasks.map((task) => [task.ticket, task.status])).toEqual([['001', 'committed']]);
+  });
+});
+
 describe('submitDraftTickets', () => {
   test('with ticket review on, a complete draft goes to ready-for-review with no row and an incomplete one stays a draft, named with its gaps', () => {
     const completeDraft = { ...ticketFixture({ id: '001', status: 'draft' }), body: COMPLETE_BODY };

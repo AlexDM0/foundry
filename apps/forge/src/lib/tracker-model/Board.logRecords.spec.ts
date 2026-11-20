@@ -32,6 +32,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"entity-assigned","ticketId":"003","fields":{"entity":"web","reason":"The search page lives in the web app","by":"product-owner"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-submitted-for-review","ticketId":"003","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-committed","ticketId":"003","fields":{}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-unreadied","ticketId":"003","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-priority-changed","ticketId":"001","fields":{"from":"normal","to":"high"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-size-changed","ticketId":"001","fields":{"to":"M"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-dependencies-set","ticketId":"002","fields":{"dependsOn":["001"]}}',

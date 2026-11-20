@@ -11,6 +11,7 @@ import type {
   TicketsReadied,
   TicketsReleased
 }                                         from './@types/BoardChanges.ts';
+import type { Job }       from './@types/Job.ts';
 import type { LogRecord } from './@types/LogRecord.ts';
 import type {
   ReadinessGap,
@@ -98,6 +99,27 @@ export class TicketMoves {
     this.records.markChanged(ticket);
     const round         = task.reviewRound ?? FIRST_REPEAT_REVIEW_ROUND;
     return { logged: [this.records.logger.log({ kind: 'ticket-rereviewed', ticketId, fields: { round } }, at)], ticket };
+  }
+
+  /**
+   * A committed ticket no agent has picked up goes back into `draft`, where its content is edited, and is committed again by the way any
+   * draft is. A draft has no row and no kept content, so both go; its priority, entity, group, epics, dependencies and hold stay.
+   */
+  unreadyTicket(ticketId: string, unsettledJobs: readonly Readonly<Job>[], at: string): TicketChanged {
+    const ticket          = this.records.requireTicket(ticketId);
+    const { frontmatter } = ticket;
+    if (frontmatter.status !== 'committed') throw new BoardRefusal({ reason: 'unready-of-a-ticket-not-committed', ticketId, status: frontmatter.status });
+    const jobOfTheTicket = unsettledJobs.find((job) => job.ticketIds.includes(ticketId));
+    if (jobOfTheTicket !== undefined) throw new BoardRefusal({ reason: 'unready-of-a-ticket-with-a-job', ticketId, jobId: jobOfTheTicket.id });
+
+    frontmatter.status  = 'draft';
+    frontmatter.updated = at;
+    delete frontmatter.contentHash;
+    const row = frontmatter.task === null ? undefined : this.records.taskRecordById(frontmatter.task);
+    if (row !== undefined) this.records.removeTaskRecord(row);
+    frontmatter.task = null;
+    this.records.markChanged(ticket);
+    return { logged: [this.records.logger.log({ kind: 'ticket-unreadied', ticketId, fields: {} }, at)], ticket };
   }
 
   /**

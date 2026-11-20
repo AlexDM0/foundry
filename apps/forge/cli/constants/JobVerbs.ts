@@ -61,6 +61,7 @@ export const BY_HAND_VERB_OF_CONTROL_KIND = {
   'ticket-rereview':      'ticket rereview',
   'ticket-reopen':        'ticket reopen',
   'ticket-status-set':    'ticket status',
+  'ticket-unready':       'ticket unready',
   'epic-edit':            'epic edit',
   'epic-remove':          'epic remove',
 } as const satisfies Partial<Record<ControlCommandKind, string>>;
