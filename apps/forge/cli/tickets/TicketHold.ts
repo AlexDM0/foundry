@@ -1,16 +1,14 @@
 /** `ticket hold` and `ticket unhold`, and the hint an unhold prints about a build it left paused. */
-import { TicketJsonUtil }                        from '../../src/adapters/utils/TicketJsonUtil.ts';
-import type { Task }                             from '../../src/lib/tracker-model/@types/Task.ts';
-import { ControlService }                        from '../../src/services/control/ControlService.ts';
-import { OperationRefusal }                      from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                   from '../CommandContext.ts';
-import { commandControlContextOf }               from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                     from '../HatchUnderJob.ts';
-import { openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                   from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                            from '../utils/OutputUtil.ts';
-import { TICKET_USAGE }                          from './constants/TicketUsage.ts';
+import { TicketJsonUtil }                     from '../../src/adapters/utils/TicketJsonUtil.ts';
+import type { Task }                          from '../../src/lib/tracker-model/@types/Task.ts';
+import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';
+import type { CommandContext }                from '../CommandContext.ts';
+import { hatchWhenUnderJob }                  from '../HatchUnderJob.ts';
+import type { ArgumentParser }                from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                         from '../utils/OutputUtil.ts';
+import { TICKET_USAGE }                       from './constants/TicketUsage.ts';
 
 const HOLD_OPTION_NAMES   = ['reason', 'at', 'json'];
 const UNHOLD_OPTION_NAMES = ['at', 'json'];
@@ -32,21 +30,15 @@ export async function holdOrUnholdTicket(holds: boolean, commandArguments: Argum
     throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} ticket ${verb} needs a ticket id.\n  Usage: ${TICKET_USAGE}`);
   }
   const reason = commandArguments.option('reason') ?? '';
-  await hatchWhenUnderJob(context, holds ? { kind: 'ticket-hold', ticketReference: reference, reason } : { kind: 'ticket-unhold', ticketReference: reference });
+  const holdCommand = holds ? { kind: 'ticket-hold' as const, ticketReference: reference, reason } : { kind: 'ticket-unhold' as const, ticketReference: reference };
+  await hatchWhenUnderJob(context, holdCommand);
 
-  const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(commandArguments, context, (change) => {
-    const { board }      = change;
-    const controlContext = commandControlContextOf(context.platformPorts);
-    if (holds) {
-      return { holdChange: ControlService.apply({ kind: 'ticket-hold', ticketReference: reference, reason }, change, controlContext).result, resumeBuildHint: null };
-    }
-    const holdChange = ControlService.apply({ kind: 'ticket-unhold', ticketReference: reference }, change, controlContext).result;
-    const pausedRow  = board.pausedBuildRowOf(holdChange.ticket.frontmatter.id);
-    return { holdChange, resumeBuildHint: pausedRow === null ? null : resumeBuildHintFor(pausedRow) };
-  });
-
-  const { holdChange, resumeBuildHint } = changed;
-  const closingLines                    = resumeBuildHint === null ? nextLine : `${nextLine}\n${resumeBuildHint}`;
+  const { written, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, holdCommand);
+  const holdChange      = written.result;
+  // Read from the board this write left, only to print.
+  const pausedRow       = holds ? null : written.board.pausedBuildRowOf(holdChange.ticket.frontmatter.id);
+  const resumeBuildHint = pausedRow === null ? null : resumeBuildHintFor(pausedRow);
+  const closingLines    = resumeBuildHint === null ? nextLine : `${nextLine}\n${resumeBuildHint}`;
   OutputUtil.printEntityThenNextLine(
     commandArguments,
     context,

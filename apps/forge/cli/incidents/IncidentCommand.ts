@@ -2,14 +2,12 @@
  * `incident answer|note <I> -- <text>` and `incident escalate <I>`: the moves on an incident itself, each one control command recorded in a
  * hold with the Overseer up or down. An answer and an escalation close the incident; a note leaves it open.
  */
-import { ControlService }            from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }     from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }             from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }        from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }       from '../CommandContext.ts';
-import { commandControlContextOf }   from '../CommandControlContext.ts';
 import type { CommandHandler }       from '../CommandHandler.ts';
 import { hatchWhenUnderJob }         from '../HatchUnderJob.ts';
-import { openTrackerForWriting }     from '../OpenTrackerForWriting.ts';
 import { incidentIdOf, refuseUsage } from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }       from '../arguments/ArgumentParser.ts';
 import { OutputUtil }                from '../utils/OutputUtil.ts';
@@ -37,11 +35,7 @@ function commandOf(subcommand: IncidentSubcommand, commandArguments: ArgumentPar
 async function recordMove(subcommand: IncidentSubcommand, commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const command = commandOf(subcommand, commandArguments);
   await hatchWhenUnderJob(context, command);
-  const { logged } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { command, logged }, OutputUtil.loggedSentencesOf(logged));
 }
 

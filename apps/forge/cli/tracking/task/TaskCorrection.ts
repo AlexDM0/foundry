@@ -2,13 +2,11 @@
 import type { TaskStatus }                        from '../../../src/lib/tracker-model/@types/Task.ts';
 import { TASK_STATUSES }                          from '../../../src/lib/tracker-model/constants/Statuses.ts';
 import { VocabularyUtil }                         from '../../../src/lib/tracker-model/utils/VocabularyUtil.ts';
-import { ControlService }                         from '../../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }                  from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }                     from '../../ApplyCommandOfVerb.ts';
 import type { CommandContext }                    from '../../CommandContext.ts';
-import { commandControlContextOf }                from '../../CommandControlContext.ts';
-import { openTrackerForWriting }                  from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                    from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                             from '../../utils/OutputUtil.ts';
 import { TASK_USAGE, annotationFrom, taskIdFrom } from './TaskArguments.ts';
@@ -50,7 +48,7 @@ export async function updateOneTask(commandArguments: ArgumentParser, context: C
     },
     annotation: annotationFrom(commandArguments),
   };
-  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const task = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   OutputUtil.printEntity(commandArguments, context, task, `Task #${task.id} updated: ${task.name}`);
 }
@@ -62,7 +60,7 @@ export async function removeOneTask(commandArguments: ArgumentParser, context: C
   const taskId = taskIdFrom(commandArguments.positionals()[1], 'remove');
 
   const command: ControlCommandOf<'task-remove'> = { kind: 'task-remove', taskId };
-  const task = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const task = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   OutputUtil.printEntity(commandArguments, context, task, `Task #${task.id} removed: ${task.name}`);
 }

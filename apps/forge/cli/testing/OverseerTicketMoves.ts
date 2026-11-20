@@ -9,9 +9,9 @@ import type { TicketStatus }                         from '../../src/lib/tracker
 import { reviewBarStartedFor }                       from '../../src/services/control/TicketByHandControls.ts';
 import type { BoardTransaction }                     from '../../src/services/tracker/BoardTransaction.ts';
 import { refusalIsOperationRefusal }                 from '../../src/shared/OperationRefusal.ts';
+import { boardStoreOf }                              from '../BoardStoreOf.ts';
 import type { CommandContext }                       from '../CommandContext.ts';
 import { runCommandLine }                            from '../Main.ts';
-import { openTrackerForWriting }                     from '../OpenTrackerForWriting.ts';
 import { createArgumentParser, type ArgumentParser } from '../arguments/ArgumentParser.ts';
 import { ReviewBarOutputUtil }                       from '../tickets/utils/ReviewBarOutputUtil.ts';
 import { TicketLookupUtil }                          from '../tickets/utils/TicketLookupUtil.ts';
@@ -67,7 +67,8 @@ export async function runCommandLineWithOverseerMoves(commandLineArguments: read
   if (boardMove === null) return runCommandLine(commandLineArguments, context);
   const commandArguments = createArgumentParser(commandLineArguments.slice(1));
   try {
-    const document = await openTrackerForWriting(commandArguments, context, (change) => boardMove(commandArguments, change));
+    const at       = OptionValueUtil.atStampFrom(commandArguments, context.now());
+    const { result: document } = await boardStoreOf(context).store.transactions.transact({ at, mutate: (transaction) => boardMove(commandArguments, transaction) });
     if (commandArguments.flag('json')) context.standardOutput(`${JSON.stringify(document, null, 2)}\n`);
     return 0;
   } catch (error) {

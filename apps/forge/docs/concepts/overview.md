@@ -204,7 +204,7 @@ folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
 | Recording a fact | `src/services/control/ControlService.ts` | `ControlService.apply` | `cli/ControlContract.spec.ts` |
-| A verb with no Overseer | `cli/OpenTrackerForWriting.ts` | `openTrackerForWriting` | `src/services/control/JobControls.spec.ts` |
+| A verb with no Overseer | `cli/ApplyCommandOfVerb.ts` | `applyCommandOfVerb` | `cli/ApplyCommandOfVerb.spec.ts` |
 | The loop | `src/services/overseer/DrivePass.ts` | `createDrivePass` | `src/services/overseer/CrashMatrix.spec.ts` |
 | Next steps | `src/lib/tracker-model/Playbook.ts` | `Playbook` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Checking a report | `src/services/lifecycle/Customs.ts` | `VerificationCheck` | `src/services/lifecycle/Customs.spec.ts` |

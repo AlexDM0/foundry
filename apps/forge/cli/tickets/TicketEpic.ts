@@ -1,13 +1,11 @@
 /** `ticket epic`: replaces, adds to or removes from the epics a ticket belongs to, mirroring `ticket depends`; the first key is its primary epic. */
 import { TicketJsonUtil }                  from '../../src/adapters/utils/TicketJsonUtil.ts';
-import { ControlService }                  from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf, ListEdit } from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                   from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }              from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }             from '../CommandContext.ts';
-import { commandControlContextOf }         from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }               from '../HatchUnderJob.ts';
-import { openTrackerForWriting }           from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }             from '../arguments/ArgumentParser.ts';
 import { OutputUtil }                      from '../utils/OutputUtil.ts';
 import { TICKET_USAGE }                    from './constants/TicketUsage.ts';
@@ -50,7 +48,7 @@ export async function setTicketEpics(commandArguments: ArgumentParser, context: 
     kind: 'ticket-epic', ticketReference: reference, edit: edit.kind, epicKeys: edit.epicKeys
   };
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const changed = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   const droppedSuffix = changed.droppedEpicKeys.length === 0 ? '' : ` (dropped ${changed.droppedEpicKeys.join(', ')})`;
   const entity        = { ...TicketJsonUtil.ticketAsJson(changed.ticket), added: changed.addedEpicKeys, dropped: changed.droppedEpicKeys };

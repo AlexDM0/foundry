@@ -1,15 +1,13 @@
 /** `ticket release-of`: marks a ticket as its group's release ticket, or with `--clear` removes the mark. */
-import { TicketJsonUtil }          from '../../src/adapters/utils/TicketJsonUtil.ts';
-import { ControlService }          from '../../src/services/control/ControlService.ts';
-import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }     from '../CommandContext.ts';
-import { commandControlContextOf } from '../CommandControlContext.ts';
-import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
-import { OutputUtil }              from '../utils/OutputUtil.ts';
-import { TICKET_USAGE }            from './constants/TicketUsage.ts';
+import { TicketJsonUtil }        from '../../src/adapters/utils/TicketJsonUtil.ts';
+import type { ControlCommandOf } from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }      from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }         from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }    from '../ApplyCommandOfVerb.ts';
+import type { CommandContext }   from '../CommandContext.ts';
+import type { ArgumentParser }   from '../arguments/ArgumentParser.ts';
+import { OutputUtil }            from '../utils/OutputUtil.ts';
+import { TICKET_USAGE }          from './constants/TicketUsage.ts';
 
 const RELEASE_OF_OPTION_NAMES = ['clear', 'at', 'json'];
 
@@ -24,7 +22,7 @@ export async function markOrClearReleaseTicket(commandArguments: ArgumentParser,
   const clears = commandArguments.flag('clear');
 
   const command: ControlCommandOf<'ticket-release-of'> = { kind: 'ticket-release-of', ticketReference: reference, clears };
-  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const changed = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   OutputUtil.printEntity(commandArguments, context, TicketJsonUtil.ticketAsJson(changed.ticket), OutputUtil.loggedSentencesOf(changed.logged));
 }

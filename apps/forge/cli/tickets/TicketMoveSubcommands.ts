@@ -5,14 +5,12 @@
 import { TicketJsonUtil }                                 from '../../src/adapters/utils/TicketJsonUtil.ts';
 import type { IncompleteTicket, TicketStatus }            from '../../src/lib/tracker-model/@types/Ticket.ts';
 import { VocabularyUtil }                                 from '../../src/lib/tracker-model/utils/VocabularyUtil.ts';
-import { ControlService }                                 from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }                          from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerbThenReadNextLine }             from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
-import { commandControlContextOf }                        from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
-import { openTrackerForWritingThenReadNextLine }          from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
 import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
 import { OutputUtil }                                     from '../utils/OutputUtil.ts';
@@ -61,11 +59,7 @@ async function deliverByHand(commandArguments: ArgumentParser, context: CommandC
     ...(branch === undefined ? {} : { branch }),
     ...(commit === undefined ? {} : { commit }),
   };
-  const { result: move, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: move }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
   const humanText = `${OutputUtil.loggedSentencesOf(move.logged.filter(ReviewBarOutputUtil.recordClosesNoBar))}${ReviewBarOutputUtil.closedReviewBarsText(move.closedReviewBars)}`;
   OutputUtil.printEntityThenNextLine(commandArguments, context, ReviewBarOutputUtil.ticketWithReviewBarAsJson(move.ticket, null, move.closedReviewBars), humanText, nextLine);
 }
@@ -99,11 +93,7 @@ async function rereviewOneTicket(commandArguments: ArgumentParser, context: Comm
   const reviewBarRequest = reviewBarRequestFrom(commandArguments, 'rereview');
 
   const command: ControlCommandOf<'ticket-rereview'> = { kind: 'ticket-rereview', ticketReference: reference, reviewBar: reviewBarRequest };
-  const { result: rereviewed, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: rereviewed }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   const { rereview, startedReviewBar } = rereviewed;
   const humanText                      = `${OutputUtil.loggedSentencesOf(rereview.logged)}${ReviewBarOutputUtil.reviewBarText(startedReviewBar)}`;
@@ -119,11 +109,7 @@ async function readyTheNamedTickets(commandArguments: ArgumentParser, context: C
 
   const command: ControlCommandOf<'ticket-ready'> = { kind: 'ticket-ready', ticketReferences: references };
   await hatchWhenUnderJob(context, command);
-  const { result: readied, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: readied }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   const [onlyTicket] = readied.tickets;
   const document     = readied.tickets.length === 1 && onlyTicket !== undefined
@@ -146,11 +132,7 @@ async function submitTheNamedDrafts(commandArguments: ArgumentParser, context: C
 
   const command: ControlCommandOf<'ticket-submit'> = { kind: 'ticket-submit', ticketReferences: references };
   await hatchWhenUnderJob(context, command);
-  const { result: submitted, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: submitted }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
   const document = { tickets: submitted.tickets.map(TicketJsonUtil.ticketAsJson), incompleteTickets: submitted.incompleteTickets };
   const humanText = `${OutputUtil.loggedSentencesOf(submitted.logged)}${incompleteDraftsText(submitted.incompleteTickets)}`;
   OutputUtil.printEntityThenNextLine(commandArguments, context, document, humanText, nextLine);

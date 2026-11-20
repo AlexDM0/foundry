@@ -8,21 +8,24 @@
  */
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
-import { BoardCommandMappingUtil }                                          from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
-import { BoardCommandReadingUtil }                                          from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
-import { RefusalDocumentUtil }                                              from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
-import { CONTROL_COMMAND_KINDS, ControlService, FLINT_BRAIN_COMMAND_KINDS } from '../../../src/services/control/ControlService.ts';
-import type { FlintBrain }                                                  from '../../../src/services/overseer/FlintBrain.ts';
-import { MachineAgentLimit }                                                from '../../../src/services/overseer/MachineAgentLimit.ts';
-import type { CommandCaller, RouteAnswer }                                  from '../../../src/services/overseer/OverseerServer.ts';
-import type { ControlCommand, ControlCommandOf, FlintBrainCommand }         from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                                 from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS }                                         from '../../../src/shared/constants/OverseerApiContracts.ts';
-import type { CommandContext }                                              from '../../CommandContext.ts';
-import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                              from '../../CommandControlContext.ts';
-import { openTrackerForWriting }                                            from '../../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                                              from '../../arguments/ArgumentParser.ts';
-import { BY_HAND_COMMAND_KINDS }                                            from '../../constants/JobVerbs.ts';
+import { BoardCommandMappingUtil }                                  from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
+import { BoardCommandReadingUtil }                                  from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
+import { RefusalDocumentUtil }                                      from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
+import { CONTROL_COMMAND_KINDS, FLINT_BRAIN_COMMAND_KINDS }         from '../../../src/services/control/ControlService.ts';
+import type { FlintBrain }                                          from '../../../src/services/overseer/FlintBrain.ts';
+import { MachineAgentLimit }                                        from '../../../src/services/overseer/MachineAgentLimit.ts';
+import type { CommandCaller, RouteAnswer }                          from '../../../src/services/overseer/OverseerServer.ts';
+import type { ControlCommand, ControlCommandOf, FlintBrainCommand } from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                                         from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS }                                 from '../../../src/shared/constants/OverseerApiContracts.ts';
+import { boardStoreOf }                                             from '../../BoardStoreOf.ts';
+import type { CommandContext }                                      from '../../CommandContext.ts';
+import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                      from '../../CommandControlContext.ts';
+import { registerWrittenTracker }                                   from '../../RegisterWrittenTracker.ts';
+import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
+import { BY_HAND_COMMAND_KINDS }                                    from '../../constants/JobVerbs.ts';
+import { OptionValueUtil }                                          from '../../utils/OptionValueUtil.ts';
+import { OutputUtil }                                               from '../../utils/OutputUtil.ts';
 
 export interface RuntimeOverseerCommand {
   kind: 'overseer-stop' | 'overseer-restart';
@@ -166,10 +169,16 @@ export async function answerControlCommand(body: unknown, request: CommandRouteR
       body:   refusalBodyOf({ code: INSTALL_HELD_REFUSAL, fields: {}, sentence: INSTALL_HELD_TEXT }),
     };
   }
+  const { context } = request;
   try {
-    const applied = await openTrackerForWriting(request.commandArguments, request.context, (change) => ControlService.apply(command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT));
+    const { workspace, store } = boardStoreOf(context);
+    const at                   = OptionValueUtil.atStampFrom(request.commandArguments, context.now());
+    const written              = await store.commands.apply({ command, at, context: INSIDE_THE_OVERSEER_CONTROL_CONTEXT });
+    OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
+    OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
+    await registerWrittenTracker(context, workspace);
     request.wake();
-    return appliedAnswerOf(applied);
+    return appliedAnswerOf({ outcome: written.outcome, result: written.result });
   } catch (thrown) {
     if (thrown instanceof OperationRefusal) return refusedAnswerOf(thrown);
     // An applier reading a field the body lacks fails on its shape, before anything was written.

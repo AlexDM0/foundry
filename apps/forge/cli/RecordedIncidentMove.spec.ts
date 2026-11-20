@@ -2,11 +2,30 @@
  * The ids a recorded move reads from its command line. What matters: an `--incident` value is checked as `I<n>` exactly as a positional
  * incident id is, with the same wording, so a mistyped one is refused before anything is recorded rather than stored and never matched;
  * either id is accepted in lower case and stored upper-cased, and neither accepts the number 0 or a leading zero, which the Board never writes.
+ * Under a job the move is relayed through the Hatch before the store is reached, so `resume` and every incident move reach the Bouncer.
  */
-import { describe, expect, test } from 'bun:test';
+import { readdirSync } from 'node:fs';
+import { join }        from 'node:path';
+import {
+  afterEach,
+  describe,
+  expect,
+  test
+} from 'bun:test';
 
-import { incidentIdOf, incidentOf, jobIdOf } from './RecordedIncidentMove.ts';
-import { createArgumentParser }              from './arguments/ArgumentParser.ts';
+import { useRecordedGit }                                 from '../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                      from '../src/testing/ToolGuard.ts';
+import { refusalIsHatchConcluded }                        from './HatchUnderJob.ts';
+import {
+  incidentIdOf,
+  incidentOf,
+  jobIdOf,
+  recordIncidentMove
+} from './RecordedIncidentMove.ts';
+import { createArgumentParser }                   from './arguments/ArgumentParser.ts';
+import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
 
 const USAGE = 'example usage';
 
@@ -46,5 +65,33 @@ describe('a job id', () => {
     expect(refusalMessageOf(() => jobIdOf('J0', USAGE))).toContain('"J0" is not a job id.');
     expect(refusalMessageOf(() => jobIdOf('J04', USAGE))).toContain('"J04" is not a job id.');
     expect(refusalMessageOf(() => jobIdOf('I4', USAGE))).toContain('"I4" is not a job id.');
+  });
+});
+
+const FROZEN_NOW = new Date('2026-09-23T10:00:00Z');
+const recordedGit = useRecordedGit();
+const scratchDirectories: string[] = [];
+
+afterEach(() => {
+  for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
+});
+
+describeWhenGitIsRecorded('a move under a job', () => {
+  test('is relayed through the Hatch and never reaches the store', async () => {
+    const repositoryDirectory = await createInitializedRecordedGitRepository('recorded-incident-move', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
+    const hatchDirectory      = createScratchDirectory('recorded-incident-move-hatch');
+    scratchDirectories.push(repositoryDirectory, hatchDirectory);
+    const context = {
+      ...createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
+      // A folder that does not exist: reaching the store there would fail on a git call no recording answers.
+      currentDirectory: join(repositoryDirectory, 'no-board-here'),
+      job:              {
+        jobId: 'J7', hatchDirectory, replyTries: 1, replyIntervalMilliseconds: 1
+      },
+    };
+    const ended = await recordIncidentMove(createArgumentParser(['stop', 'J1']), context, { kind: 'job-stop', jobId: 'J1', mode: 'stop' })
+      .then(() => null, (thrown: unknown) => thrown);
+    expect(refusalIsHatchConcluded(ended) ? ended.exitCode : ended).toBe(0);
+    expect(readdirSync(join(hatchDirectory, 'requests'))).toHaveLength(1);
   });
 });

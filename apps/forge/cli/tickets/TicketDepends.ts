@@ -1,19 +1,17 @@
 /** `ticket depends`: replaces, adds to or removes from the list of tickets one waits on, and says which open dependency it dropped. */
-import { TicketJsonUtil }                        from '../../src/adapters/utils/TicketJsonUtil.ts';
-import { TicketPhraseUtil }                      from '../../src/adapters/utils/TicketPhraseUtil.ts';
-import type { TicketDependenciesChanged }        from '../../src/lib/tracker-model/@types/BoardChanges.ts';
-import { ControlService }                        from '../../src/services/control/ControlService.ts';
-import type { ControlCommandOf, ListEdit }       from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                      from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                   from '../CommandContext.ts';
-import { commandControlContextOf }               from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                     from '../HatchUnderJob.ts';
-import { openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                   from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                            from '../utils/OutputUtil.ts';
-import { TICKET_USAGE }                          from './constants/TicketUsage.ts';
-import { TicketArgumentUtil }                    from './utils/TicketArgumentUtil.ts';
+import { TicketJsonUtil }                     from '../../src/adapters/utils/TicketJsonUtil.ts';
+import { TicketPhraseUtil }                   from '../../src/adapters/utils/TicketPhraseUtil.ts';
+import type { TicketDependenciesChanged }     from '../../src/lib/tracker-model/@types/BoardChanges.ts';
+import type { ControlCommandOf, ListEdit }    from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';
+import type { CommandContext }                from '../CommandContext.ts';
+import { hatchWhenUnderJob }                  from '../HatchUnderJob.ts';
+import type { ArgumentParser }                from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                         from '../utils/OutputUtil.ts';
+import { TICKET_USAGE }                       from './constants/TicketUsage.ts';
+import { TicketArgumentUtil }                 from './utils/TicketArgumentUtil.ts';
 
 const DEPENDS_OPTION_NAMES = ['add', 'remove', 'json'];
 
@@ -56,11 +54,7 @@ export async function setTicketDependencies(commandArguments: ArgumentParser, co
     kind: 'ticket-depends', ticketReference: reference, edit: edit.kind, ticketIds: edit.ticketIds
   };
   await hatchWhenUnderJob(context, command);
-  const { result: changed, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: changed }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   const ticketId      = changed.ticket.frontmatter.id;
   const droppedSuffix = changed.droppedTicketIds.length === 0 ? '' : ` (dropped ${TicketPhraseUtil.ticketReferencesText(changed.droppedTicketIds)})`;

@@ -1,6 +1,6 @@
 {
   "stamp": {
-    "boundary": "cli/OpenTrackerForWriting.ts",
+    "boundary": "cli/ApplyCommandOfVerb.ts",
     "system": "bun",
     "version": "1.4.2",
     "os": "darwin"

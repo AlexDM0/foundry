@@ -1,15 +1,13 @@
 /** `task add`: files a row, linked to a ticket it works or reviews, and starts it at once with `--start`. */
-import { ControlService }                        from '../../../src/services/control/ControlService.ts';
-import type { ControlCommandOf }                 from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                         from '../../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                   from '../../CommandContext.ts';
-import { commandControlContextOf }               from '../../CommandControlContext.ts';
-import { openTrackerForWritingThenReadNextLine } from '../../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
-import { OptionValueUtil }                       from '../../utils/OptionValueUtil.ts';
-import { OutputUtil }                            from '../../utils/OutputUtil.ts';
-import { TASK_USAGE }                            from './TaskArguments.ts';
+import type { ControlCommandOf }              from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                   from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                      from '../../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerbThenReadNextLine } from '../../ApplyCommandOfVerb.ts';
+import type { CommandContext }                from '../../CommandContext.ts';
+import type { ArgumentParser }                from '../../arguments/ArgumentParser.ts';
+import { OptionValueUtil }                    from '../../utils/OptionValueUtil.ts';
+import { OutputUtil }                         from '../../utils/OutputUtil.ts';
+import { TASK_USAGE }                         from './TaskArguments.ts';
 
 const ADD_OPTION_NAMES = ['owner', 'note', 'ticket', 'review-of', 'start', 'at', 'tokens', 'force', 'json'];
 
@@ -40,11 +38,7 @@ export async function addOneTask(commandArguments: ArgumentParser, context: Comm
     ...(note === undefined ? {} : { note }),
     ...(tokens === undefined ? {} : { tokens }),
   };
-  const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: task }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   const humanLine = `Task #${task.id} added: ${task.name}`;
   // Only a row started as it is added takes a slot; a pending one moves nothing the Next line reads.

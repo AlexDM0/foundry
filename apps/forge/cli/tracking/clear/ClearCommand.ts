@@ -1,12 +1,10 @@
 /** `clear` asks on a terminal, then applies a `tracker-clear` command in a hold of its own, as the Bridge's control does. */
-import { ControlService }          from '../../../src/services/control/ControlService.ts';
-import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
-import { commandControlContextOf } from '../../CommandControlContext.ts';
-import type { CommandHandler }     from '../../CommandHandler.ts';
-import { openTrackerForWriting }   from '../../OpenTrackerForWriting.ts';
-import { OutputUtil }              from '../../utils/OutputUtil.ts';
+import type { ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }    from '../../ApplyCommandOfVerb.ts';
+import type { CommandHandler }   from '../../CommandHandler.ts';
+import { OutputUtil }            from '../../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} clear [--all] [--yes]`;
 
@@ -37,7 +35,7 @@ export const clearCommand: CommandHandler = async (commandArguments, context) =>
   }
 
   const command: ControlCommandOf<'tracker-clear'> = { kind: 'tracker-clear', scope: deletesTickets ? 'everything' : 'tasks-and-log' };
-  const summary = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const summary = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   const ticketLine = deletesTickets
     ? `${summary.deletedTicketCount} ticket(s) and ${summary.deletedEpicCount} epic(s) deleted`

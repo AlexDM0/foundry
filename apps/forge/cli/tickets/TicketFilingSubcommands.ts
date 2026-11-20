@@ -1,20 +1,18 @@
-import { TicketJsonUtil }                        from '../../src/adapters/utils/TicketJsonUtil.ts';
-import { TICKET_TYPES }                          from '../../src/lib/tracker-model/constants/TicketFields.ts';
-import { ControlService }                        from '../../src/services/control/ControlService.ts';
-import { requireWorkspace }                      from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommandOf }                 from '../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                      from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                         from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }                   from '../CommandContext.ts';
-import { commandControlContextOf }               from '../CommandControlContext.ts';
-import { hatchWhenUnderJob }                     from '../HatchUnderJob.ts';
-import { openTrackerForWritingThenReadNextLine } from '../OpenTrackerForWriting.ts';
-import { suppliedMarkdownBodyOf }                from '../SuppliedMarkdownBody.ts';
-import type { ArgumentParser }                   from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                            from '../utils/OutputUtil.ts';
-import type { TicketSubcommandHandler }          from './@types/TicketSubcommandHandler.ts';
-import { TICKET_USAGE }                          from './constants/TicketUsage.ts';
-import { TicketArgumentUtil }                    from './utils/TicketArgumentUtil.ts';
+import { TicketJsonUtil }                     from '../../src/adapters/utils/TicketJsonUtil.ts';
+import { TICKET_TYPES }                       from '../../src/lib/tracker-model/constants/TicketFields.ts';
+import { requireWorkspace }                   from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }              from '../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                   from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                      from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerbThenReadNextLine } from '../ApplyCommandOfVerb.ts';
+import type { CommandContext }                from '../CommandContext.ts';
+import { hatchWhenUnderJob }                  from '../HatchUnderJob.ts';
+import { suppliedMarkdownBodyOf }             from '../SuppliedMarkdownBody.ts';
+import type { ArgumentParser }                from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                         from '../utils/OutputUtil.ts';
+import type { TicketSubcommandHandler }       from './@types/TicketSubcommandHandler.ts';
+import { TICKET_USAGE }                       from './constants/TicketUsage.ts';
+import { TicketArgumentUtil }                 from './utils/TicketArgumentUtil.ts';
 
 const ADD_OPTION_NAMES = [
   'type',
@@ -88,11 +86,7 @@ async function addOneTicket(commandArguments: ArgumentParser, context: CommandCo
     bodyText: suppliedBody ?? null,
   };
   await hatchWhenUnderJob(context, command);
-  const { result: filed, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: filed }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   OutputUtil.printEntityThenNextLine(
     commandArguments,

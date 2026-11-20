@@ -1,13 +1,11 @@
 /** `epic add`, `epic edit` and `epic remove`: each one write through the pipeline, refused at exit 1 with nothing written. */
-import { ControlService }                                 from '../../src/services/control/ControlService.ts';
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }                          from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }                             from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
-import { commandControlContextOf }                        from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
-import { openTrackerForWriting }                          from '../OpenTrackerForWriting.ts';
 import { suppliedMarkdownBodyOf }                         from '../SuppliedMarkdownBody.ts';
 import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
 import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
@@ -42,7 +40,7 @@ async function addEpic(commandArguments: ArgumentParser, context: CommandContext
     kind: 'epic-add', key, title, bodyText: body
   };
   await hatchWhenUnderJob(context, command);
-  const added = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const added = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const { frontmatter } = added.epic;
   OutputUtil.printEntity(
     commandArguments,
@@ -79,7 +77,7 @@ async function editEpic(commandArguments: ArgumentParser, context: CommandContex
     ...(title === undefined ? {} : { title }),
     ...(text === undefined ? {} : { body: { text, appends } }),
   };
-  const edited = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const edited = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const sentence = edited.changed ? OutputUtil.loggedSentencesOf(edited.logged) : `Epic ${key} unchanged: nothing to write`;
   OutputUtil.printEntity(commandArguments, context, epicDocumentWithBodyOf(edited.epic, edited.rollup), sentence);
 }
@@ -91,7 +89,7 @@ async function removeEpic(commandArguments: ArgumentParser, context: CommandCont
   if (key === undefined) throw new OperationRefusal('refused', `${PRODUCT_NAMES.PROGRAM} epic remove needs an epic key.\n  Usage: ${EPIC_USAGE}`);
 
   const command: ControlCommandOf<'epic-remove'> = { kind: 'epic-remove', key };
-  const removed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const removed = (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { key, removed: true }, OutputUtil.loggedSentencesOf(removed.logged));
 }
 

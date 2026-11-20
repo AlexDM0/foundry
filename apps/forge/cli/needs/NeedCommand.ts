@@ -3,19 +3,17 @@
  * builds first, with a numbered Acceptance that holds the intended use and a Brief. The Overseer files it. Under the declaring job it names
  * no job: the Overseer stamps it.
  */
-import { ControlService }          from '../../src/services/control/ControlService.ts';
-import { requireWorkspace }        from '../../src/services/tracker/Workspace.ts';
-import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
-import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import type { CommandContext }     from '../CommandContext.ts';
-import { commandControlContextOf } from '../CommandControlContext.ts';
-import type { CommandHandler }     from '../CommandHandler.ts';
-import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
-import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
-import { jobIdOf, refuseUsage }    from '../RecordedIncidentMove.ts';
-import { suppliedMarkdownBodyOf }  from '../SuppliedMarkdownBody.ts';
-import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
-import { OutputUtil }              from '../utils/OutputUtil.ts';
+import { requireWorkspace }       from '../../src/services/tracker/Workspace.ts';
+import type { ControlCommandOf }  from '../../src/shared/@types/ControlCommand.ts';
+import { PRODUCT_NAMES }          from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }     from '../ApplyCommandOfVerb.ts';
+import type { CommandContext }    from '../CommandContext.ts';
+import type { CommandHandler }    from '../CommandHandler.ts';
+import { hatchWhenUnderJob }      from '../HatchUnderJob.ts';
+import { jobIdOf, refuseUsage }   from '../RecordedIncidentMove.ts';
+import { suppliedMarkdownBodyOf } from '../SuppliedMarkdownBody.ts';
+import type { ArgumentParser }    from '../arguments/ArgumentParser.ts';
+import { OutputUtil }             from '../utils/OutputUtil.ts';
 
 const DECLARE_USAGE = `${PRODUCT_NAMES.PROGRAM} need declare [<J>] "<title>" --entity <key> --body <text> | --body-file <path> [--json]`;
 
@@ -50,11 +48,7 @@ async function declareNeed(commandArguments: ArgumentParser, context: CommandCon
   }
   const jobId = jobIdOf(commandArguments.positionals()[1], DECLARE_USAGE);
   const command: ControlCommandOf<'need-declare'> = { kind: 'need-declare', jobId, ...await writtenNeedOf(commandArguments, context, 2) };
-  const { need, changed } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { need, changed } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const sentence = changed
     ? `Job ${jobId} declared the need "${need.title}" for ${need.entity}; the Overseer files it as a ticket of ${need.entity}.`
     : `Job ${jobId} already declared the need "${need.title}" for ${need.entity} with this body. Nothing to do.`;

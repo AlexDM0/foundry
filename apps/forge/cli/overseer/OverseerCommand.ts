@@ -3,7 +3,6 @@
  * so an Overseer whose install changed can still be inspected and stopped.
  */
 import { readingBoardOf }                                                         from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { ControlService }                                                         from '../../src/services/control/ControlService.ts';
 import { Baton }                                                                  from '../../src/services/overseer/Baton.ts';
 import { CodeVersion }                                                            from '../../src/services/overseer/CodeVersion.ts';
 import { overseerFilesIn, type OverseerFiles }                                    from '../../src/services/overseer/OverseerFiles.ts';
@@ -14,12 +13,11 @@ import { requireWorkspace }                                                     
 import type { ControlCommandOf }                                                  from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                                       from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                                          from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }                                                     from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }                                                    from '../CommandContext.ts';
-import { commandControlContextOf }                                                from '../CommandControlContext.ts';
 import type { CommandHandler }                                                    from '../CommandHandler.ts';
 import { hatchWhenUnderJob }                                                      from '../HatchUnderJob.ts';
 import { requireCurrentInstall }                                                  from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }                                                  from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                                    from '../arguments/ArgumentParser.ts';
 import { OutputUtil }                                                             from '../utils/OutputUtil.ts';
 import { requireTheOverseerCanStartIn, startContextOf, startTheOverseerDetached } from './DetachedOverseerStart.ts';
@@ -140,11 +138,7 @@ function pauseSubcommand(kind: 'overseer-pause' | 'overseer-resume'): RunSubcomm
     const command: ControlCommandOf<typeof kind> = { kind };
     await hatchWhenUnderJob(context, command);
     requireCurrentInstall(context.currentDirectory);
-    const { logged, previousState } = await openTrackerForWriting(
-      commandArguments,
-      context,
-      (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-    );
+    const { logged, previousState } = (await applyCommandOfVerb(commandArguments, context, command)).result;
     const overseerState = kind === 'overseer-pause' ? 'paused' : 'running';
     OutputUtil.printEntity(commandArguments, context, { overseerState, previousState }, `${OutputUtil.loggedSentencesOf(logged)} (was ${previousState}).`);
   };

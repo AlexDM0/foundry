@@ -5,15 +5,13 @@
  */
 import type { QuestionOptionNotes } from '../../src/lib/tracker-model/@types/OptionConsequences.ts';
 import { OptionConsequencesUtil }   from '../../src/lib/tracker-model/utils/OptionConsequencesUtil.ts';
-import { ControlService }           from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }    from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }         from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }            from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }       from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }      from '../CommandContext.ts';
-import { commandControlContextOf }  from '../CommandControlContext.ts';
 import type { CommandHandler }      from '../CommandHandler.ts';
 import { hatchWhenUnderJob }        from '../HatchUnderJob.ts';
-import { openTrackerForWriting }    from '../OpenTrackerForWriting.ts';
 import { jobIdOf, refuseUsage }     from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }      from '../arguments/ArgumentParser.ts';
 import { OutputUtil }               from '../utils/OutputUtil.ts';
@@ -55,7 +53,7 @@ async function noteOptions(commandArguments: ArgumentParser, context: CommandCon
   const command: ControlCommandOf<'question-options'> = {
     kind: 'question-options', jobId, question, options
   };
-  await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { jobId, question, options }, `Job ${jobId} keeps the option notes for its question "${question}".`);
 }
 

@@ -13,22 +13,21 @@ import { requireProgressFile }                                                  
 import type { Workspace }                                                                       from '../../src/services/tracker/Workspace.ts';
 import { environmentCopy, flintBrainIsWithheld, flintBrainMaximumOverride }                     from '../../src/shared/Environment.ts';
 import { FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS, FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS } from '../../src/shared/constants/OverseerLimits.ts';
+import { boardStoreOf }                                                                         from '../BoardStoreOf.ts';
 import type { CommandContext }                                                                  from '../CommandContext.ts';
-import { openTrackerForWriting }                                                                from '../OpenTrackerForWriting.ts';
-import type { ArgumentParser }                                                                  from '../arguments/ArgumentParser.ts';
+import { writeAsTheOverseer }                                                                   from './OverseerBoardWrites.ts';
 
 export interface OverseerFlintBrainRequest {
-  commandArguments: ArgumentParser;
-  context:          CommandContext;
-  workspace:        Workspace;
-  trackerId:        string;
+  context:        CommandContext;
+  workspace:      Workspace;
+  trackerId:      string;
   /** The repository's root, which the brain's session may not write. */
-  repositoryRoot:   string;
+  repositoryRoot: string;
   /** The board's children, under which each run of the brain is a child of the `flint-brain/` folder. */
-  boardChildren:    BoardChildren;
+  boardChildren:  BoardChildren;
   /** Publishes the board state and the monitor snapshot, as after a pass. */
-  publish:          () => void;
-  log:              (line: string) => void;
+  publish:        () => void;
+  log:            (line: string) => void;
 }
 
 export interface OverseerFlintBrain {
@@ -64,15 +63,17 @@ function sessionHostLoggingLaunches(sessionHost: FlintBrainSessionHost, log: (li
 }
 
 export function createOverseerFlintBrain(request: OverseerFlintBrainRequest): OverseerFlintBrain {
-  const {
-    commandArguments, context, workspace, log
-  } = request;
+  const { context, workspace, log } = request;
   const { platformPorts } = context;
   const monitorFolder = platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
   const pendingLogWrites = new Set<Promise<void>>();
 
+  const recordEndedRun = async (run: FlintBrainEndedRun): Promise<void> => {
+    await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordFlintBrainEnded(run, transaction.at));
+  };
+
   const logEndedRun = (run: FlintBrainEndedRun): void => {
-    const writing: Promise<void> = openTrackerForWriting(commandArguments, context, (change) => change.board.recordFlintBrainEnded(run, change.at))
+    const writing: Promise<void> = recordEndedRun(run)
       .then(request.publish, (thrown: unknown) => log(`The end of Flint's brain's run could not be logged: ${thrown instanceof Error ? thrown.message : String(thrown)}`))
       .finally(() => pendingLogWrites.delete(writing));
     pendingLogWrites.add(writing);

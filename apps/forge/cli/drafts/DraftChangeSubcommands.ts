@@ -4,15 +4,14 @@ import { resolve }      from 'node:path';
 
 import { DraftDocumentUtil }                                from '../../src/adapters/drafts/utils/DraftDocumentUtil.ts';
 import { DraftIdUtil }                                      from '../../src/lib/tracker-model/utils/DraftIdUtil.ts';
-import { ControlService, type ControlResultOf }             from '../../src/services/control/ControlService.ts';
+import type { ControlResultOf }                             from '../../src/services/control/ControlService.ts';
 import { requireWorkspace }                                 from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommand }                              from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                                 from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                    from '../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }                               from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }                              from '../CommandContext.ts';
-import { commandControlContextOf }                          from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                                from '../HatchUnderJob.ts';
-import { openTrackerForWriting }                            from '../OpenTrackerForWriting.ts';
 import { requirePipedStandardInput, STANDARD_INPUT_MARKER } from '../PipedStandardInput.ts';
 import type { ArgumentParser }                              from '../arguments/ArgumentParser.ts';
 import { OutputUtil }                                       from '../utils/OutputUtil.ts';
@@ -33,7 +32,7 @@ export async function appliedDraftControl<Command extends ControlCommand>(
   command: Command,
 ): Promise<ControlResultOf<Command['kind']>> {
   await hatchWhenUnderJob(context, command);
-  return openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  return (await applyCommandOfVerb(commandArguments, context, command)).result;
 }
 
 export function refusalOf(text: string): OperationRefusal {

@@ -1,17 +1,15 @@
 import { readingBoardOf }                   from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS } from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { BoardSettingsUtil }                from '../../../src/lib/tracker-model/utils/BoardSettingsUtil.ts';
-import { ControlService }                   from '../../../src/services/control/ControlService.ts';
 import { requireProgressFile }              from '../../../src/services/tracker/TrackerReader.ts';
 import { requireWorkspace }                 from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }            from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                 from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                    from '../../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }               from '../../ApplyCommandOfVerb.ts';
 import type { CommandContext }              from '../../CommandContext.ts';
-import { commandControlContextOf }          from '../../CommandControlContext.ts';
 import type { CommandHandler }              from '../../CommandHandler.ts';
 import { hatchWhenUnderJob }                from '../../HatchUnderJob.ts';
-import { openTrackerForWriting }            from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }              from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                       from '../../utils/OutputUtil.ts';
 
@@ -51,11 +49,7 @@ export const concurrencyCommand: CommandHandler = async (commandArguments, conte
 
   const command: ControlCommandOf<'concurrency-set'> = { kind: 'concurrency-set', limit };
   await hatchWhenUnderJob(context, command);
-  const { logged, previousLimit, concurrency } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { logged, previousLimit, concurrency } = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   const loggedSentence = OutputUtil.loggedSentencesOf(logged);
   OutputUtil.printEntity(

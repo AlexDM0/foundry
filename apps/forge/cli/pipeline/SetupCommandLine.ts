@@ -3,15 +3,13 @@
  * and print the record it left.
  */
 import type { PipelineBilling }          from '../../src/lib/tracker-model/@types/Pipeline.ts';
-import { ControlService }                from '../../src/services/control/ControlService.ts';
 import type { GateProfileCommandKind }   from '../../src/services/control/GateProfileControls.ts';
 import type { PipelineAgentControlKind } from '../../src/services/control/PipelineAgentControls.ts';
 import type { PipelineSetupCommandKind } from '../../src/services/control/PipelineSetupControls.ts';
 import type { ControlCommandOf }         from '../../src/shared/@types/ControlCommand.ts';
+import { applyCommandOfVerb }            from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }           from '../CommandContext.ts';
-import { commandControlContextOf }       from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }             from '../HatchUnderJob.ts';
-import { openTrackerForWriting }         from '../OpenTrackerForWriting.ts';
 import { refuseUsage }                   from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }           from '../arguments/ArgumentParser.ts';
 import { OutputUtil }                    from '../utils/OutputUtil.ts';
@@ -69,11 +67,7 @@ export async function applySetupCommand(
   command: ControlCommandOf<PipelineSetupCommandKind | PipelineAgentControlKind>,
 ): Promise<void> {
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const changed = (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { setup: changed.setup, logged: changed.logged }, OutputUtil.loggedSentencesOf(changed.logged));
 }
 
@@ -84,11 +78,7 @@ export async function applyProfileCommand(
   command: ControlCommandOf<GateProfileCommandKind>,
 ): Promise<void> {
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const changed = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const { run, logged } = changed;
   const humanLine = logged.length > 0
     ? OutputUtil.loggedSentencesOf(logged)

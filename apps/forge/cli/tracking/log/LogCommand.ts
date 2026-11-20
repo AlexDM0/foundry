@@ -1,11 +1,9 @@
-import { ControlService }          from '../../../src/services/control/ControlService.ts';
-import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }        from '../../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }           from '../../../src/shared/constants/ProductNames.ts';
-import { commandControlContextOf } from '../../CommandControlContext.ts';
-import type { CommandHandler }     from '../../CommandHandler.ts';
-import { openTrackerForWriting }   from '../../OpenTrackerForWriting.ts';
-import { OutputUtil }              from '../../utils/OutputUtil.ts';
+import type { ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerb }    from '../../ApplyCommandOfVerb.ts';
+import type { CommandHandler }   from '../../CommandHandler.ts';
+import { OutputUtil }            from '../../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} log "<text>" [--at <when>]`;
 
@@ -21,7 +19,7 @@ export const logCommand: CommandHandler = async (commandArguments, context) => {
   }
 
   const command: ControlCommandOf<'log-note'> = { kind: 'log-note', text };
-  const entry = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const entry = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   OutputUtil.printEntity(commandArguments, context, entry, `Logged: ${entry.text}`);
 };

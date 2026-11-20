@@ -12,17 +12,15 @@ import type {
   PipelineStep
 } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
-import { ControlService }                                 from '../../src/services/control/ControlService.ts';
 import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';
 import { requireWorkspace }                               from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommand }                            from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
 import { PathNestingUtil }                                from '../../src/shared/utils/PathNestingUtil.ts';
+import { applyCommandOfVerb }                             from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }                            from '../CommandContext.ts';
-import { commandControlContextOf }                        from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }                              from '../HatchUnderJob.ts';
-import { openTrackerForWriting }                          from '../OpenTrackerForWriting.ts';
 import { refuseUsage }                                    from '../RecordedIncidentMove.ts';
 import type { ArgumentParser }                            from '../arguments/ArgumentParser.ts';
 import { SUBCOMMAND_WITH_TWO_ARGUMENTS_POSITIONAL_COUNT } from '../arguments/constants/SubcommandPositionalCounts.ts';
@@ -115,7 +113,7 @@ function hashesOf(pipeline: Readonly<Pipeline>): { contentHash: string; phaseHas
 
 async function applyPipelineChange(commandArguments: ArgumentParser, context: CommandContext, command: ControlCommand): Promise<void> {
   await hatchWhenUnderJob(context, command);
-  const changed = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const changed = (await applyCommandOfVerb(commandArguments, context, command)).result;
   if (!('pipeline' in changed)) return;
   const { logged, pipeline } = changed;
   OutputUtil.printEntity(commandArguments, context, { pipeline: PipelineFile.storedDocumentOf(pipeline), ...hashesOf(pipeline) }, OutputUtil.loggedSentencesOf(logged));

@@ -83,10 +83,10 @@ const STORE_ADAPTER_FOLDERS: readonly string[] = [
 
 /** `<path>: <form>: <trimmed line>`, sorted by path, each naming the package that removes it. */
 const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
+  'cli/BoardStoreOf.ts: store-internal-import: import { createLocalFilesBoardStore }       from \'../src/services/store/LocalFilesBoardStore.ts\';':
+    'The CLI\'s composition root picks the store\'s adapter.',
   'cli/InstalledFiles.ts: store-internal-import: import { TRACKER_FILES }                                       from \'../src/services/tracker/constants/TrackerFiles.ts\';':
     'Removed by WP5.11: the tracker folder and the page names leave `TRACKER_FILES` for `PRODUCT_NAMES`.',
-  'cli/OpenTrackerForWriting.ts: store-internal-import: import { writeTracker, type TrackerWritten }   from \'../src/services/tracker/TrackerPipeline.ts\';':
-    'Removed by WP5.8: the CLI writes through the store\'s command face.',
   [
   'cli/adoption/init/InitCommand.ts: store-internal-import: import { TRACKER_FILES }                                  from'
     + ' \'../../../src/services/tracker/constants/TrackerFiles.ts\';'

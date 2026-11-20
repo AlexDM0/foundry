@@ -1,13 +1,11 @@
 import type { MovedToStatus }                     from '../../../src/adapters/utils/StatusWordingUtil.ts';
 import { StatusWordingUtil }                      from '../../../src/adapters/utils/StatusWordingUtil.ts';
-import { ControlService }                         from '../../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }                  from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                       from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
+import { applyCommandOfVerbThenReadNextLine }     from '../../ApplyCommandOfVerb.ts';
 import type { CommandContext }                    from '../../CommandContext.ts';
-import { commandControlContextOf }                from '../../CommandControlContext.ts';
 import type { CommandHandler }                    from '../../CommandHandler.ts';
-import { openTrackerForWritingThenReadNextLine }  from '../../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                    from '../../arguments/ArgumentParser.ts';
 import { OutputUtil }                             from '../../utils/OutputUtil.ts';
 import { addOneTask }                             from './TaskAdd.ts';
@@ -40,11 +38,7 @@ async function transitionOneTask(
   const command: ControlCommandOf<'task-move'> = {
     kind: 'task-move', taskId, status: targetStatus, movesAnyway, annotation: annotationFrom(commandArguments)
   };
-  const { result: task, nextLine } = await openTrackerForWritingThenReadNextLine(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { written: { result: task }, nextLine } = await applyCommandOfVerbThenReadNextLine(commandArguments, context, command);
 
   OutputUtil.printEntityThenNextLine(commandArguments, context, task, `Task #${task.id} ${StatusWordingUtil.movedPhraseFor(targetStatus)}: ${task.name}`, nextLine);
 }

@@ -2,13 +2,11 @@
  * What the commands that record one control command share: a job id read as `J<n>`, an incident id read as `I<n>`, the optional
  * `--incident <I>`, and the command recorded in a hold (relayed when run under a job), printed as what it logged.
  */
-import { ControlService }                      from '../src/services/control/ControlService.ts';
 import type { ControlCommandOf }               from '../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../src/shared/OperationRefusal.ts';
+import { applyCommandOfVerb }                  from './ApplyCommandOfVerb.ts';
 import type { CommandContext }                 from './CommandContext.ts';
-import { commandControlContextOf }             from './CommandControlContext.ts';
 import { hatchWhenUnderJob }                   from './HatchUnderJob.ts';
-import { openTrackerForWriting }               from './OpenTrackerForWriting.ts';
 import type { ArgumentParser }                 from './arguments/ArgumentParser.ts';
 import type { RelayedControlCommandKind }      from './constants/JobVerbs.ts';
 import { INCIDENT_ID_PATTERN, JOB_ID_PATTERN } from './constants/RecordIdPatterns.ts';
@@ -49,10 +47,6 @@ export async function recordIncidentMove(
   printedTextOf: (loggedSentences: string) => string = nothingToDoUnlessLogged,
 ): Promise<void> {
   await hatchWhenUnderJob(context, command);
-  const { logged } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { command, logged }, printedTextOf(OutputUtil.loggedSentencesOf(logged)));
 }

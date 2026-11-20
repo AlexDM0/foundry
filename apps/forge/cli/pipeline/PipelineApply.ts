@@ -2,11 +2,9 @@
  * `pipeline apply <S> --revision <n> [--resume]`: Apply of the draft User read. While main lacks the draft's constitution the request
  * waits for its commit; otherwise the pipeline is stored at once and the record closes. Applying the same revision again changes nothing.
  */
-import { ControlService }          from '../../src/services/control/ControlService.ts';
+import { applyCommandOfVerb }      from '../ApplyCommandOfVerb.ts';
 import type { CommandContext }     from '../CommandContext.ts';
-import { commandControlContextOf } from '../CommandControlContext.ts';
 import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
-import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }     from '../arguments/ArgumentParser.ts';
 import { OutputUtil }              from '../utils/OutputUtil.ts';
 import { revisionFrom, setupIdOf } from './SetupCommandLine.ts';
@@ -23,7 +21,7 @@ export async function applyPipelineSetup(commandArguments: ArgumentParser, conte
     resumesBoard:  commandArguments.flag('resume'),
   } as const;
   await hatchWhenUnderJob(context, command);
-  const applied = await openTrackerForWriting(commandArguments, context, (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result);
+  const applied = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const humanLine = applied.logged.length > 0
     ? OutputUtil.loggedSentencesOf(applied.logged)
     : `Pipeline setup ${command.setupId} draft revision ${command.draftRevision} `

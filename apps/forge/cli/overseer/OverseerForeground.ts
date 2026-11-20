@@ -89,14 +89,15 @@ import {
   BATON_PASS_RELEASE_TRIES,
   OVERSEER_STOP_WAIT_MILLISECONDS
 } from '../../src/shared/constants/OverseerLimits.ts';
+import { boardStoreOf }                                                 from '../BoardStoreOf.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
 import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                          from '../CommandControlContext.ts';
 import { requireCurrentInstall }                                        from '../InstallVersionCheck.ts';
-import { openTrackerForWriting }                                        from '../OpenTrackerForWriting.ts';
 import type { ArgumentParser }                                          from '../arguments/ArgumentParser.ts';
 import { INSTALL_VERSION }                                              from '../constants/InstallVersion.ts';
 import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
 import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
+import { writeAsTheOverseer }                                           from './OverseerBoardWrites.ts';
 import { type OverseerFlintBrain, createOverseerFlintBrain }            from './OverseerFlintBrain.ts';
 import { type OverseerPollSchedule, overseerPollScheduleOf }            from './OverseerPollSchedule.ts';
 import { OverseerWording }                                              from './OverseerWording.ts';
@@ -193,8 +194,8 @@ async function registerOverseer(request: StoppedOverseerRequest, registration: B
  * that started meanwhile keeps its registry entry and its page; only the record of the stop is written for it.
  */
 export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, files: OverseerFiles, generation: number): Promise<void> {
-  const { commandArguments, context, workspace } = request;
-  await openTrackerForWriting(commandArguments, context, (change) => change.board.recordOverseerStopped('stopped', change.at));
+  const { context, workspace } = request;
+  await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordOverseerStopped('stopped', transaction.at));
   if (Baton.batonGenerationsIn(files.overseerDirectory).at(-1) !== generation) return;
   const stoppedAt = LocalTimeUtil.formatLocalIso(context.now());
   await registerOverseer(request, { overseer: 'removed', presence: { state: 'stopped', generation, at: stoppedAt } });
@@ -208,12 +209,12 @@ export async function closeTheStoppedOverseer(request: StoppedOverseerRequest, f
  * `baton-passed`. `endingWritten` runs once presence holds the ending, so no crash is recorded over it.
  */
 export async function recordTheHandover(request: StoppedOverseerRequest, files: OverseerFiles, generation: number, endingWritten: () => void): Promise<void> {
-  const { commandArguments, context } = request;
+  const { context, workspace } = request;
   const handedOverAt = LocalTimeUtil.formatLocalIso(context.now());
   Presence.writeEnding(files, generation, { kind: 'handed-over' }, handedOverAt);
   endingWritten();
   await registerOverseer(request, { presence: { state: 'handed-over', generation, at: handedOverAt } });
-  await openTrackerForWriting(commandArguments, context, (change) => change.board.recordOverseerStopped('baton-passed', change.at));
+  await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordOverseerStopped('baton-passed', transaction.at));
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
@@ -592,13 +593,12 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     // Set once the Baton is taken; a brain change before then has no stream to reach.
     let publishFlintBrainChange: () => void = () => undefined;
     const overseerFlintBrain = createOverseerFlintBrain({
-      commandArguments: request.commandArguments,
       context,
       workspace,
-      trackerId:        progress.trackerId,
+      trackerId: progress.trackerId,
       repositoryRoot,
       boardChildren,
-      publish:          () => publishFlintBrainChange(),
+      publish:   () => publishFlintBrainChange(),
       log,
     });
     const flintBrainReading = () => overseerFlintBrain.brain.reading();
@@ -757,14 +757,14 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       lifetime = overseerLifetime(request, files, generation, log);
       lifetimeBeingStarted = lifetime;
       enterStep('regroup');
-      await openTrackerForWriting(request.commandArguments, context, (change) => {
+      await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => {
         // Before the record it looks for: only the first start on a board submits the v16 leftovers.
-        change.board.submitFirstRunLeftovers(change.at);
+        transaction.board.submitFirstRunLeftovers(transaction.at);
         // In the hold, so no command names a picture between the read of the references and the sweep.
-        PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(change.board.logRecordsSoFar(), change.board.jobs()));
-        finishHalfAppliedSetup(change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT);
-        const overseerStarted = change.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, change.at);
-        if (!startClassificationLogged) change.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), change.at);
+        PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(transaction.board.logRecordsSoFar(), transaction.board.jobs()));
+        finishHalfAppliedSetup(transaction, INSIDE_THE_OVERSEER_CONTROL_CONTEXT);
+        const overseerStarted = transaction.board.recordOverseerStarted({ codeVersion, installVersion: INSTALL_VERSION }, transaction.at);
+        if (!startClassificationLogged) transaction.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), transaction.at);
         return overseerStarted;
       });
       startClassificationLogged = true;
@@ -919,7 +919,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   async function recordBatonPassFailure(failure: BatonPassFailure): Promise<void> {
     batonPassWarning = failure;
     log(`The Baton pass failed at ${failure.step}: ${failure.error}. This Overseer keeps driving.`);
-    await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordBatonPassFailed(failure, change.at));
+    await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
   }
 
   /** A taken-back board whose port never came free: the failure, naming the port, is logged and recorded before the Overseer exits 1. */
@@ -932,7 +932,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     };
     batonPassWarning = failure;
     log(`Taking the board back failed: ${failure.error}. This Overseer exits with no Overseer on the board.`);
-    await openTrackerForWriting(request.commandArguments, context, (change) => change.board.recordBatonPassFailed(failure, change.at));
+    await writeAsTheOverseer(boardStoreOf(context).store, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
     return new OperationRefusal('refused', { kind: 'baton-pass-failed', ...failure, url: null });
   }
 

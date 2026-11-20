@@ -1,13 +1,11 @@
 /** User's answer to an open decision: option letters per question, or `-- <text>` for a one-question decision; the first answer wins. */
 import type { DecisionAnswerForm } from '../../src/lib/tracker-model/@types/Decision.ts';
-import { ControlService }          from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }   from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }        from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }           from '../../src/shared/constants/ProductNames.ts';
-import { commandControlContextOf } from '../CommandControlContext.ts';
+import { applyCommandOfVerb }      from '../ApplyCommandOfVerb.ts';
 import type { CommandHandler }     from '../CommandHandler.ts';
 import { hatchWhenUnderJob }       from '../HatchUnderJob.ts';
-import { openTrackerForWriting }   from '../OpenTrackerForWriting.ts';
 import { OutputUtil }              from '../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} decide <decision> <letters>... | -- <text> [--json]`;
@@ -36,10 +34,6 @@ export const decideCommand: CommandHandler = async (commandArguments, context) =
 
   const command: ControlCommandOf<'decision-answer'> = { kind: 'decision-answer', decisionId: decisionId.toUpperCase(), answer: answerFormOf(choices, text) };
   await hatchWhenUnderJob(context, command);
-  const { answer, logged } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { answer, logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { decisionId: command.decisionId, answer }, OutputUtil.loggedSentencesOf(logged));
 };

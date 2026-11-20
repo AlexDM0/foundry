@@ -3,13 +3,11 @@
  * bounds are read and judged by the control, the usage and the tick here.
  */
 import { LocalTimeUtil }                            from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import { ControlService }                           from '../../../src/services/control/ControlService.ts';
 import type { ChartRangeRequest, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                         from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                            from '../../../src/shared/constants/ProductNames.ts';
-import { commandControlContextOf }                  from '../../CommandControlContext.ts';
+import { applyCommandOfVerb }                       from '../../ApplyCommandOfVerb.ts';
 import type { CommandHandler }                      from '../../CommandHandler.ts';
-import { openTrackerForWriting }                    from '../../OpenTrackerForWriting.ts';
 import { OutputUtil }                               from '../../utils/OutputUtil.ts';
 
 const USAGE = [
@@ -50,11 +48,7 @@ export const rangeCommand: CommandHandler = async (commandArguments, context) =>
       kind: 'window', from: writtenFrom, to: writtenTo, tickMinutes: tickMinutesOf(writtenTick)
     };
   const command: ControlCommandOf<'chart-range-set'> = { kind: 'chart-range-set', range };
-  const { view, logged } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { view, logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
 
   OutputUtil.printEntity(commandArguments, context, view, OutputUtil.loggedSentencesOf(logged));
 };

@@ -2,13 +2,11 @@
  * `ticket park <id> [--incident <I>] -- <reason>`: holds the ticket `parked:<kind>` and opens a `parked` decision to User, the reason
  * being what User should know; under an incident it also stops the job waiting on it.
  */
-import { ControlService }               from '../../src/services/control/ControlService.ts';
 import type { ControlCommandOf }        from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }             from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                from '../../src/shared/constants/ProductNames.ts';
-import { commandControlContextOf }      from '../CommandControlContext.ts';
+import { applyCommandOfVerb }           from '../ApplyCommandOfVerb.ts';
 import { hatchWhenUnderJob }            from '../HatchUnderJob.ts';
-import { openTrackerForWriting }        from '../OpenTrackerForWriting.ts';
 import { incidentOf }                   from '../RecordedIncidentMove.ts';
 import { OutputUtil }                   from '../utils/OutputUtil.ts';
 import type { TicketSubcommandHandler } from './@types/TicketSubcommandHandler.ts';
@@ -25,10 +23,6 @@ export const parkTicket: TicketSubcommandHandler = async (commandArguments, cont
     kind: 'ticket-park', ticketReference, reason, ...incidentOf(commandArguments, TICKET_USAGE)
   };
   await hatchWhenUnderJob(context, command);
-  const { logged } = await openTrackerForWriting(
-    commandArguments,
-    context,
-    (change) => ControlService.apply(command, change, commandControlContextOf(context.platformPorts)).result,
-  );
+  const { logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   OutputUtil.printEntity(commandArguments, context, { command, logged }, OutputUtil.loggedSentencesOf(logged));
 };
