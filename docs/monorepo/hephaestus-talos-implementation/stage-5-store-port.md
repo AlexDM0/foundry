@@ -2090,7 +2090,7 @@ Greps that must print nothing (from `apps/forge`):
 
 ```sh
 grep -rnwE "TrackerChange|OpenTrackerForWriting|openTrackerForWriting|withLockIfFree" --exclude-dir=research src cli bridge docs CLAUDE.md
-grep -rn "progressFilePath\|ticketsDirectory\|epicsDirectory\|draftsDirectory\|TRACKER_FILES" src cli bridge
+grep -rn --exclude='*.spec.ts' "progressFilePath\|ticketsDirectory\|epicsDirectory\|draftsDirectory\|TRACKER_FILES" src cli bridge
 grep -rn "filePath" src/lib/tracker-model
 grep -rn "progressJson" src cli
 grep -n "hand-edited" CLAUDE.md
