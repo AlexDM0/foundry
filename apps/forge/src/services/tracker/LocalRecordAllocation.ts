@@ -21,7 +21,8 @@ function refuseAnUnreadableRecordOfKey(unreadable: readonly UnreadableRecord[], 
   }
 }
 
-function singleRecordFilePathOf(workspace: Workspace, reference: RecordReference): string {
+/** Where the local files keep a record a board holds one of; the store's read side answers it too. */
+export function singleRecordFilePathOf(workspace: Workspace, reference: RecordReference): string {
   switch (reference.record) {
     case 'progress':             return workspace.progressFilePath;
     case 'pipeline':             return workspace.pipelineFilePath;

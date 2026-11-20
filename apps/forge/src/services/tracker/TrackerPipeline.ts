@@ -17,7 +17,6 @@ import { PipelineFile, type PipelineReading, type UnreadablePipelineReading } fr
 import { PipelineSetupFile }                                                  from '../../adapters/pipeline/PipelineSetupFile.ts';
 import { createProgressFileWriter }                                           from '../../adapters/progress/ProgressFileWriter.ts';
 import { createTicketFileWriter }                                             from '../../adapters/tickets/TicketFileWriter.ts';
-import type { Pipeline }                                                      from '../../lib/tracker-model/@types/Pipeline.ts';
 import { Board }                                                              from '../../lib/tracker-model/Board.ts';
 import { refusalIsBoardRefusal }                                              from '../../lib/tracker-model/BoardRefusal.ts';
 import { createLogger }                                                       from '../../lib/tracker-model/Logger.ts';
@@ -29,10 +28,9 @@ import { everyEpicFilePathIn }                                                fr
 import { type LockHolderIsGone, NO_LOCK_HOLDER_READS_AS_GONE }                from './GenerationLock.ts';
 import { commitHold }                                                         from './HoldJournal.ts';
 import { createLocalRecordAllocation }                                        from './LocalRecordAllocation.ts';
-import { projectLocationOf }                                                  from './ProjectLocation.ts';
 import { everyTicketFilePathIn }                                              from './TicketStore.ts';
 import { withLock }                                                           from './TrackerLock.ts';
-import { requireTracker }                                                     from './TrackerReader.ts';
+import { folderPrefixHoldingEntitiesOf, requireTracker }                      from './TrackerReader.ts';
 import type { Workspace }                                                     from './Workspace.ts';
 
 export interface TrackerWriteRequest<MutationResult> {
@@ -60,22 +58,6 @@ interface OpenBoard {
   contents:           BoardContents;
   logRecordCollector: ReturnType<typeof createLogRecordCollector>;
   board:              Board;
-}
-
-/**
- * Only a tracker at its repository's root holds entities, since an entity's home is a repository folder. The prefix is read only for a
- * pipeline that holds entities, so a pipeline without them reads no more than before.
- */
-function folderPrefixHoldingEntitiesOf(workspace: Workspace, pipeline: Readonly<Pipeline> | null): string | null {
-  if (pipeline?.entities === undefined) return null;
-  const { projectPrefix } = projectLocationOf(workspace.rootDirectory);
-  return projectPrefix === '' ? null : projectPrefix;
-}
-
-function pipelineReadingInPlaceOf(workspace: Workspace, reading: PipelineReading): PipelineReading {
-  if (reading.verdict !== 'readable') return reading;
-  const projectPrefix = folderPrefixHoldingEntitiesOf(workspace, reading.pipeline);
-  return projectPrefix === null ? reading : PipelineFile.entitiesInAFolderReadingOf(projectPrefix);
 }
 
 /** The pipeline a mutation would store with entities in a tracker in a folder is refused before anything is written. */
@@ -170,8 +152,7 @@ export function writeTracker<MutationResult>(request: TrackerWriteRequest<Mutati
   } = request;
 
   return withLock(workspace, async (hold) => {
-    const contents          = requireTracker(workspace);
-    const openedBoard       = openBoard({ ...contents, pipelineReading: pipelineReadingInPlaceOf(workspace, contents.pipelineReading) });
+    const openedBoard       = openBoard(requireTracker(workspace));
     const unreadableRecords = unreadableRecordsOf(openedBoard.contents);
 
     const deletionCallbacks: ((deletedTicketCount: number) => void)[] = [];

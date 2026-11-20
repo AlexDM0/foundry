@@ -476,3 +476,56 @@ describe('what the boundary exempts is exact', () => {
     expect(violationsOfPlanted('src/testing/Planted.ts', plantedLine)).toEqual([]);
   });
 });
+
+const BOARD_STORE_ADAPTER_PATTERN = /^src\/services\/store\/\w+BoardStore\.ts$/;
+const BOARD_STORE_PORT_PATH = 'src/services/store/BoardStore.ts';
+const BOARD_STORE_CONTRACT_PATH = 'src/services/store/BoardStore.contract.spec.ts';
+
+function boardStoreAdapterNameOf(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1).replace(/\.ts$/, '');
+}
+
+/** The board store adapters no code line of the contract spec names. */
+function adaptersTheContractDoesNotName(sources: readonly RepositorySource[]): string[] {
+  const contractCodeLines = (sources.find((source) => source.path === BOARD_STORE_CONTRACT_PATH)?.text ?? '').split('\n')
+    .map((line) => line.trim())
+    .filter((line) => !isCommentLine(line));
+  return sources.map((source) => source.path)
+    .filter((path) => isShippingCode(path) && BOARD_STORE_ADAPTER_PATTERN.test(path) && path !== BOARD_STORE_PORT_PATH)
+    .filter((adapter) => !contractCodeLines.some((line) => new RegExp(`\\b${boardStoreAdapterNameOf(adapter)}\\b`).test(line)));
+}
+
+describe('every board store adapter is named by the contract', () => {
+  test('the scan sees the contract and the local adapter', () => {
+    const paths = SOURCES.map((source) => source.path);
+    expect(paths).toEqual(expect.arrayContaining([BOARD_STORE_CONTRACT_PATH, BOARD_STORE_PORT_PATH, 'src/services/store/LocalFilesBoardStore.ts']));
+    expect(paths.filter((path) => BOARD_STORE_ADAPTER_PATTERN.test(path))).toContain('src/services/store/LocalFilesBoardStore.ts');
+  });
+
+  test('every adapter is named on a code line of the contract', () => {
+    expect(adaptersTheContractDoesNotName(SOURCES)).toEqual([]);
+  });
+
+  test('an adapter the contract does not name fails, and so does one only a comment of the contract names', () => {
+    const plantedAdapter = { path: 'src/services/store/PlantedRemoteBoardStore.ts', text: 'export const planted = 1;\n' };
+    const contractWithAComment = {
+      path: BOARD_STORE_CONTRACT_PATH,
+      text: `${SOURCES.find((source) => source.path === BOARD_STORE_CONTRACT_PATH)?.text ?? ''}// PlantedRemoteBoardStore\n`,
+    };
+    const otherSources = SOURCES.filter((source) => source.path !== BOARD_STORE_CONTRACT_PATH);
+
+    expect(adaptersTheContractDoesNotName([...SOURCES, plantedAdapter])).toEqual([plantedAdapter.path]);
+    expect(adaptersTheContractDoesNotName([...otherSources, contractWithAComment, plantedAdapter])).toEqual([plantedAdapter.path]);
+  });
+
+  test('a contract naming the adapter by its import or its subject name passes it, and a spec beside it is no adapter', () => {
+    const plantedAdapter = { path: 'src/services/store/PlantedRemoteBoardStore.ts', text: 'export const planted = 1;\n' };
+    const plantedSpec = { path: 'src/services/store/PlantedOtherBoardStore.spec.ts', text: 'export const planted = 1;\n' };
+    const otherSources = SOURCES.filter((source) => source.path !== BOARD_STORE_CONTRACT_PATH);
+    const importingContract = { path: BOARD_STORE_CONTRACT_PATH, text: 'import { createPlanted } from \'./PlantedRemoteBoardStore.ts\';\nLocalFilesBoardStore\n' };
+    const namingContract = { path: BOARD_STORE_CONTRACT_PATH, text: '{ name: \'PlantedRemoteBoardStore over a fake server\', build },\nLocalFilesBoardStore\n' };
+
+    expect(adaptersTheContractDoesNotName([...otherSources, importingContract, plantedAdapter, plantedSpec])).toEqual([]);
+    expect(adaptersTheContractDoesNotName([...otherSources, namingContract, plantedAdapter, plantedSpec])).toEqual([]);
+  });
+});

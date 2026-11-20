@@ -1,17 +1,22 @@
-/** Reads one tracker's stored files without the lock, the progress file, its stored log and the ticket listing, as a verdict or a refusal. */
+/**
+ * Reads one tracker's stored files without the lock, the progress file, its stored log and the ticket listing, as a verdict or a refusal.
+ * The stored pipeline is judged here once, so every read and every write sees the same reading.
+ */
 import { LogFileIngestion }                                from '../../adapters/log/LogFileIngestion.ts';
 import { LogRecordMappingUtil }                            from '../../adapters/log/utils/LogRecordMappingUtil.ts';
 import { ConstitutionSourcesFile }                         from '../../adapters/pipeline/ConstitutionSourcesFile.ts';
 import { GateProfilesFile }                                from '../../adapters/pipeline/GateProfilesFile.ts';
-import { PipelineFile }                                    from '../../adapters/pipeline/PipelineFile.ts';
+import { PipelineFile, type PipelineReading }              from '../../adapters/pipeline/PipelineFile.ts';
 import { PipelineSetupFile }                               from '../../adapters/pipeline/PipelineSetupFile.ts';
 import { ProgressFileIngestion, type ProgressFileReading } from '../../adapters/progress/ProgressFileIngestion.ts';
+import type { Pipeline }                                   from '../../lib/tracker-model/@types/Pipeline.ts';
 import type { TrackerProgress }                            from '../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { UnreadableTracker }                          from '../../shared/@types/UnreadableTracker.ts';
 import { OperationRefusal }                                from '../../shared/OperationRefusal.ts';
 import type { BoardContents }                              from './@types/BoardRecords.ts';
 import { listDrafts }                                      from './DraftStore.ts';
 import { listEpics }                                       from './EpicStore.ts';
+import { projectLocationOf }                               from './ProjectLocation.ts';
 import { listTickets }                                     from './TicketStore.ts';
 import type { Workspace }                                  from './Workspace.ts';
 
@@ -29,6 +34,24 @@ function progressFileReadingOf(workspace: Workspace): Extract<ProgressFileReadin
     };
   }
   return progressReading;
+}
+
+/**
+ * Only a tracker at its repository's root holds entities, since an entity's home is a repository folder. The prefix is read only for a
+ * pipeline that holds entities, so a pipeline without them reads no more than before.
+ */
+export function folderPrefixHoldingEntitiesOf(workspace: Workspace, pipeline: Readonly<Pipeline> | null): string | null {
+  if (pipeline?.entities === undefined) return null;
+  const { projectPrefix } = projectLocationOf(workspace.rootDirectory);
+  return projectPrefix === '' ? null : projectPrefix;
+}
+
+/** The stored pipeline as the store judges it: one with entities in a tracker in a folder reads as malformed, the reading a write opens the Board on. */
+export function storedPipelineReadingOf(workspace: Workspace): PipelineReading {
+  const reading = PipelineFile.read(workspace.pipelineFilePath);
+  if (reading.verdict !== 'readable') return reading;
+  const projectPrefix = folderPrefixHoldingEntitiesOf(workspace, reading.pipeline);
+  return projectPrefix === null ? reading : PipelineFile.entitiesInAFolderReadingOf(projectPrefix);
 }
 
 /** A broken progress file is the verdict even beside a broken log. */
@@ -50,7 +73,7 @@ export function readTracker(workspace: Workspace): TrackerReading {
     verdict:  'readable',
     contents: {
       progress:                   progressReading.progress,
-      pipelineReading:            PipelineFile.read(workspace.pipelineFilePath),
+      pipelineReading:            storedPipelineReadingOf(workspace),
       pipelineSetupReading:       PipelineSetupFile.read(workspace.pipelineSetupFilePath),
       gateProfilesReading:        GateProfilesFile.read(workspace.gateProfilesFilePath),
       constitutionSourcesReading: ConstitutionSourcesFile.read(workspace.constitutionSourcesFilePath),

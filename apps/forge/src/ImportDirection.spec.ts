@@ -49,6 +49,7 @@ type Layer =
   | 'tracker-service'
   | 'lifecycle-service'
   | 'control-service'
+  | 'store-service'
   | 'overseer-service'
   | 'test-support'
   | 'repository-guard'
@@ -81,7 +82,7 @@ const VENDOR_ADAPTER_SEAM = 'cli/CommandContext.ts';
 const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
 const SOURCE_LAYERS = [
-  'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'overseer-service',
+  'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'overseer-service',
 ] as const satisfies readonly Layer[];
 
 /** What each layer may import, a folder in a testing folder aside: those are judged by `TESTING_FOLDER_IMPORTERS` alone. */
@@ -98,6 +99,7 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
   'tracker-service':   ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'workspace-package'],
   'lifecycle-service': ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'workspace-package'],
   'control-service':   ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'workspace-package'],
+  'store-service':     ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'workspace-package'],
   'overseer-service':  [...SOURCE_LAYERS, 'workspace-package'],
   'test-support':      [...SOURCE_LAYERS, 'workspace-package'],
   'repository-guard':  [],
@@ -246,6 +248,7 @@ const layerOf = memoisedPerPath((path: string): Layer => {
       if (unitFolder === 'tracker') return 'tracker-service';
       if (unitFolder === 'lifecycle') return 'lifecycle-service';
       if (unitFolder === 'control') return 'control-service';
+      if (unitFolder === 'store') return 'store-service';
       return unitFolder === 'overseer' ? 'overseer-service' : 'unplaced';
     case 'testing':
       return 'test-support';
@@ -712,6 +715,12 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     expect(plantedSentencesOf({ 'src/services/lifecycle/PlantedGate.ts': importing('../tracker/TrackerLock.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/control/PlantedControl.ts': importing('../lifecycle/PlantedGate.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/control/PlantedControl.ts': importing('../store/BoardStore.ts') })).toEqual([
+      'layer-imports-upward — src/services/control/PlantedControl.ts:1 imports src/services/store/BoardStore.ts: '
+        + 'control-service reaches only lib, shared, adapters, render-service, tracker-service, lifecycle-service, control-service, workspace-package, not store-service',
+    ]);
+    expect(plantedSentencesOf({ 'src/services/store/PlantedStore.ts': importing('../control/ControlService.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/overseer/PlantedPass.ts': importing('../store/BoardStore.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/lifecycle/PlantedGate.ts': importing('../control/ControlService.ts') })).toEqual([
       'layer-imports-upward — src/services/lifecycle/PlantedGate.ts:1 imports src/services/control/ControlService.ts: '
         + 'lifecycle-service reaches only lib, shared, adapters, render-service, tracker-service, lifecycle-service, workspace-package, not control-service',
@@ -786,7 +795,7 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('design-system/Button') })).toEqual([
       'layer-imports-upward — cli/PlantedView.ts:1 imports design-system/atoms/Button.tsx: cli reaches only lib, shared, adapters, render-service, '
-        + 'tracker-service, lifecycle-service, control-service, overseer-service, cli, workspace-package, not design-system',
+        + 'tracker-service, lifecycle-service, control-service, store-service, overseer-service, cli, workspace-package, not design-system',
     ]);
     const byPathReason = 'outside design-system/, the package is imported as design-system/<entry>, an entry its package.json exports';
     expect(plantedSentencesOf({ 'bridge/shell/PlantedPart.tsx': importing('../../../../packages/design-system/atoms/Button.tsx') })).toEqual([
@@ -816,7 +825,7 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
     expect(plantedSentencesOf({ 'cli/PlantedView.ts': importing('../../../packages/flint/CreateFlint.ts') })).toEqual([
       'layer-imports-upward — cli/PlantedView.ts:1 imports flint/CreateFlint.ts: cli reaches only lib, shared, adapters, render-service, tracker-service, '
-        + 'lifecycle-service, control-service, overseer-service, cli, workspace-package, not flint',
+        + 'lifecycle-service, control-service, store-service, overseer-service, cli, workspace-package, not flint',
     ]);
     const entryFilesReason = `outside flint/, only its entry files are imported: ${FLINT_ENTRY_PATHS.join(', ')}`;
     expect(plantedSentencesOf({ 'bridge/shell/PlantedSprite.tsx': importing('../../../../packages/flint/SpritePose.ts') })).toEqual([
