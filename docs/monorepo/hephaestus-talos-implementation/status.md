@@ -104,7 +104,7 @@ done: WP2.18 retook them all, unchanged but start stamps.
   new session instructions and uses `ticket edit` instead of editing ticket files.
 
 - WP5.14 and WP5.16: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this
-  checkout's `version`, no model call) to replace the hand-edited recording (install version 41 now); commit it.
+  checkout's `version`, no model call) to replace the hand-edited recording (install version 42 now; WP5.17 too); commit it.
 
 - WP5.15: on a scratch forge, kill a live Overseer while it holds the store's lock; the next CLI write takes it over.
 
@@ -315,6 +315,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
   frees it). A waiter now spawns `ps`/`sysctl` at each retry while a live holder holds the lock. Stale wording of the
   old 30-second takeover: `WindowsFileReplace.ts:3`, `HoldJournal.spec.ts:127`, `CrashMatrix.spec.ts:286`.
 
+- WP5.17: still saying no move returns a ticket to draft: `docs/concepts/ticket-lifecycle.md:36`,
+  `apps/forge/CLAUDE.md:413-415`, the docblock of `TicketMoveLegality.spec.ts:2`. The unready refusal's advice for a
+  delivered or abandoned ticket says "An agent has picked it up", as the package words it.
+
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
 The owner found the pace too slow and said to do all four speed-ups: packages that conflict only in a shared list
@@ -429,7 +433,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-J | WP5.14 | landed | d92558dd | First round. `pending` is `committed` in `TaskStatus`, `TASK_STATUSES`, `TICKET_STATUSES`; `TICKET_STATUSES_NO_AGENT_HAS_PICKED_UP`; `allowsPastCommitted`; four refusal reasons; log record `ticket-committed` ("Ticket #003 committed"); `ticket-reopened` keeps its name. The contract already said `committed`, so `BoardPageMappingUtil.committedStatusOf` and the parity spec's mapping are gone; forge-contracts and Gaia unchanged (Gaia's `BoardSummaryIngestion.spec.ts:42` fixture still holds `pending`). `INSTALL_VERSION` 39 to 40; `SKILL.md` trimmed under its limit. The `InstallChangeWatch` recording was hand-edited (stamp and `installVersion` 40) because `bun run record` was refused to the agent |
 | 5-J | WP5.15 | landed | be631ad6 | Second round (first: a held lock record from before process identity was refused `lock-record-unreadable`; now read as a holder with a null identity, judged by pid alone). `LockHolders.ts` (`lockHolderOf`, read once per supervision; `lockHolderIsGoneOf`: gone when `processIsGone`, or the identity differs by stage 3's `sameProcess` with `sameBoot`); an unreadable identity counts as alive. The age rule, `LOCK_STALE_MILLISECONDS` and `NO_LOCK_HOLDER_READS_AS_GONE` are gone. `LockTaker`/`lockTakerOf` bundle the holder written and the judgement, so the store option is `lockTaker`; `LockHolder` lives in `GenerationLock.ts` (in `LockHolders.ts` it makes an import cycle). An unreadable store or landing lock record is refused `lock-record-unreadable` at once. Crash cases in `src/services/store/LocalFilesBoardStore.integration.spec.ts` (in `BOUNDARY_SPECS`). G4 `verify:integration` 874 pass, 1 skip, 0 fail |
 | 5-K | WP5.16 | landed | 76c314d0 | Second round (first: `ticket-body-changed-after-claim` kept as a retired log kind against decisions 3 and 46, now deleted; `TicketMoves.putBeforeReview` kept a stale `contentHash`, now dropped). `contentHash` (FNV-1a over title and body) set at commit and reopen; the kept file in `src/adapters/tickets/CommittedContentFile.ts`, written through the hold journal and never rewritten; `content-of-a-committed-ticket` replaces `edit-of-a-ticket-past-committed`; `ticket edit --force` gone. `TicketEdit.writtenBy` is `'command' \| 'board'`, not `'forge'` (`ProductNameLiterals.spec` forbids the literal). A `contentHash` must be 16 hex digits (path guard). Not served in the board document; reaches `status --json`. `INSTALL_VERSION` 40 to 41, the `InstallChangeWatch` recording stamp hand-edited again |
-| 5-L | WP5.17 | running | | |
+| 5-L | WP5.17 | landed | 0ccbc01f | First round. `Board.unreadyTicket`: committed back to draft, `contentHash` and row removed, `ticket-unreadied` logged, settings kept; refusals `unready-of-a-ticket-not-committed` and `unready-of-a-ticket-with-a-job` (any live job whose `ticketIds` name it). `ticket-unready` is a by-hand kind (applier in `TicketByHandControls.ts`); the contract and Gaia unchanged. Verb `ticket unready <id> [--at] [--json]`; `INSTALL_VERSION` 41 to 42 (the recording's stamp hand-edited, its stdout still says 41) |
+| 5-V | Stage 5 verification | running | | |
 | 6-A | WP6.1 | waiting | | |
 | 6-B | WP6.2 | waiting | | |
 | 6-B | WP6.4 | waiting | | |
