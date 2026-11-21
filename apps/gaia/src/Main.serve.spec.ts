@@ -1,6 +1,6 @@
 /**
  * `gaia serve` run as the program it is, under a scratch home on any free port, since the launcher starts and stops it as a program: it
- * prints its address once it listens, writes its token and no frame-ancestor record, serves its health, the fleet, a command and the built
+ * prints its address once it listens, writes its token, serves its health, the fleet, a command and the built
  * page with the CSP, and at a stop signal exits 0. Where Gaia already answers, or the port setting names no port, it refuses with exit code 1
  * and writes nothing.
  */
@@ -79,17 +79,12 @@ async function answerOf(address: URL, path: string, requestOptions: RequestInit 
   return response;
 }
 
-function frameAncestorsFolderIn(home: string): string {
-  return join(home, '.forge-monitor', 'frame-ancestors');
-}
-
 describe('gaia serve', () => {
-  test('serves its health, the fleet, a command and the page once it prints its address, frames no forge, and exits at a stop signal', async () => {
+  test('serves its health, the fleet, a command and the page once it prints its address, and exits at a stop signal', async () => {
     const home = scratchHome();
     const servingProgram = startServe(home, '0');
     const address = await servedAddressOf(servingProgram);
 
-    expect(existsSync(frameAncestorsFolderIn(home))).toBe(false);
     const health = await answerOf(address, '/api/health');
     expect(await health.json()).toEqual({
       application:      'gaia',
@@ -127,7 +122,6 @@ describe('gaia serve', () => {
 
     servingProgram.kill('SIGTERM');
     expect(await servingProgram.exited).toBe(0);
-    expect(existsSync(frameAncestorsFolderIn(home))).toBe(false);
   });
 
   test('refuses to start where Gaia already answers, and writes no token', async () => {

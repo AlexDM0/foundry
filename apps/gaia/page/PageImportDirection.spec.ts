@@ -204,14 +204,14 @@ describe('the page\'s reach past its boundary', () => {
       join(GAIA_FOLDER, 'src', 'shared', 'constants', 'ContractVersions.ts'),
       join(WORKSPACE_ROOT, 'apps', 'forge', 'src', 'shared', 'model', 'Board.ts'),
       join(WORKSPACE_ROOT, 'packages', 'forge-contracts', '@types', 'ForgeBoardDocument.ts'),
-      join(WORKSPACE_ROOT, 'packages', 'forge-contracts', '@types', 'EmbedChannelMessage.ts'),
+      join(WORKSPACE_ROOT, 'packages', 'forge-contracts', '@types', 'IdentityDocument.ts'),
       join(WORKSPACE_ROOT, 'packages', 'design-system', 'atoms', 'Button.tsx'),
     ];
     expect(compiledFileSentencesOf(plantedCompiledFiles, [namedSharedFile])).toEqual([
       'src/shared/constants/ContractVersions.ts is compiled by the page program but page/tsconfig.json does not name it',
       'apps/forge/src/shared/model/Board.ts is under apps/forge/ and the page program compiles it',
       'packages/forge-contracts/@types/ForgeBoardDocument.ts is a forge-contracts file the page program compiles',
-      'packages/forge-contracts/@types/EmbedChannelMessage.ts is a forge-contracts file the page program compiles',
+      'packages/forge-contracts/@types/IdentityDocument.ts is a forge-contracts file the page program compiles',
     ]);
   });
 

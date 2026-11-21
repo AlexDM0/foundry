@@ -1,17 +1,15 @@
 /**
- * The page server, headless, on any free port under a scratch home: the token it writes and the frame-ancestor record it no longer
- * writes, the whole road of the page (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a
- * store change), one refused request per guard, a command carried through the command port and answered with its verdict, each route of
- * a forge's board's relay routed behind the session guard and no frame session route, a body over a route's bound refused but on the
- * picture upload, and the CSP on every answer, refusals and failures included, framing nothing but its own origin. Gaia's system version
- * answers at `/api/versions`, unversioned only; every other route answers at its versioned path as at its unversioned one, behind the
- * same guards, and at no other version. It refuses to start where Gaia already answers, and a start that loses the port leaves the token
- * as it was; a stop closes every relayed stream with the forge stream it follows. The page's files are a stand-in for the build, whose own
- * spec builds the real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the relay routes' own
- * specs ask a forge; the heartbeat's timers are fired by hand.
+ * The page server, headless, on any free port under a scratch home: the token it writes, the whole road of the page (a code bought with the
+ * token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request per guard, a command
+ * carried through the command port and answered with its verdict, each route of a forge's board's relay routed behind the session guard and
+ * no frame session route, a body over a route's bound refused but on the picture upload, and the CSP on every answer, refusals and failures
+ * included, framing nothing but its own origin. Gaia's system version answers at `/api/versions`, unversioned only; every other route
+ * answers at its versioned path as at its unversioned one, behind the same guards, and at no other version. It refuses to start where Gaia
+ * already answers, and a start that loses the port leaves the token as it was; a stop closes every relayed stream with the forge stream it
+ * follows. The page's files are a stand-in for the build, whose own spec builds the real page; the command port is a stand-in for
+ * forge-control, whose own spec carries every kind; the relay routes' own specs ask a forge; the heartbeat's timers are fired by hand.
  */
 import {
-  existsSync,
   mkdirSync,
   readFileSync,
   statSync,
@@ -37,7 +35,6 @@ import { createFleetStore, type FleetStore }                        from '../../
 import type { CommandVerdict }                                      from '../../shared/@types/CommandVerdict.ts';
 import type { FleetSnapshot }                                       from '../../shared/@types/FleetSnapshot.ts';
 import type { GaiaCommand }                                         from '../../shared/@types/GaiaCommand.ts';
-import { FORGE_PLACES }                                             from '../../shared/constants/ForgePlaces.ts';
 import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }      from '../../shared/constants/GaiaSystemVersions.ts';
 import { manualTimers, type ManualTimers }                          from '../../testing/ManualTimers.ts';
 import { recordedOverseerFetch, type RecordedOverseerFetch }        from '../../testing/RecordedAnswers.ts';
@@ -49,10 +46,6 @@ import { boardAnswering, exampleRelayForgeOf, relaySourcesOver }    from './test
 
 const PAGE_POLICY = pageContentSecurityPolicyFor();
 
-/** The forge's folder of frame-ancestor records, which the forge reads until it retires the frame. */
-function frameAncestorsFolderIn(home: string): string {
-  return join(home, FORGE_PLACES.monitorFolderName, 'frame-ancestors');
-}
 const HEARTBEAT_MILLISECONDS = 1_000;
 const SHORT_PROBE_MILLISECONDS = 500;
 const EARLIER_TOKEN = `${'0'.repeat(63)}1`;
@@ -223,13 +216,6 @@ describe('a headless start under a scratch home', () => {
     expect(storedToken()).not.toBe(firstToken);
     expect(statSync(serverTokenPathIn(homeDirectory)).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FILE_MODE);
     expect(statSync(join(homeDirectory, '.gaia')).mode & PERMISSION_BITS).toBe(OWNER_ONLY_FOLDER_MODE);
-  });
-
-  test('writes no frame-ancestor record, since it frames no forge, while it serves and after it stops', async () => {
-    const pageServer = await servingPageServer();
-    expect(existsSync(frameAncestorsFolderIn(homeDirectory))).toBe(false);
-    await pageServer.stop();
-    expect(existsSync(frameAncestorsFolderIn(homeDirectory))).toBe(false);
   });
 
   test('buys a session with a code, reads the fleet, and hears a fleet event after a store change', async () => {
