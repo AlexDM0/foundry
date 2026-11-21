@@ -260,6 +260,10 @@ design-system/
 | `CompositionLayers.spec.ts` | Every component sits in a layer and imports only components of a lower layer |
 | `PackageIsolation.spec.ts` | Nothing imports outside the library; what ships imports only React; no file, the constitution and the README among them, names a host word |
 | `StyleContract.spec.ts` | Each class is styled by its owner's stylesheet, each rule styles its own component, the entry imports each stylesheet once in layer order |
+| `StyleBraceBalance.spec.ts` | Every stylesheet closes every brace it opens, and closes none it did not open |
+| `HoverMovesNothing.spec.ts` | A `:hover` or `:active` rule changes only colour, outline, a shadow, a filter, opacity, visibility or the cursor; a movement that moves nothing else is listed, exact both ways |
+| `ReducedMotionStopsEveryAnimation.spec.ts` | Each animation set outside the no-preference query is stopped by a reduced-motion rule on the same subject that wins the cascade |
+| `ThemeTokens.spec.ts` | Each literal colour token has a dark value or is listed as the same in both themes; an alias is one `var()` line; a state tone's literal has its dark row; each token that is a time is zeroed under reduced motion and before the first paint; the type scale and corners hold their sizes |
 | `RequiredProps.spec.ts` | A component over 8 required props is listed with its use case; a listed one is still over 8 |
 | `StoryCoverage.spec.ts` | Every exported component has a story beside it, and every story shows an exported component, titled `<Layer>/<Component>` |
 | `constants/Spacing.spec.ts` | Each step of `SPACING` is a `--space-…` token, each such token a step, each the size its name says; each `--sp-…` is an alias |

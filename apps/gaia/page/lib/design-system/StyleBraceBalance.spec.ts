@@ -1,0 +1,78 @@
+/**
+ * The stylesheets of the package close every brace they open: each `{` has its `}` and no `}` comes before its `{`. A lost brace nests
+ * every rule after it in the block above, such as a `@media` query, and the browser reports nothing. Braces inside comments and quoted
+ * strings are text and are left out. The scan first proves it found a floor of stylesheets and of blocks, and each form is planted in
+ * memory.
+ */
+import { describe, expect, test } from 'bun:test';
+
+import { packageFilesMatching } from './testing/PackageFiles.ts';
+
+const SMALLEST_STYLESHEET_COUNT = 60;
+const SMALLEST_BLOCK_COUNT_OF_ALL = 400;
+const STYLESHEETS = packageFilesMatching('**/*.css');
+
+interface BraceScan {
+  readonly blockCount: number;
+  readonly sentences:  readonly string[];
+}
+
+/** The stylesheet with its comments and quoted strings blanked, every other character, line breaks included, in its place. */
+function codeTextOf(stylesheetText: string): string {
+  return stylesheetText.replace(/\/\*[\s\S]*?\*\/|"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'/g, (text) => text.replace(/[^\n]/g, ' '));
+}
+
+function braceScanOf(path: string, stylesheetText: string): BraceScan {
+  const openLines: number[] = [];
+  const sentences: string[] = [];
+  let blockCount = 0;
+  codeTextOf(stylesheetText).split('\n').forEach((lineText, lineIndex) => {
+    for (const character of lineText) {
+      if (character === '{') {
+        openLines.push(lineIndex + 1);
+        blockCount += 1;
+      } else if (character === '}' && openLines.pop() === undefined) {
+        sentences.push(`${path}:${lineIndex + 1} closes a brace that no brace opened`);
+      }
+    }
+  });
+  return { blockCount, sentences: [...sentences, ...openLines.map((line) => `${path}:${line} opens a brace that no brace closes`)] };
+}
+
+describe('the stylesheets close every brace they open', () => {
+  test('the scan reads the theme stylesheets and the components\', and finds a floor of blocks', () => {
+    const scannedPaths = STYLESHEETS.map(({ path }) => path);
+    for (const path of ['styles/tokens.css', 'styles/base.css', 'styles/keyframes.css', 'styles/design-system.css', 'atoms/Button.css', 'organisms/Dialog.css']) {
+      expect(scannedPaths).toContain(path);
+    }
+    expect(STYLESHEETS.length).toBeGreaterThanOrEqual(SMALLEST_STYLESHEET_COUNT);
+    expect(STYLESHEETS.reduce((count, stylesheet) => count + braceScanOf(stylesheet.path, stylesheet.text).blockCount, 0))
+      .toBeGreaterThanOrEqual(SMALLEST_BLOCK_COUNT_OF_ALL);
+  });
+
+  test.each(STYLESHEETS.map((stylesheet) => [stylesheet.path, stylesheet] as const))('%s', (_path, stylesheet) => {
+    expect(braceScanOf(stylesheet.path, stylesheet.text).sentences).toEqual([]);
+  });
+});
+
+describe('the scan, on planted stylesheets', () => {
+  const sentencesOfPlanted = (stylesheetText: string): readonly string[] => braceScanOf('planted.css', stylesheetText).sentences;
+
+  test('a balanced stylesheet with a nested block passes, and its blocks are counted', () => {
+    const planted = '@media (prefers-reduced-motion: no-preference) {\n  .design-system-planted { color: red; }\n}\n';
+    expect([braceScanOf('planted.css', planted).blockCount, sentencesOfPlanted(planted)]).toEqual([2, []]);
+  });
+
+  test('a block left open names the line that opened it', () => {
+    expect(sentencesOfPlanted('@media (prefers-reduced-motion: no-preference) {\n  .design-system-planted { color: red; }\n.design-system-after { color: blue; }\n'))
+      .toEqual(['planted.css:1 opens a brace that no brace closes']);
+  });
+
+  test('a closing brace with no block open names its own line', () => {
+    expect(sentencesOfPlanted('.design-system-planted { color: red; }\n}\n')).toEqual(['planted.css:2 closes a brace that no brace opened']);
+  });
+
+  test('braces in comments and quoted strings are text', () => {
+    expect(sentencesOfPlanted('/* a { in prose */\n.design-system-planted::before { content: "}"; }\n.design-system-quoted::after { content: \'{\'; }\n')).toEqual([]);
+  });
+});
