@@ -21,7 +21,7 @@ describe('the view\'s title', () => {
   });
 
   test('a forge in place is titled by its project, or by its tracker id while the document does not hold it', () => {
-    const route = { view: 'forge', trackerId: FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' } as const;
+    const route = { view: 'forge', trackerId: FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } } as const;
     expect(WindowTitle.viewTitleOf(route, FLEET_FIVE_FORGES)).toBe('Example Storefront');
     expect(WindowTitle.viewTitleOf(route, null)).toBe(FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront);
   });

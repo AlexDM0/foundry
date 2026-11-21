@@ -59,7 +59,15 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const BRAND_STYLESHEET_EXPORT = 'brand/brand.css';
 
-const STYLESHEET_PATHS = [join(import.meta.dir, '..', 'styles', 'tokens.css'), join(import.meta.dir, '..', 'styles', 'gaia.css')];
+const PAGE_FOLDER = join(import.meta.dir, '..');
+
+const PAGE_OWN_STYLESHEET_LINK = /href="\.\/(styles\/[^"]+\.css)"/g;
+
+/** Gaia's own stylesheets and the board's, in the order the page links them, so a screen with a board in it is drawn as the page draws it. */
+function pageOwnStylesheetPaths(): string[] {
+  const pageDocument = readFileSync(join(PAGE_FOLDER, 'index.html'), 'utf8');
+  return [...pageDocument.matchAll(PAGE_OWN_STYLESHEET_LINK)].flatMap((match) => (match[1] === undefined ? [] : [join(PAGE_FOLDER, match[1])]));
+}
 
 export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
   {
@@ -99,7 +107,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     title:         'A forge in place',
     designFile:    'Forge.dc.html',
     fleetDocument: fleetWithStorefrontBrainOf('off'),
-    fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' }),
+    fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } }),
     viewState:     'as-routed',
   },
   {
@@ -142,7 +150,7 @@ export const BRAIN_STATE_SCREENS: readonly BrainStateScreen[] = BRAIN_STATES_OF_
   title:         `A forge in place, Flint's brain ${brainState}`,
   designFile:    'Forge.dc.html',
   fleetDocument: fleetWithStorefrontBrainOf(brainState),
-  fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, bridgeFragment: '#questions/E2' }),
+  fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } }),
   viewState:     'as-routed',
   brainState,
 }));
@@ -354,7 +362,7 @@ export const VERSIONS_SCREENS: readonly VersionsScreen[] = [
     title:            `A forge in place at another version, ${renderName.replace('U3-forge-', '')}`,
     designFile:       trackerId === FLEET_VERSIONS_TRACKER_IDS.exampleBilling ? 'VersionsForgeBehind.dc.html' : 'VersionsForge.dc.html',
     fleetDocument:    FLEET_VERSIONS,
-    fragment:         HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment: null }),
+    fragment:         HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute: null }),
     viewState:        VERSIONS_VIEW_STATES[updateStep],
     versionsShownFor: null,
     updateStep,
@@ -531,7 +539,7 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
 /**
  * A whole page for a browser: the theme set on the root as the page sets it before its first paint, motion off as before the first document
  * has painted, so no fade or pulse is caught mid-way, and the stylesheets inline in the page's order, the design system's fonts and
- * stylesheet, then the brand's, before Gaia's.
+ * stylesheet, then the brand's, before Gaia's and the board's.
  */
 export function screenDocumentOf(screen: ArtboardScreen, theme: ScreenTheme): string {
   return documentAround(`${screen.artboard} ${screen.title}, ${theme}`, theme, `<div id="gaia-root">${screenMarkupOf(screen, theme)}</div>`);
@@ -543,7 +551,7 @@ export function documentAround(title: string, theme: ScreenTheme, bodyMarkup: st
     DesignSystemStylesheet.fontFaceRules(),
     DesignSystemStylesheet.text(),
     PackageStylesheet.inlinedText(BRAND_STYLESHEET_EXPORT),
-    ...STYLESHEET_PATHS.map((stylesheetPath) => readFileSync(stylesheetPath, 'utf8')),
+    ...pageOwnStylesheetPaths().map((stylesheetPath) => readFileSync(stylesheetPath, 'utf8')),
   ];
   const stylesheets = stylesheetTexts.map((stylesheetText) => `<style>\n${stylesheetText}</style>`).join('\n');
   return [

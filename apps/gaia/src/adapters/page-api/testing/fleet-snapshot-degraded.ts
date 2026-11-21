@@ -52,7 +52,7 @@ const WIKI_COUNTS_ONLY_J2: AgentRow = {
   lastLine:            null,
   waitingOnDecisionId: null,
   interruption:        null,
-  route:               null,
+  boardRoute:          null,
 };
 
 const RESEARCH_WIKI: ForgeReading = {

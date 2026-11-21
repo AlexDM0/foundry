@@ -249,7 +249,7 @@ describe('the selected brain', () => {
         { key: '3', atText: '13:18:58', text: 'wake · stretch' },
       ],
       stop:     { command: { kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }, disabled: false },
-      openHref: `#forge/${TRACKER_IDS.exampleStorefront}/#agents`,
+      openHref: `#forge/${TRACKER_IDS.exampleStorefront}/agents`,
     });
   });
 
@@ -277,7 +277,7 @@ describe('the selected brain', () => {
     expect(contentOf(ended, { selectedAgent: STOREFRONT_BRAIN }).selected).toEqual({
       kind:     'brain-no-longer-running',
       project:  'Example Storefront',
-      openHref: `#forge/${TRACKER_IDS.exampleStorefront}/#agents`,
+      openHref: `#forge/${TRACKER_IDS.exampleStorefront}/agents`,
     });
   });
 

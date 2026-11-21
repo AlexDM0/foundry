@@ -72,7 +72,7 @@ function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
 
 /** A forge that cannot open in place opens at its Forges row. */
 function forgeHrefOf(forge: FleetDocumentForge): string {
-  if (ForgeContractUtil.canOpenInPlace(forge)) return HashRouter.fragmentOf({ view: 'forge', trackerId: forge.trackerId, bridgeFragment: null });
+  if (ForgeContractUtil.canOpenInPlace(forge)) return HashRouter.fragmentOf({ view: 'forge', trackerId: forge.trackerId, boardRoute: null });
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: forge.trackerId });
 }
 

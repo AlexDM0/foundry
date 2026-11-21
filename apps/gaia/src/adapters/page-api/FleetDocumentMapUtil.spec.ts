@@ -4,9 +4,11 @@
  * report stays `null` rather than becoming zero, a notice, warning, activity entry, brain sentence or brain move that names a command
  * reaches it in Gaia's words or not at all (D10) while a brain's refusal keeps the forge's sentence (decision 45), a forge's brain and a
  * running brain's row outside every limit reach it as the forge reports them, and a forge's system versions and their verdict as the
- * watch read them.
+ * watch read them; an attention entry's monitor route, the forge's fragment read by the ingestion, reaches it as its board route.
  */
 import { describe, expect, test } from 'bun:test';
+
+import type { MonitorAttentionEntryDocument, MonitorSnapshotDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
 import { FLEET_AT_LIMIT }                                    from '../../../page/testing/fixtures/fleet-at-limit.ts';
 import { FLEET_DEGRADED }                                    from '../../../page/testing/fixtures/fleet-degraded.ts';
@@ -17,11 +19,14 @@ import type { FleetSnapshot }                                from '../../shared/
 import type { ForgeBrain }                                   from '../../shared/@types/ForgeBrain.ts';
 import { PAGE_CONTRACT_VERSIONS }                            from '../../shared/constants/PageContractVersions.ts';
 
+import type { ForgeIdentity }                                                  from '../forge-api/@types/ForgeDocumentReading.ts';
+import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf }             from '../forge-api/testing/ExampleForgeDocuments.ts';
+import { ForgeReadingMapUtil }                                                 from '../forge-api/utils/ForgeReadingMapUtil.ts';
 import { FleetDocumentMapUtil }                                                from './FleetDocumentMapUtil.ts';
 import { FLEET_SNAPSHOT_AT_LIMIT }                                             from './testing/fleet-snapshot-at-limit.ts';
 import { FLEET_SNAPSHOT_DEGRADED }                                             from './testing/fleet-snapshot-degraded.ts';
 import { FLEET_SNAPSHOT_EMPTY }                                                from './testing/fleet-snapshot-empty.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES }                                          from './testing/fleet-snapshot-five-forges.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS }     from './testing/fleet-snapshot-five-forges.ts';
 import { FLEET_SNAPSHOT_VERSIONS, FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION } from './testing/fleet-snapshot-versions.ts';
 
 describe('the fleet document mapper', () => {
@@ -40,9 +45,28 @@ describe('the fleet document mapper', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION)).toStrictEqual(FLEET_VERSIONS_STATING_NO_VERSION);
   });
 
+  test('an attention entry\'s monitor route becomes its board route', async () => {
+    const storefront = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
+    const storefrontFacts = registryFactsOf(storefront);
+    const [item] = storefront.attention;
+    if (item === undefined) throw new Error('the five-forges snapshot shows Example Storefront with nothing waiting');
+    const { boardRoute: _boardRoute, ...entryFields } = item;
+    const monitorEntries: MonitorAttentionEntryDocument[] = [
+      { ...entryFields, route: '#kanban/ticket/001' },
+      { ...entryFields, key: 'decision:E2', route: '#questions/E2' },
+    ];
+    const recordedSnapshot = await recordedDocumentOf('serving-every-contract', 'monitor', storefrontFacts.overseerUrl) as MonitorSnapshotDocument;
+    const storefrontIdentity: ForgeIdentity = {
+      trackerId: storefront.trackerId, project: storefront.project, codeVersion: 'example-code', installVersion: 42, processId: storefrontFacts.overseerProcessId, contracts: null,
+    };
+    const reading = ForgeReadingMapUtil.fullReadingOf({ ...recordedSnapshot, attention: monitorEntries }, storefrontFacts, storefrontIdentity, EXAMPLE_READ_STAMP);
+    const fleetDocument = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [reading] });
+    expect(fleetDocument.forges[0]?.attention.map(({ boardRoute }) => boardRoute)).toEqual([{ tab: 'kanban', item: 'ticket/001' }, { tab: 'questions', item: 'E2' }]);
+  });
+
   test('stamps the fleet contract version it was built for', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(4);
+    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(5);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {
@@ -151,7 +175,7 @@ describe('the fleet document mapper', () => {
       at:          '2026-11-12T13:18:00.000Z',
       category:    'agent',
       text:        'Flint\'s brain ran 2:00',
-      route:       null,
+      boardRoute:  null,
       kind:        'flint-brain',
       tokens:      4200,
     } as const;
@@ -164,7 +188,7 @@ describe('the fleet document mapper', () => {
     const runningBrain = storefront?.brain;
     if (storefront === undefined || runningBrain === undefined || runningBrain === 'not-reported') throw new Error('The five-forges model shows no brain on its first forge.');
     const entryOf = (text: string) => ({
-      logPosition: 461, at: '2026-11-12T13:19:00.000Z', category: 'forge', text, route: null, kind: null, tokens: null,
+      logPosition: 461, at: '2026-11-12T13:19:00.000Z', category: 'forge', text, boardRoute: null, kind: null, tokens: null,
     } as const);
     const recentMoves = [
       { at: '2026-11-12T13:19:00.000Z', intent: 'run `forge merges`', emote: 'say forge update' },

@@ -151,7 +151,8 @@ function dotRoleOf(entry: FleetDocumentFleetActivityEntry, forge: FleetDocumentF
     case 'forge':
       return 'forge';
     case 'agent': {
-      const role = entry.route === null ? null : forge?.agents.find((agent) => agent.route === entry.route)?.role ?? null;
+      const { boardRoute } = entry;
+      const role = boardRoute === null ? null : forge?.agents.find((agent) => agent.boardRoute?.tab === boardRoute.tab && agent.boardRoute.item === boardRoute.item)?.role ?? null;
       return role === 'builder' || role === 'reviewer' ? role : null;
     }
   }
@@ -187,7 +188,7 @@ function rowsOf(fleetDocument: FleetDocument, kind: ActivityKindFilter, trackerI
       categoryWord: entry.kind === 'flint-brain' ? BRAIN_KIND_WORD : CATEGORY_WORDS[entry.category],
       dotRole:      dotRoleOf(entry, forges.get(entry.trackerId)),
       text:         entry.text,
-      href:         entry.route === null ? null : HashRouter.fragmentOf({ view: 'forge', trackerId: entry.trackerId, bridgeFragment: entry.route }),
+      href:         entry.boardRoute === null ? null : HashRouter.fragmentOf({ view: 'forge', trackerId: entry.trackerId, boardRoute: entry.boardRoute }),
     }));
 }
 

@@ -246,7 +246,7 @@ describe('the table', () => {
     const links = tree.hostElementsIn([row], tree.withTag('a'));
     expect(links.map((link) => [link.props['className'], link.props['href']])).toEqual([
       ['gaia-agents-select', `#agents/${TRACKER_IDS.invoiceService}/J12`],
-      ['gaia-agents-job', `#forge/${TRACKER_IDS.invoiceService}/#agents/J12`],
+      ['gaia-agents-job', `#forge/${TRACKER_IDS.invoiceService}/agents/J12`],
     ]);
   });
 
@@ -284,7 +284,7 @@ describe('the selected agent', () => {
       'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
     );
     const openLink = tree.onlyHostElementIn([panel], PackageButtons.isButton);
-    expect([PackageButtons.labelOf(openLink), openLink.props['href']]).toEqual(['Open J12 in its forge', `#forge/${TRACKER_IDS.invoiceService}/#agents/J12`]);
+    expect([PackageButtons.labelOf(openLink), openLink.props['href']]).toEqual(['Open J12 in its forge', `#forge/${TRACKER_IDS.invoiceService}/agents/J12`]);
   });
 
   test('the selected row survives a new document', () => {
@@ -427,7 +427,7 @@ describe('Flint\'s brain', () => {
     ]);
     expect(tree.readingOf([tree.onlyWithClass([panel], 'gaia-agents-panel-note')])).toBe('The brain ends by itself at 2:00. Stop asks the forge to end it now.');
     const open = tree.onlyHostElementIn([panel], (element) => PackageButtons.isButton(element) && element.props['href'] !== undefined);
-    expect([PackageButtons.labelOf(open), open.props['href']]).toEqual(['Open in its forge', `#forge/${TRACKER_IDS.exampleStorefront}/#agents`]);
+    expect([PackageButtons.labelOf(open), open.props['href']]).toEqual(['Open in its forge', `#forge/${TRACKER_IDS.exampleStorefront}/agents`]);
     PackageButtons.press(tree.onlyHostElementIn(pressablesIn([panel]), PackageButtons.isButton));
     expect(sent).toEqual([{ kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront }]);
   });

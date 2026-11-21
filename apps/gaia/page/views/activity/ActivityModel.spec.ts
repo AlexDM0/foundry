@@ -78,8 +78,8 @@ describe('the entries', () => {
 
   test('a row with a route goes to its forge in place at that route, and a row without one links nowhere', () => {
     const { rows } = contentOf(FLEET_FIVE_FORGES);
-    expect(rows[1]?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#agents/J4`);
-    expect(rows[3]?.href).toBe(`#forge/${TRACKER_IDS.invoiceService}/#tickets/ticket-row/031`);
+    expect(rows[1]?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/agents/J4`);
+    expect(rows[3]?.href).toBe(`#forge/${TRACKER_IDS.invoiceService}/tickets/ticket-row/031`);
     expect(rows.filter((row) => row.href === null).map((row) => row.text)).toEqual([
       'Flint\'s brain started through the API · haiku low · 2:00 at most',
       'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API',

@@ -16,7 +16,8 @@ import { ThemeBootstrap }                    from './shell/ThemeBootstrap.ts';
 
 const ROOT_ELEMENT_ID = 'gaia-root';
 
-const surroundings = browserShellSurroundings();
+// The fleet stream is made below; a session loss reaches it only once the page runs.
+const surroundings = browserShellSurroundings({ sessionWasLost: () => fleetStream.loseSession() });
 ThemeBootstrap.applyBeforeFirstPaint(surroundings.theme);
 loadDesignSystemFonts();
 

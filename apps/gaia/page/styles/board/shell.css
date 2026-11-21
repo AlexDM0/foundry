@@ -1,9 +1,34 @@
 /* The parts every board tab stands in: the header with its figures, tabs and setup step bar, the activity strip, the banners, the incident
  * line and its drawer, the Waiting on User pill and inbox, and the finished-work filter. */
 
-/* A banner row keeps the page gutter at its sides; where the rows of the board stand is the shell's. */
-.board-shell-banner {
+/* The board runs edge to edge under Gaia's bar: each row of the shell keeps the page gutter at its sides; the incident line keeps a gap
+ * under it. The main area holds the selected tab's view, or, for a tab not yet moved, the forge's own Bridge, which fills what is left. */
+.board-shell {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.board-shell > .board-shell-banner,
+.board-shell > .board-banners {
   margin: 12px var(--page-gutter) 0;
+}
+
+.board-shell > .board-incident-notice {
+  margin: 12px var(--page-gutter) var(--sp-4);
+}
+
+.board-panel {
+  padding: 8px var(--page-gutter) 20px;
+}
+
+.board-panel[data-unmoved] {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
 }
 
 @keyframes board-figure-tick { from { opacity: 0; transform: translateY(40%); } }

@@ -38,7 +38,7 @@ const RUNNING: Extract<SelectedAgentContent, { kind: 'running' }> = {
   lastToolCall: 'Bash bun test',
   facts:        [{ label: 'Turn', value: '7' }, { label: 'Calls', value: '58 of 120' }],
   lastLine:     'Running the specs again.\n$ bun test',
-  openHref:     '#forge/example-agency-site-1a2b/#agents/J12',
+  openHref:     '#forge/example-agency-site-1a2b/agents/J12',
   openLabel:    'Open J12 in its forge',
 };
 
@@ -73,8 +73,8 @@ describe('a running agent', () => {
     expect(tree.hostElementsIn(panel, (element) => element.tag === 'button' || (PackageButtons.isButton(element) && element.props['href'] === undefined))).toEqual([]);
     const links = tree.hostElementsIn(panel, (element) => element.tag === 'a' || PackageButtons.isButton(element));
     expect(links.map((link) => [tree.readingOf([link]), link.props['href']])).toEqual([
-      ['[MonoId #034]Credit note numbering', '#forge/example-agency-site-1a2b/#agents/J12'],
-      ['[Button Open J12 in its forge]', '#forge/example-agency-site-1a2b/#agents/J12'],
+      ['[MonoId #034]Credit note numbering', '#forge/example-agency-site-1a2b/agents/J12'],
+      ['[Button Open J12 in its forge]', '#forge/example-agency-site-1a2b/agents/J12'],
     ]);
   });
 

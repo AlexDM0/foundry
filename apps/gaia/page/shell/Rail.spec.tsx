@@ -90,7 +90,7 @@ describe('the rail', () => {
     const currentRowsAt = (route: GaiaRoute) => tree.hostElementsIn(unfoldedRail(FLEET_FIVE_FORGES, route), (element) => element.props['aria-current'] !== undefined)
       .map((row) => [tree.textOf([row]), row.props['aria-current']]);
     expect(currentRowsAt(DEFAULT_ROUTE)).toEqual([['Attention', 'page']]);
-    expect(currentRowsAt({ view: 'forge', trackerId: FLEET_FIVE_FORGES_TRACKER_IDS.researchWiki, bridgeFragment: null })).toEqual([['Research Wiki', 'page']]);
+    expect(currentRowsAt({ view: 'forge', trackerId: FLEET_FIVE_FORGES_TRACKER_IDS.researchWiki, boardRoute: null })).toEqual([['Research Wiki', 'page']]);
   });
 
   test('the active row is drawn on the wash with an inset ink edge and in the strong weight, and a hover changes only its colours', () => {

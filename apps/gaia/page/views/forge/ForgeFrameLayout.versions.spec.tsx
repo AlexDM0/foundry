@@ -57,6 +57,7 @@ function controlsOf(trackerId: string, overrides: Partial<ForgeBarControlsProps>
     onCancelStop:      () => events.push('cancel stop'),
     updateStep:        { step: 'idle' },
     onDismissUpdate:   () => events.push('dismiss update'),
+    onOpenInNewTab:    () => events.push('open in new tab'),
     ...overrides,
   };
   return { unfolded: tree.unfolded(<ForgeBarControls {...props} />), sent, events };
@@ -82,6 +83,12 @@ describe('the bar of a newer forge', () => {
       'Analytics Sandbox serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1.',
       'Analytics Sandbox serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1.',
     ]);
+  });
+
+  test('its Open in new tab opens Gaia\'s own route in a tab of its own and sends no command', () => {
+    const newer = controlsOf(TRACKER_IDS.analyticsSandbox);
+    PackageButtons.press(PackageButtons.onlyLabelled(newer.unfolded, 'Open in new tab'));
+    expect([newer.sent, newer.events]).toEqual([[], ['open in new tab']]);
   });
 });
 

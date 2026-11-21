@@ -1,6 +1,7 @@
 /**
- * What Gaia can do with a forge by its contracts. What matters: a forge opens in place only with the known embed contract and while it is
- * read in full or as last reported, so a forge read through its summary, or of a newer contract, never does; and only a control contract
+ * What Gaia can do with a forge by its contracts. What matters: a forge's board opens in place while it is read in full or as last
+ * reported, so a forge read through its summary, or of a newer contract, never does; its Bridge is framed for a tab not yet moved only with
+ * the known embed contract besides; and only a control contract
  * Gaia sends is sent what an Overseer carries; the brain's commands go only to an Overseer that answers.
  */
 import { describe, expect, test } from 'bun:test';
@@ -19,11 +20,17 @@ function degradedForgeNamed(project: string): FleetDocumentForge {
 }
 
 describe('opening a forge in place', () => {
-  test('needs the known embed contract, and a forge read in full or as last reported', () => {
+  test('needs a forge read in full or as last reported, whatever its embed contract', () => {
     expect(ForgeContractUtil.canOpenInPlace(STOREFRONT)).toBe(true);
     expect(ForgeContractUtil.canOpenInPlace(degradedForgeNamed('Invoice Service'))).toBe(true);
-    expect(ForgeContractUtil.canOpenInPlace({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, embed: null } })).toBe(false);
-    expect(ForgeContractUtil.canOpenInPlace({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, embed: 2 } })).toBe(false);
+    expect(ForgeContractUtil.canOpenInPlace({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, embed: null } })).toBe(true);
+  });
+
+  test('frames the Bridge for a tab not yet moved only with the known embed contract', () => {
+    expect(ForgeContractUtil.bridgeCanBeFramed(STOREFRONT)).toBe(true);
+    expect(ForgeContractUtil.bridgeCanBeFramed({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, embed: null } })).toBe(false);
+    expect(ForgeContractUtil.bridgeCanBeFramed({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, embed: 2 } })).toBe(false);
+    expect(ForgeContractUtil.bridgeCanBeFramed(degradedForgeNamed('Research Wiki'))).toBe(false);
   });
 
   test('is not offered for a forge read through its summary, of a newer contract, dormant or gone', () => {

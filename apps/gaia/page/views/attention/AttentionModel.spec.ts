@@ -108,7 +108,7 @@ describe('what waits on User (A1)', () => {
 
   test('the Answer button of E2 goes to Example Storefront in place at #questions/E2', () => {
     const answerOnE2 = fleetContentOf(FLEET_FIVE_FORGES).rows.find((row) => row.idText === 'E2');
-    expect(answerOnE2?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`);
+    expect(answerOnE2?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`);
   });
 
   test('an age is printed from the page\'s clock, and the order is the document\'s whatever the clock reads', () => {

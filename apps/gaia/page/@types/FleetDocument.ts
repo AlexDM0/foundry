@@ -64,6 +64,15 @@ export interface FleetDocumentToday {
   tokens:           number;
 }
 
+/** A tab of a forge's board, as the page's board router names it. */
+export type FleetDocumentBoardTab = 'kanban' | 'waves' | 'progress' | 'epics' | 'tickets' | 'agents' | 'questions' | 'assistant' | 'intake' | 'pipeline';
+
+/** A place on a forge's board, which the page opens at `#forge/<trackerId>/<tab>[/<item segments>]`. */
+export interface FleetDocumentBoardRoute {
+  tab:  FleetDocumentBoardTab;
+  item: string | null;
+}
+
 export type FleetDocumentAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
 
 export type FleetDocumentStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed';
@@ -84,7 +93,8 @@ export interface FleetDocumentAttentionItem {
   stamp:                   string;
   stampWord:               FleetDocumentStampWord;
   actionLabel:             FleetDocumentActionLabel;
-  route:                   string;
+  /** `null` where the forge names a place Gaia's board does not know; the forge then opens at its default tab. */
+  boardRoute:              FleetDocumentBoardRoute | null;
 }
 
 /** A forge read through its summary reports only the job id, kind, role, tickets, state and tokens; the rest is `null`, never zero. */
@@ -109,7 +119,7 @@ export interface FleetDocumentAgentRow {
   messagesWaiting:     number | null;
   lastLine:            string | null;
   waitingOnDecisionId: string | null;
-  route:               string | null;
+  boardRoute:          FleetDocumentBoardRoute | null;
 }
 
 export type FleetDocumentActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
@@ -122,7 +132,7 @@ export interface FleetDocumentActivityEntry {
   at:          string;
   category:    FleetDocumentActivityCategory;
   text:        string;
-  route:       string | null;
+  boardRoute:  FleetDocumentBoardRoute | null;
   kind:        FleetDocumentActivityKind | null;
   tokens:      number | null;
 }

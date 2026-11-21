@@ -3,16 +3,17 @@
  * a held launch outranking a pause; a contract an identity leaves out to `null`; the contract just read at the number its document carries;
  * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a
  * brain only from a snapshot, absent for a forge without Flint; an ended brain's activity entry keeping its kind and tokens; a summary's
- * usage with no current window; a monitor job's interruption cause on its row, `null` from a summary; and a newer contract's reading with
- * no fact of any document. The whole mappings are held by the ingestion specs against the fixtures.
+ * usage with no current window; a monitor job's interruption cause on its row, `null` from a summary; a monitor's route, the forge's own
+ * fragment, as a place on the board, a tab Gaia's board does not know as none and a malformed item as the tab alone; and a newer
+ * contract's reading with no fact of any document. The whole mappings are held by the ingestion specs against the fixtures.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardSummaryDocument, SummaryOverseerState } from 'forge-contracts/BoardSummaryDocument';
-import type { MonitorSnapshotDocument }                    from 'forge-contracts/MonitorSnapshotDocument';
-import { FORGE_NOTICE_KINDS }                              from '../../../shared/constants/ForgeNoticeKinds.ts';
-import type { ForgeIdentity, ForgeRegistryFacts }          from '../@types/ForgeDocumentReading.ts';
-import { ForgeReadingMapUtil }                             from './ForgeReadingMapUtil.ts';
+import type { BoardSummaryDocument, SummaryOverseerState }            from 'forge-contracts/BoardSummaryDocument';
+import type { MonitorActivityEntryDocument, MonitorSnapshotDocument } from 'forge-contracts/MonitorSnapshotDocument';
+import { FORGE_NOTICE_KINDS }                                         from '../../../shared/constants/ForgeNoticeKinds.ts';
+import type { ForgeIdentity, ForgeRegistryFacts }                     from '../@types/ForgeDocumentReading.ts';
+import { ForgeReadingMapUtil }                                        from './ForgeReadingMapUtil.ts';
 
 const REGISTRY_FACTS: ForgeRegistryFacts = {
   trackerId:         'example-agency-1a2b',
@@ -200,6 +201,25 @@ describe('the interruption of a job', () => {
     };
     const summary = { ...summaryAt('serving', false), jobs: [summaryJob] };
     expect(ForgeReadingMapUtil.countsOnlyReadingOf(summary, REGISTRY_FACTS, IDENTITY, 'stamp').agents.map(({ interruption }) => interruption)).toEqual([null]);
+  });
+});
+
+describe('the board routes of a snapshot read in full', () => {
+  test('read the forge\'s fragment as a tab and its decoded item, a tab the board does not know as none, and a malformed item as the tab alone', () => {
+    const entryAt = (logPosition: number, route: string | null): MonitorActivityEntryDocument => ({
+      logPosition, at: '2026-11-12T08:00:00.000Z', category: 'landed', text: 'Ticket 001 landed', route,
+    });
+    const routes = ['#kanban/ticket/001', '#questions/E2', '#assistant', '#tickets/ticket-row/T%2042', '#settings/E2', '#agents/%E0%A4%A', null];
+    const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ activity: routes.map((route, i) => entryAt(i, route)) }), REGISTRY_FACTS, IDENTITY, 'stamp');
+    expect(reading.activity.map(({ boardRoute }) => boardRoute)).toEqual([
+      { tab: 'kanban', item: 'ticket/001' },
+      { tab: 'questions', item: 'E2' },
+      { tab: 'assistant', item: null },
+      { tab: 'tickets', item: 'ticket-row/T 42' },
+      null,
+      { tab: 'agents', item: null },
+      null,
+    ]);
   });
 });
 

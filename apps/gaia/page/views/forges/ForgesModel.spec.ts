@@ -239,13 +239,16 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     expect(emphasisIn('dormant')).toEqual([['Start', 'primary', false]]);
   });
 
-  test('Open goes to the forge in place, and is absent where the forge cannot open in place (F5)', () => {
+  test('Open goes to the forge\'s board, also where its Bridge cannot be framed, and is absent where the board cannot be read (F5)', () => {
     const [live] = contentOf(fleetWithOneForgeIn('live')).rows;
-    expect(live?.buttons.find((button) => button.kind === 'link')).toEqual({
+    const open = {
       kind: 'link', button: 'open', label: 'Open', href: `#forge/${TRACKER_IDS.exampleStorefront}`, disabled: false
-    });
+    } as const;
+    expect(live?.buttons.find((button) => button.kind === 'link')).toEqual(open);
     const withoutEmbed = fleetWithOneForgeIn('live', { contracts: { ...READINGS.exampleStorefront.contracts, embed: null } });
-    expect(contentOf(withoutEmbed).rows.flatMap((row) => row.buttons.map(labelOf))).toEqual(['Pause', 'Stop', OPEN_IN_NEW_TAB]);
+    expect(contentOf(withoutEmbed).rows[0]?.buttons.find((button) => button.kind === 'link')).toEqual(open);
+    const readThroughItsSummary = fleetWithOneForgeIn('live', { fidelity: 'counts-only' });
+    expect(contentOf(readThroughItsSummary).rows.flatMap((row) => row.buttons.filter((button) => button.kind === 'link'))).toEqual([]);
   });
 
   test('a forge whose control contract Gaia does not know has Pause, Resume, Stop and its limit off', () => {

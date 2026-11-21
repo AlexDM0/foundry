@@ -44,7 +44,7 @@ const WIKI_QUESTION_E7: AttentionItem = {
   stamp:                   '2026-11-12T13:10:30.000Z',
   stampWord:               'opened',
   actionLabel:             'Answer',
-  route:                   '#questions/E7',
+  boardRoute:              { tab: 'questions', item: 'E7' },
 };
 
 const WIKI_J21: AgentRow = {
@@ -69,7 +69,7 @@ const WIKI_J21: AgentRow = {
   lastLine:            'Asked E7 and waits for the answer.',
   waitingOnDecisionId: 'E7',
   interruption:        null,
-  route:               '#agents/J21',
+  boardRoute:          { tab: 'agents', item: 'J21' },
 };
 
 /** Its brain is off, so the entry of the brain's start is not in its log. */

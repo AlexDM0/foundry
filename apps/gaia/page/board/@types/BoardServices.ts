@@ -11,6 +11,7 @@ import type { ProfileOutputLine }        from '../api/ProfileStreamClient.ts';
 import type { TranscriptStreamHandlers } from '../api/TranscriptStreamClient.ts';
 import type { FlintFrameSource }         from '../flint/BoardFlint.tsx';
 import type { PreferenceStorage }        from '../preferences/PreferenceStore.ts';
+import type { QuestionNotifier }         from '../views/questions/QuestionAlerts.ts';
 
 /** Follows one job's transcript until closed. */
 export type TranscriptFollower = (jobId: string, handlers: TranscriptStreamHandlers) => { close: () => void };
@@ -29,6 +30,8 @@ export interface BoardServices {
   readonly followProfileLog:    ProfileLogFollower;
   readonly storage:             () => PreferenceStorage;
   readonly now:                 () => Date;
+  /** The browser's notifications for questions, which the header's inbox lets User allow. */
+  readonly questionNotifier:    QuestionNotifier;
   readonly goTo:                (fragment: string) => void;
   /** The default is the browser's animation frames; a DOM spec gives its own. */
   readonly flintFrameSource?:   FlintFrameSource;

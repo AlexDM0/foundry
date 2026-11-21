@@ -56,6 +56,8 @@ export interface ForgeBarControlsProps {
   readonly updateStep:        BarUpdateStep;
   /** Dismisses a refused Update forge, or the restart a done one left pending. */
   readonly onDismissUpdate:   () => void;
+  /** Opens this forge's board, at the route shown, in a browser tab of Gaia's own; it sends no command. */
+  readonly onOpenInNewTab:    () => void;
 }
 
 const OPEN_IN_NEW_TAB_LABEL = 'Open in new tab';
@@ -198,14 +200,12 @@ function UnsentControl({ label, cannotTalk }: { readonly label: string; readonly
 
 /** For a forge Gaia cannot talk to: an older forge's Update forge, the controls Gaia cannot send, and Open in new tab. */
 function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk: BarCannotTalk }) {
-  const {
-    bar, cannotTalk, commandIsOnItsWay, onCommand
-  } = props;
+  const { cannotTalk, commandIsOnItsWay, onOpenInNewTab } = props;
   return (
     <>
       {cannotTalk.verdict === 'older' ? <UpdateForgeStep {...props} /> : null}
       {cannotTalk.unsentControls.map((label) => <UnsentControl key={label} label={label} cannotTalk={cannotTalk} />)}
-      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
+      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
     </>
   );
 }
@@ -216,7 +216,7 @@ function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk
  */
 export function ForgeBarControls(props: ForgeBarControlsProps) {
   const {
-    bar, commandIsOnItsWay, stopIsOpen, stopAnchorRef, onCommand, onOpenStop, onCancelStop
+    bar, commandIsOnItsWay, stopIsOpen, stopAnchorRef, onCommand, onOpenStop, onCancelStop, onOpenInNewTab
   } = props;
   if (bar.cannotTalk !== null) return <CannotTalkControls {...props} cannotTalk={bar.cannotTalk} />;
   const brainChip = brainChipPropsOf(props);
@@ -238,7 +238,7 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
         </span>
       )}
       {brainChip === null ? null : <BrainChip {...brainChip} />}
-      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={() => onCommand(bar.openInNewTab)} />
+      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
     </>
   );
 }

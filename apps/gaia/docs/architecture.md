@@ -64,9 +64,13 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 
 ## One forge in place
 
-The page asks `POST /api/forges/<trackerId>/frame-session`. Gaia asks that forge's Overseer for a one-time session code with the forge's
+A forge's board opens at `#forge/<trackerId>[/<tab>[/<item>]]`, in Gaia's window or in a browser tab of its own, and only there: Gaia's
+bar, then the board's own header and tabs (`page/board/Board.tsx`). A tab `page/board/shell/BoardTabViews.tsx` lists is drawn by Gaia's
+board; any other still shows the forge's own Bridge in a frame, with the Bridge's head and Flint hidden, until its view moves.
+
+For such a tab the page asks `POST /api/forges/<trackerId>/frame-session`. Gaia asks that forge's Overseer for a one-time session code with the forge's
 token and answers the Bridge's address with the code in its fragment, which the page sets as the frame's `src`. The token never reaches
-the page. The Bridge and the page talk only over the embed channel (`page/views/forge-frame/EmbedChannel.ts`). A forge lets Gaia's
+the page. The Bridge and the page talk only over the embed channel (`page/views/forge/EmbedChannel.ts`). A forge lets Gaia's
 origin frame it because Gaia writes its frame-ancestor record, `~/.forge-monitor/frame-ancestors/gaia.json`, while it serves.
 
 ## A forge's board

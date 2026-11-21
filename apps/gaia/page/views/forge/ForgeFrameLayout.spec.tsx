@@ -71,6 +71,7 @@ function controlsOf(overrides: Partial<ForgeBarControlsProps> = {}) {
     onCancelStop:      () => events.push('cancel stop'),
     updateStep:        { step: 'idle' },
     onDismissUpdate:   () => events.push('dismiss update'),
+    onOpenInNewTab:    () => events.push('open in new tab'),
     ...overrides,
   };
   return { unfolded: tree.unfolded(<ForgeBarControls {...props} />), sent, events };
@@ -102,11 +103,13 @@ describe('the bar\'s controls', () => {
     expect(PackageButtons.emphasisOf(buttonNamed(paused.unfolded, 'Resume'))).toBe('primary');
     const live = controlsOf();
     PackageButtons.press(buttonNamed(live.unfolded, 'Pause'));
+    expect(live.sent).toEqual([{ kind: 'forge-pause', trackerId: STOREFRONT.trackerId }]);
+  });
+
+  test('Open in new tab opens the board\'s route in a tab of its own and sends no command', () => {
+    const live = controlsOf();
     PackageButtons.press(buttonNamed(live.unfolded, 'Open in new tab'));
-    expect(live.sent).toEqual([
-      { kind: 'forge-pause', trackerId: STOREFRONT.trackerId },
-      { kind: 'forge-open-in-browser', trackerId: STOREFRONT.trackerId },
-    ]);
+    expect([live.sent, live.events]).toEqual([[], ['open in new tab']]);
   });
 
   test('while a command to the forge is on its way, every control of the bar is disabled', () => {

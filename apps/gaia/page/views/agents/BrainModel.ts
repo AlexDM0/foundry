@@ -27,8 +27,8 @@ import { BrainTextUtil }                            from './utils/BrainTextUtil.
 const BRAIN_ROLE = 'brain';
 const BRAIN_JOB_ID = 'flint-brain';
 
-/** The Bridge's own Agents view, where the forge shows its brain beside its jobs and a job at `#agents/<jobId>`. */
-export const AGENTS_ROUTE_OF_THE_BRIDGE = '#agents';
+/** The board's Agents tab, where the forge shows its brain beside its jobs and a job as its item. */
+export const AGENTS_TAB = 'agents';
 
 type BrainCommandKind = Extract<ForgeCommandBody['kind'], 'forge-brain-start' | 'forge-brain-stop'>;
 
@@ -168,7 +168,7 @@ function brainCommandRefusalOf(forge: FleetDocumentForge | null, commandStates: 
 /** The brain in its forge's own Agents view when the forge opens in place, else the forge's row on the Forges view. */
 function openHrefOf(forge: FleetDocumentForge | null, trackerId: string): string {
   if (forge !== null && ForgeContractUtil.canOpenInPlace(forge)) {
-    return HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment: AGENTS_ROUTE_OF_THE_BRIDGE });
+    return HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute: { tab: AGENTS_TAB, item: null } });
   }
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: trackerId });
 }

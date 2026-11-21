@@ -58,7 +58,7 @@ const WIKI_COUNTS_ONLY_J2: FleetDocumentAgentRow = {
   messagesWaiting:     null,
   lastLine:            null,
   waitingOnDecisionId: null,
-  route:               null,
+  boardRoute:          null,
 };
 
 const RESEARCH_WIKI: FleetDocumentForge = {

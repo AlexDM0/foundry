@@ -10,6 +10,7 @@ import type { CommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentAttentionKind,
+  FleetDocumentBoardRoute,
   FleetDocumentContracts,
   FleetDocumentFleetAttentionItem,
   FleetDocumentForge,
@@ -233,8 +234,8 @@ function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
   return fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
 }
 
-function forgeInPlaceHrefOf(trackerId: string, bridgeFragment: string | null): string {
-  return HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment });
+function forgeInPlaceHrefOf(trackerId: string, boardRoute: FleetDocumentBoardRoute | null): string {
+  return HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute });
 }
 
 /** The document sums today over the forges that report it, so with none reporting, its zero is not a count. */
@@ -311,7 +312,7 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       subject:       item.subject,
       metaText:      metaTextOf(item, forge, isStale, clock),
       actionLabel:   item.actionLabel,
-      href:          forgeInPlaceHrefOf(item.trackerId, item.route),
+      href:          forgeInPlaceHrefOf(item.trackerId, item.boardRoute),
       isStale,
       isPrimary,
     }];

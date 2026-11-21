@@ -109,7 +109,7 @@ Gaia's folders under `apps/gaia/`. Beside them Gaia depends on five workspace pa
 `brand` for Forge's mark, `flint` for Flint in the board (rule 11), `forge-contracts` for forge's documents, system versions and
 compatibility registry, which only the server imports, and `system-versions` for the version model both systems share (rule 3). The page
 imports no `forge-contracts` and reads its own contract versions from `src/shared/constants/PageContractVersions.ts`
-(`page/PageImportDirection.spec.ts`; `page/views/forge-frame/EmbedChannel.ts` is the one exception until the frame goes). Gaia's
+(`page/PageImportDirection.spec.ts`; `page/views/forge/EmbedChannel.ts` is the one exception until the frame goes). Gaia's
 tracker lives in `apps/gaia/.forge`, beside forge's in `apps/forge/.forge`.
 
 ```
@@ -142,7 +142,7 @@ page/board/        the board's views, moved from forge's Bridge; a view may draw
 | The browser's debugging pipe | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
 | The Notification API | `page/notifications/NotificationBoundary.ts` (`eslint.config.js` holds it the one reach) |
-| A forge's Bridge in Gaia's frame (the embed channel) | `page/views/forge-frame/EmbedChannel.ts` |
+| A forge's Bridge in Gaia's frame (the embed channel) | `page/views/forge/EmbedChannel.ts` |
 | A forge's board, relayed by Gaia's server to the page | `page/board/api/` |
 | The clock | an injected `now` and injected timers; the clock, wall and monotonic, is read only in `src/services/Clock.ts` |
 

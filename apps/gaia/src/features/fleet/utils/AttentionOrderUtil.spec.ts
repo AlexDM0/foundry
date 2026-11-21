@@ -27,12 +27,12 @@ const QUESTION_TEMPLATE: AttentionItem = {
   stamp:                   '2026-11-12T12:00:00.000Z',
   stampWord:               'opened',
   actionLabel:             'Answer',
-  route:                   '#questions/E1',
+  boardRoute:              { tab: 'questions', item: 'E1' },
 };
 
 function questionOpenedAt(idText: string, stamp: string): AttentionItem {
   return {
-    ...QUESTION_TEMPLATE, key: `decision:${idText}`, idText, stamp, route: `#questions/${idText}`
+    ...QUESTION_TEMPLATE, key: `decision:${idText}`, idText, stamp, boardRoute: { tab: 'questions', item: idText }
   };
 }
 

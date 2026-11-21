@@ -1,7 +1,7 @@
 /**
  * Maps the internal `FleetSnapshot` out to the page contract. Every key is named one by one, so a key the internal model gains reaches the
  * page only when the contract names it. A forge's notice, warning, activity entry, brain sentence or brain move leaves in Gaia's words when it
- * names a command (D10).
+ * names a command (D10). A place on a forge's board leaves as the board route the page opens.
  */
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
@@ -10,6 +10,7 @@ import type {
   FleetDocumentActivityEntry,
   FleetDocumentAgentRow,
   FleetDocumentAttentionItem,
+  FleetDocumentBoardRoute,
   FleetDocumentBrain,
   FleetDocumentForge,
   FleetDocumentForgeVersions,
@@ -25,8 +26,13 @@ import type { FleetSnapshot, GaiaFacts }                 from '../../shared/@typ
 import type { ForgeBrainReading }                        from '../../shared/@types/ForgeBrain.ts';
 import type { ForgeNotice, ForgeReading, ForgeVersions } from '../../shared/@types/ForgeReading.ts';
 import type { GaiaSettings }                             from '../../shared/@types/GaiaSettings.ts';
+import type { BoardRoute }                               from '../../shared/@types/board/BoardRoute.ts';
 import { PAGE_CONTRACT_VERSIONS }                        from '../../shared/constants/PageContractVersions.ts';
 import { ForgeSentenceUtil }                             from './ForgeSentenceUtil.ts';
+
+function boardRouteOut(route: BoardRoute | null): FleetDocumentBoardRoute | null {
+  return route === null ? null : { tab: route.tab, item: route.item };
+}
 
 function attentionItemOut(item: AttentionItem): FleetDocumentAttentionItem {
   return {
@@ -43,7 +49,7 @@ function attentionItemOut(item: AttentionItem): FleetDocumentAttentionItem {
     stamp:                   item.stamp,
     stampWord:               item.stampWord,
     actionLabel:             item.actionLabel,
-    route:                   item.route,
+    boardRoute:              boardRouteOut(item.boardRoute),
   };
 }
 
@@ -69,7 +75,7 @@ function agentRowOut(row: AgentRow): FleetDocumentAgentRow {
     messagesWaiting:     row.messagesWaiting,
     lastLine:            row.lastLine,
     waitingOnDecisionId: row.waitingOnDecisionId,
-    route:               row.route,
+    boardRoute:          boardRouteOut(row.boardRoute),
   };
 }
 
@@ -79,7 +85,7 @@ function activityEntryOut(entry: ActivityEntry): FleetDocumentActivityEntry {
     at:          entry.at,
     category:    entry.category,
     text:        ForgeSentenceUtil.activitySentenceOf(entry.text),
-    route:       entry.route,
+    boardRoute:  boardRouteOut(entry.boardRoute),
     kind:        entry.kind,
     tokens:      entry.tokens,
   };

@@ -159,7 +159,7 @@ describe('the route and the theme', () => {
     expect(pageTitleAreaIn(onAgents)).toBe(agents.markup);
     expect(onAgents).toMatch(/href="#agents" aria-current="page"/);
     expect(onAgents.match(/aria-current="page"/g)).toHaveLength(1);
-    const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.invoiceService}/#questions/E4`));
+    const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.invoiceService}/questions/E4`));
     expect(pageTitleAreaIn(inPlace)).toBeUndefined();
     expect(inPlace).toContain('<h1 class="gaia-forge-frame-bar-name">Invoice Service</h1>');
     expect(inPlace).toMatch(new RegExp(`href="#forge/${TRACKER_IDS.invoiceService}" aria-current="page"`));
@@ -171,7 +171,7 @@ describe('the route and the theme', () => {
     for (const fragment of ['#attention', '#agents', '#activity', '#forges']) {
       expect(themeButtonNameIn(renderToStaticMarkup(appAt(source, fragment)))).toBe('Theme: dark. Switch to auto');
     }
-    const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`));
+    const inPlace = renderToStaticMarkup(appAt(source, `#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`));
     expect(inPlace).toContain('<header class="gaia-brand-bar">');
     expect(themeButtonNameIn(inPlace)).toBeUndefined();
     const brandBar = /<header class="gaia-brand-bar">.*?<\/header>/.exec(inPlace)?.[0];

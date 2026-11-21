@@ -813,7 +813,7 @@ describe('the embed channel in a frame', () => {
     questionHistory: [],
   });
 
-  test('the framed Kanban keeps its Agents-at-work strip, holding the page\'s one Flint slot, and hides the title row', async () => {
+  test('the framed Kanban hides its whole head, its banners and its Flint, keeping only the filter at its tab bar\'s end', async () => {
     window.location.hash = '#kanban';
     const pageStyle = document.createElement('style');
     pageStyle.textContent = pageStylesheets().map((stylesheet) => stylesheet.text).join('\n');
@@ -822,14 +822,12 @@ describe('the embed channel in a frame', () => {
     try {
       const { bridge } = framedBridge();
       await renderedInFrame(bridge);
-      const activityStrip = document.querySelector<HTMLElement>('.bridge-activity');
-      const titleRow = document.querySelector<HTMLElement>('.bridge-head-title-row');
-      expect(activityStrip).not.toBeNull();
-      expect(titleRow).not.toBeNull();
-      expect(window.getComputedStyle(activityStrip as HTMLElement).display).not.toBe('none');
-      expect(window.getComputedStyle(titleRow as HTMLElement).display).toBe('none');
-      expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);
-      expect(activityStrip?.querySelector('.design-system-flint-slot')).not.toBeNull();
+      const displayOf = (selector: string): string | null => {
+        const element = document.querySelector<HTMLElement>(selector);
+        return element === null ? null : window.getComputedStyle(element).display;
+      };
+      expect(['.bridge-head-title-row', '.bridge-activity', '.bridge-tab-bar-tabs', `[${FLINT_OVERLAY_ATTRIBUTE}]`].map(displayOf)).toEqual(['none', 'none', 'none', 'none']);
+      expect(displayOf('.bridge-tab-bar > .bridge-filter')).not.toBe('none');
     } finally {
       document.documentElement.removeAttribute('data-embedded');
       pageStyle.remove();

@@ -394,7 +394,7 @@ function buttonOf(button: RowButtonKind, forge: FleetDocumentForge, rowSurroundi
         kind:     'link',
         button,
         label:    'Open',
-        href:     HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment: null }),
+        href:     HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute: null }),
         disabled: isBusy,
       };
     case 'open-in-new-tab':

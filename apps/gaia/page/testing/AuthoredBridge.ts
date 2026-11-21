@@ -5,7 +5,7 @@
  * and to which origin.
  */
 import type { FrameSessionAnswerDocument }                  from '../@types/FrameSessionDocument.ts';
-import type { EmbedChannelSurroundings, EmbedMessageEvent } from '../views/forge-frame/EmbedChannel.ts';
+import type { EmbedChannelSurroundings, EmbedMessageEvent } from '../views/forge/EmbedChannel.ts';
 
 /** Example Storefront's Overseer in `fleet-five-forges`. */
 export const BRIDGE_ORIGIN = 'http://127.0.0.1:4951';

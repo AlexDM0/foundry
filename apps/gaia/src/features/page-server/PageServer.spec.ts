@@ -531,9 +531,9 @@ describe('the versioned paths', () => {
     expect(exchange.status).toBe(204);
     const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
-    const fleetAnswer = await answerOf(pageServer, '/api/v4/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v5/fleet', { headers: { cookie } });
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const { events } = await openEvents(pageServer, cookie, '/api/v4/events');
+    const { events } = await openEvents(pageServer, cookie, '/api/v5/events');
     expect((await events.nextEvent()).eventName).toBe('handshake');
     expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
     const command = await answerOf(pageServer, '/api/v3/commands', commandRequest(cookie, { commandVersion: 2, kind: 'fleet-look-again' }));
@@ -544,7 +544,7 @@ describe('the versioned paths', () => {
 
   test('answer each route at no version but its own', async () => {
     const pageServer = await servingPageServer();
-    for (const path of ['/api/v2/health', '/api/v3/fleet', '/api/v1/fleet', '/api/v5/events', '/api/v2/commands', '/api/v2/session-codes']) {
+    for (const path of ['/api/v2/health', '/api/v3/fleet', '/api/v1/fleet', '/api/v4/events', '/api/v2/commands', '/api/v2/session-codes']) {
       expect([path, (await answerOf(pageServer, path)).status]).toEqual([path, 404]);
     }
   });
@@ -558,14 +558,14 @@ describe('the versioned paths', () => {
       expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
     }
     const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
-    expect((await answerOf(pageServer, '/api/v4/fleet', preflight)).status).toBe(403);
+    expect((await answerOf(pageServer, '/api/v5/fleet', preflight)).status).toBe(403);
   });
 
   test('keep the token and session guards on the versioned paths', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v4/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v4/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v5/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v5/events')).status).toBe(401);
     expect((await answerOf(pageServer, '/api/v3/commands', { method: 'POST', body: '{}' })).status).toBe(401);
     expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST' })).status).toBe(401);
     expect(carriedCommands).toEqual([]);

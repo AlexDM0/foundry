@@ -128,7 +128,7 @@ describe('a summary at the known version', () => {
           lastLine:            null,
           waitingOnDecisionId: null,
           interruption:        null,
-          route:               null,
+          boardRoute:          null,
         }],
         notices:  [],
         warnings: [],

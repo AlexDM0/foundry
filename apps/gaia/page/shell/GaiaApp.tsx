@@ -18,6 +18,8 @@ import {
 import type { FleetDocument }                                            from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
+import { browserBoardServicesOf, type BoardServicesOf }                  from '../board/Board.tsx';
+import { BOARD_TAB_VIEWS, type BoardTabViewTable }                       from '../board/shell/BoardTabViews.tsx';
 import { BrandBar }                                                      from '../design-system/BrandBar.tsx';
 import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
 import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
@@ -27,10 +29,10 @@ import { FigureLookUtil }                                                from '.
 import { activityViewPartsOf }                                           from '../views/activity/ActivityView.tsx';
 import { agentsViewPartsOf }                                             from '../views/agents/AgentsView.tsx';
 import { attentionViewPartsOf }                                          from '../views/attention/AttentionView.tsx';
-import { EmbedChannel, type EmbedChannelSurroundings }                   from '../views/forge-frame/EmbedChannel.ts';
-import { ForgeFrameModel }                                               from '../views/forge-frame/ForgeFrameModel.ts';
-import { type ForgeFrameSurroundings, forgeFrameViewPartsOf }            from '../views/forge-frame/ForgeFrameView.tsx';
-import { type FrameSessionResult, FrameSessionRequest }                  from '../views/forge-frame/FrameSessionRequest.ts';
+import { EmbedChannel, type EmbedChannelSurroundings }                   from '../views/forge/EmbedChannel.ts';
+import { ForgeFrameModel }                                               from '../views/forge/ForgeFrameModel.ts';
+import { type ForgeViewSurroundings, forgeViewPartsOf }                  from '../views/forge/ForgeView.tsx';
+import { type FrameSessionResult, FrameSessionRequest }                  from '../views/forge/FrameSessionRequest.ts';
 import { forgesViewPartsOf }                                             from '../views/forges/ForgesView.tsx';
 import { BrandStatusModel }                                              from './BrandStatusModel.ts';
 import { ConnectionBanner }                                              from './ConnectionBanner.tsx';
@@ -61,13 +63,16 @@ export interface ShellSurroundings {
   readonly markMotionReady: () => void;
   /** The page's clock, for a running time, an age or a clock time shown and never compared; it ticks while the page shows. */
   readonly clock:           PageClock;
-  /** A forge in place: the server's frame sessions, and the messages its Bridge posts to the page. */
+  /** A forge's board: the board's services and moved tabs, the server's frame sessions for the tabs not yet moved, and a tab of its own. */
   readonly forgeFrame:      ShellForgeFrameSurroundings;
 }
 
 export interface ShellForgeFrameSurroundings {
   readonly requestFrameSession: (trackerId: string) => Promise<FrameSessionResult>;
   readonly embed:               EmbedChannelSurroundings;
+  readonly boardServicesOf:     BoardServicesOf;
+  readonly boardTabViews:       BoardTabViewTable;
+  readonly openInNewTab:        (fragment: string) => void;
 }
 
 export interface GaiaAppProps {
@@ -86,7 +91,7 @@ export interface ViewSurroundings {
   /** The time zone a clock time is printed in; `undefined` is the browser's own. */
   readonly timeZone:           string | undefined;
   readonly goTo:               (fragment: string) => void;
-  readonly forgeFrame:         ForgeFrameSurroundings;
+  readonly forgeFrame:         ForgeViewSurroundings;
 }
 
 /** The parts of the view the route names; before the first fleet document a view shows at most its page title. */
@@ -102,7 +107,7 @@ export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | nul
     case 'activity':
       return activityViewPartsOf(fleetDocument, clock);
     case 'forge':
-      return forgeFrameViewPartsOf(route, fleetDocument, clock, forgeFrame);
+      return forgeViewPartsOf(route, fleetDocument, clock, forgeFrame);
     case 'forges':
       return forgesViewPartsOf(fleetDocument, route, clock, goTo);
     default:
@@ -218,9 +223,15 @@ export function GaiaApp({
   );
 }
 
-export function browserShellSurroundings(): ShellSurroundings {
+/** The page's one session loss arrives from the fleet stream, which the page makes after its surroundings. */
+export interface ShellSessionSurroundings {
+  readonly sessionWasLost: () => void;
+}
+
+export function browserShellSurroundings({ sessionWasLost }: ShellSessionSurroundings): ShellSurroundings {
+  const hash = HashRouter.browserHashSurroundings();
   return {
-    hash:           HashRouter.browserHashSurroundings(),
+    hash,
     theme:          ThemeBootstrap.browserThemeSurroundings(),
     setWindowTitle: (title) => {
       document.title = title;
@@ -230,6 +241,11 @@ export function browserShellSurroundings(): ShellSurroundings {
     forgeFrame:      {
       requestFrameSession: (trackerId) => FrameSessionRequest.requestFrameSession((path, requestOptions) => fetch(path, requestOptions), trackerId),
       embed:               EmbedChannel.browserSurroundings(),
+      boardServicesOf:     (trackerId) => browserBoardServicesOf(trackerId, { goTo: hash.goTo, sessionWasLost }),
+      boardTabViews:       BOARD_TAB_VIEWS,
+      openInNewTab:        (fragment) => {
+        window.open(`${window.location.origin}${window.location.pathname}${fragment}`, '_blank', 'noopener');
+      },
     },
   };
 }

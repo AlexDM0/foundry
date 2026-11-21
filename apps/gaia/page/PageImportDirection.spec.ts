@@ -32,7 +32,7 @@ const FORBIDDEN_IMPORTS: Readonly<Record<string, readonly string[]>> = {
 
 /** Each page module allowed to import `forge-contracts`, with the reason; none may reach `apps/forge/`. */
 const EMBED_CHANNEL_REASON = 'the embed channel speaks the Bridge\'s own messages until WP6.23 retires the frame';
-const FORGE_CONTRACT_READERS_ALLOWED: Readonly<Record<string, string>> = { 'page/views/forge-frame/EmbedChannel.ts': EMBED_CHANNEL_REASON };
+const FORGE_CONTRACT_READERS_ALLOWED: Readonly<Record<string, string>> = { 'page/views/forge/EmbedChannel.ts': EMBED_CHANNEL_REASON };
 /** Each `forge-contracts` file the page program may compile, by its path from the workspace root, with the reason. */
 const FORGE_CONTRACT_FILES_COMPILED_ALLOWED: Readonly<Record<string, string>> = { 'packages/forge-contracts/@types/EmbedChannelMessage.ts': EMBED_CHANNEL_REASON };
 const FORGE_CONTRACTS_FOLDER_PREFIX = 'packages/forge-contracts/';
@@ -220,14 +220,14 @@ describe('the page\'s reach past its boundary', () => {
   });
 
   test('the guard passes the embed channel\'s contract import, the one allowed reader', () => {
-    const embedChannelPath = join(PAGE_FOLDER, 'views', 'forge-frame', 'EmbedChannel.ts');
+    const embedChannelPath = join(PAGE_FOLDER, 'views', 'forge', 'EmbedChannel.ts');
     expect(forgeReachesOf(embedChannelPath, 'import type { BridgeMessage } from \'forge-contracts/EmbedChannelMessage\';', plantedSharedFiles)).toEqual([]);
   });
 
   test('the scan reads the page\'s modules and the shared files its tsconfig names, and no spec', () => {
     const projectModuleNames = pageProjectModules().map((modulePath) => relative(GAIA_FOLDER, modulePath));
     expect(projectModuleNames).toContain('page/Main.tsx');
-    expect(projectModuleNames).toContain('page/views/forge-frame/EmbedChannel.ts');
+    expect(projectModuleNames).toContain('page/views/forge/EmbedChannel.ts');
     expect(projectModuleNames).toContain('src/shared/constants/PageContractVersions.ts');
     expect(projectModuleNames).not.toContain('src/shared/constants/ContractVersions.ts');
     expect(projectModuleNames.filter((moduleName) => /\.(?:spec|dom)\.tsx?$/.test(moduleName))).toEqual([]);

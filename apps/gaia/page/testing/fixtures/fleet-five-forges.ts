@@ -117,7 +117,7 @@ const STOREFRONT_DRAFT_015: FleetDocumentAttentionItem = {
   stamp:                   '2026-11-12T11:15:10.000Z',
   stampWord:               'filed',
   actionLabel:             'Ready',
-  route:                   '#tickets/ticket-row/015',
+  boardRoute:              { tab: 'tickets', item: 'ticket-row/015' },
 };
 
 const STOREFRONT_QUESTION_E2: FleetDocumentAttentionItem = {
@@ -134,7 +134,7 @@ const STOREFRONT_QUESTION_E2: FleetDocumentAttentionItem = {
   stamp:                   '2026-11-12T13:15:10.000Z',
   stampWord:               'opened',
   actionLabel:             'Answer',
-  route:                   '#questions/E2',
+  boardRoute:              { tab: 'questions', item: 'E2' },
 };
 
 const INVOICE_ESCALATED_E4: FleetDocumentAttentionItem = {
@@ -151,7 +151,7 @@ const INVOICE_ESCALATED_E4: FleetDocumentAttentionItem = {
   stamp:                   '2026-11-12T12:58:10.000Z',
   stampWord:               'opened',
   actionLabel:             'Answer',
-  route:                   '#questions/E4',
+  boardRoute:              { tab: 'questions', item: 'E4' },
 };
 
 const INVOICE_ACCEPT_031: FleetDocumentAttentionItem = {
@@ -168,7 +168,7 @@ const INVOICE_ACCEPT_031: FleetDocumentAttentionItem = {
   stamp:                   '2026-11-12T13:07:10.000Z',
   stampWord:               'reviewed',
   actionLabel:             'Accept',
-  route:                   '#tickets/ticket-row/031',
+  boardRoute:              { tab: 'tickets', item: 'ticket-row/031' },
 };
 
 const WIKI_QUESTION_E1: FleetDocumentAttentionItem = {
@@ -185,7 +185,7 @@ const WIKI_QUESTION_E1: FleetDocumentAttentionItem = {
   stamp:                   '2026-11-12T12:53:10.000Z',
   stampWord:               'opened',
   actionLabel:             'Answer',
-  route:                   '#questions/E1',
+  boardRoute:              { tab: 'questions', item: 'E1' },
 };
 
 const STOREFRONT_AGENTS: FleetDocumentAgentRow[] = [
@@ -210,7 +210,7 @@ const STOREFRONT_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Moving the postcode check into the address form\'s own validator.',
     waitingOnDecisionId: null,
-    route:               '#agents/J2',
+    boardRoute:          { tab: 'agents', item: 'J2' },
   },
   {
     jobId:               'J3',
@@ -233,7 +233,7 @@ const STOREFRONT_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Asked E2 and waits for the answer.',
     waitingOnDecisionId: 'E2',
-    route:               '#agents/J3',
+    boardRoute:          { tab: 'agents', item: 'J3' },
   },
   {
     jobId:               'J4',
@@ -256,7 +256,7 @@ const STOREFRONT_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Reading the gallery before adding the zoom.',
     waitingOnDecisionId: null,
-    route:               '#agents/J4',
+    boardRoute:          { tab: 'agents', item: 'J4' },
   },
   {
     jobId:               'J6',
@@ -279,7 +279,7 @@ const STOREFRONT_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Running verify on the cart badge branch.',
     waitingOnDecisionId: null,
-    route:               '#agents/J6',
+    boardRoute:          { tab: 'agents', item: 'J6' },
   },
 ];
 
@@ -305,7 +305,7 @@ const INVOICE_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Adding the totals row to the PDF footer.',
     waitingOnDecisionId: null,
-    route:               '#agents/J11',
+    boardRoute:          { tab: 'agents', item: 'J11' },
   },
   {
     jobId:               'J12',
@@ -328,7 +328,7 @@ const INVOICE_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
     waitingOnDecisionId: null,
-    route:               '#agents/J12',
+    boardRoute:          { tab: 'agents', item: 'J12' },
   },
   {
     jobId:               'J14',
@@ -351,7 +351,7 @@ const INVOICE_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Reading the rounding rules against their spec.',
     waitingOnDecisionId: null,
-    route:               '#agents/J14',
+    boardRoute:          { tab: 'agents', item: 'J14' },
   },
 ];
 
@@ -377,7 +377,7 @@ const WIKI_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Mapping the importer\'s fields to citation records.',
     waitingOnDecisionId: null,
-    route:               '#agents/J2',
+    boardRoute:          { tab: 'agents', item: 'J2' },
   },
 ];
 
@@ -403,7 +403,7 @@ const MOBILE_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Verifying the offline queue before review.',
     waitingOnDecisionId: null,
-    route:               '#agents/J5',
+    boardRoute:          { tab: 'agents', item: 'J5' },
   },
   {
     jobId:               'J7',
@@ -426,7 +426,7 @@ const MOBILE_AGENTS: FleetDocumentAgentRow[] = [
     messagesWaiting:     0,
     lastLine:            'Reading the permission prompt flow.',
     waitingOnDecisionId: null,
-    route:               '#agents/J7',
+    boardRoute:          { tab: 'agents', item: 'J7' },
   },
 ];
 
@@ -465,7 +465,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T13:18:54.000Z',
       category:    'agent',
       text:        'Flint\'s brain started through the API · haiku low · 2:00 at most',
-      route:       null,
+      boardRoute:  null,
       kind:        'flint-brain',
       tokens:      null,
     },
@@ -474,7 +474,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T13:16:20.000Z',
       category:    'agent',
       text:        'J4 builder started on #013 Product image zoom',
-      route:       '#agents/J4',
+      boardRoute:  { tab: 'agents', item: 'J4' },
       kind:        null,
       tokens:      null,
     },
@@ -483,7 +483,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T13:15:10.000Z',
       category:    'needs-user',
       text:        'J3 asked E2: How long should a password reset link stay valid?',
-      route:       '#questions/E2',
+      boardRoute:  { tab: 'questions', item: 'E2' },
       kind:        null,
       tokens:      null,
     },
@@ -492,7 +492,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T13:05:00.000Z',
       category:    'landed',
       text:        '#010 Wishlist sharing landed on main',
-      route:       '#tickets/ticket-row/010',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/010' },
       kind:        null,
       tokens:      null,
     },
@@ -501,7 +501,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T12:02:00.000Z',
       category:    'landed',
       text:        '#009 Guest checkout landed on main',
-      route:       '#tickets/ticket-row/009',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/009' },
       kind:        null,
       tokens:      null,
     },
@@ -510,7 +510,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T11:15:10.000Z',
       category:    'needs-user',
       text:        '#015 Search suggestions was filed as a draft',
-      route:       '#tickets/ticket-row/015',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/015' },
       kind:        null,
       tokens:      null,
     },
@@ -519,7 +519,7 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       at:          '2026-11-12T10:57:00.000Z',
       category:    'landed',
       text:        '#008 Order history filters landed on main',
-      route:       '#tickets/ticket-row/008',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/008' },
       kind:        null,
       tokens:      null,
     },
@@ -565,7 +565,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       at:          '2026-11-12T13:07:10.000Z',
       category:    'needs-user',
       text:        '#031 Round VAT per line, not per invoice was reviewed and waits for your accept',
-      route:       '#tickets/ticket-row/031',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/031' },
       kind:        null,
       tokens:      null,
     },
@@ -574,7 +574,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       at:          '2026-11-12T13:02:00.000Z',
       category:    'agent',
       text:        'J14 reviewer started on #032 VAT rounding rules',
-      route:       '#agents/J14',
+      boardRoute:  { tab: 'agents', item: 'J14' },
       kind:        null,
       tokens:      null,
     },
@@ -583,7 +583,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       at:          '2026-11-12T12:58:10.000Z',
       category:    'needs-user',
       text:        'E4 escalated from incident I2: the VAT gate cannot run in the sandbox',
-      route:       '#questions/E4',
+      boardRoute:  { tab: 'questions', item: 'E4' },
       kind:        null,
       tokens:      null,
     },
@@ -592,7 +592,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       at:          '2026-11-12T12:46:00.000Z',
       category:    'agent',
       text:        'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API',
-      route:       null,
+      boardRoute:  null,
       kind:        'flint-brain',
       tokens:      4_200,
     },
@@ -601,7 +601,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       at:          '2026-11-12T12:31:00.000Z',
       category:    'landed',
       text:        '#030 Reminder emails landed on main',
-      route:       '#tickets/ticket-row/030',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/030' },
       kind:        null,
       tokens:      null,
     },
@@ -610,7 +610,7 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       at:          '2026-11-12T11:48:00.000Z',
       category:    'landed',
       text:        '#029 Payment terms on quotes landed on main',
-      route:       '#tickets/ticket-row/029',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/029' },
       kind:        null,
       tokens:      null,
     },
@@ -656,7 +656,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
       at:          '2026-11-12T12:53:10.000Z',
       category:    'needs-user',
       text:        'E1 opened: two gates are proposed for this repository',
-      route:       '#questions/E1',
+      boardRoute:  { tab: 'questions', item: 'E1' },
       kind:        null,
       tokens:      null,
     },
@@ -665,7 +665,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
       at:          '2026-11-12T12:47:00.000Z',
       category:    'landed',
       text:        '#006 Glossary page landed on main',
-      route:       '#tickets/ticket-row/006',
+      boardRoute:  { tab: 'tickets', item: 'ticket-row/006' },
       kind:        null,
       tokens:      null,
     },
@@ -711,7 +711,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
       at:          '2026-11-12T12:40:00.000Z',
       category:    'forge',
       text:        'Launches held: the install version changed',
-      route:       null,
+      boardRoute:  null,
       kind:        null,
       tokens:      null,
     },
@@ -720,7 +720,7 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
       at:          '2026-11-12T12:38:00.000Z',
       category:    'agent',
       text:        'J7 reviewer started on #020 Push permission prompt',
-      route:       '#agents/J7',
+      boardRoute:  { tab: 'agents', item: 'J7' },
       kind:        null,
       tokens:      null,
     },
@@ -766,7 +766,7 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
     at:          '2026-11-12T12:20:00.000Z',
     category:    'forge',
     text:        'Overseer stopped',
-    route:       null,
+    boardRoute:  null,
     kind:        null,
     tokens:      null,
   }],
@@ -865,11 +865,11 @@ const STOREFRONT_BRAIN_ROW: FleetDocumentFleetAgentRow = {
   messagesWaiting:     null,
   lastLine:            null,
   waitingOnDecisionId: null,
-  route:               null,
+  boardRoute:          null,
 };
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
-  fleetVersion: 4,
+  fleetVersion: 5,
   forges:       [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_MOBILE_APP, DESIGN_SYSTEM, LEGACY_IMPORTER],
   attention:    [
     { ...INVOICE_ESCALATED_E4, trackerId: TRACKER_IDS.invoiceService },

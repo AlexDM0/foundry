@@ -25,7 +25,7 @@ import {
   AgentsFilters,
 } from './AgentsFilters.ts';
 import {
-  AGENTS_ROUTE_OF_THE_BRIDGE,
+  AGENTS_TAB,
   type BrainCommandRefusal,
   BrainModel,
   type BrainRowContent,
@@ -182,8 +182,8 @@ function projectOf(fleetDocument: FleetDocument, trackerId: string): string {
 function jobHrefOf(fleetDocument: FleetDocument, row: FleetDocumentFleetAgentRow): string {
   const forge = FleetDocumentUtil.forgeOf(fleetDocument, row.trackerId);
   if (forge !== null && ForgeContractUtil.canOpenInPlace(forge)) {
-    const bridgeFragment = row.route ?? `${AGENTS_ROUTE_OF_THE_BRIDGE}/${encodeURIComponent(row.jobId)}`;
-    return HashRouter.fragmentOf({ view: 'forge', trackerId: row.trackerId, bridgeFragment });
+    const boardRoute = row.boardRoute ?? { tab: AGENTS_TAB, item: row.jobId };
+    return HashRouter.fragmentOf({ view: 'forge', trackerId: row.trackerId, boardRoute });
   }
   return HashRouter.fragmentOf({ view: 'forges', addingARepository: false, forgeInView: row.trackerId });
 }

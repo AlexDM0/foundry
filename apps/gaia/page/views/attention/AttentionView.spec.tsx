@@ -43,7 +43,7 @@ const STOREFRONT_QUESTION_E5: FleetDocumentFleetAttentionItem = {
   stamp:                   '2026-11-12T13:18:40.000Z',
   stampWord:               'opened',
   actionLabel:             'Answer',
-  route:                   '#questions/E5',
+  boardRoute:              { tab: 'questions', item: 'E5' },
   trackerId:               TRACKER_IDS.exampleStorefront,
 };
 

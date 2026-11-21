@@ -69,6 +69,9 @@ export type BoardAttentionStampWord = 'opened' | 'filed' | 'ready since' | 'revi
 
 export type BoardAttentionActionLabel = 'Answer' | 'Ready' | 'Review' | 'Accept';
 
+/** A tab of a forge's board, where a board route opens. */
+export type BoardTabName = 'kanban' | 'waves' | 'progress' | 'epics' | 'tickets' | 'agents' | 'questions' | 'assistant' | 'intake' | 'pipeline';
+
 export type BoardTargetSubject = 'decision' | 'ticket' | 'draft' | 'job' | 'incident';
 
 export type BoardInterruptionCause =

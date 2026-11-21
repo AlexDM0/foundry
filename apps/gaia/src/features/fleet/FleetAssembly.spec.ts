@@ -55,11 +55,11 @@ function landedEntryAt(logPosition: number, at: string): ActivityEntry {
   return {
     logPosition,
     at,
-    category: 'landed',
-    text:     `#${logPosition} landed on main`,
-    route:    null,
-    kind:     null,
-    tokens:   null,
+    category:   'landed',
+    text:       `#${logPosition} landed on main`,
+    boardRoute: null,
+    kind:       null,
+    tokens:     null,
   };
 }
 
@@ -177,13 +177,13 @@ describe('Flint\'s brain', () => {
       [FLINT_BRAIN_ROW_ID, FLINT_BRAIN_ROLE, false],
     ]);
     expect(snapshot.agents.at(-1)).toMatchObject({
-      trackerId: STOREFRONT.trackerId,
-      state:     'running',
-      tokens:    11,
-      calls:     1,
-      startedAt: '2026-11-20T23:45:19.939Z',
-      ticketIds: [],
-      route:     null,
+      trackerId:  STOREFRONT.trackerId,
+      state:      'running',
+      tokens:     11,
+      calls:      1,
+      startedAt:  '2026-11-20T23:45:19.939Z',
+      ticketIds:  [],
+      boardRoute: null,
     });
   });
 
@@ -222,7 +222,7 @@ describe('Flint\'s brain', () => {
       at:          '2026-11-21T00:45:20+01:00',
       category:    'agent',
       text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
-      route:       null,
+      boardRoute:  null,
       kind:        'flint-brain',
       tokens:      11,
     }]);

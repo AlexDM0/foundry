@@ -76,7 +76,6 @@ describe('the bar', () => {
       line:      [figure('4 / 5'), words(' agents'), words(' · '), figure('2'), words(' wait on you')],
       text:      '4 / 5 agents · 2 wait on you · since 09:12',
     });
-    expect(bar.openInNewTab).toEqual({ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront });
     expect(bar.controlContractIsKnown).toBe(true);
   });
 
@@ -246,8 +245,8 @@ describe('the frame area', () => {
 describe('where leave goes', () => {
   const attention = HashRouter.routeOf('#attention');
   const agentsWithFilters = HashRouter.routeOf('#agents?role=builders');
-  const storefrontQuestions = HashRouter.routeOf(`#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`);
-  const storefrontKanban = HashRouter.routeOf(`#forge/${TRACKER_IDS.exampleStorefront}/#kanban`);
+  const storefrontQuestions = HashRouter.routeOf(`#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`);
+  const storefrontKanban = HashRouter.routeOf(`#forge/${TRACKER_IDS.exampleStorefront}/kanban`);
   const invoiceInPlace = HashRouter.routeOf(`#forge/${TRACKER_IDS.invoiceService}`);
 
   test('back to the view the forge was entered from, its filters kept, also after moving inside the forge', () => {
@@ -258,7 +257,7 @@ describe('where leave goes', () => {
 
   test('from one forge to another, back to the first', () => {
     const inStorefront = ForgeFrameModel.leaveTargetAfter(ForgeFrameModel.initialLeaveTarget(attention), storefrontQuestions);
-    expect(ForgeFrameModel.leaveTargetAfter(inStorefront, invoiceInPlace).fragment).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`);
+    expect(ForgeFrameModel.leaveTargetAfter(inStorefront, invoiceInPlace).fragment).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`);
   });
 
   test('to Attention for a page opened at the forge, and the same target, the very object, for the same route', () => {

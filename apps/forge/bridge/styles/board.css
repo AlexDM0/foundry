@@ -574,9 +574,13 @@ a.bridge-stat:focus-visible { outline: 2px solid var(--link); outline-offset: 2p
 .bridge-kanban-order-hint { margin: var(--sp-3) 0 0; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }
 
 /* --------------------------------------------------------- embedded mode -- */
-/* In a frame, whose page draws the board's name, state, controls and theme above it, the Agents-at-work strip is the first row. */
+/* In a frame, whose page draws the board's banners, header and tabs above it, the Bridge shows no head of its own: only the filter at its
+ * tab bar's end stays, which the framing page does not draw yet. Outside a frame the whole head shows, as `forge open` opens it. */
 html[data-embedded="frame"] body { padding: 18px 20px 24px; }
-html[data-embedded="frame"] .bridge-head-title-row { display: none; }
+html[data-embedded="frame"] :is(.bridge-shell > .bridge-shell-banner, .bridge-shell > .bridge-banners, .bridge-shell > .bridge-incident-notice) { display: none; }
+html[data-embedded="frame"] :is(.bridge-head-title-row, .bridge-activity, .bridge-tab-bar-tabs) { display: none; }
+/* The framing page draws the board's one Flint over the frame; the Bridge's own would be a second on the same screen. */
+html[data-embedded="frame"] [data-flint] { display: none; }
 
 /* ---------------------------------------------------------------- buttons -- */
 a.bridge-stat, a.bridge-activity-job, .bridge-kanban-size { transition: var(--feedback-transition); }

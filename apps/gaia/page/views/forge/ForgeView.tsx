@@ -1,9 +1,11 @@
 /**
- * A forge in place, the root of `#forge/<trackerId>` (SCREENS B1). It reads the command sender, keeps the Stop question's state, and keeps
- * one frame session per Overseer: a new address or a new start of the forge's Overseer, as the fleet document reports it, mounts a new one.
- * The bar's Wake, its Stop for Flint's brain and the forge mark's double click send the brain's commands for this forge alone.
- * The view heads itself with the forge's bar, so `forgeFrameViewPartsOf` hands the shell no page title, only the bar over the frame area.
- * A new fleet document changes both at once.
+ * A forge's board, the root of `#forge/<trackerId>[/<tab>[/<item>]]` (SCREENS B1), the one way a board opens (decision 43). Gaia's bar heads
+ * it, then the board's own header and tabs for every tab, then the main area: a tab Gaia's board draws is drawn there by its view, and any
+ * other shows the forge's own Bridge in a frame, its head hidden, kept in one frame session per Overseer: a new address or a new start of
+ * the forge's Overseer, as the fleet document reports it, mounts a new one. A forge Gaia cannot read shows why in place of the board. The
+ * bar reads the command sender and keeps the Stop question's state; its Wake, its Stop for Flint's brain and the forge mark's double click
+ * send the brain's commands for this forge alone, and its Open in new tab opens the same route of Gaia's own address in a new tab. The view
+ * heads itself with the forge's bar, so `forgeViewPartsOf` hands the shell no page title. A new fleet document changes both at once.
  */
 import {
   useCallback,
@@ -16,9 +18,14 @@ import {
 import type { CommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                from '../../@types/FleetDocument.ts';
 import { CommandSender, useCommandSender }   from '../../api/CommandSender.ts';
+import { Board, type BoardServicesOf }       from '../../board/Board.tsx';
+import type { BoardRoute }                   from '../../board/shell/BoardRouter.ts';
+import type { BoardTabViewTable }            from '../../board/shell/BoardTabViews.tsx';
 import type { ClockReading }                 from '../../shared/@types/ClockReading.ts';
 import type { ThemeChoice }                  from '../../shared/@types/ThemeChoice.ts';
 import type { ViewParts }                    from '../../shared/@types/ViewParts.ts';
+import { HashRouter }                        from '../../shared/HashRouter.ts';
+import { ForgeContractUtil }                 from '../../shared/utils/ForgeContractUtil.ts';
 import type { EmbedChannelSurroundings }     from './EmbedChannel.ts';
 import {
   BarRefusalLine,
@@ -37,8 +44,8 @@ import {
 import { ForgeFrameSession, type ForgeFrameState } from './ForgeFrameSession.ts';
 import type { FrameSessionResult }                 from './FrameSessionRequest.ts';
 
-/** What the page around a forge in place hands it: the server's frame sessions, the page's messages, its address and its theme. */
-export interface ForgeFrameSurroundings {
+/** What the page around a forge's board hands it: the server's frame sessions, the page's messages, its address and its theme, the board. */
+export interface ForgeViewSurroundings {
   readonly requestFrameSession: (trackerId: string) => Promise<FrameSessionResult>;
   readonly embed:               EmbedChannelSurroundings;
   readonly replaceFragment:     (fragment: string) => void;
@@ -46,6 +53,17 @@ export interface ForgeFrameSurroundings {
   /** The fragment of the view Gaia came from, where `leave` goes. */
   readonly leaveFragment:       string;
   readonly themeChoice:         ThemeChoice;
+  readonly boardServicesOf:     BoardServicesOf;
+  /** The tabs Gaia's board draws itself; every other tab shows the frame. */
+  readonly boardTabViews:       BoardTabViewTable;
+  /** Opens Gaia's own address at a fragment in a browser tab of its own. */
+  readonly openInNewTab:        (fragment: string) => void;
+}
+
+/** The forge view's route: the forge, and the board route Gaia's address names. */
+export interface ForgeViewRoute {
+  readonly trackerId:  string;
+  readonly boardRoute: BoardRoute | null;
 }
 
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
@@ -67,7 +85,12 @@ function shownOf(state: ForgeFrameState): FrameAreaShown {
   }
 }
 
-function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
+interface ForgeBarWithControlsProps {
+  readonly bar:            ForgeBar;
+  readonly onOpenInNewTab: () => void;
+}
+
+function ForgeBarWithControls({ bar, onOpenInNewTab }: ForgeBarWithControlsProps) {
   const {
     send, dismissFailure, dismissRestartPending, states
   } = useCommandSender();
@@ -110,6 +133,7 @@ function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
           onCancelStop={() => setStopIsOpen(false)}
           updateStep={updateStep}
           onDismissUpdate={() => (updateStep.step === 'refused' ? dismissFailure(subject) : dismissRestartPending(subject))}
+          onOpenInNewTab={onOpenInNewTab}
         />
       )}
     />
@@ -118,29 +142,29 @@ function ForgeBarWithControls({ bar }: { readonly bar: ForgeBar }) {
 
 interface FramedForgeProps {
   readonly area:              Extract<ForgeFrameArea, { kind: 'frame' }>;
-  readonly bridgeFragment:    string | null;
-  readonly surroundings:      ForgeFrameSurroundings;
+  readonly boardRoute:        BoardRoute;
+  readonly surroundings:      ForgeViewSurroundings;
   readonly commandIsOnItsWay: boolean;
   readonly onOpenInNewTab:    () => void;
 }
 
 /** One frame session, for as long as the same Overseer serves the forge; its key in the parent is the forge and its Overseer. */
 function FramedForge({
-  area, bridgeFragment, surroundings, commandIsOnItsWay, onOpenInNewTab
+  area, boardRoute, surroundings, commandIsOnItsWay, onOpenInNewTab
 }: FramedForgeProps) {
   const {
     requestFrameSession, embed, replaceFragment, goTo, leaveFragment, themeChoice
   } = surroundings;
   const leave = useCallback(() => goTo(leaveFragment), [goTo, leaveFragment]);
   const [session] = useState(() => ForgeFrameSession.create(
-    { trackerId: area.trackerId, bridgeFragment, themeChoice },
+    { trackerId: area.trackerId, boardRoute, themeChoice },
     {
       requestFrameSession, embed, replaceFragment, leave,
     },
   ));
   const state = useSyncExternalStore(session.subscribe, session.state, session.state);
   useEffect(() => session.start(), [session]);
-  useEffect(() => session.routeChanged(bridgeFragment), [session, bridgeFragment]);
+  useEffect(() => session.routeChanged(boardRoute), [session, boardRoute]);
   useEffect(() => session.themeChanged(themeChoice), [session, themeChoice]);
   const onFrameElement = useCallback((element: HTMLIFrameElement | null) => {
     const frameWindow = element?.contentWindow ?? null;
@@ -160,13 +184,26 @@ function FramedForge({
   );
 }
 
-interface ForgeFrameContentViewProps {
-  readonly content:        ForgeFrameContent;
-  readonly bridgeFragment: string | null;
-  readonly surroundings:   ForgeFrameSurroundings;
+/** The areas the board's header and tabs stand over, for a forge whose board can be read through Gaia's relay. */
+function boardIsShownFor(area: ForgeFrameArea): area is Extract<ForgeFrameArea, { kind: 'frame' | 'unreachable' | 'cannot-show' }> {
+  return area.kind === 'frame' || area.kind === 'unreachable' || area.kind === 'cannot-show';
 }
 
-function ForgeFrameContentView({ content, bridgeFragment, surroundings }: ForgeFrameContentViewProps) {
+interface ForgeContentViewProps {
+  readonly content:        ForgeFrameContent;
+  /** Whether Gaia's relay can read the forge's board, as last reported included. */
+  readonly boardCanBeRead: boolean;
+  readonly route:          ForgeViewRoute;
+  readonly surroundings:   ForgeViewSurroundings;
+}
+
+/**
+ * The frame is drawn only for a tab no view of the board draws, at the route the board shows. The Bridge's own Open in new tab, for a forge
+ * whose Bridge cannot be framed, runs the forge program as it does today.
+ */
+function ForgeContentView({
+  content, boardCanBeRead, route, surroundings
+}: ForgeContentViewProps) {
   const { send, dismissFailure, states } = useCommandSender();
   const { area } = content;
   const subject = { trackerId: area.trackerId };
@@ -174,47 +211,55 @@ function ForgeFrameContentView({ content, bridgeFragment, surroundings }: ForgeF
   const refusal = ForgeFrameModel.barRefusalOf(area.trackerId, commandState.failure, content.bar?.cannotTalk?.verdict === 'older');
   const commandIsOnItsWay = commandState.onItsWay !== null;
   const sendCommand = (command: CommandBody): void => void send(command);
-  const openInNewTab = (): void => sendCommand({ kind: 'forge-open-in-browser', trackerId: area.trackerId });
+  const openTheForgesBridge = (): void => sendCommand({ kind: 'forge-open-in-browser', trackerId: area.trackerId });
+  const areaLayoutOf = (shownArea: ForgeFrameArea) => (
+    <ForgeFrameAreaLayout
+      area={shownArea}
+      shown={null}
+      onFrameElement={null}
+      onLookAgain={() => sendCommand(LOOK_AGAIN)}
+      onAskAgain={() => sendCommand(LOOK_AGAIN)}
+      onLeave={() => surroundings.goTo(surroundings.leaveFragment)}
+      onOpenInNewTab={openTheForgesBridge}
+      commandIsOnItsWay={commandIsOnItsWay}
+    />
+  );
+  const unmovedTabArea = (shownRoute: BoardRoute) => (area.kind === 'frame'
+    ? (
+      <FramedForge
+        key={`${area.trackerId} ${area.overseerKey}`}
+        area={area}
+        boardRoute={shownRoute}
+        surroundings={surroundings}
+        commandIsOnItsWay={commandIsOnItsWay}
+        onOpenInNewTab={openTheForgesBridge}
+      />
+    )
+    : areaLayoutOf(area));
   return (
     <div className="gaia-forge-frame">
       {refusal === null ? null : <BarRefusalLine refusal={refusal} onCommand={sendCommand} onDismiss={() => dismissFailure(subject)} />}
-      {area.kind === 'frame'
+      {boardCanBeRead && boardIsShownFor(area)
         ? (
-          <FramedForge
-            key={`${area.trackerId} ${area.overseerKey}`}
-            area={area}
-            bridgeFragment={bridgeFragment}
-            surroundings={surroundings}
-            commandIsOnItsWay={commandIsOnItsWay}
-            onOpenInNewTab={openInNewTab}
+          <Board
+            trackerId={area.trackerId}
+            route={route.boardRoute}
+            project={area.project}
+            servicesOf={surroundings.boardServicesOf}
+            tabViews={surroundings.boardTabViews}
+            unmovedTabArea={unmovedTabArea}
           />
         )
-        : (
-          <ForgeFrameAreaLayout
-            area={area}
-            shown={null}
-            onFrameElement={null}
-            onLookAgain={() => sendCommand(LOOK_AGAIN)}
-            onAskAgain={() => sendCommand(LOOK_AGAIN)}
-            onLeave={() => surroundings.goTo(surroundings.leaveFragment)}
-            onOpenInNewTab={openInNewTab}
-            commandIsOnItsWay={commandIsOnItsWay}
-          />
-        )}
+        : areaLayoutOf(area)}
     </div>
   );
 }
 
 /**
  * Before the first fleet document the bar names the forge by its tracker id and the view shows nothing more: Gaia does not yet know whether
- * the forge can open in place.
+ * the forge's board can be read.
  */
-export function forgeFrameViewPartsOf(
-  route: { readonly trackerId: string; readonly bridgeFragment: string | null },
-  fleetDocument: FleetDocument | null,
-  clock: ClockReading,
-  surroundings: ForgeFrameSurroundings,
-): ViewParts {
+export function forgeViewPartsOf(route: ForgeViewRoute, fleetDocument: FleetDocument | null, clock: ClockReading, surroundings: ForgeViewSurroundings): ViewParts {
   const selfHeaded = {
     title: null, lead: '', figures: [], actions: null
   } as const;
@@ -223,14 +268,17 @@ export function forgeFrameViewPartsOf(
   }
   const content = ForgeFrameModel.forgeFrameContentOf(route.trackerId, fleetDocument, clock);
   const { bar } = content;
+  const forge = fleetDocument.forges.find((candidate) => candidate.trackerId === route.trackerId);
+  const boardCanBeRead = forge !== undefined && ForgeContractUtil.canOpenInPlace(forge);
+  const openRouteInNewTab = (): void => surroundings.openInNewTab(HashRouter.fragmentOf({ view: 'forge', ...route }));
   return {
     ...selfHeaded,
     content: (
       <div className="gaia-forge-frame-view">
         {bar === null
           ? <ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} />
-          : <ForgeBarWithControls key={bar.trackerId} bar={bar} />}
-        <ForgeFrameContentView content={content} bridgeFragment={route.bridgeFragment} surroundings={surroundings} />
+          : <ForgeBarWithControls key={bar.trackerId} bar={bar} onOpenInNewTab={openRouteInNewTab} />}
+        <ForgeContentView content={content} boardCanBeRead={boardCanBeRead} route={route} surroundings={surroundings} />
       </div>
     ),
   };

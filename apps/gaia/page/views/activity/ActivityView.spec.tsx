@@ -139,7 +139,7 @@ describe('the table', () => {
     expect([tree.hostElementsIn([brainStart], tree.withTag('a')), brainStart.props['interactive']]).toEqual([[], false]);
     const link = tree.onlyWithTag([newestJob], 'a');
     expect([link.props['href'], link.props['title'], newestJob.props['interactive']])
-      .toEqual([`#forge/${TRACKER_IDS.exampleStorefront}/#agents/J4`, 'J4 builder started on #013 Product image zoom', true]);
+      .toEqual([`#forge/${TRACKER_IDS.exampleStorefront}/agents/J4`, 'J4 builder started on #013 Product image zoom', true]);
     const heldRow = rows.find((row) => tree.textOf([row]).includes('Launches held'));
     if (heldRow === undefined) throw new Error('The held forge\'s entry is missing.');
     expect(tree.hostElementsIn([heldRow], tree.withTag('a'))).toEqual([]);

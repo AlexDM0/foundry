@@ -102,8 +102,7 @@ export interface ForgeBar {
   readonly status:                 ForgeBarStatus;
   readonly pauseOrResume:          BarCommand | null;
   readonly stop:                   StopQuestion | null;
-  readonly openInNewTab:           ForgeCommandBody;
-  /** Pause, Resume and Stop are sent to the forge's control contract; Open in new tab runs the forge program. */
+  /** Pause, Resume and Stop are sent to the forge's control contract. */
   readonly controlContractIsKnown: boolean;
   /** `null` for a forge that reports no brain: its monitor is older than contract 3, or it has no Flint. */
   readonly brain:                  BarBrain | null;
@@ -395,7 +394,6 @@ function barOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, clock: Clo
     status:                 barStatusOf(forge, gaiaVersions, clock),
     pauseOrResume:          talks ? pauseOrResumeOf(forge) : null,
     stop:                   talks ? stopQuestionOf(forge) : null,
-    openInNewTab:           { kind: 'forge-open-in-browser', trackerId: forge.trackerId },
     controlContractIsKnown: ForgeContractUtil.controlContractIsKnown(forge),
     brain:                  talks ? barBrainOf(forge, clock) : null,
     cannotTalk,
@@ -435,7 +433,7 @@ function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, gaiaVe
   if (forge.fidelity === 'unreachable') return {
     kind: 'unreachable', trackerId, project, callout,
   };
-  if (forge.fidelity === 'full' && ForgeContractUtil.canOpenInPlace(forge)) return {
+  if (forge.fidelity === 'full' && ForgeContractUtil.bridgeCanBeFramed(forge)) return {
     kind: 'frame', trackerId, project, overseerKey: overseerKeyOf(forge), callout,
   };
   return { kind: 'cannot-show', trackerId, project };

@@ -81,7 +81,7 @@ function brainRowOf(trackerId: string, brain: ForgeBrain): FleetAgentRow {
     lastLine:            null,
     waitingOnDecisionId: null,
     interruption:        null,
-    route:               null,
+    boardRoute:          null,
   };
 }
 

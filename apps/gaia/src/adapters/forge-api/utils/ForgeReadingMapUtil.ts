@@ -1,7 +1,9 @@
 /**
  * Maps the forge documents an ingestion has checked to the internal model: an identity to a `ForgeIdentity`, and a monitor snapshot, a
  * board summary or a contract Gaia does not know to a `ForgeReading` at its fidelity (PLAN 6.1, 7.1). What a document does not carry
- * comes from the registry and the identity; a fact no source gives is `null`, never zero. Only a snapshot reports a brain.
+ * comes from the registry and the identity; a fact no source gives is `null`, never zero. Only a snapshot reports a brain. A monitor's
+ * `route` is the forge's own fragment, `#<tab>[/<encoded item segments>]`, and maps to a place on the board; a fragment naming no tab of
+ * the board, or with a malformed escape in its item, maps to the tab alone or to none.
  */
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from 'forge-contracts/BoardSummaryDocument';
 import type { IdentityDocument }                                               from 'forge-contracts/IdentityDocument';
@@ -23,6 +25,8 @@ import type {
   ForgeNotice,
   ForgeReading,
 } from '../../../shared/@types/ForgeReading.ts';
+import type { BoardRoute }                        from '../../../shared/@types/board/BoardRoute.ts';
+import type { BoardTabName }                      from '../../../shared/@types/board/BoardVocabulary.ts';
 import { FORGE_NOTICE_KINDS }                     from '../../../shared/constants/ForgeNoticeKinds.ts';
 import type { ForgeIdentity, ForgeRegistryFacts } from '../@types/ForgeDocumentReading.ts';
 
@@ -32,6 +36,45 @@ const NO_CONTRACTS: ForgeContracts = {
   control: null,
   embed:   null,
 };
+
+/** Keyed by the union, so a tab Gaia's board gains or loses is a compile error here until the monitor's routes follow. */
+const BOARD_TAB_NAMES: Readonly<Record<BoardTabName, true>> = {
+  kanban:    true,
+  waves:     true,
+  progress:  true,
+  epics:     true,
+  tickets:   true,
+  agents:    true,
+  questions: true,
+  assistant: true,
+  intake:    true,
+  pipeline:  true,
+};
+
+const FRAGMENT_MARK = '#';
+const ROUTE_SEGMENT_SEPARATOR = '/';
+
+function isBoardTabName(name: string): name is BoardTabName {
+  return Object.hasOwn(BOARD_TAB_NAMES, name);
+}
+
+function decodedSegmentOf(segment: string): string | null {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return null;
+  }
+}
+
+function boardRouteOf(route: string | null): BoardRoute | null {
+  if (route === null) return null;
+  const withoutMark = route.startsWith(FRAGMENT_MARK) ? route.slice(FRAGMENT_MARK.length) : route;
+  const [tab = '', ...itemSegments] = withoutMark.split(ROUTE_SEGMENT_SEPARATOR);
+  if (!isBoardTabName(tab)) return null;
+  const decodedItemSegments = itemSegments.map(decodedSegmentOf);
+  const itemIsReadable = decodedItemSegments.length > 0 && decodedItemSegments.every((segment) => segment !== null && segment !== '');
+  return { tab, item: itemIsReadable ? decodedItemSegments.join(ROUTE_SEGMENT_SEPARATOR) : null };
+}
 
 function identityOf(document: IdentityDocument): ForgeIdentity {
   const { contracts } = document;
@@ -79,7 +122,7 @@ function attentionItemOf(entry: MonitorAttentionEntryDocument): AttentionItem {
     stamp:                   entry.stamp,
     stampWord:               entry.stampWord,
     actionLabel:             entry.actionLabel,
-    route:                   entry.route,
+    boardRoute:              boardRouteOf(entry.route),
   };
 }
 
@@ -107,7 +150,7 @@ function agentRowOfMonitorJob(job: MonitorJobDocument): AgentRow {
     lastLine:            job.lastLine,
     waitingOnDecisionId: job.waitingOnDecisionId,
     interruption:        job.interruption ?? null,
-    route:               job.route,
+    boardRoute:          boardRouteOf(job.route),
   };
 }
 
@@ -135,7 +178,7 @@ function agentRowOfSummaryJob(job: SummaryJobDocument): AgentRow {
     lastLine:            null,
     waitingOnDecisionId: null,
     interruption:        null,
-    route:               null,
+    boardRoute:          null,
   };
 }
 
@@ -155,7 +198,7 @@ function activityEntryOf(entry: MonitorActivityEntryDocument): ActivityEntry {
     at:          entry.at,
     category:    entry.category,
     text:        entry.text,
-    route:       entry.route,
+    boardRoute:  boardRouteOf(entry.route),
     kind:        entry.kind === FLINT_BRAIN_ACTIVITY_KIND ? FLINT_BRAIN_ACTIVITY_KIND : null,
     tokens:      entry.tokens ?? null,
   };

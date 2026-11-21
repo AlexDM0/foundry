@@ -1,3 +1,5 @@
+import type { BoardRoute } from './board/BoardRoute.ts';
+
 /** Where a job's session stands: waiting between two turns, or inside one. */
 export type JobTurn = 'between-turns' | 'mid-turn';
 
@@ -30,5 +32,5 @@ export interface AgentRow {
   waitingOnDecisionId: string | null;
   /** Why the forge's job stands interrupted, as its monitor names it; `null` while it is not, and from a summary. */
   interruption:        string | null;
-  route:               string | null;
+  boardRoute:          BoardRoute | null;
 }

@@ -1,3 +1,5 @@
+import type { BoardRoute } from './board/BoardRoute.ts';
+
 /** One log entry a person cares about, worded by its forge. */
 export type ActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
 
@@ -9,7 +11,7 @@ export interface ActivityEntry {
   at:          string;
   category:    ActivityCategory;
   text:        string;
-  route:       string | null;
+  boardRoute:  BoardRoute | null;
   kind:        ActivityKind | null;
   /** The tokens the entry reports, as an ended brain's does; `null` for an entry that reports none. */
   tokens:      number | null;

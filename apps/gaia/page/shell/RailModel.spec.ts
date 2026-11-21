@@ -194,7 +194,7 @@ describe('the current row', () => {
     const onAgents = RailModel.railContentOf(FLEET_FIVE_FORGES, { view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' }, query: '' });
     expect(onAgents.views.filter((row) => row.isCurrent).map((row) => row.view)).toEqual(['agents']);
     expect(onAgents.forges.some((row) => row.isCurrent)).toBe(false);
-    const inPlace = RailModel.railContentOf(FLEET_FIVE_FORGES, { view: 'forge', trackerId: TRACKER_IDS.invoiceService, bridgeFragment: '#questions/E4' });
+    const inPlace = RailModel.railContentOf(FLEET_FIVE_FORGES, { view: 'forge', trackerId: TRACKER_IDS.invoiceService, boardRoute: { tab: 'questions', item: 'E4' } });
     expect(inPlace.views.some((row) => row.isCurrent)).toBe(false);
     expect(inPlace.forges.filter((row) => row.isCurrent).map((row) => row.project)).toEqual(['Invoice Service']);
   });

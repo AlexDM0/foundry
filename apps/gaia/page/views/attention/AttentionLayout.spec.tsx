@@ -120,7 +120,7 @@ describe('the list of what waits on User', () => {
       ['link', 'quiet', 'Accept'],
       ['link', 'quiet', 'Answer'],
     ]);
-    expect(buttons[4]?.props['href']).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/#questions/E2`);
+    expect(buttons[4]?.props['href']).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`);
   });
 
   test('a row shows its forge with the dot and the word, the kind pill in its tone, the subject and the mono meta line', () => {

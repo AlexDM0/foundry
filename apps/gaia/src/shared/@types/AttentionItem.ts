@@ -1,3 +1,5 @@
+import type { BoardRoute } from './board/BoardRoute.ts';
+
 /** One entry of what waits on User in one forge, as that forge orders and words it. */
 export type AttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
 
@@ -20,6 +22,6 @@ export interface AttentionItem {
   stamp:                   string;
   stampWord:               AttentionStampWord;
   actionLabel:             AttentionActionLabel;
-  /** The Bridge fragment that opens the entry, such as `#questions/E3`. */
-  route:                   string;
+  /** Where on the forge's board the entry opens; `null` for a route the forge names that Gaia's board does not know. */
+  boardRoute:              BoardRoute | null;
 }

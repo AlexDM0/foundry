@@ -196,7 +196,7 @@ describe('where the links go', () => {
   });
 
   test('the job link opens the agent in its forge in place, at the Bridge\'s own agent route', () => {
-    expect(rowOf(contentOf(FLEET_FIVE_FORGES).rows, 'Invoice Service', 'J12').jobHref).toBe(`#forge/${TRACKER_IDS.invoiceService}/#agents/J12`);
+    expect(rowOf(contentOf(FLEET_FIVE_FORGES).rows, 'Invoice Service', 'J12').jobHref).toBe(`#forge/${TRACKER_IDS.invoiceService}/agents/J12`);
   });
 
   test('a forge that cannot open in place sends the job link to its row on the Forges view', () => {
@@ -248,7 +248,7 @@ describe('the selected agent', () => {
         { label: 'Messages waiting', value: '0' },
       ],
       lastLine:  'Running the numbering specs again after the change to CreditNoteSequence.ts.\n$ bun test ./src/features/credit-notes',
-      openHref:  `#forge/${TRACKER_IDS.invoiceService}/#agents/J12`,
+      openHref:  `#forge/${TRACKER_IDS.invoiceService}/agents/J12`,
       openLabel: 'Open J12 in its forge',
     });
   });

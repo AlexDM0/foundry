@@ -1,14 +1,17 @@
 /**
- * What Gaia can do with a forge by the contracts it publishes: open it in place, which needs the embed contract Gaia knows and a forge read
- * in full or as last reported, and send it what its Overseer carries, Flint's brain's commands included, which needs the control contract
- * Gaia sends.
+ * What Gaia can do with a forge by the contracts it publishes: open its board in place, which needs a forge read in full or as last
+ * reported; frame its Bridge for a tab Gaia's board does not draw yet, which also needs the embed contract Gaia knows; and send it what its
+ * Overseer carries, Flint's brain's commands included, which needs the control contract Gaia sends.
  */
 import type { FleetDocumentForge }       from '../../@types/FleetDocument.ts';
 import { KNOWN_FORGE_CONTRACT_VERSIONS } from '../constants/KnownForgeContractVersions.ts';
 
 function canOpenInPlace(forge: FleetDocumentForge): boolean {
-  const isReadInFullOrAsLastReported = forge.fidelity === 'full' || forge.fidelity === 'unreachable';
-  return isReadInFullOrAsLastReported && forge.contracts.embed === KNOWN_FORGE_CONTRACT_VERSIONS.embed;
+  return forge.fidelity === 'full' || forge.fidelity === 'unreachable';
+}
+
+function bridgeCanBeFramed(forge: FleetDocumentForge): boolean {
+  return canOpenInPlace(forge) && forge.contracts.embed === KNOWN_FORGE_CONTRACT_VERSIONS.embed;
 }
 
 function controlContractIsKnown(forge: FleetDocumentForge): boolean {
@@ -22,6 +25,7 @@ function brainCommandsAreServed(forge: FleetDocumentForge): boolean {
 
 export const ForgeContractUtil = {
   canOpenInPlace,
+  bridgeCanBeFramed,
   controlContractIsKnown,
   brainCommandsAreServed,
 } as const;

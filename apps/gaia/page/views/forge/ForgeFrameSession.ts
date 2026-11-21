@@ -1,10 +1,12 @@
 /**
- * One forge's Bridge in Gaia's frame, from the frame session it asks for to the embed channel it keeps (SCREENS B1, PLAN 8.3). Once the
- * Bridge is ready Gaia posts the theme, and `navigate` to the route's Bridge fragment when the Bridge does not already show it; the
- * Bridge's own route is written into Gaia's address without a history entry, so Back leaves the forge; `leave` goes back to the view Gaia
+ * One forge's Bridge in Gaia's frame, for a tab Gaia's board does not draw yet, from the frame session it asks for to the embed channel it
+ * keeps (SCREENS B1, PLAN 8.3). Once the Bridge is ready Gaia posts the theme, and `navigate` to the board route's Bridge fragment when the
+ * Bridge does not already show it; the Bridge's own route is written into Gaia's address as a board route without a history entry, so Back
+ * leaves the forge; `leave` goes back to the view Gaia
  * came from; `session-lost` from a ready Bridge asks for a new frame session and loads a fresh frame, so a restarted Overseer needs
  * nothing of User.
  */
+import type { BoardRoute }  from '../../board/shell/BoardRouter.ts';
 import type { ThemeChoice } from '../../shared/@types/ThemeChoice.ts';
 import { HashRouter }       from '../../shared/HashRouter.ts';
 import {
@@ -15,6 +17,7 @@ import {
   type OpenEmbedChannel,
 } from './EmbedChannel.ts';
 import type { FrameSessionResult } from './FrameSessionRequest.ts';
+import { FrameRouteUtil }          from './utils/FrameRouteUtil.ts';
 
 /**
  * `opened` holds the frame's address, which only the frame's `src` may carry, and the count of frames loaded in this session, which keys a
@@ -43,9 +46,9 @@ export interface ForgeFrameSessionSurroundings {
 }
 
 export interface ForgeFrameSessionOpening {
-  readonly trackerId:      string;
-  readonly bridgeFragment: string | null;
-  readonly themeChoice:    ThemeChoice;
+  readonly trackerId:   string;
+  readonly boardRoute:  BoardRoute;
+  readonly themeChoice: ThemeChoice;
 }
 
 export interface ForgeFrameSession {
@@ -56,13 +59,11 @@ export interface ForgeFrameSession {
   readonly askAgain:     () => void;
   /** Opens the embed channel to the frame now loading the opened session; the returned close ends it. */
   readonly attachFrame:  (frameWindow: EmbedFrameWindow) => () => void;
-  readonly routeChanged: (bridgeFragment: string | null) => void;
+  readonly routeChanged: (boardRoute: BoardRoute) => void;
   readonly themeChanged: (themeChoice: ThemeChoice) => void;
 }
 
 const ASKING: ForgeFrameState = { phase: 'asking' };
-
-const FRAGMENT_MARK = '#';
 
 /** Gaia's own reason for no frame when the Bridge lost the session it was just given. */
 export const SESSION_LOST_WHILE_OPENING = 'session-lost-while-opening';
@@ -70,17 +71,11 @@ export const SESSION_LOST_WHILE_OPENING = 'session-lost-while-opening';
 /** The Bridge's own session exchange reads its code from this fragment; such a fragment is never written into Gaia's address. */
 const SESSION_CODE_FRAGMENT_PREFIX = '#session=';
 
-/** The Bridge's fragment as Gaia's route keeps it: with its mark, and `null` for the Bridge's start. */
-function bridgeFragmentOf(fragment: string): string | null {
-  if (fragment === '' || fragment === FRAGMENT_MARK) return null;
-  return fragment.startsWith(FRAGMENT_MARK) ? fragment : `${FRAGMENT_MARK}${fragment}`;
-}
-
 function create(opening: ForgeFrameSessionOpening, surroundings: ForgeFrameSessionSurroundings): ForgeFrameSession {
   const { trackerId } = opening;
   const listeners = new Set<() => void>();
   let state: ForgeFrameState = ASKING;
-  let { bridgeFragment } = opening;
+  let bridgeFragment = FrameRouteUtil.bridgeFragmentOf(opening.boardRoute);
   let { themeChoice } = opening;
   let isStarted = false;
   let askNumber = 0;
@@ -129,7 +124,7 @@ function create(opening: ForgeFrameSessionOpening, surroundings: ForgeFrameSessi
   };
 
   const postNavigateIfTheBridgeShowsAnotherRoute = (): void => {
-    if (channel === null || bridgeFragment === null || bridgeFragment === reportedBridgeFragment) return;
+    if (channel === null || bridgeFragment === reportedBridgeFragment) return;
     channel.post({ kind: 'navigate', fragment: bridgeFragment });
   };
 
@@ -140,13 +135,18 @@ function create(opening: ForgeFrameSessionOpening, surroundings: ForgeFrameSessi
     postNavigateIfTheBridgeShowsAnotherRoute();
   };
 
-  /** A route before `ready` is the Bridge's own first route, which would overwrite the one Gaia is about to ask for. */
+  /**
+   * A route before `ready` is the Bridge's own first route, which would overwrite the one Gaia is about to ask for; a route naming no board
+   * tab, as the Bridge's start, leaves Gaia's address as it is.
+   */
   const onRoute = (fragment: string): void => {
     if (state.phase !== 'opened' || !state.bridgeIsReady || fragment.startsWith(SESSION_CODE_FRAGMENT_PREFIX)) return;
-    const reported = bridgeFragmentOf(fragment);
+    const reportedRoute = FrameRouteUtil.boardRouteOfBridgeFragment(fragment);
+    if (reportedRoute === null) return;
+    const reported = FrameRouteUtil.bridgeFragmentOf(reportedRoute);
     reportedBridgeFragment = reported;
     bridgeFragment = reported;
-    surroundings.replaceFragment(HashRouter.fragmentOf({ view: 'forge', trackerId, bridgeFragment: reported }));
+    surroundings.replaceFragment(HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute: reportedRoute }));
   };
 
   /** A frame that loses its session before it was ever ready would lose the next one too: Gaia stops there rather than ask without end. */
@@ -205,7 +205,8 @@ function create(opening: ForgeFrameSessionOpening, surroundings: ForgeFrameSessi
         closeChannel();
       };
     },
-    routeChanged: (nextBridgeFragment) => {
+    routeChanged: (nextBoardRoute) => {
+      const nextBridgeFragment = FrameRouteUtil.bridgeFragmentOf(nextBoardRoute);
       if (nextBridgeFragment === bridgeFragment) return;
       bridgeFragment = nextBridgeFragment;
       if (state.phase === 'opened' && state.bridgeIsReady) postNavigateIfTheBridgeShowsAnotherRoute();
