@@ -169,7 +169,7 @@ function partiallyKeyedByVocabularyShape(name: BoardVocabularyName, rule: FieldR
 /** A refusal as a document or a command answer carries it. */
 export const REFUSAL_DOCUMENT_SHAPE = { code: 'text', fields: { recordOf: 'json' }, sentence: 'text' } as const satisfies ShapeOf<ForgeRefusalDocument>;
 
-const TARGET_SHAPE = { subject: vocabularyRule('targetSubject'), id: 'text' } as const satisfies ShapeOf<BoardTarget>;
+export const TARGET_SHAPE = { subject: vocabularyRule('targetSubject'), id: 'text' } as const satisfies ShapeOf<BoardTarget>;
 
 const ATTENTION_ENTRY_SHAPE = {
   key:                     'text',

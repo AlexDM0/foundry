@@ -2,9 +2,9 @@
  * Maps the forge documents an ingestion has checked to the internal model: an identity to a `ForgeIdentity`, and a monitor snapshot, a
  * board summary or a contract Gaia does not know to a `ForgeReading` at its fidelity (PLAN 6.1, 7.1). What a document does not carry
  * comes from the registry and the identity; a fact no source gives is `null`, never zero. Only a snapshot reports a brain. A monitor's
- * `route` is the forge's own fragment, `#<tab>[/<encoded item segments>]`, and maps to a place on the board; a fragment naming no tab of
- * the board, or with a malformed escape in its item, maps to the tab alone or to none.
+ * `target` names the thing an entry opens, and maps to that subject's place on Gaia's board; an entry with no target maps to none.
  */
+import type { BoardTarget, BoardTargetSubject }                                from 'forge-contracts/BoardReadingDocuments';
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from 'forge-contracts/BoardSummaryDocument';
 import type { IdentityDocument }                                               from 'forge-contracts/IdentityDocument';
 import type {
@@ -36,43 +36,22 @@ const NO_CONTRACTS: ForgeContracts = {
   control: null,
 };
 
-/** Keyed by the union, so a tab Gaia's board gains or loses is a compile error here until the monitor's routes follow. */
-const BOARD_TAB_NAMES: Readonly<Record<BoardTabName, true>> = {
-  kanban:    true,
-  waves:     true,
-  progress:  true,
-  epics:     true,
-  tickets:   true,
-  agents:    true,
-  questions: true,
-  assistant: true,
-  intake:    true,
-  pipeline:  true,
+/** The tab each subject opens, and the detail form its id is written in there; `null` writes the id itself, and an incident opens the tab alone. */
+const PLACE_OF_TARGET_SUBJECT: Readonly<Record<BoardTargetSubject, { readonly tab: BoardTabName; readonly detailForm: string | null; readonly namesItem: boolean }>> = {
+  decision: { tab: 'questions', detailForm: null, namesItem: true },
+  ticket:   { tab: 'kanban', detailForm: 'ticket', namesItem: true },
+  draft:    { tab: 'kanban', detailForm: 'draft', namesItem: true },
+  job:      { tab: 'agents', detailForm: null, namesItem: true },
+  incident: { tab: 'assistant', detailForm: null, namesItem: false },
 };
 
-const FRAGMENT_MARK = '#';
 const ROUTE_SEGMENT_SEPARATOR = '/';
 
-function isBoardTabName(name: string): name is BoardTabName {
-  return Object.hasOwn(BOARD_TAB_NAMES, name);
-}
-
-function decodedSegmentOf(segment: string): string | null {
-  try {
-    return decodeURIComponent(segment);
-  } catch {
-    return null;
-  }
-}
-
-function boardRouteOf(route: string | null): BoardRoute | null {
-  if (route === null) return null;
-  const withoutMark = route.startsWith(FRAGMENT_MARK) ? route.slice(FRAGMENT_MARK.length) : route;
-  const [tab = '', ...itemSegments] = withoutMark.split(ROUTE_SEGMENT_SEPARATOR);
-  if (!isBoardTabName(tab)) return null;
-  const decodedItemSegments = itemSegments.map(decodedSegmentOf);
-  const itemIsReadable = decodedItemSegments.length > 0 && decodedItemSegments.every((segment) => segment !== null && segment !== '');
-  return { tab, item: itemIsReadable ? decodedItemSegments.join(ROUTE_SEGMENT_SEPARATOR) : null };
+function boardRouteOf(target: BoardTarget | null): BoardRoute | null {
+  if (target === null) return null;
+  const { tab, detailForm, namesItem } = PLACE_OF_TARGET_SUBJECT[target.subject];
+  if (!namesItem) return { tab, item: null };
+  return { tab, item: detailForm === null ? target.id : `${detailForm}${ROUTE_SEGMENT_SEPARATOR}${target.id}` };
 }
 
 function identityOf(document: IdentityDocument): ForgeIdentity {
@@ -120,7 +99,7 @@ function attentionItemOf(entry: MonitorAttentionEntryDocument): AttentionItem {
     stamp:                   entry.stamp,
     stampWord:               entry.stampWord,
     actionLabel:             entry.actionLabel,
-    boardRoute:              boardRouteOf(entry.route),
+    boardRoute:              boardRouteOf(entry.target),
   };
 }
 
@@ -148,7 +127,7 @@ function agentRowOfMonitorJob(job: MonitorJobDocument): AgentRow {
     lastLine:            job.lastLine,
     waitingOnDecisionId: job.waitingOnDecisionId,
     interruption:        job.interruption ?? null,
-    boardRoute:          boardRouteOf(job.route),
+    boardRoute:          boardRouteOf(job.target),
   };
 }
 
@@ -196,7 +175,7 @@ function activityEntryOf(entry: MonitorActivityEntryDocument): ActivityEntry {
     at:          entry.at,
     category:    entry.category,
     text:        entry.text,
-    boardRoute:  boardRouteOf(entry.route),
+    boardRoute:  boardRouteOf(entry.target),
     kind:        entry.kind === FLINT_BRAIN_ACTIVITY_KIND ? FLINT_BRAIN_ACTIVITY_KIND : null,
     tokens:      entry.tokens ?? null,
   };

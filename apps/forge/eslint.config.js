@@ -1,24 +1,18 @@
 import { fileURLToPath } from 'node:url';
 
-import base       from '@reliquary/eslint-config';
-import reactHooks from 'eslint-plugin-react-hooks';
+import base from '@reliquary/eslint-config';
 
 const REPOSITORY_FOLDER = fileURLToPath(new URL('.', import.meta.url));
 
 // The dev tools are devDependencies of the workspace root, so a spec or test helper may import what either manifest names.
 const MANIFEST_FOLDERS = [REPOSITORY_FOLDER, fileURLToPath(new URL('../..', import.meta.url))];
 
-const STORAGE_MESSAGE = 'Browser storage is reached only in bridge/preferences/PreferenceStore.ts.';
-const STORAGE_SITES = ['bridge/preferences/PreferenceStore.ts'];
-
 const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 
-const RAW_MARKUP_MESSAGE = 'React escapes every value; agent-written HTML reaches the DOM only as a sandboxed iframe\'s srcdoc.';
-
-const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.dom.tsx', '**/testing/**/*.ts'];
+const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/testing/**/*.ts'];
 
 /**
- * Each process or browser reach CLAUDE.md confines, with the exact files allowed to make it. A `shippingOnly` reach binds no spec or
+ * Each process reach CLAUDE.md confines, with the exact files allowed to make it. A `shippingOnly` reach binds no spec or
  * testing folder, which exercise the platform directly.
  */
 const CONFINED_REACHES = [
@@ -56,10 +50,6 @@ const CONFINED_REACHES = [
     allowedIn:  ['cli/CommandContext.ts', 'setup.ts'],
     importName: { name: 'node:os', importNames: ['homedir'], message: 'Take the home directory from the CommandContext.' },
   },
-  ...['localStorage', 'sessionStorage'].flatMap((storageName) => [
-    { allowedIn: STORAGE_SITES, property: { object: 'window', property: storageName, message: STORAGE_MESSAGE } },
-    { allowedIn: STORAGE_SITES, global: { name: storageName, message: STORAGE_MESSAGE } },
-  ]),
 ];
 
 const CONFINED_REACHES_OF_SPECS = CONFINED_REACHES.filter((reach) => !reach.shippingOnly);
@@ -68,7 +58,6 @@ function confinedReachRules(exemptFile, reaches) {
   const binding = reaches.filter((reach) => !reach.allowedIn.includes(exemptFile));
   return {
     'no-restricted-properties': ['error', ...binding.filter((reach) => reach.property).map((reach) => reach.property)],
-    'no-restricted-globals':    ['error', ...binding.filter((reach) => reach.global).map((reach) => reach.global)],
     'no-restricted-imports':    ['error', { paths: binding.filter((reach) => reach.importName).map((reach) => reach.importName) }],
   };
 }
@@ -80,8 +69,7 @@ const CLOCK_MESSAGE = 'Take the clock from the CommandContext.';
 export default [
   ...base,
   // The worktrees an Overseer makes inside a checkout hold copies of this repository, linted in their own checkout.
-  // The Bridge is not linted: it retires in stage 8.
-  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.forge-worktrees/**', '.agent-progress-worktrees/**', 'bridge/**'] },
+  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.forge-worktrees/**', '.agent-progress-worktrees/**'] },
   {
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.
     files: [
@@ -90,8 +78,6 @@ export default [
       'cli/testing/**/*.ts',
       'src/adapters/progress/testing/**/*.ts',
       'src/services/tracker/testing/**/*.ts',
-      'bridge/testing/**/*.ts',
-      'bridge/**/*.dom.tsx',
     ],
     rules: { 'import/no-extraneous-dependencies': ['error', { devDependencies: true, packageDir: MANIFEST_FOLDERS }] },
   },
@@ -121,19 +107,6 @@ export default [
         'error',
         { selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']", message: CLOCK_MESSAGE },
         { selector: "NewExpression[callee.name='Date'][arguments.length=0]", message: CLOCK_MESSAGE },
-      ],
-    },
-  },
-  {
-    files:   ['bridge/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
-    rules:   {
-      ...reactHooks.configs.flat.recommended.rules,
-      'react-hooks/exhaustive-deps': 'error',
-      'no-restricted-syntax':        [
-        'error',
-        { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: RAW_MARKUP_MESSAGE },
-        { selector: "AssignmentExpression > MemberExpression.left[property.name=/^(innerHTML|outerHTML)$/]", message: RAW_MARKUP_MESSAGE },
       ],
     },
   },

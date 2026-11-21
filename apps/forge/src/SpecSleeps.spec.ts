@@ -21,8 +21,6 @@ const FIXED_WAIT_PATTERNS: readonly RegExp[] = [
 
 /** `<path>: <trimmed line>`, each with the reason it stays. */
 const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
-  'bridge/views/detail-panel/DetailPanel.dom.tsx: setTimeout(resolve, 20);':
-    'A negative: a planted payload never runs, so there is no state to wait on; load only shortens what the window watches.',
   'cli/RegisterWrittenTracker.integration.spec.ts: await Bun.sleep(LOCK_HELD_WHILE_THE_CHILDREN_START_MILLISECONDS);':
     'A negative across processes: nothing writes the registry while its lock is held; a hold ending on the children\'s state could outlast their retry budget.',
   'src/lib/talos/LocalEndpoint.answers.integration.spec.ts: const timer = setTimeout(() => resolve(false), NEVER_ARRIVES_WAIT_MILLISECONDS);':
@@ -112,8 +110,8 @@ test('a test helper and a DOM spec are scanned; a comment and shipping code are 
   const sleepLine = 'await Bun.sleep(50);';
   expect(fixedWaitsIn([
     { path: 'cli/testing/Planted.ts', text: sleepLine },
-    { path: 'bridge/Planted.dom.tsx', text: sleepLine },
+    { path: 'cli/Planted.dom.tsx', text: sleepLine },
     { path: 'cli/Planted.spec.ts', text: `// ${sleepLine}\n * ${sleepLine}\n` },
     { path: 'cli/Planted.ts', text: sleepLine },
-  ])).toEqual([`cli/testing/Planted.ts: ${sleepLine}`, `bridge/Planted.dom.tsx: ${sleepLine}`]);
+  ])).toEqual([`cli/testing/Planted.ts: ${sleepLine}`, `cli/Planted.dom.tsx: ${sleepLine}`]);
 });

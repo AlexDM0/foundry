@@ -1184,5 +1184,4 @@ What a [lock hold](#lock-hold) must write, the change lists `BoardRecords` keeps
 | Product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES`, `ORIGINAL_PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
 | Hard-coded product names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNameLiterals.spec.ts` |
 | Decided component names | every tracked file | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
-| Bridge status words | `bridge/utils/DisplayStateWordingUtil.ts` | `DisplayStateWordingUtil` | `bridge/utils/DisplayStateWordingUtil.spec.ts` |
 | Derived display state | `src/lib/tracker-model/DisplayQueries.ts` | `displayStateFor` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |

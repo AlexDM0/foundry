@@ -13,11 +13,11 @@ import { lockfileDependencyGraphOf } from './LockfileDependencyGraph.ts';
 const PROGRAM_ROOT = join(import.meta.dir, '..', '..', '..');
 
 const SHIPPING_FILES   = ['agent-progress.ts', 'talos.ts', 'package.json'];
-const SHIPPING_FOLDERS = ['cli', 'src', 'bridge', 'resources', 'skills'];
+const SHIPPING_FOLDERS = ['cli', 'src', 'resources', 'skills'];
 const LOCKFILE_NAME    = 'bun.lock';
 
 const SKIPPED_FOLDER_NAMES = new Set(['node_modules', 'testing']);
-/** Specs, the Bridge's and the packages' DOM specs among them, and a package's stories ship nothing. */
+/** Specs, a package's DOM specs among them, and a package's stories ship nothing. */
 const UNSHIPPED_FILE_SUFFIXES = ['.spec.ts', '.dom.tsx', '.stories.tsx'];
 /** A package's tool folders, such as `.storybook`, ship nothing; the program's shipping folders hold none. */
 const HIDDEN_ENTRY_PREFIX  = '.';

@@ -7,6 +7,7 @@
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 import type { MONITOR_INTERRUPTION_CAUSES } from '../constants/MonitorInterruptionCauses.ts';
+import type { BoardTarget }                 from './BoardReadingDocuments.ts';
 
 
 export type MonitorAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
@@ -61,7 +62,8 @@ export interface MonitorAttentionEntryDocument {
   readonly stamp:                   string;
   readonly stampWord:               MonitorAttentionStampWord;
   readonly actionLabel:             MonitorAttentionActionLabel;
-  readonly route:                   string;
+  /** The thing the entry opens; a reader routes it to its own place for that subject. */
+  readonly target:                  BoardTarget;
 }
 
 export interface MonitorJobDocument {
@@ -88,7 +90,7 @@ export interface MonitorJobDocument {
   readonly waitingOnDecisionId: string | null;
   /** The cause while the job is `interrupted`, from forge 1.19, absent from an older forge; `null` in every other state. */
   readonly interruption?:       MonitorInterruptionCause | null;
-  readonly route:               string;
+  readonly target:              BoardTarget;
 }
 
 /** A notice or a warning: the forge's kind and its own sentence. */
@@ -103,7 +105,8 @@ export interface MonitorActivityEntryDocument {
   readonly at:          string;
   readonly category:    MonitorActivityCategory;
   readonly text:        string;
-  readonly route:       string | null;
+  /** `null` for an entry about the board's own. */
+  readonly target:      BoardTarget | null;
   readonly kind?:       string | null;
   readonly tokens?:     number | null;
 }

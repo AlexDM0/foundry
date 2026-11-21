@@ -1,7 +1,7 @@
 /**
  * The documentation cites specs as evidence, so a cited spec must be where the citation says. Every repository-rooted `.spec.ts` path
  * in `README.md`, `CLAUDE.md`, the rule files under the workspace root's `.claude/rules/` and the files under `docs/` (but the untracked
- * `docs/design/`) exists, read from the program root, the workspace root or a declared package's folder (`design-system/…`): a spec
+ * `docs/design/`) exists, read from the program root, the workspace root or a declared package's folder (`forge-contracts/…`): a spec
  * rename or split corrects its citations in the same change. A bare file name, a glob and a relative link are no
  * citation. The scan first proves it read citations, and each form is planted to prove the guard names it and passes what it skips.
  */
@@ -71,7 +71,7 @@ function existsInCheckout(path: string): boolean {
 describe('the spec citations of the documentation resolve', () => {
   test('the scan reads spec citations in the docs, in CLAUDE.md and in a path-scoped rule file', () => {
     expect(DOCUMENTS.flatMap((document) => citedSpecPathsOf(document.text)).length).toBeGreaterThan(0);
-    for (const rulePath of ['CLAUDE.md', '.claude/rules/bridge.md']) {
+    for (const rulePath of ['CLAUDE.md', '.claude/rules/skills.md']) {
       expect(citedSpecPathsOf(DOCUMENTS.find((document) => document.path === rulePath)?.text ?? '').length, rulePath).toBeGreaterThan(0);
     }
   });

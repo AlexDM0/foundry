@@ -35,62 +35,6 @@ The promise, in three lines:
 *Notice that nothing inside the dashed box is a child of the Overseer, and that agents touch neither the board nor
 main.*
 
-## What it looks like
-
-The Bridge is a live React app the Overseer serves on `127.0.0.1`. Every image below is one of its views of the
-Example Storefront demo board, taken with the Overseer running scripted fake agents.
-
-<p align="center">
-  <img src="docs/images/bridge-kanban.png" width="100%" alt="Kanban: the Example Storefront board under its header: the live state, the figures, the Waiting on User pill, Pause and Stop Overseer, then the activity strip of three builders and a reviewer at work, and the tabs with their counts. Below, the lanes: Ready with two draft tickets above the normal ones, three Building, three In review, one in the Merge queue and one Done, with Abandoned folded.">
-  <br><strong>Kanban.</strong> Every ticket by lane, from draft ticket to Done.
-</p>
-
-<p align="center">
-  <img src="docs/images/bridge-progress.png" width="100%" alt="Progress: a Gantt row per ticket grouped by epic, each with its state and a red now line, then the finished work of the last day.">
-  <br><strong>Progress.</strong> Gantt rows by epic, then the finished work.
-</p>
-
-<p align="center">
-  <img src="docs/images/bridge-agents.png" width="100%" alt="Agents: the worker list, three builders and a reviewer under the project row with its 4 / 5 worker meter and the agents at most field. The builder of #008 asks User, so it leads, its question under it. Each row shows its state, calls against its budget and its subagents as squares. Below, Sessions holds the product owner, also asking, and the Assistant.">
-  <br><strong>Agents.</strong> Every <a href="docs/glossary.md#job">job</a> with its state, calls and subagents.
-</p>
-
-<p align="center">
-  <img src="docs/images/bridge-assistant.png" width="100%" alt="Assistant: its session as a chat thread: a working turn with its running tool calls, then User's message, queued until the Assistant is idle. Below, the composer is marked busy; beside the thread, the incident rail holds no incident.">
-  <br><strong>Assistant.</strong> The <a href="docs/glossary.md#assistant">session</a> that settles incidents, and a
-  chat with it.
-</p>
-
-<p align="center">
-  <img src="docs/images/bridge-questions.png" width="100%" alt="Questions: the open decisions, a builder's question on #008 first, how long a password reset link stays valid, with what each option touches, trades off and does to the Acceptance. Beside them the question panel shows the same question with its options as cards, and the ticket's Wanted, Brief and Acceptance in its Background tab.">
-  <br><strong>Questions.</strong> What only User can answer, beside the board.
-</p>
-
-<p align="center">
-  <img src="docs/images/bridge-intake.png" width="100%" alt="Intake: the session list, one session titled Wish list on product pages and waiting on User, and its chat: User's request, User's message with a sketch of product cards, the product owner's finished turn, then its working turn and its two-question decision in the thread. Below, the composer with Attach pictures; beside the chat, the pictures in this chat and Close intake.">
-  <br><strong>Intake.</strong> A request, a picture, and the
-  <a href="docs/glossary.md#product-owner">product owner</a> working on it.
-</p>
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <img src="docs/images/bridge-merge-queue.png" width="100%" alt="Merge queue: the stated merge order, then main with its Airlock free and #002 queued clean.">
-      <br><strong>Merge queue.</strong> What the Airlock holds and what waits behind it.
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/images/bridge-tickets.png" width="100%" alt="Tickets: #012 One-page checkout open in the detail panel on its Description tab, beside Overview, Timeline and Activity, with its Report, Wanted, Acceptance and Brief.">
-      <br><strong>Tickets.</strong> One ticket's overview, timeline, activity and description.
-    </td>
-  </tr>
-  <tr>
-    <td colspan="2" align="center">
-      <img src="docs/images/bridge-kanban-dark.png" width="50%" alt="Dark theme: the same Kanban view in the dark theme.">
-      <br><strong>Dark theme.</strong> The same Kanban.
-    </td>
-  </tr>
-</table>
-
 ## One ticket, start to merge
 
 User describes the work and readies the [draft ticket](docs/glossary.md#draft-ticket) a product owner files. The
@@ -217,4 +161,4 @@ The program is TypeScript on Bun, with three runtime dependencies: `marked`, `re
 | The names on this build | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
 | A new board starts paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
 | The machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
-| The images on this page | `.readme-graphics/regenerate.sh`, `.readme-graphics/render-diagrams.py` | `DIAGRAMS` | read by hand |
+| The images on this page | `.readme-graphics/render-diagrams.py` | `DIAGRAMS` | read by hand |

@@ -1,23 +1,15 @@
 /**
  * What waits on User, pure, from the facts already on the board: open decisions (the ones an Assistant escalated apart), draft tickets,
- * filing drafts waiting on an answer, tickets ready for review and tickets waiting for User's merge accept. The Bridge's Waiting on User
- * list and the monitor snapshot's `attention` are this one list. It orders by the stamp strings, which one writer wrote, so no clock
+ * filing drafts waiting on an answer, tickets ready for review and tickets waiting for User's merge accept. The board document's attention
+ * and the monitor snapshot's `attention` are this one list. It orders by the stamp strings, which one writer wrote, so no clock
  * decides the order; ages are only shown.
  */
 import type { DraftState }                          from '../../lib/tracker-model/@types/Draft.ts';
 import type { MonitorAttentionEntry }               from './@types/MonitorSnapshot.ts';
-import { BridgeFragmentUtil, type FragmentSubject } from './utils/BridgeFragmentUtil.ts';
 import { DraftWordingUtil }                         from './utils/DraftWordingUtil.ts';
 import { OpenDecisionsUtil, type EscalationRecord } from './utils/OpenDecisionsUtil.ts';
 
-/** The thing an entry opens; a reader routes it to its own place for that subject. */
-export interface AttentionTarget {
-  readonly subject: FragmentSubject;
-  readonly id:      string;
-}
-
-/** One thing that waits on User, with the thing it opens rather than a route of any one reader. */
-export type AttentionEntry = Omit<MonitorAttentionEntry, 'route'> & { readonly target: AttentionTarget };
+export type AttentionEntry = MonitorAttentionEntry;
 
 interface AttentionDecision {
   readonly id:        string;
@@ -171,10 +163,4 @@ export function attentionEntriesOf(board: AttentionBoard): AttentionEntry[] {
     .map((entry) => mergeAcceptEntryOf(entry.ticketId, target.target, ticketById.get(entry.ticketId))));
   const entries = [...decisions, ...draftTickets, ...filingDrafts, ...reviews, ...mergeAccepts].toSorted(oldestFirst);
   return [...entries.filter((entry) => entry.kind === 'escalated-question'), ...entries.filter((entry) => entry.kind !== 'escalated-question')];
-}
-
-/** The entry as the monitor and the Bridge carry it: its target turned into the Bridge's route. */
-export function routedAttentionEntryOf(entry: AttentionEntry): MonitorAttentionEntry {
-  const { target, ...fields } = entry;
-  return { ...fields, route: BridgeFragmentUtil.subjectFragmentOf(target.subject, target.id) };
 }

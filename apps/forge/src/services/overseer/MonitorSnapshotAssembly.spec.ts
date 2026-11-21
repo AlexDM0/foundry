@@ -2,7 +2,9 @@
  * The `GET /api/monitor` document. What matters: for a board with one entry of every attention kind and one job of every role, plus a merge
  * job with none, `monitorSnapshotOf` answers `monitorVersion: 3` exactly as `testing/fixtures/monitor-v3.json` holds it, so a change to the
  * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` and
- * `monitor-v2.json` stay as versions 1 and 2 froze them. Beside it: `activity` keeps only the kinds a person cares about, newest last, each
+ * `monitor-v2.json` stay as versions 1 and 2 froze them. One edit was made on purpose: with the Bridge deleted, version 3 names what an entry
+ * opens by a typed `target` where it carried the Bridge's `route`, under the system version's next major. Beside it: `activity` keeps
+ * only the kinds a person cares about, newest last, each
  * at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs by the
  * instant its stamp names, an unstamped or unreadable stamp the oldest, and its reset is passed on as reported, also once it is past: a
  * clock decides nothing. Flint's brain is the Overseer's reading as it stands, in each state, and none for a forge that cannot run it
@@ -299,11 +301,21 @@ describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
     ]);
   });
 
-  test('each attention entry keeps its Bridge route and carries no target', () => {
-    const fixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as { attention: { key: string; route: string }[] };
-    const { attention } = MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE);
-    expect(attention.map((entry) => [entry.key, entry.route])).toEqual(fixture.attention.map((entry) => [entry.key, entry.route]));
-    expect(attention.filter((entry) => Object.hasOwn(entry, 'target'))).toEqual([]);
+  test('each attention entry, job and activity entry carries the typed target it opens and no route', () => {
+    const { attention, jobs, activity } = MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE);
+    expect(attention.map((entry) => [entry.key, entry.target])).toEqual([
+      ['decision:E1', { subject: 'decision', id: 'E1' }],
+      ['merge-accept:005', { subject: 'ticket', id: '005' }],
+      ['ticket:009', { subject: 'ticket', id: '009' }],
+      ['decision:E2', { subject: 'decision', id: 'E2' }],
+      ['ticket:006', { subject: 'ticket', id: '006' }],
+      ['draft:D2', { subject: 'draft', id: 'D2' }],
+    ]);
+    expect(jobs.map((job) => job.target)).toEqual(jobs.map((job) => ({ subject: 'job', id: job.id })));
+    expect(activity.map((entry) => entry.target)).toEqual([
+      null, { subject: 'ticket', id: '009' }, { subject: 'ticket', id: '002' }, { subject: 'job', id: 'J1' }, { subject: 'decision', id: 'E1' }, null,
+    ]);
+    expect([...attention, ...jobs, ...activity].filter((entry) => Object.hasOwn(entry, 'route'))).toEqual([]);
   });
 });
 
@@ -364,7 +376,7 @@ describe('Flint\'s brain in the monitor snapshot', () => {
       at:          '2026-11-12T11:30:00+01:00',
       category:    'agent',
       text:        'Flint\'s brain stopped after its whole time, after 6 model calls and 4.2k tokens',
-      route:       null,
+      target:      null,
       kind:        'flint-brain',
       tokens:      4200,
     });

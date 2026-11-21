@@ -65,7 +65,6 @@ const SOURCES = programTypeScriptSources(repositoryRootOfThisCheckout());
 describe('the scan saw the specs', () => {
   test('it reads the specs and the guard holds the only skips', () => {
     expect(SOURCES.filter((source) => isSpecOrTestHelper(source.path)).length).toBeGreaterThan(300);
-    expect(SOURCES.filter((source) => source.path.endsWith('.dom.tsx') && isSpecOrTestHelper(source.path)).length).toBeGreaterThan(10);
     const guard = SOURCES.find((source) => source.path === TOOL_GUARD);
     expect(codeLinesOf(guard?.text ?? '').filter((line) => UNGUARDED_SKIP_PATTERNS.some((pattern) => pattern.test(line))).length).toBeGreaterThan(0);
   });
@@ -89,8 +88,8 @@ describe('each form is planted and named', () => {
     expect(skipReportOf([{ path: plantedPath, text: `${plantedLine}\n` }]).unguardedSkips).toEqual([`${plantedPath}: ${plantedLine}`]);
   });
 
-  test('a skip in a Bridge DOM spec is named', () => {
-    const plantedDomSpec = 'bridge/views/example/Planted.dom.tsx';
+  test('a skip in a DOM spec is named', () => {
+    const plantedDomSpec = 'cli/example/Planted.dom.tsx';
     expect(skipReportOf([{ path: plantedDomSpec, text: 'test.skip(\'claim\', body);\n' }]).unguardedSkips)
       .toEqual([`${plantedDomSpec}: test.skip('claim', body);`]);
   });

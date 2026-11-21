@@ -93,7 +93,7 @@ describe('the platform probes folder', () => {
   });
 
   test('no script imports from the typed programs', () => {
-    const typedProgramImport = /(?:from |import\(|require\()\s*['"`][^'"`]*(?:\/src\/|\/cli\/|\/bridge\/|\.ts['"`])/u;
+    const typedProgramImport = /(?:from |import\(|require\()\s*['"`][^'"`]*(?:\/src\/|\/cli\/|\.ts['"`])/u;
     const sources = everyProbeSource();
     expect(sources.length).toBeGreaterThan(NUMBERED_PROBES.length);
     for (const { source } of sources) expect(source).not.toMatch(typedProgramImport);

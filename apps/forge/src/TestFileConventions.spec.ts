@@ -1,6 +1,6 @@
 /**
- * Two Tests rules of the root `CLAUDE.md`: a suite is a `.spec.ts` file, never `.test.ts` or `.spec.tsx`, a DOM suite a `.dom.tsx` under
- * `bridge/`, `design-system/`, `flint/` or `brand/` alone, and no spec or test helper creates the real
+ * Two Tests rules of the root `CLAUDE.md`: a suite is a `.spec.ts` file, never `.test.ts`, `.spec.tsx` or `.dom.tsx`, since forge has
+ * no page and runs no DOM suite, and no spec or test helper creates the real
  * process context, whose working directory, clock and home are the live ones. The context is found by its factory's name as an identifier
  * in the syntax tree, so a sentence naming it is not a use. The scan first proves it saw the specs and the factory's real callers, and
  * each form is planted to prove the guard names it.
@@ -16,7 +16,6 @@ const PROCESS_CONTEXT_FACTORY = 'createProcessContext';
 const RETIRED_TEST_SUFFIX = '.test.ts';
 const UNRUN_COMPONENT_SPEC_SUFFIX = '.spec.tsx';
 const DOM_SPEC_SUFFIX = '.dom.tsx';
-const DOM_SPEC_FOLDERS = ['bridge/', 'design-system/', 'flint/', 'brand/'];
 const MINIMUM_SPEC_FILE_COUNT = 100;
 
 function isTestCode(path: string): boolean {
@@ -84,10 +83,9 @@ function namesTheProcessContextFactory(source: RepositorySource): boolean {
 function testFileViolationsOf(sources: readonly RepositorySource[]): string[] {
   return [
     ...sources.filter((source) => source.path.endsWith(RETIRED_TEST_SUFFIX)).map((source) => `${source.path} is a .test.ts file`),
-    // `bun test` would run a `.spec.tsx` without a DOM; a component suite is a `.dom.tsx`, which only `bridge/testing/RunDomSpecs.ts` runs.
+    // `bun test` would run a `.spec.tsx` without a DOM, and nothing runs a `.dom.tsx`.
     ...sources.filter((source) => source.path.endsWith(UNRUN_COMPONENT_SPEC_SUFFIX)).map((source) => `${source.path} is a .spec.tsx file`),
-    ...sources.filter((source) => source.path.endsWith(DOM_SPEC_SUFFIX) && !DOM_SPEC_FOLDERS.some((folder) => source.path.startsWith(folder)))
-      .map((source) => `${source.path} is a DOM spec outside ${DOM_SPEC_FOLDERS.join(' and ')}`),
+    ...sources.filter((source) => source.path.endsWith(DOM_SPEC_SUFFIX)).map((source) => `${source.path} is a DOM spec, which nothing in forge runs`),
     ...sources.filter((source) => isTestCode(source.path) && namesTheProcessContextFactory(source))
       .map((source) => `${source.path} creates the real process context`),
     ...sources.filter((source) => isTestCode(source.path) && syntaxFactsOf(source).overseerStartsOnAFixedPort > 0)
@@ -103,13 +101,6 @@ describe('suites are spec files that never create the real process context', () 
     expect(SOURCES.filter(namesTheProcessContextFactory).map((source) => source.path)).toEqual(['agent-progress.ts', 'cli/CommandContext.ts']);
   });
 
-  test('the scan sees the DOM specs of the Bridge, of the design-system package and of the Flint package', () => {
-    const domSpecPaths = SOURCES.filter((source) => source.path.endsWith(DOM_SPEC_SUFFIX)).map((source) => source.path);
-    expect(domSpecPaths).toContain('bridge/shell/BridgeApp.dom.tsx');
-    expect(domSpecPaths).toContain('design-system/atoms/Button.dom.tsx');
-    expect(domSpecPaths).toContain('flint/SpriteRenderer.dom.tsx');
-  });
-
   test('no file in the tree breaks either rule', () => {
     expect(testFileViolationsOf(SOURCES)).toEqual([]);
   });
@@ -118,8 +109,8 @@ describe('suites are spec files that never create the real process context', () 
 
   test.each([
     ['a `.test.ts` suite', { path: 'cli/Example.test.ts', text: 'export {};\n' }],
-    ['a `.spec.tsx` suite', { path: 'bridge/shell/Example.spec.tsx', text: 'export {};\n' }],
-    ['a DOM spec outside bridge/, design-system/ and flint/', { path: 'cli/Example.dom.tsx', text: 'export {};\n' }],
+    ['a `.spec.tsx` suite', { path: 'cli/Example.spec.tsx', text: 'export {};\n' }],
+    ['a DOM spec', { path: 'cli/Example.dom.tsx', text: 'export {};\n' }],
     ['a spec creating the context', { path: 'cli/Example.spec.ts', text: importingTheFactory }],
     ['a test helper creating the context', { path: 'cli/testing/ExampleHelper.ts', text: importingTheFactory }],
   ])('a planted %s is named', (_form, plantedSource) => {
@@ -144,7 +135,7 @@ describe('suites are spec files that never create the real process context', () 
     expect(testFileViolationsOf([
       { path: 'cli/Example.spec.ts', text: 'startAgentProgress([\'oversee\', \'--detach\', \'--port\', \'0\'], options);\nrunAgentProgress([\'oversee\', \'stop\'], options);\n' },
       { path: 'cli/Shipping.ts', text: 'spawn([\'oversee\']);\n' },
-      { path: 'bridge/Example.spec.ts', text: 'const bounds = [[\'start\', \'now\']];\n' },
+      { path: 'src/Example.spec.ts', text: 'const bounds = [[\'start\', \'now\']];\n' },
     ])).toEqual([]);
   });
 

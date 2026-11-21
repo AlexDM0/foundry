@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "version": "0.1.0",
-  "description": "Per-repository progress tracker for AI orchestrators: tasks on a Gantt chart, stateful markdown tickets, a log, and the live Bridge its Overseer serves",
+  "description": "Per-repository progress tracker for AI orchestrators: tasks on a Gantt chart, stateful markdown tickets, a log, and the API its Overseer serves",
   "type": "module",
   "bin": {
     "forge": "agent-progress.ts"
@@ -9,13 +9,10 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "typecheck:root": "tsc -p tsconfig.json",
-    "typecheck:bridge": "tsc -p bridge/tsconfig.json",
-    "typecheck:bridge-specs": "tsc -p bridge/tsconfig.spec.json",
     "lint": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/",
     "lint:fix": "eslint . --cache --cache-strategy content --cache-location node_modules/.cache/lint/ --fix",
     "setup": "bun setup.ts",
     "test": "bun test",
-    "test:dom:bridge": "bun bridge/testing/RunDomSpecs.ts",
     "check": "bun src/testing/CheckRecordingStamps.ts",
     "verify": "bun run --parallel typecheck lint && bun test && bun run check",
     "record": "bun src/testing/RecordBoundary.ts",
@@ -23,13 +20,8 @@
   },
   "private": true,
   "dependencies": {
-    "brand": "workspace:^",
-    "design-system": "workspace:^",
-    "flint": "workspace:^",
     "forge-contracts": "workspace:^",
     "marked": "17.0.6",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
     "system-versions": "workspace:^"
   }
 }

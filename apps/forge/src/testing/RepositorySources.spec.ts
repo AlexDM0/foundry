@@ -83,8 +83,8 @@ describe('the walk past what no checkout tracks', () => {
 describe('the program and the packages it declares', () => {
   const packageNames = declaredWorkspacePackagesOf(REPOSITORY_ROOT).map(({ name }) => name);
 
-  test('the program declares the brand, design-system, Flint, forge-contracts and system-versions packages, each found in its own folder', () => {
-    expect(packageNames).toEqual(['brand', 'design-system', 'flint', 'forge-contracts', 'system-versions']);
+  test('the program declares the forge-contracts and system-versions packages, each found in its own folder', () => {
+    expect(packageNames).toEqual(['forge-contracts', 'system-versions']);
     const workspaceRoot = workspaceRootOfProgram(REPOSITORY_ROOT);
     expect(declaredWorkspacePackagesOf(REPOSITORY_ROOT).map(({ folder }) => folder))
       .toEqual(packageNames.map((name) => join(workspaceRoot, 'packages', name)));
@@ -94,14 +94,14 @@ describe('the program and the packages it declares', () => {
     const paths = programTypeScriptSources(REPOSITORY_ROOT).map(({ path }) => path);
     expect(paths).toContain('src/testing/RepositorySources.ts');
     for (const name of packageNames) expect(paths.filter((path) => path.startsWith(`${name}/`)).length, name).toBeGreaterThan(0);
-    expect(paths).toEqual(expect.arrayContaining(['design-system/atoms/Button.tsx', 'flint/SpriteMind.ts']));
+    expect(paths).toEqual(expect.arrayContaining(['forge-contracts/constants/ForgeSystemVersions.ts', 'system-versions/utils/SystemVersionUtil.ts']));
   });
 
   test('the files hold each package\'s, read from the package\'s real folder', () => {
     const files = programFiles(REPOSITORY_ROOT);
     for (const name of packageNames) expect(files.filter(({ path }) => path.startsWith(`${name}/`)).length, name).toBeGreaterThan(0);
-    const constitution = files.find(({ path }) => path === 'design-system/CONSTITUTION.md');
-    expect(constitution?.location.endsWith('/packages/design-system/CONSTITUTION.md')).toBe(true);
+    const readme = files.find(({ path }) => path === 'forge-contracts/README.md');
+    expect(readme?.location.endsWith('/packages/forge-contracts/README.md')).toBe(true);
   });
 
   test('both reads are frozen and answered once', () => {

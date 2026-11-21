@@ -190,7 +190,7 @@ const programSourcesByRoot = new Map<string, readonly RepositorySource[]>();
 
 /**
  * Every TypeScript source of the program and of each workspace package it declares, the package's under a folder named after it
- * (`design-system/atoms/Button.tsx`), so a guard holds a package as it held the folder the package once was.
+ * (`forge-contracts/constants/ForgeSystemVersions.ts`), so a guard holds a package as it held the folder the package once was.
  */
 export function programTypeScriptSources(programRoot: string): readonly RepositorySource[] {
   const known = programSourcesByRoot.get(programRoot);

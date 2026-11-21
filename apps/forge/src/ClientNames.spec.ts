@@ -23,7 +23,7 @@ const SPEC_SUFFIXES = ['.spec.ts', '.spec.tsx', '.dom.tsx', '.dom.ts'];
 const TESTING_FOLDER = 'testing';
 const CLIENT_NAMES = /\bgaia\b|\bfleet\b|agent-dashboard|embedded=dashboard/gi;
 /** Comfortably under today's count, so a scan that read the wrong folder fails rather than passing on nothing. */
-const SMALLEST_SHIPPED_FILE_COUNT = 1_000;
+const SMALLEST_SHIPPED_FILE_COUNT = 700;
 
 function isShipped(path: string): boolean {
   return TEXT_EXTENSIONS.some((extension) => path.endsWith(extension)) && !SPEC_SUFFIXES.some((suffix) => path.endsWith(suffix))
@@ -44,7 +44,7 @@ describe('forge\'s shipped sources and docs name no client', () => {
     expect(scannedPaths.length).toBeGreaterThan(SMALLEST_SHIPPED_FILE_COUNT);
     expect(scannedPaths).toEqual(expect.arrayContaining(['package.json', 'README.md', 'docs/reference/overseer-api.md', 'cli/overseer/routes/FrameOrigins.ts']));
     expect(scannedPaths.filter((path) => !isShipped(path))).toEqual([]);
-    expect(['src/ClientNames.spec.ts', 'bridge/shell/FirstPaint.dom.tsx', 'src/testing/ImportGraph.ts'].filter(isShipped)).toEqual([]);
+    expect(['src/ClientNames.spec.ts', 'cli/Planted.dom.tsx', 'src/testing/ImportGraph.ts'].filter(isShipped)).toEqual([]);
   });
 
   test('every planted form is caught, and forge\'s own dashboard is no client', () => {

@@ -45,15 +45,15 @@ describe('the fleet document mapper', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_VERSIONS_STATING_NO_VERSION)).toStrictEqual(FLEET_VERSIONS_STATING_NO_VERSION);
   });
 
-  test('an attention entry\'s monitor route becomes its board route', async () => {
+  test('an attention entry\'s monitor target becomes its board route', async () => {
     const storefront = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
     const storefrontFacts = registryFactsOf(storefront);
     const [item] = storefront.attention;
     if (item === undefined) throw new Error('the five-forges snapshot shows Example Storefront with nothing waiting');
     const { boardRoute: _boardRoute, ...entryFields } = item;
     const monitorEntries: MonitorAttentionEntryDocument[] = [
-      { ...entryFields, route: '#kanban/ticket/001' } as MonitorAttentionEntryDocument,
-      { ...entryFields, key: 'decision:E2', route: '#questions/E2' } as MonitorAttentionEntryDocument,
+      { ...entryFields, target: { subject: 'ticket', id: '001' } } as MonitorAttentionEntryDocument,
+      { ...entryFields, key: 'decision:E2', target: { subject: 'decision', id: 'E2' } } as MonitorAttentionEntryDocument,
     ];
     const recordedSnapshot = await recordedDocumentOf('serving-every-contract', 'monitor', storefrontFacts.overseerUrl) as MonitorSnapshotDocument;
     const storefrontIdentity: ForgeIdentity = {

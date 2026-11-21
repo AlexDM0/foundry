@@ -33,7 +33,7 @@ export function fakeAgentIsOn(): boolean {
 
 export const FAKE_AGENT_KEEPS_WORKING_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX}FAKE_AGENT_KEEPS_WORKING`;
 
-/** Under the fake-agent switch, keeps every fake session working until its stdin closes, as `.readme-graphics/bridge-demo.sh` shows a running board. */
+/** Under the fake-agent switch, keeps every fake session working until its stdin closes, to stage a running board. */
 export function fakeAgentKeepsWorking(): boolean {
   return switchIsOn(FAKE_AGENT_KEEPS_WORKING_VARIABLE);
 }

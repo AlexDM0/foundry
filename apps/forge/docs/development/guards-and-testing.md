@@ -136,15 +136,9 @@ These sit next to the code they guard.
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `bridge/StyleContract.spec.ts` | Every `className` literal of a Bridge component is styled in `bridge/styles/board.css` and every styled class is emitted; a `design-system-…` class counts as styled and emitted by the package; an unreadable `className` fails. | Add the rule, drop the dead one, or write a literal. |
 | `packages/design-system/StyleContract.spec.ts` | Every class a package component emits is styled in the stylesheet of the component that owns it (the lowest layer that emits it); every rule of a component's stylesheet names a class of that component and otherwise only classes of a lower layer; `styles/` names no class; every class and keyframe is `design-system-…`; `styles/design-system.css` imports every stylesheet once, in layer order. | Move the rule into the owner's stylesheet, drop the dead one, or fix the entry's imports. |
 | `packages/design-system/CompositionLayers.spec.ts` | Every package component sits in `atoms/`, `molecules/` or `organisms/` and imports only components of a lower layer; `utils/` imports no component. | Move the component up a layer, or move the shared part down. |
 | `packages/design-system/PackageIsolation.spec.ts` | No package file imports or references a file outside `packages/design-system/`; shipping files import no `bun:` or `node:` module and no package but React; specs import only their listed test packages. | Pass the value in as a prop, or move the file into the package. |
-| `bridge/StyleBraceBalance.spec.ts` | Every `{` in `bridge/styles/` and in every stylesheet of `packages/design-system/` has its `}`, and no `}` comes before its `{`; braces in comments and quoted strings are text. | Close the block that the named line opens, or remove the stray `}`. |
-| `bridge/HoverMovesNothing.spec.ts` | No `:hover` or `:active` rule in `bridge/styles/` or `packages/design-system/`, inside `@media` and `@container` too, sets a property other than colour, background, border colour, outline, box shadow, text decoration, filter, opacity, visibility or cursor; `transform: none` passes, and `MOVEMENTS_ALLOWED`, which holds only the transform of the shown `.design-system-tooltip` (it hangs absolutely and takes no space), is exact both ways. | Give the feedback as a colour, a shadow or `filter: brightness(…)`, never a size, a spacing or a transform. |
-| `bridge/ReducedMotionStopsEveryAnimation.spec.ts` | Each rule in `bridge/styles/` or `packages/design-system/` that sets an `animation` or `animation-name` other than `none` outside `@media (prefers-reduced-motion: no-preference)` is matched, per selector of its list, by a rule inside `@media (prefers-reduced-motion: reduce)` that sets an animation on the same subject and wins the cascade (a higher specificity, or the same one later in the same stylesheet); a scroll or view timeline passes, and `ANCESTORS_THE_MARKUP_GUARANTEES`, the ancestors a reduce rule names only to win the specificity, is exact both ways. | Stop the animation in a reduce rule whose selector asks at least what the animated rule asks, such as `.design-system-activity-row[data-status] .design-system-activity-row-mark`, never only the bare subject class. |
-| `bridge/ThemeTokens.spec.ts` | Every pipeline token in `packages/design-system/styles/tokens.css` or `bridge/styles/tokens.css` has a value in the light and the dark theme (a literal in both, or an alias of a themed token), each new motion token is `0ms` under reduced motion and before the first paint, the toast's reading time is kept, and the three design colours with no name of their own each read a named token. | Add the missing dark value or zero; a new design colour gets a token in both themes. |
-| `bridge/HeadlessBridge.integration.spec.ts` | A real Overseer's Bridge renders in headless Chrome, every tab routes, nothing errs. | Read `problems`: each names its source. |
 | `cli/overseer/OverseerBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/overseer/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/talos/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
@@ -312,7 +306,6 @@ Add a test at the lowest tier that can prove the claim. At commit 70ce56de the r
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
 | Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/overseer/CrashMatrix.integration.spec.ts` |
 | DOM specs | 123 | Components under happy-dom | `bridge/shell/BridgeApp.dom.tsx` |
-| Headless Chrome | 1 | A real Overseer and browser | `bridge/HeadlessBridge.integration.spec.ts` |
 | Manual smoke | none | A script with real sessions | `cli/testing/CutoverSmoke.ts` |
 
 `bun test` at that commit, on Bun 1.4.2: 3,875 tests, 13,570 `expect()` calls, no failure and no skip, about 15 minutes
@@ -381,13 +374,10 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 
 | file | line | concept | outcome |
 | --- | --- | --- | --- |
-| `bridge/api/EventStreamClient.spec.ts` | 77 | fixed sleep before an assertion | Redesigned: fake timers drive the reopen delay. |
-| `bridge/api/TranscriptStreamClient.spec.ts` | 63 | fixed sleep before the next event | Redesigned: fake timers drive the reopen delay. |
 | `bridge/views/waves/WavesView.dom.tsx` | 94 | fixed sleep before an assertion | Redesigned: `waitFor` on the lineage clearing. |
 | `bridge/views/detail-panel/DetailPanel.dom.tsx` | 165 | fixed sleep before an assertion | Kept: a negative, a planted payload never runs; no state exists to wait on, and load only shortens the window. |
 | `bridge/testing/HeadlessBridgeCheck.ts` | 48 | try-count loop, settle sleep per tab | Redesigned: waits on the page target, the heading and each tab's panel. |
 | `bridge/testing/HeadlessBridgeCheck.ts` | 149 | process signalled | Kept: cleanup of a Chrome the check owns, no verdict. |
-| `bridge/HeadlessBridge.integration.spec.ts` | 17 | private deadline | Redesigned: the shared deadline. |
 | `cli/HatchUnderJob.spec.ts` | 271 | unbounded poll loop | Redesigned: `firstValueOf` on the written request. |
 | `cli/decisions/DecisionCommands.spec.ts` | 126 | sleep assumed to let a command start | Redesigned: the wait is seen beginning at its `onStopSignal`, an injected event. |
 | `cli/RegisterWrittenTracker.integration.spec.ts` | 360 | fixed hold before an assertion, across processes | Kept: a negative across processes; a hold ending on the children's state could outlast their lock retry budget, and a slow start only shortens the window. |
@@ -581,11 +571,6 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 `bridge/testing/RunDomSpecs.ts` passes its preloads with `--preload`. That adds to `bunfig.toml`'s list rather than
 replacing it, so a DOM run carries the program traps as well.
 
-**Headless Chrome.** `bridge/HeadlessBridge.integration.spec.ts` runs in the real-system suite and skips without Chrome.
-`readTheBridgeHeadless` in `bridge/testing/HeadlessBridgeCheck.ts` starts `oversee --port 0` on a scratch board with the
-fake agent, opens the page over the DevTools protocol, visits every entry of `BRIDGE_TABS`, and collects each console
-error, exception, failed request and error-level log entry, which includes a CSP violation.
-
 **Manual smoke.** `cli/testing/CutoverSmoke.ts` is a script, never a spec, and it runs real `claude` sessions. Only
 its judgement, `cli/testing/CutoverSmokeUtil.ts`, has a spec.
 
@@ -648,4 +633,3 @@ of its own; every other testing folder keeps the layer of its parent.*
 | Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Seeded world | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | DOM specs | `bridge/testing/RunDomSpecs.ts`, `bridge/testing/HappyDom.ts` | `PRELOADS` | `src/TestFileConventions.spec.ts` |
-| Headless check | `bridge/testing/HeadlessBridgeCheck.ts` | `readTheBridgeHeadless` | `bridge/HeadlessBridge.integration.spec.ts` |

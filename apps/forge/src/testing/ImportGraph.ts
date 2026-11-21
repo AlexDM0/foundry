@@ -1,9 +1,9 @@
 /**
- * Every import edge of the program's TypeScript, over the files the root and Bridge programs and each workspace package the program declares
+ * Every import edge of the program's TypeScript, over the files the root program and each workspace package the program declares
  * compile, read syntactically with the compiler API so no type checking is paid for. A declared package's files sit under a virtual folder
- * named after it (`design-system/atoms/Button.tsx`), and a specifier naming it resolves through its `exports`, as Bun and TypeScript resolve
- * it. Planted sources add or replace files in memory, so a guard can prove it still fires. The tree is read once per run and shared frozen:
- * `bun test` runs every spec file in one process.
+ * named after it (`forge-contracts/constants/ForgeSystemVersions.ts`), and a specifier naming it resolves through its `exports`, as Bun
+ * and TypeScript resolve it. Planted sources add or replace files in memory, so a guard can prove it still fires. The tree is read once
+ * per run and shared frozen: `bun test` runs every spec file in one process.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import {
@@ -48,12 +48,12 @@ export interface ImportGraph {
   readonly scannedPaths:                   readonly string[];
   readonly edges:                          readonly ImportEdge[];
   readonly sourceTextOf:                   (path: string) => string;
-  /** Each specifier a workspace package's `exports` lists, such as `design-system/Button`, and the repository file it names. */
+  /** Each specifier a workspace package's `exports` lists, such as `forge-contracts/ForgeSystemVersions`, and the repository file it names. */
   readonly workspaceEntryPathsBySpecifier: ReadonlyMap<string, string>;
 }
 
-/** Each spec project holds its shipping project plus the specs, so these together name every file the type check compiles. */
-const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json', 'bridge/tsconfig.spec.json'];
+/** The program's one project compiles its shipping files and its specs, so it names every file the type check compiles. */
+const PROGRAM_CONFIGURATION_PATHS = ['tsconfig.json'];
 const PACKAGE_SPEC_CONFIGURATION_PATH = 'tsconfig.spec.json';
 const PACKAGE_CONFIGURATION_PATH = 'tsconfig.json';
 

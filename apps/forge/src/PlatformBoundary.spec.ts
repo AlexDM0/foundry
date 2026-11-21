@@ -212,7 +212,7 @@ describe('the scan saw the tree', () => {
     expect(shippingPaths.length).toBeGreaterThan(400);
     expect(SOURCES.length).toBeGreaterThan(shippingPaths.length);
     expect(shippingPaths).toEqual(expect.arrayContaining([
-      'agent-progress.ts', 'talos.ts', 'cli/CommandContext.ts', 'src/services/lifecycle/GateRun.ts', 'bridge/Main.tsx',
+      'agent-progress.ts', 'talos.ts', 'cli/CommandContext.ts', 'src/services/lifecycle/GateRun.ts',
     ]));
     expect(shippingPaths).not.toContain('src/PlatformBoundary.spec.ts');
   });
@@ -462,7 +462,7 @@ describe('what the boundary exempts is exact', () => {
     expect(violationsOfPlanted('src/Planted.ts', ` * ${shellLine}`)).toEqual([]);
     expect(violationsOfPlanted('Planted.ts', '#!/usr/bin/env bun')).toEqual([]);
     expect(violationsOfPlanted('cli/Planted.spec.ts', shellLine)).toEqual([]);
-    expect(violationsOfPlanted('bridge/Planted.dom.tsx', shellLine)).toEqual([]);
+    expect(violationsOfPlanted('cli/Planted.dom.tsx', shellLine)).toEqual([]);
     expect(violationsOfPlanted('cli/testing/Planted.ts', shellLine)).toEqual([]);
   });
 

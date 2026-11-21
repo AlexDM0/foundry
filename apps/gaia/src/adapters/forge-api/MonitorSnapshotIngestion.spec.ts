@@ -28,7 +28,7 @@ import {
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
 /** The code version of the forge the Storefront at work was recorded from, as the identity Gaia reads beside its snapshot names it. */
-const RECORDED_CODE_VERSION = 'af2246de1aee';
+const RECORDED_CODE_VERSION = 'bd4096d23eb2';
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
 const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
 const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
@@ -96,7 +96,7 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     },
   ],
   [
-    'Overseer started on code af2246de1aee, install version 43',
+    'Overseer started on code bd4096d23eb2, install version 43',
     {
       category:   'forge',
       boardRoute: null,

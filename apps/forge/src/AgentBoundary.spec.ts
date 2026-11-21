@@ -322,8 +322,6 @@ const AGENT_EVIDENCE_FILES: Readonly<Record<string, string>> = {
     'The boundary\'s evidence: the probes\' shared helper, which takes the path of the vendor\'s program a session probe starts.',
   '.readme-graphics/README.md':
     'The diagram renderer a developer\'s own agent installed under its skills folder, which renders this repository\'s README figures; no connection of the product to the agent.',
-  '.readme-graphics/demo-activity.js':
-    'Writes the demo board\'s recorded agent lines for the README graphics; a development script, never shipped.',
   '.readme-graphics/render-diagrams.py':
     'The diagram renderer a developer\'s own agent installed under its skills folder, which renders this repository\'s README figures; no connection of the product to the agent.',
 };
@@ -656,14 +654,14 @@ describe('what the guard exempts is exact', () => {
 
   test('a spec and a .dom.tsx are not scanned', () => {
     expect(violationsOfPlanted('cli/Planted.spec.ts', plantedLine)).toEqual([]);
-    expect(violationsOfPlanted('bridge/Planted.dom.tsx', plantedLine)).toEqual([]);
+    expect(violationsOfPlanted('cli/Planted.dom.tsx', plantedLine)).toEqual([]);
     expect(testingReportOf([{ path: 'src/testing/Planted.spec.ts', text: `${plantedLine}\n` }], []).violations).toEqual([]);
   });
 
-  test('a media type\'s subtype, forge\'s own --resume, a Bridge comment on a reported Bash row and the development folders are no finding', () => {
-    expect(violationsOfPlanted('bridge/views/intake/Planted.ts', '// A picture\'s media type and its subtype.')).toEqual([]);
+  test('a media type\'s subtype, forge\'s own --resume, a comment on a reported Bash row and the development folders are no finding', () => {
+    expect(violationsOfPlanted('src/adapters/Planted.ts', '// A picture\'s media type and its subtype.')).toEqual([]);
     expect(violationsOfPlanted('cli/Planted.ts', 'const usage = \'pipeline apply --resume\';')).toEqual([]);
-    expect(violationsOfPlanted('bridge/views/Planted.ts', '// Bash ×4, the tools an agent reported.')).toEqual([]);
+    expect(violationsOfPlanted('src/adapters/Planted.ts', '// Bash ×4, the tools an agent reported.')).toEqual([]);
     expect(violationsOfPlanted('cli/Planted.ts', 'const folder = \'.claude/worktrees/x\';')).toEqual([]);
   });
 });

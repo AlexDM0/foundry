@@ -64,7 +64,6 @@ function createPlantedRepository(integrationSpecBody: string): string {
   scratchRepositories.push(repository);
   plantFile(repository, 'package.json', plantedPackage());
   plantFile(repository, 'bunfig.toml', readFileSync(join(CHECKOUT, 'bunfig.toml'), 'utf8').replace(/^preload.*$/m, ''));
-  plantFile(repository, 'bridge/testing/RunDomSpecs.ts', 'export {};\n');
   plantFile(repository, LISTED_BOUNDARY, 'export {};\n');
   plantFile(repository, 'src/Default.spec.ts', `import { test } from 'bun:test';\ntest('default', () => { console.log('${DEFAULT_MARKER}'); });\n`);
   plantFile(repository, LISTED_BOUNDARY_SPEC, integrationSpecBody);

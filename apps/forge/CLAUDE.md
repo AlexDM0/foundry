@@ -1,22 +1,19 @@
 # forge
 
 A Bun + TypeScript CLI that tracks an AI orchestrator's work per repository (Gantt rows, stateful markdown tickets,
-a log, and the live Bridge its Overseer serves), and installs into each tracked repository
+a log, and the API its Overseer serves), and installs into each tracked repository
 the skills and briefs its sessions run on.
 
 forge is the app in `apps/forge/` of a Bun workspace. The repository root holds the workspace: its `package.json`,
 the one `bun.lock`, `.bun-version`, `bunfig.toml`, `.gitattributes`, `.githooks/`, `turbo.json` and `.claude/`.
 `bun install` runs at the root. The packages forge uses are in `packages/`. In this file, in `.claude/rules/` and in
 `docs/`, a path names a file of forge from `apps/forge/`, and a file of the root or of a package from the
-repository root (`packages/flint/…`).
+repository root (`packages/forge-contracts/…`).
 
 ## Verify
 
 `bun run verify` (typecheck and lint at the same time, then the default suite and the recording stamp check) after
-any TypeScript change, before calling it done. It makes no real call: it runs no real-system spec. The Bridge, which
-retires in stage 8, is out of the gates: `bun run lint` skips `bridge/`, `bun run typecheck` checks only
-`tsconfig.json`, and its DOM specs run only by hand, through `bun run test:dom:bridge`; `bun run typecheck:bridge` and
-`bun run typecheck:bridge-specs` type-check it by hand.
+any TypeScript change, before calling it done. It makes no real call: it runs no real-system spec.
 When you build or change a boundary of `src/testing/BoundarySpecs.ts`, run `bun run record <boundary>`. It runs the
 real-system specs of that boundary and writes their recorded answers to `src/testing/recordings/<os>/`, stamped with
 the system version and the OS. Commit the recording.
@@ -59,27 +56,21 @@ guard spec holds is one line naming the guard: the spec is the full statement.
 ### Imports
 
 ```
-src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → overseer)  →  features (cli/, bridge/)
-packages/design-system/  →  bridge/ (as the workspace package design-system, by the exports of its package.json)
-packages/flint/          →  bridge/ (as the workspace package flint, only through the entries of its package.json)
-packages/brand/, packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
+src/lib/  →  src/shared/  →  src/adapters/  →  src/services/ (render → tracker → lifecycle → control → store → overseer)  →  cli/
+packages/forge-contracts/, packages/system-versions/  →  src/shared/ and every layer above it (by name)
 packages/forge-contracts/  →  src/adapters/board-document/ (the board document's mappers), src/adapters/board-commands/ (the commands')
 ```
 
-- `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, feature and sibling-command isolation, the bin
+- `src/ImportDirection.spec.ts` holds the direction, cycles, barrels, sibling-command and command-set isolation, the bin
   shim, the `testing/` allowlist (`TESTING_FOLDER_IMPORTERS`), a lib package's declared "depends on" packages and
   the tracker model's isolation. What two commands share is hoisted to the level above both, or passed as a
   structurally typed parameter.
 - A `src/lib/` package knows nothing about its callers: no forge names, file names, wording or exit codes.
   App values arrive as parameters; a refusal leaves as a verdict (except the `Board`, see Deviations).
-- `src/lib/tracker-model/` stays DOM-safe: the Bridge project compiles it.
 - A package in `packages/` imports no file of an app. forge imports a package only by its name and only when
-  `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package but the
-  design system and Flint is one workspace-package layer, and it imports another package only when its own
-  `package.json` declares it. `src/ImportDirection.spec.ts` holds this.
-- The Bridge imports the design system as `design-system/<entry>`, with an entry that
-  `packages/design-system/package.json` exports (see `.claude/rules/design-system.md`).
-- The Bridge imports only the entries that `packages/flint/package.json` exports (see `.claude/rules/flint.md`).
+  `package.json` declares it as a `workspace:^` dependency, never by a file path. Every declared package is one
+  workspace-package layer, and it imports another package only when its own `package.json` declares it.
+  `src/ImportDirection.spec.ts` holds this.
 
 ### Values and wording
 
@@ -233,16 +224,12 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - The root's `.gitattributes` keeps every text file LF on every checkout, held by `src/LineEndingPolicy.spec.ts`; the
   root's `.bun-version` pins Bun to the `@types/bun` version that `bun.lock` locks, held by
   `src/BunVersionPin.spec.ts`.
-- `bridge/` is its own DOM-only React project (`bridge/tsconfig.json` with `jsx: react-jsx` and `types: []`, specs
-  under `bridge/tsconfig.spec.json`), type-checked only by hand until stage 8 deletes it. The list names no file of
-  `packages/design-system/`: TypeScript finds the package through its exports.
 - ESLint 9 through `@reliquary/eslint-config`, extended in `eslint.config.js`; `bun run lint` is its statement. The
   testing folders may import devDependencies.
 
 ### Tests
 
-- There are two suites. The default suite is every `*.spec.ts` file and every package's `*.dom.tsx` file, and
-  `bun run verify` runs it. The
+- There are two suites. The default suite is every `*.spec.ts` file, and `bun run verify` runs it. The
   real-system suite is every `<Module>.integration.spec.ts` file; `bunfig.toml` keeps it out of `bun test`.
 - `bun run verify` and the release run no real-system spec. `BOUNDARY_SPECS` in `src/testing/BoundarySpecs.ts`
   lists the real-system specs of each boundary, and `bun run record <boundary>` runs them (with the integration specs
@@ -280,12 +267,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A spec never opens a page, a tab or a window, and never makes the operating system act. When a run cannot get an
   answer without this action, write the answer from the documentation of that system and name the source in a
   comment. `src/SpecsOpenNoPage.spec.ts` holds that no spec or spec helper starts the default browser opener.
-- `src/TestFileConventions.spec.ts` holds that no `.test.ts` or `.spec.tsx` file exists, a DOM spec is a
-  `<Module>.dom.tsx` under `bridge/`, `packages/design-system/` or `packages/flint/` alone, and no spec or test helper
-  creates the real process context.
-- `bun test` never runs a DOM spec: `bridge/testing/RunDomSpecs.ts` runs each `.dom.tsx` of `bridge/` with the skip
-  report and the happy-dom preload, only by hand through `bun run test:dom:bridge`, and it fails when it finds none.
-  Each package runs its own DOM specs the same way, in its `test:dom` task, which the root's `bun run verify` runs.
+- `src/TestFileConventions.spec.ts` holds that no `.test.ts`, `.spec.tsx` or `.dom.tsx` file exists, since forge has
+  no page and runs no DOM spec, and that no spec or test helper creates the real process context.
 
 ### Documentation and commits
 
@@ -338,7 +321,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `bridge/Main.tsx` mounts the Bridge, `bridge/testing/RunDomSpecs.ts` runs the DOM specs, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, the preload `bridge/testing/HappyDom.ts` registers the DOM and a short print of its nodes, `packages/flint/demo/DemoEntry.ts` starts the demo page, `packages/flint/testing/CaptureFlintFrames.ts` captures Flint's frames, `packages/flint/testing/FrameCaptureEntry.ts` installs the capture on its page. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, `packages/flint/demo/DemoEntry.ts` starts the demo page, `packages/flint/testing/CaptureFlintFrames.ts` captures Flint's frames, `packages/flint/testing/FrameCaptureEntry.ts` installs the capture on its page. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
 | Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `src/lib/talos/` and the packages it declares, so it cannot reach `src/shared/` (`src/lib/talos/TalosClosure.spec.ts`). |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/overseer/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
@@ -362,12 +345,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | A failure exits non-zero. | A verb relayed under a job whose reply does not come within `HATCH_REPLY_TRIES` × `HATCH_REPLY_INTERVAL_MILLISECONDS` prints `queued <requestId>` and exits 0. | The request is written; the Overseer applies it later, and the id is what a filed finding cites. |
 | A clock measures real time. | A running build or review whose event log stands still for `QUIET_JOB_SWEEPS` Overseer sweeps opens `quiet-job` (`src/services/overseer/IncidentRouter.ts`). An Assistant that is quiet in a turn for the same number of sweeps is ended (`src/services/overseer/AssistantSession.ts`). The two watches count sweeps and read no clock. | The two watches are older than this rule. A running session must report in an actual time, so each watch becomes a time bound; this change is not done. |
 | A failure exits non-zero. | A monitor registry (`~/.forge-monitor/projects.json`) that cannot be read or written, a newer version or a malformed one is reported on stderr and the command keeps its exit code. | The command's own work is done; the registry is only a pointer for a monitor. |
-| Code starts beside its only consumer. | `packages/design-system/`, and the chat parts and the ask item in `bridge/conversation/`, were built before their consumers, from the eight picked boards. `packages/design-system/` is a workspace package, not a folder of the Bridge. | The owner ordered the design system first, so the views share one set of parts. The owner decided that the design system is a portable package, like Flint. |
-| Code starts beside its only consumer. | `packages/flint/` is a workspace package, not a folder of the Bridge. | The owner decided that Flint is a portable package. |
 | Code starts beside its only consumer; never in anticipation. | `src/services/overseer/SessionConfinement.ts` wraps a session in forge's `GateConfinement` when its agent adapter declares `ownConfinement: 'none'`, though Claude Code, the one adapter, confines its sessions itself. | The owner's rule of 2026-11-18 makes a session's confinement the port's declaration, not an assumption about the vendor; the path is held by specs over a planted adapter and by the contract integration spec. |
 | Code starts beside its only consumer and moves, generalised, on a second one. | The store port `BoardStore` (`src/services/store/BoardStore.ts`) has one adapter, `LocalFilesBoardStore`, and a contract spec, `src/services/store/BoardStore.contract.spec.ts`, that any adapter must pass; `src/StoreBoundary.spec.ts` holds that no shipping code outside the adapter names a record's path. | The forge keeps a remote store possible (`docs/monorepo/hephaestus-talos.md`, sections 4 and 5): the seam is fixed before a second adapter exists, and the contract is what a second adapter must pass. |
 | Code names no agent vendor (`src/AgentBoundary.spec.ts`). | The model tiers `haiku`, `sonnet`, `opus` and `fable` and the efforts up to `max` are forge's tier words in the model, the pipeline and the views. | A pipeline names a tier and an effort; the agent adapter maps them to its own models (`src/lib/tracker-model/constants/AgentSettings.ts:5-7`). |
-| `bridge/styles/tokens.css` holds every colour. | `packages/flint/constants/Palette.ts` holds the default colour of each `--flint-*` custom property. The Bridge sets the `--flint-*` properties from its tokens in `bridge/styles/tokens.css`, with the same values in the light and the dark theme. | Flint is a portable package. It must show its colours on a page that sets no property. |
 
 ## Local rules
 

@@ -3,6 +3,7 @@
  * transcript or draft text. `monitorVersion` is the version of the shape. Every sentence in it is worded by the forge. Each document
  * extends the one `forge-contracts` publishes, so a key or a value the package's readers check cannot drift from what forge sends.
  */
+import type { BoardTarget } from 'forge-contracts/BoardReadingDocuments';
 import type {
   MonitorActivityCategory,
   MonitorActivityEntryDocument,
@@ -40,7 +41,7 @@ export type ActivityCategory = MonitorActivityCategory;
 /** Whether a message sent now reaches the session between turns or waits behind the turn under way. */
 export type MonitorJobTurn = MonitorJobTurnDocument;
 
-/** One thing that waits on User: the Bridge's Waiting on User list holds the same entries. */
+/** One thing that waits on User: the board document's attention holds the same entries. */
 export interface MonitorAttentionEntry extends MonitorAttentionEntryDocument {
   /** `decision:E3`, `ticket:009`, `draft:D2`, `merge-accept:005`. */
   readonly key:                     string;
@@ -61,8 +62,8 @@ export interface MonitorAttentionEntry extends MonitorAttentionEntryDocument {
   readonly stamp:                   string;
   readonly stampWord:               AttentionStampWord;
   readonly actionLabel:             AttentionActionLabel;
-  /** The Bridge fragment that opens it, such as `#questions/E3`. */
-  readonly route:                   string;
+  /** The thing it opens, such as decision `E3`. */
+  readonly target:                  BoardTarget;
 }
 
 export interface MonitorJob extends MonitorJobDocument, MonitorJobEntityKeys {
@@ -94,7 +95,7 @@ export interface MonitorJob extends MonitorJobDocument, MonitorJobEntityKeys {
   readonly waitingOnDecisionId: string | null;
   /** The cause while the job is `interrupted`; the board keeps the last cause after a resume, the snapshot does not. */
   readonly interruption:        MonitorInterruptionCause | null;
-  readonly route:               string;
+  readonly target:              BoardTarget;
   /** Only on a job of an entity: the entity whose stage it runs. */
   readonly entity?:             string;
   /** Only on a job of an entity that runs a stage: the stage's name. */
@@ -107,7 +108,7 @@ export interface MonitorActivityEntry extends MonitorActivityEntryDocument {
   readonly at:          string;
   readonly category:    ActivityCategory;
   readonly text:        string;
-  readonly route:       string | null;
+  readonly target:      BoardTarget | null;
   /** `flint-brain` on the entry an ended brain leaves, with its tokens; every other entry has neither. */
   readonly kind?:       'flint-brain';
   readonly tokens?:     number;

@@ -670,7 +670,7 @@ describe('a planted spec is named', () => {
   });
 
   test('in a DOM spec too', () => {
-    expect(suiteViolationsOf([{ path: 'bridge/Example.dom.tsx', text: 'await fetch(address);' }], {})).toEqual(['bridge/Example.dom.tsx is a default spec calling fetch']);
+    expect(suiteViolationsOf([{ path: 'cli/Example.dom.tsx', text: 'await fetch(address);' }], {})).toEqual(['cli/Example.dom.tsx is a default spec calling fetch']);
   });
 
   test('a planted spec passes on the allowlist and not off it', () => {

@@ -1,9 +1,0 @@
-{
-  "stamp": {
-    "boundary": "bridge/testing/HeadlessBridgeCheck.ts",
-    "system": "bun",
-    "version": "1.4.2",
-    "os": "darwin"
-  },
-  "answers": []
-}

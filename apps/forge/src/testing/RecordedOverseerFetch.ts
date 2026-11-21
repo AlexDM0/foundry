@@ -3,7 +3,7 @@
  * `OverseerServer` answered, which its real-system specs record under `bun run record src/services/overseer/OverseerServer.ts`. A request
  * with no recorded answer fails the case. It refuses what the real server refuses: a Host that is not loopback, an Origin that is not its
  * own, a data route with no session cookie and no token, a spent session code, another token, and a request when nothing listens.
- * DOM-safe, so a Bridge spec may use it: `src/testing/RecordedOverseerAnswers.ts` reads the recording.
+ * `src/testing/RecordedOverseerAnswers.ts` reads the recording.
  */
 export const OVERSEER_BOUNDARY = 'src/services/overseer/OverseerServer.ts';
 

@@ -22,7 +22,6 @@ interface PlantedViolation {
 
 const MECHANISED_RULE_IDS = [
   'no-restricted-properties',
-  'no-restricted-globals',
   'no-restricted-imports',
   'no-restricted-syntax',
   '@typescript-eslint/no-non-null-assertion',
@@ -30,13 +29,12 @@ const MECHANISED_RULE_IDS = [
   '@typescript-eslint/consistent-type-imports',
   'id-length',
   '@typescript-eslint/no-magic-numbers',
-  'react-hooks/rules-of-hooks',
   'import/no-extraneous-dependencies',
 ];
 
 const LINEBREAK_RULE_ID = '@stylistic/linebreak-style';
 
-const ALLOWED_SITE_LIST = /(?:allowedIn|STORAGE_SITES)\s*[:=]\s*\[([^\]]*)\]/g;
+const ALLOWED_SITE_LIST = /allowedIn\s*:\s*\[([^\]]*)\]/g;
 const QUOTED_PATH = /'([^']+)'/g;
 
 function allowedSitesNamedIn(configText: string): string[] {
@@ -136,8 +134,8 @@ describe('every allowed site in eslint.config.js names a file', () => {
   });
 
   test('an allowed site that names no file is found', () => {
-    const planted = 'const STORAGE_SITES = [\'bridge/Planted.ts\'];\n  { allowedIn: [\'cli/Missing.ts\', \'setup.ts\'] },\n';
-    expect(allowedSitesNamedIn(planted).filter((site) => !existsSync(join(repositoryRoot, site)))).toEqual(['bridge/Planted.ts', 'cli/Missing.ts']);
+    const planted = '  { allowedIn: [\'src/Planted.ts\'] },\n  { allowedIn: [\'cli/Missing.ts\', \'setup.ts\'] },\n';
+    expect(allowedSitesNamedIn(planted).filter((site) => !existsSync(join(repositoryRoot, site)))).toEqual(['src/Planted.ts', 'cli/Missing.ts']);
   });
 });
 

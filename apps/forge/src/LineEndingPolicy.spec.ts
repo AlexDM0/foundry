@@ -38,7 +38,7 @@ describe('the line endings of this repository', () => {
 
   test('no repository text file holds a carriage return', () => {
     const files = programFiles(REPOSITORY_ROOT);
-    expect(files.map(({ path }) => path)).toEqual(expect.arrayContaining(['setup.sh', 'design-system/CONSTITUTION.md', 'flint/package.json']));
+    expect(files.map(({ path }) => path)).toEqual(expect.arrayContaining(['setup.sh', 'forge-contracts/package.json', 'system-versions/package.json']));
     expect(carriageReturnHoldersAmong(files.map(({ path, location }) => ({ path, bytes: readFileSync(location) })))).toEqual([]);
   });
 });

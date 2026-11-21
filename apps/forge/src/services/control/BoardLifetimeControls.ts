@@ -1,6 +1,6 @@
 /**
  * The board's lifetime kinds of the control contract: the default chart axis `range` stores, and `clear`. A relative bound is stored as
- * written and resolved at layout time, so `-2h` keeps meaning "the last two hours"; `bridge/utils/GeometryUtil.ts` resolves each end, which
+ * written and resolved at layout time, so `-2h` keeps meaning "the last two hours"; a reader resolves each end on its own, which
  * is what makes a mixed pair legal.
  */
 import { LocalTimeUtil }                      from '../../lib/local-time/LocalTimeUtil.ts';

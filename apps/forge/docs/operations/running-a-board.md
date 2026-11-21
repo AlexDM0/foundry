@@ -764,21 +764,12 @@ the untouched apps.
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
-| Header offers | `bridge/shell/HeaderModel.ts` | `headerModelOf` | `bridge/shell/HeaderModel.spec.ts` |
 | Control availability | `bridge/shell/ControlAvailability.ts` | `availabilityOf`, `controlIsEnabled` | `bridge/shell/BridgeApp.dom.tsx` |
 | The posting control | `bridge/shell/CommandButton.tsx`, `bridge/shell/ControlCommandSender.ts` | `CommandButton`, `useControlCommand` | `bridge/shell/Header.dom.tsx`, `bridge/shell/ControlCommandSender.dom.tsx` |
-| Routes | `bridge/shell/HashRouter.ts` | `BRIDGE_TABS`, `routeOf` | `bridge/shell/HashRouter.spec.ts` |
-| Lanes | `bridge/views/kanban/KanbanModel.ts` | `laneOf`, `KANBAN_LANES` | `bridge/views/kanban/KanbanModel.spec.ts` |
-| Merge queue view | `bridge/views/merge-queue/MergeQueueModel.ts` | `mergeQueueModelOf`, `orderTextOf` | `bridge/views/merge-queue/MergeQueueModel.spec.ts` |
-| Waves | `bridge/views/waves/WavesModel.ts` | `wavesModelOf` | `bridge/views/waves/WavesModel.spec.ts` |
-| Pill words | `bridge/utils/DisplayStateWordingUtil.ts` | `stateLabelOf` | `bridge/utils/DisplayStateWordingUtil.spec.ts` |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
-| Detail controls | `bridge/views/detail-panel/DetailControlsModel.ts` | `controlsOf` | `bridge/views/detail-panel/DetailControlsModel.spec.ts` |
 | Decision card | `bridge/conversation/DecisionCard.tsx` | `DecisionCard` | `bridge/views/questions/QuestionsView.dom.tsx` |
 | Job controls | `bridge/views/agents/JobControls.tsx` | `JobControls` | `bridge/views/agents/AgentsView.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Stop with agents running | `cli/overseer/OverseerForeground.ts` | `BoardChildren.stopLiveLines` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | Terminal views | `cli/jobs/JobsCommand.ts`, `cli/jobs/JobCommand.ts` | `jobsCommand` | `cli/jobs/JobCommand.spec.ts` |
 | Flint's host | `bridge/flint/BridgeFlint.tsx` | `BridgeFlint` | `bridge/flint/BridgeFlint.dom.tsx` |
-| Chat cues | `bridge/conversation/ChatCueOccasion.ts` | `chatCueOccasionOf` | `bridge/conversation/ChatCueOccasion.spec.ts` |
-| Agents cues | `bridge/views/agents/AgentPanelSpriteModel.ts` | `AgentPanelSpriteModel` | `bridge/views/agents/AgentPanelSpriteModel.spec.ts` |

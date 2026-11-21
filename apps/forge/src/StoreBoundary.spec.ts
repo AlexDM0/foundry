@@ -141,7 +141,7 @@ describe('the scan saw the tree', () => {
     expect(shippingPaths.length).toBeGreaterThan(400);
     expect(SOURCES.length).toBeGreaterThan(shippingPaths.length);
     expect(shippingPaths).toEqual(expect.arrayContaining([
-      'cli/CommandContext.ts', 'src/services/overseer/DrivePass.ts', 'src/services/control/ControlService.ts', 'bridge/Main.tsx',
+      'cli/CommandContext.ts', 'src/services/overseer/DrivePass.ts', 'src/services/control/ControlService.ts',
     ]));
     expect(shippingPaths).not.toContain('src/StoreBoundary.spec.ts');
   });
@@ -269,7 +269,7 @@ describe('what the boundary exempts is exact', () => {
     expect(violationsOfPlanted('src/Planted.ts', `// ${plantedLine}`)).toEqual([]);
     expect(violationsOfPlanted('src/Planted.ts', ` * ${plantedLine}`)).toEqual([]);
     expect(violationsOfPlanted('cli/Planted.spec.ts', plantedLine)).toEqual([]);
-    expect(violationsOfPlanted('bridge/Planted.dom.tsx', plantedLine)).toEqual([]);
+    expect(violationsOfPlanted('cli/Planted.dom.tsx', plantedLine)).toEqual([]);
     expect(violationsOfPlanted('src/testing/Planted.ts', plantedLine)).toEqual([]);
   });
 });

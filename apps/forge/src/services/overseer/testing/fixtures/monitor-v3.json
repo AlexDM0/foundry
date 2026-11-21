@@ -53,7 +53,10 @@
       "stamp": "2026-11-12T11:50:00+01:00",
       "stampWord": "opened",
       "actionLabel": "Answer",
-      "route": "#questions/E1"
+      "target": {
+        "subject": "decision",
+        "id": "E1"
+      }
     },
     {
       "ticketIds": [],
@@ -69,7 +72,10 @@
       "stamp": "2026-11-12T08:30:00+01:00",
       "stampWord": "reviewed",
       "actionLabel": "Accept",
-      "route": "#kanban/ticket/005"
+      "target": {
+        "subject": "ticket",
+        "id": "005"
+      }
     },
     {
       "ticketIds": [],
@@ -85,7 +91,10 @@
       "stamp": "2026-11-12T09:00:00+01:00",
       "stampWord": "filed",
       "actionLabel": "Ready",
-      "route": "#kanban/ticket/009"
+      "target": {
+        "subject": "ticket",
+        "id": "009"
+      }
     },
     {
       "key": "decision:E2",
@@ -103,7 +112,10 @@
       "stamp": "2026-11-12T09:15:00+01:00",
       "stampWord": "opened",
       "actionLabel": "Answer",
-      "route": "#questions/E2"
+      "target": {
+        "subject": "decision",
+        "id": "E2"
+      }
     },
     {
       "ticketIds": [],
@@ -119,7 +131,10 @@
       "stamp": "2026-11-12T10:30:00+01:00",
       "stampWord": "ready since",
       "actionLabel": "Review",
-      "route": "#kanban/ticket/006"
+      "target": {
+        "subject": "ticket",
+        "id": "006"
+      }
     },
     {
       "ticketIds": [],
@@ -135,7 +150,10 @@
       "stamp": "2026-11-12T10:45:00+01:00",
       "stampWord": "opened",
       "actionLabel": "Answer",
-      "route": "#kanban/draft/D2"
+      "target": {
+        "subject": "draft",
+        "id": "D2"
+      }
     }
   ],
   "jobs": [
@@ -163,7 +181,10 @@
       "lastLine": null,
       "waitingOnDecisionId": "E1",
       "interruption": null,
-      "route": "#agents/J1"
+      "target": {
+        "subject": "job",
+        "id": "J1"
+      }
     },
     {
       "id": "J2",
@@ -189,7 +210,10 @@
       "lastLine": null,
       "waitingOnDecisionId": null,
       "interruption": null,
-      "route": "#agents/J2"
+      "target": {
+        "subject": "job",
+        "id": "J2"
+      }
     },
     {
       "id": "J3",
@@ -213,7 +237,10 @@
       "lastLine": "Example Assistant line",
       "waitingOnDecisionId": null,
       "interruption": null,
-      "route": "#agents/J3"
+      "target": {
+        "subject": "job",
+        "id": "J3"
+      }
     },
     {
       "id": "J4",
@@ -237,7 +264,10 @@
       "lastLine": "Example request",
       "waitingOnDecisionId": null,
       "interruption": null,
-      "route": "#agents/J4"
+      "target": {
+        "subject": "job",
+        "id": "J4"
+      }
     },
     {
       "id": "J5",
@@ -261,7 +291,10 @@
       "lastLine": null,
       "waitingOnDecisionId": null,
       "interruption": null,
-      "route": "#agents/J5"
+      "target": {
+        "subject": "job",
+        "id": "J5"
+      }
     },
     {
       "id": "J6",
@@ -287,7 +320,10 @@
       "lastLine": null,
       "waitingOnDecisionId": null,
       "interruption": null,
-      "route": "#agents/J6"
+      "target": {
+        "subject": "job",
+        "id": "J6"
+      }
     }
   ],
   "notices": [
@@ -326,42 +362,54 @@
       "at": "2026-11-12T08:00:00+01:00",
       "category": "forge",
       "text": "Overseer started on code code-example, install version 17",
-      "route": null
+      "target": null
     },
     {
       "logPosition": 1,
       "at": "2026-11-12T09:00:00+01:00",
       "category": "needs-user",
       "text": "Ticket #009 filed: Example draft ticket",
-      "route": "#kanban/ticket/009"
+      "target": {
+        "subject": "ticket",
+        "id": "009"
+      }
     },
     {
       "logPosition": 3,
       "at": "2026-11-12T09:30:00+01:00",
       "category": "landed",
       "text": "Ticket #002 delivered",
-      "route": "#kanban/ticket/002"
+      "target": {
+        "subject": "ticket",
+        "id": "002"
+      }
     },
     {
       "logPosition": 4,
       "at": "2026-11-12T11:00:00+01:00",
       "category": "agent",
       "text": "Job J1 launched: build (builder) for #001 onto main, attempt 1",
-      "route": "#agents/J1"
+      "target": {
+        "subject": "job",
+        "id": "J1"
+      }
     },
     {
       "logPosition": 5,
       "at": "2026-11-12T11:50:00+01:00",
       "category": "needs-user",
       "text": "Decision E1 opened: agent-question for #001",
-      "route": "#questions/E1"
+      "target": {
+        "subject": "decision",
+        "id": "E1"
+      }
     },
     {
       "logPosition": 6,
       "at": "2026-11-12T11:55:00+01:00",
       "category": "forge",
       "text": "Example milestone",
-      "route": null
+      "target": null
     }
   ],
   "flintBrain": null

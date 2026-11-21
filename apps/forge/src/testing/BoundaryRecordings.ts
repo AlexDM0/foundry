@@ -54,12 +54,6 @@ const HASH_CHARACTERS = 16;
 export const SYSTEM_OF_BOUNDARY: Readonly<Record<string, RecordedSystem>> = {
   '.platform-probes/':                           OPERATING_SYSTEM,
   'agent-progress.ts':                           BUN,
-  'bridge/api/CommandClient.ts':                 BUN,
-  'bridge/api/IdentityClient.ts':                BUN,
-  'bridge/api/PictureUploadClient.ts':           BUN,
-  'bridge/api/SessionCodeExchange.ts':           BUN,
-  'bridge/api/SessionTokenSource.ts':            BUN,
-  'bridge/testing/HeadlessBridgeCheck.ts':       BUN,
   'bunfig.toml':                                 BUN,
   'cli/ApplyCommandOfVerb.ts':                   BUN,
   'cli/CommandTable.ts':                         BUN,

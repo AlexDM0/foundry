@@ -17,7 +17,6 @@ const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spe
 const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
 const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
-const HEADLESS_BRIDGE_SPEC = 'bridge/HeadlessBridge.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
 const TEST_RUN_LEAK_CHECK_SPEC = 'src/testing/TestRunLeakCheck.integration.spec.ts';
@@ -119,12 +118,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'cli/ApplyCommandOfVerb.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
   { boundary: 'cli/overseer/OverseerForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_API_SPEC, OVERSEER_COMMAND_SPEC] },
   { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_COMMAND_SPEC] },
-  { boundary: 'bridge/api/CommandClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
-  { boundary: 'bridge/api/IdentityClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
-  { boundary: 'bridge/api/PictureUploadClient.ts', specs: [HEADLESS_BRIDGE_SPEC] },
-  { boundary: 'bridge/api/SessionCodeExchange.ts', specs: [HEADLESS_BRIDGE_SPEC] },
-  { boundary: 'bridge/api/SessionTokenSource.ts', specs: [HEADLESS_BRIDGE_SPEC] },
-  { boundary: 'bridge/testing/HeadlessBridgeCheck.ts', specs: [HEADLESS_BRIDGE_SPEC] },
   { boundary: 'agent-progress.ts', specs: ['cli/BinarySmoke.integration.spec.ts'] },
   {
     boundary: 'cli/testing/CliProcess.ts',

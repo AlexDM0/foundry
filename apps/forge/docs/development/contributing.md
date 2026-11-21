@@ -254,7 +254,6 @@ row.*
 | --- | --- | --- | --- |
 | Add a command | An entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts`, a folder in its set under `cli/` | A row in `docs/cli.md`, the one documentation entry a spec checks (`cli/HelpText.flags.spec.ts`); the verb's place in the lists in `cli/ControlContract.spec.ts` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/HelpText.flags.spec.ts`, `cli/ControlContract.spec.ts` |
 | Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
-| Add a Bridge view | `bridge/views/<view>/`: the component, a pure `<View>Model.ts`, its `.spec.ts` and `.dom.tsx` | A class in `bridge/styles/board.css`; the mount in `bridge/shell/BridgeApp.tsx`; an entry in `BRIDGE_TABS` in `bridge/shell/HashRouter.ts` | `bridge/StyleContract.spec.ts`, `src/ImportDirection.spec.ts`, `bridge/HeadlessBridge.integration.spec.ts` |
 | Add a reusable component | `packages/design-system/<layer>/<Name>.tsx` with `<Name>.css` and `<Name>.dom.tsx` beside it, in the lowest layer whose components it composes | Its export in `packages/design-system/package.json`, which the Bridge imports as `design-system/<Name>`; its `@import` in `packages/design-system/styles/design-system.css` | `packages/design-system/StyleContract.spec.ts`, `packages/design-system/CompositionLayers.spec.ts`, `src/ImportDirection.spec.ts` |
 | Add a change to the board that a job or the Bridge can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
 | Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs, and only `bun run typecheck:bridge` proves that, by hand | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
@@ -290,22 +289,6 @@ bun agent-progress.ts open
 
 `oversee status` prints the hash of the code on disk and of the code in memory. Two different hashes mean the Overseer
 runs older code than your checkout: restart it. See [code version](../glossary.md#code-version).
-
-Before looking by hand, `bun test bridge/HeadlessBridge.integration.spec.ts` shows whether a page load fails: it loads the Bridge
-from a real Overseer in headless Chrome, and fails on a console error, an exception or a failed request.
-
-**To look at every view on a full board, use the demo.** It seeds the synthetic Example Storefront board through the
-real commands in a temporary folder, starts an Overseer with the fake agent and photographs each view with headless
-Chrome. `--no-copy` keeps the result in `.readme-graphics/build/images/` and leaves `docs/images/` alone:
-
-```sh
-.readme-graphics/regenerate.sh --no-copy
-```
-
-**Retake the README screenshots after a visual change reaches `main`.** Run `.readme-graphics/regenerate.sh` in the
-long-lived checkout of `main`, look at the images, then commit them. The Overseer runs on the real clock and its
-fake agents race it, so jobs and times differ between runs.
-[The folder's own README](../../.readme-graphics/README.md) has the details.
 
 ## Changing the documentation
 
@@ -372,6 +355,4 @@ bun test src/ComponentNames.spec.ts
 | Outage from crashes | `src/lib/tracker-model/Playbook.ts` | `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
-| Bridge tabs | `bridge/shell/HashRouter.ts` | `BRIDGE_TABS` | `bridge/HeadlessBridge.integration.spec.ts` |
-| Serving the Bridge | `src/services/overseer/OverseerServer.ts` | `pageFilesOf`, `routes.page` | `bridge/HeadlessBridge.integration.spec.ts` |
 | Code on disk | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |

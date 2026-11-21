@@ -25,12 +25,15 @@ import type { ForgeReading }                                            from '..
 import { CONTRACT_VERSIONS }                                            from '../../shared/constants/ContractVersions.ts';
 import { ContractVersionUtil }                                          from '../../shared/utils/ContractVersionUtil.ts';
 import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './@types/ForgeDocumentReading.ts';
+import { TARGET_SHAPE }                                                 from './constants/BoardDocumentShapes.ts';
 import { ForgeReadingMapUtil }                                          from './utils/ForgeReadingMapUtil.ts';
 
 const VERSION_KEYS = { majorKey: 'monitorVersion' } as const;
 
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 const NULLABLE_WHOLE_NUMBER = { nullable: 'whole-number' } as const;
+const TARGET_OBJECT = { object: TARGET_SHAPE } as const;
+
 const OVERSEER_SHAPE = {
   state:       { oneOf: ['serving', 'held-by-install-change', 'passing-baton'] },
   paused:      'boolean',
@@ -62,7 +65,7 @@ const ATTENTION_ENTRY_SHAPE = {
   stamp:                   'text',
   stampWord:               { oneOf: ['opened', 'filed', 'ready since', 'reviewed'] },
   actionLabel:             { oneOf: ['Answer', 'Ready', 'Review', 'Accept'] },
-  route:                   'text',
+  target:                  TARGET_OBJECT,
 } as const satisfies ShapeOf<MonitorAttentionEntryDocument>;
 
 const JOB_SHAPE = {
@@ -87,7 +90,7 @@ const JOB_SHAPE = {
   lastLine:            NULLABLE_TEXT,
   waitingOnDecisionId: NULLABLE_TEXT,
   interruption:        { optional: { nullable: { oneOf: MONITOR_INTERRUPTION_CAUSES } } },
-  route:               'text',
+  target:              TARGET_OBJECT,
 } as const satisfies ShapeOf<MonitorJobDocument>;
 
 const NOTICE_SHAPE = { kind: 'text', text: 'text' } as const satisfies ShapeOf<MonitorNoticeDocument>;
@@ -98,7 +101,7 @@ const ACTIVITY_ENTRY_SHAPE = {
   at:          'text',
   category:    { oneOf: ['needs-user', 'landed', 'agent', 'forge'] },
   text:        'text',
-  route:       NULLABLE_TEXT,
+  target:      { nullable: TARGET_OBJECT },
   kind:        { optional: NULLABLE_TEXT },
   tokens:      { optional: NULLABLE_WHOLE_NUMBER },
 } as const satisfies ShapeOf<MonitorActivityEntryDocument>;

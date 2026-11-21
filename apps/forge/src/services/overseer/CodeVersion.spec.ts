@@ -1,5 +1,5 @@
 /**
- * The code version over a planted program root. What matters: an edit to any shipping file moves the version, `bridge/` and
+ * The code version over a planted program root. What matters: an edit to any shipping file moves the version, `resources/` and
  * `talos.ts` included, since the new-code check hands a live Overseer to the code on disk only when it moves; a spec edit
  * leaves it unchanged, so a test-only change never reads as new code. Inside a Bun workspace, an edit to a workspace package the program
  * depends on, or to its own part of the root `bun.lock`, moves it too, while a package, tool folder or lockfile entry that only another
@@ -28,10 +28,9 @@ const PLANTED_FILES = [
   'agent-progress.ts',
   'talos.ts',
   'package.json',
-  'bridge/Main.tsx',
-  'bridge/shell/Header.tsx',
-  'bridge/shell/HeaderModel.spec.ts',
+  'resources/prompts/BuildPrompt.md',
   'cli/Main.ts',
+  'cli/Main.spec.ts',
   'src/services/overseer/CodeVersion.ts',
 ];
 
@@ -90,8 +89,8 @@ describe('CodeVersion.codeVersionOf', () => {
   });
 
   test.each([
-    ['a bridge/ edit', 'bridge/shell/Header.tsx'],
-    ['a new bridge/ file', 'bridge/views/NewView.tsx'],
+    ['a resources/ edit', 'resources/prompts/BuildPrompt.md'],
+    ['a new cli/ file', 'cli/overseer/NewCommand.ts'],
     ['a talos.ts edit', 'talos.ts'],
     ['an agent-progress.ts edit', 'agent-progress.ts'],
     ['a cli/ edit', 'cli/Main.ts'],
@@ -102,10 +101,10 @@ describe('CodeVersion.codeVersionOf', () => {
     expect(CodeVersion.codeVersionOf(programRoot)).not.toBe(versionBefore);
   });
 
-  test('a spec edit under bridge/ leaves the version unchanged', () => {
+  test('a spec edit under cli/ leaves the version unchanged', () => {
     const programRoot   = plantedProgramRoot();
     const versionBefore = CodeVersion.codeVersionOf(programRoot);
-    plantFile(programRoot, 'bridge/shell/HeaderModel.spec.ts', 'edited\n');
+    plantFile(programRoot, 'cli/Main.spec.ts', 'edited\n');
     expect(CodeVersion.codeVersionOf(programRoot)).toBe(versionBefore);
   });
 });

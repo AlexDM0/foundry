@@ -21,7 +21,7 @@ const MILLISECONDS_PER_SECOND = 1000;
 
 const KNOWN_OPTION_NAMES: readonly string[] = [NO_BROWSER_FLAG];
 
-// The Bridge's `bridge/api/SessionCodeExchange.ts` reads this fragment.
+// The page that exchanges the session code reads this fragment.
 const SESSION_CODE_FRAGMENT_PREFIX = '#session=';
 
 /** The live Overseer's Baton record; with none live, `open` first starts the Overseer detached, as `oversee --detach` does. */

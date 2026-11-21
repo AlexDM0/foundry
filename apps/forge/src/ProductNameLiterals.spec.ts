@@ -1,7 +1,7 @@
 /**
  * Every command text the CLI prints (a refusal, a usage line, a suggested command, the help, a hook command) names the program through
  * `PRODUCT_NAMES.PROGRAM`, so a build named beside the released program never tells an agent to run the other one. The scan reads the
- * string and template literals of every non-spec source under `src/`, `cli/`, `bridge/` and `design-system/` (`.tsx` included) from the
+ * string and template literals of every non-spec source under `src/` and `cli/` from the
  * syntax tree, so a comment is never command text; a brief's `agent-progress row:`, `ticket:` or `review:` line is a marker the dispatcher
  * writes and the hook reads, not a command. What remains must be in the allowlist, exact both ways. The scan first proves it read the
  * sources, and each form is planted.
@@ -17,7 +17,7 @@ interface LiteralFinding {
   readonly literal: string;
 }
 
-const SCANNED_FOLDERS = ['src/', 'cli/', 'bridge/', 'design-system/'];
+const SCANNED_FOLDERS = ['src/', 'cli/'];
 
 const PRODUCT_NAMES_PATH = 'src/shared/constants/ProductNames.ts';
 
@@ -33,12 +33,8 @@ const [RELEASED_PROGRAM = ''] = PROGRAM_NAMES;
 const ALLOWED_LITERALS: readonly LiteralFinding[] = [
   // The names themselves.
   ...PROGRAM_NAMES.map((name) => ({ path: PRODUCT_NAMES_PATH, literal: name })),
-  // The header's wordmark is the brand the designs fix, not a command, so it keeps its name in a build beside the released program.
-  { path: 'bridge/shell/Header.tsx', literal: 'forge' },
   // The monitor snapshot's activity category for the forge's own entries: a fixed value of the monitor contract, never the program's name.
   { path: 'src/services/overseer/MonitorSnapshotAssembly.ts', literal: 'forge' },
-  // The pipeline view's forge level: a kind of the level union and a segment of its route, never the program's name.
-  { path: 'bridge/views/pipeline/entities/PipelineLevelModel.ts', literal: 'forge' },
 ];
 
 /** The name standing alone, longest first: not inside a path, a folder, a file name, a longer name or a storage key. */
@@ -100,8 +96,8 @@ describe('the scan itself', () => {
     expect(PROGRAM_NAMES).toEqual(['agent-progress', 'forge']);
   });
 
-  test('it reads the non-spec sources of src/, cli/ and bridge/, a component among them, and the literals in them', () => {
-    expect(SCANNED_SOURCES.map(({ path }) => path)).toContain('bridge/shell/ConnectionBanners.tsx');
+  test('it reads the non-spec sources of src/ and cli/, and the literals in them', () => {
+    expect(SCANNED_SOURCES.map(({ path }) => path)).toContain('cli/HelpText.ts');
     expect(SCANNED_SOURCES.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
     for (const folder of SCANNED_FOLDERS) expect(SCANNED_SOURCES.some(({ path }) => path.startsWith(folder)), folder).toBe(true);
     expect(SCANNED_SOURCES.some(({ path }) => path.endsWith('.spec.ts') || path.endsWith('.dom.tsx') || path.includes('/testing/'))).toBe(false);

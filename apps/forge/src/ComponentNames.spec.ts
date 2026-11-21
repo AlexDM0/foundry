@@ -143,7 +143,7 @@ test('the scan reads every program and package file but this one, the board and 
   const filePaths = scannedFiles().map(({ path }) => path);
   expect(filePaths.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
   expect(filePaths).toContain('CLAUDE.md');
-  expect(filePaths).toEqual(expect.arrayContaining(['design-system/CONSTITUTION.md', 'flint/package.json']));
+  expect(filePaths).toEqual(expect.arrayContaining(['forge-contracts/package.json', 'system-versions/package.json']));
   expect(filePaths.some((filePath) => filePath.startsWith('src/services/overseer/'))).toBe(true);
   expect(filePaths.some((filePath) => filePath.startsWith('src/lib/talos/'))).toBe(true);
   expect(filePaths.filter((filePath) => filePath === THIS_FILE || UNSCANNED_FOLDERS.some((folder) => filePath.startsWith(folder)))).toEqual([]);

@@ -4,6 +4,7 @@
  * window a session reported, the newest log entries a person cares about, worded as the Bridge words a log entry, and Flint's brain, which
  * is no job and so never in `jobs`. On a forge with entities only, its entities, each open ticket's entity and stage, and each job's.
  */
+import type { BoardTarget }               from 'forge-contracts/BoardReadingDocuments';
 import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { JobWithLiveFacts, UsageWindowReport } from '../../adapters/@types/BoardStateParts.ts';
@@ -26,9 +27,8 @@ import type {
   MonitorSnapshot,
   MonitorUsage
 } from '../../shared/monitor/@types/MonitorSnapshot.ts';
-import { attentionEntriesOf, routedAttentionEntryOf }            from '../../shared/monitor/AttentionEntries.ts';
+import { attentionEntriesOf }                                    from '../../shared/monitor/AttentionEntries.ts';
 import { flintBrainRunsOf, todayCalendarDateOf, todayFiguresOf } from '../../shared/monitor/TodayFigures.ts';
-import { BridgeFragmentUtil }                                    from '../../shared/monitor/utils/BridgeFragmentUtil.ts';
 import { NoticeWordingUtil }                                     from '../../shared/monitor/utils/NoticeWordingUtil.ts';
 import { OpenDecisionsUtil }                                     from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardState }                                       from './BoardState.ts';
@@ -206,13 +206,13 @@ const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
 const FLINT_BRAIN_ACTIVITY_KIND = 'flint-brain';
 
-/** The Bridge route a record's subject opens: its question, its ticket or draft on the Kanban, its job or the Assistant; `null` for the board's own. */
-function activityRouteOf(record: LogRecord): string | null {
-  if ('decisionId' in record) return BridgeFragmentUtil.subjectFragmentOf('decision', record.decisionId);
-  if ('jobId' in record) return BridgeFragmentUtil.subjectFragmentOf('job', record.jobId);
-  if ('ticketId' in record) return BridgeFragmentUtil.subjectFragmentOf('ticket', record.ticketId);
-  if ('draftId' in record) return BridgeFragmentUtil.subjectFragmentOf('draft', record.draftId);
-  if ('incidentId' in record) return BridgeFragmentUtil.subjectFragmentOf('incident', record.incidentId);
+/** The subject a record is about: its decision, its job, its ticket, its draft or its incident, the first it names; `null` for the board's own. */
+function activityTargetOf(record: LogRecord): BoardTarget | null {
+  if ('decisionId' in record) return { subject: 'decision', id: record.decisionId };
+  if ('jobId' in record) return { subject: 'job', id: record.jobId };
+  if ('ticketId' in record) return { subject: 'ticket', id: record.ticketId };
+  if ('draftId' in record) return { subject: 'draft', id: record.draftId };
+  if ('incidentId' in record) return { subject: 'incident', id: record.incidentId };
   return null;
 }
 
@@ -224,7 +224,7 @@ function activityOf(logRecords: readonly LogRecord[]): MonitorActivityEntry[] {
     const category = record === undefined ? null : ACTIVITY_CATEGORY_OF_KIND[record.kind];
     if (record === undefined || category === null) continue;
     const entry = {
-      logPosition, at: record.at, category, text: LogUtil.sentenceOf(record), route: activityRouteOf(record)
+      logPosition, at: record.at, category, text: LogUtil.sentenceOf(record), target: activityTargetOf(record)
     };
     entries.push(record.kind === 'flint-brain-ended' ? { ...entry, kind: FLINT_BRAIN_ACTIVITY_KIND, tokens: record.fields.tokens } : entry);
   }
@@ -256,7 +256,7 @@ function jobOf(job: JobWithLiveFacts, decisions: readonly Decision[], incidents:
     lastLine:            live.lastLine?.text ?? null,
     waitingOnDecisionId: OpenDecisionsUtil.answeringOrderOf(decisions).find((decision) => decision.jobId === job.id)?.id ?? null,
     interruption:        job.state === 'interrupted' && job.interruption !== undefined ? MONITOR_INTERRUPTION_CAUSE_OF_CAUSE[job.interruption] : null,
-    route:               BridgeFragmentUtil.subjectFragmentOf('job', job.id),
+    target:              { subject: 'job', id: job.id },
     ...jobEntityKeysOf(job),
   };
 }
@@ -338,7 +338,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     ticketCountByStatus: board.ticketCountByStatus(),
     readyTicketIds:      board.readyTicketEntries().map((ready) => ready.id),
     openIncidents:       state.incidents.length,
-    attention:           attentionEntriesOf(state).map(routedAttentionEntryOf),
+    attention:           attentionEntriesOf(state),
     jobs:                state.jobs.map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
     notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
     warnings:            NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.batonPassWarningIn(state.overseer.batonPassWarning)),
