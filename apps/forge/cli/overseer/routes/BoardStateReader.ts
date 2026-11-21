@@ -12,7 +12,6 @@ import { GitProcess }                     from '../../../src/lib/git/GitProcess.
 import { predictMerges }                  from '../../../src/lib/git/MergeTree.ts';
 import type { LogRecord }                 from '../../../src/lib/tracker-model/@types/LogRecord.ts';
 import type { Board }                     from '../../../src/lib/tracker-model/Board.ts';
-import { readingBoardOf }                 from '../../../src/lib/tracker-model/ReadingBoard.ts';
 import { mergeTargetRuleOf }              from '../../../src/services/lifecycle/MergeTargets.ts';
 import type { BoardChildren }             from '../../../src/services/overseer/BoardChildren.ts';
 import {
@@ -25,6 +24,7 @@ import { JobLiveFactsReader }                        from '../../../src/services
 import { MainLineReads }                             from '../../../src/services/overseer/MainLineReads.ts';
 import { UsageLimits }                               from '../../../src/services/overseer/UsageLimits.ts';
 import type { StoreReadFace }                        from '../../../src/services/store/BoardStore.ts';
+import { readingBoardOfContents }                    from '../../../src/services/tracker/BoardOfContents.ts';
 import type { Workspace }                            from '../../../src/services/tracker/Workspace.ts';
 import { type BranchNames, branchNamesOf }           from '../../../src/shared/BranchNames.ts';
 import { flintBrainRunsOf, type TodayFlintBrainRun } from '../../../src/shared/monitor/TodayFigures.ts';
@@ -142,11 +142,12 @@ export interface BoardStateRead {
 
 export function readBoardState(source: BoardStateSource): BoardStateRead {
   const { context, workspace, boardReads } = source;
+  const boardContents = boardReads.requireBoard();
   const {
     progress, pipelineReading, pipelineSetupReading, gateProfilesReading, storedLog, listing, epicListing, draftListing
-  } = boardReads.requireBoard();
+  } = boardContents;
   const pipeline = pipelineReading.verdict === 'readable' ? pipelineReading.pipeline : null;
-  const board = readingBoardOf(progress, listing.tickets, epicListing.epics, draftListing.drafts, storedLog.records, pipeline);
+  const board = readingBoardOfContents(boardContents);
   const confinementInForce = { confinement: context.platformPorts.gateConfinement.availability().verdict, confinementSource: 'overseer' } as const;
   const liveFactsSource = {
     boardChildren: source.boardChildren, trackerDirectory: workspace.trackerDirectory, adapter: context.agentAdapter, board

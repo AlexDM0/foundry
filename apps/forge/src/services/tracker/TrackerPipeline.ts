@@ -18,11 +18,12 @@ import { PipelineSetupFile }                                                    
 import { createProgressFileWriter }                                                           from '../../adapters/progress/ProgressFileWriter.ts';
 import { CommittedContentFile }                                                               from '../../adapters/tickets/CommittedContentFile.ts';
 import { createTicketFileWriter }                                                             from '../../adapters/tickets/TicketFileWriter.ts';
-import { Board }                                                                              from '../../lib/tracker-model/Board.ts';
+import type { Board }                                                                         from '../../lib/tracker-model/Board.ts';
 import { refusalIsBoardRefusal }                                                              from '../../lib/tracker-model/BoardRefusal.ts';
 import { createLogger }                                                                       from '../../lib/tracker-model/Logger.ts';
 import { OperationRefusal }                                                                   from '../../shared/OperationRefusal.ts';
 import type { BoardContents, UnreadableRecords }                                              from './@types/BoardRecords.ts';
+import { boardOfContents }                                                                    from './BoardOfContents.ts';
 import type { BoardTransaction }                                                              from './BoardTransaction.ts';
 import { draftFilePathOf }                                                                    from './DraftStore.ts';
 import { epicFilePathOf, everyEpicFilePathIn }                                                from './EpicStore.ts';
@@ -71,18 +72,7 @@ function refuseEntitiesInAFolder(workspace: Workspace, board: Board): void {
 
 function openBoard(contents: BoardContents): OpenBoard {
   const logRecordCollector = createLogRecordCollector(contents.storedLog);
-  const board              = new Board({
-    progress:            contents.progress,
-    tickets:             contents.listing.tickets,
-    epics:               contents.epicListing.epics,
-    drafts:              contents.draftListing.drafts,
-    logger:              createLogger(logRecordCollector.collect),
-    storedLogRecords:    contents.storedLog.records,
-    pipeline:            contents.pipelineReading.verdict === 'readable' ? contents.pipelineReading.pipeline : null,
-    pipelineSetup:       contents.pipelineSetupReading,
-    gateProfiles:        contents.gateProfilesReading,
-    constitutionSources: contents.constitutionSourcesReading,
-  });
+  const board              = boardOfContents(contents, createLogger(logRecordCollector.collect));
   return { contents, logRecordCollector, board };
 }
 
