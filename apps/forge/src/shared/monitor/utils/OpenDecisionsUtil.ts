@@ -1,9 +1,9 @@
 /**
  * The open decisions in the order User answers them, `agent-question` first, with the ones an Assistant escalated marked; and which
- * incident escalated a decision, read from the `incident-escalated` records of the log. The Bridge and the monitor snapshot read it alike.
+ * incident escalated a decision, read from the `incident-escalated` records of the log. The board document and the monitor snapshot read it alike.
  */
 
-/** A log record as far as an escalation reads it: the Board's records and the Bridge's history documents both fit. */
+/** A log record as far as an escalation reads it: the Board's records and the served history documents both fit. */
 export interface EscalationRecord {
   readonly kind:        string;
   readonly incidentId?: string;

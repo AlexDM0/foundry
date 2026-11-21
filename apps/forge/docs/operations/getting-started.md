@@ -9,19 +9,23 @@
 
 forge turns [tickets](../glossary.md#ticket) into merged commits: [agent sessions](../glossary.md#session)
 build each ticket on its own [worktree](../glossary.md#worktree), and your commands, the
-[gates](../glossary.md#gate), decide whether it lands. An [Overseer](../glossary.md#overseer) per repository serves a
-[board](../glossary.md#board) in your browser, the [Bridge](../glossary.md#bridge).
+[gates](../glossary.md#gate), decide whether it lands. An [Overseer](../glossary.md#overseer) per repository serves the
+[board](../glossary.md#board) through an API on `127.0.0.1`, and a client of that API shows it to you.
 
-![The path from clone to first merged ticket: you run setup.sh, init and open, and the Overseer serves the Bridge paused with checks-not-set open. You start the pipeline setup; the pipeline agent researches the repository, drafts the constitution and proposes the pipeline, and you continue each step. Apply commits CONSTITUTION.md to the main line, stores the pipeline and resumes the board. You describe the work in Intake, a product owner files draft tickets, you ready them, and the Overseer builds, gates and merges each ticket onto the main line. The gate commands, which store a pipeline by hand, are under Set up the pipeline.](../figures/getting-started/adoption-path.png)
-
-*Notice the heavy box: nothing builds before an Apply, and the Apply is what resumes a new, paused board.*
+The path from clone to first merged ticket: you run `setup.sh`, `init` and `start`, and the Overseer serves the board
+paused with `checks-not-set` open. You start the pipeline setup; the pipeline agent researches the repository, drafts
+the constitution and proposes the pipeline, and you continue each step. Apply commits `CONSTITUTION.md` to the main
+line, stores the pipeline and resumes the board. You describe the work in Intake, a product owner files draft tickets,
+you ready them, and the Overseer builds, gates and merges each ticket onto the main line. Nothing builds before an
+Apply, and the Apply is what resumes a new, paused board. The gate commands, which store a pipeline by hand, are under
+Set up the pipeline.
 
 ```sh
 git clone git@github.com:AlexDM0/foundry.git && cd foundry
 apps/forge/setup.sh                         # once per machine; apps/forge/setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
-forge open                                  # starts the Overseer when none runs
+forge start                                 # starts the Overseer in the background
 forge pipeline setup                        # the pipeline agent designs the pipeline with you
 ```
 
@@ -42,10 +46,9 @@ the first sign of a missing one is a failing session.
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |
 | A git repository with a commit | The Overseer cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
 
-Elsewhere the program differs in three ways. Where gates cannot run confined, `oversee` refuses to start and names what
+Elsewhere the program differs in two ways. Where gates cannot run confined, `oversee` refuses to start and names what
 is missing; `status --json` prints the answer as `confinement`. `--login-overseer` writes a systemd user unit on Linux
-and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md#the-login-item)). `open` calls
-`xdg-open` in place of `open`.
+and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md#the-login-item)).
 
 ## Install the program
 
@@ -103,10 +106,10 @@ forge init --project "Example Storefront"
 Expect `Initialised forge for "Example Storefront"`, then one line per part. On a fresh repository `hooks` reads
 `(installed)`.
 
-![A repository after init, each path marked by who writes it and what git does with it. Your code and CLAUDE.md stay yours; init and update own the installed files; init creates the stores, which runtime then writes; pipeline.json, the overseer and jobs folders and the worktrees folder appear at runtime. Only .gitignore goes into git.](../figures/getting-started/repository-after-init.png)
-
-*Notice how little reaches git. `update` replaces each installed file; `.gitignore` and settings keep your entries, and
-only the program's own retired entries are removed.*
+After `init`, your code and `CLAUDE.md` stay yours. `init` and `update` own the installed files. `init` creates the
+stores, which runtime then writes, and `pipeline.json`, the `overseer` and `jobs` folders and the worktrees folder
+appear at runtime. Little reaches git: only `.gitignore`. `update` replaces each installed file; `.gitignore` and
+settings keep your entries, and only the program's own retired entries are removed.
 
 **Commit `.gitignore`, by name.** It is the only file `init` leaves for git, and it holds the entries for the
 [`<data>` and `<worktrees>` folders](../glossary.md#reading-names) and both skill folders. `init` adds no entry for
@@ -122,24 +125,21 @@ cannot adopt that repository: run `forge` in one without that folder.
 
 ## Start the Overseer
 
-`open` starts the Overseer in the background when none runs, then opens its URL in your browser. `oversee --detach`
-starts it the same way without opening a page. Run either with your main line checked out: the Overseer reads the branch
+`start` starts the Overseer in the background, as `oversee --detach` does, and prints its URL. No forge command opens
+the board; a client of the Overseer's API shows it. Run either with your main line checked out: the Overseer reads the branch
 of your repository's main checkout when it starts and lands onto that branch.
 
 ```sh
-forge open
+forge start
 ```
 
 The URL looks like `http://127.0.0.1:<port>/`. The port is derived from the tracker's id, starting at
-`OVERSEER_PORT_FIRST` (4930), so a bookmark survives a restart. If that port is taken, the Overseer moves up, within
+`OVERSEER_PORT_FIRST` (4930), so the URL survives a restart. If that port is taken, the Overseer moves up, within
 `OVERSEER_PORT_COUNT` (100) ports. `--port <n>` picks one yourself.
 
-The Overseer keeps running after `open` ends and after its terminal closes. Stop it with `forge oversee stop`; running
+The Overseer keeps running after `start` ends and after its terminal closes. Stop it with `forge oversee stop`; running
 agents carry on under Talos until its lease ends a minute later, then stop at the end of their turn and wait for your
 resume.
-
-If you open `<data>/progress.html` by habit or from a link, you get a stub, not the board. It links the live URL, or
-says the Overseer is down.
 
 ## Set up the pipeline
 
@@ -161,7 +161,7 @@ never runs a script:
 forge pipeline setup                          # or --billing api --max-budget-usd 2
 ```
 
-Expect one line per record it wrote, naming the setup `S1`. The Agents tab then lists the agent, and the Bridge's
+Expect one line per record it wrote, naming the setup `S1`. The Agents tab then lists the agent, and the
 Pipeline tab walks the same steps ([Running a board](running-a-board.md)). Each step after billing waits for your
 Continue; the agent's moves never move a step.
 
@@ -232,7 +232,7 @@ on purpose, and the board counts that as set. Every flag is in the [CLI referenc
 ## Resume the board
 
 A new board is paused, and it stays paused until you say otherwise. `pipeline apply --resume` resumes it once the
-pipeline is stored. If you applied without it, or set gates by hand, press Resume in the Bridge header; [Running a
+pipeline is stored. If you applied without it, or set gates by hand, press Resume in the board's header; [Running a
 board](running-a-board.md) tours the header. The same thing from a terminal:
 
 ```sh

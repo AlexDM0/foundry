@@ -1,6 +1,6 @@
 /**
  * What lies ahead of an open ticket, as the Overseer serves it: its lifecycle steps from the one under way, or the next one, to its landing,
- * and the tickets that wait on it. Values only; the Bridge words them.
+ * and the tickets that wait on it. Values only; a client words them.
  */
 
 /**

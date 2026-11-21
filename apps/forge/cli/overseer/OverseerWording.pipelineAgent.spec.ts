@@ -159,7 +159,7 @@ test('the first message runs the pipeline setup skill by its installed name, on 
   expect(message.startsWith(`${SKILL_LINE}\n\n`)).toBe(true);
   expect(SKILL_LINE).toContain(PRODUCT_NAMES.PIPELINE_SETUP_SKILL);
   expect(message).toContain(`runs the \`${PRODUCT_NAMES.PIPELINE_SETUP_SKILL}\` skill on the setup`);
-  expect(message).not.toContain('the Bridge');
+  expect(message).not.toContain('board page');
 });
 
 test('the skill names the five relayed commands and the question rule, and the message leaves them to it', () => {
@@ -238,7 +238,7 @@ describe('the current step\'s block', () => {
     expect(SKILL_TEXT).toContain('Outside a job, the first word after the verb names the record');
     expect(SKILL_TEXT).toContain(`\`${PRODUCT_NAMES.PROGRAM} pipeline setup\``);
     expect(SKILL_TEXT).toContain(`\`${PRODUCT_NAMES.PROGRAM} pipeline update\``);
-    expect(SKILL_TEXT).not.toContain('Bridge');
+    expect(SKILL_TEXT).not.toContain('board page');
     expect(SKILL_TEXT).not.toContain('{{');
   });
 });

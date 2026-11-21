@@ -1,6 +1,6 @@
 /**
- * The pipeline facts the Overseer serves on its board state for the Bridge's Pipeline view: values only, never words, so the view models
- * word every kind, role and label, and the Bridge keeps no copy of the rules that decide which nodes, slots and marks exist.
+ * The pipeline facts the Overseer serves on its board state for a client's pipeline view: values only, never words, so the view models
+ * word every kind, role and label, and a client keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
 import type { BoardRefusalDetail } from '../BoardRefusal.ts';
 import type { GatePhase }          from './GatePhase.ts';
@@ -223,7 +223,7 @@ export interface PipelineFlowNode {
 
 export type PipelineEdgeTone = 'forward' | 'rollback' | 'loop';
 
-/** The label of an edge, worded by the Bridge; `null` draws no label. */
+/** The label of an edge, worded by the client; `null` draws no label. */
 export type PipelineEdgeLabelKind =
   | 'all-green'
   | 'red-builder-fixes'

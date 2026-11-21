@@ -238,7 +238,7 @@ on standard input with `--file <path>` or `--file -`.
 | `{{program}} pipeline ready <step>` | no payload; the step is `research`, `constitution` or `design` |
 
 - A question has two to four options. Recommend exactly one option, or one or more when `multiple` is true. Do not
-  give an "Other" option: the Bridge lets User write a free answer.
+  give an "Other" option: User can always write a free answer.
 - Send the whole constitution each time. A source names one full line of the text, without its line ending, and
   `occurrence` counts equal lines from 1. One line takes one source. A source path is relative to the repository.
 - A proposal edit names one field of the draft (`gate:<name>`, `phase-order:<phase>`, `prepare:<name>`,

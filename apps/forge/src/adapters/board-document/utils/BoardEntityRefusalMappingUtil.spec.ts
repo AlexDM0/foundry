@@ -2,7 +2,7 @@
  * The draft's entity refusals as the board document serves them. What matters: each is a verdict of the validator a stored pipeline must
  * pass, so entities it takes have none; each carries a sentence that says what is wrong and that Continue and Apply wait for the fix, never
  * that nothing was written, since the edit that left it is kept; the entities it names and the row that shows it; and where one gesture
- * resolves it, that gesture's label and typed draft edits, which leave entities the validator takes. The cases are those of the Bridge's
+ * resolves it, that gesture's label and typed draft edits, which leave entities the validator takes. The cases are those of the retired browser client's
  * `EntityRefusalsModel.spec.ts`, whose fixture this one copies.
  */
 import { describe, expect, test } from 'bun:test';

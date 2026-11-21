@@ -2,7 +2,7 @@
  * The flow graph's contract: which nodes exist for each flow shape the designs draw (`Flow.dc.html` with Human code review off and on and
  * with the review step off, `A7Minimal.dc.html`), the insert-slot table of PLAN 9.1 row by row, the merge steps' placement and derived
  * meter (Q5, Q16), the node-to-dialog table, the editing marks (a removed gate stays drawn, a removed agent step goes and leaves its +),
- * and that no node or edge carries words. The cases pin the rules the Bridge must not repeat, so each names the design or decision it holds.
+ * and that no node or edge carries words. The cases pin the rules a client must not repeat, so each names the design or decision it holds.
  */
 import { describe, expect, test } from 'bun:test';
 

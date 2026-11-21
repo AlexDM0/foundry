@@ -1,5 +1,5 @@
 /**
- * The one check of a pipeline's entities, which the pipeline file and the Bridge both run, so the owner sees before Continue every refusal
+ * The one check of a pipeline's entities, which the pipeline file and the entities draft both run, so the owner sees before Continue every refusal
  * the stored file would get. Each refusal is a verdict with the keys it names; the wording is the refusal-wording util's.
  */
 import type { EntityKey } from '../@types/Pipeline.ts';

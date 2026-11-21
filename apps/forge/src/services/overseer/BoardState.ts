@@ -99,7 +99,7 @@ export interface BoardState extends Omit<FullStatusDocument, 'jobs' | 'decisions
   mergeQueue:      MergeQueueFacts;
   overseer:        OverseerFacts;
   usage:           UsageFacts;
-  /** What an open decision or incident leaves behind once it is settled, and the sessions the Bridge shows after they end: see `questionHistoryOf`. */
+  /** What an open decision or incident leaves behind once it is settled, and the sessions a client shows after they end: see `questionHistoryOf`. */
   questionHistory: LogRecord[];
   /** The newest jobs that left the board, oldest first, so a job launched and ended between two states still reaches the stream as `ended`. */
   endedJobs:       EndedJob[];
@@ -186,7 +186,7 @@ function mergeQueueOf(board: Board, forecasting: MergeForecasting | null): Merge
 const SESSION_JOB_KINDS: ReadonlySet<string> = new Set(['assistant', 'product-owner', 'pipeline-agent']);
 
 /**
- * The log records the Bridge's Questions, Assistant and Intake views read: every decision and incident record, and every record of an
+ * The log records a client's question, Assistant and intake views read: every decision and incident record, and every record of an
  * Assistant, product-owner or pipeline agent job, since an answered decision, a handled incident and a closed intake leave the board.
  */
 function questionHistoryOf(logRecords: readonly LogRecord[]): LogRecord[] {

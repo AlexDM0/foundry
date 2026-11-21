@@ -144,6 +144,6 @@ The board's ticket review switch (`gate approval tickets on|off`) sets what the 
 
 - **Ticket review off**: the draft becomes `committed` with its row. The Overseer builds it.
 - **Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`, with no row. Only
-  the user moves it on, with `{{program}} ticket ready <ids>` or the Ready button on the Bridge.
+  the user can ready the ticket, for example with `{{program}} ticket ready <ids>`.
 
 An incomplete draft stays a draft. Complete it, then submit it again.

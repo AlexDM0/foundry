@@ -96,7 +96,7 @@ function overseerDirectory(): string {
   return join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer');
 }
 
-/** The newest Baton's token as a bearer header, which every data route needs from a client with no session cookie. */
+/** The newest Baton's token as a bearer header, which every data route needs. */
 function tokenHeaders(): Record<string, string> {
   const batonFile = readdirSync(overseerDirectory()).filter((fileName) => /^baton-\d+\.json$/.test(fileName)).at(-1) ?? '';
   const { tokenFile } = JSON.parse(readFileSync(join(overseerDirectory(), batonFile), 'utf8')) as { tokenFile: string };

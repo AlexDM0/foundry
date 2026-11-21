@@ -1,7 +1,7 @@
 # Gaia
 
 One window over every forge on this machine: what waits on User across all boards, every running agent, and the state and controls of
-every forge. One forge's own views are its Bridge, shown in place under Gaia's bar.
+every forge. One forge's own views are Gaia's board views, shown in place under Gaia's bar.
 
 Gaia is a Bun server and a React page in TypeScript, opened as a macOS app. It runs no agent and is optional: a forge works the same
 without it.

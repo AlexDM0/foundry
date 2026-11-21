@@ -2,7 +2,7 @@
  * A ticket reference resolves however it is padded or prefixed, and the ready and held lists keep the order callers rely on. A settled
  * check judges the record handed in, never another found by its id. The status counts cover every ticket, so a reader of the working view
  * can total the board without the full document. The launch slots name the same jobs the concurrency counts, by kind and never by role,
- * and the in-progress tickets that no job works on, so the Bridge joins ids and copies no rule.
+ * and the in-progress tickets that no job works on, so a client joins ids and copies no rule.
  */
 import { expect, test } from 'bun:test';
 

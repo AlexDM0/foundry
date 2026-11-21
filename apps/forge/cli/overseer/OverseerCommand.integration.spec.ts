@@ -5,7 +5,7 @@
  * agree with the Baton; a started Overseer has its board's Talos serving under a lease it renewed, and `oversee talos-restart` has it
  * quit that Talos cleanly and follow the next, as no crash;
  * `oversee stop --now` stops a live line of Talos, which a plain stop leaves running; `oversee pause|resume` write the
- * drain flag with no Overseer up, which the Bridge header's board state and `oversee status` read alike, held in-process by
+ * drain flag with no Overseer up, which the served board state and `oversee status` read alike, held in-process by
  * `cli/overseer/OverseerCommand.spec.ts`; and a spec-spawned Overseer resolves the fake agent, never the vendor's adapter. Every Overseer binds
  * `--port 0`. Every binary, and every Overseer it starts, answers git from one recorded answer set an idle board needs. An Overseer whose data
  * folder watch fails to start writes its URL to no page stub and no output: a move of these writes before the watch start makes it fail.

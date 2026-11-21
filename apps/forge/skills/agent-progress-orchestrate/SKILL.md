@@ -72,7 +72,7 @@ version means `{{program}} update` is due: ask before running it in the main che
 While the user wants you to watch, run `{{program}} await --json` as a background command. It wakes when the log
 holds a newly opened decision or an escalated incident; put each such decision to the user with the host's question
 tool, exactly as the agent or the Overseer worded it, run `decide` with the answer, and wait again with
-`await --after <position>`. A decision the user leaves for later stays open on the board and in the Bridge.
+`await --after <position>`. A decision the user leaves for later stays open on the board.
 
 ## What you never do
 

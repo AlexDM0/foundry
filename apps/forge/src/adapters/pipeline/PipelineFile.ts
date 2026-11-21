@@ -418,7 +418,7 @@ function concurrencyOf(value: unknown, path: string): Mapped<number | undefined>
   return typeof value === 'number' && Number.isInteger(value) && value > 0 ? { value } : problemOf(`${path} is not a positive whole number`);
 }
 
-/** The root entity's home may be the repository's root alone, `/`, as the Bridge writes it; any other home names folders below the root. */
+/** The root entity's home may be the repository's root alone, `/`, as a client writes it; any other home names folders below the root. */
 function homeOf(value: unknown, path: string, entityKind: PipelineEntityKind): Mapped<string[]> {
   if (entityKind === 'root' && Array.isArray(value) && value.length === 1 && value[0] === REPOSITORY_ROOT_HOME) return { value: [REPOSITORY_ROOT_HOME] };
   const folders = repositoryPathsOf(value, path);
@@ -486,7 +486,7 @@ function entitiesOf(value: unknown): Mapped<Record<EntityKey, PipelineEntity> | 
   return { value: entities };
 }
 
-/** The first refusal of the entities checked together by the validator the Bridge shares, which a stored pipeline must pass. */
+/** The first refusal of the entities checked together by the validator the entities draft shares, which a stored pipeline must pass. */
 function entitySetProblemOf(entities: Readonly<Record<EntityKey, PipelineEntity>> | undefined): { problem: string } | null {
   const firstRefusal = entities === undefined ? undefined : EntityValidationUtil.refusalsOf(entities)[0];
   return firstRefusal === undefined ? null : problemOf(OperationRefusalWordingUtil.entityRefusalReasonOf(firstRefusal));

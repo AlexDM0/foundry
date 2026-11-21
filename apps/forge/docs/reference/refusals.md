@@ -25,9 +25,9 @@ them:
    `version`, `machine` and `login-item` also print `{answerVersion, refusal, text}` on standard output: the code and
    the API sentence (rule 4), since a monitor shows it. A refusal worded from the arguments has the code
    `arguments-refused`.
-4. **The [Bridge](../glossary.md#bridge) and a monitor show the API sentence,** beside the Bridge control that was used.
+4. **A client of the API shows the API sentence,** beside the control that was used.
    It holds the same facts as the terminal's sentence, so the words in the first column match both. Where the terminal
-   names a command or a flag, the API sentence names the Bridge control or a neutral action instead, or ends at the
+   names a command or a flag, the API sentence names a neutral action instead, or ends at the
    facts: User runs no command. "Run `ticket hold <ticket>` to keep it" reads "Hold it to keep it", and "Run `update`"
    reads "Update the board".
    From forge 1.21 a refused command (`POST /api/commands`, 409) and a refused picture (413, 415) carry the
@@ -36,9 +36,11 @@ them:
 5. **A [session](../glossary.md#session) under a [job](../glossary.md#job) sees the same sentence too,** worded by its
    own command from the [Hatch](../glossary.md#hatch) reply.
 
-![Three doors, a terminal command, a Bridge control and a session under a job, reach the same rules. A rule refuses with a code and facts and one wording util turns that into one sentence, which lands on standard error at exit 1 or 2, in a 409 answer shown beside the Bridge control, or, through a Hatch reply carrying the code, on the standard error of the session's own command.](../figures/refusals/one-refusal-three-doors.png)
-
-*Words live in one place, so a sentence here is the sentence at every door; the API sentence names no command.*
+So three doors, a terminal command, a command through the API and a session under a job, reach the same rules. A rule
+refuses with a code and facts and one wording util turns that into one sentence, which lands on standard error at exit 1
+or 2, in a 409 answer a client shows beside its control, or, through a Hatch reply carrying the code, on the standard
+error of the session's own command. Words live in one place, so a sentence here is the sentence at every door; the API
+sentence names no command.
 
 ## The rules in full
 
@@ -48,12 +50,12 @@ code, both in parentheses. A Hatch reply file carries the code as data, in `deta
 **Exit codes follow the status,** so check the exit code in a script, never the wording. A relayed refusal keeps its
 status through the reply, so a session exits as a direct run would.
 
-**The Bridge has three answers of its own.** All three come from the same route, and the Bridge prints them as sent.
+**The API has three answers of its own.** All three come from the same route, and a client shows them as sent.
 
 | Answer | Shown as | Cause | What to do |
 | --- | --- | --- | --- |
-| 409 | The sentence, beside the Bridge control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
-| 423 | `The install version changed, so launches are held until the board is updated.` in the shell banner | Launches are held for an install change. | Update the board: run `update`. |
+| 409 | The sentence, beside the client's control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
+| 423 | `The install version changed, so launches are held until the board is updated.` in a banner | Launches are held for an install change. | Update the board: run `update`. |
 | 400 | `The command body is not a control command this Overseer knows` | The body is not a known control command, or a field of a [control contract](overseer-api.md#control-contract-2) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
 
 ## When something was written
@@ -223,10 +225,10 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `bytes, so it was not stored` | `picture-too-large` | `POST /api/pictures` with more than `PICTURE_SIZE_LIMIT_BYTES`, answered 413. | Send a smaller picture. | [overseer-api.md](overseer-api.md#routes) |
 | `By its first bytes the picture is none of` | `picture-type-unsupported` | `POST /api/pictures` with bytes that are no PNG, JPEG, WebP or GIF, whatever its name or `Content-Type`, answered 415. | Send a picture of one of those types. | [overseer-api.md](overseer-api.md#routes) |
 | `so it cannot be recorded delivered by hand` | `ticket-has-live-job` | `ticket deliver --by-hand` while a job works the ticket. | Run `job stop` first. | [cli.md](../cli.md) |
-| `could not be read as a time, so it is not a range bound` | `chart-range-bound-unreadable` | `range`, or the Bridge's Save as the board's range, with a bound that is no time. | Write an ISO 8601 timestamp, `start`, `now` or a signed offset. | [cli.md](../cli.md#the-boards-lifetime) |
+| `could not be read as a time, so it is not a range bound` | `chart-range-bound-unreadable` | `range`, or the `chart-range-set` command, with a bound that is no time. | Write an ISO 8601 timestamp, `start`, `now` or a signed offset. | [cli.md](../cli.md#the-boards-lifetime) |
 | `is not before --to` | `chart-range-backwards` | Two timestamps, or two bounds relative to now, out of order. | Swap them, or widen the window. | [cli.md](../cli.md#the-boards-lifetime) |
 | `is not a whole number of minutes above zero` | `chart-range-tick-unreadable` | A `chart-range-set` whose `tickMinutes` is not a whole number above zero. | Send a whole number of minutes, or `null`. | [overseer-api.md](overseer-api.md#commands) |
-| `so the board cannot be cleared under them` | `tracker-has-live-jobs` | `clear`, or the Bridge's Clear…, while a job other than the Assistant is live. | Stop the jobs, or wait until they end. | [cli.md](../cli.md#clear) |
+| `so the board cannot be cleared under them` | `tracker-has-live-jobs` | `clear`, or the `tracker-clear` command, while a job other than the Assistant is live. | Stop the jobs, or wait until they end. | [cli.md](../cli.md#clear) |
 | `still runs on the worktree of #<ticket>; stop it first` | `worktree-in-use` | `worktree repair` `recreate` or `unlock` with a job on the ticket. | Run `job stop`, then repair. | |
 | `holds uncommitted work that could not be saved to a patch` | `worktree-has-uncommitted-work` | `recreate` found changes it could not read or save, or no job ever ran on the ticket, so there is no job folder to name for the patch. | Save the work by hand, then repair. | [runbook](../operations/runbook.md) |
 | `Git refused the <step> repair of the worktree` | `worktree-repair-failed` | Git failed the repair step. The sentence ends with git's reason. | Fix what git names. A `recreate` patch may already be saved in the job folder. | [runbook](../operations/runbook.md) |
@@ -286,7 +288,7 @@ Words here: [decision](../glossary.md#decision), [incident](../glossary.md#incid
 | `so it takes one answer for each, not <n>` | `decision-answer-count` | Answer count differs from the question count. | Give one choice per question. | |
 | `A decision asks at least one question` | `decision-without-questions` | A decision would open with none, as an escalated incident that carries no question. | Answer the incident instead. | |
 | `so no two of its questions may read` | `decision-questions-repeat` | Two questions share their text, and answers key on it. | Reword one. | |
-| `so it takes one choice of letters for each` | `decision-has-several-questions` | Free text on a decision of several questions. | Use letters, or answer in the Bridge. | |
+| `so it takes one choice of letters for each` | `decision-has-several-questions` | Free text on a decision of several questions. | Use letters, or answer each question through the API. | |
 | `does not name them by letter` | `decision-option-unknown` | A letter outside the options, or a repeated one. Most Overseer decisions have no options, so any letter prints this. | Use the option letters, or answer with `decide <E> -- <text>`. | |
 | `takes one option, not` | `decision-single-choice` | Several letters on a single-select question. | Give one letter. | |
 | `There is no incident <incident>` | `unknown-incident` | The id names no incident. | Run `incidents`. | |
@@ -316,7 +318,7 @@ Words here: [gate](../glossary.md#gate), [pipeline](../glossary.md#pipeline).
 | `No gate pipeline is stored, so approval <approval> was not set` | `approval-without-pipeline` | `gate approval` on a board with no `pipeline.json`: a file holding only the switch would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `No gate pipeline is stored, so the Assistant was not switched` | `assistant-without-pipeline` | `gate assistant` on a board with no `pipeline.json`: a file holding only the switch would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `No gate pipeline is stored, so the reach was not set` | `reach-without-pipeline` | `gate reach` on a board with no `pipeline.json`: a file holding only the reach would read as no gates on purpose. | Set the gates first with `gate add` or `gate none`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
-| `each entity has its own prepare steps, gates and reach` | `pipeline-set-per-entity` | `gate prepare`, `add`, `order`, `none`, `remove` or `reach` on a pipeline with entities: beside `entities` the forge's own steps, gates and reach stay empty. | Set each entity's on the Pipeline tab of the Bridge, or with `pipeline update`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `each entity has its own prepare steps, gates and reach` | `pipeline-set-per-entity` | `gate prepare`, `add`, `order`, `none`, `remove` or `reach` on a pipeline with entities: beside `entities` the forge's own steps, gates and reach stay empty. | Set each entity's with `pipeline update`. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 
 </details>
 
@@ -417,11 +419,11 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `is live, but its API did not answer, so nothing was started beside it` | `overseer-not-answering` | `start` found a live Overseer, or started one, whose API did not answer within the start's tries. | Run `stop`, then `start` again. | [cli.md](../cli.md#the-overseer) |
 | `must be a positive whole number of milliseconds` | `malformed-overseer-poll-interval` | The test setting `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` holds another value. | Unset it or correct it. | |
 | `must be two versions, the current and the minimum supported` | `malformed-versions-answer` | The test setting `FORGE_VERSIONS_ANSWER` holds another value. | Unset it or correct it. | [cli.md](../cli.md) |
-| `Gates and install lines cannot run confined here, so the Overseer did not start` | `gate-confinement-unavailable` | `oversee` or `open` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | |
-| `needs git <version> or newer` | `git-below-floor` | `init`, `oversee` or `open` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
+| `Gates and install lines cannot run confined here, so the Overseer did not start` | `gate-confinement-unavailable` | `oversee` or `start` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | |
+| `needs git <version> or newer` | `git-below-floor` | `init`, `oversee` or `start` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
 | `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |
 | `An Overseer already serves this board` | `overseer-already-running` | A live Baton names another Overseer. | Use it, or run `oversee stop`. | |
-| `No Overseer serves this board` | `overseer-down` | The Overseer that `open` started was gone again before `open` read its Baton. | Run `open` again, or read `overseer.log`. | |
+| `No Overseer serves this board` | `overseer-down` | The Overseer that `start` started was gone again before `start` read its Baton. | Run `start` again, or read `overseer.log`. | |
 | `at the same moment and holds the newer Baton` | `overseer-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
 | `took this board over from the Baton` | `baton-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Overseer drives. | |
 | `is in use, so the Overseer did not start` | `overseer-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | |
@@ -430,7 +432,7 @@ Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), 
 | `is still live after being asked to stop` | `overseer-still-live` | The Baton stayed live through `OVERSEER_STOP_TRIES` tries. | Run `oversee status`, then stop it again. | |
 | `The Baton pass to code <code version> failed at <step>` | `baton-pass-failed` | `update` or `oversee restart` read a failed Baton pass, or read no outcome within `BATON_PASS_OUTCOME_TRIES` tries. The Overseer prints it too if it loses its port. The old Overseer keeps driving unless that happens. See [Sentences that mislead](#sentences-that-mislead). | Run `oversee status` and read the Overseer log. If nobody drives, run `oversee --detach`. What `update` installed stands. | |
 | `is sent to the live Overseer, never applied to the board` | `overseer-control-is-runtime-only` | Never printed: the API route, `oversee stop` and the Bouncer each stop `overseer-stop` and `overseer-restart` earlier, and the API route and the command line `talos-restart`. | Nothing to do. | |
-| `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Use Delivered by hand… on the ticket's form in the Bridge, or run `oversee stop` first. | [cli.md](../cli.md) |
+| `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Send `ticket-deliver-by-hand` through the API, as a client's control does, or run `oversee stop` first. | [cli.md](../cli.md) |
 | `speaks protocol version <answered>, and this Overseer speaks <required>` | `talos-protocol-differs` | The Talos the Overseer started from the program on disk answered another protocol version, so no Talos starts again while this Overseer lives. **Exit 2.** | Update the program checkout, then start the Overseer again. | |
 | `so the Overseer did not start and no agent runs` | `talos-unavailable` | The Talos the Overseer started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start the Overseer again. | |
 | `and stays off; its crash log` | `forge-crashed` | The serving Overseer crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
@@ -585,7 +587,7 @@ These rows print as listed above, and the sentence is not the whole truth.
 | `baton-pass-failed` from `update` or `oversee restart` after the old Overseer let go | The old Overseer keeps driving. | Both commands print before the old Overseer has taken its port back. If that fails, it exits and nobody drives. Only `oversee status` shows the end state. |
 | `baton-pass-failed` with `could not be bound again`, at step `bind-port`, printed by the Overseer as it exits | The old Overseer keeps driving. | Nobody drives. Run `oversee --detach`. A successor's own `bind-port` failure, without these words, is taken back. |
 | `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | The Baton pass failed. | No outcome was read in time. The pass may still end either way, or the Overseer may have exited. |
-| `incident-move-not-allowed`, `worker-filing-flag` from a terminal or the Bridge | A relay through the Overseer. | The same rule ran directly in this command, and no Overseer was involved. |
+| `incident-move-not-allowed`, `worker-filing-flag` from a terminal or the API | A relay through the Overseer. | The same rule ran directly in this command, and no Overseer was involved. |
 | `hatch-identity-mismatch` on an Assistant's `job message` or `job fresh` | The session forged an identity. | The Assistant used a move its incident allows; the format check refuses any `jobId`. |
 
 ## Coverage
@@ -616,7 +618,7 @@ row per reason.
 | All wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf`, `boardRefusalMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | The API sentence | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `apiMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.apiChannel.spec.ts` |
 | Exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |
-| The Bridge's answer | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
+| The API's answer | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | A relayed refusal | `src/services/overseer/HatchInbox.ts`, `cli/HatchUnderJob.ts` | `replyOf`, `hatchWhenUnderJob` | `cli/HatchUnderJob.spec.ts` |
 | Role reasons | `src/shared/@types/RoleCommandRefusalReason.ts`, `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Older files | `src/adapters/constants/OlderFormatAdvice.ts` | `OLDER_FORMAT_ADVICE` | `cli/OlderTrackerRefusal.spec.ts` |

@@ -6,7 +6,7 @@
 import { LocalTimeUtil }    from '../../lib/local-time/LocalTimeUtil.ts';
 import { TIMESTAMP_SLICES } from '../constants/TimestampSlices.ts';
 
-/** The board fields the figures read; the Overseer's state and the Bridge's board document both fit. */
+/** The board fields the figures read; the Overseer's state and the served board document both fit. */
 export interface TodayFiguresBoard {
   readonly page?: {
     readonly tickets: readonly { readonly delivered: string | null }[];

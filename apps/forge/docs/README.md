@@ -34,7 +34,7 @@ If something is wrong right now, start here.
 | Document | Its question |
 | --- | --- |
 | [Getting started](operations/getting-started.md) | What exactly do I run, in what order, and what should I see at each step? |
-| [Running a board from the Bridge](operations/running-a-board.md) | What am I looking at, and what do I do here day to day? |
+| [Running a board](operations/running-a-board.md) | What am I looking at, and what do I do here day to day? |
 | [Runbook](operations/runbook.md) | Something needs me: what do I check and what do I do? |
 
 ### Reference
@@ -82,4 +82,3 @@ reasons a released spelling still appears.
 | --- | --- | --- | --- |
 | Names | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
 | Component names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
-| Flint in the Bridge | `bridge/flint/BridgeFlint.tsx` | `BridgeFlint` | `bridge/flint/BridgeFlint.dom.tsx` |

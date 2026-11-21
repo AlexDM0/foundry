@@ -1,4 +1,4 @@
-/** `pipeline setup` opens the setup record of a first pipeline, billed as chosen; the Bridge's "Set up the pipeline" sends the same command. */
+/** `pipeline setup` opens the setup record of a first pipeline, billed as chosen; a client's control sends the same command. */
 import type { CommandContext }            from '../CommandContext.ts';
 import type { ArgumentParser }            from '../arguments/ArgumentParser.ts';
 import { applySetupCommand, billingFrom } from './SetupCommandLine.ts';

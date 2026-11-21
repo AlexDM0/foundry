@@ -40,7 +40,7 @@ takes its default move.
 | `decisions` lists something | [Decisions](#decisions) |
 | An `outage` decision is open | [Outage](#outage) |
 | `merges` shows a holder that does not move | [A merge is stuck](#a-merge-is-stuck) |
-| `jobs` warns that an incident took its default; the Bridge shows it in the incident line | [No Assistant](#no-assistant) |
+| `jobs` warns that an incident took its default; the board's incident line shows it | [No Assistant](#no-assistant) |
 | A process or the machine died | [Something died](#something-died) |
 | A `notice:` or a refusal names `update` | [Updating](#updating) |
 
@@ -244,7 +244,7 @@ forge gate retry J7
 ### `setup-failed`
 
 **You see:** a `setup-failed` incident, the job ended `stopped`, or `jobs` printing a warning that it took its default
-(the Bridge shows it in the incident line).
+(the board's incident line shows it).
 
 This block is a list: pick the line for the step that failed.
 
@@ -406,12 +406,14 @@ Nearly everything here recovers without you, because a Pass rereads files.
 | The Overseer | Talos, its agents and its lines run on. A minute after the last renewal the [supervision lease](../glossary.md#supervision-lease) ends: Talos stops the agents at the end of their turn and their jobs wait, `lease-ended`. | `forge oversee --detach`, then resume the jobs that wait. |
 | The machine | Every child of the old Talos reads `lost`, cause `reboot`, which counts toward no bound. Their jobs wait for your resume. | Start the Overseer, unless a login item does, then resume the jobs that wait. |
 
-![Three columns under a band labelled nobody drives. Keeps running: agents, whose permission prompts are still denied, and Talos. Waits for the next start: Hatch requests, results and questions in the event logs, and your commands such as decide, job stop and ticket hold, recorded at once. Absent until then: the Pass, so no launch or landing, and the Bridge. oversee --detach starts the Overseer, which reads all that waited.](../figures/runbook/overseer-down.png)
+With the Overseer down, nobody drives. Agents keep running, with their permission prompts still denied, and so does
+Talos. Hatch requests, results and questions in the event logs, and your commands such as `decide`, `job stop` and
+`ticket hold`, recorded at once, wait for the next start. The Pass, so every launch and landing, and the API are absent
+until then. `oversee --detach` starts the Overseer, which reads all that waited. Only the driving stops: your commands
+and [Hatch](../glossary.md#hatch) requests stand for the start.
 
-*Notice that only the driving stops: your commands and [Hatch](../glossary.md#hatch) requests stand for the start.*
-
-The [Bridge](../glossary.md#bridge) comes back with the Overseer. `forge open` starts one when none runs, and opens
-the Bridge.
+The API comes back with the Overseer, and so does every client that shows the board. `forge start` starts one in the
+background.
 
 A login item is optional and restarts nothing after a crash, only at login. From the agent-progress
 checkout, passing the tracked repository:
@@ -515,7 +517,7 @@ cause counts as a crash: the job waits, keeping its slot, for User's resume.
 
 ### No Assistant
 
-**You see:** `jobs` lists no `assistant` job and prints `warning: incident I2 took its default`; the Bridge counts it in
+**You see:** `jobs` lists no `assistant` job and prints `warning: incident I2 took its default`; the board counts it in
 the incident line above the header.
 
 **Cause:** the Assistant failed to boot `FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING` times, or a usage limit is on. Every
@@ -556,7 +558,7 @@ Update when `oversee status` says so, not on a schedule. Agents do not notice a 
 | You see | Meaning | Urgency |
 | --- | --- | --- |
 | `notice: new code: run ... update` | The code changed, the install did not. Nothing is held. | When convenient. |
-| `notice: the install version changed, so launches are held` | State `held-by-install-change`. Launches and resumes wait, and the Bridge refuses controls. Until `update`, `job stop` and the other board commands are refused `install-version-mismatch`; `oversee stop` still works. | Soon: the board stands still. |
+| `notice: the install version changed, so launches are held` | State `held-by-install-change`. Launches and resumes wait, and the API refuses commands. Until `update`, `job stop` and the other board commands are refused `install-version-mismatch`; `oversee stop` still works. | Soon: the board stands still. |
 | A command refused `install-version-mismatch` | Installed files differ from the program. | Run `forge update` at once. |
 
 ```bash
@@ -567,12 +569,11 @@ git status --short CLAUDE.md .gitignore   # commit what update changed here
 
 `update` refreshes installed files and leaves the [tracker](../glossary.md#tracker) alone. Its last step hands a live
 Overseer to the code on disk: it prints `Handing the Overseer at ...`, then `Overseer handed over to code ...`. The URL
-stays and Talos is not touched. Reload the Bridge. With no live Overseer the step is skipped. If `update` prints `did
+stays and Talos is not touched. With no live Overseer the step is skipped. If `update` prints `did
 not take the Baton pass`, run `forge oversee restart`, which stops and restarts that Overseer. A `.gitignore` change
 from `update` needs a commit too.
 
-> **As built.** If the Bridge fails to load after that reload, the board still runs: keep working from commands.
-> A stop in the Bridge is refused while held: run `update`, then `job stop`.
+> **As built.** A stop sent through the API is refused while held: run `update`, then `job stop`.
 > A stop sent during a [Baton pass](../glossary.md#baton-pass) is dropped.
 
 **A failed Baton pass:** `update` or `oversee restart` exits 1 with `baton-pass-failed`.
@@ -592,8 +593,8 @@ forge oversee --detach
 newer than the program. Update the program in the forge checkout with `git pull` and `bun install`, then run
 `forge update` again in the tracked repository.
 
-**A log that holds a brain run:** a forge that ran Flint's brain logged each ended run as a `flint-brain-ended` record.
-No forge writes that record any more, and every forge still reads it.
+**A log that holds a brain run:** forge 1.1 ran a brain for Flint and logged each ended run as a `flint-brain-ended`
+record. No forge writes that record any more, and every forge from 1.1 reads it.
 
 ## Cleaning up by hand
 

@@ -148,7 +148,7 @@ export interface MergeQueueFacts {
   targets:         MergeTargetFacts[];
 }
 
-/** What a message or an intake request may carry, so the Bridge refuses a picture before its upload and keeps no copy of the rule. */
+/** What a message or an intake request may carry, so a client refuses a picture before its upload and keeps no copy of the rule. */
 export interface PictureLimits {
   perMessage:     number;
   sizeLimitBytes: number;

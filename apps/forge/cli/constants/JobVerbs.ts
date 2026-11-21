@@ -33,7 +33,7 @@ export const READ_ONLY_VERBS_UNDER_A_JOB: readonly string[] = [
 export const OTHER_VERBS_OF_CONTROL_KIND: Readonly<Partial<Record<ControlCommandKind, readonly string[]>>> = { 'job-stop': ['job wind-down'], };
 
 /**
- * Kinds only User's own surfaces send: the Bridge, a monitor holding the token, or the verb outside a job. Under a job the verb is refused
+ * Kinds only User sends: a client holding the token, or the verb outside a job. Under a job the verb is refused
  * before it runs, never relayed.
  */
 export const UNRELAYED_VERB_OF_CONTROL_KIND = {

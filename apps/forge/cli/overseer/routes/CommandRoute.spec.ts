@@ -3,7 +3,7 @@
  * is refused 423 before the tracker is opened, while `overseer-stop`, `overseer-restart` and `talos-restart` still reach the Overseer,
  * whose outcome the answer carries, `nothing-to-do` for a Talos restart with no Talos; a body with no known kind, or a runtime command
  * whose `now` is no boolean, is 400 and reaches nothing; and a `range`, `clear` or by-hand delivery of the wrong shape is 400 before the
- * hold, since a clear of an unknown scope would otherwise clear. The 423's sentence names no command line: the Bridge and a monitor show it
+ * hold, since a clear of an unknown scope would otherwise clear. The 423's sentence names no command line: a client shows it
  * to User, who runs no command.
  */
 import {

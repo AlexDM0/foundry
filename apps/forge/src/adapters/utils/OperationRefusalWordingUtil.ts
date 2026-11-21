@@ -30,8 +30,8 @@ type OlderProgramPresentDetail = Extract<OperationRefusalDetail, { kind: 'older-
 type GitBelowFloorDetail = Extract<OperationRefusalDetail, { kind: 'git-below-floor' }>;
 
 /**
- * Who reads the sentence: a person at the command line, or User through the API, in the Bridge or a monitor. User runs no command, so an
- * API sentence names what is wrong and, where an action exists, the Bridge control or a neutral action, never a command line or a flag.
+ * Who reads the sentence: a person at the command line, or User through the API, in a client. User runs no command, so an
+ * API sentence names what is wrong and, where an action exists, a neutral action, never a command line or a flag.
  */
 type RefusalChannel = 'command-line' | 'api';
 
@@ -350,8 +350,8 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
         + `. ${NOTHING_WAS_WRITTEN}`;
     case 'pipeline-set-per-entity':
       return `The pipeline holds the entities ${detail.entityKeys.join(', ')}, and each entity has its own prepare steps, gates and reach, so the `
-        + 'top-level ones stay empty. Set them for each entity on the Pipeline tab of the Bridge'
-        + `${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline update\``, '')}. ${NOTHING_WAS_WRITTEN}`;
+        + `top-level ones stay empty. Set them for each entity${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} pipeline update\``, '')}. `
+        + NOTHING_WAS_WRITTEN;
     case 'gate-profiles-unreadable':
       return `The gate profile runs cannot be read: ${detail.problem}. ${NOTHING_WAS_WRITTEN} Repair or remove gate-profiles.json in the data folder.`;
     case 'gate-profile-running':
@@ -723,8 +723,8 @@ function noTrackerAtOverrideText(overrideDirectory: string, channel: RefusalChan
 /** Not `OLDER_FORMAT_ADVICE`: no release converts a pipeline, so running `update` with an earlier one would not help. */
 function olderPipelineText(filePath: string, channel: RefusalChannel): string {
   return `${filePath} was written by an earlier ${PRODUCT_NAMES.PROGRAM}, in a pipeline format this one does not read, and no release `
-    + 'converts it, so the board holds new work as if no pipeline were set and nothing was written. Set the pipeline up again on the '
-    + `Pipeline tab of the Bridge${adviceFor(channel, `, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}.`;
+    + 'converts it, so the board holds new work as if no pipeline were set and nothing was written. Set the pipeline up '
+    + `again${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\``, '')}.`;
 }
 
 function olderProgramPresentText({
@@ -920,7 +920,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
     case 'overseer-owns-the-lifecycle':
       return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
-        + 'Record the work with Delivered by hand… on the ticket\'s form in the Bridge'
+        + 'Ask the Overseer to record the ticket as delivered by hand'
         + `${adviceFor(channel, `, or stop the Overseer with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` first`, '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'talos-protocol-differs':
       return `Talos, started from the program on disk, speaks protocol version ${detail.answeredProtocolVersion}, and this Overseer speaks `
@@ -1012,7 +1012,7 @@ function installVersionMismatchMessageOf(detail: InstallVersionMismatchDetail): 
 
 /**
  * Why a pipeline's entities cannot be stored, as the pipeline file reports the first refusal and a `pipeline-draft-invalid` refusal
- * carries it as its reason; the Bridge words each refusal of the entities step with it.
+ * carries it as its reason; a client shows each refusal of the entities step with it.
  */
 function entityRefusalReasonOf(refusal: EntityRefusal): string {
   switch (refusal.reason) {
@@ -1050,7 +1050,7 @@ function messageOf(refusal: OperationRefusal): string {
   return refusalSentenceOf(refusal, 'command-line');
 }
 
-/** The sentence an API answer carries for the Bridge or a monitor to show as it is: the same facts, and no command line or flag. */
+/** The sentence an API answer carries for a client to show as it is: the same facts, and no command line or flag. */
 function apiMessageOf(refusal: OperationRefusal): string {
   return refusalSentenceOf(refusal, 'api');
 }

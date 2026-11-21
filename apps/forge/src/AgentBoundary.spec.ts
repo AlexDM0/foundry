@@ -47,7 +47,7 @@ const ADAPTER_FOLDER = 'src/lib/claude-code/';
 const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
 const PORT_FOLDERS: readonly string[] = ['src/lib/agent-launch/', 'src/lib/talos/'];
-/** Where the vendor's tool names and transcript folders are a reach; a view's button says "Edit", and the Bridge quotes reported rows. */
+/** Where the vendor's tool names and transcript folders are a reach; a view's button says "Edit", and a client quotes reported rows. */
 const VENDOR_LOGIC_FOLDERS: readonly string[] = ['src/services/', 'src/lib/', 'cli/'];
 /** This repository's own development folders, taken out of a line before it is matched. */
 const DEVELOPMENT_FOLDER_PATTERN = /\.claude\/(?:\.evidence|worktrees|rules)/g;

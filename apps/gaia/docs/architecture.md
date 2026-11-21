@@ -65,8 +65,8 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 
 A forge's board opens at `#forge/<trackerId>[/<tab>[/<item>]]`, in Gaia's window or in a browser tab of its own, and only there: Gaia's
 bar, then the board's own header and tabs (`page/board/Board.tsx`). Every tab is drawn by Gaia's own view, which
-`page/board/shell/BoardTabViews.tsx` names for each. Gaia frames no forge's page, asks no forge for a session code, writes no
-frame-ancestor record and runs no `forge open`: the board opens one way, through Gaia. A forge whose board Gaia's relay cannot read, or
+`page/board/shell/BoardTabViews.tsx` names for each. A forge serves no page and has no command that opens a
+board, so the board opens one way, through Gaia. A forge whose board Gaia's relay cannot read, or
 whose version Gaia cannot talk to, shows why in place of the board.
 
 ## A forge's board
@@ -102,9 +102,9 @@ Two decisions hold these guards together:
   its DevTools protocol over descriptors 3 and 4, which only the launcher holds (`lib/process-run/` hands them over). A debugging port on
   `127.0.0.1` would let any local process, of any account, drive the window that holds the session cookie and so pass every guard of the
   server; the browser therefore opens none.
-- **The session cookie stays host-only on `127.0.0.1`.** Cookies ignore ports, so a forge's Bridge opened in the same browser, served on
-  another port of `127.0.0.1`, carries Gaia's cookie on its own requests. The only program that receives Gaia's cookie this way is a local
-  forge, which Gaia already trusts with that forge's token.
+- **The session cookie stays host-only on `127.0.0.1`.** Cookies ignore ports, so a request the same browser makes to a forge's API, served
+  on another port of `127.0.0.1`, carries Gaia's cookie. The only program that receives Gaia's cookie this way is a local forge, which
+  Gaia already trusts with that forge's token.
 
 ## Errors
 

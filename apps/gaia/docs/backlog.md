@@ -20,3 +20,7 @@ What is agreed and not started, with the reason it waits.
   (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a pass that was not needed: a recording
   needs a scratch Overseer on other code than the forge on disk that then declines the pass, which `src/testing/ScratchForge.ts` cannot
   stage from one read-only forge checkout.
+- **Flint looks at the composer.** The design handoff's answer of the chat habitat to "the user types", and the look after the doubt of
+  "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint (`page/lib/flint/`): no intent of the
+  fixed list looks at an element, and neither the playground nor `02-animations.md` gives a look's motion. It waits for a look in the
+  playground, and a `look` intent with the element the habitat names.

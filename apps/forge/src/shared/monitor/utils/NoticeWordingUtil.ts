@@ -1,7 +1,7 @@
 /**
  * The sentences of the Overseer's open notices and of the header's warnings (owner answer Q34): a failed Baton pass with its step and error,
- * and an Assistant that cannot come up. The Bridge shows them and the monitor snapshot carries them, so both read the same words, which
- * name the Bridge control or a neutral action and never a command line: User runs no command.
+ * and an Assistant that cannot come up. The board document and the monitor snapshot carry them, so both read the same words, which
+ * name a neutral action and never a command line: User runs no command.
  */
 import type { MonitorWarning } from '../@types/MonitorSnapshot.ts';
 

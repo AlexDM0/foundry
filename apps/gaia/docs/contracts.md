@@ -61,7 +61,7 @@ internal model (`ForgeReading.versions`) and the page contract (`FleetDocumentFo
 | --- | --- | --- |
 | `current` | The forge's `current` is `SUPPORTED_FORGE_VERSION` | Reads it in full at the versioned paths. |
 | `ahead` | The forge's `minimumSupported` is at or below `SUPPORTED_FORGE_VERSION`, and its `current` above it | Reads it in full at the versioned paths, with what this Gaia knows; full use of the forge needs a newer Gaia. Quiet: explains only. |
-| `newer` | `SUPPORTED_FORGE_VERSION` is below the forge's `minimumSupported`: they cannot talk | Asks nothing more; reads the forge at fidelity `newer-contract`. Gaia needs an update: it explains only, offers no update of itself and names no command, and offers Open in new tab where the Bridge can be reached. |
+| `newer` | `SUPPORTED_FORGE_VERSION` is below the forge's `minimumSupported`: they cannot talk | Asks nothing more; reads the forge at fidelity `newer-contract`. Gaia needs an update: it explains only, offers no update of itself and names no command, and offers Open in new tab. |
 | `older` | The forge's `current` is below `SUPPORTED_FORGE_VERSION`, or the forge serves no `/api/versions` (it refuses the path as any unknown one): every forge from before system versions | Asks nothing more; reads the forge at fidelity `older-contract`. The forge needs an update: Update forge, which Gaia runs through the forge program, with its pending, done and refused states. |
 
 A `/api/versions` answer that is no versions document, as another program on the port gives, is a failed try, as no answer is.
@@ -79,9 +79,9 @@ endpoint already had.
 | `health` | 1 | `GET /api/v1/health` | none |
 | `sessionCodes` | 1 | `POST /api/v1/session-codes` | none |
 | `session` | 1 | `POST /api/v1/session` | none |
-| `fleet` | 10 | `GET /api/v10/fleet` | monitor contract 2's warning kinds (2); a part since removed (3); a forge too old to talk to, fidelity `older-contract` (4); board routes in place of the Bridge's fragments (5); each forge's presence, crash, crash logs and waiting work, and the forge alerts in what waits (6); each forge's outage endings, their total, and the fleet's alert `agents-ended-on-outage`, an attention item of no one forge (7); each forge's `runningVersions`, the running and the newest Overseer and Talos (8); no forge's `embed` contract in `contracts` and `knownContracts` (9); in Gaia 2.0, no Flint's brain on a forge, no brain row among its agents, and no `kind` or `tokens` on an activity entry (10) |
+| `fleet` | 10 | `GET /api/v10/fleet` | monitor contract 2's warning kinds (2); a part since removed (3); a forge too old to talk to, fidelity `older-contract` (4); board routes in place of the fragments of the forge's own page (5); each forge's presence, crash, crash logs and waiting work, and the forge alerts in what waits (6); each forge's outage endings, their total, and the fleet's alert `agents-ended-on-outage`, an attention item of no one forge (7); each forge's `runningVersions`, the running and the newest Overseer and Talos (8); no forge's `embed` contract in `contracts` and `knownContracts` (9); in Gaia 2.0, no Flint's brain on a forge, no brain row among its agents, and no `kind` or `tokens` on an activity entry (10) |
 | `events` | 10 | `GET /api/v10/events` | as `fleet`, whose document each `fleet` event carries |
-| `commands` | 6 | `POST /api/v6/commands` | Gaia's own sentences for forge refusals (2); commands since removed (3); `forge-unpause` in place of `forge-resume`, and `forge-interrupted-work-resume` (4); `forge-talos-restart`, sent as the forge's `talos-restart` (a kind it only adds); no `forge-open-in-browser`, since Gaia runs no `forge open` (5); in Gaia 2.0, no `forge-flint-brain-start` and `forge-flint-brain-stop` (6) |
+| `commands` | 6 | `POST /api/v6/commands` | Gaia's own sentences for forge refusals (2); commands since removed (3); `forge-unpause` in place of `forge-resume`, and `forge-interrupted-work-resume` (4); `forge-talos-restart`, sent as the forge's `talos-restart` (a kind it only adds); no `forge-open-in-browser`, since no forge command opens a board (5); in Gaia 2.0, no command that starts or stops a brain of Flint (6) |
 | `forgeBoard` | 1 | `GET /api/v1/forges/<trackerId>/board` | none |
 | `forgeBoardEvents` | 1 | `GET /api/v1/forges/<trackerId>/board/events` | none |
 | `forgeJobStream` | 1 | `GET /api/v1/forges/<trackerId>/jobs/<jobId>/stream?after=<cursor>` | none |
@@ -152,7 +152,7 @@ is a separate document Gaia serves.
   `utils/BoardMapUtil.ts` and `utils/PipelineMapUtil.ts`; a missing key or a value outside a value list makes it malformed and is named.
   The forge renders no HTML: a ticket's `bodyMarkdown`, an epic description's `descriptionMarkdown` and the `constitutionMarkdown` of the
   pipeline setup and of each of its entities arrive as Markdown, and the model holds them as Markdown under the same names.
-  The shapes are the inventory of what the Bridge's views read plus the facts forge serves; a key no view reads is named `passed-over`
+  The shapes are the inventory of what the board's views read plus the facts forge serves; a key no view reads is named `passed-over`
   (the Baton pass warning, which `warnings` words, confinement, a gate's `definedBy` and
   `forgeOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and
   `openedAtEntity`, the Apply state's

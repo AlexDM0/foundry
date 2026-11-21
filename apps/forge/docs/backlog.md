@@ -6,12 +6,11 @@
 
 ## In one screen
 
-Four items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
+Three items are open: four internal moves around `src/services/tracker/TicketStore.ts` and
 `src/services/tracker/TrackerPipeline.ts` that put [ticket](glossary.md#ticket) reading and writing on the
 [Board](glossary.md#board), which wait for the next change that touches them; two steps of an
-[incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own; a
-pipeline gap the setup work left open, which waits for the next change to the `gate` writes; and one part of Flint,
-the sprite of the agents, that waits for the owner's design.
+[incident](glossary.md#incident)'s trail that the log records nowhere, which wait for a log record of their own;
+and a pipeline gap the setup work left open, which waits for the next change to the `gate` writes.
 
 Two things stay out of the `code-lifecycle` [epic](glossary.md#epic), a Copilot worker adapter and a cross-project
 overview, and return only as a new decision of the owner's.
@@ -31,7 +30,7 @@ seventh step.
 
 ## Incident trail steps with no log record
 
-The Bridge's incident drawer and the Assistant's rail draw an incident's trail from the board and the log alone. Two
+A client draws an incident's trail from the board and the log alone. Two
 steps the board designs drew have no record to read, so the trail leaves them out.
 
 | Step | Why it has no source | Waits for |
@@ -46,16 +45,6 @@ The pipeline setup plan meant to close this gap; its items did not change this c
 | Gap | Change | Waits for |
 | --- | --- | --- |
 | The `checks-not-set` decision stays open | The `gate` writes that make the board's pipeline set (`gate none`, `gate add`, `gate prepare`) withdraw an open `checks-not-set` decision, as Apply does. | The next change to the `gate` writes in `src/lib/tracker-model/TrackerChanges.ts` |
-
-## Flint parts not built
-
-The build of Flint (`packages/flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff, and
-forge 1.1 the brain of step 9 on the Overseer's side, which was taken out again
-([Flint's brain](reference/overseer-api.md#flint-brain)). One part of the handoff is agreed and not built.
-
-| Part | Why it waits | Waits for |
-| --- | --- | --- |
-| Look at the composer: the chat habitat's answer to "the user types", and the look after the doubt of "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint. | No intent of the fixed list looks at an element, and neither the playground nor `02-animations.md` gives a look's motion. | A look in the playground, and a `look` intent with the element the habitat names |
 
 ## Out of the code-owned lifecycle epic
 

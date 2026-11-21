@@ -1,5 +1,5 @@
 /**
- * The one check of a pipeline's entities that the pipeline file and the Bridge share. What matters: a valid layout has no refusal, a home
+ * The one check of a pipeline's entities that the pipeline file and the entities draft share. What matters: a valid layout has no refusal, a home
  * inside another home among it; each refusal comes with the keys it names: more than one entity of kind root, two entities with the same
  * home (a trailing slash ignored), a `reach` path inside or above the home of another entity that is not the root entity (E9: a root-owned
  * path such as the lockfile, the root entity's own home or the entity's own home stays allowed), an unknown key in a whitelist or in

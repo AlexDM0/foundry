@@ -81,8 +81,8 @@ the root's.
     library part whole or by the attributes a variant prop adds to its root, never by a library's class or nesting.
     The board's views under `page/board/` are the exception to the document-free specs: they keep their behaviour in `.dom.tsx` specs,
     which `bun run test:dom` runs with a document and the page project leaves out. `page/board/` is styled by `page/styles/board/*.css`,
-    never by `gaia.css`, under the board section of `page/StyleContract.spec.ts`, which holds it with the Bridge's own guards
-    (`page/testing/BoardStyleGuards.ts`), so a rule the Bridge passes passes there: its classes are `board-`, never `gaia-`, its keyframes
+    never by `gaia.css`, under the board section of `page/StyleContract.spec.ts`, which holds it with the board's own guards
+    (`page/testing/BoardStyleGuards.ts`): its classes are `board-`, never `gaia-`, its keyframes
     `board-` and only there, its colour tokens in `page/styles/board/tokens.css` in a light and a dark value (a colour the same in both
     themes set once, in the light block), its text pairs at 4.5:1, a hover or press that moves nothing, and a winning reduced-motion rule
     for each animation outside the no-preference query. Browser storage is reached only by
@@ -138,7 +138,7 @@ page/components/   Gaia's own parts that no library has, composed from the libra
 page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the server maps across it in src/adapters/page-api/, and only there
 page/@types/board/ the page's board contract, Gaia's own, never the forge's
-page/board/        the board's views, moved from forge's Bridge; a view may draw the board, the board imports no view and no shell (rule 10)
+page/board/        the board's views, Gaia's own; a view may draw the board, the board imports no view and no shell (rule 10)
 ```
 
 ## Boundaries

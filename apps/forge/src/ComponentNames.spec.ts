@@ -1,8 +1,8 @@
 /**
- * The lifecycle components carry the names the owner decided (CLAUDE.md, Rules): no repository file but this one, the live board and the
- * design documents names one by its retired name, in a path, an identifier or a wire literal; a package the program declares counts as
- * its own. The files come from a folder walk that runs no git; `src/lib/git/TrackedFileWalk.integration.spec.ts` proves the walk reaches
- * every file git tracks. What matters: the scan provably read the
+ * The lifecycle components carry the names the owner decided (CLAUDE.md, Rules): no repository file but this one, the live board, the
+ * design documents and the dated research names one by its retired name, in a path, an identifier or a wire literal; a package the
+ * program declares counts as its own. The files come from a folder walk that runs no git;
+ * `src/lib/git/TrackedFileWalk.integration.spec.ts` proves the walk reaches every file git tracks. What matters: the scan provably read the
  * tree, the allowlist is exact both ways, and the scan catches a planted name of each kind and passes once it is gone.
  */
 import { readFileSync } from 'node:fs';
@@ -18,7 +18,7 @@ const REPOSITORY_ROOT = repositoryRootOfThisCheckout();
 
 const THIS_FILE = 'src/ComponentNames.spec.ts';
 
-const UNSCANNED_FOLDERS = ['.agent-progress/', 'docs/design/'];
+const UNSCANNED_FOLDERS = ['.agent-progress/', 'docs/design/', 'docs/research/'];
 
 const BINARY_FILE_PATTERN = /\.(png|jpe?g|gif|ico|woff2?)$/;
 
@@ -122,13 +122,12 @@ const RETIRED_NAMES = [
   'watcher-events',
   'watcher-bundle-failed',
   'watcher-endpoint-does-not-fit',
+  'Bridge',
+  'bridge/',
 ];
 
 /** `<file>: <retired name>` pairs a file may keep. */
-const ALLOWED_RETIRED_NAMES: readonly string[] = [
-  // A dated research record of the tree before Talos, kept as it was written.
-  'docs/research/remote-state/findings.html: WatcherFleet',
-];
+const ALLOWED_RETIRED_NAMES: readonly string[] = [];
 
 function scannedFiles(): ProgramFile[] {
   return programFiles(REPOSITORY_ROOT).filter(({ path }) => path !== THIS_FILE
@@ -162,5 +161,7 @@ test('the scan fails on a planted path, identifier and wire literal, and passes 
   expect(retiredNamesIn('src/lib/watcher/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/lib/watcher/Example.ts: src/lib/watcher']);
   expect(retiredNamesIn('src/Example.ts', 'import { WatcherFleet } from "./Example.ts";\n')).toEqual(['src/Example.ts: WatcherFleet']);
   expect(retiredNamesIn('src/Example.ts', 'const phase = \'watcher-events\';\n')).toEqual(['src/Example.ts: watcher-events']);
+  expect(retiredNamesIn('src/Example.ts', '/** As the Bridge shows it. */\n')).toEqual(['src/Example.ts: Bridge']);
+  expect(retiredNamesIn('bridge/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['bridge/Example.ts: bridge/']);
   expect(retiredNamesIn('src/services/overseer/Example.ts', 'import { Baton } from \'./Baton.ts\';\nconst cause = \'watcher-lost\';\n')).toEqual([]);
 });

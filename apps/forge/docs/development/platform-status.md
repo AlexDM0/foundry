@@ -111,6 +111,6 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 
 ## Repository tooling
 
-`.claude/hooks/fix-lint-on-edit.sh` and `.readme-graphics/regenerate.sh` are bash, for the owner's machine only, on
-macOS and Linux; `CLAUDE.md` records that boundary. The README graphics need macOS. None of them is a product
+`.claude/hooks/fix-lint-on-edit.sh` is bash and `.readme-graphics/render-diagrams.py` is Python, for the owner's machine
+only, on macOS and Linux; `CLAUDE.md` records that boundary. The README graphics need macOS. None of them is a product
 requirement, and none is planned for Windows.

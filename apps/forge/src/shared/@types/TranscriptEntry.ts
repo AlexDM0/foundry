@@ -1,5 +1,5 @@
 /**
- * One vendor-neutral entry of a job's transcript, as the Overseer's job stream sends it: the Bridge never parses a vendor line. `cursor` is
+ * One vendor-neutral entry of a job's transcript, as the Overseer's job stream sends it: a client never parses a vendor line. `cursor` is
  * `<instance>.<sequence>`, because each child instance numbers its event log from 1; one log line can give several entries, so `entryKey`
  * adds the entry's index within its line.
  */

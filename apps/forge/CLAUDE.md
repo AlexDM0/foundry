@@ -44,7 +44,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
   for its product (`fullTextOf`), a boolean as a predicate phrase.
 - Design constants are `SCREAMING_CASE`, named for what they bound, with the unit.
 - The lifecycle components carry the names the owner decided: Overseer, Talos, Pass, Playbook, Hatch, Customs,
-  Airlock, Assistant, Baton, Regrouping, Bouncer and Bridge, in code, stored values, wording and docs alike;
+  Airlock, Assistant, Baton, Regrouping and Bouncer, in code, stored values, wording and docs alike;
   `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
 - The role that designs a board's pipeline is the pipeline agent: `pipeline-agent` as a job kind and role,
   `pipelineAgent` as a `pipeline.json` role key.
@@ -85,9 +85,9 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   refusal wording stay in forge; `packages/forge-contracts/README.md` says what the contract holds.
 - JSON output, stored files, a reason naming stored values, and a command the output suggests carry the values
   themselves, since the parser reads them back.
-- User runs no command. A sentence that the API, a monitor or the Bridge shows names no command line and no flag. It
-  names the Bridge control or a neutral action, such as "update the board". `OperationRefusalWordingUtil.apiMessageOf`
-  words a refusal for the API; `messageOf` words it for the command line, which keeps its commands.
+- User runs no command. A sentence that the API, a monitor or an agent shows names no command line, no flag and no
+  client. It names a neutral action, such as "update the board". `OperationRefusalWordingUtil.apiMessageOf` words a
+  refusal for the API; `messageOf` words it for the command line, which keeps its commands.
 - The Overseer API has one system version, `FORGE_SYSTEM_VERSIONS` in `packages/forge-contracts`. A review of a change
   to a route, a document, a command or a message asks two questions. Does the change only add? Then increase the
   minor. Does it remove or change a thing that a supported client needs? Then increase the major, and serve the
@@ -163,7 +163,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - A document never says that a behaviour works on an OS where it never ran. `docs/development/platform-status.md`
   lists, per OS and per port, what never ran.
 - The repository tooling is for the owner only, on macOS and Linux. `.claude/hooks/` is bash. `.readme-graphics/` is
-  bash, with Python and JavaScript helpers. It is not part of the product, and it needs no Windows form.
+  one Python script. It is not part of the product, and it needs no Windows form.
 - `eslint.config.js` (`CONFINED_REACHES`, the clock selectors) holds `process.env` to `src/shared/Environment.ts`,
   `process.exit` to `agent-progress.ts`, `talos.ts` and `setup.ts` (Deviations), `process.cwd`, `homedir()` and
   the clock in `src/` and `cli/` to `cli/CommandContext.ts` (`homedir()` also to `setup.ts`), `process.platform`
@@ -321,13 +321,14 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 | Rule | Done instead | Why |
 | --- | --- | --- |
 | Ingestion reads, validates and maps in separate steps. | The ticket parse is one line-oriented pass. | A second walk would risk the unowned lines kept byte for byte. |
-| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary, `packages/flint/demo/DemoEntry.ts` starts the demo page, `packages/flint/testing/CaptureFlintFrames.ts` captures Flint's frames, `packages/flint/testing/FrameCaptureEntry.ts` installs the capture on its page. | They are entry points. |
+| No work at module load. | `agent-progress.ts` runs the command on import, `talos.ts` runs its Talos, `src/lib/talos/SynchronousCallsThread.ts` answers Talos's synchronous calls as its worker's entry module, `launcher.ts` starts `agent-progress.ts`, `setup.ts` runs the machine setup, the preload `src/testing/TestRunReport.ts` registers its report, the preload `src/testing/ProgramTrapGuard.ts` installs its program traps, the preload `src/testing/SharedCaseDeadlinePreload.ts` registers its loader plugin, the preload `src/testing/TalosOfTheNextProtocolPreload.ts` registers its loader plugin in a Talos a spec spawns, the preload `cli/testing/OtherProductNamesPreload.ts` registers its name swap, the fake agent `src/testing/fake-agent/FakeAgentChild.ts` plays its scenario, `src/testing/CheckRecordingStamps.ts` checks the recording stamps, `src/testing/RecordBoundary.ts` records a boundary. | They are entry points. |
 | Only `src/shared/Environment.ts` reads the environment. | `src/lib/git/GitProcess.ts` reads `Bun.env` to give the inherited environment, with the ceiling added, to git. | A `src/lib` package cannot import `src/shared/`. |
 | Only `src/shared/Environment.ts` reads the environment. | `talos.ts` reads `SystemRoot` and gives it to `runTalos`, with a reader of any other variable, for the variables that a launch copies. | Talos imports nothing outside `src/lib/talos/` and the packages it declares, so it cannot reach `src/shared/` (`src/lib/talos/TalosClosure.spec.ts`). |
 | Specs never set the environment in-process. | `src/shared/Environment.integration.spec.ts` does, once; the preload `src/testing/ProgramTrapGuard.ts` prepends its traps to `PATH`; `src/services/overseer/GpgDirectories.integration.spec.ts` removes the `gpgconf` trap from `PATH` for its own file; the preload `src/testing/TestRunReport.ts` sets `TMPDIR` through `moveTemporaryFolderTo` (`src/shared/Environment.ts`, called from `src/testing/ScratchWorkspace.ts`). | It tests the getters themselves; the traps must lead every spawn's `PATH`; the real-system spec of gpgconf must reach the real gpgconf; the run and every child that it starts must use a temp folder of the run's own. |
 | A frozen table comes from the previous implementation. | `cli/FrozenInstalledSurface.json` is taken from the installed files. | No previous implementation holds them. |
 | A frozen table comes from the previous implementation and is retaken on a change. | `src/lib/talos/FrozenTalosHandshake.json` is never retaken: `src/lib/talos/TalosHandshake.frozen.spec.ts` holds that each frozen `hello` reads as itself, each frozen answer is written byte for byte, and the three frames' keys equal the table's. | The first frame of every Talos protocol is read by `helloFrameOf` alone and must never change, so an Overseer of any version can tell a Talos of another (design decision 6). |
 | External values are mapped into their type at the boundary. | Talos's `clientFrameOf` maps a `launch` frame with its launch left `unknown` (`ReceivedClientFrame`); `childLaunchOf(value, boardFolder)` maps it at the launch, and a malformed launch is answered `done` with the frame's own `frameId`. A launch names no endpoint, so it is checked against none. | A launch's folders are read against the board folder, which the frame parser does not know, and a frame whose launch is malformed still gets its answer. |
+| An older file is refused with `OLDER_FORMAT_ADVICE`. | A `pipeline.json` of an earlier format is refused with its own `older-pipeline` wording: set the pipeline up again (`cli/OlderPipelineRefusal.spec.ts`). | No release converts a pipeline, so `update` with an earlier program would not help. |
 | Only the current stored format is read. | A ticket stored with `type` `change` or `feature` reads as `ticket` everywhere, and every write keeps its stored `type` line. | Stored tickets are never rewritten; both are older names for `ticket`. |
 | Only the current stored format is read. | A stored `dispatcherState` `finished` reads as `stopped`. | Stored files are never rewritten; reading it as stopped fails closed. |
 | Only the current stored format is read. | A stored open `pipeline-proposal` decision is read, and the Playbook withdraws it at the next pass. | Stored files are never rewritten. The one-shot proposal that the decision accepts is retired. |
@@ -401,8 +402,8 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   the group runs them.
 - In a forge with entities, `ticket add --entity` and `ticket entity` set a ticket's `entity`. The product owner sets it
   on its own draft ticket or on a ticket in `ready-for-review` or `committed`, and User sets it on the command line. The
-  Overseer sets it on a started ticket when User answers `work-in-other-entity` with a move (E15). No Bridge control
-  sets it. The reason goes on the `entity-assigned` log record, not on the ticket. A worker names no
+  Overseer sets it on a started ticket when User answers `work-in-other-entity` with a move (E15). No other
+  command sets it. The reason goes on the `entity-assigned` log record, not on the ticket. A worker names no
   entity. The Overseer gives a worker's finding the entity that owns the paths of its Brief's `Work belongs in:` line.
   When the line names no path, or paths of more than one entity, the finding gets the entity of the job that found it
   (E83, E53). The Board refuses to move a ticket without an entity to `committed` (`ticket-without-entity`), so
@@ -416,7 +417,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   replacing the section the filing template left; a builder never edits its ticket file (`docs/cli.md`, "A build job").
   A crossing ticket's `## Handoff` has one part for each stage that built, and a stage replaces only its own part. The
   last home build stage writes the Acceptance evidence.
-- A review row belongs to its ticket by `reviewOf` alone. The Bridge reads which rows are bars from the Board facts,
+- A review row belongs to its ticket by `reviewOf` alone. A client reads which rows are bars from the Board facts,
   and a bar's name only to order a ticket's bars.
 - Apply commits the constitutions to the main line through an Airlock job of kind `constitution-commit`, in one commit:
   `CONSTITUTION.md` on a forge without entities, and on a forge with entities each drafted constitution of an entity.

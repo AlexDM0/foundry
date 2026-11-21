@@ -1,7 +1,7 @@
 /**
  * The `MonitorSnapshot` of `GET /api/monitor` and of each `monitor` event, from the same reading as the Overseer's `BoardState`: the
- * Waiting on User list, the notices, the warnings and today's figures as the Bridge computes them, each job's live facts, the newest usage
- * window a session reported and the newest log entries a person cares about, worded as the Bridge words a log entry. On a forge with
+ * Waiting on User list, the notices, the warnings and today's figures as the board document carries them, each job's live facts, the newest usage
+ * window a session reported and the newest log entries a person cares about, worded as the board document words a log entry. On a forge with
  * entities only, its entities, each open ticket's entity and stage, and each job's.
  */
 import type { BoardTarget } from 'forge-contracts/BoardReadingDocuments';

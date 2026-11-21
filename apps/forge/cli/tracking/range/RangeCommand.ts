@@ -1,5 +1,5 @@
 /**
- * `range` builds a `chart-range-set` command from its options and applies it in a hold of its own, as the Bridge's control does; the
+ * `range` builds a `chart-range-set` command from its options and applies it in a hold of its own, as a client's control does; the
  * bounds are read and judged by the control, the usage and the tick here.
  */
 import { LocalTimeUtil }                            from '../../../src/lib/local-time/LocalTimeUtil.ts';

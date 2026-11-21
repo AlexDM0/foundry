@@ -86,7 +86,7 @@ const TYPED_EDIT_TARGETS = Object.keys(TYPED_EDIT_KEYS) as TypedEditTarget[];
 
 const PIPELINE_APPROVALS: readonly PipelineApproval[] = ['tickets', 'merge'];
 
-/** An option that offers "Other" is the Bridge's own free-text answer, so the agent never sends one. */
+/** An option that offers "Other" is the client's own free-text answer, so the agent never sends one. */
 const OTHER_OPTION_PATTERN = /^other\s*(?:$|[(:.,;-])/iu;
 
 /** Thrown inside a reading and caught at its edge, so each check names its field in one line. */

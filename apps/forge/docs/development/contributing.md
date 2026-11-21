@@ -40,8 +40,8 @@ cd foundry
 apps/forge/setup.sh
 ```
 
-The repository is a Bun workspace: forge is the app in `apps/forge/`, and the packages it uses, the design system and
-Flint, are in `packages/`. The root holds the workspace's `package.json`, its one `bun.lock`, `.bun-version` and
+The repository is a Bun workspace: forge is the app in `apps/forge/`, and the packages it uses, `forge-contracts` and
+`system-versions`, are in `packages/`. The root holds the workspace's `package.json`, its one `bun.lock`, `.bun-version` and
 `turbo.json`. Run the commands below in `apps/forge/` unless a step names the root.
 
 On Windows, run `powershell -ExecutionPolicy Bypass -File .\apps\forge\setup.ps1` instead; it needs no administrator rights and
@@ -85,7 +85,7 @@ fake and a real session runs.*
 
 The program runs from this checkout and acts only on the scratch repository; `--root` and the exports below choose the
 target. Run the commands from the root of this checkout, in one scratch shell, and keep that shell open until you end
-the board. They were run as written on commit 70ce56de, except for `open`, which opens a browser window.
+the board. They were run as written on commit 70ce56de.
 
 **Start the scratch board:**
 
@@ -111,7 +111,6 @@ bun agent-progress.ts status
 
 bun agent-progress.ts oversee --port 0 --detach
 bun agent-progress.ts oversee status
-bun agent-progress.ts open
 ```
 
 ![Ten steps along a time axis, from mktemp to rm -rf. The scratch folder's bar spans all ten. The HOME export and the other exports sit inside it. The Overseer runs from oversee to stop --now, and agent sessions run on to pkill, both ending before rm -rf. Skipping stop --now leaves the Overseer running; skipping pkill leaves the agents running.](../figures/contributing/scratch-board-spans.png)
@@ -127,7 +126,7 @@ Six lines are easy to get wrong:
 | `FORGE_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-forge_-variables-work). |
 | `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
 | `FORGE_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. |
-| `oversee --port 0 --detach` | Port 0 asks for any free port; `open` with no live Overseer would start one on the derived port. |
+| `oversee --port 0 --detach` | Port 0 asks for any free port instead of the one derived from the tracker id. |
 
 The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `oversee status` prints two
 matching hashes on a paused board:
@@ -153,7 +152,7 @@ bun agent-progress.ts jobs
 ```
 
 Within seconds `jobs` lists a `build/builder` [job](../glossary.md#job) on `#001`, so run it again if the job is not
-there yet. The Agents tab of the [Bridge](../glossary.md#bridge) shows the same job. The fake agent never reports, so
+there yet. A client of the API shows the same job. The fake agent never reports, so
 the job runs until you end the board. [Getting started](../operations/getting-started.md) settles real gates, and the
 [Runbook](../operations/runbook.md) has a scratch board where the job fails instead.
 
@@ -193,13 +192,11 @@ loud; a typo in the name is not.
 
 **`bun run verify` is the only check that runs the tests. Run it after any TypeScript change.** It runs three stages from
 `apps/forge/package.json`, in order, and stops at the first failure. The first stage runs the type-check and lint side by side;
-the test files themselves never run in parallel. The Bridge, which retires in stage 8, is out of it: lint skips `bridge/`,
-and its two `tsc` projects and DOM specs run only by hand (`bun run typecheck:bridge`, `bun run typecheck:bridge-specs`,
-`bun run test:dom:bridge`).
+the test files themselves never run in parallel. forge has no page, so it has no DOM spec.
 
 | Stage | Command | What it proves | Time |
 | --- | --- | --- | --- |
-| 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`; ESLint over the repository but `bridge/`. | 14 s |
+| 1 Type-check and lint | `bun run typecheck`, `bun run lint` | `tsc` over `tsconfig.json`; ESLint over the app. | 14 s |
 | 2 Tests | `bun test` | Every `.spec.ts`, under the preloads in `bunfig.toml`. | 15 min |
 | 3 Stamp check | `bun src/testing/CheckRecordingStamps.ts` | No recording is stale for the installed system versions. | 1 s |
 
@@ -210,19 +207,12 @@ Turborepo, which replays a task whose inputs have not changed from its cache.
 what changed. ESLint keeps no cache: `import/no-extraneous-dependencies` reads `package.json`, which a cache never
 watches.
 
-Times are one run at commit 70ce56de on a Mac at a load near 10, with Bun 1.4.2: 3875 tests in 348 files, and 123 DOM
-tests in 17 files; the stamp check's time is from a later run. `bun test` is slow because it waits on processes, not on
+Times are one run at commit 70ce56de on a Mac at a load near 10, with Bun 1.4.2: 3875 tests in 348 files, before the
+browser client left the app; the stamp check's time is from a later run. `bun test` is slow because it waits on processes, not on
 CPU: it used about six minutes of CPU. It writes nothing into the checkout.
 
 The type-check matters more here than in a compiled project. Bun runs the TypeScript without checking it, so a type
 error is a runtime surprise on a path nobody exercised.
-
-`bun test` never finds a DOM spec, because a `.dom.tsx` file is not a name it discovers, and it must not: happy-dom
-replaces `fetch` and other globals for the whole run. Run one with its two preloads:
-
-```sh
-bun test --preload ./src/testing/TestRunReport.ts --preload ./bridge/testing/HappyDom.ts ./bridge/views/kanban/KanbanView.dom.tsx
-```
 
 A spec that needs a tool the machine lacks, such as Chrome, skips and is counted in the run's report. Set
 `FORGE_REQUIRE_EVERY_TOOL=1` to turn each skip into a failure.
@@ -245,17 +235,16 @@ When a guard fails and you do not know why, open the spec: its header says what 
 **Find your change below. A green run proves only the part in Held by; Also touch is yours to do.** The rules behind
 each row are in the [rule book](../../CLAUDE.md).
 
-![A grid of eleven kinds of change against eight parts of the repository, columns in import order. Seven rows have one filled dot in one code layer and at most one document, forming a staircase from src/lib to bridge. Word a refusal, change an installed file and add a board change reach two or three parts, and a rename fills its whole row.](../figures/contributing/where-does-my-change-go.png)
-
-*Notice the staircase: most changes stay in one layer. A row below the line needs more care, and the rename fills its
-row.*
+Most kinds of change stay in one code layer and touch at most one document. Wording a refusal, changing what an
+installed file names and adding a board change reach two or three parts of the repository, and a rename reaches every
+tracked file.
 
 | I want to | Go to | Also touch | Held by |
 | --- | --- | --- | --- |
 | Add a command | An entry in `cli/CommandTable.ts`, a block in `cli/HelpText.ts`, a folder in its set under `cli/` | A row in `docs/cli.md`, the one documentation entry a spec checks (`cli/HelpText.flags.spec.ts`); the verb's place in the lists in `cli/ControlContract.spec.ts` | `cli/CommandTable.spec.ts`, `cli/HelpText.spec.ts`, `cli/HelpText.flags.spec.ts`, `cli/ControlContract.spec.ts` |
 | Word a refusal | `src/adapters/utils/OperationRefusalWordingUtil.ts` | A new detail kind in `src/shared/OperationRefusal.ts`; [Refusals](../reference/refusals.md) | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
-| Add a change to the board that a job or the Bridge can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
-| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package; the Bridge compiles it, so it may not use Node APIs, and only `bun run typecheck:bridge` proves that, by hand | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
+| Add a change to the board that a job or a client can ask for | A kind in `src/shared/@types/ControlCommand.ts`, a function in `src/services/control/` that applies it | Its verb in `cli/constants/JobVerbs.ts` | `cli/ControlContract.spec.ts`, `cli/HatchUnderJob.spec.ts` |
+| Change a domain rule | A module in `src/lib/tracker-model/` that the `Board` class delegates to | Nothing outside the package | `src/lib/tracker-model/Board.*.spec.ts`, `src/ImportDirection.spec.ts` |
 | Change what runs next | The [Playbook](../glossary.md#playbook), `src/lib/tracker-model/Playbook.ts` | A test in its spec, and a source mutant that proves the test fails without your change: see [Guards and testing](guards-and-testing.md) | `src/lib/tracker-model/Playbook.spec.ts`, `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
 | Change a stored format | `src/adapters/<store>/`: its reader, writer and `utils/` mapping (`*Ingestion` and `*Writer` for most stores, `PipelineFile.ts` for the [pipeline](../glossary.md#pipeline)) | The format in `docs/cli.md` | The adapter's specs, `cli/OlderTrackerRefusal.spec.ts` |
 | Share a tunable | A named constant in `src/shared/constants/`; a constant with one consumer stays beside it | Nothing | `@typescript-eslint/no-magic-numbers` in `eslint.config.js` forces a name, not a home; `src/shared/constants/Limits.spec.ts` holds relations between constants, not their presence |
@@ -263,28 +252,20 @@ row.*
 | Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `src/ImportDirection.spec.ts` |
 | Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
 
-## Seeing a Bridge change
+## Seeing a change in a running Overseer
 
 **A running Overseer keeps the code it started with: restart it to see an edit.**
 
-![Time runs right across four lanes. The CLI runs older code until the edit and your edit from its next command. The Overseer holds older code across the edit until stop --now, and runs your edit after oversee --detach. The Bridge bundle is built on the first page request and kept, and is rebuilt only on the first request after the restart. Between the edit and the stop, oversee status shows two hashes.](../figures/contributing/when-an-edit-takes-effect.png)
+The CLI runs your edit from its next command. The Overseer holds the code it started with across the edit, until
+`oversee stop --now`, and runs your edit after the next `oversee --detach`. Between the edit and the stop the Overseer
+lags your checkout, and `oversee status` shows it as two hashes.
 
-*Notice the span where the Overseer and the Bridge bundle lag your checkout: `oversee status` shows it.*
-
-The server runs with `development: false` and watches no files. It bundles `bridge/index.html` with `Bun.build` on the
-first page request and keeps that build. A failed build is retried on the next request.
-
-Stop and start rather than `oversee restart`, because a restart can carry a Bridge that fails to build. In the scratch
-shell:
+The Overseer watches no files. Stop and start it in the scratch shell:
 
 ```sh
 bun agent-progress.ts oversee stop --now
 bun agent-progress.ts oversee --port 0 --detach
-bun agent-progress.ts open
 ```
-
-> **As built.** `oversee restart` does not build the Bridge before it hands over. See
-> the gap.
 
 `oversee status` prints the hash of the code on disk and of the code in memory. Two different hashes mean the Overseer
 runs older code than your checkout: restart it. See [code version](../glossary.md#code-version).
@@ -345,7 +326,6 @@ bun test src/ComponentNames.spec.ts
 | Setup steps | `setup.ts`, `cli/setup/`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `--instruct-only` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | The checks | `package.json` | `scripts.verify`, `scripts.typecheck` | None; `src/LintRules.spec.ts` holds lint's own rules |
 | Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ProgramTrapGuard.ts`, `src/testing/TestRunReport.ts` and `src/testing/SharedCaseDeadlinePreload.ts` are the preloads |
-| DOM spec run | `bridge/testing/RunDomSpecs.ts` | `DOM_SPEC_PATTERN`, `PRELOADS` | None; the runner fails when it finds no spec |
 | Commit hook | `.githooks/pre-commit` | None | `cli/setup/Setup.spec.ts` for `core.hooksPath` |
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
 | Hook policy of the Overseer's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |

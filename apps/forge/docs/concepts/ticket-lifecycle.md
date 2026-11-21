@@ -141,7 +141,7 @@ These are the common readings. A launch also waits on the board as a whole: the 
 
 > **As built.** A refused merge relaunches a review while its decision is open.
 
-> **Careful.** In the [Bridge](../glossary.md#bridge), the web client, trust the Kanban lane over the state word. A
+> **Careful.** In a client's board view, trust the Kanban lane over the state word. A
 > queued ticket sits in the Merge queue lane while its word stays `Awaiting review`, because the word comes from the
 > row's status. [Running a board](../operations/running-a-board.md) covers the views.
 
@@ -187,7 +187,7 @@ that the review settled Acceptance, since no reviewer judged the items.
 
 **Group ticket.** A ticket with a [group](../glossary.md#group)
 targets the branch `group-<name>`, and its branch forks from that tip. Landing there logs `merge-landed` with kind
-[integrated](../glossary.md#integrated), and the Bridge shows the `reviewed` status as `Awaiting merge`. `reviewed`
+[integrated](../glossary.md#integrated), and the board shows the `reviewed` status as `Awaiting merge`. `reviewed`
 settles a dependency, so the group's next ticket can start.
 
 **Release ticket.** A group's [release ticket](../glossary.md#release-ticket) is built and reviewed on the group branch.

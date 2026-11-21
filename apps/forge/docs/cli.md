@@ -84,7 +84,7 @@ on this repository is in [Contributing](development/contributing.md).
 | term | meaning |
 |---|---|
 | `<when>` | An ISO 8601 timestamp, `now`, or an offset from now: `-5m`, `-2h`, `-1d`, `+30m`. `--at <when>` backfills: a stamp already recorded is kept, so a row nobody registered at the time can be dated afterwards. |
-| `<n>` | The figure on `--tokens`: a whole number or a decimal with a `k`/`m`/`b` suffix: `12000`, `12k`, `12.3k`, `1.2m`, `1.20b`, so a figure `status` or the [Bridge](glossary.md#bridge) prints reads back. A bare decimal and a negative are refused. It is a figure the caller reports, never one this tool measures, and it replaces the row's figure rather than adding to it. |
+| `<n>` | The figure on `--tokens`: a whole number or a decimal with a `k`/`m`/`b` suffix: `12000`, `12k`, `12.3k`, `1.2m`, `1.20b`, so a figure `status` prints reads back. A bare decimal and a negative are refused. It is a figure the caller reports, never one this tool measures, and it replaces the row's figure rather than adding to it. |
 | `<id>` | A task id is a number (`17`); a ticket id is its padded number (`003`), and `3` or `#3` name the same ticket. |
 | `<J>` | A [job](glossary.md#job) id, such as `J4`. |
 | `<I>` | An [incident](glossary.md#incident) id, such as `I1`. |
@@ -138,7 +138,7 @@ when it logged something, then `pipeline-setup.json` when a setup move changed o
 therefore never ahead of the progress file, a log line never describes a change that was not stored, and an Apply
 closes its setup record after everything it stored. A file whose bytes on disk already are its new contents is left in
 place, judged inside the hold from the bytes alone, so a hold that changes nothing writes no tracker file and no
-journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge from the store.
+journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the board's documents from the store.
 
 | takes the lock | takes no lock |
 |---|---|
@@ -156,7 +156,7 @@ journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the Bridge
 
 Each file a lockless command reads is written atomically, so it is whole, but one such read can meet `progress.json`
 ahead of the tickets and the log while a hold writes. `update`, and `init` on an existing tracker, never touch the
-tracker's own files; each removes a `progress.html` an older version left in `<data>/`, which no version writes now.
+tracker's own files; each removes the board page file an older version left in `<data>/`, which no version writes now.
 
 ### Help and options
 
@@ -193,7 +193,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `FORGE_ROOT` | Yes, for a command run from outside the repository or on a scratch board | Empty or whitespace reads as unset | User | Names the repository to use instead of walking up from the current directory. |
 | `FORGE_REQUIRE_EVERY_TOOL` | Yes, on a test run only | On for any value but empty, whitespace or `0` | User, for a test run | Turns every spec `src/testing/ToolGuard.ts` would skip for a missing tool into a failure, for a machine that must prove every claim. |
 | `FORGE_FAKE_AGENT` | Only on a scratch board, where the sessions do no real work | On for any value but empty, whitespace or `0` | Specs, the demo script, or User | Launches every session the Overseer starts as the scripted fake agent rather than the vendor's CLI. |
-| `FORGE_FAKE_AGENT_KEEPS_WORKING` | Only to stage a running board | On for any value but empty, whitespace or `0` | `.readme-graphics/bridge-demo.sh` | Under the fake-agent switch, keeps every fake session working until its standard input closes. Read only while `FORGE_FAKE_AGENT` is on. |
+| `FORGE_FAKE_AGENT_KEEPS_WORKING` | Only to stage a running board | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, keeps every fake session working until its standard input closes. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_FAKE_AGENT_REPORTS` | Only to run a scratch ticket to its landing | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake builder appends a line to `fake-agent-work.md` in each folder its stage may change that the ticket's `Work belongs in:` line names (in each such folder when the line names none), commits it and reports `built`, and each fake reviewer reports every Acceptance item as holding, by the report schema of the stage, a crossing ticket's package and adapt stages included. It claims no gate, so only a gate with `forgeOnly: true` passes. Every other session plays as without it. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_FAKE_AGENT_NETWORK_OUTAGE` | Only to see a session end on a network outage | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake session starts, prints the retry lines of a request that keeps failing and ends its turn on the error result Claude Code printed when its retries ran out on a network outage, then waits until its standard input closes. Its retry lines need the fake agent's recorded `network-outage` session. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` | No, a test setting | Empty or whitespace reads as unset; any value but a positive whole number is refused, `malformed-overseer-poll-interval`, at exit 1 | `cli/testing/CliProcess.ts`, on every child a spec spawns | Replaces the 250 ms between the polls of `oversee --detach`, `oversee restart`, `oversee stop` and a Baton pass; the polls grow in number to keep each whole wait. |
@@ -210,8 +210,8 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 - `FORGE_ROOT` is for a command run from somewhere else entirely. It does not create a tracker: a value
   naming a directory that has none is refused with a message saying the variable is set. `init` does not choose its
   directory by it, and refuses at exit 1 when it names a directory other than the one `init` targets.
-- `FORGE_FAKE_AGENT` is set by `cli/testing/CliProcess.ts` on every child a spec spawns, by
-  `.readme-graphics/bridge-demo.sh`, or by User on a scratch board, so nothing spends a subscription.
+- `FORGE_FAKE_AGENT` is set by `cli/testing/CliProcess.ts` on every child a spec spawns,
+  or by User on a scratch board, so nothing spends a subscription.
 - `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY`, both set, make verbs follow [the
   Hatch](#under-a-job-the-hatch); one alone runs as any other process does. A gate's environment drops both, so a gate's
   verbs run directly.
@@ -405,7 +405,7 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 
 | command | what it does |
 |---|---|
-| `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the six items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project shown on the Bridge (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
+| `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the six items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project the board carries (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
 | `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the agent's session-start entry, the three skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
 | `help` | The command reference. |
 
@@ -479,7 +479,7 @@ priority resolved to their defaults.
 | `concurrency.inProgressTicketIds` | The `ticket` of every `in-progress` row that has one. |
 | `concurrency.inProgressReviewOfIds` | The `reviewOf` of every `in-progress` row that stores one, on any row, a ticket's own row included. |
 | `readyTickets` | See [Ready tickets](#ready-tickets). |
-| `confinement` | The confinement in force for gate and install lines: `confined`, `unavailable` or `unconfined-by-design`, the word the Bridge header shows. |
+| `confinement` | The confinement in force for gate and install lines: `confined`, `unavailable` or `unconfined-by-design`, the word the board state carries. |
 | `confinementSource` | Whose probe gave `confinement`: `overseer` when a live Overseer answered its `/api/state` with the Baton's token, so a sandboxed caller prints the Overseer's word; `this-process` when none answered and this process probed itself. |
 | `pipelineIsSet` | `true` when `<data>/pipeline.json` reads as a pipeline; `false` when none is stored, or it is older or malformed. Only Apply or a `gate` verb writes it. |
 | `omitted` | Working view only: `settledTasks`, `settledTickets`, `olderLogEntries`, and `freeStandingTasks` under `--tickets-only`. |
@@ -529,7 +529,7 @@ except a pause and its resume, naming the `ticket` verb that moves both, and `--
 | `task start\|pause\|finish\|approve\|rereview\|deliver <id> [--owner <who>] [--note <text>] [--tokens <n>] [--at <when>] [--force]` | Move one row and stamp it. `start` sets its start and resumes a paused row; `pause` records that the work is waiting without closing the bar; `finish` and `approve` set its end; `rereview` sends a row whose review found too much into its next review round, 2 and then 3, without reopening the bar; `deliver` records that the work reached its destination. |
 | `task update <id> [--name <text>] [--owner <who>] [--note <text>] [--status <status>] [--tokens <n>] [--force]` | Change a row without moving its clock, and without adding to its `history`: a correction is not something that happened. At least one field is required. `--status` is for a correction the transitions cannot express, and on a row a ticket owns is refused unless `--force`, except a pause and its resume. A rename never links a row, and never moves or drops a stored `reviewOf`. |
 | `task remove <id>` | Delete a row. A ticket pointing at it is unlinked rather than deleted. The id is never given to another row. |
-| `log "<text>" [--at <when>]` | Append one line to the log, which `status` and the Bridge's detail panel show. Every positional is joined, so an unquoted sentence is kept whole. |
+| `log "<text>" [--at <when>]` | Append one line to the log, which `status` and the board document show. Every positional is joined, so an unquoted sentence is kept whole. |
 
 The task statuses are `committed`, `in-progress`, `paused`, `in-review`, `re-review`, `reviewed`, `delivered` and
 `abandoned`: the ticket statuses, plus `paused` and `re-review`, which only a row reaches.
@@ -579,7 +579,7 @@ model and effort are stored and shown, and no launch reads them.
 | `ticket link <ticketId> <taskId> [--force]` | Point a ticket at an existing row instead of the one it filed. Refused when that row already belongs to another ticket, unless `--force`, which unlinks it there first. |
 | `ticket abandon\|reopen <id> [--branch <b>] [--commit <sha>] [--reason <text>] [--tokens <n>] [--at <when>]` | Move a ticket and its row together, stamping both; the Overseer makes every other lifecycle move. `abandon` requires `--reason`; `reopen` clears the stamps and returns the row to committed. [The rules](#ticket-abandonreopen) are below. |
 | `ticket status <id> <status> [...same options]` | The same move as `ticket abandon\|reopen`, naming the target status directly (committed, in-progress, in-review, reviewed, delivered or abandoned) with the same options. The documented way to make a move the verbs refuse: it skips the matrix, but never moves a ticket into `draft` (`move-to-draft`) or a draft ticket anywhere but `abandoned` (`move-of-a-draft`). |
-| `ticket deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>] [--json]` | The one record-only lifecycle verb: records as delivered a ticket User finished and landed outside the Overseer, from any status but draft, in one hold, merging, landing and spawning nothing; it logs `ticket-delivered` with `byHand: true`. Refused at exit 1, writing nothing, while an Overseer's Baton is live (`overseer-owns-the-lifecycle`, naming its URL) and while a job of the ticket is live (`ticket-has-live-job`), both judged inside the hold. Never relayed. On a live board the Bridge's Delivered by hand… on the ticket's form sends the control command `ticket-deliver-by-hand`, which the Overseer applies in its own hold, refused `ticket-has-live-job` the same way. |
+| `ticket deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>] [--json]` | The one record-only lifecycle verb: records as delivered a ticket User finished and landed outside the Overseer, from any status but draft, in one hold, merging, landing and spawning nothing; it logs `ticket-delivered` with `byHand: true`. Refused at exit 1, writing nothing, while an Overseer's Baton is live (`overseer-owns-the-lifecycle`, naming its URL) and while a job of the ticket is live (`ticket-has-live-job`), both judged inside the hold. Never relayed. On a live board a client sends the control command `ticket-deliver-by-hand`, which the Overseer applies in its own hold, refused `ticket-has-live-job` the same way. |
 | `ticket rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]` | The next review round and the reviewer's in-progress bar (`Review <N> #<id> — <title>`, its `reviewOf` the ticket, N the bare `## Review` headings plus one, stored on the bar as `reviewBarRound`) in one lock hold, closing any bar of the round before. `--owner` and `--note` name the bar, and are refused without the flag. |
 | `ticket rereview <id> [--at <when>]` | Send a ticket already in review round again, for a fresh reviewer: the ticket stays in-review and only its `updated` moves, while its row goes one review round up, from 2, and the log says which round. The one verb legal on the status the ticket already has, and refused from every other. It takes no `--tokens`: the row's figure is the builder's, and a review round has its own row. |
 
@@ -695,7 +695,7 @@ nothing written:
 
 The product owner runs it: under its job on its own draft ticket at intake, or on any ticket ready for review or
 committed, its job stamped by the Overseer; any other role is refused, and a request naming a job is refused
-`hatch-identity-mismatch`. Outside a job, User's own command line runs it. No Bridge control sends it. The log line
+`hatch-identity-mismatch`. Outside a job, User's own command line runs it. No client's command sends it. The log line
 reads `Ticket #003 belongs to entity web: <reason>`, its record `{entity, reason, by}` with `by` `product-owner` or
 `user`. Refused at exit 1 with nothing written:
 
@@ -771,7 +771,7 @@ reassigned.
 #### The roll-up
 
 The Board computes it, and it is the same in `epic list --json`, `epic show --json`, `status --json`'s `epics` and the
-Bridge's board facts: `{ key, title, slot, ticketIds, ticketCountByStatus, tokens, span }`.
+served board facts: `{ key, title, slot, ticketIds, ticketCountByStatus, tokens, span }`.
 
 | key | value |
 |---|---|
@@ -795,7 +795,7 @@ holds a filing draft; no other `draft` command looks at the claim.
 | `draft release D<n> [--json]` | Drop the claim, as a session ending with work left does. Releasing an unclaimed filing draft writes and logs nothing. |
 | `draft note D<n> "<text>" [--assumption] [--json]` | Add a research fact, its paths written in the text, or with `--assumption` an assumption, as the next note `N<k>`. A blank text is refused at exit 1. `--json` prints the stored filing draft. |
 | `draft ask D<n> "<question>" --context <text> --option <text> --option <text> [--option …] --recommended <letters> [--multiple] [--under Q<k>] [--json]` | Add the next question `Q<k>`, its options lettered `a` to `d` in the order given. `--multiple` makes it multi-select, and `--recommended` names one letter or, on a multi-select question, several comma-separated (`a,c`). `--under` makes it a follow-up of an existing question, at any depth and whatever that question's answer. [Its refusals](#draft-ask) are below. |
-| `draft answer D<n> Q<k> "<answer>" [--json]` | Record the answer. A comma-separated list of option letters (`a`, `a,c`) chooses those options; anything else is free text, never both. Several letters on a single-select question, or a letter outside the options on either kind, is refused at exit 1 with nothing written, and so is a question the filing draft does not hold. Answering again overwrites the answer: the filing draft keeps only the current one, the log every one. Needs no claim, so the Bridge or any session may answer; the later write wins. |
+| `draft answer D<n> Q<k> "<answer>" [--json]` | Record the answer. A comma-separated list of option letters (`a`, `a,c`) chooses those options; anything else is free text, never both. Several letters on a single-select question, or a letter outside the options on either kind, is refused at exit 1 with nothing written, and so is a question the filing draft does not hold. Answering again overwrites the answer: the filing draft keeps only the current one, the log every one. Needs no claim, so a client or any session may answer; the later write wins. |
 | `draft drop D<n> N<k>\|Q<k> [--json]` | Remove a note or question made moot; dropping a question drops its follow-ups too, logging one line each. An item the filing draft does not hold is refused at exit 1. |
 | `draft close D<n> --tickets <ids> [--json]` | End a filing draft once its tickets are filed: remove its file and log the ticket ids it became. `<ids>` are comma- or space-separated ticket references (`5`, `#005`); one that names no ticket is refused at exit 1 with nothing written, and so is no `--tickets`. While any question is unanswered, follow-ups included, it is refused at exit 1 with nothing written, naming the open question numbers in number order. A filing draft with no question closes at once, so a simple request goes open, note, tickets, close in one run. |
 | `draft abandon D<n> --reason <text> [--json]` | Remove the filing draft's file, logging the reason. Refused at exit 1 without `--reason` or with a blank one. |
@@ -995,7 +995,7 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 
 #### Launch slots
 
-`status`, the Next line, `concurrency`, the Bridge header and the Overseer's launch gate read one count: the live
+`status`, the Next line, `concurrency`, the served board state and the Overseer's launch gate read one count: the live
 `build` and `review` jobs (`LaunchSlotUtil`). A job keeps its launch slot in every state, waiting for an answer and
 interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and pipeline agent jobs take none, and the
 kind decides, never the role: a merge agent runs as its ticket's last worker or as a conflict re-reviewer and still
@@ -1010,7 +1010,7 @@ board's limit alone.
 ### Pipeline setup
 
 The `pipeline` verbs are User's moves on the [pipeline setup record](#datapipeline-setupjson). Each one is one control
-command, applied in a hold, with the Overseer up or down; the Bridge's setup controls send the same commands. Every verb
+command, applied in a hold, with the Overseer up or down; a client's setup controls send the same commands. Every verb
 takes `--json`, which prints `{ setup, logged }`: the record as the move left it and the log records it wrote. A setup,
 question and edit id is read in either case (`s1`, `S1`).
 
@@ -1110,8 +1110,8 @@ that reported nothing clears the mark; a board whose gates never report logs `ga
 marks a run whose gate reported `hit` "cached" and `partial` "partly cached": on the time chip of the gate row and in
 the Gate dialog's profile box (the profile run's), and on the gate's pill of its phase's gates step (the newest run of
 that gate in that phase, a job's or a profile's, in log order). A miss or no report has no mark. A report decides
-nothing: no gate passes, fails or is skipped by it. The report reaches only the Bridge's `BoardState`, which the page
-reads with the code it was served with, and no document of a monitor, so it raises no system version.
+nothing: no gate passes, fails or is skipped by it. The report reaches the board state and the board document, and
+no document of a monitor.
 
 An Overseer that stops ends the process tree of each running run and records it `stopped`, with no result. A run that
 is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
@@ -1200,7 +1200,7 @@ The first Apply that stores entities over a pipeline that had none, or over no p
 `product-owner` in the same hold, when `committed` tickets without an `entity` exist: an intake of the request in
 `resources/prompts/EntityAssignmentRequest.md`, naming those tickets, whose `job-launched` record lists them as
 `entitiesToAssign`. The product owner gives each one its entity with `ticket entity --reason`, and asks User where it
-cannot tell. The Bridge reads its progress per ticket, and each reason from the ticket's `entity-assigned` record, from
+cannot tell. A client reads its progress per ticket, and each reason from the ticket's `entity-assigned` record, from
 the board state's `entityAssignment`.
 
 Apply is idempotent by setup and revision. A pipeline this draft already stored is no one else's move, so a retried
@@ -1227,7 +1227,7 @@ agent may relay only these and `question options`; every ticket verb and every o
 | command | payload | what it does |
 |---|---|---|
 | `pipeline finding` (`pipeline-finding-record`) | `{topic, label, value?, sourcePaths?, script?: {name, run, meaning, gateCandidate, needs?}}` | Record a finding `F<n>`, logged `pipeline-finding-recorded`. A source path stays inside the repository. |
-| `pipeline ask` (`pipeline-question-ask`) | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` | Ask User a setup question `Q<n>`, logged `pipeline-question-asked`: two to four options (`setup-question-option-count`), lettered `a` on in order, and exactly one recommended letter unless `multiple` (`setup-question-without-recommendation`, `several-letters-on-single-select-setup-question`). An option offering "Other" is refused: the Bridge offers free text itself. |
+| `pipeline ask` (`pipeline-question-ask`) | `{step, subject?: {kind, reference}, question, context?, options, recommended, multiple?}` | Ask User a setup question `Q<n>`, logged `pipeline-question-asked`: two to four options (`setup-question-option-count`), lettered `a` on in order, and exactly one recommended letter unless `multiple` (`setup-question-without-recommendation`, `several-letters-on-single-select-setup-question`). An option offering "Other" is refused: a client offers free text itself. |
 | `pipeline draft-constitution` (`pipeline-constitution-draft`) | `{markdown, sources: [{lineText, occurrence, kind, path}]}` | Store the whole constitution byte for byte, logged `pipeline-constitution-set` by the agent. Refused: an empty text (`constitution-empty`), one over 20,000 characters (`constitution-too-long`), a source whose line the text does not hold `occurrence` times (`constitution-source-unanchored`), two sources on one line (`constitution-source-repeated`), a source of a kind the record's SOURCES ticks do not select (`constitution-source-not-ticked`; with no constitution yet, the ticks are `contributing` and `research`), and a source path outside the repository. Under a job the markdown travels beside the command, as a ticket body does. |
 | `pipeline propose` (`pipeline-draft-propose`) | `{edits: [{field, value, summary}]}` | Edit the draft in one move, logged `pipeline-draft-edited` by the agent, each edit with its own summary sentence. A field outside the record's closed list is refused, and so is a draft `pipeline.json`'s validator would refuse (`pipeline-draft-invalid`), checked before the record changes; entities it refuses together are kept, as User's edit keeps them. The agent's first proposal also records each [tree finding](#gate-profiles) of the snapshot as a `note` finding. |
 | `pipeline ready <step>` (`pipeline-step-ready`) | none: `research`, `entities`, `constitution` or `design` | Suggest that User may continue the current step, kept in `readyToContinue` and logged `pipeline-step-ready-suggested` once; it moves no step. Another step is refused `setup-step-not-current`. |
@@ -1478,7 +1478,7 @@ nothing, and the successor connects to the same Talos. The Overseer never restar
   is started, on the port of an Overseer found dead, whose stop is recorded in its place.
 
 > **As built.** `--now` counts only on that fallback. The successor proves that it reads the board, the jobs and every
-> child record, not the Bridge.
+> child record, not that its API answers.
 
 #### `oversee status`
 
@@ -1501,7 +1501,7 @@ The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-b
 
 An install version that differs from the Overseer's holds launches, the stored `overseerState` untouched, with the
 notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Here both say to run
-`forge update`; the Bridge and a monitor word them with no command: the board is to be updated, or, for new code, the
+`forge update`; the API words them with no command: the board is to be updated, or, for new code, the
 Overseer restarted.
 
 ### Merges and worktrees
@@ -1672,7 +1672,7 @@ closed, is reopened instead, logged `job-reopened`: back on the board `running` 
 resumes its session by id in the same folder with the text as its first line.
 
 - Any other finished job, or a session asked to quit at the end of its turn, is refused `job-finished`.
-- The verb takes no picture. A `job-message` control command from the Bridge may name pictures uploaded to
+- The verb takes no picture. A `job-message` control command from a client may name pictures uploaded to
   `POST /api/pictures`, only to a product owner (`pictures-not-taken` for any other job); see
   [Commands](reference/overseer-api.md#commands).
 - Under an incident it is refused `job-awaits-user-answer` for a job in `waiting-for-answer` or whose ticket has an open
@@ -1768,7 +1768,7 @@ newest title; a fresh session that takes over a replaced one starts without one.
 `job-launched` record as `intakeText`, so a closed session keeps both its request and its title in the log once its job
 has left the board.
 
-The `intake` verb takes no picture. An `intake-start` control command from the Bridge may name pictures uploaded to
+The `intake` verb takes no picture. An `intake-start` control command from a client may name pictures uploaded to
 `POST /api/pictures`, kept on the job as `intake.pictures` and logged as `intakePictures`; with a picture its text may
 be blank, and without one a blank request is refused `intake-empty`. The pictures go with the first message of each
 session of the intake, a fresh one after a replacement included.
@@ -1777,7 +1777,7 @@ session of the intake, a fresh one after a replacement included.
 
 | command | what it does |
 |---|---|
-| `range --from <when> --to <when> [--tick <15m\|1h\|1d>]` | Store the default axis of the chart, with one log line. `--tick` takes any positive whole number of minutes, hours or days (`15m`, `2h`, `1d`), or a bare number of minutes. Besides a `<when>`, a bound may be `start`, the earliest visible row. A relative bound is stored as written, so `--from -2h` keeps meaning "the last two hours" on every refresh. A pair that is not in order is refused at exit 1 when both are timestamps or both are relative to now; a pair naming `start` or mixing the two is not judged. The Bridge's own range menu overrides it per browser. The Progress tab's Save as the board's range sends the range shown as the control command `chart-range-set`, Fit as the automatic span. |
+| `range --from <when> --to <when> [--tick <15m\|1h\|1d>]` | Store the default axis of the chart, with one log line. `--tick` takes any positive whole number of minutes, hours or days (`15m`, `2h`, `1d`), or a bare number of minutes. Besides a `<when>`, a bound may be `start`, the earliest visible row. A relative bound is stored as written, so `--from -2h` keeps meaning "the last two hours" on every refresh. A pair that is not in order is refused at exit 1 when both are timestamps or both are relative to now; a pair naming `start` or mixing the two is not judged. A client may override it for its own view, and sends a range as the control command `chart-range-set`, Fit as the automatic span. |
 | `range --auto` | Reset the axis to the automatic span. It takes no `--from`, `--to` or `--tick`; any of them beside it is refused at exit 1. |
 | `namespace [<name>] [--json]` | Print the board's branch namespace, or store `<name>` as `branchNamespace` in `progress.json`, with one log line (`Branch namespace set to <name>`, kind `branch-namespace-set`). A board with a namespace names its ticket branches `<program>/<name>/ticket-<id>` and its group branches `<program>/<name>/group-<group>`; one without keeps the bare `ticket-<id>` and `group-<group>`. A name is lower-case letters and digits, with dashes only between them, at most 40 characters. Refused at exit 1 with nothing written while an Overseer serves the board, while a job that works on a branch is on it (the Assistant and the product owner work on none, and an Overseer's stop leaves its Assistant on the board), while a branch is left under its current names, while a branch named as the program or as `<program>/<name>` blocks the new names, while the namespace already holds branches, and while another tracker of the repository's tracker list holds it; the board's entry in that list follows the name. `--json` prints `{ branchNamespace }`, `null` for bare names. |
 | `clear [--all] [--yes]` | Throw away every task row and the log, restart the clock and reset the stored axis to automatic, leaving one `Tracker cleared` log line, and keep the tickets. `--all` deletes the tickets, every epic and `<data>/pictures/` too. `--yes` skips the confirmation, and is required when standard input is not a terminal. Refused at exit 1, writing nothing, while a job other than the Assistant is live (`tracker-has-live-jobs`). The Progress tab's Clear… asks first, then sends the control command `tracker-clear` with `scope` `tasks-and-log` or `everything` (`--all`); [what survives](#clear) is below. |
@@ -2246,7 +2246,7 @@ Bouncer then takes that write as the other job's; it can forge a gate-ran record
 Customs and V14 find a moved ref only afterward. Run on Windows only what you would run unconfined on your own
 account.
 
-The repository's own development tooling, `.claude/hooks/fix-lint-on-edit.sh` and `.readme-graphics/`, is bash, for
+The repository's own development tooling, `.claude/hooks/fix-lint-on-edit.sh` and `.readme-graphics/`, is for
 the owner's macOS and Linux machines only; it is no part of the product.
 
 ## Exit codes
@@ -2394,7 +2394,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | key | optional | value |
 |---|---|---|
 | `version` | no | `2`, the only version read. |
-| `trackerId` | no | Namespaces the Bridge's browser storage per tracker. |
+| `trackerId` | no | Names the tracker to a client, which may key its own storage by it. |
 | `project`, `startedAt` | no | The project name and when the tracker started. |
 | `view` | no | `{ "kind": "auto" }`, or kind `absolute` or `relative` with `from`, `to` and `tickMinutes` (a number or null). |
 | `nextTaskId` | no | The number the next row takes, never wound back, so an id is never reused. |
@@ -2638,7 +2638,7 @@ The login item files themselves never hold the key.
 
 The one open pipeline setup record, beside `progress.json`: a first setup, an update or an advise session of the
 pipeline agent, saved as each answer, edit and finding happens, so every step can resume. Only an Apply writes
-`pipeline.json` from it. The [`pipeline` verbs](#pipeline-setup) and the same commands from the Bridge write it through
+`pipeline.json` from it. The [`pipeline` verbs](#pipeline-setup) and the same commands from a client write it through
 the lock, atomically; a start over removes it. This is format version 2: its draft is read as `pipeline.json` is but
 for the entities' set check, so it keeps entities the validator refuses until User resolves them.
 
@@ -2813,7 +2813,7 @@ writes over it, and every command runs as before.
 
 One record per line, each a JSON object ending in a newline: `at`, `kind`, then `taskId`, `ticketId`, `epicKey`,
 `draftId`, `setupId`, `profileRunId`, `jobId`, `decisionId` or `incidentId` where the kind names them, then `fields`.
-`status` and the Bridge word each record as a sentence; a note's sentence is its text.
+`status` and the board document word each record as a sentence; a note's sentence is its text.
 
 The kinds fall into families: [board](#board-records), [ticket](#ticket-records), [epic](#epic-records), [filing
 draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate profile](#gate-profile-records),
@@ -3042,7 +3042,7 @@ summed. It is recorded only; no view shows it. The record is one line in the fil
 
 ### `<data>/pictures/`
 
-The pictures User sent from the Bridge, one owner-only file each, named `<pictureId>.<extension>`: `pictureId` is the
+The pictures User sent through the API, one owner-only file each, named `<pictureId>.<extension>`: `pictureId` is the
 sha256 of the bytes as 64 hex digits, and the extension (`png`, `jpg`, `webp`, `gif`) is the type the first bytes tell,
 never a name. The folder exists only once a picture was uploaded through `POST /api/pictures`. The same bytes are one
 file. At each Overseer start, in the hold that records `overseer-started`, every picture that no `job-launched`,

@@ -38,7 +38,7 @@ interface AttentionDraft {
   readonly openedAt:          string;
 }
 
-/** The board fields the list reads; the Overseer's state and the Bridge's board document both fit unchanged. */
+/** The board fields the list reads; the Overseer's state and the served board document both fit unchanged. */
 export interface AttentionBoard {
   readonly decisions:        readonly AttentionDecision[];
   readonly questionHistory?: readonly EscalationRecord[];

@@ -25,13 +25,12 @@ Six ideas carry the rest of the documentation:
    [incident](../glossary.md#incident) goes to the [Assistant](../glossary.md#assistant) session and always ends, a
    [notice](../glossary.md#notice) is shown and nobody answers it.
 
-![User works through terminal verbs, which record directly in the data folder, and through the Bridge, which sends
-commands to the one Overseer and receives live state. The Overseer reads and writes the data folder, lands on git and
-starts the board's one detached Talos. Talos runs each agent and gate and reports only through their event logs, and
+User works through terminal verbs, which record directly in the data folder, and through a client of the API, which
+sends commands to the one Overseer and receives live state. The Overseer reads and writes the data folder, lands on git
+and starts the board's one detached Talos. Talos runs each agent and gate and reports only through their event logs, and
 it outlives the Overseer. The Overseer also takes shared limits from the monitor folder, and the agent commits on its
-worktree.](../figures/overview/system-topology.png)
-*Only the Overseer launches and lands; a verb only records in the data folder, and the dashed box does not depend on
-the Overseer.*
+worktree. Only the Overseer launches and lands; a verb only records in the data folder, and Talos does not depend on the
+Overseer.
 
 ## One driver
 
@@ -40,7 +39,7 @@ The Overseer is the only thing that moves work forward. It runs one serial loop,
 [lock hold](../glossary.md#words-that-mean-several-things), then act. Launching a job, delivering a stop request and
 landing on a target all happen inside the Pass, and nowhere else.
 
-A CLI verb or a button in the [Bridge](../glossary.md#bridge), the browser page the Overseer serves, records a fact: a
+A CLI verb or a command a client posts to the Overseer's API records a fact: a
 ready ticket, an answer, a stop request. It launches no agent and signals no job, and the next Pass reads the fact and
 acts on it. `worktree repair` also runs its git step inside the lock hold, and `oversee stop|restart` act on the
 Overseer process, not the board.
@@ -50,8 +49,8 @@ are never relayed, such as `ticket status` and `log`, apply a by-hand command th
 refuses.
 
 That split is why the terminal keeps working with the Overseer down. A verb writes the board itself, then nudges the
-Overseer if one is live, and the fact waits for the next Pass. The Bridge is different: the Overseer serves it, so its
-buttons need a live Overseer.
+Overseer if one is live, and the fact waits for the next Pass. A client of the API is different: the Overseer answers it, so its
+commands need a live Overseer.
 
 ![Time runs down in two panels. With the Overseer up, a terminal verb records a fact on the board and nudges the
 Overseer, and the next Pass reads the fact and acts. With the Overseer down, the verb records the same fact, nobody
@@ -162,14 +161,13 @@ Decisions and incidents are stored; a notice is derived afresh each Pass.
 
 ## The cast
 
-Twelve names, each with one purpose. Each row links its home. The figure shows what kind of thing each name is;
-[the glossary](../glossary.md) maps the path one ticket takes through them.
+Twelve names, each with one purpose. Each row links its home. The next paragraph says what kind of thing each name is;
+[the glossary](../glossary.md) gives the path one ticket takes through them.
 
-![The Overseer is one process, and the Pass, Playbook, Customs, Airlock, Bouncer and Regrouping are code inside it. A
-Talos is a process of its own, and the Assistant is an agent session under it. The Bridge is a page in the browser,
-the Baton a numbered record and the Hatch a request folder.](../figures/overview/cast-by-kind.png)
-*The Overseer and Talos are the only long-running processes of this project; the Assistant is a session Talos runs as
-its child.*
+The Overseer is one process, and the Pass, Playbook, Customs, Airlock, Bouncer and Regrouping are code inside it. A
+Talos is a process of its own, and the Assistant is an agent session under it. The API's client is a program of its own,
+the Baton a numbered record and the Hatch a request folder. The Overseer and Talos are the only long-running processes
+of this project; the Assistant is a session Talos runs as its child.
 
 | Name | What it is |
 | --- | --- |
@@ -184,7 +182,6 @@ its child.*
 | Baton | The numbered record saying which Overseer owns the board |
 | Regrouping | What a starting Overseer does before its first Pass |
 | Bouncer | The role table judging every Hatch request |
-| Bridge | The live page the Overseer serves on `127.0.0.1` |
 
 ## What this is not
 
@@ -213,7 +210,7 @@ folder, `<data>`, is `.forge/`; `PRODUCT_NAMES` holds every such name.
 | Talos | `src/lib/talos/Talos.ts` | `runTalos` | `src/lib/talos/Talos.handshake.integration.spec.ts` |
 | Compare, then land | `src/services/lifecycle/Landing.ts` | `Landing` | `src/services/lifecycle/Landing.spec.ts` |
 | Trouble's three kinds | `src/lib/tracker-model/IncidentMoves.ts`, `src/services/overseer/DrivePass.ts` | `defaultIncident`, `OverseerNotice` | `src/lib/tracker-model/IncidentMoves.spec.ts` |
-| The twelve names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
+| The eleven names | `src/ComponentNames.spec.ts` | `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
 | Every product name | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `cli/ProductNameIsolation.integration.spec.ts` |
 
 ## Now try it

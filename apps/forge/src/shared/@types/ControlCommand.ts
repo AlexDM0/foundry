@@ -164,7 +164,7 @@ export type ControlCommand =
    */
   | { kind: 'worktree-repair'; ticketReference: string; step: WorktreeRepairStep; incidentId?: string }
   | { kind: 'gate-retry'; jobId: string; incidentId?: string }
-  /** `pictures` name pictures uploaded to `POST /api/pictures` first; only the Bridge sends them, and only to a product owner. */
+  /** `pictures` name pictures uploaded to `POST /api/pictures` first; only a client holding the token sends them, and only to a product owner. */
   | { kind: 'job-message'; jobId: string; text: string; pictures?: PictureReference[]; incidentId?: string }
   /** With pictures the text may be blank. */
   | { kind: 'intake-start'; text: string; pictures?: PictureReference[] }

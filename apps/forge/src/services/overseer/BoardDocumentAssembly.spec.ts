@@ -1,5 +1,5 @@
 /**
- * The board document a client reads. What matters: the document a client reads is built from the same reading the Bridge's state is, field
+ * The board document a client reads. What matters: the document a client reads is built from the same reading the state of `GET /api/state` is, field
  * for field where both carry a field. On a scratch board with a ticket, a job, a decision, an incident and an open pipeline setup, every
  * value of the document whose path the state also holds equals the state's; the limits and the
  * concurrency, which the state keeps in its page, stand at the document's top level; and the model's fields no reader names stay out. The

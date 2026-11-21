@@ -3,7 +3,7 @@
  * reading as itself; an incident default reads as its warning words it and every other kind as the notice line does, a kind this program
  * does not know reading as itself and a missing instruction file naming its job and path; and the warnings name a failed Baton pass and an
  * Assistant that cannot come up, each by its own kind, and nothing else; passes abandoned in a row name their count and their reason. A notice
- * that asks for an action names the Bridge control or a neutral action, never a command line, since User runs no command.
+ * that asks for an action names a neutral action, never a command line, since User runs no command.
  */
 import { describe, expect, test } from 'bun:test';
 

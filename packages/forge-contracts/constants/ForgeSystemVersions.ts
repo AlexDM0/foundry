@@ -5,7 +5,7 @@
 import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
 /**
- * Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1: no Bridge, no browser session or session code, no embed
+ * Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1: no page of its own, no browser session or session code, no embed
  * contract and no frame-ancestor record; no Flint's brain in the monitor or the commands; the monitor names what an entry opens by a typed
  * target; the board document carries Markdown (`bodyMarkdown`, `descriptionMarkdown`, `constitutionMarkdown`) where it carried rendered
  * HTML; the Assistant is a switch of the board (the command pipeline-assistant-set, the pipeline's `assistant` key, the default cause

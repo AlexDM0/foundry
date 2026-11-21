@@ -1,4 +1,4 @@
-/** The hold a stop or a wind-down of a job leaves on the job's ticket, `stopped by User (J4)`: the Board writes it and the Bridge names it. */
+/** The hold a stop or a wind-down of a job leaves on the job's ticket, `stopped by User (J4)`: the Board writes it and a client names it. */
 import type { JobStopMode } from '../@types/Job.ts';
 
 export type JobStopHoldMode = Exclude<JobStopMode, 'fresh'>;

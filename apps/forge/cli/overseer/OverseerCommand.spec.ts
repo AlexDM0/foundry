@@ -1,5 +1,5 @@
 /**
- * The `oversee` verbs that answer in this process, so no Overseer starts: a confinement preflight refuses before any Baton, the Bridge header's
+ * The `oversee` verbs that answer in this process, so no Overseer starts: a confinement preflight refuses before any Baton, the served
  * board state reads as `status` and `oversee status` do, the board state reads the stored pipeline, so it forecasts each open ticket, `oversee
  * pause|resume` write the drain flag with no Overseer up, and `oversee stop` finds nothing to do or, over a fake process table, never reports a
  * clean stop after an end that skipped the Overseer's own stop, and repairs only once the process is gone, also when an earlier close was refused
@@ -121,7 +121,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the confinem
   });
 });
 
-describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board state the Bridge header reads', () => {
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board state a client reads for its header', () => {
   test.each(['confined', 'unavailable', 'unconfined-by-design'] as const)('states %s, the port\'s word, as status does', async (verdict) => {
     const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement(verdict) };
     const statusContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory, platformPorts });
@@ -143,7 +143,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board st
   });
 });
 
-describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board state the Bridge\'s ticket form reads', () => {
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the board state a client reads for its ticket form', () => {
   test('reads the stored pipeline, so a ready ticket has its forecast: a builder takes it when a launch slot frees', async () => {
     const run = async (commandLine: readonly string[]): Promise<string> => {
       const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
@@ -641,7 +641,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run pause an
     expect(progress['overseerState']).toBe('paused');
   });
 
-  test('the board state the Bridge header reads agrees with oversee status after a resume and after a pause', async () => {
+  test('the served board state agrees with oversee status after a resume and after a pause', async () => {
     // The header states the confinement too, and the real port's probe starts a process.
     const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement('confined') };
     const pausedFlagsAfter = async (commandLine: readonly string[]): Promise<{ header: boolean; runStatus: unknown }> => {

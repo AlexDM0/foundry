@@ -14,8 +14,9 @@
 
 forge runs Claude Code [agents](docs/glossary.md#agent) through a [ticket](docs/glossary.md#ticket) board in one
 repository. Agents do the work and report it, and the program, not an agent, checks each report and moves each
-ticket. A live page, the [Bridge](docs/glossary.md#bridge), shows the whole [board](docs/glossary.md#board) and takes
-the moves of User, the person running the board.
+ticket. forge has no page of its own: the [Overseer](docs/glossary.md#overseer) serves the whole
+[board](docs/glossary.md#board) through an API on `127.0.0.1`, and a client of that API shows it and takes the moves of
+User, the person running the board.
 
 forge grew out of `agent-progress` and is now a project of its own. It installs side by side with the released
 `agent-progress`, sharing none of its files.
@@ -30,7 +31,7 @@ The promise, in three lines:
   lives under the board's detached [Talos](docs/glossary.md#talos), not under the Overseer.
   [Two lifetimes](docs/concepts/overview.md#two-lifetimes) shows it over time.
 
-![One Overseer drives the board. User reaches it through the Bridge, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. The Overseer reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive the Overseer.](docs/images/architecture.png)
+![One Overseer drives the board. User reaches it through a client of its API, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. The Overseer reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive the Overseer.](docs/images/architecture.png)
 
 *Notice that nothing inside the dashed box is a child of the Overseer, and that agents touch neither the board nor
 main.*
@@ -116,14 +117,14 @@ cd ~/code/example-storefront
 forge init --project "Example Storefront"
 forge oversee --detach
 forge oversee resume
-forge open
 ```
 
-`oversee --detach` starts the Overseer in the background and prints its URL, and `open` opens the Bridge in a browser.
+`oversee --detach` starts the Overseer in the background and prints its URL. No forge command opens the board: a client
+of the Overseer's API shows it.
 Commit the `.gitignore` change `init` made.
 
 <p align="center">
-  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, dashboard stub, gitignore entry, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
+  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, gitignore entry, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
 </p>
 
 *Notice `oversee resume`: a new board starts paused, and no ticket builds and no pipeline agent starts until it runs.*
@@ -137,13 +138,13 @@ After a `git pull` of this checkout, run `forge update` in each tracked reposito
 
 ## Privacy
 
-Everything is local: plain files in the repository, and a Bridge bound to `127.0.0.1` with no telemetry. What leaves the
+Everything is local: plain files in the repository, and an API bound to `127.0.0.1` with no telemetry. What leaves the
 machine is what agent sessions send to Anthropic, the vendor of the `claude` CLI, and what reaches the `network` domains
 a ticket or gate allows.
 
 ## Facts
 
-The program is TypeScript on Bun, with three runtime dependencies: `marked`, `react` and `react-dom`.
+The program is TypeScript on Bun, with no runtime dependency outside this workspace.
 
 ## Where next
 

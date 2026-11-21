@@ -347,7 +347,7 @@ export interface DrivePass {
    * and to recheck a target the last pass held.
    */
   sweep:          () => void;
-  /** The sweeps a running build or review has been quiet for, which the Bridge tints; 0 for any other job. */
+  /** The sweeps a running build or review has been quiet for, which a client tints; 0 for any other job. */
   silentSweepsOf: (jobId: string) => number;
   /** Resolves once no pass is running or queued. */
   idle:           () => Promise<void>;

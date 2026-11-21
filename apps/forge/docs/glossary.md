@@ -9,17 +9,17 @@
 
 `forge` runs AI coding agents on a repository's [tickets](#ticket) and lands their work on the
 [main line](#main-line). A [board](#board) is one repository's tickets and everything kept about them. Most of the
-twelve capitalised names sit on one ticket's path, and the rest act beside it. Learn where each one sits and most other
+eleven capitalised names sit on one ticket's path, and the rest act beside it. Learn where each one sits and most other
 words follow.
 
-![Most of the twelve names sit on one path from User to the main line. User works through the Bridge. Inside the
-Overseer the Pass runs the Playbook and has Talos run a session, whose requests pass the Hatch and the
-Bouncer and whose result passes Customs and the Airlock. Beside that path the Assistant takes incidents, and the Baton
-and Regrouping act across Overseer restarts.](figures/glossary/component-map.png)
+Most of the eleven names sit on one path from User to the main line. User works through a client of the API. Inside the
+Overseer the Pass runs the Playbook and has Talos run a session, whose requests pass the Hatch and the Bouncer and whose
+result passes Customs and the Airlock. Beside that path the Assistant takes incidents, and the Baton and Regrouping act
+across Overseer restarts.
 
-*A [session](#session) never touches the board directly: what it sends through the Hatch passes the Bouncer, and what
-it says in its event stream and final report is read by the Overseer and checked by Customs. Gates and reviews are left
-out to keep the map readable.*
+A [session](#session) never touches the board directly: what it sends through the Hatch passes the Bouncer, and what it
+says in its event stream and final report is read by the Overseer and checked by Customs. Gates and reviews are left out
+of this path to keep it short.
 
 Several words mean different things in different places: pass, slot, draft, hold and others. If a word could mean two
 things, read [Words that mean several things](#words-that-mean-several-things). For anything else, go to
@@ -65,7 +65,7 @@ In a command or path, `<J>`, `<E>`, `<I>` and `<D>` stand for one such id, as in
 
 ## Words that mean several things
 
-Read the row that fits the context. Component names are capitalised, like the twelve in the figure.
+Read the row that fits the context. Component names are capitalised, like the eleven under [In one screen](#in-one-screen).
 
 | Word | Meaning | How to recognise it |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | **fixer** | a review's move | `fixer` in `settleReviewPass`: job ends `does-not-hold`, the ticket goes back to a builder |
 | **render** | assembling the page payload | `assemblePagePayload`; the Overseer sends it inside `BoardState` |
 | | no command | there is no `render` verb, and no command rebuilds a page |
-| **page** | the [Bridge](#bridge), served at `GET /` | `HTMLBundle`, the `page` field of `BoardState` |
+| **page** | the payload of a client's board view; forge serves no page | `AssembledPagePayload`, the `page` field of `BoardState` |
 | **claim** | a report claim | the [builder](#builder) report's `gates`, the [reviewer](#reviewer) report's `claims`; never trusted |
 | | a `review-recorded` claim | `ReviewClaim` in the log; counted by `review-stats` |
 | | a retired ticket claim | the `ticket claim` verb is unknown; `Board.claimTickets` remains (as built) |
@@ -142,10 +142,10 @@ These are different words for neighbouring things. Each row says what separates 
 
 ## Status words
 
-The stored value is what `<data>/progress.json`, tickets, `status --json` and verbs use. The Bridge word comes from
-`DisplayStateWordingUtil`. Rules are in [Ticket lifecycle](concepts/ticket-lifecycle.md).
+The stored value is what `<data>/progress.json`, tickets, `status --json` and verbs use. The shown word is the one a
+client's board view prints. Rules are in [Ticket lifecycle](concepts/ticket-lifecycle.md).
 
-| Stored value | Stored on | The Bridge shows |
+| Stored value | Stored on | A board view shows |
 | --- | --- | --- |
 | `draft` | ticket only | Draft |
 | `committed` | ticket, row (none yet on a low-priority ticket) | To do |
@@ -258,10 +258,6 @@ The pure table of which command, sent through the [Hatch](#hatch), each job role
 
 A `SCREAMING_CASE` constant that limits a count, such as `FAILED_PASSES_BEFORE_PARKING`. A resume bound ends in a
 [park](#park), a replacement or an incident; a [call budget](#call-budget) stops a session.
-
-### Bridge
-
-The browser client in `bridge/`. The Overseer serves it and feeds it over an event stream.
 
 ### Brief
 
@@ -378,8 +374,8 @@ next delivery goes to a new one (`deliverIncidentsWhenIdle`).
 ### control command
 
 One typed change to a board, `ControlCommand` in `src/shared/@types/ControlCommand.ts`. A verb, a [relayed
-command](#relayed-command) and the Overseer's API all reach the same code through it. A button on the [Bridge](#bridge)
-is a control that sends one.
+command](#relayed-command) and the Overseer's API all reach the same code through it. A control of a client of the API
+sends one.
 
 ### crash bound
 
@@ -394,7 +390,7 @@ A [resume](#resume) after an interruption with a crash cause that User did not i
 ### cursor
 
 `Job.eventCursor`, the last event of the job's child the Overseer applied, as instance and sequence, written in the [lock
-hold](#lock-hold) that applied it. The Bridge's transcript cursor is a separate value.
+hold](#lock-hold) that applied it. The job stream's transcript cursor is a separate value.
 
 ### Customs
 
@@ -630,8 +626,8 @@ merge of the job's target brought in, such as a constitution commit, does not.
 
 ### intake
 
-A [product owner](#product-owner)'s filing conversation, started by `forge intake -- <text>` or the Bridge's
-Intake view. Its close submits the complete draft tickets it filed for User's ticket review.
+A [product owner](#product-owner)'s filing conversation, started by `forge intake -- <text>` or the
+`intake-start` control command. Its close submits the complete draft tickets it filed for User's ticket review.
 
 ### integrated
 
@@ -673,9 +669,8 @@ session and its model and effort (`lastWorkerOf`).
 ### launch slot
 
 Room for one more build or review job under the [concurrency limit](#concurrency-limit), counted from jobs by
-`LaunchSlotUtil`: the Playbook's `freeSlotsOf`, `status`, the [Next line](#next-line) and the Bridge header all read
-this one count. The Overseer serves which jobs hold one as `launchSlots` in `BoardState`, and the Bridge's activity
-strip shows one chip per slot job.
+`LaunchSlotUtil`: the Playbook's `freeSlotsOf`, `status`, the [Next line](#next-line) and the served board state all read
+this one count. The Overseer serves which jobs hold one as `launchSlots` in `BoardState`.
 
 ### liveness
 
@@ -777,7 +772,7 @@ The [row](#row) a ticket holds through its `ticket` key, its bar on the chart. C
 
 ### pace path
 
-The dependency chain from the last [wave](#wave) back to the first (`pacePathNodeIds`). The Bridge's run order takes its
+The dependency chain from the last [wave](#wave) back to the first. A board view's run order takes its
 tickets first within a priority.
 
 ### park
@@ -832,7 +827,7 @@ The job kind and role that runs a filing intake and writes draft tickets, and th
 
 ### projection
 
-What the [Bridge](#bridge) is: a view of one document replaced whole, never a store. Closing the page loses no record.
+What a client's board view is: a view of one document replaced whole, never a store. Closing it loses no record.
 
 ### publish
 
@@ -1115,7 +1110,7 @@ owner is 'the owner'.
 
 ### vendor seam
 
-The `AgentAdapter` interface in `src/lib/agent-launch/AgentAdapter.ts`, the one path from launch and session code to the
+The `AgentAdapter` interface in `src/lib/agent-launch/AgentAdapter.ts`, the one path from the launch and the session to the
 vendor's agent CLI.
 
 ### verb
@@ -1124,7 +1119,7 @@ One `forge` command, an entry in `COMMAND_TABLE`, such as `ticket ready`. Home: 
 
 ### view model
 
-The pure data a Bridge view renders, derived from the board state by a `*Model.ts` module beside the view.
+The pure data a client's view renders, derived from the board document by the client.
 
 ### waiver
 
@@ -1143,7 +1138,7 @@ The retired name of the per-session process [Talos](#talos) replaced. Dated reco
 
 ### wave
 
-A Bridge grouping of open tickets by the open dependencies in front of them (`DependencyGraphUtil`). Drafts and committed
+A board view's grouping of open tickets by the open dependencies in front of them. Drafts and committed
 low-priority tickets enter no wave, yet still hold their dependents out of Now. It says nothing about readiness, which
 the `Board` class decides. Home: [Running a board](operations/running-a-board.md).
 

@@ -99,7 +99,7 @@ describe('a pipeline with entities', () => {
     expect(reasonOf(withEntities({ ...SOUND_ENTITIES, web: { ...SOUND_ENTITIES.web, whitelist: [] } }))).toBe(READ);
   });
 
-  test('the root entity\'s home may be the repository\'s root alone, as the Bridge writes it', () => {
+  test('the root entity\'s home may be the repository\'s root alone, as a client writes it', () => {
     expect(reasonOf(withEntities({ ...SOUND_ENTITIES, root: entity({ kind: 'root', home: ['/'] }) }))).toBe(READ);
   });
 

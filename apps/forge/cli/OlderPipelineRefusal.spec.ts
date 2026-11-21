@@ -62,7 +62,7 @@ describeWhenGitIsRecorded('a pipeline.json an earlier release wrote', () => {
     writeFileSync(pipelineRecordPath, olderPipelineText);
     const expectedText = `${pipelineRecordPath} was written by an earlier ${PRODUCT_NAMES.PROGRAM}, in a pipeline format this one does not read, `
       + 'and no release converts it, so the board holds new work as if no pipeline were set and nothing was written. Set the pipeline up '
-      + `again on the Pipeline tab of the Bridge, or with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\`.`;
+      + `again with \`${PRODUCT_NAMES.PROGRAM} pipeline setup\`.`;
 
     for (const verb of [
       ['gate', 'add', 'lint', '--', 'bun run lint'],

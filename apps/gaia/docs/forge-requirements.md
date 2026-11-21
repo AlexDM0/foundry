@@ -6,13 +6,11 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 1.0 meets V1 to V6, V8 and V9: it answers `/api/versions` with current 1.0 and minimum 0.0, serves identity 1, summary 1, monitor 3,
-control 1 and embed 1 at their `/api/v<n>/` paths beside the unversioned ones, carries the system
-version in the monitor stream and the embed channel, enters its embed mode on `?embedded=frame` only, reads every record in its
-`frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. Forge 1.1 only adds to it;
-its framed Bridge keeps the Agents-at-work strip (G4). Gaia supports
-forge 1.1. From Gaia 1.4 Gaia frames no Bridge: it reads no `contracts.embed`, speaks no embed channel and writes no frame-ancestor
-record, so V6, V8 and V5's embed-channel half no longer change what Gaia shows; the forge keeps serving them until it retires its Bridge.
+Forge 2.0 meets V1 to V5 and V9: it answers `/api/versions` with current 2.0 and minimum 2.0, serves identity 1, summary 1, monitor 4
+and control 2 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and takes its
+documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 2.0. Forge 2.0 serves no page of its own, so the
+requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
+V6 to V8 are not used again.
 
 ## 1. Rules that hold for every requirement
 
@@ -55,15 +53,15 @@ whether it only adds, and whether it removes something a supported client needs.
 
 ### V3. Version each endpoint by its path, side by side (Must)
 
-**Statement.** Every route is served at `/api/v<n>/<endpoint>`, at the versions the registry's endpoint entries name: identity, summary,
-commands and session codes at v1, the monitor and its stream at v2 (its warnings became objects in monitor contract 2). A breaking change
-to an endpoint adds `v<n + 1>` beside `v<n>`, with a registry entry. Today's unversioned paths keep answering exactly as now while the
-registry keeps them. No answer gains a per-endpoint version or a version triple.
+**Statement.** Every route is served at `/api/v<n>/<endpoint>`, at the versions the registry's endpoint entries name: identity and summary at
+v1, commands at v2, the monitor and its stream at v3. A breaking change
+to an endpoint adds `v<n + 1>` beside `v<n>`, with a registry entry. The unversioned paths keep answering exactly as before, since
+forge's own command line calls them. No answer gains a per-endpoint version or a version triple.
 
 **Reason.** A client built for one forge version calls the endpoint versions that version serves, so an older client and a newer one are
 both served without either being updated for the other.
 
-**Acceptance.** A spec per route: it answers at its versioned path as at its unversioned one, behind the same token, session and origin
+**Acceptance.** A spec per route: it answers at its versioned path as at its unversioned one, behind the same token and origin
 guards, and a version it is not served at answers 404 `not-found`.
 
 ### V4. Keep the compatibility registry, and raise the minimum by its report (Must)
@@ -82,42 +80,20 @@ it is made, and the guard keeps the code and the registry in step after it.
 **Acceptance.** Forge adds an entry with every endpoint version and every compatibility path it adds, and turns each `authored` entry
 `shipped` when it ships; the package's specs pass.
 
-### V5. Carry the system version in the monitor stream and the embed channel (Must)
+### V5. Carry the system version in the monitor stream (Must)
 
 **Statement.** `GET /api/v3/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 2, "minor": 0 } }`, before the
-first `monitor` event, and every `monitor` event carries the same `systemVersion` beside the snapshot's own keys. Every message the Bridge
-posts to its framing page, its `ready` first, carries `systemVersion` beside `channel` and `channelVersion`. The Bridge reads a framing
-page's message at `channelVersion: 1` and passes over its `systemVersion`, which is the host's own, and any other key it does not know.
+first `monitor` event, and every `monitor` event carries the same `systemVersion` beside the snapshot's own keys.
 
-**Reason.** A stream or a frame outlives the `/api/versions` answer it was opened after: an Overseer replaced at a Baton pass may be
-another version, and the message is where a client learns it.
+**Reason.** A stream outlives the `/api/versions` answer it was opened after: an Overseer replaced at a Baton pass may be another
+version, and the message is where a client learns it.
 
-**Acceptance.** Specs: the stream's first event is the handshake, and each `monitor` event names forge's current system version; the
-Bridge's ready and every later message carry it; a framing page's message with a `systemVersion` and an added key is heard, and one at
-another `channelVersion` is ignored, as today.
-
-### V6. Enter the embed mode by a host-neutral query (Must)
-
-**Statement.** The Bridge enters its embed mode, leaving its own chrome to the host and speaking the embed channel, when it is opened with
-`forge-contracts/EmbedMode`'s query, `?embedded=frame`. The value names no host, and no other value enters the embed mode.
-
-**Reason.** Rule 1: an embed mode named for one host makes forge know that host, and any other host would have to pretend to be it.
-
-**Acceptance.** A spec: the Bridge opened with `?embedded=frame` is in its embed mode; one opened without the query is not.
-
-### V8. Read the framing host's origin from a host-neutral record (Should)
-
-**Statement.** The Overseer lets a host's origin frame the Bridge from a record any host may write, at a path that names no host, rather
-than from the record of one named host (`apps/forge/cli/overseer/routes/FrameOrigins.ts`). The record carries its own format version.
-
-**Reason.** Rule 1: the path is part of what forge reads, so it may not name a client.
-
-**Acceptance.** A spec: an origin in the neutral record may frame the Bridge; an origin in no record may not.
+**Acceptance.** Specs: the stream's first event is the handshake, and each `monitor` event names forge's current system version.
 
 ### V9. Take the documents from `forge-contracts`, released on its own version (Must, at the merge)
 
-**Statement.** After the merge into the monorepo, forge's own types of the identity, summary, monitor snapshot, control commands and embed
-messages are the package's, and its served versions, endpoint versions and system version come from `OVERSEER_CONTRACT_VERSIONS`, the
+**Statement.** After the merge into the monorepo, forge's own types of the identity, summary, monitor snapshot and control commands
+are the package's, and its served versions, endpoint versions and system version come from `OVERSEER_CONTRACT_VERSIONS`, the
 registry and `FORGE_SYSTEM_VERSIONS`. Forge keeps its own assembly, wording and checks; the package holds types, versions and the registry.
 The package keeps its own semantic version, and an app depends on it by a version range (`workspace:^`): a forge system minor bump is a
 package minor bump; a system major bump, or a removed or changed type, a package major bump. A package release changes no running process.
@@ -148,11 +124,9 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V3 | A forge that publishes V1 but serves no versioned paths answers Gaia's calls 404 and reads as unreachable: V1 and V3 land together. |
 | V4 | Nothing at runtime: the registry is a build-time definition, and Gaia's endpoint versions are derived from it as prepared. |
 | V5 | Nothing different: Gaia takes the forge's version from `/api/versions` at every round of its watch. |
-| V6 | Nothing: Gaia frames no Bridge. |
-| V8 | Nothing: Gaia frames no Bridge and writes no frame-ancestor record. |
 | V9 | Nothing at runtime. |
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 
 ## 4. Order for the forge's board
 
-V1 to V6, V8 and V9 shipped together as forge 1.0. G4 shipped as forge 1.1, a minor, since it only adds.
+V1 to V5 and V9 shipped together as forge 1.0, with V6 and V8, which forge 2.0 retired with its page.

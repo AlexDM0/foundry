@@ -2,7 +2,7 @@
  * A refusal is what the person who ran the command reads, and scripts match on it, so each reason must word as the command did before
  * the Board refused for it. The frozen table pins one row per reason, plus both hold actions, the singular and plural limit, a
  * rereview with and without the first-review advice, and a ticket-owned row sent to each end of the verb table. Through the API, which
- * the Bridge and a monitor show to User, no reason names a command line or a flag.
+ * a client shows to User, no reason names a command line or a flag.
  */
 import { expect, test } from 'bun:test';
 

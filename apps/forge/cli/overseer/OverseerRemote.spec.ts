@@ -1,6 +1,6 @@
 /**
  * What the CLI asks a live Overseer over HTTP, against the recorded Overseer API in place of the global `fetch`. What matters: the identity
- * answers with no token; the state and a session code need the Baton's token, so another token or an unreadable token file gives `null`;
+ * answers with no token; the state needs the Baton's token, so another token or an unreadable token file gives `null`;
  * an Overseer gone answers nothing, never a throw; and a detached start whose child lost the Baton to an Overseer started at the same time
  * answers that Overseer's URL, not a refusal. Its child is a recorded spawn that has exited, and its rival a process of the recorded table.
  */

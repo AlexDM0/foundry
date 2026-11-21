@@ -1,6 +1,6 @@
 /**
  * Which jobs hold the launch slots the concurrency figure counts, and the in-progress tickets no job works on, so a reader names them
- * without a rule of its own. Values only; the Bridge words them.
+ * without a rule of its own. Values only; a client words them.
  */
 export interface LaunchSlots {
   limit:                         number;

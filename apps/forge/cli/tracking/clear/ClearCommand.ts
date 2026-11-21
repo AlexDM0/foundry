@@ -1,4 +1,4 @@
-/** `clear` asks on a terminal, then applies a `tracker-clear` command in a hold of its own, as the Bridge's control does. */
+/** `clear` asks on a terminal, then applies a `tracker-clear` command in a hold of its own, as a client's control does. */
 import type { ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';

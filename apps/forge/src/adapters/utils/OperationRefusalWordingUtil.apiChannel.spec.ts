@@ -1,6 +1,6 @@
 /**
- * The API sentence of a refusal, which the Bridge and a monitor show to User as it is. What matters: User runs no command, so where the
- * command line names a command or a flag, the API sentence keeps the same facts and names the Bridge control or a neutral action instead;
+ * The API sentence of a refusal, which a client shows to User as it is. What matters: User runs no command, so where the
+ * command line names a command or a flag, the API sentence keeps the same facts and names a neutral action instead;
  * a refusal with no such advice reads alike in both channels. Every row below names a command or a flag at the command line.
  */
 import { describe, expect, test } from 'bun:test';
@@ -74,8 +74,8 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
   ],
   [
     { kind: 'overseer-owns-the-lifecycle', url: URL, batonFilePath: BATON },
-    `An Overseer drives this board at ${URL} (${BATON}), so only it delivers tickets. Record the work with Delivered by hand… on the ticket's form `
-    + 'in the Bridge. Nothing was written.',
+    `An Overseer drives this board at ${URL} (${BATON}), so only it delivers tickets. Ask the Overseer to record the ticket as delivered by hand. `
+    + 'Nothing was written.',
   ],
   [
     { kind: 'chart-range-bound-unreadable', bound: 'to', written: 'soon' },

@@ -1,7 +1,7 @@
 # Platform probes
 
 Small Bun scripts, each answering one named unknown about an operating system or the Claude host. Each prints exactly
-one JSON line. The scripts use no code from `src/`, `cli/` or `bridge/`.
+one JSON line. The scripts use no code from `src/` or `cli/`.
 
 **A run gates no ticket.** No Acceptance item and no dependency rests on a result; the results are for the day the tool
 first runs on that platform.

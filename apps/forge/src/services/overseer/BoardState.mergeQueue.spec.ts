@@ -1,5 +1,5 @@
 /**
- * The merge queue's facts in `BoardState`, which the Bridge's Merge queue detail shows without ordering anything itself. What matters: each
+ * The merge queue's facts in `BoardState`, which a client's merge queue view shows without ordering anything itself. What matters: each
  * target lists its waiting candidates in the five-key order from git's predictions, with the conflicts each causes; the Airlock holder and
  * its phase; the open `target-moved` decisions of the target's tickets; with merge approval on, each ticket waiting for User's accept
  * with its prediction against the target, and no candidate User did not accept; and a reading without forecasting leaves the targets empty.

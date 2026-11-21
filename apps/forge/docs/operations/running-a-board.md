@@ -1,4 +1,4 @@
-# Running a board from the Bridge
+# Running a board
 
 > **Question:** What am I looking at, and what do I do here day to day?
 > **Time:** 25 minutes.
@@ -7,26 +7,25 @@
 
 ## In one screen
 
-The [Bridge](../glossary.md#bridge) is the one page of a [board](../glossary.md#board): a live page the
-[Overseer](../glossary.md#overseer) serves on 127.0.0.1. `forge open` opens it, and starts the
-Overseer first when none runs. Close the page and the board carries on: the page stores no work, and you lose
-only half-typed text and view filters.
+forge serves no page. The [Overseer](../glossary.md#overseer) serves a [board](../glossary.md#board) through an API
+on 127.0.0.1, and a client of that API shows it as the board view this document walks through. `forge start` starts
+the Overseer when none runs. Close the view and the board carries on: the view stores no work, and you lose only
+half-typed text and view filters.
 
 You do four things here. You file work on Intake, ready it on Kanban, answer [decisions](../glossary.md#decision) on
 Questions, and watch the header. The Overseer does the rest: it launches AI [agent](../glossary.md#agent)
 [sessions](../glossary.md#session) that build and review each [ticket](../glossary.md#ticket), then merges the result,
 without being asked.
 
-![You file work on Intake and ready it on Kanban. The Overseer then launches AI agents that build and review the ticket, merges the result without being asked, and the ticket reaches Done. A dashed path drops to Questions only when an answer is needed, and the answer resumes the work. The header runs along the top as the thing you watch throughout.](../figures/running-a-board/your-day-on-the-bridge.png)
+![You file work on Intake and ready it on Kanban. The Overseer then launches AI agents that build and review the ticket, merges the result without being asked, and the ticket reaches Done. A dashed path drops to Questions only when an answer is needed, and the answer resumes the work. The header runs along the top as the thing you watch throughout.](../figures/running-a-board/your-day-on-the-board.png)
 
 *Notice the blue middle: once a ticket is Ready, you act only if a question appears.*
 
-Nearly every control records a request, and the Overseer acts on it or refuses it. The screenshots here come from the
-demo board Example Storefront, and the detail panel shows demo ticket #012.
+Nearly every control records a request, and the Overseer acts on it or refuses it.
 
 ## The tabs
 
-The Bridge has up to ten tabs: Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant, Intake
+The board view has up to ten tabs: Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant, Intake
 and Pipeline. Waves shows only when a ticket depends on another, and Epics only on a board
 with epics. Pipeline shows once the Overseer reports a readable `pipeline.json`. A board with no readable
 `pipeline.json` shows Pipeline alone, whatever tab you last chose, and the header is in setup: the board name, an amber
@@ -132,8 +131,6 @@ its own. Esc, Close or a second click on the open item closes it. The filter lin
 
 ### Kanban
 
-![The Kanban tab of Example Storefront under the header and its activity strip: lanes Ready, with the draft tickets first, Building, In review, Merge queue and Done, with Abandoned folded; cards carry their epic, waiting-on and asks chips.](../images/bridge-kanban.png)
-
 *A card holds no controls but its links, its epic chips and waiting-on ids, and its asks pill. Press the card to open
 its ticket form, where Ready, Hold, Unhold and Priority are. A card never grows on hover or keyboard focus.*
 
@@ -186,9 +183,7 @@ on each [target](../glossary.md#target), and why a [landing](../glossary.md#land
 merge move belongs to the [incident](../glossary.md#incident) or decision it answers. The Kanban tab stays highlighted;
 press it to go back.
 
-![The merge queue view of Example Storefront: the order rule, then target main with its Airlock free and #002 queued clean.](../images/bridge-merge-queue.png)
-
-*#002 waits clean for a free Airlock. A ticket holding the Airlock has a job and no line; its card stays in the lane.*
+*A ticket holding the Airlock has a job and no line; its card stays in the lane.*
 
 ![A schematic of the merge queue view. The order rule sits at the top: five keys, or User's Merge presses when merge approval is on. Under the target main come who holds the Airlock and in which phase, why landings wait, the candidates in landing order with priority and forecast, and git's predicted conflicts between candidates.](../figures/running-a-board/merge-queue-view.png)
 
@@ -204,10 +199,7 @@ without a line. So a target can show an empty list. With nothing queued the view
 
 ### Progress
 
-![The Progress tab: a Gantt chart grouped by epic with a now line, and below it the finished work of the last day.](../images/bridge-progress.png)
-
-*The chart answers what happened and when; the Waves tab answers what must finish before what. The demo's queued
-tickets were seeded without a review, so they read Awaiting review.*
+*The chart answers what happened and when; the Waves tab answers what must finish before what.*
 
 Progress answers how the work went.
 
@@ -253,8 +245,6 @@ The red path walks back from the last wave, taking the ticket with the most wait
 </details>
 
 ### Tickets
-
-![The detail panel of demo ticket #012 on its Description tab, beside the Overview, Timeline and Activity tabs: the ticket's Report, Wanted, Acceptance and Brief.](../images/bridge-tickets.png)
 
 *The panel opens above the table, and Close returns to the table.*
 
@@ -302,8 +292,6 @@ next. [A parked ticket](runbook.md#a-parked-ticket) says what each way back star
 
 ### Agents
 
-![The Agents tab: the Agents card lists three builders and a reviewer under the project row with its 4 / 5 workers meter and the agents at most field, one builder followed by its Asks User strip; the Sessions card lists a product owner, also asking, and the Assistant; each row shows its calls against its budget, its subagents as squares, its last tool and its tokens.](../images/bridge-agents.png)
-
 *Press a job id to open its controls and transcript below the two cards. The workers figure counts the live build and
 review jobs, so the Sessions card's jobs and the subagents add nothing to it.*
 
@@ -341,8 +329,6 @@ A job that ended leaves its card, and its `#agents/<job>` link then shows no pan
 
 ### Questions
 
-![The Questions tab beside the question panel: open decisions, a builder's question on ticket 008 first, its options with what each touches, trades off and does to the Acceptance. The panel shows the same question with its options as cards, and the ticket's Wanted, Brief and Acceptance in its Background tab.](../images/bridge-questions.png)
-
 *Three sections; only Open questions needs you.*
 
 Questions holds what waits on you. Agent questions come first, then the decisions the Overseer opened. An escalated one
@@ -351,7 +337,7 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 - **Open questions.** Pick options, or type free text on a one-question decision, then press Answer.
 - **Answered.** Settled decisions, read back from the [log](../glossary.md#log).
 - **Notices.** Open [notices](../glossary.md#notice), each with its kind, the id it is about and the sentence the header
-  words it in. They take no answer. The Bridge shows them too: warnings and notices as banners above the header,
+  words it in. They take no answer. The header shows them too: warnings and notices as banners above it,
   `new-code` in its state line.
 
 ![A schematic of a decision card. Its head gives the id, then kind, ticket, job and the role that asked. Below come a question under a short header with options lettered a and b, each followed, when the asking agent noted them, by what it touches, its trade-off and its effect on the Acceptance. Then a free text box on a decision of one question, and the Answer button. A refusal appears beside the button, word for word.](../figures/running-a-board/decision-card.png)
@@ -362,7 +348,7 @@ says so. The Questions tab's count and the header's Waiting on User pill show th
 > well.
 
 Notify me of new questions asks for browser notifications from your click, never on load. The open-question count leads
-the browser tab's title on every tab of the Bridge.
+the browser tab's title on every tab of the board view.
 
 #### The question panel
 
@@ -383,10 +369,7 @@ ticket), the whole ticket, and the agent's conversation. The foot shows how many
 
 ### Assistant
 
-![The Assistant tab: the session as a chat thread, a working turn with its running tool calls, then User's message, queued until the Assistant is idle; below it the composer marked busy, and the incident rail beside it.](../images/bridge-assistant.png)
-
-*You read this tab more than you use it: the Assistant settles incidents without you. The transcript is synthetic demo
-data.*
+*You read this tab more than you use it: the Assistant settles incidents without you.*
 
 Assistant shows the live [Assistant](../glossary.md#assistant) session as a chat, with a rail of its incidents beside it
 (under it on a narrow window). The head names the session's state, its turns and its calls; the Assistant has no call
@@ -408,9 +391,7 @@ session boots, and every incident takes its default at once.
 
 ### Intake
 
-![The Intake tab: the list of product-owner sessions on the left, the selected one marked, and on the right that session's chat with User's request, User's message with a sketch picture, the product owner's turns and a docked decision, its composer, and beside it the draft tickets it filed, the pictures in the chat and Close intake.](../images/bridge-intake.png)
-
-*Each request gets its own session, and several may run at once. The transcript is synthetic demo data.*
+*Each request gets its own session, and several may run at once.*
 
 The tab lists every [product owner](../glossary.md#product-owner) session on the left and shows one of them on the
 right. Sessions waiting on your answer come first, then the running ones and the ended ones, each newest first. A row
@@ -430,7 +411,7 @@ New chat opens an empty composer (`#intake/new`). Its first message starts the s
 session once the Overseer has started it, or shows it read only with its outcome if it ended before it ever ran.
 
 To send pictures with a request or a message, choose Attach pictures, paste them into the text box, or drop them on the
-chat. The Bridge takes the types and sizes the Overseer serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
+chat. The view takes the types and sizes the Overseer serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
 per message and 3,932,160 bytes each, since the vendor's 5 MB limit counts the base64 a session is sent); it refuses any other picture before it uploads it, and shows the Overseer's own refusal on a picture the Overseer turns down. Each picture uploads at
 once, and Send waits until every upload has finished. A picture alone is a message. Only the Intake tab takes pictures:
 the Assistant's composer and the `intake` and `job message` commands do not. With an agent that cannot take pictures, no
@@ -441,7 +422,7 @@ Attach pictures shows.
 A missing control does not apply in the Overseer's current state. A greyed control cannot be sent at this moment, for
 one of the [four causes](#what-a-disabled-control-means). A live control sends a request the Overseer may still refuse.
 
-![The Bridge header unfolded, with thirteen numbered callouts. Above it sit the banners, one banner per warning or notice, and the incident line. The title row holds the state with usage and the new-code line over the board name, Pause or Resume, Restart and Stop Overseer, then the statistics and the Waiting on User pill. Below it come the activity strip, one chip per job in a launch slot, and the tabs with their counts and the theme. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line.](../figures/running-a-board/header-tour.png)
+![The board's header unfolded, with thirteen numbered callouts. Above it sit the banners, one banner per warning or notice, and the incident line. The title row holds the state with usage and the new-code line over the board name, Pause or Resume, Restart and Stop Overseer, then the statistics and the Waiting on User pill. Below it come the activity strip, one chip per job in a launch slot, and the tabs with their counts and the theme. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line.](../figures/running-a-board/header-tour.png)
 
 *Dashed items come and go. Read a missing control as a statement about the Overseer's state.*
 
@@ -507,9 +488,10 @@ A command that cannot reach the Overseer shows nothing, and the button comes bac
 
 Rules live in the Overseer, so a button can offer what the Overseer then declines.
 
-![User clicks a control in the Bridge and the Overseer checks the command under the tracker lock. A refusal returns to the control word for word with nothing written. An applied request stores its fact, a Pass wakes and acts, and the Bridge changes when the next board update arrives. Stop Overseer and Restart skip this path and record nothing.](../figures/running-a-board/control-records.png)
-
-*Notice the two returns: a refusal comes straight back, and success arrives later, as a board update.*
+User clicks a control in the board view and the Overseer checks the command under the tracker lock. A refusal returns to
+the control word for word with nothing written. An applied request stores its fact, a Pass wakes and acts, and the view
+changes when the next board update arrives. Stop Overseer and Restart skip this path and record nothing. So there are
+two returns: a refusal comes straight back, and success arrives later, as a board update.
 
 The refusal appears beside the control, word for word, for example `Ticket #003 is already held. Nothing was written.`
 It is normal, it changed nothing, and it clears on your next send. [Refusals](../reference/refusals.md) lists them all.
@@ -549,7 +531,7 @@ ticket stays where its status puts it, and only the `held` mark and the fact in 
 
 ## Flint
 
-Flint is the small orange diamond with eyes that lives on the Bridge. It shows what the agents do; it never changes the
+Flint is the small orange diamond with eyes that lives on the board view. It shows what the agents do; it never changes the
 board and sends no request. Its home is a corner at the bottom right of the page, where it sleeps. Each screen with a
 Flint box (Setup, the pipeline steps, the Kanban's Agents at work strip, a ticket's state card, a job's panel on
 Agents, the Assistant, the question panel and intake) is where Flint goes when the screen opens, and there it shows
@@ -561,7 +543,7 @@ when the turn is done; on Agents it waves to a new agent, copies the work of a r
 goes to sleep when every agent is idle.
 
 Click Flint and it plays with the pointer for a moment. Drag it onto a chat, a view or a Flint box and it lives there;
-drop it outside all of them and it goes back. The Bridge remembers, per board, where Flint lives. Flint takes no click away from the
+drop it outside all of them and it goes back. The view remembers, per board, where Flint lives. Flint takes no click away from the
 page: only its own body takes the pointer.
 
 ## Daily routines
@@ -633,14 +615,14 @@ Resume. An unpaused board launches on the next Overseer's first Pass. To have no
 `forge job stop --all --wind-down` and wait until Agents shows them gone before Stop Overseer. The
 Assistant session stays up.
 
-| You run | Launches | Running agents | Bridge |
+| You run | Launches | Running agents | The API and the board view |
 | --- | --- | --- | --- |
 | Pause, or `forge oversee pause` | no new ticket work | keep running | up |
 | `forge job stop --all --wind-down` | no new ticket work | wrap up and end; tickets held | up |
 | Stop Overseer, or `forge oversee stop` | none, no [Pass](../glossary.md#pass) runs | keep running under Talos, until its lease ends a minute later; then they stop at the end of their turn and wait for your resume | gone |
 | `forge oversee stop --now` | none, no Pass runs | as for `oversee stop`; Talos also stops every install, [gate](../glossary.md#gate) and merge line | gone |
 
-Use `--now` when a running install or gate process must end too, such as one that hangs. The Bridge has no `--now`.
+Use `--now` when a running install or gate process must end too, such as one that hangs. The board view has no `--now`.
 
 ![A strip over one night. The Overseer drives the board until oversee stop. In a shaded span nobody drives, while an agent keeps running under Talos and ends. oversee --detach starts the next Overseer, which settles what ended. Then the stored state decides: paused starts no ticket, running launches at the first Pass.](../figures/running-a-board/overnight.png)
 
@@ -676,7 +658,7 @@ A `cleanup-declined` notice means git kept the group's worktree or branch after 
 Most views have a verb. Each is `forge <verb>`, and [the CLI reference](../cli.md) has the flags. Reads and
 recorded moves also work with the Overseer down; a recorded move takes effect at the next start.
 
-| In the Bridge | In a terminal |
+| In the board view | In a terminal |
 | --- | --- |
 | Header and Kanban | `status`, `oversee status`, `oversee pause`, `oversee resume`, `concurrency <n>` |
 | Progress | `status` for the open rows, `range` for the chart's default span |
@@ -713,17 +695,18 @@ Agents tab.
 | Chart range, folds, row options, finished-work span | Agents' open transcripts, replayed from history when reopened |
 | Tickets grouping | |
 
-A page reload loses everything in the Lost column too, and the Bridge reloads itself after a reconnect to an Overseer on
+A page reload loses everything in the Lost column too, and so does a reconnect to an Overseer on
 other code. Send a long answer before you wander off.
 
 ## Several repositories
 
-Each repository has its own [tracker](../glossary.md#tracker), Overseer, port and Bridge tab, and preferences are kept
+Each repository has its own [tracker](../glossary.md#tracker), Overseer and port, and preferences are kept
 per board. Three things are shared across the machine.
 
-![Two boards, Example Storefront and Example Agency, each with its own data folder and its own Overseer, Bridge URL and Talos. Both Overseers reach into the one monitor folder: gate-slots bounds gate runs across the machine, usage-limit.json holds launches on every board and usage-windows.json keeps the plan's usage windows, projects.json lists every board for a monitor to read.](../figures/running-a-board/several-boards.png)
-
-*So one busy board can make another's gates wait, and one usage limit stops launches on all of them.*
+Two boards have each their own data folder and their own Overseer, URL and Talos. Both Overseers reach into the one
+monitor folder: `gate-slots` bounds gate runs across the machine, `usage-limit.json` holds launches on every board,
+`usage-windows.json` keeps the plan's usage windows and `projects.json` lists every board for a monitor to read. So one
+busy board can make another's gates wait, and one usage limit stops launches on all of them.
 
 All boards on a machine share one gate limit: `GATE_RUNS_AT_ONCE` (2) gate runs at a time, each holding a
 [gate slot](../glossary.md#gate-slot) recorded in the shared [`<monitor>`](../glossary.md#reading-names) folder. Its
@@ -736,7 +719,7 @@ registry, and reads each through its Overseer's API ([the Overseer API](../refer
 
 A repository may hold several trackers, each in a project folder of its own, such as `apps/web` and `apps/api` of a
 monorepo ([Trackers in a repository](../cli.md#trackers-in-a-repository)). Each is a board as above, with its own
-Overseer, port and Bridge, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
+Overseer and port, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
 Its agents start at the root of their worktree, so that they can commit, and are told the project's folder; they may
 change that folder and the paths its pipeline's reach names; Customs refuses any other path.
 
@@ -751,9 +734,9 @@ the untouched apps.
 
 ## Invariants
 
-1. The Bridge stores no board state. Closing or reloading it loses only what
+1. The board view stores no board state. Closing or reloading it loses only what
    [What is lost on a tab change](#what-is-lost-on-a-tab-change) lists.
-2. Every Bridge control that changes the board posts a control command, and the Overseer alone applies or refuses it;
+2. Every control that changes the board posts a control command, and the Overseer alone applies or refuses it;
    Stop Overseer and Restart go to the running Overseer and record nothing.
 3. A refusal is shown word for word, and nothing was written.
 4. A ticket's lane is computed from its stored status and merge-queue mark on every board update.
@@ -764,12 +747,7 @@ the untouched apps.
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
-| Control availability | `bridge/shell/ControlAvailability.ts` | `availabilityOf`, `controlIsEnabled` | `bridge/shell/BridgeApp.dom.tsx` |
-| The posting control | `bridge/shell/CommandButton.tsx`, `bridge/shell/ControlCommandSender.ts` | `CommandButton`, `useControlCommand` | `bridge/shell/Header.dom.tsx`, `bridge/shell/ControlCommandSender.dom.tsx` |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
-| Decision card | `bridge/conversation/DecisionCard.tsx` | `DecisionCard` | `bridge/views/questions/QuestionsView.dom.tsx` |
-| Job controls | `bridge/views/agents/JobControls.tsx` | `JobControls` | `bridge/views/agents/AgentsView.dom.tsx` |
 | Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.integration.spec.ts` |
 | Stop with agents running | `cli/overseer/OverseerForeground.ts` | `BoardChildren.stopLiveLines` | `cli/overseer/OverseerCommand.integration.spec.ts` |
 | Terminal views | `cli/jobs/JobsCommand.ts`, `cli/jobs/JobCommand.ts` | `jobsCommand` | `cli/jobs/JobCommand.spec.ts` |
-| Flint's host | `bridge/flint/BridgeFlint.tsx` | `BridgeFlint` | `bridge/flint/BridgeFlint.dom.tsx` |

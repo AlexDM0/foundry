@@ -301,7 +301,7 @@ describe('User\'s message waits for an idle point (A7)', () => {
       .toEqual([{ sequence: 2, incidentIds: [], messageNumber: 1 }]);
   });
 
-  // The Bridge shows this rule as the Assistant's turn, so a message it says goes out now must be the next chat written.
+  // A client shows this rule as the Assistant's turn, so a message it says goes out now must be the next chat written.
   test('the idle rule a reader shows agrees with the queue: idle exactly when User\'s message would be the next chat', () => {
     const { board } = assistantBoard();
     board.messageJob(ASSISTANT_ID, 'Example question for the Assistant', [], FIXTURE_AT);

@@ -276,7 +276,7 @@ export class Jobs {
     return { job, logged: [this.records.logger.log({ kind: 'job-messaged', jobId, fields }, at)] };
   }
 
-  /** Kept on the job for the Bridge and logged, so the title outlives the job; a later title replaces an earlier one. */
+  /** Kept on the job for a client to show and logged, so the title outlives the job; a later title replaces an earlier one. */
   recordIntakeTitle(jobId: string, title: string, at: string): JobChanged {
     const job  = this.requireLiveJob(jobId);
     job.intake = { ...job.intake ?? { text: '' }, title };

@@ -24,8 +24,8 @@ folder, a real [board](../glossary.md#board) port or a real `claude` session. Ev
 controls has a lock, and a bare `claude` on the run's `PATH` is a stub that fails the test. A
 [session](../glossary.md#session) under test is a scripted fake agent.
 
-`bun run verify` runs `tsc` and ESLint side by side, then `bun test` and the recording stamp check; the Bridge's DOM specs
-run only by hand, through `bun run test:dom:bridge`. [Changing the code](contributing.md) says when to run what.
+`bun run verify` runs `tsc` and ESLint side by side, then `bun test` and the recording stamp check; forge has no page
+and so no DOM spec. [Changing the code](contributing.md) says when to run what.
 
 ## How to read a guard
 
@@ -33,8 +33,7 @@ A guard has three parts before its real assertion. `src/ImportDirection.spec.ts`
 are the map.
 
 **The floor proves the scan read the tree.** `describe('the scan itself')` requires at least 1500 repository edges, at
-least five files and five imports under each top folder, at least ten command folders, ten
-[Bridge](../glossary.md#bridge) view folders and
+least five files and five imports under each top folder, at least ten command folders and
 four `src/lib/` packages. It also fails while any scanned file is `unplaced`, so a folder no rule covers cannot escape
 judgement. The floors are round numbers well under the real counts, so a guard pointed at the wrong tree fails.
 
@@ -77,11 +76,11 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it: the design system as `design-system/<entry>`, an entry of the `exports` of `packages/design-system/package.json`, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
+| `src/ImportDirection.spec.ts` | Layer direction, feature, command and view isolation, the workspace packages' isolation (a package in `packages/` imports nothing of an app, and forge imports a package only by its name and only when `package.json` declares it, never by a file path), the CLI and Talos binaries (Talos imports only `src/lib/talos/` and its declared packages), `TESTING_FOLDER_IMPORTERS`, declared lib dependencies, tracker model isolation, the vendor seam (only `cli/CommandContext.ts` chooses the Claude Code adapter), cycles, barrels. | Follow the printed sentence. For a lib dependency, name the package in the main module's header. |
 | `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
-| `src/TestFileConventions.spec.ts` | No `.test.ts` or `.spec.tsx`, `.dom.tsx` only under `bridge/`, no test code names `createProcessContext`, no spec starts an [Overseer](../glossary.md#overseer) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
+| `src/TestFileConventions.spec.ts` | No `.test.ts`, `.spec.tsx` or `.dom.tsx`, no test code names `createProcessContext`, no spec starts an [Overseer](../glossary.md#overseer) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
 | `src/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
 | `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
@@ -167,12 +166,10 @@ into config blocks that bind the same rule ids, so a later block replaces an ear
 | `process.chdir` | nowhere |
 | `process.cwd` | `cli/CommandContext.ts`, `src/lib/claude-code/WorkflowScriptBundle.spec.ts` (no such file) |
 | `homedir` from `node:os` | `cli/CommandContext.ts` |
-| `localStorage`, `sessionStorage`, as a global or on `window` | `bridge/preferences/PreferenceStore.ts` |
 
 | other rule | scope |
 | --- | --- |
-| Clock selectors: no `Date.now()`, no zero-argument `new Date()`, under `CLOCK_MESSAGE` | Shipping `src/` and `cli/`. Specs, testing folders, `cli/CommandContext.ts` and `talos.ts` are out; the Bridge may read the clock. |
-| Bridge bans: no `dangerouslySetInnerHTML`, no assignment to `innerHTML` or `outerHTML`; react-hooks recommended, `exhaustive-deps` as an error | `bridge/**` |
+| Clock selectors: no `Date.now()`, no zero-argument `new Date()`, under `CLOCK_MESSAGE` | Shipping `src/` and `cli/`. Specs, testing folders, `cli/CommandContext.ts` and `talos.ts` are out. |
 | `@typescript-eslint/no-magic-numbers`, ignoring -1, 0, 1, 2, 16 and 100 | Off in specs, testing folders and `constants/` folders |
 | `id-length`: only `i`, `a`, `b`, properties exempt | All TypeScript |
 | No `!` assertion; inline `type` imports; no `todo`, `fixme`, `xxx` or `hack` anywhere | All TypeScript |
@@ -215,7 +212,7 @@ The tests split in two, so that an ordinary change does not pay for every real p
 
 | suite | files | command | when it runs |
 | --- | --- | --- | --- |
-| Default | every `*.spec.ts` and `*.dom.tsx`, but no `*.integration.spec.ts` | `bun run verify` | On every change. |
+| Default | every `*.spec.ts`, but no `*.integration.spec.ts` | `bun run verify` | On every change. |
 | Real-system | every `*.integration.spec.ts` | `bun run record <boundary>`, per boundary | While somebody builds or changes that boundary; never in `verify` or at a release. |
 
 `bunfig.toml`'s `pathIgnorePatterns` keeps the real-system specs out of a plain `bun test`. A later
@@ -286,12 +283,13 @@ added to its stage and recorded again with `bun run record src/lib/git/GitProces
 
 ## The test pyramid
 
-Add a test at the lowest tier that can prove the claim. At commit 70ce56de the repository holds 348 `.spec.ts` files,
-17 `.dom.tsx` files and 58 helper files.
+Add a test at the lowest tier that can prove the claim. At commit 70ce56de the repository held 348 `.spec.ts` files
+and 58 helper files, beside the DOM specs of a browser client that has since left the app.
 
-![Horizontal bars to scale, one per tier, from a common left edge, with an axis rising on the left: a higher tier costs more and proves more of the real system. From the bottom: static guards 158 tests in 13 files, pure logic 2,024 in 176, mutants and seeds 118 in 2, scratch disk 768 in 85, in-process commands 551 in 49, spawned processes 255 in 22, DOM specs 123 in 17, headless Chrome 1 in 1, and a manual smoke that is no spec. So a test goes at the lowest tier that can prove its claim.](../figures/guards-and-testing/test-pyramid.png)
-
-*The tiers stack by cost, not by count: pure logic carries the most tests, and few claims need a real browser.*
+A higher tier costs more and proves more of the real system. From the bottom, at that commit: static guards, 158 tests
+in 13 files; pure logic, 2,024 in 176; mutants and seeds, 118 in 2; scratch disk, 768 in 85; in-process commands, 551 in
+49; spawned processes, 255 in 22; and a manual smoke that is no spec. The tiers stack by cost, not by count: pure logic
+carries the most tests, and few claims need a real process.
 
 | tier | tests | how a spec works there | example |
 | --- | --- | --- | --- |
@@ -301,11 +299,10 @@ Add a test at the lowest tier that can prove the claim. At commit 70ce56de the r
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
 | Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/overseer/CrashMatrix.integration.spec.ts` |
-| DOM specs | 123 | Components under happy-dom | `bridge/shell/BridgeApp.dom.tsx` |
 | Manual smoke | none | A script with real sessions | `cli/testing/CutoverSmoke.ts` |
 
 `bun test` at that commit, on Bun 1.4.2: 3,875 tests, 13,570 `expect()` calls, no failure and no skip, about 15 minutes
-on a loaded machine. `RunDomSpecs` adds 123 tests. A spec file counts once, at the highest tier whose helpers it uses,
+on a loaded machine. A spec file counts once, at the highest tier whose helpers it uses,
 counted by a scratch script; the numbers are a snapshot, not a rule.
 
 All process reach goes through one seam, `CommandContext`, which is why the in-process tier is so large: a spec drives a
@@ -313,7 +310,7 @@ whole command against a frozen clock and reads back its output, with no process 
 
 Specs spawn the CLI through `cli/testing/CliProcess.ts`, with one exception:
 `src/services/overseer/InstallChangeWatch.spec.ts` runs `version --json` through the shipping `versionsFromTheBinary`,
-under the spawn wrap only. [The two routes](#the-fake-agent-the-dom-and-chrome) show when to spawn.
+under the spawn wrap only. [The two routes](#the-fake-agent-and-real-sessions) show when to spawn.
 
 ## Named techniques
 
@@ -323,8 +320,7 @@ Seven techniques recur across the specs; each row of the catalogue uses one or m
 planted source object for the others.
 
 **Scan floors.** Other scans name their floor as a constant: `MINIMUM_SPEC_FILE_COUNT`,
-`SMALLEST_SCANNED_LITERAL_COUNT`, `SMALLEST_COPIED_SECTION_CHARACTERS`. `bridge/testing/RunDomSpecs.ts` treats finding
-no DOM spec as a failure.
+`SMALLEST_SCANNED_LITERAL_COUNT`, `SMALLEST_COPIED_SECTION_CHARACTERS`.
 
 **Source mutants.** `src/testing/SourceMutant.ts` rewrites one text in one module as Bun bundles it, so a claim can be
 watched failing without the line it pins.
@@ -370,10 +366,6 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 
 | file | line | concept | outcome |
 | --- | --- | --- | --- |
-| `bridge/views/waves/WavesView.dom.tsx` | 94 | fixed sleep before an assertion | Redesigned: `waitFor` on the lineage clearing. |
-| `bridge/views/detail-panel/DetailPanel.dom.tsx` | 165 | fixed sleep before an assertion | Kept: a negative, a planted payload never runs; no state exists to wait on, and load only shortens the window. |
-| `bridge/testing/HeadlessBridgeCheck.ts` | 48 | try-count loop, settle sleep per tab | Redesigned: waits on the page target, the heading and each tab's panel. |
-| `bridge/testing/HeadlessBridgeCheck.ts` | 149 | process signalled | Kept: cleanup of a Chrome the check owns, no verdict. |
 | `cli/HatchUnderJob.spec.ts` | 271 | unbounded poll loop | Redesigned: `firstValueOf` on the written request. |
 | `cli/decisions/DecisionCommands.spec.ts` | 126 | sleep assumed to let a command start | Redesigned: the wait is seen beginning at its `onStopSignal`, an injected event. |
 | `cli/RegisterWrittenTracker.integration.spec.ts` | 360 | fixed hold before an assertion, across processes | Kept: a negative across processes; a hold ending on the children's state could outlast their lock retry budget, and a slow start only shortens the window. |
@@ -537,9 +529,9 @@ guard: on an OS where the boundary is not finished it skips with the stamp check
 `EVERY_TOOL_REQUIRED_VARIABLE` builds that name from the program's prefix; [cli.md](../cli.md) holds the table of
 variables.
 
-## The fake agent, the DOM and Chrome
+## The fake agent and real sessions
 
-Four harnesses cover what a plain spec cannot: a scripted agent, a fake DOM, a real browser and real sessions.
+Two harnesses cover what a plain spec cannot: a scripted agent and real sessions.
 
 **The fake agent.** `fakeAgentAdapter` in `src/testing/FakeAgentAdapter.ts` is an `AgentAdapter`, the same interface
 `CLAUDE_CODE_ADAPTER` implements, and its session is `src/testing/fake-agent/FakeAgentChild.ts`.
@@ -557,15 +549,8 @@ this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 > `FakeAgentAdapter.ts` imports `ClaudeStreamLines.ts` rather than the vendor adapter, so the
 > vendor seam holds.
 
-**DOM specs.** `bun test` never runs a `.dom.tsx`: its pattern does not match the name, and
-`src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which it would match and run without a DOM.
-
-![The two test runs: bun run verify runs typecheck and lint side by side, then bun test; RunDomSpecs runs by hand. Below bun test, the main run finds spec files in one process with the program traps and the skip report preloaded. Below RunDomSpecs, the DOM run finds bridge dom files and runs them in one isolated process, a fresh global per file, with HappyDom added, and fails on finding none.](../figures/guards-and-testing/two-test-runs.png)
-
-*`HappyDom` replaces `fetch` and other globals for a whole run, so it is never a preload of the main run.*
-
-`bridge/testing/RunDomSpecs.ts` passes its preloads with `--preload`. That adds to `bunfig.toml`'s list rather than
-replacing it, so a DOM run carries the program traps as well.
+**No DOM specs.** forge has no page. `src/TestFileConventions.spec.ts` bans a `.spec.tsx`, which `bun test` would run
+without a DOM, and a `.dom.tsx`, which nothing runs.
 
 **Manual smoke.** `cli/testing/CutoverSmoke.ts` is a script, never a spec, and it runs real `claude` sessions. Only
 its judgement, `cli/testing/CutoverSmokeUtil.ts`, has a spec.
@@ -581,17 +566,16 @@ there; a file entry admits that one shipping module.
 of its own; every other testing folder keeps the layer of its parent.*
 
 <details>
-<summary>The seven helper folders and who may import them</summary>
+<summary>The six helper folders and who may import them</summary>
 
 | folder | admits specs of | what lives there |
 | --- | --- | --- |
-| `src/testing/` | `src/`, `cli/`, `bridge/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
+| `src/testing/` | `src/`, `cli/`, and the file `cli/CommandContext.ts` | `ScratchWorkspace`, `TrackerIsolation`, `ToolGuard`, `TestRunReport`, the program traps, the fake agent, `ImportGraph`, `RepositorySources`, `SourceMutant`, Talos protocol clients, planted children, Board and tracker fixtures |
 | `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
 | `src/services/overseer/testing/` | `src/services/overseer/` | `AirlocksHarness`, `LiveJobFixture`, the frozen monitor and summary documents |
-| `cli/testing/` | `cli/`, `bridge/` | `CliProcess`, `CapturedCommandContext`, `InitializedScratchRepository`, `OtherProductNamesPreload`, `CutoverSmoke`, stored-file readers |
-| `bridge/testing/` | `bridge/` | `RunDomSpecs`, `HappyDom`, `HeadlessBridgeCheck`, `FakeControls`, board fixtures |
+| `cli/testing/` | `cli/` | `CliProcess`, `CapturedCommandContext`, `InitializedScratchRepository`, `OtherProductNamesPreload`, `CutoverSmoke`, stored-file readers |
 
 </details>
 
@@ -608,7 +592,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 5. Every binary spawned through `CliProcess` runs with the fake-agent switches on and the trap first on `PATH`,
    whatever the spec's environment says.
 6. A skip is printed by name, and `EVERY_TOOL_REQUIRED_VARIABLE` turns it into a failure.
-7. `bun test` runs no DOM, and each DOM spec runs in a process of its own.
+7. `bun test` runs no DOM, and the tree holds no DOM spec.
 8. Every Playbook claim holds on the source and fails on its mutant, whose text occurs exactly once.
 
 ## In the code
@@ -628,4 +612,3 @@ of its own; every other testing folder keeps the layer of its parent.*
 | Fake agent | `src/testing/FakeAgentAdapter.ts`, `src/testing/fake-agent/FakeAgentChild.ts` | `fakeAgentAdapter`, `FakeAgentStep` | `src/testing/FakeAgentAdapter.integration.spec.ts` |
 | Source mutants | `src/testing/SourceMutant.ts` | `mutantPluginFor`, `mutatedModuleOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Seeded world | `src/lib/tracker-model/testing/LifecycleWorld.ts` | `LifecycleWorld` | `src/lib/tracker-model/Playbook.interleavings.spec.ts` |
-| DOM specs | `bridge/testing/RunDomSpecs.ts`, `bridge/testing/HappyDom.ts` | `PRELOADS` | `src/TestFileConventions.spec.ts` |
