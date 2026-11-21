@@ -161,6 +161,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - **WP8.2:** open Gaia on a live forge and click a Waiting on User entry, an agent row and an activity entry; each should open the right place (the monitor now serves a typed target).
 
+- **WP8.4:** run `bun run record src/services/overseer/InstallChangeWatch.ts` in `apps/forge` (no model call) and commit the real take; the recording was hand-set to install version 44. On a scratch forge holding an old `.forge/progress.html`, `forge update` should remove it and `forge open` should answer unknown command.
+- **WP8.5:** open Gaia on a live forge that still sends `flintBrain`: the bar shows Pause, Stop and Open in new tab only, and Agents shows no brain row.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -326,7 +329,7 @@ done: WP2.18 retook them all, unchanged but start stamps.
   the Talos pair is marked when its protocol or code version differs from the installed program
   (`talosIsBehindTheInstalledProgram`).
 
-- **WP6.23b:** the brain's button in B1 reads "Stop brain", where SCREENS B1 and COMPONENT_LIBRARY 3.4 ask for a secondary "Stop"; it sat right beside the forge's own Stop. An argued deviation to confirm or revert (`BrainChip.tsx` `STOP_LABEL`).
+- **WP6.23b (moot since WP8.5 removed the brain from Gaia):** the brain's button in B1 read "Stop brain", where SCREENS B1 and COMPONENT_LIBRARY 3.4 ask for a secondary "Stop"; it sat right beside the forge's own Stop. An argued deviation to confirm or revert (`BrainChip.tsx` `STOP_LABEL`).
 
 ### Blocked
 
@@ -446,6 +449,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - **WP6.23b:** a bare `bun test` in `apps/gaia` also picks up the page specs and fails 40; the `test` and `test:dom` scripts are the right commands and are green.
 
 - **WP8.3:** the builder removed the spec cases that proved Gaia writes no frame-ancestor record (`PageServer.spec.ts`, `Main.serve.spec.ts`). Nothing in Gaia can write that record any more, so the loss is small; restore them if the guard is wanted.
+
+- **WP8.5:** the five-forges fixtures lost the two brain activity entries, so screen A3 counts 16 rows where the artboard draws 18.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -600,10 +605,10 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 8-A | WP8.1 | landed | 17be7ee8 | First round, on Fable. Every path outside the Overseer's API answers 404; `page-build-failed` is gone from `ServerRefusal`; `FEATURE_REACHES_BY_PATH` kept as an empty list with its check. The Done-when grep prints 4 lines, all the planted guard case in `ImportDirection.spec.ts` the package itself asks for (WP8.2 deletes it). `HEADLESS_BRIDGE_SPEC` left the `OverseerServer.ts` boundary here, not in WP8.2. The page cases were in `OverseerApi.integration.spec.ts`. `bridge/HeadlessBridge.integration.spec.ts` is red in `verify:integration` until WP8.2 deletes it. Verify 30/30 after landing |
 | 8-A | WP8.3 | landed | 3dce699a | First round, on Fable. Gaia held no embed machinery in production code; three spec files changed. The Done-when grep prints 4 lines that must stay: the `frame-session` 404 proof and Gaia's own `frame-ancestors 'none'` policy. Verify 30/30 after landing |
 | 8-B | WP8.2 | landed | 82b0c6b0 | First round, on Fable. 717 files, 82,896 lines gone: `apps/forge/bridge` is empty and forge has no DOM spec (`TestFileConventions.spec.ts` refuses any `.dom.tsx`). Monitor attention entries, jobs and activity carry a typed `target` (`BoardTarget`) where they carried `route`; `monitorVersion` stays 3 and the v3 fixtures were edited in place, so WP8.10 must raise the version. Gaia maps a target to a place in `PLACE_OF_TARGET_SUBJECT`. Three Gaia recordings re-taken from a scratch forge. `ImportDirection.spec.ts` lost the feature rule. `verify:integration` 875 pass, 1 skip, 0 fail. Left for WP8.12: docs that name deleted Bridge images, scripts and `.readme-graphics` files (`running-a-board.md`, `cli.md`, `contributing.md`, `guards-and-testing.md`, `platform-status.md`, README's runtime dependencies, `apps/forge/CLAUDE.md:165`). Left for WP8.13: `.claude/rules/design-system.md` and the four style guards for `packages/design-system` stylesheets that went with `bridge/`. Verify 30/30 after landing |
-| 8-C | WP8.4 | running | | |
-| 8-C | WP8.5 | running | | |
-| 8-D | WP8.6 | waiting | | |
-| 8-D | WP8.13 | waiting | | |
+| 8-C | WP8.4 | landed | 68e73e74 | First round, on Fable. `forge open`, the opener port and adapters, the progress-page adapter and the stub writer are gone; the registry entry holds no `progressHtml`; `INSTALL_VERSION` 43 to 44 with frozen key 44. `refreshTrackedRepository` removes a left-over `progress.html` on `init` and `update`. `overseer-down` stays and now says `forge start`. No `MonitorRegistration.spec.ts` exists; the exact-keys proof is in `OverseerCommand.spec.ts` and `RegisterWrittenTracker.integration.spec.ts`. The `InstallChangeWatch` recording was hand-set to install version 44, not re-taken. `verify:integration` 874 pass, 1 skip. Left for WP8.12: "Bridge" in four installed texts and `open` or the stub in the READMEs and seven docs; for WP8.11: `progressHtml` in Gaia's `forge-registry.json`. Verify 30/30 after landing |
+| 8-C | WP8.5 | landed | 9e450713 | First round, on Fable. 119 files under `apps/gaia`, 5,017 lines gone: the brain's reading, fleet row, two commands, views, chip and recording. The Done-when grep still prints 38 lines that wait on WP8.7 (`flintBrain` passed over while the contract has the key, three forge recordings), on `packages/flint`'s own `startBrain`/`stopBrain`, and the specs the package asks for. Also removed as brain-only: `countsAgainstLimit` on fleet agent rows, an activity entry's `kind` and `tokens`, `BrainTextUtil`, `RoleDot`'s `ended`, `ForgeBarLayout`'s `mark`, requirement V7 in `forge-requirements.md`. Verify 30/30 after landing |
+| 8-D | WP8.6 | running | | |
+| 8-D | WP8.13 | running | | |
 | 8-E | WP8.7 | waiting | | |
 | 8-F | WP8.8 | waiting | | |
 | 8-G | WP8.9 | waiting | | |
