@@ -524,14 +524,15 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today:        { deliveredTickets: 3, tokens: 512_000 },
-  usage:        USAGE_UNDER_THE_LIMIT,
-  brain:        STOREFRONT_BRAIN_RUNNING,
-  versions:     CURRENT_FORGE_VERSIONS,
-  presence:     { state: 'serving', generation: null, at: null },
-  crashSummary: null,
-  crashLogs:    [],
-  waitingWork:  [],
+  today:         { deliveredTickets: 3, tokens: 512_000 },
+  usage:         USAGE_UNDER_THE_LIMIT,
+  brain:         STOREFRONT_BRAIN_RUNNING,
+  versions:      CURRENT_FORGE_VERSIONS,
+  presence:      { state: 'serving', generation: null, at: null },
+  crashSummary:  null,
+  crashLogs:     [],
+  waitingWork:   [],
+  outageEndings: 0,
 };
 
 const INVOICE_SERVICE: FleetDocumentForge = {
@@ -619,14 +620,15 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today:        { deliveredTickets: 2, tokens: 418_000 },
-  usage:        USAGE_UNDER_THE_LIMIT,
-  brain:        BRAIN_OFF,
-  versions:     CURRENT_FORGE_VERSIONS,
-  presence:     { state: 'serving', generation: null, at: null },
-  crashSummary: null,
-  crashLogs:    [],
-  waitingWork:  [],
+  today:         { deliveredTickets: 2, tokens: 418_000 },
+  usage:         USAGE_UNDER_THE_LIMIT,
+  brain:         BRAIN_OFF,
+  versions:      CURRENT_FORGE_VERSIONS,
+  presence:      { state: 'serving', generation: null, at: null },
+  crashSummary:  null,
+  crashLogs:     [],
+  waitingWork:   [],
+  outageEndings: 0,
 };
 
 const RESEARCH_WIKI: FleetDocumentForge = {
@@ -678,14 +680,15 @@ const RESEARCH_WIKI: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today:        { deliveredTickets: 1, tokens: 164_000 },
-  usage:        USAGE_UNDER_THE_LIMIT,
-  brain:        BRAIN_OFF,
-  versions:     CURRENT_FORGE_VERSIONS,
-  presence:     { state: 'serving', generation: null, at: null },
-  crashSummary: null,
-  crashLogs:    [],
-  waitingWork:  [],
+  today:         { deliveredTickets: 1, tokens: 164_000 },
+  usage:         USAGE_UNDER_THE_LIMIT,
+  brain:         BRAIN_OFF,
+  versions:      CURRENT_FORGE_VERSIONS,
+  presence:      { state: 'serving', generation: null, at: null },
+  crashSummary:  null,
+  crashLogs:     [],
+  waitingWork:   [],
+  outageEndings: 0,
 };
 
 const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
@@ -737,14 +740,15 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
       tokens:      null,
     },
   ],
-  today:        { deliveredTickets: 0, tokens: 146_000 },
-  usage:        USAGE_UNDER_THE_LIMIT,
-  brain:        BRAIN_OFF,
-  versions:     CURRENT_FORGE_VERSIONS,
-  presence:     { state: 'serving', generation: null, at: null },
-  crashSummary: null,
-  crashLogs:    [],
-  waitingWork:  [],
+  today:         { deliveredTickets: 0, tokens: 146_000 },
+  usage:         USAGE_UNDER_THE_LIMIT,
+  brain:         BRAIN_OFF,
+  versions:      CURRENT_FORGE_VERSIONS,
+  presence:      { state: 'serving', generation: null, at: null },
+  crashSummary:  null,
+  crashLogs:     [],
+  waitingWork:   [],
+  outageEndings: 0,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -786,14 +790,15 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
     kind:        null,
     tokens:      null,
   }],
-  today:        null,
-  usage:        null,
-  brain:        'not-reported',
-  versions:     CURRENT_FORGE_VERSIONS,
-  presence:     { state: 'unknown', generation: null, at: null },
-  crashSummary: null,
-  crashLogs:    [],
-  waitingWork:  [],
+  today:         null,
+  usage:         null,
+  brain:         'not-reported',
+  versions:      CURRENT_FORGE_VERSIONS,
+  presence:      { state: 'unknown', generation: null, at: null },
+  crashSummary:  null,
+  crashLogs:     [],
+  waitingWork:   [],
+  outageEndings: 0,
 };
 
 const LEGACY_IMPORTER: FleetDocumentForge = {
@@ -833,6 +838,7 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   crashSummary:      null,
   crashLogs:         [],
   waitingWork:       [],
+  outageEndings:     0,
 };
 
 /** A brain in each state the forge reports, for the specs that put one in Example Storefront's place. */
@@ -893,7 +899,7 @@ const STOREFRONT_BRAIN_ROW: FleetDocumentFleetAgentRow = {
 };
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
-  fleetVersion: 6,
+  fleetVersion: 7,
   forges:       [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_MOBILE_APP, DESIGN_SYSTEM, LEGACY_IMPORTER],
   attention:    [
     { ...INVOICE_ESCALATED_E4, trackerId: TRACKER_IDS.invoiceService },
@@ -986,4 +992,5 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
       supportedForgeVersion: { major: 1, minor: 1 },
     },
   },
+  outageEndingsTotal: 0,
 };

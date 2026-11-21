@@ -27,19 +27,22 @@ import type { GaiaSettings }            from '../../shared/@types/GaiaSettings.t
 import { CONTRACT_VERSIONS }            from '../../shared/constants/ContractVersions.ts';
 import { OVERSEER_ANSWERED_FIDELITIES } from '../../shared/constants/ForgeFidelities.ts';
 
-import { ProgramVerdictUtil } from './utils/ProgramVerdictUtil.ts';
+import { OutageResume, type OutageResumeForge } from './OutageResume.ts';
+import { ProgramVerdictUtil }                   from './utils/ProgramVerdictUtil.ts';
 
 export interface ForgeControlOptions {
   /** Read at each command, so the program and the Overseer's token file are the ones the registry names now. */
-  readonly readRegistry:  () => Promise<RegistryReading>;
+  readonly readRegistry:    () => Promise<RegistryReading>;
   /** The forge watch's latest readings: whether an Overseer answers and which control contract it speaks. */
-  readonly readings:      () => readonly ForgeReading[];
-  readonly forgeClient:   ForgeClient;
-  readonly forgeProgram:  ForgeProgram;
-  readonly settingsStore: Pick<SettingsStore, 'settings' | 'fileState' | 'update'>;
-  readonly pathChooser:   PathChooser;
+  readonly readings:        () => readonly ForgeReading[];
+  readonly forgeClient:     ForgeClient;
+  readonly forgeProgram:    ForgeProgram;
+  readonly settingsStore:   Pick<SettingsStore, 'settings' | 'fileState' | 'update'>;
+  readonly pathChooser:     PathChooser;
   /** A registry read and an identity round at once. */
-  readonly lookAgain:     () => Promise<void>;
+  readonly lookAgain:       () => Promise<void>;
+  /** The forge's jobs a network outage stopped, as Gaia last read its presence; the count its resume answers. */
+  readonly outageEndingsOf: (trackerId: string) => number;
 }
 
 export interface ForgeControl {
@@ -50,6 +53,7 @@ export interface ForgeControl {
 const MACHINE_LIMIT_SUBJECT = 'machine-limit';
 const PATH_CHOOSER_SUBJECT = 'path-chooser';
 const LOGIN_ITEMS_SUBJECT = 'login-items';
+const OUTAGE_RESUME_SUBJECT = 'outage-resume';
 
 /** The forges that get a login item when "Start at login" is switched on: their Overseer answered, in a contract Gaia reads. */
 const RUNNING_FOR_LOGIN_ITEMS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only']);
@@ -153,10 +157,16 @@ function changing(change: SettingsChange): SettingsUpdate {
 }
 
 /** What a command holds while it is on its way, so a second command to the same holds back; `null` for one that holds nothing. */
+function forgeSubjectOf(trackerId: string): string {
+  return `forge ${trackerId}`;
+}
+
 function subjectOf(command: GaiaCommand): string | null {
   switch (command.kind) {
     case 'fleet-look-again':
       return null;
+    case 'fleet-outage-resume':
+      return OUTAGE_RESUME_SUBJECT;
     case 'settings-set':
       return command.change.key === 'startForgesAtLogin' ? LOGIN_ITEMS_SUBJECT : null;
     case 'forge-add':
@@ -166,7 +176,7 @@ function subjectOf(command: GaiaCommand): string | null {
     case 'path-choose':
       return PATH_CHOOSER_SUBJECT;
     default:
-      return `forge ${command.trackerId}`;
+      return forgeSubjectOf(command.trackerId);
   }
 }
 
@@ -320,11 +330,31 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     }
   }
 
+  /** Each forge's resume is held as any command to that forge is, so it never meets a second command to the same forge on its way. */
+  async function resumeOutageEndings(): Promise<CommandVerdict> {
+    const forges = await registeredForges();
+    if (typeof forges === 'string') return gaiaRefusalOf(forges);
+    const fleet = forges.map((forge): OutageResumeForge => ({
+      trackerId:     forge.trackerId,
+      apiAnswers:    apiReachOf(forge, readingOf(forge.trackerId)).reach === 'api',
+      outageEndings: options.outageEndingsOf(forge.trackerId),
+    }));
+    const forgesById = new Map(forges.map((forge) => [forge.trackerId, forge]));
+    const answers = await OutageResume.resumeAll(fleet, (trackerId) => withSubjectHeld(forgeSubjectOf(trackerId), () => {
+      const forge = forgesById.get(trackerId);
+      if (forge === undefined) return Promise.resolve(gaiaRefusalOf('forge-not-registered'));
+      return carryOverApi(forge, readingOf(trackerId), { kind: 'interrupted-work-resume', target: 'network-outage' });
+    }));
+    return { verdict: 'outage-resume-answered', forges: answers };
+  }
+
   async function carryNow(command: GaiaCommand): Promise<CommandVerdict> {
     switch (command.kind) {
       case 'fleet-look-again':
         await options.lookAgain();
         return { verdict: 'done' };
+      case 'fleet-outage-resume':
+        return resumeOutageEndings();
       case 'forge-add':
         return add(command.root, command.project);
       case 'machine-agent-limit-set':
@@ -339,16 +369,20 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     }
   }
 
-  async function carry(command: GaiaCommand): Promise<CommandVerdict> {
-    const subject = subjectOf(command);
-    if (subject === null) return carryNow(command);
+  async function withSubjectHeld(subject: string, work: () => Promise<CommandVerdict>): Promise<CommandVerdict> {
     if (subjectsWithCommandInFlight.has(subject)) return gaiaRefusalOf('command-in-flight');
     subjectsWithCommandInFlight.add(subject);
     try {
-      return await carryNow(command);
+      return await work();
     } finally {
       subjectsWithCommandInFlight.delete(subject);
     }
+  }
+
+  async function carry(command: GaiaCommand): Promise<CommandVerdict> {
+    const subject = subjectOf(command);
+    if (subject === null) return carryNow(command);
+    return withSubjectHeld(subject, () => carryNow(command));
   }
 
   return { carry };

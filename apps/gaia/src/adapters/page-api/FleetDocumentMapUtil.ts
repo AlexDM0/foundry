@@ -206,6 +206,7 @@ function forgeOut(reading: FleetForge): FleetDocumentForge {
       cause:     job.cause,
       waitsFor:  job.waitsFor,
     })),
+    outageEndings: reading.outageEndings,
   };
 }
 
@@ -278,8 +279,9 @@ export const FleetDocumentMapUtil = {
         openIncidents:  figures.openIncidents,
         incompleteFor:  [...figures.incompleteFor],
       },
-      settings: settingsOut(snapshot.settings),
-      gaia:     gaiaOut(snapshot.gaia),
+      settings:           settingsOut(snapshot.settings),
+      gaia:               gaiaOut(snapshot.gaia),
+      outageEndingsTotal: snapshot.outageEndingsTotal,
     };
   },
 } as const;

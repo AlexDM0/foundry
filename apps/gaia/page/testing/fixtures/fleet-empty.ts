@@ -5,7 +5,7 @@
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
 
 export const FLEET_EMPTY: FleetDocument = {
-  fleetVersion: 6,
+  fleetVersion: 7,
   forges:       [],
   attention:    [],
   needsALook:   [],
@@ -58,4 +58,5 @@ export const FLEET_EMPTY: FleetDocument = {
       supportedForgeVersion: { major: 1, minor: 1 },
     },
   },
+  outageEndingsTotal: 0,
 };

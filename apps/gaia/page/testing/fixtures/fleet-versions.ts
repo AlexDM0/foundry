@@ -142,6 +142,7 @@ function readFromTheRegistryAlone(
     crashSummary:      null,
     crashLogs:         [],
     waitingWork:       [],
+    outageEndings:     0,
   };
 }
 

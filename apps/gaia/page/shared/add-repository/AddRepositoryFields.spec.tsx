@@ -25,15 +25,15 @@ import { AddRepositoryForm } from './AddRepositoryForm.ts';
 const tree = ReactElementTree;
 
 const ANSWERED_PATH = (path: string): CommandAnswerDocument => ({
-  answerVersion: 3, outcome: 'done', refusal: null, text: path
+  answerVersion: 3, outcome: 'done', refusal: null, text: path, forges: []
 });
 
 const CANCELLED: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null
+  answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null, forges: []
 };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
 const START_REFUSED: CommandAnswerDocument = {
@@ -41,6 +41,7 @@ const START_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'overseer-did-not-answer',
   text:          'The Overseer started but its API did not answer.',
+  forges:        [],
 };
 
 const SETTINGS_REFUSED: CommandAnswerDocument = {
@@ -48,6 +49,7 @@ const SETTINGS_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          'Gaia could not write its settings.',
+  forges:        [],
 };
 
 function bodiesOf(sent: readonly SentRequest[]): unknown[] {
@@ -149,6 +151,7 @@ const PATH_CHOICE_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'chooser-unavailable',
   text:          'The system\'s file chooser did not open.',
+  forges:        [],
 };
 
 describe('the line of a missing forge program', () => {

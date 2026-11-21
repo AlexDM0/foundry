@@ -1,6 +1,7 @@
 /**
  * How the page words a forge's own state wherever it shows one: the condition it shows, its word, in a row or leading a line in sentence
- * case, the dot that stands beside the word, the usage line as the Bridge words it, and the callout of an Overseer that stopped answering (B3).
+ * case, the dot that stands beside the word, the usage line as the Bridge words it, the callout of an Overseer that stopped answering (B3),
+ * and its agents a network outage stopped.
  */
 import type {
   FleetDocumentCondition,
@@ -9,6 +10,8 @@ import type {
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
 import type { DotCondition } from '../../design-system/ConditionDot.tsx';
+
+import { CountTextUtil } from './CountTextUtil.ts';
 
 export interface UnreachableCalloutText {
   readonly word:        string;
@@ -105,7 +108,13 @@ function unreachableCalloutTextOf(forge: FleetDocumentForge, lastAnswerClock: st
   };
 }
 
+/** `2 agents stopped on a network outage`: a count the server serves, of jobs that wait for the outage resume. */
+function outageEndingsTextOf(outageEndings: number): string {
+  return `${CountTextUtil.countedPhrase(outageEndings, 'agent', 'agents')} stopped on a network outage`;
+}
+
 export const ForgeTextUtil = {
+  outageEndingsTextOf,
   shownConditionOf,
   conditionWordOf,
   conditionWordInSentenceCaseOf,

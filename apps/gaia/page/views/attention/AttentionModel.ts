@@ -6,7 +6,7 @@
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
-import type { CommandBody } from '../../@types/CommandDocument.ts';
+import type { CommandAnswerDocument, CommandBody, OutageResumeOutcome } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentAttentionKind,
@@ -46,10 +46,13 @@ export interface AttentionFigure {
 /** A kind pill's tone: orange for what User decides, green for work that waits only on User's accept. */
 export type AttentionKindTone = 'warn' | 'pass';
 
-/** One entry that waits on User. A row of an unreachable forge is stale: it can be read, not acted on. */
+/**
+ * One entry that waits on User. A row of an unreachable forge is stale: it can be read, not acted on. The fleet's alert of the agents a
+ * network outage stopped belongs to no one forge, so its `trackerId` is `null` and its forge cell names every forge it counts.
+ */
 export interface AttentionRow {
   readonly key:           string;
-  readonly trackerId:     string;
+  readonly trackerId:     string | null;
   readonly project:       string;
   readonly condition:     DotCondition;
   readonly conditionWord: string;
@@ -203,6 +206,22 @@ export interface AttentionContent {
   readonly readingsNote: ReadingsNote | null;
 }
 
+/** One forge's line under the outage resume: a forge that held nothing to resume has none. */
+export interface OutageResumeLine {
+  readonly trackerId: string;
+  readonly project:   string;
+  readonly outcome:   Exclude<OutageResumeOutcome, 'nothing-to-do'>;
+  /** Gaia's words for a resume or a forge it did not reach; a refusal is the forge's own sentence. */
+  readonly text:      string;
+}
+
+/** What the last outage resume answered: a line per forge that resumed, refused or was not reached, or that there was nothing to resume. */
+export interface OutageResumeAnswer {
+  readonly lines:       readonly OutageResumeLine[];
+  /** `null` while a forge has a line. */
+  readonly nothingText: string | null;
+}
+
 /** B4: no forge is registered. The forge program is missing when the settings name none and Gaia found none. */
 export interface NoForgeContent {
   readonly forgeProgramIsMissing: boolean;
@@ -220,21 +239,27 @@ const ASKS_WORD = 'asks';
 const NEVER_GUESSES_A_COUNT = 'Gaia never guesses a count.';
 
 const KIND_TEXTS: Readonly<Record<FleetDocumentAttentionKind, string>> = {
-  'escalated-question': 'Escalated',
-  'question':           'Question',
-  'draft-ticket':       'Draft',
-  'filing-draft':       'Draft',
-  'review':             'Review',
-  'merge-accept':       'Accept',
-  'forge-crashed':      'Crashed',
-  'forge-down':         'Down',
-  'forge-hung':         'Not supervised',
+  'escalated-question':     'Escalated',
+  'question':               'Question',
+  'draft-ticket':           'Draft',
+  'filing-draft':           'Draft',
+  'review':                 'Review',
+  'merge-accept':           'Accept',
+  'forge-crashed':          'Crashed',
+  'forge-down':             'Down',
+  'forge-hung':             'Not supervised',
+  'agents-ended-on-outage': 'Outage',
 };
 
 /** The alerts Gaia raises about a forge itself, from its served presence; the forge words none of them. */
 const FORGE_ALERT_KINDS: ReadonlySet<FleetDocumentAttentionKind> = new Set<FleetDocumentAttentionKind>(['forge-crashed', 'forge-down', 'forge-hung']);
 
 const SUSPECTED_CRASH_SUBJECT = 'Suspected crash before a reboot';
+
+const OUTAGE_CONDITION_WORD = 'network outage';
+
+/** The outage alert's place: the Agents view, where every forge's agents are listed. */
+const OUTAGE_ALERT_HREF = HashRouter.fragmentOf({ view: 'agents', selectedAgent: null, query: '' });
 
 /** Each alert's subject; a crash names its error after it, when the registry holds one. */
 const FORGE_ALERT_SUBJECTS: Readonly<Record<'forge-crashed' | 'forge-down' | 'forge-hung', string>> = {
@@ -324,16 +349,50 @@ function forgeAlertRowOf(item: FleetDocumentFleetAttentionItem, kind: 'forge-cra
   return {
     subject:  forgeAlertSubjectOf(kind, forge),
     metaText: metaTextOf(item, forge, false, clock),
-    command:  item.actionLabel === 'Start' ? { kind: 'forge-start', trackerId: item.trackerId } as const : null,
+    command:  item.actionLabel === 'Start' ? { kind: 'forge-start', trackerId: forge.trackerId } as const : null,
     isStale:  false,
   };
 }
 
+/** The forges the outage alert names, each with its own count, in the document's order: `Example Storefront 2 · Invoice Service 1`. */
+function outageForgesOf(forges: readonly FleetDocumentForge[]): FleetDocumentForge[] {
+  return forges.filter((forge) => forge.outageEndings > 0);
+}
+
+/** One row for the whole fleet, worded from the served counts: the total, and each forge it names with its own. */
+function outageAlertRowOf(item: FleetDocumentFleetAttentionItem, fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[]): AttentionRow {
+  const named = outageForgesOf(forges);
+  return {
+    key:           `fleet/${item.key}`,
+    trackerId:     null,
+    project:       namesInASentenceOf(named.map((forge) => forge.project)),
+    condition:     'held',
+    conditionWord: OUTAGE_CONDITION_WORD,
+    kindText:      KIND_TEXTS[item.kind],
+    kindTone:      'warn',
+    idText:        '',
+    subject:       ForgeTextUtil.outageEndingsTextOf(fleetDocument.outageEndingsTotal),
+    metaText:      named.map((forge) => `${forge.project} ${forge.outageEndings}`).join(META_SEPARATOR),
+    actionLabel:   item.actionLabel,
+    href:          OUTAGE_ALERT_HREF,
+    command:       null,
+    isStale:       false,
+    isPrimary:     false,
+  };
+}
+
 /** The fleet's own order, which the server sorts; only the first row whose button can act is primary. */
-function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, FleetDocumentForge>, clock: ClockReading): AttentionRow[] {
+function rowsOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForge[], clock: ClockReading): AttentionRow[] {
+  const forgesById = new Map(forges.map((forge) => [forge.trackerId, forge]));
   let primaryIsGiven = false;
   return fleetDocument.attention.flatMap((item) => {
-    const forge = forgesById.get(item.trackerId);
+    if (item.trackerId === null) {
+      const isPrimary = !primaryIsGiven;
+      primaryIsGiven = true;
+      return [{ ...outageAlertRowOf(item, fleetDocument, forges), isPrimary }];
+    }
+    const { trackerId } = item;
+    const forge = forgesById.get(trackerId);
     if (forge === undefined) return [];
     const { kind } = item;
     const alert = isForgeAlert(kind) ? forgeAlertRowOf(item, kind, forge, clock) : null;
@@ -341,8 +400,8 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
     const isPrimary = !isStale && !primaryIsGiven;
     if (isPrimary) primaryIsGiven = true;
     return [{
-      key:           `${item.trackerId}/${item.key}`,
-      trackerId:     item.trackerId,
+      key:           `${trackerId}/${item.key}`,
+      trackerId,
       project:       forge.project,
       condition:     ForgeTextUtil.dotConditionOf(ForgeTextUtil.shownConditionOf(forge)),
       conditionWord: ForgeTextUtil.conditionWordOf(ForgeTextUtil.shownConditionOf(forge)),
@@ -352,7 +411,7 @@ function rowsOf(fleetDocument: FleetDocument, forgesById: ReadonlyMap<string, Fl
       subject:       alert?.subject ?? item.subject,
       metaText:      alert?.metaText ?? metaTextOf(item, forge, isStale, clock),
       actionLabel:   item.actionLabel,
-      href:          forgeInPlaceHrefOf(item.trackerId, item.boardRoute),
+      href:          forgeInPlaceHrefOf(trackerId, item.boardRoute),
       command:       alert?.command ?? null,
       isStale,
       isPrimary,
@@ -757,7 +816,7 @@ function attentionContentOf(fleetDocument: FleetDocument, forges: readonly Fleet
     figuresForm:  figuresFoldIntoTheMainColumn(fleetDocument) ? 'line' : 'row',
     waitingHead:  `Waiting on you${HEAD_SEPARATOR}${waitingCount}`,
     waitingCount,
-    rows:         rowsOf(fleetDocument, forgesById, clock),
+    rows:         rowsOf(fleetDocument, forges, clock),
     nothingText:  morePossible ? 'Nothing that Gaia can read waits on you.' : 'Nothing waits on you.',
     looksHead:    `Forges that need a look${HEAD_SEPARATOR}${looks.length}`,
     looks,
@@ -796,8 +855,41 @@ function screenOf(fleetDocument: FleetDocument, clock: ClockReading): AttentionS
   return { kind: 'fleet', content: attentionContentOf(fleetDocument, visibleForgesOf(fleetDocument), clock) };
 }
 
+const NOTHING_TO_RESUME = 'Nothing to resume';
+
+const NOT_REACHED_TEXT = 'Did not answer. Nothing was resumed there.';
+
+const REFUSED_WITHOUT_A_SENTENCE = 'Refused the resume.';
+
+function outageResumeLineTextOf(forgeAnswer: CommandAnswerDocument['forges'][number]): string {
+  switch (forgeAnswer.outcome) {
+    case 'resumed':
+      return forgeAnswer.resumedCount === 0 ? 'Resumed its agents' : `Resumed ${CountTextUtil.countedPhrase(forgeAnswer.resumedCount, 'agent', 'agents')}`;
+    case 'refused':
+      return forgeAnswer.refusalText ?? REFUSED_WITHOUT_A_SENTENCE;
+    case 'not-reached':
+    case 'nothing-to-do':
+      return NOT_REACHED_TEXT;
+  }
+}
+
+/** A forge the document leaves out, a hidden one, is named by its tracker id. */
+function outageResumeAnswerOf(answer: CommandAnswerDocument | null, fleetDocument: FleetDocument): OutageResumeAnswer | null {
+  if (answer === null) return null;
+  const projectsById = new Map(fleetDocument.forges.map((forge) => [forge.trackerId, forge.project]));
+  const lines = answer.forges.flatMap((forgeAnswer): OutageResumeLine[] => {
+    const { outcome, trackerId } = forgeAnswer;
+    if (outcome === 'nothing-to-do') return [];
+    return [{
+      trackerId, project: projectsById.get(trackerId) ?? trackerId, outcome, text: outageResumeLineTextOf(forgeAnswer)
+    }];
+  });
+  return { lines, nothingText: lines.length === 0 ? NOTHING_TO_RESUME : null };
+}
+
 export const AttentionModel = {
   noForgeIsRegisteredIn,
+  outageResumeAnswerOf,
   screenOf,
   titleFiguresOf,
 } as const;

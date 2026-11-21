@@ -41,7 +41,8 @@ export type FleetCommandBody =
   | { kind: 'machine-agent-limit-set'; limit: number }
   | ({ kind: 'settings-set' } & SettingsChange)
   | { kind: 'path-choose'; what: PathChoiceTarget }
-  | { kind: 'fleet-look-again' };
+  | { kind: 'fleet-look-again' }
+  | { kind: 'fleet-outage-resume' };
 
 export type CommandBody = ForgeCommandBody | FleetCommandBody;
 
@@ -54,13 +55,27 @@ export type CommandDocument = CommandBody & { commandVersion: typeof PAGE_CONTRA
 /** `restart-pending`: a `forge-update` was done, and the forge's Overseer runs the old code until it restarts. */
 export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'refused' | 'unreachable' | 'not-supported';
 
+/** How one forge took `fleet-outage-resume`: it resumed its jobs a network outage stopped, held none, refused, or was not reached. */
+export type OutageResumeOutcome = 'resumed' | 'nothing-to-do' | 'refused' | 'not-reached';
+
+export interface CommandAnswerForgeDocument {
+  trackerId:    string;
+  outcome:      OutageResumeOutcome;
+  /** Zero but for `resumed`: the jobs Gaia last read waiting in that forge. */
+  resumedCount: number;
+  /** The forge's sentence of a `refused`, unchanged; `null` otherwise. */
+  refusalText:  string | null;
+}
+
 /**
  * `refusal` is the forge's own code, passed through unchanged, and `text` its sentence, in Gaia's words where the forge's names a command
- * (D10) and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`.
+ * (D10) and `null` where Gaia has none for it; `text` is the chosen path of a `path-choose`. `forges` holds one answer per registered forge
+ * for `fleet-outage-resume`, `done` or, when every forge held nothing, `nothing-to-do`; it is empty for every other command.
  */
 export interface CommandAnswerDocument {
   answerVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaCommandAnswer;
   outcome:       CommandOutcome;
   refusal:       string | null;
   text:          string | null;
+  forges:        readonly CommandAnswerForgeDocument[];
 }

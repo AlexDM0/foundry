@@ -10,6 +10,7 @@ import type { ViewParts }     from '../../shared/@types/ViewParts.ts';
 import { AttentionLayout }    from './AttentionLayout.tsx';
 import { AttentionModel }     from './AttentionModel.ts';
 import { NoForgeYet }         from './NoForgeYet.tsx';
+import { OutageResumeButton } from './OutageResumeButton.tsx';
 
 export interface AttentionViewProps {
   readonly fleetDocument: FleetDocument;
@@ -22,24 +23,26 @@ const LEAD = 'What waits on you across every forge, and the forges that need a l
 
 export function AttentionView({ fleetDocument, clock }: AttentionViewProps) {
   const {
-    send, dismissFailure, dismissRestartPending, states
+    send, dismissFailure, dismissRestartPending, dismissAnswer, states
   } = useCommandSender();
   const screen = AttentionModel.screenOf(fleetDocument, clock);
   if (screen.kind === 'no-forge') return <NoForgeYet content={screen.content} />;
   return (
     <AttentionLayout
       content={screen.content}
+      outageResumeAnswer={AttentionModel.outageResumeAnswerOf(states.fleetAnswers.get('fleet-outage-resume') ?? null, fleetDocument)}
       commandStates={states}
       onCommand={(command) => void send(command)}
       onDismissFailure={dismissFailure}
       onDismissRestartPending={dismissRestartPending}
+      onDismissOutageResumeAnswer={() => dismissAnswer('fleet-outage-resume')}
     />
   );
 }
 
 /**
  * B4 heads itself, so it has no page title. A1's figures stand in the page title; while a forge is not fully read (B3) they fold into one
- * line atop the main column instead.
+ * line atop the main column instead. The outage resume stands in the page title whenever the fleet shows, with nothing to resume too.
  */
 export function attentionViewPartsOf(fleetDocument: FleetDocument | null, clock: ClockReading): ViewParts {
   if (fleetDocument === null) {
@@ -54,6 +57,6 @@ export function attentionViewPartsOf(fleetDocument: FleetDocument | null, clock:
     };
   }
   return {
-    title: TITLE, lead: LEAD, figures: AttentionModel.titleFiguresOf(fleetDocument), actions: null, content
+    title: TITLE, lead: LEAD, figures: AttentionModel.titleFiguresOf(fleetDocument), actions: <OutageResumeButton />, content
   };
 }

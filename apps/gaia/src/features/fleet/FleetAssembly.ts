@@ -16,6 +16,7 @@ import { AttentionOrderUtil } from './utils/AttentionOrderUtil.ts';
 import { FigureUtil }         from './utils/FigureUtil.ts';
 import { ForgeLookUtil }      from './utils/ForgeLookUtil.ts';
 import { ForgePresenceUtil }  from './utils/ForgePresenceUtil.ts';
+import { OutageEndingUtil }   from './utils/OutageEndingUtil.ts';
 
 export interface FleetAssemblyInput {
   /** In registry order, which is the order every forge list keeps. */
@@ -109,27 +110,32 @@ function visibleReadingsOf(readings: readonly ForgeReading[], settings: GaiaSett
   return readings.filter((reading) => !hiddenTrackerIds.has(reading.trackerId));
 }
 
-/** A forge that crashed, is down or hung leads what waits on User: nothing else of it moves until User acts on it. */
-function fleetAttentionWithForgeAlertsOf(forges: readonly FleetForge[]): FleetAttentionItem[] {
+/**
+ * The agents a network outage stopped head what waits on User, one alert for the whole fleet; then a forge that crashed, is down or hung:
+ * nothing else of it moves until User acts on it.
+ */
+function fleetAttentionWithAlertsOf(forges: readonly FleetForge[]): FleetAttentionItem[] {
+  const outageAlert = OutageEndingUtil.outageAlertOf(forges);
   const forgeAlerts = forges.flatMap((forge) => {
     const alert = ForgePresenceUtil.forgeAlertOf(forge);
     return alert === null ? [] : [alert];
   });
-  return [...forgeAlerts, ...AttentionOrderUtil.fleetAttentionOf(forges)];
+  return [...(outageAlert === null ? [] : [outageAlert]), ...forgeAlerts, ...AttentionOrderUtil.fleetAttentionOf(forges)];
 }
 
 export function fleetSnapshotOf(input: FleetAssemblyInput): FleetSnapshot {
   const forges    = visibleReadingsOf(input.readings, input.settings).map(ForgePresenceUtil.fleetForgeOf);
-  const attention = fleetAttentionWithForgeAlertsOf(forges);
+  const attention = fleetAttentionWithAlertsOf(forges);
   return {
     forges,
     attention,
-    needsALook: ForgeLookUtil.looksOf(forges),
-    agents:     fleetAgentsOf(forges),
-    activity:   fleetActivityOf(forges),
-    machine:    FigureUtil.machineFactsOf(forges, input.machine.cpuCount),
-    figures:    FigureUtil.figuresOf(forges, attention.length),
-    settings:   input.settings,
-    gaia:       input.gaia,
+    needsALook:         ForgeLookUtil.looksOf(forges),
+    agents:             fleetAgentsOf(forges),
+    activity:           fleetActivityOf(forges),
+    machine:            FigureUtil.machineFactsOf(forges, input.machine.cpuCount),
+    figures:            FigureUtil.figuresOf(forges, attention.length),
+    settings:           input.settings,
+    gaia:               input.gaia,
+    outageEndingsTotal: OutageEndingUtil.outageEndingsTotalOf(forges),
   };
 }

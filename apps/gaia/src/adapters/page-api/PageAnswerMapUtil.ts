@@ -3,12 +3,12 @@
  * the reason it could not read the command at all, and how a frame session ended. A forge's refusal code and its sentence pass through
  * unchanged, even a sentence that names a command (decision 45), and a chosen path is a command answer's text.
  */
-import type { CommandAnswerDocument }      from '../../../page/@types/CommandDocument.ts';
-import type { FrameSessionAnswerDocument } from '../../../page/@types/FrameSessionDocument.ts';
-import type { CommandVerdict }             from '../../shared/@types/CommandVerdict.ts';
-import type { FrameSessionVerdict }        from '../../shared/@types/FrameSessionVerdict.ts';
-import { PAGE_CONTRACT_VERSIONS }          from '../../shared/constants/PageContractVersions.ts';
-import type { GaiaCommandReading }         from './GaiaCommandIngestion.ts';
+import type { CommandAnswerDocument, CommandAnswerForgeDocument } from '../../../page/@types/CommandDocument.ts';
+import type { FrameSessionAnswerDocument }                        from '../../../page/@types/FrameSessionDocument.ts';
+import type { CommandVerdict, OutageResumeForgeAnswer }           from '../../shared/@types/CommandVerdict.ts';
+import type { FrameSessionVerdict }                               from '../../shared/@types/FrameSessionVerdict.ts';
+import { PAGE_CONTRACT_VERSIONS }                                 from '../../shared/constants/PageContractVersions.ts';
+import type { GaiaCommandReading }                                from './GaiaCommandIngestion.ts';
 
 export type UnreadableCommandReading = Exclude<GaiaCommandReading, { readonly verdict: 'readable' }>;
 
@@ -18,7 +18,20 @@ function answerOf(outcome: CommandAnswerDocument['outcome'], refusal: string | n
     outcome,
     refusal,
     text,
+    forges:        [],
   };
+}
+
+/** A forge's sentence passes through unchanged, as every forge refusal does (decision 45). */
+function outageResumeAnswerOf(forges: readonly OutageResumeForgeAnswer[]): CommandAnswerDocument {
+  const forgeAnswers = forges.map((forge): CommandAnswerForgeDocument => ({
+    trackerId:    forge.trackerId,
+    outcome:      forge.outcome,
+    resumedCount: forge.resumedCount,
+    refusalText:  forge.refusalText,
+  }));
+  const everyForgeHeldNothing = forges.every((forge) => forge.outcome === 'nothing-to-do');
+  return { ...answerOf(everyForgeHeldNothing ? 'nothing-to-do' : 'done'), forges: forgeAnswers };
 }
 
 type FrameSessionAnswerContent = Omit<FrameSessionAnswerDocument, 'frameSessionVersion'>;
@@ -47,6 +60,7 @@ function frameSessionAnswerContentOf(verdict: FrameSessionVerdict): FrameSession
 export const PageAnswerMapUtil = {
   commandAnswerOf(verdict: CommandVerdict): CommandAnswerDocument {
     if (verdict.verdict === 'path-chosen') return answerOf('done', null, verdict.path);
+    if (verdict.verdict === 'outage-resume-answered') return outageResumeAnswerOf(verdict.forges);
     if (verdict.verdict !== 'refused') return answerOf(verdict.verdict);
     if (verdict.refusedBy === 'gaia') return answerOf('refused', verdict.refusal);
     return answerOf('refused', verdict.refusal, verdict.text);

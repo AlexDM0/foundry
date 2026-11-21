@@ -21,7 +21,7 @@ const READ_AT_MILLISECONDS = Date.parse(FLEET_FIXTURES_READ_AT);
 
 const J12_OF_INVOICE_SERVICE = { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' };
 
-const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map(), fleetAnswers: new Map() };
 
 function contentOf(fleetDocument: FleetDocument, overrides: Partial<Omit<AgentsModelInput, 'fleetDocument'>> = {}) {
   return AgentsModel.agentsContentOf({

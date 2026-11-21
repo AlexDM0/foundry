@@ -15,17 +15,20 @@ import type { GaiaSettings } from './GaiaSettings.ts';
 
 /** A forge's reading with what the fleet tells from its served presence: how it is present, its crash, its crash logs and its waiting work. */
 export interface FleetForge extends ForgeReading {
-  presence:     ForgePresence;
+  presence:      ForgePresence;
   /** The registry's summary, only for a crashed forge. */
-  crashSummary: ForgeCrashSummary | null;
+  crashSummary:  ForgeCrashSummary | null;
   /** Listed by the presence of a live forge. */
-  crashLogs:    ForgeCrashLogEntry[];
+  crashLogs:     ForgeCrashLogEntry[];
   /** Empty for a forge not answering. */
-  waitingWork:  ForgeWaitingJob[];
+  waitingWork:   ForgeWaitingJob[];
+  /** Its waiting jobs a network outage stopped (`OutageEndingUtil`); none for a forge not answering. */
+  outageEndings: number;
 }
 
+/** `trackerId` is `null` only for the fleet's alert, which names every forge holding agents a network outage stopped. */
 export interface FleetAttentionItem extends AttentionItem {
-  trackerId: string;
+  trackerId: string | null;
 }
 
 /** A job counts against its forge's limit and the machine's; a brain's row does not (PLAN 7.5). */
@@ -106,13 +109,15 @@ export interface GaiaFacts {
 }
 
 export interface FleetSnapshot {
-  forges:     FleetForge[];
-  attention:  FleetAttentionItem[];
-  needsALook: ForgeLook[];
-  agents:     FleetAgentRow[];
-  activity:   FleetActivityEntry[];
-  machine:    MachineFacts;
-  figures:    FleetFigures;
-  settings:   GaiaSettings;
-  gaia:       GaiaFacts;
+  forges:             FleetForge[];
+  attention:          FleetAttentionItem[];
+  needsALook:         ForgeLook[];
+  agents:             FleetAgentRow[];
+  activity:           FleetActivityEntry[];
+  machine:            MachineFacts;
+  figures:            FleetFigures;
+  settings:           GaiaSettings;
+  gaia:               GaiaFacts;
+  /** Every forge's outage endings summed. */
+  outageEndingsTotal: number;
 }

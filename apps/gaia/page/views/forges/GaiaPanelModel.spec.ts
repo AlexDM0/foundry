@@ -25,6 +25,7 @@ const LOGIN_ITEM_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'login-item-unwritable',
   text:          LOGIN_ITEM_REFUSAL_SENTENCE,
+  forges:        [],
 };
 
 function panelOf(fleetDocument: FleetDocument, commandStates: CommandStates = IDLE_STATES, sentSettingsChange: SentSettingsChange | null = null) {

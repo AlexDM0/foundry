@@ -5,11 +5,16 @@
  * Flint's brain (PLAN 7.5), read from the recorded answers of the forge Gaia supports: running, it adds one agent row of role `brain` that
  * counts in no figure or limit; ended, it leaves one activity entry with its tokens.
  */
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test }    from 'bun:test';
+import type { ForgeInterruptedWork } from 'forge-contracts/ForgePresenceDocument';
 
+import { FLEET_OUTAGE_ENDINGS }                                              from '../../../page/testing/fixtures/fleet-outage-endings.ts';
 import type { ForgeIdentity }                                                from '../../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { MonitorSnapshotIngestion }                                          from '../../adapters/forge-api/MonitorSnapshotIngestion.ts';
+import { PresenceIngestion }                                                 from '../../adapters/forge-api/PresenceIngestion.ts';
 import { EXAMPLE_READ_STAMP, recordedFlintBrainDocumentOf, registryFactsOf } from '../../adapters/forge-api/testing/ExampleForgeDocuments.ts';
+import { recordedPresenceDocumentOf }                                        from '../../adapters/forge-api/testing/PresenceDocuments.ts';
+import { FleetDocumentMapUtil }                                              from '../../adapters/page-api/FleetDocumentMapUtil.ts';
 import { FLEET_SNAPSHOT_AT_LIMIT }                                           from '../../adapters/page-api/testing/fleet-snapshot-at-limit.ts';
 import { FLEET_SNAPSHOT_DEGRADED }                                           from '../../adapters/page-api/testing/fleet-snapshot-degraded.ts';
 import { FLEET_SNAPSHOT_EMPTY }                                              from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
@@ -275,5 +280,65 @@ describe('a forge that crashed', () => {
     expect(snapshot.attention[0]).toMatchObject({ trackerId: first.trackerId, kind: 'forge-crashed', actionLabel: 'Start' });
     expect(snapshot.forges[0]?.presence.state).toBe('crashed');
     expect(snapshot.figures.waitingOnUser).toBe(snapshot.attention.length);
+  });
+});
+
+/** A job of a presence document, typed against the forge's contract: the recordings hold no outage until the fake agent's is recorded. */
+function interruptedWorkOf(jobId: string, ticketId: string, cause: ForgeInterruptedWork['cause'], waitsFor: ForgeInterruptedWork['waitsFor']): ForgeInterruptedWork {
+  return {
+    jobId, kind: 'build', ticketIds: [ticketId], cause, waitsFor, crashResumes: 0, automaticRestartsLeft: cause === 'network-outage' ? null : 2,
+  };
+}
+
+/** The recorded presence of a serving forge, holding this interrupted work instead of none. */
+function presenceReportHolding(interruptedWork: readonly ForgeInterruptedWork[]): ForgeReading['presenceReport'] {
+  const reading = new PresenceIngestion().presenceReportOf({ ...recordedPresenceDocumentOf('presence-serving'), interruptedWork });
+  if (reading.report === null) throw new Error(`The presence document does not ingest: ${reading.reason.invalidKeys.join(', ')}`);
+  return reading.report;
+}
+
+const OUTAGE_PRESENCE_REPORTS: Readonly<Record<string, ForgeReading['presenceReport']>> = {
+  [READINGS.exampleStorefront.trackerId]: presenceReportHolding([
+    interruptedWorkOf('J7', '021', 'network-outage', 'instruction'),
+    interruptedWorkOf('J9', '024', 'network-outage', 'instruction'),
+  ]),
+  [READINGS.invoiceService.trackerId]:   presenceReportHolding([interruptedWorkOf('J3', '052', 'network-outage', 'instruction')]),
+  [READINGS.exampleMobileApp.trackerId]: presenceReportHolding([
+    interruptedWorkOf('J5', '061', 'network-outage', 'nothing'),
+    interruptedWorkOf('J6', '062', 'lease-ended', 'instruction'),
+  ]),
+};
+
+function readingsAfterAnOutage(): ForgeReading[] {
+  return FLEET_SNAPSHOT_FIVE_FORGES.forges.map((forge) => ({ ...forge, presenceReport: OUTAGE_PRESENCE_REPORTS[forge.trackerId] ?? forge.presenceReport }));
+}
+
+describe('agents a network outage stopped', () => {
+  test('are counted per forge from its presence documents, summed for the fleet, and alerted once at the head of what waits', () => {
+    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, readingsAfterAnOutage()));
+    expect(snapshot.forges.map((forge) => [forge.project, forge.outageEndings])).toEqual([
+      ['Example Storefront', 2],
+      ['Invoice Service', 1],
+      ['Research Wiki', 0],
+      ['Example Mobile App', 0],
+      ['Design System', 0],
+      ['Legacy Importer', 0],
+    ]);
+    expect(snapshot.outageEndingsTotal).toBe(3);
+    expect(snapshot.attention[0]).toMatchObject({ trackerId: null, kind: 'agents-ended-on-outage' });
+    expect(snapshot.attention.slice(1)).toEqual(FLEET_SNAPSHOT_FIVE_FORGES.attention);
+    expect(snapshot.figures.waitingOnUser).toBe(snapshot.attention.length);
+  });
+
+  test('reach the page as the outage fixture the Attention view is drawn from', () => {
+    expect(FleetDocumentMapUtil.fleetDocumentOf(fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, readingsAfterAnOutage())))).toStrictEqual(FLEET_OUTAGE_ENDINGS);
+  });
+
+  test('count nothing in a forge not answering, whatever presence it last served, and raise no alert with none left', () => {
+    const readings = readingsAfterAnOutage().map((reading) => ({ ...reading, fidelity: 'unreachable', condition: 'unreachable' } as const));
+    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, readings));
+    expect(snapshot.forges.every((forge) => forge.outageEndings === 0)).toBe(true);
+    expect(snapshot.outageEndingsTotal).toBe(0);
+    expect(snapshot.attention.some((item) => item.kind === 'agents-ended-on-outage')).toBe(false);
   });
 });

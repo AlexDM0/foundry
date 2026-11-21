@@ -150,13 +150,14 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
 }
 
 interface ControlOptions {
-  readonly forges?:         readonly ExampleForge[];
-  readonly registry?:       RegistryReading;
-  readonly overseerFetch?:  OverseerFetch;
-  readonly processRun?:     ProcessRun;
-  readonly pathChooserRun?: ProcessRun;
-  readonly settingsStore?:  SettingsStore;
-  readonly lookAgain?:      () => Promise<void>;
+  readonly forges?:          readonly ExampleForge[];
+  readonly registry?:        RegistryReading;
+  readonly overseerFetch?:   OverseerFetch;
+  readonly processRun?:      ProcessRun;
+  readonly pathChooserRun?:  ProcessRun;
+  readonly settingsStore?:   SettingsStore;
+  readonly lookAgain?:       () => Promise<void>;
+  readonly outageEndingsOf?: (trackerId: string) => number;
 }
 
 /** The settings store over the real settings file in the spec's scratch folder, which stands in for the home folder. */
@@ -188,7 +189,8 @@ function controlOver(controlOptions: ControlOptions): ForgeControl {
       workingDirectory: () => scratchFolder,
       cancellation:     new AbortController().signal,
     }),
-    lookAgain: controlOptions.lookAgain ?? (async () => undefined),
+    lookAgain:       controlOptions.lookAgain ?? (async () => undefined),
+    outageEndingsOf: controlOptions.outageEndingsOf ?? (() => 0),
   });
 }
 
@@ -393,6 +395,66 @@ describe('forge-interrupted-work-resume, carried by the API', () => {
     for (const state of ['unreachable', 'dormant'] as const) {
       expect(await controlOver({ forges: [exampleForgeOf({ state })] }).carry(command)).toEqual({ verdict: 'unreachable' });
     }
+  });
+});
+
+describe('fleet-outage-resume, carried by each forge\'s API', () => {
+  const OUTAGE_RESUME = { kind: 'fleet-outage-resume' } as const;
+
+  test('sends each answering forge the resume with the outage target, and answers per forge with the count Gaia last read', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID, state: 'unreachable' })];
+    const outageEndings: Readonly<Record<string, number>> = { [STOREFRONT_TRACKER_ID]: 2, [WIKI_TRACKER_ID]: 1 };
+    const control = controlOver({ forges, overseerFetch, outageEndingsOf: (trackerId) => outageEndings[trackerId] ?? 0 });
+    expect(await control.carry(OUTAGE_RESUME)).toEqual({
+      verdict: 'outage-resume-answered',
+      forges:  [
+        {
+          trackerId: STOREFRONT_TRACKER_ID, outcome: 'resumed', resumedCount: 2, refusalText: null
+        },
+        {
+          trackerId: WIKI_TRACKER_ID, outcome: 'not-reached', resumedCount: 0, refusalText: null
+        },
+      ],
+    });
+    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'interrupted-work-resume', target: 'network-outage' }]);
+  });
+
+  test('keeps a forge\'s refusal sentence in that forge\'s answer', async () => {
+    const { text } = recordedApiRefusal();
+    const answer = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(OUTAGE_RESUME);
+    expect(answer).toEqual({
+      verdict: 'outage-resume-answered',
+      forges:  [{
+        trackerId: STOREFRONT_TRACKER_ID, outcome: 'refused', resumedCount: 0, refusalText: text
+      }],
+    });
+  });
+
+  test('reaches no forge whose Overseer is not answering, runs no forge verb in its place, and is carried again when sent again', async () => {
+    const control = controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] });
+    const notReached = {
+      verdict: 'outage-resume-answered',
+      forges:  [{
+        trackerId: STOREFRONT_TRACKER_ID, outcome: 'not-reached', resumedCount: 0, refusalText: null
+      }],
+    } as const;
+    expect(await control.carry(OUTAGE_RESUME)).toEqual(notReached);
+    expect(await control.carry(OUTAGE_RESUME)).toEqual(notReached);
+  });
+
+  test('passes over a forge with a command already on its way, so no forge is sent two at once', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    const control = controlOver({ overseerFetch });
+    const [pause, resume] = await Promise.all([control.carry(PAUSE), control.carry(OUTAGE_RESUME)]);
+    expect(pause).toEqual({ verdict: 'done' });
+    expect(resume).toEqual({
+      verdict: 'outage-resume-answered',
+      forges:  [{
+        trackerId: STOREFRONT_TRACKER_ID, outcome: 'not-reached', resumedCount: 0, refusalText: null
+      }],
+    });
+    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-pause' }]);
   });
 });
 

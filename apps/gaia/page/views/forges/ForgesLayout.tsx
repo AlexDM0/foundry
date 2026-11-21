@@ -347,13 +347,15 @@ function UpdateStatusLine({ status }: { readonly status: string | null }) {
 function rowBelowOf(row: ForgeRow, handlers: ForgesHandlers) {
   const quietLine = row.versions?.quietLine ?? null;
   const versionsAreShown = row.versions?.isShown === true;
-  const nothingBelow = row.stopDialog === null && row.refusal === null && row.pendingRestart === null && row.noticeText === null && row.updateStatus === null;
+  const nothingBelow = row.stopDialog === null && row.refusal === null && row.pendingRestart === null && row.noticeText === null && row.outageText === null
+    && row.updateStatus === null;
   if (nothingBelow && quietLine === null && !versionsAreShown) return null;
   return (
     <div className="gaia-forges-row-below">
       {quietLine === null ? null : <p className="gaia-forges-quiet-line">{quietLine}</p>}
       {row.versions === null ? null : <VersionsShown versions={row.versions} />}
       {row.noticeText === null ? null : <p className="gaia-forges-row-notice" role="status">{row.noticeText}</p>}
+      {row.outageText === null ? null : <p className="gaia-forges-row-outage" role="status">{row.outageText}</p>}
       {row.stopDialog === null ? null : <StopDialogPanel dialog={row.stopDialog} trackerId={row.trackerId} handlers={handlers} />}
       {row.refusal === null && row.pendingRestart === null && row.updateStatus === null ? null : (
         <div className="gaia-forges-row-indented">

@@ -50,6 +50,12 @@ describe('a body this Gaia carries out', () => {
     expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'fleet-look-again' } });
   });
 
+  test('maps fleet-outage-resume, which names no forge, and takes no tracker id a body carries as one', () => {
+    const document: CommandDocument = { commandVersion: 3, kind: 'fleet-outage-resume' };
+    expect(readingOf(document)).toEqual({ verdict: 'readable', command: { kind: 'fleet-outage-resume' } });
+    expect(readingOf({ ...document, trackerId: TRACKER_ID })).toEqual({ verdict: 'readable', command: { kind: 'fleet-outage-resume' } });
+  });
+
   test('maps forge-concurrency-set with its limit', () => {
     const document: CommandDocument = {
       commandVersion: 3, kind: 'forge-concurrency-set', trackerId: TRACKER_ID, limit: 3,

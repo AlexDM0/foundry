@@ -16,6 +16,7 @@ import { realGaiaServerClient }                                          from '.
 import { createPathChooser }                                             from './adapters/path-chooser/PathChooser.ts';
 import { appInstallMessageOf, createAppInstall, type AppInstallVerdict } from './features/app-install/AppInstall.ts';
 import { fleetSnapshotOf }                                               from './features/fleet/FleetAssembly.ts';
+import { ForgePresenceUtil }                                             from './features/fleet/utils/ForgePresenceUtil.ts';
 import { createForgeControl }                                            from './features/forge-control/ForgeControl.ts';
 import { foundBrowserIn }                                                from './features/launcher/BrowserFinder.ts';
 import { browserWindowWatchOver }                                        from './features/launcher/BrowserWindowWatch.ts';
@@ -170,12 +171,16 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   const pathChoiceCancellation = new AbortController();
   const forgeControl = createForgeControl({
     readRegistry,
-    readings:     forgeWatch.readings,
+    readings:        forgeWatch.readings,
     forgeClient,
-    forgeProgram: createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    forgeProgram:    createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
     settingsStore,
-    pathChooser:  createPathChooser({ processRun, workingDirectory: () => home, cancellation: pathChoiceCancellation.signal }),
-    lookAgain:    forgeWatch.lookAgain,
+    pathChooser:     createPathChooser({ processRun, workingDirectory: () => home, cancellation: pathChoiceCancellation.signal }),
+    lookAgain:       forgeWatch.lookAgain,
+    outageEndingsOf: (trackerId) => {
+      const reading = forgeWatch.readings().find((forgeReading) => forgeReading.trackerId === trackerId);
+      return reading === undefined ? 0 : ForgePresenceUtil.fleetForgeOf(reading).outageEndings;
+    },
   });
 
   const startVerdict = await startPageServer({

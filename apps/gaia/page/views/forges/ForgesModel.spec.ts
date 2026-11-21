@@ -49,10 +49,11 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const READINGS = FLEET_FIVE_FORGES_READINGS;
 
+
 const ARTBOARD_CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
 /** SCREENS B2: the refusal under Example Mobile App's row. */
@@ -61,6 +62,7 @@ const STOP_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
+  forges:        [],
 };
 
 const START_REFUSED: CommandAnswerDocument = {
@@ -68,6 +70,7 @@ const START_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'overseer-did-not-answer',
   text:          'The Overseer started but its API did not answer.',
+  forges:        [],
 };
 
 const LIMIT_REFUSED: CommandAnswerDocument = {
@@ -75,10 +78,11 @@ const LIMIT_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'concurrency-above-ceiling',
   text:          'The agent limit is at most 10.',
+  forges:        [],
 };
 
 const RESTART_PENDING: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+  answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
 };
 
 const IDLE_STATES: CommandStates = senderOver([]).states();
@@ -611,7 +615,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
 
   test('a held forge\'s refused update shows on its banner, not under its row', async () => {
     const refusedUpdate: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
+      answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.', forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(refusedUpdate))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
@@ -645,7 +649,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
 
   test('a held forge\'s refused restart, pressed on its banner, shows on the banner beside Restart, not under its row', async () => {
     const refusedRestart: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.'
+      answerVersion: 3, outcome: 'refused', refusal: 'update-in-progress', text: 'An update already runs in this repository.', forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(RESTART_PENDING)), () => Promise.resolve(answerResponse(refusedRestart))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
@@ -707,14 +711,16 @@ const UPDATE_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'repository-busy',
   text:          'Another forge command holds the repository.',
+  forges:        [],
 };
 
 /** Example Billing's Update forge at one step, as the command sender holds it. */
 function billingUpdateStates(state: { readonly onItsWay: 'forge-update' | null; readonly restartPending: boolean; readonly refused: boolean }): CommandStates {
   const failure = state.refused ? { kind: 'forge-update' as const, result: { verdict: 'answered' as const, answer: UPDATE_REFUSED } } : null;
   return {
-    forges: new Map([[VERSIONS_IDS.exampleBilling, { onItsWay: state.onItsWay, failure, restartPending: state.restartPending }]]),
-    fleet:  new Map(),
+    forges:       new Map([[VERSIONS_IDS.exampleBilling, { onItsWay: state.onItsWay, failure, restartPending: state.restartPending }]]),
+    fleet:        new Map(),
+    fleetAnswers: new Map(),
   };
 }
 
@@ -833,5 +839,17 @@ describe('a forge at another version than this Gaia is built for (U2)', () => {
     expect([machine.meter?.usedText, machine.meter?.label, machine.facts[0]?.value]).toEqual(['8+', '8+ of 12 agents', '8+']);
     expect(machine.notCountedText).toBe('Example Billing and Analytics Sandbox are not counted: this Gaia cannot read their agents.');
     expect([contentOf(FLEET_FIVE_FORGES).machine.notCountedText, contentOf(FLEET_FIVE_FORGES).machine.meter?.usedText]).toEqual([null, '10']);
+  });
+});
+
+describe('a row of a forge holding agents a network outage stopped', () => {
+  test('says its own count under the row, and nothing for a forge with none', () => {
+    const forges = [{ ...READINGS.exampleStorefront, outageEndings: 2 }, { ...READINGS.invoiceService, outageEndings: 1 }, READINGS.researchWiki];
+    const fleetDocument = { ...FLEET_FIVE_FORGES, forges };
+    expect(contentOf(fleetDocument).rows.map((row) => row.outageText)).toEqual([
+      '2 agents stopped on a network outage',
+      '1 agent stopped on a network outage',
+      null,
+    ]);
   });
 });

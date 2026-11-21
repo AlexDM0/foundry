@@ -38,7 +38,7 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const J12_OF_INVOICE_SERVICE = { trackerId: TRACKER_IDS.invoiceService, jobId: 'J12' };
 
-const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map(), fleetAnswers: new Map() };
 
 const IGNORED_BRAIN_HANDLERS = { onBrainCommand: () => undefined, onDismissFailure: () => undefined };
 
@@ -467,13 +467,14 @@ describe('Flint\'s brain', () => {
           result: {
             verdict: 'answered',
             answer:  {
-              answerVersion: 3, outcome: 'refused', refusal: 'no-flint', text: 'this forge has no Flint'
+              answerVersion: 3, outcome: 'refused', refusal: 'no-flint', text: 'this forge has no Flint', forges: []
             }
           }
         },
         restartPending: false,
       }]]),
-      fleet: new Map(),
+      fleet:        new Map(),
+      fleetAnswers: new Map(),
     };
     const { view, dismissed } = viewSending(FLEET_FIVE_FORGES, { commandStates });
     const invoiceService = groupsIn(view).find((group) => group.props['aria-label'] === 'Invoice Service') as HostElement;

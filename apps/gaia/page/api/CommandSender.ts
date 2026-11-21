@@ -42,10 +42,14 @@ export interface CommandState {
   readonly restartPending: boolean;
 }
 
-/** A forge's entry by its `trackerId`; an absent entry is idle with no failure. */
+/**
+ * A forge's entry by its `trackerId`; an absent entry is idle with no failure. `fleetAnswers` keeps the last answer of a command that
+ * names no forge and succeeded, until dismissed or until that command is sent again: the per-forge lines of `fleet-outage-resume`.
+ */
 export interface CommandStates {
-  readonly forges: ReadonlyMap<string, CommandState>;
-  readonly fleet:  ReadonlyMap<FleetCommandKind, CommandState>;
+  readonly forges:       ReadonlyMap<string, CommandState>;
+  readonly fleet:        ReadonlyMap<FleetCommandKind, CommandState>;
+  readonly fleetAnswers: ReadonlyMap<FleetCommandKind, CommandAnswerDocument>;
 }
 
 /** What a command is about: one forge, or, for a command that names none, its own kind. */
@@ -65,6 +69,7 @@ export interface CommandSender {
   readonly send:                  (command: CommandBody) => Promise<CommandResult>;
   readonly dismissFailure:        (subject: CommandSubject) => void;
   readonly dismissRestartPending: (subject: CommandSubject) => void;
+  readonly dismissAnswer:         (fleetCommand: FleetCommandKind) => void;
   readonly states:                () => CommandStates;
   readonly subscribe:             (listener: () => void) => () => void;
 }
@@ -82,7 +87,7 @@ const COMMANDS_THAT_END_THE_RUNNING_OVERSEER: ReadonlySet<CommandKind> = new Set
 
 const IDLE: CommandState = { onItsWay: null, failure: null, restartPending: false };
 
-const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map(), fleetAnswers: new Map() };
 
 function subjectOf(command: CommandBody): CommandSubject {
   return 'trackerId' in command ? { trackerId: command.trackerId } : { fleetCommand: command.kind };
@@ -98,12 +103,24 @@ function statesWith(states: CommandStates, subject: CommandSubject, state: Comma
     const forges = new Map(states.forges);
     if (isIdle) forges.delete(subject.trackerId);
     else forges.set(subject.trackerId, state);
-    return { forges, fleet: states.fleet };
+    return { ...states, forges };
   }
   const fleet = new Map(states.fleet);
   if (isIdle) fleet.delete(subject.fleetCommand);
   else fleet.set(subject.fleetCommand, state);
-  return { forges: states.forges, fleet };
+  return { ...states, fleet };
+}
+
+function statesWithFleetAnswer(states: CommandStates, fleetCommand: FleetCommandKind, answer: CommandAnswerDocument | null): CommandStates {
+  const fleetAnswers = new Map(states.fleetAnswers);
+  if (answer === null) fleetAnswers.delete(fleetCommand);
+  else fleetAnswers.set(fleetCommand, answer);
+  return { ...states, fleetAnswers };
+}
+
+function forgeAnswersAreIn(answer: object): boolean {
+  const forges: unknown = Object.hasOwn(answer, 'forges') ? (answer as Readonly<Record<string, unknown>>)['forges'] : undefined;
+  return Array.isArray(forges);
 }
 
 function nullableStringIsIn(answer: object, key: string): boolean {
@@ -118,7 +135,7 @@ function answerDocumentOf(body: unknown): CommandAnswerDocument | null {
   if (typeof body !== 'object' || body === null || !Object.hasOwn(body, 'outcome')) return null;
   const { outcome } = body as { readonly outcome: unknown };
   if (ContractVersionUtil.readMajorOf(body, ANSWER_VERSION_KEYS, PAGE_CONTRACT_VERSIONS.gaiaCommandAnswer) === null || !COMMAND_OUTCOMES.has(outcome)) return null;
-  if (!nullableStringIsIn(body, 'refusal') || !nullableStringIsIn(body, 'text')) return null;
+  if (!nullableStringIsIn(body, 'refusal') || !nullableStringIsIn(body, 'text') || !forgeAnswersAreIn(body)) return null;
   return body as CommandAnswerDocument;
 }
 
@@ -148,9 +165,16 @@ function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSu
   const listeners = new Set<() => void>();
   let states = NO_COMMAND_STATES;
 
+  const notifyListeners = (): void => [...listeners].forEach((listener) => listener());
+
   const changeState = (subject: CommandSubject, state: CommandState): void => {
     states = statesWith(states, subject, state);
-    [...listeners].forEach((listener) => listener());
+    notifyListeners();
+  };
+
+  const changeFleetAnswer = (fleetCommand: FleetCommandKind, answer: CommandAnswerDocument | null): void => {
+    states = statesWithFleetAnswer(states, fleetCommand, answer);
+    notifyListeners();
   };
 
   const post = async (command: CommandBody): Promise<SentCommandResult> => {
@@ -178,6 +202,7 @@ function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSu
     const subject = subjectOf(command);
     const before = stateOf(states, subject);
     if (before.onItsWay !== null) return { verdict: 'not-sent', reason: 'already-on-its-way' };
+    if ('fleetCommand' in subject && states.fleetAnswers.has(subject.fleetCommand)) changeFleetAnswer(subject.fleetCommand, null);
     changeState(subject, { ...before, onItsWay: command.kind });
     const result = await post(command);
     const after = stateOf(states, subject);
@@ -186,6 +211,7 @@ function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSu
       failure:        resultSucceeded(result) ? null : { kind: command.kind, result },
       restartPending: restartPendingAfter(command.kind, result, after.restartPending),
     });
+    if ('fleetCommand' in subject && result.verdict === 'answered' && resultSucceeded(result)) changeFleetAnswer(subject.fleetCommand, result.answer);
     return result;
   };
 
@@ -198,6 +224,9 @@ function create({ sendRequest, controlsMayAct, sessionWasLost }: CommandSenderSu
     dismissRestartPending: (subject) => {
       const state = stateOf(states, subject);
       if (state.restartPending) changeState(subject, { ...state, restartPending: false });
+    },
+    dismissAnswer: (fleetCommand) => {
+      if (states.fleetAnswers.has(fleetCommand)) changeFleetAnswer(fleetCommand, null);
     },
     states:    () => states,
     subscribe: (listener) => {
@@ -218,6 +247,7 @@ export interface CommandSenderInView {
   readonly send:                  CommandSender['send'];
   readonly dismissFailure:        CommandSender['dismissFailure'];
   readonly dismissRestartPending: CommandSender['dismissRestartPending'];
+  readonly dismissAnswer:         CommandSender['dismissAnswer'];
   /** The states as of this render; a change renders the view again. */
   readonly states:                CommandStates;
 }
@@ -226,7 +256,7 @@ export function useCommandSender(): CommandSenderInView {
   const sender = useContext(CommandSenderContext) ?? senderOutsideGaiaApp();
   const states = useSyncExternalStore(sender.subscribe, sender.states, sender.states);
   return {
-    send: sender.send, dismissFailure: sender.dismissFailure, dismissRestartPending: sender.dismissRestartPending, states,
+    send: sender.send, dismissFailure: sender.dismissFailure, dismissRestartPending: sender.dismissRestartPending, dismissAnswer: sender.dismissAnswer, states,
   };
 }
 

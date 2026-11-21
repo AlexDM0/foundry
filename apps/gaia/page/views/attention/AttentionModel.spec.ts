@@ -14,6 +14,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { CommandAnswerDocument } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
   FleetDocumentBrain,
@@ -32,6 +33,7 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                       from '../../testing/fixtures/fleet-outage-endings.ts';
 import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
 import {
   type AttentionContent,
@@ -615,5 +617,95 @@ describe('a forge alert', () => {
   test('of a hung forge opens its route, where its waiting work is', () => {
     const row = alertRowOf('forge-hung', 'Open', { presence: { state: 'hung', generation: 1, at: null } });
     expect([row?.kindText, row?.actionLabel, row?.command, row?.href]).toEqual(['Not supervised', 'Open', null, `#forge/${STOREFRONT?.trackerId ?? ''}`]);
+  });
+});
+
+describe('the agents a network outage stopped', () => {
+  function forgesWithEndings(endings: readonly number[]): FleetDocument {
+    const forges = FLEET_OUTAGE_ENDINGS.forges.map((forge, i) => ({ ...forge, outageEndings: endings[i] ?? 0 }));
+    return { ...FLEET_OUTAGE_ENDINGS, forges, outageEndingsTotal: endings.reduce((total, count) => total + count, 0) };
+  }
+
+  test('head what waits on User in one row with the fleet\'s total, naming each forge with its own count, primary, opening the Agents view', () => {
+    const [outageRow, ...forgeRows] = fleetContentOf(FLEET_OUTAGE_ENDINGS).rows;
+    expect(outageRow).toMatchObject({
+      trackerId:     null,
+      project:       'Example Storefront and Invoice Service',
+      conditionWord: 'network outage',
+      kindText:      'Outage',
+      subject:       '3 agents stopped on a network outage',
+      metaText:      'Example Storefront 2 · Invoice Service 1',
+      actionLabel:   'Open',
+      href:          '#agents',
+      command:       null,
+      isStale:       false,
+      isPrimary:     true,
+    });
+    expect(forgeRows.map((row) => row.isPrimary)).toEqual([false, false, false, false, false]);
+    expect(forgeRows.map((row) => row.idText)).toEqual(fleetContentOf(FLEET_FIVE_FORGES).rows.map((row) => row.idText));
+  });
+
+  test('read one agent in the singular, and name a lone forge alone', () => {
+    const [outageRow] = fleetContentOf(forgesWithEndings([0, 1])).rows;
+    expect([outageRow?.subject, outageRow?.project, outageRow?.metaText]).toEqual(['1 agent stopped on a network outage', 'Invoice Service', 'Invoice Service 1']);
+  });
+
+  test('count once in the waiting head, as the document counts its alert', () => {
+    expect(fleetContentOf(FLEET_OUTAGE_ENDINGS).waitingCount).toBe(String(FLEET_FIVE_FORGES.figures.waitingOnUser + 1));
+  });
+});
+
+describe('the outage resume\'s answer', () => {
+  const STOREFRONT_ID = TRACKER_IDS.exampleStorefront;
+  const INVOICE_ID = TRACKER_IDS.invoiceService;
+  const WIKI_ID = TRACKER_IDS.researchWiki;
+
+  function answerOf(forges: CommandAnswerDocument['forges']): CommandAnswerDocument {
+    return {
+      answerVersion: 3, outcome: 'done', refusal: null, text: null, forges
+    };
+  }
+
+  test('is nothing before the first resume', () => {
+    expect(AttentionModel.outageResumeAnswerOf(null, FLEET_FIVE_FORGES)).toBeNull();
+  });
+
+  test('gives one line per forge that resumed, refused or did not answer, a refusal in the forge\'s own words, and none for a forge with nothing', () => {
+    const answer = answerOf([
+      {
+        trackerId: STOREFRONT_ID, outcome: 'resumed', resumedCount: 2, refusalText: null
+      },
+      {
+        trackerId: INVOICE_ID, outcome: 'refused', resumedCount: 0, refusalText: 'The install version changed: run `forge update`.'
+      },
+      {
+        trackerId: WIKI_ID, outcome: 'nothing-to-do', resumedCount: 0, refusalText: null
+      },
+      {
+        trackerId: 'hidden-forge-1a2b', outcome: 'not-reached', resumedCount: 0, refusalText: null
+      },
+    ]);
+    expect(AttentionModel.outageResumeAnswerOf(answer, FLEET_FIVE_FORGES)).toEqual({
+      lines: [
+        {
+          trackerId: STOREFRONT_ID, project: 'Example Storefront', outcome: 'resumed', text: 'Resumed 2 agents'
+        },
+        {
+          trackerId: INVOICE_ID, project: 'Invoice Service', outcome: 'refused', text: 'The install version changed: run `forge update`.'
+        },
+        {
+          trackerId: 'hidden-forge-1a2b', project: 'hidden-forge-1a2b', outcome: 'not-reached', text: 'Did not answer. Nothing was resumed there.'
+        },
+      ],
+      nothingText: null,
+    });
+  });
+
+  test('says there is nothing to resume when every forge answered nothing to do, and with no forge at all', () => {
+    const nothing = answerOf([{
+      trackerId: STOREFRONT_ID, outcome: 'nothing-to-do', resumedCount: 0, refusalText: null
+    }]);
+    expect(AttentionModel.outageResumeAnswerOf(nothing, FLEET_FIVE_FORGES)).toEqual({ lines: [], nothingText: 'Nothing to resume' });
+    expect(AttentionModel.outageResumeAnswerOf(answerOf([]), FLEET_FIVE_FORGES)).toEqual({ lines: [], nothingText: 'Nothing to resume' });
   });
 });

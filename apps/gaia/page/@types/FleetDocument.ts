@@ -73,7 +73,10 @@ export interface FleetDocumentBoardRoute {
   item: string | null;
 }
 
-/** A forge alert (`forge-crashed`, `forge-down`, `forge-hung`) is Gaia's, raised from the forge's served presence; the rest are the forge's. */
+/**
+ * A forge alert (`forge-crashed`, `forge-down`, `forge-hung`) and the fleet's `agents-ended-on-outage` are Gaia's, raised from the forges'
+ * served presence; the rest are the forge's.
+ */
 export type FleetDocumentAttentionKind =
   | 'escalated-question'
   | 'question'
@@ -83,7 +86,8 @@ export type FleetDocumentAttentionKind =
   | 'merge-accept'
   | 'forge-crashed'
   | 'forge-down'
-  | 'forge-hung';
+  | 'forge-hung'
+  | 'agents-ended-on-outage';
 
 export type FleetDocumentStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed' | 'crashed' | 'last reported';
 
@@ -280,10 +284,13 @@ export interface FleetDocumentForge {
   crashLogs:         FleetDocumentCrashLogEntry[];
   /** Empty for a forge not answering. */
   waitingWork:       FleetDocumentWaitingJob[];
+  /** Its jobs a network outage stopped, which wait for User's resume; none for a forge not answering. */
+  outageEndings:     number;
 }
 
+/** `trackerId` is `null` only for `agents-ended-on-outage`, the fleet's alert, which names the forges whose `outageEndings` it sums. */
 export interface FleetDocumentFleetAttentionItem extends FleetDocumentAttentionItem {
-  trackerId: string;
+  trackerId: string | null;
 }
 
 /** A running brain's row has the role `brain` and the id `flint-brain`, and counts against no forge's limit and not the machine's. */
@@ -371,14 +378,16 @@ export interface FleetStreamHandshake {
 export type FleetEventDocument = FleetDocument & { systemVersion: FleetDocumentSystemVersion };
 
 export interface FleetDocument {
-  fleetVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaFleetDocument;
-  forges:       FleetDocumentForge[];
-  attention:    FleetDocumentFleetAttentionItem[];
-  needsALook:   FleetDocumentLook[];
-  agents:       FleetDocumentFleetAgentRow[];
-  activity:     FleetDocumentFleetActivityEntry[];
-  machine:      FleetDocumentMachine;
-  figures:      FleetDocumentFigures;
-  settings:     FleetDocumentSettings;
-  gaia:         FleetDocumentGaia;
+  fleetVersion:       typeof PAGE_CONTRACT_VERSIONS.gaiaFleetDocument;
+  forges:             FleetDocumentForge[];
+  attention:          FleetDocumentFleetAttentionItem[];
+  needsALook:         FleetDocumentLook[];
+  agents:             FleetDocumentFleetAgentRow[];
+  activity:           FleetDocumentFleetActivityEntry[];
+  machine:            FleetDocumentMachine;
+  figures:            FleetDocumentFigures;
+  settings:           FleetDocumentSettings;
+  gaia:               FleetDocumentGaia;
+  /** Every forge's `outageEndings` summed. */
+  outageEndingsTotal: number;
 }

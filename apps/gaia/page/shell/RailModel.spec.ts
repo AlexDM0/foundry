@@ -16,6 +16,7 @@ import { FLEET_AT_LIMIT }                                   from '../testing/fix
 import { FLEET_DEGRADED }                                   from '../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                      from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS } from '../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                             from '../testing/fixtures/fleet-outage-endings.ts';
 import { FLEET_VERSIONS }                                   from '../testing/fixtures/fleet-versions.ts';
 import { type RailContent, type RailCount, RailModel }      from './RailModel.ts';
 
@@ -233,5 +234,18 @@ describe('the current row', () => {
       'Newer than this Gaia',
     ]);
     expect(RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE).forges.map((row) => row.title)[3]).toBe('Launches held');
+  });
+});
+
+describe('agents a network outage stopped', () => {
+  test('mark Attention with the fleet\'s one alert, and each forge\'s row with its own count beside what waits in it, named in its title', () => {
+    const content = RailModel.railContentOf(FLEET_OUTAGE_ENDINGS, DEFAULT_ROUTE);
+    expect(viewCountsOf(content)['attention']).toBe(String(FLEET_FIVE_FORGES.figures.waitingOnUser + 1));
+    const fiveForges = RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE);
+    expect(fiveForges.forges.map((row) => countTextOf(row.count))).toEqual(['2', '2', '1', null, null, null]);
+    expect(content.forges.map((row) => countTextOf(row.count))).toEqual(['4', '3', '1', null, null, null]);
+    expect(content.forges[0]?.title).toBe('Live · 2 agents stopped on a network outage');
+    expect(content.forges[1]?.title).toBe('Live · 1 agent stopped on a network outage');
+    expect(content.forges[2]?.title).toBe(fiveForges.forges[2]?.title);
   });
 });

@@ -180,6 +180,8 @@ export interface ForgeRow {
   readonly pendingRestart: PendingRestart | null;
   /** The forge's notice that its Assistant cannot come up, as the server worded it in Gaia's words. */
   readonly noticeText:     string | null;
+  /** Its own count of the agents a network outage stopped, which wait for the outage resume; `null` with none. */
+  readonly outageText:     string | null;
   /** `null` unless the forge reports its brain running. */
   readonly brain:          ForgeRowBrain | null;
   /** `null` for a forge read without its versions. */
@@ -685,6 +687,7 @@ function rowOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): For
     refusal:        refusalOf(forge.trackerId, surroundings, (kind) => !refusalBelongsToTheHeldBanner(forge, kind)),
     pendingRestart: forge.condition === 'held' ? null : pendingRestartOf(forge, rowSurroundings),
     noticeText:     forge.notices.find((notice) => notice.kind === NOTICE_KIND_OF_ASSISTANT_DOWN)?.text ?? null,
+    outageText:     forge.outageEndings === 0 ? null : ForgeTextUtil.outageEndingsTextOf(forge.outageEndings),
     brain:          rowBrainOf(forge, surroundings.clock),
     versions,
     updateStatus:   updateStatusOf(forge, surroundings.commandStates),

@@ -292,12 +292,13 @@ async function startGaia(): Promise<RunningGaia> {
   const forgeProgramRun = stagedForgeProgramRun('every-verb-done');
   const forgeControl = createForgeControl({
     readRegistry,
-    readings:     watch.readings,
+    readings:        watch.readings,
     forgeClient,
-    forgeProgram: createForgeProgram({ processRun: forgeProgramRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    forgeProgram:    createForgeProgram({ processRun: forgeProgramRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
     settingsStore,
-    pathChooser:  createPathChooser({ processRun: forgeProgramRun, workingDirectory: () => home, cancellation: new AbortController().signal }),
-    lookAgain:    watch.lookAgain,
+    pathChooser:     createPathChooser({ processRun: forgeProgramRun, workingDirectory: () => home, cancellation: new AbortController().signal }),
+    lookAgain:       watch.lookAgain,
+    outageEndingsOf: () => 0,
   });
   const startVerdict = await startPageServer({
     port:               0,
@@ -406,7 +407,7 @@ describe('Gaia from the registry to the page', () => {
 
     const startAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'forge-start', trackerId: FORGES.exampleStorefront.trackerId });
     expect(startAnswer).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });
     expect(gaia.forgeProgramRun.callShapesAnswered()).toEqual([`run ${JSON.stringify([EXAMPLE_FORGE_PROGRAM_PATH, 'start', '--json'])}`]);
     // The started forge names its Overseer in the registry, and answers that it is starting until its API is up.
@@ -429,11 +430,12 @@ describe('Gaia from the registry to the page', () => {
       outcome:       'refused',
       refusal:       'overseer-still-live',
       text:          'The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
+      forges:        [],
     });
 
     const limitAnswer = await sendCommand(gaia.pageServer, cookie, { kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT });
     expect(limitAnswer).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });
     const commandsToTheStorefront = gaia.storefrontFetch.jsonBodiesSent().flatMap((jsonBody) => (jsonBody === null ? [] : [JSON.parse(jsonBody) as unknown]));
     expect(commandsToTheStorefront).toEqual([expect.objectContaining({ kind: 'machine-agent-limit-set', limit: LOWERED_MACHINE_LIMIT })]);

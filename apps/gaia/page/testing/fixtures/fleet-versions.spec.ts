@@ -51,7 +51,8 @@ describe('the fleet-versions fixture', () => {
     const readTrackerIds = new Set<string>([FLEET_VERSIONS_TRACKER_IDS.exampleStorefront, FLEET_VERSIONS_TRACKER_IDS.invoiceService, FLEET_VERSIONS_TRACKER_IDS.researchWiki]);
     expect(FLEET_VERSIONS.agents).toHaveLength(FLEET_VERSIONS.figures.agentsInFlight);
     expect(FLEET_VERSIONS.attention.map((item) => item.idText)).toEqual(['E4', '#015', '#031', 'E2', 'E7']);
-    expect([...FLEET_VERSIONS.agents, ...FLEET_VERSIONS.attention, ...FLEET_VERSIONS.activity].every((entry) => readTrackerIds.has(entry.trackerId))).toBe(true);
+    const entries = [...FLEET_VERSIONS.agents, ...FLEET_VERSIONS.attention, ...FLEET_VERSIONS.activity];
+    expect(entries.every((entry) => entry.trackerId !== null && readTrackerIds.has(entry.trackerId))).toBe(true);
     expect(FLEET_VERSIONS.figures.incompleteFor).toEqual([FLEET_VERSIONS_TRACKER_IDS.exampleBilling, FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox]);
   });
 

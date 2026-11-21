@@ -37,6 +37,7 @@ import { ForgeFrameModel } from './ForgeFrameModel.ts';
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const READINGS = FLEET_FIVE_FORGES_READINGS;
 
+
 const USAGE_UNDER_THE_LIMIT: FleetDocumentUsage = {
   resetsAt:              null,
   window:                null,
@@ -269,7 +270,7 @@ describe('where leave goes', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+    answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.', forges: []
   } as const;
 
   test('names the bar\'s command and shows the forge\'s code and sentence; Stop asks its question again rather than resending', () => {
@@ -425,7 +426,11 @@ describe('Flint\'s brain in the bar', () => {
       result: {
         verdict: 'answered',
         answer:  {
-          answerVersion: 3, outcome: 'refused', refusal, text: null,
+          answerVersion: 3,
+          outcome:       'refused',
+          refusal,
+          text:          null,
+          forges:        [],
         },
       },
     } as const);
@@ -470,5 +475,15 @@ describe('the reason there is no frame session', () => {
     expect(ForgeFrameModel.frameSessionRefusalTextOf('registry-unreadable', null).sentence).toBe('Gaia could not read the forges\' registry.');
     expect(ForgeFrameModel.frameSessionRefusalTextOf('registry-newer-version', null).sentence).toBe('The forges\' registry is newer than this Gaia reads.');
     expect(ForgeFrameModel.frameSessionRefusalTextOf('forge-not-registered', null).sentence).toBe('The registry does not name this forge.');
+  });
+});
+
+describe('the bar of a forge holding agents a network outage stopped', () => {
+  test('shows its own count after what waits, in the line and in the whole reading', () => {
+    const bar = barOf({ ...READINGS.exampleStorefront, outageEndings: 2 });
+    expect(bar.status.line).toEqual([
+      figure('4 / 5'), words(' agents'), words(' · '), figure('2'), words(' wait on you'), words(' · '), figure('2'), words(' stopped on an outage'),
+    ]);
+    expect(bar.status.text).toBe('4 / 5 agents · 2 wait on you · 2 stopped on an outage · since 09:12');
   });
 });

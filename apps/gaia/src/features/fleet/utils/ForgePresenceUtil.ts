@@ -9,6 +9,8 @@ import type { ForgePresence, ForgePresenceState }           from '../../../share
 import type { ForgeCondition, ForgeFidelity, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
 import { OVERSEER_ANSWERED_FIDELITIES }                     from '../../../shared/constants/ForgeFidelities.ts';
 
+import { OutageEndingUtil } from './OutageEndingUtil.ts';
+
 /** A forge older than Gaia supports answered its versions, so its Overseer answers though Gaia reads nothing more of it. */
 const PRESENCE_ANSWERED_FIDELITIES: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>([...OVERSEER_ANSWERED_FIDELITIES, 'older-contract']);
 
@@ -51,12 +53,14 @@ function presenceOf(reading: ForgeReading): ForgePresence {
 function fleetForgeOf(reading: ForgeReading): FleetForge {
   const presence = presenceOf(reading);
   const report   = reading.fidelity === 'full' ? reading.presenceReport : null;
+  const waitingWork = report === null ? [] : [...report.interruptedWork];
   return {
     ...reading,
     presence,
-    crashSummary: presence.state === 'crashed' ? reading.registryPresence?.crash ?? null : null,
-    crashLogs:    report === null ? [] : [...report.crashLogs],
-    waitingWork:  report === null ? [] : [...report.interruptedWork],
+    crashSummary:  presence.state === 'crashed' ? reading.registryPresence?.crash ?? null : null,
+    crashLogs:     report === null ? [] : [...report.crashLogs],
+    waitingWork,
+    outageEndings: OutageEndingUtil.outageEndingsOf(waitingWork),
   };
 }
 

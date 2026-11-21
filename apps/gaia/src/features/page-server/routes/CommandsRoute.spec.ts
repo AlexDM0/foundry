@@ -39,7 +39,7 @@ describe('a command Gaia can read', () => {
     const answer = await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
     expect(answer.status).toBe(200);
     expect(await answer.json()).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });
     expect(carrier.carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
@@ -52,7 +52,11 @@ describe('a command Gaia can read', () => {
     const body = JSON.stringify({ commandVersion: 3, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
     const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
     expect([answer.status, await answer.json()]).toEqual([409, {
-      answerVersion: 3, outcome: 'refused', refusal: 'usage-limit-holds', text,
+      answerVersion: 3,
+      outcome:       'refused',
+      refusal:       'usage-limit-holds',
+      text,
+      forges:        [],
     }]);
     expect(carrier.carriedCommands).toEqual([{ kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' }]);
   });
@@ -86,13 +90,13 @@ describe('a command Gaia cannot read', () => {
     }));
     expect(answers).toEqual([
       [400, {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'not-json', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'not-json', text: null, forges: []
       }],
       [400, {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null, forges: []
       }],
       [400, {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null, forges: []
       }],
     ]);
     expect(carrier.carriedCommands).toEqual([]);

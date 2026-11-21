@@ -259,7 +259,7 @@ describe('the bar\'s commands', () => {
 
   test('the forge\'s refusal shows under the bar with its own code and sentence', async () => {
     const refused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.'
+      answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.', forges: []
     };
     const sender = senderOver([async () => answerResponse(refused)]);
     await sender.send({ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' });
@@ -299,7 +299,7 @@ describe('Flint\'s brain in the bar', () => {
 
   test('a refused wake shows beside Wake, where it was asked, and not under the bar', async () => {
     const refused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'
+      answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused', forges: []
     };
     const sender = senderOver([async () => answerResponse(refused)]);
     await sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
@@ -317,7 +317,7 @@ describe('Flint\'s brain in the bar', () => {
       forges: BRAIN_OFF.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 1 } })),
     };
     const sender = senderOver([async () => answerResponse({
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused'
+      answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused', forges: []
     })]);
     await sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
     const rendered = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, everyForgeServesTheBrain, sender);

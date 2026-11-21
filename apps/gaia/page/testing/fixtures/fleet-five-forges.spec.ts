@@ -14,7 +14,7 @@ function secondsSince(stamp: string): number {
   return (Date.parse(FLEET_FIXTURES_READ_AT) - Date.parse(stamp)) / MILLISECONDS_PER_SECOND;
 }
 
-function projectOf(trackerId: string): string {
+function projectOf(trackerId: string | null): string {
   return FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === trackerId)?.project ?? 'no such forge';
 }
 
@@ -112,7 +112,7 @@ describe('the fleet-five-forges fixture', () => {
   });
 
   test('lists across the fleet only copies of what each forge holds itself', () => {
-    const forgeOf = (trackerId: string) => FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === trackerId);
+    const forgeOf = (trackerId: string | null) => FLEET_FIVE_FORGES.forges.find((forge) => forge.trackerId === trackerId);
     for (const { trackerId, ...item } of FLEET_FIVE_FORGES.attention) expect(forgeOf(trackerId)?.attention).toContainEqual(item);
     for (const { trackerId, countsAgainstLimit, ...row } of FLEET_FIVE_FORGES.agents) {
       const forge = forgeOf(trackerId);

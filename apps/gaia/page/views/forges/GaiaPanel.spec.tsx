@@ -40,6 +40,7 @@ const SETTINGS_UNWRITABLE: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'settings-unwritable',
   text:          null,
+  forges:        [],
 };
 
 interface Handled {

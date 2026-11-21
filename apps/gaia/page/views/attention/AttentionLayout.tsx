@@ -26,6 +26,7 @@ import { ConditionDot }                                           from '../../de
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
 import { Refusal }                                                from '../../design-system/Refusal.tsx';
 import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
+import { CommandFailureRefusal }                                  from '../../shared/CommandFailureRefusal.tsx';
 import { VersionsLine, VersionsText }                             from '../../shared/VersionsText.tsx';
 import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
 import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
@@ -38,6 +39,7 @@ import {
   type ForgeReadingLine,
   type LookAction,
   type LookCallout,
+  type OutageResumeAnswer,
   type ReadingsNote,
   type RecentEntry,
   type RunningBrainLine,
@@ -45,13 +47,17 @@ import {
   type RunningCardForm,
   type UnreachableBanner,
 } from './AttentionModel.ts';
+import { OUTAGE_RESUME, OUTAGE_RESUME_LABEL } from './OutageResumeButton.tsx';
 
 export interface AttentionLayoutProps {
-  readonly content:                 AttentionContent;
-  readonly commandStates:           CommandStates;
-  readonly onCommand:               (command: CommandBody) => void;
-  readonly onDismissFailure:        (subject: CommandSubject) => void;
-  readonly onDismissRestartPending: (subject: CommandSubject) => void;
+  readonly content:                     AttentionContent;
+  /** What the last outage resume answered, until dismissed or sent again; `null` before any. */
+  readonly outageResumeAnswer:          OutageResumeAnswer | null;
+  readonly commandStates:               CommandStates;
+  readonly onCommand:                   (command: CommandBody) => void;
+  readonly onDismissFailure:            (subject: CommandSubject) => void;
+  readonly onDismissRestartPending:     (subject: CommandSubject) => void;
+  readonly onDismissOutageResumeAnswer: () => void;
 }
 
 interface CommandHandlers {
@@ -68,6 +74,8 @@ const RECENT_HEAD = 'Just happened';
 const VERSIONS_LINK_LABEL = 'Versions';
 
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
+
+const OUTAGE_RESUME_SUBJECT: CommandSubject = { fleetCommand: 'fleet-outage-resume' };
 
 const ACTIVITY_HREF = '#activity';
 
@@ -99,6 +107,44 @@ function LookAgainRefusal({ commandStates, onCommand, onDismissFailure }: Comman
         onDismiss={() => onDismissFailure(subject)}
       />
     </div>
+  );
+}
+
+/** The outage resume's answer, one line per forge that resumed, refused or did not answer, or its refusal when Gaia could not carry it. */
+function OutageResumeAnswerBlock({
+  answer, commandStates, onCommand, onDismissFailure, onDismissOutageResumeAnswer
+}: Pick<AttentionLayoutProps, 'commandStates' | 'onCommand' | 'onDismissFailure' | 'onDismissOutageResumeAnswer'> & { readonly answer: OutageResumeAnswer | null }) {
+  const { failure } = CommandSender.stateOf(commandStates, OUTAGE_RESUME_SUBJECT);
+  return (
+    <>
+      {failure === null ? null : (
+        <div className="gaia-attention-refusal">
+          <CommandFailureRefusal
+            commandStates={commandStates}
+            subject={OUTAGE_RESUME_SUBJECT}
+            commandLabel={OUTAGE_RESUME_LABEL}
+            onDismissFailure={onDismissFailure}
+            onTryAgain={() => onCommand(OUTAGE_RESUME)}
+          />
+        </div>
+      )}
+      {answer === null ? null : (
+        <section className="gaia-attention-outage-answer" aria-label={OUTAGE_RESUME_LABEL} role="status">
+          {answer.nothingText === null ? (
+            <ul className="gaia-attention-outage-answer-lines">
+              {answer.lines.map((line) => (
+                <li key={line.trackerId} className="gaia-attention-outage-answer-line" data-outcome={line.outcome}>
+                  <span className="gaia-attention-outage-answer-forge">{line.project}</span>
+                  {' '}
+                  <span className="gaia-attention-outage-answer-text">{line.text}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="gaia-attention-outage-answer-nothing">{answer.nothingText}</p>}
+          <TextButton label="Dismiss" onPress={onDismissOutageResumeAnswer} />
+        </section>
+      )}
+    </>
   );
 }
 
@@ -427,7 +473,9 @@ function RecentList({ recent }: { readonly recent: readonly RecentEntry[] }) {
   );
 }
 
-export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) {
+export function AttentionLayout({
+  content, outageResumeAnswer, onDismissOutageResumeAnswer, ...handlers
+}: AttentionLayoutProps) {
   return (
     <div className="gaia-attention">
       {content.banners.length === 0 ? null : (
@@ -436,6 +484,7 @@ export function AttentionLayout({ content, ...handlers }: AttentionLayoutProps) 
         </div>
       )}
       <LookAgainRefusal {...handlers} />
+      <OutageResumeAnswerBlock answer={outageResumeAnswer} onDismissOutageResumeAnswer={onDismissOutageResumeAnswer} {...handlers} />
       <div className="gaia-attention-body">
         <div className="gaia-attention-main">
           {content.figuresForm === 'line' ? <Figures content={content} /> : null}

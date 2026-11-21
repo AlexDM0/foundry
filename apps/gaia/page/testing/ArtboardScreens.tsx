@@ -26,6 +26,7 @@ import { fleetWithStorefrontBrainOf }                                           
 import { FLEET_DEGRADED }                                                           from './fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                              from './fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from './fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                                                     from './fixtures/fleet-outage-endings.ts';
 import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                               from './fixtures/fleet-versions.ts';
 
 export type ScreenTheme = 'dark' | 'light';
@@ -233,6 +234,26 @@ export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
+/** Decision 35, which no artboard draws: the agents a network outage stopped, the alert heading A1 and each forge's count on A4. */
+export const OUTAGE_ENDINGS_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'A1',
+    title:         'Attention, agents stopped on a network outage',
+    designFile:    'Main.dc.html',
+    fleetDocument: FLEET_OUTAGE_ENDINGS,
+    fragment:      '#attention',
+    viewState:     'as-routed',
+  },
+  {
+    artboard:      'A4',
+    title:         'Forges, agents stopped on a network outage',
+    designFile:    'Forges.dc.html',
+    fleetDocument: FLEET_OUTAGE_ENDINGS,
+    fragment:      '#forges',
+    viewState:     'as-routed',
+  },
+];
+
 /** A4 draws a seventh forge, Old Prototype, hidden in Gaia: dormant since 3 November, its row folded under "Hidden in Gaia". */
 export const OLD_PROTOTYPE_TRACKER_ID = 'old-prototype-5a21';
 
@@ -375,6 +396,7 @@ export const VERSIONS_UPDATE_REFUSAL: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'repository-busy',
   text:          'Another forge command holds the repository.',
+  forges:        [],
 };
 
 const EXAMPLE_BILLING_TRACKER_ID = FLEET_VERSIONS_TRACKER_IDS.exampleBilling;
@@ -385,7 +407,7 @@ function exampleBillingUpdateStatesOf(updateStep: Exclude<ForgeUpdateStep, 'idle
     done:    { onItsWay: null, failure: null, restartPending: true },
     refused: { onItsWay: null, failure: { kind: 'forge-update' as const, result: { verdict: 'answered' as const, answer: VERSIONS_UPDATE_REFUSAL } }, restartPending: false },
   }[updateStep];
-  return { forges: new Map([[EXAMPLE_BILLING_TRACKER_ID, state]]), fleet: new Map() };
+  return { forges: new Map([[EXAMPLE_BILLING_TRACKER_ID, state]]), fleet: new Map(), fleetAnswers: new Map() };
 }
 
 /** B2's refusal: the forge's own code and sentence, as the artboard words them. */
@@ -394,6 +416,7 @@ export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
+  forges:        [],
 };
 
 /** B2: Example Mobile App's Stop refused and kept until dismissed, Design System's `forge start` on its way. */
@@ -402,12 +425,14 @@ const B2_COMMAND_STATES: CommandStates = {
     [TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: { kind: 'forge-stop', result: { verdict: 'answered', answer: B2_STOP_REFUSAL } }, restartPending: false }],
     [TRACKER_IDS.designSystem, { onItsWay: 'forge-start', failure: null, restartPending: false }],
   ]),
-  fleet: new Map(),
+  fleet:        new Map(),
+  fleetAnswers: new Map(),
 };
 
 const RESTART_PENDING_COMMAND_STATES: CommandStates = {
-  forges: new Map([[TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: null, restartPending: true }]]),
-  fleet:  new Map(),
+  forges:       new Map([[TRACKER_IDS.exampleMobileApp, { onItsWay: null, failure: null, restartPending: true }]]),
+  fleet:        new Map(),
+  fleetAnswers: new Map(),
 };
 
 const B2_STOP_DIALOG: StopDialogState = { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' };
@@ -417,7 +442,7 @@ const B2_LAST_SENT: ReadonlyMap<string, ForgeCommandBody> = new Map([
   [TRACKER_IDS.exampleMobileApp, { kind: 'forge-stop', trackerId: TRACKER_IDS.exampleMobileApp, agents: 'keep' }],
 ]);
 
-const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map(), fleetAnswers: new Map() };
 
 function doNothing(): void {
   return undefined;
@@ -429,6 +454,7 @@ function senderHolding(commandStates: CommandStates): CommandSender {
     send:                  () => Promise.reject(new Error('A screen of the visual pass sends no command.')),
     dismissFailure:        doNothing,
     dismissRestartPending: doNothing,
+    dismissAnswer:         doNothing,
     states:                () => commandStates,
     subscribe:             () => doNothing,
   };

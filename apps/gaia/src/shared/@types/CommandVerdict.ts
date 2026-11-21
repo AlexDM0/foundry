@@ -32,13 +32,29 @@ export type GaiaRefusal =
   | 'path-chooser-failed';
 
 /**
+ * How one forge took the fleet's resume of the jobs a network outage stopped: `resumed` those it held, the count Gaia last read of it;
+ * `nothing-to-do`, it held none; `refused`, with the forge's sentence; `not-reached`, its API did not answer or Gaia could not send it.
+ */
+export type OutageResumeOutcome = 'resumed' | 'nothing-to-do' | 'refused' | 'not-reached';
+
+export interface OutageResumeForgeAnswer {
+  readonly trackerId:    string;
+  readonly outcome:      OutageResumeOutcome;
+  /** Zero but for `resumed`. */
+  readonly resumedCount: number;
+  /** The forge's sentence of a `refused`, unchanged; `null` otherwise. */
+  readonly refusalText:  string | null;
+}
+
+/**
  * `path-chosen`: a `path-choose` ended with User's choice, which the answer carries. `restart-pending`: a `forge-update` was done, but the
  * live Overseer did not take the Baton pass and runs the old code until it restarts. `unreachable`: the forge gave no answer in time.
  * `not-supported`: the forge speaks a control contract Gaia does not know, its program answered in a way Gaia does not understand, or this
- * machine has no chooser.
+ * machine has no chooser. `outage-resume-answered`: the fleet's resume of the jobs a network outage stopped, with one answer per forge.
  */
 export type CommandVerdict =
   | { readonly verdict: 'done' }
+  | { readonly verdict: 'outage-resume-answered'; readonly forges: readonly OutageResumeForgeAnswer[] }
   | { readonly verdict: 'path-chosen'; readonly path: string }
   | { readonly verdict: 'nothing-to-do' }
   | { readonly verdict: 'restart-pending' }

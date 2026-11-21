@@ -43,6 +43,7 @@ import {
   FORGE_PROGRAM_FOUND_SCREENS,
   HIDDEN_FORGE_SCREENS,
   MONITOR_WARNING_SCREENS,
+  OUTAGE_ENDINGS_SCREENS,
   type PageArtboard,
   RESTART_PENDING_SCREENS,
   screenDocumentOf,
@@ -74,6 +75,7 @@ const PAINTED_OVER_ARTBOARDS: readonly ArtboardScreen[] = [
   ...BRAIN_STATE_SCREENS,
   ...RESTART_PENDING_SCREENS,
   ...MONITOR_WARNING_SCREENS,
+  ...OUTAGE_ENDINGS_SCREENS,
   ...HIDDEN_FORGE_SCREENS,
   ...FORGE_PROGRAM_FOUND_SCREENS,
   ...VERSIONS_SCREENS,
@@ -467,6 +469,27 @@ describe('A4 as drawn, with the forge hidden in Gaia that the five forges\' fixt
     const primaryButton = PRIMARY_BUTTON();
     const primaries = MarkupTree.elementsIn(heldGroup, (element) => MarkupTree.carries(element, primaryButton));
     expect(primaries.map((primary) => [MarkupTree.roleOf(primary), MarkupTree.nameOf(primary)])).toEqual([['button', 'Restart']]);
+  });
+});
+
+describe('the agents a network outage stopped, over the artboards that show them', () => {
+  test('A1: the fleet\'s alert heads what waits, naming each forge with its own count, and the outage resume stands in the page title', () => {
+    const [attention] = OUTAGE_ENDINGS_SCREENS;
+    if (attention === undefined) throw new Error('An outage screen is missing.');
+    const markup = screenMarkupOf(attention, 'dark');
+    const [outageRow = MarkupTree.parse('')] = MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-attention-row'));
+    expect(MarkupTree.textOf(outageRow)).toContain('3 agents stopped on a network outage');
+    expect(MarkupTree.textOf(outageRow)).toContain('Example Storefront 2 · Invoice Service 1');
+    expect(MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Resume agents stopped by an outage'))).toHaveLength(1);
+  });
+
+  test('A4: each forge holding such agents says its own count under its row', () => {
+    const forges = OUTAGE_ENDINGS_SCREENS[1];
+    if (forges === undefined) throw new Error('An outage screen is missing.');
+    expect(textsOfClass(screenMarkupOf(forges, 'dark'), 'gaia-forges-row-outage')).toEqual([
+      '2 agents stopped on a network outage',
+      '1 agent stopped on a network outage',
+    ]);
   });
 });
 

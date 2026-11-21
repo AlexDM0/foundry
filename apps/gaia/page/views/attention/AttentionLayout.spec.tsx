@@ -47,7 +47,7 @@ const tree = ReactElementTree;
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
 const UPDATE_REFUSED: CommandAnswerDocument = {
@@ -55,6 +55,7 @@ const UPDATE_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'update-in-progress',
   text:          'An update already runs in this repository.',
+  forges:        [],
 };
 
 function contentOf(fleetDocument: FleetDocument) {
@@ -65,15 +66,18 @@ function contentOf(fleetDocument: FleetDocument) {
 
 /** Each send the layout makes is kept in `sends`, so a spec can wait for its answer. */
 function unfoldedLayout(fleetDocument: FleetDocument, sender: CommandSender = senderOver([]), sends: Promise<unknown>[] = []) {
+  const states = sender.states();
   return tree.unfolded(
     <AttentionLayout
       content={contentOf(fleetDocument)}
-      commandStates={sender.states()}
+      outageResumeAnswer={AttentionModel.outageResumeAnswerOf(states.fleetAnswers.get('fleet-outage-resume') ?? null, fleetDocument)}
+      commandStates={states}
       onCommand={(command) => {
         sends.push(sender.send(command));
       }}
       onDismissFailure={(subject: CommandSubject) => sender.dismissFailure(subject)}
       onDismissRestartPending={(subject: CommandSubject) => sender.dismissRestartPending(subject)}
+      onDismissOutageResumeAnswer={() => sender.dismissAnswer('fleet-outage-resume')}
     />,
   );
 }
@@ -183,7 +187,7 @@ describe('a callout\'s command', () => {
 
   test('an update that left a restart pending offers Restart under its callout; Restart sends forge-restart, dismiss takes it away', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const sent: SentRequest[] = [];
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => new Promise<Response>(() => undefined)], sent);
@@ -202,10 +206,10 @@ describe('a callout\'s command', () => {
 
   test('a Restart the pending step sent that the forge refuses shows its refusal under the callout that offered it', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const restartRefused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-busy', text: 'Its Overseer is busy with a baton pass.'
+      answerVersion: 3, outcome: 'refused', refusal: 'overseer-busy', text: 'Its Overseer is busy with a baton pass.', forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
@@ -345,7 +349,7 @@ describe('forges at a version this Gaia cannot talk to (U1)', () => {
 
   test('once the update leaves a restart pending, the callout says the forge stays older and the step under it offers a secondary Restart', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
     await sender.send({ kind: 'forge-update', trackerId: BILLING });
@@ -437,6 +441,65 @@ describe('the side of the view', () => {
     expect(openInNewTab.map((button) => tree.hostElementsIn(tree.unfoldedProp(button, 'trailing'), tree.withComponent(Icon)).map((icon) => icon.props['name']))).toEqual([
       ['arrow-out-of-square'],
       ['arrow-out-of-square'],
+    ]);
+  });
+});
+
+describe('the outage resume\'s answer', () => {
+  const OUTAGE_RESUME_COMMAND = { kind: 'fleet-outage-resume' } as const;
+
+  function outageAnswerOf(forges: CommandAnswerDocument['forges'], outcome: CommandAnswerDocument['outcome'] = 'done'): CommandAnswerDocument {
+    return {
+      answerVersion: 3, outcome, refusal: null, text: null, forges
+    };
+  }
+
+  test('shows one line per forge that resumed, refused or did not answer, until dismissed', async () => {
+    const answer = outageAnswerOf([
+      {
+        trackerId: TRACKER_IDS.exampleStorefront, outcome: 'resumed', resumedCount: 2, refusalText: null
+      },
+      {
+        trackerId: TRACKER_IDS.invoiceService, outcome: 'refused', resumedCount: 0, refusalText: 'The Overseer is held by an install change.'
+      },
+      {
+        trackerId: TRACKER_IDS.designSystem, outcome: 'not-reached', resumedCount: 0, refusalText: null
+      },
+    ]);
+    const sender = senderOver([() => Promise.resolve(answerResponse(answer))]);
+    await sender.send(OUTAGE_RESUME_COMMAND);
+    const unfolded = unfoldedLayout(FLEET_FIVE_FORGES, sender);
+    const lines = tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-outage-answer-line'));
+    expect(lines.map((line) => [line.props['data-outcome'], tree.textOf([line])])).toEqual([
+      ['resumed', 'Example Storefront Resumed 2 agents'],
+      ['refused', 'Invoice Service The Overseer is held by an install change.'],
+      ['not-reached', 'Design System Did not answer. Nothing was resumed there.'],
+    ]);
+    tree.dispatch(tree.onlyOfComponent([tree.onlyWithClass(unfolded, 'gaia-attention-outage-answer')], TextButton), 'onPress');
+    expect(tree.hostElementsIn(unfoldedLayout(FLEET_FIVE_FORGES, sender), tree.withClass('gaia-attention-outage-answer'))).toEqual([]);
+  });
+
+  test('says "Nothing to resume" when every forge answered nothing to do', async () => {
+    const nothing = outageAnswerOf([{
+      trackerId: TRACKER_IDS.exampleStorefront, outcome: 'nothing-to-do', resumedCount: 0, refusalText: null
+    }], 'nothing-to-do');
+    const sender = senderOver([() => Promise.resolve(answerResponse(nothing))]);
+    await sender.send(OUTAGE_RESUME_COMMAND);
+    expect(tree.textOf([tree.onlyWithClass(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'gaia-attention-outage-answer-nothing')])).toBe('Nothing to resume');
+  });
+
+  test('shows Gaia\'s refusal when the resume could not be carried, and Try again sends it once more', async () => {
+    const sent: SentRequest[] = [];
+    const refused: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'refused', refusal: 'registry-unreadable', text: null, forges: []
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(refused, 409)), () => new Promise<Response>(() => undefined)], sent);
+    await sender.send(OUTAGE_RESUME_COMMAND);
+    const refusal = FailedActions.onlyFailedActionIn([tree.onlyWithClass(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'gaia-attention-refusal')]);
+    tree.dispatch(refusal, 'onRetry');
+    expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)) as unknown)).toEqual([
+      { ...OUTAGE_RESUME_COMMAND, commandVersion: 3 },
+      { ...OUTAGE_RESUME_COMMAND, commandVersion: 3 },
     ]);
   });
 });

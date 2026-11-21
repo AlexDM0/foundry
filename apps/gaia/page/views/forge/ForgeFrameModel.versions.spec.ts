@@ -120,7 +120,7 @@ describe('Update forge in the bar of an older forge', () => {
       result: {
         verdict: 'answered',
         answer:  {
-          answerVersion: 3, outcome: 'refused', refusal: 'repository-busy', text: 'Another forge command holds the repository.'
+          answerVersion: 3, outcome: 'refused', refusal: 'repository-busy', text: 'Another forge command holds the repository.', forges: []
         }
       },
     },

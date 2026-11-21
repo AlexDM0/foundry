@@ -63,6 +63,7 @@ const STOP_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
+  forges:        [],
 };
 
 const ABOVE_THE_CPUS: CommandAnswerDocument = {
@@ -70,6 +71,7 @@ const ABOVE_THE_CPUS: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'machine-agent-limit-above-cpus',
   text:          'The machine limit is at most the 12 CPUs of this machine.',
+  forges:        [],
 };
 
 interface Handled {
@@ -329,7 +331,7 @@ describe('the held forge and the forges outside the table', () => {
 describe('an update that left a restart pending', () => {
   test('the held forge\'s banner says it is updated with a restart pending, and its Restart and dismissal reach the view', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
@@ -347,7 +349,7 @@ describe('an update that left a restart pending', () => {
 
   test('with a restart pending on the held forge, Restart is the only primary button of its held area (A4 acceptance 3)', async () => {
     const restartPending: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+      answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
@@ -508,8 +510,9 @@ describe('a forge at another version than this Gaia is built for (U2)', () => {
 
   test('Update forge on its way says so under its row beside a starting ring, and a restart it left pending stands there without an edge', () => {
     const forgeState = (onItsWay: 'forge-update' | null, restartPending: boolean): CommandStates => ({
-      forges: new Map([[VERSIONS_IDS.exampleBilling, { onItsWay, failure: null, restartPending }]]),
-      fleet:  new Map(),
+      forges:       new Map([[VERSIONS_IDS.exampleBilling, { onItsWay, failure: null, restartPending }]]),
+      fleet:        new Map(),
+      fleetAnswers: new Map(),
     });
     const pending = belowOf(rowOf(layoutOf(FLEET_VERSIONS, { commandStates: forgeState('forge-update', false) }).unfolded, VERSIONS_IDS.exampleBilling));
     const status = tree.onlyWithClass(pending, 'gaia-forges-update-status');

@@ -16,7 +16,7 @@ import { AgentsModel, type AgentsModelInput }                                   
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
-const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map() };
+const NO_COMMAND_STATES: CommandStates = { forges: new Map(), fleet: new Map(), fleetAnswers: new Map() };
 
 const STOREFRONT_BRAIN = { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' };
 
@@ -25,6 +25,7 @@ const USAGE_LIMIT_REFUSAL: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'usage-limit-holds',
   text:          'launches are held until 16:00 (usage limit)',
+  forges:        [],
 };
 
 function contentOf(fleetDocument: FleetDocument, overrides: Partial<Omit<AgentsModelInput, 'fleetDocument'>> = {}) {
@@ -68,7 +69,7 @@ function groupOf(fleetDocument: FleetDocument, trackerId: string, overrides: Par
 }
 
 function forgeStatesOf(trackerId: string, state: CommandState): CommandStates {
-  return { forges: new Map([[trackerId, state]]), fleet: new Map() };
+  return { forges: new Map([[trackerId, state]]), fleet: new Map(), fleetAnswers: new Map() };
 }
 
 describe('the brain\'s row', () => {

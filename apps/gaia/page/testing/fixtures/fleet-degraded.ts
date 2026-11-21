@@ -99,6 +99,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   crashSummary:      null,
   crashLogs:         [],
   waitingWork:       [],
+  outageEndings:     0,
 };
 
 const ANALYTICS_SANDBOX: FleetDocumentForge = {
@@ -138,6 +139,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   crashSummary:      null,
   crashLogs:         [],
   waitingWork:       [],
+  outageEndings:     0,
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };
@@ -147,7 +149,7 @@ const READ_IN_FULL_OR_AS_LAST_REPORTED = new Set<string>([TRACKER_IDS.exampleSto
 export const FLEET_DEGRADED: FleetDocument = {
   ...FLEET_FIVE_FORGES,
   forges:     [READINGS.exampleStorefront, INVOICE_SERVICE, RESEARCH_WIKI, READINGS.exampleMobileApp, ANALYTICS_SANDBOX],
-  attention:  FLEET_FIVE_FORGES.attention.filter((item) => READ_IN_FULL_OR_AS_LAST_REPORTED.has(item.trackerId)),
+  attention:  FLEET_FIVE_FORGES.attention.filter((item) => item.trackerId !== null && READ_IN_FULL_OR_AS_LAST_REPORTED.has(item.trackerId)),
   needsALook: [
     { trackerId: TRACKER_IDS.invoiceService, kind: 'unreachable' },
     { trackerId: TRACKER_IDS.researchWiki, kind: 'counts-only' },

@@ -41,4 +41,5 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
       supportedForgeVersion: { major: 1, minor: 1 },
     },
   },
+  outageEndingsTotal: 0,
 };

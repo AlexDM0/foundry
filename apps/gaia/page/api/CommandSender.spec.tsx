@@ -28,15 +28,16 @@ const STOP_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'overseer-still-live',
   text:          'The Overseer did not stop within its tries.',
+  forges:        [],
 };
 
 const DONE: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'done', refusal: null, text: null
+  answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
 /** An update was done, and the forge's live Overseer did not take the Baton pass. */
 const RESTART_PENDING: CommandAnswerDocument = {
-  answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+  answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
 };
 
 const UPDATE_EXAMPLE_MOBILE_APP: CommandBody = { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp };
@@ -68,18 +69,18 @@ describe('sending one command', () => {
     const outcomes: CommandAnswerDocument[] = [
       DONE,
       {
-        answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null
+        answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null, forges: []
       },
       RESTART_PENDING,
       STOP_REFUSED,
       {
-        answerVersion: 3, outcome: 'unreachable', refusal: null, text: null
+        answerVersion: 3, outcome: 'unreachable', refusal: null, text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: null, text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: null, text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'done', refusal: null, text: '/Users/alexexample/development/example-newsletter'
+        answerVersion: 3, outcome: 'done', refusal: null, text: '/Users/alexexample/development/example-newsletter', forges: []
       },
     ];
     const sender = senderOver(outcomes.map((answer) => () => Promise.resolve(answerResponse(answer))));
@@ -272,5 +273,58 @@ describe('an update that left a restart pending', () => {
     expect(CommandSender.stateOf(sender.states(), subject)).toMatchObject({ failure: { kind: 'forge-restart' }, restartPending: false });
     sender.dismissFailure(subject);
     expect(sender.states().forges.size).toBe(0);
+  });
+});
+
+describe('the answer of a fleet command', () => {
+  const OUTAGE_RESUME: CommandBody = { kind: 'fleet-outage-resume' };
+  const RESUMED: CommandAnswerDocument = {
+    answerVersion: 3,
+    outcome:       'done',
+    refusal:       null,
+    text:          null,
+    forges:        [{
+      trackerId: TRACKER_IDS.exampleStorefront, outcome: 'resumed', resumedCount: 2, refusalText: null
+    }],
+  };
+
+  test('is kept after it succeeded, until dismissed', async () => {
+    const sender = senderOver([() => Promise.resolve(answerResponse(RESUMED))]);
+    await sender.send(OUTAGE_RESUME);
+    expect(sender.states().fleetAnswers.get('fleet-outage-resume')).toEqual(RESUMED);
+    sender.dismissAnswer('fleet-outage-resume');
+    expect(sender.states().fleetAnswers.has('fleet-outage-resume')).toBe(false);
+  });
+
+  test('leaves while the command is sent again, and is the new answer once it comes', async () => {
+    const nothing: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null, forges: []
+    };
+    let answerTheSecond: (response: Response) => void = () => undefined;
+    const sender = senderOver([() => Promise.resolve(answerResponse(RESUMED)), () => new Promise<Response>((resolve) => {
+      answerTheSecond = resolve;
+    })]);
+    await sender.send(OUTAGE_RESUME);
+    const second = sender.send(OUTAGE_RESUME);
+    expect(sender.states().fleetAnswers.has('fleet-outage-resume')).toBe(false);
+    answerTheSecond(answerResponse(nothing));
+    await second;
+    expect(sender.states().fleetAnswers.get('fleet-outage-resume')).toEqual(nothing);
+  });
+
+  test('is not kept for a refusal, nor for a command about one forge', async () => {
+    const refused: CommandAnswerDocument = {
+      answerVersion: 3, outcome: 'refused', refusal: 'registry-unreadable', text: null, forges: []
+    };
+    const sender = senderOver([() => Promise.resolve(answerResponse(refused, HTTP_CONFLICT)), () => Promise.resolve(answerResponse(DONE))]);
+    await sender.send(OUTAGE_RESUME);
+    await sender.send(PAUSE_INVOICE_SERVICE);
+    expect(sender.states().fleetAnswers.size).toBe(0);
+  });
+
+  test('an answer without its forges is not understood', async () => {
+    const { forges: _forges, ...withoutForges } = RESUMED;
+    const sender = senderOver([() => Promise.resolve(answerResponse(withoutForges))]);
+    expect(await sender.send(OUTAGE_RESUME)).toEqual({ verdict: 'answer-not-understood' });
   });
 });

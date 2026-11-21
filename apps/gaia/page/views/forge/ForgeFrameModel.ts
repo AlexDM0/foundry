@@ -243,6 +243,9 @@ function usageTextOf(forge: FleetDocumentForge, clock: ClockReading): string | n
   return `usage limit hit · resets ${StampTextUtil.clockTextAtReadingOf(usage.resetsAt, clock) ?? usage.resetsAt}`;
 }
 
+/** After the forge's own count of the agents a network outage stopped, which wait for the outage resume. */
+const OUTAGE_ENDINGS_WORDS = ' stopped on an outage';
+
 /** The whole reading for the tooltip: agents, what waits, a usage limit hit and since, after "as last reported" for a forge that stopped answering. */
 function statusTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
   const waitingCount = FleetDocumentUtil.waitingCountOf(forge);
@@ -253,6 +256,7 @@ function statusTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
     forge.fidelity === 'unreachable' ? asLastReported : null,
     agentsTextOf(forge),
     waitingCount === null || waitingCount === 0 ? null : CountTextUtil.countedPhrase(waitingCount, 'waits on you', 'wait on you'),
+    forge.outageEndings === 0 ? null : `${forge.outageEndings}${OUTAGE_ENDINGS_WORDS}`,
     usageTextOf(forge, clock),
     startedClock === null ? null : `since ${startedClock}`,
   ].filter((part) => part !== null).join(LINE_SEPARATOR);
@@ -283,6 +287,7 @@ function statusLineOf(forge: FleetDocumentForge, clock: ClockReading): readonly 
     forge.fidelity === 'unreachable' ? asLastReported : null,
     agentsLineOf(forge),
     waitingCount === null || waitingCount === 0 ? null : [figureOf(String(waitingCount)), wordsOf(waitingCount === 1 ? ' waits on you' : ' wait on you')],
+    forge.outageEndings === 0 ? null : [figureOf(String(forge.outageEndings)), wordsOf(OUTAGE_ENDINGS_WORDS)],
   ].filter((part) => part !== null);
   return parts.flatMap((part, i) => (i === 0 ? part : [wordsOf(LINE_SEPARATOR), ...part]));
 }

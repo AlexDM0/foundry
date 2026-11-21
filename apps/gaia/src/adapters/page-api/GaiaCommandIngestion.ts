@@ -217,6 +217,7 @@ function pathChooseReadingOf(body: JsonObject): GaiaCommandReading {
 function commandReadingOf(body: JsonObject, kind: string): GaiaCommandReading {
   switch (kind) {
     case 'fleet-look-again':
+    case 'fleet-outage-resume':
       return { verdict: 'readable', command: { kind } };
     case 'forge-stop':
       return forgeStopReadingOf(body);

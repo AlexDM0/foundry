@@ -20,19 +20,19 @@ describe('the command answer of a verdict', () => {
       PageAnswerMapUtil.commandAnswerOf({ verdict: 'restart-pending' }),
     ]).toEqual([
       {
-        answerVersion: 3, outcome: 'done', refusal: null, text: null
+        answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null
+        answerVersion: 3, outcome: 'nothing-to-do', refusal: null, text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'unreachable', refusal: null, text: null
+        answerVersion: 3, outcome: 'unreachable', refusal: null, text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: null, text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: null, text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null
+        answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
       },
     ]);
   });
@@ -43,6 +43,7 @@ describe('the command answer of a verdict', () => {
       outcome:       'done',
       refusal:       null,
       text:          '/Users/example/Development/example-storefront',
+      forges:        [],
     });
   });
 
@@ -55,6 +56,7 @@ describe('the command answer of a verdict', () => {
       outcome:       'refused',
       refusal:       'overseer-held',
       text:          'The Overseer is held by an install change.',
+      forges:        [],
     });
   });
 
@@ -64,7 +66,7 @@ describe('the command answer of a verdict', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'launches-held-by-install-change', text,
     }));
     expect(answers).toEqual(sentences.map((text) => ({
-      answerVersion: 3, outcome: 'refused', refusal: 'launches-held-by-install-change', text,
+      answerVersion: 3, outcome: 'refused', refusal: 'launches-held-by-install-change', text, forges: [],
     })));
   });
 
@@ -74,7 +76,35 @@ describe('the command answer of a verdict', () => {
       outcome:       'refused',
       refusal:       'command-in-flight',
       text:          null,
+      forges:        [],
     });
+  });
+});
+
+describe('the command answer of the outage resume', () => {
+  const RESUMED = {
+    trackerId: 'example-storefront-7c41', outcome: 'resumed', resumedCount: 2, refusalText: null
+  } as const;
+  const REFUSED = {
+    trackerId: 'invoice-service-2b9e', outcome: 'refused', resumedCount: 0, refusalText: 'The install version changed: run `forge update`.'
+  } as const;
+  const NOTHING = {
+    trackerId: 'research-wiki-58d0', outcome: 'nothing-to-do', resumedCount: 0, refusalText: null
+  } as const;
+
+  test('is done with one answer per forge, a forge\'s sentence unchanged even where it names a command (decision 45)', () => {
+    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'outage-resume-answered', forges: [RESUMED, REFUSED, NOTHING] })).toEqual({
+      answerVersion: 3,
+      outcome:       'done',
+      refusal:       null,
+      text:          null,
+      forges:        [RESUMED, REFUSED, NOTHING],
+    });
+  });
+
+  test('is nothing to do when every forge held nothing, and with no forge at all', () => {
+    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'outage-resume-answered', forges: [NOTHING] }).outcome).toBe('nothing-to-do');
+    expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'outage-resume-answered', forges: [] }).outcome).toBe('nothing-to-do');
   });
 });
 
@@ -88,7 +118,7 @@ describe('the command answer of a command of Flint\'s brain', () => {
       expect(PageAnswerMapUtil.commandAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       })).toEqual({
-        answerVersion: 3, outcome: 'refused', refusal, text,
+        answerVersion: 3, outcome: 'refused', refusal, text, forges: [],
       });
     }
   });
@@ -102,10 +132,10 @@ describe('the command answer of a command Gaia could not read', () => {
       PageAnswerMapUtil.unreadableCommandAnswerOf({ verdict: 'malformed', invalidKeys: ['trackerId'] }),
     ]).toEqual([
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null, forges: []
       },
       {
-        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null
+        answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null, forges: []
       },
     ]);
   });

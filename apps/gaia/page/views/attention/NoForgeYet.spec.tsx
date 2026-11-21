@@ -27,6 +27,7 @@ const INIT_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'not-a-git-repository',
   text:          'The folder is not a git repository.',
+  forges:        [],
 };
 
 const LOOK_AGAIN_REFUSED: CommandAnswerDocument = {
@@ -34,6 +35,7 @@ const LOOK_AGAIN_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'registry-unreadable',
   text:          'The registry could not be read.',
+  forges:        [],
 };
 
 interface Pressed {

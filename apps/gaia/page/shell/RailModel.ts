@@ -80,10 +80,13 @@ function countOf(count: number, tone: RailCountTone, mark: RailCountMark = ''): 
   return { count, mark, tone };
 }
 
+/** A forge read in full counts its entries and its agents a network outage stopped, which wait for User's resume too. */
 function forgeCountOf(forge: FleetDocumentForge): RailCount | null {
   switch (forge.fidelity) {
-    case 'full':
-      return forge.attention.length === 0 ? null : countOf(forge.attention.length, 'attention');
+    case 'full': {
+      const waiting = forge.attention.length + forge.outageEndings;
+      return waiting === 0 ? null : countOf(waiting, 'attention');
+    }
     case 'counts-only':
       return forge.attentionCount === null || forge.attentionCount === 0 ? null : countOf(forge.attentionCount, 'attention');
     case 'unreachable':
@@ -122,9 +125,13 @@ function viewCountOf(view: RailView, fleetDocument: FleetDocument | null): RailC
   }
 }
 
+const TITLE_SEPARATOR = ' · ';
+
 function forgeTitleOf(forge: FleetDocumentForge): string {
   const conditionWord = ForgeTextUtil.conditionWordInSentenceCaseOf(ForgeTextUtil.shownConditionOf(forge));
-  return forge.versions === null ? conditionWord : ForgeVersionsTextUtil.railTitleOf({ project: forge.project, versions: forge.versions }, conditionWord);
+  const title = forge.versions === null ? conditionWord : ForgeVersionsTextUtil.railTitleOf({ project: forge.project, versions: forge.versions }, conditionWord);
+  if (forge.outageEndings === 0) return title;
+  return `${title}${TITLE_SEPARATOR}${ForgeTextUtil.outageEndingsTextOf(forge.outageEndings)}`;
 }
 
 function railViewOf(route: GaiaRoute): RailView | null {

@@ -36,6 +36,7 @@ export type ForgeCommand =
 /** A command about the fleet, the machine or Gaia itself, named by no registered forge. */
 export type FleetCommand =
   | { readonly kind: 'fleet-look-again' }
+  | { readonly kind: 'fleet-outage-resume' }
   | { readonly kind: 'forge-add'; readonly root: string; readonly project: string }
   | { readonly kind: 'machine-agent-limit-set'; readonly limit: number }
   | { readonly kind: 'settings-set'; readonly change: SettingsChange }

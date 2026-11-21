@@ -27,6 +27,7 @@ const INIT_REFUSED: CommandAnswerDocument = {
   outcome:       'refused',
   refusal:       'not-a-git-repository',
   text:          'The folder is not a git repository.',
+  forges:        [],
 };
 
 function propsOf(forgeProgramIsMissing: boolean, commandStates: CommandStates, closed: number[]): AddRepositoryDialogLayoutProps {

@@ -3,8 +3,14 @@ import type { BoardRoute } from './board/BoardRoute.ts';
 /** What waits on User about a forge itself, raised by Gaia from the forge's served presence, never by the forge's own attention list. */
 export type ForgeAlertKind = 'forge-crashed' | 'forge-down' | 'forge-hung';
 
-/** One entry of what waits on User in one forge, as that forge orders and words it, or a forge alert Gaia raises from its presence. */
-export type AttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept' | ForgeAlertKind;
+/** What waits on User across the fleet, raised by Gaia from every forge's served presence: the agents a network outage stopped. */
+export type FleetAlertKind = 'agents-ended-on-outage';
+
+/**
+ * One entry of what waits on User in one forge, as that forge orders and words it, a forge alert Gaia raises from its presence, or the
+ * fleet's alert of the agents a network outage stopped.
+ */
+export type AttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept' | ForgeAlertKind | FleetAlertKind;
 
 export type AttentionStampWord = 'opened' | 'filed' | 'ready since' | 'reviewed' | 'crashed' | 'last reported';
 

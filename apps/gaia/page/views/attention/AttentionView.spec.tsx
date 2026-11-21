@@ -24,6 +24,8 @@ import { fixedPageClockAt, shellSurroundingsAt }                                
 import { FLEET_DEGRADED }                                                               from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                                  from '../../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_READINGS, FLEET_FIVE_FORGES_TRACKER_IDS } from '../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                                                         from '../../testing/fixtures/fleet-outage-endings.ts';
+import { OUTAGE_RESUME_LABEL, OutageResumeButton }                                      from './OutageResumeButton.tsx';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
@@ -142,10 +144,11 @@ function pageTitleFiguresIn(markup: string, fleetDocument: FleetDocument): strin
 }
 
 describe('the page title and the clock', () => {
-  test('A1\'s page title carries the title, the lead and the six figures stacked, the waiting one marked, and no button of its own', () => {
+  test('A1\'s page title carries the title, the lead, the six figures stacked, the waiting one marked, and the outage resume as its button', () => {
     const fleet = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES)));
     const { parts } = ShellMarkup.viewPageHeadAt('#attention', FLEET_FIVE_FORGES);
-    expect([parts.title, parts.lead, parts.actions]).toEqual(['Attention', 'What waits on you across every forge, and the forges that need a look.', null]);
+    expect([parts.title, parts.lead]).toEqual(['Attention', 'What waits on you across every forge, and the forges that need a look.']);
+    expect(parts.actions).toEqual(<OutageResumeButton />);
     expect(pageTitleFiguresIn(fleet, FLEET_FIVE_FORGES)).toEqual([
       '5 waiting on you (waits on you)',
       '10 / 12 agents',
@@ -187,5 +190,35 @@ describe('the page title and the clock', () => {
 
   test('another view of the shell does not show Attention', () => {
     expect(rowIdsIn(renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#agents')))).toEqual([]);
+  });
+});
+
+describe('the outage resume in the page title', () => {
+  const ENABLED_CONTROL = renderToStaticMarkup(<Button label={OUTAGE_RESUME_LABEL} onPress={() => undefined} />);
+
+  function withEndings(endings: readonly number[]): FleetDocument {
+    const forges = FLEET_OUTAGE_ENDINGS.forges.map((forge, i) => ({ ...forge, outageEndings: endings[i] ?? 0 }));
+    return { ...FLEET_OUTAGE_ENDINGS, forges, outageEndingsTotal: endings.reduce((total, count) => total + count, 0) };
+  }
+
+  function forgeDown(fleetDocument: FleetDocument): FleetDocument {
+    const forges = fleetDocument.forges.map((forge, i) => (i === 0 ? {
+      ...forge, fidelity: 'unreachable', condition: 'unreachable', presence: { state: 'down', generation: 3, at: null }, outageEndings: 0,
+    } as const : forge));
+    return { ...fleetDocument, forges };
+  }
+
+  test('is drawn enabled with no ending, one, many, and while a forge is down', () => {
+    const fleets = [FLEET_FIVE_FORGES, withEndings([0, 1]), FLEET_OUTAGE_ENDINGS, forgeDown(FLEET_FIVE_FORGES), forgeDown(FLEET_OUTAGE_ENDINGS)];
+    for (const fleetDocument of fleets) {
+      const { markup } = ShellMarkup.viewPageHeadAt('#attention', fleetDocument);
+      expect(markup).toContain(ENABLED_CONTROL);
+    }
+  });
+
+  test('stands beside the alert that heads what waits, which names its forges', () => {
+    const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_OUTAGE_ENDINGS)));
+    expect(markup).toContain(ENABLED_CONTROL);
+    expect(ShellMarkup.textIn(markup)).toContain('3 agents stopped on a network outage');
   });
 });

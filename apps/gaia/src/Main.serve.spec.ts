@@ -120,7 +120,7 @@ describe('gaia serve', () => {
 
     const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 3, kind: 'fleet-look-again' }) });
     expect(await lookAgain.json()).toEqual({
-      answerVersion: 3, outcome: 'done', refusal: null, text: null
+      answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });
 
     const page = await answerOf(address, '/');
