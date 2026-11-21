@@ -1,0 +1,468 @@
+/*
+ * The Intake view: the product-owner sessions beside one chat, the chat's aside of drafts and pictures, and the pictures a message
+ * carries, is about to carry and carried.
+ */
+/* Intake: the session list beside one chat; the list stays in view while the chat scrolls. Under 900px one column. */
+.board-intake-split {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+}
+
+.board-intake-pane {
+  min-width: 0;
+}
+
+.board-intake-split > .board-intake-pane:first-child {
+  position: sticky;
+  top: var(--sp-4);
+}
+
+@media (max-width: 900px) {
+  .board-intake-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .board-intake-split > .board-intake-pane:first-child {
+    position: static;
+  }
+}
+
+.board-intake-new-chat-glyph {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+
+/* A session row: id and title on one line, its facts wrapping under the title, then its last line; rows part by a hairline, the selected
+   one on the wash with an ink edge, a closed one's title muted. */
+.board-intake-sessions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board-intake-sessions > li + li {
+  border-top: 1px solid var(--line);
+}
+
+.board-intake-session {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 16px 12px 18px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.board-intake-session:hover {
+  color: var(--ink);
+  text-decoration: none;
+  background: var(--wash);
+}
+
+.board-intake-session:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: -2px;
+}
+
+.board-intake-session[aria-current="true"] {
+  background: var(--surface-selected);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.board-intake-session-top {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.board-intake-session-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-lead);
+  font-weight: 500;
+}
+
+.board-intake-session[aria-current="true"] .board-intake-session-title {
+  font-weight: 600;
+}
+
+.board-intake-session[data-closed] .board-intake-session-title {
+  color: var(--ink-muted);
+}
+
+.board-intake-session-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-small);
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
+.board-intake-session-last {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-tab);
+  color: var(--ink-4);
+}
+
+/* The selected session: the chat beside a 272px aside; under 1180px the aside goes under the chat. The pane is the chat's card. */
+.board-intake-meta {
+  font-size: var(--fs-tab);
+  color: var(--ink-muted);
+}
+
+.board-intake-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+}
+
+.board-intake-chat {
+  min-width: 0;
+}
+
+.board-intake-detail > .board-intake-chat {
+  border-right: 1px solid var(--line);
+}
+
+.board-intake-chat > .board-chat,
+.board-intake-chat .board-composer {
+  background: none;
+}
+
+.board-intake-chat > .board-chat {
+  border: 0;
+  border-radius: 0;
+}
+
+.board-intake-chat .board-chat-thread {
+  padding: 16px 24px 18px;
+}
+
+.board-intake-chat .board-tool-fold {
+  width: 100%;
+  min-width: 0;
+}
+
+.board-intake-chat .board-composer {
+  padding: 14px 24px 18px;
+}
+
+.board-intake-chat .board-chat > .board-composer:first-child {
+  border-top: 0;
+}
+
+/* The foot keeps one line: the attach hint gives way first, cut short; on a phone it wraps. */
+.board-intake-chat .board-composer-foot {
+  flex-wrap: nowrap;
+}
+
+.board-intake-chat .board-composer-foot > :is(.board-key-hint, .board-picture-attach) {
+  flex: none;
+}
+
+@media (max-width: 600px) {
+  .board-intake-chat .board-composer-foot {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 1180px) {
+  .board-intake-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .board-intake-detail > .board-intake-chat {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+/* The aside on the page's ground: what the session filed, the pictures sent in its chat, and Close intake under a rule at its foot. */
+.board-intake-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  padding: 18px;
+  background: var(--bg);
+}
+
+.board-intake-aside-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.board-intake-pictures {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-body);
+  color: var(--ink-muted);
+}
+
+.board-intake-picture-link {
+  overflow-wrap: anywhere;
+}
+
+.board-intake-close {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+/* Pictures to send: a thumbnail card per picture with its remove button on its corner, dimmed while it uploads, in the error colours when
+   refused; then the dashed drop zone, in the link colours while a picture is dragged over the chat. */
+.board-picture-tray {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board-picture-thumbnail {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  max-width: 280px;
+  padding: 4px 12px 4px 4px;
+  color: var(--ink-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+
+.board-picture-thumbnail[data-uploading] {
+  opacity: 0.6;
+}
+
+.board-picture-thumbnail[data-refused] {
+  background: var(--err-tint);
+  border-color: var(--err-edge);
+}
+
+.board-picture-thumbnail-image {
+  flex: none;
+  width: 40px;
+  height: 30px;
+  object-fit: cover;
+  background: var(--surface);
+  border-radius: var(--r-1);
+}
+
+.board-picture-thumbnail-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.board-picture-thumbnail-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--fs-micro)/1.4 var(--font-mono);
+  color: var(--ink);
+}
+
+.board-picture-thumbnail-size {
+  font: var(--fs-micro)/1.4 var(--font-mono);
+}
+
+.board-picture-thumbnail-refusal {
+  font-size: var(--fs-micro);
+  line-height: 1.4;
+  color: var(--err-ink);
+}
+
+.board-picture-thumbnail-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font: 600 13px/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.board-picture-thumbnail-remove:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+.board-picture-drop {
+  display: flex;
+  flex: 1 1 160px;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  font-size: var(--fs-small);
+  color: var(--ink-muted);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-2);
+}
+
+.board-picture-drop[data-active] {
+  color: var(--link);
+  background: var(--link-tint);
+  border-color: var(--link);
+}
+
+/* Attach pictures: a compact secondary button, a label over a file field hidden from sight, never from the keyboard. */
+.board-picture-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 10px;
+  font: 500 var(--fs-body)/1 var(--font-ui);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+  cursor: pointer;
+}
+
+.board-picture-attach:hover {
+  border-color: var(--ink-muted);
+}
+
+.board-picture-attach:focus-within {
+  outline: 2px solid var(--link);
+  outline-offset: 1px;
+}
+
+.board-picture-attach[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.board-picture-attach-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.board-picture-attach-glyph {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+}
+
+.board-picture-attach-hint {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A sent picture in User's turn: the picture over its name and size, opening it whole in a new tab. */
+.board-picture-sent {
+  display: flex;
+  flex-direction: column;
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--ink-muted);
+  text-decoration: none;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px 12px 4px 12px;
+  cursor: zoom-in;
+}
+
+.board-picture-sent:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.board-picture-sent-image {
+  display: block;
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+}
+
+.board-picture-name {
+  display: block;
+  padding: 4px 10px;
+  font: var(--fs-micro)/1.5 var(--font-mono);
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+/* An intake session's drafts: a dashed card each, the mono id and title linking to its ticket over its status badge. */
+.board-intake-drafts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.board-intake-draft {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-2);
+}
+
+.board-intake-draft-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.board-intake-draft-link:hover {
+  color: var(--ink);
+}
+
+.board-intake-draft-title {
+  font-size: var(--fs-lead);
+  font-weight: 600;
+}
+
+/* The Agents view: its title row, the worker card, then Sessions; each table scrolls inside its card, never the page. While a job's side
+   panel is open, a wide view keeps the cards clear of it. */

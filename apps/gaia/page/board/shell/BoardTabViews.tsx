@@ -10,6 +10,7 @@ import type { ConnectionState }      from '../api/BoardEventStreamClient.ts';
 import type { PreferenceStore }      from '../preferences/PreferenceStore.ts';
 import { AgentsView }                from '../views/agents/AgentsView.tsx';
 import { AssistantView }             from '../views/assistant/AssistantView.tsx';
+import { IntakeView }                from '../views/intake/IntakeView.tsx';
 import { QuestionsTabView }          from '../views/questions/QuestionsView.tsx';
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
 
@@ -26,6 +27,10 @@ export type BoardTabView = (props: BoardTabViewProps) => ReactNode;
 
 export type BoardTabViewTable = Readonly<Partial<Record<BoardTab, BoardTabView>>>;
 
+function IntakeTabView({ board, route, services }: BoardTabViewProps) {
+  return <IntakeView board={board} followTranscript={services.followTranscript} selectedItem={route.item} />;
+}
+
 export const BOARD_TAB_VIEWS: BoardTabViewTable = {
   questions: QuestionsTabView,
   agents:    ({ board, route, services }) => (
@@ -36,4 +41,5 @@ export const BOARD_TAB_VIEWS: BoardTabViewTable = {
     />
   ),
   assistant: ({ board, services }) => <AssistantView board={board} followTranscript={services.followTranscript} />,
+  intake:    IntakeTabView,
 };

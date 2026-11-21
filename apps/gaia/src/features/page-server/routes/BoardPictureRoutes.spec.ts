@@ -12,6 +12,8 @@ import {
   test
 } from 'bun:test';
 
+import { recordedBoardDocumentOf }                                                   from '../../../adapters/forge-api/testing/BoardDocuments.ts';
+import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                          from '../../../shared/constants/Limits.ts';
 import { recordedBoardAnswersOf, recordedOverseerFetch, type RecordedOverseerFetch } from '../../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                                 from '../../../testing/ScratchRoot.ts';
 import {
@@ -133,5 +135,14 @@ describe('a picture read back', () => {
     expect([unreachable.status, await unreachable.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
     const noToken = await pictureAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_PICTURE_ID, sourcesOver(recordedOverseerFetch([]), { tokenPath: null }));
     expect([noToken.status, await noToken.json()]).toEqual([502, { refusal: 'token-unreadable', refusedBy: 'gaia' }]);
+  });
+});
+
+describe('Gaia\'s bound on an upload', () => {
+  test('takes every picture the recorded forge\'s served limits admit, so a picture too large is refused in the forge\'s sentence', async () => {
+    const board = await recordedBoardDocumentOf('board-at-work') as { readonly pictureLimits?: { readonly sizeLimitBytes?: unknown } | null };
+    const forgeSizeLimitBytes = board.pictureLimits?.sizeLimitBytes;
+    expect(typeof forgeSizeLimitBytes).toBe('number');
+    expect(BOARD_PICTURE_UPLOAD_LIMIT_BYTES).toBeGreaterThanOrEqual(forgeSizeLimitBytes as number);
   });
 });
