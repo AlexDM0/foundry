@@ -872,7 +872,9 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The restart to code ${detail.successorCodeVersion} failed at ${detail.step}: ${detail.error}. `
         + (detail.url === null
           ? 'The old Hephaestus had let go, so no Hephaestus is on the board; '
-          : `The old Hephaestus keeps driving at ${detail.url} and shows this as a warning; `)
+          : detail.step === 'serve'
+            ? `The old Hephaestus still holds the board at ${detail.url}; `
+            : `The old Hephaestus keeps driving at ${detail.url} and shows this as a warning; `)
         + `see ${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} status\` and `, '')}the Hephaestus log.`;
     case 'hephaestus-control-is-runtime-only':
       return `${detail.commandKind} is sent to the live Hephaestus, never applied to the board. ${NOTHING_WAS_WRITTEN}`;

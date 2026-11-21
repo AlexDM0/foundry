@@ -574,7 +574,8 @@ URL stays and Talos is not touched. With no live Hephaestus the step is skipped.
 `update` needs a commit too.
 
 > **As built.** A stop sent through the API is refused while held: run `update`, then `job stop`.
-> A stop sent during a [restart](../glossary.md#restart) is dropped.
+> A stop sent during a [restart](../glossary.md#restart) is taken while the preflight runs, and dropped once the old
+> Hephaestus lets go of the board.
 
 **A failed preflight:** `update` or `restart` exits 1 with `restart-failed`, and the sentence says the old Hephaestus
 keeps driving. What `update` installed stands, and the old Hephaestus keeps driving with a `warning:` line in

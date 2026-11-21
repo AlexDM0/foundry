@@ -95,6 +95,9 @@ export const HEPHAESTUS_READY_INTERVAL_MILLISECONDS = 250;
 /** How long the code on disk may take to report its preflight before a restart is refused; real time, since a hung preflight must end. */
 export const RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS = 20_000;
 
+/** How many times `restart` and `update` look for a restarted Hephaestus, which first finishes a landing in progress, to let go of the board. */
+export const RESTART_RELEASE_TRIES = 600;
+
 /** How long `restart` and `update` wait for the live Hephaestus to answer a restart, which it does once the preflight reported. */
 export const RESTART_REQUEST_TIMEOUT_MILLISECONDS = 30_000;
 

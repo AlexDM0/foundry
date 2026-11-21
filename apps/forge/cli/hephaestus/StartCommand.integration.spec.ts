@@ -24,6 +24,7 @@ import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
+  describe,
   expect,
   test
 } from 'bun:test';
@@ -61,6 +62,7 @@ import {
   idleHephaestusAnswersIn,
   REFRESH_OF_AN_IGNORING_REPOSITORY
 } from '../testing/RecordedGitStages.ts';
+import { preflightFailureOf } from './HephaestusForeground.ts';
 
 const ports = nativePlatformPorts();
 const recordedGit = useRecordedGit();
@@ -533,4 +535,38 @@ describeWhenGitIsRecorded('run start, status, restart and stop', () => {
     expect(JSON.parse(status.standardOutput)).toMatchObject({ hephaestus: { state: 'serving', hephaestusLock: { generation: 1 } } });
     await stopHephaestus();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+});
+
+describe('the preflight as the serving Hephaestus runs it', () => {
+  const failureOfProgram = (programCommand: string[], boundMilliseconds?: number) => preflightFailureOf(
+    { programCommand },
+    { rootDirectory: repositoryDirectory },
+    { logFilePath: join(repositoryDirectory, 'example-hephaestus.log') },
+    boundMilliseconds,
+  );
+  const scriptOf = (script: string): string[] => [process.execPath, '-e', script];
+
+  test('no program command, or one that cannot be run, fails at spawn', async () => {
+    expect(await failureOfProgram([])).toMatchObject({ step: 'spawn' });
+    expect(await failureOfProgram([join(repositoryDirectory, 'no-such-program')])).toMatchObject({ step: 'spawn' });
+  });
+
+  test('a preflight that exits with no report fails at preflight, naming its exit code', async () => {
+    expect(await failureOfProgram(scriptOf('process.exit(3)'))).toMatchObject({ step: 'preflight', error: 'the preflight exited 3 with no report' });
+  });
+
+  test('a preflight that hangs is ended at the bound and fails at preflight', async () => {
+    const boundMilliseconds = 200;
+    const failure = await failureOfProgram(scriptOf('setInterval(() => undefined, 1000)'), boundMilliseconds);
+    expect(failure).toMatchObject({ step: 'preflight', error: `the preflight left no report within ${boundMilliseconds} ms` });
+  });
+
+  test('a fit report on the last line is no failure, and an unfit one fails at its step', async () => {
+    const reportScriptOf = (report: object): string[] => scriptOf(`console.log('example line'); console.log(${JSON.stringify(JSON.stringify(report))})`);
+    expect(await failureOfProgram(reportScriptOf({ verdict: 'fit', codeVersion: 'code-example' }))).toBeNull();
+    const unfit = {
+      verdict: 'unfit', codeVersion: 'code-example', step: 'read-jobs', error: 'Example error'
+    };
+    expect(await failureOfProgram(reportScriptOf(unfit))).toEqual({ successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error' });
+  });
 });

@@ -18,6 +18,7 @@ import {
   HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS,
   HEPHAESTUS_STOP_INTERVAL_MILLISECONDS,
   HEPHAESTUS_STOP_TRIES,
+  RESTART_RELEASE_TRIES,
   RESTART_REQUEST_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
 import type { CommandContext }      from '../CommandContext.ts';
@@ -170,16 +171,30 @@ async function restartAnswerOf(record: HephaestusLockRecord, now: boolean): Prom
   }
 }
 
-/** The successor once it holds the Hephaestus lock as another process than the one restarted and its API answers; `null` when none came. */
-async function successorOnceItServes(ports: PlatformPorts, files: HephaestusFiles, restarted: HephaestusLockRecord): Promise<HephaestusLockRecord | null> {
-  const tries = HEPHAESTUS_STOP_TRIES + HEPHAESTUS_READY_TRIES;
-  const schedule = hephaestusPollScheduleOf({ tries, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
-  for (let attempt = 0; attempt < schedule.tries; attempt++) {
+type SuccessorWait =
+  | { verdict: 'serves'; record: HephaestusLockRecord }
+  | { verdict: 'still-held' }
+  | { verdict: 'none' };
+
+/**
+ * Waits for the successor: another process than the one restarted, holding the Hephaestus lock, its API answering. The restarted process may
+ * hold the lock for long while it finishes a landing, so the successor's own tries count only once that process is gone. `still-held`: it
+ * never let go. `none`: it is gone and no successor served.
+ */
+async function successorOnceItServes(ports: PlatformPorts, files: HephaestusFiles, restarted: HephaestusLockRecord): Promise<SuccessorWait> {
+  const override = hephaestusPollIntervalOverride();
+  const release = hephaestusPollScheduleOf({ tries: RESTART_RELEASE_TRIES, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, override);
+  const start = hephaestusPollScheduleOf({ tries: HEPHAESTUS_STOP_TRIES + HEPHAESTUS_READY_TRIES, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, override);
+  let triesSinceItLetGo = 0;
+  for (let attempt = 0; attempt < release.tries + start.tries; attempt++) {
     const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
-    if (newest.verdict === 'live' && newest.record.processId !== restarted.processId && await identityAnswers(newest.record)) return newest.record;
-    await Bun.sleep(schedule.intervalMilliseconds);
+    const stillHeld = newest.verdict === 'live' && newest.record.processId === restarted.processId;
+    if (newest.verdict === 'live' && !stillHeld && await identityAnswers(newest.record)) return { verdict: 'serves', record: newest.record };
+    if (stillHeld && attempt >= release.tries) return { verdict: 'still-held' };
+    if (!stillHeld && ++triesSinceItLetGo > start.tries) return { verdict: 'none' };
+    await Bun.sleep(release.intervalMilliseconds);
   }
-  return null;
+  return { verdict: 'still-held' };
 }
 
 function handedOver(files: HephaestusFiles, generation: number): boolean {
@@ -189,29 +204,32 @@ function handedOver(files: HephaestusFiles, generation: number): boolean {
 
 /**
  * Asks the live Hephaestus for its checked restart and waits for the successor to serve. A refused preflight is refused `restart-failed`, the
- * old Hephaestus still driving; a successor that never served is refused the same at `serve`, with no Hephaestus on the board. A Hephaestus
- * whose API does not take the command is the caller's to stop and restart.
+ * old Hephaestus still driving, as is one that never let go; a successor that never served is refused the same at `serve`, with no Hephaestus
+ * on the board. A Hephaestus whose API does not take the command, and a board no Hephaestus serves, are the caller's to stop and start.
  */
 async function restartTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles, now: boolean): Promise<RestartOutcome> {
   const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
   if (newest.verdict === 'none' || newest.record === null) return { verdict: 'was-down' };
-  const answer: RestartAnswer = newest.verdict === 'live' ? await restartAnswerOf(newest.record, now) : { verdict: 'not-taken' };
-  // A generation that already handed over is being restarted by another command: its successor is waited for, and nothing is stopped.
-  if (answer.verdict === 'not-taken' && !handedOver(files, newest.generation)) {
-    return newest.verdict === 'live' ? { verdict: 'not-taken', record: newest.record } : { verdict: 'was-down' };
-  }
+  const { record } = newest;
+  const answer: RestartAnswer = newest.verdict === 'live' ? await restartAnswerOf(record, now) : { verdict: 'not-taken' };
+  const unanswered: RestartOutcome = newest.verdict === 'live' ? { verdict: 'not-taken', record } : { verdict: 'was-down' };
   if (answer.verdict === 'refused') {
     throw new OperationRefusal('refused', {
-      kind: 'restart-failed', successorCodeVersion: answer.successorCodeVersion, step: answer.step, error: answer.error, url: newest.record.url
+      kind: 'restart-failed', successorCodeVersion: answer.successorCodeVersion, step: answer.step, error: answer.error, url: record.url
     });
   }
-  const successor = await successorOnceItServes(ports, files, newest.record);
-  if (successor === null) {
-    throw new OperationRefusal('refused', {
-      kind: 'restart-failed', successorCodeVersion: 'unknown', step: 'serve', error: 'the successor did not serve', url: null
-    });
-  }
-  return { verdict: 'restarted', successorCodeVersion: successor.codeVersion, url: successor.url };
+  // A generation that handed over without answering this command is being restarted by another one: its successor is waited for first.
+  if (answer.verdict === 'not-taken' && !handedOver(files, newest.generation)) return unanswered;
+  const waited = await successorOnceItServes(ports, files, record);
+  if (waited.verdict === 'serves') return { verdict: 'restarted', successorCodeVersion: waited.record.codeVersion, url: waited.record.url };
+  if (answer.verdict === 'not-taken') return waited.verdict === 'none' ? { verdict: 'was-down' } : unanswered;
+  throw new OperationRefusal('refused', {
+    kind:                 'restart-failed',
+    successorCodeVersion: 'unknown',
+    step:                 'serve',
+    error:                waited.verdict === 'none' ? 'the successor did not serve' : 'the old Hephaestus did not let go of the board',
+    url:                  waited.verdict === 'none' ? null : record.url,
+  });
 }
 
 /** The same program with its streams dropped, in the root so it holds no worktree as its working directory; Hephaestus logs to `hephaestus.log` itself. */

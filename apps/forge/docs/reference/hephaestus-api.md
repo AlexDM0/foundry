@@ -157,7 +157,7 @@ when the preflight passed and the old Hephaestus is about to let go, or 409 `res
 `successorCodeVersion`, `step`, `error` and `url`, when it failed, the old Hephaestus still driving. `restart` and `update`
 then wait on the Hephaestus lock files for the successor to serve.
 
-> **As built.** The `now` of a restart goes nowhere, and a stop arriving during a restart is answered and dropped.
+> **As built.** The `now` of a restart goes nowhere, and a stop arriving once a restart let go of the board is answered and dropped; one arriving during the preflight is taken.
 > The install hold refuses a job stop too.
 
 `talos-restart` `{kind}`, from forge 1.23, is the third runtime command: the clean restart of the board's

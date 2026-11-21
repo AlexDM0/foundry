@@ -622,6 +622,8 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   // The lifetime of a generation between its creation and `current`, so a crash recorded in that gap still ends the loop.
   let lifetimeBeingStarted: ReturnType<typeof hephaestusLifetime> | null = null;
   let handingOver = false;
+  // While the code on disk proves itself this Hephaestus still drives, so a stop is taken; once it releases, every command is too late.
+  let preflightRunning = false;
   let restartWarning: RestartFailure | null = null;
   let printedTheUrl = false;
 
@@ -701,7 +703,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         silentSweepsOf:   (jobId: string) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
         onRuntimeCommand: async (command: RuntimeHephaestusCommand): Promise<RuntimeCommandOutcome> => {
           log(`${command.kind} received${'now' in command && command.now ? ' (now)' : ''}.`);
-          if (current === null || handingOver) return command.kind === 'talos-restart' ? 'nothing-to-do' : 'done';
+          if (current === null || (handingOver && !preflightRunning)) return command.kind === 'talos-restart' ? 'nothing-to-do' : 'done';
           if (command.kind === 'talos-restart') {
             const outcome = await quitTalosForRestart(talosConnection);
             log(`Talos ${followedTalosStartNumber ?? 'none'} was asked to quit for a clean restart: ${outcome}.`);
@@ -709,8 +711,10 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
           }
           if (command.kind === 'hephaestus-restart') {
             // Set at once, so a second command during this restart starts no second preflight.
+            if (preflightRunning) return 'done';
             handingOver = true;
-            const failure = await preflightFailureOf(context, workspace, files);
+            preflightRunning = true;
+            const failure = await preflightFailureOf(context, workspace, files).finally(() => { preflightRunning = false; });
             if (failure !== null) {
               await recordRestartFailure(failure);
               handingOver = false;
@@ -940,7 +944,28 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordRestartFailed(failure, transaction.at));
   }
 
-  const serving = await startServing(request.portChoice);
+  /** A successor that cannot serve leaves the board with no Hephaestus after a restart, which the registry then says, so a monitor alerts. */
+  async function registerTheFailedSuccessor(predecessorGeneration: number, thrown: unknown): Promise<void> {
+    const error = CrashLog.errorOf('pass', thrown);
+    await registerHephaestus(request, {
+      presence: {
+        state:      'crashed',
+        generation: predecessorGeneration,
+        at:         LocalTimeUtil.formatLocalIso(context.now()),
+        crash:      {
+          component: 'hephaestus', suspected: false, errorName: error.name, errorMessage: error.message, crashLogPath: null
+        },
+      },
+    });
+    log(`The successor of Hephaestus lock ${predecessorGeneration} could not serve, so no Hephaestus is on the board: ${error.message}`);
+  }
+
+  const serving = await startServing(request.portChoice).catch(async (thrown: unknown) => {
+    // A start that lost to a live Hephaestus leaves the board served.
+    const boardIsServed = HephaestusLock.newestOf(platformPorts, files.hephaestusDirectory).verdict === 'live';
+    if (request.successorOf !== undefined && !boardIsServed) await registerTheFailedSuccessor(request.successorOf, thrown);
+    throw thrown;
+  });
 
   const settledEnd = await serving.lifetime.ended;
   // A crash recorded while another end settled first still ends the loop crashed; the stop waits are checked again below.
@@ -955,7 +980,11 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     }
     // The lock is kept and dies with this process, so the successor takes the next generation and no client reads a generation twice.
     const successor = spawnSuccessor(context, workspace, files, serving.generation, serving.server.port);
-    log(successor === null ? 'The successor could not be started, so no Hephaestus is on the board.' : `Started the successor as process ${successor.processId}; exiting.`);
+    if (successor === null) {
+      await registerTheFailedSuccessor(serving.generation, new Error('the successor could not be started'));
+      return;
+    }
+    log(`Started the successor as process ${successor.processId}; exiting.`);
     return;
   }
   serving.lifetime.stopWatching();

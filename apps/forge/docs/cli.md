@@ -1486,15 +1486,21 @@ Talos is sent nothing, and the successor connects to the same Talos. Hephaestus 
   exits. It keeps its Hephaestus lock, which dies with its process: the successor waits for that process to end and
   takes the next generation, so the generation rises by one across a restart and no client reads one twice. Only a
   `stop` releases the Hephaestus lock. `restart` waits for the successor to take the Hephaestus lock and answer, then
-  prints `Hephaestus handed over to code <codeVersion> at <url>`.
-- A second `hephaestus-restart` while one runs is answered `done` and starts no second preflight.
-- Nothing takes the board back. A successor that does not serve leaves no Hephaestus on the board, and `restart`
-  refuses `restart-failed` at step `serve`, at exit 1; run `start`. A successor that took the Hephaestus lock and
-  died is a crash, which the next start classifies.
+  prints `Hephaestus handed over to code <codeVersion> at <url>`. It waits as long as the old Hephaestus holds the
+  board, `RESTART_RELEASE_TRIES` looks at most, and counts the successor's own tries only once that process is gone.
+- A second `hephaestus-restart` while one runs is answered `done` and starts no second preflight. A `restart` that
+  finds a generation already handed over waits for that restart's successor.
+- A `stop` sent while the preflight runs is taken: the old Hephaestus still drives then, and it stops. Once it lets
+  go of the board, a command is answered `done` and dropped.
+- Nothing takes the board back. A successor that does not serve leaves no Hephaestus on the board: it writes the
+  presence `crashed` to the registry, so a monitor alerts, and `restart` refuses `restart-failed` at step `serve`, at
+  exit 1; run `start`, or `restart` again, which then starts one. An old Hephaestus that never let go is refused the
+  same, naming its URL. A successor that took the Hephaestus lock and died is a crash, which the next start
+  classifies.
 - A Hephaestus whose API does not take the command is stopped and started again detached on its port. With none live,
   one is started, on the port of a Hephaestus found dead, whose stop is recorded in its place.
 
-> **As built.** `--now` counts only on that fallback. A stop sent while the restart runs is answered and dropped.
+> **As built.** `--now` counts only on that fallback.
 
 #### Hephaestus's facts in `status`
 
