@@ -169,6 +169,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - **WP8.8:** open a ticket body, an epic description and a constitution preview in Gaia on a live forge to see them render.
 
+- **WP8.9:** with a real session, `gate assistant on` boots an Assistant; `off` mid-turn lets it finish the turn, closes its input and ends the session without counting a crash or failed boot, and open incidents log `assistant-off`. No Assistant boots on a new board until `gate assistant on`.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -336,6 +338,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - **WP6.23b (moot since WP8.5 removed the brain from Gaia):** the brain's button in B1 read "Stop brain", where SCREENS B1 and COMPONENT_LIBRARY 3.4 ask for a secondary "Stop"; it sat right beside the forge's own Stop. An argued deviation to confirm or revert (`BrainChip.tsx` `STOP_LABEL`).
 
+- **WP8.9:** an Assistant winds down by closing its input once idle, not by a wind-down chat (an extra chat would break chat numbering). Lives in `WIND_DOWN_REQUEST` in `AssistantSession.ts` and the exclusion in `JobControlDelivery.ts`.
+
 ### Blocked
 
 (none)
@@ -459,6 +463,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - **WP8.13b:** `--shadow-control` has no dark value in the design-system library's tokens; the new guard lists it as the same in both themes. A dark value may be wanted.
 - **WP8.7:** `WorkerProfile.availableTools: 'none'` and its branch in the Claude adapter have no caller since the brain left.
+
+- **WP8.9:** a live Assistant is asked to wind down only by the `pipeline-assistant-set` command. If the `assistant` key leaves `pipeline.json` another way (a hand edit, or a file replaced on Apply), the live Assistant gets no stop request and lingers, receiving no incidents, until Hephaestus stops.
+- **WP8.9:** `apps/forge/CLAUDE.md:99-100` says an older file is refused with `OLDER_FORMAT_ADVICE`, but an older `pipeline.json` keeps its own `older-pipeline` wording and the Deviations row that said so was deleted with the package. Restore a narrowed row or change the wording.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -620,8 +627,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 8-E | WP8.13b | landed | 9b7f0ac5 | First round, on Fable. `StyleBraceBalance`, `HoverMovesNothing`, `ReducedMotionStopsEveryAnimation` and `ThemeTokens` specs in `page/lib/design-system/` with the library's own `testing/StyleRuleReader.ts`; `page/lib/brand/StyleGuards.spec.ts`; flint has no stylesheet. No real violation found. `--shadow-control` and `--flare-light` have no dark value and are listed as same in both themes. Verify 18/18 after landing |
 | 8-E | WP8.7 | landed | c0880e8c | First round, on Fable. 61 files, 3,231 lines gone: no forge code runs, serves or commands Flint's brain and the contract names none. `POST /api/flint-brain/ask` answers 404 and both brain command kinds 400. The reader of the stored `flint-brain-ended` record is kept; such a record shows in the monitor's `activity[]` as an ordinary `agent` entry with no `kind` or `tokens`. `OverseerApiCommand` is gone (`ControlCommand`). `monitor-v3.json` edited in place again; WP8.10 must raise the version. Both forge recordings re-taken, unchanged. Left: `WorkerProfile.availableTools: 'none'` and its Claude adapter branch have no caller; `runbook.md:595` should say "every forge from 1.1" (WP8.12). Verify 18/18 after landing |
 | 8-F | WP8.8 | landed | ae2daac8 | First round, on Fable. Forge serves `bodyMarkdown`, `descriptionMarkdown` and `constitutionMarkdown`; forge's renderer, `RenderState.ts` and `src/lib/html-escape/` are gone and `marked` moved to Gaia. Gaia's model holds Markdown and `BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown)` renders into the page's unchanged HTML fields with `apps/gaia/src/lib/markdown-render/` (type `MarkdownRendering`); `BoardStateRoute` builds it once. `withAcceptanceItemsSeparated` is in `TicketAcceptanceUtil.ts`. `overseer-fetch-board.json` re-taken from a scratch forge, since Gaia's ingestion checks the recorded keys. WP8.10 must raise the board endpoint's version for the three renamed keys. Left for WP8.12: `apps/forge/README.md:146` lists `marked`, `react` and `react-dom`. Verify 18/18 after landing |
-| 8-G | WP8.9 | running | | |
-| 8-H | WP6.27 | waiting | | |
+| 8-G | WP8.9 | landed | 34d45ade | First round, on Fable. 153 files. `Pipeline.assistant` and `forgeOnly`, `PIPELINE_FORMAT_VERSION` 5, the two frozen pipeline files gone; `gate assistant on|off` and `--forge-only`; new board command `pipeline-assistant-set` (35 kinds) and cause `assistant-off`; refusal `assistant-without-pipeline`. An older pipeline file keeps today's `older-pipeline` sentence, not `OLDER_FORMAT_ADVICE`, while `apps/forge/CLAUDE.md:99` still states the advice rule with no Deviations row. Switching off winds the live Assistant down by closing its input once idle (`WIND_DOWN_REQUEST`); with the switch off an open turn at its call budget defaults `turn-budget`. Hashes and `FrozenClaudeInstall.json` retaken; `INSTALL_VERSION` stays 44. Gaia passes the `assistant` key over until WP6.27. WP8.10 raises the contract versions. `verify:integration` 872 pass, 1 skip. Verify 18/18 after landing |
+| 8-H | WP6.27 | running | | |
 | 8-I | WP8.10 | waiting | | |
 | 8-J | WP8.11 | waiting | | |
 | 8-J | WP8.12 | waiting | | |
