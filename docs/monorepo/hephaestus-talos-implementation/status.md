@@ -159,6 +159,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.23: open a real forge in Gaia; every tab draws with no frame and an agent's HTML frame still loads. Run
   `versions:raise-minimum` as a dry run in apps/gaia (auto mode refused it to the checker).
 
+- **WP8.2:** open Gaia on a live forge and click a Waiting on User entry, an agent row and an activity entry; each should open the right place (the monitor now serves a typed target).
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -597,9 +599,9 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-W | WP6.23b | landed | e75506bb | Passed on its second check. Gaia's specs read stamps, ids, order and the calendar date from the recording they play; all 8 step-1 recordings and forge's `InstallChangeWatch` re-taken; the `agent-progress` stamp now reads "install version N, answer version M"; `ScratchForge.exampleValueFor` lets the newest drawing of a value set its example; B1 paints a board, `CRASHED_FORGE_SCREENS` adds two screens, the Versions bar wraps, the brain's button reads "Stop brain". `BoardServices.readingAtMount` and `ForgeViewSurroundings.crashLogsReadAtMount` hand state in at mount for painted screens. 70 PNGs in `.claude/.evidence/hephaestus-talos/stage-6/wp6-23b-screens/`. Verify 30/30 after landing |
 | 8-A | WP8.1 | landed | 17be7ee8 | First round, on Fable. Every path outside the Overseer's API answers 404; `page-build-failed` is gone from `ServerRefusal`; `FEATURE_REACHES_BY_PATH` kept as an empty list with its check. The Done-when grep prints 4 lines, all the planted guard case in `ImportDirection.spec.ts` the package itself asks for (WP8.2 deletes it). `HEADLESS_BRIDGE_SPEC` left the `OverseerServer.ts` boundary here, not in WP8.2. The page cases were in `OverseerApi.integration.spec.ts`. `bridge/HeadlessBridge.integration.spec.ts` is red in `verify:integration` until WP8.2 deletes it. Verify 30/30 after landing |
 | 8-A | WP8.3 | landed | 3dce699a | First round, on Fable. Gaia held no embed machinery in production code; three spec files changed. The Done-when grep prints 4 lines that must stay: the `frame-session` 404 proof and Gaia's own `frame-ancestors 'none'` policy. Verify 30/30 after landing |
-| 8-B | WP8.2 | running | | |
-| 8-C | WP8.4 | waiting | | |
-| 8-C | WP8.5 | waiting | | |
+| 8-B | WP8.2 | landed | 82b0c6b0 | First round, on Fable. 717 files, 82,896 lines gone: `apps/forge/bridge` is empty and forge has no DOM spec (`TestFileConventions.spec.ts` refuses any `.dom.tsx`). Monitor attention entries, jobs and activity carry a typed `target` (`BoardTarget`) where they carried `route`; `monitorVersion` stays 3 and the v3 fixtures were edited in place, so WP8.10 must raise the version. Gaia maps a target to a place in `PLACE_OF_TARGET_SUBJECT`. Three Gaia recordings re-taken from a scratch forge. `ImportDirection.spec.ts` lost the feature rule. `verify:integration` 875 pass, 1 skip, 0 fail. Left for WP8.12: docs that name deleted Bridge images, scripts and `.readme-graphics` files (`running-a-board.md`, `cli.md`, `contributing.md`, `guards-and-testing.md`, `platform-status.md`, README's runtime dependencies, `apps/forge/CLAUDE.md:165`). Left for WP8.13: `.claude/rules/design-system.md` and the four style guards for `packages/design-system` stylesheets that went with `bridge/`. Verify 30/30 after landing |
+| 8-C | WP8.4 | running | | |
+| 8-C | WP8.5 | running | | |
 | 8-D | WP8.6 | waiting | | |
 | 8-D | WP8.13 | waiting | | |
 | 8-E | WP8.7 | waiting | | |
