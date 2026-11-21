@@ -6,7 +6,8 @@
  * with their own word; calls read against the budget, warn near it and unbounded without one; subagents are squares worded in every plural
  * form; the ask carries the open decision's first question and its stamp sliced as the inbox slices it; every count leaves out its zero
  * parts and names one in the singular; a session says what it is about; a job is stopping by its state or by a stop request alone, and
- * takes a message exactly as the forge offers; the job panel's head and transcript head are worded from the job's facts alone; and a
+ * takes a message exactly as the forge offers; the job panel's head and transcript head are worded from the job's facts alone, an
+ * interrupted job's state by the wait its served cause names; and a
  * concurrency limit is sendable only as a changed whole number within the bounds the forge serves.
  */
 import { describe, expect, test } from 'bun:test';
@@ -233,8 +234,28 @@ describe('the controls a job takes', () => {
 
 describe('the job panel\'s words', () => {
   test('the head says the job\'s state, then how long ago it launched only where the log holds its launch', () => {
-    expect(AgentsModel.panelStateTextOf({ state: 'running' }, '12m 04s')).toBe('running · 12m 04s');
-    expect(AgentsModel.panelStateTextOf({ state: 'launching' }, null)).toBe('launching');
+    expect(AgentsModel.panelStateTextOf({ state: 'running', interruption: null }, '12m 04s')).toBe('running · 12m 04s');
+    expect(AgentsModel.panelStateTextOf({ state: 'launching', interruption: null }, null)).toBe('launching');
+  });
+
+  test('a job interrupted by a network outage or a lost supervision says its wait; any other state reads raw', () => {
+    expect([
+      AgentsModel.stateTextOf({ state: 'interrupted', interruption: 'network-outage' }),
+      AgentsModel.stateTextOf({ state: 'interrupted', interruption: 'lease-ended' }),
+      AgentsModel.stateTextOf({ state: 'interrupted', interruption: 'agent-crashed' }),
+      AgentsModel.stateTextOf({ state: 'running', interruption: 'network-outage' }),
+    ]).toEqual(['Network outage', 'Not supervised', 'interrupted', 'running']);
+    expect(AgentsModel.panelStateTextOf({ state: 'interrupted', interruption: 'lease-ended' }, '3m 00s')).toBe('Not supervised · 3m 00s');
+  });
+
+  test('what a waiting job follows reads in Gaia\'s words, one sentence for each wait the forge serves', () => {
+    expect((['instruction', 'answer', 'decision', 'nothing', 'never'] as const).map(AgentsModel.resumeWaitTextOf)).toEqual([
+      'Waits for your resume.',
+      'Resumes once its question is answered.',
+      'Resumes once its decision is answered.',
+      'Resumes by itself at the forge\'s next pass.',
+      'No resume restarts it.',
+    ]);
   });
 
   test('the transcript head counts its entries, one in the singular', () => {

@@ -1,6 +1,7 @@
 /**
  * The job-state readings. What matters: a session is up only past its launch and before it stops, and every job state of Gaia's union
- * takes the display state nearest its meaning.
+ * takes the display state nearest its meaning; an
+ * interrupted job takes the wait its served cause names, a network outage or a lost supervision, and no other cause or state does.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -22,5 +23,17 @@ describe('the display state of a job state', () => {
     expect(jobStates.map(JobStateUtil.displayStateOf)).toEqual([
       'committed', 'in-progress', 'paused', 'paused', 'paused', 'in-review', 'in-review', 'reviewed', 'reviewed',
     ]);
+  });
+});
+
+describe('the wait an interruption names', () => {
+  test('a network outage and an ended lease name their wait while the job is interrupted, and nothing once it resumed', () => {
+    expect([
+      JobStateUtil.displayStateOfJob({ state: 'interrupted', interruption: 'network-outage' }),
+      JobStateUtil.displayStateOfJob({ state: 'interrupted', interruption: 'lease-ended' }),
+      JobStateUtil.displayStateOfJob({ state: 'interrupted', interruption: 'usage-limit' }),
+      JobStateUtil.displayStateOfJob({ state: 'running', interruption: 'network-outage' }),
+    ]).toEqual(['network-outage', 'not-supervised', 'paused', 'in-progress']);
+    expect(JobStateUtil.interruptionWaitStateOf({ state: 'interrupted', interruption: null })).toBeNull();
   });
 });

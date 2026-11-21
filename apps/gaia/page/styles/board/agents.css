@@ -1,0 +1,125 @@
+
+/* The Agents view: its title row, the worker card, then Sessions; each table scrolls inside its card, never the page. While a job's side
+   panel is open, a wide view keeps the cards clear of it. */
+.agents-view { display: flex; flex-direction: column; gap: var(--sp-4); }
+@media (min-width: 1100px) {
+  .agents-view[data-job-open] { padding-right: calc(var(--side-panel-width) - 8px); }
+}
+
+.agents-scroll { overflow-x: auto; }
+.agents-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: var(--fs-tab); }
+.agents-table[data-diagnostics] { min-width: 1900px; }
+/* The seven columns add up to the 910px a card keeps beside an open job panel, so Tokens so far never scrolls out of sight. */
+.agents-table col[data-column="job"] { width: 140px; }
+.agents-table col[data-column="subject"] { width: 170px; }
+.agents-table col[data-column="state"] { width: 150px; }
+.agents-table col[data-column="calls"] { width: 130px; }
+.agents-table col[data-column="subagents"] { width: 116px; }
+.agents-table col[data-column="last-tool"] { width: 110px; }
+.agents-table col[data-column="tokens"] { width: 94px; }
+.agents-table col[data-column="phase"] { width: 90px; }
+.agents-table col[data-column="tool-calls"] { width: 150px; }
+.agents-table col[data-column="silent-sweeps"] { width: 100px; }
+.agents-table th,
+.agents-table td { text-align: left; padding: 9px 6px; border-top: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+.agents-table :is(th, td):first-child { padding-left: 18px; }
+.agents-table :is(th, td):last-child { padding-right: 18px; }
+.agents-table th { height: 38px; box-sizing: border-box; padding-top: 4px; padding-bottom: 4px; font-size: var(--fs-small); font-weight: 400; line-height: 15px; color: var(--ink-4); }
+.agents-table tbody tr.agents-job-row > td { height: 58px; box-sizing: border-box; }
+.agents-table :is(th, td)[data-column="tokens"] { text-align: right; }
+.agents-table td:is([data-column="tokens"], [data-column="tool-calls"], [data-column="silent-sweeps"]) { font-variant-numeric: tabular-nums; }
+.agents-head-note { display: block; font-size: var(--fs-micro); }
+
+/* A project's row: its name, then its card's line (the launch-slot meter, its figure and the limit control, or the session count). */
+.agents-project-row > td { height: 46px; box-sizing: border-box; padding-top: 0; padding-bottom: 0; background: var(--lane-bg); }
+.agents-project-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) 14px; color: var(--ink-muted); }
+.agents-project-name { font-weight: 600; color: var(--ink); }
+.agents-slots { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.agents-slot-figure { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+.agents-slot-figure[data-over] { color: var(--link); }
+.agents-empty-row > td { padding: 0; }
+
+.agents-job-cell { display: flex; align-items: center; gap: 9px; }
+.agents-role-glyph {
+  display: inline-grid; flex: none; place-items: center; box-sizing: border-box; width: 22px; height: 22px;
+  color: var(--s-ink); background: var(--s-tint); border: 1px solid var(--s-edge); border-radius: var(--r-2);
+}
+.agents-role-glyph-drawing { display: block; width: 13px; height: 13px; }
+.agents-job-link { font: 600 var(--fs-tab)/1.4 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); text-decoration: none; }
+.agents-job-link:hover { color: var(--link); }
+.agents-subjects { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.agents-subject {
+  display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box; min-width: 0; max-width: 100%; height: 24px;
+  padding: 0 8px; color: var(--ink); text-decoration: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.agents-subject:hover { color: var(--ink); border-color: var(--line-strong); }
+.agents-subject-text { overflow: hidden; font-size: var(--fs-tab); text-overflow: ellipsis; white-space: nowrap; }
+.agents-state-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.agents-budget { display: flex; align-items: center; gap: var(--sp-2); }
+.agents-budget-meter { display: flex; flex: 0 1 56px; }
+.agents-budget-figure { flex: none; font-variant-numeric: tabular-nums; }
+.agents-budget-figure[data-near] { color: var(--link); }
+.agents-subagents { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.agents-subagent-squares { display: inline-flex; flex: none; flex-wrap: wrap; gap: 3px; max-width: 127px; }
+.agents-subagent-square { flex: none; box-sizing: border-box; width: 10px; height: 10px; border: 1.5px solid var(--s-fill); border-radius: 2px; }
+.agents-subagent-square[data-running] { background: var(--s-fill); }
+.agents-subagents-figure { font-size: var(--fs-small); color: var(--ink-muted); }
+.agents-subagents[data-one-line] { flex-direction: row; align-items: center; gap: 6px; }
+
+/* A job that asks User keeps its row; the orange decision card under it is the Asks User strip. A selected row is the wash with a signal edge. */
+.agents-job-row[data-asking] > td { border-bottom: 0; }
+.agents-ask-row > td { padding: 0 18px 12px; white-space: normal; border-top: 0; }
+.agents-job-row[aria-selected="true"] > td { background: var(--surface-selected); }
+.agents-job-row[aria-selected="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--signal); }
+
+/* The worker card's foot: what the figure counts, the tickets in progress that no job works on, and what never takes a place. */
+.agents-reconciliation { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: 2px 0; font-size: var(--fs-tab); color: var(--ink-muted); }
+.agents-figure { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink); }
+
+/* The Sessions head: one bordered box per kind of session, linked to its tab. */
+.agents-tallies { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.agents-tally {
+  display: inline-flex; align-items: center; gap: var(--sp-2); box-sizing: border-box; height: 34px; padding: 0 12px 0 6px;
+  font-size: var(--fs-tab); color: var(--ink); text-decoration: none;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.agents-tally:hover { color: var(--ink); border-color: var(--line-strong); }
+.agents-tally > .agents-role-glyph { width: 20px; height: 20px; }
+.agents-tally > .agents-role-glyph > .agents-role-glyph-drawing { width: 12px; height: 12px; }
+.agents-tally-name { font-weight: 600; }
+
+.agents-muted { color: var(--ink-muted); }
+.agents-last-tool { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; max-width: 100%; font: var(--fs-small)/1.5 var(--font-mono); }
+.agents-running { font-family: var(--font-ui); color: var(--link); }
+.agents-elapsed { font-family: var(--font-ui); font-variant-numeric: tabular-nums; color: var(--ink-4); }
+.agents-elapsed-silent { padding: 0 5px; border-radius: var(--r-1); background: var(--link-tint); color: var(--link); font-weight: 500; }
+
+/* The job panel: what a waiting job follows, then its controls in one row, a text answer above them while a decision is open; the
+   transcript under its head; the foot's message box, its text box and Send one height. */
+.agents-resume-wait { margin: 0; font-size: var(--fs-tab); color: var(--ink-muted); }
+.agents-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--sp-2); }
+.agents-field { display: flex; flex: 1 1 100%; flex-direction: column; align-items: flex-start; gap: var(--sp-2); }
+.agents-field > .board-textarea { width: 100%; box-sizing: border-box; }
+.agents-transcript { display: flex; flex-direction: column; gap: 4px; padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.agents-message-box { display: flex; flex-direction: column; gap: var(--sp-2); }
+.agents-message-entry { display: flex; align-items: stretch; gap: var(--sp-2); }
+.agents-message-input {
+  flex: 1 1 auto; width: auto; min-width: 0; min-height: 58px; box-sizing: border-box; padding: 9px 11px;
+  font-size: var(--fs-lead); background: var(--bg); border-radius: var(--r-3); resize: none;
+}
+
+/* The concurrency limit on the Agents tab: a small boxed number field before its label. */
+.board-field { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.board-field-label { display: inline-flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-tab); color: var(--ink-muted); }
+.board-field-input {
+  box-sizing: border-box; width: 54px; height: 30px; padding: 0 8px;
+  font: var(--fs-body)/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+.board-field-input:focus { outline: 0; border-color: var(--ink); }
+.board-field-input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }

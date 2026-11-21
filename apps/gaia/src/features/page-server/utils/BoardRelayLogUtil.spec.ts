@@ -17,4 +17,9 @@ describe('a relay log line', () => {
     expect(BoardRelayLogUtil.lineOf({ kind: 'board-unreadable', trackerId: 'example', invalidKeys: ['overseer', 'jobs[0].id'] }))
       .toBe('Gaia could not read example\'s board: overseer, jobs[0].id.\n');
   });
+
+  test('names the keys of a presence it could not read the waiting work of', () => {
+    expect(BoardRelayLogUtil.lineOf({ kind: 'presence-unreadable', trackerId: 'example', invalidKeys: ['interruptedWork'] }))
+      .toBe('Gaia could not read what example\'s waiting work waits for: interruptedWork.\n');
+  });
 });

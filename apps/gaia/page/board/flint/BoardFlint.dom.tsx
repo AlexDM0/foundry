@@ -4,7 +4,9 @@
  * the home corner beside it; Flint stays in its box, so it is drawn only inside the home corner, its body takes no press and a drag on it
  * carries nothing; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
  * stores where it lives under the board's key; a new turn of the thread and the first letter in the composer reach Flint as cues, the
- * turns a history brings never, since they are past; a press on the composer makes the thread the habitat Flint visits; a board occasion
+ * turns a history brings never, since they are past; a press on the composer makes the thread the habitat Flint visits; in the Agents view
+ * an agent that works is copied, Flint walking below the job column of its row, and after the agents were idle and Flint slept at home a
+ * working agent does not wake it; a board occasion
  * reaches Flint wherever it is, a stream that comes back ends the unplugged loop with a wave, and each board shows a watcher spark for
  * each agent in flight, at most 4; a view below reaches Flint through `useFlintPerform`, with one of its own elements; and Flint has no
  * brain: no brain part is drawn and no request leaves the page while its director is asked.
@@ -28,13 +30,17 @@ import type { Director, PerceptionDigest, SpriteIntent }   from 'flint/SpriteHab
 import { useFlintPerform }                                 from 'flint/react/UseFlintPerform';
 import { useRef, type ReactNode }                          from 'react';
 import { PRODUCT_NAMES }                                   from '../../../src/shared/constants/ProductNames.ts';
+import type { BoardJobDocument }                           from '../../@types/board/BoardJobDocuments.ts';
 import { ChatCard, ChatThread, type ChatTurn }             from '../conversation/ChatThread.tsx';
 import { Composer }                                        from '../conversation/Composer.tsx';
 import { boardPreferenceStoreOf, type PreferenceStore }    from '../preferences/PreferenceStore.ts';
+import { BoardClockContext, type BoardClock }              from '../shell/BoardClock.ts';
 import { BoardTrackerContext }                             from '../shell/BoardRouteLinks.ts';
 import { ControlSurroundingsContext }                      from '../shell/ControlAvailability.ts';
+import { boardStateFixture, exampleAgentJob }              from '../testing/BoardStateFixture.ts';
 import { fakeControlSurroundingsOf }                       from '../testing/FakeControlSurroundings.ts';
 import { createManualFlintFrames, type ManualFlintFrames } from '../testing/ManualFlintFrames.ts';
+import { AgentsView }                                      from '../views/agents/AgentsView.tsx';
 import { BoardFlint }                                      from './BoardFlint.tsx';
 import type { BoardReading, OccasionBoard }                from './BoardOccasionModel.ts';
 import { FLINT_HABITAT_CHOICE_NAME }                       from './FlintHabitatStorage.ts';
@@ -264,6 +270,83 @@ describe('the chat habitat', () => {
     handle().startBrain(brain, 60000);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
     expect(brain.digests[0]).toMatchObject({ habitatKind: null, visitTargetKind: 'chat' });
+  });
+});
+
+describe('the agent panel habitat', () => {
+  const STILL_CLOCK: BoardClock = {
+    now:         () => new Date('2026-10-29T20:00:05Z'),
+    everySecond: () => () => undefined,
+    after:       () => () => undefined,
+  };
+
+  function Agents({ jobs }: { readonly jobs: readonly BoardJobDocument[] }) {
+    return (
+      <BoardTrackerContext.Provider value={TRACKER_ID}>
+        <ControlSurroundingsContext.Provider value={fakeControlSurroundingsOf().surroundings}>
+          <BoardClockContext.Provider value={STILL_CLOCK}>
+            <AgentsView board={boardStateFixture({ jobs, decisions: [] })} selectedJobId={null} followTranscript={() => ({ close: () => undefined })} />
+          </BoardClockContext.Provider>
+        </ControlSurroundingsContext.Provider>
+      </BoardTrackerContext.Provider>
+    );
+  }
+
+  /** The figure's place in sprite units, read from its translation. */
+  function figureX(): number {
+    const transform = overlay().querySelector('g[transform^="translate("]')?.getAttribute('transform') ?? '';
+    return Number(/^translate\((?<x>[-\d.]+) /u.exec(transform)?.groups?.['x']);
+  }
+
+  /** The view at 100 to 900 pixels, each row as wide as the view, and the job cell its first 200 pixels. */
+  function placeAgents(): void {
+    placePage();
+    placeAt(elementOf('.agents-view'), 100, 100, 800, 400);
+    for (const row of document.querySelectorAll('[data-job-id]')) {
+      placeAt(row, 100, 160, 800, 30);
+      const jobCell = row.querySelector('td[data-column="job"]');
+      if (jobCell !== null) placeAt(jobCell, 100, 160, 200, 30);
+    }
+  }
+
+  const JOB_CELL_CENTRE_UNITS = 200 / PIXELS_FOR_ONE_UNIT;
+  const HOME_CORNER_LEFT_UNITS = 1064 / PIXELS_FOR_ONE_UNIT;
+
+  test('an agent that starts working is copied: Flint walks below the job column of its row', () => {
+    const entries = new Map([[STORED_HABITAT_KEY, '1:agent-panel']]);
+    const frames = createManualFlintFrames();
+    const boardStore = boardStoreOver(entries);
+    const page = render(<Host boardStore={boardStore} frames={frames}><Agents jobs={[]} /></Host>);
+    placeAgents();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Agents jobs={[exampleAgentJob({ id: 'J12' })]} /></Host>);
+    placeAgents();
+    advanceFor(frames, 12000);
+    expect(Math.abs(figureX() - JOB_CELL_CENTRE_UNITS)).toBeLessThanOrEqual(4);
+  });
+
+  test('after the agents were idle and Flint slept at home, an agent that works again does not wake it: Flint reacts only to its box', () => {
+    const entries = new Map([[STORED_HABITAT_KEY, '1:agent-panel']]);
+    const frames = createManualFlintFrames();
+    const boardStore = boardStoreOver(entries);
+    const working = exampleAgentJob({ id: 'J12' });
+    const idle = exampleAgentJob({ id: 'J12', state: 'stopping' });
+    const page = render(<Host boardStore={boardStore} frames={frames}><Agents jobs={[working]} /></Host>);
+    placeAgents();
+    advanceFor(frames, FRAME_MILLISECONDS);
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Agents jobs={[idle]} /></Host>);
+    placeAgents();
+    // Idle agents ask for the playbook now, and only Flint's quiet rule sends it to sleep, so the spec sends it home itself.
+    act(() => {
+      handle().perform('sleep');
+    });
+    advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
+    expect(figureX()).toBeGreaterThan(HOME_CORNER_LEFT_UNITS);
+    fireEvent.pointerDown(elementOf('.agents-view'));
+    page.rerender(<Host boardStore={boardStore} frames={frames}><Agents jobs={[working]} /></Host>);
+    placeAgents();
+    advanceFor(frames, 30000);
+    expect([figureX() > HOME_CORNER_LEFT_UNITS, handle().livesIn()]).toEqual([true, null]);
   });
 });
 

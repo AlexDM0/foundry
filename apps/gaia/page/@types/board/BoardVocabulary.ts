@@ -98,6 +98,9 @@ export type BoardInterruptionCause =
   | 'forge-stopped'
   | 'forge-crashed';
 
+/** What a waiting job follows: `nothing` resumes by itself at the next pass, `never` by no resume. */
+export type BoardResumeWait = 'instruction' | 'answer' | 'decision' | 'nothing' | 'never';
+
 export type BoardJobStopRequest = 'stop' | 'wind-down' | 'fresh';
 
 export type BoardJobStopMode = 'stop' | 'wind-down';

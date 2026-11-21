@@ -10,6 +10,7 @@ import type {
   BoardJobTurn,
   BoardLostLineKind,
   BoardMergePrediction,
+  BoardResumeWait,
   BoardSessionLineRole,
   BoardSubagentState,
   BoardTicketPriority,
@@ -88,6 +89,8 @@ export interface BoardJob {
   readonly airlockPhase:  string | null;
   readonly interruption:  BoardInterruptionCause | null;
   readonly lostLine:      BoardLostLine | null;
+  /** What the job follows as the forge's presence lists its waiting work; `null` for a job presence does not list. */
+  readonly waitsFor:      BoardResumeWait | null;
   readonly stopRequest:   BoardJobStopRequest | null;
   readonly intake:        BoardJobIntake | null;
   readonly entity:        string | null;

@@ -172,6 +172,7 @@ export function exampleAgentJob(changes: Partial<BoardJobDocument> & Pick<BoardJ
     airlockPhase:  null,
     interruption:  null,
     lostLine:      null,
+    waitsFor:      null,
     stopRequest:   null,
     intake:        null,
     entity:        null,

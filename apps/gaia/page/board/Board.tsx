@@ -57,7 +57,7 @@ export function browserBoardServicesOf(trackerId: string, { goTo, sessionWasLost
     pictureUploadClient: PictureUploadClient.create(trackerId),
     readBoard:           BoardReadClient.create(trackerId).read,
     openEventStream:     (handlers) => BoardEventStreamClient.open(trackerId, handlers, eventStreamSurroundings),
-    followTranscript:    (jobId, handlers) => TranscriptStreamClient.follow(trackerId, jobId, handlers),
+    followTranscript:    (jobId, handlers, options) => TranscriptStreamClient.follow(trackerId, jobId, handlers, { after: options?.after ?? null }),
     followProfileLog:    (profileRunId, onLines) => ProfileStreamClient.follow(trackerId, profileRunId, { onLines }).close,
     storage:             BROWSER_STORAGE_AREAS.local,
     now:                 () => new Date(),

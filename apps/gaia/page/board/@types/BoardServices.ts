@@ -13,8 +13,12 @@ import type { FlintFrameSource }         from '../flint/BoardFlint.tsx';
 import type { PreferenceStorage }        from '../preferences/PreferenceStore.ts';
 import type { QuestionNotifier }         from '../views/questions/QuestionAlerts.ts';
 
-/** Follows one job's transcript until closed. */
-export type TranscriptFollower = (jobId: string, handlers: TranscriptStreamHandlers) => { close: () => void };
+/** Follows one job's transcript until closed, from after the cursor `after` where one is given. */
+export type TranscriptFollower = (jobId: string, handlers: TranscriptStreamHandlers, options?: TranscriptFollowOptions) => { close: () => void };
+
+export interface TranscriptFollowOptions {
+  readonly after?: string | null;
+}
 
 /** Follows one gate profile run's output until the returned function is called. */
 export type ProfileLogFollower = (profileRunId: string, onLines: (lines: readonly ProfileOutputLine[]) => void) => () => void;

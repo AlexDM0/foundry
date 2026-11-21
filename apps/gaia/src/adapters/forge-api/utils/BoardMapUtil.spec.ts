@@ -1,12 +1,14 @@
 /**
  * The board mapper against its own contract, on parts the recorded board does not hold. What matters: a ticket's absent fields read as
  * `null` or empty and a held ready ticket as held; a task row's absent phases stay `null`, apart from a row with none; a note in the log
- * carries no id lists; every forecast step keeps its kind; an interrupted job keeps its cause and its lost line; a refusal and a question's
+ * carries no id lists; every forecast step keeps its kind; an interrupted job keeps its cause and its lost line, and takes what it waits
+ * for from presence, `null` where presence lists it not; a refusal and a question's
  * answer keep the forge's values unchanged; and the recorded board maps whole.
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
 
+import type { ResumeWaitsOfJobs }  from '../@types/ResumeWaitsOfJobs.ts';
 import { recordedBoardDocumentOf } from '../testing/BoardDocuments.ts';
 import { BoardMapUtil }            from './BoardMapUtil.ts';
 import { PipelineMapUtil }         from './PipelineMapUtil.ts';
@@ -17,8 +19,8 @@ async function recordedDocument(): Promise<ForgeBoardDocument> {
   return structuredClone(await recordedBoardDocumentOf('board-at-work')) as ForgeBoardDocument;
 }
 
-function boardOf(document: ForgeBoardDocument) {
-  return BoardMapUtil.boardOf(EXAMPLE_TRACKER_ID, document, PipelineMapUtil.pipelineFactsOf(document));
+function boardOf(document: ForgeBoardDocument, resumeWaits: ResumeWaitsOfJobs = new Map()) {
+  return BoardMapUtil.boardOf(EXAMPLE_TRACKER_ID, document, PipelineMapUtil.pipelineFactsOf(document), resumeWaits);
 }
 
 describe('boardOf', () => {
@@ -80,19 +82,21 @@ describe('boardOf', () => {
     expect(boardOf({ ...document, ticketForecasts: [forecast] }).ticketForecasts).toEqual([forecast]);
   });
 
-  test('keeps an interrupted job\'s cause and its lost line, and the Airlock phase it holds', async () => {
+  test('keeps an interrupted job\'s cause, its lost line, the Airlock phase it holds and what presence says it waits for', async () => {
     const document = await recordedDocument();
     const [job] = document.jobs;
     if (job === undefined) throw new Error('The recorded board holds a job.');
     const interrupted = {
       ...job, state: 'interrupted', interruption: 'network-outage', lostLine: { line: 'gate', cause: 'reboot' }, airlock: { phase: 'merging' }
     } as const;
-    expect(boardOf({ ...document, jobs: [interrupted] }).jobs[0]).toMatchObject({
+    expect(boardOf({ ...document, jobs: [interrupted] }, new Map([[job.id, 'instruction']])).jobs[0]).toMatchObject({
       state:        'interrupted',
       interruption: 'network-outage',
       lostLine:     { line: 'gate', cause: 'reboot' },
       airlockPhase: 'merging',
+      waitsFor:     'instruction',
     });
+    expect(boardOf({ ...document, jobs: [interrupted] }).jobs[0]?.waitsFor).toBeNull();
   });
 });
 

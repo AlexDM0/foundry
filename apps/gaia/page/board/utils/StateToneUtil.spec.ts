@@ -70,6 +70,19 @@ describe('the look of a job state', () => {
   });
 });
 
+describe('the look of an interrupted job that waits', () => {
+  test('a network outage and a lost supervision each wait, dashed in the neutral tone, never the failure tone', () => {
+    const waiting = (['network-outage', 'lease-ended'] as const).map((interruption) => StateToneUtil.lookOfJob({ state: 'interrupted', interruption }));
+    expect(waiting.map((look) => [look.tone, look.dotShape, look.dashed])).toEqual([['neutral', 'dashed-ring', true], ['neutral', 'dashed-ring', true]]);
+    expect(waiting.some((look) => look.tone === 'error')).toBe(false);
+  });
+
+  test('a job interrupted by another cause, and one resumed after an outage, look as their job state', () => {
+    expect(StateToneUtil.lookOfJob({ state: 'interrupted', interruption: 'agent-crashed' })).toEqual(StateToneUtil.lookOf('paused'));
+    expect(StateToneUtil.lookOfJob({ state: 'running', interruption: 'network-outage' })).toEqual(StateToneUtil.lookOf('in-progress'));
+  });
+});
+
 test('a ready ticket is the plain accent tone', () => {
   expect(StateToneUtil.readyLook()).toEqual({
     tone: 'accent', dotShape: 'solid', dashed: false, struck: false, checked: false, pulsing: false

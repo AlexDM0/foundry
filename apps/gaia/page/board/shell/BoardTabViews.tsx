@@ -8,6 +8,7 @@ import type { BoardDocument }        from '../../@types/board/BoardDocument.ts';
 import type { BoardServices }        from '../@types/BoardServices.ts';
 import type { ConnectionState }      from '../api/BoardEventStreamClient.ts';
 import type { PreferenceStore }      from '../preferences/PreferenceStore.ts';
+import { AgentsView }                from '../views/agents/AgentsView.tsx';
 import { QuestionsTabView }          from '../views/questions/QuestionsView.tsx';
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
 
@@ -24,4 +25,13 @@ export type BoardTabView = (props: BoardTabViewProps) => ReactNode;
 
 export type BoardTabViewTable = Readonly<Partial<Record<BoardTab, BoardTabView>>>;
 
-export const BOARD_TAB_VIEWS: BoardTabViewTable = { questions: QuestionsTabView, };
+export const BOARD_TAB_VIEWS: BoardTabViewTable = {
+  questions: QuestionsTabView,
+  agents:    ({ board, route, services }) => (
+    <AgentsView
+      board={board}
+      selectedJobId={route.item}
+      followTranscript={services.followTranscript}
+    />
+  ),
+};

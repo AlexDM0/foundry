@@ -206,6 +206,7 @@ function jobOut(job: BoardJob): BoardJobDocument {
     airlockPhase:  job.airlockPhase,
     interruption:  job.interruption,
     lostLine:      job.lostLine === null ? null : { line: job.lostLine.line, cause: job.lostLine.cause },
+    waitsFor:      job.waitsFor,
     stopRequest:   job.stopRequest,
     intake:        job.intake === null ? null : { text: job.intake.text, title: job.intake.title },
     entity:        job.entity,

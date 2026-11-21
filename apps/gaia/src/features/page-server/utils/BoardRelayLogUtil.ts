@@ -20,6 +20,8 @@ function lineOf(entry: BoardRelayLogEntry): string {
         + `and the watch read ${versionTextOf(entry.versionWatchRead)}.\n`;
     case 'board-unreadable':
       return `Gaia could not read ${entry.trackerId}'s board: ${entry.invalidKeys.join(', ')}.\n`;
+    case 'presence-unreadable':
+      return `Gaia could not read what ${entry.trackerId}'s waiting work waits for: ${entry.invalidKeys.join(', ')}.\n`;
   }
 }
 

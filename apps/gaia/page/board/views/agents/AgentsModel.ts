@@ -7,10 +7,12 @@
  */
 import type { IconName } from 'design-system/Icon';
 
-import type { BoardLaunchSlotsDocument }       from '../../../@types/board/BoardDocument.ts';
-import type { BoardConcurrencyBoundsDocument } from '../../../@types/board/BoardFactDocuments.ts';
-import type { BoardDisplayState }              from '../../../@types/board/BoardVocabulary.ts';
-import { TimeUtil, type TimestampSlices }      from '../../utils/TimeUtil.ts';
+import type { BoardLaunchSlotsDocument }           from '../../../@types/board/BoardDocument.ts';
+import type { BoardConcurrencyBoundsDocument }     from '../../../@types/board/BoardFactDocuments.ts';
+import type { BoardDisplayState, BoardResumeWait } from '../../../@types/board/BoardVocabulary.ts';
+import { DisplayStateWordingUtil }                 from '../../utils/DisplayStateWordingUtil.ts';
+import { JobStateUtil }                            from '../../utils/JobStateUtil.ts';
+import { TimeUtil, type TimestampSlices }          from '../../utils/TimeUtil.ts';
 import type {
   AgentJobDocument,
   AskingDecisionDocument,
@@ -286,8 +288,27 @@ function transcriptCountTextOf(entryCount: number): string {
 }
 
 /** The head of the job panel: the job's state, then how long ago it launched where the log holds its launch. */
-function panelStateTextOf(job: Pick<AgentJobDocument, 'state'>, launchedText: string | null): string {
-  return launchedText === null ? job.state : `${job.state} · ${launchedText}`;
+/** Gaia's words for what a waiting job follows; the forge decides which it is, and Gaia only words it. */
+const RESUME_WAIT_TEXT: Readonly<Record<BoardResumeWait, string>> = {
+  instruction: 'Waits for your resume.',
+  answer:      'Resumes once its question is answered.',
+  decision:    'Resumes once its decision is answered.',
+  nothing:     'Resumes by itself at the forge\'s next pass.',
+  never:       'No resume restarts it.',
+};
+
+function resumeWaitTextOf(waitsFor: BoardResumeWait): string {
+  return RESUME_WAIT_TEXT[waitsFor];
+}
+
+/** A job's raw state, or the words of the wait its interruption names: a network outage, or the forge's lost supervision. */
+function stateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'>): string {
+  const waitState = JobStateUtil.interruptionWaitStateOf(job);
+  return waitState === null ? job.state : DisplayStateWordingUtil.labelOf(waitState);
+}
+
+function panelStateTextOf(job: Pick<AgentJobDocument, 'state' | 'interruption'>, launchedText: string | null): string {
+  return launchedText === null ? stateTextOf(job) : `${stateTextOf(job)} · ${launchedText}`;
 }
 
 /** A limit to send: a whole number within the bounds the forge serves, which it refuses past, that differs from the current one. */
@@ -316,6 +337,8 @@ export const AgentsModel = Object.freeze({
   sessionAboutTextOf,
   isStopping,
   takesMessages,
+  stateTextOf,
+  resumeWaitTextOf,
   panelStateTextOf,
   transcriptCountTextOf,
   concurrencyLimitIsSendable,

@@ -57,8 +57,9 @@ import type {
   BoardTicket,
   BoardViewRange,
 } from '../../../shared/@types/board/BoardTicket.ts';
-import type { ForgeBoard }   from '../../../shared/@types/board/ForgeBoard.ts';
-import { VocabularyMapUtil } from './VocabularyMapUtil.ts';
+import type { ForgeBoard }        from '../../../shared/@types/board/ForgeBoard.ts';
+import type { ResumeWaitsOfJobs } from '../@types/ResumeWaitsOfJobs.ts';
+import { VocabularyMapUtil }      from './VocabularyMapUtil.ts';
 
 const VOCABULARIES = VocabularyMapUtil.vocabularies;
 
@@ -264,7 +265,7 @@ function jobLiveFactsOf(live: BoardJobLiveFactsDocument): BoardJobLiveFacts {
   };
 }
 
-function jobOf(job: BoardJobDocument): BoardJob {
+function jobOf(job: BoardJobDocument, resumeWaits: ResumeWaitsOfJobs): BoardJob {
   return {
     id:            job.id,
     kind:          job.kind,
@@ -281,6 +282,7 @@ function jobOf(job: BoardJobDocument): BoardJob {
       line:  VocabularyMapUtil.gaiaValueOf(VOCABULARIES.lostLineKind, job.lostLine.line),
       cause: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.interruptionCause, job.lostLine.cause),
     },
+    waitsFor:    resumeWaits.get(job.id) ?? null,
     stopRequest: VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.jobStopRequest, job.stopRequest),
     intake:      job.intake === null ? null : { text: job.intake.text, title: job.intake.title },
     entity:      job.entity,
@@ -458,8 +460,11 @@ function limitsOf(limits: BoardLimitsDocument): BoardLimits {
   };
 }
 
-/** The board without its pipeline facts, which the caller maps with `PipelineMapUtil` and hands in. */
-function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: BoardPipelineFacts): ForgeBoard {
+/**
+ * The board without its pipeline facts, which the caller maps with `PipelineMapUtil` and hands in, and with what each waiting job follows,
+ * which the forge serves in its presence rather than its board.
+ */
+function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: BoardPipelineFacts, resumeWaits: ResumeWaitsOfJobs): ForgeBoard {
   return {
     trackerId,
     project:  document.project,
@@ -486,7 +491,7 @@ function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: Boar
     },
     page:            pageOf(document.page),
     mergeQueue:      mergeQueueOf(document.mergeQueue),
-    jobs:            document.jobs.map(jobOf),
+    jobs:            document.jobs.map((job) => jobOf(job, resumeWaits)),
     endedJobs:       document.endedJobs.map(endedJobOf),
     decisions:       document.decisions.map(decisionOf),
     incidents:       document.incidents.map(incidentOf),

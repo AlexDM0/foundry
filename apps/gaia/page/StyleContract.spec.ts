@@ -727,6 +727,7 @@ const BOARD_STYLES_FOLDER = join(PAGE_FOLDER, 'styles', BOARD_FOLDER_NAME);
 const BOARD_TOKENS_FILE_NAME = 'tokens.css';
 /** Every stylesheet of the board, by its name under `page/styles/board/`; the package that moves one in names it here. */
 const BOARD_STYLESHEETS: readonly string[] = [
+  'agents.css',
   'chips.css',
   'controls.css',
   'conversation.css',

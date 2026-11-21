@@ -157,6 +157,10 @@ is a separate document Gaia serves.
   (the Baton pass warning, which `warnings` words, confinement, a ticket's `introducedBy` and `foundInReview`, a gate's `definedBy` and
   `overseerOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and `openedAtEntity`, the Apply state's
   `commitJobId`, a checked gate's outcomes and durations, an annotation's `lineIndex`, an edge's `edgeId`, an application's `appliedBy`).
+- **What a waiting job follows** (`waitsFor`) is served in the forge's presence, `GET /api/v1/presence`
+  (`forge-contracts/ForgePresenceDocument`), not in its board. The board route reads presence only when the board holds an interrupted job
+  or a lost line, and `src/adapters/forge-api/PresenceIngestion.ts` reads its `interruptedWork` alone; a presence that does not ingest
+  leaves every wait `null`.
 - **The value lists** map through `utils/VocabularyMapUtil.ts`, one record typed `Record<forge value, Gaia value>` per union, so a value
   forge adds is a compile error there and nowhere else.
 - **The board event stream**, `GET /api/v1/events`, carries forge's internal board state in every event, never a contract document. Gaia

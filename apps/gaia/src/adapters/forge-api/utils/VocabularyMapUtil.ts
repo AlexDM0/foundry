@@ -74,8 +74,9 @@ import type {
   TicketStatus,
   TicketType,
 } from 'forge-contracts/BoardVocabulary';
-import type { OverseerRuntimeState } from 'forge-contracts/ForgeBoardDocument';
-import type { ForgeJobStopMode }     from 'forge-contracts/ForgeControlCommand';
+import type { OverseerRuntimeState }     from 'forge-contracts/ForgeBoardDocument';
+import type { ForgeJobStopMode }         from 'forge-contracts/ForgeControlCommand';
+import type { ForgeInterruptedWorkWait } from 'forge-contracts/ForgePresenceDocument';
 
 import type * as Gaia from '../../../shared/@types/board/BoardVocabulary.ts';
 
@@ -250,6 +251,14 @@ const INTERRUPTION_CAUSE = {
   'forge-stopped':         'forge-stopped',
   'forge-crashed':         'forge-crashed',
 } as const satisfies Record<BoardInterruptionCause, Gaia.BoardInterruptionCause>;
+
+const RESUME_WAIT = {
+  instruction: 'instruction',
+  answer:      'answer',
+  decision:    'decision',
+  nothing:     'nothing',
+  never:       'never',
+} as const satisfies Record<ForgeInterruptedWorkWait, Gaia.BoardResumeWait>;
 
 const JOB_STOP_REQUEST = {
   'stop':      'stop',
@@ -542,6 +551,7 @@ const BOARD_VOCABULARIES = {
   attentionActionLabel:     ATTENTION_ACTION_LABEL,
   targetSubject:            TARGET_SUBJECT,
   interruptionCause:        INTERRUPTION_CAUSE,
+  resumeWait:               RESUME_WAIT,
   jobStopRequest:           JOB_STOP_REQUEST,
   jobStopMode:              JOB_STOP_MODE,
   jobTurn:                  JOB_TURN,

@@ -465,13 +465,14 @@ describe('the paths an Overseer is called at', () => {
       'commands',
       'sessionCodes',
       'board',
+      'presence',
       'events',
       'jobStream',
       'profileStream',
       'pictures',
       'picture',
     ];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1]);
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {

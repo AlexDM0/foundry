@@ -3,9 +3,13 @@
  * `BoardDocument`. Reads of one forge are shared: a request that comes while a read is on its way waits for the next one, which starts once
  * that read is done and answers every request that waited, so a burst of change signals costs at most two reads and one map each.
  */
+import type { ResumeWaitsOfJobs }                         from '../../../adapters/forge-api/@types/ResumeWaitsOfJobs.ts';
 import { BoardStateIngestion }                            from '../../../adapters/forge-api/BoardStateIngestion.ts';
+import { PresenceIngestion }                              from '../../../adapters/forge-api/PresenceIngestion.ts';
 import { BoardDocumentMapUtil }                           from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
+import type { OverseerAccess }                            from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { BoardRelayRefusal }                         from '../../../shared/@types/board/BoardRelayVerdict.ts';
+import type { ForgeBoard }                                from '../../../shared/@types/board/ForgeBoard.ts';
 import type { BoardRelayLog }                             from '../@types/BoardRelayLogEntry.ts';
 import { BoardRelayAnswers }                              from '../BoardRelayAnswers.ts';
 import { forgeAccessVerdictFor, type ForgeAccessSources } from '../ForgeAccess.ts';
@@ -23,9 +27,17 @@ interface ForgeBoardReads {
 
 const JSON_CONTENT_TYPE = 'application/json;charset=utf-8';
 
+const NO_RESUME_WAITS: ResumeWaitsOfJobs = new Map();
+
+/** Presence lists only interrupted jobs and jobs whose lost line waits, so a board without either is not worth a second read. */
+function boardHoldsWaitingWork(board: ForgeBoard): boolean {
+  return board.jobs.some((job) => job.state === 'interrupted' || job.lostLine !== null);
+}
+
 export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog): BoardStateRoute {
   const readsByTrackerId = new Map<string, ForgeBoardReads>();
   const ingestion = new BoardStateIngestion();
+  const presenceIngestion = new PresenceIngestion();
 
   async function boardReadAfresh(trackerId: string): Promise<BoardRead> {
     const accessVerdict = await forgeAccessVerdictFor(trackerId, sources);
@@ -47,7 +59,20 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
       log({ kind: 'board-unreadable', trackerId, invalidKeys: reading.reason.invalidKeys });
       return { verdict: 'refused', refusal: 'forge-document-unreadable' };
     }
-    return { verdict: 'read', boardDocumentJson: JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(reading.board)) };
+    const board = boardHoldsWaitingWork(reading.board)
+      ? ingestion.boardOf(trackerId, answer.document, await resumeWaitsOf(trackerId, accessVerdict.access)).board ?? reading.board
+      : reading.board;
+    return { verdict: 'read', boardDocumentJson: JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(board)) };
+  }
+
+  /** What each waiting job follows is served in the forge's presence; a presence that cannot be read leaves every job's wait unknown. */
+  async function resumeWaitsOf(trackerId: string, access: OverseerAccess): Promise<ResumeWaitsOfJobs> {
+    const answer = await sources.forgeClient.presenceOf(access);
+    if (answer.verdict !== 'answered') return NO_RESUME_WAITS;
+    const reading = presenceIngestion.resumeWaitsOf(answer.document);
+    if (reading.resumeWaits !== null) return reading.resumeWaits;
+    log({ kind: 'presence-unreadable', trackerId, invalidKeys: reading.reason.invalidKeys });
+    return NO_RESUME_WAITS;
   }
 
   function beginRead(trackerId: string): Promise<BoardRead> {
