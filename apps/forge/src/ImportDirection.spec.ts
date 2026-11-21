@@ -138,8 +138,8 @@ interface ExactReach {
   readonly target:   string;
 }
 
-/** A feature reaching another by path, for Bun to bundle: the Overseer's routes import the Bridge's HTML. */
-const FEATURE_REACHES_BY_PATH: readonly ExactReach[] = [{ importer: 'cli/overseer/routes/OverseerRoutes.ts', target: 'bridge/index.html' }];
+/** A feature reaching another by path, for Bun to bundle. None: the Overseer serves no page. */
+const FEATURE_REACHES_BY_PATH: readonly ExactReach[] = [];
 
 /**
  * A command set reaching another set's file: `cli/overseer/OverseerRemote.ts` is the one client of a live Overseer's API, and its path is a
@@ -733,13 +733,13 @@ describe('the guard still names each violation, planted in memory', () => {
     ]);
   });
 
-  test('a feature reaching the Bridge by path from any importer but the listed one, and the listed importer reaching another Bridge file', () => {
+  test('the Bridge\'s page imported by path from any file of the command surface, the Overseer\'s routes included', () => {
     expect(plantedSentencesOf({ 'cli/overseer/routes/PlantedRoute.ts': importing('../../../bridge/index.html') })).toEqual([
       'feature-imports-another-feature — cli/overseer/routes/PlantedRoute.ts:1 imports bridge/index.html: the cli feature imports another feature, bridge',
     ]);
-    const routesSource = `${importing('../../../bridge/Main.tsx')}${GRAPH.sourceTextOf('cli/overseer/routes/OverseerRoutes.ts')}`;
+    const routesSource = `${importing('../../../bridge/index.html')}${GRAPH.sourceTextOf('cli/overseer/routes/OverseerRoutes.ts')}`;
     expect(plantedSentencesOf({ 'cli/overseer/routes/OverseerRoutes.ts': routesSource })).toEqual([
-      'feature-imports-another-feature — cli/overseer/routes/OverseerRoutes.ts:1 imports bridge/Main.tsx: the cli feature imports another feature, bridge',
+      'feature-imports-another-feature — cli/overseer/routes/OverseerRoutes.ts:1 imports bridge/index.html: the cli feature imports another feature, bridge',
     ]);
   });
 

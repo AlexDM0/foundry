@@ -5,12 +5,11 @@
  * `/api/v<n>/<endpoint>`, through its unversioned route. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the
  * bearer token; the data routes and the Bridge's own `POST /api/flint-brain/ask` the token or the session cookie a one-time code buys at
  * `POST /api/session`; and every answer carries the
- * Bridge's CSP, a served file a sandbox of its own. A 401, a 403, a read route's 500 and a page build's 500 answer `{refusal, text}`. What a
+ * Bridge's CSP, a served file a sandbox of its own. A 401, a 403 and a read route's 500 answer `{refusal, text}`. What a
  * command does, and how a refusal is worded, is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
 
-import type { HTMLBundle }                                   from 'bun';
 import type { BoardStreamHandshake }                         from 'forge-contracts/BoardStreamHandshake';
 import { FORGE_COMPATIBILITY_REGISTRY }                      from 'forge-contracts/ForgeCompatibilityRegistry';
 import { FORGE_SYSTEM_VERSIONS }                             from 'forge-contracts/ForgeSystemVersions';
@@ -54,7 +53,7 @@ export interface OverseerIdentity extends Omit<IdentityDocument, 'application'> 
 }
 
 /** What a 401, a 403 or a 500 refuses, which the routes word as `text` beside it. */
-export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'page-build-failed' | 'malformed-body';
+export type ServerRefusal = 'unauthorized' | 'forbidden' | 'read-failed' | 'malformed-body';
 
 /** A route's answer: the status and the JSON body. */
 export interface RouteAnswer {
@@ -119,11 +118,6 @@ export interface OverseerRoutes {
   picture:         (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
   /** The origins of the hosts allowed to frame the Bridge, read per response. */
   frameOrigins:    () => readonly string[];
-  /**
-   * The Bridge's HTML import, built by `Bun.build` on the first page request and served at `GET /` with its chunks beside it through
-   * `fetch`, so every file carries the page CSP: Bun's own HTML route takes no headers. Absent, `GET /` is a 404 like any unknown path.
-   */
-  page?:           HTMLBundle;
 }
 
 export interface OverseerServerRequest {
@@ -172,9 +166,6 @@ const HTTP_STATUS = {
   UNAVAILABLE:  503,
 } as const;
 
-const PAGE_INDEX_PATH = '/';
-const BUILT_PAGE_INDEX_NAME = 'index.html';
-
 // Job ids and served file names need no percent-decoding, so a segment holding an escape is no route and gets the 404.
 const JOB_STREAM_PATH = /^\/api\/jobs\/([\w.-]+)\/stream$/;
 const JOB_FILE_PATH   = /^\/api\/jobs\/([\w.-]+)\/files\/([\w.-]+)$/;
@@ -205,11 +196,10 @@ function jsonResponse(answer: RouteAnswer): Response {
 }
 
 const STATUS_OF_SERVER_REFUSAL: Readonly<Record<ServerRefusal, number>> = {
-  'unauthorized':      HTTP_STATUS.UNAUTHORIZED,
-  'forbidden':         HTTP_STATUS.FORBIDDEN,
-  'read-failed':       HTTP_STATUS.SERVER_ERROR,
-  'page-build-failed': HTTP_STATUS.SERVER_ERROR,
-  'malformed-body':    HTTP_STATUS.BAD_REQUEST,
+  'unauthorized':   HTTP_STATUS.UNAUTHORIZED,
+  'forbidden':      HTTP_STATUS.FORBIDDEN,
+  'read-failed':    HTTP_STATUS.SERVER_ERROR,
+  'malformed-body': HTTP_STATUS.BAD_REQUEST,
 };
 
 function refusalResponse(routes: OverseerRoutes, refusal: ServerRefusal): Response {
@@ -508,54 +498,9 @@ function jobFileResponse(routes: OverseerRoutes, jobId: string, fileName: string
   return new Response(text, { headers: { 'content-type': 'text/plain; charset=utf-8', 'content-security-policy': 'sandbox' } });
 }
 
-/** The built Bridge's files by the path each is served at: the page at `/`, every chunk at its own name. */
-type BuiltPageFiles = ReadonlyMap<string, Blob>;
-
-type BuiltPageOutcome =
-  | { verdict: 'built'; files: BuiltPageFiles }
-  | { verdict: 'failed' };
-
-async function buildPage(page: HTMLBundle): Promise<BuiltPageOutcome> {
-  const built = await Bun.build({
-    entrypoints: [page.index],
-    target:      'browser',
-    minify:      true,
-    define:      { 'process.env.NODE_ENV': '"production"' },
-    jsx:         { development: false },
-    throw:       false,
-  });
-  if (!built.success) return { verdict: 'failed' };
-  const files = new Map<string, Blob>();
-  for (const output of built.outputs) {
-    const fileName = output.path.replace(/^\.\//, '');
-    files.set(fileName === BUILT_PAGE_INDEX_NAME ? PAGE_INDEX_PATH : `/${fileName}`, output);
-  }
-  return { verdict: 'built', files };
-}
-
-/** Builds the page on the first request and hands every later one that build; a failed build is retried by the next request. */
-function pageFilesOf(page: HTMLBundle): () => Promise<BuiltPageOutcome> {
-  let building: Promise<BuiltPageOutcome> | null = null;
-  return async () => {
-    building ??= buildPage(page);
-    const outcome = await building;
-    if (outcome.verdict === 'failed') building = null;
-    return outcome;
-  };
-}
-
 function notFoundResponse(): Response {
   return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
 }
-
-async function pageFileResponse(routes: OverseerRoutes, pageFiles: () => Promise<BuiltPageOutcome>, pathname: string): Promise<Response> {
-  const outcome = await pageFiles();
-  if (outcome.verdict === 'failed') return refusalResponse(routes, 'page-build-failed');
-  const file = outcome.files.get(pathname);
-  return file === undefined ? notFoundResponse() : new Response(file, { headers: { 'content-type': file.type } });
-}
-
-type PageFiles = (() => Promise<BuiltPageOutcome>) | null;
 
 /** The routes that answer board data, each behind `readerIsAuthorized`; `null` for any other request. */
 function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): (() => Response) | null {
@@ -587,7 +532,7 @@ interface OpenDocuments {
   versions: VersionsDocument;
 }
 
-function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments, eventStreams: EventStreams, pageFiles: PageFiles): Response | Promise<Response> {
+function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments, eventStreams: EventStreams): Response | Promise<Response> {
   const { routes } = access;
   const { pathname } = new URL(request.url);
   const { method } = request;
@@ -610,7 +555,6 @@ function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments
     routes.onNudge();
     return jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
   }
-  if (method === 'GET' && pageFiles !== null && !pathname.startsWith(API_PATH_PREFIX)) return pageFileResponse(routes, pageFiles, pathname);
   return notFoundResponse();
 }
 
@@ -620,7 +564,7 @@ function withPagePolicy(response: Response, frameOrigins: readonly string[]): Re
   return response;
 }
 
-/** What answers a request: the server's routes, sessions, identity, open streams and built page, kept apart from the socket. */
+/** What answers a request: the server's routes, sessions, identity and open streams, kept apart from the socket. */
 export interface OverseerRequestHandler {
   /** Answers one request as the server bound at `boundPort` does; `holdOpen` turns the idle timeout off for a stream that is quiet by design. */
   answer:           (request: Request, boundPort: number, holdOpen?: () => void) => Promise<Response>;
@@ -656,7 +600,6 @@ function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequest
   const { routes } = serverRequest;
   const eventStreams = eventStreamsOf(serverRequest);
   const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
-  const pageFiles = routes.page === undefined ? null : pageFilesOf(routes.page);
   const versions = serverRequest.versions ?? FORGE_SYSTEM_VERSIONS;
   const servedEndpoints = servedEndpointsOf(versions);
   const identity: OverseerIdentity = {
@@ -677,7 +620,7 @@ function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequest
       if (routedRequest === null) return withPagePolicy(notFoundResponse(), frameOrigins);
       if (pathIsStream(new URL(routedRequest.url).pathname)) holdOpen?.();
       const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
-      return withPagePolicy(await routeOf(routedRequest, access, { identity, versions }, eventStreams, pageFiles), frameOrigins);
+      return withPagePolicy(await routeOf(routedRequest, access, { identity, versions }, eventStreams), frameOrigins);
     },
     closeEveryStream: () => {
       for (const close of [...eventStreams.open]) close();

@@ -3,8 +3,8 @@
  * Baton names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
  * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
  * and the Overseer; `/api/summary` and `/api/monitor` have their fixtures' shapes, the monitor's only with the token and its stream starting
- * with the whole snapshot; `GET /` and its chunks carry the frame-ancestors of agent-dashboard's origins, against
- * clickjacking of the Bridge's controls; an event-stream client sees a `board` event for a ticket move and a `job`
+ * with the whole snapshot; `GET /` and every other path outside the API is a 404, and an answer carries the
+ * frame-ancestors of agent-dashboard's origins; an event-stream client sees a `board` event for a ticket move and a `job`
  * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
  * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`; a
  * gate profile the board holds streams its output lines after the cursor, while a run it does not hold and a cursor that is no line number
@@ -309,35 +309,24 @@ describe('the Overseer API on a scratch board', () => {
     expect((await fetch(new URL('api/profiles/P1/stream?after=last', url), { headers })).status).toBe(404);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('GET / serves the Bridge from its HTML import, its bundled script and stylesheet served beside it', async () => {
+  test('GET / and every other path outside the API is a 404 not-found: the Overseer serves no page', async () => {
     const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
-    const page = await fetch(url);
-    expect(page.status).toBe(200);
-    expect(page.headers.get('content-type')).toContain('text/html');
-    const html = await page.text();
-    expect(html).toContain('<div id="bridge-root"></div>');
-    const scriptPath = /<script[^>]+src="([^"]+)"/.exec(html)?.[1] ?? '';
-    const stylesheetPath = /<link[^>]+rel="stylesheet"[^>]+href="([^"]+)"/.exec(html)?.[1] ?? /<link[^>]+href="([^"]+)"[^>]+rel="stylesheet"/.exec(html)?.[1] ?? '';
-    const script = await fetch(new URL(scriptPath, url));
-    expect(script.status).toBe(200);
-    expect(await script.text()).toContain('bridge-root');
-    expect((await fetch(new URL(stylesheetPath, url))).status).toBe(200);
+    for (const path of ['', 'index.html', 'chunk-abc.js']) {
+      const answer = await fetch(new URL(path, url));
+      expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
+    }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('GET / carries the page CSP, framed only by the origins the frame-ancestor records name', async () => {
+  test('an answer carries the page CSP, framed only by the origins the frame-ancestor records name', async () => {
     const frameAncestorsDirectory = join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, 'frame-ancestors');
     mkdirSync(frameAncestorsDirectory, { recursive: true });
     writeFileSync(join(frameAncestorsDirectory, 'first-host.json'), JSON.stringify({ version: 1, minor: 0, origin: 'http://127.0.0.1:4411' }));
     writeFileSync(join(frameAncestorsDirectory, 'second-host.json'), JSON.stringify({ version: 1, minor: 0, origin: 'http://localhost:4412' }));
     const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
-    const page = await fetch(url);
-    expect(page.status).toBe(200);
-    const policy = page.headers.get('content-security-policy') ?? '';
+    const policy = (await fetch(new URL('api/versions', url))).headers.get('content-security-policy') ?? '';
     expect(/frame-ancestors ([^;]*)$/.exec(policy)?.[1]).toBe('http://127.0.0.1:4411 http://localhost:4412');
-    const scriptPath = /<script[^>]+src="([^"]+)"/.exec(await page.text())?.[1] ?? '';
-    expect((await fetch(new URL(scriptPath, url))).headers.get('content-security-policy')).toBe(policy);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an event-stream client sees a board event for a ticket move and a job event for each state the build job is published in', async () => {

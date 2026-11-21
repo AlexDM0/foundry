@@ -112,7 +112,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'src/services/overseer/LeaseRenewal.ts', specs: ['src/services/overseer/LeaseRenewal.integration.spec.ts'] },
   { boundary: 'src/services/overseer/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/testing/RecordedCommand.versionCheck.integration.spec.ts'] },
   { boundary: 'src/services/overseer/GpgDirectories.ts', specs: ['src/services/overseer/GpgDirectories.integration.spec.ts'] },
-  { boundary: 'src/services/overseer/OverseerServer.ts', specs: [HEADLESS_BRIDGE_SPEC, OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
+  { boundary: 'src/services/overseer/OverseerServer.ts', specs: [OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
   { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
   { boundary: 'cli/OpenInTheDefaultBrowser.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'cli/OpenInTheDefaultBrowser.integration.spec.ts'] },

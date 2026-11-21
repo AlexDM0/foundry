@@ -2,13 +2,10 @@
  * The routes the Overseer's API serves, over the board, its job folders, its picture store, Flint's brain and the framing programs' server
  * records: the state, summary, monitor snapshot, presence and crash logs read fresh each request, the brain's commands and the Bridge's
  * asks, the sentence of each refusal, a job's transcript and served files, a gate profile's output, the pictures User uploads and the ones
- * a transcript names, the origins allowed to frame the Bridge, and the Bridge itself, whose HTML import is the one place the command
- * surface reaches `bridge/`, by path, for Bun to bundle.
+ * a transcript names and the origins allowed to frame the Bridge. The Overseer serves no page.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
-
-import bridgePage from '../../../bridge/index.html';
 
 import { RefusalDocumentUtil }                                from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
 import type { LogRecord }                                     from '../../../src/lib/tracker-model/@types/LogRecord.ts';
@@ -49,11 +46,10 @@ export interface OverseerRouteRequest extends Omit<BoardStateSource, 'boardReads
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
-  'unauthorized':      'This needs the Overseer\'s token or a Bridge session. The Overseer may have restarted: open the board again.',
-  'forbidden':         'The Overseer answers only its own page and programs on this machine that name it by 127.0.0.1 or localhost.',
-  'read-failed':       'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
-  'page-build-failed': 'The Overseer could not build the Bridge\'s page; its log names the cause.',
-  'malformed-body':    MALFORMED_BODY_TEXT,
+  'unauthorized':   'This needs the Overseer\'s token or a Bridge session. The Overseer may have restarted: open the board again.',
+  'forbidden':      'The Overseer answers only its own page and programs on this machine that name it by 127.0.0.1 or localhost.',
+  'read-failed':    'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
+  'malformed-body': MALFORMED_BODY_TEXT,
 };
 
 const FLINT_BRAIN_ASK_STATUS = {
@@ -179,6 +175,5 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
       : PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, upload.bytes)),
     picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
     frameOrigins: () => FrameOrigins.frameOriginsOf(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory)),
-    page:         bridgePage,
   };
 }

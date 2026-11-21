@@ -10,7 +10,8 @@
  * number reaching its route from the query. The board document answers at v1 behind the token with the assembly's document, while the
  * internal state answers as before at no versioned path. A templated endpoint, a job's or a profile's stream or a picture, answers at the
  * concrete path its template matches, and a path one segment longer is a 404. Each of the three board streams opens with the handshake,
- * which carries no id, so a reconnect at the versioned path replays from its `Last-Event-ID` as at the unversioned one.
+ * which carries no id, so a reconnect at the versioned path replays from its `Last-Event-ID` as at the unversioned one. The Overseer
+ * serves no page: `GET /` and every other path outside `/api/` is a 404.
  */
 import {
   afterEach,
@@ -389,6 +390,14 @@ describe('the versioned paths', () => {
     const refused = await versionedHandlerOf().answer(requestTo(servedPathOf('monitor'), { headers: HOST_HEADERS }), PORT);
     expect([refused.status, await refused.json()]).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
     expect(refused.headers.get('content-security-policy')).toContain('frame-ancestors \'none\'');
+  });
+
+  test('no path outside the API answers a page: the root, an index file and a chunk are each a 404 not-found', async () => {
+    const handler = versionedHandlerOf();
+    for (const path of ['/', '/index.html', '/chunk-abc.js']) {
+      const answer = await handler.answer(requestTo(path), PORT);
+      expect([answer.status, await answer.json()], path).toEqual([404, { refusal: 'not-found' }]);
+    }
   });
 
   test('holds a versioned stream open, as its unversioned path', async () => {
