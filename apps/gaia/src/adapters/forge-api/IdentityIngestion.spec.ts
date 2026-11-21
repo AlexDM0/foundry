@@ -8,6 +8,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { CONTRACT_VERSIONS }                                   from '../../shared/constants/ContractVersions.ts';
+import { recordedForgeVersionsOf }                             from '../../testing/BoundaryRecordings.ts';
 import { FLEET_SNAPSHOT_DEGRADED }                             from '../page-api/testing/fleet-snapshot-degraded.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS, forgeReadingOf } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
@@ -29,6 +30,9 @@ const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
   lastChangedAt:     '2026-11-12T09:00:00.000Z',
 };
 
+/** The forge both identities were recorded from, as the recording's stamp names it. */
+const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('overseer-fetch-supported-forge');
+
 const CURRENT_CONTRACTS = {
   summary: 1,
   monitor: 4,
@@ -46,12 +50,11 @@ describe('the identity of a forge at the version Gaia supports', () => {
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf(await storefrontIdentity())).toEqual({
       verdict:  'readable',
       identity: {
-        trackerId:      'example-storefront-7c41',
-        project:        'Example Storefront',
-        codeVersion:    'f46fd1a4c461',
-        installVersion: 44,
-        processId:      48_107,
-        contracts:      CURRENT_CONTRACTS,
+        trackerId: 'example-storefront-7c41',
+        project:   'Example Storefront',
+        ...RECORDED_FORGE_VERSIONS,
+        processId: 48_107,
+        contracts: CURRENT_CONTRACTS,
       },
     });
   });
@@ -61,12 +64,11 @@ describe('the identity of a forge at the version Gaia supports', () => {
     expect(new IdentityIngestion(RECORDED_FORGE_FACTS).readingOf(document)).toEqual({
       verdict:  'readable',
       identity: {
-        trackerId:      '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
-        project:        'Example Project',
-        codeVersion:    'f46fd1a4c461',
-        installVersion: 44,
-        processId:      21_008,
-        contracts:      CURRENT_CONTRACTS,
+        trackerId: '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
+        project:   'Example Project',
+        ...RECORDED_FORGE_VERSIONS,
+        processId: 21_008,
+        contracts: CURRENT_CONTRACTS,
       },
     });
   });

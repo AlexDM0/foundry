@@ -4,8 +4,9 @@
  * target, the worded notices, today's figures with their date, the open decisions in answering order, each ticket's facts and offers, each
  * job's stop holds and offers, the effective pipelines, the limits, an option's recommendation beside its unmarked label, the entities
  * draft with its refusals and their typed fix, the Apply refusal and the step run times; the Assistant's switch is the stored pipeline's
- * `assistant` key, off while the key is absent and while no readable pipeline is stored; a missing key, or a value outside a value list,
- * makes the document malformed and is named; a key Gaia does not read is passed over, and so is a key Gaia names as passed over.
+ * `assistant` key, read from the boards recorded after it was switched off and on, off while no readable pipeline is stored; a missing
+ * key, or a value outside a value list, makes the document malformed and is named; a key Gaia does not read is passed over, and so is a
+ * key Gaia names as passed over.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -145,11 +146,12 @@ describe('boardOf, on the board of a forge at work', () => {
     });
   });
 
-  test('reads the Assistant\'s switch from the stored pipeline: on while the forge wrote the key, as recorded, off while the key is absent', async () => {
+  test('reads the Assistant\'s switch from the stored pipeline as the forge served it: off once switched off, the key gone, and on once switched on again', async () => {
     expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument())).assistantIsOn).toBe(true);
-    const switchedOff = await boardAtWorkDocument();
-    delete recordAt(switchedOff, ['pipeline', 'pipeline'])['assistant'];
+    const switchedOff = await recordedBoardDocumentOf('assistant-switched-off') as MutableDocument;
+    expect(Object.hasOwn(recordAt(switchedOff, ['pipeline', 'pipeline']), 'assistant')).toBe(false);
     expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, switchedOff)).assistantIsOn).toBe(false);
+    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await recordedBoardDocumentOf('assistant-switched-on'))).assistantIsOn).toBe(true);
   });
 
   test('reads the Assistant\'s switch as off while no readable pipeline is stored', async () => {

@@ -594,6 +594,54 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
     },
   },
   {
+    call:      'boardOf',
+    situation: 'assistant-switched-off',
+    callShape: 'GET /api/v2/board with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    expected:  {
+      verdict:  'answered',
+      document: expect.objectContaining({ pipeline: expect.objectContaining({ pipeline: expect.not.objectContaining({ assistant: expect.anything() }) }) }),
+    },
+  },
+  {
+    call:      'boardOf',
+    situation: 'assistant-switched-on',
+    callShape: 'GET /api/v2/board with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    expected:  {
+      verdict:  'answered',
+      document: expect.objectContaining({ pipeline: expect.objectContaining({ pipeline: expect.objectContaining({ assistant: true }) }) }),
+    },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'assistant-switched-off',
+    callShape: 'POST /api/v2/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'pipeline-assistant-set', on: false }),
+    expected:  {
+      verdict: 'answered',
+      status:  200,
+      body:    expect.objectContaining({
+        outcome: 'done',
+        result:  expect.objectContaining({ logged: expect.arrayContaining([expect.objectContaining({ kind: 'pipeline-assistant-set', fields: { state: 'off' } })]) }),
+      }),
+    },
+  },
+  {
+    call:      'sendBoardCommand',
+    situation: 'assistant-switched-on',
+    callShape: 'POST /api/v2/commands with bearer',
+    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'pipeline-assistant-set', on: true }),
+    expected:  {
+      verdict: 'answered',
+      status:  200,
+      body:    expect.objectContaining({
+        outcome: 'done',
+        result:  expect.objectContaining({ logged: [expect.objectContaining({ kind: 'pipeline-assistant-set', fields: { state: 'on' } })] }),
+      }),
+    },
+  },
+  {
     call:      'followEvents',
     situation: 'board-at-work',
     callShape: 'STREAM /api/v2/events with bearer',

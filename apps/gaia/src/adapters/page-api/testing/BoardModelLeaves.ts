@@ -26,8 +26,8 @@ const PAGE_ONLY_KEYS: ReadonlySet<string> = new Set(['boardVersion', 'refusedBy'
 const EMPTY_LIST_LEAF = '[]';
 const EMPTY_RECORD_LEAF = '{}';
 
-export async function recordedBoardModel(): Promise<ForgeBoard> {
-  const reading = new BoardStateIngestion().boardOf(RECORDED_TRACKER_ID, await recordedBoardDocumentOf('board-at-work'));
+export async function recordedBoardModel(situation: Parameters<typeof recordedBoardDocumentOf>[0] = 'board-at-work'): Promise<ForgeBoard> {
+  const reading = new BoardStateIngestion().boardOf(RECORDED_TRACKER_ID, await recordedBoardDocumentOf(situation));
   if (reading.board === null) throw new Error(`The recorded board did not read: ${reading.reason.invalidKeys.join(', ')}.`);
   return reading.board;
 }

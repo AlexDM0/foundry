@@ -18,24 +18,32 @@ function clientOf(situation: BoardSituation): ForgeClient {
   return forgeClientOf({ overseerFetch: recordedOverseerFetch(recordedBoardAnswersOf(situation)) });
 }
 
+type BoardDocumentSituation = Extract<BoardSituation, 'board-at-work' | 'board-install-held' | 'assistant-switched-off' | 'assistant-switched-on'>;
+
 /** The parsed board document the forge answered in one situation; a spec fails when it answered none. */
-export async function recordedBoardDocumentOf(situation: Extract<BoardSituation, 'board-at-work' | 'board-install-held'>): Promise<unknown> {
+export async function recordedBoardDocumentOf(situation: BoardDocumentSituation): Promise<unknown> {
   const answer = await clientOf(situation).boardOf(EXAMPLE_ACCESS);
   if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no board document: ${answer.verdict}.`);
   return answer.document;
 }
 
 /** The day the recorded board counted today's figures on, as the forge wrote it, so a spec holds the date without pinning the day it was taken. */
-export async function recordedCalendarDateOf(situation: Extract<BoardSituation, 'board-at-work' | 'board-install-held'>): Promise<string> {
+export async function recordedCalendarDateOf(situation: BoardDocumentSituation): Promise<string> {
   const document = await recordedBoardDocumentOf(situation) as { readonly today?: { readonly calendarDate?: unknown } };
   const calendarDate = document.today?.calendarDate;
   if (typeof calendarDate !== 'string') throw new Error(`The ${situation} board names no calendar date for today.`);
   return calendarDate;
 }
 
+type CommandAnswerSituation = Extract<
+  BoardSituation,
+  'board-command-applied' | 'board-command-refused' | 'board-command-unknown-kind' | 'board-install-held' | 'intake-conversation'
+  | 'assistant-switched-off' | 'assistant-switched-on'
+>;
+
 /** A board command's answer as the forge gave it: its status and its parsed body. */
 export async function recordedCommandAnswerOf(
-  situation: Extract<BoardSituation, 'board-command-applied' | 'board-command-refused' | 'board-command-unknown-kind' | 'board-install-held' | 'intake-conversation'>,
+  situation: CommandAnswerSituation,
 ): Promise<{ readonly status: number; readonly body: unknown }> {
   const answer = await clientOf(situation).sendBoardCommand(EXAMPLE_ACCESS, { kind: 'ticket-hold' });
   if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no command answer: ${answer.verdict}.`);

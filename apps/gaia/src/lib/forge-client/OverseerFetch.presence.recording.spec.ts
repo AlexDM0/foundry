@@ -1,10 +1,11 @@
 /**
  * The real-system spec of overseer-fetch against a forge's presence and crash logs, run only by
  * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record overseer-fetch-presence`. It starts Example Storefront under a scratch home, its fake
- * agent playing every session, readies a ticket, and records its presence while it serves and a crash log it has none of; then kills its
- * Overseer from outside, starts it as User does, and records its presence after the crash and the crash log it wrote. Neither recorded
- * presence lists interrupted work, and the crash log names no active job, since a new board's Assistant is off: the waiting work rests on
- * written documents. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
+ * agent playing every session, with a draft ticket, an empty gate list stored and the Assistant switched on, and records its presence while it
+ * serves and a crash log it has none of; then, once the Assistant's job runs, kills its Overseer from outside, starts it as User does, and
+ * records its presence after the crash and the crash log it wrote, which names the Assistant's job as active. Neither recorded presence
+ * lists interrupted work: the Assistant's session outlives the Overseer under Talos, so the waiting work rests on written documents. The
+ * values the run draws are recorded as example values; the forge's install and code versions stamp it.
  */
 import { readFileSync } from 'node:fs';
 import {
@@ -43,7 +44,7 @@ const STOREFRONT = {
 } as const;
 /** Forge's test setting that keeps each fake agent's session working until it is stopped, so a session that began is not done when the Overseer dies. */
 const FAKE_AGENT_KEEPS_WORKING_VARIABLE = 'FORGE_FAKE_AGENT_KEEPS_WORKING';
-const READY_TICKET_BODY = '## Brief\nPay for an example order in one step.\n\n## Acceptance\nA1. The example order is paid.\n';
+const DRAFT_TICKET_BODY = '## Brief\nPay for an example order in one step.\n\n## Acceptance\nA1. The example order is paid.\n';
 /** A number no crash log of a fresh board has. */
 const ABSENT_CRASH_LOG_NUMBER = 1;
 const NUDGE_PATH = '/api/nudge';
@@ -104,6 +105,19 @@ async function servedPresence(wanted: string, presenceShows: (presence: Record<s
   throw new Error(`The presence did not show ${wanted}.`);
 }
 
+/** Waits until the board lists the Assistant's job as running, so the crash log names a job active at the crash. */
+async function boardWithAnAssistantJob(): Promise<void> {
+  for (let look = 0; look < PRESENCE_LOOKS_AT_MOST; look += 1) {
+    const answer = await realOverseerFetch().request(requestOf(forgeEndpointPathOf('board')));
+    if (answer.verdict !== 'answered' || answer.status !== SUCCESS_STATUS) throw new Error(`The board answered ${JSON.stringify(answer)}`);
+    const { jobs } = JSON.parse(answer.bodyText) as { jobs: { role: string; state: string }[] };
+    if (jobs.some((job) => job.role === 'assistant' && job.state === 'running')) return;
+    await realOverseerFetch().request({ ...requestOf(NUDGE_PATH), method: 'POST' });
+    await Bun.sleep(PRESENCE_LOOK_INTERVAL_MILLISECONDS);
+  }
+  throw new Error('The board did not list the Assistant\'s job as running.');
+}
+
 function jobsOf(presence: Record<string, unknown>, key: string): unknown[] {
   const value = presence[key];
   return Array.isArray(value) ? value : [];
@@ -116,9 +130,10 @@ beforeAll(async () => {
   const initialised = await scratchForge.runForDocument(repository, ['init', '--project', 'Example Storefront', '--no-hooks', '--json']);
   trackerIdDrawn = String(initialised['trackerId']);
   scratchForge.exampleValueFor({ drawn: trackerIdDrawn, example: STOREFRONT.trackerId });
-  const added = await scratchForge.runForDocument(repository, ['ticket', 'add', 'Example checkout page', '--type', 'ticket', '--body', READY_TICKET_BODY, '--json']);
-  const addedTicket = added['ticket'] as Record<string, unknown> | undefined;
-  await scratchForge.runForDocument(repository, ['ticket', 'ready', String(addedTicket?.['id'] ?? added['id']), '--json']);
+  await scratchForge.runForDocument(repository, ['ticket', 'add', 'Example checkout page', '--type', 'ticket', '--body', DRAFT_TICKET_BODY, '--json']);
+  // The Assistant's switch needs a stored pipeline, and a new board's Assistant is off: switched on, a job is at work when the Overseer dies.
+  await scratchForge.runForDocument(repository, ['gate', 'none', '--json']);
+  await scratchForge.runForDocument(repository, ['gate', 'assistant', 'on', '--json']);
   await scratchForge.runForDocument(repository, ['start', '--json']);
   followTheLiveOverseer();
   const resumed = await realOverseerFetch().request({ ...requestOf(forgeEndpointPathOf('commands')), method: 'POST', jsonBody: JSON.stringify({ kind: 'overseer-resume' }) });
@@ -150,6 +165,7 @@ describe('a forge\'s presence and crash logs', () => {
   test('lists the crash log of a crash after User started it again, and serves that log', async () => {
     const overseer = scratchForge.registryEntryOf(trackerIdDrawn)?.['overseer'] as { processId: number } | undefined;
     if (overseer === undefined) throw new Error('the registry names no live Overseer to crash');
+    await boardWithAnAssistantJob();
     process.kill(overseer.processId, 'SIGKILL');
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveOverseer();

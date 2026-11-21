@@ -14,7 +14,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "controlVersion": 1,
+          "controlVersion": 2,
           "outcome": "done",
           "result": {
             "logged": [
@@ -39,7 +39,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "controlVersion": 1,
+          "controlVersion": 2,
           "refusal": "no-readable-ticket",
           "fields": {
             "reference": "999"

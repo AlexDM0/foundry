@@ -12,6 +12,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
 import { FORGE_NOTICE_KINDS }                  from '../../shared/constants/ForgeNoticeKinds.ts';
+import { recordedForgeVersionsOf }             from '../../testing/BoundaryRecordings.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
 import type { ForgeIdentity }                                      from './@types/ForgeDocumentReading.ts';
@@ -20,8 +21,9 @@ import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf } from './testi
 
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
-/** The code version of the forge the Storefront at work was recorded from, as the identity Gaia reads beside its snapshot names it. */
-const RECORDED_CODE_VERSION = 'f46fd1a4c461';
+/** The forge the Storefront at work was recorded from, as the recording's stamp and the identity Gaia reads beside its snapshot name it. */
+const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('overseer-fetch-supported-forge');
+const RECORDED_CODE_VERSION = RECORDED_FORGE_VERSIONS.codeVersion;
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
 const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
 const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
@@ -31,7 +33,7 @@ function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
     trackerId:      STOREFRONT.trackerId,
     project:        STOREFRONT.project,
     codeVersion,
-    installVersion: 44,
+    installVersion: RECORDED_FORGE_VERSIONS.installVersion,
     processId:      48_107,
     contracts:      {
       summary: 1,
@@ -87,7 +89,7 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     },
   ],
   [
-    'Overseer started on code f46fd1a4c461, install version 44',
+    `Overseer started on code ${RECORDED_CODE_VERSION}, install version ${RECORDED_FORGE_VERSIONS.installVersion}`,
     {
       category:   'forge',
       boardRoute: null,

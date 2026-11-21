@@ -86,10 +86,11 @@ describe('boardDocumentOf, on the recorded board', () => {
     expect(modelLeavesOf(board).size).toBeGreaterThan(MINIMUM_RECORDED_BOARD_LEAVES);
   });
 
-  test('carries the Assistant\'s switch as the model holds it, on and off', async () => {
-    const board = await recordedBoardModel();
-    expect(BoardDocumentMapUtil.boardDocumentOf({ ...board, assistantIsOn: true }, markdownLeftAsWritten).assistantIsOn).toBe(true);
-    expect(BoardDocumentMapUtil.boardDocumentOf({ ...board, assistantIsOn: false }, markdownLeftAsWritten).assistantIsOn).toBe(false);
+  test('carries the Assistant\'s switch as the forge served it once switched off and once switched on again', async () => {
+    const switchedOff = await recordedBoardModel('assistant-switched-off');
+    const switchedOn = await recordedBoardModel('assistant-switched-on');
+    expect(BoardDocumentMapUtil.boardDocumentOf(switchedOff, markdownLeftAsWritten).assistantIsOn).toBe(false);
+    expect(BoardDocumentMapUtil.boardDocumentOf(switchedOn, markdownLeftAsWritten).assistantIsOn).toBe(true);
   });
 
   test('carries the board contract\'s version', async () => {

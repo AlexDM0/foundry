@@ -6,7 +6,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 44, code f46fd1a4c461"
+    "systemVersion": "install version 44, code 7be0e9b545ff"
   },
   "answers": [
     {
@@ -59,7 +59,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"f46fd1a4c461\",\n  \"installVersion\": 44,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 4,\n    \"control\": 2\n  }\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"7be0e9b545ff\",\n  \"installVersion\": 44,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 4,\n    \"control\": 2\n  }\n}\n",
         "standardError": ""
       }
     },
@@ -86,7 +86,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"f46fd1a4c461\",\n  \"installVersion\": 44,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 4,\n    \"control\": 2\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"7be0e9b545ff\",\n  \"installVersion\": 44,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 4,\n    \"control\": 2\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
         "standardError": ""
       }
     }

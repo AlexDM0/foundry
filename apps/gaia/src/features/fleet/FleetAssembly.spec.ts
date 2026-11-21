@@ -23,6 +23,7 @@ import type { AgentRow }                                                   from 
 import type { FleetSnapshot }                                              from '../../shared/@types/FleetSnapshot.ts';
 import type { ForgeReading }                                               from '../../shared/@types/ForgeReading.ts';
 import { LIMITS }                                                          from '../../shared/constants/Limits.ts';
+import { recordedForgeVersionsOf }                                         from '../../testing/BoundaryRecordings.ts';
 
 import { fleetSnapshotOf, type FleetAssemblyInput } from './FleetAssembly.ts';
 
@@ -135,12 +136,11 @@ const STOREFRONT = READINGS.exampleStorefront;
 
 /** The identity of the forge the Storefront at work was recorded from: Example Storefront at monitor 4 and control 2. */
 const RECORDED_FORGE_IDENTITY: ForgeIdentity = {
-  trackerId:      STOREFRONT.trackerId,
-  project:        STOREFRONT.project,
-  codeVersion:    'f46fd1a4c461',
-  installVersion: 44,
-  processId:      48_107,
-  contracts:      {
+  trackerId: STOREFRONT.trackerId,
+  project:   STOREFRONT.project,
+  ...recordedForgeVersionsOf('overseer-fetch-supported-forge'),
+  processId: 48_107,
+  contracts: {
     summary: 1,
     monitor: 4,
     control: 2,

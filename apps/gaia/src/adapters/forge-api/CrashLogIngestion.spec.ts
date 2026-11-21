@@ -1,7 +1,7 @@
 /**
  * The crash log ingestion against the crash log a scratch forge wrote and served after it started again (`overseer-fetch-presence`), and a
- * suspected one. What matters: the log reads with its error, its active jobs and its tail; a board or a log the forge could not read stays
- * `null`, never empty; and a document that does not ingest names its keys.
+ * suspected one. What matters: the log reads with its error, the Assistant's job active at the crash and its tail; a board or a log the
+ * forge could not read stays `null`, never empty; and a document that does not ingest names its keys.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -21,17 +21,12 @@ describe('crashLogOf', () => {
       suspected:  false,
       recordedAt: recordedBody['recordedAt'],
       error:      null,
-      activeJobs: [],
+      activeJobs: [{
+        jobId: 'J1', kind: 'assistant', ticketIds: [], state: 'running', interruption: null, airlockPhase: null,
+      }],
     });
-    expect(reading.crashLog?.logTail?.length).toBe(2);
-  });
-
-  test('reads each job active at the crash, which the recorded forge had none of since a new board\'s Assistant is off', () => {
-    const activeJob = {
-      jobId: 'J1', kind: 'assistant', ticketIds: [], state: 'launching', interruption: null, airlockPhase: null,
-    };
-    const reading = INGESTION.crashLogOf({ ...recordedCrashLogBodyOf('started-after-a-crash'), activeJobs: [activeJob] });
-    expect(reading.crashLog?.activeJobs).toEqual([activeJob]);
+    expect(reading.crashLog?.logTail).toEqual(recordedBody['logTail'] as string[]);
+    expect(reading.crashLog?.logTail?.at(-1)).toEndWith('Launched child instance 1 of job J1 (assistant) under Talos.');
   });
 
   test('reads a suspected crash with its error, and keeps a board and a log the forge could not read unread', () => {

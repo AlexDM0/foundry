@@ -5,7 +5,7 @@
  * with its recommendation escalated to User, an open incident and a defaulted one's notice, a pipeline applied over both apps with the
  * Assistant switched on (a board whose Assistant is off defaults every incident at once), and an update
  * of it whose entities draft holds a standing refusal with its fix, which Apply refuses; then it records each situation of
- * `BOARD_SITUATIONS` at the versioned path Gaia calls. The values the run
+ * `BOARD_SITUATIONS` at the versioned path Gaia calls, the Assistant switched off and on again among them. The values the run
  * draws are recorded as example values; the forge's install and code versions stamp it.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -106,6 +106,7 @@ interface KeptAnswer {
 
 let scratchForge: ScratchForge;
 let repository = '';
+let trackerIdDrawn = '';
 let overseerUrl = '';
 let bearerToken = '';
 let setupId = '';
@@ -245,6 +246,20 @@ function appliedPipelineOf(board: Record<string, unknown>): Record<string, unkno
   return recordOf(board['pipeline']);
 }
 
+function assistantKeyOf(board: Record<string, unknown>): unknown {
+  return recordOf(appliedPipelineOf(board)['pipeline'])['assistant'];
+}
+
+/** Sends the Assistant's switch, waits until the stored pipeline the board serves shows it, and keeps the command's answer and that board. */
+async function keepTheAssistantSwitched(situation: BoardSituation, on: boolean): Promise<Record<string, unknown>> {
+  expect(await keepCommand(situation, { kind: 'pipeline-assistant-set', on })).toMatchObject({ status: SUCCESS_STATUS });
+  await boardOnceItShows(`the Assistant switched ${on ? 'on' : 'off'}`, (board) => (assistantKeyOf(board) === true) === on);
+  const boardRequest = requestOf('GET', forgeEndpointPathOf('board'));
+  const answer = await realOverseerFetch().request(boardRequest);
+  keep(situation, requestCallShapeOf(boardRequest), answer);
+  return bodyOf(answer);
+}
+
 function setupOfAnswer(answer: OverseerAnswer): Record<string, unknown> {
   return recordOf(recordOf(bodyOf(answer)['result'])['setup']);
 }
@@ -294,6 +309,15 @@ function followTheLiveOverseerOf(trackerId: string): LiveOverseer {
   overseerUrl = overseer.url;
   bearerToken = readFileSync(overseer.tokenPath, 'utf8').trim();
   return overseer;
+}
+
+/** Follows the Overseer a start left, and records the address, process id and token it drew as the Storefront's examples. */
+function followTheLiveOverseerWithItsExamples(): void {
+  const overseer = followTheLiveOverseerOf(trackerIdDrawn);
+  scratchForge.exampleValueFor({ drawn: new URL(overseer.url).host, example: STOREFRONT.overseerAddress });
+  scratchForge.exampleValueFor({ drawn: `"processId":${overseer.processId}`, example: `"processId":${STOREFRONT.processId}` });
+  scratchForge.exampleValueFor({ drawn: `process ${overseer.processId}`, example: `process ${STOREFRONT.processId}` });
+  scratchForge.exampleValueFor({ drawn: bearerToken, example: 'example-token' });
 }
 
 function noticeKindsOf(board: Record<string, unknown>): unknown[] {
@@ -384,7 +408,7 @@ beforeAll(async () => {
   scratchForge.exampleValueFor({ drawn: repository, example: STOREFRONT.root });
   await commitTheApps();
   const initialised = await scratchForge.runForDocument(repository, ['init', '--project', 'Example Storefront', '--no-hooks', '--json']);
-  const trackerIdDrawn = String(initialised['trackerId']);
+  trackerIdDrawn = String(initialised['trackerId']);
   scratchForge.exampleValueFor({ drawn: trackerIdDrawn, example: STOREFRONT.trackerId });
   await scratchForge.runForDocument(repository, ['ticket', 'add', 'Search suggestions', '--type', 'ticket', '--json']);
   const committed = await scratchForge.runForDocument(repository, ['ticket', 'add', 'Example checkout page', '--type', 'ticket', '--body', READY_TICKET_BODY, '--json']);
@@ -398,11 +422,7 @@ beforeAll(async () => {
   await scratchForge.runForDocument(repository, ['stop', '--now', '--json']);
   leaveIncidentsOfAnEndedAssistantTurn();
   await scratchForge.runForDocument(repository, ['start', '--json']);
-  const overseer = followTheLiveOverseerOf(trackerIdDrawn);
-  scratchForge.exampleValueFor({ drawn: new URL(overseer.url).host, example: STOREFRONT.overseerAddress });
-  scratchForge.exampleValueFor({ drawn: `"processId":${overseer.processId}`, example: `"processId":${STOREFRONT.processId}` });
-  scratchForge.exampleValueFor({ drawn: `process ${overseer.processId}`, example: `process ${STOREFRONT.processId}` });
-  scratchForge.exampleValueFor({ drawn: bearerToken, example: 'example-token' });
+  followTheLiveOverseerWithItsExamples();
   expect(await sendCommand({ kind: 'concurrency-set', limit: RAISED_CONCURRENCY_LIMIT })).toMatchObject({ status: SUCCESS_STATUS });
   // A new board starts paused; a forge at work runs.
   expect(await sendCommand({ kind: 'overseer-resume' })).toMatchObject({ status: SUCCESS_STATUS });
@@ -543,5 +563,16 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     } finally {
       writeFileSync(manifestPath, manifestText);
     }
+  }, STEP_TIMEOUT_MILLISECONDS);
+
+  test('switches the Assistant off, which takes the key out of the stored pipeline, and on again, which writes it true', async () => {
+    // The install hold refuses every command and outlasts the manifest put back, so User's stop and start come first, as after an update.
+    await scratchForge.runForDocument(repository, ['stop', '--now', '--json']);
+    await scratchForge.runForDocument(repository, ['start', '--json']);
+    followTheLiveOverseerWithItsExamples();
+    const switchedOff = await keepTheAssistantSwitched('assistant-switched-off', false);
+    expect(Object.hasOwn(recordOf(appliedPipelineOf(switchedOff)['pipeline']), 'assistant')).toBe(false);
+    const switchedOn = await keepTheAssistantSwitched('assistant-switched-on', true);
+    expect(assistantKeyOf(switchedOn)).toBe(true);
   }, STEP_TIMEOUT_MILLISECONDS);
 });

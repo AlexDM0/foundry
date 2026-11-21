@@ -255,6 +255,23 @@ export function boundaryRecordingReadingOf(recordingText: string): BoundaryRecor
   };
 }
 
+export interface RecordedForgeVersions {
+  readonly installVersion: number;
+  readonly codeVersion:    string;
+}
+
+const FORGE_STAMP_PATTERN = /^install version (\d+), code ([0-9a-f]+)/;
+
+/** The install and code versions a forge recording is stamped with, so a spec holds them without pinning the forge they were taken from. */
+export function recordedForgeVersionsOf(recordingName: string, operatingSystem: string = process.platform): RecordedForgeVersions {
+  const recordingPath = recordingPathOf(recordingName, operatingSystem);
+  const reading = boundaryRecordingReadingOf(readFileSync(join(repositoryRoot(), recordingPath), 'utf8'));
+  const stamp = reading.verdict === 'readable' ? reading.recording.stamp : null;
+  const versions = stamp?.source === 'recorded' ? FORGE_STAMP_PATTERN.exec(stamp.systemVersion) : null;
+  if (versions === null || versions === undefined) throw new Error(`${recordingPath} is not stamped with a forge's install and code versions.`);
+  return { installVersion: Number(versions[1]), codeVersion: String(versions[2]) };
+}
+
 /** Where a recording spec collects its answers while `bun run record` runs it: in the scratch root, outside the run's own folder. */
 export function answersInProgressPathOf(recordingName: string): string {
   return join(scratchRoot(), `recording-${recordingName}.jsonl`);

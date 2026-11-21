@@ -17,6 +17,13 @@ describe('answerOf, on the recorded answers', () => {
     expect(INGESTION.answerOf(status, body)).toEqual({ outcome: 'applied', applied: 'done', startedJobId: null });
   });
 
+  test('reads the Assistant\'s switch applied, off and on again, which started no job', async () => {
+    for (const situation of ['assistant-switched-off', 'assistant-switched-on'] as const) {
+      const { status, body } = await recordedCommandAnswerOf(situation);
+      expect(INGESTION.answerOf(status, body)).toEqual({ outcome: 'applied', applied: 'done', startedJobId: null });
+    }
+  });
+
   test('names the product owner an applied intake started', async () => {
     const { status, body } = await recordedCommandAnswerOf('intake-conversation');
     expect(INGESTION.answerOf(status, body)).toEqual({ outcome: 'applied', applied: 'done', startedJobId: 'J4' });

@@ -6,7 +6,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 44, code f46fd1a4c461"
+    "systemVersion": "install version 44, code 7be0e9b545ff"
   },
   "answers": [
     {
@@ -25,7 +25,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"generation\":1,\"processId\":48107,\"codeVersion\":\"f46fd1a4c461\",\"startedAt\":\"2026-11-21T14:18:09+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"first-start\",\"previousGeneration\":null,\"crashSuspected\":false,\"crashLogNumber\":null},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-21T14:18:09+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"f46fd1a4c461\",\"startNumber\":1}}",
+        "bodyText": "{\"generation\":1,\"processId\":48107,\"codeVersion\":\"7be0e9b545ff\",\"startedAt\":\"2026-11-21T15:00:18+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"first-start\",\"previousGeneration\":null,\"crashSuspected\":false,\"crashLogNumber\":null},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-21T15:00:18+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"7be0e9b545ff\",\"startNumber\":1}}",
         "bodyBytes": null
       }
     },
@@ -35,7 +35,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"suspected\":false,\"recordedAt\":\"2026-11-21T14:18:10+01:00\",\"startKind\":\"crashed\",\"error\":null,\"activeJobs\":[],\"logTail\":[\"2026-11-21T14:18:09+01:00 Overseer serving http://127.0.0.1:4951/ under Baton 1 (code f46fd1a4c461, install version 44, agents fake-agent).\",\"2026-11-21T14:18:09+01:00 Started Talos 1 (the one before none, 0 orphans swept).\"]}",
+        "bodyText": "{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"suspected\":false,\"recordedAt\":\"2026-11-21T15:00:19+01:00\",\"startKind\":\"crashed\",\"error\":null,\"activeJobs\":[{\"jobId\":\"J1\",\"kind\":\"assistant\",\"ticketIds\":[],\"state\":\"running\",\"interruption\":null,\"airlockPhase\":null}],\"logTail\":[\"2026-11-21T15:00:18+01:00 Overseer serving http://127.0.0.1:4951/ under Baton 1 (code 7be0e9b545ff, install version 44, agents fake-agent).\",\"2026-11-21T15:00:18+01:00 Started Talos 1 (the one before none, 0 orphans swept).\",\"2026-11-21T15:00:18+01:00 Launched child instance 1 of job J1 (assistant) under Talos.\"]}",
         "bodyBytes": null
       }
     },
@@ -45,7 +45,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"generation\":2,\"processId\":48107,\"codeVersion\":\"f46fd1a4c461\",\"startedAt\":\"2026-11-21T14:18:10+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"crashed\",\"previousGeneration\":1,\"crashSuspected\":false,\"crashLogNumber\":1},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-21T14:18:10+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"recordedAt\":\"2026-11-21T14:18:10+01:00\",\"suspected\":false}],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"f46fd1a4c461\",\"startNumber\":1}}",
+        "bodyText": "{\"generation\":2,\"processId\":48107,\"codeVersion\":\"7be0e9b545ff\",\"startedAt\":\"2026-11-21T15:00:19+01:00\",\"startOrigin\":\"user\",\"lastStart\":{\"kind\":\"crashed\",\"previousGeneration\":1,\"crashSuspected\":false,\"crashLogNumber\":1},\"heartbeat\":{\"sequence\":1,\"at\":\"2026-11-21T15:00:19+01:00\"},\"supervision\":\"supervising\",\"abandonedPasses\":{\"inARow\":0,\"lastReason\":null,\"lastAt\":null},\"interruptedWork\":[],\"heldMerges\":[],\"crashLogs\":[{\"number\":1,\"generation\":1,\"component\":\"hephaestus\",\"recordedAt\":\"2026-11-21T15:00:19+01:00\",\"suspected\":false}],\"talos\":{\"protocolVersion\":2,\"codeVersion\":\"7be0e9b545ff\",\"startNumber\":1}}",
         "bodyBytes": null
       }
     }
