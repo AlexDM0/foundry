@@ -13,10 +13,12 @@ import { AssistantView }             from '../views/assistant/AssistantView.tsx'
 import { EpicsView }                 from '../views/epics/EpicsView.tsx';
 import { IntakeView }                from '../views/intake/IntakeView.tsx';
 import { KanbanTabView }             from '../views/kanban/KanbanTabView.tsx';
+import { PipelineView }              from '../views/pipeline/PipelineView.tsx';
 import { ProgressTabView }           from '../views/progress/ProgressTabView.tsx';
 import { QuestionsTabView }          from '../views/questions/QuestionsView.tsx';
 import { TicketsView }               from '../views/tickets/TicketsView.tsx';
 import { WavesTabView }              from '../views/waves/WavesView.tsx';
+import { useBoardClock }             from './BoardClock.ts';
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
 import { DetailRoute }               from './DetailRoute.ts';
 
@@ -37,6 +39,13 @@ function IntakeTabView({ board, route, services }: BoardTabViewProps) {
   return <IntakeView board={board} followTranscript={services.followTranscript} selectedItem={route.item} />;
 }
 
+function PipelineTabView({ board, route, services }: BoardTabViewProps) {
+  const clock = useBoardClock();
+  return (
+    <PipelineView facts={board} route={route} followTranscript={services.followTranscript} followProfileLog={services.followProfileLog} clock={clock} />
+  );
+}
+
 export const BOARD_TAB_VIEWS: BoardTabViewTable = {
   kanban:    KanbanTabView,
   waves:     WavesTabView,
@@ -53,4 +62,5 @@ export const BOARD_TAB_VIEWS: BoardTabViewTable = {
   ),
   assistant: ({ board, services }) => <AssistantView board={board} followTranscript={services.followTranscript} />,
   intake:    IntakeTabView,
+  pipeline:  PipelineTabView,
 };

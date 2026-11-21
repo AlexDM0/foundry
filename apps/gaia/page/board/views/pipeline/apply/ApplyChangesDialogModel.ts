@@ -78,9 +78,9 @@ function entityOrderOf({ record, pipeline }: LevelGroupingFacts): string[] {
 
 /** The rows grouped by level over entities, the forge's constitution as committed to main on Apply; null in single mode. */
 function levelGroupsOf(changeList: readonly BoardPipelineChangeDocument[], { record, pipeline }: LevelGroupingFacts): ChangeGroupView[] | null {
-  const draftEntities = record.draft?.entities;
-  const storedEntities = pipeline?.readingVerdict === 'readable' ? pipeline.pipeline.entities : undefined;
-  if (draftEntities === undefined && storedEntities === undefined) return null;
+  const draftEntities = record.draft?.entities ?? null;
+  const storedEntities = pipeline?.readingVerdict === 'readable' ? pipeline.pipeline.entities : null;
+  if (draftEntities === null && storedEntities === null) return null;
   const groups = ChangeGroupModel.groupsOf(changeList, record.edits, Object.keys(draftEntities ?? storedEntities ?? {}));
   return groups.map((group) => ({
     ...group,

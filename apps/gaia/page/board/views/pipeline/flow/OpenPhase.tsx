@@ -209,6 +209,7 @@ export function OpenPhase({ facts, flow, selection }: OpenPhaseProps) {
             phase={gatePhase}
             rows={flow.gateRows[gatePhase]}
             profileRuns={facts.pipeline.profileRuns ?? []}
+            stepRunTimes={facts.pipeline.stepRunTimes}
             profileSetupId={live ? null : editTarget?.setupId ?? null}
             reviewRuns={flow.nodes.some((node) => node.nodeKind === 'review' && node.mark !== 'removed')}
             nowTickets={live ? ticketsOn(flow, flow.nodes.filter((node) => node.nodeKind === 'gates' && node.phase === gatePhase).map((node) => node.nodeId)) : null}

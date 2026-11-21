@@ -6,12 +6,16 @@
 import { act, render, type RenderResult }   from '@testing-library/react';
 import { createElement, type ReactElement } from 'react';
 
+import { PAGE_CONTRACT_VERSIONS }                  from '../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }               from '../../@types/board/BoardCommandDocument.ts';
 import type { BoardTranscriptEntryDocument }       from '../../@types/board/ConversationDocument.ts';
 import type { BoardCommandClient, CommandOutcome } from '../api/BoardCommandClient.ts';
 import type { PictureUpload, PictureUploadClient } from '../api/PictureUploadClient.ts';
 import type { TranscriptStreamHandlers }           from '../api/TranscriptStreamClient.ts';
 import { ControlSurroundingsContext }              from '../shell/ControlAvailability.ts';
+
+/** The version every command the board sends carries, for a spec to spread into the commands it expects sent. */
+export const SENT_COMMAND_VERSION = { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } as const;
 
 export interface FakeControls {
   readonly sent:                 BoardCommandDocument[];

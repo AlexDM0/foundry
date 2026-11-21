@@ -139,6 +139,8 @@ const RE_REVIEWER_SETTINGS: BoardAgentPairDocument = { model: 'sonnet', effort: 
 
 const FIXTURE_THRESHOLD_LINES = 750;
 
+const FIXTURE_RE_REVIEW_THRESHOLD_STEP_LINES = 50;
+
 const COMMITTED_TICKETS: readonly BoardTicketDocument[] = ['11', '12', '13'].map((ticketId) => exampleTicket({
   id: ticketId, title: `Example committed ticket ${ticketId}`, status: 'committed', updated: '2026-11-12T09:00:00',
 }));
@@ -688,12 +690,26 @@ function pipelineFactsOf(changes: Partial<BoardPipelineFactsDocument>): BoardPip
   };
 }
 
-/** The base board with three more committed tickets, a limit of two, and the pipeline facts given. */
+/**
+ * The base board with three more committed tickets, a limit of two, the pipeline facts given, and the worker effort, rework threshold,
+ * re-review step and re-reviewers' default briefs the forge serves for its pipeline dialogs.
+ */
 function pipelineBoardState(pipelineChanges: Partial<BoardPipelineFactsDocument>, changes: Partial<BoardDocument> = {}): BoardDocument {
   const base = boardStateFixture();
   const tickets = [...base.page.tickets, ...COMMITTED_TICKETS];
   return boardStateFixture({
-    pipeline:    pipelineFactsOf(pipelineChanges),
+    pipeline: pipelineFactsOf(pipelineChanges),
+    limits:   {
+      ...base.limits,
+      workerEffort:               WORKER_SETTINGS.effort,
+      reworkRoundThresholdLines:  FIXTURE_THRESHOLD_LINES,
+      reReviewThresholdStepLines: FIXTURE_RE_REVIEW_THRESHOLD_STEP_LINES,
+      defaultInstructionsOfRole:  {
+        ...base.limits.defaultInstructionsOfRole,
+        reReviewer:         [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'reReviewer' }],
+        conflictReReviewer: [{ kind: 'constitution' }, { kind: 'default-brief', role: 'reviewer' }, { kind: 'default-brief', role: 'conflictReReviewer' }],
+      },
+    },
     concurrency: { limit: 2, agentsInFlight: 0 },
     page:        { ...base.page, tickets, facts: { ...base.page.facts, tickets: tickets.map(examplePageTicketFacts) } },
     ...changes,
@@ -1395,6 +1411,11 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
 };
 
 /** The board of one designed pipeline state; each call builds a fresh copy, so a spec may change what it gets. */
+/** The board with its pipeline facts changed, for a state the named fixtures lack. */
+export function withPipelineFacts(board: BoardDocument, changes: Partial<BoardPipelineFactsDocument>): BoardDocument {
+  return { ...board, pipeline: { ...board.pipeline, ...changes } };
+}
+
 export function pipelineBoardStateOf(name: PipelineFixtureName): BoardDocument {
   return FIXTURE_BUILDERS[name]();
 }

@@ -7,14 +7,17 @@
  * its Flint with it, before it mounts another's, so the document never holds two Flints (`.claude/rules/flint.md`). The Questions tab is
  * drawn without a frame, the question panel shows beside a tab the board draws, `questions/<id>` opens it at that question, and beside a
  * framed tab it is left to the frame. The Kanban is drawn without a frame under the filter line, a card opens the detail panel over it, a
- * header figure outlines its lane, and its item `merge-queue` draws the Merge queue's detail.
+ * header figure outlines its lane, and its item `merge-queue` draws the Merge queue's detail. The Pipeline tab is drawn without a frame on
+ * a board with a readable pipeline and on one in setup, where it is the only tab and the header holds the setup steps, the entities step
+ * among them in monorepo mode.
  */
 import {
   act,
   cleanup,
   fireEvent,
   render,
-  screen
+  screen,
+  within
 } from '@testing-library/react';
 import {
   afterEach,
@@ -36,6 +39,7 @@ import {
   FIXTURE_NOW,
   FIXTURE_TRACKER_ID
 } from '../testing/BoardStateFixture.ts';
+import { entitiesStepBoardOf }                     from '../testing/EntitiesStepFixture.ts';
 import { createManualFlintFrames }                 from '../testing/ManualFlintFrames.ts';
 import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
 import { QuestionsTabView }                        from '../views/questions/QuestionsView.tsx';
@@ -366,5 +370,36 @@ describe('the Kanban', () => {
     await fake.answerReads(servingBoard());
     expect(screen.getByRole('region', { name: 'Merge queue' })).toBeDefined();
     expect(screen.queryByRole('region', { name: 'Kanban' })).toBeNull();
+  });
+});
+
+describe('the pipeline', () => {
+  test('a readable pipeline\'s Pipeline tab is drawn by the board without a frame, the live flow in its main area', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'pipeline', item: null }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('region', { name: 'Pipeline' }).getAttribute('data-screen')).toBe('flow');
+    expect(screen.queryByText(UNMOVED_AREA_TEXT, { exact: false })).toBeNull();
+    expect(document.querySelector('.board-panel')?.hasAttribute('data-unmoved')).toBe(false);
+  });
+
+  test('a board in setup shows the Pipeline tab alone, drawn without a frame, under the setup steps with the entities step', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, null, BOARD_TAB_VIEWS);
+    await fake.answerReads(entitiesStepBoardOf());
+    const header = screen.getByRole('banner');
+    expect(within(within(header).getByRole('list', { name: 'Setup steps' })).getAllByRole('listitem').map((step) => step.textContent))
+      .toEqual(expect.arrayContaining([expect.stringContaining('Entities')]));
+    expect(within(header).queryByRole('link', { name: 'Agents' })).toBeNull();
+    expect(document.querySelector('.board-pipeline')?.getAttribute('data-screen')).toBe('setup-resume');
+    expect(screen.queryByText(UNMOVED_AREA_TEXT, { exact: false })).toBeNull();
+  });
+
+  test('a board in setup routed at the entities step draws that step under the setup header', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'pipeline', item: 'setup/entities' }, BOARD_TAB_VIEWS);
+    await fake.answerReads(entitiesStepBoardOf());
+    expect(screen.getByRole('heading', { name: 'The entities of Example Agency' })).toBeDefined();
+    expect(within(screen.getByRole('banner')).getByRole('list', { name: 'Setup steps' })).toBeDefined();
   });
 });

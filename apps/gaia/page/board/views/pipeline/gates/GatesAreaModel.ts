@@ -1,15 +1,21 @@
 /**
  * The gates table's model, pure: each phase's title, line and empty sentence, each row's words, its band and its time chip with its cache
  * mark, what a double-click on a row opens, and the draft edits a reorder or a Delete sends. A prepare row stands before the gates of its
- * phase and reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere.
+ * phase and reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere. Each row's last run
+ * is the newest run time the forge served for its line, worded here and never computed.
  */
-import { ReorderIndexUtil }                                                               from 'design-system/ReorderIndexUtil';
-import { PAGE_CONTRACT_VERSIONS }                                                         from '../../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardCommandDocument }                                                      from '../../../../@types/board/BoardCommandDocument.ts';
-import type { BoardDraftEditDocument, BoardGateProfileRunDocument, BoardGateRowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardGatePhase }                                                            from '../../../../@types/board/BoardVocabulary.ts';
-import type { FlowChange }                                                                from '../flow/PipelineFlowModel.ts';
-import { GateCacheMarkModel }                                                             from './GateCacheMarkModel.ts';
+import { ReorderIndexUtil }          from 'design-system/ReorderIndexUtil';
+import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
+import type {
+  BoardDraftEditDocument,
+  BoardGateProfileRunDocument,
+  BoardGateRowDocument,
+  BoardStepRunTimeDocument
+} from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { BoardGatePhase, BoardStepEnding } from '../../../../@types/board/BoardVocabulary.ts';
+import type { FlowChange }                      from '../flow/PipelineFlowModel.ts';
+import { GateCacheMarkModel }                   from './GateCacheMarkModel.ts';
 
 /** What the gates area asks its holder to open: the Gate dialog of a gate in a phase or of a prepare step, or an empty one to add either. */
 export type GatesOpenRequest =
@@ -49,6 +55,23 @@ export interface GateRowView {
   readonly openLabel:    string | null;
   readonly profileChip:  ProfileChipView | null;
 }
+
+/** A line's newest recorded run as its row shows it: the forge's measure, worded, with how the line ended. */
+export interface LineRunTimeView {
+  readonly text:          string;
+  readonly ending:        BoardStepEnding;
+  /** The bound's mark on a line its time bound stopped; null on any other. */
+  readonly boundMarkText: string | null;
+  readonly label:         string;
+}
+
+const BOUND_MARK_TEXT = 'bound';
+
+const ENDING_SENTENCES: Readonly<Record<BoardStepEnding, string>> = Object.freeze({
+  'passed':     'passed',
+  'failed':     'failed',
+  'time-bound': 'stopped at its time bound',
+});
 
 const PHASE_NAMES: Readonly<Record<BoardGatePhase, string>> = Object.freeze({ build: 'Build', review: 'Review', merge: 'Merge' });
 
@@ -199,6 +222,30 @@ function rowViewsOf(rows: readonly BoardGateRowDocument[], phase: BoardGatePhase
   });
 }
 
+/**
+ * A prepare step runs in a job's install, served with no phase, and before a phase's gates in a gate run, served with that phase: its row
+ * shows the newer of the two. A gate row shows its run in the tab's phase. Both read only the runs of the entity in view.
+ */
+function runTimeMatchesRow(runTime: BoardStepRunTimeDocument, row: BoardGateRowDocument, phase: BoardGatePhase, entity: string | null): boolean {
+  if (runTime.entity !== entity || runTime.stepKind !== row.rowKind || runTime.stepName !== row.name) return false;
+  return runTime.phase === phase || (row.rowKind === 'prepare' && runTime.phase === null);
+}
+
+/** The row's newest served run time; a line with no recorded run shows none. */
+function lineRunTimeOf(row: BoardGateRowDocument, phase: BoardGatePhase, stepRunTimes: readonly BoardStepRunTimeDocument[], entity: string | null): LineRunTimeView | null {
+  const newest = stepRunTimes
+    .filter((runTime) => runTimeMatchesRow(runTime, row, phase, entity))
+    .reduce<BoardStepRunTimeDocument | null>((newer, runTime) => (newer === null || runTime.at > newer.at ? runTime : newer), null);
+  if (newest === null) return null;
+  const text = profileTimeTextOf(newest.runMilliseconds);
+  return {
+    text,
+    ending:        newest.ending,
+    boundMarkText: newest.ending === 'time-bound' ? BOUND_MARK_TEXT : null,
+    label:         `Last run ${text}, ${ENDING_SENTENCES[newest.ending]}`,
+  };
+}
+
 /** What the live region says when the row at `fromIndex` stands at `toIndex`, counted inside its band; back in place on a cancel. */
 function announcementOf(rows: readonly BoardGateRowDocument[], fromIndex: number, toIndex: number): string {
   const row = rows[fromIndex];
@@ -259,6 +306,7 @@ export const GatesAreaModel = Object.freeze({
   gateCountOf,
   keyDeletesRow,
   lineOf,
+  lineRunTimeOf,
   openRequestOf,
   profileStartCommandOf,
   profileTimeTextOf,

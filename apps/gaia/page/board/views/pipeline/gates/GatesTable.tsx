@@ -5,23 +5,24 @@
  * empty Gate dialog; both hide on a live board, whose head names the tickets in the phase's gates now, once for the phase, since the facts
  * place a ticket in the phase's gates and not in one gate. A phase with no gates says so beside "Add <phase> gate". At an entity's level of
  * a monorepo screen, a profile measures that entity's gate, and the head may lead with the copy of the phase's gates to another entity;
- * on a live board there, the head's line also names the entity's gate profiles of the phase under way (MonoLive).
+ * on a live board there, the head's line also names the entity's gate profiles of the phase under way (MonoLive). Every row shows its
+ * line's last recorded run in the phase, for the entity in view.
  */
-import { Button }                                                 from 'design-system/Button';
-import { ReorderableList }                                        from 'design-system/ReorderableList';
-import { Row }                                                    from 'design-system/Row';
-import { Tag }                                                    from 'design-system/Tag';
-import { Text }                                                   from 'design-system/Text';
-import type { ReactNode }                                         from 'react';
-import type { BoardGateProfileRunDocument, BoardGateRowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { BoardGatePhase }                                    from '../../../../@types/board/BoardVocabulary.ts';
-import { useBoardHrefOf }                                         from '../../../shell/BoardRouteLinks.ts';
-import { StateToneUtil }                                          from '../../../utils/StateToneUtil.ts';
-import { entityKeyOfScope, useMonorepoLevelScope }                from '../entities/MonorepoLevelContext.ts';
-import { FlowGlyph }                                              from '../flow/FlowGlyph.tsx';
-import type { PipelineFlowEditSender }                            from '../flow/PipelineFlowEditSender.ts';
-import type { OccupantChipView }                                  from '../live/FlowActivityPanelModel.ts';
-import { LivePipelineModel }                                      from '../live/LivePipelineModel.ts';
+import { Button }                                                                           from 'design-system/Button';
+import { ReorderableList }                                                                  from 'design-system/ReorderableList';
+import { Row }                                                                              from 'design-system/Row';
+import { Tag }                                                                              from 'design-system/Tag';
+import { Text }                                                                             from 'design-system/Text';
+import type { ReactNode }                                                                   from 'react';
+import type { BoardGateProfileRunDocument, BoardGateRowDocument, BoardStepRunTimeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { BoardGatePhase }                                                              from '../../../../@types/board/BoardVocabulary.ts';
+import { useBoardHrefOf }                                                                   from '../../../shell/BoardRouteLinks.ts';
+import { StateToneUtil }                                                                    from '../../../utils/StateToneUtil.ts';
+import { entityKeyOfScope, useMonorepoLevelScope }                                          from '../entities/MonorepoLevelContext.ts';
+import { FlowGlyph }                                                                        from '../flow/FlowGlyph.tsx';
+import type { PipelineFlowEditSender }                                                      from '../flow/PipelineFlowEditSender.ts';
+import type { OccupantChipView }                                                            from '../live/FlowActivityPanelModel.ts';
+import { LivePipelineModel }                                                                from '../live/LivePipelineModel.ts';
 
 import { GateRow }                               from './GateRow.tsx';
 import { GatesAreaModel, type GatesOpenRequest } from './GatesAreaModel.ts';
@@ -38,6 +39,8 @@ export interface GatesTableProps {
   readonly phase:          BoardGatePhase;
   readonly rows:           readonly BoardGateRowDocument[];
   readonly profileRuns:    readonly BoardGateProfileRunDocument[];
+  /** The newest run of every step line the forge recorded. */
+  readonly stepRunTimes:   readonly BoardStepRunTimeDocument[];
   /** The open record a profile measures the draft's gate of; null on a live board, which profiles the applied gate. */
   readonly profileSetupId: string | null;
   readonly reviewRuns:     boolean;
@@ -59,6 +62,7 @@ function ColumnHeads() {
       <span>Also in</span>
       <span>Network</span>
       <span>Time</span>
+      <span>Last run</span>
     </div>
   );
 }
@@ -84,7 +88,7 @@ function NowTickets({ tickets, profileTexts }: NowTicketsProps) {
 }
 
 export function GatesTable({
-  phase, rows, profileRuns, profileSetupId, reviewRuns, nowTickets, selectedRowKey, editSender, onOpen, headStart = null
+  phase, rows, profileRuns, stepRunTimes, profileSetupId, reviewRuns, nowTickets, selectedRowKey, editSender, onOpen, headStart = null
 }: GatesTableProps) {
   const profileEntity = entityKeyOfScope(useMonorepoLevelScope());
   const views = GatesAreaModel.rowViewsOf(rows, phase, profileRuns);
@@ -143,6 +147,7 @@ export function GatesTable({
                       view={view}
                       profileCommand={GatesAreaModel.profileStartCommandOf(profileSetupId, view.name, phase, profileEntity)}
                       selected={selectedRowKey === view.key}
+                      runTime={row === undefined ? null : GatesAreaModel.lineRunTimeOf(row, phase, stepRunTimes, profileEntity)}
                       onOpen={openRequest === null ? null : () => onOpen(openRequest)}
                       onDelete={deleteEdits.length === 0 || !editSender.enabled ? null : () => editSender.sendEdits(deleteEdits)}
                     />

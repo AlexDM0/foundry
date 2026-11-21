@@ -4,11 +4,12 @@
  * a removed row is a band of its own, so no row passes it; Delete takes a gate out of this phase alone and removes a prepare step; a
  * prepare row opens the prepare variant; the time chip words each profile state in its pass, fail or waiting tone, with the cache mark
  * beside the time of a run whose gate reported a full or partial hit, asks to measure a changed gate, and takes no press while it measures.
+ * A row's last run is the served run of its line in the phase and entity in view, a prepare step's install run included, the newest first.
  */
-import { describe, expect, test }                                 from 'bun:test';
-import { ReorderIndexUtil }                                       from 'design-system/ReorderIndexUtil';
-import type { BoardGateProfileRunDocument, BoardGateRowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { GatesAreaModel }                                         from './GatesAreaModel.ts';
+import { describe, expect, test }                                                           from 'bun:test';
+import { ReorderIndexUtil }                                                                 from 'design-system/ReorderIndexUtil';
+import type { BoardGateProfileRunDocument, BoardGateRowDocument, BoardStepRunTimeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { GatesAreaModel }                                                                   from './GatesAreaModel.ts';
 
 function gateRow(name: string, changes: Partial<BoardGateRowDocument> = {}): BoardGateRowDocument {
   return {
@@ -178,5 +179,36 @@ describe('the time chip', () => {
       gateName:            'e2e',
       phase:               'merge'
     });
+  });
+});
+
+describe('the last run', () => {
+  const runTime = (changes: Partial<BoardStepRunTimeDocument>): BoardStepRunTimeDocument => ({
+    entity: null, stepKind: 'gate', stepName: 'tests', phase: 'build', runMilliseconds: 41_000, ending: 'passed', at: '2026-11-12T09:00:00', ...changes,
+  });
+
+  test('a gate row reads its run in the tab\'s phase and the entity in view, and none of another phase or entity', () => {
+    const runTimes = [runTime({ phase: 'merge', runMilliseconds: 5_000 }), runTime({ entity: 'web', runMilliseconds: 7_000 }), runTime({})];
+    expect(GatesAreaModel.lineRunTimeOf(gateRow('tests'), 'build', runTimes, null)?.text).toBe('41 s');
+    expect(GatesAreaModel.lineRunTimeOf(gateRow('tests'), 'build', runTimes, 'web')?.text).toBe('7 s');
+    expect(GatesAreaModel.lineRunTimeOf(gateRow('tests'), 'review', runTimes, null)).toBeNull();
+  });
+
+  test('a prepare row reads the newer of its install run and its run in the phase', () => {
+    const install = runTime({
+      stepKind: 'prepare', stepName: 'install', phase: null, runMilliseconds: 3_000, at: '2026-11-12T09:10:00'
+    });
+    const inBuild = runTime({
+      stepKind: 'prepare', stepName: 'install', phase: 'build', runMilliseconds: 9_000, at: '2026-11-12T09:20:00'
+    });
+    expect(GatesAreaModel.lineRunTimeOf(prepareRow('install'), 'build', [install, inBuild], null)?.text).toBe('9 s');
+    expect(GatesAreaModel.lineRunTimeOf(prepareRow('install'), 'merge', [install, inBuild], null)?.text).toBe('3 s');
+  });
+
+  test('a line its bound stopped carries the bound\'s mark, and each ending says how it ended', () => {
+    expect(GatesAreaModel.lineRunTimeOf(gateRow('tests'), 'build', [runTime({ runMilliseconds: 900_000, ending: 'time-bound' })], null)).toEqual({
+      text: '15 m 0 s', ending: 'time-bound', boundMarkText: 'bound', label: 'Last run 15 m 0 s, stopped at its time bound',
+    });
+    expect(GatesAreaModel.lineRunTimeOf(gateRow('tests'), 'build', [runTime({ ending: 'failed' })], null)?.label).toBe('Last run 41 s, failed');
   });
 });
