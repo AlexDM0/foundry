@@ -1,5 +1,5 @@
 /**
- * The Attention view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A1 acceptance 2 and 4;
+ * The Attention view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (`docs/design/screens.md` A1 acceptance 2 and 4;
  * B3 acceptance 3; B4 acceptance 1): every change arrives as the next fleet document, with no reload: a new entry appears and a closed one
  * leaves; the held forge's callout leaves once the forge reports serving; an unreachable forge that answers again has its rows back to
  * normal; a forge that registers while no forge is shown replaces B4 with A1. Also: A1's page title carries the title, the lead and the

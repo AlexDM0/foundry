@@ -1,8 +1,8 @@
 /**
- * Makes a view a habitat of Flint that answers the changes of its own facts (Flint's board wiring design, "New habitats"): it registers the
- * view's element, and after each new set of facts sends the cues its model gives between the last facts and these. A behaviour that takes
- * one of the view's elements is performed through Flint's handle with that element, found at the change, and only while Flint lives in
- * this habitat; with the element not on the page, its fallback cue is sent instead. The facts the view mounts with are no change.
+ * Makes a view a habitat of Flint that answers the changes of its own facts (`docs/design/board.md`, "Flint's habitats on the board views"): it registers
+ * the view's element, and after each new set of facts sends the cues its model gives between the last facts and these. A behaviour that takes one of the
+ * view's elements is performed through Flint's handle with that element, found at the change, and only while Flint lives in this habitat; with the element
+ * not on the page, its fallback cue is sent instead. The facts the view mounts with are no change.
  */
 
 import {

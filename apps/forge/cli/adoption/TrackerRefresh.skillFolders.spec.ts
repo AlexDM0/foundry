@@ -140,7 +140,6 @@ describeWhenGitIsRecorded('the installed skill folders', () => {
     await refreshSkillsIn(repositoryDirectory, skillFileTexts, REFRESH_OF_AN_IGNORING_REPOSITORY);
 
     expect(readFileSync(join(repositoryDirectory, '.gitignore'), 'utf8'))
-      .toBe(`${PRODUCT_OWNER_SKILL_FOLDER}/\n${instructionBundleFolderOf(PRODUCT_NAMES.ORCHESTRATE_SKILL)}/\n`
-        + `${instructionBundleFolderOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL)}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`);
+      .toBe(`${PRODUCT_OWNER_SKILL_FOLDER}/\n${instructionBundleFolderOf(PRODUCT_NAMES.PIPELINE_SETUP_SKILL)}/\n${PRODUCT_NAMES.WORKTREES_FOLDER}/\n`);
   });
 });

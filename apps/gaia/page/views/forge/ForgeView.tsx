@@ -1,9 +1,9 @@
 /**
- * A forge's board, the root of `#forge/<trackerId>[/<tab>[/<item>]]` (SCREENS B1), the one way a board opens (decision 43). Gaia's bar heads
- * it, then the board's own header and tabs, then the main area, where the view of every tab is Gaia's own. A forge whose board Gaia cannot
- * read shows why in place of the board. The bar reads the command sender and keeps the Stop question's state, and its Open in new tab
- * opens the same route of Gaia's own address in a new tab. The view heads itself with the forge's bar, so `forgeViewPartsOf` hands the shell no page
- * title. A new fleet document changes both at once.
+ * A forge's board, the root of `#forge/<trackerId>[/<tab>[/<item>]]` (`docs/design/screens.md` B1), the one way a board opens (decision 43). Gaia's bar
+ * heads it, then the board's own header and tabs, then the main area, where the view of every tab is Gaia's own. A forge whose board Gaia cannot read
+ * shows why in place of the board. The bar reads the command sender and keeps the Stop question's state, and its Open in new tab opens the same route of
+ * Gaia's own address in a new tab. The view heads itself with the forge's bar, so `forgeViewPartsOf` hands the shell no page title. A new fleet document
+ * changes both at once.
  */
 import { useRef, useState } from 'react';
 

@@ -1,5 +1,5 @@
 /**
- * The fleet stream client. What matters (W4.3; SCREENS "The shell", the connection banner): each `fleet` event's document is published;
+ * The fleet stream client. What matters (W4.3; `docs/design/screens.md`, the shell, the connection banner): each `fleet` event's document is published;
  * a stream that errs reads `lost` at once, is closed, and is opened again only when its reopen is due, read `lost` until it opens; a
  * stopped client leaves no stream and no reopen; data that is no fleet document is dropped; a document of another `fleetVersion`, newer or
  * older, reloads the page once, and never twice for the same version, so a page that stays out of date says so rather than reload without

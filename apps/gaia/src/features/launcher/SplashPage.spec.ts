@@ -1,6 +1,6 @@
 /**
  * The splash the launcher opens (artboard C3), read as the file it is: it paints with the page's tokens only, the design-system package's
- * and Gaia's, and reads no token that both lack; it says what SCREENS C3 says and tells User to run nothing; and it knows every step and
+ * and Gaia's, and reads no token that both lack; it says what `docs/design/screens.md` C3 says and tells User to run nothing; and it knows every step and
  * fragment key the launcher moves it with; and it marks motion ready only after its first step has painted, so that step shows at once and
  * a later one fades in. Its own script runs against a stand-in document and stand-in frames at each step the launcher moves it to, since
  * specs have no document; the browser window watch's recording shows it in a real browser at a step.
@@ -126,7 +126,7 @@ describe('the splash', () => {
     expect(readTokens.filter((token) => !definedTokens.has(token))).toEqual([]);
   });
 
-  test('names the steps and the closing line of SCREENS C3, and tells User to run nothing', () => {
+  test('names the steps and the closing line of docs/design/screens.md C3, and tells User to run nothing', () => {
     const html = splashText();
     const sentences = ['Starting Gaia…', 'Gaia\'s server is up', 'Looking for forges', 'Opening the window…', 'Closing this window stops Gaia. The forges keep running.'];
     for (const sentence of sentences) expect(html).toContain(sentence);

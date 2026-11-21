@@ -41,12 +41,11 @@ folders and environment prefix, so both can be installed on one machine and neit
 | `<monitor>` | `~/.forge-monitor/` | `MONITOR_FOLDER` |
 | `<PREFIX>` | `FORGE_`, the start of every environment variable | `ENVIRONMENT_PREFIX` |
 | `forge-po` | the [product owner](#product-owner) skill | `PRODUCT_OWNER_SKILL` |
-| `forge-orchestrate` | the [orchestrator](#orchestrator) wrapper skill | `ORCHESTRATE_SKILL` |
 | `forge-pipeline` | the pipeline setup skill the pipeline agent runs | `PIPELINE_SETUP_SKILL` |
 
 Other files show the released spelling, listed in `ORIGINAL_PRODUCT_NAMES`, for three reasons:
 
-- Source paths keep it: `agent-progress.ts`, `skills/agent-po/`, `skills/agent-progress-orchestrate/`, `skills/agent-pipeline/`.
+- Source paths keep it: `agent-progress.ts`, `skills/agent-po/`, `skills/agent-pipeline/`.
 - This repository's `CLAUDE.md` block and this checkout's own `.agent-progress/` folder belong to the released program,
   not to this code.
 - Templates hold placeholders such as `{{program}}`, and an install fills them from `PRODUCT_NAMES`.
@@ -81,7 +80,7 @@ Read the row that fits the context. Component names are capitalised, like the el
 | | an [Airlock slot](#airlock-slot), one per [target](#target) | `slotHolderOf`, `Job.airlock`; held by a merge or refresh job |
 | | a [gate slot](#gate-slot), machine-wide | files in `<monitor>/gate-slots/` |
 | | an [epic colour slot](#epic-colour-slot) | the stored `slot` field, set at `epic add`; a colour, no capacity |
-| **orchestrator** | the optional interactive wrapper session | the skill `forge-orchestrate` around a running Hephaestus; the only use in these documents |
+| **orchestrator** | the session that drove the board in the first version; no orchestrator exists in this build | [the overview](concepts/overview.md); the only use in these documents |
 | | the Assistant, in surviving comments | `UsageMarkerFile.ts`, `ControlCommand.ts`: read as "Assistant" |
 | **dispatch** | launching jobs; no dispatcher exists in this build | surviving names: `cli/dispatch/concurrency/`, `DISPATCH_PROTOCOL`, `DispatchQueries`, `dispatchCapacity` |
 | | a retired stored record | the `dispatcher-set` log kind, read so an older log stays readable |
@@ -741,8 +740,8 @@ A warning Hephaestus shows and nobody answers (`HephaestusNotice`), such as `dir
 
 ### orchestrator
 
-Used only for the optional interactive wrapper session. See [Words that mean several
-things](#words-that-mean-several-things).
+Used only for the session that drove the board in the first version; this build has none. See [Words that mean
+several things](#words-that-mean-several-things).
 
 ### OS sandbox
 

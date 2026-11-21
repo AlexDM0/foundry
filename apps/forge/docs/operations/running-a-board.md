@@ -675,13 +675,6 @@ recorded moves also work with Hephaestus down; a recorded move takes effect at t
 `<J>` is a job id such as J5, `<I>` an incident id. Incidents are the Assistant's, so reading them is routine and moving
 one is rare.
 
-### The optional wrapper session
-
-Run a Claude Code session with the `forge-orchestrate` skill when you prefer talking to clicking. It reads
-the board's state, starts Hephaestus on your go, turns what you say into verbs, files through `forge-po`, and puts
-each open question to you. It never drives a ticket, moves an incident or writes code. Close it any time: the board does
-not depend on it.
-
 ## What is lost on a tab change
 
 A view unmounts when you leave its tab, so what you typed goes with it. Board updates alone leave it in place, unless

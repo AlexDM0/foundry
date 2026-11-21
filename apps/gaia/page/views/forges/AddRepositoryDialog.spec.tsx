@@ -1,8 +1,8 @@
 /**
- * "Add a repository" over the Forges view. What matters (SCREENS A4 and B4 acceptance 2): it is B4's form in a dialog named for what it
- * does (the package's modal dialog, titled by its heading), Cancel closes it; with no forge program "Add and start" is disabled and the
- * dashed status line says why; a refusal of `init` or `start` shows in the dialog. The command states come from the real sender over
- * Gaia's server stood in for by authored answers. The dialog's layout is unfolded, the package's dialog around its body and foot folded.
+ * "Add a repository" over the Forges view. What matters (`docs/design/screens.md` A4 acceptance 7 and B4 acceptance 2): it is B4's form in a dialog named
+ * for what it does (the package's modal dialog, titled by its heading), Cancel closes it; with no forge program "Add and start" is disabled and the dashed
+ * status line says why; a refusal of `init` or `start` shows in the dialog. The command states come from the real sender over Gaia's server stood in for
+ * by authored answers. The dialog's layout is unfolded, the package's dialog around its body and foot folded.
  */
 import { describe, expect, test } from 'bun:test';
 

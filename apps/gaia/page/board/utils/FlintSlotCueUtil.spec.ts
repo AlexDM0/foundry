@@ -1,8 +1,8 @@
 /**
- * The cue of a Flint slot that stands for jobs (handoff section 9). What matters: a running builder writes and every running reviewing
- * role reviews, the re-reviewers too; a job stored without a role reviews by its kind; no job, and a job that does not run, is idle; and a
- * slot of several jobs follows the first running job in the order it is given, skipping one that is not running, and is idle when none
- * runs.
+ * The cue of a Flint slot that stands for jobs (`docs/design/board.md`, "Flint slots: the cue of a slot that stands for jobs"). What matters: a running
+ * builder writes and every running reviewing role reviews, the re-reviewers too; a job stored without a role reviews by its kind; no job, and a job that
+ * does not run, is idle; and a slot of several jobs follows the first running job in the order it is given, skipping one that is not running, and is idle
+ * when none runs.
  */
 import { describe, expect, test } from 'bun:test';
 

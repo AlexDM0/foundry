@@ -1,9 +1,9 @@
 /**
- * What the brand bar says of the fleet (SCREENS "The shell"). What matters: the pill counts the forges whose Hephaestus runs, held, paused and
- * restarting among them, and one at a version Gaia cannot talk to, which answered its versions, and pulses only while one does; the
- * sentence counts every other condition, the running ones named apart first, a forge that needs an update apart from one not readable; a
- * hidden forge is left out; with no forge the pill says none is registered (B4), with every forge hidden that none is shown; and before the
- * first document the bar says nothing of the fleet.
+ * What the brand bar says of the fleet (`docs/design/screens.md`, the shell). What matters: the pill counts the forges whose Hephaestus runs, held, paused
+ * and restarting among them, and one at a version Gaia cannot talk to, which answered its versions, and pulses only while one does; the sentence
+ * counts every other condition, the running ones named apart first, a forge that needs an update apart from one not readable; a hidden forge is left out;
+ * with no forge the pill says none is registered (B4), with every forge hidden that none is shown; and before the first document the bar says nothing of
+ * the fleet.
  */
 import { describe, expect, test } from 'bun:test';
 

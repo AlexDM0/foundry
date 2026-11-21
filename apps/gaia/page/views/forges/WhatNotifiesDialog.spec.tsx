@@ -1,7 +1,7 @@
 /**
- * The "What notifies" list as C2 draws it in version 2. What matters: the count of kinds on sits at the end of the dialog's title line and
+ * The "What notifies" list as `docs/design/screens.md` C2 has it. What matters: the count of kinds on sits at the end of the dialog's title line and
  * follows the settings, never a number of its own; the seven kinds sit in one card with a hairline between each two
- * (SCREENS C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
+ * (`docs/design/screens.md` C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
  */
 import { describe, expect, test } from 'bun:test';
 import type { CommandStates }     from '../../api/CommandSender.ts';
@@ -25,7 +25,7 @@ function contentOf(fleetDocument = FLEET_FIVE_FORGES) {
   return GaiaPanelModel.whatNotifiesOf(fleetDocument, { commandStates: IDLE_STATES, sentSettingsChange: null });
 }
 
-describe('"What notifies" in version 2 (C2)', () => {
+describe('"What notifies" (C2)', () => {
   test('counts the kinds on at the end of the title line, as the five on by default read "5 of 7 on"', () => {
     const dialog = tree.onlyOfComponent(tree.unfolded(<WhatNotifiesDialog content={contentOf()} handlers={HANDLERS} onClose={doNothing} />), Dialog);
     expect(dialog.props['title']).toBe('What notifies');

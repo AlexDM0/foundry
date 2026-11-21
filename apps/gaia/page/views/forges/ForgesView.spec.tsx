@@ -1,5 +1,5 @@
 /**
- * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (SCREENS A4, B4): the page title
+ * The Forges view in the shell, fed by the fleet source as Gaia's event stream feeds it. What matters (`docs/design/screens.md` A4, B4): the page title
  * carries the registered and running counts, Look again and "Add a repository", which goes to `#forges/add`; that route opens the dialog
  * over the view; with no forge registered the table says so and the dialog's "Add and start" is off while no forge program is known; a
  * render reads the source's newest document, so a newly registered forge and a changed setting show; `#forges?forge=` selects that forge's

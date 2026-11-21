@@ -112,7 +112,7 @@ test('no refusal without the released program\'s data folder, under either set o
 
 test('each program\'s skill folders are its own', () => {
   expect(INSTALLED_SKILL_NAMES).toEqual(installedSkillNamesFor(PRODUCT_NAMES));
-  expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['forge-po', 'forge-orchestrate', 'forge-pipeline']);
+  expect(Object.values(installedSkillNamesFor(SIDE_BY_SIDE_PRODUCT_NAMES))).toEqual(['forge-po', 'forge-pipeline']);
 });
 
 describeWhenGitIsRecorded('two programs side by side, each run as a binary', () => {
@@ -172,7 +172,6 @@ describeWhenGitIsRecorded('two programs side by side, each run as a binary', () 
         '.claude/settings.local.json':                                       hookSettingsOf(side.otherNames),
         [`.claude/agents/${side.otherNames.PROGRAM}-worker.md`]:             '---\nname: the other program\'s worker\n---\n',
         [`.claude/skills/${side.otherNames.PRODUCT_OWNER_SKILL}/SKILL.md`]:  '---\nname: the other program\'s skill\n---\n',
-        [`.claude/skills/${side.otherNames.ORCHESTRATE_SKILL}/SKILL.md`]:    '---\nname: the other program\'s skill\n---\n',
         [`.claude/skills/${side.otherNames.PIPELINE_SETUP_SKILL}/SKILL.md`]: '---\nname: the other program\'s skill\n---\n',
       };
       expect((await run(['init', '--project', 'Example Agency'], binaryInitInANewRepositoryOf(side.names))).exitCode).toBe(0);
@@ -192,7 +191,7 @@ describeWhenGitIsRecorded('two programs side by side, each run as a binary', () 
       for (const relativePath of Object.keys(otherFiles).filter((path) => path !== '.claude/settings.local.json')) {
         expect(readFileSync(join(repositoryDirectory, relativePath), 'utf8'), `${side.names.PROGRAM}: ${relativePath}`).toBe(before[relativePath] ?? '');
       }
-      for (const skillName of [side.names.PRODUCT_OWNER_SKILL, side.names.ORCHESTRATE_SKILL, side.names.PIPELINE_SETUP_SKILL]) {
+      for (const skillName of [side.names.PRODUCT_OWNER_SKILL, side.names.PIPELINE_SETUP_SKILL]) {
         expect(readFileSync(join(repositoryDirectory, '.claude', 'skills', skillName, 'SKILL.md'), 'utf8')).toStartWith(`---\nname: ${skillName}\n`);
       }
     }

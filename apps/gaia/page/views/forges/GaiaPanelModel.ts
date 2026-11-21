@@ -1,9 +1,8 @@
 /**
- * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Start the running forges at login" and "Notify me while Gaia is
- * open", each a switch that sends `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is
- * built for and its address;
- * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A
- * refusal shows in the place whose switch sent the change, and only for that send.
+ * What the Forges view's Gaia panel shows of a fleet document (`docs/design/screens.md` A4): "Start the running forges at login" and "Notify me while Gaia
+ * is open", each a switch that sends `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is built for and
+ * its address; and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A refusal
+ * shows in the place whose switch sent the change, and only for that send.
  */
 import type { CommandBody }                                                         from '../../@types/CommandDocument.ts';
 import type { FleetDocument, FleetDocumentNotificationKind, FleetDocumentSettings } from '../../@types/FleetDocument.ts';

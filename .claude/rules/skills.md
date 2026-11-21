@@ -8,15 +8,12 @@ paths:
 
 # Skills
 
-- Three skills, split by audience. `skills/agent-po/` is PO intake: it loads in any session asked to file a ticket and
+- Two skills, split by audience. `skills/agent-po/` is PO intake: it loads in any session asked to file a ticket and
   as a Hephaestus product-owner job's first line, holds the whole filing procedure, files every ticket as a draft with a
   numbered Acceptance and a `## Brief`, and readies drafts only on User's yes in User's own session (under Hephaestus
-  it closes intake instead); it loads no other skill. `skills/agent-progress-orchestrate/` is the interactive wrapper
-  around a running Hephaestus (`start`): it reads its state, starts it on User's go, turns User's intent into verbs,
-  loads `forge-po` for intake and may wait on `await`; it never drives the lifecycle or handles an incident, which
-  are Hephaestus's and its Assistant's. `skills/agent-pipeline/` is pipeline setup: it holds the whole setup
-  procedure (the five relayed verbs, the questions rule, the lines rule and the research, entities, constitution and
-  design steps), runs in User's own session as in the pipeline agent, and loads no other skill.
+  it closes intake instead); it loads no other skill. `skills/agent-pipeline/` is pipeline setup: it holds the whole
+  setup procedure (the five relayed verbs, the questions rule, the lines rule and the research, entities, constitution
+  and design steps), runs in User's own session as in the pipeline agent, and loads no other skill.
 - No agent preloads a skill, and nothing installs a worker definition. Hephaestus's roles read the instruction files
   `pipeline.json` names, by default the ones `init` and `update` install in the data folder's `briefs/defaults/`, and
   fixed prompts under `resources/prompts/`.
@@ -34,13 +31,12 @@ paths:
   print them. Skill files
   cite only commands, paths in a tracked repository, or files beside them; naming a skill the host may offer, such as
   `grill-me`, is no citation.
-- `skills/agent-progress-orchestrate/` repeats nothing from `skills/agent-po/`, writes rules as instructions,
-  and never restates what Hephaestus decides. Call budgets are `DISPATCH_PROTOCOL`
-  (`src/shared/constants/DispatchProtocol.ts`), stated by Hephaestus's job prompts and never by an installed file.
+- Call budgets are `DISPATCH_PROTOCOL` (`src/shared/constants/DispatchProtocol.ts`), stated by Hephaestus's job prompts
+  and never by an installed file.
   The rework threshold is the pipeline's `review.reReview.thresholdLines`; with no re-review, no round is granted. Only
   with no pipeline, `DISPATCH_PROTOCOL` gives the default through `LIFECYCLE_LIMITS`. No installed file states it.
   No skill nor the installed guidance names a by-hand lifecycle verb but `ticket deliver --by-hand`, held by
   `cli/HelpText.spec.ts`.
-- `init` and `update` copy all three, never globally, into the git-ignored folder the agent adapter's installer names
+- `init` and `update` copy both, never globally, into the git-ignored folder the agent adapter's installer names
   for each bundle (`AgentInstaller.instructionBundleFolderOf`; Claude Code's `.claude/skills/<name>/`). What an earlier
   version installed elsewhere, a retired skill folder or a global link, they and `setup.ts` leave for its owner.

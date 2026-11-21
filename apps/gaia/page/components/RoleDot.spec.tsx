@@ -1,5 +1,5 @@
 /**
- * The role dot. What matters: each role draws the package's state dot in the tone and shape COMPONENT_LIBRARY 3.2 gives it, so a builder
+ * The role dot. What matters: each role draws the package's state dot in the tone and shape `docs/design/components.md` 3.2 gives it, so a builder
  * and what asks User are orange, a reviewer teal and a landing green; the
  * package hides the dot from the accessibility tree, since every mark is decoration only. A dot pulses only when asked to.
  */

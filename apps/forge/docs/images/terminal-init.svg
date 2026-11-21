@@ -19,7 +19,7 @@
     <text x="30.4" y="146" fill="#8E8E93">.gitignore:</text><text x="124" y="146">entry <tspan fill="#32D74B">added</tspan></text>
     <text x="30.4" y="164" fill="#8E8E93">hooks:</text><text x="124" y="164">.claude/settings.local.json (<tspan fill="#32D74B">installed</tspan>)</text>
     <text x="30.4" y="182" fill="#8E8E93">skills:</text><text x="124" y="182"><tspan fill="#32D74B">updated</tspan> (.claude/skills/forge-po, .gitignore entry <tspan fill="#32D74B">added</tspan>);</text>
-    <text x="124" y="200"><tspan fill="#32D74B">updated</tspan> (.claude/skills/forge-orchestrate, .gitignore entry <tspan fill="#32D74B">added</tspan>)</text>
+    <text x="124" y="200"><tspan fill="#32D74B">updated</tspan> (.claude/skills/forge-pipeline, .gitignore entry <tspan fill="#32D74B">added</tspan>)</text>
     <text x="30.4" y="218" fill="#8E8E93">worktrees:</text><text x="124" y="218">.forge-worktrees already ignored, so nothing was added</text>
     <text x="16" y="236" fill="#8E8E93">$</text><text x="30.4" y="236">forge start</text>
     <text x="16" y="254">http://127.0.0.1:4943/</text>

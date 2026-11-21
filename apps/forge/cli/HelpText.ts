@@ -44,13 +44,11 @@ never carries it.
       [--no-hooks] [--json]   the install), \`reference.md\` (the ticket format, the moves and the exit
                               codes) and \`assistant-brief.md\`, the role prompt Hephaestus fills for
                               its Assistant; \`hook session-start\` goes into the agent's
-                              session-start entry, in the settings the agent adapter writes, and three
+                              session-start entry, in the settings the agent adapter writes, and two
                               skills into the folder the agent loads instruction bundles from:
-                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a
-                              ticket loads, ${PRODUCT_NAMES.ORCHESTRATE_SKILL}, for the session
-                              running the board, which loads ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} for
-                              intake, and ${PRODUCT_NAMES.PIPELINE_SETUP_SKILL}, which the pipeline agent runs as its first
-                              line. It never writes the agent's instruction file. Refused when an
+                              ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}, which a session asked to file a ticket loads, and
+                              ${PRODUCT_NAMES.PIPELINE_SETUP_SKILL}, which the pipeline agent runs as its first line. It
+                              never writes the agent's instruction file. Refused when an
                               ancestor already holds a tracker, when a tracker the repository's
                               tracker list names sits above or below the directory, when --root is not
                               an existing directory, and inside a bare repository, which has no
@@ -71,7 +69,7 @@ never carries it.
   update [--no-hooks] [--json]
                               Refresh what the tool wrote into a repository it already tracks: the
                               three files beside the tracker, guidance shipped with the tool rather
-                              than files a project edits, the session-start entry, the three skills and
+                              than files a project edits, the session-start entry, the two skills and
                               the worktrees folder's \`.gitignore\` entry. The tracker itself is left
                               alone: a tracker an earlier ${PRODUCT_NAMES.PROGRAM} wrote in a format this one no
                               longer reads is refused at exit 2 by every command that reads it,

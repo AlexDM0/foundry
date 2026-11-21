@@ -19,16 +19,15 @@ export interface InstalledFile {
 }
 
 /** A folder of this checkout's `skills/`, copied into the folder the agent loads the bundle from, under the name the product gives it. */
-export type SkillSourceFolderName = 'agent-po' | 'agent-progress-orchestrate' | 'agent-pipeline';
+export type SkillSourceFolderName = 'agent-po' | 'agent-pipeline';
 
-type SkillProductNames = Pick<ProductNames, 'PRODUCT_OWNER_SKILL' | 'ORCHESTRATE_SKILL' | 'PIPELINE_SETUP_SKILL'>;
+type SkillProductNames = Pick<ProductNames, 'PRODUCT_OWNER_SKILL' | 'PIPELINE_SETUP_SKILL'>;
 
 /** Each bundle source folder's installed name, which its files are filled with too, so the agent knows the bundle by its folder. */
 export function installedSkillNamesFor(productNames: SkillProductNames): Readonly<Record<SkillSourceFolderName, string>> {
   return {
-    'agent-po':                   productNames.PRODUCT_OWNER_SKILL,
-    'agent-progress-orchestrate': productNames.ORCHESTRATE_SKILL,
-    'agent-pipeline':             productNames.PIPELINE_SETUP_SKILL,
+    'agent-po':       productNames.PRODUCT_OWNER_SKILL,
+    'agent-pipeline': productNames.PIPELINE_SETUP_SKILL,
   };
 }
 

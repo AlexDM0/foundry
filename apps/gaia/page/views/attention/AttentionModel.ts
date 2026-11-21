@@ -1,8 +1,7 @@
 /**
- * What the Attention view shows of a fleet document (SCREENS A1, B3, B4): the figures, what waits on User in the fleet's own order, the forges that need
- * a look with their actions, the running forges, the newest activity, and for a forge Gaia cannot read in full, its banner
- * and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the document does not hold is absent,
- * never zero.
+ * What the Attention view shows of a fleet document (`docs/design/screens.md` A1, B3, B4): the figures, what waits on User in the fleet's own order, the
+ * forges that need a look with their actions, the running forges, the newest activity, and for a forge Gaia cannot read in full, its banner and what Gaia
+ * reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the document does not hold is absent, never zero.
  */
 
 import type { CommandAnswerDocument, CommandBody, OutageResumeOutcome } from '../../@types/CommandDocument.ts';
@@ -659,7 +658,7 @@ function slotsTextOf(forge: FleetDocumentForge): string {
     : `${forge.concurrency.agentsInFlight} / ${forge.concurrency.limit}`;
 }
 
-/** A card is for a forge that runs agents (SCREENS A1). */
+/** A card is for a forge that runs agents (`docs/design/screens.md` A1). */
 function runningCardsOf(forges: readonly FleetDocumentForge[], clock: ClockReading): RunningCard[] {
   return forges.filter((forge) => forge.agents.length > 0).map((forge) => {
     const waitingCount = FleetDocumentUtil.waitingCountOf(forge) ?? 0;
@@ -740,7 +739,7 @@ function readingsOf(fleetDocument: FleetDocument, forges: readonly FleetDocument
   return forges.map((forge) => readingLineOf(forge, leftOut.has(forge.trackerId), clock));
 }
 
-/** A small count in a sentence is written as a word, "the three forges", as SCREENS B3 words the readings' footnote. */
+/** A small count in a sentence is written as a word, "the three forges", as `docs/design/screens.md` B3 words the readings' footnote. */
 const SMALL_COUNT_WORDS: readonly string[] = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
 
 /** `Example Billing`, `Example Billing and Analytics Sandbox`, `A, B and C`. */

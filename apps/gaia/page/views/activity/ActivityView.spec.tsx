@@ -1,9 +1,9 @@
 /**
- * The Activity view (SCREENS A3) as it is laid out. What matters: with `fleet-five-forges` the table holds the fixture's sixteen rows,
+ * The Activity view (`docs/design/screens.md` A3) as it is laid out. What matters: with `fleet-five-forges` the table holds the fixture's sixteen rows,
  * interleaved across forges newest first, each with its clock time, forge, category and the forge's own text (acceptance 1); the side
  * lists hold only the forges that report today (acceptance 2); each filter hands its choice on; past three forges the rest open from the
  * package's menu as the tray's last segment, which names the chosen one and hands its closing on; a row links into its forge only when it
- * has a route; every empty place says so in its own words; and version 2's look (SCREENS A3): Needs you and Landed carry their counts,
+ * has a route; every empty place says so in its own words; and its look (`docs/design/screens.md` A3): Needs you and Landed carry their counts,
  * the side lists are cards with a mono total, the usage dot says under or at the limit beside the words with its reset time in mono, and
  * the page title carries the view's figures.
  *

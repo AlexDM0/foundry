@@ -73,7 +73,6 @@ describe('prose wraps at 120 columns', () => {
       '.claude/rules/skills.md',
       'docs/cli.md',
       'skills/agent-po/SKILL.md',
-      'skills/agent-progress-orchestrate/SKILL.md',
       'skills/agent-pipeline/SKILL.md',
       'resources/templates/SessionInstructions.md',
       'resources/templates/Reference.md',

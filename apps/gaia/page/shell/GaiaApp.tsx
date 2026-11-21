@@ -112,7 +112,7 @@ export function themeChoiceHandlerOf(showChoice: (choice: ThemeChoice) => void, 
   };
 }
 
-/** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (D2). */
+/** A forge in place leaves the theme button out, so its bar has room for the forge's own line and buttons (`docs/design/screens.md`, the brand bar). */
 export function GaiaShell({
   fleetDocument, streamState, route, view, themeChoice, onThemeChoice
 }: GaiaShellProps) {

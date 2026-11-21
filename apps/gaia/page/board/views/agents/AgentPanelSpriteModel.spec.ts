@@ -1,11 +1,10 @@
 /**
- * What the agent panel habitat cues and copies (Flint's board wiring design, "Copy: the agent panel"). What matters: each row of the copy table
- * gives its intent, and an earlier row wins over a later one that also matches; only an interrupted job is out of fuel, since
- * `interruption` keeps its last cause; `strike-spark` and `wind-down` show one time for a job, then the next row that matches; Flint copies
- * the selected job while it has something to copy, else the first that has; the one actions the view mounts with count as shown; all
- * agents are idle only while the forge serves unpaused; each row of the cue table is cued from its change between two payloads, once,
- * and not from a fact that only stays; and a launch has one answer, its `strike-spark`: a job that appears launching is not greeted, and
- * the slots are not cued while a job launches.
+ * What the agent panel habitat cues and copies (`docs/design/board.md`, "Flint in the agent panel: copy and cues"). What matters: each row of the copy
+ * table gives its intent, and an earlier row wins over a later one that also matches; only an interrupted job is out of fuel, since `interruption` keeps
+ * its last cause; `strike-spark` and `wind-down` show one time for a job, then the next row that matches; Flint copies the selected job while it has
+ * something to copy, else the first that has; the one actions the view mounts with count as shown; all agents are idle only while the forge serves
+ * unpaused; each row of the cue table is cued from its change between two payloads, once, and not from a fact that only stays; and a launch has one
+ * answer, its `strike-spark`: a job that appears launching is not greeted, and the slots are not cued while a job launches.
  */
 import { describe, expect, test } from 'bun:test';
 

@@ -423,7 +423,7 @@ export const RECORDED_FOLDER_FLOW_CONFLICT_PATH = `${RECORDED_FOLDER_FLOW_PROJEC
 export const RECORDED_FOLDER_FLOW_MERGED_TREE_FIX = { path: `${RECORDED_FOLDER_FLOW_PROJECT.prefix}/fixed.txt`, text: 'fixed\n', message: 'Fix the merged tree' } as const;
 /** The folder the agent adapter installs each skill in, and the skills `init` installs, in its order. */
 const RECORDED_FLOW_SKILLS_FOLDER = '.claude/skills';
-const RECORDED_FLOW_INSTALLED_SKILLS = [PRODUCT_NAMES.PRODUCT_OWNER_SKILL, PRODUCT_NAMES.ORCHESTRATE_SKILL, PRODUCT_NAMES.PIPELINE_SETUP_SKILL];
+const RECORDED_FLOW_INSTALLED_SKILLS = [PRODUCT_NAMES.PRODUCT_OWNER_SKILL, PRODUCT_NAMES.PIPELINE_SETUP_SKILL];
 /** The `.gitignore` lines `init` adds to the project folder's own for the skills it installs, which are not ignored yet. */
 export const RECORDED_FOLDER_FLOW_SKILL_IGNORE_TEXT = RECORDED_FLOW_INSTALLED_SKILLS.map((skill) => `${RECORDED_FLOW_SKILLS_FOLDER}/${skill}/\n`).join('');
 

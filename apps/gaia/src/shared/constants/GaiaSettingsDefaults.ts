@@ -1,6 +1,6 @@
 import type { GaiaSettings } from '../@types/GaiaSettings.ts';
 
-/** What Gaia runs on when its settings file is absent, unreadable or newer than this Gaia (SCREENS A4 and C2). */
+/** What Gaia runs on when its settings file is absent, unreadable or newer than this Gaia (`docs/design/screens.md` A4 and C2). */
 export const GAIA_SETTINGS_DEFAULTS: GaiaSettings = {
   theme:            'auto',
   hiddenTrackerIds: [],

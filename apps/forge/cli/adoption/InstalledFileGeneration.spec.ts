@@ -92,7 +92,7 @@ describe('the installed texts', () => {
   });
 
   test('neither skill nor the reference names a Claude-only tool', () => {
-    const filePaths = ['skills/agent-po/SKILL.md', 'resources/templates/Reference.md', 'skills/agent-progress-orchestrate/SKILL.md'];
+    const filePaths = ['skills/agent-po/SKILL.md', 'resources/templates/Reference.md', 'skills/agent-pipeline/SKILL.md'];
     for (const filePath of filePaths) {
       const text = readFileSync(join(CHECKOUT_DIRECTORY, filePath), 'utf8');
       for (const claudeOnlyToolName of CLAUDE_ONLY_TOOL_NAMES) expect(text, `${filePath} names ${claudeOnlyToolName}`).not.toContain(claudeOnlyToolName);
@@ -105,7 +105,6 @@ describe('the installed bundles', () => {
     const texts = installedSkillFileTexts(PLANTED_BUNDLE_LINES);
 
     expect(texts[PRODUCT_NAMES.PRODUCT_OWNER_SKILL]?.get('SKILL.md')).toContain(`says "run bundle ${PRODUCT_NAMES.PRODUCT_OWNER_SKILL}".`);
-    expect(texts[PRODUCT_NAMES.ORCHESTRATE_SKILL]?.get('SKILL.md')).toContain(`says "run bundle ${PRODUCT_NAMES.ORCHESTRATE_SKILL}", asks`);
     for (const installedName of Object.values(INSTALLED_SKILL_NAMES)) {
       for (const [pathInFolder, text] of texts[installedName] ?? new Map<string, string>()) expect(text, `${installedName}/${pathInFolder}`).not.toMatch(/\{\{\w+\}\}/);
     }

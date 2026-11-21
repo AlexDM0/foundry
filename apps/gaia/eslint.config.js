@@ -71,7 +71,7 @@ const CONFINED_REACH_SITES = [...new Set(CONFINED_REACHES.flatMap((reach) => rea
 export default [
   ...base,
   // Each library of page/lib/ is linted from its own folder under its own rules, by the `lint:<library>` scripts.
-  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.scratch/**', '.forge/**', '.forge-worktrees/**', '.turbo/**', 'design_handoff*/**', 'page/lib/**'] },
+  { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.scratch/**', '.forge/**', '.forge-worktrees/**', '.turbo/**', 'page/lib/**'] },
   {
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.
     files: SPECS_AND_TESTING_FOLDERS,

@@ -1,6 +1,6 @@
 /**
- * The intake chat's own cue (Flint's board wiring design, "New habitats", `intake`). What matters: a draft whose state becomes `researching` is
- * cued once, as is a draft that appears researching; a draft that stays researching, one that leaves the state, and one that appears
+ * The intake chat's own cue (`docs/design/board.md`, "Flint's habitats on the board views", `chat`). What matters: a draft whose state becomes
+ * `researching` is cued once, as is a draft that appears researching; a draft that stays researching, one that leaves the state, and one that appears
  * waiting are no change.
  */
 import { expect, test } from 'bun:test';

@@ -1,5 +1,5 @@
 /**
- * The condition dot. What matters: each condition draws the package's state dot in the tone and shape COMPONENT_LIBRARY 3.2 gives it (fill
+ * The condition dot. What matters: each condition draws the package's state dot in the tone and shape `docs/design/components.md` 3.2 gives it (fill
  * holds, ring changes, dashed waits), the unreachable one in the package's failure tone, a dot the package hides from the accessibility
  * tree, since a dot is never the only sign.
  */

@@ -39,7 +39,7 @@ export const SCREEN_THEMES: readonly ScreenTheme[] = ['light', 'dark'];
 /** Every artboard Gaia's page builds is drawn at this size. */
 export const ARTBOARD_SIZE_PIXELS = { width: 1440, height: 1016 } as const;
 
-/** The artboards in `designs/canvas.json`, by their mark. C2 is a dialog painted over A4 below; C3, the splash, is a file page of its own. */
+/** The artboards of `docs/design/screens.md`, by their mark. C2 is a dialog painted over A4 below; C3, the splash, is a file page of its own. */
 export type PageArtboard = 'A1' | 'A2' | 'A3' | 'A4' | 'B1' | 'B2' | 'B3' | 'B4';
 
 /**
@@ -51,7 +51,7 @@ type ScreenViewState = 'as-routed' | 'forge-controls-in-use' | 'restart-pending'
 export interface ArtboardScreen {
   readonly artboard:      PageArtboard;
   readonly title:         string;
-  /** The artboard's source in the design handoff's `designs/` folder. */
+  /** The artboard's name among the owner's drawings (`docs/design/README.md`). */
   readonly designFile:    string;
   readonly fleetDocument: FleetDocument;
   readonly fragment:      string;
@@ -143,7 +143,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
 ];
 
 /**
- * D4: Example Mobile App, held since its install version changed, after an Update forge whose restart its live Hephaestus did not take.
+ * Example Mobile App, held since its install version changed, after an Update forge whose restart its live Hephaestus did not take.
  * Each screen is its artboard's, with the pending restart under the control that sent the update.
  */
 export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
@@ -188,7 +188,7 @@ const FLEET_ASSISTANT_DOWN: FleetDocument = {
     : forge)),
 };
 
-/** D5: the warnings of monitor contract 2, which no artboard draws, each over the artboard that shows it. */
+/** The warnings of monitor contract 2, which no artboard draws, each over the artboard that shows it. */
 export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
   {
     artboard:      'A1',
@@ -309,7 +309,7 @@ export type ForgeUpdateStep = 'idle' | 'pending' | 'done' | 'refused';
 
 export interface VersionsScreen extends ArtboardScreen {
   readonly board:            VersionsBoard;
-  /** The board's render in `.claude/.evidence/unsupported-forge-designs/`, without its theme: `U3-forge-older-pending`. */
+  /** The name of the board's render, without its theme: `U3-forge-older-pending`. */
   readonly renderName:       string;
   /** The forge whose versions pair the Forges view shows open under its row (U2's `versionsOf` tweak); `null` for every pair closed. */
   readonly versionsShownFor: string | null;
@@ -342,7 +342,7 @@ const U3_FORGES_IN_PLACE: readonly (readonly [renderName: string, trackerId: str
 ];
 
 /**
- * The Versions boards (VERSIONS_SCREENS, U1 to U3), each over the artboard whose page it is, from the fleet-versions fixture: Attention with
+ * The Versions boards (`docs/design/versions.md`, U1 to U3), each over the artboard whose page it is, from the fleet-versions fixture: Attention with
  * its two callouts, Forges with each pair open and none, and each forge in place at its version and Example Billing at each update step.
  */
 export const VERSIONS_SCREENS: readonly VersionsScreen[] = [
@@ -667,7 +667,7 @@ export interface SplashScreen {
 /** C3 is drawn at this size, smaller than the window the launcher opens. */
 export const SPLASH_SIZE_PIXELS = { width: 900, height: 560 } as const;
 
-/** The mark's size on the splash (COMPONENT_LIBRARY 3.1). */
+/** The mark's size on the splash (`docs/design/components.md` 3.1). */
 export const SPLASH_MARK_SIZE_PIXELS = 88;
 
 /** The address C3 draws on its `opening` step. */

@@ -1,4 +1,7 @@
-/** What waits on User across forges, in PLAN 7.3's order: escalated entries first, then the oldest stamp first; a tie keeps the forges' own order. */
+/**
+ * What waits on User across forges, in the order of `docs/design/screens.md` A1, "The order of what waits": escalated entries first, then the oldest stamp
+ * first; a tie keeps the forges' own order.
+ */
 import type { FleetAttentionItem }          from '../../../shared/@types/FleetSnapshot.ts';
 import type { ForgeFidelity, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
 

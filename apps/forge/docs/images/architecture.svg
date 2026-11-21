@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="686" viewBox="0 0 680 686" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>One Hephaestus drives; agents run outside it</title>
-  <desc>User works through a client of the API, which sends commands to the one Hephaestus and shows its live state, and through terminal verbs, typed or run by an orchestrator session, which record a fact in the data folder. Hephaestus reads and writes that folder, hands each ticket to the Airlock that lands it on main, and sends frames to the board's one detached Talos. Talos runs each child, an agent session or a gate, and reports each through an event log in the data folder. Talos and its children outlive Hephaestus.</desc>
+  <desc>User works through a client of the API, which sends commands to the one Hephaestus and shows its live state, and through terminal verbs, typed or run by a session, which record a fact in the data folder. Hephaestus reads and writes that folder, hands each ticket to the Airlock that lands it on main, and sends frames to the board's one detached Talos. Talos runs each child, an agent session or a gate, and reports each through an event log in the data folder. Talos and its children outlive Hephaestus.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -48,7 +48,7 @@
   <text x="170" y="211" font-size="12" fill="#185FA5" text-anchor="middle">a program that calls the API</text>
   <rect x="460" y="168" width="180" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
   <text x="550" y="193" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Terminal verbs</text>
-  <text x="550" y="211" font-size="12" fill="#185FA5" text-anchor="middle">User or orchestrator session</text>
+  <text x="550" y="211" font-size="12" fill="#185FA5" text-anchor="middle">User or a session</text>
 
   <rect x="40" y="272" width="360" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
   <text x="220" y="297" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Hephaestus</text>
