@@ -263,6 +263,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
   and no regroup follows a generation's rise (`BoardOccasionModel.OccasionBoard`). Decide whether forge should serve the
   generation in the board document.
 
+- WP6.8: an added re-review starts at the served `limits.reworkRoundThresholdLines`; a ticket the board serves no
+  document for reads as closed (`EntityWorkModel`).
+
 ### Blocked
 
 (none)
@@ -493,8 +496,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-F | WP6.5 | landed | c3b07eda | First round. `page/board/api/` relay clients (event stream, commands, pictures, transcript, profile, and a new `BoardReadClient`: events are change signals, so the page reads the board again), `RelayRequest`, `RelayStreamSource`; `shell/ControlCommandSender`, `CommandButton`, `ControlAvailability`, `BoardStateUpdate` (`readIsDueAfter`, `boardAfterRead`), `BoardClock`; `preferences/PreferenceStore` (keys `gaia:board:<trackerId>:<choice>`). Gaia's `test:dom` (`page/testing/RunDomSpecs.ts`, `HappyDom.ts`) now runs inside verify (30 tasks). `BoardServices` gains `readBoard` and leaves out `questionNotifier` (WP6.10) and the Flint members (WP6.7); `TranscriptFollower` and `ProfileLogFollower` are declared in `BoardServices.ts`, which WP6.6 and WP6.19 import. A wrong-version stream closes for good as `down` |
 | 6-G | WP6.6 | landed | 7fa059e1 | Second round (first: the sandboxed frame's own document styles, board.css:2084-2102, were not moved; the text pairs went into Gaia's list, not `BOARD_TEXT_PAIRS`; `BoardRouteLinks` wrote `#forge//` links without a provider, now it throws). Utils, chips, sandboxed HTML and conversation parts moved; moved early for imports: `shell/DetailRoute`, `ItemPresence`, a partial `BoardRouter` (WP6.8's), `flint/FlintSlotCues`, `UseCueOnChange` (WP6.7's). New `shell/BoardRouteLinks.ts` (`BoardTrackerContext`, `useBoardHrefOf`). `JobStateUtil` keyed by `BoardJobState`, `offersFreshAgent` gone (served `offers.takesFresh`). `StyleRuleReader` not moved (WP6.4's `stylesheetRulesOf`). The transplant's `src/` grep now looks only for reaches into forge (Gaia's own `src/shared` imports are allowed) |
 | 6-H | WP6.7 | landed | a6922cf1 | First round. Bridge `flint/` moved to `page/board/flint/` without the brain; `BoardFlint` (no `flintBrain`), `FlintHabitatScene` and `ManualFlintFrames` in `page/board/testing/`; `BoardServices` gains `flintFrameSource?`, `onFlintHandle?`; `styles/board/flint.css`; 33 `--flint-*` tokens named in `BOARD_SAME_IN_BOTH_THEMES_TOKENS`. `TicketsSpriteModel` reads the served `resolvedPriority`. Handoffs: WP6.11 restores BoardFlint.dom.tsx's two agent-panel habitat cases (need AgentsView); WP6.20 carries board.css:2410's Flint home-corner rule (`bottom: 72px` beside a pipeline bar); WP6.13/WP6.14 map `facts.resolvedPriority` onto the cued ticket. Not mounted until WP6.9 |
-| 6-I | WP6.8 | running | | |
-| 6-J | WP6.9 | waiting | | |
+| 6-I | WP6.8 | landed | 349a78c0 | First round. The shell's 21 modules, `BoardErrorBoundary` and 14 view models under `page/board/`; `BoardRouter` gains `routeOf`, `shownTabsOf`, `shownRouteOf`, `routeOfTarget`; models return a `BoardRoute`, followed through the new `BoardGoToContext`/`useBoardNavigation`. `page/notifications/NotificationBoundary.ts` is the one reach of the Notification API (lint holds it); `questionNotifier` left for WP6.10. `shell.css` and `pipeline.css` created. Header drops the theme button, Flint's brain wake and the Overseer controls (Gaia's forge bar has them). Handoffs: WP6.9 carries `.board-shell` and the margins of `.board-banners`/`.board-incident-notice` (board.css:299-301) with BoardApp; WP6.19's callers build `FlowWording` from the served `limits.reworkRoundThresholdLines`. `HeaderModel.workerCount` is dead |
+| 6-J | WP6.9 | running | | |
 | 6-K | WP6.10 | waiting | | |
 | 6-K | WP6.11 | waiting | | |
 | 6-K | WP6.12 | waiting | | |
