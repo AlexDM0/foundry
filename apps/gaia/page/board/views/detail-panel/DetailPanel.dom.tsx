@@ -151,7 +151,7 @@ afterEach(() => {
 });
 
 describe('the body', () => {
-  test('reaches the DOM only as the srcdoc of a frame sandboxed exactly as designed', () => {
+  test('reaches the DOM only as the srcdoc of a frame sandboxed exactly as docs/design/board.md says', () => {
     renderPanel(TICKET_013_BODY);
     const frame = document.querySelector('iframe');
     expect(frame?.getAttribute('sandbox')).toBe('allow-same-origin allow-popups allow-popups-to-escape-sandbox');

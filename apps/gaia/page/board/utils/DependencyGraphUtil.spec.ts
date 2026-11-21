@@ -1,5 +1,5 @@
 /**
- * The dependency model against the design's Shared model definitions. The cases that matter: a chain and a diamond (a ticket two paths
+ * The dependency model against `docs/design/board.md`, "The dependency model". The cases that matter: a chain and a diamond (a ticket two paths
  * reach is held once), two parallel chains (waves span chains, the pace path follows the deeper one), the pace-path tie-break and its
  * place first in its wave, settled and abandoned dependencies, Unlocks counting upstream dependencies as no obstacle, cross-epic links by
  * primary epic, a draft or a committed low-priority ticket left out of the waves yet still holding its dependents out of Now, and the

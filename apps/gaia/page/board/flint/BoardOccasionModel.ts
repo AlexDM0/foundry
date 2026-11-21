@@ -1,6 +1,6 @@
 /**
  * The board occasions of Flint: the changes of the whole board, wherever Flint is, from the last reading of the board to the next one, in
- * the order of the table "Board occasions" of Flint's board wiring design, with a settled incident and an applied pipeline after its
+ * the order of the table of `docs/design/board.md`, "Flint's board occasions", with a settled incident and an applied pipeline after its
  * incident row and a connection that comes back last; the host performs the first. Also the count of `watcher-spark` for a board. A
  * reading holds the board, the event stream's connection and how many commands Hephaestus refused so far. An incident that opens or
  * settles has one answer: while Flint lives in the questions habitat, that habitat answers it, so the board does not.

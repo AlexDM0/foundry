@@ -1,9 +1,8 @@
 /**
- * Synthetic pipeline facts in the page's board contract, one whole board per designed state, by name, so a spec reads
- * `pipelineBoardStateOf('A2-question-open')` and no view keeps fixtures of its own. Every value is example data on the Example Agency board;
- * each state is built when it is asked for. The `mono-` states are a forge over entities: the facts of each entity beside the forge's.
- * Every state the Bridge's pipeline specs drew is here, in the page's contract.
- * Test-only.
+ * Synthetic pipeline facts in the page's board contract, one whole board per artboard state (`docs/design/board.md`, "The pipeline artboards and their
+ * fixtures"), by name, so a spec reads `pipelineBoardStateOf('A2-question-open')` and no view keeps fixtures of its own. Every value is example data on
+ * the Example Agency board; each state is built when it is asked for. The `mono-` states are a forge over entities: the facts of each entity beside the
+ * forge's. Every state the Bridge's pipeline specs drew is here, in the page's contract. Test-only.
  */
 import type { BoardDocument, BoardUsageWindowDocument } from '../../@types/board/BoardDocument.ts';
 import type { BoardJobDocument }                        from '../../@types/board/BoardJobDocuments.ts';
@@ -1410,7 +1409,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
   'mono-live':               () => monorepoLiveState(),
 };
 
-/** The board of one designed pipeline state; each call builds a fresh copy, so a spec may change what it gets. */
+/** The board of one named pipeline state; each call builds a fresh copy, so a spec may change what it gets. */
 /** The board with its pipeline facts changed, for a state the named fixtures lack. */
 export function withPipelineFacts(board: BoardDocument, changes: Partial<BoardPipelineFactsDocument>): BoardDocument {
   return { ...board, pipeline: { ...board.pipeline, ...changes } };

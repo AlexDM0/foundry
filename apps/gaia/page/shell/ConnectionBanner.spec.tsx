@@ -1,7 +1,7 @@
 /**
- * The connection banner. What matters (SCREENS "The shell"): while Gaia's event stream is lost the banner says so in SCREENS' own words,
- * as an alert in the error tone; a page that cannot read the server's documents says that instead; a window whose session or server is gone
- * says that it must be opened again, naming no command; a live or connecting stream shows none.
+ * The connection banner. What matters (`docs/design/screens.md`, the shell): while Gaia's event stream is lost the banner says so in the design
+ * reference's own words, as an alert in the error tone; a page that cannot read the server's documents says that instead; a window whose session or server
+ * is gone says that it must be opened again, naming no command; a live or connecting stream shows none.
  */
 import { describe, expect, test } from 'bun:test';
 import type { FleetStreamState }  from '../api/FleetStreamClient.ts';
@@ -22,7 +22,7 @@ function sentenceOf(streamState: FleetStreamState): unknown {
 }
 
 describe('the connection banner', () => {
-  test('a lost stream shows SCREENS\' sentence as an alert in the error tone', () => {
+  test('a lost stream shows the design reference\'s sentence as an alert in the error tone', () => {
     const banner = tree.onlyOfComponent(bannerOf('lost'), Banner);
     expect([banner.props['role'], banner.props['tone']]).toEqual(['alert', 'error']);
     expect(banner.props['text']).toBe('Gaia\'s server could not be reached. Trying again.');

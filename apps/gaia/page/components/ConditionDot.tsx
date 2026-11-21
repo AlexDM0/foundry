@@ -13,7 +13,7 @@ export interface ConditionLook {
 }
 
 /**
- * COMPONENT_LIBRARY 3.2 in the package's tones: orange is work, neutral grey a pause, crimson a forge that does not answer, faded ink what
+ * `docs/design/components.md` 3.2 in the package's tones: orange is work, neutral grey a pause, crimson a forge that does not answer, faded ink what
  * is asleep or cannot be read. A forge that needs an update waits on User, dashed in orange as a held one.
  */
 export const CONDITION_LOOKS: Readonly<Record<DotCondition, ConditionLook>> = {

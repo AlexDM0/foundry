@@ -1,8 +1,8 @@
 /**
- * What the merge-queue habitat cues between two payloads (`09-board-wiring.md`, "New habitats", `merge-queue`). What matters: each row
- * of the table is cued from its change, once, and not from a fact that only stays; a holder that changes phase, a candidate that joins
- * already conflicting and a candidate that leaves are no change; a prediction waiting for merge counts as one in the order; and several
- * changes come in the order of the table.
+ * What the merge-queue habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `merge-queue`). What matters:
+ * each row of the table is cued from its change, once, and not from a fact that only stays; a holder that changes phase, a candidate that joins already
+ * conflicting and a candidate that leaves are no change; a prediction waiting for merge counts as one in the order; and several changes come in the order
+ * of the table.
  */
 import { describe, expect, test } from 'bun:test';
 

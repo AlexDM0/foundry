@@ -1,6 +1,6 @@
 /**
- * What the epics habitat cues between two payloads (Flint's board wiring design, "New habitats", `epics`): a ticket the previous payload had
- * gets a key in its `epics`. A new ticket filed into an epic is the tickets habitat's to answer.
+ * What the epics habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `epics`): a ticket the previous payload
+ * had gets a key in its `epics`. A new ticket filed into an epic is the tickets habitat's to answer.
  */
 import type { SpriteCue } from '../../../lib/flint/FlintInterface.ts';
 import { EPICS_CUES }     from './EpicsSpriteHabitat.ts';

@@ -1,8 +1,8 @@
 /**
- * The Forges view's Gaia panel (SCREENS A4), beside this machine's: the two settings as switches, "What notifies" under the second's label, the line of a
- * settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts, a path among them breaking after a slash, then this Gaia's own. It
- * takes no hooks: the content and the handlers come in as props, so a spec unfolds it whole. `SettingsCheckboxView` and `SettingsRefusalLine` are shared
- * with the "What notifies" list.
+ * The Forges view's Gaia panel (`docs/design/screens.md` A4), beside this machine's: the two settings as switches, "What notifies" under the second's
+ * label, the line of a settings file Gaia cannot use, the refusal of a change it sent, and Gaia's facts, a path among them breaking after a slash, then
+ * this Gaia's own. It takes no hooks: the content and the handlers come in as props, so a spec unfolds it whole. `SettingsCheckboxView` and
+ * `SettingsRefusalLine` are shared with the "What notifies" list.
  */
 
 import { Fragment, type ReactNode } from 'react';

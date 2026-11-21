@@ -1,5 +1,5 @@
 /**
- * The intake chat's own cue of the chat habitat (Flint's board wiring design, "New habitats", `intake`): a filing draft's state becomes
+ * The intake chat's own cue of the chat habitat (`docs/design/board.md`, "Flint's habitats on the board views", `intake`): a filing draft's state becomes
  * `researching`, also a draft that appears researching, which is a draft opened with no question. A draft names no session, so the chat
  * of any intake session shows it.
  */

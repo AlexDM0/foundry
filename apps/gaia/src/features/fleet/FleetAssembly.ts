@@ -32,8 +32,8 @@ function instantOf(stamp: string): number {
 }
 
 /**
- * Entries of different writers are ordered by their stamps for display only: the stated exception to "a clock decides nothing" (PLAN 7.3);
- * nothing else depends on the order.
+ * Entries of different writers are ordered by their stamps for display only: the stated exception to "a clock decides nothing" (`docs/design/screens.md`
+ * A1, "The order of what waits"); nothing else depends on the order.
  */
 function newestFirst(a: FleetActivityEntry, b: FleetActivityEntry): number {
   const aInstant = instantOf(a.at);

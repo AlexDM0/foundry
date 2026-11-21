@@ -1,5 +1,5 @@
 /**
- * What the brand bar says of a fleet document (SCREENS "The shell"): the forges whose Hephaestus runs counted in the pill, and the other
+ * What the brand bar says of a fleet document (`docs/design/screens.md`, the shell): the forges whose Hephaestus runs counted in the pill, and the other
  * conditions counted in the sentence after it, over the forges not hidden. Before the first document the bar says nothing of the fleet.
  */
 import type { FleetDocument, FleetDocumentCondition } from '../@types/FleetDocument.ts';

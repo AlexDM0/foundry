@@ -1,5 +1,5 @@
 /**
- * A phase's gates table in a happy-dom document, over the designed fixtures. What matters: the head counts the phase's gates, and the
+ * A phase's gates table in a happy-dom document, over the pipeline fixtures. What matters: the head counts the phase's gates, and the
  * smallest pipeline's empty table says so beside "Add <phase> gate" and, in Build, "Add prepare step"; a press on a time chip sends
  * `gate-profile-start` for that gate in the table's phase, the only command a row sends by itself, and a measuring chip takes no press;
  * a double-click or Enter on a row asks for its Gate dialog (a prepare row: the prepare variant) and sends nothing; "Add prepare step"

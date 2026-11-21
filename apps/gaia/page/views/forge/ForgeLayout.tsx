@@ -1,5 +1,5 @@
 /**
- * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
+ * A forge in place laid out (`docs/design/screens.md` B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
  * question as a popover under its button and Open in new tab, or, for a forge Gaia cannot talk to, the
  * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
  * Hephaestus and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot

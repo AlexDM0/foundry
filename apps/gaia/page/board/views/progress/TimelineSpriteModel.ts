@@ -1,7 +1,7 @@
 /**
- * What the timeline habitat answers between two payloads (Flint's board wiring design, "New habitats", `progress`): a ticket the previous
- * payload had becomes `in-progress`, and Flint lays the bar along the row of the ticket's own task, named by that task's id; with no own
- * row there is no bar to lay along, and the fallback shows at once.
+ * What the timeline habitat answers between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `progress`): a ticket the
+ * previous payload had becomes `in-progress`, and Flint lays the bar along the row of the ticket's own task, named by that task's id; with no own row
+ * there is no bar to lay along, and the fallback shows at once.
  */
 import type { ElementHappening, HabitatHappenings } from '../../flint/UseHabitatHappenings.ts';
 import { TIMELINE_CUES }                            from './TimelineSpriteHabitat.ts';

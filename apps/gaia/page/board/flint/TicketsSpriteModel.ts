@@ -1,8 +1,8 @@
 /**
- * What the tickets habitat answers between two payloads (Flint's board wiring design, "New habitats", `tickets`): each row of the table once,
- * in its order. A ticket that appears is filed; one a review found is jarred instead, and a bug that names the delivered ticket that let
- * it out is chased from that ticket's row or card instead of both, so each new ticket shows one thing. The priority is the one the forge
- * resolved, so Gaia applies no default of its own. Every other row is a change of a ticket the previous payload had.
+ * What the tickets habitat answers between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `tickets`): each row of the table
+ * once, in its order. A ticket that appears is filed; one a review found is jarred instead, and a bug that names the delivered ticket that let it out is
+ * chased from that ticket's row or card instead of both, so each new ticket shows one thing. The priority is the one the forge resolved, so Gaia applies
+ * no default of its own. Every other row is a change of a ticket the previous payload had.
  */
 import { TICKETS_CUES }                             from './TicketsSpriteHabitat.ts';
 import type { ElementHappening, HabitatHappenings } from './UseHabitatHappenings.ts';

@@ -1,6 +1,6 @@
 /**
- * The form of "Add a repository" (SCREENS A4 and B4): a folder and a project name that follows the folder's name until User types one. "Add
- * and start" can be sent only with both filled, a forge program to run, and no add already on its way.
+ * The form of "Add a repository" (`docs/design/screens.md` A4 and B4): a folder and a project name that follows the folder's name until User types one.
+ * "Add and start" can be sent only with both filled, a forge program to run, and no add already on its way.
  */
 import type { CommandBody }   from '../../@types/CommandDocument.ts';
 import type { FleetDocument } from '../../@types/FleetDocument.ts';

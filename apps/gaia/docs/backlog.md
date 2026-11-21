@@ -10,11 +10,11 @@ What is agreed and not started, with the reason it waits.
   identity's 503 for `starting`, as it was authored from that recording.
 - **Record the forge program before F8 again.** `forge-program` holds a forge that answers no F8 JSON (install version 27, code
   3a6e9e6043da). Its recording spec asserts that older shape, so it records again only from a checkout of that forge.
-- **Notifications (W5.6).** SCREENS C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
+- **Notifications (W5.6).** `docs/design/screens.md` C2: a notification for each new item of the kinds User chose, through `page/notifications/`, with the
   Notification API behind its own boundary. It waits for spike 2 of `docs/spikes.md`, which needs the owner at the Mac: the permission
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
   the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`), and so is
-  the "What notifies" checklist; version 2's C2 also draws the notification card and the permission line, which wait with W5.6.
+  the "What notifies" checklist; the artboard of C2 also draws the notification card and the permission line, which wait with W5.6.
 - **Record an update whose Baton pass was not taken.** `forge update --json` answers `batonPass: 'failed'` with `batonPassStep:
   'restart-not-taken'` at exit 0 when the live Hephaestus does not take the pass, and Gaia answers it as restart pending
   (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a pass that was not needed: a recording

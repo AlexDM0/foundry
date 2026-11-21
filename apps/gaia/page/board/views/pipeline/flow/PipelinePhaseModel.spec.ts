@@ -1,5 +1,5 @@
 /**
- * The Focus layout's model over the designed fixtures. What matters: the nodes fall into the four phases in the facts' order, with each
+ * The Focus layout's model over the pipeline fixtures. What matters: the nodes fall into the four phases in the facts' order, with each
  * add card right after its node and the merge train's queue, frame and end left to the Merge header; a step's phase is the one that holds
  * it; each tab says its steps and gates, and its pill says what waits there per stage (a question first, then the live tickets, the
  * editing changes or the smallest pipeline's word); the header words when a phase leaves, a phase with no step is skipped and Merge ends

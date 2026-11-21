@@ -1,9 +1,9 @@
 /**
- * What the Forges view shows of a fleet document (SCREENS A4 and B2): the status line, one row per forge with the buttons of its condition,
- * the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
- * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update
- * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at
- * another version than this Gaia is built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
+ * What the Forges view shows of a fleet document (`docs/design/screens.md` A4 and B2): the status line, one row per forge with the buttons of its
+ * condition, the Stop dialog under the row it stops, a held forge's banner, the forges whose repository is gone, the forges hidden in Gaia, and this
+ * machine's agent limit. The command states decide which controls wait for a command on its way and where a refusal or a restart an update left pending
+ * shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at another version than this Gaia is
+ * built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
  */
 
 import type {
@@ -255,7 +255,7 @@ const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live',
 /** The fidelities at which the forge's Hephaestus answered its last read, so a command it carries reaches it. */
 const HEPHAESTUS_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set(['full', 'counts-only', 'newer-contract']);
 
-/** SCREENS A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
+/** `docs/design/screens.md` A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
   'live':          ['pause', 'stop', 'open'],
   'paused':        ['unpause', 'stop', 'open'],

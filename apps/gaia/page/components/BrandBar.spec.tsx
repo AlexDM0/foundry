@@ -1,5 +1,5 @@
 /**
- * The brand bar. What matters: the mark and the wordmark are one link to Attention, named "Gaia, Attention" (SCREENS "The shell"), the
+ * The brand bar. What matters: the mark and the wordmark are one link to Attention, named "Gaia, Attention" (`docs/design/screens.md`, the shell), the
  * mark hidden; a running fleet's pill is the package's orange badge with a pulsing dot, a dormant one the neutral badge with a ring; the
  * sentence follows the pill; before Gaia knows the fleet there is neither; the package's theme button is at the far end only when the bar
  * is given one, as B1's bar is not; and its name says the current choice and the next, and the next choice it hands on reaches the bar's

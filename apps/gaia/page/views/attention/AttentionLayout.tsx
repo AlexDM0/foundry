@@ -1,5 +1,5 @@
 /**
- * The Attention view laid out from its content (SCREENS A1 and B3): the unreachable forges' banners, the figures while a forge is not
+ * The Attention view laid out from its content (`docs/design/screens.md` A1 and B3): the unreachable forges' banners, the figures while a forge is not
  * fully read (one line atop the main column; otherwise they stand in the page title), what waits on User, the forges that need a look with
  * a refusal or a pending restart under them, and beside them what Gaia reads of each forge, the running forges and what just happened. It
  * takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.

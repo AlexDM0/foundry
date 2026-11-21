@@ -1,5 +1,5 @@
 /**
- * The shell's root. What matters (SCREENS "The shell"): a forge that joins or leaves the registry joins or leaves the rail from the fleet
+ * The shell's root. What matters (`docs/design/screens.md`, the shell): a forge that joins or leaves the registry joins or leaves the rail from the fleet
  * source's next document, with no reload; with no forge registered the rail says "No forge is registered" and its slot meter is all free;
  * the route's row is the active one; Tab meets every control in visual order, the brand bar from its home link to the theme button, the
  * rail top to bottom, then the view's buttons in its page title, and every control, an icon-only one included, has a name. Also: the route

@@ -1,5 +1,5 @@
 /**
- * The command sender. What matters (W4.3 acceptance; SCREENS B2 acceptance 2 and 3): one command goes as one JSON body at the known
+ * The command sender. What matters (W4.3 acceptance; `docs/design/screens.md` B2 acceptance 2 and 3): one command goes as one JSON body at the known
  * `commandVersion`; an answer of `refused` reaches the view with the forge's code and sentence as Gaia answered them, and stays on that forge
  * until dismissed or until its next command succeeds; an update that left a restart pending keeps it on that forge until dismissed or until a
  * restart, stop or update of it succeeds, since a pause leaves the old code running; while a
@@ -22,7 +22,7 @@ const STOP_EXAMPLE_MOBILE_APP: CommandBody = { kind: 'forge-stop', trackerId: TR
 
 const PAUSE_INVOICE_SERVICE: CommandBody = { kind: 'forge-pause', trackerId: TRACKER_IDS.invoiceService };
 
-/** SCREENS B2: the refusal under Example Mobile App's row. */
+/** `docs/design/screens.md` B2: the refusal under Example Mobile App's row. */
 const STOP_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',

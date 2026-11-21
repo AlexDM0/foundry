@@ -12,7 +12,7 @@ export interface RoleLook {
   readonly shape: StateDotShape;
 }
 
-/** COMPONENT_LIBRARY 3.2 in the package's tones: orange builds and asks, teal reviews, green landed, grey waits or is the forge. */
+/** `docs/design/components.md` 3.2 in the package's tones: orange builds and asks, teal reviews, green landed, grey waits or is the forge. */
 export const ROLE_LOOKS: Readonly<Record<DotRole, RoleLook>> = {
   'builder':    { tone: 'accent', shape: 'solid' },
   'reviewer':   { tone: 'info', shape: 'solid' },

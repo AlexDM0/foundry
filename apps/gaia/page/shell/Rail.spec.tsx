@@ -1,5 +1,5 @@
 /**
- * The rail as markup (SCREENS "The shell"). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand
+ * The rail as markup (`docs/design/screens.md`, the shell). What matters: it is the navigation landmark named Gaia, with no brand of its own (the brand
  * bar holds it); each row is a link to its route showing the model's label and count in the package's count badge, orange where it waits
  * on User and plain otherwise, its mark as the badge's qualifier, which its holder's title words; the current row, and only it, carries
  * `aria-current`; a forge row leads with its condition dot, which the package hides from the accessibility tree, and carries the model's

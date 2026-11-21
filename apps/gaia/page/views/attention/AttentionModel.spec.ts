@@ -1,14 +1,15 @@
 /**
- * What the Attention view shows of a fleet document. What matters (SCREENS A1, B3, B4): with `fleet-five-forges` the list holds the five rows of A1 in
- * the fleet's order, each with its forge, kind, id, subject, meta line, age and the forge's route in place, the first row's button the only primary; an
- * age is printed from the page's clock and no order depends on it; nothing waiting says so and keeps the figures, and today's figures stay absent while
- * no forge reports today; the forges that need a look carry PLAN 7.2's actions, the machine's limit never among them. B3: the head and the figure say
- * "more possible" and the figures fold into one line, an unreachable forge's rows are read as last reported and cannot act, its banner and callout name
- * what Gaia last saw, every figure comes from the document and the forges it cannot vouch for are named in the side panel, and a forge that answers
- * again is read normally. The Versions boards (U1): an older forge is an orange callout with Update forge and its steps, a newer one a neutral dashed
- * callout that only explains, each with its versions line; the figures stay in the title with the agents marked `+`, the side panel names each forge by
- * its version, and the totals and the running cards name the forges they leave out. B4: no forge gives its own screen, while every forge hidden does
- * not; the forge program is missing only when neither the settings nor Gaia know one, and a known one is named from ~.
+ * What the Attention view shows of a fleet document. What matters (`docs/design/screens.md` A1, B3, B4): with `fleet-five-forges` the list holds the five
+ * rows of A1 in the fleet's order, each with its forge, kind, id, subject, meta line, age and the forge's route in place, the first row's button the only
+ * primary; an age is printed from the page's clock and no order depends on it; nothing waiting says so and keeps the figures, and today's figures stay
+ * absent while no forge reports today; the forges that need a look carry the actions of `docs/design/screens.md` A1, "Forges that need a look", the
+ * machine's limit never among them. B3: the head and the figure say "more possible" and the figures fold into one line, an unreachable forge's rows are
+ * read as last reported and cannot act, its banner and callout name what Gaia last saw, every figure comes from the document and the forges it cannot
+ * vouch for are named in the side panel, and a forge that answers again is read normally. The Versions boards (U1): an older forge is an orange callout
+ * with Update forge and its steps, a newer one a neutral dashed callout that only explains, each with its versions line; the figures stay in the title
+ * with the agents marked `+`, the side panel names each forge by its version, and the totals and the running cards name the forges they leave out. B4: no
+ * forge gives its own screen, while every forge hidden does not; the forge program is missing only when neither the settings nor Gaia know one, and a
+ * known one is named from ~.
  */
 import { describe, expect, test } from 'bun:test';
 

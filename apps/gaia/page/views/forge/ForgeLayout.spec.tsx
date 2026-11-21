@@ -1,5 +1,5 @@
 /**
- * A forge in place laid out from its model. What matters (SCREENS B1 and B2): the bar shows Pause or Unpause, Stop and Open in new tab as
+ * A forge in place laid out from its model. What matters (`docs/design/screens.md` B1 and B2): the bar shows Pause or Unpause, Stop and Open in new tab as
  * the forge's condition allows; Stop opens its question under the button and sends `forge-stop` with `agents: 'keep'` for "Stop
  * Hephaestus only" and `stop-first` for the other choice; while a command to the forge is on its way every control of the bar is disabled;
  * a forge whose control contract Gaia does not know keeps only Open in new tab; a refusal shows the forge's code and sentence with Try

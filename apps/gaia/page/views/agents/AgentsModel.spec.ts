@@ -1,10 +1,9 @@
 /**
- * What the Agents view shows of a fleet document (SCREENS A2). What matters: the status line counts the document's job rows, forges and
- * tokens (821,300 for `fleet-five-forges`); each
- * filter's count is what pressing it would leave; "Needs a look" leaves exactly the rows the forge flags; the rows stand under their
- * forges in the registry's order, each forge counting its own job rows against its limit and saying what of it waits on User; a Calls
- * meter exists only beside a budget; a `counts-only` forge's row holds `null` wherever its summary is silent; the selection, kept in the
- * route, survives a new document and turns into "no longer running" when its job ends; and every link goes where SCREENS says, keeping the
+ * What the Agents view shows of a fleet document (`docs/design/screens.md` A2). What matters: the status line counts the document's job rows, forges and
+ * tokens (821,300 for `fleet-five-forges`); each filter's count is what pressing it would leave; "Needs a look" leaves exactly the rows the forge flags;
+ * the rows stand under their forges in the registry's order, each forge counting its own job rows against its limit and saying what of it waits on User; a
+ * Calls meter exists only beside a budget; a `counts-only` forge's row holds `null` wherever its summary is silent; the selection, kept in the route,
+ * survives a new document and turns into "no longer running" when its job ends; and every link goes where `docs/design/screens.md` A2 says, keeping the
  * filters.
  */
 import { describe, expect, test } from 'bun:test';

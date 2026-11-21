@@ -1,11 +1,10 @@
 /**
- * What the questions habitat cues between two payloads (Flint's board wiring design, "New habitats", `questions`). What matters: each row of the
- * table is cued from its change, once, and not from a fact that only stays; asking begins only when a decision is open and none is
- * selected; after User selected another decision than the oldest two times under the same oldest decision since the last ask it is a
- * knock in place of an ask, while a look at the oldest itself counts nothing, and the count starts again at each ask and knock and when
- * the oldest decision changes; an incident that opens lights the fuse; an incident settles on a record that closes it, never on an
- * escalation; only a waiver that is answered signs, any other decision that is answered is a happy answer of its own, and neither when it
- * was answered before; and several changes come in the order of the table.
+ * What the questions habitat cues between two payloads (`docs/design/board.md`, "Flint's habitats on the board views", `questions`). What matters: each
+ * row of the table is cued from its change, once, and not from a fact that only stays; asking begins only when a decision is open and none is selected;
+ * after User selected another decision than the oldest two times under the same oldest decision since the last ask it is a knock in place of an ask, while
+ * a look at the oldest itself counts nothing, and the count starts again at each ask and knock and when the oldest decision changes; an incident that
+ * opens lights the fuse; an incident settles on a record that closes it, never on an escalation; only a waiver that is answered signs, any other decision
+ * that is answered is a happy answer of its own, and neither when it was answered before; and several changes come in the order of the table.
  */
 import { describe, expect, test } from 'bun:test';
 

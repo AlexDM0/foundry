@@ -88,7 +88,7 @@ const WAITING_STATE_GROUPS: ReadonlySet<KanbanStateGroup> = new Set(['paused', '
 /** An agent is at work on a card in these states, so it pulses while the board is live. */
 const LIVE_DISPLAY_STATES: ReadonlySet<BoardDisplayState> = new Set(['in-progress', 'reviewing', 're-review']);
 
-/** A card in these states waits for a person or never started, so it is drawn dashed: the state shapes of the design. */
+/** A card in these states waits for a person or never started, so it is drawn dashed (`docs/design/board.md`, "Kanban lanes and card shapes"). */
 const DASHED_CARD_STATES: ReadonlySet<BoardDisplayState> = new Set(['draft', 'ready-for-review', 'paused', 'in-review', 'abandoned']);
 
 interface LaneDesign {
