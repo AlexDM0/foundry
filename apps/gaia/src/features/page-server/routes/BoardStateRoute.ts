@@ -1,11 +1,13 @@
 /**
  * `GET /api/v1/forges/<trackerId>/board`: the forge's board document read afresh, ingested into Gaia's model and mapped to the page's
- * `BoardDocument`. Reads of one forge are shared: a request that comes while a read is on its way waits for the next one, which starts once
- * that read is done and answers every request that waited, so a burst of change signals costs at most two reads and one map each.
+ * `BoardDocument`, the Markdown the forge serves rendered here into the HTML the page shows. Reads of one forge are shared: a request that
+ * comes while a read is on its way waits for the next one, which starts once that read is done and answers every request that waited, so a
+ * burst of change signals costs at most two reads and one map each.
  */
 import type { ResumeWaitsOfJobs }                         from '../../../adapters/forge-api/@types/ResumeWaitsOfJobs.ts';
 import { BoardStateIngestion }                            from '../../../adapters/forge-api/BoardStateIngestion.ts';
 import { BoardDocumentMapUtil }                           from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
+import { createMarkdownRenderer }                         from '../../../lib/markdown-render/MarkdownRenderer.ts';
 import type { BoardRelayRefusal }                         from '../../../shared/@types/board/BoardRelayVerdict.ts';
 import type { ForgeBoard }                                from '../../../shared/@types/board/ForgeBoard.ts';
 import type { BoardRelayLog }                             from '../@types/BoardRelayLogEntry.ts';
@@ -35,6 +37,7 @@ function boardHoldsWaitingWork(board: ForgeBoard): boolean {
 export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRelayLog): BoardStateRoute {
   const readsByTrackerId = new Map<string, ForgeBoardReads>();
   const ingestion = new BoardStateIngestion();
+  const { renderMarkdown } = createMarkdownRenderer();
 
   async function boardReadAfresh(trackerId: string): Promise<BoardRead> {
     const accessVerdict = await forgeAccessVerdictFor(trackerId, sources);
@@ -59,7 +62,7 @@ export function createBoardStateRoute(sources: ForgeAccessSources, log: BoardRel
     const board = boardHoldsWaitingWork(reading.board)
       ? ingestion.boardOf(trackerId, answer.document, await resumeWaitsOf(trackerId)).board ?? reading.board
       : reading.board;
-    return { verdict: 'read', boardDocumentJson: JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(board)) };
+    return { verdict: 'read', boardDocumentJson: JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(board, renderMarkdown)) };
   }
 
   /**

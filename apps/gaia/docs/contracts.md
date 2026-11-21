@@ -147,6 +147,8 @@ is a separate document Gaia serves.
   endpoint's, derived from forge's registry at `SUPPORTED_FORGE_VERSION`. `src/adapters/forge-api/BoardStateIngestion.ts` checks the keys
   Gaia reads against `constants/BoardDocumentShapes.ts`, each shape typed `satisfies ShapeOf<>` against the contract, and maps through
   `utils/BoardMapUtil.ts` and `utils/PipelineMapUtil.ts`; a missing key or a value outside a value list makes it malformed and is named.
+  The forge renders no HTML: a ticket's `bodyMarkdown`, an epic description's `descriptionMarkdown` and the `constitutionMarkdown` of the
+  pipeline setup and of each of its entities arrive as Markdown, and the model holds them as Markdown under the same names.
   The shapes are the inventory of what the Bridge's views read plus the facts forge serves; a key no view reads is named `passed-over`
   (the Baton pass warning, which `warnings` words, confinement, a gate's `definedBy` and
   `overseerOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and `openedAtEntity`, the Apply state's
@@ -190,7 +192,10 @@ none of the model and no `forge-contracts` type.
 - **Out:** `src/adapters/page-api/BoardDocumentMapUtil.ts` and `PipelineDocumentMapUtil.ts` name every key one by one. A forge's refusal
   becomes `{ refusedBy: 'forge', code, fields, text }` with the forge's sentence in `text`, byte for byte, even when it names a command
   (decision 45); a notice or a warning keeps its kind and facts, and its sentence passes through `ForgeSentenceUtil` by kind, a cause
-  that names a command dropped. A served target stays `{ subject, id }`. Every event is a change signal, as the model reads it.
+  that names a command dropped. A served target stays `{ subject, id }`. Every event is a change signal, as the model reads it. The
+  model's three Markdown fields leave as the page's `bodyHtml`, `descriptionHtml` and `constitutionHtml`, rendered on the server by
+  `src/lib/markdown-render/MarkdownRenderer.ts`: `marked` with raw HTML escaped and a link or image kept only with an `http:`, `https:`
+  or `mailto:` scheme or none, since an agent wrote the text. The page holds no Markdown parser and still shows each in a sandboxed frame.
 - **In:** `src/adapters/page-api/BoardCommandIngestion.ts` checks `boardCommandVersion`, the kind and each key of the kind, and refuses a
   body as `malformed-body` (naming its keys) or `unknown-kind`. `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` maps each kind
   through one table whose type pairs it with the contract's command of the same kind, so Gaia sends only kinds of

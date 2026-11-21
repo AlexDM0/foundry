@@ -52,7 +52,7 @@ names a package the code does not import. A stale allowance fails as loudly as a
 prints a sentence naming the file, the line, the target and the rule, for example:
 
 ```text
-src/adapters/log/PlantedWording.ts:1 imports src/services/render/RenderState.ts: adapters reaches only lib, shared, adapters, not render-service
+src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: adapters reaches only lib, shared, adapters, not render-service
 ```
 
 The sentence is the fix: move the code down, pass the value as a parameter, or hoist what two siblings share above both.

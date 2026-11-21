@@ -20,6 +20,7 @@ import { BoardStateIngestion }                                                  
 import { PresenceIngestion, type PresenceReportReading }                             from '../../../adapters/forge-api/PresenceIngestion.ts';
 import { recordedBoardDocumentOf }                                                   from '../../../adapters/forge-api/testing/BoardDocuments.ts';
 import { BoardDocumentMapUtil }                                                      from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
+import { createMarkdownRenderer }                                                    from '../../../lib/markdown-render/MarkdownRenderer.ts';
 import { recordedBoardAnswersOf, recordedOverseerFetch, type RecordedOverseerFetch } from '../../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                                 from '../../../testing/ScratchRoot.ts';
 import type { BoardRelayLogEntry }                                                   from '../@types/BoardRelayLogEntry.ts';
@@ -64,7 +65,7 @@ function routeOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayFo
 async function expectedBoardDocumentOf(situation: 'board-at-work' | 'board-install-held'): Promise<unknown> {
   const reading = new BoardStateIngestion().boardOf(STOREFRONT_TRACKER_ID, await recordedBoardDocumentOf(situation));
   if (reading.board === null) throw new Error(`The ${situation} board does not ingest.`);
-  return JSON.parse(JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(reading.board)));
+  return JSON.parse(JSON.stringify(BoardDocumentMapUtil.boardDocumentOf(reading.board, createMarkdownRenderer().renderMarkdown)));
 }
 
 describe('a forge\'s board', () => {

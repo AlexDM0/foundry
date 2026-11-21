@@ -34,7 +34,7 @@ const PAGE_TICKET: PageTicket = {
   abandonedAt:     null,
   task:            null,
   extra:           [['owner-note', 'kept']],
-  bodyHtml:        '<p>Example</p>',
+  bodyMarkdown:    'Example',
   sections:        [{ heading: 'Brief', markdown: 'Example brief.' }],
   acceptanceItems: [{ label: 'A1', text: 'The page loads.', waived: false }],
 };
@@ -83,7 +83,7 @@ function payloadWith(changes: Partial<PagePayload>): PagePayload {
     limits:                       {} as PagePayload['limits'],
     concurrency:                  { limit: 2, agentsInFlight: 0 },
     pageScriptFailure:            null,
-    epicDescriptions:             [{ key: 'example-checkout', descriptionHtml: '<p>Epic</p>' }],
+    epicDescriptions:             [{ key: 'example-checkout', descriptionMarkdown: 'Epic' }],
     boardFacts:                   {
       rows:    [{ displayState: 'committed', deliveredRowCountsAsReviewed: false, ownRowPositionOfReviewedTicket: null }],
       tickets: [{
@@ -125,7 +125,7 @@ describe('BoardPageMappingUtil.pageOf', () => {
       finished:        null,
       delivered:       null,
       abandonedAt:     null,
-      bodyHtml:        '<p>Example</p>',
+      bodyMarkdown:    'Example',
       sections:        [{ heading: 'Brief', markdown: 'Example brief.' }],
       acceptanceItems: [{ label: 'A1', text: 'The page loads.', waived: false }],
       facts:           TICKET_READINGS.facts,

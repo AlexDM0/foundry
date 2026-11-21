@@ -395,13 +395,13 @@ function outlineOf(outline: PipelineSetupFacts['constitutionOutline']): BoardPip
 
 function setupEntityFactsOf(facts: PipelineSetupEntityFacts): PipelineSetupEntityFactsDocument {
   return {
-    summary:             setupSummaryOf(facts.summary),
-    openQuestionCount:   facts.openQuestionCount,
-    agentJobState:       facts.agentJobState,
-    constitutionHtml:    facts.constitutionHtml,
-    constitutionOutline: outlineOf(facts.constitutionOutline),
-    annotations:         facts.annotations.map(resolvedAnnotationOf),
-    readByRoles:         [...facts.readByRoles],
+    summary:              setupSummaryOf(facts.summary),
+    openQuestionCount:    facts.openQuestionCount,
+    agentJobState:        facts.agentJobState,
+    constitutionMarkdown: facts.constitutionMarkdown,
+    constitutionOutline:  outlineOf(facts.constitutionOutline),
+    annotations:          facts.annotations.map(resolvedAnnotationOf),
+    readByRoles:          [...facts.readByRoles],
   };
 }
 
@@ -432,19 +432,19 @@ function applyRefusalOf(refusal: ApplyRefusalFacts | null): ForgeRefusalDocument
 function pipelineSetupOf(setup: PipelineSetupFacts | null): BoardPipelineSetupDocument | null {
   if (setup === null) return null;
   return {
-    record:              setupRecordOf(setup.record),
-    summary:             { ...setupSummaryOf(setup.summary), userEditsKeptCount: setup.summary.userEditsKeptCount },
-    openQuestionCount:   setup.openQuestionCount,
-    agentJobState:       setup.agentJobState,
-    mainMovedByCommits:  setup.mainMovedByCommits,
-    constitutionHtml:    setup.constitutionHtml,
-    constitutionOutline: outlineOf(setup.constitutionOutline),
-    annotations:         setup.annotations.map(resolvedAnnotationOf),
-    readByRoles:         [...setup.readByRoles],
-    applyState:          applyStateOf(setup.applyState),
-    draftEntities:       draftEntitiesOf(setup.record.draft),
-    applyRefusal:        applyRefusalOf(setup.applyRefusal),
-    entityRefusals:      BoardEntityRefusalMappingUtil.entityRefusalsOf(setup.record.setupId, setup.record.draft),
+    record:               setupRecordOf(setup.record),
+    summary:              { ...setupSummaryOf(setup.summary), userEditsKeptCount: setup.summary.userEditsKeptCount },
+    openQuestionCount:    setup.openQuestionCount,
+    agentJobState:        setup.agentJobState,
+    mainMovedByCommits:   setup.mainMovedByCommits,
+    constitutionMarkdown: setup.constitutionMarkdown,
+    constitutionOutline:  outlineOf(setup.constitutionOutline),
+    annotations:          setup.annotations.map(resolvedAnnotationOf),
+    readByRoles:          [...setup.readByRoles],
+    applyState:           applyStateOf(setup.applyState),
+    draftEntities:        draftEntitiesOf(setup.record.draft),
+    applyRefusal:         applyRefusalOf(setup.applyRefusal),
+    entityRefusals:       BoardEntityRefusalMappingUtil.entityRefusalsOf(setup.record.setupId, setup.record.draft),
     ...(setup.entities === undefined ? {} : { entities: byEntityOf(setup.entities, setupEntityFactsOf) }),
   };
 }

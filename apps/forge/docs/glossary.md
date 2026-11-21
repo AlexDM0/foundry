@@ -88,8 +88,7 @@ Read the row that fits the context. Component names are capitalised, like the tw
 | **dispatch** | launching jobs; no dispatcher exists in this build | surviving names: `cli/dispatch/concurrency/`, `DISPATCH_PROTOCOL`, `DispatchQueries`, `dispatchCapacity` |
 | | a retired stored record | the `dispatcher-set` log kind, read so an older log stays readable |
 | **fixer** | a review's move | `fixer` in `settleReviewPass`: job ends `does-not-hold`, the ticket goes back to a builder |
-| **render** | Markdown to HTML | `src/services/render/MarkdownRenderer.ts` |
-| | assembling the page payload | `assemblePagePayload`; the Overseer sends it inside `BoardState` |
+| **render** | assembling the page payload | `assemblePagePayload`; the Overseer sends it inside `BoardState` |
 | | no command | there is no `render` verb, and no command rebuilds a page |
 | **page** | the [Bridge](#bridge), served at `GET /` | `HTMLBundle`, the `page` field of `BoardState` |
 | **claim** | a report claim | the [builder](#builder) report's `gates`, the [reviewer](#reviewer) report's `claims`; never trusted |

@@ -169,7 +169,6 @@ function inputOf(changes: Partial<PipelineFactsInput> = {}, example: ExampleBoar
     logRecords,
     mainLine:             'main',
     mainLineTexts:        NO_TEXTS,
-    renderMarkdown:       (markdown) => `<rendered>${markdown}</rendered>`,
     instructionPathOf:    (pipeline, entry) => {
       if (entry.kind === 'constitution') return pipeline?.constitution?.path ?? '.forge/briefs/defaults/constitution.md';
       return entry.kind === 'default-brief' ? `.forge/briefs/defaults/${entry.role}.md` : entry.path;
@@ -268,16 +267,16 @@ describe('the setup facts', () => {
       summary: {
         stackItemCount: 1, scriptCount: 1, answeredResearchQuestionCount: 1, prepareStepCount: 1, gateCountByPhase: { build: 1, review: 1, merge: 1 }, userEditsKeptCount: 1,
       },
-      openQuestionCount:  1,
-      agentJobState:      'running',
-      mainMovedByCommits: 3,
-      constitutionHtml:   null,
-      applyState:         null,
+      openQuestionCount:    1,
+      agentJobState:        'running',
+      mainMovedByCommits:   3,
+      constitutionMarkdown: null,
+      applyState:           null,
     });
     expect(pipelineFactsOf(inputOf({ pipelineSetupReading: { verdict: 'readable', setup: record } })).pipelineSetup?.agentJobState).toBeNull();
   });
 
-  test('the constitution is rendered, outlined by its ## lines and top-level - items, and each annotation carries its line index', () => {
+  test('the constitution is served as stored, byte for byte, outlined by its ## lines and top-level - items, and each annotation carries its line index', () => {
     const record = setupRecordOf({
       constitution: {
         markdown:    CONSTITUTION_MARKDOWN,
@@ -298,7 +297,7 @@ describe('the setup facts', () => {
       },
     });
     const setup = pipelineFactsOf(inputOf({ pipelineSetupReading: { verdict: 'readable', setup: record } })).pipelineSetup;
-    expect(setup?.constitutionHtml).toBe(`<rendered>${CONSTITUTION_MARKDOWN}</rendered>`);
+    expect(setup?.constitutionMarkdown).toBe(CONSTITUTION_MARKDOWN);
     expect(setup?.constitutionOutline).toEqual({ sectionCount: 2, ruleCount: 3 });
     expect(setup?.annotations.map(({ lineText, lineIndex }) => [lineText, lineIndex])).toEqual([['- Write full names.', 8], ['- Keep files small.', 5]]);
   });
@@ -844,14 +843,14 @@ describe('a forge over entities', () => {
       summary: {
         stackItemCount: 1, scriptCount: 0, answeredResearchQuestionCount: 0, prepareStepCount: 1, gateCountByPhase: { build: 1, review: 0, merge: 1 },
       },
-      openQuestionCount:   1,
-      agentJobState:       'running',
-      constitutionHtml:    `<rendered>${CONSTITUTION_MARKDOWN}</rendered>`,
-      constitutionOutline: { sectionCount: 2, ruleCount: 3 },
-      readByRoles:         ['reviewer', 'reReviewer', 'conflictReReviewer'],
+      openQuestionCount:    1,
+      agentJobState:        'running',
+      constitutionMarkdown: CONSTITUTION_MARKDOWN,
+      constitutionOutline:  { sectionCount: 2, ruleCount: 3 },
+      readByRoles:          ['reviewer', 'reReviewer', 'conflictReReviewer'],
     });
     expect(entities?.['api']).toMatchObject({
-      openQuestionCount: 0, agentJobState: null, constitutionHtml: null, summary: { prepareStepCount: 0 }
+      openQuestionCount: 0, agentJobState: null, constitutionMarkdown: null, summary: { prepareStepCount: 0 }
     });
     expect(facts.pipelineSetup?.openQuestionCount).toBe(0);
     expect(facts.pipelineFlow?.entityFlows?.['web']?.nodes.find((node) => node.nodeId === 'gates-build')?.questionIds).toEqual(['Q1']);

@@ -76,10 +76,10 @@ export interface PageDraftRequest {
   request: string;
 }
 
-/** An epic's description rendered as a ticket body is, joined to its roll-up in `boardFacts.epics` by key. */
+/** An epic's description as stored Markdown, joined to its roll-up in `boardFacts.epics` by key. */
 export interface PageEpicDescription {
-  key:             string;
-  descriptionHtml: string;
+  key:                 string;
+  descriptionMarkdown: string;
 }
 
 export interface PagePayload {
@@ -108,7 +108,7 @@ export interface PageAcceptanceItem {
 }
 
 export interface PageTicket extends TicketFrontmatter {
-  bodyHtml:        string;
+  bodyMarkdown:    string;
   sections:        PageTicketSection[];
   /** Empty when the body has no `## Acceptance` or it numbers no item. */
   acceptanceItems: PageAcceptanceItem[];

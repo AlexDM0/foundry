@@ -438,41 +438,41 @@ export interface ApplyStateDocument extends ApplyRequestDocument {
 
 /** One entity's part of the setup facts. */
 export interface PipelineSetupEntityFactsDocument {
-  readonly summary:             PipelineSetupEntitySummaryDocument;
-  readonly openQuestionCount:   number;
+  readonly summary:              PipelineSetupEntitySummaryDocument;
+  readonly openQuestionCount:    number;
   /** The state of the entity's pipeline agent job; `null` when none is on the board. */
-  readonly agentJobState:       JobState | null;
-  readonly constitutionHtml:    string | null;
-  readonly constitutionOutline: ConstitutionOutlineDocument | null;
-  readonly annotations:         readonly ResolvedSourceAnnotationDocument[];
+  readonly agentJobState:        JobState | null;
+  readonly constitutionMarkdown: string | null;
+  readonly constitutionOutline:  ConstitutionOutlineDocument | null;
+  readonly annotations:          readonly ResolvedSourceAnnotationDocument[];
   /** The entity's roles whose instruction lists hold its constitution. */
-  readonly readByRoles:         readonly EntityAgentRole[];
+  readonly readByRoles:          readonly EntityAgentRole[];
 }
 
 /** The open record and what the forge reads around it. */
 export interface BoardPipelineSetupDocument {
-  readonly record:              PipelineSetupRecordDocument;
-  readonly summary:             PipelineSetupSummaryDocument;
-  readonly openQuestionCount:   number;
+  readonly record:               PipelineSetupRecordDocument;
+  readonly summary:              PipelineSetupSummaryDocument;
+  readonly openQuestionCount:    number;
   /** `null` when no agent job is on the board. */
-  readonly agentJobState:       JobState | null;
+  readonly agentJobState:        JobState | null;
   /** The main line's commits since the snapshot. */
-  readonly mainMovedByCommits:  number;
-  /** Rendered from the constitution's markdown; `null` with no constitution. */
-  readonly constitutionHtml:    string | null;
-  readonly constitutionOutline: ConstitutionOutlineDocument | null;
-  readonly annotations:         readonly ResolvedSourceAnnotationDocument[];
+  readonly mainMovedByCommits:   number;
+  /** The constitution's Markdown as stored; `null` with no constitution. */
+  readonly constitutionMarkdown: string | null;
+  readonly constitutionOutline:  ConstitutionOutlineDocument | null;
+  readonly annotations:          readonly ResolvedSourceAnnotationDocument[];
   /** The roles whose instruction lists hold the constitution. */
-  readonly readByRoles:         readonly PipelineAgentRole[];
-  readonly applyState:          ApplyStateDocument | null;
+  readonly readByRoles:          readonly PipelineAgentRole[];
+  readonly applyState:           ApplyStateDocument | null;
   /** Absent on a forge without entities: each entity of the draft, else of the stored pipeline, by its key. */
-  readonly entities?:           Readonly<Record<EntityKey, PipelineSetupEntityFactsDocument>>;
+  readonly entities?:            Readonly<Record<EntityKey, PipelineSetupEntityFactsDocument>>;
   /** Each entity of the draft by its key; empty while the draft holds none. */
-  readonly draftEntities:       Readonly<Record<EntityKey, BoardDraftEntityFactsDocument>>;
+  readonly draftEntities:        Readonly<Record<EntityKey, BoardDraftEntityFactsDocument>>;
   /** The refusal an Apply of the current draft meets now, as the command would answer it; `null` when it would proceed. */
-  readonly applyRefusal:        ForgeRefusalDocument | null;
+  readonly applyRefusal:         ForgeRefusalDocument | null;
   /** Each refusal the draft's entities hold, which Continue and Apply wait on; empty while none stands. */
-  readonly entityRefusals:      readonly BoardEntityRefusalDocument[];
+  readonly entityRefusals:       readonly BoardEntityRefusalDocument[];
 }
 
 export interface PipelineEntityDefinitionDocument {

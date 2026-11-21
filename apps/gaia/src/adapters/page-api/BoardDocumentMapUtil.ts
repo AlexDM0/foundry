@@ -29,6 +29,7 @@ import type {
   BoardViewRangeDocument,
 } from '../../../page/@types/board/BoardTicketDocuments.ts';
 import type { BoardTranscriptEntryDocument, ConversationDocument } from '../../../page/@types/board/ConversationDocument.ts';
+import type { MarkdownRendering }                                  from '../../lib/markdown-render/MarkdownRenderer.ts';
 import type { BoardProfileLine, BoardTranscriptEntry }             from '../../shared/@types/board/BoardConversation.ts';
 import type { BoardDecision, BoardQuestionHistoryEntry }           from '../../shared/@types/board/BoardDecision.ts';
 import type { BoardEvent }                                         from '../../shared/@types/board/BoardEvent.ts';
@@ -304,7 +305,7 @@ function mergeQueueOut(mergeQueue: BoardMergeQueue): BoardMergeQueueDocument {
   };
 }
 
-function ticketOut(ticket: BoardTicket): BoardTicketDocument {
+function ticketOut(ticket: BoardTicket, renderMarkdown: MarkdownRendering): BoardTicketDocument {
   return {
     id:              ticket.id,
     title:           ticket.title,
@@ -333,7 +334,7 @@ function ticketOut(ticket: BoardTicket): BoardTicketDocument {
     finished:        ticket.finished,
     delivered:       ticket.delivered,
     abandonedAt:     ticket.abandonedAt,
-    bodyHtml:        ticket.bodyHtml,
+    bodyHtml:        renderMarkdown(ticket.bodyMarkdown),
     sections:        ticket.sections.map((section) => ({ heading: section.heading, markdown: section.markdown })),
     acceptanceItems: ticket.acceptanceItems.map((item) => ({ label: item.label, text: item.text, waived: item.waived })),
     facts:           {
@@ -426,11 +427,11 @@ function filingDraftOut(draft: BoardFilingDraft): BoardFilingDraftDocument {
   };
 }
 
-function pageOut(page: BoardPage): BoardPageDocument {
+function pageOut(page: BoardPage, renderMarkdown: MarkdownRendering): BoardPageDocument {
   const { facts } = page;
   return {
     progress:         progressOut(page.progress),
-    epicDescriptions: page.epicDescriptions.map((description) => ({ key: description.key, descriptionHtml: description.descriptionHtml })),
+    epicDescriptions: page.epicDescriptions.map((description) => ({ key: description.key, descriptionHtml: renderMarkdown(description.descriptionMarkdown) })),
     draftRequests:    page.draftRequests.map((request) => ({ id: request.id, request: request.request })),
     facts:            {
       rows: facts.rows.map((row) => ({
@@ -451,7 +452,7 @@ function pageOut(page: BoardPage): BoardPageDocument {
       readyTickets: facts.readyTickets.map((ticket) => ({ id: ticket.id, isHeld: ticket.isHeld })),
       drafts:       facts.drafts.map(filingDraftOut),
     },
-    tickets: page.tickets.map(ticketOut),
+    tickets: page.tickets.map((ticket) => ticketOut(ticket, renderMarkdown)),
   };
 }
 
@@ -468,7 +469,8 @@ function usageOut(usage: BoardUsage): BoardUsageDocument {
   };
 }
 
-function boardDocumentOf(board: ForgeBoard): BoardDocument {
+/** Every Markdown the forge served leaves as the HTML field the page reads, rendered here on the server by `renderMarkdown`. */
+function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering): BoardDocument {
   return {
     ...BOARD_VERSION,
     trackerId:   board.trackerId,
@@ -481,7 +483,7 @@ function boardDocumentOf(board: ForgeBoard): BoardDocument {
       inProgressTicketIdsWithoutJob: board.launchSlots.inProgressTicketIdsWithoutJob,
     },
     usage:           usageOut(board.usage),
-    page:            pageOut(board.page),
+    page:            pageOut(board.page, renderMarkdown),
     mergeQueue:      mergeQueueOut(board.mergeQueue),
     jobs:            board.jobs.map(jobOut),
     endedJobs:       board.endedJobs.map(endedJobOut),
@@ -489,7 +491,7 @@ function boardDocumentOf(board: ForgeBoard): BoardDocument {
     incidents:       board.incidents.map(incidentOut),
     questionHistory: board.questionHistory.map(questionHistoryEntryOut),
     ticketForecasts: board.ticketForecasts.map(ticketForecastOut),
-    pipeline:        PipelineDocumentMapUtil.pipelineFactsOut(board.pipeline),
+    pipeline:        PipelineDocumentMapUtil.pipelineFactsOut(board.pipeline, renderMarkdown),
     pictureLimits:   board.pictureLimits === null ? null : {
       perMessage:     board.pictureLimits.perMessage,
       sizeLimitBytes: board.pictureLimits.sizeLimitBytes,

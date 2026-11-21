@@ -127,7 +127,8 @@ src/features/      fleet, forge-control, page-server, launcher, app-install
 src/adapters/      every boundary: the registry, the forge's API and program, Gaia's own files, Gaia's own server as the launcher asks it, the page contract,
                    the installed app bundle's Info.plist
 src/services/      ForgeWatch, FleetStore, SettingsStore, Environment, the one reader of the environment, and Clock, the one reader of the clock
-src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards, json-value, api-paths
+src/lib/           building blocks: forge-client, event-stream, process-run, atomic-file, local-http-guards, json-value, api-paths,
+                   markdown-render
 src/shared/        the internal model's types, app-wide constants, the contract version rule, GaiaError
 src/shared/@types/board/ Gaia's board model, which the server maps each forge's board into
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only

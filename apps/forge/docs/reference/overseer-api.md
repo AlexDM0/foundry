@@ -387,13 +387,14 @@ names `state`. The contract's document is [the board document](#the-board-docume
 <details>
 <summary><code>page.tickets[]</code> field by field</summary>
 
-Each entry is the ticket's frontmatter plus the fields below. Only `bodyHtml` is HTML. The excerpts are source text, which
-a view shows escaped, so a quoted Wanted or Brief never reaches the page as markup.
+Each entry is the ticket's frontmatter plus the fields below. None is HTML: forge renders no Markdown. `bodyMarkdown` and the
+excerpts are source text an agent wrote, so a reader renders the body with its raw HTML escaped and shows an excerpt
+escaped.
 
 | Field | Holds |
 | --- | --- |
 | `filePath` | The ticket file |
-| `bodyHtml` | The whole body rendered by Marked, shown in a sandboxed frame |
+| `bodyMarkdown` | The whole body as stored Markdown, with a blank line put before each `A<n>.` item of `## Acceptance` that follows text, so a Markdown reader shows each item as its own paragraph |
 | `sections[]` | Every `##` section in written order: `heading` (the text after `## `) and `markdown` (its source lines, blank lines around them dropped). A heading inside a code fence is a line, not a section. |
 | `acceptanceItems[]` | The numbered items of the first `## Acceptance`: `label` (`A1`), `text` (continuation lines joined by a space) and `waived` (the Acceptance marks it `Waived:`). Empty when there is none. |
 
@@ -435,11 +436,11 @@ main line and passes the texts in.
 | `pipelineSetup.openQuestionCount` | The questions with no answer |
 | `pipelineSetup.agentJobState` | The state of the record's agent job, `null` when no such job is on the board |
 | `pipelineSetup.mainMovedByCommits` | Main's commits past the record's `snapshotCommit`, read from git and never stored |
-| `pipelineSetup.constitutionHtml` | The constitution's markdown rendered by Marked, `null` with no constitution |
+| `pipelineSetup.constitutionMarkdown` | The constitution's Markdown as stored, `null` with no constitution |
 | `pipelineSetup.constitutionOutline` | `{sectionCount, ruleCount}`: the `##` lines and the top-level `-` items |
 | `pipelineSetup.annotations[]` | Each annotation with `lineIndex`, the zero-based index of the line it anchors to; one that anchors nowhere is left out |
 | `pipelineSetup.readByRoles` | The roles whose instruction lists, of the draft or else the stored pipeline, hold the constitution |
-| `pipelineSetup.entities` | Absent on a forge without entities. Each entity of the draft, else of the stored pipeline, then of the record, by its key: its `summary` (without `userEditsKeptCount`), `openQuestionCount`, `agentJobState`, `constitutionHtml`, `constitutionOutline`, `annotations` and `readByRoles`, read from the entity's part of the record and its pipeline |
+| `pipelineSetup.entities` | Absent on a forge without entities. Each entity of the draft, else of the stored pipeline, then of the record, by its key: its `summary` (without `userEditsKeptCount`), `openQuestionCount`, `agentJobState`, `constitutionMarkdown`, `constitutionOutline`, `annotations` and `readByRoles`, read from the entity's part of the record and its pipeline |
 | `pipelineSetup.applyState` | `null` with no Apply waiting; else the record's `applyRequest` plus `blockingFiles`, from the newest `pipeline-apply-held` record while `held`, and `ticketIdHoldingMain`, the ticket whose Airlock job holds the main line |
 | `pipelineFlow.nodes[]` | From `pipelineFlowGraphOf`, each instruction entry with its file name and its text on main cut at `INSTRUCTION_PREVIEW_LIMIT_CHARACTERS` (4000), and `questionIds`: the questions whose subject is the node (by id or kind) or, on a gates node, one of its gates |
 | `pipelineFlow.occupants[]` | Live only: `{occupantKind, occupantId, nodeId, jobId, since}`, below |

@@ -68,7 +68,6 @@ export interface BoardStateReading {
   drafts:             readonly Draft[];
   logRecords:         readonly LogRecord[];
   generatedAt:        Date;
-  renderMarkdown:     (markdown: string) => string;
   liveFactsOf:        (job: Readonly<Job>) => JobLiveFactsWithSilence;
   notices:            readonly unknown[];
   overseer:           OverseerFacts;
@@ -273,7 +272,6 @@ function boardStateOf(reading: BoardStateReading): BoardState {
     concurrency:       board.concurrency(),
     boardFacts:        boardFactsOf(board),
     draftRequests:     reading.drafts.map((draft) => ({ id: draft.id, request: draft.request })),
-    renderMarkdown:    reading.renderMarkdown,
   });
   return {
     ...reading.statusDocument,
@@ -281,7 +279,6 @@ function boardStateOf(reading: BoardStateReading): BoardState {
       ...reading.pipelineSources,
       board,
       logRecords:        reading.logRecords,
-      renderMarkdown:    reading.renderMarkdown,
       instructionPathOf: InstructionFiles.instructionPathOf,
       defaultSettingsOf: LaunchSettings.defaultAgentPairOf,
       generatedAt:       reading.generatedAt,

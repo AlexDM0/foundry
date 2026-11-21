@@ -1,11 +1,11 @@
 /**
- * Where `src/services/render/MarkdownRenderer.ts` deliberately departs from marked: raw HTML escaped rather than
- * passed through, and only allowlisted link schemes surviving; and the Acceptance items of a ticket body split into one block each, while every
- * other input renders byte-identical.
+ * Where `MarkdownRenderer.ts` deliberately departs from marked: raw HTML escaped rather than passed through, and only allowlisted link
+ * schemes surviving, however the scheme is hidden; every other input renders as marked renders it.
  */
 
-import { describe, expect, test }                               from 'bun:test';
-import { createMarkdownRenderer, withAcceptanceItemsSeparated } from './MarkdownRenderer.ts';
+import { describe, expect, test } from 'bun:test';
+
+import { createMarkdownRenderer } from './MarkdownRenderer.ts';
 
 const { renderMarkdown } = createMarkdownRenderer();
 
@@ -130,61 +130,14 @@ describe('renderMarkdown', () => {
     expect(html).toContain('<img src="./picture.png"');
   });
 
+  test('renders items separated by a blank line as a paragraph each, and joined lines as one', () => {
+    expect(renderMarkdown('A1. One.\n\nA2. Two.\n')).toBe('<p>A1. One.</p>\n<p>A2. Two.</p>\n');
+    expect(renderMarkdown('A1. One.\nA2. Two.\n')).toBe('<p>A1. One.\nA2. Two.</p>\n');
+  });
+
   test('renders the same body identically on a second call, since the parser is reused', () => {
     const body = '## Report\n\n- one\n- two\n';
 
     expect(renderMarkdown(body)).toBe(renderMarkdown(body));
-  });
-});
-
-describe('withAcceptanceItemsSeparated', () => {
-  const ticketBodyWithJoinedItems = [
-    '## Report',
-    'Alex Example saw a blob.',
-    '',
-    '## Acceptance',
-    'A1. **First.** The first claim',
-    '    continues on an indented line.',
-    'A2. The second claim',
-    '    - with an indented sub-point.',
-    'A3. The third claim.',
-    '',
-    '## Brief',
-    'Nothing more.',
-    '',
-  ].join('\n');
-
-  test('renders each Acceptance item as its own block, its continuation text in the same block', () => {
-    const html = renderMarkdown(withAcceptanceItemsSeparated(ticketBodyWithJoinedItems));
-
-    expect(html).toContain('<p>A1. <strong>First.</strong> The first claim\n    continues on an indented line.</p>');
-    expect(html).toContain('<p>A2. The second claim\n    - with an indented sub-point.</p>');
-    expect(html).toContain('<p>A3. The third claim.</p>');
-  });
-
-  test('separates the items after a tilde fence that quotes a backtick fence, which closes only the fence it opened', () => {
-    expect(withAcceptanceItemsSeparated('## Acceptance\n~~~\n```\n~~~\nA1. One.\nA2. Two.\n')).toBe('## Acceptance\n~~~\n```\n~~~\n\nA1. One.\n\nA2. Two.\n');
-  });
-
-  test('without it the same items render as one joined paragraph, which is the blob it fixes', () => {
-    const html = renderMarkdown(ticketBodyWithJoinedItems);
-
-    expect(html).toContain('    continues on an indented line.\nA2. The second claim');
-  });
-
-  test('separates the items of a CRLF body, its heading and item lines ending in a carriage return', () => {
-    const crlfTicketBody = '## Acceptance\r\nA1. The first claim.\r\nA2. The second claim.\r\n';
-
-    expect(withAcceptanceItemsSeparated(crlfTicketBody)).toBe('## Acceptance\r\n\nA1. The first claim.\r\n\nA2. The second claim.\r\n');
-  });
-
-  test.each([
-    ['an item line outside the Acceptance section', '## Report\nA1. Not an item here\nA2. Nor this\n'],
-    ['Acceptance prose without numbered items', '## Acceptance\nThe page shows\none block.\n'],
-    ['item lines inside a fenced block in Acceptance', '## Acceptance\n```\nA1. code\nA2. code\n```\n'],
-    ['items already separated by blank lines', '## Acceptance\n\nA1. One.\n\nA2. Two.\n'],
-  ])('leaves %s byte-identical, so it renders exactly as before', (_description, ticketBody) => {
-    expect(withAcceptanceItemsSeparated(ticketBody)).toBe(ticketBody);
-    expect(renderMarkdown(withAcceptanceItemsSeparated(ticketBody))).toBe(renderMarkdown(ticketBody));
   });
 });

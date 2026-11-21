@@ -146,7 +146,6 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
     drafts:         draftListing.drafts,
     logRecords:     storedLog.records,
     generatedAt:    context.now(),
-    renderMarkdown: context.renderState.markdownRenderer.renderMarkdown,
     liveFactsOf:    (job) => ({
       ...JobLiveFactsReader.liveFactsOf(liveFactsSource, job, {
         homeDirectory: context.homeDirectory,

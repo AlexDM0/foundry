@@ -70,8 +70,8 @@ export interface BoardTicketDocument {
   readonly finished:        string | null;
   readonly delivered:       string | null;
   readonly abandonedAt:     string | null;
-  /** The body as marked output: agent-written, so a view shows it only inside a sandboxed frame. */
-  readonly bodyHtml:        string;
+  /** The body's Markdown as stored, its acceptance items separated by blank lines: agent-written, so a reader renders it with raw HTML escaped. */
+  readonly bodyMarkdown:    string;
   readonly sections:        readonly BoardTicketSectionDocument[];
   /** Empty when the body has no `## Acceptance` or it numbers no item. */
   readonly acceptanceItems: readonly BoardAcceptanceItemDocument[];
@@ -182,10 +182,10 @@ export interface BoardEpicRollupDocument {
   readonly span:                BoardEpicSpanDocument | null;
 }
 
-/** An epic's description rendered as a ticket body is, joined to its roll-up by key. */
+/** An epic's description as stored Markdown, joined to its roll-up by key. */
 export interface BoardEpicDescriptionDocument {
-  readonly key:             string;
-  readonly descriptionHtml: string;
+  readonly key:                 string;
+  readonly descriptionMarkdown: string;
 }
 
 /** A ready ticket, in the order to take them. */

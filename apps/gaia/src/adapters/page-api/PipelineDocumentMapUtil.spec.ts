@@ -5,18 +5,23 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { PipelineDocumentMapUtil }                         from './PipelineDocumentMapUtil.ts';
-import { modelLeavesOf, pageLeavesOf, recordedBoardModel } from './testing/BoardModelLeaves.ts';
+import { PipelineDocumentMapUtil } from './PipelineDocumentMapUtil.ts';
+import {
+  markdownLeftAsWritten,
+  modelLeavesOf,
+  pageLeavesOf,
+  recordedBoardModel
+} from './testing/BoardModelLeaves.ts';
 
 describe('pipelineFactsOut', () => {
   test('carries every value of the recorded pipeline facts to its page field', async () => {
     const { pipeline } = await recordedBoardModel();
-    expect(Object.fromEntries(pageLeavesOf(PipelineDocumentMapUtil.pipelineFactsOut(pipeline)))).toEqual(Object.fromEntries(modelLeavesOf(pipeline)));
+    expect(Object.fromEntries(pageLeavesOf(PipelineDocumentMapUtil.pipelineFactsOut(pipeline, markdownLeftAsWritten)))).toEqual(Object.fromEntries(modelLeavesOf(pipeline)));
   });
 
   test('words no refusal itself: each entity refusal\'s text is the forge\'s sentence', async () => {
     const { pipeline } = await recordedBoardModel();
-    const { setup } = PipelineDocumentMapUtil.pipelineFactsOut(pipeline);
+    const { setup } = PipelineDocumentMapUtil.pipelineFactsOut(pipeline, markdownLeftAsWritten);
     expect(setup?.entityRefusals.map(({ text }) => text)).toEqual(pipeline.setup?.entityRefusals.map(({ sentence }) => sentence));
   });
 });

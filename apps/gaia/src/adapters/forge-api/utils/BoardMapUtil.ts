@@ -112,7 +112,7 @@ function ticketOf(ticket: BoardTicketDocument): BoardTicket {
     finished:        ticket.finished,
     delivered:       ticket.delivered,
     abandonedAt:     ticket.abandonedAt,
-    bodyHtml:        ticket.bodyHtml,
+    bodyMarkdown:    ticket.bodyMarkdown,
     sections:        ticket.sections.map((section) => ({ heading: section.heading, markdown: section.markdown })),
     acceptanceItems: ticket.acceptanceItems.map((item) => ({ label: item.label, text: item.text, waived: item.waived })),
     facts:           {
@@ -219,7 +219,7 @@ function pageOf(page: BoardPageDocument): BoardPage {
         at: entry.at, text: entry.text, taskIds: entry.taskIds ?? null, ticketIds: entry.ticketIds ?? null
       })),
     },
-    epicDescriptions: epicDescriptions.map((description) => ({ key: description.key, descriptionHtml: description.descriptionHtml })),
+    epicDescriptions: epicDescriptions.map((description) => ({ key: description.key, descriptionMarkdown: description.descriptionMarkdown })),
     draftRequests:    draftRequests.map((draftRequest) => ({ id: draftRequest.id, request: draftRequest.request })),
     facts:            {
       rows: boardFacts.rows.map((row) => ({

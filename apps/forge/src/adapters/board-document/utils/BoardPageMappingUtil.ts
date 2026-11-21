@@ -73,7 +73,7 @@ function ticketOf(ticket: PageTicket, readings: TicketReadings): BoardTicketDocu
     finished:        ticket.finished,
     delivered:       ticket.delivered,
     abandonedAt:     ticket.abandonedAt,
-    bodyHtml:        ticket.bodyHtml,
+    bodyMarkdown:    ticket.bodyMarkdown,
     sections:        ticket.sections.map((section) => ({ heading: section.heading, markdown: section.markdown })),
     acceptanceItems: ticket.acceptanceItems.map((item) => ({ label: item.label, text: item.text, waived: item.waived })),
     facts:           readings.facts,
@@ -211,7 +211,7 @@ function pageOf(page: { payload: PagePayload; tickets: readonly PageTicket[] }, 
   return {
     payload: {
       progress:         progressOf(payload.progress),
-      epicDescriptions: payload.epicDescriptions.map((description) => ({ key: description.key, descriptionHtml: description.descriptionHtml })),
+      epicDescriptions: payload.epicDescriptions.map((description) => ({ key: description.key, descriptionMarkdown: description.descriptionMarkdown })),
       draftRequests:    (payload.draftRequests ?? []).map((draftRequest) => ({ id: draftRequest.id, request: draftRequest.request })),
       boardFacts:       boardFactsOf(payload.boardFacts),
     },

@@ -228,6 +228,30 @@ function workFilesOf(body: string): string[] {
   return [...new Set(files)];
 }
 
+/**
+ * A ticket body with a blank line before every `A<number>.` line of its `## Acceptance` section that follows a non-blank one, so a Markdown
+ * reader shows each item as its own paragraph instead of joining them into one; every other line, and the stored file, stay as written.
+ */
+function withAcceptanceItemsSeparated(ticketBody: string): string {
+  const lines = ticketBody.split('\n');
+  const separatedLines: string[] = [];
+  let insideAcceptance = false;
+  let openFence: OpenCodeFence | null = null;
+  for (const line of lines) {
+    openFence = openCodeFenceAfter(line, openFence);
+    const insideCodeFence = openFence !== null;
+    if (!insideCodeFence && TICKET_SECTION_PATTERNS.SECTION_BOUNDARY.test(line)) {
+      insideAcceptance = TICKET_SECTION_PATTERNS.ACCEPTANCE_HEADING.test(line.trimEnd());
+    }
+    const previousLine = separatedLines.at(-1);
+    const startsAnItemAfterText = insideAcceptance && !insideCodeFence && TICKET_SECTION_PATTERNS.ACCEPTANCE_ITEM_LINE.test(line)
+      && previousLine !== undefined && previousLine.trim() !== '';
+    if (startsAnItemAfterText) separatedLines.push('');
+    separatedLines.push(line);
+  }
+  return separatedLines.join('\n');
+}
+
 export const TicketAcceptanceUtil = {
   sectionsOf,
   acceptanceItemsOf,
@@ -235,4 +259,5 @@ export const TicketAcceptanceUtil = {
   acceptanceVerdictOf,
   readinessGapsOf,
   workFilesOf,
+  withAcceptanceItemsSeparated,
 } as const;

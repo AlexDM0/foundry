@@ -76,8 +76,8 @@ export interface BoardTicket {
   readonly finished:        string | null;
   readonly delivered:       string | null;
   readonly abandonedAt:     string | null;
-  /** Agent-written markup: shown only inside a sandboxed frame. */
-  readonly bodyHtml:        string;
+  /** The body's Markdown as the forge serves it; agent-written, so the page contract carries it rendered with its raw HTML escaped. */
+  readonly bodyMarkdown:    string;
   readonly sections:        readonly BoardTicketSection[];
   readonly acceptanceItems: readonly BoardAcceptanceItem[];
   readonly facts:           BoardTicketFacts;
@@ -166,8 +166,8 @@ export interface BoardEpic {
 }
 
 export interface BoardEpicDescription {
-  readonly key:             string;
-  readonly descriptionHtml: string;
+  readonly key:                 string;
+  readonly descriptionMarkdown: string;
 }
 
 export interface BoardReadyTicket {

@@ -170,8 +170,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   and `chmodSync` in shipping code to the sites it names, and `process.chdir` to nowhere. The environment is read
   through documented getters; specs set it in a child process (one exception, Deviations). The product's own
   variables are named from `PRODUCT_NAMES.ENVIRONMENT_PREFIX`, never as literals.
-- No work at module load (entry points excepted, Deviations). The render service keeps no module state: the
-  configured Marked lives in the render state the command context carries.
+- No work at module load (entry points excepted, Deviations).
 - Factories of closures over classes, except for state carried across calls, domain and ingestion classes. A
   constructor does no work.
 - A record keyed by outside text is indexed through `Object.hasOwn`.

@@ -303,13 +303,13 @@ export interface BoardApplyState {
 }
 
 export interface BoardSetupEntityFacts {
-  readonly summary:             BoardSetupEntitySummary;
-  readonly openQuestionCount:   number;
-  readonly agentJobState:       BoardJobState | null;
-  readonly constitutionHtml:    string | null;
-  readonly constitutionOutline: BoardConstitutionOutline | null;
-  readonly annotations:         readonly BoardSourceAnnotation[];
-  readonly readByRoles:         readonly BoardEntityAgentRole[];
+  readonly summary:              BoardSetupEntitySummary;
+  readonly openQuestionCount:    number;
+  readonly agentJobState:        BoardJobState | null;
+  readonly constitutionMarkdown: string | null;
+  readonly constitutionOutline:  BoardConstitutionOutline | null;
+  readonly annotations:          readonly BoardSourceAnnotation[];
+  readonly readByRoles:          readonly BoardEntityAgentRole[];
 }
 
 /** What a view shows of one entity of the draft: its pipeline as it would run, and every entity that consumes it. */
@@ -363,22 +363,22 @@ export interface BoardEntityRefusal {
 }
 
 export interface BoardPipelineSetup {
-  readonly record:              BoardSetupRecord;
-  readonly summary:             BoardSetupSummary;
-  readonly openQuestionCount:   number;
-  readonly agentJobState:       BoardJobState | null;
-  readonly mainMovedByCommits:  number;
-  readonly constitutionHtml:    string | null;
-  readonly constitutionOutline: BoardConstitutionOutline | null;
-  readonly annotations:         readonly BoardSourceAnnotation[];
-  readonly readByRoles:         readonly BoardPipelineAgentRole[];
-  readonly applyState:          BoardApplyState | null;
+  readonly record:               BoardSetupRecord;
+  readonly summary:              BoardSetupSummary;
+  readonly openQuestionCount:    number;
+  readonly agentJobState:        BoardJobState | null;
+  readonly mainMovedByCommits:   number;
+  readonly constitutionMarkdown: string | null;
+  readonly constitutionOutline:  BoardConstitutionOutline | null;
+  readonly annotations:          readonly BoardSourceAnnotation[];
+  readonly readByRoles:          readonly BoardPipelineAgentRole[];
+  readonly applyState:           BoardApplyState | null;
   /** `null` on a forge over no entities. */
-  readonly entities:            Readonly<Record<string, BoardSetupEntityFacts>> | null;
-  readonly draftEntities:       Readonly<Record<string, BoardDraftEntityFacts>>;
+  readonly entities:             Readonly<Record<string, BoardSetupEntityFacts>> | null;
+  readonly draftEntities:        Readonly<Record<string, BoardDraftEntityFacts>>;
   /** The refusal an Apply of the current draft meets now, as the forge serves it; `null` when it would proceed. */
-  readonly applyRefusal:        BoardRefusal | null;
-  readonly entityRefusals:      readonly BoardEntityRefusal[];
+  readonly applyRefusal:         BoardRefusal | null;
+  readonly entityRefusals:       readonly BoardEntityRefusal[];
 }
 
 export interface BoardResolvedInstruction {

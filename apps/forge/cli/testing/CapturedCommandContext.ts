@@ -7,7 +7,6 @@ import { join }   from 'node:path';
 
 import type { AgentAdapter }                            from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { PlatformPorts }                           from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { createRenderState }                            from '../../src/services/render/RenderState.ts';
 import { fakeAgentAdapter }                             from '../../src/testing/FakeAgentAdapter.ts';
 import { nativePlatformPorts }                          from '../../src/testing/NativePlatformPorts.ts';
 import { requireTrackerIsolation, SHARED_SCRATCH_ROOT } from '../../src/testing/TrackerIsolation.ts';
@@ -96,7 +95,6 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
     executableSearchPath: options.executableSearchPath ?? [],
     temporaryDirectories: options.temporaryDirectories ?? [SHARED_SCRATCH_ROOT, tmpdir()],
     commandVerb:          '',
-    renderState:          createRenderState(),
     // No program to start again and no signal to take: an Overseer is started in a spec only as a child through `cli/testing/CliProcess.ts`.
     programCommand:       [],
     programPath:          '/example/bin/forge',

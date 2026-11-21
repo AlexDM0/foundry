@@ -1,20 +1,22 @@
 /**
  * The page ticket's text parts: a view quotes a ticket's Wanted and Brief and its Acceptance items, and shows them escaped, so what
- * matters is that each section and item arrives as its source text and never passes through the Markdown renderer (a ticket's `bodyHtml`
- * stays its only HTML), that a waived item is marked, and that a ticket without an Acceptance has no items rather than a missing key.
+ * matters is that each section and item arrives as its source text, that a waived item is marked, and that a ticket without an
+ * Acceptance has no items rather than a missing key. Forge renders no HTML: a ticket's `bodyMarkdown` is its stored body with the Acceptance
+ * items separated, an epic's `descriptionMarkdown` its stored description byte for byte, and no key of the document ends in `Html`.
  * The section and item reading itself is pinned in `src/adapters/tickets/utils/TicketAcceptanceUtil.spec.ts`.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { Ticket }                 from '../../lib/tracker-model/@types/Ticket.ts';
-import { boardFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
-import { boardFactsOf }                from './BoardFacts.ts';
-import { assemblePagePayload }         from './PagePayloadAssembly.ts';
-import type { AssembledPagePayload }   from './PagePayloadAssembly.ts';
+import type { Epic }                                from '../../lib/tracker-model/@types/Epic.ts';
+import type { Ticket }                              from '../../lib/tracker-model/@types/Ticket.ts';
+import { boardFixture, epicFixture, ticketFixture } from '../../testing/BoardFixtures.ts';
+import { boardFactsOf }                             from './BoardFacts.ts';
+import { assemblePagePayload }                      from './PagePayloadAssembly.ts';
+import type { AssembledPagePayload }                from './PagePayloadAssembly.ts';
 
 const GENERATED_AT = new Date('2026-09-18T19:10:00Z');
 
-const RENDERED_MARKER = 'rendered:';
+const EPIC_DESCRIPTION = '# Example checkout\r\n\r\nPays an <b>example</b> order, see [the plan](javascript:alert(1)).\n\n  \n';
 
 const EXPORT_BODY = [
   '# 4 — Example export',
@@ -38,18 +40,17 @@ function ticketWithBody(id: string, body: string): Ticket {
   return { ...ticketFixture({ id }), body };
 }
 
-function assembledFor(tickets: Ticket[]): AssembledPagePayload {
+function assembledFor(tickets: Ticket[], epics: Epic[] = []): AssembledPagePayload {
   const { board, progress } = boardFixture({ tickets });
   return assemblePagePayload({
     progress,
     logRecords:        [],
     tickets,
-    epics:             [],
+    epics,
     pageScriptFailure: null,
     generatedAt:       GENERATED_AT,
     concurrency:       { limit: 2, agentsInFlight: 0 },
     boardFacts:        boardFactsOf(board),
-    renderMarkdown:    (markdown) => `${RENDERED_MARKER}${markdown}`,
   });
 }
 
@@ -68,12 +69,29 @@ describe('assemblePagePayload page tickets', () => {
     ]);
   });
 
-  test('the excerpts never pass through the renderer, and the body is still rendered whole as the one HTML', () => {
+  test('a ticket carries its stored body as Markdown with the Acceptance items separated, raw HTML and all', () => {
     const [ticket] = assembledFor([ticketWithBody('004', EXPORT_BODY)]).tickets;
 
-    expect(ticket?.bodyHtml.startsWith(RENDERED_MARKER)).toBe(true);
-    for (const { markdown } of ticket?.sections ?? []) expect(markdown).not.toContain(RENDERED_MARKER);
-    for (const { text } of ticket?.acceptanceItems ?? []) expect(text).not.toContain(RENDERED_MARKER);
+    expect(ticket?.bodyMarkdown).toBe(EXPORT_BODY.replace('    on every page.\nA2.', '    on every page.\n\nA2.'));
+    expect(ticket?.bodyMarkdown).toContain('The export names <b>Alex Example</b>.');
+  });
+
+  test('an epic carries its stored description byte for byte', () => {
+    const { payload } = assembledFor([], [{ ...epicFixture({ key: 'example-checkout' }), body: EPIC_DESCRIPTION }]);
+
+    expect(payload.epicDescriptions).toEqual([{ key: 'example-checkout', descriptionMarkdown: EPIC_DESCRIPTION }]);
+  });
+
+  test('no key of the document ends in Html', () => {
+    const assembled = assembledFor([ticketWithBody('004', EXPORT_BODY)], [{ ...epicFixture({ key: 'example-checkout' }), body: EPIC_DESCRIPTION }]);
+    const keysOf = (value: unknown): string[] => {
+      if (Array.isArray(value)) return value.flatMap(keysOf);
+      if (typeof value !== 'object' || value === null) return [];
+      return Object.entries(value).flatMap(([key, held]) => [key, ...keysOf(held)]);
+    };
+
+    expect(keysOf(assembled).filter((key) => key.endsWith('Html'))).toEqual([]);
+    expect(keysOf(assembled)).toContain('bodyMarkdown');
   });
 
   test('a ticket without `## Acceptance`, or with an empty body, has no items and keeps both keys', () => {

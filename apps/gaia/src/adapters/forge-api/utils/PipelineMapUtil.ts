@@ -389,16 +389,16 @@ function entityRefusalOf(refusal: BoardEntityRefusalDocument): BoardEntityRefusa
 function pipelineSetupOf(setup: BoardPipelineSetupDocument | null): BoardPipelineSetup | null {
   if (setup === null) return null;
   return {
-    record:              setupRecordOf(setup.record),
-    summary:             { ...setupEntitySummaryOf(setup.summary), userEditsKeptCount: setup.summary.userEditsKeptCount },
-    openQuestionCount:   setup.openQuestionCount,
-    agentJobState:       VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.jobState, setup.agentJobState),
-    mainMovedByCommits:  setup.mainMovedByCommits,
-    constitutionHtml:    setup.constitutionHtml,
-    constitutionOutline: setup.constitutionOutline === null ? null : { sectionCount: setup.constitutionOutline.sectionCount, ruleCount: setup.constitutionOutline.ruleCount },
-    annotations:         setup.annotations.map(sourceAnnotationOf),
-    readByRoles:         VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.pipelineAgentRole, setup.readByRoles),
-    applyState:          setup.applyState === null ? null : {
+    record:               setupRecordOf(setup.record),
+    summary:              { ...setupEntitySummaryOf(setup.summary), userEditsKeptCount: setup.summary.userEditsKeptCount },
+    openQuestionCount:    setup.openQuestionCount,
+    agentJobState:        VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.jobState, setup.agentJobState),
+    mainMovedByCommits:   setup.mainMovedByCommits,
+    constitutionMarkdown: setup.constitutionMarkdown,
+    constitutionOutline:  setup.constitutionOutline === null ? null : { sectionCount: setup.constitutionOutline.sectionCount, ruleCount: setup.constitutionOutline.ruleCount },
+    annotations:          setup.annotations.map(sourceAnnotationOf),
+    readByRoles:          VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.pipelineAgentRole, setup.readByRoles),
+    applyState:           setup.applyState === null ? null : {
       draftRevision:       setup.applyState.draftRevision,
       resumesBoard:        setup.applyState.resumesBoard,
       state:               VocabularyMapUtil.gaiaValueOf(VOCABULARIES.applyRequestState, setup.applyState.state),
@@ -407,13 +407,13 @@ function pipelineSetupOf(setup: BoardPipelineSetupDocument | null): BoardPipelin
       ticketIdHoldingMain: setup.applyState.ticketIdHoldingMain,
     },
     entities: entityRecordOf(setup.entities, (facts) => ({
-      summary:             setupEntitySummaryOf(facts.summary),
-      openQuestionCount:   facts.openQuestionCount,
-      agentJobState:       VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.jobState, facts.agentJobState),
-      constitutionHtml:    facts.constitutionHtml,
-      constitutionOutline: facts.constitutionOutline === null ? null : { sectionCount: facts.constitutionOutline.sectionCount, ruleCount: facts.constitutionOutline.ruleCount },
-      annotations:         facts.annotations.map(sourceAnnotationOf),
-      readByRoles:         VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.entityAgentRole, facts.readByRoles),
+      summary:              setupEntitySummaryOf(facts.summary),
+      openQuestionCount:    facts.openQuestionCount,
+      agentJobState:        VocabularyMapUtil.nullableGaiaValueOf(VOCABULARIES.jobState, facts.agentJobState),
+      constitutionMarkdown: facts.constitutionMarkdown,
+      constitutionOutline:  facts.constitutionOutline === null ? null : { sectionCount: facts.constitutionOutline.sectionCount, ruleCount: facts.constitutionOutline.ruleCount },
+      annotations:          facts.annotations.map(sourceAnnotationOf),
+      readByRoles:          VocabularyMapUtil.gaiaValuesOf(VOCABULARIES.entityAgentRole, facts.readByRoles),
     })),
     draftEntities: entityRecordOf(setup.draftEntities, (facts) => ({
       effectivePipeline:   pipelineDefinitionOf(facts.effectivePipeline),

@@ -602,8 +602,8 @@ describe('the scan itself', () => {
 
 describe('the guard still names each violation, planted in memory', () => {
   test('a layer importing upward, and not one importing below itself', () => {
-    expect(plantedSentencesOf({ 'src/adapters/log/PlantedWording.ts': importing('../../services/render/RenderState.ts') })).toEqual([
-      'layer-imports-upward — src/adapters/log/PlantedWording.ts:1 imports src/services/render/RenderState.ts: '
+    expect(plantedSentencesOf({ 'src/adapters/log/PlantedWording.ts': importing('../../services/render/BoardFacts.ts') })).toEqual([
+      'layer-imports-upward — src/adapters/log/PlantedWording.ts:1 imports src/services/render/BoardFacts.ts: '
         + 'adapters reaches only lib, shared, adapters, workspace-package, not render-service',
     ]);
     expect(plantedSentencesOf({ 'src/services/render/PlantedStep.ts': importing('../tracker/TrackerLock.ts') })).toEqual([
@@ -613,7 +613,7 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'src/shared/PlantedValue.ts': importing('../../cli/Main.ts') })).toEqual([
       'layer-imports-upward — src/shared/PlantedValue.ts:1 imports cli/Main.ts: shared reaches only lib, shared, workspace-package, not cli',
     ]);
-    expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../render/RenderState.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../render/BoardFacts.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../overseer/PlantedPass.ts') })).toEqual([
       'layer-imports-upward — src/services/tracker/PlantedStep.ts:1 imports src/services/overseer/PlantedPass.ts: '
         + 'tracker-service reaches only lib, shared, adapters, render-service, tracker-service, workspace-package, not overseer-service',

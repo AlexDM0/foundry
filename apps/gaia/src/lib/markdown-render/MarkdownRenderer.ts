@@ -1,13 +1,12 @@
 /**
- * Renders a ticket body to HTML at generation time, so the page carries no markdown parser. Two of marked's defaults are unacceptable for a
- * document opened over `file://`: raw HTML in the source is escaped rather than passed through, and only an allowlisted scheme survives.
+ * Renders Markdown that someone else wrote to HTML on the server, so the page carries no Markdown parser. Two of marked's defaults are
+ * unacceptable for text an agent wrote: raw HTML in the source is escaped rather than passed through, and a link or image survives only
+ * with an allowlisted scheme, judged after the entity decoding a browser would do. It knows nothing of what the Markdown describes.
  */
+import { Marked }                      from 'marked';
+import type { RendererObject, Tokens } from 'marked';
 
-import { Marked }                                 from 'marked';
-import type { RendererObject, Tokens }            from 'marked';
-import { HtmlEscapeUtil }                         from '../../lib/html-escape/HtmlEscapeUtil.ts';
-import { openCodeFenceAfter, type OpenCodeFence } from '../../shared/OpenCodeFence.ts';
-import { TICKET_SECTION_PATTERNS }                from '../../shared/constants/TicketSectionPatterns.ts';
+import { HtmlEscapeUtil } from './HtmlEscapeUtil.ts';
 
 const ALLOWED_HREF_SCHEMES = ['http:', 'https:', 'mailto:'] as const;
 
@@ -78,7 +77,7 @@ function hrefIsAllowed(href: string): boolean {
   return ALLOWED_HREF_SCHEMES.some((scheme) => schemeRegion.startsWith(scheme));
 }
 
-const PAGE_RENDERER: RendererObject = {
+const SAFE_RENDERER: RendererObject = {
   html({ text }: Tokens.HTML | Tokens.Tag): string {
     return HtmlEscapeUtil.escapeHtml(text);
   },
@@ -96,40 +95,18 @@ const PAGE_RENDERER: RendererObject = {
   },
 };
 
-/**
- * A ticket body with a blank line before every `A<number>.` line of its `## Acceptance` section that follows a non-blank one, so marked
- * renders each item as its own paragraph instead of joining them into one; every other line, and the stored file, stay as written.
- */
-export function withAcceptanceItemsSeparated(ticketBody: string): string {
-  const lines = ticketBody.split('\n');
-  const separatedLines: string[] = [];
-  let insideAcceptance = false;
-  let openFence: OpenCodeFence | null = null;
-  for (const line of lines) {
-    openFence = openCodeFenceAfter(line, openFence);
-    const insideCodeFence = openFence !== null;
-    if (!insideCodeFence && TICKET_SECTION_PATTERNS.SECTION_BOUNDARY.test(line)) {
-      insideAcceptance = TICKET_SECTION_PATTERNS.ACCEPTANCE_HEADING.test(line.trimEnd());
-    }
-    const previousLine = separatedLines.at(-1);
-    const startsAnItemAfterText = insideAcceptance && !insideCodeFence && TICKET_SECTION_PATTERNS.ACCEPTANCE_ITEM_LINE.test(line)
-      && previousLine !== undefined && previousLine.trim() !== '';
-    if (startsAnItemAfterText) separatedLines.push('');
-    separatedLines.push(line);
-  }
-  return separatedLines.join('\n');
-}
-
 export interface MarkdownRenderer {
   renderMarkdown(markdown: string): string;
 }
+
+export type MarkdownRendering = MarkdownRenderer['renderMarkdown'];
 
 /** The configured Marked is built on the first render and reused by every later one. */
 export function createMarkdownRenderer(): MarkdownRenderer {
   let configuredMarked: Marked | null = null;
   return {
     renderMarkdown(markdown: string): string {
-      configuredMarked ??= new Marked({ gfm: true, renderer: PAGE_RENDERER });
+      configuredMarked ??= new Marked({ gfm: true, renderer: SAFE_RENDERER });
       return configuredMarked.parse(markdown, { async: false });
     },
   };

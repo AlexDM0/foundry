@@ -102,7 +102,6 @@ export interface PipelineFactsInput {
   /** The branch the main checkout lands on; null leaves no ticket holding main. */
   mainLine:             string | null;
   mainLineTexts:        MainLineTexts;
-  renderMarkdown:       (markdown: string) => string;
   /** The repository path an instruction entry reads, as the launch resolves it. */
   instructionPathOf:    (pipeline: Readonly<Pipeline> | null, entry: Readonly<InstructionEntry>) => string;
   /** The model and effort a role runs on where the pipeline names none. */
@@ -238,13 +237,13 @@ function summaryOf(part: SummarisedPart, pipeline: Readonly<Pipeline> | null): P
   };
 }
 
-type ConstitutionFacts = Pick<PipelineSetupFacts, 'constitutionHtml' | 'constitutionOutline' | 'annotations'>;
+type ConstitutionFacts = Pick<PipelineSetupFacts, 'constitutionMarkdown' | 'constitutionOutline' | 'annotations'>;
 
-function constitutionFactsOf(input: PipelineFactsInput, constitution: Readonly<ConstitutionDraft> | null): ConstitutionFacts {
+function constitutionFactsOf(constitution: Readonly<ConstitutionDraft> | null): ConstitutionFacts {
   return {
-    constitutionHtml:    constitution === null ? null : input.renderMarkdown(constitution.markdown),
-    constitutionOutline: constitution === null ? null : constitutionOutlineOf(constitution.markdown),
-    annotations:         constitution === null ? [] : resolvedAnnotationsOf(constitution.markdown, constitution.annotations),
+    constitutionMarkdown: constitution === null ? null : constitution.markdown,
+    constitutionOutline:  constitution === null ? null : constitutionOutlineOf(constitution.markdown),
+    annotations:          constitution === null ? [] : resolvedAnnotationsOf(constitution.markdown, constitution.annotations),
   };
 }
 
@@ -273,7 +272,7 @@ function setupEntityFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineS
       summary:           summaryOf(part, entityPipeline),
       openQuestionCount: part.questions.filter((question) => question.answer === null).length,
       agentJobState:     agentJobStateOf(input, part.agentJobId),
-      ...constitutionFactsOf(input, part.constitution),
+      ...constitutionFactsOf(part.constitution),
       readByRoles:       rolesReadingOf(entityPipeline, { kind: 'constitution' }).filter(roleIsAnEntityRole),
     };
     return [entityKey, facts] as const;
@@ -315,7 +314,7 @@ function setupFactsOf(input: PipelineFactsInput, setup: Readonly<PipelineSetup>)
     openQuestionCount:  setup.questions.filter((question) => question.answer === null).length,
     agentJobState:      agentJobStateOf(input, setup.agentJobId),
     mainMovedByCommits: input.mainLineTexts.mainMovedByCommitsOf(setup.snapshotCommit),
-    ...constitutionFactsOf(input, constitution),
+    ...constitutionFactsOf(constitution),
     readByRoles:        rolesReadingOf(readPipeline, { kind: 'constitution' }),
     applyState:         applyStateOf(input, setup),
     applyRefusal:       applyRefusalOf(input, setup),

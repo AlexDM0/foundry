@@ -14,7 +14,6 @@ import type { PagePayload, PageTicket }           from '../../shared/@types/Page
 import { LIMITS }                                 from '../../shared/constants/Limits.ts';
 import { TIME_UNITS }                             from '../../shared/constants/TimeUnits.ts';
 import { TIMESTAMP_SLICES }                       from '../../shared/constants/TimestampSlices.ts';
-import { withAcceptanceItemsSeparated }           from './MarkdownRenderer.ts';
 
 export interface PagePayloadInput {
   progress:          TrackerProgress;
@@ -27,7 +26,6 @@ export interface PagePayloadInput {
   boardFacts:        PagePayload['boardFacts'];
   /** Absent reads as no open draft. */
   draftRequests?:    PageDraftRequest[];
-  renderMarkdown:    (markdown: string) => string;
 }
 
 export interface AssembledPagePayload {
@@ -55,10 +53,10 @@ function pageLimits(): PagePayload['limits'] {
   };
 }
 
-function pageTicketsFor(tickets: readonly Ticket[], renderMarkdown: (markdown: string) => string): PageTicket[] {
+function pageTicketsFor(tickets: readonly Ticket[]): PageTicket[] {
   return tickets.map((ticket) => ({
     ...ticket.frontmatter,
-    bodyHtml:        renderMarkdown(withAcceptanceItemsSeparated(ticket.body)),
+    bodyMarkdown:    TicketAcceptanceUtil.withAcceptanceItemsSeparated(ticket.body),
     sections:        TicketAcceptanceUtil.sectionsOf(ticket.body),
     acceptanceItems: TicketAcceptanceUtil.acceptanceItemsOf(ticket.body)
       .map(({ label, text, waivedReason }) => ({ label, text, waived: waivedReason !== null })),
@@ -76,7 +74,6 @@ export function assemblePagePayload(input: PagePayloadInput): AssembledPagePaylo
     concurrency,
     boardFacts,
     draftRequests = [],
-    renderMarkdown,
   } = input;
   const payload: PagePayload = {
     progress:                     ProgressFileMappingUtil.wordedDocumentOf(progress, logRecords.map(LogUtil.identifiedEntryOf)),
@@ -84,10 +81,10 @@ export function assemblePagePayload(input: PagePayloadInput): AssembledPagePaylo
     limits:                       pageLimits(),
     concurrency:                  { limit: concurrency.limit, agentsInFlight: concurrency.agentsInFlight },
     pageScriptFailure,
-    epicDescriptions:             epics.map((epic) => ({ key: epic.frontmatter.key, descriptionHtml: renderMarkdown(epic.body) })),
+    epicDescriptions:             epics.map((epic) => ({ key: epic.frontmatter.key, descriptionMarkdown: epic.body })),
     ...draftRequests.length === 0 ? {} : { draftRequests },
     // Last, so every byte of the island before it stays where it was.
     boardFacts,
   };
-  return { payload, tickets: pageTicketsFor(tickets, renderMarkdown) };
+  return { payload, tickets: pageTicketsFor(tickets) };
 }

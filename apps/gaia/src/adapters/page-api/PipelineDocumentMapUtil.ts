@@ -43,6 +43,7 @@ import type {
 } from '../../../page/@types/board/BoardPipelineDocuments.ts';
 import type { BoardForgeRefusalDocument }                                from '../../../page/@types/board/BoardRelayDocuments.ts';
 import type { BoardQuestionAnswerDocument, BoardQuestionOptionDocument } from '../../../page/@types/board/BoardTicketDocuments.ts';
+import type { MarkdownRendering }                                        from '../../lib/markdown-render/MarkdownRenderer.ts';
 import type {
   BoardAgentPair,
   BoardAgentStepSettings,
@@ -381,12 +382,12 @@ function applyStateOut(applyState: BoardApplyState | null): BoardApplyStateDocum
   };
 }
 
-function setupEntityFactsOut(facts: BoardSetupEntityFacts): BoardSetupEntityFactsDocument {
+function setupEntityFactsOut(facts: BoardSetupEntityFacts, renderMarkdown: MarkdownRendering): BoardSetupEntityFactsDocument {
   return {
     summary:             setupEntitySummaryOut(facts.summary),
     openQuestionCount:   facts.openQuestionCount,
     agentJobState:       facts.agentJobState,
-    constitutionHtml:    facts.constitutionHtml,
+    constitutionHtml:    facts.constitutionMarkdown === null ? null : renderMarkdown(facts.constitutionMarkdown),
     constitutionOutline: constitutionOutlineOut(facts.constitutionOutline),
     annotations:         facts.annotations.map(sourceAnnotationOut),
     readByRoles:         facts.readByRoles,
@@ -460,7 +461,7 @@ function entityRefusalOut(refusal: BoardEntityRefusal): BoardEntityRefusalDocume
   };
 }
 
-function pipelineSetupOut(setup: BoardPipelineSetup | null): BoardPipelineSetupDocument | null {
+function pipelineSetupOut(setup: BoardPipelineSetup | null, renderMarkdown: MarkdownRendering): BoardPipelineSetupDocument | null {
   if (setup === null) return null;
   return {
     record:              setupRecordOut(setup.record),
@@ -468,12 +469,12 @@ function pipelineSetupOut(setup: BoardPipelineSetup | null): BoardPipelineSetupD
     openQuestionCount:   setup.openQuestionCount,
     agentJobState:       setup.agentJobState,
     mainMovedByCommits:  setup.mainMovedByCommits,
-    constitutionHtml:    setup.constitutionHtml,
+    constitutionHtml:    setup.constitutionMarkdown === null ? null : renderMarkdown(setup.constitutionMarkdown),
     constitutionOutline: constitutionOutlineOut(setup.constitutionOutline),
     annotations:         setup.annotations.map(sourceAnnotationOut),
     readByRoles:         setup.readByRoles,
     applyState:          applyStateOut(setup.applyState),
-    entities:            nullableRecordOutOf(setup.entities, setupEntityFactsOut),
+    entities:            nullableRecordOutOf(setup.entities, (facts) => setupEntityFactsOut(facts, renderMarkdown)),
     draftEntities:       recordOutOf(setup.draftEntities, draftEntityFactsOut),
     applyRefusal:        setup.applyRefusal === null ? null : refusalOut(setup.applyRefusal),
     entityRefusals:      setup.entityRefusals.map(entityRefusalOut),
@@ -608,10 +609,10 @@ function entityAssignmentOut(assignment: BoardEntityAssignment | null): BoardEnt
   };
 }
 
-function pipelineFactsOut(pipeline: BoardPipelineFacts): BoardPipelineFactsDocument {
+function pipelineFactsOut(pipeline: BoardPipelineFacts, renderMarkdown: MarkdownRendering): BoardPipelineFactsDocument {
   return {
     applied:     appliedPipelineOut(pipeline.applied),
-    setup:       pipelineSetupOut(pipeline.setup),
+    setup:       pipelineSetupOut(pipeline.setup, renderMarkdown),
     flow:        pipelineFlowOut(pipeline.flow),
     profileRuns: pipeline.profileRuns.map((run) => ({
       profileRunId:        run.profileRunId,

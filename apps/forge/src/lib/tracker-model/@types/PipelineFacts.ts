@@ -109,15 +109,15 @@ export type PipelineSetupEntitySummary = Omit<PipelineSetupSummary, 'userEditsKe
 
 /** One entity's part of the setup facts, from its part of the record and its pipeline in the draft, else in the stored pipeline. */
 export interface PipelineSetupEntityFacts {
-  summary:             PipelineSetupEntitySummary;
-  openQuestionCount:   number;
+  summary:              PipelineSetupEntitySummary;
+  openQuestionCount:    number;
   /** The state of the entity's pipeline-agent job; null when none is on the board. */
-  agentJobState:       JobState | null;
-  constitutionHtml:    string | null;
-  constitutionOutline: ConstitutionOutline | null;
-  annotations:         ResolvedSourceAnnotation[];
+  agentJobState:        JobState | null;
+  constitutionMarkdown: string | null;
+  constitutionOutline:  ConstitutionOutline | null;
+  annotations:          ResolvedSourceAnnotation[];
   /** The entity's roles whose instruction lists hold its constitution. */
-  readByRoles:         EntityAgentRole[];
+  readByRoles:          EntityAgentRole[];
 }
 
 /** The refusal an Apply of the current draft meets now: the Board's, or main's constitution that git could not read, which an Apply refuses too. */
@@ -126,24 +126,24 @@ export type ApplyRefusalFacts =
   | { kind: 'main-constitution-unreadable'; reason: string };
 
 export interface PipelineSetupFacts {
-  record:              PipelineSetup;
-  summary:             PipelineSetupSummary;
-  openQuestionCount:   number;
+  record:               PipelineSetup;
+  summary:              PipelineSetupSummary;
+  openQuestionCount:    number;
   /** Null when no agent job is on the board: it ended, or none started. */
-  agentJobState:       JobState | null;
+  agentJobState:        JobState | null;
   /** Main's commits since the snapshot; computed on each read, never stored. */
-  mainMovedByCommits:  number;
-  /** Rendered by the server from the constitution's markdown; null with no constitution. */
-  constitutionHtml:    string | null;
-  constitutionOutline: ConstitutionOutline | null;
-  annotations:         ResolvedSourceAnnotation[];
+  mainMovedByCommits:   number;
+  /** The constitution's Markdown as stored; null with no constitution. */
+  constitutionMarkdown: string | null;
+  constitutionOutline:  ConstitutionOutline | null;
+  annotations:          ResolvedSourceAnnotation[];
   /** The roles whose instruction lists hold the constitution. */
-  readByRoles:         PipelineAgentRole[];
-  applyState:          ApplyStateFacts | null;
+  readByRoles:          PipelineAgentRole[];
+  applyState:           ApplyStateFacts | null;
   /** Read against main's texts as this state read them; `null` when an Apply would proceed. */
-  applyRefusal:        ApplyRefusalFacts | null;
+  applyRefusal:         ApplyRefusalFacts | null;
   /** Absent on a forge without entities: each entity of the draft, else of the stored pipeline, then of the record, by its key. */
-  entities?:           Record<EntityKey, PipelineSetupEntityFacts>;
+  entities?:            Record<EntityKey, PipelineSetupEntityFacts>;
 }
 
 export type PipelineNodeKind =

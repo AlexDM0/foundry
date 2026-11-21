@@ -49,7 +49,7 @@ function pageTicketWith(changes: Partial<PageTicket>): PageTicket {
     abandonedAt:     null,
     task:            null,
     extra:           [],
-    bodyHtml:        '',
+    bodyMarkdown:    '',
     sections:        [],
     acceptanceItems: [],
     ...changes,

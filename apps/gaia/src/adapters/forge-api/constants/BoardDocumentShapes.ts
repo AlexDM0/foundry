@@ -267,7 +267,7 @@ const TICKET_SHAPE = {
   finished:        TEXT_OR_NULL,
   delivered:       TEXT_OR_NULL,
   abandonedAt:     TEXT_OR_NULL,
-  bodyHtml:        'text',
+  bodyMarkdown:    'text',
   sections:        { listOf: TICKET_SECTION_SHAPE },
   acceptanceItems: { listOf: ACCEPTANCE_ITEM_SHAPE },
   facts:           { object: TICKET_FACTS_SHAPE },
@@ -389,7 +389,7 @@ const PAGE_FACTS_SHAPE = {
   drafts:       { listOf: FILING_DRAFT_SHAPE },
 } as const satisfies ShapeOf<BoardPageFactsDocument>;
 
-const EPIC_DESCRIPTION_SHAPE = { key: 'text', descriptionHtml: 'text' } as const satisfies ShapeOf<BoardEpicDescriptionDocument>;
+const EPIC_DESCRIPTION_SHAPE = { key: 'text', descriptionMarkdown: 'text' } as const satisfies ShapeOf<BoardEpicDescriptionDocument>;
 
 const DRAFT_REQUEST_SHAPE = { id: 'text', request: 'text' } as const satisfies ShapeOf<BoardDraftRequestDocument>;
 
@@ -856,13 +856,13 @@ const APPLY_STATE_SHAPE = {
 } as const satisfies ShapeOf<ApplyStateDocument>;
 
 const SETUP_ENTITY_FACTS_SHAPE = {
-  summary:             { object: SETUP_ENTITY_SUMMARY_SHAPE },
-  openQuestionCount:   'whole-number',
-  agentJobState:       { nullable: vocabularyRule('jobState') },
-  constitutionHtml:    TEXT_OR_NULL,
-  constitutionOutline: { nullable: { object: CONSTITUTION_OUTLINE_SHAPE } },
-  annotations:         { listOf: RESOLVED_SOURCE_ANNOTATION_SHAPE },
-  readByRoles:         vocabularyListRule('entityAgentRole'),
+  summary:              { object: SETUP_ENTITY_SUMMARY_SHAPE },
+  openQuestionCount:    'whole-number',
+  agentJobState:        { nullable: vocabularyRule('jobState') },
+  constitutionMarkdown: TEXT_OR_NULL,
+  constitutionOutline:  { nullable: { object: CONSTITUTION_OUTLINE_SHAPE } },
+  annotations:          { listOf: RESOLVED_SOURCE_ANNOTATION_SHAPE },
+  readByRoles:          vocabularyListRule('entityAgentRole'),
 } as const satisfies ShapeOf<PipelineSetupEntityFactsDocument>;
 
 const DRAFT_ENTITY_FACTS_SHAPE = {
@@ -934,20 +934,20 @@ const ENTITY_REFUSAL_SHAPE = {
 } as const satisfies ShapeOf<BoardEntityRefusalDocument>;
 
 const PIPELINE_SETUP_SHAPE = {
-  record:              { object: SETUP_RECORD_SHAPE },
-  summary:             { object: SETUP_SUMMARY_SHAPE },
-  openQuestionCount:   'whole-number',
-  agentJobState:       { nullable: vocabularyRule('jobState') },
-  mainMovedByCommits:  'whole-number',
-  constitutionHtml:    TEXT_OR_NULL,
-  constitutionOutline: { nullable: { object: CONSTITUTION_OUTLINE_SHAPE } },
-  annotations:         { listOf: RESOLVED_SOURCE_ANNOTATION_SHAPE },
-  readByRoles:         vocabularyListRule('pipelineAgentRole'),
-  applyState:          { nullable: { object: APPLY_STATE_SHAPE } },
-  entities:            { optional: { recordOf: { object: SETUP_ENTITY_FACTS_SHAPE } } },
-  draftEntities:       { recordOf: { object: DRAFT_ENTITY_FACTS_SHAPE } },
-  applyRefusal:        { nullable: { object: REFUSAL_DOCUMENT_SHAPE } },
-  entityRefusals:      { listOf: ENTITY_REFUSAL_SHAPE },
+  record:               { object: SETUP_RECORD_SHAPE },
+  summary:              { object: SETUP_SUMMARY_SHAPE },
+  openQuestionCount:    'whole-number',
+  agentJobState:        { nullable: vocabularyRule('jobState') },
+  mainMovedByCommits:   'whole-number',
+  constitutionMarkdown: TEXT_OR_NULL,
+  constitutionOutline:  { nullable: { object: CONSTITUTION_OUTLINE_SHAPE } },
+  annotations:          { listOf: RESOLVED_SOURCE_ANNOTATION_SHAPE },
+  readByRoles:          vocabularyListRule('pipelineAgentRole'),
+  applyState:           { nullable: { object: APPLY_STATE_SHAPE } },
+  entities:             { optional: { recordOf: { object: SETUP_ENTITY_FACTS_SHAPE } } },
+  draftEntities:        { recordOf: { object: DRAFT_ENTITY_FACTS_SHAPE } },
+  applyRefusal:         { nullable: { object: REFUSAL_DOCUMENT_SHAPE } },
+  entityRefusals:       { listOf: ENTITY_REFUSAL_SHAPE },
 } as const satisfies ShapeOf<BoardPipelineSetupDocument>;
 
 const RESOLVED_INSTRUCTION_SHAPE = {

@@ -213,7 +213,6 @@ export function boardDocumentSourceFixture(): BoardDocumentSource {
     drafts:         [DRAFT],
     logRecords:     LOG_RECORDS,
     generatedAt:    new Date(AT),
-    renderMarkdown: (markdown) => `<p>${markdown}</p>`,
     liveFactsOf:    () => LIVE_FACTS,
     notices:        [{ kind: 'attribution-found', ticketId: '002' }, 'not a notice'],
     overseer:       {

@@ -109,7 +109,7 @@ export function installAndLink(run: InstallRun): void {
     if (host.run([host.bunProgram, 'install'], checkout).exitCode === 0) {
       report.done(`dependencies installed (bun install in ${checkout})`);
     } else {
-      report.failure(`bun install failed — run it yourself in ${checkout}; ${PRODUCT_NAMES.PROGRAM} cannot render its page without marked`);
+      report.failure(`bun install failed — run it yourself in ${checkout}; ${PRODUCT_NAMES.PROGRAM} cannot run without its dependencies`);
     }
     if (host.run([host.bunProgram, 'link'], checkout).exitCode !== 0) {
       report.notice(`bun link failed — you can still run: bun "${join(checkout, 'agent-progress.ts')}" <command>`);

@@ -10,7 +10,6 @@ import { createInterface } from 'node:readline';
 import type { AgentAdapter }                    from '../src/lib/agent-launch/AgentAdapter.ts';
 import { claudeCodeAdapterFor }                 from '../src/lib/claude-code/ClaudeCodeAdapter.ts';
 import { platformPortsFor, type PlatformPorts } from '../src/lib/platform-ports/PlatformPortsFor.ts';
-import { createRenderState, type RenderState }  from '../src/services/render/RenderState.ts';
 import {
   agentVariableOf,
   executableSearchPath,
@@ -58,8 +57,6 @@ export interface CommandContext {
   temporaryDirectories:    readonly string[];
   /** The verb `cli/Main.ts` dispatched, such as `ticket hold`, which the monitor registry records; empty before the dispatch. */
   commandVerb:             string;
-  /** Created once per invocation; holds the render service's memos, the page bundle and the configured Marked. */
-  renderState:             RenderState;
   /** Present only when the Overseer launched this process for a job: then a mutating verb relays rather than opening the tracker. */
   job?:                    JobContext;
   /** The runtime and the entry point this process was started with, which `oversee --detach` starts again with the Overseer's arguments. */
@@ -143,7 +140,6 @@ export function createProcessContext(): CommandContext {
     executableSearchPath:    executableSearchPath(),
     temporaryDirectories:    platformPorts.dataFolders.temporaryRoots(),
     commandVerb:             '',
-    renderState:             createRenderState(),
     programCommand:          programCommandOfThisProcess(),
     programPath:             programPathOfThisProcess(),
     onStopSignal:            (listener) => onStopSignalOfThisProcess(platformPorts.processSupervision.stopSignals, listener),

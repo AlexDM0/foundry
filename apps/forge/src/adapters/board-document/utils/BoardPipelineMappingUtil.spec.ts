@@ -128,14 +128,14 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
     summary: {
       stackItemCount: 1, scriptCount: 2, answeredResearchQuestionCount: 0, prepareStepCount: 1, gateCountByPhase: { build: 2, review: 1, merge: 0 }, userEditsKeptCount: 3
     },
-    openQuestionCount:   0,
-    agentJobState:       null,
-    mainMovedByCommits:  4,
-    constitutionHtml:    null,
-    constitutionOutline: null,
-    annotations:         [],
-    readByRoles:         ['builder'],
-    applyState:          {
+    openQuestionCount:    0,
+    agentJobState:        null,
+    mainMovedByCommits:   4,
+    constitutionMarkdown: null,
+    constitutionOutline:  null,
+    annotations:          [],
+    readByRoles:          ['builder'],
+    applyState:           {
       draftRevision: 0, resumesBoard: true, commitJobId: 'J5', state: 'held', reason: 'dirty-checkout', blockingFiles: ['README.md'], ticketIdHoldingMain: null
     },
     applyRefusal: null,

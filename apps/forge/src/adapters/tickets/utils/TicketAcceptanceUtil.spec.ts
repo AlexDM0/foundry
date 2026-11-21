@@ -7,7 +7,8 @@
  * same as an LF one. The Brief's work files are what filing judges an entity's ticket by (E85): only the `Work belongs in:` line of the first
  * `## Brief` and the lines that continue it count, never the `Out of bounds` line; each token with a folder is a repository path, its
  * quotes, line range, glob and brace alternatives dropped; a bare file name, a placeholder, a link and prose with one slash (`and/or`, `n/a`,
- * `read/write`) name no path.
+ * `read/write`) name no path. The body forge serves has its Acceptance items separated by blank lines, so a Markdown reader shows each as its
+ * own paragraph; every other line stays byte-identical.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -234,5 +235,63 @@ describe('workFilesOf', () => {
   test('reads only the first Brief, and a path named twice once', () => {
     expect(TicketAcceptanceUtil.workFilesOf('## Brief\nWork belongs in: apps/a/x.ts, ./apps/a/x.ts\n\n## Brief\nWork belongs in: apps/b/y.ts\n'))
       .toEqual(['/apps/a/x.ts']);
+  });
+});
+
+describe('withAcceptanceItemsSeparated', () => {
+  const ticketBodyWithJoinedItems = [
+    '## Report',
+    'Alex Example saw a blob.',
+    '',
+    '## Acceptance',
+    'A1. **First.** The first claim',
+    '    continues on an indented line.',
+    'A2. The second claim',
+    '    - with an indented sub-point.',
+    'A3. The third claim.',
+    '',
+    '## Brief',
+    'Nothing more.',
+    '',
+  ].join('\n');
+
+  test('puts a blank line before each Acceptance item that follows text, its continuation lines staying with it', () => {
+    expect(TicketAcceptanceUtil.withAcceptanceItemsSeparated(ticketBodyWithJoinedItems)).toBe([
+      '## Report',
+      'Alex Example saw a blob.',
+      '',
+      '## Acceptance',
+      '',
+      'A1. **First.** The first claim',
+      '    continues on an indented line.',
+      '',
+      'A2. The second claim',
+      '    - with an indented sub-point.',
+      '',
+      'A3. The third claim.',
+      '',
+      '## Brief',
+      'Nothing more.',
+      '',
+    ].join('\n'));
+  });
+
+  test('separates the items after a tilde fence that quotes a backtick fence, which closes only the fence it opened', () => {
+    expect(TicketAcceptanceUtil.withAcceptanceItemsSeparated('## Acceptance\n~~~\n```\n~~~\nA1. One.\nA2. Two.\n')).toBe('## Acceptance\n~~~\n```\n~~~\n\nA1. One.\n\nA2. Two.\n');
+  });
+
+  test('separates the items of a CRLF body, its heading and item lines ending in a carriage return', () => {
+    const crlfTicketBody = '## Acceptance\r\nA1. The first claim.\r\nA2. The second claim.\r\n';
+
+    expect(TicketAcceptanceUtil.withAcceptanceItemsSeparated(crlfTicketBody)).toBe('## Acceptance\r\n\nA1. The first claim.\r\n\nA2. The second claim.\r\n');
+  });
+
+  test.each([
+    ['an item line outside the Acceptance section', '## Report\nA1. Not an item here\nA2. Nor this\n'],
+    ['Acceptance prose without numbered items', '## Acceptance\nThe page shows\none block.\n'],
+    ['item lines inside a fenced block in Acceptance', '## Acceptance\n```\nA1. code\nA2. code\n```\n'],
+    ['items already separated by blank lines', '## Acceptance\n\nA1. One.\n\nA2. Two.\n'],
+  ])('leaves %s byte-identical', (_description, ticketBody) => {
+    expect(TicketAcceptanceUtil.withAcceptanceItemsSeparated(ticketBody)).toBe(ticketBody);
   });
 });
