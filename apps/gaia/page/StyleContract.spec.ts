@@ -745,6 +745,7 @@ const BOARD_STYLESHEETS: readonly string[] = [
   'shell.css',
   'tickets.css',
   'tokens.css',
+  'waves.css',
 ];
 const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];
 const BOARD_STYLESHEET_TEXTS: ReadonlyMap<string, string> = new Map(BOARD_STYLESHEETS

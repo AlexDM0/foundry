@@ -16,6 +16,7 @@ import { KanbanTabView }             from '../views/kanban/KanbanTabView.tsx';
 import { ProgressTabView }           from '../views/progress/ProgressTabView.tsx';
 import { QuestionsTabView }          from '../views/questions/QuestionsView.tsx';
 import { TicketsView }               from '../views/tickets/TicketsView.tsx';
+import { WavesTabView }              from '../views/waves/WavesView.tsx';
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
 import { DetailRoute }               from './DetailRoute.ts';
 
@@ -38,6 +39,7 @@ function IntakeTabView({ board, route, services }: BoardTabViewProps) {
 
 export const BOARD_TAB_VIEWS: BoardTabViewTable = {
   kanban:    KanbanTabView,
+  waves:     WavesTabView,
   progress:  ProgressTabView,
   epics:     ({ board, route, connection }) => <EpicsView board={board} pointedEpicKey={DetailRoute.pointedEpicKeyOf(route)} connection={connection} />,
   tickets:   ({ board, boardStore }) => <TicketsView board={board} boardStore={boardStore} />,

@@ -163,3 +163,8 @@
   --lane-highlight-edge: var(--line-strong);
   --arrow-delay:         0ms;
 }
+
+/* Waves: a one-ticket wave's band, a wash of the link colour. */
+:root {
+  --wave-narrow-band: color-mix(in oklch, var(--link) 6%, transparent);
+}

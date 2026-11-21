@@ -1,0 +1,110 @@
+/*
+ * The Waves tab (`page/board/views/waves/`): the card holding the canvas and its legend, or its empty line. The model places every column,
+ * band, node and edge on the canvas in pixels; only the look lives here. The canvas carries [data-freshness="live"] while the board's
+ * stream is live, and [data-lineage-shown] dims all but the [data-lit] lineage.
+ */
+.board-dependencies {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: var(--sp-4);
+  padding: 20px 20px 16px;
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+}
+.board-dependency-canvas { position: relative; flex: none; }
+.board-dependency-band { position: absolute; box-sizing: border-box; border-radius: var(--r-3); background: var(--wash); }
+.board-dependency-band[data-narrow] { background: var(--wave-narrow-band); }
+.board-dependency-band[data-done] { background: var(--see-through); border: 1px dashed var(--line-strong); }
+.board-dependency-head { position: absolute; top: 0; display: flex; flex-direction: column; gap: 2px; width: 214px; }
+.board-dependency-head-name {
+  font-size: var(--fs-micro); line-height: var(--line-height-micro); font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--ink-4);
+}
+.board-dependency-head-count { font-size: var(--fs-small); line-height: 17px; color: var(--ink-muted); }
+.board-dependency-head[data-narrow] :is(.board-dependency-head-name, .board-dependency-head-count) { color: var(--link); }
+.board-dependency-head[data-narrow] .board-dependency-head-count { font-weight: 600; }
+.board-dependency-slots { display: flex; gap: 3px; margin-top: 2px; }
+.board-dependency-slot { width: 18px; height: 5px; border-radius: 2px; background: var(--line); }
+.board-dependency-slot[data-filled] { background: var(--ink-4); }
+.board-dependency-head[data-narrow] .board-dependency-slot[data-filled] { background: var(--link); }
+.board-dependency-edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.board-dependency-edge {
+  fill: none; stroke: var(--line-strong); stroke-width: 1.25px;
+  transition: opacity var(--motion-base) var(--ease-out), stroke var(--motion-base) var(--ease-out), stroke-width var(--motion-base) var(--ease-out);
+}
+.board-dependency-edge[data-settled] { stroke-dasharray: 3 4; }
+.board-dependency-edge[data-pace] { stroke: var(--link); stroke-width: 2px; opacity: 0.85; }
+.board-dependency-node {
+  position: absolute; box-sizing: border-box; width: 214px; height: 116px; overflow: hidden;
+  display: flex; flex-direction: column; gap: 7px; padding: 10px 12px 12px 14px;
+  font: inherit; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  transition: opacity var(--motion-base) var(--ease-out), box-shadow var(--motion-fast) var(--ease-out);
+}
+/* The state stripe, inset from the top and bottom; dashed while the ticket waits to start or waits for a reviewer. */
+.board-dependency-node::before {
+  content: ""; position: absolute; left: -1px; top: 8px; bottom: 8px; width: 3px; box-sizing: border-box;
+  border-radius: 0 2px 2px 0; background: var(--s-fill);
+}
+.board-dependency-node:is([data-state="committed"], [data-state="in-review"])::before { background: var(--see-through); border: 1px dashed var(--s-fill); }
+.board-dependency-node:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); text-decoration: none; }
+.board-dependency-node:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.board-dependency-node[data-in-review] { background: var(--bg); }
+.board-dependency-node[data-done] { border-color: var(--line); opacity: 0.6; }
+.board-dependency-node-head { display: flex; align-items: center; gap: 6px; height: 18px; flex: none; }
+.board-dependency-wait {
+  flex: none; margin-left: auto; font: var(--fs-micro)/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-4); white-space: nowrap;
+}
+.board-dependency-wait[data-heavy] { color: var(--ink); font-weight: 600; }
+.board-dependency-node-title {
+  font-size: var(--fs-lead); font-weight: 600; line-height: 18px;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.board-dependency-node-epic {
+  display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: auto; font-size: var(--fs-pill); color: var(--ink-muted);
+}
+.board-dependency-node-epic-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-dependency-canvas[data-lineage-shown] .board-dependency-node:not([data-lit]) { opacity: 0.22; }
+.board-dependency-canvas[data-lineage-shown] .board-dependency-edge:not([data-lit]) { opacity: 0.12; }
+.board-dependency-canvas[data-lineage-shown] .board-dependency-edge[data-lit] { stroke: var(--link); stroke-width: 2px; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .board-dependency-node, .board-dependency-edge { transition: none; } }
+.board-dependency-empty { margin: 0; color: var(--ink-muted); }
+.board-dependency-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; margin: 0; padding: 14px 0 0;
+  list-style: none; font-size: var(--fs-small); color: var(--ink-muted); border-top: 1px solid var(--line);
+}
+.board-dependency-legend li { display: inline-flex; align-items: center; gap: 8px; }
+.board-dependency-legend-line { width: 24px; border-top: 1.25px solid var(--line-strong); }
+.board-dependency-legend-line[data-pace] { border-top: 2px solid var(--link); }
+.board-dependency-legend-line[data-settled] { border-top-style: dashed; }
+.board-dependency-legend-band { width: 18px; height: 12px; border-radius: 2px; background: var(--wave-narrow-band); }
+/* Held is a decision, not a blocker: neutral, so it never reads as the amber "high" or "waiting on". */
+.board-dependency-held {
+  padding: 0 6px; font: 500 var(--fs-micro)/1.5 var(--font-ui); color: var(--ink-muted);
+  background: var(--wash); border: 1px dashed var(--line-strong); border-radius: var(--r-pill); cursor: help;
+}
+
+/* A node an agent works on pulses while the stream is live: its stripe flares, then a sheen leaves the stripe and crosses the card. */
+@media (prefers-reduced-motion: no-preference) {
+  .board-dependency-canvas[data-freshness="live"] .board-dependency-node[data-live]::before {
+    animation: board-wave-card-flare var(--pulse-card) ease-in-out infinite;
+  }
+  .board-dependency-canvas[data-freshness="live"] .board-dependency-node[data-live]::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(100deg, var(--see-through) 30%, var(--s-sheen) 50%, var(--see-through) 70%) 117% 0 / 250% 100% no-repeat;
+    animation: board-wave-card-sheen var(--pulse-card) ease-in-out infinite;
+  }
+}
+/* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes board-wave-card-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
+}
+@keyframes board-wave-card-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
