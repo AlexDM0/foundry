@@ -35,10 +35,10 @@ describe('boardOf', () => {
     expect(mapped[0]).toMatchObject({
       priority: null, size: null, hold: null, epics: [], releasesGroup: false, dependsOn: [], entity: null, crosses: []
     });
+    expect(mapped[0]).toMatchObject({ introducedBy: null, foundInReview: null });
     expect(mapped[1]).toMatchObject({
-      priority: 'high', hold: '', epics: ['example-epic'], releasesGroup: true
+      priority: 'high', hold: '', epics: ['example-epic'], releasesGroup: true, introducedBy: '009'
     });
-    expect(mapped[1]).not.toHaveProperty('introducedBy');
   });
 
   test('keeps a row\'s phases, `null` for a row filed before phases were kept, and a log note without id lists', async () => {

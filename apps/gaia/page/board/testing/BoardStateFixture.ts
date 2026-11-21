@@ -54,6 +54,8 @@ export function exampleTicket(changes: Partial<BoardTicketDocument> & Pick<Board
     network:         [],
     entity:          null,
     crosses:         [],
+    introducedBy:    null,
+    foundInReview:   null,
     filedByJob:      null,
     task:            null,
     filed:           changes.updated ?? '2026-10-28T08:00:00',

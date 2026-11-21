@@ -102,6 +102,8 @@ function ticketOf(ticket: BoardTicketDocument): BoardTicket {
     network:         ticket.network ?? [],
     entity:          ticket.entity ?? null,
     crosses:         ticket.crosses ?? [],
+    introducedBy:    ticket.introducedBy ?? null,
+    foundInReview:   ticket.foundInReview ?? null,
     filedByJob:      ticket.filedByJob ?? null,
     task:            ticket.task,
     filed:           ticket.filed,

@@ -741,6 +741,7 @@ const BOARD_STYLESHEETS: readonly string[] = [
   'questions.css',
   'sandboxed-html.css',
   'shell.css',
+  'tickets.css',
   'tokens.css',
 ];
 const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];

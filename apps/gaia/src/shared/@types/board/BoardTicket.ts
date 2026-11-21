@@ -64,6 +64,10 @@ export interface BoardTicket {
   readonly network:         readonly string[];
   readonly entity:          string | null;
   readonly crosses:         readonly string[];
+  /** The delivered ticket whose change let this bug out, `null` when the bug names none. */
+  readonly introducedBy:    string | null;
+  /** The review whose finding filed this ticket, `null` when no review filed it. */
+  readonly foundInReview:   string | null;
   readonly filedByJob:      string | null;
   readonly task:            number | null;
   readonly filed:           string;

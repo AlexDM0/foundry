@@ -154,7 +154,7 @@ is a separate document Gaia serves.
   Gaia reads against `constants/BoardDocumentShapes.ts`, each shape typed `satisfies ShapeOf<>` against the contract, and maps through
   `utils/BoardMapUtil.ts` and `utils/PipelineMapUtil.ts`; a missing key or a value outside a value list makes it malformed and is named.
   The shapes are the inventory of what the Bridge's views read plus the facts forge serves; a key no view reads is named `passed-over`
-  (the Baton pass warning, which `warnings` words, confinement, a ticket's `introducedBy` and `foundInReview`, a gate's `definedBy` and
+  (the Baton pass warning, which `warnings` words, confinement, a gate's `definedBy` and
   `overseerOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and `openedAtEntity`, the Apply state's
   `commitJobId`, a checked gate's outcomes and durations, an annotation's `lineIndex`, an edge's `edgeId`, an application's `appliedBy`).
 - **What a waiting job follows** (`waitsFor`) is served in the forge's presence, `GET /api/v1/presence`

@@ -323,6 +323,8 @@ function ticketOut(ticket: BoardTicket): BoardTicketDocument {
     network:         ticket.network,
     entity:          ticket.entity,
     crosses:         ticket.crosses,
+    introducedBy:    ticket.introducedBy,
+    foundInReview:   ticket.foundInReview,
     filedByJob:      ticket.filedByJob,
     task:            ticket.task,
     filed:           ticket.filed,
