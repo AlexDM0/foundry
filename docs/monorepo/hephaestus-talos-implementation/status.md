@@ -142,6 +142,11 @@ done: WP2.18 retook them all, unchanged but start stamps.
   incident rail. Pipeline: route it and run a real setup session. Intake: start one, attach a picture, send a
   too-large one.
 
+- WP6.13 to WP6.20 (the second six views): open Kanban (card to panel, merge approval, a dirty-checkout notice),
+  Tickets (search, chips, Flint's cues), Progress (Save as range, Clear…), Epics (cards, waves, `#…/epics/epic/<key>`),
+  Waves (canvas, ETA lines) and Pipeline (agent panel with a real setup session, a real gate profile log) in Gaia
+  against a real forge.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -289,6 +294,15 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP7.1: "Close intake offers #… to ready" lists the session's drafts on the page, as the Bridge did; forge serves no
   such list. Confirm against what `intake-close` offers.
+
+- WP6.13: a card's asks pill takes the first served `openDecisionIds` entry naming the ticket
+  (`KanbanModel.asksDecisionIdOfTicket`).
+
+- WP6.16 and WP6.17: live pulses run only while the stream is live (`data-freshness` on the view, not the root); the
+  Waves forecast shows an ETA only on a running forge.
+
+- WP6.20: a prepare row shows the newer of its install run and its run in the tab's phase, by `at`
+  (`GatesAreaModel.runTimeMatchesRow`).
 
 ### Blocked
 
@@ -531,13 +545,13 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-K | WP6.18 | landed | 7d109ac8 | First round. The Assistant view; the escalated count from the served `escalatedDecisionIds`; `job-message` carries `pictures: []`, `incidentId: null`; no switch (WP6.27) |
 | 6-K | WP6.19 | landed | b5b28ee8 | First round. 148 Bridge pipeline files in `page/board/views/pipeline/` on the served facts; its style rules moved here too (~1,100 lines of `pipeline.css`, tokens `--see-through`, `--phase-ticket`, `--new-text-tint`), since the style contract fails on unstyled classes: WP6.20 keeps the DOM specs, the route, line run times and the setup conversation, and board.css:2410's Flint corner rule. Gestures send exact edits; the local '/' key check is gone (forge refuses); "by User" is a constant (`appliedBy` not served); `BOARD_ENTITY_AGENT_ROLES` added. A draft edit or gate profile shows one board read later (events carry no data) |
 | 6-K | WP7.1 | landed | 1340c73e | First round. The Intake conversation, pictures uploaded and shown through Gaia's relay; the started job from `result.startedJobId`; `IntakeSession.jobState`. Stacked last of six by the orchestrator's stacking agent: shared rows kept, the duplicate `.board-view` rules of assistant.css and intake.css removed, one Intake DOM case given no open question |
-| 6-L | WP6.13 | running | | |
-| 6-L | WP6.14 | running | | |
-| 6-L | WP6.15 | running | | |
-| 6-L | WP6.16 | running | | |
-| 6-L | WP6.17 | running | | |
-| 6-L | WP6.20 | running | | |
-| 6-M | WP6.21 | waiting | | |
+| 6-L | WP6.13 | landed | 179c1064 | First round. Kanban (18 files) and the merge queue (7) on the page contract; `shell/BoardTabFilters.tsx` is the one home of the finished-work filter line, window and Kanban filter choices; the merge queue's waiting reasons are forge's notice text. Cued tickets carry `facts.resolvedPriority` (WP6.7's handoff). Live pulses key on the section's own `data-freshness` (Gaia sets none on the root) |
+| 6-L | WP6.14 | landed | c4eb76ff | Second round (first: Flint's review and bug-source cues could not fire). The Tickets view; `introducedBy` and `foundInReview` added to the page contract, model, ingestion and both maps; `@keyframes board-changed`/`board-changed-outline` live in `tickets.css` only |
+| 6-L | WP6.15 | landed | 3779dc4d | Second round (first: no DOM spec of the new `ProgressTabView`). Progress and finished work; Clear… shows forge's refusal sentence. The stacking agent removed its own clock: it reads `nowEpochMilliseconds` from `BoardTabFilters`' window. Its `--s-flare`/`--s-flare-rest`/`--s-sheen`/`--s-paused-stripe` block is the one copy in tokens.css |
+| 6-L | WP6.16 | landed | 6d578deb | First round. The Epics tab; the live pulse gated by `data-freshness` on `.board-epics` from `connection === 'live'`; wave-fade `@property` registrations in tokens.css |
+| 6-L | WP6.17 | landed | 94c07567 | First round. The Waves tab; `data-freshness` on its canvas; the Held chip `board-dependency-held`; a waves-only fixture; the forecast orders by the served `resolvedPriority` and runs only while `page.progress.overseerSetting === 'running'` |
+| 6-L | WP6.20 | landed | 124b98a3 | First round. The Pipeline tab's route, DOM specs, line run times and setup conversation; the Flint home-corner rule carried; fixed WP6.19's `ApplyChangesDialogModel.levelGroupsOf` (grouped a single pipeline by level); the fixture now uses forge's real limits (effort medium, rework 750, re-review step 50). Stacked last of six: shared rows kept, duplicate flare blocks removed (values equal) |
+| 6-M | WP6.21 | running | | |
 | 6-N | WP6.26 | waiting | | |
 | 6-O | WP6.22 | waiting | | |
 | 6-P | WP6.23 | waiting | | |
