@@ -2018,8 +2018,9 @@ The end-to-end check on a scratch forge, as Gaia's rules name it:
    GAIA_RECORDING_FORGE_PROGRAM="$(cd ../forge && pwd)/agent-progress.ts" bun run record overseer-fetch-supported-forge
    ```
 
-   then the same for `overseer-fetch-flint-brain`, `overseer-fetch-versions`, `overseer-fetch-board`, `forge-program`
-   and `forge-registry`. Each starts the forge under a scratch home with `FORGE_ROOT` pinned, drives it with the fake
+   then the same for `overseer-fetch-flint-brain`, `overseer-fetch-versions`, `overseer-fetch-board`,
+   `overseer-fetch-presence`, `forge-program-done`, `forge-program-refused` and `forge-registry`. (`forge-program` itself
+   needs a forge from before versioned answers and is not re-taken.) Each starts the forge under a scratch home with `FORGE_ROOT` pinned, drives it with the fake
    agent and leaves nothing behind (the leak check names what is left).
 2. `src/WholeFlow.spec.ts` drives the server over those recordings: open the board as Gaia's page document, follow its
    events, send a command and read a refusal in the forge's sentence, upload a picture and send `job-message` naming
