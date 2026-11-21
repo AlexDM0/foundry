@@ -27,6 +27,12 @@ describe('commandOf, on a valid body', () => {
     expect(readingOf({ ...resume, target: { jobId: 'J1' } })).toEqual({ verdict: 'readable', command: { kind: 'interrupted-work-resume', target: { jobId: 'J1' } } });
   });
 
+  test('reads the Assistant\'s switch, on and off', () => {
+    const switchOn = EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-assistant-set'];
+    expect(readingOf(switchOn)).toEqual({ verdict: 'readable', command: { kind: 'pipeline-assistant-set', on: true } });
+    expect(readingOf({ ...switchOn, on: false })).toEqual({ verdict: 'readable', command: { kind: 'pipeline-assistant-set', on: false } });
+  });
+
   test('passes over a key the kind does not name, at the top and inside a draft edit', () => {
     const hold = EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-hold'];
     expect(readingOf({ ...hold, exampleExtraKey: true })).toEqual({ verdict: 'readable', command: exampleBoardCommandOf(hold) });
@@ -45,6 +51,10 @@ describe('commandOf, on a body it refuses', () => {
   test('names a key of the wrong type and a value outside its union', () => {
     expect(readingOf({ ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['concurrency-set'], limit: '3' })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['limit'] });
     expect(readingOf({ ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['job-stop'], mode: 'fresh' })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['mode'] });
+  });
+
+  test('names an Assistant switch that says neither on nor off', () => {
+    expect(readingOf({ ...EXAMPLE_BOARD_COMMAND_DOCUMENTS['pipeline-assistant-set'], on: 'on' })).toEqual({ verdict: 'refused', refusal: 'malformed-body', invalidKeys: ['on'] });
   });
 
   test('names a draft edit no typed edit fits, and an entity role a forge-level role', () => {

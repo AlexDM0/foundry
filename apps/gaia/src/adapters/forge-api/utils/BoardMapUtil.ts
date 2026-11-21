@@ -25,10 +25,10 @@ import type {
   BoardTicketDocument,
   BoardViewRangeDocument,
 } from 'forge-contracts/BoardPageDocuments';
-import type { InstructionEntryDocument }                         from 'forge-contracts/BoardPipelineDocuments';
-import type { BoardAttentionEntryDocument, BoardNoticeDocument } from 'forge-contracts/BoardReadingDocuments';
-import type { ForgeBoardDocument }                               from 'forge-contracts/ForgeBoardDocument';
-import type { ForgeRefusalDocument }                             from 'forge-contracts/ForgeRefusalDocument';
+import type { BoardAppliedPipelineDocument, InstructionEntryDocument } from 'forge-contracts/BoardPipelineDocuments';
+import type { BoardAttentionEntryDocument, BoardNoticeDocument }       from 'forge-contracts/BoardReadingDocuments';
+import type { ForgeBoardDocument }                                     from 'forge-contracts/ForgeBoardDocument';
+import type { ForgeRefusalDocument }                                   from 'forge-contracts/ForgeRefusalDocument';
 
 import type { BoardDecision, BoardQuestionHistoryEntry }      from '../../../shared/@types/board/BoardDecision.ts';
 import type { BoardAttentionEntry, BoardLimits, BoardNotice } from '../../../shared/@types/board/BoardFacts.ts';
@@ -466,6 +466,11 @@ function limitsOf(limits: BoardLimitsDocument): BoardLimits {
  * The board without its pipeline facts, which the caller maps with `PipelineMapUtil` and hands in, and with what each waiting job follows,
  * which the forge serves in its presence rather than its board.
  */
+/** The switch is the stored pipeline's `assistant` key, which the forge writes only while it is on. */
+function assistantIsOnIn(applied: BoardAppliedPipelineDocument): boolean {
+  return applied.readingVerdict === 'readable' && applied.pipeline.assistant === true;
+}
+
 function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: BoardPipelineFacts, resumeWaits: ResumeWaitsOfJobs): ForgeBoard {
   return {
     trackerId,
@@ -500,6 +505,7 @@ function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: Boar
     questionHistory: document.questionHistory.map(questionHistoryEntryOf),
     ticketForecasts: document.ticketForecasts.map(ticketForecastOf),
     pipeline,
+    assistantIsOn:   assistantIsOnIn(document.pipeline),
     pictureLimits:   document.pictureLimits === null ? null : {
       perMessage:     document.pictureLimits.perMessage,
       sizeLimitBytes: document.pictureLimits.sizeLimitBytes,

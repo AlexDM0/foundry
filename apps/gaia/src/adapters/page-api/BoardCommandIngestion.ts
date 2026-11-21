@@ -268,6 +268,7 @@ const COMMAND_SHAPES = {
     resumesBoard:  'boolean',
   },
   'pipeline-apply-cancel':      { ...PASSED_OVER_HEAD, setupId: 'text' },
+  'pipeline-assistant-set':     { ...PASSED_OVER_HEAD, on: 'boolean' },
   'pipeline-check':             { ...PASSED_OVER_HEAD, setupId: 'text' },
   'pipeline-constitution-edit': {
     ...PASSED_OVER_HEAD,
@@ -469,6 +470,8 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
       return { kind: document.kind, now: document.now };
     case 'concurrency-set':
       return { kind: document.kind, limit: document.limit };
+    case 'pipeline-assistant-set':
+      return { kind: document.kind, on: document.on };
     case 'chart-range-set':
       return { kind: document.kind, range: chartRangeIn(document.range) };
     case 'decision-answer':

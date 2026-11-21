@@ -1,14 +1,17 @@
 /**
- * The Assistant view: its title row, then the live session as a chat card (its head holding Flint, the session's name, job and facts, and
- * how many of its decisions wait on User), the thread and the composer; beside it a rail of its open incidents and the handled ones with
- * the trail of steps made under them, a delivery linking its Assistant and an escalation its decision, each applied default in the
- * warning state. While no session is up the thread says a fresh one is booting.
+ * The Assistant view: its title row, then the live session as a chat card (its head holding Flint, the session's name, job and facts, how
+ * many of its decisions wait on User, and the board's Assistant switch), the thread and the composer; beside it a rail of its open
+ * incidents and the handled ones with the trail of steps made under them, a delivery linking its Assistant and an escalation its decision,
+ * each applied default in the warning state with the forge's reason. The switch shows the state the forge serves and a press sends
+ * `pipeline-assistant-set`; a refusal reads as the forge's sentence under the head. While the switch is off the head says so and that each
+ * incident takes its default; while it is on and no session is up the thread says a fresh one is booting.
  */
 import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
 import {
   ListSection,
   Row,
   Stamp,
+  Switch,
   Tag,
   Text,
   View
@@ -32,6 +35,7 @@ import { FlintSlotHabitat }                                           from '../.
 import { FLINT_SLOT_HABITATS }                                        from '../../flint/FlintSlotHabitats.ts';
 import { useBoardClock }                                              from '../../shell/BoardClock.ts';
 import { useBoardHrefOf }                                             from '../../shell/BoardRouteLinks.ts';
+import { useControlCommand }                                          from '../../shell/ControlCommandSender.ts';
 import { useCoveringPanelHoldsTheFlintSlot }                          from '../../shell/CoveringPanel.ts';
 import { presenceAttributeOf, useItemPresence }                       from '../../shell/ItemPresence.ts';
 import { IncidentTrailUtil, type IncidentEntry }                      from '../../utils/IncidentTrailUtil.ts';
@@ -47,6 +51,12 @@ export interface AssistantViewProps {
 
 const BOOTING_TURN: ChatTurn = {
   kind: 'system', key: 'booting', text: 'Booting a fresh session.', stamp: null, revealText: null
+};
+
+const SWITCHED_OFF_TEXT = 'The Assistant is off: each incident takes its default.';
+
+const SWITCHED_OFF_TURN: ChatTurn = {
+  kind: 'system', key: 'switched-off', text: 'No session while the Assistant is off.', stamp: null, revealText: null
 };
 
 interface IncidentItemProps {
@@ -88,38 +98,52 @@ function IncidentItem({ incident, presence, todayCalendarDate }: IncidentItemPro
 }
 
 interface ChatHeadProps {
+  readonly assistantIsOn:       boolean;
   readonly job:                 AssistantJob | null;
   readonly turnCount:           number;
   readonly askingDecisionCount: number;
 }
 
-function ChatHead({ job, turnCount, askingDecisionCount }: ChatHeadProps) {
+function ChatHead({
+  assistantIsOn, job, turnCount, askingDecisionCount
+}: ChatHeadProps) {
   const askingText = AssistantModelUtil.askingDecisionsTextOf(askingDecisionCount);
+  const switchLabel = AssistantModelUtil.switchLabelOf(assistantIsOn);
+  // The switch stays as the board serves it: an applied press shows once the forge's next board says so.
+  const switchSender = useControlCommand(AssistantModelUtil.switchCommandOf(assistantIsOn));
   const flintSlotIsCovered = useCoveringPanelHoldsTheFlintSlot();
   const hrefOf = useBoardHrefOf();
   return (
-    <div className="board-assistant-chat-head">
-      {flintSlotIsCovered
-        ? null
-        : (
-          <FlintSlotHabitat
-            habitat={FLINT_SLOT_HABITATS.assistant}
-            cue={AssistantModelUtil.flintCueOf({ askingDecisionCount })}
-            label="Flint, the Assistant"
-            ground="lane"
-          />
-        )}
-      <View gap="four">
-        <Row gap="ten" centerY>
-          <Text typeRole="page" element="h3">Assistant</Text>
-          {job === null ? null : <JobLink jobId={job.id} />}
-        </Row>
-        {job === null ? null : <Text typeRole="tab" muted>{AssistantModelUtil.headMetaOf(job, turnCount)}</Text>}
-      </View>
-      {askingText === null
-        ? null
-        : <span className="board-assistant-chat-head-end"><Tag text={askingText} tone="neutral" href={hrefOf({ tab: 'questions', item: null })} /></span>}
-    </div>
+    <>
+      <div className="board-assistant-chat-head">
+        {flintSlotIsCovered
+          ? null
+          : (
+            <FlintSlotHabitat
+              habitat={FLINT_SLOT_HABITATS.assistant}
+              cue={AssistantModelUtil.flintCueOf({ askingDecisionCount })}
+              label="Flint, the Assistant"
+              ground="lane"
+            />
+          )}
+        <View gap="four">
+          <Row gap="ten" centerY>
+            <Text typeRole="page" element="h3">Assistant</Text>
+            {job === null ? null : <JobLink jobId={job.id} />}
+          </Row>
+          {job === null ? null : <Text typeRole="tab" muted>{AssistantModelUtil.headMetaOf(job, turnCount)}</Text>}
+        </View>
+        <span className="board-assistant-chat-head-end">
+          {askingText === null ? null : <Tag text={askingText} tone="neutral" href={hrefOf({ tab: 'questions', item: null })} />}
+          <span className="board-control">
+            <Text typeRole="tab" muted>{switchLabel}</Text>
+            <Switch accessibleName={switchLabel} checked={assistantIsOn} disabled={!switchSender.enabled} onToggle={() => void switchSender.send()} />
+          </span>
+        </span>
+      </div>
+      {assistantIsOn ? null : <p className="board-assistant-head-line">{SWITCHED_OFF_TEXT}</p>}
+      {switchSender.refusal === null ? null : <p className="board-assistant-head-line board-refusal" role="status">{switchSender.refusal}</p>}
+    </>
   );
 }
 
@@ -135,7 +159,7 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
   const todayCalendarDate = TimeUtil.calendarDateOf(useBoardClock().now().getTime());
   const queued = job === null ? [] : AssistantModelUtil.queuedMessagesOf(board.questionHistory, job.id, job.messagesWaiting);
   const turns = job === null
-    ? [BOOTING_TURN]
+    ? [model.assistantIsOn ? BOOTING_TURN : SWITCHED_OFF_TURN]
     : AssistantModelUtil.chatTurnsOf(ChatThreadModelUtil.threadItemsOf(entries, queued), { jobId: job.id, todayCalendarDate });
   const messageLabel = job === null ? 'Message the Assistant' : `Message Assistant ${job.id}`;
   // An incident that opens rises in; once handled it fades out of the open list and rises into the handled one.
@@ -146,13 +170,13 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
       <ViewTitle title="Assistant" lead="The Overseer's Assistant. Talk to it here; its incidents are on the right." />
       <div className="board-assistant-layout">
         <ChatCard label="Assistant session">
-          <ChatHead job={job} turnCount={ChatThreadModelUtil.turnCountOf(entries)} askingDecisionCount={model.askingDecisionCount} />
+          <ChatHead assistantIsOn={model.assistantIsOn} job={job} turnCount={ChatThreadModelUtil.turnCountOf(entries)} askingDecisionCount={model.askingDecisionCount} />
           <ChatThread label="Assistant conversation" turns={turns} renderDecision={() => null} historyKey={historyKey} />
           <Composer
             label={messageLabel}
             recipientLabel="Assistant"
             recipientJobId={job?.id ?? null}
-            status={AssistantModelUtil.composerTagOf(job)}
+            status={AssistantModelUtil.composerTagOf(job, model.assistantIsOn)}
             placeholder={messageLabel}
             sendLabel="Send"
             commandOf={(text) => (job === null || text.trim() === '' ? null : {

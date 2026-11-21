@@ -681,7 +681,7 @@ const PIPELINE_DEFINITION_SHAPE = {
   billing:      { optional: BILLING_RULE },
   reach:        OPTIONAL_TEXT_LIST,
   entities:     { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
-  assistant:    'passed-over',
+  assistant:    { optional: 'boolean' },
 } as const satisfies ShapeOf<PipelineDefinitionDocument>;
 
 const APPLICATION_SHAPE = {

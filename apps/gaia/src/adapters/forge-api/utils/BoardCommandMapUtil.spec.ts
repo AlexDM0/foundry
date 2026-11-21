@@ -36,6 +36,11 @@ describe('contractCommandOf', () => {
     expect(BoardCommandMapUtil.contractCommandOf(command).kind).toBe(command.kind);
   });
 
+  test('maps the Assistant\'s switch to the contract\'s command, on and off', () => {
+    expect(BoardCommandMapUtil.contractCommandOf({ kind: 'pipeline-assistant-set', on: true })).toEqual({ kind: 'pipeline-assistant-set', on: true });
+    expect(BoardCommandMapUtil.contractCommandOf({ kind: 'pipeline-assistant-set', on: false })).toEqual({ kind: 'pipeline-assistant-set', on: false });
+  });
+
   test('names a ticket by its reference, and leaves out a key Gaia holds as null', () => {
     const hold = BoardCommandMapUtil.contractCommandOf(exampleCommandOf('ticket-hold'));
     expect(hold).toEqual({ kind: 'ticket-hold', ticketReference: '001', reason: 'Waits for the example provider.' });

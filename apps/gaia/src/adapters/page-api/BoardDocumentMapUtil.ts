@@ -492,6 +492,7 @@ function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering): 
     questionHistory: board.questionHistory.map(questionHistoryEntryOut),
     ticketForecasts: board.ticketForecasts.map(ticketForecastOut),
     pipeline:        PipelineDocumentMapUtil.pipelineFactsOut(board.pipeline, renderMarkdown),
+    assistantIsOn:   board.assistantIsOn,
     pictureLimits:   board.pictureLimits === null ? null : {
       perMessage:     board.pictureLimits.perMessage,
       sizeLimitBytes: board.pictureLimits.sizeLimitBytes,

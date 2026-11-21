@@ -70,6 +70,8 @@ export interface ForgeBoard {
   readonly questionHistory:      readonly BoardQuestionHistoryEntry[];
   readonly ticketForecasts:      readonly BoardTicketForecast[];
   readonly pipeline:             BoardPipelineFacts;
+  /** The board's Assistant switch as the forge holds it: off until the board turns it on, and off while no readable pipeline is stored. */
+  readonly assistantIsOn:        boolean;
   readonly pictureLimits:        BoardPictureLimits | null;
   readonly limits:               BoardLimits;
   readonly notices:              readonly BoardNotice[];

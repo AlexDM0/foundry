@@ -86,6 +86,7 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
     ...VERSION, kind: 'pipeline-apply', setupId: 'S2', draftRevision: 4, resumesBoard: true
   },
   'pipeline-apply-cancel':      { ...VERSION, kind: 'pipeline-apply-cancel', setupId: 'S2' },
+  'pipeline-assistant-set':     { ...VERSION, kind: 'pipeline-assistant-set', on: true },
   'pipeline-check':             { ...VERSION, kind: 'pipeline-check', setupId: 'S2' },
   'pipeline-constitution-edit': {
     ...VERSION,

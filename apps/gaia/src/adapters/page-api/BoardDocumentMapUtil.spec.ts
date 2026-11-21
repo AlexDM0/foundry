@@ -86,6 +86,12 @@ describe('boardDocumentOf, on the recorded board', () => {
     expect(modelLeavesOf(board).size).toBeGreaterThan(MINIMUM_RECORDED_BOARD_LEAVES);
   });
 
+  test('carries the Assistant\'s switch as the model holds it, on and off', async () => {
+    const board = await recordedBoardModel();
+    expect(BoardDocumentMapUtil.boardDocumentOf({ ...board, assistantIsOn: true }, markdownLeftAsWritten).assistantIsOn).toBe(true);
+    expect(BoardDocumentMapUtil.boardDocumentOf({ ...board, assistantIsOn: false }, markdownLeftAsWritten).assistantIsOn).toBe(false);
+  });
+
   test('carries the board contract\'s version', async () => {
     expect(BoardDocumentMapUtil.boardDocumentOf(await recordedBoardModel(), markdownLeftAsWritten).boardVersion).toBe(PAGE_CONTRACT_VERSIONS.gaiaBoard);
   });

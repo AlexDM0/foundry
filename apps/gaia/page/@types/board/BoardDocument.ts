@@ -72,6 +72,8 @@ export interface BoardDocument {
   readonly questionHistory:      readonly BoardQuestionHistoryEntryDocument[];
   readonly ticketForecasts:      readonly BoardTicketForecastDocument[];
   readonly pipeline:             BoardPipelineFactsDocument;
+  /** The board's Assistant switch as the forge holds it: off until the board turns it on, and off while no readable pipeline is stored. */
+  readonly assistantIsOn:        boolean;
   readonly pictureLimits:        BoardPictureLimitsDocument | null;
   readonly limits:               BoardLimitsDocument;
   readonly notices:              readonly BoardNoticeDocument[];

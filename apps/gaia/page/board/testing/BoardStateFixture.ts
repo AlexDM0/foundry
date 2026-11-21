@@ -317,6 +317,7 @@ export function boardStateFixture(changes: Partial<BoardDocument> = {}): BoardDo
       agentDefaults:    { model: 'opus', effort: 'high' },
       entityAssignment: null,
     },
+    assistantIsOn:        false,
     pictureLimits:        null,
     limits:               EXAMPLE_BOARD_LIMITS,
     notices:              [],

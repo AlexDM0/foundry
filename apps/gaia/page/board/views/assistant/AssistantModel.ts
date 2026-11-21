@@ -1,9 +1,12 @@
 /**
- * The Assistant view as data: the live Assistant session, or none while a fresh one boots; its chat thread worded as turns, with the
+ * The Assistant view as data: the board's Assistant switch as the forge serves it, and the command a press sends; the live Assistant
+ * session, or none while a fresh one boots or while the switch is off; its chat thread worded as turns, with the
  * messages it has not taken yet as queued bubbles; the composer's status; its open incidents; and the handled ones read back from the log
  * through `IncidentTrailUtil`, each with the moves, notes and escalations made under it.
  */
 
+import { PAGE_CONTRACT_VERSIONS }                              from '../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardCommandDocument }                           from '../../../@types/board/BoardCommandDocument.ts';
 import type { BoardQuestionHistoryEntryDocument }              from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                  from '../../../@types/board/BoardDocument.ts';
 import type { BoardJobDocument }                               from '../../../@types/board/BoardJobDocuments.ts';
@@ -19,7 +22,10 @@ import { StateToneUtil }                                       from '../../utils
 import { TimeUtil }                                            from '../../utils/TimeUtil.ts';
 
 /** The board fields the Assistant view reads. */
-export type AssistantBoard = Pick<BoardDocument, 'jobs' | 'decisions' | 'escalatedDecisionIds' | 'incidents' | 'questionHistory' | 'notices'>;
+export type AssistantBoard = Pick<
+  BoardDocument,
+  'assistantIsOn' | 'jobs' | 'decisions' | 'escalatedDecisionIds' | 'incidents' | 'questionHistory' | 'notices'
+>;
 
 /** The live Assistant job: its state, its API turns so far, its turn, and how many of User's messages it has not taken yet. */
 export interface AssistantJob {
@@ -32,7 +38,9 @@ export interface AssistantJob {
 }
 
 export interface AssistantModel {
-  /** `null` while no Assistant session is up: a fresh one is booting. */
+  /** The board's switch as the forge serves it, never what a press hopes for. */
+  readonly assistantIsOn:       boolean;
+  /** `null` while no Assistant session is up: a fresh one is booting, or the switch is off. */
   readonly assistantJob:        AssistantJob | null;
   readonly openIncidents:       readonly IncidentEntry[];
   readonly settledIncidents:    readonly IncidentEntry[];
@@ -57,6 +65,8 @@ const USER_SPEAKER = 'User';
 const ASSISTANT_TURN_STATE: BoardDisplayState = 'reviewed';
 
 const QUEUED_TAG: TagProps = { text: 'Queued until the Assistant is idle', ...StateToneUtil.tagLookOf('committed'), dot: true };
+
+const SWITCHED_OFF_TAG: TagProps = { text: 'No session: the Assistant is off', ...StateToneUtil.tagLookOf('draft'), dot: true };
 
 const BOOTING_TAG: TagProps = { text: 'No session: a fresh one is booting', ...StateToneUtil.tagLookOf('committed'), dot: true };
 
@@ -84,11 +94,22 @@ function assistantModelOf(board: AssistantBoard): AssistantModel {
   const openIds = new Set(board.incidents.map((incident) => incident.id));
   const liveAssistant = liveAssistantOf(board.jobs);
   return {
+    assistantIsOn:       board.assistantIsOn,
     assistantJob:        liveAssistant === null ? null : assistantJobOf(liveAssistant),
     openIncidents:       IncidentTrailUtil.openIncidentEntriesOf(board.incidents, board.questionHistory, board.notices),
     settledIncidents:    IncidentTrailUtil.settledIncidentEntriesOf(board.questionHistory, openIds, board.notices),
     askingDecisionCount: askingDecisionCountOf(board, liveAssistant?.id ?? null),
   };
+}
+
+/** The switch's words, which are also its name. */
+function switchLabelOf(assistantIsOn: boolean): string {
+  return assistantIsOn ? 'Assistant on' : 'Assistant off';
+}
+
+/** What a press of the switch sends: the other state. */
+function switchCommandOf(assistantIsOn: boolean): BoardCommandDocument {
+  return { boardCommandVersion: PAGE_CONTRACT_VERSIONS.gaiaBoardCommand, kind: 'pipeline-assistant-set', on: !assistantIsOn };
 }
 
 /** The cue of Flint's slot: the Assistant waits on User while one of its asks waits, and is idle otherwise. */
@@ -121,9 +142,12 @@ function queuedMessagesOf(history: readonly BoardQuestionHistoryEntryDocument[],
     .map((record) => ({ at: record.at, text: typeof record.fields['text'] === 'string' ? record.fields['text'] : '' }));
 }
 
-/** Whether a message sends now or queues; with no session, that a fresh one is booting; nothing while the session has no reading yet. */
-function composerTagOf(job: AssistantJob | null): TagProps | null {
-  if (job === null) return BOOTING_TAG;
+/**
+ * Whether a message sends now or queues; with no session, that a fresh one is booting, or that the Assistant is off; nothing while the
+ * session has no reading yet.
+ */
+function composerTagOf(job: AssistantJob | null, assistantIsOn: boolean): TagProps | null {
+  if (job === null) return assistantIsOn ? BOOTING_TAG : SWITCHED_OFF_TAG;
   return job.turn === null ? null : TAG_OF_TURN[job.turn];
 }
 
@@ -163,5 +187,5 @@ function chatTurnsOf(items: readonly ChatThreadItem[], facts: ChatWordingFacts):
 }
 
 export const AssistantModelUtil = Object.freeze({
-  assistantModelOf, flintCueOf, askingDecisionsTextOf, stepStampOf, queuedMessagesOf, composerTagOf, headMetaOf, chatTurnsOf
+  assistantModelOf, switchLabelOf, switchCommandOf, flintCueOf, askingDecisionsTextOf, stepStampOf, queuedMessagesOf, composerTagOf, headMetaOf, chatTurnsOf
 });

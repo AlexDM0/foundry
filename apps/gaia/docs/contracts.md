@@ -151,9 +151,13 @@ is a separate document Gaia serves.
   pipeline setup and of each of its entities arrive as Markdown, and the model holds them as Markdown under the same names.
   The shapes are the inventory of what the Bridge's views read plus the facts forge serves; a key no view reads is named `passed-over`
   (the Baton pass warning, which `warnings` words, confinement, a gate's `definedBy` and
-  `forgeOnly`, the pipeline's `assistant` switch, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and
+  `forgeOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and
   `openedAtEntity`, the Apply state's
   `commitJobId`, a checked gate's outcomes and durations, an annotation's `lineIndex`, an edge's `edgeId`, an application's `appliedBy`).
+- **The Assistant's switch** is the stored pipeline's `assistant` key, which the forge writes only while the switch is on. `BoardMapUtil`
+  reads it into the board's `assistantIsOn`, off while the key is absent and while no readable pipeline is stored, and the page reads it
+  under the same name. A press in the Assistant tab sends the forge's `pipeline-assistant-set` with `on`, and the switch shows the next
+  board the forge serves, never its own guess.
 - **What a waiting job follows** (`waitsFor`) is served in the forge's presence, `GET /api/v1/presence`
   (`forge-contracts/ForgePresenceDocument`), not in its board. The forge watch has the one presence reader: it reads once per change of
   a live forge's monitor snapshot, never on a timer, for its supervision, its interrupted work and its crash logs, and the board route,

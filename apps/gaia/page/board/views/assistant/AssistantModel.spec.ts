@@ -1,5 +1,6 @@
 /**
- * The Assistant view's model. What matters: no live Assistant reads as booting, and a live one carries its live facts; an incident on the
+ * The Assistant view's model. What matters: the switch is the state the board serves, its words name that state and a press sends the
+ * other one; no live Assistant reads as booting while the switch is on and as off while it is off; a live one carries its live facts; an incident on the
  * board is open and never also settled, though the log opened it; the queued messages are the newest the session has not taken, counted
  * and never matched by text; the composer's tag follows the session's turn; the head names no call budget, since the Assistant has none;
  * the thread's items are worded as the chat shows them, a stamp in local time with seconds and never invented; the decisions the Assistant
@@ -118,13 +119,34 @@ describe('AssistantModelUtil.queuedMessagesOf', () => {
 
 describe('AssistantModelUtil.composerTagOf', () => {
   test('mid-turn says the next message queues, between turns that it sends now', () => {
-    expect(AssistantModelUtil.composerTagOf(RUNNING_ASSISTANT)).toMatchObject({ text: 'Busy: the next message queues', stateTone: 'accent' });
-    expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: 'between-turns' })).toMatchObject({ text: 'Idle: a message sends now', stateTone: 'success' });
+    expect(AssistantModelUtil.composerTagOf(RUNNING_ASSISTANT, true)).toMatchObject({ text: 'Busy: the next message queues', stateTone: 'accent' });
+    expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: 'between-turns' }, true)).toMatchObject({ text: 'Idle: a message sends now', stateTone: 'success' });
   });
 
   test('no session says a fresh one is booting, and a session with no reading yet shows no tag', () => {
-    expect(AssistantModelUtil.composerTagOf(null)).toMatchObject({ text: 'No session: a fresh one is booting', stateTone: 'neutral' });
-    expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: null })).toBeNull();
+    expect(AssistantModelUtil.composerTagOf(null, true)).toMatchObject({ text: 'No session: a fresh one is booting', stateTone: 'neutral' });
+    expect(AssistantModelUtil.composerTagOf({ ...RUNNING_ASSISTANT, turn: null }, true)).toBeNull();
+  });
+
+  test('no session while the switch is off says the Assistant is off, and a session that still finishes its turn keeps its own tag', () => {
+    expect(AssistantModelUtil.composerTagOf(null, false)).toMatchObject({ text: 'No session: the Assistant is off' });
+    expect(AssistantModelUtil.composerTagOf(RUNNING_ASSISTANT, false)).toMatchObject({ text: 'Busy: the next message queues' });
+  });
+});
+
+describe('the Assistant\'s switch', () => {
+  test('is the state the board serves', () => {
+    expect(AssistantModelUtil.assistantModelOf({ ...BOARD, assistantIsOn: true }).assistantIsOn).toBe(true);
+    expect(AssistantModelUtil.assistantModelOf({ ...BOARD, assistantIsOn: false }).assistantIsOn).toBe(false);
+  });
+
+  test('its words name the served state', () => {
+    expect([AssistantModelUtil.switchLabelOf(true), AssistantModelUtil.switchLabelOf(false)]).toEqual(['Assistant on', 'Assistant off']);
+  });
+
+  test('a press sends pipeline-assistant-set with the other state', () => {
+    expect(AssistantModelUtil.switchCommandOf(false)).toEqual({ boardCommandVersion: 1, kind: 'pipeline-assistant-set', on: true });
+    expect(AssistantModelUtil.switchCommandOf(true)).toEqual({ boardCommandVersion: 1, kind: 'pipeline-assistant-set', on: false });
   });
 });
 

@@ -6,7 +6,10 @@
  * its Send disabled; and the open and handled incidents sit in the Incidents rail, a delivery linking its Assistant job and an escalation
  * its decision, an applied default in the warning state with the forge's cause sentence, each step with its time. The view opens with its
  * title row, the chat head holds the one Flint slot (100, lane), and the count of the decisions the Assistant put to User links to
- * Questions, counting what the forge serves as escalated.
+ * Questions, counting what the forge serves as escalated. The head's switch reads the state the board serves, a press sends
+ * `pipeline-assistant-set` once and the switch waits for the forge's next board, never moving by itself; a refusal shows the forge's
+ * sentence; and while the switch is off the tab says so and that each incident takes its default, a defaulted incident showing the reason
+ * the forge serves.
  */
 import {
   act,
@@ -75,9 +78,10 @@ const MID_TURN_ASSISTANT_JOB = {
 } as const;
 
 const BOARD: AssistantBoard = boardStateFixture({
-  jobs:      [MID_TURN_ASSISTANT_JOB],
-  decisions: [],
-  incidents: [{
+  assistantIsOn: true,
+  jobs:          [MID_TURN_ASSISTANT_JOB],
+  decisions:     [],
+  incidents:     [{
     id:              'I3',
     kind:            'setup-failed',
     ticketIds:       ['042'],
@@ -240,5 +244,85 @@ describe('the title row and the chat head', () => {
     const open = within(screen.getByRole('complementary', { name: 'Incidents' })).getByRole('listitem', { name: 'Incident I3' });
     const step = within(open).getByText('opened: setup-failed on #042 (step install)').closest('.board-incident-step');
     expect(step?.querySelector('time')?.getAttribute('title')).toMatch(/^2026-10-29 /);
+  });
+});
+
+const SWITCHED_OFF_BOARD: AssistantBoard = {
+  ...BOARD,
+  assistantIsOn:   false,
+  jobs:            [],
+  incidents:       [],
+  questionHistory: [
+    historyEntryOf({ kind: 'incident-opened', incidentId: 'I7', fields: { kind: 'gate-cannot-run', ticketIds: ['044'] } }),
+    historyEntryOf({ kind: 'incident-defaulted', incidentId: 'I7', fields: { move: 'gate-retry', cause: 'assistant-off' } }),
+  ],
+  notices: [{
+    kind: 'incident-defaulted', facts: { incidentId: 'I7' }, text: 'Example notice: I7 took its default', causeText: 'Example: the Assistant is off'
+  }],
+};
+
+const REFUSAL_SENTENCE = 'Example: no gate pipeline is stored, so the Assistant was not switched.';
+
+function assistantSwitch(name: string): HTMLButtonElement {
+  return screen.getByRole<HTMLButtonElement>('switch', { name });
+}
+
+describe('the Assistant\'s switch', () => {
+  test('reads the served state: on, and off', () => {
+    const { replaceBoard } = renderedWithBoard(BOARD);
+    expect(assistantSwitch('Assistant on').getAttribute('aria-checked')).toBe('true');
+    replaceBoard(SWITCHED_OFF_BOARD);
+    expect(assistantSwitch('Assistant off').getAttribute('aria-checked')).toBe('false');
+  });
+
+  test('a press sends pipeline-assistant-set once, and the switch waits for the forge\'s board instead of moving by itself', async () => {
+    const { controls, replaceBoard } = renderedWithBoard(SWITCHED_OFF_BOARD);
+    controls.holdCommands();
+    fireEvent.click(assistantSwitch('Assistant off'));
+    fireEvent.click(assistantSwitch('Assistant off'));
+    expect(controls.sent).toEqual([{ boardCommandVersion: 1, kind: 'pipeline-assistant-set', on: true }]);
+    expect(assistantSwitch('Assistant off').disabled).toBe(true);
+    await controls.releaseCommands();
+    expect(assistantSwitch('Assistant off').getAttribute('aria-checked')).toBe('false');
+    expect(assistantSwitch('Assistant off').disabled).toBe(false);
+    replaceBoard({ ...SWITCHED_OFF_BOARD, assistantIsOn: true });
+    expect(assistantSwitch('Assistant on').getAttribute('aria-checked')).toBe('true');
+  });
+
+  test('a press while on sends the switch off', async () => {
+    const { controls } = renderedWithBoard(BOARD);
+    await clickSettled(assistantSwitch('Assistant on'));
+    expect(controls.sent).toEqual([{ boardCommandVersion: 1, kind: 'pipeline-assistant-set', on: false }]);
+  });
+
+  test('a refusal shows the forge\'s sentence, and the switch stays as served', async () => {
+    const { controls } = renderedWithBoard(SWITCHED_OFF_BOARD);
+    controls.answerNextWith({ verdict: 'refused', refusal: REFUSAL_SENTENCE });
+    await clickSettled(assistantSwitch('Assistant off'));
+    expect(screen.getByRole('status').textContent).toBe(REFUSAL_SENTENCE);
+    expect(assistantSwitch('Assistant off').getAttribute('aria-checked')).toBe('false');
+  });
+});
+
+describe('while the switch is off', () => {
+  test('the tab says the Assistant is off and that each incident takes its default, and no session is said to boot', () => {
+    renderedWithBoard(SWITCHED_OFF_BOARD);
+    expect(screen.getByText('The Assistant is off: each incident takes its default.')).toBeDefined();
+    expect(within(thread()).getByText('No session while the Assistant is off.')).toBeDefined();
+    expect(screen.getByText('No session: the Assistant is off')).toBeDefined();
+    expect(screen.queryByText('Booting a fresh session.')).toBeNull();
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Send' }).disabled).toBe(true);
+  });
+
+  test('a defaulted incident shows the reason the forge serves', () => {
+    renderedWithBoard(SWITCHED_OFF_BOARD);
+    const defaulted = within(screen.getByRole('complementary', { name: 'Incidents' })).getByRole('listitem', { name: 'Incident I7' });
+    expect(defaulted.dataset['state']).toBe('warning');
+    expect(within(defaulted).getByText('default applied: gate-retry, as Example: the Assistant is off')).toBeDefined();
+  });
+
+  test('says nothing of it while the switch is on', () => {
+    renderedWithBoard(BOARD);
+    expect(screen.queryByText('The Assistant is off: each incident takes its default.')).toBeNull();
   });
 });

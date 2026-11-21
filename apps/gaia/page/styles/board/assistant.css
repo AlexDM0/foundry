@@ -1,7 +1,8 @@
 /*
  * The Assistant: the chat card beside a 388px card of its incidents, which stays in view and scrolls inside itself once it is taller than
  * the window; under 1180px one column, the incidents after the chat. The chat's head holds Flint, the session's name and facts, and the
- * count of its asks at the end. Each incident is a quiet card whose steps keep their time in a column of its own.
+ * count of its asks and the Assistant's switch at the end; a line under it says the switch is off, or holds the forge's refusal. Each
+ * incident is a quiet card whose steps keep their time in a column of its own.
  */
 .board-assistant-layout {
   display: grid;
@@ -45,7 +46,22 @@
 
 .board-assistant-chat-head-end {
   display: flex;
+  align-items: center;
+  gap: var(--sp-4);
   margin-left: auto;
+}
+
+.board-assistant-head-line {
+  margin: 0;
+  padding: 8px 22px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-tab);
+  line-height: 18px;
+  color: var(--ink-4);
+}
+
+.board-assistant-head-line.board-refusal {
+  color: var(--err-ink);
 }
 
 .board-incident-step {

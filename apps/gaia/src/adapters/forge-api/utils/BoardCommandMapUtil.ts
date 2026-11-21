@@ -280,6 +280,7 @@ const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command:
     resumesBoard:  command.resumesBoard,
   }),
   'pipeline-apply-cancel':      (command) => ({ kind: command.kind, setupId: command.setupId }),
+  'pipeline-assistant-set':     (command) => ({ kind: command.kind, on: command.on }),
   'pipeline-check':             (command) => ({ kind: command.kind, setupId: command.setupId }),
   'pipeline-constitution-edit': (command) => ({
     kind:     command.kind,

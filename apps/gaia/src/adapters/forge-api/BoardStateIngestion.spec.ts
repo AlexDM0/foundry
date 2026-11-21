@@ -3,7 +3,8 @@
  * matters: every served fact of the forge's board maps to its field of Gaia's model unchanged, the attention entries with their typed
  * target, the worded notices, today's figures with their date, the open decisions in answering order, each ticket's facts and offers, each
  * job's stop holds and offers, the effective pipelines, the limits, an option's recommendation beside its unmarked label, the entities
- * draft with its refusals and their typed fix, the Apply refusal and the step run times; a missing key, or a value outside a value list,
+ * draft with its refusals and their typed fix, the Apply refusal and the step run times; the Assistant's switch is the stored pipeline's
+ * `assistant` key, off while the key is absent and while no readable pipeline is stored; a missing key, or a value outside a value list,
  * makes the document malformed and is named; a key Gaia does not read is passed over, and so is a key Gaia names as passed over.
  */
 import { describe, expect, test } from 'bun:test';
@@ -144,6 +145,19 @@ describe('boardOf, on the board of a forge at work', () => {
     });
   });
 
+  test('reads the Assistant\'s switch from the stored pipeline: off while the key is absent, on while the forge wrote it', async () => {
+    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument())).assistantIsOn).toBe(false);
+    const switchedOn = await boardAtWorkDocument();
+    recordAt(switchedOn, ['pipeline', 'pipeline'])['assistant'] = true;
+    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, switchedOn)).assistantIsOn).toBe(true);
+  });
+
+  test('reads the Assistant\'s switch as off while no readable pipeline is stored', async () => {
+    const withoutPipeline = await boardAtWorkDocument();
+    withoutPipeline['pipeline'] = { readingVerdict: 'absent' };
+    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, withoutPipeline)).assistantIsOn).toBe(false);
+  });
+
   test('keeps the entities draft: each entity\'s effective pipeline and dependents, its refusals with their row and typed fix', async () => {
     const { setup } = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument())).pipeline;
     expect(Object.keys(setup?.draftEntities ?? {})).toEqual(['web', 'api']);
@@ -215,6 +229,12 @@ describe('boardOf, on a document Gaia cannot read', () => {
     recordAt(document, ['page', 'tickets', 0])['status'] = 'example-added-status';
     recordAt(document, ['jobs', 0])['state'] = 'example-added-state';
     expect(INGESTION.boardOf(RECORDED_TRACKER_ID, document)).toEqual({ board: null, reason: { invalidKeys: ['page.tickets[0].status', 'jobs[0].state'] } });
+  });
+
+  test('reads no board whose Assistant switch is no boolean', async () => {
+    const document = await boardAtWorkDocument();
+    recordAt(document, ['pipeline', 'pipeline'])['assistant'] = 'on';
+    expect(INGESTION.boardOf(RECORDED_TRACKER_ID, document).board).toBeNull();
   });
 
   test('maps nothing of a body that is no object', () => {

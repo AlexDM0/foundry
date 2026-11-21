@@ -64,6 +64,7 @@ export type BoardCommand =
   | { readonly kind: 'pipeline-agent-advise'; readonly entity: string | null }
   | { readonly kind: 'pipeline-apply'; readonly setupId: string; readonly draftRevision: number; readonly resumesBoard: boolean }
   | { readonly kind: 'pipeline-apply-cancel'; readonly setupId: string }
+  | { readonly kind: 'pipeline-assistant-set'; readonly on: boolean }
   | { readonly kind: 'pipeline-check'; readonly setupId: string }
   | {
     readonly kind:        'pipeline-constitution-edit';
