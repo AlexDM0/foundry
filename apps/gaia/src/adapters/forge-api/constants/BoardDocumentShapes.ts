@@ -139,7 +139,7 @@ import type {
 } from 'forge-contracts/ForgeBoardDocument';
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
-import type { DocumentShape, FieldRule, ShapeOf }      from '../utils/DocumentShapeUtil.ts';
+import type { DocumentShape, FieldRule, ShapeOf }      from '../../../lib/json-value/DocumentShapeUtil.ts';
 import { VocabularyMapUtil, type BoardVocabularyName } from '../utils/VocabularyMapUtil.ts';
 
 const TEXT_OR_NULL = { nullable: 'text' } as const;

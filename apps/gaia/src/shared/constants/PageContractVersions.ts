@@ -5,9 +5,14 @@
  * files Gaia stores stay in `ContractVersions.ts`. `ContractVersionUtil` holds the reading rule.
  */
 export const PAGE_CONTRACT_VERSIONS = {
-  gaiaFleetDocument: 4,
-  gaiaCommand:       2,
-  gaiaCommandAnswer: 3,
-  gaiaFrameSession:  1,
-  gaiaHealth:        1,
+  gaiaFleetDocument:       4,
+  gaiaCommand:             2,
+  gaiaCommandAnswer:       3,
+  gaiaFrameSession:        1,
+  gaiaHealth:              1,
+  gaiaBoard:               1,
+  gaiaBoardCommand:        1,
+  gaiaBoardStream:         1,
+  gaiaBoardCommandAnswer:  1,
+  gaiaPictureUploadAnswer: 1,
 } as const satisfies Readonly<Record<string, number>>;

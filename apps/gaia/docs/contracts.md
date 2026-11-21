@@ -109,6 +109,11 @@ version, major.minor.
 | `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/v3/commands` | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaFrameSession` | 1 | `frameSessionVersion` | the answer of `POST /api/v1/forges/<trackerId>/frame-session` | serves; the page reads | `page/@types/FrameSessionDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaHealth` | 1 | `healthVersion` | the open `GET /api/v1/health` | serves; the launcher and a second `serve` read | `src/adapters/gaia-server/HealthDocument.ts` | Gaia |
+| `gaiaBoard` | 1 | `boardVersion` | one forge's board as the page reads it, each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia; the relay routes (WP6.3) |
+| `gaiaBoardCommand` | 1 | `boardCommandVersion` | the body of a board command the page posts for one forge; each kind keeps the forge's kind name, with Gaia's payload | the page sends; the server reads | `page/@types/board/BoardCommandDocument.ts`, read in by `src/adapters/page-api/BoardCommandIngestion.ts` and sent as the forge's command by `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` | Gaia |
+| `gaiaBoardStream` | 1 | `boardStreamVersion` | the `handshake` that opens every relayed board stream, with Gaia's and the forge's system versions, written with no id | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts` | Gaia; the relay routes (WP6.3) |
+| `gaiaBoardCommandAnswer` | 1 | `boardCommandAnswerVersion` | the answer to a board command: applied, refused with the forge's sentence or Gaia's own, held for an install change, unreachable or of unknown outcome | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts` | Gaia; the relay routes (WP6.3) |
+| `gaiaPictureUploadAnswer` | 1 | `pictureUploadAnswerVersion` | the answer to a picture the page uploads for one forge | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts` | Gaia; the relay routes (WP6.3) |
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |
 | `boundaryRecording` | 1.0 | `recordingVersion`, `recordingMinor` | `src/testing/recordings/<os>/<name>.json`, a boundary's recorded answers; test-only | writes in `bun run record`, reads in specs and verify | `src/testing/BoundaryRecordings.ts` | Gaia |
 
@@ -152,6 +157,22 @@ is a separate document Gaia serves.
   `src/adapters/forge-api/@types/ForgeStreamDocuments.ts`. `ConversationIngestion.ts` reads a job stream's `history` and `message` and a
   profile stream's `line`; `CommandAnswerIngestion.ts` reads a command's answer under `forgeControl`: 200 applied, with the job an
   applied command started, 423 held for an install change, any other status a refusal, its code, fields and sentence unchanged.
+
+## The page's board contract
+
+Gaia serves its page a board contract of its own (decision 51), `page/@types/board/`: field for field what the model holds, under Gaia's
+names and unions, with the ordered lists the views iterate (`BoardVocabulary.ts`, held to the forge's order by a spec). The page imports
+none of the model and no `forge-contracts` type.
+
+- **Out:** `src/adapters/page-api/BoardDocumentMapUtil.ts` and `PipelineDocumentMapUtil.ts` name every key one by one. A forge's refusal
+  becomes `{ refusedBy: 'forge', code, fields, text }` with the forge's sentence in `text`, byte for byte, even when it names a command
+  (decision 45); a notice or a warning keeps its kind and facts, and its sentence passes through `ForgeSentenceUtil` by kind, a cause
+  that names a command dropped. A served target stays `{ subject, id }`. Every event is a change signal, as the model reads it.
+- **In:** `src/adapters/page-api/BoardCommandIngestion.ts` checks `boardCommandVersion`, the kind and each key of the kind, and refuses a
+  body as `malformed-body` (naming its keys) or `unknown-kind`. `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` maps each kind
+  through one table whose type pairs it with the contract's command of the same kind, so Gaia sends only kinds of
+  `FORGE_CONTROL_COMMAND_KINDS`, never a kind the forge's command line alone runs. A key Gaia holds as `null` is absent from the forge's
+  command. No view applies a command before the forge answers.
 
 ## The install version
 

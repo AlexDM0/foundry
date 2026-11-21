@@ -5,11 +5,11 @@
  */
 import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
 
+import { DocumentShapeUtil }           from '../../lib/json-value/DocumentShapeUtil.ts';
 import type { ForgeBoard }             from '../../shared/@types/board/ForgeBoard.ts';
 import type { DocumentReadingFailure } from './@types/ForgeDocumentReading.ts';
 import { BOARD_DOCUMENT_SHAPE }        from './constants/BoardDocumentShapes.ts';
 import { BoardMapUtil }                from './utils/BoardMapUtil.ts';
-import { DocumentShapeUtil }           from './utils/DocumentShapeUtil.ts';
 import { PipelineMapUtil }             from './utils/PipelineMapUtil.ts';
 
 export type BoardReading = { readonly board: ForgeBoard } | { readonly board: null; readonly reason: DocumentReadingFailure };

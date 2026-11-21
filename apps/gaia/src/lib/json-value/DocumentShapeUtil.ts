@@ -2,7 +2,7 @@
  * Checks a parsed JSON document against the shape of the keys a reader needs, and names every key that is missing or fails its rule as a
  * path into the document. Every key is read as the document's own, never through its prototype.
  */
-import { JsonValueUtil, type JsonObject } from '../../../lib/json-value/JsonValueUtil.ts';
+import { JsonValueUtil, type JsonObject } from './JsonValueUtil.ts';
 
 /**
  * `text` is any string, `whole-number` a safe integer of zero or more, `number` any finite number, `text-list` an array of strings, `json`

@@ -76,7 +76,10 @@ value list maps into Gaia's own union, every refusal keeps the forge's code, fie
 with its typed target, notices, today's figures, the open decisions in answering order, each ticket's and job's offers, the effective
 pipelines, the entities draft with its refusals, the Apply refusal, the step run times, limits and defaults) is read as served, never
 recomputed. The board's event stream is read as change signals only, since its events carry forge's internal state: a `board` event
-means the board document is read again. The page never sees this model; it reads the board contract Gaia serves.
+means the board document is read again. The page never sees this model; it reads the board contract Gaia serves
+(`page/@types/board/`), which `adapters/page-api/BoardDocumentMapUtil.ts` maps the model out to, key by key. A board command comes in
+the other way: the page's body is read into Gaia's `BoardCommand` (`adapters/page-api/BoardCommandIngestion.ts`) and sent as the forge's
+command of the same kind (`adapters/forge-api/utils/BoardCommandMapUtil.ts`).
 
 ## Flint's brain
 

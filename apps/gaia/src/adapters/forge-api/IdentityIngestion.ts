@@ -5,9 +5,10 @@
  */
 import type { IdentityContractsDocument, IdentityDocument } from 'forge-contracts/IdentityDocument';
 
-import type { ForgeContracts } from '../../shared/@types/ForgeReading.ts';
-import { CONTRACT_VERSIONS }   from '../../shared/constants/ContractVersions.ts';
-import { ContractVersionUtil } from '../../shared/utils/ContractVersionUtil.ts';
+import { DocumentShapeUtil, type ShapeOf } from '../../lib/json-value/DocumentShapeUtil.ts';
+import type { ForgeContracts }             from '../../shared/@types/ForgeReading.ts';
+import { CONTRACT_VERSIONS }               from '../../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }             from '../../shared/utils/ContractVersionUtil.ts';
 import type {
   ForgeContractName,
   ForgeIdentity,
@@ -16,8 +17,7 @@ import type {
   NewerContractVerdict,
   OlderContractVerdict,
 } from './@types/ForgeDocumentReading.ts';
-import { DocumentShapeUtil, type ShapeOf } from './utils/DocumentShapeUtil.ts';
-import { ForgeReadingMapUtil }             from './utils/ForgeReadingMapUtil.ts';
+import { ForgeReadingMapUtil } from './utils/ForgeReadingMapUtil.ts';
 
 export type IdentityReading =
   | { readonly verdict: 'readable'; readonly identity: ForgeIdentity }

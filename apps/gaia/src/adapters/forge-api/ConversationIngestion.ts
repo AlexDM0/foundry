@@ -3,10 +3,10 @@
  * entry), and a profile stream's `line`. Each is checked for the keys Gaia reads and mapped; a malformed one maps to nothing and names its
  * keys, so the caller passes it over.
  */
+import { DocumentShapeUtil, type ShapeOf }                                                             from '../../lib/json-value/DocumentShapeUtil.ts';
 import type { BoardProfileLine, BoardTranscriptEntry }                                                 from '../../shared/@types/board/BoardConversation.ts';
 import type { DocumentReadingFailure }                                                                 from './@types/ForgeDocumentReading.ts';
 import type { ForgeProfileLineDocument, ForgeTranscriptEntryDocument, ForgeTranscriptPictureDocument } from './@types/ForgeStreamDocuments.ts';
-import { DocumentShapeUtil, type ShapeOf }                                                             from './utils/DocumentShapeUtil.ts';
 
 const OPTIONAL_TEXT = { optional: 'text' } as const;
 

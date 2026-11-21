@@ -3,12 +3,12 @@
  * an install change, any other status a refusal, each under `controlVersion` as `CONTRACT_VERSIONS` knows it. A refusal keeps the forge's
  * code, fields and sentence unchanged. A body at another control version, or one that is no such answer, is `unreadable`.
  */
+import { DocumentShapeUtil, type ShapeOf }                           from '../../lib/json-value/DocumentShapeUtil.ts';
 import { JsonValueUtil }                                             from '../../lib/json-value/JsonValueUtil.ts';
 import type { BoardCommandAnswer }                                   from '../../shared/@types/board/BoardCommandAnswer.ts';
 import { CONTRACT_VERSIONS }                                         from '../../shared/constants/ContractVersions.ts';
 import { ContractVersionUtil }                                       from '../../shared/utils/ContractVersionUtil.ts';
 import type { ForgeCommandAppliedAnswer, ForgeCommandRefusalAnswer } from './@types/ForgeStreamDocuments.ts';
-import { DocumentShapeUtil, type ShapeOf }                           from './utils/DocumentShapeUtil.ts';
 
 const APPLIED_STATUS = 200;
 const INSTALL_HELD_STATUS = 423;

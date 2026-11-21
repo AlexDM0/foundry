@@ -6,11 +6,11 @@
 import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from 'forge-contracts/BoardSummaryDocument';
 import type { UsageLimitDocument }                                                from 'forge-contracts/MonitorSnapshotDocument';
 
+import { DocumentShapeUtil, type ShapeOf }                              from '../../lib/json-value/DocumentShapeUtil.ts';
 import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                                            from '../../shared/constants/ContractVersions.ts';
 import { ContractVersionUtil }                                          from '../../shared/utils/ContractVersionUtil.ts';
 import type { ForgeDocumentReading, ForgeIdentity, ForgeRegistryFacts } from './@types/ForgeDocumentReading.ts';
-import { DocumentShapeUtil, type ShapeOf }                              from './utils/DocumentShapeUtil.ts';
 import { ForgeReadingMapUtil }                                          from './utils/ForgeReadingMapUtil.ts';
 
 const VERSION_KEYS = { majorKey: 'summaryVersion' } as const;
