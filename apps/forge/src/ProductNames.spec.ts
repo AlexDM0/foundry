@@ -1,8 +1,7 @@
 /**
  * package.json cannot import the product's names, so this guard holds it to them: its name and its one bin key are the program, or a
- * `bun link` of this checkout would replace the link of the other program. Setup imports the names itself, from `setup.ts`, so its
- * login item's default label needs no guard here. A guard at the repository root imports nothing of the tree, so the names are read from
- * the constant's source text: each names set by its `PROGRAM`, and `PRODUCT_NAMES` by the set it is assigned.
+ * `bun link` of this checkout would replace the link of the other program. A guard at the repository root imports nothing of the tree, so
+ * the names are read from the constant's source text: each names set by its `PROGRAM`, and `PRODUCT_NAMES` by the set it is assigned.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';

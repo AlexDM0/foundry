@@ -123,26 +123,23 @@ describe('the panel in the Forges view (A4)', () => {
 });
 
 describe('the panel', () => {
-  test('is headed Gaia and holds the two switches as the settings hold them', () => {
+  test('is headed Gaia and holds the switch as the settings hold it', () => {
     const { unfolded } = panelOf(FLEET_FIVE_FORGES);
     const panel = tree.onlyWithClass(unfolded, 'gaia-forges-gaia');
     const head = tree.onlyHostElementIn([panel], (element) => element.tag === Text.name && element.props['element'] === 'h2');
     expect([tree.textOf([head]), head.props['id']]).toEqual(['Gaia', panel.props['aria-labelledby']]);
-    expect(switchLabelled(unfolded, 'Start the running forges at login').props['checked']).toBe(false);
     expect(switchLabelled(unfolded, 'Notify me while Gaia is open').props['checked']).toBe(true);
   });
 
-  test('a switch clicked hands the view that setting, with the change it sends', () => {
+  test('the switch clicked hands the view that setting, with the change it sends', () => {
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES);
-    tree.dispatch(switchLabelled(unfolded, 'Start the running forges at login'), 'onToggle');
     tree.dispatch(switchLabelled(unfolded, 'Notify me while Gaia is open'), 'onToggle');
     expect(handled.checkboxes.map((checkbox) => checkbox.command)).toEqual([
-      { kind: 'settings-set', key: 'startForgesAtLogin', value: true },
       { kind: 'settings-set', key: 'notifications', value: { enabled: false, kinds: FLEET_FIVE_FORGES.settings.notifications.kinds } },
     ]);
   });
 
-  test('"What notifies" is a button beside the second switch, outside its label, that opens the list', () => {
+  test('"What notifies" is a button beside the switch, outside its label, that opens the list', () => {
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES);
     const notifyLine = tree.onlyWithClass(unfolded, 'gaia-forges-gaia-notify');
     const whatNotifies = tree.onlyOfComponent([notifyLine], TextButton);
@@ -153,14 +150,14 @@ describe('the panel', () => {
     expect(handled.whatNotifiesOpened).toEqual([1]);
   });
 
-  test('shows the facts and, for a settings file newer than this Gaia, its line and both switches off', () => {
+  test('shows the facts and, for a settings file newer than this Gaia, its line and the switch off', () => {
     const newer = { ...FLEET_FIVE_FORGES, gaia: { ...FLEET_FIVE_FORGES.gaia, settingsFile: 'newer-version' as const } };
     const { unfolded } = panelOf(newer);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-facts')])).toBe(
       'Forge program~/.bun/bin/forgeRegistry~/.forge-monitor/projects.jsonThis Gaiaversion1.0built for forge1.1address127.0.0.1:4790',
     );
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forges-gaia-settings-file')])).toContain('written by a newer Gaia');
-    expect(tree.hostElementsIn(unfolded, tree.withComponent(Switch)).map((setting) => setting.props['disabled'])).toEqual([true, true]);
+    expect(tree.hostElementsIn(unfolded, tree.withComponent(Switch)).map((setting) => setting.props['disabled'])).toEqual([true]);
   });
 
   test('a path among the facts may break after each slash and nowhere else, and a fact with no slash is left whole', () => {
@@ -193,13 +190,13 @@ describe('the panel', () => {
     ]);
   });
 
-  test('a refused change shows its code and sentence under the switches, with Try again and its dismissal', async () => {
+  test('a refused change shows its code and sentence under the switch, with Try again and its dismissal', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(SETTINGS_UNWRITABLE))]);
-    const checkbox = GaiaPanelModel.gaiaPanelOf(FLEET_FIVE_FORGES, { commandStates: IDLE_STATES, sentSettingsChange: null }).startAtLogin;
+    const checkbox = GaiaPanelModel.gaiaPanelOf(FLEET_FIVE_FORGES, { commandStates: IDLE_STATES, sentSettingsChange: null }).notify;
     const sentSettingsChange: SentSettingsChange = { checkbox, result: await sender.send(checkbox.command) };
     const { unfolded, handled } = panelOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), sentSettingsChange });
     const refusal = FailedActions.onlyFailedActionIn(unfolded);
-    expect(FailedActions.wordsOf(refusal)).toEqual(['Gaia could not Start the running forges at login: ', 'settings-unwritable', 'The command was refused.']);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['Gaia could not Notify me while Gaia is open: ', 'settings-unwritable', 'The command was refused.']);
     expect([refusal.props['retryLabel'], refusal.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
     tree.dispatch(refusal, 'onRetry');
     tree.dispatch(refusal, 'onDismiss');

@@ -39,10 +39,10 @@ afterEach(() => {
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the options each form of start takes', () => {
-  test('--started-by refuses a value other than user or login-item at exit 1', async () => {
+  test('--started-by refuses a value other than user at exit 1', async () => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
     expect(await runCommandLine(['start', '--foreground', '--started-by', 'cron', '--port', '0'], context)).toBe(1);
-    expect(context.errorText()).toContain('"cron" is not a start origin. Write user or login-item.');
+    expect(context.errorText()).toContain('"cron" is not a start origin. Write user.');
   });
 
   test('--started-by beside --successor-of is refused at exit 1: a successor\'s origin is the Hephaestus it takes over from', async () => {

@@ -22,8 +22,6 @@ export interface SetupHost {
   /** The program file a name runs from `searchPath`, or null when none does. */
   readonly programOnSearchPath: (programName: string) => string | null;
   readonly run:                 (command: readonly string[], workingDirectory: string) => FinishedCommand;
-  /** Windows' system folder (`SystemRoot`), or undefined where none is set. */
-  readonly systemFolder:        () => string | undefined;
   readonly answersYes:          (question: string) => boolean;
   readonly write:               (text: string) => void;
 }

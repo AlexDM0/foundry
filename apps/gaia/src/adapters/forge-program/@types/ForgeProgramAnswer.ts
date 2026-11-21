@@ -52,13 +52,6 @@ export interface ForgeVersionAnswer {
   readonly monitorFolder:        string;
 }
 
-export type ForgeLoginItemAction = 'add' | 'remove' | 'status';
-
-/** Whether the repository's login item is in place after the verb. */
-export interface ForgeLoginItemAnswer {
-  readonly loginItem: 'present' | 'absent';
-}
-
 export interface ForgeMachineLimitAnswer {
   readonly outcome:    ForgeProgramOutcome;
   readonly agentLimit: number;

@@ -17,5 +17,4 @@ export const GAIA_SETTINGS_DEFAULTS: GaiaSettings = {
       'draft-tickets':              false,
     },
   },
-  startForgesAtLogin: false,
 };

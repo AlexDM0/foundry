@@ -35,7 +35,6 @@ export interface GaiaPanelProps {
 
 const GAIA_HEAD_ID = 'gaia-forges-gaia-head';
 
-const START_AT_LOGIN_LABEL_ID = 'gaia-forges-gaia-start-at-login';
 const NOTIFY_LABEL_ID = 'gaia-forges-gaia-notify-label';
 
 const SETTINGS_SUBJECT: CommandSubject = { fleetCommand: 'settings-set' };
@@ -146,7 +145,6 @@ export function GaiaPanel({ content, handlers }: GaiaPanelProps) {
     <section className="gaia-forges-gaia" aria-labelledby={GAIA_HEAD_ID}>
       <Text typeRole="section" element="h2" id={GAIA_HEAD_ID}>Gaia</Text>
       {content.settingsFileLine === null ? null : <p className="gaia-forges-gaia-settings-file">{content.settingsFileLine}</p>}
-      <SettingsSwitch checkbox={content.startAtLogin} labelId={START_AT_LOGIN_LABEL_ID} handlers={handlers} />
       <div className="gaia-forges-gaia-notify">
         <SettingsSwitch
           checkbox={content.notify}

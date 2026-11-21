@@ -143,7 +143,7 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
   })).crashLogNumber;
 }
 
-/** Only a start the user made serves after a crash or a suspected one (decisions 14 and 39): a login item and a successor stay off. */
+/** Only a start the user made serves after a crash or a suspected one (decisions 14 and 39): a successor stays off. */
 function admit(request: StartGateRequest): StartGateVerdict {
   const evidence = evidenceOf(request);
   const classification = StartClassification.classify(evidence);

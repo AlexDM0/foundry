@@ -2,8 +2,8 @@
  * The real-system spec of every forge verb refused, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record
  * forge-program-refused` with the program of a forge that answers F8. It runs that forge under a scratch home, through ForgeProgram, and
  * records one refusal of each verb Gaia runs under the example program path: init in a bare repository, start and update over files a
- * newer forge installed, stop of a Hephaestus that is suspended and so outlives the stop, the login item where no tracker is, and a machine
- * limit above the CPU count. The forge's install version stamps the recording.
+ * newer forge installed, stop of a Hephaestus that is suspended and so outlives the stop, and a machine limit above the CPU
+ * count. The forge's install version stamps the recording.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -114,12 +114,6 @@ describe('a forge that answers F8, every verb refused', () => {
     process.kill(hephaestus.processId, 'SIGCONT');
     suspendedHephaestusProcessId = null;
   }, SETUP_TIMEOUT_MILLISECONDS);
-
-  test('the login item is refused where no tracker is', async () => {
-    const untrackedFolder = folderWithoutABoard('example-untracked');
-    scratchForge.exampleValueFor({ drawn: untrackedFolder, example: '/Users/example/development/example-untracked' });
-    expect(refusalOf(await forgeProgram.loginItem(forgeIn(untrackedFolder), 'add'))).toBe('no-tracker-at-override');
-  });
 
   test('a machine limit above the CPU count is refused and writes nothing', async () => {
     expect(refusalOf(await forgeProgram.machineLimitSet(forgeIn(trackedRepository), MACHINE_LIMIT_ABOVE_ANY_CPU_COUNT))).toBe('machine-agent-limit-above-cpus');

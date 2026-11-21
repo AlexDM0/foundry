@@ -81,7 +81,10 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
       generation: 1,
       at:         recordedStampOf(BOOKSHOP_TRACKER_ID, 'presenceAt'),
       crash:      {
-        component: 'hephaestus', suspected: false, errorName: null, errorMessage: null,
+        component:    'talos',
+        suspected:    false,
+        errorName:    'TalosLost',
+        errorMessage: 'Talos 1 was lost while serving; 0 of its children were swept.',
       },
     },
   },

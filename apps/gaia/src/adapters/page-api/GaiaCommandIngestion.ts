@@ -66,7 +66,7 @@ const SINGLE_FORGE_KINDS: ReadonlySet<string> = new Set<SingleForgeKind>([
 const STOP_AGENTS: ReadonlySet<unknown> = new Set<ForgeStopAgents>(['keep', 'stop-first']);
 const PATH_CHOICE_TARGETS: ReadonlySet<unknown> = new Set<PathChoiceTarget>(['folder', 'file']);
 const THEME_CHOICES: ReadonlySet<unknown> = new Set<ThemeChoice>(SETTINGS_CHOICES.themes);
-const SETTINGS_KEYS: ReadonlySet<unknown> = new Set<keyof GaiaSettings>(['theme', 'hiddenTrackerIds', 'forgeProgramPath', 'notifications', 'startForgesAtLogin']);
+const SETTINGS_KEYS: ReadonlySet<unknown> = new Set<keyof GaiaSettings>(['theme', 'hiddenTrackerIds', 'forgeProgramPath', 'notifications']);
 
 function nonEmptyTextOf(body: JsonObject, key: string): string | null {
   const value = JsonValueUtil.ownValueOf(body, key);
@@ -139,8 +139,6 @@ function settingsChangeOf(settingsKey: keyof GaiaSettings, value: unknown): Sett
       const notifications = notificationSettingsOf(value);
       return notifications === null ? null : { key: 'notifications', value: notifications };
     }
-    case 'startForgesAtLogin':
-      return typeof value === 'boolean' ? { key: 'startForgesAtLogin', value } : null;
   }
 }
 

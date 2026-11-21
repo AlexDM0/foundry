@@ -3,7 +3,7 @@
  * `src/testing/RecordedCommand.spec.ts`: Bun's `--version`, and git's
  * `core.hooksPath` key read unset, written and read again in a scratch repository. What matters: each answer is what the process host of
  * setup reads, and a missing program fails to start with `ENOENT`. `bun install`, `link`, `build` and `upgrade` are not run, since they
- * change the user's Bun; macOS writes a LaunchAgent and runs no autostart tool.
+ * change the user's Bun.
  */
 import { join } from 'node:path';
 

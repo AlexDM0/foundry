@@ -395,9 +395,8 @@ const START_KIND_PHRASES: Readonly<Record<StartKind, string>> = {
 };
 
 const START_ORIGIN_PHRASES: Readonly<Record<StartOrigin, string>> = {
-  'user':       'User',
-  'login-item': 'the login item',
-  'successor':  'its predecessor',
+  user:      'User',
+  successor: 'its predecessor',
 };
 
 function startClassifiedTextOf(start: LogRecordFieldsOf<'start-classified'>): string {

@@ -64,7 +64,7 @@ describe('the command reference', () => {
   test('it names the install version refusal, the commands it spares and the command that lifts it', () => {
     const flattenedHelp = HELP_TEXT.replaceAll(/\s+/g, ' ');
     expect(flattenedHelp).toContain(
-      'Every command but init, update, help, status, version, stop, talos-restart, machine and login-item refuses, with exit 1, '
+      'Every command but init, update, help, status, version, stop, talos-restart and machine refuses, with exit 1, '
         + 'while the files installed here '
         + 'are of another install version',
     );

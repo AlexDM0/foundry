@@ -24,7 +24,7 @@ Look a command up by its first word, or a stored file by its name.
 | `pipeline` | [Pipeline setup](#pipeline-setup) |
 | `review-stats` | [Review statistics](#review-statistics) |
 | `hook`, `usage` | [Hooks and usage](#hooks-and-usage) |
-| `start`, `stop`, `restart`, `talos-restart`, `pause`, `unpause`, `version`, `login-item`, `crash-log` | [Hephaestus](#hephaestus) |
+| `start`, `stop`, `restart`, `talos-restart`, `pause`, `unpause`, `version`, `crash-log` | [Hephaestus](#hephaestus) |
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
 | `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
@@ -91,7 +91,7 @@ on this repository is in [Contributing](development/contributing.md).
 | `<decision>` | A [decision](glossary.md#decision) id, such as `E7`. |
 | `<hatch>` | The job's [Hatch](glossary.md#hatch) folder. |
 | `-` | As the path of `--body-file`, `--request-file` or `--file`, reads standard input to its end. In a terminal, with nothing piped in, it is refused at exit 1 with nothing written, since it would read as empty text; an empty file or an empty pipe supplies empty text. |
-| `--json` | Accepted by every command but `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry `answerVersion` `2`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
+| `--json` | Accepted by every command but `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version` and `machine` carry `answerVersion` `2`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
 | `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
 | product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`. |
 
@@ -253,23 +253,6 @@ inside a bare repository, with a `--root` that is not an existing directory, or 
 directory other than the one it would create the tracker in. `init` never replaces an existing `progress.json`: it
 creates the store with an exclusive create, under the lock.
 
-### The login item
-
-`setup.sh --login-item <repository> [--label <label>]` (`setup.ps1` on Windows) writes an optional login item that
-starts that repository's Hephaestus when the user logs in, and nothing else. The label defaults to `LOGIN_ITEM_LABEL`,
-and a label that already starts another repository's Hephaestus is refused unless `--label` names another.
-
-| OS | item | runs |
-|---|---|---|
-| macOS | the LaunchAgent `~/Library/LaunchAgents/<label>.plist`, `RunAtLoad`; setup prints the `launchctl bootstrap` line | `start --started-by login-item` in the repository |
-| Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `start --foreground --started-by login-item`, in the repository |
-| Windows | the value `<label>` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written through `reg.exe` by absolute path, no admin; a command line over 260 characters is refused | `start --started-by login-item --repository <repository>`, as a Run value has no working directory |
-
-The login item starts the forge as `login-item`: after a crash, or a crash suspected before the machine restarted, that
-start stays off and is refused `forge-off-after-crash` (see [The start gate](#the-start-gate)).
-`KillMode=process` lets a board's Talos outlive a stop or restart of the unit. On another OS, on Linux with no
-`systemctl` or no user service manager, and on Windows with no absolute `SystemRoot`, setup exits 1 and writes nothing.
-
 ### What a run reports
 
 `update`, and `init` at a root that already has a tracker, report items 3 to 6 and the worktrees entry on a line each:
@@ -377,7 +360,7 @@ These commands do not take the refusal above:
 | `status` | It never refuses and says nothing about a mismatch, because its output is what scripts read. The refusal first shows at the next command. |
 | `hook session-start`, `hook bash-domains`, `hook stage-edits` | They skip the check, so a mismatch changes nothing: each answers at exit 0. |
 | `stop`, `talos-restart` | They run, so a Hephaestus whose install changed can still be stopped and told to restart its Talos; `status` inspects it. |
-| `machine`, `login-item` | They run: neither writes a file of the repository's install. |
+| `machine` | It runs: it writes no file of the repository's install. |
 | `start` | It checks the repository it starts, which `--repository` may name, not the working directory. |
 | `start --successor-of` | It skips this check and compares the manifest as a step of the [Baton pass](glossary.md#baton-pass), so a mismatch is reported as that Baton pass's failure. |
 | a verb relayed [under a job](#under-a-job-the-hatch) | It relays before any check. |
@@ -1367,8 +1350,8 @@ fixed word, and the sentence a client shows.
 
 | command | what it does |
 |---|---|
-| `start [--repository <path>] [--port <n>] [--started-by user\|login-item] [--json]` | Start the board's one Hephaestus detached. `--started-by` names who started it, `user` when absent, and is passed to the detached Hephaestus; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With a Hephaestus live it starts nothing. It returns only once Hephaestus's API answers; a live Hephaestus whose API does not answer within the start's tries is refused `hephaestus-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Hephaestus's identity names them. `--repository` starts Hephaestus of the repository at that path, relative to the working directory, in place of the working directory's. `--port` binds the one given, `0` any free one, and none keeps the board's derived port. A second `start` answers `started: false` at exit 0. |
-| `start --foreground [--repository <path>] [--port <n>] [--started-by user\|login-item]` | The serving process itself, which the detached `start` and the Linux login item run: it serves in the foreground, logging to standard error and `<data>/hephaestus.log`, and prints its URL. It passes [the start gate](#the-start-gate) first, and a live Hephaestus refuses it `hephaestus-already-running` at exit 1. `--repository`, `--port` and `--started-by` are those of `start`. |
+| `start [--repository <path>] [--port <n>] [--started-by user] [--json]` | Start the board's one Hephaestus detached. `--started-by` names who started it, `user` being its one value and the default, and is passed to the detached Hephaestus; [the start gate](#the-start-gate) runs before the spawn. With a Hephaestus live it starts nothing. It returns only once Hephaestus's API answers; a live Hephaestus whose API does not answer within the start's tries is refused `hephaestus-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Hephaestus's identity names them. `--repository` starts Hephaestus of the repository at that path, relative to the working directory, in place of the working directory's. `--port` binds the one given, `0` any free one, and none keeps the board's derived port. A second `start` answers `started: false` at exit 0. |
+| `start --foreground [--repository <path>] [--port <n>] [--started-by user]` | The serving process itself, which the detached `start` runs: it serves in the foreground, logging to standard error and `<data>/hephaestus.log`, and prints its URL. It passes [the start gate](#the-start-gate) first, and a live Hephaestus refuses it `hephaestus-already-running` at exit 1. `--repository`, `--port` and `--started-by` are those of `start`. |
 | `start --successor-of <generation> [--port <n>]` | The successor's side of `restart`'s Baton pass, which only the live Hephaestus starts; see `restart`. It serves in the foreground. Its start origin is `successor`, so `--started-by` beside it is refused at exit 1. |
 | `stop [--now] [--json]` | Stop the live Hephaestus through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `hephaestus-still-live` at exit 1. A Baton left naming a dead process means Hephaestus never finished its own stop: once that process is gone the command records `hephaestus-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`; `--json` prints `{ answerVersion, outcome }`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. The board's [Talos](glossary.md#talos) is left running, and stops the agents at the end of their turn once the lease the stopped Hephaestus no longer renews ends; `--now` also has Talos stop every install, prepare, gate and merge line, through the API only. With no live Hephaestus it has nothing to do (exit 0). It checks no install version. |
 | `restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Hephaestus handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#restart) is below. |
@@ -1377,12 +1360,12 @@ fixed word, and the sentence a client shows.
 | `unpause [--json]` | Undo a pause: store `hephaestusState` `running` the same way. `--json` prints `{hephaestusState, previousState}`. `resume` is another verb, which restarts interrupted work. |
 | `crash-log [<number>] [--json]` | Print the crash log `<data>/hephaestus/crash-logs/crash-<number>.json`, the newest when no number is given: its heading (number, path, when and by whom it was recorded), the component and the crashed Baton generation, the classification and its evidence, the error and its stack, the jobs as the crash found them, then the tail of `hephaestus.log`. `--json` prints the stored log with `number` and `path` added. It reads files only, takes no lock and writes nothing, so it works with the forge up or down. With no log, or none of that number, it is refused `no-crash-log` at exit 1. [After a crash](#after-a-crash) has the whole path. |
 | `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, talosProtocolVersion, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Hephaestus API contracts this program serves as `GET /api/identity` names them, the protocol version of the Talos this program starts, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
-| `login-item add\|remove\|status [--repository <path>] [--json]` | The item that starts this board's Hephaestus when the user logs in, as `setup --login-item` writes it (a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows), under the label `com.forge.hephaestus.<trackerId>`, so every board has its own. `add` writes it, `remove` removes it, `status` reads it. `--json` prints `{ answerVersion, outcome, state, label, location, repository }`: `state` `present` or `absent` after the step, `outcome` `done`, `nothing-to-do`, or `null` for `status`. Refused `login-item-unavailable` where no item could run, and `login-item-not-changed` where the system refused the change, at exit 1. It writes no repository file. |
 
 #### The start gate
 
-Every start of the forge (`start`, the login item and a successor) classifies itself before it
-takes a Baton, from what the generation before it left: `<data>/hephaestus/presence.json`,
+A forge never starts at login: after a login a board stays stopped until the user starts it with `start` or from a
+client. Every start of the forge (`start` and a successor) classifies itself before it takes a Baton, from what the
+generation before it left: `<data>/hephaestus/presence.json`,
 `<data>/hephaestus/heartbeat.json`, the newest Baton and Talos's newest record, and the current boot. The kinds are
 `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` (with `crashSuspected` when the last beat was older
 than four lease renewal intervals at the boot) and `crashed` (Hephaestus or Talos). After `crashed`, or
@@ -1390,8 +1373,8 @@ than four lease renewal intervals at the boot) and `crashed` (Hephaestus or Talo
 `<data>/hephaestus/crash-logs/crash-<number>.json` once; a log already there, from the crash itself or an earlier
 start, stays. A crash log's number is its own, one above the highest log on disk (1 again once the folder is
 emptied), never the Baton generation, which starts again at 1 after a stop; the crashed generation is a field inside
-the log. Only a start by `user` then serves. A start by `login-item`, or a successor whose predecessor died during
-the Baton pass, stays off: it writes the registry's `presence` as `crashed`, logs one line to `hephaestus.log`, takes no
+the log. Only a start by `user` then serves. A successor whose predecessor died during
+the Baton pass stays off: it writes the registry's `presence` as `crashed`, logs one line to `hephaestus.log`, takes no
 Baton, binds no port, contacts no Talos, and is refused `forge-off-after-crash` at exit 1 ("The forge is off after a
 crash of Baton <n>; read why with `forge crash-log`, and start it yourself with `forge start`."). A start that serves
 records its kind in `presence.json` (`startClassification`, `startOrigin`) and in the board log (`start-classified`,
@@ -2225,17 +2208,15 @@ describes what the code does, proved over fakes on that Mac, never on the OS its
 | Talos endpoint | a Unix socket, path at most 103 bytes | a Unix socket, path at most 107 bytes | a named pipe with a random name |
 | Owner-only files | mode 0700 and 0600 | mode 0700 and 0600 | the profile's inherited ACL, read back with `icacls.exe` |
 | Temp folders a tracker may not live in | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()` |
-| Login item | a LaunchAgent | a systemd user unit | a `Run` registry value |
 
 Talos outlives its Hephaestus only where nothing kills Hephaestus's whole process group, cgroup or job:
 
-- On Linux, a logout ends a Talos started from that login session when logind sets `KillUserProcesses=yes`. The login
-  item's unit sets `KillMode=process`, so a stop or restart of the unit leaves its Talos and its children running.
+- On Linux, a logout ends a Talos started from that login session when logind sets `KillUserProcesses=yes`.
 - In a container, run with `--init` (as `docker run --init`), so a process reaps an ended Talos and its ended children;
   without it an ended one stays a zombie, which still reads as a live process.
 - On Windows, a detached child stays in its parent's job object, as Bun has no option to break away from it. When
   Hephaestus starts inside a job that ends its members on close, as some terminals and CI runners do, closing it ends
-  the board's Talos and its children. Start Hephaestus from a plain console or the login item.
+  the board's Talos and its children. Start Hephaestus from a plain console.
 
 In the Git Bash terminal (mintty), standard input is a pipe and not a console, so no command sees a terminal: `clear`
 refuses without `--yes`, and must be given it there.
@@ -2254,7 +2235,7 @@ the owner's macOS and Linux machines only; it is no part of the product.
 | code | meaning | examples |
 |---|---|---|
 | **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `stop` with no live Hephaestus, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
-| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while a Hephaestus is live (`hephaestus-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that Hephaestus refused, a second Hephaestus (`hephaestus-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `talos-restart`, `machine` and `login-item`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
+| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while a Hephaestus is live (`hephaestus-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that Hephaestus refused, a second Hephaestus (`hephaestus-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `talos-restart` and `machine`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
 | **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, a Hephaestus whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
 
 Check the code rather than the wording.
@@ -2626,13 +2607,11 @@ starts.
   without tickets, an Assistant's, holds Assistant boots.
 - These mappings are built from the probes and planted lines, not yet from a recorded run of each answer.
 
-| OS | a Hephaestus started from a terminal | the login item that `setup.sh --login-item` writes |
-|---|---|---|
-| macOS | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.zprofile` or `~/.zshrc`) | `launchctl setenv ANTHROPIC_API_KEY <key>` before the login item starts; it holds until logout, so repeat it at each login or from a login script of your own |
-| Linux | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.profile` or `~/.bashrc`) | `systemctl --user set-environment ANTHROPIC_API_KEY=<key>`, then restart the unit |
-| Windows | `setx ANTHROPIC_API_KEY <key>`, then open a new terminal | the same `setx`, which every process started after it gets, the Run value at the next login included |
-
-The login item files themselves never hold the key.
+| OS | a Hephaestus started from a terminal |
+|---|---|
+| macOS | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.zprofile` or `~/.zshrc`) |
+| Linux | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.profile` or `~/.bashrc`) |
+| Windows | `setx ANTHROPIC_API_KEY <key>`, then open a new terminal |
 
 ### `<data>/pipeline-setup.json`
 
@@ -2947,7 +2926,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `hephaestus-set` | none | `state` (`running` or `paused`) |
 | `hephaestus-started` | none | `codeVersion`, `installVersion` |
 | `hephaestus-stopped` | none | `reason`: `stopped` or `baton-passed` |
-| `start-classified` | none | `kind`: what the start found before it, `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` or `crashed`; `startOrigin`: `user`, `login-item` or `successor`; `previousGeneration`: the Baton generation before it, only when there is one; `crashSuspected` (`true`) only when a crash is suspected before the machine went down; `crashLogNumber`: the number of the crash log, only when a crash log exists for this start |
+| `start-classified` | none | `kind`: what the start found before it, `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` or `crashed`; `startOrigin`: `user` or `successor`; `previousGeneration`: the Baton generation before it, only when there is one; `crashSuspected` (`true`) only when a crash is suspected before the machine went down; `crashLogNumber`: the number of the crash log, only when a crash log exists for this start |
 | `baton-pass-failed` | none | `successorCodeVersion`, `step`, `error` |
 | `dispatcher-set` | none | `state` (`running`, `finished` or `stopped`), `runId` (a run id or `null`); retired: still read, never logged |
 

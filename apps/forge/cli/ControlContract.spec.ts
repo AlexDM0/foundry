@@ -16,20 +16,19 @@ import {
   RELAYED_VERB_OF_CONTROL_KIND,
   UNRELAYED_VERB_OF_CONTROL_KIND
 } from './constants/JobVerbs.ts';
-import { QUESTION_SUBCOMMAND_NAMES }   from './decisions/QuestionCommand.ts';
-import { MACHINE_SUBCOMMAND_NAMES }    from './dispatch/machine/MachineCommand.ts';
-import { DRAFT_SUBCOMMAND_NAMES }      from './drafts/DraftCommand.ts';
-import { EPIC_SUBCOMMAND_NAMES }       from './epics/EpicCommand.ts';
-import { GATE_SUBCOMMAND_NAMES }       from './gates/GateCommand.ts';
-import { INCIDENT_SUBCOMMAND_NAMES }   from './incidents/IncidentCommand.ts';
-import { INTAKE_SUBCOMMAND_NAMES }     from './intake/IntakeCommand.ts';
-import { JOB_SUBCOMMAND_NAMES }        from './jobs/JobCommand.ts';
-import { MERGE_SUBCOMMAND_NAMES }      from './merges/MergeCommand.ts';
-import { NEED_SUBCOMMAND_NAMES }       from './needs/NeedCommand.ts';
-import { PIPELINE_SUBCOMMAND_NAMES }   from './pipeline/PipelineCommand.ts';
-import { LOGIN_ITEM_SUBCOMMAND_NAMES } from './setup/login-item/LoginItemCommand.ts';
-import { TICKET_SUBCOMMAND_NAMES }     from './tickets/TicketCommand.ts';
-import { WORKTREE_SUBCOMMAND_NAMES }   from './worktrees/WorktreeCommand.ts';
+import { QUESTION_SUBCOMMAND_NAMES } from './decisions/QuestionCommand.ts';
+import { MACHINE_SUBCOMMAND_NAMES }  from './dispatch/machine/MachineCommand.ts';
+import { DRAFT_SUBCOMMAND_NAMES }    from './drafts/DraftCommand.ts';
+import { EPIC_SUBCOMMAND_NAMES }     from './epics/EpicCommand.ts';
+import { GATE_SUBCOMMAND_NAMES }     from './gates/GateCommand.ts';
+import { INCIDENT_SUBCOMMAND_NAMES } from './incidents/IncidentCommand.ts';
+import { INTAKE_SUBCOMMAND_NAMES }   from './intake/IntakeCommand.ts';
+import { JOB_SUBCOMMAND_NAMES }      from './jobs/JobCommand.ts';
+import { MERGE_SUBCOMMAND_NAMES }    from './merges/MergeCommand.ts';
+import { NEED_SUBCOMMAND_NAMES }     from './needs/NeedCommand.ts';
+import { PIPELINE_SUBCOMMAND_NAMES } from './pipeline/PipelineCommand.ts';
+import { TICKET_SUBCOMMAND_NAMES }   from './tickets/TicketCommand.ts';
+import { WORKTREE_SUBCOMMAND_NAMES } from './worktrees/WorktreeCommand.ts';
 
 /** True only when each type is assignable to the other, so a member added on one side alone fails the typecheck. */
 type IsTheSameTypeAs<Left, Right> = [Left] extends [Right] ? ([Right] extends [Left] ? true : false) : false;
@@ -50,15 +49,12 @@ const NOT_RELAYABLE_MUTATING_VERBS = [
   'init',
   'update',
   'start',
-  'login-item add',
-  'login-item remove',
 ];
 
 /**
- * `await` is the wait of User's own session around Hephaestus, which runs under no job; `login-item status` reads the login item and
- * `crash-log` a crash log, and neither writes anything.
+ * `await` is the wait of User's own session around Hephaestus, which runs under no job; `crash-log` reads a crash log and writes nothing.
  */
-const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'login-item status', 'crash-log'];
+const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'crash-log'];
 
 /** Verbs design section 9.2 retires, which no command replaces; T26 retired `ticket claim` and the measurement hook events, T26b `render`. */
 const RETIRING_VERBS = ['hook'];
@@ -92,7 +88,6 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'need') return subcommandVerbsOf(command, NEED_SUBCOMMAND_NAMES);
     if (command === 'pipeline') return subcommandVerbsOf(command, PIPELINE_SUBCOMMAND_NAMES);
     if (command === 'machine') return subcommandVerbsOf(command, MACHINE_SUBCOMMAND_NAMES);
-    if (command === 'login-item') return subcommandVerbsOf(command, LOGIN_ITEM_SUBCOMMAND_NAMES);
     // The measurement events retire as `hook`; the guards a Hephaestus renders into a job's settings stay.
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start', 'hook stage-edits'];
     return [command];

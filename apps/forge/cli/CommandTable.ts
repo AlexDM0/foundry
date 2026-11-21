@@ -49,7 +49,6 @@ export const COMMAND_TABLE = {
   unpause:         async () => (await import('./hephaestus/UnpauseCommand.ts')).unpauseCommand,
   'talos-restart': async () => (await import('./hephaestus/TalosRestartCommand.ts')).talosRestartCommand,
   machine:         async () => (await import('./dispatch/machine/MachineCommand.ts')).machineCommand,
-  'login-item':    async () => (await import('./setup/login-item/LoginItemCommand.ts')).loginItemCommand,
   help:            async () => {
     const { helpText } = await import('./HelpText.ts');
     return (_commandArguments: ArgumentParser, context: CommandContext) => {

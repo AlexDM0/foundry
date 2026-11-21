@@ -19,15 +19,6 @@
       }
     },
     {
-      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"add\",\"--json\"]",
-      "answer": {
-        "verdict": "finished",
-        "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"no-tracker-at-override\",\n  \"text\": \"No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names.\"\n}\n",
-        "standardError": "No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names. Run `forge init` there, or unset FORGE_ROOT to search upwards from the current directory instead.\n"
-      }
-    },
-    {
       "callShape": "run [\"/Users/example/.bun/bin/forge\",\"machine\",\"limit\",\"64\",\"--json\"]",
       "answer": {
         "verdict": "finished",

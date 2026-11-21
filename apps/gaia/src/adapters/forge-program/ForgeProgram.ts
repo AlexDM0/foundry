@@ -5,8 +5,6 @@
 import type { ProcessRun } from '../../lib/process-run/ProcessRun.ts';
 import type {
   ForgeInitAnswer,
-  ForgeLoginItemAction,
-  ForgeLoginItemAnswer,
   ForgeMachineLimitAnswer,
   ForgeProgramVerdict,
   ForgeStartAnswer,
@@ -36,7 +34,6 @@ export interface ForgeProgram {
   readonly update:          (forge: ForgeProgramTarget) => Promise<ForgeProgramVerdict<ForgeUpdateAnswer>>;
   readonly version:         (forge: ForgeProgramTarget) => Promise<ForgeProgramVerdict<ForgeVersionAnswer>>;
   readonly machineLimitSet: (forge: ForgeProgramTarget, agentLimit: number) => Promise<ForgeProgramVerdict<ForgeMachineLimitAnswer>>;
-  readonly loginItem:       (forge: ForgeProgramTarget, action: ForgeLoginItemAction) => Promise<ForgeProgramVerdict<ForgeLoginItemAnswer>>;
 }
 
 /** `forge start` returns only when the new Hephaestus's API answers. */
@@ -77,6 +74,5 @@ export function createForgeProgram(options: ForgeProgramOptions): ForgeProgram {
     machineLimitSet: (forge, agentLimit) => {
       return run(forge, ['machine', 'limit', String(agentLimit), JSON_FLAG], FORGE_VERB_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.machineLimitAnswerOf);
     },
-    loginItem: (forge, action) => run(forge, ['login-item', action, JSON_FLAG], FORGE_VERB_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.loginItemAnswerOf),
   };
 }

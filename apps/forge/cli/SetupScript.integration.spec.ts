@@ -2,9 +2,9 @@
  * `setup.ts`, started through the Bun running this suite as the bootstrap scripts start it, so no case needs bash. `--instruct-only`
  * promises to change nothing, and its `bun link` would repoint the machine-wide command at whichever checkout ran it. The entry runs with a
  * scratch `HOME` and a fake `bun` first on a minimal `PATH` that records every call, so neither the real `bun link` nor the real home is
- * ever reached. The cases hold that no install, link or build call happens and each is announced instead, that the home is unchanged, that
- * a Bun below `.bun-version` is refused, and that the login item is written only into the scratch home. The steps' writes are held
- * in-process by `cli/setup/Setup.spec.ts`, since here they would reach this checkout's git config.
+ * ever reached. The cases hold that no install, link or build call happens and each is announced instead, that the home is unchanged and that
+ * a Bun below `.bun-version` is refused. The steps' writes are held in-process by `cli/setup/Setup.spec.ts`, since here they would reach
+ * this checkout's git config.
  */
 import {
   chmodSync,
@@ -21,7 +21,6 @@ import {
   test
 } from 'bun:test';
 
-import { ToolRuntimeUtil }                                         from '../src/shared/ToolRuntimeUtil.ts';
 import { PRODUCT_NAMES }                                           from '../src/shared/constants/ProductNames.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                 from '../src/testing/ChildProcessCaseTimeout.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from '../src/testing/ScratchWorkspace.ts';
@@ -131,53 +130,4 @@ test('setup.ts refuses an unknown option with the usage line', () => {
   expect(exitCode).toBe(1);
   expect(output).toContain('Unknown option: --example');
   expect(recordedBunCalls()).toEqual([]);
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-function launchAgentPathOf(label: string): string {
-  return join(scratchHomeDirectory, 'Library', 'LaunchAgents', `${label}.plist`);
-}
-
-function runLoginHephaestus(loginArguments: readonly string[]): FinishedSetupRun {
-  return runSetupEntry(['--login-item', ...loginArguments]);
-}
-
-test('setup.ts --login-item writes a LaunchAgent labelled LOGIN_ITEM_LABEL running start --started-by login-item at load, every path absolute', () => {
-  const repositoryDirectory = join(scratchDirectory, 'tracked-repository');
-  mkdirSync(repositoryDirectory);
-  const { exitCode, output } = runLoginHephaestus([repositoryDirectory]);
-  expect(exitCode, output).toBe(0);
-
-  const plist = readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8');
-  expect(plist).toContain(`<key>Label</key>\n  <string>${PRODUCT_NAMES.LOGIN_ITEM_LABEL}</string>`);
-  const programArguments = [
-    join(fakeBunDirectory, 'bun'),
-    ...ToolRuntimeUtil.isolatingArgumentsFor(CHECKOUT_DIRECTORY),
-    join(CHECKOUT_DIRECTORY, 'agent-progress.ts'),
-    'start',
-    '--started-by',
-    'login-item',
-  ];
-  expect(plist).toContain(programArguments.map((argument) => `<string>${argument}</string>`).join('\n    '));
-  expect(plist).toContain(`<key>WorkingDirectory</key>\n  <string>${repositoryDirectory}</string>`);
-  expect(plist).toContain('<key>RunAtLoad</key>\n  <true/>');
-  expect(output).toContain(`launchctl bootstrap gui/$(id -u) "${launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL)}"`);
-  expect(recordedBunCalls()).toEqual([]);
-}, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
-
-test('setup.ts --login-item refuses a second repository under the same label, takes one under its own, and --instruct-only writes nothing', () => {
-  const firstRepository = join(scratchDirectory, 'first-repository');
-  const secondRepository = join(scratchDirectory, 'second-repository');
-  mkdirSync(firstRepository);
-  mkdirSync(secondRepository);
-  const homeBefore = snapshotOf(scratchHomeDirectory);
-  expect(runLoginHephaestus([firstRepository, '--instruct-only']).exitCode).toBe(0);
-  expect(snapshotOf(scratchHomeDirectory)).toEqual(homeBefore);
-
-  expect(runLoginHephaestus([firstRepository]).exitCode).toBe(0);
-  const refused = runLoginHephaestus([secondRepository]);
-  expect(refused.exitCode).toBe(1);
-  expect(refused.output).toContain('pass --label');
-  expect(readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8')).toContain(firstRepository);
-  expect(runLoginHephaestus([secondRepository, '--label', 'com.example-agency.hephaestus']).exitCode).toBe(0);
-  expect(readFileSync(launchAgentPathOf('com.example-agency.hephaestus'), 'utf8')).toContain(secondRepository);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

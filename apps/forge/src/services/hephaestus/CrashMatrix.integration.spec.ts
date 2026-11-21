@@ -16,7 +16,7 @@
  *
  * The start rows start the forge as its foreground entry does, in its order: the start gate over the real ports, then the Baton, the presence
  * record and a drive pass reconciling by the gate's verdict; a kill writes nothing, a stop writes its ending, and the crash path is
- * `CrashPath`'s. What matters there: a crash keeps a login-item start off with one crash log under a number of its own, which a user start
+ * `CrashPath`'s. What matters there: a crash keeps a successor's start off with one crash log under a number of its own, which a user start
  * keeps; a stop, a handover and a reboot with a fresh heartbeat serve, a stale one stays off as a suspected crash; and work a start finds
  * interrupted, or that Talos's lease ended, waits for `resume`. The foreground's own share (the registry write and the refusal of a start
  * that stays off, its exit code) is held by `cli/hephaestus/StartCommand.spec.ts` and `cli/hephaestus/HephaestusForeground.spec.ts`. The rows
@@ -426,7 +426,11 @@ const SHORT_LEASE_BOUNDS: TalosStartBounds = Object.freeze({
 const MAIN_THREAD_HELD_PAST_THE_LEASE = ['/bin/sleep', '4'];
 
 const USER_START: StartOriginReading = { startOrigin: 'user' };
-const LOGIN_ITEM_START: StartOriginReading = { startOrigin: 'login-item' };
+
+/** A start no user made: the only one the start gate keeps off after a crash. */
+function successorStartAfter(predecessorGeneration: number): StartOriginReading {
+  return { startOrigin: 'successor', predecessorGeneration };
+}
 const STALE_HEARTBEAT_BEFORE_BOOT_MILLISECONDS = 60 * 60 * 1_000;
 const FRESH_HEARTBEAT_BEFORE_BOOT_MILLISECONDS = 10 * 1_000;
 const MILLISECONDS_PER_SECOND = 1_000;
@@ -1402,7 +1406,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       await stopTheForge(first);
       await until(() => childEndReasonOf(job.id, 1) === 'lease-ended', 'Talos never stopped the agent at the end of the lease');
 
-      const restart   = await forgeStart(LOGIN_ITEM_START, adapter, { renewsLease: true });
+      const restart   = await forgeStart(USER_START, adapter, { renewsLease: true });
       const restarted = requireServing(restart);
       await restarted.drivePass.regroup();
       await passOnce(restarted.drivePass);
@@ -1421,17 +1425,17 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(launches.map((launch) => [launch.jobId, launch.resume])).toEqual([[job.id, false], [job.id, true]]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('Hephaestus killed, then a login-item start: it stays off, writes one crash log, takes no Baton, and Talos\'s lease stops the agents, '
+    test('Hephaestus killed, then a successor\'s start: it stays off, writes one crash log, takes no Baton, and Talos\'s lease stops the agents, '
       + 'which then read lease-ended', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const { first, job } = await killedForgeWithItsAgentStoppedByTheLease(adapter);
       const { hephaestusDirectory } = forgeFiles();
       const batonsBefore = Baton.batonGenerationsIn(hephaestusDirectory);
 
-      const loginItemStart = await forgeStart(LOGIN_ITEM_START, adapter);
+      const successorStart = await forgeStart(successorStartAfter(first.generation), adapter);
 
-      expect(loginItemStart.serving).toBeNull();
-      expect(loginItemStart.verdict).toMatchObject({
+      expect(successorStart.serving).toBeNull();
+      expect(successorStart.verdict).toMatchObject({
         verdict:           'stay-off',
         classification:    { kind: 'crashed', crashedComponent: 'hephaestus', previousGeneration: first.generation },
         crashLogNumber:    1,
@@ -1445,7 +1449,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
           crashedGeneration: first.generation,
           component:         'hephaestus',
           suspected:         false,
-          recordedBy:        { startOrigin: 'login-item', crashPath: false },
+          recordedBy:        { startOrigin: 'successor', crashPath: false },
           crashedProcess:    first.holder,
         },
       });
@@ -1457,8 +1461,8 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
     test('then a user start: it serves, classifies the crash, keeps the crash log, and the interrupted tickets wait until resume --all', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const { first, job } = await killedForgeWithItsAgentStoppedByTheLease(adapter);
-      expect((await forgeStart(LOGIN_ITEM_START, adapter)).serving).toBeNull();
-      const loggedByTheLoginItem = crashLogText(1);
+      expect((await forgeStart(successorStartAfter(first.generation), adapter)).serving).toBeNull();
+      const loggedByTheSuccessor = crashLogText(1);
 
       const userStart = await forgeStart(USER_START, adapter, { renewsLease: true });
       const serving   = requireServing(userStart);
@@ -1469,7 +1473,7 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       const crashOfHephaestus = { kind: 'crashed', crashedComponent: 'hephaestus', previousGeneration: first.generation };
       expect(userStart.verdict).toMatchObject({ verdict: 'serve', classification: crashOfHephaestus, crashLogNumber: 1 });
       expect(CrashLog.list(forgeFiles())).toEqual([1]);
-      expect(crashLogText(1)).toBe(loggedByTheLoginItem);
+      expect(crashLogText(1)).toBe(loggedByTheSuccessor);
       expect(requireBuildJob()).toMatchObject({ id: job.id, state: 'interrupted', interruption: 'lease-ended' });
       expect(launches).toHaveLength(1);
 
@@ -1478,13 +1482,13 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'lease-ended', instructed: true }]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('a crash of Baton 1, a user start and a stop, then a start that takes Baton 1 again and is killed: the next login-item start writes a crash log '
+    test('a crash of Baton 1, a user start and a stop, then a start that takes Baton 1 again and is killed: the next successor\'s start writes a crash log '
       + 'under the next number, keeps the older log of Baton 1 as it was, and its verdict, which the registry and the refusal take, names the new log', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const crashedFirst = requireServing(await forgeStart(USER_START, adapter));
       expect(crashedFirst.generation).toBe(1);
       await killTheForge(crashedFirst);
-      expect((await forgeStart(LOGIN_ITEM_START, adapter)).verdict).toMatchObject({ verdict: 'stay-off', crashLogNumber: 1, crashedGeneration: 1 });
+      expect((await forgeStart(successorStartAfter(crashedFirst.generation), adapter)).verdict).toMatchObject({ verdict: 'stay-off', crashLogNumber: 1, crashedGeneration: 1 });
       const olderLog = crashLogText(1);
 
       const servedAfterTheCrash = requireServing(await forgeStart(USER_START, adapter));
@@ -1495,21 +1499,22 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(crashedAgain.generation).toBe(1);
       await killTheForge(crashedAgain);
 
-      const loginItemStart = await forgeStart(LOGIN_ITEM_START, adapter);
+      const successorOrigin = successorStartAfter(crashedAgain.generation);
+      const successorStart = await forgeStart(successorOrigin, adapter);
 
-      expect(loginItemStart.verdict).toMatchObject({
+      expect(successorStart.verdict).toMatchObject({
         verdict: 'stay-off', crashLogNumber: 2, crashedGeneration: 1, crashLogPath: CrashLog.pathOf(forgeFiles(), 2),
       });
       expect(CrashLog.list(forgeFiles())).toEqual([1, 2]);
       expect(crashLogText(1)).toBe(olderLog);
       expect(CrashLog.read(forgeFiles(), 2)).toMatchObject({ verdict: 'read', record: { crashedGeneration: 1, crashedProcess: crashedAgain.holder } });
       expect(StartGate.loggedCrashLogOf(forgeFiles(), StartGate.evidenceOf({
-        ports, files: forgeFiles(), workspace: sessionWorkspace, origin: LOGIN_ITEM_START
-      }), loginItemStart.verdict.classification)).toBe(2);
+        ports, files: forgeFiles(), workspace: sessionWorkspace, origin: successorOrigin
+      }), successorStart.verdict.classification)).toBe(2);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
     test('an unexpected error in a pass: the crash path writes the crash log with the error and the registry presence crashed, the forge ends, '
-      + 'and the next login-item start stays off', async () => {
+      + 'and the next successor\'s start stays off', async () => {
       let throwInTheNextPass = false;
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const serving = requireServing(await forgeStart(USER_START, adapter, {
@@ -1545,8 +1550,8 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       });
       expect(serving.drivePass.state().passes).toBe(passesAtTheCrash);
 
-      const loginItemStart = await forgeStart(LOGIN_ITEM_START, adapter);
-      expect(loginItemStart.verdict).toMatchObject({ verdict: 'stay-off', crashLogNumber: 1, classification: { kind: 'crashed', crashedComponent: 'hephaestus' } });
+      const successorStart = await forgeStart(successorStartAfter(serving.generation), adapter);
+      expect(successorStart.verdict).toMatchObject({ verdict: 'stay-off', crashLogNumber: 1, classification: { kind: 'crashed', crashedComponent: 'hephaestus' } });
       expect(CrashLog.list(forgeFiles())).toEqual([1]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
@@ -1632,14 +1637,14 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(CrashLog.list(forgeFiles())).toEqual([]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('a reboot with a fresh heartbeat, then a login-item start: it serves, classifies the machine going down, and the interrupted work waits', async () => {
+    test('a reboot with a fresh heartbeat, then a start: it serves, classifies the machine going down, and the interrupted work waits', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
-      const first   = requireServing(await forgeStart(LOGIN_ITEM_START, adapter));
+      const first   = requireServing(await forgeStart(USER_START, adapter));
       const job     = await runningBuildSession(first.drivePass);
       await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
       await rebootTheForge(first, job, FRESH_HEARTBEAT_BEFORE_BOOT_MILLISECONDS);
 
-      const restart   = await forgeStart(LOGIN_ITEM_START, adapter);
+      const restart   = await forgeStart(USER_START, adapter);
       const restarted = requireServing(restart);
       await restarted.drivePass.regroup();
       await passOnce(restarted.drivePass);
@@ -1659,23 +1664,23 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(launches.map((launch) => [launch.jobId, launch.resume, launch.sessionId])).toEqual([[job.id, false, firstSessionId], [job.id, true, firstSessionId]]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('a reboot long after the last heartbeat, then a login-item start: it stays off with a crash log marked suspected', async () => {
+    test('a reboot long after the last heartbeat, then a successor\'s start: it stays off with a crash log marked suspected', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
-      const first   = requireServing(await forgeStart(LOGIN_ITEM_START, adapter));
+      const first   = requireServing(await forgeStart(USER_START, adapter));
       const job     = await runningBuildSession(first.drivePass);
       await until(() => eventLogTextOf(job.id, 1).includes('"init"'), 'the session never started');
       await rebootTheForge(first, job, STALE_HEARTBEAT_BEFORE_BOOT_MILLISECONDS);
 
-      const loginItemStart = await forgeStart(LOGIN_ITEM_START, adapter);
+      const successorStart = await forgeStart(successorStartAfter(first.generation), adapter);
 
-      expect(loginItemStart.serving).toBeNull();
-      expect(loginItemStart.verdict).toMatchObject({
+      expect(successorStart.serving).toBeNull();
+      expect(successorStart.verdict).toMatchObject({
         verdict: 'stay-off', classification: { kind: 'machine-went-down', crashSuspected: true }, crashLogNumber: 1, crashedGeneration: first.generation,
       });
       expect(CrashLog.read(forgeFiles(), 1)).toMatchObject({ verdict: 'read', record: { suspected: true, component: 'unknown', crashedGeneration: first.generation } });
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-    test('a crash of Talos while serving: the forge writes a crash log naming Talos and ends; the next login-item start stays off', async () => {
+    test('a crash of Talos while serving: the forge writes a crash log naming Talos and ends; the next successor\'s start stays off', async () => {
       const adapter = recordingAdapter(WAITING_ADAPTER_SCENARIO);
       const serving = requireServing(await forgeStart(USER_START, adapter));
       const job     = await runningBuildSession(serving.drivePass);
@@ -1690,8 +1695,8 @@ describe('the session, Talos, Hephaestus and reboot rows', () => {
       expect(Presence.readPresence(forgeFiles())).toMatchObject({ verdict: 'read', record: { ending: { kind: 'crashed', component: 'talos', crashLogNumber: 1 } } });
       expect(registeredPresence()).toMatchObject({ state: 'crashed', crash: { component: 'talos', crashLogPath: CrashLog.pathOf(forgeFiles(), 1) } });
 
-      const loginItemStart = await forgeStart(LOGIN_ITEM_START, adapter);
-      expect(loginItemStart.verdict).toMatchObject({ verdict: 'stay-off', classification: { kind: 'crashed', crashedComponent: 'talos' }, crashLogNumber: 1 });
+      const successorStart = await forgeStart(successorStartAfter(serving.generation), adapter);
+      expect(successorStart.verdict).toMatchObject({ verdict: 'stay-off', classification: { kind: 'crashed', crashedComponent: 'talos' }, crashLogNumber: 1 });
       expect(CrashLog.list(forgeFiles())).toEqual([1]);
     }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

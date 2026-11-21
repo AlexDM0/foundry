@@ -11,7 +11,7 @@ const BACKTICKED_SPAN = /`[^`]+`/;
 /** The forge program's verbs, as its command table lists them, as a sentence names them after the program's own name. */
 const FORGE_VERB_NAMED = new RegExp(
   '\\bforge (?:init|update|status|task|log|hook|usage|review-stats|ticket|epic|draft|concurrency|merges|merge|worktree|gate|decisions|decide'
-  + '|question|incidents|incident|jobs|job|intake|advise|await|range|open|clear|version|start|stop|restart|pause|unpause|talos-restart|machine|login-item|help)\\b',
+  + '|question|incidents|incident|jobs|job|intake|advise|await|range|open|clear|version|start|stop|restart|pause|unpause|talos-restart|machine|help)\\b',
   'i',
 );
 

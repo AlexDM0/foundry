@@ -52,7 +52,6 @@ import { JOB_SUBCOMMAND_NAMES }                                                 
 import { MERGE_SUBCOMMAND_NAMES }                                                                    from './merges/MergeCommand.ts';
 import { NEED_SUBCOMMAND_NAMES }                                                                     from './needs/NeedCommand.ts';
 import { PIPELINE_SUBCOMMAND_NAMES }                                                                 from './pipeline/PipelineCommand.ts';
-import { LOGIN_ITEM_SUBCOMMAND_NAMES }                                                               from './setup/login-item/LoginItemCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext }                                 from './testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                                                    from './testing/InitializedScratchRepository.ts';
 import { TICKET_SUBCOMMAND_NAMES }                                                                   from './tickets/TicketCommand.ts';
@@ -253,7 +252,6 @@ function everyVerb(): string[] {
     if (command === 'need') return NEED_SUBCOMMAND_NAMES.map((subcommand) => `need ${subcommand}`);
     if (command === 'pipeline') return PIPELINE_SUBCOMMAND_NAMES.map((subcommand) => `pipeline ${subcommand}`);
     if (command === 'machine') return MACHINE_SUBCOMMAND_NAMES.map((subcommand) => `machine ${subcommand}`);
-    if (command === 'login-item') return LOGIN_ITEM_SUBCOMMAND_NAMES.map((subcommand) => `login-item ${subcommand}`);
     return [command];
   });
 }

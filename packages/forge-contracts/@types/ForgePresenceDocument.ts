@@ -7,7 +7,7 @@ import type { MonitorInterruptionCause } from './MonitorSnapshotDocument.ts';
 
 export type ForgeStartKind = 'first-start' | 'handover' | 'stopped-on-purpose' | 'machine-went-down' | 'crashed';
 
-export type ForgeStartOrigin = 'user' | 'login-item' | 'successor';
+export type ForgeStartOrigin = 'user' | 'successor';
 
 /** Talos's lease standing in presence's words: `no-talos` when no live Talos has a readable record. */
 export type ForgeSupervision = 'supervising' | 'stopped' | 'checking-after-a-gap' | 'not-yet-renewed' | 'no-talos';

@@ -316,11 +316,10 @@ export type FleetDocumentNotificationKind =
   | 'draft-tickets';
 
 export interface FleetDocumentSettings {
-  theme:              FleetDocumentThemeChoice;
-  hiddenTrackerIds:   string[];
-  forgeProgramPath:   string | null;
-  notifications:      { enabled: boolean; kinds: Record<FleetDocumentNotificationKind, boolean> };
-  startForgesAtLogin: boolean;
+  theme:            FleetDocumentThemeChoice;
+  hiddenTrackerIds: string[];
+  forgeProgramPath: string | null;
+  notifications:    { enabled: boolean; kinds: Record<FleetDocumentNotificationKind, boolean> };
 }
 
 export type FleetDocumentSettingsFileState = 'read' | 'absent' | 'newer-version' | 'unreadable';

@@ -1,7 +1,6 @@
 /**
- * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Start the running forges at login" and "Notify me while Gaia is
- * open", each a switch that sends `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is
- * built for and its address;
+ * What the Forges view's Gaia panel shows of a fleet document (SCREENS A4): "Notify me while Gaia is open", a switch that sends
+ * `settings-set`; the forge program, the registry, and this Gaia's version, the one forge version it is built for and its address;
  * and, behind "What notifies", C2's seven kinds. A settings file newer than this Gaia is said once, and the switches are then off. A
  * refusal shows in the place whose switch sent the change, and only for that send.
  */
@@ -50,7 +49,6 @@ export interface GaiaPanelSurroundings {
 }
 
 export interface GaiaPanelContent {
-  readonly startAtLogin:     SettingsCheckbox;
   readonly notify:           SettingsCheckbox;
   /** Said when Gaia runs on its defaults because its settings file cannot be used. */
   readonly settingsFileLine: string | null;
@@ -67,7 +65,6 @@ export interface WhatNotifiesContent {
   readonly refusal: SettingsRefusal | null;
 }
 
-const START_AT_LOGIN_LABEL = 'Start the running forges at login';
 const NOTIFY_LABEL = 'Notify me while Gaia is open';
 
 /** C2's seven kinds, in its order, each named and explained as the artboard does. */
@@ -143,14 +140,6 @@ function gaiaPanelOf(fleetDocument: FleetDocument, surroundings: GaiaPanelSurrou
   const { settings } = fleetDocument;
   const disabled = settingsCannotChange(fleetDocument, surroundings.commandStates);
   return {
-    startAtLogin: {
-      place:       'gaia-panel',
-      label:       START_AT_LOGIN_LABEL,
-      explanation: null,
-      checked:     settings.startForgesAtLogin,
-      command:     { kind: 'settings-set', key: 'startForgesAtLogin', value: !settings.startForgesAtLogin },
-      disabled,
-    },
     notify: {
       place:       'gaia-panel',
       label:       NOTIFY_LABEL,

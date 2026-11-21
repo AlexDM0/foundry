@@ -114,7 +114,7 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   pipeline; `src/StoreBoundary.spec.ts` holds it, and `src/services/store/BoardStore.contract.spec.ts` is what any
   adapter must pass.
 - Every name the product goes by on a machine (program, data, worktrees and monitor folders, skills, storage and
-  environment prefixes, login item, Hephaestus port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
+  environment prefixes, Hephaestus port) is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`; every
   folder, marker, key and removal derives from it. The build is `forge` beside the released program, and
   `init` and `update` refuse `older-program-present` where the released program's data folder exists.
 
@@ -366,9 +366,11 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
   (`cli/Main.spec.ts`); `hook session-start`, `hook bash-domains` and `hook stage-edits` skip it; `stop`
   and `talos-restart` skip it, so a Hephaestus whose install changed can still be inspected, stopped and told to
-  restart its Talos. `machine` and `login-item` skip it, because they write no file of the install. `start` checks the
+  restart its Talos. `machine` skips it, because it writes no file of the install. `start` checks the
   repository that it starts.
-- The `--json` answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry
+- A forge never starts at login: no command writes an item that would start one, and after a login a board stays
+  stopped until User starts it with `start` or from a client.
+- The `--json` answers of `start`, `stop`, `init`, `update`, `version` and `machine` carry
   `answerVersion` (`cli/utils/ProgramAnswerUtil.ts`). With `--json`, a refusal of these commands is
   `{answerVersion, refusal, text}` on stdout at exit 1. A change of shape increases `answerVersion`.
 - `src/TestFileConventions.spec.ts` holds that no spec starts a Hephaestus without `--port 0`.

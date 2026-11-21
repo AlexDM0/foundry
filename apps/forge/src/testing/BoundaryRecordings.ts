@@ -13,7 +13,7 @@ const REPOSITORY_ROOT = join(import.meta.dir, '..', '..');
 /**
  * `sandbox`: the gate sandbox of the OS, stamped with the `bwrap` version on Linux and with the OS version elsewhere. `claude`: the Claude
  * Code program, whose stream-json lines the fake agent plays. `agent-progress`: the on-disk program that answers `version --json`, stamped
- * with its install and answer versions. `setup tools`: the programs that setup runs, Bun, git and the autostart tool of the OS, each named
+ * with its install and answer versions. `setup tools`: the programs that setup runs, Bun and git, each named
  * with its version.
  */
 export type RecordedSystem = 'agent-progress' | 'bun' | 'claude' | 'eslint' | 'git' | 'gpg' | 'operating system' | 'sandbox' | 'setup tools';

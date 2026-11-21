@@ -64,7 +64,7 @@ function writeCrashLog(crashedGeneration: number, errorName: string, classificat
     suspected:  false,
     classification,
     recordedAt: '2026-09-18T20:05:00+00:00',
-    recordedBy: { generation: null, startOrigin: 'login-item', crashPath: false },
+    recordedBy: { generation: null, startOrigin: 'successor', crashPath: false },
     error:      {
       origin: 'talos-lost', name: errorName, message: 'an example crash', stack: null
     },

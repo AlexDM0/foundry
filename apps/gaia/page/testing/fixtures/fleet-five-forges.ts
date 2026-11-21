@@ -823,7 +823,6 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
         'draft-tickets':              false,
       },
     },
-    startForgesAtLogin: false,
   },
   gaia: {
     gaiaVersion:       '0.1.0',

@@ -13,7 +13,6 @@ import type {
   ForgeBatonPass,
   ForgeInitAnswer,
   ForgeInitOutcome,
-  ForgeLoginItemAnswer,
   ForgeMachineLimitAnswer,
   ForgeProgramOutcome,
   ForgeProgramVerdict,
@@ -35,7 +34,6 @@ export interface ForgeProgramRunPlace {
 const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion' } as const;
 const OUTCOMES: ReadonlySet<unknown> = new Set<ForgeProgramOutcome>(['done', 'nothing-to-do']);
 const INIT_OUTCOMES: ReadonlySet<unknown> = new Set<ForgeInitOutcome>(['created', 'refreshed']);
-const LOGIN_ITEM_STATES: ReadonlySet<unknown> = new Set<ForgeLoginItemAnswer['loginItem']>(['present', 'absent']);
 const CONTRACT_KEYS = ['summary', 'monitor', 'control'] as const;
 
 function documentIn(standardOutput: string): JsonObject | null {
@@ -148,12 +146,6 @@ function versionAnswerOf(document: JsonObject): ForgeVersionAnswer | null {
   };
 }
 
-/** The item's `state` after the step; its label, location and repository are the forge's to show and are not read. */
-function loginItemAnswerOf(document: JsonObject): ForgeLoginItemAnswer | null {
-  const loginItem = JsonValueUtil.ownValueOf(document, 'state');
-  return LOGIN_ITEM_STATES.has(loginItem) ? { loginItem: loginItem as ForgeLoginItemAnswer['loginItem'] } : null;
-}
-
 function machineLimitAnswerOf(document: JsonObject): ForgeMachineLimitAnswer | null {
   const outcome    = outcomeOf(document);
   const agentLimit = wholeNumberOf(document, 'limit');
@@ -204,6 +196,5 @@ export const ForgeAnswerMapUtil = {
   initAnswerOf,
   updateAnswerOf,
   versionAnswerOf,
-  loginItemAnswerOf,
   machineLimitAnswerOf,
 } as const;

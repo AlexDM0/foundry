@@ -216,7 +216,6 @@ function settingsOut(settings: GaiaSettings): FleetDocumentSettings {
         'draft-tickets':              kinds['draft-tickets'],
       },
     },
-    startForgesAtLogin: settings.startForgesAtLogin,
   };
 }
 

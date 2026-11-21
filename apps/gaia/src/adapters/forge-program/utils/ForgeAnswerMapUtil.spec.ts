@@ -140,23 +140,19 @@ describe('the done answers of each verb', () => {
     expect(ForgeAnswerMapUtil.versionAnswerOf({ ...versionDocument, talosProtocolVersion: 'two' })).toBeNull();
   });
 
-  test('the login item reads its state after the step, and the machine limit the limit it stored', () => {
-    expect(ForgeAnswerMapUtil.loginItemAnswerOf({
-      answerVersion: 2, outcome: null, state: 'absent', label: 'com.forge.hephaestus.example-tracker', location: '/Users/example/Library/LaunchAgents', repository: '/Users/example'
-    })).toEqual({ loginItem: 'absent' });
+  test('the machine limit reads the limit it stored', () => {
     expect(ForgeAnswerMapUtil.machineLimitAnswerOf({
       answerVersion: 2, outcome: 'nothing-to-do', limit: 4, ceiling: 10
     })).toEqual({ outcome: 'nothing-to-do', agentLimit: 4 });
   });
 
-  test('init, version, the login item and the machine limit each refuse a document without a key they need', () => {
+  test('init, version and the machine limit each refuse a document without a key they need', () => {
     expect(ForgeAnswerMapUtil.initAnswerOf({
       answerVersion: 2, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project'
     })).toBeNull();
     expect(ForgeAnswerMapUtil.versionAnswerOf({
       answerVersion: 2, codeVersion: '3a6e9e6043da', installVersion: 27, contracts: {}
     })).toBeNull();
-    expect(ForgeAnswerMapUtil.loginItemAnswerOf({ answerVersion: 2, outcome: 'done', state: 'written' })).toBeNull();
     expect(ForgeAnswerMapUtil.machineLimitAnswerOf({ answerVersion: 2, outcome: 'done', limit: -1 })).toBeNull();
   });
 

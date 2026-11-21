@@ -11,8 +11,8 @@ import type { ArgumentParser }                 from '../arguments/ArgumentParser
 
 export const ANSWER_VERSION = 2;
 
-/** The verbs whose `--json` output is a versioned answer, a refusal included; `machine` and `login-item` with their subcommand. */
-export const VERBS_THAT_ANSWER_IN_VERSIONED_JSON: ReadonlySet<string> = new Set(['start', 'stop', 'init', 'update', 'version', 'machine', 'login-item']);
+/** The verbs whose `--json` output is a versioned answer, a refusal included; `machine` with its subcommand. */
+export const VERBS_THAT_ANSWER_IN_VERSIONED_JSON: ReadonlySet<string> = new Set(['start', 'stop', 'init', 'update', 'version', 'machine']);
 
 /** A refusal built from words carries no code of its own: the verb's arguments were refused. */
 const ARGUMENTS_REFUSED_CODE = 'arguments-refused';

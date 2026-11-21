@@ -190,7 +190,7 @@ of this project; the Assistant is a session Talos runs as its child.
 | --- | --- | --- |
 | Event sourced | `progress.json` is read as current state; the log feeds counts and is never replayed into state | `openBoard` in `src/services/tracker/TrackerPipeline.ts`, where the store's local adapter opens every write |
 | Self-restarting | Hephaestus never restarts itself; an install change stops launches until `forge restart` or `forge update` runs a Baton pass | `src/services/hephaestus/InstallChangeWatch.ts` |
-| A machine-wide service | One Hephaestus per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/hephaestus/GateRunSlots.ts`, `setup.ts`, `cli/setup/LoginHephaestus.ts` |
+| A machine-wide service | One Hephaestus per board; [`<monitor>`](../glossary.md#reading-names) is shared files, with no process behind them | `src/services/hephaestus/GateRunSlots.ts`, `setup.ts` |
 
 ## The naming trap
 

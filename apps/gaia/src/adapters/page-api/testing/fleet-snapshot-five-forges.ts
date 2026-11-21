@@ -867,7 +867,6 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
         'draft-tickets':              false,
       },
     },
-    startForgesAtLogin: false,
   },
   gaia: {
     gaiaVersion:       '0.1.0',

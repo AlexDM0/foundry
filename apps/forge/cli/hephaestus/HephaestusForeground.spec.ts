@@ -6,7 +6,7 @@
  * table's, so the start reads the same under a gate's sandbox, which refuses a nested sandbox and a setuid program. A Talos started from the
  * program on disk that answers another protocol version refuses the start `talos-protocol-differs`, naming both versions, and one that never
  * served refuses it `talos-unavailable`; `cli/hephaestus/StartCommand.integration.spec.ts` holds that a started Hephaestus's Talos serves
- * under a lease it renewed. The start hold logs `start-classified` right after `hephaestus-started`, and a login item's start after a crash is
+ * under a lease it renewed. The start hold logs `start-classified` right after `hephaestus-started`, and a successor's start after a crash is
  * refused by the start gate before it takes a Baton or binds a port, telling the registry the forge crashed.
  */
 import { readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -41,7 +41,7 @@ import { describeWhenRecorded }                                  from '../../src
 import { runCommandLine }                                        from '../Main.ts';
 import { createCapturedCommandContext }                          from '../testing/CapturedCommandContext.ts';
 import { createInitializedRecordedGitRepository }                from '../testing/InitializedScratchRepository.ts';
-import { GIT_VERSION, idleHephaestusAnswersIn }                  from '../testing/RecordedGitStages.ts';
+import { idleHephaestusAnswersIn }                               from '../testing/RecordedGitStages.ts';
 import { heartbeatOnRenewalOf, talosStartRefusalOf }             from './HephaestusForeground.ts';
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
@@ -108,17 +108,17 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
       currentDirectory: repositoryDirectory, homeDirectory: join(repositoryDirectory, 'hephaestus-home'), temporaryDirectories: [], platformPorts, now: SPEC_CLOCK
     });
 
-    expect(await runCommandLine(['start', '--foreground', '--started-by', 'login-item', '--port', '0'], context), context.errorText()).toBe(2);
+    expect(await runCommandLine(['start', '--foreground', '--started-by', 'user', '--port', '0'], context), context.errorText()).toBe(2);
 
     const records = storedLogRecordsOf(repositoryDirectory);
     const startedIndex = records.findIndex((record) => record.kind === 'hephaestus-started');
     expect(startedIndex).toBeGreaterThanOrEqual(0);
-    expect(records[startedIndex + 1]).toMatchObject({ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'login-item' } });
+    expect(records[startedIndex + 1]).toMatchObject({ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'user' } });
     const presence = Presence.readPresence(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory));
-    expect(presence.verdict === 'read' ? presence.record : null).toMatchObject({ startOrigin: 'login-item', startClassification: { kind: 'first-start' } });
+    expect(presence.verdict === 'read' ? presence.record : null).toMatchObject({ startOrigin: 'user', startClassification: { kind: 'first-start' } });
   });
 
-  test('a login-item start after a crash is refused forge-off-after-crash and leaves no Baton generation and no port bound', async () => {
+  test('a successor\'s start after a crash of its predecessor is refused forge-off-after-crash and leaves no Baton generation and no port bound', async () => {
     const files = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
     const crashedGeneration = 2;
     Presence.writeStartedPresence(files, {
@@ -130,8 +130,8 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
       startClassification: null,
     });
     Presence.writeEnding(files, crashedGeneration, { kind: 'crashed', component: 'hephaestus', crashLogNumber: null }, '2026-09-18T20:05:00+00:00');
-    // The version check of the git floor, then the registry's read of the origin; no git call of a serving start.
-    recordedGit.answerFrom([GIT_VERSION, ORIGIN_ASKED_WITH_NONE_SET]);
+    // What the successor's proof of the code on disk asks, then the registry's read of the origin; no git call of a serving start.
+    recordedGit.answerFrom([...idleHephaestusAnswersIn(repositoryDirectory), ORIGIN_ASKED_WITH_NONE_SET]);
     processTable.callerProcess();
     const platformPorts = { ...processTable.ports, gateConfinement: fakeGateConfinement('confined') };
     const homeDirectory = join(repositoryDirectory, 'hephaestus-home');
@@ -139,7 +139,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start of
       currentDirectory: repositoryDirectory, homeDirectory, temporaryDirectories: [], platformPorts, now: SPEC_CLOCK
     });
 
-    expect(await runCommandLine(['start', '--foreground', '--started-by', 'login-item', '--port', '0'], context)).toBe(1);
+    expect(await runCommandLine(['start', '--successor-of', String(crashedGeneration), '--port', '0'], context), context.errorText()).toBe(1);
 
     expect(context.errorText()).toContain(`is off after a crash of Baton ${crashedGeneration}`);
     expect(Baton.batonGenerationsIn(files.hephaestusDirectory)).toEqual([]);

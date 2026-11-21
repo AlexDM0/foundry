@@ -74,7 +74,6 @@ const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
   'cli/setup/SetupPlatformFor.ts',
   'cli/setup/PosixSetupPlatform.ts',
   'cli/setup/WindowsSetupPlatform.ts',
-  'cli/setup/AutostartFor.ts',
   'src/services/hephaestus/HeldSlotCreateFor.ts',
 ];
 
@@ -96,16 +95,10 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',
   'cli/setup/Setup.ts: platform-property: host, platform: setupPlatformFor(host.platform), report, instructOnly':
     'Hands the host\'s platform straight to the selector and decides nothing on it.',
-  'cli/setup/LoginHephaestus.ts: platform-property: const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));':
-    'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
   'src/lib/atomic-file/FileReplaceFor.ts: process-platform: return fileReplaceFor(process.platform);':
     'Lib writes have no context, so this selector reads the platform at call time.',
   'src/services/hephaestus/HeldSlotCreateFor.ts: process-platform: return heldSlotCreateMeansTakenFor(process.platform);':
     'The gate slots have no context, as the FileReplace port they create through, so this selector reads the platform at call time.',
-  'cli/setup/login-item/LoginItemCommand.ts: platform-property: const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));':
-    'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
-  'cli/setup/login-item/LoginItemCommand.ts: platform-property: platform:          context.platform as NodeJS.Platform,':
-    'Hands the context\'s platform to the setup host the Autostart selector reads, and decides nothing on it.',
   'src/lib/tracker-model/utils/NetworkDomainUtil.ts: search-path-separator: const [firstGroup = \'\'] = address.split(\':\');':
     'Splits an IPv6 address into its groups; no search path is involved.',
   'src/lib/process-identity/ProcessSupervision.ts: detached-spawn: readonly detached:     boolean;':
@@ -215,7 +208,7 @@ describe('the scan saw the tree', () => {
   test('it recognises the adapters, and the forms it looks for really stand in them', () => {
     const adapters = SOURCES.filter((source) => isPlatformAdapter(source.path));
     expect(adapters.map((source) => source.path)).toEqual(expect.arrayContaining([
-      'cli/setup/AutostartFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/talos/PosixSocketEndpoint.ts',
+      'cli/setup/SetupPlatformFor.ts', 'src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/lib/shell-line/ShellLineFor.ts', 'src/lib/talos/PosixSocketEndpoint.ts',
     ]));
     const formsInAdapters = new Set(adapters.flatMap((source) => source.text.split('\n').flatMap(formsNamedBy)));
     expect([...formsInAdapters]).toEqual(expect.arrayContaining([
@@ -397,7 +390,7 @@ describe('every Linux and Windows adapter is named by a contract spec', () => {
   test('the scan sees the contracts and the adapters of both platforms', () => {
     expect(SOURCES.filter((source) => CONTRACT_SPEC_PATTERN.test(source.path)).length).toBeGreaterThan(10);
     expect(SOURCES.map((source) => source.path).filter((path) => isShippingCode(path) && CONTRACTED_ADAPTER_PATTERN.test(path))).toEqual(expect.arrayContaining([
-      'cli/setup/LinuxAutostart.ts', 'cli/setup/WindowsSetupPlatform.ts', 'src/lib/gate-confinement/LinuxBubblewrap.ts', 'src/lib/shell-line/WindowsCommandLine.ts',
+      'cli/setup/WindowsSetupPlatform.ts', 'src/lib/gate-confinement/LinuxBubblewrap.ts', 'src/lib/shell-line/WindowsCommandLine.ts',
     ]));
   });
 

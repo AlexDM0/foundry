@@ -43,7 +43,6 @@ const EVERY_KEY_CHANGED: GaiaSettings = {
       'draft-tickets':              true,
     },
   },
-  startForgesAtLogin: true,
 };
 
 let homeDirectory = '';

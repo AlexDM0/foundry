@@ -142,11 +142,8 @@ describe('every verb done (recorded)', () => {
     });
   });
 
-  test('the login item and the machine limit answer done with the state they leave', async () => {
+  test('the machine limit answers done with the limit it leaves', async () => {
     const { forgeProgram } = forgeProgramAt('every-verb-done');
-    expect(await forgeProgram.loginItem(registeredForge(), 'add')).toEqual({ verdict: 'done', answer: { loginItem: 'present' } });
-    expect(await forgeProgram.loginItem(registeredForge(), 'remove')).toEqual({ verdict: 'done', answer: { loginItem: 'absent' } });
-    expect(await forgeProgram.loginItem(registeredForge(), 'status')).toEqual({ verdict: 'done', answer: { loginItem: 'present' } });
     expect(await forgeProgram.machineLimitSet(registeredForge(), 4)).toEqual({ verdict: 'done', answer: { outcome: 'done', agentLimit: 4 } });
   });
 
@@ -158,7 +155,6 @@ describe('every verb done (recorded)', () => {
     await forgeProgram.init(forge, 'Example Project');
     await forgeProgram.update(forge);
     await forgeProgram.version(forge);
-    await forgeProgram.loginItem(forge, 'status');
     await forgeProgram.machineLimitSet(forge, 4);
     expect(callShapesAnswered()).toEqual([
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['start', '--json']),
@@ -166,7 +162,6 @@ describe('every verb done (recorded)', () => {
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['init', '--project', 'Example Project', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['update', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['version', '--json']),
-      runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'status', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json']),
     ]);
     expect(workingDirectories).toEqual(callShapesAnswered().map(() => forgeRoot));
@@ -181,7 +176,6 @@ describe('every verb refused (recorded)', () => {
     expect(await forgeProgram.stop(forge)).toEqual(recordedRefusalOf(['stop', '--json']));
     expect(await forgeProgram.init(forge, 'Example Project')).toEqual(recordedRefusalOf(['init', '--project', 'Example Project', '--json']));
     expect(await forgeProgram.update(forge)).toEqual(recordedRefusalOf(['update', '--json']));
-    expect(await forgeProgram.loginItem(forge, 'add')).toEqual(recordedRefusalOf(['login-item', 'add', '--json']));
     expect(await forgeProgram.machineLimitSet(forge, 64)).toEqual(recordedRefusalOf(['machine', 'limit', '64', '--json']));
   });
 

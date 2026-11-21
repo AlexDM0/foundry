@@ -225,10 +225,10 @@ describe('Hephaestus and its jobs', () => {
       {
         kind:   'start-classified',
         fields: {
-          kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 4, crashSuspected: true, crashLogNumber: 2
+          kind: 'machine-went-down', startOrigin: 'successor', previousGeneration: 4, crashSuspected: true, crashLogNumber: 2
         }
       },
-      'Forge started by the login item after the machine went down (previous Baton 4), a crash suspected before it; crash log 2 recorded',
+      'Forge started by its predecessor after the machine went down (previous Baton 4), a crash suspected before it; crash log 2 recorded',
       [],
     ],
     [

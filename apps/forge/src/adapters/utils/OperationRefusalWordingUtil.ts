@@ -900,10 +900,6 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `No picture ${detail.pictureId} is stored on this board: upload it again before you send it. ${NOTHING_WAS_WRITTEN}`;
     case 'too-many-pictures':
       return `The message carries ${detail.pictureCount} pictures, and one message carries at most ${detail.limit}. ${NOTHING_WAS_WRITTEN}`;
-    case 'login-item-unavailable':
-      return `No login item can start Hephaestus on this machine: ${detail.reason}.`;
-    case 'login-item-not-changed':
-      return `The login item ${detail.location} was not changed: ${detail.reason}.`;
     case 'hephaestus-not-answering':
       return `Hephaestus at ${detail.url} is live, but its API did not answer, so nothing was started beside it. Stop it and start it again.`;
     case 'machine-agent-limit-above-cpus':

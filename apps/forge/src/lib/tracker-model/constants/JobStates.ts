@@ -106,7 +106,7 @@ export const HEPHAESTUS_STOP_REASONS = ['stopped', 'baton-passed'] as const sati
 
 export const START_KINDS = ['first-start', 'handover', 'stopped-on-purpose', 'machine-went-down', 'crashed'] as const satisfies readonly StartKind[];
 
-export const START_ORIGINS = ['user', 'login-item', 'successor'] as const satisfies readonly StartOrigin[];
+export const START_ORIGINS = ['user', 'successor'] as const satisfies readonly StartOrigin[];
 
 export const JOB_STOP_MODES = ['stop', 'wind-down', 'fresh'] as const satisfies readonly JobStopMode[];
 

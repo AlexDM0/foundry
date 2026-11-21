@@ -81,7 +81,7 @@ forge lives at github.com/AlexDM0/foundry. It needs Bun, git and a logged-in `cl
 | Platform | x64 | arm64 | Also needs | Confinement in force |
 | --- | --- | --- | --- | --- |
 | macOS | never run | run | nothing more: `sandbox-exec` ships with macOS | gates under Seatbelt; sessions in Claude Code's sandbox |
-| Linux | never run | never run | `bwrap` able to create user namespaces; `systemctl --user` for the login item | gates under bubblewrap; sessions in Claude Code's sandbox |
+| Linux | never run | never run | `bwrap` able to create user namespaces | gates under bubblewrap; sessions in Claude Code's sandbox |
 | Windows (native) | never run | never run | an absolute `SystemRoot`; PowerShell for `setup.ps1` | none: gates and sessions run unconfined by design |
 
 Linux and Windows have adapters for every OS-dependent part, proved only over fakes on a Mac.

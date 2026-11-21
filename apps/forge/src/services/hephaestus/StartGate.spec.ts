@@ -1,7 +1,7 @@
 /**
  * The start gate on a scratch data folder, over a process table and a boot the spec plants. What matters: only a start the user made serves
- * after a crash or a crash suspected before a reboot, a login item and a successor stay off; the crash log is written once, whoever reads
- * the crash first, so a second refused start or the user's start finds the first log standing; a crash of a Baton generation that came round
+ * after a crash or a crash suspected before a reboot, a successor stays off; the crash log is written once, whoever reads the crash first,
+ * so a second refused start or the user's start finds the first log standing; a crash of a Baton generation that came round
  * again, after an older crash of that generation, writes a log of its own under the next number and the verdict names it; a start that died
  * before its presence write is named by its Baton's holder; a reboot with a fresh beat writes no log; a Talos lost in this boot names Talos;
  * and a crash whose generation nothing names is logged once, with no generation.
@@ -46,7 +46,7 @@ const TALOS_PROCESS_ID = 4343;
 const THIS_PROCESS_START_STAMP = '1700000500';
 const FIRST_CRASH_LOG_NUMBER = 1;
 
-const LOGIN_ITEM: StartOriginReading = { startOrigin: 'login-item' };
+const SUCCESSOR: StartOriginReading = { startOrigin: 'successor', predecessorGeneration: CRASHED_GENERATION };
 const USER: StartOriginReading = { startOrigin: 'user' };
 
 let scratchDirectory = '';
@@ -154,8 +154,8 @@ describe('after a crash in this boot', () => {
     plantPreviousGeneration(CURRENT_BOOT, null, true);
   });
 
-  test('a login-item start stays off and writes one crash log, of Hephaestus, recorded by the start', () => {
-    const verdict = admit(LOGIN_ITEM);
+  test('a successor whose predecessor died during the Baton pass stays off and writes one crash log, of Hephaestus, recorded by the start', () => {
+    const verdict = admit(SUCCESSOR);
 
     expect(verdict).toMatchObject({
       verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER, crashedGeneration: CRASHED_GENERATION, crashLogPath: CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER)
@@ -166,18 +166,18 @@ describe('after a crash in this boot', () => {
       crashedGeneration: CRASHED_GENERATION,
       component:         'hephaestus',
       suspected:         false,
-      recordedBy:        { generation: null, startOrigin: 'login-item', crashPath: false },
+      recordedBy:        { generation: null, startOrigin: 'successor', crashPath: false },
       crashedProcess:    crashedProcessIn(CURRENT_BOOT),
       activeJobs:        [],
     });
   });
 
   test('a second refused start writes no second log and leaves the first byte for byte', () => {
-    admit(LOGIN_ITEM);
+    admit(SUCCESSOR);
     const firstLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
     const again = StartGate.admit({
-      ports: portsInBoot(), files, workspace, boardReads: boardReads(), origin: LOGIN_ITEM, stampNow: () => '2026-11-19T10:00:00+01:00'
+      ports: portsInBoot(), files, workspace, boardReads: boardReads(), origin: SUCCESSOR, stampNow: () => '2026-11-19T10:00:00+01:00'
     });
 
     expect(again).toMatchObject({ verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER });
@@ -192,7 +192,7 @@ describe('after a crash in this boot', () => {
     }, earlierRun));
     const olderLog = readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8');
 
-    const verdict = admit(LOGIN_ITEM);
+    const verdict = admit(SUCCESSOR);
 
     expect(verdict).toMatchObject({
       verdict: 'stay-off', crashLogNumber: 2, crashedGeneration: CRASHED_GENERATION, crashLogPath: CrashLog.pathOf(files, 2)
@@ -200,15 +200,7 @@ describe('after a crash in this boot', () => {
     expect(CrashLog.list(files)).toEqual([FIRST_CRASH_LOG_NUMBER, 2]);
     expect(storedCrashLog(2)).toMatchObject({ crashedGeneration: CRASHED_GENERATION, crashedProcess: crashedProcessIn(CURRENT_BOOT), error: null });
     expect(readFileSync(CrashLog.pathOf(files, FIRST_CRASH_LOG_NUMBER), 'utf8')).toBe(olderLog);
-    expect(admit(LOGIN_ITEM)).toMatchObject({ crashLogNumber: 2 });
-  });
-
-  test('a successor whose predecessor died during the Baton pass stays off', () => {
-    const verdict = admit({ startOrigin: 'successor', predecessorGeneration: CRASHED_GENERATION });
-
-    expect(verdict.verdict).toBe('stay-off');
-    expect(verdict.classification.kind).toBe('crashed');
-    expect(storedCrashLog().recordedBy.startOrigin).toBe('successor');
+    expect(admit(SUCCESSOR)).toMatchObject({ crashLogNumber: 2 });
   });
 });
 
@@ -231,20 +223,20 @@ describe('after a reboot the generation before did not record', () => {
     plantPreviousGeneration(EARLIER_BOOT, null, true);
   });
 
-  test('a login-item start with a stale beat stays off and writes a log marked suspected, of no known component', () => {
+  test('a successor\'s start with a stale beat stays off and writes a log marked suspected, of no known component', () => {
     beatBeforeBoot(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS * 2);
 
-    const verdict = admit(LOGIN_ITEM);
+    const verdict = admit(SUCCESSOR);
 
     expect(verdict.verdict).toBe('stay-off');
     expect(verdict.classification).toMatchObject({ kind: 'machine-went-down', crashSuspected: true });
     expect(storedCrashLog()).toMatchObject({ suspected: true, component: 'unknown', lastHeartbeat: { sequence: 1 } });
   });
 
-  test('a login-item start with a fresh beat serves and writes no crash log', () => {
+  test('a successor\'s start with a fresh beat serves and writes no crash log', () => {
     beatBeforeBoot(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS / 4);
 
-    const verdict = admit(LOGIN_ITEM);
+    const verdict = admit(SUCCESSOR);
 
     expect(verdict).toMatchObject({ verdict: 'serve', crashLogNumber: null });
     expect(verdict.classification).toMatchObject({ kind: 'machine-went-down', crashSuspected: false });
@@ -252,22 +244,22 @@ describe('after a reboot the generation before did not record', () => {
   });
 });
 
-test('a login-item start after a Talos lost in this boot, the forge stopped on purpose, stays off with a log naming Talos', () => {
+test('a successor\'s start after a Talos lost in this boot, the forge stopped on purpose, stays off with a log naming Talos', () => {
   plantPreviousGeneration(CURRENT_BOOT, { kind: 'stopped' }, false);
   PlantedChild.plantTalosRecord(workspace.trackerDirectory, 1, { talos: { processId: TALOS_PROCESS_ID, startStamp: '1700000001', bootIdentity: CURRENT_BOOT } });
 
-  const verdict = admit(LOGIN_ITEM);
+  const verdict = admit(SUCCESSOR);
 
   expect(verdict.verdict).toBe('stay-off');
   expect(verdict.classification).toMatchObject({ kind: 'crashed', crashedComponent: 'talos', evidence: { talos: 'lost-this-boot' } });
   expect(storedCrashLog().component).toBe('talos');
 });
 
-test('a login-item start after a stop on purpose, its Talos still live, serves with no crash log', () => {
+test('a successor\'s start after a stop on purpose, its Talos still live, serves with no crash log', () => {
   plantPreviousGeneration(CURRENT_BOOT, { kind: 'stopped' }, false);
   PlantedChild.plantTalosRecord(workspace.trackerDirectory, 1, { talos: { processId: process.pid, startStamp: THIS_PROCESS_START_STAMP, bootIdentity: CURRENT_BOOT } });
 
-  expect(admit(LOGIN_ITEM)).toMatchObject({ verdict: 'serve', crashLogNumber: null, classification: { kind: 'stopped-on-purpose', evidence: { talos: 'live' } } });
+  expect(admit(SUCCESSOR)).toMatchObject({ verdict: 'serve', crashLogNumber: null, classification: { kind: 'stopped-on-purpose', evidence: { talos: 'live' } } });
   expect(CrashLog.list(files)).toEqual([]);
 });
 
@@ -276,7 +268,7 @@ test('a start that took Baton 1 again after a stop and died before its presence 
   const diedBeforePresence = { processId: 4545, startStamp: '1700000300', bootIdentity: CURRENT_BOOT };
   plantBaton(1, diedBeforePresence);
 
-  const verdict = admit(LOGIN_ITEM);
+  const verdict = admit(SUCCESSOR);
 
   expect(verdict).toMatchObject({ verdict: 'stay-off', crashLogNumber: FIRST_CRASH_LOG_NUMBER, crashedGeneration: 1 });
   expect(storedCrashLog()).toMatchObject({ crashedGeneration: 1, crashedProcess: diedBeforePresence, startedAt: null });
@@ -287,8 +279,8 @@ test('a crash whose generation nothing names is logged under the next number wit
   writeFileSync(files.presenceFilePath, 'not JSON\n');
   CrashLog.writeOnce(files, crashPathLogOf(2));
 
-  const first = admit(LOGIN_ITEM);
-  const second = admit(LOGIN_ITEM);
+  const first = admit(SUCCESSOR);
+  const second = admit(SUCCESSOR);
 
   expect(first).toMatchObject({ verdict: 'stay-off', crashLogNumber: 2, crashedGeneration: null });
   expect(second).toMatchObject({ verdict: 'stay-off', crashLogNumber: 2, crashedGeneration: null });

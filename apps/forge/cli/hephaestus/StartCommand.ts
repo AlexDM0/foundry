@@ -1,7 +1,7 @@
 /**
  * `start` in its three forms. Bare, it starts the board's Hephaestus detached after the start gate, starts nothing with one live, and returns
  * only once Hephaestus's API answers, so a program that runs it may use the API at once. `--foreground` is the serving process itself, which
- * the detached child and the Linux login item run; `--successor-of <generation>` is the successor's side of a Baton pass.
+ * the detached child runs; `--successor-of <generation>` is the successor's side of a Baton pass.
  */
 import { Baton }                                                                from '../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                                                    from '../../src/services/hephaestus/HephaestusFiles.ts';
@@ -21,8 +21,8 @@ import { startOriginIn }                                                        
 
 const { PROGRAM } = PRODUCT_NAMES;
 
-const DETACHED_USAGE   = `${PROGRAM} start [--repository <path>] [--port <n>] [--started-by user|login-item] [--json]`;
-const FOREGROUND_USAGE = `${PROGRAM} start --foreground [--repository <path>] [--port <n>] [--started-by user|login-item]`;
+const DETACHED_USAGE   = `${PROGRAM} start [--repository <path>] [--port <n>] [--started-by user] [--json]`;
+const FOREGROUND_USAGE = `${PROGRAM} start --foreground [--repository <path>] [--port <n>] [--started-by user]`;
 const SUCCESSOR_USAGE  = `${PROGRAM} start --successor-of <generation> [--port <n>]`;
 
 const FOREGROUND_OPTION   = 'foreground';

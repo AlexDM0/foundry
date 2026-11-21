@@ -88,7 +88,6 @@ describe('a body this Gaia carries out', () => {
       { key: 'forgeProgramPath', value: '/Users/example/.bun/bin/forge' },
       { key: 'forgeProgramPath', value: null },
       { key: 'notifications', value: { enabled: false, kinds: { ...GAIA_SETTINGS_DEFAULTS.notifications.kinds } } },
-      { key: 'startForgesAtLogin', value: true },
     ];
     for (const change of changes) {
       const document: CommandDocument = { commandVersion: 5, kind: 'settings-set', ...change };
@@ -186,7 +185,6 @@ describe('the keys of the limits, adding, settings and the chooser', () => {
       { key: 'hiddenTrackerIds', value: [TRACKER_ID, 7] },
       { key: 'forgeProgramPath', value: 'bin/forge' },
       { key: 'notifications', value: { enabled: true, kinds: { questions: true } } },
-      { key: 'startForgesAtLogin', value: 'yes' },
     ];
     for (const change of invalidChanges) {
       expect(readingOf({ commandVersion: 5, kind: 'settings-set', ...change })).toEqual({ verdict: 'malformed', invalidKeys: ['value'] });

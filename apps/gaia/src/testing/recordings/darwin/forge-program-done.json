@@ -19,33 +19,6 @@
       }
     },
     {
-      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"add\",\"--json\"]",
-      "answer": {
-        "verdict": "finished",
-        "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"present\",\n  \"label\": \"com.forge.hephaestus.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.hephaestus.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"remove\",\"--json\"]",
-      "answer": {
-        "verdict": "finished",
-        "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"absent\",\n  \"label\": \"com.forge.hephaestus.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.hephaestus.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
-        "standardError": ""
-      }
-    },
-    {
-      "callShape": "run [\"/Users/example/.bun/bin/forge\",\"login-item\",\"status\",\"--json\"]",
-      "answer": {
-        "verdict": "finished",
-        "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": null,\n  \"state\": \"present\",\n  \"label\": \"com.forge.hephaestus.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.hephaestus.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
-        "standardError": ""
-      }
-    },
-    {
       "callShape": "run [\"/Users/example/.bun/bin/forge\",\"machine\",\"limit\",\"4\",\"--json\"]",
       "answer": {
         "verdict": "finished",

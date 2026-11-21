@@ -16,9 +16,8 @@ export interface NotificationSettings {
 }
 
 export interface GaiaSettings {
-  readonly theme:              ThemeChoice;
-  readonly hiddenTrackerIds:   readonly string[];
-  readonly forgeProgramPath:   string | null;
-  readonly notifications:      NotificationSettings;
-  readonly startForgesAtLogin: boolean;
+  readonly theme:            ThemeChoice;
+  readonly hiddenTrackerIds: readonly string[];
+  readonly forgeProgramPath: string | null;
+  readonly notifications:    NotificationSettings;
 }

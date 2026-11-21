@@ -18,13 +18,13 @@ import { GaiaPanelModel, type SentSettingsChange } from './GaiaPanelModel.ts';
 
 const IDLE_STATES: CommandStates = senderOver([]).states();
 
-const LOGIN_ITEM_REFUSAL_SENTENCE = 'The login item for /Users/alexexample/development/example-storefront could not be written; nothing was changed.';
+const SETTINGS_REFUSAL_SENTENCE = 'Gaia could not write its settings.';
 
-const LOGIN_ITEM_REFUSED: CommandAnswerDocument = {
+const SETTINGS_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'login-item-unwritable',
-  text:          LOGIN_ITEM_REFUSAL_SENTENCE,
+  refusal:       'settings-unwritable',
+  text:          SETTINGS_REFUSAL_SENTENCE,
   forges:        [],
 };
 
@@ -44,25 +44,18 @@ function withSettingsFile(fleetDocument: FleetDocument, settingsFile: FleetDocum
   return { ...fleetDocument, gaia: { ...fleetDocument.gaia, settingsFile } };
 }
 
-/** The panel's "Start at login" sent over a server that refuses it, and the change as the view keeps it once it answered. */
-async function refusedStartAtLogin(): Promise<{ readonly commandStates: CommandStates; readonly sentSettingsChange: SentSettingsChange }> {
-  const sender = senderOver([() => Promise.resolve(answerResponse(LOGIN_ITEM_REFUSED))]);
-  const checkbox = panelOf(FLEET_FIVE_FORGES).startAtLogin;
+/** The panel's "Notify me" sent over a server that refuses it, and the change as the view keeps it once it answered. */
+async function refusedNotify(): Promise<{ readonly commandStates: CommandStates; readonly sentSettingsChange: SentSettingsChange }> {
+  const sender = senderOver([() => Promise.resolve(answerResponse(SETTINGS_REFUSED))]);
+  const checkbox = panelOf(FLEET_FIVE_FORGES).notify;
   const result = await sender.send(checkbox.command);
   return { commandStates: sender.states(), sentSettingsChange: { checkbox, result } };
 }
 
-describe('the two checkboxes', () => {
-  test('"Start the running forges at login" shows the setting and sends it turned over', () => {
-    const { startAtLogin } = panelOf(FLEET_FIVE_FORGES);
-    expect([startAtLogin.label, startAtLogin.checked, startAtLogin.disabled]).toEqual(['Start the running forges at login', false, false]);
-    expect(startAtLogin.command).toEqual({ kind: 'settings-set', key: 'startForgesAtLogin', value: true });
-    expect(panelOf(withSettings(FLEET_FIVE_FORGES, { startForgesAtLogin: true })).startAtLogin.command).toEqual({ kind: 'settings-set', key: 'startForgesAtLogin', value: false });
-  });
-
+describe('the panel\'s checkbox', () => {
   test('"Notify me while Gaia is open" shows whether notifications are on and sends them turned over with every kind kept', () => {
     const { notify } = panelOf(FLEET_FIVE_FORGES);
-    expect([notify.label, notify.checked]).toEqual(['Notify me while Gaia is open', true]);
+    expect([notify.label, notify.checked, notify.disabled]).toEqual(['Notify me while Gaia is open', true, false]);
     expect(notify.command).toEqual({
       kind:  'settings-set',
       key:   'notifications',
@@ -70,11 +63,11 @@ describe('the two checkboxes', () => {
     });
   });
 
-  test('are off while a settings change is on its way', () => {
+  test('is off, as every kind is, while a settings change is on its way', () => {
     const sender = senderOver([() => new Promise<Response>(() => undefined)]);
     void sender.send({ kind: 'settings-set', key: 'theme', value: 'dark' });
     const panel = panelOf(FLEET_FIVE_FORGES, sender.states());
-    expect([panel.startAtLogin.disabled, panel.notify.disabled]).toEqual([true, true]);
+    expect(panel.notify.disabled).toBe(true);
     expect(whatNotifiesOf(FLEET_FIVE_FORGES, sender.states()).kinds.every((kind) => kind.disabled)).toBe(true);
   });
 });
@@ -84,14 +77,14 @@ describe('Gaia\'s settings file', () => {
     const newer = withSettingsFile(FLEET_FIVE_FORGES, 'newer-version');
     const panel = panelOf(newer);
     expect(panel.settingsFileLine).toBe('Gaia\'s settings were written by a newer Gaia. This Gaia runs on its defaults and leaves that file as it is.');
-    expect([panel.startAtLogin.disabled, panel.notify.disabled]).toEqual([true, true]);
+    expect(panel.notify.disabled).toBe(true);
     expect(whatNotifiesOf(newer).kinds.every((kind) => kind.disabled)).toBe(true);
   });
 
   test('one that cannot be read is said, and the checkboxes stay on, since the next change writes it again', () => {
     const panel = panelOf(withSettingsFile(FLEET_FIVE_FORGES, 'unreadable'));
     expect(panel.settingsFileLine).toBe('Gaia\'s settings could not be read. Gaia runs on its defaults until a change here writes them again.');
-    expect([panel.startAtLogin.disabled, panel.notify.disabled]).toEqual([false, false]);
+    expect(panel.notify.disabled).toBe(false);
   });
 
   test('one read, or none yet, says nothing', () => {
@@ -129,24 +122,24 @@ describe('the facts', () => {
 });
 
 describe('a refused settings change', () => {
-  test('shows in the panel with the forge\'s code and sentence, and offers the same checkbox again', async () => {
-    const { commandStates, sentSettingsChange } = await refusedStartAtLogin();
+  test('shows in the panel with its code and sentence, and offers the same checkbox again', async () => {
+    const { commandStates, sentSettingsChange } = await refusedNotify();
     expect(panelOf(FLEET_FIVE_FORGES, commandStates, sentSettingsChange).refusal).toEqual({
       refusedBy:     'gaia',
-      commandLabel:  'Start the running forges at login',
-      code:          'login-item-unwritable',
-      sentence:      LOGIN_ITEM_REFUSAL_SENTENCE,
+      commandLabel:  'Notify me while Gaia is open',
+      code:          'settings-unwritable',
+      sentence:      SETTINGS_REFUSAL_SENTENCE,
       retryCheckbox: sentSettingsChange.checkbox,
     });
   });
 
   test('shows only where it was sent from: not in "What notifies"', async () => {
-    const { commandStates, sentSettingsChange } = await refusedStartAtLogin();
+    const { commandStates, sentSettingsChange } = await refusedNotify();
     expect(whatNotifiesOf(FLEET_FIVE_FORGES, commandStates, sentSettingsChange).refusal).toBeNull();
   });
 
   test('shows nowhere while the change is on its way, nor for a settings change another part of the page sent', async () => {
-    const { commandStates, sentSettingsChange } = await refusedStartAtLogin();
+    const { commandStates, sentSettingsChange } = await refusedNotify();
     expect(panelOf(FLEET_FIVE_FORGES, commandStates, { checkbox: sentSettingsChange.checkbox, result: null }).refusal).toBeNull();
     expect(panelOf(FLEET_FIVE_FORGES, commandStates, null).refusal).toBeNull();
   });

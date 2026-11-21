@@ -20,9 +20,9 @@ const HELP_ALIASES     = new Set([`--${HELP_OPTION_NAME}`, HELP_SHORT_ALIAS]);
 /**
  * `init` and `update` repair a mismatch, `status` output is a contract that stays silent about one, and `version` reports the versions itself;
  * `stop` must reach a Hephaestus whose install changed, as `talos-restart` must, which the live Hephaestus takes during an install hold too, and
- * `machine` and `login-item` write nothing of a repository's install.
+ * `machine` writes nothing of a repository's install.
  */
-const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version', 'stop', 'talos-restart', 'machine', 'login-item']);
+const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version', 'stop', 'talos-restart', 'machine']);
 /** A hook prints or guards whatever the install; `start` checks the repository it starts, and its successor form checks as a Baton pass step. */
 const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'start']);
 
@@ -42,7 +42,6 @@ const COMMANDS_WITH_A_SUBCOMMAND = new Set([
   'gate',
   'merge',
   'machine',
-  'login-item',
   'pipeline',
 ]);
 

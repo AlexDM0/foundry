@@ -62,7 +62,7 @@ function presenceOf(startClassification: StartClassificationVerdict = classifica
     generation:      SERVING_GENERATION,
     process:         { processId: 4242, startStamp: '1700000000', bootIdentity: 'example-boot' },
     codeVersion:     'example-code',
-    startOrigin:     'login-item',
+    startOrigin:     'successor',
     startedAt:       '2026-11-19T02:00:00.000+01:00',
     startClassification,
     abandonedPasses: { inARow: 2, last: { reason: 'tracker-lock-held', detail: 'tracker-lock-held', at: '2026-11-19T02:10:00.000+01:00' } },
@@ -274,7 +274,7 @@ describe('the start, the crash logs and the supervision', () => {
       processId:       4242,
       codeVersion:     'example-code',
       startedAt:       '2026-11-19T02:00:00.000+01:00',
-      startOrigin:     'login-item',
+      startOrigin:     'successor',
       heartbeat:       { sequence: 9, at: '2026-11-19T02:14:45.000+01:00' },
       abandonedPasses: { inARow: 2, lastReason: 'tracker-lock-held', lastAt: '2026-11-19T02:10:00.000+01:00' },
     });

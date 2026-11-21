@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test';
 const CHECKOUT_ROOT = join(import.meta.dir, '..', '..');
 
 /** Words that only a setup step uses: a bootstrap naming one has taken over logic `setup.ts` holds. */
-const SETUP_STEP_WORDS = ['core.hooksPath', 'bun link', 'bun install', '.claude', 'LaunchAgents', 'SetEnvironmentVariable', '.zshrc', 'launcher.ts'];
+const SETUP_STEP_WORDS = ['core.hooksPath', 'bun link', 'bun install', '.claude', 'SetEnvironmentVariable', '.zshrc', 'launcher.ts'];
 
 function codeLinesOf(scriptText: string): string[] {
   return scriptText.split('\n').filter((line) => !line.trimStart().startsWith('#'));

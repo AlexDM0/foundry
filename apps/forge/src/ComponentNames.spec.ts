@@ -140,10 +140,9 @@ const VENDOR_FIXTURES_NAMING_THE_PROBE_FOLDER = [
   'resume-structured-output.stdout',
 ];
 
-/** `<file>: <retired name>` pairs a file may keep: records of older installs, of another program's login item and of what Claude Code printed. */
+/** `<file>: <retired name>` pairs a file may keep: records of older installs and of what Claude Code printed. */
 const ALLOWED_RETIRED_NAMES: readonly string[] = [
   'cli/FrozenInstalledSurface.json: oversee',
-  'src/shared/constants/ProductNames.ts: oversee',
   ...VENDOR_FIXTURES_NAMING_THE_PROBE_FOLDER.map((name) => `src/lib/claude-code/testing/fixtures/${name}.jsonl: oversee`),
 ];
 

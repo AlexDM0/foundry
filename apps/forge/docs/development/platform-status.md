@@ -68,7 +68,6 @@ macOS; on Linux they have never run. The Linux-only adapters have never run anyw
 | `GateConfinement` | #546 | every rendered argv under a real bwrap, including default Ubuntu 24.04 with its AppArmor user-namespace rule. |
 | `AgentHostFacts`, worker sandbox | #547 | a real sandboxed session on Linux, including an empty ref left after SIGKILL. |
 | `AgentHostFacts`, worker sandbox | #548 | a real Linux session reading the file, and authentication under the deny. |
-| `Autostart` | #553 | systemctl and reg.exe on real hosts, Talos surviving a unit restart. |
 | `LocalEndpoint` | #554 | a socket path of 104 to 107 bytes binding under the 108-byte Linux limit. |
 | Platforms section | #554 | Talos ending at logout under `KillUserProcesses=yes`, and a container run without `--init`. |
 | `ProcessSupervision` (tree stop), `GateConfinement` | none | a gate profile's line under bwrap, its output read piece by piece, and Stop ending its tree on a real /proc. |
@@ -100,7 +99,6 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 | `AgentHostFacts` | #550 | a real Windows session running `git push` in PowerShell. |
 | `AgentHostFacts`, worker settings | #551 | a real Windows session starting with these settings. |
 | `SetupPlatform` | #552 | setup.ps1 from real cmd and PowerShell. |
-| `Autostart` | #553 | systemctl and reg.exe on real hosts, Talos surviving a unit restart. |
 | Platforms section | #554 | Talos started inside a job object that kills on close, and `clear` from a Git Bash mintty. |
 | `ProcessSupervision` (tree stop) | none | a gate profile's line, unconfined as every gate here, its output read piece by piece, and Stop ending its tree through taskkill. |
 | `ProcessSupervision` (tree stop) | none | a pipeline check's two runs, unconfined as every gate here, and a Hephaestus stop ending its tree through taskkill. |

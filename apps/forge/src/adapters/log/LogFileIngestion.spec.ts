@@ -140,7 +140,7 @@ test('a start classification and a resume instruction read back as stored, the s
     at:     STARTED_AT,
     kind:   'start-classified',
     fields: {
-      kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 2, crashSuspected: true, crashLogNumber: 2
+      kind: 'machine-went-down', startOrigin: 'successor', previousGeneration: 2, crashSuspected: true, crashLogNumber: 2
     }
   };
   const resumeInstructed: LogRecord = {

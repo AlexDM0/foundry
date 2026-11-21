@@ -40,12 +40,11 @@ function versionOf(parsed: unknown): FormatVersion | null {
 function storedSettingsOf(parsed: unknown): StoredSettingsVersion1 | null {
   const version = versionOf(parsed);
   if (!JsonValueUtil.isJsonObject(parsed) || version === null || version.major !== CONTRACT_VERSIONS.gaiaSettings.major) return null;
-  const theme              = SETTINGS_CHOICES.themes.find((choice) => choice === JsonValueUtil.ownValueOf(parsed, 'theme'));
-  const hiddenTrackerIds   = JsonValueUtil.ownValueOf(parsed, 'hiddenTrackerIds');
-  const forgeProgramPath   = JsonValueUtil.ownValueOf(parsed, 'forgeProgramPath');
-  const notifications      = JsonValueUtil.ownValueOf(parsed, 'notifications');
-  const startForgesAtLogin = JsonValueUtil.ownValueOf(parsed, 'startForgesAtLogin');
-  if (theme === undefined || !isStringList(hiddenTrackerIds) || typeof startForgesAtLogin !== 'boolean') return null;
+  const theme            = SETTINGS_CHOICES.themes.find((choice) => choice === JsonValueUtil.ownValueOf(parsed, 'theme'));
+  const hiddenTrackerIds = JsonValueUtil.ownValueOf(parsed, 'hiddenTrackerIds');
+  const forgeProgramPath = JsonValueUtil.ownValueOf(parsed, 'forgeProgramPath');
+  const notifications    = JsonValueUtil.ownValueOf(parsed, 'notifications');
+  if (theme === undefined || !isStringList(hiddenTrackerIds)) return null;
   if (!isForgeProgramPath(forgeProgramPath)) return null;
   if (!JsonValueUtil.isJsonObject(notifications)) return null;
   const enabled = JsonValueUtil.ownValueOf(notifications, 'enabled');
@@ -58,29 +57,26 @@ function storedSettingsOf(parsed: unknown): StoredSettingsVersion1 | null {
     hiddenTrackerIds,
     forgeProgramPath,
     notifications: { enabled, kinds },
-    startForgesAtLogin,
   };
 }
 
 function settingsOf(stored: StoredSettingsVersion1): GaiaSettings {
   return {
-    theme:              stored.theme,
-    hiddenTrackerIds:   [...stored.hiddenTrackerIds],
-    forgeProgramPath:   stored.forgeProgramPath,
-    notifications:      { enabled: stored.notifications.enabled, kinds: { ...stored.notifications.kinds } },
-    startForgesAtLogin: stored.startForgesAtLogin,
+    theme:            stored.theme,
+    hiddenTrackerIds: [...stored.hiddenTrackerIds],
+    forgeProgramPath: stored.forgeProgramPath,
+    notifications:    { enabled: stored.notifications.enabled, kinds: { ...stored.notifications.kinds } },
   };
 }
 
 function storedFormOf(settings: GaiaSettings): StoredSettingsVersion1 {
   return {
-    version:            CONTRACT_VERSIONS.gaiaSettings.major,
-    minor:              CONTRACT_VERSIONS.gaiaSettings.minor,
-    theme:              settings.theme,
-    hiddenTrackerIds:   [...settings.hiddenTrackerIds],
-    forgeProgramPath:   settings.forgeProgramPath,
-    notifications:      { enabled: settings.notifications.enabled, kinds: { ...settings.notifications.kinds } },
-    startForgesAtLogin: settings.startForgesAtLogin,
+    version:          CONTRACT_VERSIONS.gaiaSettings.major,
+    minor:            CONTRACT_VERSIONS.gaiaSettings.minor,
+    theme:            settings.theme,
+    hiddenTrackerIds: [...settings.hiddenTrackerIds],
+    forgeProgramPath: settings.forgeProgramPath,
+    notifications:    { enabled: settings.notifications.enabled, kinds: { ...settings.notifications.kinds } },
   };
 }
 

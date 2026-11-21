@@ -341,8 +341,6 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'malformed-hatch-request':        { kind: 'malformed-hatch-request', requestId: 'R1' },
   'hatch-identity-mismatch':        { kind: 'hatch-identity-mismatch', requestId: 'R1', jobId: 'J3' },
   'hephaestus-not-answering':       { kind: 'hephaestus-not-answering', url: URL },
-  'login-item-unavailable':         { kind: 'login-item-unavailable', reason: 'Example reason' },
-  'login-item-not-changed':         { kind: 'login-item-not-changed', location: '/example/login-item', reason: 'Example reason' },
   'machine-agent-limit-above-cpus': { kind: 'machine-agent-limit-above-cpus', limit: 99, ceiling: 8 },
   'machine-agent-limit-not-whole':  { kind: 'machine-agent-limit-not-whole', limit: 0.5 },
   'concurrency-limit-out-of-range': { kind: 'concurrency-limit-out-of-range', limit: 99, ceiling: 8 },

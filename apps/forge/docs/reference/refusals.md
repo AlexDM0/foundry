@@ -20,10 +20,10 @@ them:
    touched. The exceptions are named under [When something was written](#when-something-was-written).
 2. **`refused` exits 1 and `unrepaired` exits 2.** The rule is in [cli.md](../cli.md#exit-codes). Every row here is exit
    1 unless it says exit 2.
-3. **`--json` does not change a refusal, with seven exceptions.** A refused command prints its sentence on standard
+3. **`--json` does not change a refusal, with six exceptions.** A refused command prints its sentence on standard
    error and nothing on standard output, with or without `--json`. Under `--json`, `start`, `stop`, `init`, `update`,
-   `version`, `machine` and `login-item` also print `{answerVersion, refusal, text}` on standard output: the code and
-   the API sentence (rule 4), since a monitor shows it. A refusal worded from the arguments has the code
+   `version` and `machine` also print `{answerVersion, refusal, text}` on standard output: the code and the API
+   sentence (rule 4), since a monitor shows it. A refusal worded from the arguments has the code
    `arguments-refused`.
 4. **A client of the API shows the API sentence,** beside the control that was used.
    It holds the same facts as the terminal's sentence, so the words in the first column match both. Where the terminal
@@ -436,17 +436,17 @@ Words here: [Hephaestus](../glossary.md#hephaestus), [Baton](../glossary.md#bato
 | `speaks protocol version <answered>, and this Hephaestus speaks <required>` | `talos-protocol-differs` | The Talos Hephaestus started from the program on disk answered another protocol version, so no Talos starts again while this Hephaestus lives. **Exit 2.** | Update the program checkout, then start Hephaestus again. | |
 | `so Hephaestus did not start and no agent runs` | `talos-unavailable` | The Talos Hephaestus started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start Hephaestus again. | |
 | `and stays off; its crash log` | `forge-crashed` | The serving Hephaestus crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
-| `is off after a crash of` | `forge-off-after-crash` | A start by the login item, or a successor whose predecessor died during the Baton pass, found a crash of the generation before it (`of a Baton nothing names` when its presence record is unreadable and no Baton is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Baton, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#hephaestus) |
+| `is off after a crash of` | `forge-off-after-crash` | A successor whose predecessor died during the Baton pass found a crash of the generation before it (`of a Baton nothing names` when its presence record is unreadable and no Baton is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Baton, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#hephaestus) |
 | `This board has no crash log` | `no-crash-log` | `crash-log` found no crash log on the board, or none of the number it was given (` <n>; ` and the advice to ask for the newest). It wrote nothing. | Run `crash-log` with no number for the newest, or `status` to see whether the forge is off after a crash. | [cli.md](../cli.md#after-a-crash) |
 
 </details>
 
-### Machine limit and login item
+### Machine limit
 
 Words here: [Hephaestus](../glossary.md#hephaestus), [job](../glossary.md#job).
 
 <details open>
-<summary>6 sentences</summary>
+<summary>4 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
@@ -454,8 +454,6 @@ Words here: [Hephaestus](../glossary.md#hephaestus), [job](../glossary.md#job).
 | `is not a whole number of at least 1, so nothing was written` | `machine-agent-limit-not-whole` | `machine-agent-limit-set` with a limit that is not a whole number of at least 1. | Send a whole number. | [hephaestus-api.md](hephaestus-api.md#commands) |
 | `newer than this program knows, so it was not written over` | `machine-limits-newer-version` | `<monitor>/machine-limits.json` holds a newer version. | Update this program. | [cli.md](../cli.md#concurrency-and-gates) |
 | `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [hephaestus-api.md](hephaestus-api.md#control-contract-3) |
-| `No login item can start Hephaestus on this machine` | `login-item-unavailable` | `login-item` on a platform with no login item, or where the item would never run. | Start Hephaestus another way, such as `start`. | [cli.md](../cli.md#hephaestus) |
-| `was not changed:` | `login-item-not-changed` | The system refused to write or remove the login item; the reason ends the line. | Read the reason, repair it, and run `login-item` again. | [cli.md](../cli.md#hephaestus) |
 
 </details>
 

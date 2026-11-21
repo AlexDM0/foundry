@@ -27,7 +27,6 @@ const STORED_EXAMPLE: StoredSettingsVersion1 = {
       'draft-tickets':              true,
     },
   },
-  startForgesAtLogin: true,
 };
 
 function exampleWith(key: string, value: unknown): Record<string, unknown> {
@@ -108,10 +107,6 @@ describe('storedSettingsOf', () => {
   test('refuses an empty or relative forge program path, as the command that sets it does', () => {
     expect(SettingsFormatUtil.storedSettingsOf(exampleWith('forgeProgramPath', ''))).toBeNull();
     expect(SettingsFormatUtil.storedSettingsOf(exampleWith('forgeProgramPath', 'bin/forge'))).toBeNull();
-  });
-
-  test('refuses a start-at-login choice that is not a boolean', () => {
-    expect(SettingsFormatUtil.storedSettingsOf(exampleWith('startForgesAtLogin', 'yes'))).toBeNull();
   });
 
   test('refuses notifications without a boolean enabled', () => {

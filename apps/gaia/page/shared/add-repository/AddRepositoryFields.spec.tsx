@@ -177,7 +177,7 @@ describe('the line of a missing forge program', () => {
 describe('a failure shows only beside the button whose send it was', () => {
   test('a settings-set another screen sent, as the Gaia panel\'s checkboxes do, shows no refusal under the forge program\'s line', async () => {
     const sender = senderOver([() => Promise.resolve(answerResponse(SETTINGS_REFUSED))]);
-    await sender.send({ kind: 'settings-set', key: 'startForgesAtLogin', value: true });
+    await sender.send({ kind: 'settings-set', key: 'theme', value: 'dark' });
     expect(FailedActions.failedActionsIn(missingLineOf(sender.states(), NOTHING_SENT))).toEqual([]);
   });
 

@@ -404,7 +404,7 @@ Nearly everything here recovers without you, because a Pass rereads files.
 | An agent | Next Pass interrupts it `agent-crashed` and resumes the session, `CRASH_RESUMES_BEFORE_WAITING` times, then its job waits. | Nothing, unless [Outage](#outage) fires; resume a job that waits. |
 | Talos | Hephaestus finds it lost, starts a new one, reads each lost child's cause, kills any surviving agent group, and resumes as for an agent. | Nothing. |
 | Hephaestus | Talos, its agents and its lines run on. A minute after the last renewal the [supervision lease](../glossary.md#supervision-lease) ends: Talos stops the agents at the end of their turn and their jobs wait, `lease-ended`. | `forge start`, then resume the jobs that wait. |
-| The machine | Every child of the old Talos reads `lost`, cause `reboot`, which counts toward no bound. Their jobs wait for your resume. | Start Hephaestus, unless a login item does, then resume the jobs that wait. |
+| The machine | Every child of the old Talos reads `lost`, cause `reboot`, which counts toward no bound. Their jobs wait for your resume. | Start Hephaestus, then resume the jobs that wait. |
 
 With Hephaestus down, nobody drives. Agents keep running, with their permission prompts still denied, and so does
 Talos. Hatch requests, results and questions in the event logs, and your commands such as `decide`, `job stop` and
@@ -415,12 +415,8 @@ and [Hatch](../glossary.md#hatch) requests stand for the start.
 The API comes back with Hephaestus, and so does every client that shows the board. `forge start` starts one in the
 background.
 
-A login item is optional and restarts nothing after a crash, only at login. From the agent-progress
-checkout, passing the tracked repository:
-
-```bash
-apps/forge/setup.sh --login-item /path/to/repository
-```
+A forge never starts at login: after a login or a reboot the board stays stopped until you start it with
+`forge start` or from a client.
 
 ### Starting Hephaestus is refused
 

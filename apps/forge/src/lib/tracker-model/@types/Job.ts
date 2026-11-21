@@ -208,8 +208,8 @@ export type HephaestusStopReason = 'stopped' | 'baton-passed';
 /** What the forge's start found before it: no earlier start, a Baton pass, a stop on purpose, a machine that went down, or a crash. */
 export type StartKind = 'first-start' | 'handover' | 'stopped-on-purpose' | 'machine-went-down' | 'crashed';
 
-/** Who started the forge: User, the login item after a sign-in, or a predecessor handing the Baton over. */
-export type StartOrigin = 'user' | 'login-item' | 'successor';
+/** Who started the forge: User, or a predecessor handing the Baton over. */
+export type StartOrigin = 'user' | 'successor';
 
 /** How a merge reached its target: `landed` fast-forwarded the main line, `integrated` a group branch. */
 export type LandingKind = 'landed' | 'integrated';

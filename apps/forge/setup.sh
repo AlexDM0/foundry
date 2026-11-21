@@ -3,7 +3,6 @@
 # setup.ts, which does the setup steps the same way on every operating system. setup.ps1 is the Windows bootstrap.
 #
 # Usage: ./setup.sh [--instruct-only]
-#        ./setup.sh --login-item <repository> [--label <label>] [--instruct-only]
 #   --instruct-only  changes nothing: every offer declines and every write is reported as "would".
 set -euo pipefail
 

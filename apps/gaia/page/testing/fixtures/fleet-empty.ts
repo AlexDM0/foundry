@@ -38,7 +38,6 @@ export const FLEET_EMPTY: FleetDocument = {
         'draft-tickets':              false,
       },
     },
-    startForgesAtLogin: false,
   },
   gaia: {
     gaiaVersion:       '0.1.0',

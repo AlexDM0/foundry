@@ -73,10 +73,10 @@ function layoutMarkupWith(fleetDocument: FleetDocument, forgeInView: string | nu
   );
 }
 
-/** The package's switch as the Gaia panel hands it the start-at-login setting. */
-function startAtLoginSwitchMarkup(checked: boolean): string {
+/** The package's switch as the Gaia panel hands it the notifications setting. */
+function notifySwitchMarkup(checked: boolean): string {
   return renderToStaticMarkup(
-    <Switch accessibleName="Start the running forges at login" labelledBy="gaia-forges-gaia-start-at-login" checked={checked} disabled={false} onToggle={doNothing} />,
+    <Switch accessibleName="Notify me while Gaia is open" labelledBy="gaia-forges-gaia-notify-label" checked={checked} disabled={false} onToggle={doNothing} />,
   );
 }
 
@@ -108,7 +108,7 @@ describe('the Gaia panel in the view', () => {
   test('shows Gaia\'s settings and facts under this machine, from the document, with "What notifies" closed until asked', () => {
     const markup = renderToStaticMarkup(appAt(sourceHolding(FLEET_FIVE_FORGES), '#forges'));
     expect(markup).toMatch(/<section class="gaia-forges-machine".*<\/section><section class="gaia-forges-gaia" aria-labelledby="gaia-forges-gaia-head">/);
-    expect(markup).toContain('Start the running forges at login');
+    expect(markup).toContain('Notify me while Gaia is open');
     expect(markup).toContain('127.0.0.1:4790');
     expect(markup).not.toContain('gaia-forges-what-notifies-count');
   });
@@ -116,9 +116,10 @@ describe('the Gaia panel in the view', () => {
   test('renders the source\'s newest document, with a setting changed elsewhere', () => {
     const source = sourceHolding(FLEET_FIVE_FORGES);
     const app = appAt(source, '#forges');
-    expect(renderToStaticMarkup(app)).toContain(startAtLoginSwitchMarkup(false));
-    source.publish({ ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, startForgesAtLogin: true } });
-    expect(renderToStaticMarkup(app)).toContain(startAtLoginSwitchMarkup(true));
+    expect(renderToStaticMarkup(app)).toContain(notifySwitchMarkup(true));
+    const notificationsOff = { ...FLEET_FIVE_FORGES.settings.notifications, enabled: false };
+    source.publish({ ...FLEET_FIVE_FORGES, settings: { ...FLEET_FIVE_FORGES.settings, notifications: notificationsOff } });
+    expect(renderToStaticMarkup(app)).toContain(notifySwitchMarkup(false));
   });
 });
 

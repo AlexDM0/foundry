@@ -1,23 +1,17 @@
 /**
  * The versioned JSON answers of the verbs a program outside the board runs: for each of `version`, `init`, `update`, `stop`, `start`,
- * `machine limit` and `login-item`, the answer of a success and of one refusal. What matters: every answer is one document on standard output
+ * `machine limit`, the answer of a success and of one refusal. What matters: every answer is one document on standard output
  * carrying `answerVersion: 2`, and a refusal under `--json` is `{answerVersion, refusal, text}` at exit 1, the code beside the sentence
  * standard error carries. `init`, `update` and `stop` on a tracker are in `ProgramAnswerUtil.trackerVerbs.spec.ts`; `start` twice against a
  * real Hephaestus is pinned by `cli/hephaestus/StartCommand.integration.spec.ts`.
  */
-import { mkdirSync } from 'node:fs';
-import { join }      from 'node:path';
-
 import { afterEach, expect, test } from 'bun:test';
 
 import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { runCommandLine }                                 from '../Main.ts';
 import { INSTALL_VERSION }                                from '../constants/InstallVersion.ts';
-import type { SetupHost }                                 from '../setup/SetupHost.ts';
-import { type LoginItemAnswer, loginItemAnswerOf }        from '../setup/login-item/LoginItemCommand.ts';
 import { createCapturedCommandContext }                   from '../testing/CapturedCommandContext.ts';
-import { ProgramAnswerUtil }                              from './ProgramAnswerUtil.ts';
 
 const FROZEN_NOW = new Date('2026-11-12T10:00:00+01:00');
 
@@ -75,37 +69,7 @@ test('machine limit answers the limit, its ceiling and the agents in flight, a s
   expect(await answerIn(directory, ['machine', 'limit', '100000', '--json'])).toEqual({ exitCode: 1, answer: refusalAboveTheCpus });
 });
 
-test('login-item answers its state, label and location for add, status and remove', () => {
+test('start refuses a folder with no tracker as a refusal answer', async () => {
   const directory = untrackedDirectory();
-  const homeDirectory = join(directory, 'home of Alex Example');
-  mkdirSync(homeDirectory);
-  const host: SetupHost = {
-    platform:            'darwin',
-    checkoutDirectory:   join(directory, 'checkout'),
-    homeDirectory,
-    bunProgram:          process.execPath,
-    bunInstallFolder:    join(directory, 'bun-install'),
-    searchPath:          [],
-    userShell:           '/bin/zsh',
-    programOnSearchPath: () => null,
-    systemFolder:        () => undefined,
-    run:                 () => ({ exitCode: 0, output: '' }),
-    answersYes:          () => false,
-    write:               () => undefined,
-  };
-  const repository = join(directory, 'example-storefront');
-  const expected = (outcome: LoginItemAnswer['outcome'], state: LoginItemAnswer['state']): LoginItemAnswer => ({
-    outcome, state, label: 'com.forge.hephaestus.tracker-example', location: expect.stringContaining('LaunchAgents') as unknown as string, repository
-  });
-  expect(loginItemAnswerOf(host, 'add', repository, 'tracker-example')).toEqual(expected('done', 'present'));
-  expect(loginItemAnswerOf(host, 'status', repository, 'tracker-example')).toEqual(expected(null, 'present'));
-  expect(loginItemAnswerOf(host, 'remove', repository, 'tracker-example')).toEqual(expected('done', 'absent'));
-  expect(loginItemAnswerOf(host, 'remove', repository, 'tracker-example')).toEqual(expected('nothing-to-do', 'absent'));
-  expect(ProgramAnswerUtil.answerOf({ ...expected(null, 'absent') })).toMatchObject({ answerVersion: 2 });
-});
-
-test('login-item and start refuse an unknown subcommand and a folder with no tracker, each as a refusal answer', async () => {
-  const directory = untrackedDirectory();
-  expect(await answerIn(directory, ['login-item', 'enable', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
   expect((await answerIn(directory, ['start', '--port', '0', '--json'])).answer).toMatchObject({ answerVersion: 2, refusal: expect.any(String), text: expect.any(String) });
 });

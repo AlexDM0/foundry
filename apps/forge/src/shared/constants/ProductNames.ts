@@ -1,5 +1,5 @@
 /**
- * Every name the product goes by on a machine: its program, its folders, its skills, its storage and environment prefixes, its login item
+ * Every name the product goes by on a machine: its program, its folders, its skills, its storage and environment prefixes
  * and its first Hephaestus port. A build linked beside the released one takes the side-by-side names, so neither reads or removes the other's
  * files.
  */
@@ -13,8 +13,6 @@ export interface ProductNames {
   PIPELINE_SETUP_SKILL:  string;
   STORAGE_PREFIX:        string;
   ENVIRONMENT_PREFIX:    string;
-  /** The login item's default name: the LaunchAgent label, the systemd unit `<label>.service` and the Windows Run value. */
-  LOGIN_ITEM_LABEL:      string;
   HEPHAESTUS_PORT_FIRST: number;
 }
 
@@ -29,7 +27,6 @@ export const ORIGINAL_PRODUCT_NAMES: Readonly<ProductNames> = {
   PIPELINE_SETUP_SKILL:  'agent-pipeline',
   STORAGE_PREFIX:        'agent-progress',
   ENVIRONMENT_PREFIX:    'AGENT_PROGRESS_',
-  LOGIN_ITEM_LABEL:      'com.agent-progress.overseer',
   HEPHAESTUS_PORT_FIRST: 4730,
 };
 
@@ -44,7 +41,6 @@ export const SIDE_BY_SIDE_PRODUCT_NAMES: Readonly<ProductNames> = {
   PIPELINE_SETUP_SKILL:  'forge-pipeline',
   STORAGE_PREFIX:        'forge',
   ENVIRONMENT_PREFIX:    'FORGE_',
-  LOGIN_ITEM_LABEL:      'com.forge.hephaestus',
   HEPHAESTUS_PORT_FIRST: 4930,
 };
 

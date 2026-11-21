@@ -49,7 +49,6 @@ function subjectOn(platform: 'linux' | 'win32', programFileName: string): SetupP
     searchPath:          [],
     userShell:           '/bin/bash',
     programOnSearchPath: () => null,
-    systemFolder:        () => undefined,
     run:                 (command): FinishedCommand => {
       commands.push(command);
       return { exitCode: 0, output: '' };

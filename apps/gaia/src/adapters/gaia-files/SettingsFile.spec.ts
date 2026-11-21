@@ -55,7 +55,6 @@ const STORED_EXAMPLE: StoredSettingsVersion1 = {
       'draft-tickets':              true,
     },
   },
-  startForgesAtLogin: true,
 };
 
 describe('a settings file', () => {

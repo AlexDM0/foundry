@@ -25,9 +25,9 @@ type StayingOff = Extract<StartGateVerdict, { verdict: 'stay-off' }>;
 
 const STARTED_BY_OPTION = 'started-by';
 
-const STARTS_BY_HAND = ['user', 'login-item'] as const satisfies readonly StartOriginByHand[];
+const STARTS_BY_HAND = ['user'] as const satisfies readonly StartOriginByHand[];
 
-/** `--started-by user|login-item`, `user` when absent; a successor's origin comes from `--successor-of`, never from this option. */
+/** `--started-by user`, `user` when absent; a successor's origin comes from `--successor-of`, never from this option. */
 export function startOriginIn(commandArguments: ArgumentParser, usage: string): StartOriginByHand {
   const written = commandArguments.option(STARTED_BY_OPTION);
   if (written === undefined) return 'user';

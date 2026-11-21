@@ -1,12 +1,12 @@
 /**
  * The real-system spec of the forges' registry, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-registry` with the
  * program of a forge that writes F4 and F9. It brings five scratch boards under one scratch home into the states Gaia shows, each with the
- * presence the forge writes: two serving, one crashed (its Hephaestus killed, then a login item's start that stays off after the crash), one
- * stopped and one never started, then reads the registry the forge wrote and records it, with the paths, tracker ids, ports and process ids
- * this run drew replaced by examples. The forge's install version stamps the recording.
+ * presence the forge writes: two serving, one crashed (its Talos killed while its Hephaestus served, which the forge records as a crash
+ * of Talos and ends on), one stopped and one never started, then reads the registry the forge wrote and records it, with the paths,
+ * tracker ids, ports and process ids this run drew replaced by examples. The forge's install version stamps the recording.
  */
-import { readFileSync } from 'node:fs';
-import { join }         from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join }                      from 'node:path';
 import {
   afterAll,
   beforeAll,
@@ -26,8 +26,11 @@ import { REGISTRY_RECORDING, type RegistryBoardName } from './testing/RecordedRe
 
 const SETUP_TIMEOUT_MILLISECONDS = 180_000;
 const GIT_TIMEOUT_MILLISECONDS = 30_000;
-/** The exit of a start the forge's start gate keeps off after a crash (`forge-off-after-crash`). */
-const STAYED_OFF_EXIT_CODE = 1;
+const CRASH_LOOK_INTERVAL_MILLISECONDS = 250;
+const CRASH_LOOKS = 240;
+/** Where a board keeps the record of each Talos it started, the newest under the highest number. */
+const TALOS_RECORDS_FOLDER = join('.forge', 'talos');
+const TALOS_RECORD_NAME_PATTERN = /^talos-(\d+)\.json$/;
 
 let scratchForge: ScratchForge;
 const repositoryOf = new Map<RegistryBoardName, string>();
@@ -44,14 +47,26 @@ async function boardIn(board: RegistryBoardName): Promise<string> {
   return repository;
 }
 
-/** Kills the board's Hephaestus from outside, which writes nothing, then starts it as a login item does: the start gate keeps it off. */
+function newestTalosProcessIdIn(repository: string): number {
+  const talosRecordsFolder = join(repository, TALOS_RECORDS_FOLDER);
+  const startNumbers = readdirSync(talosRecordsFolder).flatMap((fileName) => {
+    const startNumber = TALOS_RECORD_NAME_PATTERN.exec(fileName)?.[1];
+    return startNumber === undefined ? [] : [Number(startNumber)];
+  });
+  const newestRecord = JSON.parse(readFileSync(join(talosRecordsFolder, `talos-${Math.max(...startNumbers)}.json`), 'utf8')) as { talos: { processId: number } | null };
+  if (newestRecord.talos === null) throw new Error(`The newest Talos record of ${repository} names no process.`);
+  return newestRecord.talos.processId;
+}
+
+/** Kills the board's Talos from outside while its Hephaestus serves: the forge records the crash of Talos in the registry and ends. */
 async function crashedBoard(board: RegistryBoardName): Promise<void> {
-  const repository = repositoryOf.get(board) ?? '';
-  const hephaestus = scratchForge.registryEntryOf(drawnTrackerIdOf.get(board) ?? '')?.['hephaestus'] as { processId: number } | undefined;
-  if (hephaestus === undefined) throw new Error(`The registry names no Hephaestus for ${board} to crash.`);
-  process.kill(hephaestus.processId, 'SIGKILL');
-  const stayedOff = await scratchForge.run(repository, ['start', '--started-by', 'login-item', '--json']);
-  expect(stayedOff.exitCode).toBe(STAYED_OFF_EXIT_CODE);
+  const presenceStateOfTheBoard = (): unknown => {
+    const presence = scratchForge.registryEntryOf(drawnTrackerIdOf.get(board) ?? '')?.['presence'] as { state?: unknown } | undefined;
+    return presence?.state;
+  };
+  process.kill(newestTalosProcessIdIn(repositoryOf.get(board) ?? ''), 'SIGKILL');
+  for (let look = 0; look < CRASH_LOOKS && presenceStateOfTheBoard() !== 'crashed'; look++) await Bun.sleep(CRASH_LOOK_INTERVAL_MILLISECONDS);
+  expect(presenceStateOfTheBoard()).toBe('crashed');
 }
 
 async function startedBoard(board: RegistryBoardName, hephaestusNumber: number): Promise<void> {

@@ -46,9 +46,8 @@ the first sign of a missing one is a failing session.
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |
 | A git repository with a commit | Hephaestus cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
 
-Elsewhere the program differs in two ways. Where gates cannot run confined, `start` refuses to start and names what
-is missing; `status --json` prints the answer as `confinement`. `--login-item` writes a systemd user unit on Linux
-and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md#the-login-item)).
+Elsewhere the program differs in one way. Where gates cannot run confined, `start` refuses to start and names what
+is missing; `status --json` prints the answer as `confinement`.
 
 ## Install the program
 
@@ -341,26 +340,10 @@ Landing fast-forwards your repository's main checkout. If that checkout is off t
 overwritten, landings wait and the header shows the `dirty-main-checkout` [notice](../glossary.md#notice). The
 [Runbook](runbook.md) has the way out.
 
-## Keep it running across logins
+## After a login
 
-Hephaestus does not come back after a reboot on its own. On macOS, an optional login item starts it at login:
-
-```sh
-cd <your forge clone>
-apps/forge/setup.sh --login-item ~/code/example-storefront
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.hephaestus.plist
-```
-
-The `setup.sh` line starts `setup.ts`, whose login item step (`cli/setup/LoginHephaestus.ts`, through the Autostart port)
-writes one file, `~/Library/LaunchAgents/com.forge.hephaestus.plist`, which runs `start` in that
-repository at login. On Linux it writes a systemd user unit, and on Windows (`apps/forge/setup.ps1 --login-item`) a
-`Run` registry value ([the login item](../cli.md#the-login-item)). The `launchctl` line loads the item, so you need not log
-out and back in.
-
-A second repository needs its own `--label <label>`, and the setup refuses the default label for it. The plist stores
-your clone's path and your current `PATH`, so write it again if either changes.
-
-The item starts Hephaestus once. It does not restart one that dies.
+A forge never starts at login. After a login or a reboot the board stays stopped until you start it with `forge start`
+or from a client.
 
 ## Did it work?
 
@@ -391,7 +374,7 @@ Anything else is in the [Runbook](runbook.md), which also has
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `writeLoginHephaestus` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
+| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | What install writes | `cli/adoption/constants/AgentInstall.ts` | `AGENT_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |

@@ -24,8 +24,8 @@ the command word; a \`-h\` further on is refused at exit 1, since it may be text
 bare \`--\`). An option taking a value, given twice, is refused at exit 1.
 ${ROOT_OVERRIDE_VARIABLE} names the repository to use instead of walking up from the current directory. --json, accepted by every
 command but hook and help, prints one JSON document on standard output
-in place of the human output. The answers of start, stop, init, update, version, machine
-and login-item carry \`answerVersion\` 2, and under --json their refusal is the document
+in place of the human output. The answers of start, stop, init, update, version and
+machine carry \`answerVersion\` 2, and under --json their refusal is the document
 {answerVersion, refusal, text} at exit 1: the refusal's code and the sentence printed on
 standard error.
 
@@ -85,7 +85,7 @@ never carries it.
                               failed Baton pass is the refusal baton-pass-failed, whose answer
                               adds batonPass \`failed\` and batonPassStep.
                               Every command but init, update, help, status, version, stop,
-                              talos-restart, machine and login-item refuses, with exit 1, while the
+                              talos-restart and machine refuses, with exit 1, while the
                               files installed here are of another install version than this
                               ${PRODUCT_NAMES.PROGRAM} (the hooks run regardless);
                               update rewrites them, and it and \`init\` refuse files a newer
@@ -641,7 +641,7 @@ never carries it.
                               API's contracts this program serves, as \`GET /api/identity\`
                               names them, and the Talos protocol version it starts. Read-only.
 
-  start [--repository <path>] [--port <n>] [--started-by user|login-item] [--json]
+  start [--repository <path>] [--port <n>] [--started-by user] [--json]
                               Start the board's one Hephaestus detached; with one live, start
                               nothing. It returns only once Hephaestus's API answers. --json
                               prints {answerVersion, started, url, generation, trackerId,
@@ -654,13 +654,13 @@ never carries it.
                               repository, not of the working directory. --started-by names who
                               started it, user when absent: after a crash only a start by the user
                               serves, and any other is refused forge-off-after-crash at exit 1.
-  start --foreground [--repository <path>] [--port <n>] [--started-by user|login-item]
-                              The serving process itself, which the detached start and the Linux
-                              login item run: it logs to standard error too, prints its URL and
-                              serves until stopped. A live Hephaestus refuses it
-                              (hephaestus-already-running, with its URL) at exit 1, as does a starter
-                              that lost the race (hephaestus-contended); a Hephaestus whose Baton a
-                              newer one overtook stops baton-taken at exit 2.
+  start --foreground [--repository <path>] [--port <n>] [--started-by user]
+                              The serving process itself, which the detached start runs: it logs
+                              to standard error too, prints its URL and serves until stopped. A
+                              live Hephaestus refuses it (hephaestus-already-running, with its URL)
+                              at exit 1, as does a starter that lost the race
+                              (hephaestus-contended); a Hephaestus whose Baton a newer one overtook
+                              stops baton-taken at exit 2.
   start --successor-of <generation> [--port <n>]
                               The successor's side of \`restart\`'s Baton pass, which only the
                               live Hephaestus starts.
@@ -687,15 +687,6 @@ never carries it.
 
   unpause [--json]            Undo a pause: store \`hephaestusState\` \`running\`. \`resume\` is
                               another verb, which resumes interrupted work.
-
-  login-item add|remove|status [--repository <path>] [--json]
-                              The item that starts this board's Hephaestus when the user logs in, as
-                              \`setup --login-item\` writes it, under the label
-                              \`${PRODUCT_NAMES.LOGIN_ITEM_LABEL}.<trackerId>\`, so every board has its own.
-                              --json prints {answerVersion, outcome, state, label, location,
-                              repository}: state \`present\` or \`absent\` after the step, outcome
-                              null for status. Refused login-item-unavailable where no item could
-                              run, and login-item-not-changed where the system refused the change.
 
   merges [--json]             The merge queue: each held slot {target, jobId, ticketIds, phase,
                               targetTip, branchTip}, then each queued ticket {ticketId, target,

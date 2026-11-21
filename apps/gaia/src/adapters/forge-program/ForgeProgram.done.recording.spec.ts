@@ -1,8 +1,8 @@
 /**
  * The real-system spec of every forge verb done, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program-done`
  * with the program of a forge that answers F8. It runs that forge under a scratch home in a scratch repository, through ForgeProgram, and
- * records each answer under the example program path: init, version, the login item added, read and removed, the machine limit set, start,
- * update with Hephaestus live and stop. The forge's install version stamps the recording.
+ * records each answer under the example program path: init, version, the machine limit set, start, update with Hephaestus live and stop.
+ * The forge's install version stamps the recording.
  */
 import {
   afterAll,
@@ -66,12 +66,6 @@ describe('a forge that answers F8, every verb done', () => {
       answer:  { contracts: { summary: 2, monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl } }
     });
     recordSystemVersion(RECORDING_NAME, `install version ${String(lastDocument()['installVersion'])}, code ${String(lastDocument()['codeVersion'])}`);
-  });
-
-  test('the login item is added, read as present and removed', async () => {
-    expect(await forgeProgram.loginItem(forge, 'add')).toEqual({ verdict: 'done', answer: { loginItem: 'present' } });
-    expect(await forgeProgram.loginItem(forge, 'status')).toEqual({ verdict: 'done', answer: { loginItem: 'present' } });
-    expect(await forgeProgram.loginItem(forge, 'remove')).toEqual({ verdict: 'done', answer: { loginItem: 'absent' } });
   });
 
   test('the machine limit is set below the CPU count', async () => {

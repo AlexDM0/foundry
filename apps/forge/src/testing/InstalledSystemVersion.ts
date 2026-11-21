@@ -65,12 +65,8 @@ function eslintVersion(): string {
   return (JSON.parse(readFileSync(manifestPath, 'utf8')) as { version: string }).version;
 }
 
-/** The autostart tool of Linux is `systemctl`; macOS writes a LaunchAgent and runs no tool, and the Windows `reg` prints no version. */
 function setupToolsVersion(): string {
-  const versions = [`bun ${Bun.version}`, `git ${gitVersion()}`];
-  if (process.platform === 'linux') versions.push(`systemctl ${lastWordOfFirstLine(printedVersionOf(['systemctl', '--version'])) ?? NOT_INSTALLED}`);
-  if (process.platform === 'win32') versions.push(`reg ${operatingSystemVersion()}`);
-  return versions.join(', ');
+  return `bun ${Bun.version}, git ${gitVersion()}`;
 }
 
 export function installedVersionOf(system: RecordedSystem): string {
