@@ -3,19 +3,28 @@
 The orchestrator's memory of the run (see `orchestrator.md`). Integration branch: `hephaestus-talos`, cut from `main` at
 `e9b5d057` on 2026-11-18. States: `waiting`, `running`, `landed`, `blocked`, `owner`.
 
-## Where the night run stands
+## Where the run stands
 
-**Paused on 2026-11-19 by the owner until Friday 2026-11-20 15:00; resumed then.** 61 of 129 packages
-have landed, stage 4 up to WP4.8. WP4.10 was `running` in `.claude/worktrees/wp4-10` (branch `run/wp4-10`, at
-`c3a07ad3`) when its builder and checker lost the network (ENOTFOUND). Its uncommitted half-built work stays in that
-worktree, and a copy is at `.claude/.evidence/hephaestus-talos/stage-4/wp4-10-partial.patch`. To resume:
-relaunch WP4.10 with "CONTINUE, DO NOT START OVER" in front of its note, land it, then do WP4.11, WP4.9 and stage 4's
-verification. After that come stages 5 to 9. The run scripts (`group.js`, `new-worktree.sh`) are kept in
-`.claude/.evidence/hephaestus-talos/run-scripts/`.
+**Stopped at gate G7 on 2026-11-21. Every stage, 0 to 9, is built, checked and landed on `hephaestus-talos`, whose tip is
+`bec16dce` plus this file's record.** `main` is untouched at `e9b5d057`; nothing was pushed. At the tip `bun run verify`
+is 18 of 18 tasks green, forge's `bun run verify:integration` is 872 pass, 1 skip (the outage session of gate G1), 0
+fail, and no real `claude` session was started anywhere in the run.
 
-The owner is away for the night (2026-11-18). His words: "build all you can, we can test with actual sessions
-tomorrow" and "make a best effort guess on how that works during build if needed to continue". The run builds through
-stage 9 and stops at gate G7. Gate G6's first half is met by G3 (to be confirmed on the machine before stage 9).
+What the owner does now, in this order:
+
+1. **Gate G6, second half.** Pull stage 9 into the installed clone, run `setup`, set each board up anew with `init`
+   (its pipeline's `reach` names no `/packages/design-system`, `/packages/flint` or `/packages/brand`, which are gone),
+   and add the login items again. The program's verbs are top-level now (`start`, `stop`, `restart`, `pause`,
+   `unpause`, `status`, `crash-log`); `oversee` is gone, `setup`'s flag is `--login-item`, and the login item's label
+   is `com.forge.hephaestus`. Forge and Gaia are system version 3.0.
+2. **Gate G7.** Decide whether and how `hephaestus-talos` reaches `main`.
+3. Work through "For tomorrow, with real sessions" below, then "Assumptions to confirm" and "Worth a look".
+
+Noticed and left alone: the main checkout is on branch `context-pipeline`, not `main` (not this run's doing), and pid
+55155, a spec Overseer of the old worktree `entities-b7` started on 17 Nov, is still running.
+
+The run scripts (`group.js`, `new-worktree.sh`) are in `.claude/.evidence/hephaestus-talos/run-scripts/`, and stage 9's
+rename and check scripts with their output in `.claude/.evidence/hephaestus-talos/stage-9/scripts-and-output/`.
 
 ### For tomorrow, with real sessions
 
@@ -177,6 +186,8 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - **WP8.9b:** with a real session, `gate assistant off` then `on` mid-turn: the first Assistant ends `closed` and a fresh one boots.
 - **WP8.12:** read the three reworded refusal sentences in Gaia on a live forge.
+
+- **Stage 9:** probe p07 (`apps/forge/.platform-probes/claude-p07-process-groups.js`) had its marker file renamed to `after-talos-death.txt` and needs a real `claude` session to exercise. After gate G6's second half, on a live board: `start`, `status`, `pause`, `unpause`, `restart` and `stop` each answer, and `oversee` is refused as an unknown command.
 
 ### Assumptions to confirm
 
@@ -347,6 +358,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - **WP8.9:** an Assistant winds down by closing its input once idle, not by a wind-down chat (an extra chat would break chat numbering). Lives in `WIND_DOWN_REQUEST` in `AssistantSession.ts` and the exclusion in `JobControlDelivery.ts`.
 
+- **Stage 9, `talos-restart`:** the former `oversee talos-restart` became a new top-level verb `talos-restart`; "Stage 9: the verbs" has no row for it. Confirm or name where it should live.
+- **Stage 9, Watcher names left on purpose:** Flint's `watcher-spark` family in `apps/gaia/page` (32 files, the sprite's own vocabulary), the glossary's dated "Watcher" entry and two dated probe figures. Gaia's specs use `talos-endpoint-does-not-fit` as an example pass-through kind; forge emits no such notice kind today.
+- **Stage 9, retired names without a named case:** `oversee`, `--login-overseer` and `overseer-resume` are refused by the generic unknown-command, unknown-option and unknown-kind cases; a named case would have to spell the retired word from parts.
+
 ### Blocked
 
 (none)
@@ -502,7 +517,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's. Ran at the end of WP2.13 (`fdf751b4`): 913 pass, 0 fail. |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | first half confirmed 2026-11-21; second half the owner's | Before stage 9, read on the machine: no `com.forge.overseer` LaunchAgent in `~/Library/LaunchAgents` or `launchctl list`, and no `forge-program` process (the only match is pid 55155, a spec Overseer of worktree `entities-b7` under `/private/tmp/agent-progress-tests`, started Tuesday 17 Nov, left alone). After stage 9: the owner's machine steps only |
-| G7 | waiting | End of the run |
+| G7 | the owner's, reached 2026-11-21 | End of the run: the owner decides whether and how `hephaestus-talos` reaches `main` |
 
 ## Packages
 
@@ -646,12 +661,12 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 8-J | WP8.12 | landed | 075c7d89 | Passed on its third check, on Fable. The first check found `open` left in `contributing.md` and figures that still drew the Bridge; the second a dead link in `guards-and-testing.md` and the Bridge named as present in Gaia's README and CLAUDE.md. 80 files: forge's documents, rule files and four installed texts describe a headless forge; `Bridge` and `bridge/` are in `RETIRED_NAMES` with planted cases and `docs/research/` is unscanned. 18 figures whose pixels drew the Bridge, a served page, `open` or `progress.html` were deleted and replaced by prose (originals in `71037b5e`); `your-day-on-the-bridge.png` renamed. Three refusal sentences reworded (`pipeline-set-per-entity`, `older-pipeline`, `overseer-owns-the-lifecycle`). `INSTALL_VERSION` stays 44 (wording only), `FrozenClaudeInstall.json` retaken. The Deviations row for `older-pipeline` is restored. Both Done-when greps print lines that must stay (the guard's own entry and planted case; four true facts). Verify 18/18 after landing |
 | 8-K | WP8.9b | landed | 13aff34d | Passed on its second check, on Fable; the first asked for a spec of the usage-limit path. Causes: under a usage limit an idle winding-down Assistant never had its input closed and lingered; one whose turn never ends ended `failed` after the quiet sweeps, not `closed`; a hand-removed `assistant` key asked no wind-down. `Board.windDownAssistants` (`JobControls.ts`) is the one rule, called by `SettingControls` and by the pass (`AssistantSession.windDownWhileOff`); `closeInputWhenIdle` runs in every pass. What WP8.11 saw was most likely the 3.5 minute quiet watch, longer than the 120 seconds it waited. `verify:integration` 872 pass, 1 skip. Verify 18/18 after landing |
 | 8-V | Stage 8 verification | passed, one comment handed to stage 9 | (no commit) | Run on Fable in a fresh worktree at `0054a752`: install and verify exit 0 (18/18); the 11 named forge specs 334 pass, forge-contracts 16, Gaia's named specs 1510, `test:dom` 799 + 379 + 126 + 4, both `check` green; `verify:integration` 872 pass, 1 skip (G1), 0 fail; `overseer-fetch-supported-forge` re-taken and identical but for times and the code hash (versions 2.0/2.0, contracts summary 1, monitor 4, control 2, no `embed`, no `flintBrain`, no session route), Gaia's `bun test` 5027 pass after it; forge's routes recording byte-identical; `assistant-off` and Markdown rendering shown by spec; the claude trap never called. The one leftover is a comment: `apps/gaia/page/testing/BoardStyleGuards.ts:1-6` names the Bridge and `apps/forge/bridge/testing/StyleRuleReader.ts` as present; stage 9's prose package rewords it. The crash matrix holds no `assistant-off` case; `AssistantSession.spec.ts` and `Playbook.spec.ts` prove it. Output in `.claude/.evidence/hephaestus-talos/stage-8/verification/` |
-| 9-A | WP9.1 | running | | |
-| 9-A | WP9.6 | running | | |
-| 9-A | WP9.2 | running | | |
-| 9-A | WP9.3 | running | | |
-| 9-A | WP9.4 | running | | |
-| 9-A | WP9.5 | running | | |
+| 9-A | WP9.1 | landed | bec16dce | Measured 937 files, 11,621 occurrences, 326 paths; `rename.ts`, `check.ts` and `exclusions.ts` written outside the repository. Rules added to the table: "the" kept before a head noun, line-broken phrases, `watcher-lost` to `talos-lost` |
+| 9-A | WP9.6 | landed | bec16dce | `start` (three forms, `--detach` gone), `stop`, `restart`, `pause`, `unpause`, `status` with a `hephaestus` block, `crash-log`; `oversee` gone; `--login-overseer` is `--login-item`. New top-level verb `talos-restart`, which the stage file has no row for. `INSTALL_VERSION` 45. `status` prints its crash notice above the board, not on standard error; `start --foreground` refuses `--json` |
+| 9-A | WP9.2 | landed | bec16dce | 3 folders, 76 file names, 859 files, 7,931 hits. Raised: `progress.json` 3, registry 2 (Gaia `forgeRegistry` 2.0), `presence.json` 2, crash log 2, agent slot file 2. A scratch home named `hephaestus-home` pushed Talos's socket path past macOS's limit, so the spec uses `start-home` |
+| 9-A | WP9.3 | landed | bec16dce | 54 Markdown files, 1,146 hits; figures redrawn where their pixels named the Overseer; the stale Bridge comment in Gaia's `BoardStyleGuards.ts` reworded |
+| 9-A | WP9.4 | landed | bec16dce | Forge 3.0/3.0, `forge-contracts` 3.0.0, contract integers summary 2, monitor 5, control 3; Gaia 3.0/3.0 with fleet, events and `gaiaFleetDocument` 11; login item label `com.forge.hephaestus` (`com.agent-progress.overseer` kept as the released program's); Gaia's recordings re-taken as `hephaestus-fetch-*` |
+| 9-A | WP9.5 | landed | bec16dce | `RETIRED_NAMES` gains `Oversee`, `oversee`, `OVERSEE` and `watcher-lost`; the allowlist is `FrozenInstalledSurface.json`, `ProductNames.ts` and six vendor fixtures. `check.ts` exits 0. First check failed on two specs the rename had rewritten (a retired flag spelled from parts) and Watcher names left; the second on one printed sentence in `JobCommand.ts`; the third passed. One commit, about 1,080 paths. Verify 18/18 and `verify:integration` 872 pass, 1 skip after landing |
 
 ## Where the code differed from a stage file
 - The agent-port plan (`49c7fa93` rule, `ba5192bb` plan, `7725c98b` rows; measurement in the main checkout's
