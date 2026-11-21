@@ -153,6 +153,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.26: after G1, re-record `overseer-fetch-board` and presence with a session that ends on a network outage and is
   resumed; check the alert, the counts and the fleet resume against a real outage.
 
+- WP6.22: restart Talos with a real Claude Code session mid-turn; it ends `paused` at the turn's end and resumes by
+  itself as `talos-paused` (proved with the fake agent only).
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -314,6 +317,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
   forge reads "stopped supervising", a crashed or down one "unreachable" (`ForgeTextUtil`); forge alerts sort first
   (`FleetAssembly`); a down forge's row keeps Stop (`ForgesModel.BUTTONS_BY_PRESENCE_OFF`).
 
+- WP6.22: a quit answered `no-answer`, `quitting` or `already-done` counts as `nothing-to-do` (`quitTalosForRestart`);
+  the Talos pair is marked when its protocol or code version differs from the installed program
+  (`talosIsBehindTheInstalledProgram`).
+
 ### Blocked
 
 (none)
@@ -423,6 +430,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.26: "Resumed n agents" is the count Gaia last read, since forge's answer carries none; forge's `network-outage`
   target also resumes outage jobs that wait for an answer or were already told, so the two can differ. A command already
   on its way to a forge reads `not-reached`.
+
+- WP6.22: the new verb `oversee talos-restart` conflicts with owner answer 8 ("no `oversee` verb"); stage 9 settles the
+  verb set. After a program pull with no restart, Gaia marks the Overseer pair only once User presses look again.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -567,8 +577,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-L | WP6.20 | landed | 124b98a3 | First round. The Pipeline tab's route, DOM specs, line run times and setup conversation; the Flint home-corner rule carried; fixed WP6.19's `ApplyChangesDialogModel.levelGroupsOf` (grouped a single pipeline by level); the fixture now uses forge's real limits (effort medium, rework 750, re-review step 50). Stacked last of six: shared rows kept, duplicate flare blocks removed (values equal) |
 | 6-M | WP6.21 | landed | 30c5a82e | Second round (first: an older forge that answered read as down, with Start offered; the board route kept a second presence read; a down forge's row lost Stop). Gaia reads the registry's `presence`; a fleet forge carries `presence`, `crashSummary`, `crashLogs`, `waitingWork`; `ForgePresenceUtil` tells crashed, stopped, down and hung apart (older-contract counts as answering); forge alerts lead what waits on User (`forge-crashed`/`forge-down` with Start, `forge-hung` with Open); `GET /api/v1/forges/<id>/crash-logs/<n>`; one presence read per monitor change in `ForgeWatch.presenceReadingAfterNow`, shared with the board route; `forge-interrupted-work-resume` added, `forge-resume` renamed `forge-unpause`. Fleet, events and the fleet document 6, commands 4, gaiaCommand 3, gaiaCrashLog 1, Gaia 1.3. Recordings: a new `overseer-fetch-presence`; `forge-registry` re-recorded |
 | 6-N | WP6.26 | landed | 3b9e5f9b | First round. One rule for an outage's waiting jobs: served cause `network-outage` and `waitsFor` `'instruction'` (`OutageEndingUtil`), matching WP6.11. The fleet document carries each forge's `outageEndings`, `outageEndingsTotal` and one fleet alert `agents-ended-on-outage` (`trackerId: null`); the control `fleet-outage-resume` sends each forge's `interrupted-work-resume` with target `network-outage` in turn through WP6.21's path and answers per forge `resumed`, `nothing-to-do`, `refused` or `not-reached`. Fleet, events and the fleet document 7; `commands`, `gaiaCommand` unchanged (only added). No second presence read; the outage recording waits on G1 |
-| 6-O | WP6.22 | running | | |
-| 6-P | WP6.23 | waiting | | |
+| 6-O | WP6.22 | landed | 9ae67fb5 | Second round (first: `overseer-fetch-versions` hand-edited and `overseer-fetch-flint-brain` still at 1.22, both now recorded again from scratch forges, the unversioned one from a temporary clone at 9dd3ee29; no OverseerControls spec, now added). Forge 1.23: control kind `talos-restart` (runtime only, refused on the board, `TalosRestart.ts` quits Talos with reason `restart`), a new CLI verb `oversee talos-restart` (every control kind needs a verb), `onRuntimeCommand` async with a `RuntimeCommandOutcome`; `ANSWER_VERSION` 2 for every verb (Gaia's `forgeProgramAnswer` 2). A clean Talos restart loses no job: a CrashMatrix integration row shows the agent ends `paused`, interrupted `talos-paused`, and resumes under Talos 2 with `crashResumes: 0`. Gaia shows the running and newest Overseer and Talos on a second line under the bar; newest versions read when the registry entry changes and on look-again. Fleet, events and the fleet document 8; `SUPPORTED_FORGE_VERSION` 1.23. `verify:integration` 876 pass, 1 skip, 0 fail |
+| 6-P | WP6.23 | running | | |
 | 8-A | WP8.1 | waiting | | |
 | 8-A | WP8.3 | waiting | | |
 | 8-B | WP8.2 | waiting | | |
