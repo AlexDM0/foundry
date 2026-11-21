@@ -141,7 +141,7 @@ page/board/        the board's views, moved from forge's Bridge; a view may draw
 | HTTP to an Overseer | `src/lib/forge-client/OverseerFetch.ts` |
 | The browser's debugging pipe | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
-| The Notification API | none yet: no page code reaches it; notifications (W5.6 in the backlog) bring `page/notifications/NotificationBoundary.ts` |
+| The Notification API | `page/notifications/NotificationBoundary.ts` (`eslint.config.js` holds it the one reach) |
 | A forge's Bridge in Gaia's frame (the embed channel) | `page/views/forge-frame/EmbedChannel.ts` |
 | A forge's board, relayed by Gaia's server to the page | `page/board/api/` |
 | The clock | an injected `now` and injected timers; the clock, wall and monotonic, is read only in `src/services/Clock.ts` |

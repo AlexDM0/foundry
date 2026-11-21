@@ -726,7 +726,7 @@ const MOTION_STYLESHEETS = [STYLESHEET_TEXT, SPLASH_STYLE_TEXT] as const;
 const BOARD_STYLES_FOLDER = join(PAGE_FOLDER, 'styles', BOARD_FOLDER_NAME);
 const BOARD_TOKENS_FILE_NAME = 'tokens.css';
 /** Every stylesheet of the board, by its name under `page/styles/board/`; the package that moves one in names it here. */
-const BOARD_STYLESHEETS: readonly string[] = ['chips.css', 'controls.css', 'conversation.css', 'flint.css', 'sandboxed-html.css', 'tokens.css'];
+const BOARD_STYLESHEETS: readonly string[] = ['chips.css', 'controls.css', 'conversation.css', 'flint.css', 'pipeline.css', 'sandboxed-html.css', 'shell.css', 'tokens.css'];
 const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];
 const BOARD_STYLESHEET_TEXTS: ReadonlyMap<string, string> = new Map(BOARD_STYLESHEETS
   .filter((name) => BOARD_STYLESHEETS_PRESENT.includes(name))

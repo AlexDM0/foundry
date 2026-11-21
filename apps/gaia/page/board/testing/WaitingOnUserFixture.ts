@@ -1,10 +1,12 @@
 /**
  * A synthetic board where every kind of thing waits on User: an escalated question, a question with its job, a code-opened question with
  * none, two draft tickets, a filing draft waiting on an answer beside one still researching, a ticket ready for review and one waiting
- * for the merge accept, and one open incident. Built on `boardStateFixture`, whose default stays untouched. Test-only.
+ * for the merge accept, and one open incident, with the attention entries the forge serves for them. Built on `boardStateFixture`, whose
+ * default stays untouched. Test-only.
  */
 import type { BoardDecisionDocument, BoardQuestionHistoryEntryDocument } from '../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                            from '../../@types/board/BoardDocument.ts';
+import type { BoardAttentionEntryDocument }                              from '../../@types/board/BoardFactDocuments.ts';
 import type { BoardIncidentDocument }                                    from '../../@types/board/BoardIncidentDocument.ts';
 import type { BoardFilingDraftDocument, BoardTicketDocument }            from '../../@types/board/BoardTicketDocuments.ts';
 import { boardStateFixture, examplePageTicketFacts, exampleTicket }      from './BoardStateFixture.ts';
@@ -81,6 +83,113 @@ const WAITING_DRAFTS: readonly BoardFilingDraftDocument[] = [
   },
 ];
 
+type AttentionEntryChanges = Partial<BoardAttentionEntryDocument> & Pick<BoardAttentionEntryDocument, 'key' | 'kind' | 'idText' | 'subject' | 'stamp' | 'target'>;
+
+function attentionEntryOf(changes: AttentionEntryChanges): BoardAttentionEntryDocument {
+  return {
+    ticketIds:               [],
+    jobId:                   null,
+    askedBy:                 null,
+    decisionKind:            null,
+    escalatedFromIncidentId: null,
+    metaText:                null,
+    stampWord:               'opened',
+    actionLabel:             'Answer',
+    ...changes,
+  };
+}
+
+/** What waits on User on this board as the forge serves it: the escalated question first, then the rest oldest first across kinds. */
+export const WAITING_ATTENTION: readonly BoardAttentionEntryDocument[] = [
+  attentionEntryOf({
+    key:                     'decision:E3',
+    kind:                    'escalated-question',
+    idText:                  'E3',
+    ticketIds:               ['008'],
+    subject:                 'Example rate-limit window: per customer or per address?',
+    jobId:                   'J3',
+    askedBy:                 'builder',
+    escalatedFromIncidentId: 'I2',
+    stamp:                   '2026-11-09T14:19:40',
+    target:                  { subject: 'decision', id: 'E3' },
+  }),
+  attentionEntryOf({
+    key:      'draft:D2',
+    kind:     'filing-draft',
+    idText:   'D2',
+    subject:  'Example filing draft',
+    metaText: 'Waiting on you · 2 open questions',
+    stamp:    '2026-11-09T09:30:00',
+    target:   { subject: 'draft', id: 'D2' },
+  }),
+  attentionEntryOf({
+    key:          'decision:E2',
+    kind:         'question',
+    idText:       'E2',
+    ticketIds:    ['002'],
+    subject:      'Example worktree left on a branch',
+    askedBy:      'overseer',
+    decisionKind: 'leftover-worktree',
+    stamp:        '2026-11-09T10:58:00',
+    target:       { subject: 'decision', id: 'E2' },
+  }),
+  attentionEntryOf({
+    key:         'ticket:009',
+    kind:        'draft-ticket',
+    idText:      '#009',
+    subject:     'Example dates in the shop time zone',
+    metaText:    'draft ticket, no row yet',
+    stamp:       '2026-11-09T11:52:00',
+    stampWord:   'filed',
+    actionLabel: 'Ready',
+    target:      { subject: 'ticket', id: '009' },
+  }),
+  attentionEntryOf({
+    key:         'ticket:006',
+    kind:        'review',
+    idText:      '#006',
+    subject:     'Example review ready',
+    metaText:    'ready for User\'s review',
+    stamp:       '2026-11-09T12:00:00',
+    stampWord:   'ready since',
+    actionLabel: 'Review',
+    target:      { subject: 'ticket', id: '006' },
+  }),
+  attentionEntryOf({
+    key:         'merge-accept:005',
+    kind:        'merge-accept',
+    idText:      '#005',
+    subject:     'Example reviewed change',
+    metaText:    'reviewed, waits for User\'s accept on main',
+    stamp:       '2026-11-09T13:00:00',
+    stampWord:   'reviewed',
+    actionLabel: 'Accept',
+    target:      { subject: 'ticket', id: '005' },
+  }),
+  attentionEntryOf({
+    key:         'ticket:015',
+    kind:        'draft-ticket',
+    idText:      '#015',
+    subject:     'Example search suggestions',
+    metaText:    'draft ticket, no row yet',
+    stamp:       '2026-11-09T13:31:00',
+    stampWord:   'filed',
+    actionLabel: 'Ready',
+    target:      { subject: 'ticket', id: '015' },
+  }),
+  attentionEntryOf({
+    key:       'decision:E4',
+    kind:      'question',
+    idText:    'E4',
+    ticketIds: ['004'],
+    subject:   'Example table rows: zebra or dividers?',
+    jobId:     'J4',
+    askedBy:   'builder',
+    stamp:     '2026-11-09T14:19:55',
+    target:    { subject: 'decision', id: 'E4' },
+  }),
+];
+
 function boardWithTicketsAndDrafts(board: BoardDocument, tickets: readonly BoardTicketDocument[], drafts: readonly BoardFilingDraftDocument[]): BoardDocument {
   return {
     ...board,
@@ -103,6 +212,7 @@ export function waitingOnUserBoard(changes: Partial<BoardDocument> = {}): BoardD
     escalatedDecisionIds: ['E3'],
     incidents:            [OPEN_INCIDENT],
     questionHistory:      [ESCALATION_RECORD],
+    attention:            WAITING_ATTENTION,
     mergeQueue:           {
       queuedTicketIds: [],
       targets:         [{
@@ -123,7 +233,7 @@ export function waitingOnUserBoard(changes: Partial<BoardDocument> = {}): BoardD
 /** A board where nothing waits on User and no incident is open: no decision, no draft, and only a ticket in progress. */
 export function nothingWaitingBoard(): BoardDocument {
   const board = waitingOnUserBoard({
-    decisions: [], openDecisionIds: [], escalatedDecisionIds: [], incidents: [], questionHistory: [], mergeQueue: { queuedTicketIds: [], targets: [] },
+    decisions: [], openDecisionIds: [], escalatedDecisionIds: [], incidents: [], questionHistory: [], mergeQueue: { queuedTicketIds: [], targets: [] }, attention: [],
   });
   return boardWithTicketsAndDrafts(board, WAITING_TICKETS.filter((ticket) => ticket.status === 'in-progress'), []);
 }

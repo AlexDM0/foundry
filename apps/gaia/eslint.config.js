@@ -18,6 +18,10 @@ const BROWSER_STORAGE_SITES = ['page/board/preferences/PreferenceStore.ts', 'pag
 
 const BROWSER_STORAGE_MESSAGE = 'Reach browser storage through page/board/preferences/PreferenceStore.ts; only it, ThemeBootstrap and FleetStreamClient may.';
 
+const NOTIFICATION_SITES = ['page/notifications/NotificationBoundary.ts'];
+
+const NOTIFICATION_MESSAGE = 'Reach the Notification API through page/notifications/NotificationBoundary.ts.';
+
 /** Each process or browser reach CLAUDE.md confines, with the exact files allowed to make it. */
 const CONFINED_REACHES = [
   {
@@ -44,6 +48,11 @@ const CONFINED_REACHES = [
       property:  { object: owner, property: storageName, message: BROWSER_STORAGE_MESSAGE },
     })),
   ]),
+  { allowedIn: NOTIFICATION_SITES, global: { name: 'Notification', message: NOTIFICATION_MESSAGE } },
+  ...['window', 'globalThis', 'self'].map((owner) => ({
+    allowedIn: NOTIFICATION_SITES,
+    property:  { object: owner, property: 'Notification', message: NOTIFICATION_MESSAGE },
+  })),
 ];
 
 function confinedReachRules(exemptFile) {

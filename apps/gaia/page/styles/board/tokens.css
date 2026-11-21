@@ -5,7 +5,13 @@
  * [data-epic-slot="1".."6"] sets --epic-fill, --epic-tint and --epic-ink from the six epic colours.
  */
 :root {
-  /* A list item fading out where it stood (`LEAVING_MILLISECONDS`). */
+  /* The page's side gutter: every row of the board keeps it, 16px at phone width. */
+  --page-gutter: 28px;
+
+  --pulse-activity: 1.4s;
+
+  /* A figure or a state word swapping in; a list item fading out where it stood (`LEAVING_MILLISECONDS`). */
+  --motion-tick:  260ms;
   --motion-leave: 220ms;
 
   /* Six epic colours, given out in the order epics are added: Cobalt, Violet, Plum, Ochre, Steel and Umber. */
@@ -54,10 +60,14 @@
 }
 
 /* The board's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
-@media (prefers-reduced-motion: reduce) {
-  :root { --motion-leave: 0ms; }
+@media (max-width: 720px) {
+  :root { --page-gutter: 16px; }
 }
-:root:not([data-motion="ready"]) { --motion-leave: 0ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-tick: 0ms; --motion-leave: 0ms; }
+}
+:root:not([data-motion="ready"]) { --motion-tick: 0ms; --motion-leave: 0ms; }
 
 :root[data-theme="dark"] {
   --epic-1-fill: #6e95f2; --epic-1-tint: #1c2742; --epic-1-ink: #b9cdfb;

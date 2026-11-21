@@ -13,3 +13,16 @@ export function useBoardHrefOf(): (route: BoardRoute) => string {
   if (trackerId === null) throw new Error('A board link was drawn outside a mounted board: no BoardTrackerContext names its tracker.');
   return (route) => BoardRouter.fragmentOf(trackerId, route);
 }
+
+/** Moves Gaia's address to a fragment, as `BoardServices.goTo` does; whoever mounts the board provides it beside the tracker id. */
+export const BoardGoToContext = createContext<((fragment: string) => void) | null>(null);
+
+/** Goes to a board route of the mounted board, as following its link would; a route followed outside a mounted board throws when followed. */
+export function useBoardNavigation(): (route: BoardRoute) => void {
+  const trackerId = useContext(BoardTrackerContext);
+  const goTo = useContext(BoardGoToContext);
+  return (route) => {
+    if (trackerId === null || goTo === null) throw new Error('A board route was followed outside a mounted board: no BoardTrackerContext or BoardGoToContext.');
+    goTo(BoardRouter.fragmentOf(trackerId, route));
+  };
+}
