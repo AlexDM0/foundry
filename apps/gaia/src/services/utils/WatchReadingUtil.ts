@@ -12,7 +12,6 @@ const NO_CONTRACTS: ForgeContracts = {
   summary: null,
   monitor: null,
   control: null,
-  embed:   null,
 };
 
 /** The registry's entry for a forge whose Overseer it names, as the forge-api ingestions take it. */

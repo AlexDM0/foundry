@@ -28,7 +28,6 @@ const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> =
   'forge-restart':         'Restart',
   'forge-talos-restart':   'Restart Talos',
   'forge-update':          'Update forge',
-  'forge-open-in-browser': 'Open in new tab',
   'forge-hide':            'Hide in Gaia',
   'forge-unhide':          'Show again',
   'forge-stop':            'Stop',

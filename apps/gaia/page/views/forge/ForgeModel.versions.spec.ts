@@ -1,6 +1,6 @@
 /**
  * A forge in place at each version this Gaia, built for forge 3.1, meets (the Versions boards' U3). What matters: a forge Gaia cannot talk
- * to, newer or older, gets the versions notice and pair in place of the Bridge, so no frame session is asked; its bar shows the condition
+ * to, newer or older, gets the versions notice and pair in place of the board, so no board is read; its bar shows the condition
  * of its verdict, a line that names its version and the whole sentence in its title, no brain and no control Gaia would send, only those
  * controls disabled with a title naming both versions; an older forge, also one that states no version, offers Update forge, whose steps
  * follow the forge's command state and whose refusal shows in the bar rather than under it; an ahead forge keeps its condition, every
@@ -12,7 +12,7 @@ import type { CommandState }                                                    
 import type { ClockReading }                                                             from '../../shared/@types/ClockReading.ts';
 import { FLEET_FIXTURES_READ_AT }                                                        from '../../testing/fixtures/fleet-five-forges.ts';
 import { FLEET_VERSIONS, FLEET_VERSIONS_STATING_NO_VERSION, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
-import { ForgeFrameModel }                                                               from './ForgeFrameModel.ts';
+import { ForgeModel }                                                                    from './ForgeModel.ts';
 
 const TRACKER_IDS = FLEET_VERSIONS_TRACKER_IDS;
 
@@ -21,7 +21,7 @@ const CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_RE
 const IDLE: CommandState = { onItsWay: null, failure: null, restartPending: false };
 
 function contentOf(trackerId: string, fleetDocument = FLEET_VERSIONS) {
-  return ForgeFrameModel.forgeFrameContentOf(trackerId, fleetDocument, CLOCK);
+  return ForgeModel.forgeContentOf(trackerId, fleetDocument, CLOCK);
 }
 
 function barOf(trackerId: string, fleetDocument = FLEET_VERSIONS) {
@@ -34,8 +34,8 @@ function lineTextOf(trackerId: string, fleetDocument = FLEET_VERSIONS): string {
   return barOf(trackerId, fleetDocument).status.line.map((segment) => segment.text).join('');
 }
 
-describe('the frame area of a forge Gaia cannot talk to', () => {
-  test('holds the newer notice and the versions pair instead of the Bridge', () => {
+describe('the area under the bar of a forge Gaia cannot talk to', () => {
+  test('holds the newer notice and the versions pair instead of the board', () => {
     const { area } = contentOf(TRACKER_IDS.analyticsSandbox);
     if (area.kind !== 'cannot-talk') throw new Error(`Analytics Sandbox shows ${area.kind}.`);
     expect(area.verdict).toBe('newer');
@@ -48,15 +48,15 @@ describe('the frame area of a forge Gaia cannot talk to', () => {
   test('holds the older notice, also for a forge that states no version', () => {
     const older = contentOf(TRACKER_IDS.exampleBilling).area;
     const statesNoVersion = contentOf(TRACKER_IDS.exampleDocs, FLEET_VERSIONS_STATING_NO_VERSION).area;
-    if (older.kind !== 'cannot-talk' || statesNoVersion.kind !== 'cannot-talk') throw new Error('An older forge frames something else.');
+    if (older.kind !== 'cannot-talk' || statesNoVersion.kind !== 'cannot-talk') throw new Error('An older forge shows something else.');
     expect(older.notice.heading).toBe('Example Billing is older than this Gaia');
     expect(older.notice.sentence).toContain('and Example Billing is 1.8.');
     expect(statesNoVersion.verdict).toBe('older');
     expect(statesNoVersion.notice.sentence).toContain('and Example Docs states no version.');
   });
 
-  test('frames the Bridge of an ahead forge, which Gaia reads in full', () => {
-    expect(contentOf(TRACKER_IDS.exampleStorefront).area.kind).toBe('frame');
+  test('shows the board of an ahead forge, which Gaia reads in full', () => {
+    expect(contentOf(TRACKER_IDS.exampleStorefront).area.kind).toBe('board');
   });
 });
 
@@ -127,13 +127,13 @@ describe('Update forge in the bar of an older forge', () => {
   };
 
   test('is idle, pending while on its way, and done while the restart it left is pending', () => {
-    expect(ForgeFrameModel.updateStepOf(IDLE)).toEqual({ step: 'idle' });
-    expect(ForgeFrameModel.updateStepOf({ ...IDLE, onItsWay: 'forge-update' })).toEqual({ step: 'pending' });
-    expect(ForgeFrameModel.updateStepOf({ ...IDLE, restartPending: true })).toEqual({ step: 'done' });
+    expect(ForgeModel.updateStepOf(IDLE)).toEqual({ step: 'idle' });
+    expect(ForgeModel.updateStepOf({ ...IDLE, onItsWay: 'forge-update' })).toEqual({ step: 'pending' });
+    expect(ForgeModel.updateStepOf({ ...IDLE, restartPending: true })).toEqual({ step: 'done' });
   });
 
   test('a refusal carries the forge\'s code and sentence and its whole sentence for the title', () => {
-    expect(ForgeFrameModel.updateStepOf(refused)).toEqual({
+    expect(ForgeModel.updateStepOf(refused)).toEqual({
       step:          'refused',
       lead:          'The forge refused Update: ',
       code:          'repository-busy',
@@ -143,9 +143,9 @@ describe('Update forge in the bar of an older forge', () => {
   });
 
   test('a refused update shows in the bar and not under it as well, while any other refusal still shows under it', () => {
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleBilling, refused.failure, true)).toBeNull();
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleBilling, refused.failure, false)?.commandLabel).toBe('Update forge');
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleBilling, { kind: 'forge-open-in-browser', result: { verdict: 'server-unreachable' } }, true))
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleBilling, refused.failure, true)).toBeNull();
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleBilling, refused.failure, false)?.commandLabel).toBe('Update forge');
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleBilling, { kind: 'forge-pause', result: { verdict: 'server-unreachable' } }, true))
       .not.toBeNull();
   });
 });

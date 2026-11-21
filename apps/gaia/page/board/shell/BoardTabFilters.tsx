@@ -1,7 +1,7 @@
 /**
  * The filters the shell keeps for the tabs it draws: the finished-work window every detail tab reads, the filter line at the tab bar's end
  * with the Kanban's sections in its menu on the Kanban, the Kanban's choices the menu and the entity rail share, and the lane a header
- * figure asked the Kanban to outline. A framed tab keeps the frame's own filter row, so the line shows only beside a tab drawn here.
+ * figure asked the Kanban to outline.
  */
 import {
   useCallback,
@@ -50,7 +50,6 @@ function finishedWorkCountOf(board: BoardDocument, shownTab: BoardTab): Finished
 export function useBoardTabFilters(
   board: BoardDocument | null,
   shownTab: BoardTab,
-  tabIsDrawnHere: boolean,
   boardStore: PreferenceStore,
   boardNowEpochMilliseconds: number,
 ): BoardTabFilters {
@@ -79,7 +78,7 @@ export function useBoardTabFilters(
   }), [finishedWorkChoice, boardNowEpochMilliseconds]);
 
   const onKanban = shownTab === 'kanban' && kanbanFilters !== null;
-  const filterLine = board === null || !tabIsDrawnHere || !DetailRoute.isDetailTab(shownTab) ? null : (
+  const filterLine = board === null || !DetailRoute.isDetailTab(shownTab) ? null : (
     <FinishedWorkFilter
       choice={finishedWorkChoice}
       onChoice={chooseFinishedWork}

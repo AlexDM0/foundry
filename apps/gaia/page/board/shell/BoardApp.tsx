@@ -1,11 +1,10 @@
 /**
  * The board's shell for one forge: it reads the board through Gaia's relay at the start, after each `board-changed` and after its stream
  * comes back, follows the stream's connection, says whether controls may act, and draws the banners, the incident line, the header with its
- * tabs, and the main area. A tab `BOARD_TAB_VIEWS` lists is drawn by its view; any other tab's main area is what the forge view puts there,
- * the forge's own Bridge in a frame. Over a detail tab it draws, the detail panel opens on the routed item. Beside a tab it draws, the
- * question panel shows one open decision, opened by a view, by a decision that opens, or by `questions/<id>`; beside a framed tab the
- * frame's own panel shows. It navigates by Gaia's address alone, through `services.goTo`, and provides the tracker id and the way to go to
- * every link below it. Flint lives over the whole board, its habitat stored with the board's preferences.
+ * tabs, and the main area, where every tab is drawn by its view in `BOARD_TAB_VIEWS`. Over a detail tab the detail panel opens on the
+ * routed item. Beside every tab the question panel shows one open decision, opened by a view, by a decision that opens, or by
+ * `questions/<id>`. It navigates by Gaia's address alone, through `services.goTo`, and provides the tracker id and the way to go to every
+ * link below it. Flint lives over the whole board, its habitat stored with the board's preferences.
  */
 import { EmptyState } from 'design-system/EmptyState';
 import {
@@ -56,15 +55,13 @@ import { QuestionPanelOpenerContext }                                           
 import { WaitingOnUserModel }                                                            from './WaitingOnUserModel.ts';
 
 export interface BoardAppProps {
-  readonly services:       BoardServices;
+  readonly services:  BoardServices;
   /** The route Gaia's address names; `null` for the forge alone, which opens the tab stored for this board. */
-  readonly route:          BoardRoute | null;
+  readonly route:     BoardRoute | null;
   /** The forge's name until the first board names it. */
-  readonly project:        string;
-  /** What the main area holds for a tab no view of the board draws yet, for the route shown. */
-  readonly unmovedTabArea: (route: BoardRoute) => ReactNode;
-  /** The tabs the board draws itself; `BOARD_TAB_VIEWS` unless a spec hands its own. */
-  readonly tabViews?:      BoardTabViewTable;
+  readonly project:   string;
+  /** The view of every tab; `BOARD_TAB_VIEWS` unless a spec hands its own. */
+  readonly tabViews?: BoardTabViewTable;
 }
 
 const HELD_BY_INSTALL_CHANGE = 'held-by-install-change';
@@ -131,7 +128,7 @@ function useBoardReading(services: BoardServices): {
 }
 
 export function BoardApp({
-  services, route, project, unmovedTabArea, tabViews = BOARD_TAB_VIEWS
+  services, route, project, tabViews = BOARD_TAB_VIEWS
 }: BoardAppProps) {
   const { board, connection, boardShownAsOf } = useBoardReading(services);
   const boardStore = useMemo(() => boardPreferenceStoreOf(services.trackerId, services.storage), [services]);
@@ -204,20 +201,17 @@ export function BoardApp({
   const flintBoardReading = useMemo((): BoardReading => ({ board, connection, refusedCommandCount }), [board, connection, refusedCommandCount]);
   const headerModel = headerModelOf(board, services.now(), connection);
   const TabView = tabViews[shownRoute.tab];
-  const tabIsDrawnHere = TabView !== undefined;
   const { tab: shownTab, item: shownItem } = shownRoute;
-  const tabFilters = useBoardTabFilters(board, shownTab, tabIsDrawnHere, boardStore, boardNow);
+  const tabFilters = useBoardTabFilters(board, shownTab, boardStore, boardNow);
   const detailRouting = useMemo((): DetailRouting | null => {
-    if (!tabIsDrawnHere || !DetailRoute.isDetailTab(shownTab)) return null;
+    if (!DetailRoute.isDetailTab(shownTab)) return null;
     const fragmentOf = (detailRoute: BoardRoute): string => BoardRouter.fragmentOf(services.trackerId, detailRoute);
     const openDetail = DetailRoute.openDetailOf({ tab: shownTab, item: shownItem });
     return detailRoutingOf(shownTab, openDetail, (detailRoute) => services.goTo(fragmentOf(detailRoute)), fragmentOf);
-  }, [tabIsDrawnHere, shownTab, shownItem, services]);
-  // A framed tab shows the frame's own question panel, so the board draws its panel only beside a tab it draws itself.
-  const shownQuestion = TabView === undefined ? null : questionPanel.shownDecision;
+  }, [shownTab, shownItem, services]);
+  const shownQuestion = questionPanel.shownDecision;
 
   const mainArea = (): ReactNode => {
-    if (TabView === undefined) return unmovedTabArea(shownRoute);
     if (board === null) return <EmptyState text={WAITING_FOR_THE_FIRST_BOARD} />;
     const tabView = (
       <FinishedWorkWindowContext value={tabFilters.finishedWorkWindow}>
@@ -276,7 +270,6 @@ export function BoardApp({
                     tabIndex={-1}
                     className="board-panel"
                     data-tab={shownRoute.tab}
-                    data-unmoved={TabView === undefined ? '' : undefined}
                   >
                     <QuestionPanelShownContext value={shownQuestion !== null}>
                       <ShownQuestionContext value={shownQuestion?.decision.id ?? null}>

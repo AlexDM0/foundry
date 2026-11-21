@@ -20,7 +20,6 @@ import { TextButton }  from 'design-system/TextButton';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
-import { ButtonGlyph }                                            from '../../design-system/ButtonGlyph.tsx';
 import { Callout }                                                from '../../design-system/Callout.tsx';
 import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
 import { ListCard }                                               from '../../design-system/ListCard.tsx';
@@ -212,7 +211,6 @@ function LookActionButton({ action, commandStates, onCommand }: { readonly actio
     <Button
       label={action.label}
       emphasis={action.emphasis}
-      {...(action.icon === null ? {} : { trailing: <ButtonGlyph name="arrow-out-of-square" /> })}
       disabled={!action.forgeAcceptsIt || commandIsOnItsWay(commandStates, command)}
       onPress={() => onCommand(command)}
     />

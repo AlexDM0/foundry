@@ -1235,7 +1235,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   line-height: var(--line-height-small);
   white-space: pre;
 }
-/* The Bridge sits in a framed box inset from the window's edges, under the bar. */
+/* Where no board shows, its reason sits in a box inset from the window's edges, under the bar. */
 .gaia-forge-frame-area {
   position: relative;
   display: flex;
@@ -1247,24 +1247,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   border: var(--hairline) solid var(--line);
   border-radius: var(--r-3);
   background: var(--bg);
-}
-/* The Bridge loads behind "Opening" and fades in once it says it is ready, so no half-painted Bridge shows. */
-.gaia-forge-frame-bridge {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  border: 0;
-  background: var(--bg);
-  transition: opacity var(--motion-slow) var(--ease-out);
-}
-.gaia-forge-frame-bridge:not([data-bridge-ready]) { visibility: hidden; opacity: 0; }
-.gaia-forge-frame-opening {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  margin: 0;
-  color: var(--ink-muted);
 }
 .gaia-forge-frame-notice {
   display: flex;
@@ -1278,12 +1260,10 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   padding: var(--sp-6);
   transition: opacity var(--motion-base) var(--ease-out);
 }
-.gaia-forge-frame-notice > .gaia-callout,
-.gaia-forge-frame-notice-refusal { align-self: stretch; }
 .gaia-forge-frame-notice-text { margin: 0; }
 .gaia-forge-frame-notice-id { margin: 0; }
 
-/* A forge Gaia cannot talk to: the frame waits dashed, its notice centred, with the versions pair and Open in new tab. */
+/* A forge Gaia cannot talk to: the area waits dashed, its notice centred, with the versions pair. */
 .gaia-forge-frame-area[data-cannot-talk] {
   justify-content: center;
   padding: var(--sp-6);
@@ -1302,7 +1282,6 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forge-frame-versions-word { display: inline-flex; align-items: center; gap: var(--sp-2); font-weight: var(--weight-strong); color: var(--ink); }
 .gaia-forge-frame-versions-word[data-verdict="older"] { color: var(--link); }
 .gaia-forge-frame-versions-notice > .gaia-versions-pair { align-self: stretch; margin-top: var(--sp-1); }
-.gaia-forge-frame-versions-actions { display: flex; padding-top: var(--sp-1); }
 
 /* The bar's second line: the running and the newest Overseer and Talos, a newer installed version marked, and the restart of each. */
 .gaia-forge-frame-running { display: flex; flex: none; align-items: center; gap: var(--space-10); min-width: 0; padding: 0 var(--sp-4) var(--sp-2) var(--space-18); }
@@ -1345,9 +1324,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 /* Stop's wrapper anchors its question's popover, which hangs under it. */
 .gaia-forge-frame-stop { position: relative; display: inline-flex; }
 
-/* A notice fades in as it appears. A refused notice draws nothing of its own and its refusal fades in itself, so the notice holds still and
-   the refusal fades once. */
+/* A notice fades in as it appears. */
 @starting-style {
   .gaia-forge-frame-notice { opacity: 0; }
 }
-.gaia-forge-frame-notice[data-refused] { transition: none; }

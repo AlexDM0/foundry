@@ -6,10 +6,10 @@
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 /**
- * Raised in its minor when a route, the fleet stream or a message to the Bridge only adds, so every page and launcher of this major keeps
+ * Raised in its minor when a route or the fleet stream only adds, so every page and launcher of this major keeps
  * working; in its major when one changes in a way a client built for the older major cannot read.
  */
-export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 1, minor: 3 };
+export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 1, minor: 4 };
 
 /**
  * The oldest Gaia a page or a launcher may have been built for and still be served; 0.0 stands for every Gaia before system versions.
@@ -21,17 +21,16 @@ export const MINIMUM_SUPPORTED_GAIA_VERSION: SystemVersion = { major: 0, minor: 
  * Each route's version: v1, except where the route already had a breaking change. The fleet document and its stream: monitor contract 2's
  * warning kinds (2), Flint's brain (3), a forge too old to talk to (4), board routes in place of the Bridge's fragments (5), a forge's
  * presence, crash and waiting work (6), the fleet's alert of the agents a network outage stopped (7), the running and newest Overseer and
- * Talos (8). The commands: Gaia's sentences for forge refusals (2), the brain's commands (3), and Unpause in place of Resume beside the
- * resume of interrupted work (4).
+ * Talos (8), no forge's embed contract (9). The commands: Gaia's sentences for forge refusals (2), the brain's commands (3), Unpause in
+ * place of Resume beside the resume of interrupted work (4), and no Open in new tab of a forge's own Bridge (5).
  */
 export const GAIA_ENDPOINT_VERSIONS = {
   health:             1,
   sessionCodes:       1,
   session:            1,
-  fleet:              8,
-  events:             8,
-  commands:           4,
-  frameSession:       1,
+  fleet:              9,
+  events:             9,
+  commands:           5,
   forgeBoard:         1,
   forgeBoardEvents:   1,
   forgeJobStream:     1,

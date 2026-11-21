@@ -1,6 +1,6 @@
 /**
  * The Intake tab in the board's shell, with the board's own tab views. What matters: the shell draws the Intake view itself at the route,
- * never the frame the forge view puts there for an unmoved tab, and the view follows a session's transcript through the board's services.
+ * and the view follows a session's transcript through the board's services.
  */
 import {
   act,
@@ -20,7 +20,6 @@ import { productOwnerJob, sessionRecord }                     from '../../testin
 import { createManualFlintFrames }                            from '../../testing/ManualFlintFrames.ts';
 import { pipelineBoardStateOf }                               from '../../testing/PipelineFixture.ts';
 
-const UNMOVED_AREA_TEXT = 'The frame for an unmoved tab';
 
 const INTAKE_BOARD: BoardDocument = boardStateFixture({
   pipeline:        pipelineBoardStateOf('A5').pipeline,
@@ -56,7 +55,7 @@ function servicesOf(followTranscript: BoardServices['followTranscript'], answerR
   };
 }
 
-test('the board draws the Intake tab itself, never the frame for an unmoved tab, and follows the session through its services', async () => {
+test('the board draws the Intake tab itself and follows the session through its services', async () => {
   const transcripts = fakeTranscripts();
   const pendingReads: ((board: BoardDocument) => void)[] = [];
   const route: BoardRoute = { tab: 'intake', item: 'J7' };
@@ -65,7 +64,6 @@ test('the board draws the Intake tab itself, never the frame for an unmoved tab,
       services={servicesOf(transcripts.follow, (answer) => pendingReads.push(answer))}
       route={route}
       project="Example Agency"
-      unmovedTabArea={() => <p>{UNMOVED_AREA_TEXT}</p>}
     />,
   );
   await act(async () => {
@@ -74,6 +72,5 @@ test('the board draws the Intake tab itself, never the frame for an unmoved tab,
   });
   expect(screen.getByRole('region', { name: 'Product-owner sessions' })).toBeDefined();
   expect(screen.getByRole('region', { name: 'Intake J7' })).toBeDefined();
-  expect(screen.queryByText(UNMOVED_AREA_TEXT)).toBeNull();
   expect(transcripts.followedJobs()).toEqual(['J7']);
 });

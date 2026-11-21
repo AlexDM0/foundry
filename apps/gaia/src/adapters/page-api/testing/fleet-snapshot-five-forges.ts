@@ -20,7 +20,6 @@ const EVERY_CURRENT_CONTRACT = {
   summary: 1,
   monitor: 3,
   control: 1,
-  embed:   1,
 };
 
 /** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
@@ -814,7 +813,6 @@ const LEGACY_IMPORTER: FleetForge = {
     summary: null,
     monitor: null,
     control: null,
-    embed:   null,
   },
   codeVersion:       null,
   lastReportedAt:    null,
@@ -1009,7 +1007,6 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
       summary: 1,
       monitor: 3,
       control: 1,
-      embed:   1,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },

@@ -1,9 +1,9 @@
 /**
- * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the frame, with the forge's name, its condition, one short
- * line of what it reports and the controls its condition allows; the Stop question; and what the frame area holds: the Bridge, B3's
- * callout for an Overseer that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
- * that cannot be shown inside Gaia. Also Flint's brain in the bar, in the state the forge reports, with a wake refused here in its place,
- * the steps of an older forge's Update forge, and where `leave` goes.
+ * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the board, with the forge's name, its condition, one short
+ * line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the
+ * board of an Overseer that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
+ * whose board Gaia cannot read. Also Flint's brain in the bar, in the state the forge reports, with a wake refused here in its place, and
+ * the steps of an older forge's Update forge.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
@@ -17,17 +17,16 @@ import type {
   FleetDocumentForge,
   FleetDocumentRunningVersions,
 } from '../../@types/FleetDocument.ts';
-import type { CommandFailure, CommandState }          from '../../api/CommandSender.ts';
-import type { DotCondition }                          from '../../design-system/ConditionDot.tsx';
-import type { RefusedBy }                             from '../../design-system/Refusal.tsx';
-import type { ClockReading }                          from '../../shared/@types/ClockReading.ts';
-import { DEFAULT_ROUTE, type GaiaRoute, HashRouter }  from '../../shared/HashRouter.ts';
-import { CommandFailureTextUtil, type RefusalText }   from '../../shared/utils/CommandFailureTextUtil.ts';
-import { CountTextUtil }                              from '../../shared/utils/CountTextUtil.ts';
-import { FleetDocumentUtil }                          from '../../shared/utils/FleetDocumentUtil.ts';
-import { ForgeCommandTextUtil, type StopQuestion }    from '../../shared/utils/ForgeCommandTextUtil.ts';
-import { ForgeContractUtil }                          from '../../shared/utils/ForgeContractUtil.ts';
-import { ForgeTextUtil, type UnreachableCalloutText } from '../../shared/utils/ForgeTextUtil.ts';
+import type { CommandFailure, CommandState }        from '../../api/CommandSender.ts';
+import type { DotCondition }                        from '../../design-system/ConditionDot.tsx';
+import type { RefusedBy }                           from '../../design-system/Refusal.tsx';
+import type { ClockReading }                        from '../../shared/@types/ClockReading.ts';
+import { CommandFailureTextUtil, type RefusalText } from '../../shared/utils/CommandFailureTextUtil.ts';
+import { CountTextUtil }                            from '../../shared/utils/CountTextUtil.ts';
+import { FleetDocumentUtil }                        from '../../shared/utils/FleetDocumentUtil.ts';
+import { ForgeCommandTextUtil, type StopQuestion }  from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeContractUtil }                        from '../../shared/utils/ForgeContractUtil.ts';
+import { ForgeTextUtil }                            from '../../shared/utils/ForgeTextUtil.ts';
 import {
   ForgeVersionsTextUtil,
   type ForgeWithVersions,
@@ -36,8 +35,7 @@ import {
   type VersionsPairText,
   type VersionsText,
 } from '../../shared/utils/ForgeVersionsTextUtil.ts';
-import { StampTextUtil }              from '../../shared/utils/StampTextUtil.ts';
-import { SESSION_LOST_WHILE_OPENING } from './ForgeFrameSession.ts';
+import { StampTextUtil } from '../../shared/utils/StampTextUtil.ts';
 
 export interface BarCommand {
   readonly label:    string;
@@ -135,21 +133,9 @@ export interface ForgeBar {
   readonly versions:               BarVersions | null;
 }
 
-export type ForgeFrameArea =
-  | {
-    readonly kind:        'frame';
-    readonly trackerId:   string;
-    readonly project:     string;
-    readonly overseerKey: string;
-    /** What the area shows when the frame session finds the Overseer gone before the fleet document says so. */
-    readonly callout:     UnreachableCalloutText;
-  }
-  | {
-    readonly kind:      'unreachable';
-    readonly trackerId: string;
-    readonly project:   string;
-    readonly callout:   UnreachableCalloutText;
-  }
+/** `board`: a forge read in full or as an Overseer that stopped answering last reported it, whose board Gaia's relay reads. */
+export type ForgeArea =
+  | { readonly kind: 'board'; readonly trackerId: string; readonly project: string }
   | {
     readonly kind:      'cannot-talk';
     readonly trackerId: string;
@@ -158,6 +144,7 @@ export type ForgeFrameArea =
     readonly notice:    VersionsNoticeText;
     readonly pair:      VersionsPairText;
   }
+  /** A forge whose board Gaia's relay cannot read: one that reports counts only, sleeps, or lost its repository. */
   | { readonly kind: 'cannot-show'; readonly trackerId: string; readonly project: string }
   | { readonly kind: 'not-registered'; readonly trackerId: string };
 
@@ -167,25 +154,19 @@ export interface BarRefusal extends RefusalText {
   readonly tryAgain:     ForgeCommandBody | null;
 }
 
-export interface ForgeFrameContent {
+export interface ForgeContent {
   /** `null` for a tracker id the fleet document does not hold. */
   readonly bar:  ForgeBar | null;
-  readonly area: ForgeFrameArea;
-}
-
-/** The view a forge in place leaves to: the one shown before this forge, kept with the route last seen. */
-export interface LeaveTarget {
-  readonly lastRoute: GaiaRoute;
-  readonly fragment:  string;
+  readonly area: ForgeArea;
 }
 
 const LINE_SEPARATOR = ' · ';
 
 /** The bar's commands that carry nothing but the forge, so Try again can send them as they were; Stop asks its question again instead. */
-type KindSentAgainAsItWas = 'forge-pause' | 'forge-unpause' | 'forge-open-in-browser' | 'forge-brain-stop' | 'forge-talos-restart';
+type KindSentAgainAsItWas = 'forge-pause' | 'forge-unpause' | 'forge-brain-stop' | 'forge-talos-restart';
 
 const SENT_AGAIN_AS_THEY_WERE: ReadonlySet<CommandKind> = new Set<KindSentAgainAsItWas>([
-  'forge-pause', 'forge-unpause', 'forge-open-in-browser', 'forge-brain-stop', 'forge-talos-restart',
+  'forge-pause', 'forge-unpause', 'forge-brain-stop', 'forge-talos-restart',
 ]);
 
 /** A refused wake shows in the brain's group, where it was asked, beside Wake; not under the bar as well. */
@@ -218,20 +199,6 @@ const BRAIN_ENDED_SENTENCE = 'Flint\'s brain stopped';
 
 /** A figure of a running brain the forge did not report. */
 const UNREPORTED_FIGURE = '–';
-
-/** Gaia's own reasons for no frame session, worded where the forge sent no sentence. */
-const FRAME_SESSION_REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
-  'forge-not-registered':       'The registry does not name this forge.',
-  'registry-unreadable':        'Gaia could not read the forges\' registry.',
-  'registry-newer-version':     'The forges\' registry is newer than this Gaia reads.',
-  'token-unreadable':           'Gaia could not read this forge\'s token.',
-  'token-rejected':             'The forge did not accept Gaia\'s token.',
-  'server-unreachable':         'Gaia\'s server could not be reached.',
-  'answer-not-understood':      'Gaia\'s server gave an answer this page does not understand.',
-  [SESSION_LOST_WHILE_OPENING]: 'The Bridge lost its session as it opened.',
-};
-
-const FRAME_SESSION_REFUSED_SENTENCE = 'Gaia could not open a session in this forge.';
 
 /** Pause and Stop for a newer forge, Stop alone beside an older forge's Update forge, as the Versions boards draw them. */
 const UNSENT_CONTROLS: Readonly<Record<CannotTalkVerdict, readonly string[]>> = {
@@ -508,13 +475,7 @@ function updateStepOf(commandState: CommandState): BarUpdateStep {
   return commandState.restartPending ? { step: 'done' } : { step: 'idle' };
 }
 
-/** The Overseer the frame's session belongs to: a new address or a new start is a new Overseer, which needs a new frame session. */
-function overseerKeyOf(forge: FleetDocumentForge): string {
-  return `${forge.url ?? ''} ${forge.overseerStartedAt ?? ''}`;
-}
-
-/** An Overseer that stopped answering shows B3's callout first: its last reading may still name an embed channel it no longer serves. */
-function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, gaiaVersions: GaiaVersions, clock: ClockReading): ForgeFrameArea {
+function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, gaiaVersions: GaiaVersions): ForgeArea {
   if (forge === undefined) return { kind: 'not-registered', trackerId };
   const { project } = forge;
   const verdict = cannotTalkVerdictOf(forge);
@@ -523,20 +484,14 @@ function areaOf(trackerId: string, forge: FleetDocumentForge | undefined, gaiaVe
   if (verdict !== null && forgeWithVersions !== null && notice !== null) return {
     kind: 'cannot-talk', trackerId, project, verdict, notice, pair: ForgeVersionsTextUtil.pairTextOf(forgeWithVersions, gaiaVersions),
   };
-  const callout = ForgeTextUtil.unreachableCalloutTextOf(forge, StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock));
-  if (forge.fidelity === 'unreachable') return {
-    kind: 'unreachable', trackerId, project, callout,
-  };
-  if (forge.fidelity === 'full' && ForgeContractUtil.bridgeCanBeFramed(forge)) return {
-    kind: 'frame', trackerId, project, overseerKey: overseerKeyOf(forge), callout,
-  };
+  if (ForgeContractUtil.canOpenInPlace(forge)) return { kind: 'board', trackerId, project };
   return { kind: 'cannot-show', trackerId, project };
 }
 
-function forgeFrameContentOf(trackerId: string, fleetDocument: FleetDocument, clock: ClockReading): ForgeFrameContent {
+function forgeContentOf(trackerId: string, fleetDocument: FleetDocument, clock: ClockReading): ForgeContent {
   const forge = fleetDocument.forges.find((candidate) => candidate.trackerId === trackerId);
   const gaiaVersions = fleetDocument.gaia.versions;
-  return { bar: forge === undefined ? null : barOf(forge, gaiaVersions, clock), area: areaOf(trackerId, forge, gaiaVersions, clock) };
+  return { bar: forge === undefined ? null : barOf(forge, gaiaVersions, clock), area: areaOf(trackerId, forge, gaiaVersions) };
 }
 
 function kindIsSentAgainAsItWas(kind: CommandKind): kind is KindSentAgainAsItWas {
@@ -586,35 +541,11 @@ function markWakeOf(brain: BarBrain | null, shown: BarBrainShown | null): BarMar
   return { title: wakesBrain ? WAKE_BY_DOUBLE_CLICK_TITLE : MARK_TITLES_WHILE_AWAKE[shown.state] ?? null, wakesBrain };
 }
 
-/** The forge's own sentence when it sent one, else Gaia's for its own reason, read through an own-property check. */
-function frameSessionRefusalTextOf(refusal: string, text: string | null): RefusalText {
-  const ownSentence = Object.hasOwn(FRAME_SESSION_REFUSAL_SENTENCES, refusal) ? FRAME_SESSION_REFUSAL_SENTENCES[refusal] : undefined;
-  return { refusedBy: ownSentence === undefined ? 'forge' : 'gaia', code: refusal, sentence: text ?? ownSentence ?? FRAME_SESSION_REFUSED_SENTENCE };
-}
-
-function initialLeaveTarget(route: GaiaRoute): LeaveTarget {
-  return { lastRoute: route, fragment: HashRouter.fragmentOf(DEFAULT_ROUTE) };
-}
-
-/**
- * Entering a forge in place from any other view, another forge included, remembers that view; moving within the forge keeps it. The same
- * target comes back, the very object, when the route did not change, so a caller can tell.
- */
-function leaveTargetAfter(target: LeaveTarget, route: GaiaRoute): LeaveTarget {
-  if (route === target.lastRoute) return target;
-  const { lastRoute } = target;
-  const entersAnotherForge = route.view === 'forge' && (lastRoute.view !== 'forge' || lastRoute.trackerId !== route.trackerId);
-  return { lastRoute: route, fragment: entersAnotherForge ? HashRouter.fragmentOf(lastRoute) : target.fragment };
-}
-
-export const ForgeFrameModel = {
-  forgeFrameContentOf,
+export const ForgeModel = {
+  forgeContentOf,
   barRefusalOf,
   updateStepOf,
   brainShownAfter,
   brainWakeRefusalIsOutOfDate,
   markWakeOf,
-  frameSessionRefusalTextOf,
-  initialLeaveTarget,
-  leaveTargetAfter,
 } as const;

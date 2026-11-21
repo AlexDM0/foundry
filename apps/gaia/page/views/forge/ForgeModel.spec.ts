@@ -4,9 +4,8 @@
  * B1's line, so the bar keeps to one line (D2), with the whole reading of a usage limit hit and since for its tooltip; a value the forge
  * did not report is absent, not zero; an Overseer that stopped answering says its line is as last reported; each condition shows exactly
  * its controls, and a forge whose control contract Gaia does not know cannot be paused, unpaused or stopped from Gaia; the Stop question
- * offers its two choices only while agents run; the frame area is the Bridge only for a forge read in full with the embed channel Gaia
- * knows, B3's callout for one that stopped answering, and otherwise why it cannot be shown; a new address or start of the Overseer is a new
- * frame session; `leave` goes back to the view Gaia came from; a refusal is worded with the forge's own sentence.
+ * offers its two choices only while agents run; the area under the bar is the board for a forge read in full or as an Overseer that
+ * stopped answering last reported it, and otherwise why it cannot be shown; a refusal is worded with the forge's own sentence.
  * Flint's brain: each state the forge reports is worded for the bar, the time left counted down to the forge's `endsAt` and never ending
  * the brain by itself; it is absent under a monitor older than contract 3 and for a forge without Flint, both reported as `not-reported`;
  * its controls are served only by an Overseer that answers, at a control contract that carries them; a wake refused here shows in the
@@ -23,7 +22,6 @@ import type {
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure } from '../../api/CommandSender.ts';
 import type { ClockReading }   from '../../shared/@types/ClockReading.ts';
-import { HashRouter }          from '../../shared/HashRouter.ts';
 import { STOREFRONT_BRAINS }   from '../../testing/fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }      from '../../testing/fixtures/fleet-degraded.ts';
 import {
@@ -32,7 +30,7 @@ import {
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
 } from '../../testing/fixtures/fleet-five-forges.ts';
-import { ForgeFrameModel } from './ForgeFrameModel.ts';
+import { ForgeModel } from './ForgeModel.ts';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 const READINGS = FLEET_FIVE_FORGES_READINGS;
@@ -47,7 +45,7 @@ const USAGE_UNDER_THE_LIMIT: FleetDocumentUsage = {
 const CLOCK: ClockReading = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
 function contentOf(trackerId: string, fleetDocument: FleetDocument = FLEET_FIVE_FORGES) {
-  return ForgeFrameModel.forgeFrameContentOf(trackerId, fleetDocument, CLOCK);
+  return ForgeModel.forgeContentOf(trackerId, fleetDocument, CLOCK);
 }
 
 function withForge(forge: FleetDocumentForge): FleetDocument {
@@ -192,79 +190,29 @@ describe('the Stop question (B2)', () => {
   });
 });
 
-describe('the frame area', () => {
-  test('frames the Bridge of a forge read in full with the embed channel Gaia knows, keyed by its Overseer', () => {
-    const { area } = contentOf(TRACKER_IDS.exampleStorefront);
-    expect(area).toMatchObject({
-      kind: 'frame', trackerId: TRACKER_IDS.exampleStorefront, project: 'Example Storefront', overseerKey: 'http://127.0.0.1:4951 2026-11-12T09:12:00.000Z',
-    });
+describe('the area under the bar', () => {
+  test('is the board of a forge read in full, and of one whose Overseer stopped answering, as last reported', () => {
+    expect(contentOf(TRACKER_IDS.exampleStorefront).area).toEqual({ kind: 'board', trackerId: TRACKER_IDS.exampleStorefront, project: 'Example Storefront' });
+    expect(contentOf(TRACKER_IDS.invoiceService, FLEET_DEGRADED).area).toEqual({ kind: 'board', trackerId: TRACKER_IDS.invoiceService, project: 'Invoice Service' });
   });
 
-  test('a new address or a new start of the Overseer is a new key, so a new frame session', () => {
-    const keyOf = (forge: FleetDocumentForge): string => {
-      const { area } = contentOf(forge.trackerId, withForge(forge));
-      return area.kind === 'frame' ? area.overseerKey : 'no frame';
-    };
-    const before = keyOf(READINGS.exampleStorefront);
-    expect(keyOf({ ...READINGS.exampleStorefront, url: 'http://127.0.0.1:4999' })).not.toBe(before);
-    expect(keyOf({ ...READINGS.exampleStorefront, overseerStartedAt: '2026-11-12T13:30:00.000Z' })).not.toBe(before);
-    expect(keyOf({ ...READINGS.exampleStorefront, attention: [] })).toBe(before);
+  test('is the board whatever embed contract the forge serves, since Gaia frames no forge', () => {
+    const withoutAnyEmbedContract = { ...READINGS.exampleStorefront, contracts: { summary: 1, monitor: 3, control: 1 } };
+    expect(contentOf(withoutAnyEmbedContract.trackerId, withForge(withoutAnyEmbedContract)).area.kind).toBe('board');
   });
 
-  test('shows B3\'s callout for an Overseer that stopped answering, with its address, process and last answer', () => {
-    expect(contentOf(TRACKER_IDS.invoiceService, FLEET_DEGRADED).area).toEqual({
-      kind:      'unreachable',
-      trackerId: TRACKER_IDS.invoiceService,
-      project:   'Invoice Service',
-      callout:   {
-        word:        'Unreachable',
-        sentence:    'Its Overseer stopped answering. The registry still names it.',
-        machineLine: '127.0.0.1:4957 · process 48211 · last answer 13:14',
-      },
-    });
-  });
-
-  test('cannot show a forge without the embed channel Gaia knows, read through its summary, newer than Gaia, dormant or gone', () => {
-    const noEmbed = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, embed: null } };
-    const newerEmbed = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, embed: 2 } };
+  test('cannot show a forge read through its summary, newer than Gaia, dormant or gone', () => {
     const kinds = [
-      contentOf(noEmbed.trackerId, withForge(noEmbed)).area.kind,
-      contentOf(newerEmbed.trackerId, withForge(newerEmbed)).area.kind,
       contentOf(TRACKER_IDS.researchWiki, FLEET_DEGRADED).area.kind,
       contentOf('analytics-sandbox-4d18', FLEET_DEGRADED).area.kind,
       contentOf(TRACKER_IDS.designSystem).area.kind,
       contentOf(TRACKER_IDS.legacyImporter).area.kind,
     ];
-    expect(kinds).toEqual(['cannot-show', 'cannot-show', 'cannot-show', 'cannot-show', 'cannot-show', 'cannot-show']);
+    expect(kinds).toEqual(['cannot-show', 'cannot-show', 'cannot-show', 'cannot-show']);
   });
 
   test('a tracker id the registry does not name has no bar and says so', () => {
     expect(contentOf('example-unknown-0000')).toEqual({ bar: null, area: { kind: 'not-registered', trackerId: 'example-unknown-0000' } });
-  });
-});
-
-describe('where leave goes', () => {
-  const attention = HashRouter.routeOf('#attention');
-  const agentsWithFilters = HashRouter.routeOf('#agents?role=builders');
-  const storefrontQuestions = HashRouter.routeOf(`#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`);
-  const storefrontKanban = HashRouter.routeOf(`#forge/${TRACKER_IDS.exampleStorefront}/kanban`);
-  const invoiceInPlace = HashRouter.routeOf(`#forge/${TRACKER_IDS.invoiceService}`);
-
-  test('back to the view the forge was entered from, its filters kept, also after moving inside the forge', () => {
-    const entered = ForgeFrameModel.leaveTargetAfter(ForgeFrameModel.initialLeaveTarget(agentsWithFilters), storefrontQuestions);
-    expect(entered.fragment).toBe('#agents?role=builders');
-    expect(ForgeFrameModel.leaveTargetAfter(entered, storefrontKanban).fragment).toBe('#agents?role=builders');
-  });
-
-  test('from one forge to another, back to the first', () => {
-    const inStorefront = ForgeFrameModel.leaveTargetAfter(ForgeFrameModel.initialLeaveTarget(attention), storefrontQuestions);
-    expect(ForgeFrameModel.leaveTargetAfter(inStorefront, invoiceInPlace).fragment).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/questions/E2`);
-  });
-
-  test('to Attention for a page opened at the forge, and the same target, the very object, for the same route', () => {
-    const opened = ForgeFrameModel.initialLeaveTarget(storefrontQuestions);
-    expect(opened.fragment).toBe('#attention');
-    expect(ForgeFrameModel.leaveTargetAfter(opened, storefrontQuestions)).toBe(opened);
   });
 });
 
@@ -274,7 +222,7 @@ describe('a refusal under the bar', () => {
   } as const;
 
   test('names the bar\'s command and shows the forge\'s code and sentence; Stop asks its question again rather than resending', () => {
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-stop', result: { verdict: 'answered', answer: refused } })).toEqual({
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-stop', result: { verdict: 'answered', answer: refused } })).toEqual({
       refusedBy:    'forge',
       commandLabel: 'Stop',
       code:         'overseer-still-live',
@@ -283,8 +231,8 @@ describe('a refusal under the bar', () => {
     });
   });
 
-  test('sends pause, unpause and Open in new tab again as they were', () => {
-    const pauseRefusal = ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-pause', result: { verdict: 'server-unreachable' } });
+  test('sends pause again as it was', () => {
+    const pauseRefusal = ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-pause', result: { verdict: 'server-unreachable' } });
     expect(pauseRefusal).toEqual({
       refusedBy:    'gaia',
       commandLabel: 'Pause',
@@ -292,13 +240,11 @@ describe('a refusal under the bar', () => {
       sentence:     'Gaia\'s server could not be reached.',
       tryAgain:     { kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront },
     });
-    const openRefusal = ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-open-in-browser', result: { verdict: 'answered', answer: refused } });
-    expect(openRefusal?.tryAgain).toEqual({ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront });
   });
 
   test('is absent with no failure, and for a command that names no forge', () => {
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, null)).toBeNull();
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'fleet-look-again', result: { verdict: 'server-unreachable' } })).toBeNull();
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, null)).toBeNull();
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'fleet-look-again', result: { verdict: 'server-unreachable' } })).toBeNull();
   });
 });
 
@@ -311,7 +257,7 @@ describe('Flint\'s brain in the bar', () => {
     const forge = {
       ...storefront, contracts: { ...storefront.contracts, control: 1 }, brain, ...overrides,
     };
-    const { bar } = ForgeFrameModel.forgeFrameContentOf(forge.trackerId, withForge(forge), clock);
+    const { bar } = ForgeModel.forgeContentOf(forge.trackerId, withForge(forge), clock);
     if (bar === null) throw new Error('The forge has no bar.');
     return bar.brain;
   }
@@ -390,14 +336,14 @@ describe('Flint\'s brain in the bar', () => {
     for (const state of ['off', 'refused', 'ended'] as const) {
       const brain = brainOf(STOREFRONT_BRAINS[state]);
       if (brain === null) throw new Error('The forge has no brain.');
-      expect(ForgeFrameModel.brainShownAfter(brain, wakeRefused)).toEqual(refusedHere);
-      expect(ForgeFrameModel.brainShownAfter(brain, stopRefused)).toBe(brain.shown);
+      expect(ForgeModel.brainShownAfter(brain, wakeRefused)).toEqual(refusedHere);
+      expect(ForgeModel.brainShownAfter(brain, stopRefused)).toBe(brain.shown);
     }
     const running = brainOf(STOREFRONT_BRAINS.running);
     if (running === null) throw new Error('The forge has no brain.');
-    expect(ForgeFrameModel.brainShownAfter(running, wakeRefused)).toBe(running.shown);
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, wakeRefused)).toBeNull();
-    expect(ForgeFrameModel.barRefusalOf(TRACKER_IDS.exampleStorefront, stopRefused)).toEqual({
+    expect(ForgeModel.brainShownAfter(running, wakeRefused)).toBe(running.shown);
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, wakeRefused)).toBeNull();
+    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, stopRefused)).toEqual({
       refusedBy:    'gaia',
       commandLabel: 'Stop Flint\'s brain',
       code:         'server-unreachable',
@@ -412,8 +358,8 @@ describe('Flint\'s brain in the bar', () => {
     const shownStates = (['off', 'running', 'ended'] as const).map((state) => {
       const brain = brainOf(STOREFRONT_BRAINS[state]);
       if (brain === null) throw new Error('The forge has no brain.');
-      if (ForgeFrameModel.brainWakeRefusalIsOutOfDate(brain, failure)) failure = null;
-      return ForgeFrameModel.brainShownAfter(brain, failure).state;
+      if (ForgeModel.brainWakeRefusalIsOutOfDate(brain, failure)) failure = null;
+      return ForgeModel.brainShownAfter(brain, failure).state;
     });
     expect(shownStates).toEqual(['refused', 'running', 'ended']);
   });
@@ -440,14 +386,14 @@ describe('Flint\'s brain in the bar', () => {
     const exampleRefusal = {
       state: 'refused', refusedBy: 'forge', code: 'example-refusal', sentence: 'Flint\'s brain did not wake'
     } as const;
-    expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('usage-limit-holds'))).toEqual(usageLimit);
-    expect(ForgeFrameModel.brainShownAfter(brain, refusedWithoutText('example-refusal'))).toEqual(exampleRefusal);
+    expect(ForgeModel.brainShownAfter(brain, refusedWithoutText('usage-limit-holds'))).toEqual(usageLimit);
+    expect(ForgeModel.brainShownAfter(brain, refusedWithoutText('example-refusal'))).toEqual(exampleRefusal);
   });
 
   test('the mark wakes the brain only where Wake shows, and its title says so or says how the brain is', () => {
     const markOf = (brain: FleetDocumentBrain | 'not-reported', control: number | null = 1) => {
       const barBrain = brainOf(brain, { contracts: { ...READINGS.exampleStorefront.contracts, control } });
-      return ForgeFrameModel.markWakeOf(barBrain, barBrain?.shown ?? null);
+      return ForgeModel.markWakeOf(barBrain, barBrain?.shown ?? null);
     };
     const wakes = { title: 'Double-click to wake Flint\'s brain', wakesBrain: true };
     expect(markOf(STOREFRONT_BRAINS.off)).toEqual(wakes);
@@ -457,24 +403,6 @@ describe('Flint\'s brain in the bar', () => {
     expect(markOf(STOREFRONT_BRAINS.running)).toEqual({ title: 'Flint\'s brain is awake', wakesBrain: false });
     expect(markOf(STOREFRONT_BRAINS.off, 3)).toEqual({ title: null, wakesBrain: false });
     expect(markOf('not-reported')).toEqual({ title: null, wakesBrain: false });
-  });
-});
-
-describe('the reason there is no frame session', () => {
-  test('is the forge\'s own sentence when it sent one, else Gaia\'s for its own code, else a plain one', () => {
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('sessions-full', 'The Overseer holds as many sessions as it allows.'))
-      .toEqual({ refusedBy: 'forge', code: 'sessions-full', sentence: 'The Overseer holds as many sessions as it allows.' });
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null))
-      .toEqual({ refusedBy: 'gaia', code: 'token-rejected', sentence: 'The forge did not accept Gaia\'s token.' });
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('server-unreachable', null).sentence).toBe('Gaia\'s server could not be reached.');
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('session-lost-while-opening', null).sentence).toBe('The Bridge lost its session as it opened.');
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('constructor', null).sentence).toBe('Gaia could not open a session in this forge.');
-  });
-
-  test('names a registry Gaia cannot read, or one newer than it reads, apart from a registry that does not name the forge', () => {
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('registry-unreadable', null).sentence).toBe('Gaia could not read the forges\' registry.');
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('registry-newer-version', null).sentence).toBe('The forges\' registry is newer than this Gaia reads.');
-    expect(ForgeFrameModel.frameSessionRefusalTextOf('forge-not-registered', null).sentence).toBe('The registry does not name this forge.');
   });
 });
 

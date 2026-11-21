@@ -25,7 +25,6 @@ export type ForgeCommandBody =
       | 'forge-restart'
       | 'forge-talos-restart'
       | 'forge-update'
-      | 'forge-open-in-browser'
       | 'forge-hide'
       | 'forge-unhide'
       | 'forge-brain-start'

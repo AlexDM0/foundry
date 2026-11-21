@@ -1,6 +1,6 @@
 /**
  * The Progress tab opened through the board's shell and its table of tab views, in a happy-dom document. What matters: the shell draws the
- * chart and the finished-work card under it in its main area, with no frame for an unmoved tab.
+ * chart and the finished-work card under it in its main area.
  */
 import {
   cleanup,
@@ -19,7 +19,6 @@ import { createManualFlintFrames }                                          from
 import { pipelineBoardStateOf }                                             from '../../testing/PipelineFixture.ts';
 import { exampleProgressBoard, exampleProgressTask, exampleProgressTicket } from '../../testing/ProgressBoardFixture.ts';
 
-const UNMOVED_AREA_TEXT = 'The frame for an unmoved tab';
 
 /** With a readable pipeline, so the board shows every tab and does not send the route to Pipeline. */
 const BOARD = {
@@ -67,13 +66,12 @@ afterEach(() => {
   cleanup();
 });
 
-test('the shell draws the Progress tab from its table of tab views: the chart, then the finished-work card, and no frame', async () => {
+test('the shell draws the Progress tab from its table of tab views: the chart, then the finished-work card', async () => {
   render(
     <BoardApp
       services={servicesAnswering(BOARD)}
       route={{ tab: 'progress', item: null }}
       project="Example Agency"
-      unmovedTabArea={() => <p>{UNMOVED_AREA_TEXT}</p>}
       tabViews={BOARD_TAB_VIEWS}
     />
   );
@@ -83,5 +81,4 @@ test('the shell draws the Progress tab from its table of tab views: the chart, t
   expect(mainArea.contains(heading)).toBe(true);
   const finishedWork = within(mainArea).getByRole('region', { name: 'Finished work' });
   expect(within(finishedWork).getByText('Build the example')).toBeDefined();
-  expect(screen.queryByText(UNMOVED_AREA_TEXT)).toBeNull();
 });

@@ -34,7 +34,6 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
       summary: 1,
       monitor: 3,
       control: 1,
-      embed:   1,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },

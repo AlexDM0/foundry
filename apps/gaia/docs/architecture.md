@@ -7,12 +7,11 @@ How Gaia's parts fit together at run time. The rules and the folder map are in `
 Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 127.0.0.1)
                        │                        ├─ reads    ~/.forge-monitor/projects.json
                        │                        ├─ reads    each Overseer: identity, monitor stream or summary
-                       └─opens─► browser app    ├─ sends    each Overseer: control commands, session codes
+                       └─opens─► browser app    ├─ sends    each Overseer: control and board commands
                                  window         ├─ runs     the forge program, for what no Overseer API can do
-                                    │           └─ writes   ~/.gaia/settings.json, ~/.gaia/token, ~/.forge-monitor/frame-ancestors/gaia.json
+                                    │           └─ writes   ~/.gaia/settings.json, ~/.gaia/token
                                     ▼                │
-                                 the page ◄──SSE─────┘
-                                    └─frames──► one forge's Bridge, at the forge's own origin
+                                 the page ◄──SSE─────┘   (each forge's board relayed too)
 ```
 
 ## Processes
@@ -26,8 +25,8 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
 - **`Gaia.app`** is generated into `~/Applications` by `gaia install-app` (`src/features/app-install/`): a compiled stub that runs a
   generated script, which runs `gaia launch` from this checkout.
 - **The page** (`page/`) is built by `Bun.build` on its first request and kept in memory, drawn with Forge's linked `design-system`
-  package, whose stylesheet and fonts Gaia's server serves from its own origin. It reaches nothing but Gaia's own server, and one forge's
-  Bridge in a frame.
+  package, whose stylesheet and fonts Gaia's server serves from its own origin. It reaches nothing but Gaia's own server, and frames no
+  forge's page.
 
 ## A reading, from forge to screen
 
@@ -65,13 +64,10 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 ## One forge in place
 
 A forge's board opens at `#forge/<trackerId>[/<tab>[/<item>]]`, in Gaia's window or in a browser tab of its own, and only there: Gaia's
-bar, then the board's own header and tabs (`page/board/Board.tsx`). A tab `page/board/shell/BoardTabViews.tsx` lists is drawn by Gaia's
-board; any other still shows the forge's own Bridge in a frame, with the Bridge's head and Flint hidden, until its view moves.
-
-For such a tab the page asks `POST /api/forges/<trackerId>/frame-session`. Gaia asks that forge's Overseer for a one-time session code with the forge's
-token and answers the Bridge's address with the code in its fragment, which the page sets as the frame's `src`. The token never reaches
-the page. The Bridge and the page talk only over the embed channel (`page/views/forge/EmbedChannel.ts`). A forge lets Gaia's
-origin frame it because Gaia writes its frame-ancestor record, `~/.forge-monitor/frame-ancestors/gaia.json`, while it serves.
+bar, then the board's own header and tabs (`page/board/Board.tsx`). Every tab is drawn by Gaia's own view, which
+`page/board/shell/BoardTabViews.tsx` names for each. Gaia frames no forge's page, asks no forge for a session code, writes no
+frame-ancestor record and runs no `forge open`: the board opens one way, through Gaia. A forge whose board Gaia's relay cannot read, or
+whose version Gaia cannot talk to, shows why in place of the board.
 
 ## A forge's board
 
@@ -115,10 +111,9 @@ Two decisions hold these guards together:
   its DevTools protocol over descriptors 3 and 4, which only the launcher holds (`lib/process-run/` hands them over). A debugging port on
   `127.0.0.1` would let any local process, of any account, drive the window that holds the session cookie and so pass every guard of the
   server; the browser therefore opens none.
-- **The session cookie stays host-only on `127.0.0.1`.** Cookies ignore ports, so a forge's Bridge in Gaia's frame, served on another port
-  of `127.0.0.1`, carries Gaia's cookie on its own requests. Serving Gaia on another host name to keep the cookie apart would make the
-  framed Bridge's own session cookie cross-site to the page, which the browser then withholds, and the frame would lose its session. The
-  only program that receives Gaia's cookie this way is a local forge, which Gaia already trusts with that forge's token.
+- **The session cookie stays host-only on `127.0.0.1`.** Cookies ignore ports, so a forge's Bridge opened in the same browser, served on
+  another port of `127.0.0.1`, carries Gaia's cookie on its own requests. The only program that receives Gaia's cookie this way is a local
+  forge, which Gaia already trusts with that forge's token.
 
 ## Errors
 

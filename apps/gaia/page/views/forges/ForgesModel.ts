@@ -62,7 +62,7 @@ export interface ForgesSurroundings {
 }
 
 /** The buttons a row may show, by its condition. */
-export type RowButtonKind = 'pause' | 'unpause' | 'stop' | 'start' | 'open' | 'open-in-new-tab' | 'look-again' | 'hide';
+export type RowButtonKind = 'pause' | 'unpause' | 'stop' | 'start' | 'open' | 'look-again' | 'hide';
 
 export type ForgeButtonKind = RowButtonKind | 'update' | 'restart' | 'show-again';
 
@@ -73,7 +73,6 @@ export type ForgeButton =
     readonly button:   ForgeButtonKind;
     readonly label:    string;
     readonly emphasis: ButtonEmphasis;
-    readonly iconOnly: boolean;
     readonly command:  CommandBody;
     readonly disabled: boolean;
     /** Why a control Gaia cannot send is off, naming both versions. */
@@ -276,14 +275,14 @@ const OVERSEER_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set
 
 /** SCREENS A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
-  'live':          ['pause', 'stop', 'open', 'open-in-new-tab'],
-  'paused':        ['unpause', 'stop', 'open', 'open-in-new-tab'],
-  'held':          ['stop', 'open', 'open-in-new-tab'],
+  'live':          ['pause', 'stop', 'open'],
+  'paused':        ['unpause', 'stop', 'open'],
+  'held':          ['stop', 'open'],
   'passing-baton': [],
   'starting':      [],
   'dormant':       ['start'],
   'unreachable':   ['look-again', 'stop'],
-  'unreadable':    ['open-in-new-tab'],
+  'unreadable':    [],
   'missing':       ['hide'],
 };
 
@@ -366,11 +365,10 @@ function forgeIsBusy(forge: FleetDocumentForge, { surroundings }: RowSurrounding
 
 function commandButton(button: ForgeButtonKind, label: string, command: CommandBody, disabled: boolean, emphasis: ButtonEmphasis = 'quiet'): ForgeButton {
   return {
-    kind:     'command',
+    kind: 'command',
     button,
     label,
     emphasis,
-    iconOnly: button === 'open-in-new-tab',
     command,
     disabled,
   };
@@ -399,8 +397,6 @@ function buttonOf(button: RowButtonKind, forge: FleetDocumentForge, rowSurroundi
         href:     HashRouter.fragmentOf({ view: 'forge', trackerId, boardRoute: null }),
         disabled: isBusy,
       };
-    case 'open-in-new-tab':
-      return commandButton(button, `Open ${forge.project} in a new tab`, { kind: 'forge-open-in-browser', trackerId }, isBusy);
     case 'look-again': {
       const lookAgainIsOnItsWay = CommandSender.stateOf(rowSurroundings.surroundings.commandStates, { fleetCommand: 'fleet-look-again' }).onItsWay !== null;
       return commandButton(button, 'Look again', { kind: 'fleet-look-again' }, lookAgainIsOnItsWay);
@@ -424,16 +420,14 @@ function updateButtonOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundi
   return commandButton('update', 'Update forge', command, forgeIsBusy(forge, rowSurroundings), restartIsPending ? 'quiet' : 'primary');
 }
 
-/** An older forge offers Update forge; a newer one only what it would offer, off. Neither opens in place, and each opens in a new tab. */
+/** An older forge offers Update forge; a newer one only what it would offer, off. Neither opens in place. */
 function buttonsOfAForgeGaiaCannotTalkTo(forge: FleetDocumentForge & { readonly versions: FleetDocumentForgeVersions }, rowSurroundings: RowSurroundings): ForgeButton[] {
   const title = ForgeVersionsTextUtil.unsentControlTitleOf(forge, rowSurroundings.fleetDocument.gaia.versions) ?? '';
   const stop = withTitle({
     kind: 'stop', button: 'stop', label: 'Stop', disabled: true
   }, title);
-  const openInNewTabCommand: CommandBody = { kind: 'forge-open-in-browser', trackerId: forge.trackerId };
-  const openInNewTab = commandButton('open-in-new-tab', `Open ${forge.project} in a new tab`, openInNewTabCommand, forgeIsBusy(forge, rowSurroundings));
-  if (forge.versions.verdict === 'older') return [updateButtonOf(forge, rowSurroundings), stop, openInNewTab];
-  return [withTitle(commandButton('pause', 'Pause', { kind: 'forge-pause', trackerId: forge.trackerId }, true), title), stop, openInNewTab];
+  if (forge.versions.verdict === 'older') return [updateButtonOf(forge, rowSurroundings), stop];
+  return [withTitle(commandButton('pause', 'Pause', { kind: 'forge-pause', trackerId: forge.trackerId }, true), title), stop];
 }
 
 /**
@@ -559,7 +553,6 @@ function retryCommandOf(kind: CommandKind, trackerId: string, lastSent: ForgeCom
     case 'forge-unpause':
     case 'forge-restart':
     case 'forge-update':
-    case 'forge-open-in-browser':
     case 'forge-hide':
     case 'forge-unhide':
       return { kind, trackerId };

@@ -15,7 +15,6 @@ import { Banner }                 from 'design-system/Banner';
 import { Button }                 from 'design-system/Button';
 import { EmptyState }             from 'design-system/EmptyState';
 import { Figure }                 from 'design-system/Figure';
-import { Icon }                   from 'design-system/Icon';
 import { MonoId }                 from 'design-system/MonoId';
 import { PendingStep }            from 'design-system/PendingStep';
 import { Tag }                    from 'design-system/Tag';
@@ -160,7 +159,7 @@ describe('a callout\'s command', () => {
     const sends: Promise<unknown>[] = [];
     PackageButtons.press(buttonNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender, sends), 'Update forge'));
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([
-      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 3 },
+      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 4 },
     ]);
     const onItsWay = unfoldedLayout(FLEET_FIVE_FORGES, sender);
     expect(buttonNamed(onItsWay, 'Update forge').props['disabled']).toBe(true);
@@ -197,7 +196,7 @@ describe('a callout\'s command', () => {
     expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
     expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withComponent(PendingStep))).toEqual([]);
     PackageButtons.press(buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart'));
-    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 3 });
+    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 4 });
     const restarting = tree.onlyOfComponent([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], PendingStep);
     expect(buttonNamed(tree.unfoldedProp(restarting, 'action'), 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
@@ -432,17 +431,13 @@ describe('the side of the view', () => {
     expect(tree.onlyOfComponent([recentSection], EmptyState).props['text']).toBe('No forge has reported activity yet.');
   });
 
-  test('every control has a name, and the open-in-new-tab command shows its words beside its arrow', () => {
+  test('every control has a name, and none opens a forge\'s own Bridge', () => {
     const unfolded = unfoldedLayout(FLEET_DEGRADED);
     const controls = tree.hostElementsIn(unfolded, (element) => PackageControls.isControl(element) || element.tag === 'a' || PackageButtons.isButton(element));
     expect(controls.filter((control) => PackageControls.nameOf(control).trim() === '')).toEqual([]);
-    const openInNewTab = PackageButtons.buttonsIn(unfolded).filter((button) => PackageButtons.labelOf(button) === 'Open in new tab');
-    expect(openInNewTab).toHaveLength(2);
-    expect(openInNewTab.map((button) => tree.hostElementsIn(tree.unfoldedProp(button, 'trailing'), tree.withComponent(Icon)).map((icon) => icon.props['name']))).toEqual([
-      ['arrow-out-of-square'],
-      ['arrow-out-of-square'],
-    ]);
+    expect(PackageButtons.buttonsIn(unfolded).filter((button) => PackageButtons.labelOf(button) === 'Open in new tab')).toEqual([]);
   });
+
 });
 
 describe('the outage resume\'s answer', () => {
@@ -498,8 +493,8 @@ describe('the outage resume\'s answer', () => {
     const refusal = FailedActions.onlyFailedActionIn([tree.onlyWithClass(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'gaia-attention-refusal')]);
     tree.dispatch(refusal, 'onRetry');
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)) as unknown)).toEqual([
-      { ...OUTAGE_RESUME_COMMAND, commandVersion: 3 },
-      { ...OUTAGE_RESUME_COMMAND, commandVersion: 3 },
+      { ...OUTAGE_RESUME_COMMAND, commandVersion: 4 },
+      { ...OUTAGE_RESUME_COMMAND, commandVersion: 4 },
     ]);
   });
 });

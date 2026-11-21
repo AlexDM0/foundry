@@ -205,7 +205,6 @@ describe('forges at another system version than the one Gaia supports', () => {
     const readAnswers = [
       await keepAnswerTo('versions-ahead', requestOf('versions-ahead', 'GET', versionedPathOf('identity', 'identity'))),
       await keepAnswerTo('versions-ahead', requestOf('versions-ahead', 'GET', versionedPathOf('monitor', 'monitor'))),
-      await keepAnswerTo('versions-ahead', requestOf('versions-ahead', 'POST', versionedPathOf('sessionCodes', 'session-codes'))),
     ];
     for (const answer of [commandAnswer, ...readAnswers]) expect(answer).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
     expect(commandAnswer.verdict === 'answered' ? JSON.parse(commandAnswer.bodyText) as unknown : null).toMatchObject({ outcome: 'done' });

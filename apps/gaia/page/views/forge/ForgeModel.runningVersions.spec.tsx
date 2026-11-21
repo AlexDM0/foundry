@@ -14,8 +14,8 @@ import { ReactElementTree }                                      from '../../tes
 import { FLEET_DEGRADED }                                        from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES_READINGS, FLEET_FIXTURES_READ_AT }    from '../../testing/fixtures/fleet-five-forges.ts';
 import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }            from '../../testing/fixtures/fleet-versions.ts';
-import { RunningVersionsLine }                                   from './ForgeFrameLayout.tsx';
-import { type BarVersions, ForgeFrameModel }                     from './ForgeFrameModel.ts';
+import { RunningVersionsLine }                                   from './ForgeLayout.tsx';
+import { type BarVersions, ForgeModel }                          from './ForgeModel.ts';
 
 const CLOCK = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZone: 'UTC' };
 
@@ -34,7 +34,7 @@ function storefrontWith(runningVersions: FleetDocumentRunningVersions | null): F
 }
 
 function versionsOf(forge: FleetDocumentForge): BarVersions {
-  const versions = ForgeFrameModel.forgeFrameContentOf(forge.trackerId, { ...FLEET_DEGRADED, forges: [forge] }, CLOCK).bar?.versions;
+  const versions = ForgeModel.forgeContentOf(forge.trackerId, { ...FLEET_DEGRADED, forges: [forge] }, CLOCK).bar?.versions;
   if (versions === undefined || versions === null) throw new Error('The bar has no versions line.');
   return versions;
 }
@@ -80,7 +80,7 @@ describe('the running and the newest versions', () => {
   test('a forge not answering shows no pair, and a forge Gaia cannot talk to has no line', () => {
     expect(versionsOf(storefrontWith(null)).pairs).toEqual([]);
     const forgeOfANewerSystem = FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox;
-    expect(ForgeFrameModel.forgeFrameContentOf(forgeOfANewerSystem, FLEET_VERSIONS, CLOCK).bar?.versions).toBeNull();
+    expect(ForgeModel.forgeContentOf(forgeOfANewerSystem, FLEET_VERSIONS, CLOCK).bar?.versions).toBeNull();
   });
 });
 

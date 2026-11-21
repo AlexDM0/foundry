@@ -51,7 +51,6 @@ const PATHS = {
   monitor:       ApiPathUtil.versionedPathOf('monitor', forgeEndpointVersionOf('monitor')),
   monitorEvents: ApiPathUtil.versionedPathOf('monitor/events', forgeEndpointVersionOf('monitorEvents')),
   commands:      ApiPathUtil.versionedPathOf('commands', forgeEndpointVersionOf('commands')),
-  sessionCodes:  ApiPathUtil.versionedPathOf('session-codes', forgeEndpointVersionOf('sessionCodes')),
 } as const;
 
 const servers: Bun.Server<undefined>[] = [];
@@ -140,7 +139,6 @@ describe('another program on the Overseer\'s port', () => {
       requestOf(overseerUrl, 'GET', PATHS.summary, null),
       requestOf(overseerUrl, 'GET', PATHS.monitor, EXAMPLE_TOKEN),
       requestOf(overseerUrl, 'POST', PATHS.commands, EXAMPLE_TOKEN),
-      requestOf(overseerUrl, 'POST', PATHS.sessionCodes, EXAMPLE_TOKEN),
     ];
     for (const pageRequest of requests) {
       const answer = await realOverseerFetch().request(pageRequest);

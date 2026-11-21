@@ -5,10 +5,9 @@
  * files Gaia stores stay in `ContractVersions.ts`. `ContractVersionUtil` holds the reading rule.
  */
 export const PAGE_CONTRACT_VERSIONS = {
-  gaiaFleetDocument:       8,
-  gaiaCommand:             3,
+  gaiaFleetDocument:       9,
+  gaiaCommand:             4,
   gaiaCommandAnswer:       3,
-  gaiaFrameSession:        1,
   gaiaHealth:              1,
   gaiaBoard:               1,
   gaiaBoardCommand:        1,

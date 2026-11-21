@@ -1,40 +1,38 @@
 /**
  * Gaia's server on 127.0.0.1 (PLAN 8.1): every request passes the Host and Origin guards, each route its own guard, and every answer
- * carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token, then opens its routes and writes
- * the server record; it removes the record when it stops, and refuses to start where Gaia already answers.
+ * carries the page's CSP, a refusal and a failure included. Once it holds the port it writes a fresh token, then opens its routes; it refuses
+ * to start where Gaia already answers.
  */
-import { createServerRecordWriter, type ServerRecordRemoveVerdict }                                from '../../adapters/gaia-files/ServerRecordWriter.ts';
-import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }                                from '../../adapters/gaia-server/GaiaServerClient.ts';
-import type { ForgeCounts }                                                                        from '../../adapters/gaia-server/HealthDocument.ts';
-import { ApiPathUtil, type EndpointOfPath }                                                        from '../../lib/api-paths/ApiPathUtil.ts';
-import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor, withContentSecurityPolicy } from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
-import { hostGuardVerdictFor }                                                                     from '../../lib/local-http-guards/HostGuard.ts';
-import { originGuardVerdictFor }                                                                   from '../../lib/local-http-guards/OriginGuard.ts';
-import { createSessionCodes, type SessionCodes }                                                   from '../../lib/local-http-guards/SessionCodes.ts';
-import { bearerTokenMatches }                                                                      from '../../lib/local-http-guards/TokenCheck.ts';
-import { monotonicMillisecondsOfNow }                                                              from '../../services/Clock.ts';
-import type { ClockTimers }                                                                        from '../../services/Clock.ts';
-import type { FleetStore }                                                                         from '../../services/FleetStore.ts';
-import { GAIA_ENDPOINT_VERSIONS }                                                                  from '../../shared/constants/GaiaSystemVersions.ts';
-import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                                        from '../../shared/constants/Limits.ts';
-import type { BoardRelayLog }                                                                      from './@types/BoardRelayLogEntry.ts';
-import { createBoardStreams, type BoardStreams }                                                   from './BoardStreams.ts';
-import { createFleetBroker, type FleetBroker }                                                     from './FleetBroker.ts';
-import type { ForgeAccessSources }                                                                 from './ForgeAccess.ts';
-import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
-import { writeFreshServerToken }                                                                   from './ServerToken.ts';
-import { boardCommandAnswerFor }                                                                   from './routes/BoardCommandRoute.ts';
-import { pictureAnswerFor, pictureUploadAnswerFor }                                                from './routes/BoardPictureRoutes.ts';
-import { createBoardStateRoute, type BoardStateRoute }                                             from './routes/BoardStateRoute.ts';
-import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }                        from './routes/BoardStreamRoutes.ts';
-import { commandAnswerFor, type CommandCarrier }                                                   from './routes/CommandsRoute.ts';
-import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                                       from './routes/ForgeCrashLogRoute.ts';
-import { FRAME_SESSION_METHOD, frameSessionAnswerFor, trackerIdOfFrameSessionEndpoint }            from './routes/FrameSessionRoute.ts';
-import { healthAnswerOf }                                                                          from './routes/HealthRoute.ts';
-import { pageFileAnswerFor, type PageFilesSource }                                                 from './routes/PageFilesRoute.ts';
-import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }                     from './routes/SessionRoutes.ts';
-import { versionsAnswerOf }                                                                        from './routes/VersionsRoute.ts';
-import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                                     from './utils/BoardRelayEndpointUtil.ts';
+import { healthProbeVerdictFor, HEALTH_PROBE_TIMEOUT_MILLISECONDS }            from '../../adapters/gaia-server/GaiaServerClient.ts';
+import type { ForgeCounts }                                                    from '../../adapters/gaia-server/HealthDocument.ts';
+import { ApiPathUtil, type EndpointOfPath }                                    from '../../lib/api-paths/ApiPathUtil.ts';
+import { pageContentSecurityPolicyFor, withContentSecurityPolicy }             from '../../lib/local-http-guards/ContentSecurityPolicy.ts';
+import { hostGuardVerdictFor }                                                 from '../../lib/local-http-guards/HostGuard.ts';
+import { originGuardVerdictFor }                                               from '../../lib/local-http-guards/OriginGuard.ts';
+import { createSessionCodes, type SessionCodes }                               from '../../lib/local-http-guards/SessionCodes.ts';
+import { bearerTokenMatches }                                                  from '../../lib/local-http-guards/TokenCheck.ts';
+import { monotonicMillisecondsOfNow }                                          from '../../services/Clock.ts';
+import type { ClockTimers }                                                    from '../../services/Clock.ts';
+import type { FleetStore }                                                     from '../../services/FleetStore.ts';
+import { GAIA_ENDPOINT_VERSIONS }                                              from '../../shared/constants/GaiaSystemVersions.ts';
+import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                    from '../../shared/constants/Limits.ts';
+import type { BoardRelayLog }                                                  from './@types/BoardRelayLogEntry.ts';
+import { createBoardStreams, type BoardStreams }                               from './BoardStreams.ts';
+import { createFleetBroker, type FleetBroker }                                 from './FleetBroker.ts';
+import type { ForgeAccessSources }                                             from './ForgeAccess.ts';
+import { refusalAnswerOf }                                                     from './RefusalAnswer.ts';
+import { writeFreshServerToken }                                               from './ServerToken.ts';
+import { boardCommandAnswerFor }                                               from './routes/BoardCommandRoute.ts';
+import { pictureAnswerFor, pictureUploadAnswerFor }                            from './routes/BoardPictureRoutes.ts';
+import { createBoardStateRoute, type BoardStateRoute }                         from './routes/BoardStateRoute.ts';
+import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }    from './routes/BoardStreamRoutes.ts';
+import { commandAnswerFor, type CommandCarrier }                               from './routes/CommandsRoute.ts';
+import { createForgeCrashLogRoute, type ForgeCrashLogRoute }                   from './routes/ForgeCrashLogRoute.ts';
+import { healthAnswerOf }                                                      from './routes/HealthRoute.ts';
+import { pageFileAnswerFor, type PageFilesSource }                             from './routes/PageFilesRoute.ts';
+import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './routes/SessionRoutes.ts';
+import { versionsAnswerOf }                                                    from './routes/VersionsRoute.ts';
+import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                 from './utils/BoardRelayEndpointUtil.ts';
 
 export interface PageServerOptions {
   /** `0` binds any free port, as a spec asks for. */
@@ -45,14 +43,11 @@ export interface PageServerOptions {
   readonly pageFiles:                       PageFilesSource;
   /** The command port: forge-control's carrier, which `Main.ts` wires, since no feature reaches another. */
   readonly carryCommand:                    CommandCarrier;
-  /** What the frame session and the board's relay reach a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
+  /** What the board's relay reaches a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
   readonly forgeAccessSources:              ForgeAccessSources;
   /** Where the board's relay logs an event it dropped, a handshake at another version and a board it could not read. */
   readonly logBoardRelay:                   BoardRelayLog;
   readonly timers:                          ClockTimers;
-  /** The stamp the server record carries: recorded for a reader to show, never compared. */
-  readonly now:                             () => string;
-  readonly processId:                       number;
   /** Milliseconds on a monotonic clock for a session code's life; the clock's own when not given. */
   readonly monotonicNow?:                   () => number;
   readonly heartbeatIntervalMilliseconds?:  number;
@@ -62,18 +57,15 @@ export interface PageServerOptions {
 export interface PageServer {
   readonly url:  URL;
   readonly port: number;
-  /**
-   * Ends every event stream, the fleet's and each relayed board stream with the forge stream it follows, closes the listener and its
-   * connections, and removes the server record while it is still this process's.
-   */
-  readonly stop: () => Promise<ServerRecordRemoveVerdict>;
+  /** Ends every event stream, the fleet's and each relayed board stream with the forge stream it follows, and closes the listener and its connections. */
+  readonly stop: () => Promise<void>;
 }
 
 export type PageServerStartVerdict =
   | { readonly verdict: 'serving'; readonly pageServer: PageServer }
   | { readonly verdict: 'gaia-already-serving'; readonly url: URL }
   | { readonly verdict: 'port-unavailable'; readonly port: number; readonly failure: string }
-  | { readonly verdict: 'unwritable'; readonly file: 'token' | 'server-record'; readonly failure: string };
+  | { readonly verdict: 'unwritable'; readonly file: 'token'; readonly failure: string };
 
 type RouteAccess = 'open' | 'token' | 'session-or-token';
 
@@ -135,11 +127,6 @@ function fleetAnswerOf(broker: FleetBroker): Response {
 
 function exactly(expectedEndpoint: string): (endpoint: string) => boolean {
   return (endpoint) => endpoint === expectedEndpoint;
-}
-
-function frameSessionAnswerOf(endpoint: string, sources: ForgeAccessSources): Promise<Response> {
-  const trackerId = trackerIdOfFrameSessionEndpoint(endpoint);
-  return trackerId === null ? Promise.resolve(refusalAnswerOf('not-found')) : frameSessionAnswerFor(trackerId, sources);
 }
 
 /** The forge and the item a relay endpoint names; the route matched it, so it names both as its pattern asks. */
@@ -260,14 +247,6 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
       isStream:        false,
       answer:          (request, _endpoint, maximumBodyBytes) => commandAnswerFor(request, options.carryCommand, maximumBodyBytes),
     }),
-    route({
-      method:          FRAME_SESSION_METHOD,
-      matchesEndpoint: (endpoint) => trackerIdOfFrameSessionEndpoint(endpoint) !== null,
-      version:         GAIA_ENDPOINT_VERSIONS.frameSession,
-      access:          'session-or-token',
-      isStream:        false,
-      answer:          (_request, endpoint) => frameSessionAnswerOf(endpoint, options.forgeAccessSources),
-    }),
     ...boardRelayRoutesOf(context),
   ];
 }
@@ -312,7 +291,7 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
     if (probeVerdict === 'gaia-answers') return { verdict: 'gaia-already-serving', url: urlOfPort(options.port) };
   }
 
-  const contentSecurityPolicy = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
+  const contentSecurityPolicy = pageContentSecurityPolicyFor();
   const boardStreams = createBoardStreams({
     timers: options.timers,
     log:    options.logBoardRelay,
@@ -378,22 +357,8 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   };
   routing = { context, routes: routesOf(context) };
 
-  const serverRecordWriter = createServerRecordWriter(options.homeDirectory);
-  const recordWrite = await serverRecordWriter.write({ url, processId: options.processId, startedAt: options.now() });
-  if (recordWrite.verdict === 'unwritable') {
-    await stopListening();
-    return { verdict: 'unwritable', file: 'server-record', failure: recordWrite.failure };
-  }
-
   return {
     verdict:    'serving',
-    pageServer: {
-      url,
-      port,
-      stop: async () => {
-        await stopListening();
-        return serverRecordWriter.remove(options.processId);
-      },
-    },
+    pageServer: { url, port, stop: stopListening },
   };
 }

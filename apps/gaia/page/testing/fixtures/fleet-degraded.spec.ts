@@ -28,7 +28,6 @@ describe('the fleet-degraded fixture', () => {
       summary: 1,
       monitor: 4,
       control: 3,
-      embed:   1,
     });
   });
 

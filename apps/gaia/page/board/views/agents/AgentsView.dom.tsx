@@ -15,7 +15,7 @@
  * selected job's side panel names the job and its state, holds one Flint slot (112, lane), cued by the selected job while it runs and idle
  * while it does not, unless the question panel covers it and holds the page's one slot, takes a message in its foot only where the forge
  * offers it, drops a half-typed message once another job is selected, and × routes the panel closed; and the board draws the Agents tab
- * itself, with no frame, reading the board again after a change.
+ * itself, reading the board again after a change.
  */
 import {
   act,
@@ -754,7 +754,7 @@ describe('the title row and the job panel', () => {
 });
 
 describe('the Agents tab on the board', () => {
-  test('draws the view itself with no frame, and reads the board again after a change, so a job\'s row moves', async () => {
+  test('draws the view itself, and reads the board again after a change, so a job\'s row moves', async () => {
     let handlers: EventStreamHandlers | null = null;
     const servingPipeline = pipelineBoardStateOf('A5').pipeline;
     const boards = [BUILD_JOB, { ...BUILD_JOB, live: { ...LIVE, calls: 13 } }].map((job) => ({ ...boardOf([job], {}), pipeline: servingPipeline }));
@@ -789,13 +789,10 @@ describe('the Agents tab on the board', () => {
       }}
       route={{ tab: 'agents', item: null }}
       project="Example Storefront"
-      unmovedTabArea={() => <p>The frame for an unmoved tab</p>}
     />);
     await act(async () => {
       await Promise.resolve();
     });
-    expect(screen.queryByText('The frame for an unmoved tab')).toBeNull();
-    expect(document.querySelector('main')?.hasAttribute('data-unmoved')).toBe(false);
     expect(cellOf(jobRow('J12'), 'calls').textContent).toBe('12 / 150');
     const stream = (): EventStreamHandlers => {
       if (handlers === null) throw new Error('no event stream');

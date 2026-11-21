@@ -1,12 +1,10 @@
 /**
  * Maps the answers of the page's requests out to the page contract: how a command ended (PLAN 6.3), a verdict of a command Gaia carried or
- * the reason it could not read the command at all, and how a frame session ended. A forge's refusal code and its sentence pass through
+ * the reason it could not read the command at all. A forge's refusal code and its sentence pass through
  * unchanged, even a sentence that names a command (decision 45), and a chosen path is a command answer's text.
  */
 import type { CommandAnswerDocument, CommandAnswerForgeDocument } from '../../../page/@types/CommandDocument.ts';
-import type { FrameSessionAnswerDocument }                        from '../../../page/@types/FrameSessionDocument.ts';
 import type { CommandVerdict, OutageResumeForgeAnswer }           from '../../shared/@types/CommandVerdict.ts';
-import type { FrameSessionVerdict }                               from '../../shared/@types/FrameSessionVerdict.ts';
 import { PAGE_CONTRACT_VERSIONS }                                 from '../../shared/constants/PageContractVersions.ts';
 import type { GaiaCommandReading }                                from './GaiaCommandIngestion.ts';
 
@@ -34,29 +32,6 @@ function outageResumeAnswerOf(forges: readonly OutageResumeForgeAnswer[]): Comma
   return { ...answerOf(everyForgeHeldNothing ? 'nothing-to-do' : 'done'), forges: forgeAnswers };
 }
 
-type FrameSessionAnswerContent = Omit<FrameSessionAnswerDocument, 'frameSessionVersion'>;
-
-function frameSessionAnswerContentOf(verdict: FrameSessionVerdict): FrameSessionAnswerContent {
-  switch (verdict.verdict) {
-    case 'opened':
-      return {
-        outcome: 'done', frameUrl: verdict.frameUrl, refusal: null, text: null,
-      };
-    case 'refused':
-      return {
-        outcome:  'refused',
-        frameUrl: null,
-        refusal:  verdict.refusal,
-        text:     verdict.refusedBy === 'forge' ? verdict.text : null,
-      };
-    case 'unreachable':
-    case 'not-supported':
-      return {
-        outcome: verdict.verdict, frameUrl: null, refusal: null, text: null,
-      };
-  }
-}
-
 export const PageAnswerMapUtil = {
   commandAnswerOf(verdict: CommandVerdict): CommandAnswerDocument {
     if (verdict.verdict === 'path-chosen') return answerOf('done', null, verdict.path);
@@ -69,12 +44,5 @@ export const PageAnswerMapUtil = {
   /** A command Gaia cannot read is one it cannot carry: a stale page's, or no command at all. The reason is the code. */
   unreadableCommandAnswerOf(reading: UnreadableCommandReading): CommandAnswerDocument {
     return answerOf('not-supported', reading.verdict);
-  },
-
-  frameSessionAnswerOf(verdict: FrameSessionVerdict): FrameSessionAnswerDocument {
-    return {
-      frameSessionVersion: PAGE_CONTRACT_VERSIONS.gaiaFrameSession,
-      ...frameSessionAnswerContentOf(verdict),
-    };
   },
 } as const;

@@ -249,7 +249,6 @@ describe('identityOf', () => {
       summary: 1,
       monitor: 1,
       control: null,
-      embed:   null,
     });
   });
 });
@@ -262,20 +261,17 @@ describe('contractsWith', () => {
         summary: 1,
         monitor: 1,
         control: 1,
-        embed:   null,
       },
     };
     expect(ForgeReadingMapUtil.contractsWith(identity, { monitor: 3 })).toEqual({
       summary: 1,
       monitor: 3,
       control: 1,
-      embed:   null,
     });
     expect(ForgeReadingMapUtil.contractsWith(null, { summary: 1 })).toEqual({
       summary: 1,
       monitor: null,
       control: null,
-      embed:   null,
     });
   });
 });

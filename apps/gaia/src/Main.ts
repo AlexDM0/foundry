@@ -111,8 +111,7 @@ function refusalOfStart(startVerdict: Exclude<PageServerStartVerdict, { readonly
   if (startVerdict.verdict === 'port-unavailable') {
     return new GaiaError('refused', startVerdict.verdict, `${PRODUCT_NAMES.applicationName} cannot listen on port ${startVerdict.port}: ${startVerdict.failure}.`);
   }
-  const fileName = startVerdict.file === 'token' ? 'token' : 'server record';
-  return new GaiaError('unrepaired', startVerdict.verdict, `${PRODUCT_NAMES.applicationName} cannot write its ${fileName}: ${startVerdict.failure}.`);
+  return new GaiaError('unrepaired', startVerdict.verdict, `${PRODUCT_NAMES.applicationName} cannot write its ${startVerdict.file}: ${startVerdict.failure}.`);
 }
 
 /**
@@ -159,7 +158,6 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
         summary: CONTRACT_VERSIONS.forgeBoardSummary,
         monitor: CONTRACT_VERSIONS.forgeMonitor,
         control: CONTRACT_VERSIONS.forgeControl,
-        embed:   CONTRACT_VERSIONS.forgeEmbedChannel,
       },
       versions: {
         systemVersion:         GAIA_SYSTEM_VERSION,
@@ -200,8 +198,6 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     },
     logBoardRelay: (entry) => output.writeStandardError(BoardRelayLogUtil.lineOf(entry)),
     timers:        realClockTimers(),
-    now:           stampOfNow,
-    processId:     process.pid,
   });
   if (startVerdict.verdict !== 'serving') throw refusalOfStart(startVerdict);
   const { pageServer } = startVerdict;

@@ -100,7 +100,6 @@ export interface KnownContracts {
   summary: number;
   monitor: number;
   control: number;
-  embed:   number;
 }
 
 /** This Gaia's own system version and the one forge version it supports. */

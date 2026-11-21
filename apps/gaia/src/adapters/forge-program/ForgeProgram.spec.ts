@@ -11,9 +11,9 @@ import {
   test
 } from 'bun:test';
 
-import type { ProcessRun }                                          from '../../lib/process-run/ProcessRun.ts';
-import { recordedRunsOf, runCallShapeOf, detachedStartCallShapeOf } from '../../testing/RecordedRuns.ts';
-import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
+import type { ProcessRun }                           from '../../lib/process-run/ProcessRun.ts';
+import { recordedRunsOf, runCallShapeOf }            from '../../testing/RecordedRuns.ts';
+import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 
 import { createForgeProgram, type ForgeProgramTarget } from './ForgeProgram.ts';
 import {
@@ -27,9 +27,7 @@ import {
 /** The code version of the forge the F8 answers were recorded from; retake it after `bun run record forge-program-done`. */
 const RECORDED_CODE_VERSION = 'af2246de1aee';
 
-const EXAMPLE_CONTRACTS = {
-  summary: 1, monitor: 3, control: 1, embed: 1
-};
+const EXAMPLE_CONTRACTS = { summary: 1, monitor: 3, control: 1 };
 
 let forgeRoot = '';
 
@@ -149,12 +147,7 @@ describe('every verb done (recorded)', () => {
     expect(await forgeProgram.machineLimitSet(registeredForge(), 4)).toEqual({ verdict: 'done', answer: { outcome: 'done', agentLimit: 4 } });
   });
 
-  test('open starts detached and answers done with the process it started, without waiting for its end', () => {
-    const { forgeProgram } = forgeProgramAt('every-verb-done');
-    expect(forgeProgram.openInBrowser(registeredForge())).toEqual({ verdict: 'done', answer: { processId: 48213 } });
-  });
-
-  test('each verb runs the forge program with --json in the forge root, open alone detached and without it', async () => {
+  test('each verb runs the forge program with --json in the forge root', async () => {
     const { forgeProgram, callShapesAnswered, workingDirectories } = forgeProgramNotingWorkingDirectories('every-verb-done');
     const forge = registeredForge();
     await forgeProgram.start(forge);
@@ -164,7 +157,6 @@ describe('every verb done (recorded)', () => {
     await forgeProgram.version(forge);
     await forgeProgram.loginItem(forge, 'status');
     await forgeProgram.machineLimitSet(forge, 4);
-    forgeProgram.openInBrowser(forge);
     expect(callShapesAnswered()).toEqual([
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['start', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json']),
@@ -173,7 +165,6 @@ describe('every verb done (recorded)', () => {
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['version', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['login-item', 'status', '--json']),
       runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json']),
-      detachedStartCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['open']),
     ]);
     expect(workingDirectories).toEqual(callShapesAnswered().map(() => forgeRoot));
   });
@@ -226,7 +217,6 @@ describe('the program a verb runs (PLAN 8.2)', () => {
   test('is not found, and nothing runs, when neither the registry nor the settings name one', async () => {
     const { forgeProgram, processRun } = forgeProgramAt('every-verb-done');
     expect(await forgeProgram.start(registeredForge(null))).toEqual({ verdict: 'program-not-found', program: null });
-    expect(forgeProgram.openInBrowser(registeredForge(null))).toEqual({ verdict: 'program-not-found', program: null });
     expect(processRun.callShapesAnswered()).toEqual([]);
   });
 });

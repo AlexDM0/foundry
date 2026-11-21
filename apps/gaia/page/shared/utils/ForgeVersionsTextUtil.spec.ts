@@ -64,7 +64,7 @@ describe('the callout of a forge Gaia cannot talk to', () => {
     expect([callout?.word, callout?.sentence]).toEqual([
       'Newer than this Gaia.',
       'This forge no longer serves clients built for forge 3.1, as this Gaia is. Gaia sees that it runs, shows nothing of its work and sends it '
-        + 'no command. Its own Bridge shows all of it.',
+        + 'no command. A newer Gaia shows it.',
     ]);
     expect(barredOf(callout?.versionsLine)).toBe('forge |4.1| · serves clients built for forge |4.0| and later · this Gaia is built for forge |3.1|');
   });
@@ -89,11 +89,11 @@ describe('the versions pair', () => {
 
   test('has its sentence under the Forges row for every verdict but current, which opens no pair', () => {
     expect([OLDER, NEWER, AHEAD, CURRENT].map((forge) => ForgeVersionsTextUtil.pairSentenceOf(withVersions(forge), GAIA))).toEqual([
-      'Gaia shows that Example Billing runs and opens its Bridge in a new tab. It shows nothing of its work and sends it no command until the '
+      'Gaia shows that Example Billing runs. It shows nothing of its work and sends it no command until the '
         + 'forge is updated; its agents keep running.',
-      'Gaia shows that Analytics Sandbox runs and opens its Bridge in a new tab. It shows nothing of its work and sends it no command. A newer '
+      'Gaia shows that Analytics Sandbox runs. It shows nothing of its work and sends it no command. A newer '
         + 'Gaia shows it here.',
-      'Gaia reads all it knows of Example Storefront and frames its Bridge. What forge 3.4 added since 3.1 shows only in its Bridge; a newer '
+      'Gaia reads all it knows of Example Storefront and shows its board. What forge 3.4 added since 3.1 shows only in its Bridge; a newer '
         + 'Gaia shows it here too. Nothing waits on you.',
       null,
     ]);
@@ -134,8 +134,8 @@ describe('Attention\'s row of what Gaia reads of each forge', () => {
     expect(readings.map((reading) => [barredOf(reading.versionsText), reading.isWork, reading.reading])).toEqual([
       ['forge |3.4| · ahead', false, 'All this Gaia knows. What 3.4 added shows in its Bridge.'],
       ['forge |3.1|', false, 'Everything, live.'],
-      ['forge |1.8| · older', true, 'That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.'],
-      ['forge |4.1| · newer', false, 'That it runs, and its Bridge in a new tab. Nothing of its work.'],
+      ['forge |1.8| · older', true, 'That it runs. Nothing of its work until the forge is updated.'],
+      ['forge |4.1| · newer', false, 'That it runs. Nothing of its work.'],
     ]);
   });
 });
@@ -156,7 +156,7 @@ describe('the forge bar', () => {
     const bar = ForgeVersionsTextUtil.barTextOf(withVersions(AHEAD), GAIA);
     expect(barredOf(bar?.line)).toBe('forge |3.4|, its newest parts only in its Bridge');
     expect(bar?.title).toBe('Example Storefront is forge 3.4; this Gaia is built for 3.1. Everything Gaia shows works; what 3.4 added shows in its '
-      + 'Bridge below. A newer Gaia shows it here too.');
+      + 'Bridge. A newer Gaia shows it here too.');
   });
 
   test('names both versions for a forge Gaia cannot talk to, and a forge that states no version as older', () => {
@@ -181,19 +181,18 @@ describe('the forge bar', () => {
     expect(ForgeVersionsTextUtil.barTextOf(withVersions(CURRENT), GAIA)).toBeNull();
   });
 
-  test('holds a notice instead of the Bridge of a forge Gaia cannot talk to, and none for one it talks to', () => {
+  test('holds a notice instead of the board of a forge Gaia cannot talk to, and none for one it talks to', () => {
     expect([NEWER, OLDER].map((forge) => ForgeVersionsTextUtil.noticeTextOf(withVersions(forge), GAIA))).toEqual([
       {
         word:     'Newer than this Gaia.',
         heading:  'This Gaia cannot show Analytics Sandbox in place',
         sentence: 'Analytics Sandbox no longer serves clients built for forge 3.1, as this Gaia is, so this Gaia cannot talk to it: it shows nothing '
-          + 'of its work and sends it no command. The forge runs and its Bridge works on its own: open it in a new tab. A newer Gaia shows it here.',
+          + 'of its work and sends it no command. The forge runs on its own. A newer Gaia shows it here.',
       },
       {
         word:     'Older than this Gaia.',
         heading:  'Example Billing is older than this Gaia',
-        sentence: 'This Gaia is built for forge 3.1, and Example Billing is 1.8. Update the forge to show it here; its agents keep running. Until then '
-          + 'its Bridge works in a new tab.',
+        sentence: 'This Gaia is built for forge 3.1, and Example Billing is 1.8. Update the forge to show it here; its agents keep running.',
       },
     ]);
     expect([AHEAD, CURRENT].map((forge) => ForgeVersionsTextUtil.noticeTextOf(withVersions(forge), GAIA))).toEqual([null, null]);

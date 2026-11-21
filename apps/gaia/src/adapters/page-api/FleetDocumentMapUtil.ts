@@ -170,7 +170,6 @@ function forgeOut(reading: FleetForge): FleetDocumentForge {
       summary: contracts.summary,
       monitor: contracts.monitor,
       control: contracts.control,
-      embed:   contracts.embed,
     },
     codeVersion:       reading.codeVersion,
     lastReportedAt:    reading.lastReportedAt,
@@ -263,7 +262,6 @@ function gaiaOut(gaia: GaiaFacts): FleetDocumentGaia {
       summary: knownContracts.summary,
       monitor: knownContracts.monitor,
       control: knownContracts.control,
-      embed:   knownContracts.embed,
     },
     versions: {
       systemVersion:         systemVersionOut(versions.systemVersion),

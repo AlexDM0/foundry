@@ -89,13 +89,6 @@
         "standardOutput": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"af2246de1aee\",\n  \"installVersion\": 43,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
         "standardError": ""
       }
-    },
-    {
-      "callShape": "start detached [\"/Users/example/.bun/bin/forge\",\"open\"]",
-      "answer": {
-        "verdict": "started",
-        "processId": 48213
-      }
     }
   ]
 }

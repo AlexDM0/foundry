@@ -33,7 +33,6 @@ const CURRENT_CONTRACTS = {
   summary: 1,
   monitor: 3,
   control: 1,
-  embed:   1,
 };
 
 const ANALYTICS_SANDBOX = FLEET_SNAPSHOT_DEGRADED.forges.find((reading) => reading.fidelity === 'newer-contract');
@@ -82,7 +81,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
 
   test('reads an identity from before F1, which names no version, as older, with nothing read, and one that names no contracts as malformed', async () => {
     const { identityVersion, contracts, ...beforeF1 } = await storefrontIdentity();
-    expect([identityVersion, contracts]).toEqual([1, CURRENT_CONTRACTS]);
+    expect([identityVersion, contracts]).toEqual([1, { ...CURRENT_CONTRACTS, embed: 1 }]);
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf(beforeF1)).toEqual({ verdict: 'older-contract', contract: 'identity', version: null });
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...beforeF1, identityVersion: 1 })).toEqual({ verdict: 'malformed', invalidKeys: ['contracts'] });
   });
@@ -130,7 +129,6 @@ describe('an identity at a version this Gaia does not know', () => {
         summary: null,
         monitor: null,
         control: null,
-        embed:   null,
       },
     ]);
   });

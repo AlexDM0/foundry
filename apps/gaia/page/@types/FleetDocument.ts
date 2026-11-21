@@ -14,7 +14,6 @@ export interface FleetDocumentContracts {
   summary: number | null;
   monitor: number | null;
   control: number | null;
-  embed:   number | null;
 }
 
 /** A system version: a minor only adds, a major may break a client of an older major. */
@@ -377,7 +376,7 @@ export interface FleetDocumentGaia {
   registryPath:      string;
   forgeProgramInUse: string | null;
   settingsFile:      FleetDocumentSettingsFileState;
-  knownContracts:    { summary: number; monitor: number; control: number; embed: number };
+  knownContracts:    { summary: number; monitor: number; control: number };
   /** This Gaia's own system version and the one forge version it supports. */
   versions:          { systemVersion: FleetDocumentSystemVersion; supportedForgeVersion: FleetDocumentSystemVersion };
 }

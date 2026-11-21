@@ -20,7 +20,7 @@ import { GaiaPanelModel }                                                       
 import { WhatNotifiesDialog }                                                       from '../views/forges/WhatNotifiesDialog.tsx';
 import { DesignSystemStylesheet }                                                   from './DesignSystemStylesheet.ts';
 import { PackageStylesheet }                                                        from './PackageStylesheet.ts';
-import { forgeFrameSurroundingsAt }                                                 from './ShellSurroundingsAt.ts';
+import { forgeViewSurroundingsAt }                                                  from './ShellSurroundingsAt.ts';
 import { FLEET_AT_LIMIT }                                                           from './fixtures/fleet-at-limit.ts';
 import { fleetWithStorefrontBrainOf }                                               from './fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }                                                           from './fixtures/fleet-degraded.ts';
@@ -544,7 +544,7 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
     readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
     timeZone:           'UTC',
     goTo:               doNothing,
-    forgeFrame:         forgeFrameSurroundingsAt(),
+    forgeView:          forgeViewSurroundingsAt(),
   });
   const viewContent = viewContentOf(screen, fleetDocument);
   const view = viewContent === null ? routedParts : { ...routedParts, content: viewContent };

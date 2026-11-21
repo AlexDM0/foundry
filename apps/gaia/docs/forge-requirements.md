@@ -12,7 +12,8 @@ version in the monitor stream and the embed channel, enters its embed mode on `?
 `frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. Forge 1.1 meets V7 with
 Flint's brain (G1 to G3), only adding: the brain in the monitor snapshot, its ended runs in the activity and the day's tokens, and its two
 commands under control 1, which it keeps for clients built for 1.0; its framed Bridge keeps the Agents-at-work strip (G4). Gaia supports
-forge 1.1.
+forge 1.1. From Gaia 1.4 Gaia frames no Bridge: it reads no `contracts.embed`, speaks no embed channel and writes no frame-ancestor
+record, so V6, V8 and V5's embed-channel half no longer change what Gaia shows; the forge keeps serving them until it retires its Bridge.
 
 ## 1. Rules that hold for every requirement
 
@@ -161,9 +162,9 @@ that cannot run Flint's brain reports none, and Gaia shows none of the brain's p
 | V3 | A forge that publishes V1 but serves no versioned paths answers Gaia's calls 404 and reads as unreachable: V1 and V3 land together. |
 | V4 | Nothing at runtime: the registry is a build-time definition, and Gaia's endpoint versions are derived from it as prepared. |
 | V5 | Nothing different: Gaia takes the forge's version from `/api/versions` at every round of its watch. |
-| V6 | The framed Bridge shows its own chrome and speaks no embed channel. |
+| V6 | Nothing: Gaia frames no Bridge. |
 | V7 | A forge that reports a client's name as `startedBy` is older than Flint's brain needs; Gaia reads only `bridge` and `api`. |
-| V8 | The Bridge refuses Gaia's frame: Gaia writes only the host-neutral record. |
+| V8 | Nothing: Gaia frames no Bridge and writes no frame-ancestor record. |
 | V9 | Nothing at runtime. |
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 

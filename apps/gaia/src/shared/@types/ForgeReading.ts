@@ -17,7 +17,6 @@ export interface ForgeContracts {
   summary: number | null;
   monitor: number | null;
   control: number | null;
-  embed:   number | null;
 }
 
 /**

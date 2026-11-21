@@ -3,7 +3,7 @@
  * and the shell keyed by the tracker id, so React unmounts one forge's board, its Flint with it, before it mounts another's. A document
  * holds one Flint, and two boards at once would make a second.
  */
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 
 import type { BoardServices }     from './@types/BoardServices.ts';
 import { BoardCommandClient }     from './api/BoardCommandClient.ts';
@@ -22,15 +22,13 @@ import { QuestionAlerts }         from './views/questions/QuestionAlerts.ts';
 export type BoardServicesOf = (trackerId: string) => BoardServices;
 
 export interface BoardProps {
-  readonly trackerId:      string;
+  readonly trackerId:  string;
   /** The route Gaia's address names; `null` for the forge alone. */
-  readonly route:          BoardRoute | null;
+  readonly route:      BoardRoute | null;
   /** The forge's name until the first board names it. */
-  readonly project:        string;
-  readonly servicesOf:     BoardServicesOf;
-  /** What the main area holds for a tab no view of the board draws yet. */
-  readonly unmovedTabArea: (route: BoardRoute) => ReactNode;
-  readonly tabViews?:      BoardTabViewTable;
+  readonly project:    string;
+  readonly servicesOf: BoardServicesOf;
+  readonly tabViews?:  BoardTabViewTable;
 }
 
 /** What the browser's board needs of the page around it: the way to go to a fragment, and the page's one session loss. */

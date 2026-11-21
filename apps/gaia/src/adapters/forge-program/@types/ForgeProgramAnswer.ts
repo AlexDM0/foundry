@@ -64,11 +64,6 @@ export interface ForgeMachineLimitAnswer {
   readonly agentLimit: number;
 }
 
-/** `forge open` runs detached and Gaia does not wait for its end, so its answer is the process it started. */
-export interface ForgeOpenAnswer {
-  readonly processId: number;
-}
-
 /**
  * `no-json`: standard output is not one JSON object. `other-answer-version`: `answerVersion` is absent or not the known number. `malformed`:
  * a done answer lacks a key it needs, or a refusal lacks its code or sentence.

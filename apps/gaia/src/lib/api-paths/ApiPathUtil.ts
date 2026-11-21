@@ -4,7 +4,7 @@
  * its minimum. `/api/versions` is never versioned and never removed: it says which system version a server is.
  */
 export interface EndpointOfPath {
-  /** The path below `/api/` without its version, such as `fleet` or `forges/example/frame-session`. */
+  /** The path below `/api/` without its version, such as `fleet` or `forges/example/board`. */
   readonly endpoint: string;
   /** `null` at the unversioned path. */
   readonly version:  number | null;

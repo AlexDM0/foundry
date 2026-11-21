@@ -1,11 +1,11 @@
 /**
- * The page's content security policy: frames only from the sources named, none when none is named, never framed itself, every other
+ * The page's content security policy: frames from its own origin alone, which the sandboxed `srcdoc` frame needs, never framed itself, every other
  * resource from its own origin, fonts in a directive of their own rather than left to the default. An answer keeps a policy of its own
  * and gets the page's otherwise, a guard's refusal included.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor, withContentSecurityPolicy } from './ContentSecurityPolicy.ts';
+import { pageContentSecurityPolicyFor, withContentSecurityPolicy } from './ContentSecurityPolicy.ts';
 
 const HTTP_FORBIDDEN = 403;
 
@@ -17,21 +17,16 @@ function directivesOf(policy: string): Map<string, string> {
 }
 
 describe('the page policy', () => {
-  test('lets the page frame any port of 127.0.0.1 and nothing else', () => {
-    const directives = directivesOf(pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] }));
-    expect(directives.get('frame-src')).toBe('http://127.0.0.1:*');
-  });
-
-  test('lets the page frame nothing when no source is named', () => {
-    expect(directivesOf(pageContentSecurityPolicyFor({ frameSources: [] })).get('frame-src')).toBe('\'none\'');
+  test('lets the page frame its own origin alone, no forge\'s server', () => {
+    expect(directivesOf(pageContentSecurityPolicyFor()).get('frame-src')).toBe('\'self\'');
   });
 
   test('lets no other page frame this one', () => {
-    expect(directivesOf(pageContentSecurityPolicyFor({ frameSources: [] })).get('frame-ancestors')).toBe('\'none\'');
+    expect(directivesOf(pageContentSecurityPolicyFor()).get('frame-ancestors')).toBe('\'none\'');
   });
 
   test('takes scripts, styles, connections and fonts from the page\'s own origin only, and no plugin', () => {
-    const directives = directivesOf(pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] }));
+    const directives = directivesOf(pageContentSecurityPolicyFor());
     expect([
       directives.get('default-src'),
       directives.get('script-src'),
@@ -47,13 +42,13 @@ describe('the page policy', () => {
 
 describe('an answer with the policy', () => {
   test('carries the page policy, a guard\'s refusal included', () => {
-    const policy  = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
+    const policy  = pageContentSecurityPolicyFor();
     const refusal = withContentSecurityPolicy(Response.json({ refusal: 'forbidden' }, { status: HTTP_FORBIDDEN }), policy);
     expect(refusal.headers.get('content-security-policy')).toBe(policy);
   });
 
   test('keeps a policy of its own', () => {
-    const policy = pageContentSecurityPolicyFor({ frameSources: [] });
+    const policy = pageContentSecurityPolicyFor();
     const answer = withContentSecurityPolicy(new Response('text', { headers: { 'content-security-policy': 'sandbox' } }), policy);
     expect(answer.headers.get('content-security-policy')).toBe('sandbox');
   });

@@ -2,7 +2,7 @@
  * line and its drawer, the Waiting on User pill and inbox, and the finished-work filter. */
 
 /* The board runs edge to edge under Gaia's bar: each row of the shell keeps the page gutter at its sides; the incident line keeps a gap
- * under it. The main area holds the selected tab's view, or, for a tab not yet moved, the forge's own Bridge, which fills what is left. */
+ * under it. The main area holds the selected tab's view. */
 .board-shell {
   display: flex;
   flex: 1;
@@ -21,14 +21,6 @@
 
 .board-panel {
   padding: 8px var(--page-gutter) 20px;
-}
-
-.board-panel[data-unmoved] {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-height: 0;
-  padding: 0;
 }
 
 @keyframes board-figure-tick { from { opacity: 0; transform: translateY(40%); } }
@@ -854,10 +846,6 @@ a.board-stat:focus-visible {
   align-items: baseline;
   justify-content: space-between;
   padding: var(--sp-3) var(--sp-4);
-}
-
-html[data-embedded="frame"] .board-head-title-row {
-  display: none;
 }
 
 a.board-stat,

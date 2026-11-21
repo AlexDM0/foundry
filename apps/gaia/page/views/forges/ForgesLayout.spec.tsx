@@ -1,24 +1,23 @@
 /**
- * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop opens its
- * dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; "Open in new tab" is a button
- * that sends `forge-open-in-browser` and goes nowhere in Gaia's window; a stepper sends the limit one step on and is off past its ends, the machine's
- * plus at the CPU count; without F6 the machine panel says so with its stepper off; the forge's refusal of a limit above the CPU count shows in the
- * panel; a row's refusal offers Try again and its dismissal; a held forge's banner sends Update forge, and once that left a restart pending, Restart and
- * its dismissal; a forge whose Assistant cannot come up says so under its row; a paused row offers Unpause first; a hidden forge folds away with Show
- * again. Flint's brain (R4.6): a running brain's mark sits after its forge's name, the diamond, "BRAIN" and the time left, read aloud as one sentence;
- * no other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command states
- * come from the real sender over Gaia's server stood in for by authored answers. Versions (U2): a forge at another version opens its pair under
- * its row from the disclosure under its condition, the row expanded, never selected; a current forge has no disclosure; a forge Gaia cannot
- * talk to reads "not read" for its agents and what waits, and a control it cannot send says why in its title; an ahead forge's quiet line
- * stands under its row until the pair is shown; Update forge on its way says so under the row, and its restart pending stands without an
- * edge; this machine names the forges it leaves out of its figure.
+ * The Forges view laid out. What matters (SCREENS A4 and B2): the table's head and rows, set close, each root carrying its full path; Stop
+ * opens its dialog under the row, and the dialog's choices and buttons hand the view the choice, the cancel and the command to send; a
+ * stepper sends the limit one step on and is off past its ends, the machine's plus at the CPU count; without F6 the machine panel says so
+ * with its stepper off; the forge's refusal of a limit above the CPU count shows in the panel; a row's refusal offers Try again and its
+ * dismissal; a held forge's banner sends Update forge, and once that left a restart pending, Restart and its dismissal; a forge whose
+ * Assistant cannot come up says so under its row; a paused row offers Unpause first; a hidden forge folds away with Show again. Flint's
+ * brain (R4.6): a running brain's mark sits after its forge's name, the diamond, "BRAIN" and the time left, read aloud as one sentence; no
+ * other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command
+ * states come from the real sender over Gaia's server stood in for by authored answers. Versions (U2): a forge at another version opens its
+ * pair under its row from the disclosure under its condition, the row expanded, never selected; a current forge has no disclosure; a forge
+ * Gaia cannot talk to reads "not read" for its agents and what waits, and a control it cannot send says why in its title; an ahead forge's
+ * quiet line stands under its row until the pair is shown; Update forge on its way says so under the row, and its restart pending stands
+ * without an edge; this machine names the forges it leaves out of its figure.
  */
 import { describe, expect, test }  from 'bun:test';
 import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
 import { ConfirmStrip }            from 'design-system/ConfirmStrip';
 import { DataTable }               from 'design-system/DataTable';
 import { FillMeter }               from 'design-system/FillMeter';
-import { Icon }                    from 'design-system/Icon';
 import { IconButton }              from 'design-system/IconButton';
 import { MonoId }                  from 'design-system/MonoId';
 import type { NumberStepperProps } from 'design-system/NumberStepper';
@@ -199,24 +198,6 @@ describe('a row\'s controls', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
     press(controlNamed([rowOf(unfolded, TRACKER_IDS.invoiceService)], 'Stop'));
     expect(handled.stopsOpened).toEqual([TRACKER_IDS.invoiceService]);
-  });
-
-  test('"Open in new tab" is a button, not a link, that sends forge-open-in-browser and nothing else', () => {
-    const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES);
-    const openInNewTab = controlNamed([rowOf(unfolded, TRACKER_IDS.exampleStorefront)], 'Open Example Storefront in a new tab');
-    expect([openInNewTab.tag, openInNewTab.props['href'], openInNewTab.props['title']]).toEqual(['IconButton', undefined, 'Open Example Storefront in a new tab']);
-    expect(tree.hostElementsIn(tree.unfoldedProp(openInNewTab, 'drawing'), tree.withComponent(Icon)).map((icon) => icon.props['name'])).toEqual(['arrow-out-of-square']);
-    press(openInNewTab);
-    expect(handled).toEqual({
-      commands:          [{ kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.exampleStorefront }],
-      stopsOpened:       [],
-      stopChoices:       [],
-      stopsCancelled:    [],
-      stopsConfirmed:    [],
-      dismissed:         [],
-      restartsDismissed: [],
-      versionsToggled:   [],
-    });
   });
 
   test('Open is a link to the forge in place', () => {
@@ -486,7 +467,7 @@ describe('a forge at another version than this Gaia is built for (U2)', () => {
     expect([shown.props['role'], shown.props['aria-label']]).toEqual(['region', 'Analytics Sandbox, its version beside this Gaia’s']);
     expect(tree.hostElementsIn([shown], tree.withClass('gaia-versions-pair'))).toHaveLength(1);
     expect(tree.textOf([tree.onlyWithClass([shown], 'gaia-forges-versions-sentence')])).toBe(
-      'Gaia shows that Analytics Sandbox runs and opens its Bridge in a new tab. It shows nothing of its work and sends it no command. A newer Gaia shows it here.',
+      'Gaia shows that Analytics Sandbox runs. It shows nothing of its work and sends it no command. A newer Gaia shows it here.',
     );
   });
 

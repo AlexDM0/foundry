@@ -259,34 +259,6 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     expected:  { verdict: 'malformed' },
   },
   {
-    call:      'sessionCodeOf',
-    situation: 'serving-every-contract',
-    callShape: 'POST /api/v1/session-codes with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sessionCodeOf(ACCESS),
-    expected:  { verdict: 'answered', code: expect.stringMatching(/^[0-9a-f]{64}$/) },
-  },
-  {
-    call:      'sessionCodeOf',
-    situation: 'token-rejected',
-    callShape: 'POST /api/v1/session-codes with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sessionCodeOf(ACCESS),
-    expected:  { verdict: 'unauthorized' },
-  },
-  {
-    call:      'sessionCodeOf',
-    situation: 'stopped',
-    callShape: 'POST /api/v1/session-codes with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sessionCodeOf(ACCESS),
-    expected:  { verdict: 'unreachable' },
-  },
-  {
-    call:      'sessionCodeOf',
-    situation: 'port-held-by-another-program',
-    callShape: 'POST /api/v1/session-codes with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sessionCodeOf(ACCESS),
-    expected:  { verdict: 'malformed' },
-  },
-  {
     call:      'followMonitor',
     situation: 'serving-every-contract',
     callShape: 'STREAM /api/v2/monitor/events with bearer',
@@ -441,7 +413,6 @@ describe('the paths an Overseer is called at', () => {
     expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: ONE_MINOR_AHEAD, minimumSupported: { major: 1, minor: 0 } } });
     await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
-    await client.sessionCodeOf(ACCESS);
     await client.send(ACCESS, PAUSE_COMMAND);
     const follow = client.followMonitor(ACCESS, () => undefined);
     follow.stop();
@@ -450,7 +421,6 @@ describe('the paths an Overseer is called at', () => {
       'GET /api/versions',
       'GET /api/v1/identity',
       'GET /api/v2/monitor with bearer',
-      'POST /api/v1/session-codes with bearer',
       'POST /api/v1/commands with bearer',
       'STREAM /api/v2/monitor/events with bearer',
     ]);
@@ -463,7 +433,6 @@ describe('the paths an Overseer is called at', () => {
       'monitor',
       'monitorEvents',
       'commands',
-      'sessionCodes',
       'board',
       'presence',
       'events',
@@ -472,7 +441,7 @@ describe('the paths an Overseer is called at', () => {
       'pictures',
       'picture',
     ];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {
@@ -487,14 +456,12 @@ describe('the token', () => {
     const client       = clientOf(servingFetch);
     await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
-    await client.sessionCodeOf(ACCESS);
     await client.send(ACCESS, PAUSE_COMMAND);
     const todaysFetch = overseerFetchOf('serving');
     await clientOf(todaysFetch).summaryOf(ADDRESS);
     expect([...servingFetch.callsAnswered(), ...todaysFetch.callsAnswered()].map(({ callShape, bearerToken }) => [callShape, bearerToken])).toEqual([
       ['GET /api/v1/identity', null],
       ['GET /api/v2/monitor with bearer', EXAMPLE_TOKEN],
-      ['POST /api/v1/session-codes with bearer', EXAMPLE_TOKEN],
       ['POST /api/v1/commands with bearer', EXAMPLE_TOKEN],
       ['GET /api/v1/summary', null],
     ]);

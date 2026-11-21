@@ -15,7 +15,7 @@ import {
   rmSync,
   symlinkSync,
 } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { join } from 'node:path';
 
 import {
   realProcessRun,
@@ -39,24 +39,22 @@ export interface ExampleValue {
 }
 
 export interface ScratchForge {
-  readonly home:                 () => string;
+  readonly home:             () => string;
   /** The real process-run with the forge's environment; it refuses a working directory outside the scratch root. */
-  readonly processRun:           ProcessRun;
-  /** The same, with `openerFolder` first on `PATH`, where `forge open` finds a stand-in for the browser opener; `null` changes nothing. */
-  readonly processRunWithOpener: (openerFolder: string | null) => ProcessRun;
+  readonly processRun:       ProcessRun;
   /** A git repository below the scratch root, for one board. */
-  readonly createRepository:     (folderName: string) => Promise<string>;
+  readonly createRepository: (folderName: string) => Promise<string>;
   /** Runs the forge program in `repository` and answers how it finished; any other answer fails the recording. */
-  readonly run:                  (repository: string, programArguments: readonly string[]) => Promise<FinishedRunAnswer>;
+  readonly run:              (repository: string, programArguments: readonly string[]) => Promise<FinishedRunAnswer>;
   /** Runs a verb that must succeed and answers its JSON document. */
-  readonly runForDocument:       (repository: string, programArguments: readonly string[]) => Promise<Record<string, unknown>>;
+  readonly runForDocument:   (repository: string, programArguments: readonly string[]) => Promise<Record<string, unknown>>;
   /** The registry entry of the board in `repository`, as the forge wrote it under the scratch home. */
-  readonly registryEntryOf:      (trackerId: string) => Record<string, unknown> | null;
-  readonly exampleValueFor:      (exampleValue: ExampleValue) => void;
+  readonly registryEntryOf:  (trackerId: string) => Record<string, unknown> | null;
+  readonly exampleValueFor:  (exampleValue: ExampleValue) => void;
   /** `text` with every value drawn by this run replaced by its example, the longest first so no path is replaced inside another. */
-  readonly exampleTextOf:        (text: string) => string;
+  readonly exampleTextOf:    (text: string) => string;
   /** Stops each Overseer still live in the scratch repositories, ends what still runs from them, and removes them, then the scratch home. */
-  readonly remove:               () => Promise<void>;
+  readonly remove:           () => Promise<void>;
 }
 
 /** What a recording asks of its scratch forge beyond the program `GAIA_RECORDING_FORGE_PROGRAM` names, run with the forge's defaults. */
@@ -126,13 +124,10 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   const repositories: string[]   = [];
   const exampleValues: ExampleValue[] = [{ drawn: program, example: '/Users/example/.bun/bin/forge' }];
 
-  function forgeEnvironmentFor(workingDirectory: string, openerFolder: string | null): Record<string, string> {
-    const environment = environmentCopy();
-    const searchPath  = openerFolder === null ? environment['PATH'] ?? '' : `${openerFolder}${delimiter}${environment['PATH'] ?? ''}`;
+  function forgeEnvironmentFor(workingDirectory: string): Record<string, string> {
     return {
-      ...environment,
+      ...environmentCopy(),
       ...options.forgeVariables,
-      PATH:                        searchPath,
       HOME:                        shortForgeHome,
       [FORGE_ROOT_VARIABLE]:       workingDirectory,
       [FORGE_FAKE_AGENT_VARIABLE]: '1',
@@ -140,20 +135,16 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   }
 
   /** Each start reads the environment afresh, so `FORGE_ROOT` is the working directory of the request being started. */
-  function processRunIn(workingDirectory: string, openerFolder: string | null): ProcessRun {
+  function processRunIn(workingDirectory: string): ProcessRun {
     refuseOutsideTheScratchRoot(workingDirectory);
-    return realProcessRun(() => forgeEnvironmentFor(workingDirectory, openerFolder));
+    return realProcessRun(() => forgeEnvironmentFor(workingDirectory));
   }
 
-  function processRunWithOpener(openerFolder: string | null): ProcessRun {
-    return {
-      run:           (request: ProgramRunRequest) => processRunIn(request.workingDirectory, openerFolder).run(request),
-      startOwned:    (request) => processRunIn(request.workingDirectory, openerFolder).startOwned(request),
-      startDetached: (request) => processRunIn(request.workingDirectory, openerFolder).startDetached(request),
-    };
-  }
-
-  const processRun = processRunWithOpener(null);
+  const processRun: ProcessRun = {
+    run:           (request: ProgramRunRequest) => processRunIn(request.workingDirectory).run(request),
+    startOwned:    (request) => processRunIn(request.workingDirectory).startOwned(request),
+    startDetached: (request) => processRunIn(request.workingDirectory).startDetached(request),
+  };
 
   async function run(repository: string, programArguments: readonly string[]): Promise<FinishedRunAnswer> {
     const answer = await processRun.run({
@@ -222,7 +213,6 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   return {
     home:            () => forgeHome,
     processRun,
-    processRunWithOpener,
     createRepository,
     run,
     runForDocument,

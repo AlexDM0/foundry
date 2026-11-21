@@ -94,7 +94,6 @@ describe('a summary at the known version', () => {
           summary: 1,
           monitor: null,
           control: null,
-          embed:   null,
         },
         codeVersion:       '3a6e9e6043da',
         lastReportedAt:    EXAMPLE_READ_STAMP,

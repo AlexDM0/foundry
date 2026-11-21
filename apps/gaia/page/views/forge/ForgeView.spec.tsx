@@ -2,14 +2,13 @@
  * A forge in place in the shell, fed by the fleet source. What matters (SCREENS B1): Answer on E2 in Attention links to
  * `#forge/<trackerId>/questions/E2`, and that address shows Example Storefront's bar as artboard B1 draws it: the forge's mark before its
  * name, its word, its line of agents and what waits with the figures in mono and the whole reading with since in its tooltip, its controls
- * with the arrow of "Open in new tab", and no theme button, over "Opening Example Storefront." while the frame session is asked for; an
- * unreachable forge shows B3's callout in the frame area; a forge without the embed channel says it cannot be shown inside Gaia; a command
- * on its way disables the bar's controls, and the forge's refusal shows under the bar; Flint's brain shows in the bar as the forge reports
- * it, Wake waits while it is on its way, and a refused wake shows beside Wake, not under the bar; nothing of the frame is asked for or painted before
- * the first fleet document, and the page's markup carries no session code. The board's own header and tabs stand between the bar and
- * the frame, which is drawn only for a tab no view of the board draws. The bar's Open in new tab opens the same route of Gaia's own address,
- * for a forge Gaia cannot talk to as for any other, and sends no command. `GaiaApp` is rendered with React's own server renderer, which
- * runs the hooks but no effect, so no frame session is asked while rendering; the surroundings fail a spec that asks one. The bar's
+ * with the arrow of "Open in new tab", and no theme button, over the board, which waits for its first read; an unreachable forge still
+ * shows its board as last reported; a forge whose board Gaia cannot read says so; a command on its way disables the bar's controls, and
+ * the forge's refusal shows under the bar; Flint's brain shows in the bar as the forge reports it, Wake waits while it is on its way, and a
+ * refused wake shows beside Wake, not under the bar; nothing of the board is asked for or painted before the first fleet document, and the
+ * page's markup carries no session code and no frame. The board's own header and tabs stand under the bar for every tab, and no tab is
+ * left to a frame. The bar's Open in new tab opens the same route of Gaia's own address, for a forge Gaia cannot talk to as for any other,
+ * and sends no command. `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect. The bar's
  * controls are held whole to the hook-free controls drawn for the state the sender holds, whose buttons the spec reads unfolded, so no
  * spec reads the markup the package draws.
  */
@@ -22,7 +21,6 @@ import type { CommandAnswerDocument }                                           
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import { CommandSender }                                                            from '../../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../../api/FleetStreamClient.ts';
-import type { BoardTabViewTable }                                                   from '../../board/shell/BoardTabViews.tsx';
 import { Refusal }                                                                  from '../../design-system/Refusal.tsx';
 import { HashRouter }                                                               from '../../shared/HashRouter.ts';
 import { createFleetSource }                                                        from '../../shell/FleetSource.ts';
@@ -30,12 +28,12 @@ import { GaiaApp }                                                              
 import { answerResponse, senderOver }                                               from '../../testing/CommandServer.ts';
 import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
 import { ReactElementTree }                                                         from '../../testing/ReactElementTree.ts';
-import { forgeFrameSurroundingsAt, shellSurroundingsAt, silentBoardServicesOf }     from '../../testing/ShellSurroundingsAt.ts';
+import { forgeViewSurroundingsAt, shellSurroundingsAt, silentBoardServicesOf }      from '../../testing/ShellSurroundingsAt.ts';
 import { fleetWithStorefrontBrainOf }                                               from '../../testing/fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
-import { ForgeBarControls }                                                         from './ForgeFrameLayout.tsx';
-import { ForgeFrameModel }                                                          from './ForgeFrameModel.ts';
+import { ForgeBarControls }                                                         from './ForgeLayout.tsx';
+import { ForgeModel }                                                               from './ForgeModel.ts';
 import { forgeViewPartsOf }                                                         from './ForgeView.tsx';
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
@@ -55,11 +53,10 @@ interface Rendered {
   readonly commandSender: CommandSender;
 }
 
-function markupAt(fragment: string, fleetDocument: FleetDocument | null, commandSender: CommandSender = senderOver([]), boardTabViews: BoardTabViewTable = {}): Rendered {
+function markupAt(fragment: string, fleetDocument: FleetDocument | null, commandSender: CommandSender = senderOver([])): Rendered {
   const source = createFleetSource();
   if (fleetDocument !== null) source.publish(fleetDocument);
-  const shellSurroundings = shellSurroundingsAt(fragment);
-  const surroundings = { ...shellSurroundings, forgeFrame: { ...shellSurroundings.forgeFrame, boardTabViews } };
+  const surroundings = shellSurroundingsAt(fragment);
   const markup = renderToStaticMarkup(<GaiaApp fleetSource={source} fleetStream={LIVE_STREAM} commandSender={commandSender} surroundings={surroundings} />);
   const route = HashRouter.routeOf(fragment);
   const trackerId = route.view === 'forge' ? route.trackerId : '';
@@ -80,13 +77,13 @@ function figure(text: string): string {
 function buttonsIn({
   markup, trackerId, fleetDocument, commandSender
 }: Rendered): string[] {
-  const bar = fleetDocument === null ? null : ForgeFrameModel.forgeFrameContentOf(trackerId, fleetDocument, CLOCK).bar;
+  const bar = fleetDocument === null ? null : ForgeModel.forgeContentOf(trackerId, fleetDocument, CLOCK).bar;
   if (bar === null) throw new Error('The forge has no bar.');
   const commandState = CommandSender.stateOf(commandSender.states(), { trackerId });
   const controls = (
     <ForgeBarControls
       bar={bar}
-      brainShown={bar.brain === null ? null : ForgeFrameModel.brainShownAfter(bar.brain, commandState.failure)}
+      brainShown={bar.brain === null ? null : ForgeModel.brainShownAfter(bar.brain, commandState.failure)}
       commandIsOnItsWay={commandState.onItsWay !== null}
       stopIsOpen={false}
       stopAnchorRef={{ current: null }}
@@ -95,7 +92,7 @@ function buttonsIn({
       onOpenStop={doNothing}
       onChooseStop={doNothing}
       onCancelStop={doNothing}
-      updateStep={ForgeFrameModel.updateStepOf(commandState)}
+      updateStep={ForgeModel.updateStepOf(commandState)}
       onDismissUpdate={doNothing}
       onOpenInNewTab={doNothing}
     />
@@ -110,7 +107,7 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     expect(markupAt('#attention', FLEET_FIVE_FORGES).markup).toContain(`href="${STOREFRONT_ON_E2}"`);
   });
 
-  test('that address shows the forge\'s bar of artboard B1 over "Opening Example Storefront."', () => {
+  test('that address shows the forge\'s bar of artboard B1 over the board, which waits for its first read', () => {
     const rendered = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
     const { markup } = rendered;
     expect(markup).toContain('<h1 class="gaia-forge-frame-bar-name">Example Storefront</h1>');
@@ -122,35 +119,33 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     const barControls = /<span class="gaia-forge-frame-bar-controls">.*<\/span><\/header>/.exec(markup)?.[0];
     expect(barControls).toContain('<svg class="design-system-icon" viewBox="0 0 16 16" data-icon="arrow-out-of-square" aria-hidden="true"');
     expect(markup).not.toContain('aria-label="Theme: ');
-    expect(markup).toContain('<p class="gaia-forge-frame-opening" role="status">Opening Example Storefront.</p>');
+    expect(markup).toContain('Waiting for the forge&#x27;s first board.');
     expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}" aria-current="page"`);
   });
 
-  test('the page\'s markup carries no session code and no frame before the frame session answers', () => {
+  test('the page\'s markup carries no session code and no frame', () => {
     const { markup } = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
     expect(markup).not.toContain('session=');
     expect(markup).not.toContain('<iframe');
   });
 });
 
-describe('the board over the frame', () => {
-  test('the board\'s own header and tabs stand under Gaia\'s bar, over the frame area of a tab not yet moved', () => {
+describe('the board under the bar', () => {
+  test('the board\'s own header and tabs stand under Gaia\'s bar, over the routed tab\'s main area', () => {
     const { markup } = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES);
     const barAt = markup.indexOf('class="gaia-forge-frame-bar"');
     const boardHeaderAt = markup.indexOf('class="board-header"');
-    const frameAreaAt = markup.indexOf('class="gaia-forge-frame-area"');
-    expect([barAt < boardHeaderAt, boardHeaderAt < frameAreaAt]).toEqual([true, true]);
+    const mainAreaAt = markup.indexOf('class="board-panel"');
+    expect([barAt < boardHeaderAt, boardHeaderAt < mainAreaAt]).toEqual([true, true]);
     expect(markup).toContain(`href="#forge/${TRACKER_IDS.exampleStorefront}/questions"`);
-    expect(markup).toContain('<main tabindex="-1" class="board-panel" data-tab="questions" data-unmoved="">');
+    expect(markup).toContain('<main tabindex="-1" class="board-panel" data-tab="questions">');
   });
 
-  test('the frame is drawn only for a tab no view of the board draws, never for a moved one', () => {
-    const questionsMoved: BoardTabViewTable = { questions: () => <p>The moved Questions view</p> };
-    const { markup } = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, senderOver([]), questionsMoved);
-    expect(markup).not.toContain('gaia-forge-frame-area');
-    expect(markup).not.toContain('Opening Example Storefront.');
-    expect(markup).toContain('<main tabindex="-1" class="board-panel" data-tab="questions">');
-    expect(markupAt(`#forge/${TRACKER_IDS.exampleStorefront}/agents`, FLEET_FIVE_FORGES, senderOver([]), questionsMoved).markup).toContain('Opening Example Storefront.');
+  test('no tab is left to a frame: every tab draws in the board\'s main area', () => {
+    for (const tab of ['agents', 'kanban', 'pipeline', 'intake']) {
+      const { markup } = markupAt(`#forge/${TRACKER_IDS.exampleStorefront}/${tab}`, FLEET_FIVE_FORGES);
+      expect([tab, markup.includes('gaia-forge-frame-area'), markup.includes('<iframe')]).toEqual([tab, false, false]);
+    }
   });
 });
 
@@ -164,7 +159,7 @@ function boardMountedAt(fragment: string, fleetDocument: FleetDocument): { reado
     servicesAskedFor.push(trackerId);
     return silentBoardServicesOf(trackerId);
   };
-  const surroundings = { ...shellSurroundings, forgeFrame: { ...shellSurroundings.forgeFrame, boardServicesOf } };
+  const surroundings = { ...shellSurroundings, forgeView: { ...shellSurroundings.forgeView, boardServicesOf } };
   const markup = renderToStaticMarkup(<GaiaApp fleetSource={source} fleetStream={LIVE_STREAM} commandSender={senderOver([])} surroundings={surroundings} />);
   return { servicesAskedFor, headerIsDrawn: markup.includes('class="board-header"') };
 }
@@ -183,20 +178,20 @@ describe('the board mounts only where Gaia\'s relay can read it', () => {
   });
 });
 
-describe('a forge that cannot show its Bridge here', () => {
-  test('an unreachable forge shows B3\'s callout in the frame area, under a bar that says so and can still stop it', () => {
+describe('a forge whose Overseer is not read in full', () => {
+  test('an unreachable forge shows its board as last reported, under a bar that says so and can still stop it', () => {
     const rendered = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, FLEET_DEGRADED);
     const { markup } = rendered;
     expect(markup).toContain('<span class="gaia-forge-frame-bar-word">Unreachable</span><span class="gaia-forge-frame-bar-line" title="as last reported 13:14');
-    expect(markup).toContain('Its Overseer stopped answering. The registry still names it.');
-    expect(markup).toContain('127.0.0.1:4957 · process 48211 · last answer 13:14');
+    expect(markup).toContain('class="board-header"');
     expect(buttonsIn(rendered)).toEqual(['Stop', 'Open in new tab']);
   });
 
-  test('a forge without the embed channel Gaia knows says so, with Open in new tab, and its controls stay off', () => {
+  test('a forge read through its summary says Gaia cannot read its board, with no board, and its controls stay off', () => {
     const rendered = markupAt(`#forge/${TRACKER_IDS.researchWiki}`, FLEET_DEGRADED);
     const { markup } = rendered;
-    expect(markup).toContain('This forge cannot be shown inside Gaia yet.');
+    expect(markup).toContain('Gaia cannot read this forge&#x27;s board.');
+    expect(markup).not.toContain('class="board-header"');
     expect(buttonsIn(rendered)).toEqual(['Pause (disabled)', 'Stop (disabled)', 'Open in new tab']);
   });
 
@@ -232,7 +227,7 @@ function fragmentsOpenedFrom(fragment: string, fleetDocument: FleetDocument): st
   const route = HashRouter.routeOf(fragment);
   if (route.view !== 'forge') throw new Error(`${fragment} is not a forge's route.`);
   const opened: string[] = [];
-  const surroundings = { ...forgeFrameSurroundingsAt(), openInNewTab: (openedFragment: string) => opened.push(openedFragment) };
+  const surroundings = { ...forgeViewSurroundingsAt(), openInNewTab: (openedFragment: string) => opened.push(openedFragment) };
   const parts = forgeViewPartsOf({ trackerId: route.trackerId, boardRoute: route.boardRoute }, fleetDocument, CLOCK, surroundings);
   openInNewTabHandedIn(parts.content)();
   return opened;

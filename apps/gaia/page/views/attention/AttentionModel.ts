@@ -34,7 +34,6 @@ import { PathTextUtil }          from '../../shared/utils/PathTextUtil.ts';
 import { StampTextUtil }         from '../../shared/utils/StampTextUtil.ts';
 
 /** The one drawn shape a look's button carries. */
-export type LookActionIcon = 'open-in-new-tab';
 
 export interface AttentionFigure {
   readonly value:     string;
@@ -75,7 +74,6 @@ export type LookAction =
     readonly kind:           'command';
     readonly label:          string;
     readonly emphasis:       ButtonEmphasis;
-    readonly icon:           LookActionIcon | null;
     readonly command:        CommandBody;
     readonly forgeAcceptsIt: boolean;
   }
@@ -419,12 +417,11 @@ function rowsOf(fleetDocument: FleetDocument, forges: readonly FleetDocumentForg
   });
 }
 
-function commandAction(label: string, emphasis: ButtonEmphasis, command: CommandBody, forgeAcceptsIt = true, icon: LookActionIcon | null = null): LookAction {
+function commandAction(label: string, emphasis: ButtonEmphasis, command: CommandBody, forgeAcceptsIt = true): LookAction {
   return {
     kind: 'command',
     label,
     emphasis,
-    icon,
     command,
     forgeAcceptsIt,
   };
@@ -436,11 +433,7 @@ function linkAction(label: string, href: string): LookAction {
   };
 }
 
-function openInNewTabAction(trackerId: string): LookAction {
-  return commandAction('Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId }, true, 'open-in-new-tab');
-}
-
-const CONTRACT_NAMES: readonly (keyof FleetDocumentContracts)[] = ['monitor', 'control', 'summary', 'embed'];
+const CONTRACT_NAMES: readonly (keyof FleetDocumentContracts)[] = ['monitor', 'control', 'summary'];
 
 /** The contracts a forge publishes above the numbers this Gaia knows, monitor first: `monitor 2 · control 2`. */
 function newerContractsOf(forge: FleetDocumentForge, fleetDocument: FleetDocument): (keyof FleetDocumentContracts)[] {
@@ -472,7 +465,7 @@ type CalloutParts = Pick<LookCallout, 'tone' | 'word' | 'sentence' | 'machineLin
  */
 function newerContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDocument): CalloutParts {
   const word = ForgeVersionsTextUtil.verdictWordOf('newer');
-  const actions = [openInNewTabAction(forge.trackerId)];
+  const actions: LookAction[] = [];
   const versionsCallout = forge.versions === null
     ? null
     : ForgeVersionsTextUtil.calloutTextOf({ project: forge.project, versions: forge.versions }, fleetDocument.gaia.versions);
@@ -519,7 +512,7 @@ function olderContractCallout(forge: FleetDocumentForge, fleetDocument: FleetDoc
     sentence:     versionsCallout?.sentence ?? '',
     machineLine:  null,
     versionsLine: versionsCallout?.versionsLine ?? null,
-    actions:      [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId }), openInNewTabAction(forge.trackerId)],
+    actions:      [commandAction('Update forge', 'primary', { kind: 'forge-update', trackerId: forge.trackerId })],
     updateSteps:  OLDER_FORGE_UPDATE_STEPS,
   };
 }
@@ -573,7 +566,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
         word:        'Counts only',
         sentence:    countsOnlySentenceOf(forge),
         machineLine: forge.contracts.summary === null ? 'no monitor contract' : `summary ${forge.contracts.summary}${META_SEPARATOR}no monitor contract`,
-        actions:     [openInNewTabAction(trackerId), commandAction('Update forge', 'quiet', { kind: 'forge-update', trackerId })],
+        actions:     [commandAction('Update forge', 'quiet', { kind: 'forge-update', trackerId })],
       };
     case 'dormant-with-ready-tickets':
       return {

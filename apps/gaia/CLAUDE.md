@@ -26,7 +26,8 @@ the root's.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. Forge and Gaia are released
    apart and meet only through system versions; `docs/contracts.md` holds the model, the tables and the verdicts. Forge never knows Gaia:
    nothing forge serves, and nothing in a package forge depends on (`forge-contracts`, `brand`, the design system), names Gaia, and Gaia
-   sends forge client-neutral values only, such as the embed mode (`docs/forge-requirements.md`). Each system has one system version,
+   sends forge client-neutral values only (`docs/forge-requirements.md`). Gaia frames no forge's page: every board tab is Gaia's own view, it
+   runs no `forge open`, and it writes no frame-ancestor record. Each system has one system version,
    major.minor by interoperability (a minor only adds; a major may break a client of an older major), never its package version. A server
    answers its current version and its minimum supported, which it alone decides, at `GET /api/versions`, unversioned and never removed;
    serves each REST route at `/api/v<n>/<endpoint>`, side by side, with no per-endpoint version in its answers; carries the system version
@@ -109,7 +110,7 @@ Gaia's folders under `apps/gaia/`. Beside them Gaia depends on five workspace pa
 `brand` for Forge's mark, `flint` for Flint in the board (rule 11), `forge-contracts` for forge's documents, system versions and
 compatibility registry, which only the server imports, and `system-versions` for the version model both systems share (rule 3). The page
 imports no `forge-contracts` and reads its own contract versions from `src/shared/constants/PageContractVersions.ts`
-(`page/PageImportDirection.spec.ts`; `page/views/forge/EmbedChannel.ts` is the one exception until the frame goes). Gaia's
+(`page/PageImportDirection.spec.ts`, with no exception). Gaia's
 tracker lives in `apps/gaia/.forge`, beside forge's in `apps/forge/.forge`.
 
 ```
@@ -128,7 +129,7 @@ src/testing/       the scratch root, the test run preload, the leak check, the r
 page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system package (rule 11)
 page/design-system/ Gaia's own parts that the design-system package does not have, composed from the package (rule 10)
 page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
-page/@types/       the page contract (`FleetDocument`, `CommandDocument`, `FrameSessionDocument`); the server maps across it in src/adapters/page-api/, and only there
+page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the server maps across it in src/adapters/page-api/, and only there
 page/@types/board/ the page's board contract, Gaia's own, never the forge's
 page/board/        the board's views, moved from forge's Bridge; a view may draw the board, the board imports no view and no shell (rule 10)
 ```
@@ -142,7 +143,6 @@ page/board/        the board's views, moved from forge's Bridge; a view may draw
 | The browser's debugging pipe | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
 | The Notification API | `page/notifications/NotificationBoundary.ts` (`eslint.config.js` holds it the one reach) |
-| A forge's Bridge in Gaia's frame (the embed channel) | `page/views/forge/EmbedChannel.ts` |
 | A forge's board, relayed by Gaia's server to the page | `page/board/api/` |
 | The clock | an injected `now` and injected timers; the clock, wall and monotonic, is read only in `src/services/Clock.ts` |
 

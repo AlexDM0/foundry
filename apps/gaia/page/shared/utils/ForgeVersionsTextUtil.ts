@@ -149,7 +149,7 @@ function calloutTextOf({ versions }: ForgeWithVersions, { supportedForgeVersion 
       return {
         word:     `${VERDICT_WORDS.newer}.`,
         sentence: `This forge no longer serves clients built for forge ${supported}, as this Gaia is. Gaia sees that it runs, shows nothing of its work `
-          + 'and sends it no command. Its own Bridge shows all of it.',
+          + 'and sends it no command. A newer Gaia shows it.',
         versionsLine: [...forgeServesTextOf(versions), ...builtFor],
       };
     case 'ahead':
@@ -188,14 +188,13 @@ function pairTextOf({ project, versions }: ForgeWithVersions, { systemVersion, s
 function pairSentenceOf({ project, versions }: ForgeWithVersions, { supportedForgeVersion }: GaiaVersions): string | null {
   switch (versions.verdict) {
     case 'older':
-      return `Gaia shows that ${project} runs and opens its Bridge in a new tab. It shows nothing of its work and sends it no command until the forge `
-        + 'is updated; its agents keep running.';
+      return `Gaia shows that ${project} runs. It shows nothing of its work and sends it no command until the forge is updated; its agents keep `
+        + 'running.';
     case 'newer':
-      return `Gaia shows that ${project} runs and opens its Bridge in a new tab. It shows nothing of its work and sends it no command. A newer Gaia `
-        + 'shows it here.';
+      return `Gaia shows that ${project} runs. It shows nothing of its work and sends it no command. A newer Gaia shows it here.`;
     case 'ahead': {
       const current = versions.current === null ? '' : ` ${versionTextOf(versions.current)}`;
-      return `Gaia reads all it knows of ${project} and frames its Bridge. What forge${current} added since ${versionTextOf(supportedForgeVersion)} shows `
+      return `Gaia reads all it knows of ${project} and shows its board. What forge${current} added since ${versionTextOf(supportedForgeVersion)} shows `
         + 'only in its Bridge; a newer Gaia shows it here too. Nothing waits on you.';
     }
     case 'current':
@@ -232,9 +231,9 @@ function readingTextOf({ versions }: ForgeWithVersions): VersionsReadingText {
       return { versionsText: withVerdict('ahead'), isWork: false, reading: `All this Gaia knows. ${whatWasAdded} shows in its Bridge.` };
     }
     case 'older':
-      return { versionsText: withVerdict('older'), isWork: true, reading: 'That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.' };
+      return { versionsText: withVerdict('older'), isWork: true, reading: 'That it runs. Nothing of its work until the forge is updated.' };
     case 'newer':
-      return { versionsText: withVerdict('newer'), isWork: false, reading: 'That it runs, and its Bridge in a new tab. Nothing of its work.' };
+      return { versionsText: withVerdict('newer'), isWork: false, reading: 'That it runs. Nothing of its work.' };
   }
 }
 
@@ -268,7 +267,7 @@ function barTextOf({ project, versions }: ForgeWithVersions, { supportedForgeVer
       return {
         line:  versionsTextOf`forge ${current}, its newest parts only in its Bridge`,
         title: `${project} is forge ${currentText}; this Gaia is built for ${supported}. Everything Gaia shows works; what ${currentText} added shows in its `
-          + 'Bridge below. A newer Gaia shows it here too.',
+          + 'Bridge. A newer Gaia shows it here too.',
       };
     }
     case 'newer': {
@@ -292,7 +291,7 @@ function barTextOf({ project, versions }: ForgeWithVersions, { supportedForgeVer
   }
 }
 
-/** The notice the forge's frame holds instead of its Bridge, for a forge Gaia cannot talk to. */
+/** The notice the forge view holds instead of its board, for a forge Gaia cannot talk to. */
 function noticeTextOf({ project, versions }: ForgeWithVersions, { supportedForgeVersion }: GaiaVersions): VersionsNoticeText | null {
   const supported = versionTextOf(supportedForgeVersion);
   switch (versions.verdict) {
@@ -301,15 +300,14 @@ function noticeTextOf({ project, versions }: ForgeWithVersions, { supportedForge
         word:     `${VERDICT_WORDS.newer}.`,
         heading:  `This Gaia cannot show ${project} in place`,
         sentence: `${project} no longer serves clients built for forge ${supported}, as this Gaia is, so this Gaia cannot talk to it: it shows nothing of its `
-          + 'work and sends it no command. The forge runs and its Bridge works on its own: open it in a new tab. A newer Gaia shows it here.',
+          + 'work and sends it no command. The forge runs on its own. A newer Gaia shows it here.',
       };
     case 'older': {
       const forgeIs = versions.current === null ? `${project} ${STATES_NO_VERSION}` : `${project} is ${versionTextOf(versions.current)}`;
       return {
         word:     `${VERDICT_WORDS.older}.`,
         heading:  `${project} is older than this Gaia`,
-        sentence: `This Gaia is built for forge ${supported}, and ${forgeIs}. Update the forge to show it here; its agents keep running. Until then its `
-          + 'Bridge works in a new tab.',
+        sentence: `This Gaia is built for forge ${supported}, and ${forgeIs}. Update the forge to show it here; its agents keep running.`,
       };
     }
     case 'ahead':

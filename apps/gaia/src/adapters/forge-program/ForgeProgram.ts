@@ -8,7 +8,6 @@ import type {
   ForgeLoginItemAction,
   ForgeLoginItemAnswer,
   ForgeMachineLimitAnswer,
-  ForgeOpenAnswer,
   ForgeProgramVerdict,
   ForgeStartAnswer,
   ForgeStopAnswer,
@@ -36,8 +35,6 @@ export interface ForgeProgram {
   readonly init:            (forge: ForgeProgramTarget, project: string) => Promise<ForgeProgramVerdict<ForgeInitAnswer>>;
   readonly update:          (forge: ForgeProgramTarget) => Promise<ForgeProgramVerdict<ForgeUpdateAnswer>>;
   readonly version:         (forge: ForgeProgramTarget) => Promise<ForgeProgramVerdict<ForgeVersionAnswer>>;
-  /** Starts `forge open` detached and does not wait for its end. */
-  readonly openInBrowser:   (forge: ForgeProgramTarget) => ForgeProgramVerdict<ForgeOpenAnswer>;
   readonly machineLimitSet: (forge: ForgeProgramTarget, agentLimit: number) => Promise<ForgeProgramVerdict<ForgeMachineLimitAnswer>>;
   readonly loginItem:       (forge: ForgeProgramTarget, action: ForgeLoginItemAction) => Promise<ForgeProgramVerdict<ForgeLoginItemAnswer>>;
 }
@@ -71,20 +68,12 @@ export function createForgeProgram(options: ForgeProgramOptions): ForgeProgram {
     return ForgeAnswerMapUtil.verdictOfRun(answer, { program, root: forge.root }, doneAnswerOf);
   }
 
-  function openInBrowser(forge: ForgeProgramTarget): ForgeProgramVerdict<ForgeOpenAnswer> {
-    const program = programFor(forge);
-    if (program === null) return { verdict: 'program-not-found', program: null };
-    const start = options.processRun.startDetached({ program, programArguments: ['open'], workingDirectory: forge.root });
-    return ForgeAnswerMapUtil.verdictOfDetachedStart(start, { program, root: forge.root });
-  }
-
   return {
     start:           (forge) => run(forge, ['start', JSON_FLAG], FORGE_START_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.startAnswerOf),
     stop:            (forge) => run(forge, ['stop', JSON_FLAG], FORGE_VERB_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.stopAnswerOf),
     init:            (forge, project) => run(forge, ['init', '--project', project, JSON_FLAG], FORGE_VERB_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.initAnswerOf),
     update:          (forge) => run(forge, ['update', JSON_FLAG], FORGE_UPDATE_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.updateAnswerOf),
     version:         (forge) => run(forge, ['version', JSON_FLAG], FORGE_VERB_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.versionAnswerOf),
-    openInBrowser,
     machineLimitSet: (forge, agentLimit) => {
       return run(forge, ['machine', 'limit', String(agentLimit), JSON_FLAG], FORGE_VERB_TIMEOUT_MILLISECONDS, ForgeAnswerMapUtil.machineLimitAnswerOf);
     },

@@ -13,7 +13,6 @@ import { CountBadge }                                         from 'design-syste
 import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system/DataTable';
 import { EmptyState }                                         from 'design-system/EmptyState';
 import { Icon }                                               from 'design-system/Icon';
-import { IconButton }                                         from 'design-system/IconButton';
 import { MonoId }                                             from 'design-system/MonoId';
 import { NumberStepper }                                      from 'design-system/NumberStepper';
 import { PendingStep }                                        from 'design-system/PendingStep';
@@ -24,7 +23,6 @@ import { Text }                                               from 'design-syste
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
-import { ButtonGlyph }                                         from '../../design-system/ButtonGlyph.tsx';
 import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
 import { Refusal }                                             from '../../design-system/Refusal.tsx';
 import { RoleDot }                                             from '../../design-system/RoleDot.tsx';
@@ -112,24 +110,13 @@ function ForgeButtonView(props: ForgeButtonViewProps) {
 function ForgeButtonControl({
   button, trackerId, handlers, fullHeight = false
 }: ForgeButtonViewProps) {
-  if (fullHeight && button.kind === 'command' && !button.iconOnly) {
+  if (fullHeight && button.kind === 'command') {
     const { command } = button;
     return <Button label={button.label} emphasis={button.emphasis} disabled={button.disabled} onPress={() => handlers.onCommand(command)} />;
   }
   switch (button.kind) {
     case 'command': {
       const { command } = button;
-      if (button.iconOnly) {
-        return (
-          <IconButton
-            drawing={<ButtonGlyph name="arrow-out-of-square" />}
-            accessibleName={button.label}
-            title={button.label}
-            disabled={button.disabled}
-            onPress={() => handlers.onCommand(command)}
-          />
-        );
-      }
       return <Button label={button.label} emphasis={button.emphasis} compact disabled={button.disabled} onPress={() => handlers.onCommand(command)} />;
     }
     case 'stop':

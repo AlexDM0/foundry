@@ -34,7 +34,6 @@ const NO_CONTRACTS: ForgeContracts = {
   summary: null,
   monitor: null,
   control: null,
-  embed:   null,
 };
 
 /** Keyed by the union, so a tab Gaia's board gains or loses is a compile error here until the monitor's routes follow. */
@@ -88,7 +87,6 @@ function identityOf(document: IdentityDocument): ForgeIdentity {
       summary: contracts.summary ?? null,
       monitor: contracts.monitor ?? null,
       control: contracts.control ?? null,
-      embed:   contracts.embed ?? null,
     },
   };
 }

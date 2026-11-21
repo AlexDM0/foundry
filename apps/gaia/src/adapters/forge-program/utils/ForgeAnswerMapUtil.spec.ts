@@ -36,14 +36,6 @@ describe('a run that answered nothing', () => {
   });
 });
 
-describe('a detached start', () => {
-  test('answers done with the process it started, and program-not-found or root-missing as a run does', () => {
-    expect(ForgeAnswerMapUtil.verdictOfDetachedStart({ verdict: 'started', processId: 48213 }, PLACE)).toEqual({ verdict: 'done', answer: { processId: 48213 } });
-    expect(ForgeAnswerMapUtil.verdictOfDetachedStart({ verdict: 'not-found', missing: 'program' }, PLACE)).toEqual({ verdict: 'program-not-found', program: PLACE.program });
-    expect(ForgeAnswerMapUtil.verdictOfDetachedStart({ verdict: 'not-found', missing: 'working-directory' }, PLACE)).toEqual({ verdict: 'root-missing', root: PLACE.root });
-  });
-});
-
 describe('an answer Gaia does not understand', () => {
   test('is no-json when standard output is not one JSON object', () => {
     expect(stopVerdictOf({
@@ -100,9 +92,7 @@ describe('the done answers of each verb', () => {
       trackerId:      'example-tracker',
       codeVersion:    '3a6e9e6043da',
       installVersion: 27,
-      contracts:      {
-        summary: 1, monitor: 1, control: null, embed: null
-      },
+      contracts:      { summary: 1, monitor: 1, control: null },
     });
     expect(ForgeAnswerMapUtil.startAnswerOf({ ...startDocument, contracts: { summary: 1, monitor: '1' } })).toBeNull();
     expect(ForgeAnswerMapUtil.startAnswerOf({ ...startDocument, contracts: undefined })).toBeNull();
@@ -143,11 +133,9 @@ describe('the done answers of each verb', () => {
       monitorFolder:        '/Users/example/.forge-monitor',
     };
     expect(ForgeAnswerMapUtil.versionAnswerOf(versionDocument)).toEqual({
-      codeVersion:    '3a6e9e6043da',
-      installVersion: 43,
-      contracts:      {
-        summary: 1, monitor: 3, control: 1, embed: 1
-      },
+      codeVersion:          '3a6e9e6043da',
+      installVersion:       43,
+      contracts:            { summary: 1, monitor: 3, control: 1 },
       talosProtocolVersion: 2,
       monitorFolder:        '/Users/example/.forge-monitor',
     });

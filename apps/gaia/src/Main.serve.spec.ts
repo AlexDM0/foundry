@@ -1,8 +1,8 @@
 /**
  * `gaia serve` run as the program it is, under a scratch home on any free port, since the launcher starts and stops it as a program: it
- * prints its address once it listens, writes its token and its server record, serves its health, the fleet, a command and the built page
- * with the CSP, and at a stop signal removes the record and exits 0. Where Gaia already answers, or the port setting names no port, it refuses with
- * exit code 1 and writes nothing.
+ * prints its address once it listens, writes its token and no frame-ancestor record, serves its health, the fleet, a command and the built
+ * page with the CSP, and at a stop signal exits 0. Where Gaia already answers, or the port setting names no port, it refuses with exit code 1
+ * and writes nothing.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -13,18 +13,18 @@ import {
   test
 } from 'bun:test';
 
-import { FLEET_SNAPSHOT_EMPTY }                                         from './adapters/page-api/testing/fleet-snapshot-empty.ts';
-import { startPageServer }                                              from './features/page-server/PageServer.ts';
-import { forgeClientOf }                                                from './lib/forge-client/ForgeClient.ts';
-import { LOOPBACK_ANY_PORT_FRAME_SOURCE, pageContentSecurityPolicyFor } from './lib/local-http-guards/ContentSecurityPolicy.ts';
-import { environmentCopy }                                              from './services/Environment.ts';
-import { createFleetStore }                                             from './services/FleetStore.ts';
-import { PAGE_CONTRACT_VERSIONS }                                       from './shared/constants/PageContractVersions.ts';
-import { manualTimers }                                                 from './testing/ManualTimers.ts';
-import { recordedOverseerFetch }                                        from './testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath }                    from './testing/ScratchRoot.ts';
+import { FLEET_SNAPSHOT_EMPTY }                      from './adapters/page-api/testing/fleet-snapshot-empty.ts';
+import { startPageServer }                           from './features/page-server/PageServer.ts';
+import { forgeClientOf }                             from './lib/forge-client/ForgeClient.ts';
+import { pageContentSecurityPolicyFor }              from './lib/local-http-guards/ContentSecurityPolicy.ts';
+import { environmentCopy }                           from './services/Environment.ts';
+import { createFleetStore }                          from './services/FleetStore.ts';
+import { PAGE_CONTRACT_VERSIONS }                    from './shared/constants/PageContractVersions.ts';
+import { manualTimers }                              from './testing/ManualTimers.ts';
+import { recordedOverseerFetch }                     from './testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath } from './testing/ScratchRoot.ts';
 
-const PAGE_POLICY = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
+const PAGE_POLICY = pageContentSecurityPolicyFor();
 
 const SERVING_LINE = /serves (http:\/\/127\.0\.0\.1:\d+\/)\n/;
 
@@ -79,19 +79,17 @@ async function answerOf(address: URL, path: string, requestOptions: RequestInit 
   return response;
 }
 
-function serverRecordIn(home: string): unknown {
-  return JSON.parse(readFileSync(join(home, '.forge-monitor', 'frame-ancestors', 'gaia.json'), 'utf8'));
+function frameAncestorsFolderIn(home: string): string {
+  return join(home, '.forge-monitor', 'frame-ancestors');
 }
 
 describe('gaia serve', () => {
-  test('serves its health, the fleet, a command and the page once it prints its address, and removes its record at a stop signal', async () => {
+  test('serves its health, the fleet, a command and the page once it prints its address, frames no forge, and exits at a stop signal', async () => {
     const home = scratchHome();
     const servingProgram = startServe(home, '0');
     const address = await servedAddressOf(servingProgram);
 
-    expect(serverRecordIn(home)).toMatchObject({
-      version: 1, url: address.href, origin: address.origin, processId: servingProgram.pid
-    });
+    expect(existsSync(frameAncestorsFolderIn(home))).toBe(false);
     const health = await answerOf(address, '/api/health');
     expect(await health.json()).toEqual({
       application:      'gaia',
@@ -118,7 +116,7 @@ describe('gaia serve', () => {
       },
     });
 
-    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 3, kind: 'fleet-look-again' }) });
+    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 4, kind: 'fleet-look-again' }) });
     expect(await lookAgain.json()).toEqual({
       answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });
@@ -129,7 +127,7 @@ describe('gaia serve', () => {
 
     servingProgram.kill('SIGTERM');
     expect(await servingProgram.exited).toBe(0);
-    expect(existsSync(join(home, '.forge-monitor', 'frame-ancestors', 'gaia.json'))).toBe(false);
+    expect(existsSync(frameAncestorsFolderIn(home))).toBe(false);
   });
 
   test('refuses to start where Gaia already answers, and writes no token', async () => {
@@ -148,8 +146,6 @@ describe('gaia serve', () => {
       },
       logBoardRelay: () => undefined,
       timers:        manualTimers(),
-      now:           () => '2026-11-13T09:00:00.000Z',
-      processId:     process.pid,
     });
     if (runningGaia.verdict !== 'serving') throw new Error('The running Gaia of this spec did not start.');
     try {

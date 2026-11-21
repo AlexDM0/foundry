@@ -275,7 +275,6 @@ async function startGaia(): Promise<RunningGaia> {
         summary: CONTRACT_VERSIONS.forgeBoardSummary,
         monitor: CONTRACT_VERSIONS.forgeMonitor,
         control: CONTRACT_VERSIONS.forgeControl,
-        embed:   CONTRACT_VERSIONS.forgeEmbedChannel,
       },
       versions: {
         systemVersion:         GAIA_SYSTEM_VERSION,
@@ -312,8 +311,6 @@ async function startGaia(): Promise<RunningGaia> {
     },
     logBoardRelay:                 () => undefined,
     timers,
-    now:                           () => READ_AT,
-    processId:                     process.pid,
     heartbeatIntervalMilliseconds: HEARTBEAT_MILLISECONDS,
   });
   if (startVerdict.verdict !== 'serving') throw new Error(`Gaia's server did not start: ${JSON.stringify(startVerdict)}`);
@@ -375,7 +372,7 @@ async function followFleet(server: PageServer, cookie: string): Promise<FleetFol
 }
 
 async function sendCommand(server: PageServer, cookie: string, command: Record<string, unknown>): Promise<unknown> {
-  const answer = await fetch(new URL('/api/commands', server.url), { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 3, ...command }) });
+  const answer = await fetch(new URL('/api/commands', server.url), { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 4, ...command }) });
   return answer.json();
 }
 

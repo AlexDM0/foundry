@@ -85,12 +85,10 @@ describe('a dormant forge', () => {
 
   test('shows only what the registry says when this run read nothing of it', () => {
     expect(WatchReadingUtil.dormantReadingOf(entryOf(READINGS.designSystem, null), null)).toMatchObject({
-      fidelity:  'dormant',
-      condition: 'dormant',
-      url:       null,
-      contracts: {
-        summary: null, monitor: null, control: null, embed: null
-      },
+      fidelity:         'dormant',
+      condition:        'dormant',
+      url:              null,
+      contracts:        { summary: null, monitor: null, control: null },
       lastReportedAt:   null,
       concurrency:      null,
       readyTicketCount: null,

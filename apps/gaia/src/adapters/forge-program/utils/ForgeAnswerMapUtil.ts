@@ -3,11 +3,11 @@
  * `answerVersion`, as a done answer at exit 0 or a refusal at any other exit; and a detached start to the process it started. Every key is
  * read as the document's own.
  */
-import { JsonValueUtil, type JsonObject }                             from '../../../lib/json-value/JsonValueUtil.ts';
-import type { DetachedStartAnswer, NotFoundAnswer, ProgramRunAnswer } from '../../../lib/process-run/ProcessRun.ts';
-import type { ForgeContracts }                                        from '../../../shared/@types/ForgeReading.ts';
-import { CONTRACT_VERSIONS }                                          from '../../../shared/constants/ContractVersions.ts';
-import { ContractVersionUtil }                                        from '../../../shared/utils/ContractVersionUtil.ts';
+import { JsonValueUtil, type JsonObject }        from '../../../lib/json-value/JsonValueUtil.ts';
+import type { NotFoundAnswer, ProgramRunAnswer } from '../../../lib/process-run/ProcessRun.ts';
+import type { ForgeContracts }                   from '../../../shared/@types/ForgeReading.ts';
+import { CONTRACT_VERSIONS }                     from '../../../shared/constants/ContractVersions.ts';
+import { ContractVersionUtil }                   from '../../../shared/utils/ContractVersionUtil.ts';
 import type {
   ForgeAnswerNotUnderstoodReason,
   ForgeBatonPass,
@@ -15,7 +15,6 @@ import type {
   ForgeInitOutcome,
   ForgeLoginItemAnswer,
   ForgeMachineLimitAnswer,
-  ForgeOpenAnswer,
   ForgeProgramOutcome,
   ForgeProgramVerdict,
   ForgeStartAnswer,
@@ -37,7 +36,7 @@ const ANSWER_VERSION_KEYS = { majorKey: 'answerVersion' } as const;
 const OUTCOMES: ReadonlySet<unknown> = new Set<ForgeProgramOutcome>(['done', 'nothing-to-do']);
 const INIT_OUTCOMES: ReadonlySet<unknown> = new Set<ForgeInitOutcome>(['created', 'refreshed']);
 const LOGIN_ITEM_STATES: ReadonlySet<unknown> = new Set<ForgeLoginItemAnswer['loginItem']>(['present', 'absent']);
-const CONTRACT_KEYS = ['summary', 'monitor', 'control', 'embed'] as const;
+const CONTRACT_KEYS = ['summary', 'monitor', 'control'] as const;
 
 function documentIn(standardOutput: string): JsonObject | null {
   try {
@@ -72,7 +71,6 @@ function contractsOf(record: JsonObject): ForgeContracts | null {
     summary: wholeNumberOf(contracts, 'summary'),
     monitor: wholeNumberOf(contracts, 'monitor'),
     control: wholeNumberOf(contracts, 'control'),
-    embed:   wholeNumberOf(contracts, 'embed'),
   };
 }
 
@@ -188,10 +186,6 @@ function notFoundVerdictOf<Answer>(notFound: NotFoundAnswer, place: ForgeProgram
   return notFound.missing === 'program' ? { verdict: 'program-not-found', program: place.program } : { verdict: 'root-missing', root: place.root };
 }
 
-function verdictOfDetachedStart(start: DetachedStartAnswer, place: ForgeProgramRunPlace): ForgeProgramVerdict<ForgeOpenAnswer> {
-  return start.verdict === 'started' ? { verdict: 'done', answer: { processId: start.processId } } : notFoundVerdictOf(start, place);
-}
-
 function verdictOfRun<Answer>(run: ProgramRunAnswer, place: ForgeProgramRunPlace, doneAnswerOf: DoneAnswerMapper<Answer>): ForgeProgramVerdict<Answer> {
   switch (run.verdict) {
     case 'not-found':
@@ -205,7 +199,6 @@ function verdictOfRun<Answer>(run: ProgramRunAnswer, place: ForgeProgramRunPlace
 
 export const ForgeAnswerMapUtil = {
   verdictOfRun,
-  verdictOfDetachedStart,
   startAnswerOf,
   stopAnswerOf,
   initAnswerOf,

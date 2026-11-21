@@ -3,19 +3,18 @@
  * and Stop disabled, each titled with both versions, and Open in new tab, with no Update forge; an older forge's bar shows Update forge as
  * its primary, then Stop disabled, and each step of the update in Update forge's place: the status while on its way, the pending restart
  * with Restart as the primary and a named dismiss, and the forge's refusal in one line, titled with its whole sentence, with Try again and
- * a named dismiss; the frame area holds the notice with its word, heading, sentence and versions pair and no frame, its Open in new tab the
- * primary only for a newer forge.
+ * a named dismiss; the area under the bar holds the notice with its word, heading, sentence and versions pair, and no button.
  */
 import { describe, expect, test } from 'bun:test';
 import { IconButton }             from 'design-system/IconButton';
 
-import type { CommandBody }                                                   from '../../@types/CommandDocument.ts';
-import { PackageButtons }                                                     from '../../testing/PackageButtons.ts';
-import { ReactElementTree }                                                   from '../../testing/ReactElementTree.ts';
-import { FLEET_FIXTURES_READ_AT }                                             from '../../testing/fixtures/fleet-five-forges.ts';
-import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                         from '../../testing/fixtures/fleet-versions.ts';
-import { ForgeBarControls, type ForgeBarControlsProps, ForgeFrameAreaLayout } from './ForgeFrameLayout.tsx';
-import { type BarUpdateStep, type ForgeBar, ForgeFrameModel }                 from './ForgeFrameModel.ts';
+import type { CommandBody }                                              from '../../@types/CommandDocument.ts';
+import { PackageButtons }                                                from '../../testing/PackageButtons.ts';
+import { ReactElementTree }                                              from '../../testing/ReactElementTree.ts';
+import { FLEET_FIXTURES_READ_AT }                                        from '../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                    from '../../testing/fixtures/fleet-versions.ts';
+import { ForgeBarControls, type ForgeBarControlsProps, ForgeAreaLayout } from './ForgeLayout.tsx';
+import { type BarUpdateStep, type ForgeBar, ForgeModel }                 from './ForgeModel.ts';
 
 const tree = ReactElementTree;
 
@@ -32,7 +31,7 @@ const REFUSED: BarUpdateStep = {
 };
 
 function contentOf(trackerId: string) {
-  return ForgeFrameModel.forgeFrameContentOf(trackerId, FLEET_VERSIONS, CLOCK);
+  return ForgeModel.forgeContentOf(trackerId, FLEET_VERSIONS, CLOCK);
 }
 
 function barOf(trackerId: string): ForgeBar {
@@ -135,42 +134,28 @@ describe('the bar of an older forge', () => {
   });
 });
 
-describe('the frame area of a forge Gaia cannot talk to', () => {
+describe('the area of a forge Gaia cannot talk to', () => {
   function areaOf(trackerId: string) {
-    const events: string[] = [];
-    const unfolded = tree.unfolded(
-      <ForgeFrameAreaLayout
-        area={contentOf(trackerId).area}
-        shown={null}
-        onFrameElement={null}
-        onLookAgain={() => events.push('look again')}
-        onAskAgain={() => events.push('ask again')}
-        onLeave={() => events.push('leave')}
-        onOpenInNewTab={() => events.push('open in new tab')}
-        commandIsOnItsWay={false}
-      />,
-    );
-    return { unfolded, events };
+    const { area } = contentOf(trackerId);
+    if (area.kind === 'board') throw new Error('A forge Gaia cannot talk to shows its board.');
+    return tree.unfolded(<ForgeAreaLayout area={area} />);
   }
 
-  test('holds the newer notice, its versions pair and Open in new tab as its primary, and no frame', () => {
-    const { unfolded, events } = areaOf(TRACKER_IDS.analyticsSandbox);
+  test('holds the newer notice and its versions pair, and no board and no way to open the forge\'s own Bridge', () => {
+    const unfolded = areaOf(TRACKER_IDS.analyticsSandbox);
     expect(tree.onlyHostElementIn(unfolded, tree.withTag('section')).props['data-cannot-talk']).toBe('');
-    expect(tree.hostElementsIn(unfolded, tree.withTag('iframe'))).toEqual([]);
     expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forge-frame-versions-word')])).toBe('Newer than this Gaia.');
     expect(tree.textOf(unfolded)).toContain('This Gaia cannot show Analytics Sandbox in place');
     expect(tree.hostElementsIn(unfolded, tree.withClass('gaia-versions-pair'))).toHaveLength(1);
-    expect(buttonsOf(unfolded)).toEqual(['Open in new tab (primary)']);
-    PackageButtons.press(PackageButtons.onlyLabelled(unfolded, 'Open in new tab'));
-    expect(events).toEqual(['open in new tab']);
+    expect(buttonsOf(unfolded)).toEqual([]);
   });
 
-  test('holds the older notice in the work ink, its Open in new tab a quiet button beside the bar\'s Update forge', () => {
-    const { unfolded } = areaOf(TRACKER_IDS.exampleBilling);
+  test('holds the older notice in the work ink, leaving Update forge to the bar', () => {
+    const unfolded = areaOf(TRACKER_IDS.exampleBilling);
     const word = tree.onlyWithClass(unfolded, 'gaia-forge-frame-versions-word');
     expect(word.props['data-verdict']).toBe('older');
     expect(tree.textOf([word])).toBe('Older than this Gaia.');
     expect(tree.textOf(unfolded)).toContain('Example Billing is older than this Gaia');
-    expect(buttonsOf(unfolded)).toEqual(['Open in new tab']);
+    expect(buttonsOf(unfolded)).toEqual([]);
   });
 });

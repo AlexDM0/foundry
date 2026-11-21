@@ -3,7 +3,7 @@
  * imports a view; the board, which a view may draw, imports neither the shell nor a view. And the page reaches no forge: no module the page
  * project compiles, the shared files its tsconfig names among them, imports `forge-contracts` or a path under `apps/forge/`, and no page
  * module or shared file reaches a file outside `page/` but those shared files; read through the compiler, the page program compiles no
- * Gaia file the tsconfig leaves out, nothing under `apps/forge/` and no `forge-contracts` file but the embed channel's. Flint is imported
+ * Gaia file the tsconfig leaves out, nothing under `apps/forge/` and no `forge-contracts` file. Flint is imported
  * only from `page/board/`, and only by the names its package exports. What matters: the rules read every shipping module, specs aside,
  * since a spec may render the whole shell; and each guard is first proved on a planted case, in memory.
  */
@@ -30,11 +30,6 @@ const FORBIDDEN_IMPORTS: Readonly<Record<string, readonly string[]>> = {
   board:  ['shell', 'views'],
 };
 
-/** Each page module allowed to import `forge-contracts`, with the reason; none may reach `apps/forge/`. */
-const EMBED_CHANNEL_REASON = 'the embed channel speaks the Bridge\'s own messages until WP6.23 retires the frame';
-const FORGE_CONTRACT_READERS_ALLOWED: Readonly<Record<string, string>> = { 'page/views/forge/EmbedChannel.ts': EMBED_CHANNEL_REASON };
-/** Each `forge-contracts` file the page program may compile, by its path from the workspace root, with the reason. */
-const FORGE_CONTRACT_FILES_COMPILED_ALLOWED: Readonly<Record<string, string>> = { 'packages/forge-contracts/@types/EmbedChannelMessage.ts': EMBED_CHANNEL_REASON };
 const FORGE_CONTRACTS_FOLDER_PREFIX = 'packages/forge-contracts/';
 
 function shippingModulesUnder(folder: string): string[] {
@@ -82,14 +77,14 @@ function pageProgramFiles(): string[] {
 
 /**
  * A compiled file the page may not hold: a Gaia file the tsconfig does not name (reached through a named one), a file under `apps/forge/`,
- * or a `forge-contracts` file but the allowed ones.
+ * or a `forge-contracts` file.
  */
 function compiledFileSentencesOf(compiledFiles: readonly string[], namedFiles: readonly string[]): string[] {
   return compiledFiles.flatMap((path) => {
     const workspaceName = relative(WORKSPACE_ROOT, path);
     const gaiaName = relative(GAIA_FOLDER, path);
     if (workspaceName.startsWith(FORGE_APP_PATH_PREFIX)) return [`${workspaceName} is under ${FORGE_APP_PATH_PREFIX} and the page program compiles it`];
-    if (workspaceName.startsWith(FORGE_CONTRACTS_FOLDER_PREFIX) && !Object.hasOwn(FORGE_CONTRACT_FILES_COMPILED_ALLOWED, workspaceName)) {
+    if (workspaceName.startsWith(FORGE_CONTRACTS_FOLDER_PREFIX)) {
       return [`${workspaceName} is a forge-contracts file the page program compiles`];
     }
     const isGaiaFile = !gaiaName.startsWith('..');
@@ -105,14 +100,14 @@ function sharedFilesOf(projectModules: readonly string[]): ReadonlySet<string> {
 }
 
 /**
- * A module's reaches past the page's boundary: an import of `forge-contracts` (unless the module is an allowed reader), of a path under
+ * A module's reaches past the page's boundary: an import of `forge-contracts`, of a path under
  * `apps/forge/`, and, for a page module or a shared file, of a file outside `page/` that the project does not name as a shared file.
  */
 function forgeReachesOf(modulePath: string, source: string, sharedFiles: ReadonlySet<string>): string[] {
   const moduleName = relative(GAIA_FOLDER, modulePath);
   return importSpecifiersOf(source).flatMap((specifier) => {
     if (specifier === FORGE_CONTRACTS_PACKAGE || specifier.startsWith(`${FORGE_CONTRACTS_PACKAGE}/`)) {
-      return Object.hasOwn(FORGE_CONTRACT_READERS_ALLOWED, moduleName) ? [] : [`${moduleName} imports ${specifier}`];
+      return [`${moduleName} imports ${specifier}`];
     }
     if (!specifier.startsWith('.')) return specifier.includes(FORGE_APP_PATH_PREFIX) ? [`${moduleName} imports ${specifier}`] : [];
     const importedPath = join(dirname(modulePath), specifier);
@@ -201,7 +196,7 @@ describe('the page\'s reach past its boundary', () => {
     expect(forgeReachesOf(plantedSharedModule, 'import { PAGE_CONTRACT_VERSIONS } from \'./PageContractVersions.ts\';', plantedSharedFiles)).toEqual([]);
   });
 
-  test('the compiled-file guard names an unnamed Gaia file, a file under apps/forge/ and a forge-contracts file but the allowed one', () => {
+  test('the compiled-file guard names an unnamed Gaia file, a file under apps/forge/ and every forge-contracts file', () => {
     const namedSharedFile = join(GAIA_FOLDER, 'src', 'shared', 'constants', 'PageContractVersions.ts');
     const plantedCompiledFiles = [
       join(PAGE_FOLDER, 'Main.tsx'),
@@ -216,24 +211,26 @@ describe('the page\'s reach past its boundary', () => {
       'src/shared/constants/ContractVersions.ts is compiled by the page program but page/tsconfig.json does not name it',
       'apps/forge/src/shared/model/Board.ts is under apps/forge/ and the page program compiles it',
       'packages/forge-contracts/@types/ForgeBoardDocument.ts is a forge-contracts file the page program compiles',
+      'packages/forge-contracts/@types/EmbedChannelMessage.ts is a forge-contracts file the page program compiles',
     ]);
   });
 
-  test('the guard passes the embed channel\'s contract import, the one allowed reader', () => {
-    const embedChannelPath = join(PAGE_FOLDER, 'views', 'forge', 'EmbedChannel.ts');
-    expect(forgeReachesOf(embedChannelPath, 'import type { BridgeMessage } from \'forge-contracts/EmbedChannelMessage\';', plantedSharedFiles)).toEqual([]);
+  test('the guard names any page module that imports forge-contracts, none excepted', () => {
+    const plantedForgeViewPath = join(PAGE_FOLDER, 'views', 'forge', 'ForgeView.tsx');
+    expect(forgeReachesOf(plantedForgeViewPath, 'import type { ForgeBoardDocument } from \'forge-contracts/ForgeBoardDocument\';', plantedSharedFiles))
+      .toEqual(['page/views/forge/ForgeView.tsx imports forge-contracts/ForgeBoardDocument']);
   });
 
   test('the scan reads the page\'s modules and the shared files its tsconfig names, and no spec', () => {
     const projectModuleNames = pageProjectModules().map((modulePath) => relative(GAIA_FOLDER, modulePath));
     expect(projectModuleNames).toContain('page/Main.tsx');
-    expect(projectModuleNames).toContain('page/views/forge/EmbedChannel.ts');
+    expect(projectModuleNames).toContain('page/views/forge/ForgeView.tsx');
     expect(projectModuleNames).toContain('src/shared/constants/PageContractVersions.ts');
     expect(projectModuleNames).not.toContain('src/shared/constants/ContractVersions.ts');
     expect(projectModuleNames.filter((moduleName) => /\.(?:spec|dom)\.tsx?$/.test(moduleName))).toEqual([]);
   });
 
-  test('no module the page project compiles reaches forge-contracts or apps/forge/, but the allowed reader', () => {
+  test('no module the page project compiles reaches forge-contracts or apps/forge/', () => {
     const projectModules = pageProjectModules();
     const sharedFiles = sharedFilesOf(projectModules);
     expect(projectModules.flatMap((modulePath) => forgeReachesOf(modulePath, readFileSync(modulePath, 'utf8'), sharedFiles))).toEqual([]);

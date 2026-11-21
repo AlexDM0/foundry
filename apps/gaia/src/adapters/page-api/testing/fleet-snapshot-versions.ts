@@ -106,7 +106,6 @@ function readFromTheRegistryAlone(
       summary: null,
       monitor: null,
       control: null,
-      embed:   null,
     },
     codeVersion:       null,
     lastReportedAt:    null,

@@ -1,10 +1,9 @@
 /**
  * The page's root. `GaiaApp` follows the fleet document, the state of Gaia's event stream, the route in the fragment and the theme choice,
- * keeps the window title and the document's theme in step with them, remembers the view a forge in place was entered from, picks the view
- * the route names, and provides the command sender to the views; `GaiaShell` lays out the brand bar across the window, the rail under it,
- * and beside the rail the view's page title, the connection banner and the view, from those values alone. While the stream is lost one
- * disabled fieldset disables every button and field of the shell and the view, so a view's control needs no word of the stream; a link, as
- * every rail row is, still navigates.
+ * keeps the window title and the document's theme in step with them, picks the view the route names, and provides the command sender to the
+ * views; `GaiaShell` lays out the brand bar across the window, the rail under it, and beside the rail the view's page title, the connection
+ * banner and the view, from those values alone. While the stream is lost one disabled fieldset disables every button and field of the shell
+ * and the view, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
  */
 import { PageHead }       from 'design-system/PageHead';
 import {
@@ -18,8 +17,8 @@ import {
 import type { FleetDocument }                                            from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext }                      from '../api/CommandSender.ts';
 import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
-import { browserBoardServicesOf, type BoardServicesOf }                  from '../board/Board.tsx';
-import { BOARD_TAB_VIEWS, type BoardTabViewTable }                       from '../board/shell/BoardTabViews.tsx';
+import { browserBoardServicesOf }                                        from '../board/Board.tsx';
+import { BOARD_TAB_VIEWS }                                               from '../board/shell/BoardTabViews.tsx';
 import { BrandBar }                                                      from '../design-system/BrandBar.tsx';
 import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
 import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
@@ -29,11 +28,8 @@ import { FigureLookUtil }                                                from '.
 import { activityViewPartsOf }                                           from '../views/activity/ActivityView.tsx';
 import { agentsViewPartsOf }                                             from '../views/agents/AgentsView.tsx';
 import { attentionViewPartsOf }                                          from '../views/attention/AttentionView.tsx';
-import { type CrashLogResult, CrashLogRequest }                          from '../views/forge/CrashLogRequest.ts';
-import { EmbedChannel, type EmbedChannelSurroundings }                   from '../views/forge/EmbedChannel.ts';
-import { ForgeFrameModel }                                               from '../views/forge/ForgeFrameModel.ts';
+import { CrashLogRequest }                                               from '../views/forge/CrashLogRequest.ts';
 import { type ForgeViewSurroundings, forgeViewPartsOf }                  from '../views/forge/ForgeView.tsx';
-import { type FrameSessionResult, FrameSessionRequest }                  from '../views/forge/FrameSessionRequest.ts';
 import { forgesViewPartsOf }                                             from '../views/forges/ForgesView.tsx';
 import { BrandStatusModel }                                              from './BrandStatusModel.ts';
 import { ConnectionBanner }                                              from './ConnectionBanner.tsx';
@@ -64,17 +60,8 @@ export interface ShellSurroundings {
   readonly markMotionReady: () => void;
   /** The page's clock, for a running time, an age or a clock time shown and never compared; it ticks while the page shows. */
   readonly clock:           PageClock;
-  /** A forge's board: the board's services and moved tabs, the server's frame sessions for the tabs not yet moved, and a tab of its own. */
-  readonly forgeFrame:      ShellForgeFrameSurroundings;
-}
-
-export interface ShellForgeFrameSurroundings {
-  readonly requestFrameSession: (trackerId: string) => Promise<FrameSessionResult>;
-  readonly requestCrashLog:     (trackerId: string, crashLogNumber: number) => Promise<CrashLogResult>;
-  readonly embed:               EmbedChannelSurroundings;
-  readonly boardServicesOf:     BoardServicesOf;
-  readonly boardTabViews:       BoardTabViewTable;
-  readonly openInNewTab:        (fragment: string) => void;
+  /** A forge's board: the board's services and views, the server's crash logs, and a tab of its own. */
+  readonly forgeView:       ForgeViewSurroundings;
 }
 
 export interface GaiaAppProps {
@@ -93,12 +80,12 @@ export interface ViewSurroundings {
   /** The time zone a clock time is printed in; `undefined` is the browser's own. */
   readonly timeZone:           string | undefined;
   readonly goTo:               (fragment: string) => void;
-  readonly forgeFrame:         ForgeViewSurroundings;
+  readonly forgeView:          ForgeViewSurroundings;
 }
 
 /** The parts of the view the route names; before the first fleet document a view shows at most its page title. */
 export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | null, {
-  readAtMilliseconds, timeZone, goTo, forgeFrame
+  readAtMilliseconds, timeZone, goTo, forgeView
 }: ViewSurroundings): ViewParts {
   const clock: ClockReading = { nowEpochMilliseconds: readAtMilliseconds, timeZone };
   switch (route.view) {
@@ -109,7 +96,7 @@ export function viewPartsOf(route: GaiaRoute, fleetDocument: FleetDocument | nul
     case 'activity':
       return activityViewPartsOf(fleetDocument, clock);
     case 'forge':
-      return forgeViewPartsOf(route, fleetDocument, clock, forgeFrame);
+      return forgeViewPartsOf(route, fleetDocument, clock, forgeView);
     case 'forges':
       return forgesViewPartsOf(fleetDocument, route, clock, goTo);
     default:
@@ -162,16 +149,12 @@ export function GaiaApp({
   fleetSource, fleetStream, commandSender, surroundings
 }: GaiaAppProps) {
   const {
-    hash, theme, setWindowTitle, markMotionReady, clock, forgeFrame
+    hash, theme, setWindowTitle, markMotionReady, clock, forgeView
   } = surroundings;
   const fleetDocument = useSyncExternalStore(fleetSource.subscribe, fleetSource.current, fleetSource.current);
   const streamState = useSyncExternalStore(fleetStream.subscribe, fleetStream.state, fleetStream.state);
   const fragment = useSyncExternalStore(hash.followFragment, hash.currentFragment, hash.currentFragment);
   const route = useMemo(() => HashRouter.routeOf(fragment), [fragment]);
-  const [leaveTarget, setLeaveTarget] = useState(() => ForgeFrameModel.initialLeaveTarget(route));
-  const leaveTargetForRoute = ForgeFrameModel.leaveTargetAfter(leaveTarget, route);
-  // Adjusting state while rendering, as React advises for a value derived from a changed input: the view sees the target of its own route.
-  if (leaveTargetForRoute !== leaveTarget) setLeaveTarget(leaveTargetForRoute);
   const readAtMilliseconds = useSyncExternalStore(clock.subscribe, clock.now, clock.now);
   const secondsMayShow = SecondsOnScreen.secondsMayShowIn(route, fleetDocument);
   useEffect(() => (secondsMayShow ? clock.holdSecondTicks() : undefined), [clock, secondsMayShow]);
@@ -181,7 +164,7 @@ export function GaiaApp({
     documentChoice: null,
   }));
   const themeStateForDocument = ThemeBootstrap.themeStateAfterDocument(themeState, fleetDocument?.settings.theme ?? null);
-  // Adjusting state while rendering, as React advises for a value derived from a changed input: no frame shows the old theme.
+  // Adjusting state while rendering, as React advises for a value derived from a changed input: no view shows the old theme.
   if (themeStateForDocument !== themeState) setThemeState(themeStateForDocument);
   const shownThemeChoice = themeStateForDocument.shown;
   const onThemeChoice = useMemo(() => themeChoiceHandlerOf(
@@ -208,15 +191,9 @@ export function GaiaApp({
         route={route}
         view={viewPartsOf(route, fleetDocument, {
           readAtMilliseconds,
-          timeZone:   clock.timeZone,
-          goTo:       hash.goTo,
-          forgeFrame: {
-            ...forgeFrame,
-            replaceFragment: hash.replaceFragment,
-            goTo:            hash.goTo,
-            leaveFragment:   leaveTargetForRoute.fragment,
-            themeChoice:     shownThemeChoice,
-          },
+          timeZone: clock.timeZone,
+          goTo:     hash.goTo,
+          forgeView,
         })}
         themeChoice={shownThemeChoice}
         onThemeChoice={onThemeChoice}
@@ -240,13 +217,11 @@ export function browserShellSurroundings({ sessionWasLost }: ShellSessionSurroun
     },
     markMotionReady: () => MotionReadiness.markReadyAfterNextPaint(MotionReadiness.browserMotionSurroundings()),
     clock:           PageClock.create(PageClock.browserSurroundings()),
-    forgeFrame:      {
-      requestFrameSession: (trackerId) => FrameSessionRequest.requestFrameSession((path, requestOptions) => fetch(path, requestOptions), trackerId),
-      requestCrashLog:     (trackerId, crashLogNumber) => CrashLogRequest.requestCrashLog((path, requestOptions) => fetch(path, requestOptions), trackerId, crashLogNumber),
-      embed:               EmbedChannel.browserSurroundings(),
-      boardServicesOf:     (trackerId) => browserBoardServicesOf(trackerId, { goTo: hash.goTo, sessionWasLost }),
-      boardTabViews:       BOARD_TAB_VIEWS,
-      openInNewTab:        (fragment) => {
+    forgeView:       {
+      requestCrashLog: (trackerId, crashLogNumber) => CrashLogRequest.requestCrashLog((path, requestOptions) => fetch(path, requestOptions), trackerId, crashLogNumber),
+      boardServicesOf: (trackerId) => browserBoardServicesOf(trackerId, { goTo: hash.goTo, sessionWasLost }),
+      boardTabViews:   BOARD_TAB_VIEWS,
+      openInNewTab:    (fragment) => {
         window.open(`${window.location.origin}${window.location.pathname}${fragment}`, '_blank', 'noopener');
       },
     },

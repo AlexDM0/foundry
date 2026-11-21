@@ -20,8 +20,8 @@ function withAgentsInFlight(forge: FleetDocumentForge, agentsInFlight: number): 
 
 describe('the name of a refused command', () => {
   test('is its own button\'s, and absent for a command that names no forge', () => {
-    const kinds = ['forge-stop', 'forge-update', 'forge-open-in-browser', 'forge-unhide', 'forge-concurrency-set'] as const;
-    expect(kinds.map((kind) => ForgeCommandTextUtil.commandLabelOf(kind))).toEqual(['Stop', 'Update forge', 'Open in new tab', 'Show again', 'the agent limit']);
+    const kinds = ['forge-stop', 'forge-update', 'forge-unhide', 'forge-concurrency-set'] as const;
+    expect(kinds.map((kind) => ForgeCommandTextUtil.commandLabelOf(kind))).toEqual(['Stop', 'Update forge', 'Show again', 'the agent limit']);
     expect(ForgeCommandTextUtil.commandLabelOf('machine-agent-limit-set')).toBeNull();
     expect(ForgeCommandTextUtil.commandLabelOf('fleet-look-again')).toBeNull();
   });

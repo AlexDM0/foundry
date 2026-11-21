@@ -5,14 +5,14 @@
 import { PageHead }             from 'design-system/PageHead';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { FleetDocument }       from '../@types/FleetDocument.ts';
-import { CommandSenderContext }     from '../api/CommandSender.ts';
-import { HashRouter }               from '../shared/HashRouter.ts';
-import { FigureLookUtil }           from '../shared/utils/FigureLookUtil.ts';
-import { viewPartsOf }              from '../shell/GaiaApp.tsx';
-import { senderOver }               from './CommandServer.ts';
-import { forgeFrameSurroundingsAt } from './ShellSurroundingsAt.ts';
-import { FLEET_FIXTURES_READ_AT }   from './fixtures/fleet-five-forges.ts';
+import type { FleetDocument }      from '../@types/FleetDocument.ts';
+import { CommandSenderContext }    from '../api/CommandSender.ts';
+import { HashRouter }              from '../shared/HashRouter.ts';
+import { FigureLookUtil }          from '../shared/utils/FigureLookUtil.ts';
+import { viewPartsOf }             from '../shell/GaiaApp.tsx';
+import { senderOver }              from './CommandServer.ts';
+import { forgeViewSurroundingsAt } from './ShellSurroundingsAt.ts';
+import { FLEET_FIXTURES_READ_AT }  from './fixtures/fleet-five-forges.ts';
 
 /** The page title area ends where the connection banner or the view begins. */
 const PAGE_TITLE_AREA = /<div class="gaia-shell-page-title">(.*?)<\/div>(?=<div class="gaia-(?:connection-banner|shell-view)">)/;
@@ -39,7 +39,7 @@ export const ShellMarkup = {
       readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
       timeZone:           'UTC',
       goTo:               () => undefined,
-      forgeFrame:         forgeFrameSurroundingsAt(),
+      forgeView:          forgeViewSurroundingsAt(),
     });
     const figures = FigureLookUtil.pageHeadFiguresOf(parts.figures);
     const markup = parts.title === null ? undefined : renderToStaticMarkup(

@@ -60,16 +60,6 @@
       }
     },
     {
-      "callShape": "port-held-by-another-program: POST /api/v1/session-codes with bearer",
-      "answer": {
-        "verdict": "answered",
-        "status": 200,
-        "contentType": "text/html",
-        "bodyText": "<!doctype html><title>Example Agency</title>",
-        "bodyBytes": null
-      }
-    },
-    {
       "callShape": "port-held-by-another-program: STREAM /api/v2/monitor/events with bearer",
       "answer": {
         "verdict": "answered",

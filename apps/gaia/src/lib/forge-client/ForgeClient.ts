@@ -18,7 +18,6 @@ import type {
   ForgeDocumentAnswer,
   ForgePictureAnswer,
   ForgePictureUploadAnswer,
-  ForgeSessionCodeAnswer,
   ForgeStreamEvent,
   ForgeStreamFollow,
   MonitorFollow,
@@ -51,7 +50,6 @@ export interface ForgeClient {
   /** Hands each whole snapshot of the stream to `onSnapshot` as it arrives; an event the stream left unfinished is never handed on. */
   readonly followMonitor:   (access: OverseerAccess, onSnapshot: (document: unknown) => void) => MonitorFollow;
   readonly send:            (access: OverseerAccess, command: ForgeControlCommand) => Promise<ForgeCommandAnswer>;
-  readonly sessionCodeOf:   (access: OverseerAccess) => Promise<ForgeSessionCodeAnswer>;
   readonly boardOf:         (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
   readonly presenceOf:      (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
   /** One crash log by its number; a number with no log is the forge's refusal `no-crash-log`. */
@@ -82,7 +80,6 @@ const OVERSEER_ENDPOINTS = {
   monitor:       'monitor',
   monitorEvents: 'monitor/events',
   commands:      'commands',
-  sessionCodes:  'session-codes',
   board:         'board',
   presence:      'presence',
   crashLog:      'crash-log',
@@ -174,13 +171,6 @@ function streamEventOf(event: ServerSentEvent): ForgeStreamEvent {
   return { id: event.lastEventId === '' ? null : event.lastEventId, eventName: event.eventName, data: event.data };
 }
 
-function sessionCodeAnswerOf(answer: OverseerAnswer): ForgeSessionCodeAnswer {
-  const body = successBodyOf(answer);
-  if (body.verdict !== 'success') return body;
-  const code = JsonValueUtil.isJsonObject(body.parsed) ? ownTextOf(body.parsed, 'code') : null;
-  return code === null || code === '' ? { verdict: 'malformed' } : { verdict: 'answered', code };
-}
-
 export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   const { overseerFetch } = settings;
   const requestTimeoutMilliseconds    = settings.requestTimeoutMilliseconds ?? OVERSEER_REQUEST_TIMEOUT_MILLISECONDS;
@@ -221,11 +211,6 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
   async function send(access: OverseerAccess, command: ForgeControlCommand): Promise<ForgeCommandAnswer> {
     const commandRequest = overseerRequestOf(access.overseerUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(command));
     return commandAnswerOf(await overseerFetch.request(commandRequest));
-  }
-
-  async function sessionCodeOf(access: OverseerAccess): Promise<ForgeSessionCodeAnswer> {
-    const sessionCodeRequest = overseerRequestOf(access.overseerUrl, 'POST', forgeEndpointPathOf('sessionCodes'), access.bearerToken, null);
-    return sessionCodeAnswerOf(await overseerFetch.request(sessionCodeRequest));
   }
 
   async function boardOf(access: OverseerAccess): Promise<ForgeDocumentAnswer> {
@@ -337,7 +322,6 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     monitorOf,
     followMonitor,
     send,
-    sessionCodeOf,
     boardOf,
     presenceOf,
     crashLogOf,

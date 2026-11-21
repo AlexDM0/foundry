@@ -38,7 +38,7 @@ import { GaiaStylesheet }                                                       
 import { PackageControls }                                                          from '../testing/PackageControls.ts';
 import { ReactElementTree }                                                         from '../testing/ReactElementTree.ts';
 import { ShellMarkup }                                                              from '../testing/ShellMarkup.tsx';
-import { forgeFrameSurroundingsAt, shellSurroundingsAt }                            from '../testing/ShellSurroundingsAt.ts';
+import { forgeViewSurroundingsAt, shellSurroundingsAt }                             from '../testing/ShellSurroundingsAt.ts';
 import { FLEET_EMPTY }                                                              from '../testing/fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../testing/fixtures/fleet-five-forges.ts';
 import { AgentsModel }                                                              from '../views/agents/AgentsModel.ts';
@@ -226,7 +226,7 @@ describe('the route and the theme', () => {
     await Promise.resolve();
     expect(shown).toEqual(['light']);
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([{
-      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 3
+      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 4
     }]);
   });
 });
@@ -433,7 +433,7 @@ describe('the Agents view in the shell', () => {
       readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
       timeZone:           'UTC',
       goTo:               (fragment) => visited.push(fragment),
-      forgeFrame:         forgeFrameSurroundingsAt(),
+      forgeView:          forgeViewSurroundingsAt(),
     });
     // The view's root reads the command sender, a hook; its hook-free view is unfolded with the root's own props and handlers instead.
     const root = parts.content as ReactElement<AgentsViewRootProps>;

@@ -321,8 +321,6 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
         return carryOverApi(forge, reading, { kind: 'concurrency-set', limit: command.limit });
       case 'forge-update':
         return ProgramVerdictUtil.verdictOfUpdate(await forgeProgram.update(programTargetOf(forge)));
-      case 'forge-open-in-browser':
-        return ProgramVerdictUtil.verdictOfProgram(forgeProgram.openInBrowser(programTargetOf(forge)), () => 'done');
       case 'forge-hide':
         return verdictOfSettingsUpdate(await settingsStore.update(hiding(command.trackerId)));
       case 'forge-brain-start':

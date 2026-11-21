@@ -181,7 +181,6 @@ describe('the forges that need a look', () => {
       kind:           'command',
       label:          'Restart',
       emphasis:       'primary',
-      icon:           null,
       command:        { kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp },
       forgeAcceptsIt: true,
     });
@@ -377,7 +376,6 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'summary 1 · no monitor contract',
     ]);
     expect(actionsOf(countsOnly)).toEqual([
-      ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: TRACKER_IDS.researchWiki }, true],
       ['Update forge', 'quiet', { kind: 'forge-update', trackerId: TRACKER_IDS.researchWiki }, true],
     ]);
     expect(countsOnly.restartAfterUpdate).toMatchObject({ label: 'Restart', forgeAcceptsIt: false });
@@ -390,10 +388,10 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing.',
       'monitor 4 · control 3',
     ]);
-    expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true]]);
+    expect(actionsOf(newer)).toEqual([]);
   });
 
-  test('a forge too old for this Gaia to talk to is a warn callout with both versions, Update forge as its primary and Open in new tab', () => {
+  test('a forge too old for this Gaia to talk to is a warn callout with both versions, Update forge as its primary', () => {
     const olderSandbox = {
       ...FLEET_DEGRADED.forges.find((forge) => forge.trackerId === ANALYTICS_SANDBOX_TRACKER_ID),
       fidelity: 'older-contract',
@@ -410,10 +408,9 @@ describe('forges Gaia cannot fully read (B3)', () => {
       + 'the forge is updated. Its agents keep running.');
     expect(actionsOf(older)).toEqual([
       ['Update forge', 'primary', { kind: 'forge-update', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
-      ['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: ANALYTICS_SANDBOX_TRACKER_ID }, true],
     ]);
     expect(fleetContentOf(olderDocument).readings?.find((reading) => reading.trackerId === ANALYTICS_SANDBOX_TRACKER_ID)?.readingText)
-      .toBe('That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.');
+      .toBe('That it runs. Nothing of its work until the forge is updated.');
   });
 
   test('a forge that serves no versions, as every released forge, is the same callout, saying it states no version', () => {
@@ -445,7 +442,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const reading = fleetContentOf(olderDocument).readings?.find((line) => line.trackerId === ANALYTICS_SANDBOX_TRACKER_ID);
     expect(reading === undefined ? null : [rightTextOf(reading), reading.readingText]).toEqual([
       'states no version · older',
-      'That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.',
+      'That it runs. Nothing of its work until the forge is updated.',
     ]);
   });
 
@@ -485,10 +482,10 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'neutral',
       'Newer than this Gaia',
       'This forge no longer serves clients built for forge 3.1, as this Gaia is. Gaia sees that it runs, shows nothing of its work and sends it '
-        + 'no command. Its own Bridge shows all of it.',
+        + 'no command. A newer Gaia shows it.',
       'forge 4.1 · serves clients built for forge 4.0 and later · this Gaia is built for forge 3.1',
     ]);
-    expect(actionsOf(newer)).toEqual([['Open in new tab', 'quiet', { kind: 'forge-open-in-browser', trackerId: FLEET_VERSIONS_TRACKER_IDS.analyticsSandbox }, true]]);
+    expect(actionsOf(newer)).toEqual([]);
     expect([newer.updateSteps, newer.restartAfterUpdate]).toEqual([null, null]);
   });
 });
@@ -507,7 +504,7 @@ describe('forges at a version this Gaia cannot talk to (U1)', () => {
   test('the older forge\'s callout offers Update forge as its primary, then a secondary Restart once the update is done, with each step\'s words', () => {
     const older = lookOf(content, FLEET_VERSIONS_TRACKER_IDS.exampleBilling);
     expect(lineOf(older)).toBe('forge 1.8 · this Gaia is built for forge 3.1');
-    expect(actionsOf(older).map(([label, emphasis]) => [label, emphasis])).toEqual([['Update forge', 'primary'], ['Open in new tab', 'quiet']]);
+    expect(actionsOf(older).map(([label, emphasis]) => [label, emphasis])).toEqual([['Update forge', 'primary']]);
     expect(older.restartAfterUpdate).toMatchObject({ label: 'Restart', emphasis: 'quiet' });
     expect(older.updateSteps).toEqual({
       pendingText:        'Updating the forge… its agents keep running',
@@ -529,8 +526,8 @@ describe('forges at a version this Gaia cannot talk to (U1)', () => {
         ['Example Storefront', 'forge 3.4 · ahead', false, 'All this Gaia knows. What 3.4 added shows in its Bridge.'],
         ['Invoice Service', 'forge 3.1', false, 'Everything, live.'],
         ['Research Wiki', 'forge 3.1', false, 'Everything, live.'],
-        ['Example Billing', 'forge 1.8 · older', true, 'That it runs, and its Bridge in a new tab. Nothing of its work until the forge is updated.'],
-        ['Analytics Sandbox', 'forge 4.1 · newer', false, 'That it runs, and its Bridge in a new tab. Nothing of its work.'],
+        ['Example Billing', 'forge 1.8 · older', true, 'That it runs. Nothing of its work until the forge is updated.'],
+        ['Analytics Sandbox', 'forge 4.1 · newer', false, 'That it runs. Nothing of its work.'],
       ]);
   });
 

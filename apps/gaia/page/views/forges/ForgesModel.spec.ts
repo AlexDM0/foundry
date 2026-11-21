@@ -212,8 +212,6 @@ describe('a row of the table (A4)', () => {
 });
 
 describe('which buttons a row shows (A4 acceptance 1)', () => {
-  const OPEN_IN_NEW_TAB = 'Open Example Storefront in a new tab';
-
   test('a forge that reports itself starting shows its limit on a disabled stepper and one disabled "Starting" button (B2)', () => {
     const starting = rowOf(contentOf(fleetWithOneForgeIn('starting')), TRACKER_IDS.exampleStorefront);
     expect([starting.buttons, starting.agents?.kind, starting.agents?.kind === 'stepper' && starting.agents.disabled]).toEqual([
@@ -223,34 +221,32 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
 
   test('each condition shows exactly its buttons', () => {
     const labelsIn = (condition: FleetDocumentCondition) => contentOf(fleetWithOneForgeIn(condition)).rows.flatMap((row) => row.buttons.map(labelOf));
-    expect(labelsIn('live')).toEqual(['Pause', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
-    expect(labelsIn('paused')).toEqual(['Unpause', 'Stop', 'Open', OPEN_IN_NEW_TAB]);
-    expect(labelsIn('held')).toEqual(['Stop', 'Open', OPEN_IN_NEW_TAB]);
+    expect(labelsIn('live')).toEqual(['Pause', 'Stop', 'Open']);
+    expect(labelsIn('paused')).toEqual(['Unpause', 'Stop', 'Open']);
+    expect(labelsIn('held')).toEqual(['Stop', 'Open']);
     expect(labelsIn('passing-baton')).toEqual([]);
     expect(labelsIn('starting')).toEqual(['Starting']);
     expect(labelsIn('dormant')).toEqual(['Start']);
     expect(labelsIn('unreachable')).toEqual(['Look again', 'Stop']);
-    expect(labelsIn('unreadable')).toEqual([OPEN_IN_NEW_TAB]);
+    expect(labelsIn('unreadable')).toEqual([]);
     const missing = contentOf(fleetWithOneForgeIn('missing'));
     expect(missing.rows).toEqual([]);
     expect(missing.notFound.map((entry) => labelOf(entry.button))).toEqual(['Hide in Gaia']);
   });
 
-  test('Unpause and Start are the primary buttons of their rows; the others are plain, and Open in new tab shows only its arrow', () => {
+  test('Unpause and Start are the primary buttons of their rows; the others are plain', () => {
     const emphasisIn = (condition: FleetDocumentCondition) => contentOf(fleetWithOneForgeIn(condition)).rows
-      .flatMap((row) => row.buttons.map((button) => (button.kind === 'command' ? [button.label, button.emphasis, button.iconOnly] : [button.label, button.kind])));
-    expect(emphasisIn('paused')).toEqual([['Unpause', 'primary', false], ['Stop', 'stop'], ['Open', 'link'], [OPEN_IN_NEW_TAB, 'quiet', true]]);
-    expect(emphasisIn('dormant')).toEqual([['Start', 'primary', false]]);
+      .flatMap((row) => row.buttons.map((button) => (button.kind === 'command' ? [button.label, button.emphasis] : [button.label, button.kind])));
+    expect(emphasisIn('paused')).toEqual([['Unpause', 'primary'], ['Stop', 'stop'], ['Open', 'link']]);
+    expect(emphasisIn('dormant')).toEqual([['Start', 'primary']]);
   });
 
-  test('Open goes to the forge\'s board, also where its Bridge cannot be framed, and is absent where the board cannot be read (F5)', () => {
+  test('Open goes to the forge\'s board, and is absent where the board cannot be read (F5)', () => {
     const [live] = contentOf(fleetWithOneForgeIn('live')).rows;
     const open = {
       kind: 'link', button: 'open', label: 'Open', href: `#forge/${TRACKER_IDS.exampleStorefront}`, disabled: false
     } as const;
     expect(live?.buttons.find((button) => button.kind === 'link')).toEqual(open);
-    const withoutEmbed = fleetWithOneForgeIn('live', { contracts: { ...READINGS.exampleStorefront.contracts, embed: null } });
-    expect(contentOf(withoutEmbed).rows[0]?.buttons.find((button) => button.kind === 'link')).toEqual(open);
     const readThroughItsSummary = fleetWithOneForgeIn('live', { fidelity: 'counts-only' });
     expect(contentOf(readThroughItsSummary).rows.flatMap((row) => row.buttons.filter((button) => button.kind === 'link'))).toEqual([]);
   });
@@ -259,7 +255,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     const unknown = { ...READINGS.exampleStorefront.contracts, control: 3 };
     const [live] = contentOf(fleetWithOneForgeIn('live', { contracts: unknown })).rows;
     expect(live?.buttons.map((button) => [labelOf(button), button.kind === 'waiting' || button.disabled])).toEqual([
-      ['Pause', true], ['Stop', true], ['Open', false], [OPEN_IN_NEW_TAB, false],
+      ['Pause', true], ['Stop', true], ['Open', false],
     ]);
     expect(live?.agents).toMatchObject({ kind: 'stepper', disabled: true });
   });
@@ -322,7 +318,6 @@ describe('the held forge, the forges not found and the hidden ones', () => {
         button:   'hide',
         label:    'Hide in Gaia',
         emphasis: 'quiet',
-        iconOnly: false,
         command:  { kind: 'forge-hide', trackerId: TRACKER_IDS.legacyImporter },
         disabled: false,
       },
@@ -533,8 +528,8 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
 
   test('while it is open its row\'s controls are off, and the other rows\' are not', () => {
     const content = contentOf(FLEET_FIVE_FORGES, { stopDialog: STOREFRONT_STOP });
-    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.exampleStorefront))).toEqual([true, true, true, true]);
-    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.invoiceService))).toEqual([false, false, false, false]);
+    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.exampleStorefront))).toEqual([true, true, true]);
+    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.invoiceService))).toEqual([false, false, false]);
   });
 });
 
@@ -543,9 +538,9 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     const sender = pendingSender();
     void sender.send({ kind: 'forge-pause', trackerId: TRACKER_IDS.invoiceService });
     const content = contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
-    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.invoiceService))).toEqual([true, true, true, true]);
+    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.invoiceService))).toEqual([true, true, true]);
     expect(rowOf(content, TRACKER_IDS.invoiceService).agents).toMatchObject({ disabled: true });
-    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.exampleStorefront))).toEqual([false, false, false, false]);
+    expect(buttonsDisabledIn(rowOf(content, TRACKER_IDS.exampleStorefront))).toEqual([false, false, false]);
     expect(rowOf(content, TRACKER_IDS.exampleStorefront).agents).toMatchObject({ disabled: false });
   });
 
@@ -637,7 +632,6 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
         button:   'restart',
         label:    'Restart',
         emphasis: 'primary',
-        iconOnly: false,
         command:  { kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp },
         disabled: false,
       },
@@ -697,7 +691,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
       forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.designSystem ? { ...forge, fidelity: 'full', condition: 'live' } as const : forge)),
     };
     const liveButtons = rowOf(contentOf(live, { commandStates: sender.states() }), TRACKER_IDS.designSystem).buttons.map(labelOf);
-    expect(liveButtons).toEqual(['Pause', 'Stop', 'Open', 'Open Design System in a new tab']);
+    expect(liveButtons).toEqual(['Pause', 'Stop', 'Open']);
     await sender.send({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
     const refused = rowOf(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }), TRACKER_IDS.designSystem);
     expect([refused.conditionWord, refused.buttons.map(labelOf), refused.refusal?.code]).toEqual(['Dormant', ['Start'], 'overseer-did-not-answer']);
@@ -765,27 +759,25 @@ describe('a forge at another version than this Gaia is built for (U2)', () => {
     expect(buttonFactsOf(row)[0]).toEqual(['Update forge', 'primary', false, null]);
   });
 
-  test('an older forge offers Update forge as its one primary, Stop off naming both versions, and Open in new tab, never Open in place', () => {
+  test('an older forge offers Update forge as its one primary, and Stop off naming both versions, never Open in place', () => {
     expect(buttonFactsOf(rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.exampleBilling))).toEqual([
       ['Update forge', 'primary', false, null],
       ['Stop', null, true, 'Example Billing is forge 1.8; this Gaia is built for forge 3.1.'],
-      ['Open Example Billing in a new tab', 'quiet', false, null],
     ]);
   });
 
-  test('a newer forge offers Pause and Stop off, each naming both versions, and Open in new tab; no Update forge and no Open in place', () => {
+  test('a newer forge offers Pause and Stop off, each naming both versions; no Update forge and no Open in place', () => {
     const title = 'Analytics Sandbox serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1.';
     expect(buttonFactsOf(rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.analyticsSandbox))).toEqual([
       ['Pause', 'quiet', true, title],
       ['Stop', null, true, title],
-      ['Open Analytics Sandbox in a new tab', 'quiet', false, null],
     ]);
   });
 
   test('an ahead forge keeps its condition, its counts and every control, and says quietly what differs, with no action', () => {
     const row = rowOf(contentOf(FLEET_VERSIONS), VERSIONS_IDS.exampleStorefront);
     expect([row.conditionWord, row.conditionTone, row.waitingCount, row.workIsRead, row.agents?.kind]).toEqual(['Live', null, 2, true, 'stepper']);
-    expect(row.buttons.map(labelOf)).toEqual(['Pause', 'Stop', 'Open', 'Open Example Storefront in a new tab']);
+    expect(row.buttons.map(labelOf)).toEqual(['Pause', 'Stop', 'Open']);
     expect(row.versions?.subline).toEqual({ opensVersions: true, text: '3.4 · ahead' });
     expect(row.versions?.quietLine).toBe('Forge 3.4 is ahead of this Gaia, built for 3.1. All Gaia shows works; what 3.4 added shows in its Bridge.');
   });
@@ -800,7 +792,7 @@ describe('a forge at another version than this Gaia is built for (U2)', () => {
   test('the versions shown are one row\'s pair and its sentence, the ahead line hiding behind them, and a current forge opens none', () => {
     const storefront = rowOf(contentOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.exampleStorefront }), VERSIONS_IDS.exampleStorefront).versions;
     expect([storefront?.isShown, storefront?.pair?.verdict, storefront?.quietLine]).toEqual([true, 'ahead', null]);
-    expect(storefront?.pairSentence).toBe('Gaia reads all it knows of Example Storefront and frames its Bridge. What forge 3.4 added since 3.1 shows only in its '
+    expect(storefront?.pairSentence).toBe('Gaia reads all it knows of Example Storefront and shows its board. What forge 3.4 added since 3.1 shows only in its '
       + 'Bridge; a newer Gaia shows it here too. Nothing waits on you.');
     const billingShown = contentOf(FLEET_VERSIONS, { versionsShownFor: VERSIONS_IDS.exampleBilling });
     expect(billingShown.rows.map((row) => row.versions?.isShown ?? null)).toEqual([false, false, false, true, false]);

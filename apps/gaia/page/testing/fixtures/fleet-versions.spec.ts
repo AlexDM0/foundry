@@ -39,7 +39,7 @@ describe('the fleet-versions fixture', () => {
   test('reads a forge it cannot talk to from the registry alone: no code, no contract, nothing of its work', () => {
     for (const forge of [FLEET_VERSIONS_READINGS.exampleBilling, FLEET_VERSIONS_READINGS.analyticsSandbox, FLEET_VERSIONS_READINGS.exampleDocs]) {
       expect([forge.condition, forge.codeVersion, forge.agents, forge.attention, forge.attentionCount, forge.brain]).toEqual(['unreadable', null, [], [], null, 'not-reported']);
-      expect(Object.values(forge.contracts)).toEqual([null, null, null, null]);
+      expect(Object.values(forge.contracts)).toEqual([null, null, null]);
     }
     expect(FLEET_VERSIONS.needsALook).toEqual([
       { trackerId: FLEET_VERSIONS_TRACKER_IDS.exampleBilling, kind: 'older-contract' },

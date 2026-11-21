@@ -1,9 +1,8 @@
 /**
  * D10 over every sentence a real forge was recorded answering: none but a refusal's reaches the page naming a command. What matters: every
  * string of every recorded forge answer is searched, so a command-naming sentence anywhere but a refusal's text fails here first; each
- * recorded refusal reaches the page through the command answer and the frame session answer as the forge's own sentence, unchanged
- * (decision 45); and each recorded monitor snapshot
- * reaches it through the fleet document, its notices, warnings, activity entries and brain moves among it. The frozen list of refusal
+ * recorded refusal reaches the page through the command answer as the forge's own sentence, unchanged (decision 45); and each recorded
+ * monitor snapshot reaches it through the fleet document, its notices, warnings, activity entries and brain moves among it. The frozen list of refusal
  * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
  * forge-program-refused` or an overseer-fetch recording.
  * The recording of the forge Gaia supports holds the brain's refusals (`usage-limit-holds`, `no-flint`), which reach the page through the
@@ -136,9 +135,7 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
       codeVersion:    'example-code',
       installVersion: 27,
       processId:      48_107,
-      contracts:      {
-        summary: 1, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, embed: 1,
-      },
+      contracts:      { summary: 1, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, },
     },
   };
 }
@@ -170,15 +167,6 @@ describe('the sentences recorded from a real forge', () => {
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       });
       expect([answer.refusal, answer.text]).toEqual([refusal, text]);
-    }
-  });
-
-  test('reach the page in a refused frame session\'s answer as the forge\'s own sentence, unchanged', () => {
-    for (const { refusal, text } of recordedRefusals()) {
-      const answer = PageAnswerMapUtil.frameSessionAnswerOf({
-        verdict: 'refused', refusedBy: 'forge', refusal, text,
-      });
-      expect(answer.text).toBe(text);
     }
   });
 

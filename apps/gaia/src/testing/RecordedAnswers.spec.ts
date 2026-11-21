@@ -196,7 +196,6 @@ describe('the recorded versions of forges', () => {
       'GET /api/v2/monitor with bearer',
       'GET /api/versions',
       'POST /api/v1/commands with bearer',
-      'POST /api/v1/session-codes with bearer',
       'STREAM /api/v2/monitor/events with bearer',
     ]);
     for (const situation of ['versions-newer', 'versions-older', 'versions-absent'] as const) {

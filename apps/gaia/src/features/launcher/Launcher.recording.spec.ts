@@ -7,7 +7,6 @@
  * a server that ends before it answers, no browser, another program on the port and a Gaia.app installed for another install version (a
  * dialog each, which this spec dismisses), and the dialog of every other refusal and failure. The browser's version stamps the recording.
  */
-import { existsSync }    from 'node:fs';
 import { join }          from 'node:path';
 import { pathToFileURL } from 'node:url';
 import {
@@ -19,7 +18,6 @@ import {
 } from 'bun:test';
 
 import type { AppBundleInfoReading }                   from '../../adapters/app-bundle/AppBundleInfoFile.ts';
-import { serverRecordPathIn }                          from '../../adapters/gaia-files/ServerRecordWriter.ts';
 import { ServerTokenFile }                             from '../../adapters/gaia-files/ServerTokenFile.ts';
 import { healthProbeVerdictFor, realGaiaServerClient } from '../../adapters/gaia-server/GaiaServerClient.ts';
 import {
@@ -238,7 +236,6 @@ describe('a launch on a real Mac', () => {
     expect(await verdict).toEqual({ verdict: 'closed', serverWasStarted: true });
     await Promise.all(recordingsInFlight.splice(0));
     expect(await healthProbeVerdictFor(port)).toBe('nothing-answers');
-    expect(existsSync(serverRecordPathIn(launchHome))).toBe(false);
   });
 
   test('with Gaia already up opens its page, and leaves the server running when the window closes', async () => {

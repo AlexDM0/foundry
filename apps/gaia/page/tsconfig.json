@@ -8,7 +8,7 @@
     "tsBuildInfoFile": "../node_modules/.cache/typecheck/page.tsbuildinfo"
   },
   // The page's own modules, the board's under ./board/ among them, plus exactly the shared files it may reach, named one by one; none
-  // reaches `forge-contracts` (`PageImportDirection.spec.ts`).
+  // reaches the forge's contract package (`PageImportDirection.spec.ts`).
   "include": [
     "./**/*.ts",
     "./**/*.tsx",

@@ -2,9 +2,8 @@
  * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
  * question as a popover under its button and Flint's brain between Stop and Open in new tab, or, for a forge Gaia cannot talk to, the
  * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
- * Overseer and Talos with a restart of each; a refusal under the bar; and the framed area:
- * "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, the versions notice of a forge Gaia cannot talk to, or
- * why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
+ * Overseer and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
+ * talk to or why its board cannot be shown. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
 import { ForgeMark, type ForgeMarkProps } from 'brand/ForgeMark';
 import { Button }                         from 'design-system/Button';
@@ -14,17 +13,15 @@ import { IconButton }                     from 'design-system/IconButton';
 import { MonoId }                         from 'design-system/MonoId';
 import { Popover }                        from 'design-system/Popover';
 import { Text }                           from 'design-system/Text';
-import type { ReactNode, Ref, RefObject } from 'react';
+import type { ReactNode, RefObject }      from 'react';
 
 import type { ForgeCommandBody, ForgeStopAgents }            from '../../@types/CommandDocument.ts';
 import { BrainChip, type BrainChipProps, type BrainControl } from '../../design-system/BrainChip.tsx';
 import { ButtonGlyph }                                       from '../../design-system/ButtonGlyph.tsx';
-import { Callout }                                           from '../../design-system/Callout.tsx';
 import { ConditionDot }                                      from '../../design-system/ConditionDot.tsx';
 import { Refusal }                                           from '../../design-system/Refusal.tsx';
 import { VersionsPair }                                      from '../../shared/VersionsPair.tsx';
 import { VersionsText }                                      from '../../shared/VersionsText.tsx';
-import type { RefusalText }                                  from '../../shared/utils/CommandFailureTextUtil.ts';
 import { ForgeCommandTextUtil, type StopQuestion }           from '../../shared/utils/ForgeCommandTextUtil.ts';
 import { ForgeVersionsTextUtil }                             from '../../shared/utils/ForgeVersionsTextUtil.ts';
 import type {
@@ -36,9 +33,9 @@ import type {
   BarUpdateStep,
   BarVersions,
   ForgeBar,
+  ForgeArea,
   ForgeBarStatus,
-  ForgeFrameArea,
-} from './ForgeFrameModel.ts';
+} from './ForgeModel.ts';
 
 export interface ForgeBarControlsProps {
   readonly bar:               ForgeBar;
@@ -63,6 +60,9 @@ export interface ForgeBarControlsProps {
 }
 
 const OPEN_IN_NEW_TAB_LABEL = 'Open in new tab';
+
+/** A forge that reports counts only, sleeps or lost its repository serves no board Gaia's relay reads. */
+const CANNOT_SHOW_SENTENCE = 'Gaia cannot read this forge\'s board.';
 
 const UPDATE_FORGE_LABEL = 'Update forge';
 
@@ -344,50 +344,13 @@ export function BarRefusalLine({ refusal, onCommand, onDismiss }: BarRefusalLine
   );
 }
 
-/** What the frame area shows of the session: still asking or loading, the Bridge, or why there is no frame. */
-export type FrameAreaShown =
-  | { readonly kind: 'opening' }
-  | {
-    readonly kind:          'frame';
-    readonly frameUrl:      string;
-    /** Keys the frame: a new session loads a fresh frame, which adds no entry to the browser's history. */
-    readonly frameLoad:     number;
-    readonly bridgeIsReady: boolean;
-  }
-  | { readonly kind: 'cannot-show' }
-  | { readonly kind: 'unreachable' }
-  | { readonly kind: 'refused'; readonly refusal: RefusalText };
-
-export interface ForgeFrameAreaProps {
-  readonly area:              ForgeFrameArea;
-  /** For an area that frames the Bridge: what its session shows now. */
-  readonly shown:             FrameAreaShown | null;
-  readonly onFrameElement:    Ref<HTMLIFrameElement>;
-  readonly onLookAgain:       () => void;
-  readonly onAskAgain:        () => void;
-  /** Dismissing why there is no frame goes back to the view Gaia came from. */
-  readonly onLeave:           () => void;
-  readonly onOpenInNewTab:    () => void;
-  readonly commandIsOnItsWay: boolean;
+export interface ForgeAreaProps {
+  /** Every area but the board, which the forge view draws itself. */
+  readonly area: Exclude<ForgeArea, { kind: 'board' }>;
 }
 
-function Opening({ project }: { readonly project: string }) {
-  return <p className="gaia-forge-frame-opening" role="status">{`Opening ${project}.`}</p>;
-}
-
-function CannotShow({ onOpenInNewTab, commandIsOnItsWay }: Pick<ForgeFrameAreaProps, 'onOpenInNewTab' | 'commandIsOnItsWay'>) {
-  return (
-    <div className="gaia-forge-frame-notice">
-      <p className="gaia-forge-frame-notice-text">This forge cannot be shown inside Gaia yet.</p>
-      <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
-    </div>
-  );
-}
-
-/** Why the frame holds no Bridge for a forge at a version this Gaia cannot talk to, with the versions pair and Open in new tab. */
-type CannotTalkNoticeProps = { readonly area: Extract<ForgeFrameArea, { kind: 'cannot-talk' }> } & Pick<ForgeFrameAreaProps, 'onOpenInNewTab' | 'commandIsOnItsWay'>;
-
-function CannotTalkNotice({ area, onOpenInNewTab, commandIsOnItsWay }: CannotTalkNoticeProps) {
+/** Why the area holds no board for a forge at a version this Gaia cannot talk to, with the versions pair. */
+function CannotTalkNotice({ area }: { readonly area: Extract<ForgeArea, { kind: 'cannot-talk' }> }) {
   const { notice, verdict } = area;
   return (
     <div className="gaia-forge-frame-versions-notice">
@@ -398,101 +361,20 @@ function CannotTalkNotice({ area, onOpenInNewTab, commandIsOnItsWay }: CannotTal
       <Text typeRole="phase" element="h2">{notice.heading}</Text>
       <Text typeRole="lead" element="p" muted>{notice.sentence}</Text>
       <VersionsPair pair={area.pair} />
-      <span className="gaia-forge-frame-versions-actions">
-        <Button
-          label={OPEN_IN_NEW_TAB_LABEL}
-          trailing={<ButtonGlyph name="arrow-out-of-square" />}
-          // An older forge's primary is Update forge in the bar; a newer one offers nothing but its own Bridge.
-          emphasis={verdict === 'newer' ? 'primary' : 'quiet'}
-          disabled={commandIsOnItsWay}
-          onPress={onOpenInNewTab}
-        />
-      </span>
     </div>
   );
 }
 
-function Unreachable({ area, onLookAgain }: { readonly area: Extract<ForgeFrameArea, { kind: 'frame' | 'unreachable' }>; readonly onLookAgain: () => void }) {
-  const { callout } = area;
-  return (
-    <div className="gaia-forge-frame-notice">
-      <Callout
-        tone="error"
-        dot={<ConditionDot condition="unreachable" />}
-        title={area.project}
-        word={callout.word}
-        sentence={callout.sentence}
-        {...(callout.machineLine === null ? {} : { machineLine: callout.machineLine })}
-        actions={<Button label="Look again" compact onPress={onLookAgain} />}
-      />
-    </div>
-  );
-}
-
-/** The frame is in the page from the first answer on, so the Bridge loads behind "Opening"; it shows once the Bridge says it is ready. */
-interface FramedBridgeProps {
-  readonly project:        string;
-  readonly shown:          Extract<FrameAreaShown, { kind: 'frame' }>;
-  readonly onFrameElement: Ref<HTMLIFrameElement>;
-}
-
-function FramedBridge({ project, shown, onFrameElement }: FramedBridgeProps) {
-  return (
-    <>
-      {shown.bridgeIsReady ? null : <Opening project={project} />}
-      <iframe
-        key={shown.frameLoad}
-        className="gaia-forge-frame-bridge"
-        title={`The Bridge of ${project}`}
-        src={shown.frameUrl}
-        ref={onFrameElement}
-        data-bridge-ready={shown.bridgeIsReady ? '' : undefined}
-      />
-    </>
-  );
-}
-
-function SessionArea({
-  area, shown, onFrameElement, onAskAgain, onLeave, onOpenInNewTab, commandIsOnItsWay
-}: { readonly area: Extract<ForgeFrameArea, { kind: 'frame' }>; readonly shown: FrameAreaShown } & Omit<ForgeFrameAreaProps, 'area' | 'shown' | 'onLookAgain'>) {
-  switch (shown.kind) {
-    case 'opening':
-      return <Opening project={area.project} />;
-    case 'frame':
-      return <FramedBridge project={area.project} shown={shown} onFrameElement={onFrameElement} />;
+function areaContentOf({ area }: ForgeAreaProps) {
+  switch (area.kind) {
     case 'cannot-show':
-      return <CannotShow onOpenInNewTab={onOpenInNewTab} commandIsOnItsWay={commandIsOnItsWay} />;
-    case 'unreachable':
-      return <Unreachable area={area} onLookAgain={onAskAgain} />;
-    case 'refused':
       return (
-        <div className="gaia-forge-frame-notice" data-refused="">
-          <div className="gaia-forge-frame-notice-refusal">
-            <Refusal
-              commandLabel="Open"
-              refusedBy={shown.refusal.refusedBy}
-              code={shown.refusal.code}
-              sentence={shown.refusal.sentence}
-              onTryAgain={onAskAgain}
-              onDismiss={onLeave}
-            />
-          </div>
+        <div className="gaia-forge-frame-notice">
+          <p className="gaia-forge-frame-notice-text">{CANNOT_SHOW_SENTENCE}</p>
         </div>
       );
-  }
-}
-
-function areaContentOf(props: ForgeFrameAreaProps) {
-  const { area, shown, onLookAgain } = props;
-  switch (area.kind) {
-    case 'frame':
-      return shown === null ? <Opening project={area.project} /> : <SessionArea {...props} area={area} shown={shown} />;
-    case 'unreachable':
-      return <Unreachable area={area} onLookAgain={onLookAgain} />;
-    case 'cannot-show':
-      return <CannotShow onOpenInNewTab={props.onOpenInNewTab} commandIsOnItsWay={props.commandIsOnItsWay} />;
     case 'cannot-talk':
-      return <CannotTalkNotice area={area} onOpenInNewTab={props.onOpenInNewTab} commandIsOnItsWay={props.commandIsOnItsWay} />;
+      return <CannotTalkNotice area={area} />;
     case 'not-registered':
       return (
         <div className="gaia-forge-frame-notice">
@@ -503,13 +385,13 @@ function areaContentOf(props: ForgeFrameAreaProps) {
   }
 }
 
-export function ForgeFrameAreaLayout(props: ForgeFrameAreaProps) {
+export function ForgeAreaLayout(props: ForgeAreaProps) {
   const { area } = props;
   const cannotTalk = area.kind === 'cannot-talk';
   return (
     <section
       className="gaia-forge-frame-area"
-      aria-label={cannotTalk ? `${area.project}: Gaia cannot frame its Bridge` : 'The forge\'s own Bridge'}
+      aria-label={cannotTalk ? `${area.project}: Gaia cannot talk to this forge` : 'Why Gaia shows no board'}
       data-cannot-talk={cannotTalk ? '' : undefined}
     >
       {areaContentOf(props)}

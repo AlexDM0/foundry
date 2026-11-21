@@ -125,7 +125,6 @@ const PATHS = {
   monitor:       pathOf('monitor', 'monitor'),
   monitorEvents: pathOf('monitorEvents', 'monitor/events'),
   commands:      pathOf('commands', 'commands'),
-  sessionCodes:  pathOf('sessionCodes', 'session-codes'),
 } as const;
 
 /** `supported-forge`: every situation but Flint's brain's; `flint-brain`: the brain's states only. */
@@ -397,11 +396,9 @@ export function describeSupportedForgeRecording(recordingName: string, recording
       }
     });
 
-    test('answers 401 to a session code and a command asked with another Overseer\'s token', async () => {
-      const commandBody = JSON.stringify({ kind: 'overseer-pause' });
-      for (const refusedRequest of [projectRequestOf('POST', PATHS.sessionCodes, WRONG_TOKEN), projectRequestOf('POST', PATHS.commands, WRONG_TOKEN, commandBody)]) {
-        expect(await keepProjectAnswer('token-rejected', refusedRequest)).toMatchObject({ verdict: 'answered', status: UNAUTHORIZED_STATUS });
-      }
+    test('answers 401 to a command asked with another Overseer\'s token', async () => {
+      const refusedRequest = projectRequestOf('POST', PATHS.commands, WRONG_TOKEN, JSON.stringify({ kind: 'overseer-pause' }));
+      expect(await keepProjectAnswer('token-rejected', refusedRequest)).toMatchObject({ verdict: 'answered', status: UNAUTHORIZED_STATUS });
     });
 
     test('answers unreachable for every request and the monitor stream once it has stopped', async () => {
@@ -411,7 +408,6 @@ export function describeSupportedForgeRecording(recordingName: string, recording
         projectRequestOf('GET', PATHS.identity, null),
         projectRequestOf('GET', PATHS.summary, null),
         projectRequestOf('GET', PATHS.monitor, EXAMPLE_TOKEN),
-        projectRequestOf('POST', PATHS.sessionCodes, EXAMPLE_TOKEN),
         projectRequestOf('POST', PATHS.commands, EXAMPLE_TOKEN, JSON.stringify({ kind: 'overseer-pause' })),
       ];
       for (const stoppedRequest of requests) expect(await keepProjectAnswer('stopped', stoppedRequest)).toEqual({ verdict: 'unreachable' });
@@ -440,16 +436,12 @@ export function describeSupportedForgeRecording(recordingName: string, recording
       keep('serving-every-contract', requestCallShapeOf(identityRequest), answer);
     });
 
-    test(`answers its monitor snapshot at monitor version ${monitorVersion} and a session code`, async () => {
+    test(`answers its monitor snapshot at monitor version ${monitorVersion}`, async () => {
       const monitorRequest = requestOf('GET', PATHS.monitor, bearerToken);
       const monitorAnswer  = await realOverseerFetch().request(monitorRequest);
       expect(monitorAnswer).toMatchObject({ verdict: 'answered', status: 200 });
       expect(monitorAnswer.verdict === 'answered' ? JSON.parse(monitorAnswer.bodyText) as unknown : null).toMatchObject({ monitorVersion });
       keep('serving-every-contract', requestCallShapeOf(monitorRequest), monitorAnswer);
-      const sessionCodeRequest = requestOf('POST', PATHS.sessionCodes, bearerToken);
-      const sessionCodeAnswer  = await realOverseerFetch().request(sessionCodeRequest);
-      expect(sessionCodeAnswer).toMatchObject({ verdict: 'answered', status: 200 });
-      keep('serving-every-contract', requestCallShapeOf(sessionCodeRequest), sessionCodeAnswer);
     });
 
     test('streams a whole snapshot on connect and another after a command changed it, and answers the command done', async () => {

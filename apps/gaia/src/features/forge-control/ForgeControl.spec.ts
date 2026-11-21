@@ -142,9 +142,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
     fidelity:  state,
     condition,
     url:       entry.overseer?.url ?? null,
-    contracts: {
-      summary: 1, monitor, control, embed: null,
-    },
+    contracts: { summary: 1, monitor, control, },
   };
   return { entry, reading };
 }
@@ -594,14 +592,6 @@ describe('forge-update, carried by the forge program', () => {
 
   test('answers not-supported for a forge program that does not answer in versioned JSON yet', async () => {
     expect(await controlOver({ processRun: recordedForgeProgramRunOf('forge-before-versioned-answers') }).carry(UPDATE)).toEqual({ verdict: 'not-supported' });
-  });
-});
-
-describe('forge-open-in-browser, carried by the forge program', () => {
-  test('starts `forge open` detached in the forge root and answers done', async () => {
-    const processRun = recordedForgeProgramRunOf('every-verb-done');
-    expect(await controlOver({ processRun }).carry({ kind: 'forge-open-in-browser', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
-    expect(processRun.callShapesAnswered()).toEqual([`start detached ${JSON.stringify([EXAMPLE_FORGE_PROGRAM_PATH, 'open'])}`]);
   });
 });
 

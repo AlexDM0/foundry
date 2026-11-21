@@ -2,11 +2,8 @@
  * The real-system spec of every forge verb done, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program-done`
  * with the program of a forge that answers F8. It runs that forge under a scratch home in a scratch repository, through ForgeProgram, and
  * records each answer under the example program path: init, version, the login item added, read and removed, the machine limit set, start,
- * update with the Overseer live, `open` started detached and stop. `open` finds a stand-in opener first on its `PATH`, so no browser window
- * opens. The forge's install version stamps the recording.
+ * update with the Overseer live and stop. The forge's install version stamps the recording.
  */
-import { chmodSync, writeFileSync } from 'node:fs';
-import { join }                     from 'node:path';
 import {
   afterAll,
   beforeAll,
@@ -18,7 +15,6 @@ import {
 import { CONTRACT_VERSIONS }                                        from '../../shared/constants/ContractVersions.ts';
 import { recordSystemVersion }                                      from '../../testing/BoundaryRecordings.ts';
 import { createScratchForge, forgeProgramToRun, type ScratchForge } from '../../testing/ScratchForge.ts';
-import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
 
 import { createForgeProgram, type ForgeProgram, type ForgeProgramTarget }    from './ForgeProgram.ts';
 import { forgeProgramRecordingRun, type ForgeProgramRecordingRun }           from './testing/ForgeProgramRecording.ts';
@@ -30,10 +26,8 @@ const EXAMPLE_ROOT = '/Users/example/development/example-project';
 const EXAMPLE_TRACKER_ID = 'example-tracker';
 const EXAMPLE_OVERSEER_ADDRESS = '127.0.0.1:47213';
 const LOWERED_MACHINE_LIMIT = 4;
-const OPENER_PERMISSIONS = 0o755;
 
 let scratchForge: ScratchForge;
-let openerFolder = '';
 let recordingRun: ForgeProgramRecordingRun;
 let forgeProgram: ForgeProgram;
 let forge: ForgeProgramTarget;
@@ -42,27 +36,14 @@ beforeAll(async () => {
   scratchForge = createScratchForge(RECORDING_NAME);
   const repository = await scratchForge.createRepository('example-project');
   scratchForge.exampleValueFor({ drawn: repository, example: EXAMPLE_ROOT });
-  openerFolder = createScratchDirectory('opener');
-  writeFileSync(join(openerFolder, 'open'), '#!/bin/sh\nexit 0\n');
-  chmodSync(join(openerFolder, 'open'), OPENER_PERMISSIONS);
-  recordingRun = forgeProgramRecordingRun({
-    recordingName: RECORDING_NAME, scratchForge, program: forgeProgramToRun(RECORDING_NAME), openerFolder,
-  });
+  recordingRun = forgeProgramRecordingRun({ recordingName: RECORDING_NAME, scratchForge, program: forgeProgramToRun(RECORDING_NAME) });
   forgeProgram = createForgeProgram({ processRun: recordingRun, settingsProgramPath: () => null });
   forge        = { root: repository, program: EXAMPLE_FORGE_PROGRAM_PATH };
 }, SETUP_TIMEOUT_MILLISECONDS);
 
 afterAll(async () => {
   recordingRun.recordAnswers();
-  for (const processId of recordingRun.detachedProcesses()) {
-    try {
-      process.kill(processId, 'SIGTERM');
-    } catch {
-      // `forge open` ended by itself.
-    }
-  }
   await scratchForge.remove();
-  removeScratchPath(openerFolder);
 }, SETUP_TIMEOUT_MILLISECONDS);
 
 function lastDocument(): Record<string, unknown> {
@@ -82,11 +63,7 @@ describe('a forge that answers F8, every verb done', () => {
   test('version answers the code and install versions, the contracts and the monitor folder', async () => {
     expect(await forgeProgram.version(forge)).toMatchObject({
       verdict: 'done',
-      answer:  {
-        contracts: {
-          summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: 1, embed: 1
-        }
-      }
+      answer:  { contracts: { summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: 1 } }
     });
     recordSystemVersion(RECORDING_NAME, `install version ${String(lastDocument()['installVersion'])}, code ${String(lastDocument()['codeVersion'])}`);
   });
@@ -111,13 +88,7 @@ describe('a forge that answers F8, every verb done', () => {
     expect(await forgeProgram.update(forge)).toMatchObject({ verdict: 'done', answer: { outcome: 'done', batonPass: { outcome: 'not-needed' } } });
   }, SETUP_TIMEOUT_MILLISECONDS);
 
-  test('open starts detached', () => {
-    expect(forgeProgram.openInBrowser(forge)).toMatchObject({ verdict: 'done' });
-  });
-
   test('stop stops the live Overseer', async () => {
-    // A `forge open` still starting when the Overseer stops finds none live and starts another, which the stop then reads as still live.
-    for (const processId of recordingRun.detachedProcesses()) process.kill(processId, 'SIGKILL');
     expect(await forgeProgram.stop(forge)).toEqual({ verdict: 'done', answer: { outcome: 'done' } });
   }, SETUP_TIMEOUT_MILLISECONDS);
 });

@@ -1,7 +1,4 @@
-/**
- * The tabs Gaia's board draws itself, each with the view that draws it. A tab moves in here with its view; until then the forge view shows
- * the forge's own Bridge in a frame for it, under the board's header.
- */
+/** Every tab of Gaia's board, each with the view that draws it. */
 import type { ReactNode } from 'react';
 
 import type { BoardDocument }        from '../../@types/board/BoardDocument.ts';
@@ -33,7 +30,7 @@ export interface BoardTabViewProps {
 
 export type BoardTabView = (props: BoardTabViewProps) => ReactNode;
 
-export type BoardTabViewTable = Readonly<Partial<Record<BoardTab, BoardTabView>>>;
+export type BoardTabViewTable = Readonly<Record<BoardTab, BoardTabView>>;
 
 function IntakeTabView({ board, route, services }: BoardTabViewProps) {
   return <IntakeView board={board} followTranscript={services.followTranscript} selectedItem={route.item} />;

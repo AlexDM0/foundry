@@ -287,12 +287,12 @@ describe('each screen shows the state its artboard draws', () => {
     expect(pageTitleOf(screenMarkupOf(screenOf('A4'), 'dark'))).toEqual(['Forges']);
   });
 
-  test('B1: Example Storefront in place, its bar and the board\'s header over the frame area that opens the Bridge, no page title and no theme button', () => {
+  test('B1: Example Storefront in place, its bar over the board\'s header and main area, no frame, no page title and no theme button', () => {
     const markup = screenMarkupOf(screenOf('B1'), 'dark');
     expect(textsOfClass(markup, 'gaia-forge-frame-bar-name')).toEqual(['Example Storefront']);
     const boardTitleAt = markup.indexOf('<h1 class="board-title">Example Storefront</h1>');
-    expect([boardTitleAt > markup.indexOf('class="gaia-forge-frame-bar"'), boardTitleAt < markup.indexOf('class="gaia-forge-frame-area"')]).toEqual([true, true]);
-    expect(textsOfClass(markup, 'gaia-forge-frame-opening')).toEqual(['Opening Example Storefront.']);
+    expect([boardTitleAt > markup.indexOf('class="gaia-forge-frame-bar"'), boardTitleAt < markup.indexOf('class="board-panel"')]).toEqual([true, true]);
+    expect([markup.includes('gaia-forge-frame-area'), markup.includes('<iframe')]).toEqual([false, false]);
     const figure = (text: string) => MarkupTree.drawnMarkupOf(createElement(Text, { typeRole: 'small', mono: true, children: text }));
     const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
     expect(markup).toContain(`<span class="gaia-forge-frame-bar-line" title="4 / 5 agents · 2 wait on you · since 09:12">${line}</span>`);

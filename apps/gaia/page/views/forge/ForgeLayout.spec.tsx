@@ -7,22 +7,18 @@
  * its state: Wake, the waking note, the chip with Stop, a refusal with Wake again, or the ended line; Wake and Stop send the brain's
  * commands for this forge alone and are disabled while a command to it is on its way; under a control contract Gaia does not send the
  * state shows with neither, and a forge that reports no brain shows no group at all. The forge mark wakes the brain by a
- * double click wherever Wake shows, and says so in its title. The frame area says "Opening Example Storefront." until the Bridge is ready,
- * keeping the frame hidden behind it; says the forge cannot be shown inside Gaia with Open in new tab; shows B3's callout with Look again;
- * and offers Try again on a refused session.
+ * double click wherever Wake shows, and says so in its title. Where no board shows, the area says Gaia cannot read the forge's board,
+ * with no way to open its own Bridge, or that the registry names no such forge.
  */
-import { describe, expect, test }    from 'bun:test';
-import { Callout as PackageCallout } from 'design-system/Callout';
-import type { ChoiceOptionProps }    from 'design-system/ChoiceOption';
-import { ConfirmStrip }              from 'design-system/ConfirmStrip';
-import { MonoId }                    from 'design-system/MonoId';
-import { Popover }                   from 'design-system/Popover';
-import { StateDot }                  from 'design-system/StateDot';
+import { describe, expect, test } from 'bun:test';
+import type { ChoiceOptionProps } from 'design-system/ChoiceOption';
+import { ConfirmStrip }           from 'design-system/ConfirmStrip';
+import { MonoId }                 from 'design-system/MonoId';
+import { Popover }                from 'design-system/Popover';
+import { StateDot }               from 'design-system/StateDot';
 
 import type { CommandBody }                                   from '../../@types/CommandDocument.ts';
 import type { FleetDocumentBrainState, FleetDocumentForge }   from '../../@types/FleetDocument.ts';
-import { frameUrlOf }                                         from '../../testing/AuthoredBridge.ts';
-import { DrawnDots }                                          from '../../testing/DrawnDots.ts';
 import { FailedActions }                                      from '../../testing/FailedActions.ts';
 import { PackageButtons }                                     from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree }                 from '../../testing/ReactElementTree.ts';
@@ -32,12 +28,12 @@ import { FLEET_FIVE_FORGES_READINGS, FLEET_FIXTURES_READ_AT } from '../../testin
 import {
   BarRefusalLine,
   ForgeBarControls,
+  type ForgeAreaProps,
+  ForgeAreaLayout,
   type ForgeBarControlsProps,
-  type ForgeFrameAreaProps,
-  ForgeFrameAreaLayout,
   forgeMarkPropsOf,
-} from './ForgeFrameLayout.tsx';
-import { type ForgeBar, type ForgeFrameArea, ForgeFrameModel } from './ForgeFrameModel.ts';
+} from './ForgeLayout.tsx';
+import { type ForgeBar, ForgeModel } from './ForgeModel.ts';
 
 const tree = ReactElementTree;
 
@@ -49,7 +45,7 @@ const CLOCK = { nowEpochMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT), timeZo
 const STOREFRONT: FleetDocumentForge = { ...READINGS.exampleStorefront, brain: 'not-reported' };
 
 function barOf(forge = STOREFRONT): ForgeBar {
-  const { bar } = ForgeFrameModel.forgeFrameContentOf(forge.trackerId, { ...FLEET_DEGRADED, forges: [forge] }, CLOCK);
+  const { bar } = ForgeModel.forgeContentOf(forge.trackerId, { ...FLEET_DEGRADED, forges: [forge] }, CLOCK);
   if (bar === null) throw new Error('The forge has no bar.');
   return bar;
 }
@@ -205,12 +201,12 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     } as const;
     const off = barOf(storefrontWithBrain('off'));
     if (off.brain === null) throw new Error('The forge has no brain.');
-    const { unfolded } = controlsOf({ bar: off, brainShown: ForgeFrameModel.brainShownAfter(off.brain, failure) });
+    const { unfolded } = controlsOf({ bar: off, brainShown: ForgeModel.brainShownAfter(off.brain, failure) });
     expect(tree.onlyWithClass(unfolded, 'gaia-brain-chip-refusal').props['title']).toBe('The forge refused: the Overseer is paused overseer-paused');
     expect(buttonTextsOf(unfolded)).toContain('Wake Flint\'s brain');
     const starting = barOf(storefrontWithBrain('starting'));
     if (starting.brain === null) throw new Error('The forge has no brain.');
-    expect(ForgeFrameModel.brainShownAfter(starting.brain, failure)).toEqual({ state: 'starting' });
+    expect(ForgeModel.brainShownAfter(starting.brain, failure)).toEqual({ state: 'starting' });
   });
 
   test('while a command to the forge is on its way, Wake and the brain\'s Stop are disabled with the rest', () => {
@@ -244,7 +240,7 @@ describe('the forge mark\'s double click (PLAN B2)', () => {
   function markOf(forge: FleetDocumentForge, commandIsOnItsWay = false) {
     const woken: string[] = [];
     const { brain } = barOf(forge);
-    const markWake = ForgeFrameModel.markWakeOf(brain, brain?.shown ?? null);
+    const markWake = ForgeModel.markWakeOf(brain, brain?.shown ?? null);
     return { mark: forgeMarkPropsOf(markWake, commandIsOnItsWay, () => woken.push('wake')), woken };
   }
 
@@ -323,7 +319,7 @@ describe('a refusal under the bar', () => {
   } as const;
 
   test('shows the forge\'s code and sentence, with no Try again for Stop, and dismisses', () => {
-    const refusal = ForgeFrameModel.barRefusalOf(STOREFRONT.trackerId, { kind: 'forge-stop', result: { verdict: 'answered', answer: refused } });
+    const refusal = ForgeModel.barRefusalOf(STOREFRONT.trackerId, { kind: 'forge-stop', result: { verdict: 'answered', answer: refused } });
     if (refusal === null) throw new Error('No refusal.');
     let dismissed = 0;
     const unfolded = tree.unfolded(<BarRefusalLine refusal={refusal} onCommand={() => undefined} onDismiss={() => {
@@ -337,7 +333,7 @@ describe('a refusal under the bar', () => {
   });
 
   test('Try again sends a refused pause again as it was', () => {
-    const refusal = ForgeFrameModel.barRefusalOf(STOREFRONT.trackerId, { kind: 'forge-pause', result: { verdict: 'answered', answer: refused } });
+    const refusal = ForgeModel.barRefusalOf(STOREFRONT.trackerId, { kind: 'forge-pause', result: { verdict: 'answered', answer: refused } });
     if (refusal === null) throw new Error('No refusal.');
     const sent: CommandBody[] = [];
     const unfolded = tree.unfolded(<BarRefusalLine refusal={refusal} onCommand={(command) => sent.push(command)} onDismiss={() => undefined} />);
@@ -348,91 +344,17 @@ describe('a refusal under the bar', () => {
   });
 });
 
-describe('the frame area', () => {
-  const storefrontArea = ForgeFrameModel.forgeFrameContentOf(STOREFRONT.trackerId, { ...FLEET_DEGRADED, forges: [STOREFRONT] }, CLOCK).area;
-
-  function areaOf(area: ForgeFrameArea, overrides: Partial<ForgeFrameAreaProps> = {}) {
-    const events: string[] = [];
-    const props: ForgeFrameAreaProps = {
-      area,
-      shown:             null,
-      onFrameElement:    null,
-      onLookAgain:       () => events.push('look again'),
-      onAskAgain:        () => events.push('ask again'),
-      onLeave:           () => events.push('leave'),
-      onOpenInNewTab:    () => events.push('open in new tab'),
-      commandIsOnItsWay: false,
-      ...overrides,
-    };
-    return { unfolded: tree.unfolded(<ForgeFrameAreaLayout {...props} />), events };
+describe('the area where no board shows', () => {
+  function areaOf(area: ForgeAreaProps['area']) {
+    return { unfolded: tree.unfolded(<ForgeAreaLayout area={area} />) };
   }
 
-  test('says "Opening Example Storefront." while the session is asked for, with no frame yet', () => {
-    const { unfolded } = areaOf(storefrontArea, { shown: { kind: 'opening' } });
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forge-frame-opening')])).toBe('Opening Example Storefront.');
-    expect(tree.hostElementsIn(unfolded, tree.withTag('iframe'))).toEqual([]);
-  });
-
-  test('loads the Bridge at the session\'s address behind "Opening" until it is ready, then shows it alone', () => {
-    const loading = areaOf(storefrontArea, {
-      shown: {
-        kind: 'frame', frameUrl: frameUrlOf(1), frameLoad: 1, bridgeIsReady: false
-      }
-    });
-    const frame = tree.onlyWithTag(loading.unfolded, 'iframe');
-    expect(frame.props['src']).toBe(frameUrlOf(1));
-    expect(frame.props['title']).toBe('The Bridge of Example Storefront');
-    expect(frame.props['data-bridge-ready']).toBeUndefined();
-    expect(tree.textOf([tree.onlyWithClass(loading.unfolded, 'gaia-forge-frame-opening')])).toBe('Opening Example Storefront.');
-    const ready = areaOf(storefrontArea, {
-      shown: {
-        kind: 'frame', frameUrl: frameUrlOf(1), frameLoad: 1, bridgeIsReady: true
-      }
-    });
-    expect(tree.onlyWithTag(ready.unfolded, 'iframe').props['data-bridge-ready']).toBe('');
-    expect(tree.hostElementsIn(ready.unfolded, tree.withClass('gaia-forge-frame-opening'))).toEqual([]);
-  });
-
-  test('a forge that cannot open in place says so, with Open in new tab', () => {
-    const cannotShow = ForgeFrameModel.forgeFrameContentOf('research-wiki-58d0', FLEET_DEGRADED, CLOCK).area;
-    const { unfolded, events } = areaOf(cannotShow);
-    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forge-frame-notice-text')])).toBe('This forge cannot be shown inside Gaia yet.');
-    PackageButtons.press(buttonNamed(unfolded, 'Open in new tab'));
-    expect(events).toEqual(['open in new tab']);
-    const sessionNotSupported = areaOf(storefrontArea, { shown: { kind: 'cannot-show' } });
-    expect(tree.textOf([tree.onlyWithClass(sessionNotSupported.unfolded, 'gaia-forge-frame-notice-text')])).toBe('This forge cannot be shown inside Gaia yet.');
-  });
-
-  test('an unreachable forge shows B3\'s callout in the frame area with Look again', () => {
-    const unreachable = ForgeFrameModel.forgeFrameContentOf('invoice-service-2b9e', FLEET_DEGRADED, CLOCK).area;
-    const { unfolded, events } = areaOf(unreachable);
-    const callout = tree.onlyWithClass(unfolded, 'gaia-callout');
-    expect(tree.onlyOfComponent([callout], PackageCallout).props['tone']).toBe('error');
-    expect(tree.textOf([callout])).toContain('Its Overseer stopped answering. The registry still names it.');
-    expect(tree.textOf([tree.onlyWithClass([callout], 'gaia-callout-machine-line')])).toBe('127.0.0.1:4957 · process 48211 · last answer 13:14');
-    PackageButtons.press(buttonNamed(unfolded, 'Look again'));
-    expect(events).toEqual(['look again']);
-  });
-
-  test('an Overseer the session finds gone shows the same callout with the unreachable dot, whose Look again asks the session again', () => {
-    const { unfolded, events } = areaOf(storefrontArea, { shown: { kind: 'unreachable' } });
-    const callout = tree.onlyWithClass(unfolded, 'gaia-callout');
-    expect(callout.props['aria-label']).toBe('Example Storefront: Unreachable');
-    expect(DrawnDots.conditionOf(tree.onlyHostElementIn([callout], DrawnDots.isDot))).toBe('unreachable');
-    PackageButtons.press(buttonNamed(unfolded, 'Look again'));
-    expect(events).toEqual(['ask again']);
-  });
-
-  test('a refused session shows the reason with Try again in a notice that leaves the fade to the refusal, and dismissing it goes back', () => {
-    const refusal = ForgeFrameModel.frameSessionRefusalTextOf('token-rejected', null);
-    const { unfolded, events } = areaOf(storefrontArea, { shown: { kind: 'refused', refusal } });
-    const failedAction = FailedActions.onlyFailedActionIn(unfolded);
-    expect(FailedActions.wordsOf(failedAction)).toEqual(['Gaia could not Open: ', 'token-rejected', 'The forge did not accept Gaia\'s token.']);
-    expect(tree.onlyWithClass(unfolded, 'gaia-forge-frame-notice').props['data-refused']).toBe('');
-    expect([failedAction.props['retryLabel'], failedAction.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
-    tree.dispatch(failedAction, 'onRetry');
-    tree.dispatch(failedAction, 'onDismiss');
-    expect(events).toEqual(['ask again', 'leave']);
+  test('a forge whose board Gaia cannot read says so, and offers no way to open the forge\'s own Bridge', () => {
+    const cannotShow = ForgeModel.forgeContentOf('research-wiki-58d0', FLEET_DEGRADED, CLOCK).area;
+    if (cannotShow.kind === 'board') throw new Error('A forge read through its summary shows its board.');
+    const { unfolded } = areaOf(cannotShow);
+    expect(tree.textOf([tree.onlyWithClass(unfolded, 'gaia-forge-frame-notice-text')])).toBe('Gaia cannot read this forge\'s board.');
+    expect(PackageButtons.buttonsIn(unfolded)).toEqual([]);
   });
 
   test('a tracker id the registry does not name says so and names the id', () => {
