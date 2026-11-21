@@ -9,7 +9,6 @@ export interface BoundarySpecs {
 
 export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 
-const BATON_PASS_SPEC = 'src/services/hephaestus/BatonPass.integration.spec.ts';
 const BUILD_JOB_SPEC = 'cli/hephaestus/HephaestusBuildJob.integration.spec.ts';
 const HEPHAESTUS_API_SPEC = 'cli/hephaestus/HephaestusApi.integration.spec.ts';
 const HEPHAESTUS_COMMAND_SPEC = 'cli/hephaestus/StartCommand.integration.spec.ts';
@@ -52,7 +51,6 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   {
     boundary: 'src/lib/process-identity/',
     specs:    [
-      BATON_PASS_SPEC,
       CHILD_SPAWN_OPTIONS_SPEC,
       CRASH_MATRIX_SPEC,
       'src/lib/process-identity/ProcessIdentity.integration.spec.ts',

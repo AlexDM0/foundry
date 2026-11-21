@@ -132,7 +132,7 @@ The full table of variables is in the [CLI reference](../cli.md). On a healthy s
 matching hashes on a paused board:
 
 ```text
-hephaestus: serving at http://127.0.0.1:<port>/, process <id>, Baton 1; paused
+hephaestus: serving at http://127.0.0.1:<port>/, process <id>, Hephaestus lock 1; paused
 code on disk: <hash>; in memory: <hash>
 ```
 
@@ -174,7 +174,7 @@ rm -rf "$SCRATCH"
 
 `--now` also has Talos stop its lines (gates, installs). Talos and its agents keep running, so `pkill` ends them; its
 pattern matches both command lines. Deleting the scratch folder stops nothing, because these are detached processes.
-Baton has the full stop matrix.
+The `stop` row of the [CLI reference](../cli.md#hephaestus) has the full stop matrix.
 
 ### Why only the `FORGE_` variables work
 

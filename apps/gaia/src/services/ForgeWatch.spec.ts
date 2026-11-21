@@ -82,7 +82,7 @@ function identityAnswersOf(situation: HephaestusSituation): readonly RecordedHep
 }
 
 /** The program's unreadable snapshots on a stream held open after them, as a forge holds its stream open between heartbeats. */
-const UNREADABLE_SNAPSHOTS_HELD_OPEN: readonly RecordedHephaestusAnswer[] = answersOf('snapshot-unreadable', 'STREAM /api/v4/monitor/events with bearer')
+const UNREADABLE_SNAPSHOTS_HELD_OPEN: readonly RecordedHephaestusAnswer[] = answersOf('snapshot-unreadable', 'STREAM /api/v5/monitor/events with bearer')
   .map((recorded) => (recorded.answer.verdict === 'streaming' ? { ...recorded, answer: { ...recorded.answer, ending: 'stays-open' as const } } : recorded));
 
 const STAGE_ANSWERS = {
@@ -314,13 +314,13 @@ describe('a forge through every stage of PLAN 7.1', () => {
       'GET /api/v1/identity',
       'GET /api/versions',
       'GET /api/v1/identity',
-      'STREAM /api/v4/monitor/events with bearer',
+      'STREAM /api/v5/monitor/events with bearer',
       'GET /api/versions',
       'GET /api/versions',
       'GET /api/versions',
       'GET /api/versions',
       'GET /api/v1/identity',
-      'STREAM /api/v4/monitor/events with bearer',
+      'STREAM /api/v5/monitor/events with bearer',
     ]);
     expect(hephaestusFetch.streamsLeftOpen()).toBe(1);
 
@@ -386,18 +386,18 @@ describe('a forge read through its summary', () => {
     currentStamp = STAMPS.back;
     timers.fire(SUMMARY_POLL_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastReportedAt === STAMPS.back);
-    const oneRound = ['GET /api/versions', 'GET /api/v1/identity', 'GET /api/v2/summary'];
+    const oneRound = ['GET /api/versions', 'GET /api/v1/identity', 'GET /api/v3/summary'];
     expect(hephaestusFetch.callShapes()).toEqual([...oneRound, ...oneRound]);
   });
 
   test('reads a forge that serves the monitor but names no token file through its open summary', async () => {
     writeRegistry([{ tokenPath: null }]);
-    const hephaestusFetch = stagedHephaestusFetch([...identityAnswersOf('serving-every-contract'), ...answersOf('serving', 'GET /api/v2/summary')]);
+    const hephaestusFetch = stagedHephaestusFetch([...identityAnswersOf('serving-every-contract'), ...answersOf('serving', 'GET /api/v3/summary')]);
     const { watch, untilReadings } = watchOver(hephaestusFetch);
     watch.start();
 
     await untilReadings(onlyReadingIs('counts-only', 'paused'));
-    expect(hephaestusFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'GET /api/v2/summary']);
+    expect(hephaestusFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'GET /api/v3/summary']);
   });
 });
 
@@ -443,7 +443,7 @@ describe('a forge that cannot be read', () => {
 
   test('counts a stream whose token is refused as a failed try', async () => {
     writeRegistry([{}]);
-    const tokenRejectedStream = answersOf('token-rejected', 'STREAM /api/v4/monitor/events with bearer');
+    const tokenRejectedStream = answersOf('token-rejected', 'STREAM /api/v5/monitor/events with bearer');
     const hephaestusFetch       = stagedHephaestusFetch([...identityAnswersOf('serving-every-contract'), ...tokenRejectedStream]);
     const { watch, timers, untilReadings } = watchOver(hephaestusFetch);
     watch.start();
@@ -479,7 +479,7 @@ describe('the registry', () => {
     writeRegistry([{}]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
-    expect(hephaestusFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v4/monitor/events with bearer']);
+    expect(hephaestusFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v5/monitor/events with bearer']);
     expect(hephaestusFetch.streamsLeftOpen()).toBe(1);
   });
 
@@ -495,7 +495,7 @@ describe('the registry', () => {
     writeRegistry([{ lastCommand: 'ticket ready' }]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastCommand === 'ticket ready');
-    expect(hephaestusFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v4/monitor/events with bearer']);
+    expect(hephaestusFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v5/monitor/events with bearer']);
     expect(hephaestusFetch.streamsLeftOpen()).toBe(1);
   });
 
@@ -644,7 +644,7 @@ describe('a forge\'s system version', () => {
   /** The minimum the forge Gaia supports answers: it serves no client of an older major. */
   const FIRST_OF_THE_SUPPORTED_MAJOR: SystemVersion = { major: SUPPORTED_FORGE_VERSION.major, minor: 0 };
   const NEXT_MAJOR = SUPPORTED_FORGE_VERSION.major + 1;
-  const VERSIONED_PATHS_ASKED = ['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v4/monitor/events with bearer'];
+  const VERSIONED_PATHS_ASKED = ['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v5/monitor/events with bearer'];
 
   async function onlyReadingOfAnswers(answers: readonly RecordedHephaestusAnswer[], supportedForgeVersion: SystemVersion | null = null) {
     writeRegistry([{}]);

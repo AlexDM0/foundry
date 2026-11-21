@@ -43,8 +43,8 @@ import {
 import { relayEventReaderOf }                                               from '../testing/RelayEventReader.ts';
 import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor } from './BoardStreamRoutes.ts';
 
-const EVENTS_CALL_SHAPE = 'STREAM /api/v3/events with bearer';
-const EVENTS_FROM_LAST_ID_CALL_SHAPE = 'STREAM /api/v3/events with bearer from a last event id';
+const EVENTS_CALL_SHAPE = 'STREAM /api/v4/events with bearer';
+const EVENTS_FROM_LAST_ID_CALL_SHAPE = 'STREAM /api/v4/events with bearer from a last event id';
 const RELAY_URL = 'http://127.0.0.1:4790/api/v1/forges/example-storefront-7c41';
 const EXAMPLE_LAST_EVENT_ID = recordedBoardEventIdOf('board-at-work', 'afresh');
 
@@ -241,7 +241,7 @@ describe('a stream that cannot open', () => {
     expect([answer.status, await answer.json(), hephaestusFetch.streamsLeftOpen(), boardStreams.openStreamCount()])
       .toEqual([501, { refusal: 'forge-version-unsupported', refusedBy: 'gaia' }, 0, 0]);
     expect(logEntries).toEqual([{
-      kind: 'handshake-version-differs', trackerId: STOREFRONT_TRACKER_ID, stream: '/api/v3/events', versionWatchRead: ahead, versionHandshakeNamed: SUPPORTED_FORGE_VERSION,
+      kind: 'handshake-version-differs', trackerId: STOREFRONT_TRACKER_ID, stream: '/api/v4/events', versionWatchRead: ahead, versionHandshakeNamed: SUPPORTED_FORGE_VERSION,
     }]);
   });
 

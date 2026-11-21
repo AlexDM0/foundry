@@ -84,7 +84,7 @@ function replyExists(hatchDirectory: string, requestId: string): boolean {
   }
 }
 
-/** A request naming a format this Hephaestus does not read waits for a Hephaestus that does, after a Baton pass; one naming none is malformed. */
+/** A request naming a format this Hephaestus does not read waits for a Hephaestus that does, after a restart; one naming none is malformed. */
 function namesAnotherFormat(text: string): boolean {
   try {
     const parsed: unknown = JSON.parse(text);

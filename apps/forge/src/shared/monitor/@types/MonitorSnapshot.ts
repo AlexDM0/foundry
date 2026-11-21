@@ -115,8 +115,8 @@ export interface MonitorNotice extends MonitorNoticeDocument {
   readonly text: string;
 }
 
-/** Every warning the header can show: a failed Baton pass, and an Assistant that cannot come up. */
-export type MonitorWarningKind = 'baton-pass-failed' | 'assistant-down';
+/** Every warning the header can show: a failed restart, and an Assistant that cannot come up. */
+export type MonitorWarningKind = 'restart-failed' | 'assistant-down';
 
 export interface MonitorWarning extends MonitorNoticeDocument {
   readonly kind: MonitorWarningKind;

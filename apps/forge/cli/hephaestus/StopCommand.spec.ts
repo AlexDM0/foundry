@@ -1,12 +1,17 @@
 /**
  * `stop`, answered in this process: it finds nothing to do with no Hephaestus live or, over a fake process table, never reports a clean stop
  * after an end that skipped Hephaestus's own stop, and repairs only once the process is gone, also when an earlier close was refused and left
- * a dead Baton. The stop waits of a stopping Hephaestus share one bound, so a drive pass that never ends cannot hold back the stop record past
+ * a dead Hephaestus lock. The stop waits of a stopping Hephaestus share one bound, so a drive pass that never ends cannot hold back the stop record past
  * what Windows gives. The registry's presence key is written in each state and kept by a call without one; a stop ends presence `stopped` and
  * a release `handed-over`, each also in the registry, the handover's ending written before the crash path lets go of the generation.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join }                     from 'node:path';
+import {
+  existsSync,
+  readFileSync,
+  rmSync,
+  writeFileSync
+} from 'node:fs';
+import { join } from 'node:path';
 import {
   afterEach,
   beforeEach,
@@ -16,8 +21,8 @@ import {
 
 import type { PlatformPorts }                                                       from '../../src/lib/platform-ports/PlatformPortsFor.ts';
 import type { ProcessStopStage }                                                    from '../../src/lib/process-identity/ProcessSupervision.ts';
-import { Baton }                                                                    from '../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                                                        from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                                           from '../../src/services/hephaestus/HephaestusLock.ts';
 import { Presence }                                                                 from '../../src/services/hephaestus/Presence.ts';
 import { registerWithTheMonitor }                                                   from '../../src/services/tracker/MonitorRegistration.ts';
 import { withLock }                                                                 from '../../src/services/tracker/TrackerLock.ts';
@@ -106,7 +111,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
         },
       },
     };
-    const acquisition = Baton.acquire(platformPorts, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(platformPorts, hephaestusDirectory, {
       processId:            identity.processId,
       processStartStamp:    identity.startStamp,
       bootIdentity:         identity.bootIdentity,
@@ -174,7 +179,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(hephaestusStoppedRecordsIn(wedged.logKindsWhileLive.at(-1) ?? [])).toBe(0);
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(registeredHephaestusProcessesIn(wedged.homeDirectory)).toEqual([]);
-    expect(Baton.newestBatonOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('none');
+    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('none');
 
     const again = wedged.stopContext();
     expect(await runCommandLine(['stop'], again), again.errorText()).toBe(0);
@@ -230,7 +235,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(registeredPresenceIn(wedged.homeDirectory)).toEqual({ state: 'stopped', generation: 1, at: expect.any(String) as unknown });
   });
 
-  test('a forced end overtaken by a newer Hephaestus still says so and records the stop, and leaves that Hephaestus its registry entry and Baton', async () => {
+  test('a forced end overtaken by a newer Hephaestus still says so and records the stop, and leaves that Hephaestus its registry entry and Hephaestus lock', async () => {
     const successorStarts = (hephaestusDirectory: string): void => {
       const successorRecord = {
         processId:            WEDGED_PROCESS_ID + 1,
@@ -243,7 +248,9 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
         installVersion:       1,
         talosProtocolVersion: 1,
       };
-      expect(Baton.acquireAbove(hephaestusDirectory, successorRecord, 1).verdict).toBe('acquired');
+      writeFileSync(HephaestusLock.filePathFor(hephaestusDirectory, 1 + 1), JSON.stringify(successorRecord));
+      // A claim removes the generations below its own.
+      rmSync(HephaestusLock.filePathFor(hephaestusDirectory, 1), { force: true });
     };
     const wedged = plantWedgedHephaestus(true, successorStarts);
     await registerWedgedHephaestus(wedged);
@@ -254,7 +261,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(JSON.parse(stopped.outputText())).toEqual({ answerVersion: ANSWER_VERSION, outcome: 'done', ending: 'forced' });
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(registeredHephaestusProcessesIn(wedged.homeDirectory)).toHaveLength(1);
-    expect(Baton.batonGenerationsIn(wedged.hephaestusDirectory)).toEqual([2]);
+    expect(HephaestusLock.generationsIn(wedged.hephaestusDirectory)).toEqual([2]);
   });
 
   test('the JSON answer of a forced end names it, and --now says the line children kept running', async () => {
@@ -282,14 +289,14 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 
-  test('a close refused on a held tracker lock leaves a dead Baton, and the next stop with the lock free finishes that close', async () => {
+  test('a close refused on a held tracker lock leaves a dead Hephaestus lock, and the next stop with the lock free finishes that close', async () => {
     const wedged = plantWedgedHephaestus(false);
     await registerWedgedHephaestus(wedged);
 
     const refused = wedged.stopContext();
     const { outcome } = await withLock(wedged.workspace, () => lockRetryWaitsDuring(() => runCommandLine(['stop'], refused)), refused.now, LIVE_HOLDERS_LOCK_TAKER);
     expect(outcome).toEqual({ settled: 'fulfilled', value: 2 });
-    expect(Baton.newestBatonOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('dead');
+    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('dead');
     expect(registeredHephaestusProcessesIn(wedged.homeDirectory)).toHaveLength(1);
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(0);
 
@@ -299,10 +306,10 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
     expect(JSON.parse(repaired.outputText())).toEqual({ answerVersion: ANSWER_VERSION, outcome: 'done', ending: 'unfinished' });
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
     expect(registeredHephaestusProcessesIn(wedged.homeDirectory)).toEqual([]);
-    expect(Baton.newestBatonOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('none');
+    expect(HephaestusLock.newestOf(wedged.platformPorts, wedged.hephaestusDirectory).verdict).toBe('none');
   });
 
-  test('a newest Baton found dead is closed in words, never called nothing to stop', async () => {
+  test('a newest Hephaestus lock found dead is closed in words, never called nothing to stop', async () => {
     const wedged = plantWedgedHephaestus(false);
     const goneAtOnce: PlatformPorts = { ...wedged.platformPorts, processSupervision: { ...wedged.platformPorts.processSupervision, identityOf: () => null } };
     const stopped = createCapturedCommandContext({
@@ -313,7 +320,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run stop', (
 
     expect(stopped.outputText()).toContain(`Hephaestus at ${UNANSWERING_URL} had already ended before it finished its stop`);
     expect(stopped.outputText()).not.toContain('nothing to stop');
-    expect(Baton.newestBatonOf(goneAtOnce, wedged.hephaestusDirectory).verdict).toBe('none');
+    expect(HephaestusLock.newestOf(goneAtOnce, wedged.hephaestusDirectory).verdict).toBe('none');
   });
 });
 
@@ -328,10 +335,10 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     return { commandArguments: createArgumentParser([]), context, workspace: requireWorkspace(repositoryDirectory) };
   }
 
-  function plantOwnBaton(platformPorts: PlatformPorts): { hephaestusDirectory: string; generation: number } {
+  function plantOwnHephaestusLock(platformPorts: PlatformPorts): { hephaestusDirectory: string; generation: number } {
     const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
     const ownIdentity = processTable.callerProcess();
-    const acquisition = Baton.acquire(platformPorts, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(platformPorts, hephaestusDirectory, {
       processId:            ownIdentity.processId,
       processStartStamp:    ownIdentity.startStamp,
       bootIdentity:         ownIdentity.bootIdentity,
@@ -342,13 +349,13 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
       installVersion:       1,
       talosProtocolVersion: 1,
     });
-    if (acquisition.verdict !== 'acquired') throw new Error('The example Baton was not acquired.');
+    if (acquisition.verdict !== 'acquired') throw new Error('The example Hephaestus lock was not acquired.');
     return { hephaestusDirectory, generation: acquisition.generation };
   }
 
-  test('a drive pass that never becomes idle no longer holds back the stop record and the Baton release', async () => {
+  test('a drive pass that never becomes idle no longer holds back the stop record and the Hephaestus lock release', async () => {
     const platformPorts = processTable.ports;
-    const { hephaestusDirectory, generation } = plantOwnBaton(platformPorts);
+    const { hephaestusDirectory, generation } = plantOwnHephaestusLock(platformPorts);
     const request = stopRequestIn(platformPorts);
     const logLines: string[] = [];
     const laterWaitsStarted: string[] = [];
@@ -364,7 +371,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     expect(logLines).toEqual([`The stop went on without the drive pass, which did not end within ${SHORT_STOP_WAIT_MILLISECONDS} ms.`]);
     expect(laterWaitsStarted).toEqual(['the server stop']);
     expect(storedLogKindsOf(repositoryDirectory)).toContain('hephaestus-stopped');
-    expect(Baton.newestBatonOf(platformPorts, hephaestusDirectory).verdict).toBe('none');
+    expect(HephaestusLock.newestOf(platformPorts, hephaestusDirectory).verdict).toBe('none');
   });
 
   function writeOwnPresence(generation: number): void {
@@ -390,9 +397,9 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
     return Object.values(registry[MONITOR_REGISTRY_FILES.ENTRIES_KEY] ?? {})[0]?.presence;
   }
 
-  test('a stop writes the presence ending stopped and the registry presence stopped, then releases the Baton', async () => {
+  test('a stop writes the presence ending stopped and the registry presence stopped, then releases the Hephaestus lock', async () => {
     const platformPorts = processTable.ports;
-    const { hephaestusDirectory, generation } = plantOwnBaton(platformPorts);
+    const { hephaestusDirectory, generation } = plantOwnHephaestusLock(platformPorts);
     writeOwnPresence(generation);
     const request = stopRequestIn(platformPorts);
 
@@ -400,12 +407,12 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the bounded 
 
     expect(storedEnding()).toEqual({ kind: 'stopped', at: expect.any(String) as unknown });
     expect(registeredPresenceUnder(request)).toEqual({ state: 'stopped', generation, at: expect.any(String) as unknown });
-    expect(Baton.newestBatonOf(platformPorts, hephaestusDirectory).verdict).toBe('none');
+    expect(HephaestusLock.newestOf(platformPorts, hephaestusDirectory).verdict).toBe('none');
   });
 
   test('a release writes the presence ending handed-over before the crash path lets go, then the registry presence handed-over', async () => {
     const platformPorts = processTable.ports;
-    const { generation } = plantOwnBaton(platformPorts);
+    const { generation } = plantOwnHephaestusLock(platformPorts);
     writeOwnPresence(generation);
     const request = stopRequestIn(platformPorts);
     const endingsWhenTheCrashPathLetGo: unknown[] = [];

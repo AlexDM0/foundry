@@ -70,7 +70,7 @@ export type PictureUpload = BoundedBody;
 export type TranscriptFollower = () => TranscriptEntry[];
 
 export interface HephaestusRoutes {
-  /** Read at each request, so a token written after the Baton was won is the one checked. */
+  /** Read at each request, so a token written after the Hephaestus lock was won is the one checked. */
   token:           () => string | null;
   /** Read at each request: until it is true, `GET /api/identity` answers 503 `starting`, so a client waiting for the identity waits for the start. */
   started:         () => boolean;
@@ -343,7 +343,7 @@ function monitorEventText(snapshot: MonitorSnapshot, systemVersion: SystemVersio
 }
 
 /**
- * The handshake, then a whole snapshot on connect, then each one that changed, every event naming the system version: a Hephaestus a Baton
+ * The handshake, then a whole snapshot on connect, then each one that changed, every event naming the system version: a Hephaestus a Hephaestus lock
  * pass brings may be another version. No ids and no replay, since every event is whole.
  */
 function monitorEventsResponse(routes: HephaestusRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): Response {

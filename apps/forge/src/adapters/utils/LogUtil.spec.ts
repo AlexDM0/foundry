@@ -164,7 +164,7 @@ describe('Hephaestus and its jobs', () => {
   const SENTENCE_AND_TICKET_IDS_FOR_RECORD: readonly (readonly [LogRecordContent, string, readonly string[]])[] = [
     [{ kind: 'hephaestus-started', fields: { codeVersion: 'a1b2c3d', installVersion: 17 } }, 'Hephaestus started on code a1b2c3d, install version 17', []],
     [{ kind: 'hephaestus-stopped', fields: { reason: 'stopped' } }, 'Hephaestus stopped', []],
-    [{ kind: 'hephaestus-stopped', fields: { reason: 'baton-passed' } }, 'Hephaestus handed the board over to its successor', []],
+    [{ kind: 'hephaestus-stopped', fields: { reason: 'handed-over' } }, 'Hephaestus handed the board over to its successor', []],
     [
       {
         kind:   'job-launched',
@@ -213,12 +213,12 @@ describe('Hephaestus and its jobs', () => {
     [{ kind: 'start-classified', fields: { kind: 'first-start', startOrigin: 'user' } }, 'Forge started by User for the first time', []],
     [
       { kind: 'start-classified', fields: { kind: 'handover', startOrigin: 'successor', previousGeneration: 4 } },
-      'Forge started by its predecessor on a handover (previous Baton 4)',
+      'Forge started by its predecessor on a handover (previous Hephaestus lock 4)',
       [],
     ],
     [
       { kind: 'start-classified', fields: { kind: 'stopped-on-purpose', startOrigin: 'user', previousGeneration: 4 } },
-      'Forge started by User after a stop on purpose (previous Baton 4)',
+      'Forge started by User after a stop on purpose (previous Hephaestus lock 4)',
       [],
     ],
     [
@@ -228,7 +228,7 @@ describe('Hephaestus and its jobs', () => {
           kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 4, crashSuspected: true, crashLogNumber: 2
         }
       },
-      'Forge started by the login item after the machine went down (previous Baton 4), a crash suspected before it; crash log 2 recorded',
+      'Forge started by the login item after the machine went down (previous Hephaestus lock 4), a crash suspected before it; crash log 2 recorded',
       [],
     ],
     [
@@ -238,7 +238,7 @@ describe('Hephaestus and its jobs', () => {
           kind: 'crashed', startOrigin: 'user', previousGeneration: 4, crashLogNumber: 1
         }
       },
-      'Forge started by User after a crash (previous Baton 4); crash log 1 recorded',
+      'Forge started by User after a crash (previous Hephaestus lock 4); crash log 1 recorded',
       [],
     ],
     [{ kind: 'job-ended', jobId: 'J3', fields: { outcome: 'built', commit: 'b2c3d4e', deniedPermissions: [] } }, 'Job J3 ended built at b2c3d4e', []],

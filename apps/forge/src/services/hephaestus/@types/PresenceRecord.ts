@@ -18,7 +18,7 @@ export type PresenceEndingToWrite =
 /** `presence.json`, written whole and atomically by the main thread only. */
 export interface PresenceRecord {
   presenceVersion:     typeof PRESENCE_FORMAT_VERSION;
-  /** The Baton generation this record describes. */
+  /** The Hephaestus lock generation this record describes. */
   generation:          number;
   process:             ProcessIdentity;
   codeVersion:         string;

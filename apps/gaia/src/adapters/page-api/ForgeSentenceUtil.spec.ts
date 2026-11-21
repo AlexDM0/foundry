@@ -48,7 +48,7 @@ describe('the sentence of a notice and of a warning', () => {
 
   test('is neutral for a notice of another kind or a warning that names a command', () => {
     expect(ForgeSentenceUtil.noticeSentenceOf('example-kind', 'run `forge restart`')).toBe('This forge raised a notice that Gaia does not word yet.');
-    expect(ForgeSentenceUtil.warningSentenceOf('The Baton pass failed: run `forge restart`.')).toBe('This forge reports a warning that Gaia does not word yet.');
+    expect(ForgeSentenceUtil.warningSentenceOf('The restart failed: run `forge restart`.')).toBe('This forge reports a warning that Gaia does not word yet.');
   });
 
   test('is the forge\'s own, unchanged, when it names no command', () => {
@@ -61,7 +61,7 @@ describe('the sentence of a notice and of a warning', () => {
 
 describe('the sentence of an activity entry', () => {
   test('is neutral for an activity entry that names a command', () => {
-    expect(ForgeSentenceUtil.activitySentenceOf('The Baton pass failed: run `forge restart`.')).toBe('This forge logged an entry that Gaia does not word yet.');
+    expect(ForgeSentenceUtil.activitySentenceOf('The restart failed: run `forge restart`.')).toBe('This forge logged an entry that Gaia does not word yet.');
   });
 
   test('is the forge\'s own, unchanged, when it names no command', () => {

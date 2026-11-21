@@ -16,7 +16,7 @@ export const CONTRACT_VERSIONS = {
   forgeBoardSummary:  HEPHAESTUS_CONTRACT_VERSIONS.summary,
   forgeMonitor:       HEPHAESTUS_CONTRACT_VERSIONS.monitor,
   forgeControl:       HEPHAESTUS_CONTRACT_VERSIONS.control,
-  forgeProgramAnswer: 2,
+  forgeProgramAnswer: 3,
   forgeMachineLimits: { major: 1, minor: 0 },
   gaiaSettings:       { major: 1, minor: 0 },
   gaiaProgramAnswer:  1,

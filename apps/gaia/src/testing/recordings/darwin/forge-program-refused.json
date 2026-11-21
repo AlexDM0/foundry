@@ -14,7 +14,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"arguments-refused\",\n  \"text\": \"/Users/example/development/example-bare is inside a bare git repository, which has no working tree to track. Run `forge init` in a checkout of it, or pass --root <path> to track a directory explicitly.\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 3,\n  \"refusal\": \"arguments-refused\",\n  \"text\": \"/Users/example/development/example-bare is inside a bare git repository, which has no working tree to track. Run `forge init` in a checkout of it, or pass --root <path> to track a directory explicitly.\"\n}\n",
         "standardError": "/Users/example/development/example-bare is inside a bare git repository, which has no working tree to track. Run `forge init` in a checkout of it, or pass --root <path> to track a directory explicitly.\n"
       }
     },
@@ -23,7 +23,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"no-tracker-at-override\",\n  \"text\": \"No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names.\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 3,\n  \"refusal\": \"no-tracker-at-override\",\n  \"text\": \"No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names.\"\n}\n",
         "standardError": "No forge tracker was found in /Users/example/development/example-untracked, which FORGE_ROOT names. Run `forge init` there, or unset FORGE_ROOT to search upwards from the current directory instead.\n"
       }
     },
@@ -32,7 +32,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"machine-agent-limit-above-cpus\",\n  \"text\": \"A machine agent limit of 64 is above the 10 CPUs this machine has, so nothing was written.\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 3,\n  \"refusal\": \"machine-agent-limit-above-cpus\",\n  \"text\": \"A machine agent limit of 64 is above the 10 CPUs this machine has, so nothing was written.\"\n}\n",
         "standardError": "A machine agent limit of 64 is above the 10 CPUs this machine has, so nothing was written.\n"
       }
     },
@@ -41,7 +41,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then update the board.\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 3,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then update the board.\"\n}\n",
         "standardError": "The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
       }
     },
@@ -50,8 +50,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"hephaestus-still-live\",\n  \"text\": \"Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\"\n}\n",
-        "standardError": "Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\n"
+        "standardOutput": "{\n  \"answerVersion\": 3,\n  \"refusal\": \"hephaestus-still-live\",\n  \"text\": \"Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Hephaestus lock was left as it is.\"\n}\n",
+        "standardError": "Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Hephaestus lock was left as it is.\n"
       }
     },
     {
@@ -59,7 +59,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then update the board.\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 3,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then update the board.\"\n}\n",
         "standardError": "The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
       }
     }

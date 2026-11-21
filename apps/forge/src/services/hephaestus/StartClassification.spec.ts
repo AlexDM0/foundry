@@ -1,6 +1,6 @@
 /**
  * The start classification over plain evidence. What matters: each rule decides in its order, so a recorded ending outranks the boot and a
- * Baton of another start than the record's, whatever its generation, outranks the record; a Talos lost in this boot is a crash of Talos
+ * Hephaestus lock of another start than the record's, whatever its generation, outranks the record; a Talos lost in this boot is a crash of Talos
  * whatever the record says, but never spoils a handover or a first start; a crash is suspected only after a reboot with a stale beat of the
  * generation that died unrecorded; and the design's known misreadings stay as they are, written as claims, so a change to them is a decision
  * and not an accident.
@@ -15,9 +15,9 @@ import type {
   PresenceFileReading,
   PresenceRecord
 } from './@types/PresenceRecord.ts';
-import type { BatonReading, BatonRecord }           from './Baton.ts';
-import { StartClassification, type StartEvidence }  from './StartClassification.ts';
-import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS } from './constants/PresenceLimits.ts';
+import type { HephaestusLockReading, HephaestusLockRecord } from './HephaestusLock.ts';
+import { StartClassification, type StartEvidence }          from './StartClassification.ts';
+import { HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS }         from './constants/PresenceLimits.ts';
 
 const CURRENT_BOOT = 'example-boot-today';
 const EARLIER_BOOT = 'example-boot-yesterday';
@@ -28,7 +28,7 @@ const BOOT_STARTED_AT_MILLISECONDS = BOOT_STARTED_AT_EPOCH_SECONDS * MILLISECOND
 const RECORDED_PROCESS = { processId: 4242, startStamp: '1700000000' } as const;
 const ANOTHER_STARTS_PROCESS = { processId: 4343, startStamp: '1700000100' } as const;
 
-type BatonHolder = typeof RECORDED_PROCESS | typeof ANOTHER_STARTS_PROCESS;
+type HephaestusLockHolder = typeof RECORDED_PROCESS | typeof ANOTHER_STARTS_PROCESS;
 
 function presenceRecordOf(ending: PresenceEnding | null, bootIdentity = CURRENT_BOOT, generation = PREVIOUS_GENERATION): PresenceRecord {
   return {
@@ -48,7 +48,7 @@ function presenceReadOf(ending: PresenceEnding | null, bootIdentity = CURRENT_BO
   return { verdict: 'read', record: presenceRecordOf(ending, bootIdentity) };
 }
 
-function batonRecordOf(holder: BatonHolder, bootIdentity: string): BatonRecord {
+function hephaestusLockRecordOf(holder: HephaestusLockHolder, bootIdentity: string): HephaestusLockRecord {
   return {
     processId:            holder.processId,
     processStartStamp:    holder.startStamp,
@@ -62,14 +62,14 @@ function batonRecordOf(holder: BatonHolder, bootIdentity: string): BatonRecord {
   };
 }
 
-/** The Baton the recorded process left behind. */
-function recordedProcessesDeadBatonOf(bootIdentity = CURRENT_BOOT): BatonReading {
-  return { verdict: 'dead', generation: PREVIOUS_GENERATION, record: batonRecordOf(RECORDED_PROCESS, bootIdentity) };
+/** The Hephaestus lock the recorded process left behind. */
+function recordedProcessesDeadLockOf(bootIdentity = CURRENT_BOOT): HephaestusLockReading {
+  return { verdict: 'dead', generation: PREVIOUS_GENERATION, record: hephaestusLockRecordOf(RECORDED_PROCESS, bootIdentity) };
 }
 
-/** The Baton of a later start that died before it wrote presence; `null` for one whose record cannot be read. */
-function anotherStartsDeadBatonOf(generation: number, bootIdentity: string | null = CURRENT_BOOT): BatonReading {
-  return { verdict: 'dead', generation, record: bootIdentity === null ? null : batonRecordOf(ANOTHER_STARTS_PROCESS, bootIdentity) };
+/** The Hephaestus lock of a later start that died before it wrote presence; `null` for one whose record cannot be read. */
+function anotherStartsDeadLockOf(generation: number, bootIdentity: string | null = CURRENT_BOOT): HephaestusLockReading {
+  return { verdict: 'dead', generation, record: bootIdentity === null ? null : hephaestusLockRecordOf(ANOTHER_STARTS_PROCESS, bootIdentity) };
 }
 
 function heartbeatBefore(millisecondsBeforeBoot: number, generation = PREVIOUS_GENERATION): HeartbeatRecord {
@@ -81,12 +81,12 @@ function heartbeatBefore(millisecondsBeforeBoot: number, generation = PREVIOUS_G
   };
 }
 
-/** A start by the user after a generation that crashed unrecorded in this boot, its Baton left behind; each case changes what it is about. */
+/** A start by the user after a generation that crashed unrecorded in this boot, its Hephaestus lock left behind; each case changes what it is about. */
 function evidenceWith(changes: Partial<StartEvidence>): StartEvidence {
   return {
     presence:                  presenceReadOf(null),
     heartbeat:                 { verdict: 'absent' },
-    newestBaton:               recordedProcessesDeadBatonOf(),
+    newestLock:                recordedProcessesDeadLockOf(),
     talos:                     { verdict: 'none' },
     currentBootIdentity:       CURRENT_BOOT,
     bootStartedAtEpochSeconds: BOOT_STARTED_AT_EPOCH_SECONDS,
@@ -99,15 +99,15 @@ const STOPPED: PresenceEnding = { kind: 'stopped', at: '2026-11-19T10:00:00+01:0
 const HANDED_OVER: PresenceEnding = { kind: 'handed-over', at: '2026-11-19T10:00:00+01:00' };
 
 describe('StartClassification.classify', () => {
-  test('a first start with no record and no Baton is a first start', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'absent' }, newestBaton: { verdict: 'none' } }));
+  test('a first start with no record and no Hephaestus lock is a first start', () => {
+    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'absent' }, newestLock: { verdict: 'none' } }));
     expect(verdict.kind).toBe('first-start');
     expect(verdict.previousGeneration).toBeNull();
     expect(verdict.evidence.presence).toBe('absent');
   });
 
   test('a completed stop on record reads as stopped on purpose', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestBaton: { verdict: 'none' } }));
+    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestLock: { verdict: 'none' } }));
     expect(verdict.kind).toBe('stopped-on-purpose');
     expect(verdict.previousGeneration).toBe(PREVIOUS_GENERATION);
     expect(verdict.evidence.previousEnding).toBe('stopped');
@@ -156,14 +156,14 @@ describe('StartClassification.classify', () => {
     expect(successorOfAnotherGeneration.kind).toBe('stopped-on-purpose');
   });
 
-  test('a successor whose predecessor died during the Baton pass reads as a crash', () => {
+  test('a successor whose predecessor died during the restart reads as a crash', () => {
     const verdict = StartClassification.classify(evidenceWith({ origin: { startOrigin: 'successor', predecessorGeneration: PREVIOUS_GENERATION } }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.crashedComponent).toBe('hephaestus');
   });
 
   test('a record of another boot with no ending reads as the machine going down', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(null, EARLIER_BOOT), newestBaton: recordedProcessesDeadBatonOf(EARLIER_BOOT) }));
+    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(null, EARLIER_BOOT), newestLock: recordedProcessesDeadLockOf(EARLIER_BOOT) }));
     expect(verdict.kind).toBe('machine-went-down');
     expect(verdict.crashSuspected).toBe(false);
     expect(verdict.crashedComponent).toBeNull();
@@ -177,55 +177,55 @@ describe('StartClassification.classify', () => {
     expect(verdict.previousGeneration).toBe(PREVIOUS_GENERATION);
   });
 
-  test('a start that failed after its presence write and let go of its Baton reads as stopped on purpose, not as a crash', () => {
-    const noBatonLeft = StartClassification.classify(evidenceWith({ newestBaton: { verdict: 'none' } }));
-    expect(noBatonLeft.kind).toBe('stopped-on-purpose');
-    expect(noBatonLeft.previousGeneration).toBe(PREVIOUS_GENERATION);
+  test('a start that failed after its presence write and let go of its Hephaestus lock reads as stopped on purpose, not as a crash', () => {
+    const noHephaestusLockLeft = StartClassification.classify(evidenceWith({ newestLock: { verdict: 'none' } }));
+    expect(noHephaestusLockLeft.kind).toBe('stopped-on-purpose');
+    expect(noHephaestusLockLeft.previousGeneration).toBe(PREVIOUS_GENERATION);
   });
 
-  test('a stop on record followed by a start that took Baton 1 again and died before its presence write reads as a crash, not as a stop', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestBaton: anotherStartsDeadBatonOf(1) }));
+  test('a stop on record followed by a start that took Hephaestus lock 1 again and died before its presence write reads as a crash, not as a stop', () => {
+    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestLock: anotherStartsDeadLockOf(1) }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.crashedComponent).toBe('hephaestus');
     expect(verdict.previousGeneration).toBe(1);
-    expect(verdict.evidence.newerBatonThanPresence).toBe(true);
+    expect(verdict.evidence.newerHephaestusLockThanPresence).toBe(true);
   });
 
-  test('a start that took Baton 1 again and died before its presence write, before a reboot, reads as the machine going down, judged by no earlier run\'s beat', () => {
+  test('a start that took Hephaestus lock 1 again and died before its presence write, before a reboot, reads as the machine going down, judged by no earlier run\'s beat', () => {
     const verdict = StartClassification.classify(evidenceWith({
-      presence:    presenceReadOf(STOPPED, EARLIER_BOOT),
-      newestBaton: anotherStartsDeadBatonOf(1, EARLIER_BOOT),
-      heartbeat:   { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS * 100, 1) },
+      presence:   presenceReadOf(STOPPED, EARLIER_BOOT),
+      newestLock: anotherStartsDeadLockOf(1, EARLIER_BOOT),
+      heartbeat:  { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS * 100, 1) },
     }));
     expect(verdict.kind).toBe('machine-went-down');
     expect(verdict.crashSuspected).toBe(false);
   });
 
-  test('a newer Baton than the record, in the same boot, reads as a crash during start', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestBaton: anotherStartsDeadBatonOf(PREVIOUS_GENERATION + 1) }));
+  test('a newer Hephaestus lock than the record, in the same boot, reads as a crash during start', () => {
+    const verdict = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestLock: anotherStartsDeadLockOf(PREVIOUS_GENERATION + 1) }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.crashedComponent).toBe('hephaestus');
     expect(verdict.previousGeneration).toBe(PREVIOUS_GENERATION + 1);
-    expect(verdict.evidence.newerBatonThanPresence).toBe(true);
+    expect(verdict.evidence.newerHephaestusLockThanPresence).toBe(true);
   });
 
-  test('a newer Baton than the record, of another boot, reads as the machine going down; an unreadable one as a crash', () => {
-    const otherBootsBaton = anotherStartsDeadBatonOf(PREVIOUS_GENERATION + 1, EARLIER_BOOT);
-    const otherBoot = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestBaton: otherBootsBaton }));
+  test('a newer Hephaestus lock than the record, of another boot, reads as the machine going down; an unreadable one as a crash', () => {
+    const otherBootsHephaestusLock = anotherStartsDeadLockOf(PREVIOUS_GENERATION + 1, EARLIER_BOOT);
+    const otherBoot = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestLock: otherBootsHephaestusLock }));
     expect(otherBoot.kind).toBe('machine-went-down');
-    const unreadableBaton = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestBaton: anotherStartsDeadBatonOf(PREVIOUS_GENERATION + 1, null) }));
-    expect(unreadableBaton.kind).toBe('crashed');
+    const unreadableLock = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestLock: anotherStartsDeadLockOf(PREVIOUS_GENERATION + 1, null) }));
+    expect(unreadableLock.kind).toBe('crashed');
   });
 
-  test('a Baton with no presence record at all, in the same boot, reads as a crash during start', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'absent' }, newestBaton: anotherStartsDeadBatonOf(1) }));
+  test('a Hephaestus lock with no presence record at all, in the same boot, reads as a crash during start', () => {
+    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'absent' }, newestLock: anotherStartsDeadLockOf(1) }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.previousGeneration).toBe(1);
-    expect(verdict.evidence.newerBatonThanPresence).toBe(true);
+    expect(verdict.evidence.newerHephaestusLockThanPresence).toBe(true);
   });
 
   test('an unreadable presence record reads as a crash', () => {
-    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'unreadable', reason: 'example damage' }, newestBaton: { verdict: 'none' } }));
+    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'unreadable', reason: 'example damage' }, newestLock: { verdict: 'none' } }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.crashedComponent).toBe('hephaestus');
     expect(verdict.evidence.presence).toBe('unreadable');
@@ -233,9 +233,9 @@ describe('StartClassification.classify', () => {
 
   test('a Talos lost in this boot after a stop on record reads as a crash of Talos', () => {
     const verdict = StartClassification.classify(evidenceWith({
-      presence:    presenceReadOf(STOPPED),
-      newestBaton: { verdict: 'none' },
-      talos:       { verdict: 'gone', bootIdentity: CURRENT_BOOT },
+      presence:   presenceReadOf(STOPPED),
+      newestLock: { verdict: 'none' },
+      talos:      { verdict: 'gone', bootIdentity: CURRENT_BOOT },
     }));
     expect(verdict.kind).toBe('crashed');
     expect(verdict.crashedComponent).toBe('talos');
@@ -244,16 +244,16 @@ describe('StartClassification.classify', () => {
 
   test('a Talos lost in this boot never spoils a first start', () => {
     const talosLostThisBoot = { verdict: 'gone', bootIdentity: CURRENT_BOOT } as const;
-    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'absent' }, newestBaton: { verdict: 'none' }, talos: talosLostThisBoot }));
+    const verdict = StartClassification.classify(evidenceWith({ presence: { verdict: 'absent' }, newestLock: { verdict: 'none' }, talos: talosLostThisBoot }));
     expect(verdict.kind).toBe('first-start');
   });
 
   test('a Talos lost in another boot reads as the machine going down, with no crash suspected after a stop on record', () => {
     const verdict = StartClassification.classify(evidenceWith({
-      presence:    presenceReadOf(STOPPED, EARLIER_BOOT),
-      newestBaton: { verdict: 'none' },
-      heartbeat:   { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS * 100) },
-      talos:       { verdict: 'gone', bootIdentity: EARLIER_BOOT },
+      presence:   presenceReadOf(STOPPED, EARLIER_BOOT),
+      newestLock: { verdict: 'none' },
+      heartbeat:  { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS * 100) },
+      talos:      { verdict: 'gone', bootIdentity: EARLIER_BOOT },
     }));
     expect(verdict.kind).toBe('machine-went-down');
     expect(verdict.crashSuspected).toBe(false);
@@ -262,15 +262,15 @@ describe('StartClassification.classify', () => {
 
   test('a live or quit Talos changes no kind', () => {
     expect(StartClassification.classify(evidenceWith({ talos: { verdict: 'live' } })).kind).toBe('crashed');
-    const afterAStopWithTalosQuit = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestBaton: { verdict: 'none' }, talos: { verdict: 'quit' } }));
+    const afterAStopWithTalosQuit = StartClassification.classify(evidenceWith({ presence: presenceReadOf(STOPPED), newestLock: { verdict: 'none' }, talos: { verdict: 'quit' } }));
     expect(afterAStopWithTalosQuit.kind).toBe('stopped-on-purpose');
   });
 
   test('a crash followed by a reboot reads as the machine going down, with the crash suspected when the heartbeat stopped well before the boot', () => {
     const verdict = StartClassification.classify(evidenceWith({
-      presence:    presenceReadOf(null, EARLIER_BOOT),
-      newestBaton: recordedProcessesDeadBatonOf(EARLIER_BOOT),
-      heartbeat:   { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS + MILLISECONDS_PER_SECOND) },
+      presence:   presenceReadOf(null, EARLIER_BOOT),
+      newestLock: recordedProcessesDeadLockOf(EARLIER_BOOT),
+      heartbeat:  { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS + MILLISECONDS_PER_SECOND) },
     }));
     expect(verdict.kind).toBe('machine-went-down');
     expect(verdict.crashSuspected).toBe(true);
@@ -280,9 +280,9 @@ describe('StartClassification.classify', () => {
 
   test('a heartbeat that stopped less than the bound before the boot is no suspected crash', () => {
     const verdict = StartClassification.classify(evidenceWith({
-      presence:    presenceReadOf(null, EARLIER_BOOT),
-      newestBaton: recordedProcessesDeadBatonOf(EARLIER_BOOT),
-      heartbeat:   { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS - MILLISECONDS_PER_SECOND) },
+      presence:   presenceReadOf(null, EARLIER_BOOT),
+      newestLock: recordedProcessesDeadLockOf(EARLIER_BOOT),
+      heartbeat:  { verdict: 'read', record: heartbeatBefore(HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS - MILLISECONDS_PER_SECOND) },
     }));
     expect(verdict.kind).toBe('machine-went-down');
     expect(verdict.crashSuspected).toBe(false);
@@ -291,15 +291,15 @@ describe('StartClassification.classify', () => {
   test('a stale heartbeat of another generation, or with no boot start time, is no suspected crash', () => {
     const staleBeat = HEARTBEAT_STALE_BEFORE_BOOT_MILLISECONDS * 100;
     const ofAnotherGeneration = StartClassification.classify(evidenceWith({
-      presence:    presenceReadOf(null, EARLIER_BOOT),
-      newestBaton: recordedProcessesDeadBatonOf(EARLIER_BOOT),
-      heartbeat:   { verdict: 'read', record: heartbeatBefore(staleBeat, PREVIOUS_GENERATION - 1) },
+      presence:   presenceReadOf(null, EARLIER_BOOT),
+      newestLock: recordedProcessesDeadLockOf(EARLIER_BOOT),
+      heartbeat:  { verdict: 'read', record: heartbeatBefore(staleBeat, PREVIOUS_GENERATION - 1) },
     }));
     expect(ofAnotherGeneration.crashSuspected).toBe(false);
     expect(ofAnotherGeneration.evidence.lastHeartbeatAt).toBeNull();
     const withNoBootStart = StartClassification.classify(evidenceWith({
       presence:                  presenceReadOf(null, EARLIER_BOOT),
-      newestBaton:               recordedProcessesDeadBatonOf(EARLIER_BOOT),
+      newestLock:                recordedProcessesDeadLockOf(EARLIER_BOOT),
       heartbeat:                 { verdict: 'read', record: heartbeatBefore(staleBeat) },
       bootStartedAtEpochSeconds: null,
     }));
@@ -318,7 +318,7 @@ describe('StartClassification.classify', () => {
   test('an unreadable boot identity reads as the same boot, so a reboot on such a machine reads as a crash (sameBoot\'s rule, kept)', () => {
     const unreadableNow = StartClassification.classify(evidenceWith({
       presence:            presenceReadOf(null, EARLIER_BOOT),
-      newestBaton:         recordedProcessesDeadBatonOf(EARLIER_BOOT),
+      newestLock:          recordedProcessesDeadLockOf(EARLIER_BOOT),
       currentBootIdentity: UNREADABLE_BOOT_IDENTITY,
     }));
     expect(unreadableNow.kind).toBe('crashed');

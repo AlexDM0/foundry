@@ -41,7 +41,7 @@ export interface ForgeProgram {
 
 /** `forge start` returns only when the new Hephaestus's API answers. */
 const FORGE_START_TIMEOUT_MILLISECONDS = 120_000;
-/** `forge update` may pass the Baton to the new code before it answers. */
+/** `forge update` may restart Hephaestus on the new code before it answers. */
 const FORGE_UPDATE_TIMEOUT_MILLISECONDS = 300_000;
 const FORGE_VERB_TIMEOUT_MILLISECONDS = 60_000;
 const JSON_FLAG = '--json';

@@ -1,8 +1,8 @@
 /**
  * The board occasions of Flint. What matters: each row of the table "Board occasions" gives its intent on the change it names and on no
- * other, so a board that stays as it was gives none; the first board after none is no change; a baton pass shows once, on the
- * passing-baton board or, when the page missed that board, on the rise of the generation, and the regroup follows on the rise after a
- * pass that was shown; an incident settles only on a record that closes it, never on an escalation or on leaving the list; a pipeline is
+ * other, so a board that stays as it was gives none; the first board after none is no change; a restart of Hephaestus shows its baton
+ * pass once, on the restarting board or, when the page missed that board, on the rise of the generation, and the regroup follows on the
+ * rise after a restart that was shown; an incident settles only on a record that closes it, never on an escalation or on leaving the list; a pipeline is
  * applied only when the revision of its newest Apply rises from one the board could read; the occasions come in the table's order, the
  * lost connection first, the refused command after the board and the connection that comes back last; an incident that opens or settles
  * while Flint lives in the questions habitat is that habitat's to answer, so the board does not; a stream that keeps reopening through
@@ -66,9 +66,9 @@ describe('each row of the table', () => {
   test.each<readonly [string, BoardReading, BoardReading, readonly SpriteIntent[]]>([
     ['the connection becomes down', reading(), reading({ connection: 'down' }), ['unplugged']],
     ['the Hephaestus state becomes down', reading(), reading({ board: board({ hephaestus: { state: 'down' } }) }), ['bank-fire']],
-    ['the Hephaestus state becomes passing-baton', reading(), reading({ board: board({ hephaestus: { state: 'passing-baton' } }) }), ['baton-pass']],
-    ['the generation rises after a pass that was shown, with jobs in flight',
-      reading({ board: board({ hephaestus: { state: 'passing-baton' } }) }),
+    ['the Hephaestus state becomes restarting', reading(), reading({ board: board({ hephaestus: { state: 'restarting' } }) }), ['baton-pass']],
+    ['the generation rises after a restart that was shown, with jobs in flight',
+      reading({ board: board({ hephaestus: { state: 'restarting' } }) }),
       reading({ board: board({ hephaestus: { generation: 4 } }) }),
       ['regroup']],
     ['usage gets a resetsAt', reading(), reading({ board: board({ usage: LIMIT_HIT }) }), ['out-of-fuel']],
@@ -93,7 +93,7 @@ describe('each row of the table', () => {
     ],
     ['a connection that stays down', reading({ connection: 'down' }), reading({ connection: 'down' })],
     ['a Hephaestus that stays down', reading({ board: board({ hephaestus: { state: 'down' } }) }), reading({ board: board({ hephaestus: { state: 'down' } }) })],
-    ['a pass that goes on', reading({ board: board({ hephaestus: { state: 'passing-baton' } }) }), reading({ board: board({ hephaestus: { state: 'passing-baton' } }) })],
+    ['a restart that goes on', reading({ board: board({ hephaestus: { state: 'restarting' } }) }), reading({ board: board({ hephaestus: { state: 'restarting' } }) })],
     [
       'a generation the previous board did not serve',
       reading({ board: board({ hephaestus: { generation: null } }) }),
@@ -116,14 +116,14 @@ describe('each row of the table', () => {
   });
 });
 
-describe('the baton pass and the regroup', () => {
-  test('a rise of the generation the page saw no pass for is the pass, then the regroup', () => {
+describe('the baton pass of a restart and the regroup', () => {
+  test('a rise of the generation the page saw no restart for is the baton pass, then the regroup', () => {
     expect(BoardOccasionModel.occasionsOf(reading(), reading({ board: board({ hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual(['baton-pass', 'regroup']);
   });
 
   test('a rise with no job in flight regroups nothing', () => {
-    const passing = reading({ board: board({ hephaestus: { state: 'passing-baton' } }) });
-    expect(BoardOccasionModel.occasionsOf(passing, reading({ board: board({ jobs: [], hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual([]);
+    const restarting = reading({ board: board({ hephaestus: { state: 'restarting' } }) });
+    expect(BoardOccasionModel.occasionsOf(restarting, reading({ board: board({ jobs: [], hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual([]);
     expect(BoardOccasionModel.occasionsOf(reading(), reading({ board: board({ jobs: [], hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual(['baton-pass']);
   });
 });

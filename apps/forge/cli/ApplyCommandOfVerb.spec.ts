@@ -1,8 +1,8 @@
 /**
  * A verb's command applied through the store's command face, the nudge against the recorded Hephaestus API in place of the global `fetch`.
  * What matters: under a job the verb is refused `verb-not-relayable` before the store is reached; an unreadable ticket file is named on
- * standard error after the write, at exit 0; after the write, a live Baton gets one body-less `POST api/nudge` with no token, sent once the
- * lock is released; no live Baton gets no request; and a Hephaestus gone leaves the write done and the command at exit 0, since
+ * standard error after the write, at exit 0; after the write, a live Hephaestus lock gets one body-less `POST api/nudge` with no token, sent once the
+ * lock is released; no live Hephaestus lock gets no request; and a Hephaestus gone leaves the write done and the command at exit 0, since
  * Hephaestus's watch notices the write anyway.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -17,7 +17,7 @@ import {
 
 import { LocalTimeUtil }                                   from '../src/lib/local-time/LocalTimeUtil.ts';
 import type { PlatformPorts }                              from '../src/lib/platform-ports/PlatformPortsFor.ts';
-import type { BatonRecord }                                from '../src/services/hephaestus/Baton.ts';
+import type { HephaestusLockRecord }                       from '../src/services/hephaestus/HephaestusLock.ts';
 import { localStoreLayoutOf }                              from '../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                                from '../src/services/tracker/Workspace.ts';
 import { refusalIsOperationRefusal }                       from '../src/shared/OperationRefusal.ts';
@@ -36,7 +36,7 @@ import { createCapturedCommandContext }                    from './testing/Captu
 import { createInitializedRecordedGitRepository }          from './testing/InitializedScratchRepository.ts';
 
 const FROZEN_NOW = new Date('2026-09-23T10:00:00Z');
-const BATON_PROCESS = { processId: 4242, startStamp: '1767225600', bootIdentity: 'example-boot' };
+const HEPHAESTUS_LOCK_PROCESS = { processId: 4242, startStamp: '1767225600', bootIdentity: 'example-boot' };
 
 const recordedGit = useRecordedGit();
 const recordedHephaestus = useRecordedHephaestusFetch();
@@ -45,26 +45,26 @@ let repositoryDirectory = '';
 let hephaestus: RecordedHephaestus;
 let globalFetch: ReturnType<typeof spyOn> | null = null;
 
-/** The Baton's process reads as alive, so no process table is asked. */
-function portsWithTheBatonProcessAlive(): PlatformPorts {
+/** The Hephaestus lock's process reads as alive, so no process table is asked. */
+function portsWithTheHephaestusLockProcessAlive(): PlatformPorts {
   const native = nativePlatformPorts();
   return {
     ...native,
     processSupervision: {
       ...native.processSupervision,
-      identityOf:  (processId) => (processId === BATON_PROCESS.processId ? BATON_PROCESS : null),
+      identityOf:  (processId) => (processId === HEPHAESTUS_LOCK_PROCESS.processId ? HEPHAESTUS_LOCK_PROCESS : null),
       sameProcess: (first, second) => first.processId === second.processId && first.startStamp === second.startStamp,
     },
   };
 }
 
-function writeLiveBaton(): void {
+function writeLiveHephaestusLock(): void {
   const hephaestusDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'hephaestus');
   mkdirSync(hephaestusDirectory, { recursive: true });
-  const record: BatonRecord = {
-    processId:            BATON_PROCESS.processId,
-    processStartStamp:    BATON_PROCESS.startStamp,
-    bootIdentity:         BATON_PROCESS.bootIdentity,
+  const record: HephaestusLockRecord = {
+    processId:            HEPHAESTUS_LOCK_PROCESS.processId,
+    processStartStamp:    HEPHAESTUS_LOCK_PROCESS.startStamp,
+    bootIdentity:         HEPHAESTUS_LOCK_PROCESS.bootIdentity,
     port:                 hephaestus.port,
     url:                  hephaestus.url,
     tokenFile:            join(hephaestusDirectory, 'token'),
@@ -72,11 +72,11 @@ function writeLiveBaton(): void {
     installVersion:       17,
     talosProtocolVersion: 2,
   };
-  writeFileSync(join(hephaestusDirectory, 'baton-1.json'), JSON.stringify(record));
+  writeFileSync(join(hephaestusDirectory, 'lock-1.json'), JSON.stringify(record));
 }
 
 async function addTask(): Promise<{ exitCode: number; errorText: string }> {
-  const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts: portsWithTheBatonProcessAlive() });
+  const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts: portsWithTheHephaestusLockProcessAlive() });
   const exitCode = await runCommandLine(['task', 'add', 'Review pass'], context);
   return { exitCode, errorText: context.errorText() };
 }
@@ -93,8 +93,8 @@ afterEach(() => {
 });
 
 describeWhenGitIsRecorded('the nudge after a write', () => {
-  test('a live Baton gets one body-less POST api/nudge with no token', async () => {
-    writeLiveBaton();
+  test('a live Hephaestus lock gets one body-less POST api/nudge with no token', async () => {
+    writeLiveHephaestusLock();
     expect(await addTask()).toEqual({ exitCode: 0, errorText: '' });
     expect(hephaestus.requests.map(({
       method, callShape, authorization, init
@@ -103,13 +103,13 @@ describeWhenGitIsRecorded('the nudge after a write', () => {
     ]);
   });
 
-  test('with no Baton no request goes out', async () => {
+  test('with no Hephaestus lock no request goes out', async () => {
     expect((await addTask()).exitCode).toBe(0);
     expect(hephaestus.requests).toEqual([]);
   });
 
   test('a Hephaestus gone leaves the write done at exit 0', async () => {
-    writeLiveBaton();
+    writeLiveHephaestusLock();
     hephaestus.stop();
     expect((await addTask()).exitCode).toBe(0);
     expect(hephaestus.requests.map((request) => request.callShape)).toEqual([HEPHAESTUS_CALL_SHAPES.NOTHING_LISTENS]);
@@ -141,7 +141,7 @@ describeWhenGitIsRecorded('the command face', () => {
   });
 
   test('the nudge goes out after the lock is released: a write of the store during it is not held up', async () => {
-    writeLiveBaton();
+    writeLiveHephaestusLock();
     const writesDuringTheNudge: string[] = [];
     globalFetch?.mockImplementation((async (input: string | URL, init?: RequestInit) => {
       const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });

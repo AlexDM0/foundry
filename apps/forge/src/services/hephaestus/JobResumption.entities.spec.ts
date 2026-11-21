@@ -158,7 +158,7 @@ describe('a stale green that turned red', () => {
       fixCommand:          null,
       commit:              'example-commit',
       exitCode:            null,
-      batonPassPath:       RedHandoff.batonPassPathOf(folder),
+      gateFailureNotePath: RedHandoff.gateFailureNotePathOf(folder),
       fullLogPath:         null,
       resume:              1,
       resumesAllowed:      2,

@@ -32,7 +32,7 @@ import { NoticeWordingUtil }                   from '../../shared/monitor/utils/
 import { OpenDecisionsUtil }                   from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
 import type { BoardState }                     from './BoardState.ts';
 
-/** What Hephaestus knows of itself and no board file holds; read at each snapshot, so a Baton taken over or new code on disk shows. */
+/** What Hephaestus knows of itself and no board file holds; read at each snapshot, so a Hephaestus lock taken over or new code on disk shows. */
 export interface MonitorHephaestusFacts {
   trackerId:         string;
   root:              string;
@@ -169,7 +169,7 @@ const ACTIVITY_CATEGORY_OF_KIND: Readonly<Record<LogRecordKind, ActivityCategory
   'hephaestus-stopped':             'forge',
   'start-classified':               'forge',
   'flint-brain-ended':              'agent',
-  'baton-pass-failed':              'forge',
+  'restart-failed':                 'forge',
   'job-launched':                   'agent',
   'job-interrupted':                'agent',
   'job-resumed':                    'agent',
@@ -336,7 +336,7 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     attention:           attentionEntriesOf(state),
     jobs:                state.jobs.map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
     notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
-    warnings:            NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.batonPassWarningIn(state.hephaestus.batonPassWarning)),
+    warnings:            NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
     today:               todayFiguresOf(state, todayCalendarDate),
     usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),

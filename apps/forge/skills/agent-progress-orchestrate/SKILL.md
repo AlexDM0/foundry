@@ -31,7 +31,7 @@ the moves, jobs, decisions and incidents, and the exit codes. Run every command 
 Run the first step, then act on it.
 
 1. `{{program}} status --json`: its `hephaestus` block tells whether Hephaestus is up, its URL, whether the board is
-   paused, its notices and the warning of a failed Baton pass. The other keys hold the drafts, the ready tickets,
+   paused, its notices and the warning of a failed restart. The other keys hold the drafts, the ready tickets,
    the jobs, the open decisions and incidents. Exit 1 saying there is no tracker: ask whether to
    `{{program}} init` here, and do not create one uninvited.
 2. Report the board in at most six lines: Hephaestus's state and URL, the jobs in flight, the drafts waiting to be

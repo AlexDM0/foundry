@@ -32,7 +32,7 @@ const NULLABLE_WHOLE_NUMBER = { nullable: 'whole-number' } as const;
 const TARGET_OBJECT = { object: TARGET_SHAPE } as const;
 
 const HEPHAESTUS_SHAPE = {
-  state:       { oneOf: ['serving', 'held-by-install-change', 'passing-baton'] },
+  state:       { oneOf: ['serving', 'held-by-install-change', 'restarting'] },
   paused:      'boolean',
   url:         'text',
   processId:   'whole-number',

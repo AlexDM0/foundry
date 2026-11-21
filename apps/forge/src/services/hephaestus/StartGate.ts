@@ -1,5 +1,5 @@
 /**
- * The gate every start of a board's forge passes before it takes a Baton: it reads what the generation before it left, classifies the start,
+ * The gate every start of a board's forge passes before it takes a Hephaestus lock: it reads what the generation before it left, classifies the start,
  * writes the crash log of a crash it finds, and answers whether the start may serve. `start`, the foreground entry and `status` read it.
  */
 import type { PlatformPorts }                                from '../../lib/platform-ports/PlatformPortsFor.ts';
@@ -9,9 +9,9 @@ import type { Workspace }                                    from '../tracker/Wo
 import type { CrashLogJob, CrashLogRecord }                  from './@types/CrashLogRecord.ts';
 import type { PresenceRecord }                               from './@types/PresenceRecord.ts';
 import type { StartClassificationVerdict, StartGateVerdict } from './@types/StartClassification.ts';
-import { Baton }                                             from './Baton.ts';
 import { CrashLog }                                          from './CrashLog.ts';
 import type { HephaestusFiles }                              from './HephaestusFiles.ts';
+import { HephaestusLock }                                    from './HephaestusLock.ts';
 import { Presence }                                          from './Presence.ts';
 import {
   StartClassification,
@@ -52,7 +52,7 @@ function evidenceOf({
   return {
     presence:                  Presence.readPresence(files),
     heartbeat:                 Presence.readHeartbeat(files),
-    newestBaton:               Baton.newestBatonOf(ports, files.hephaestusDirectory),
+    newestLock:                HephaestusLock.newestOf(ports, files.hephaestusDirectory),
     talos:                     talosRecordReadingOf(ports, workspace.trackerDirectory),
     currentBootIdentity:       processSupervision.identityOf(process.pid)?.bootIdentity ?? UNREADABLE_BOOT_IDENTITY,
     bootStartedAtEpochSeconds: processSupervision.bootStartedAtEpochSeconds(),
@@ -81,11 +81,11 @@ function talosChildrenOf(boardFolder: string): unknown[] | null {
   return newestStartNumber === null ? null : readingOrNull(() => persistedChildRecordsOf(boardFolder, newestStartNumber));
 }
 
-/** The holder of the crashed generation's dead Baton, which names the crashed process when no presence record does. */
-function batonHolderOf(evidence: StartEvidence, crashedGeneration: number | null): ProcessIdentity | null {
-  const { newestBaton } = evidence;
-  if (newestBaton.verdict !== 'dead' || newestBaton.generation !== crashedGeneration || newestBaton.record === null) return null;
-  const { processId, processStartStamp, bootIdentity } = newestBaton.record;
+/** The holder of the crashed generation's dead Hephaestus lock, which names the crashed process when no presence record does. */
+function hephaestusLockHolderOf(evidence: StartEvidence, crashedGeneration: number | null): ProcessIdentity | null {
+  const { newestLock } = evidence;
+  if (newestLock.verdict !== 'dead' || newestLock.generation !== crashedGeneration || newestLock.record === null) return null;
+  const { processId, processStartStamp, bootIdentity } = newestLock.record;
   return { processId, startStamp: processStartStamp, bootIdentity };
 }
 
@@ -98,7 +98,7 @@ function crashLogNamedByTheEnding(files: HephaestusFiles, presenceOfTheCrash: Pr
 
 function presenceOfTheCrashIn(evidence: StartEvidence, classification: StartClassificationVerdict): PresenceRecord | null {
   const { presence } = evidence;
-  const presenceNamesTheCrash = presence.verdict === 'read' && !classification.evidence.newerBatonThanPresence
+  const presenceNamesTheCrash = presence.verdict === 'read' && !classification.evidence.newerHephaestusLockThanPresence
     && presence.record.generation === classification.previousGeneration;
   return presenceNamesTheCrash ? presence.record : null;
 }
@@ -109,7 +109,7 @@ function loggedCrashLogOf(files: HephaestusFiles, evidence: StartEvidence, class
   const presenceOfTheCrash = presenceOfTheCrashIn(evidence, classification);
   return crashLogNamedByTheEnding(files, presenceOfTheCrash) ?? CrashLog.newestLogOfTheSameCrash(files, {
     crashedGeneration,
-    crashedProcess: presenceOfTheCrash?.process ?? batonHolderOf(evidence, crashedGeneration),
+    crashedProcess: presenceOfTheCrash?.process ?? hephaestusLockHolderOf(evidence, crashedGeneration),
     classification,
   });
 }
@@ -129,17 +129,17 @@ function writeTheCrashLog(request: StartGateRequest, evidence: StartEvidence, cl
   return CrashLog.writeOnce(files, CrashLog.assemble({
     crashedGeneration,
     component,
-    suspected:     classification.kind === 'machine-went-down',
+    suspected:            classification.kind === 'machine-went-down',
     classification,
-    recordedAt:    request.stampNow(),
-    recordedBy:    { generation: null, startOrigin: origin.startOrigin, crashPath: false },
-    error:         null,
-    presence:      presenceOfTheCrash,
-    batonHolder:   batonHolderOf(evidence, crashedGeneration),
-    heartbeat:     heartbeatOfTheCrash,
-    activeJobs:    activeJobsOf(boardReads),
-    talosChildren: talosChildrenOf(workspace.trackerDirectory),
-    logTail:       CrashLog.logTailOf(files.logFilePath),
+    recordedAt:           request.stampNow(),
+    recordedBy:           { generation: null, startOrigin: origin.startOrigin, crashPath: false },
+    error:                null,
+    presence:             presenceOfTheCrash,
+    hephaestusLockHolder: hephaestusLockHolderOf(evidence, crashedGeneration),
+    heartbeat:            heartbeatOfTheCrash,
+    activeJobs:           activeJobsOf(boardReads),
+    talosChildren:        talosChildrenOf(workspace.trackerDirectory),
+    logTail:              CrashLog.logTailOf(files.logFilePath),
   })).crashLogNumber;
 }
 

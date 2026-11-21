@@ -14,8 +14,8 @@ words follow.
 
 Most of the eleven names sit on one path from User to the main line. User works through a client of the API. Inside
 Hephaestus the Pass runs the Playbook and has Talos run a session, whose requests pass the Hatch and the Bouncer and whose
-result passes Customs and the Airlock. Beside that path the Assistant takes incidents, and the Baton and Regrouping act
-across Hephaestus restarts.
+result passes Customs and the Airlock. Beside that path the Assistant takes incidents, and the Hephaestus lock and
+Regrouping act across Hephaestus restarts.
 
 A [session](#session) never touches the board directly: what it sends through the Hatch passes the Bouncer, and what it
 says in its event stream and final report is read by Hephaestus and checked by Customs. Gates and reviews are left out
@@ -72,8 +72,6 @@ Read the row that fits the context. Component names are capitalised, like the el
 | **pass** | the [Pass](#pass), Hephaestus's loop | capitalised; `runOnePass`, `passes` |
 | | a [failed pass](#failed-pass), a bound on a ticket's jobs | only in "failed pass"; `FailedPassUtil`, `FAILED_PASSES_BEFORE_PARKING` |
 | | a review pass, the same thing as a [review round](#review-round) | code comments, `reviewPassCount`; this documentation says review round |
-| | a [Baton pass](#baton-pass), the Hephaestus hand-over | `src/services/hephaestus/BatonPass.ts` |
-| | the red-handoff note, `gate-failure.md` | "The Baton pass is in ..." in `RedHandoffMessage.md`; `batonPass` in `RedHandoff.ts`. No Hephaestus hand-over is involved |
 | **phase** | a [gate phase](#gate-phase): `build`, `review` or `merge` | `phases` in `pipeline.json`, `greenPhase` on a row, `GatePhase` |
 | | an Airlock phase, how far a merge, refresh or constitution commit job is | `airlock.phase`: `merge-in` … `landing`, `AirlockPhase` |
 | | a setup step of a [setup record](#setup-record) | `stepStates`, `currentStep`: `billing` … `apply` |
@@ -95,7 +93,7 @@ Read the row that fits the context. Component names are capitalised, like the el
 | | a `review-recorded` claim | `ReviewClaim` in the log; counted by `review-stats` |
 | | a retired ticket claim | the `ticket claim` verb is unknown; `Board.claimTickets` remains (as built) |
 | | a filing-draft claim | `DraftClaim`: who holds the draft |
-| **alive** | a live Baton | `BatonReading` verdict `live`: the newest generation names a running process |
+| **alive** | a live Hephaestus lock | `HephaestusLockReading` verdict `live`: the newest generation names a running process |
 | | a live child | `ChildLiveness`: `unlaunched` before Talos launched it, `live` while its child record says it runs, `ended` once Talos recorded its end, `lost` when its record cannot be read or says ended with no end |
 | | an agent | no verdict of its own: read through its child, and `agent-crashed` or `talos-lost` says which died |
 | **hold** | a [ticket hold](#ticket-hold) | frontmatter `hold`, such as `parked:<cause>` |
@@ -120,8 +118,6 @@ Read the row that fits the context. Component names are capitalised, like the el
 | | a ticket move | a status transition; `Board.moveTicket`, the named verbs |
 | | a job move | `Jobs.moveJob`, a change of job state |
 | | a review's move | what `settleReviewPass` picks: `fixer`, `fresh-reviewer`, `waiver` or `merge-queued` |
-
-> **As built.** The red-handoff text says Baton pass.
 
 ### Words often confused
 
@@ -226,18 +222,6 @@ after a [red handoff](#red-handoff) and a builder resumed after review, which ke
 
 The vendor's permission mode, `--permission-mode auto`, under which a classifier approves most tool calls without a
 prompt. Every session runs in it, inside the other confinement layers.
-
-### Baton
-
-A file `<data>/hephaestus/baton-<n>.json` created exclusively at each Hephaestus start. The newest
-[generation](#generation) decides: if it names a live process, that process is Hephaestus; if not, no Hephaestus is
-running (`src/services/hephaestus/Baton.ts`).
-
-### Baton pass
-
-The hand-over from a running Hephaestus to its successor, `src/services/hephaestus/BatonPass.ts`, with no restart of
-Talos or its children. The red-handoff text uses the same words for something else: see [Words that mean several
-things](#words-that-mean-several-things).
 
 ### board
 
@@ -525,6 +509,11 @@ and [review bar](#review-bar).
 One named check in the [pipeline](#pipeline) (`PipelineGate`), run on a tree by `GateRun`. Its outcome is `passed`,
 `failed` or `cannot-run`.
 
+### gate failure note
+
+`gate-failure.md`, the note a [red handoff](#red-handoff) leaves in its job's folder for the resumed session
+(`RedHandoff.ts`).
+
 ### gate phase
 
 One of `build`, `review` and `merge`: which [gates](#gate) a tree runs at one place. `build` gates a builder's work and
@@ -547,8 +536,8 @@ reported its cache. An Airlock reads the newest one to skip gating a tree that a
 
 ### generation
 
-The number in a lock record `generation-<n>` or a Baton file `baton-<n>.json`. Each is created exclusively and never
-rewritten, so the newest number decides.
+The number in a lock record `generation-<n>` or a [Hephaestus lock](#hephaestus-lock) file `lock-<n>.json`. Each is
+created exclusively and never rewritten, so the newest number decides.
 
 ### group
 
@@ -599,7 +588,7 @@ Operational trouble addressed to the Assistant, `I<n>`, with a default move if n
 ### install hold
 
 The state in which a Hephaestus launches and resumes nothing because the [install version](#install-version) changed
-under it, runtime state `held-by-install-change`. Its API answers most commands 423. A [Baton pass](#baton-pass) ends
+under it, runtime state `held-by-install-change`. Its API answers most commands 423. A [restart](#restart) ends
 it.
 
 ### install marker
@@ -765,6 +754,14 @@ Confinement the operating system enforces on a process. The vendor's sandbox hol
 The one long-running process that owns a board, started by `forge start`. Its [Pass](#pass) launches every
 job.
 
+### Hephaestus lock
+
+A file `<data>/hephaestus/lock-<n>.json` created exclusively at each Hephaestus start and never rewritten. The newest
+[generation](#generation) decides: if it names a live process, that process is Hephaestus; if not, no Hephaestus is
+running (`src/services/hephaestus/HephaestusLock.ts`). The holder removes the generations below its own. Only a stop
+releases it; at a [restart](#restart) the old Hephaestus exits with its file still there, and the
+[successor](#successor) takes the next generation over the dead one.
+
 ### own row
 
 The [row](#row) a ticket holds through its `ticket` key, its bar on the chart. Compare [review bar](#review-bar) and
@@ -856,12 +853,7 @@ A ticket with at least one `review-recorded` log record, the only tickets `revie
 ### red handoff
 
 A handoff whose gate or Customs check went red (`handoff-red`). The same session is resumed to fix it. Its note is
-`gate-failure.md`, the red-handoff note.
-
-### red-handoff note
-
-`gate-failure.md`, the note a [red handoff](#red-handoff) leaves for the resumed session (`RedHandoff.ts`). Its text
-says Baton pass, which here means no Hephaestus hand-over.
+`gate-failure.md`, the [gate failure note](#gate-failure-note).
 
 ### refresh
 
@@ -907,6 +899,18 @@ The JSON a session leaves as its result, checked against its role's schema (`src
 
 A session's file in its [Hatch](#hatch), or one [AskUserQuestion](#askuserquestion) call, each with a `requestId`. See
 [Words that mean several things](#words-that-mean-several-things).
+
+### restart
+
+The checked restart of Hephaestus to the code on disk (`src/services/hephaestus/Restart.ts`), sent by `restart`, by the
+last step of `update` or by the API command `hephaestus-restart`. First the serving Hephaestus runs the code on disk as
+a preflight, `start --preflight`, which reads the board, the jobs, the child records and the install version and reports
+in one line. A failed preflight refuses the restart `restart-failed`, and the old Hephaestus keeps driving. After a
+passed one the old Hephaestus finishes a landing in progress, writes the ending `handed-over`, closes its listener,
+starts its [successor](#successor) and exits, leaving its [Hephaestus lock](#hephaestus-lock) to die with its
+process. The successor takes the next generation, so the generation rises by one across a restart. Talos and its
+children are not touched. A second restart command while one runs is answered `done` and starts no second preflight.
+Nothing takes the board back: a successor that fails leaves no Hephaestus on the board.
 
 ### result
 
@@ -1045,7 +1049,11 @@ rule matches waits for Hephaestus.
 
 ### successor
 
-The Hephaestus that follows another, on the code on disk: in a [Baton pass](#baton-pass), or after one died.
+The Hephaestus that follows another, on the code on disk: in a [restart](#restart), or after one died. The one a
+restart starts runs `start --successor-of <generation>` on the same port. It first waits for the process of that
+generation to end, then is a start like any other: start origin `successor`, the install check, the start gate and the
+normal claim of the next generation of the [Hephaestus lock](#hephaestus-lock) over the dead one, then
+[Regrouping](#regrouping). The `handed-over` ending of the generation it names classifies it `handover`.
 
 ### supervision lease
 
@@ -1096,8 +1104,9 @@ first run left.
 
 ### undriven gap
 
-The moment in a [Baton pass](#baton-pass) when neither Hephaestus drives the board: the old one closed its listener and
-the successor has not claimed. Talos and its children run through it.
+The moment in a [restart](#restart) when neither Hephaestus drives the board: from the old one closing its listener
+until the [successor](#successor) claims the next [Hephaestus lock](#hephaestus-lock) and serves. Talos and its
+children run through it, under the [supervision lease](#supervision-lease) the old one renewed until it exited.
 
 ### usage marker
 

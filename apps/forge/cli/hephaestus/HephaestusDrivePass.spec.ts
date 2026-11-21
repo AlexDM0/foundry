@@ -372,7 +372,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch inbox', () => {
     expect(storedProgressOf(repositoryDirectory).tasks.length).toBeGreaterThan(0);
   });
 
-  test('a commit whose replies were never written (a crash or a Baton takeover) has each reply written again from its record, nothing applied twice', async () => {
+  test('a commit whose replies were never written (a crash or a Hephaestus lock takeover) has each reply written again from its record, nothing applied twice', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
     const jobId = buildJobId();
@@ -430,7 +430,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Hatch inbox', () => {
     expect(storedProgressOf(repositoryDirectory).tasks.length).toBe(ticketCountBefore);
   });
 
-  test('a request of a Hatch format this Hephaestus does not read stays pending, unanswered and unlogged, for Hephaestus a Baton pass brings', async () => {
+  test('a request of a Hatch format this Hephaestus does not read stays pending, unanswered and unlogged, for Hephaestus a restart brings', async () => {
     const drivePass = await drivePassWith(WAITING_SESSION);
     await passOnce(drivePass);
     const jobId = buildJobId();
@@ -834,14 +834,14 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the reconcile at start', () =
       crashSuspected:     false,
       crashedComponent:   kind === 'crashed' ? 'hephaestus' : null,
       evidence:           {
-        presence:               'read',
-        previousEnding:         kind === 'stopped-on-purpose' ? 'stopped' : null,
-        previousBootIdentity:   'example-boot',
-        currentBootIdentity:    'example-boot',
-        newerBatonThanPresence: false,
-        talos:                  'lost-this-boot',
-        lastHeartbeatAt:        null,
-        bootStartedAt:          null,
+        presence:                        'read',
+        previousEnding:                  kind === 'stopped-on-purpose' ? 'stopped' : null,
+        previousBootIdentity:            'example-boot',
+        currentBootIdentity:             'example-boot',
+        newerHephaestusLockThanPresence: false,
+        talos:                           'lost-this-boot',
+        lastHeartbeatAt:                 null,
+        bootStartedAt:                   null,
       },
     };
   }

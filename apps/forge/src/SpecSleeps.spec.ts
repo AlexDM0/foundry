@@ -65,7 +65,7 @@ const KEPT_FIXED_WAITS: Readonly<Record<string, string>> = {
     'The same smoke run.',
   'cli/testing/CutoverSmoke.ts: await sleep(STOPPING_JOB_INTERVAL_MILLISECONDS);':
     'The same smoke run.',
-  'cli/testing/CutoverSmoke.ts: while (processIsAlive(baton.processId)) await sleep(POLL_INTERVAL_MILLISECONDS / 10);':
+  'cli/testing/CutoverSmoke.ts: while (processIsAlive(hephaestusLock.processId)) await sleep(POLL_INTERVAL_MILLISECONDS / 10);':
     'The same smoke run.',
   'cli/testing/CutoverSmoke.ts: for (let attempt = 0; attempt < STOPPING_JOB_TRIES && (await liveJobs()).some((liveJob) => liveJob.state === \'stopping\'); attempt++) {':
     'The same smoke run.',

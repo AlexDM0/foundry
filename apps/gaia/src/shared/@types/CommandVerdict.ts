@@ -48,7 +48,7 @@ export interface OutageResumeForgeAnswer {
 
 /**
  * `path-chosen`: a `path-choose` ended with User's choice, which the answer carries. `restart-pending`: a `forge-update` was done, but the
- * live Hephaestus did not take the Baton pass and runs the old code until it restarts. `unreachable`: the forge gave no answer in time.
+ * live Hephaestus did not take the restart and runs the old code until it restarts. `unreachable`: the forge gave no answer in time.
  * `not-supported`: the forge speaks a control contract Gaia does not know, its program answered in a way Gaia does not understand, or this
  * machine has no chooser. `outage-resume-answered`: the fleet's resume of the jobs a network outage stopped, with one answer per forge.
  */

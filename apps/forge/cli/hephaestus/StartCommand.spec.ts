@@ -3,7 +3,7 @@
  * its start gate, over recorded git and the recorded process table, with the detached child a recorded spawn that has exited. What matters:
  * `--started-by` takes `user` or `login-item`, `user` when absent, and hands it to the child; and a login item's start after a crash is refused
  * `forge-off-after-crash` before any spawn, telling the registry the forge crashed, since the child would only stay off; an older crash log of
- * the same Baton generation is left alone, and the refusal and the registry name the new one.
+ * the same Hephaestus lock generation is left alone, and the refusal and the registry name the new one.
  */
 import { readFileSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -16,9 +16,9 @@ import {
   test
 } from 'bun:test';
 
-import { Baton }                                                 from '../../src/services/hephaestus/Baton.ts';
 import { CrashLog }                                              from '../../src/services/hephaestus/CrashLog.ts';
 import { hephaestusFilesIn }                                     from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                        from '../../src/services/hephaestus/HephaestusLock.ts';
 import { Presence }                                              from '../../src/services/hephaestus/Presence.ts';
 import { requireWorkspace }                                      from '../../src/services/tracker/Workspace.ts';
 import { MONITOR_REGISTRY_FILES }                                from '../../src/services/tracker/constants/MonitorRegistryFiles.ts';
@@ -111,11 +111,11 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the start or
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'a start with a Hephaestus live', () => {
-  /** A live Hephaestus whose API never answers: a Baton that names a process of the recorded table. */
+  /** A live Hephaestus whose API never answers: a Hephaestus lock that names a process of the recorded table. */
   function plantALiveHephaestus(context: ReturnType<typeof startContext>): void {
     const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
     const liveHephaestus = processTable.bornProcess();
-    const acquisition = Baton.acquire(context.platformPorts, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(context.platformPorts, hephaestusDirectory, {
       processId:            liveHephaestus.processId,
       processStartStamp:    liveHephaestus.startStamp,
       bootIdentity:         liveHephaestus.bootIdentity,
@@ -149,7 +149,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a start with
     expect(await runCommandLine(['start', '--foreground', '--port', '0'], context)).toBe(1);
 
     expect(context.errorText()).toContain(`A Hephaestus already serves this board at ${UNANSWERING_URL}`);
-    expect(Baton.batonGenerationsIn(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory)).toEqual([1]);
+    expect(HephaestusLock.generationsIn(hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory).hephaestusDirectory)).toEqual([1]);
   });
 });
 
@@ -158,7 +158,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a login item
     const workspace = requireWorkspace(repositoryDirectory);
     const files = hephaestusFilesIn(workspace.trackerDirectory);
     const earlierRun = { processId: 4141, startStamp: '1600000000', bootIdentity: 'example-earlier-boot' };
-    // An earlier run under the same Baton generation crashed too: generations start again at 1 after a stop.
+    // An earlier run under the same Hephaestus lock generation crashed too: generations start again at 1 after a stop.
     CrashLog.writeOnce(files, CrashLog.assemble({
       crashedGeneration: CRASHED_GENERATION,
       component:         'hephaestus',
@@ -169,12 +169,12 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a login item
       error:             {
         origin: 'pass', name: 'EarlierError', message: 'an earlier crash of the same generation', stack: null
       },
-      presence:      null,
-      batonHolder:   earlierRun,
-      heartbeat:     null,
-      activeJobs:    [],
-      talosChildren: null,
-      logTail:       [],
+      presence:             null,
+      hephaestusLockHolder: earlierRun,
+      heartbeat:            null,
+      activeJobs:           [],
+      talosChildren:        null,
+      logTail:              [],
     }));
     const crashed = processTable.bornProcess();
     Presence.writeStartedPresence(files, {
@@ -191,7 +191,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'a login item
 
     expect(await runCommandLine(['start', '--started-by', 'login-item', '--port', '0'], context)).toBe(1);
 
-    expect(context.errorText()).toContain(`is off after a crash of Baton ${CRASHED_GENERATION}`);
+    expect(context.errorText()).toContain(`is off after a crash of Hephaestus lock ${CRASHED_GENERATION}`);
     expect(spawnedCommands).toEqual([]);
     expect(CrashLog.list(files)).toEqual([1, 2]);
     const crashLogPath = CrashLog.pathOf(files, 2);

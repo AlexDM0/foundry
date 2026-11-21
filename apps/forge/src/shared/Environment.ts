@@ -61,7 +61,7 @@ export const HEPHAESTUS_POLL_INTERVAL_VARIABLE = hephaestusPollIntervalVariableO
 const WHOLE_MILLISECONDS = /^[1-9]\d*$/u;
 
 /**
- * A test setting: the milliseconds between Hephaestus's ready, Baton pass and stop polls, in place of the limits in
+ * A test setting: the milliseconds between Hephaestus's ready, restart and stop polls, in place of the limits in
  * `src/shared/constants/HephaestusLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number is refused.
  */
 export function hephaestusPollIntervalOverride(): number | undefined {

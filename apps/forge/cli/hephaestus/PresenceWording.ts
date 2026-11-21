@@ -17,9 +17,9 @@ const SUPERVISION_TEXT: Readonly<Record<Supervision, string>> = Object.freeze({
   'no-talos':             'no Talos runs',
 });
 
-function crashedBatonTextOf(crash: CrashReading): string {
-  const baton = crash.crashedGeneration === null ? 'a Baton nothing names' : `Baton ${crash.crashedGeneration}`;
-  return `${baton}${crash.suspected ? ', suspected before the machine restarted' : ''}`;
+function crashedHephaestusLockTextOf(crash: CrashReading): string {
+  const hephaestusLock = crash.crashedGeneration === null ? 'a Hephaestus lock nothing names' : `Hephaestus lock ${crash.crashedGeneration}`;
+  return `${hephaestusLock}${crash.suspected ? ', suspected before the machine restarted' : ''}`;
 }
 
 function crashLogTextOf(crashLog: StatusCrashLog | null): string {
@@ -27,7 +27,7 @@ function crashLogTextOf(crashLog: StatusCrashLog | null): string {
 }
 
 function offAfterACrashLineOf(crash: CrashReading, crashLog: StatusCrashLog | null): string {
-  return `${PROGRAM}: off after a crash of ${crashedBatonTextOf(crash)} (${crashLogTextOf(crashLog)}); start it again with \`${PROGRAM} start\`, `
+  return `${PROGRAM}: off after a crash of ${crashedHephaestusLockTextOf(crash)} (${crashLogTextOf(crashLog)}); start it again with \`${PROGRAM} start\`, `
     + `then resume the interrupted work with \`${PROGRAM} resume --all\``;
 }
 

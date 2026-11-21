@@ -833,13 +833,13 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'malformed-hatch-reply':
       return `Hephaestus's reply ${detail.replyFilePath} cannot be read, so whether the request was applied is unknown.`;
     case 'hephaestus-already-running':
-      return `A Hephaestus already serves this board at ${detail.url} (${detail.batonFilePath}). `
+      return `A Hephaestus already serves this board at ${detail.url} (${detail.hephaestusLockFilePath}). `
         + `Stop it first${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} stop\``, '')}.`;
     case 'hephaestus-down':
-      return `No Hephaestus serves this board (${detail.hephaestusDirectory} holds no live Baton). `
+      return `No Hephaestus serves this board (${detail.hephaestusDirectory} holds no live Hephaestus lock). `
         + `${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} start\``, 'Start the board')} again to start one.`;
     case 'hephaestus-contended':
-      return `Another Hephaestus started in ${detail.hephaestusDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
+      return `Another Hephaestus started in ${detail.hephaestusDirectory} at the same moment and holds the newer Hephaestus lock, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':
       return `Gates and install lines cannot run confined here, so Hephaestus did not start: ${detail.reason}.`;
     case 'malformed-hephaestus-poll-interval':
@@ -849,10 +849,10 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
         + 'Unset it or correct it.';
     case 'git-below-floor':
       return gitBelowFloorText(detail, channel);
-    case 'baton-taken':
-      return `A newer Hephaestus took this board over from the Baton ${detail.batonFilePath}, so this Hephaestus stopped without acting.`;
-    case 'baton-not-created-whole':
-      return `The Baton ${detail.batonFilePath} cannot be created whole (${detail.reason}), so Hephaestus did not start. Its claim needs a `
+    case 'hephaestus-lock-taken':
+      return `A newer Hephaestus took this board over from the Hephaestus lock ${detail.hephaestusLockFilePath}, so this Hephaestus stopped without acting.`;
+    case 'hephaestus-lock-not-created-whole':
+      return `The Hephaestus lock ${detail.hephaestusLockFilePath} cannot be created whole (${detail.reason}), so Hephaestus did not start. Its claim needs a `
         + 'hard link: move the data folder to a filesystem that allows one.';
     case 'hephaestus-port-in-use':
       return detail.firstPort === detail.lastPort
@@ -861,16 +861,18 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
           + adviceFor(channel, ' Pass a free one with --port.', '');
     case 'hephaestus-identity-unreadable':
       return detail.identitySources.length === 0
-        ? `The start and boot of process ${detail.processId} cannot be read on this platform, so it cannot hold a Hephaestus Baton.`
-        : `The start and boot of process ${detail.processId} cannot be read from ${detail.identitySources.join(' and ')}, so it cannot hold a Hephaestus Baton.`;
+        ? `The start and boot of process ${detail.processId} cannot be read on this platform, so it cannot hold a Hephaestus lock.`
+        : `The start and boot of process ${detail.processId} cannot be read from ${detail.identitySources.join(' and ')}, so it cannot hold a Hephaestus lock.`;
     case 'hephaestus-did-not-start':
       return `The detached Hephaestus exited${detail.exitCode === null ? '' : ` with code ${detail.exitCode}`} before it answered. `
         + `Its log is ${detail.logFilePath}${adviceFor(channel, `; run \`${PRODUCT_NAMES.PROGRAM} start --foreground\` to see why`, ', which may name the cause')}.`;
     case 'hephaestus-still-live':
-      return `Hephaestus at ${detail.url} (process ${detail.processId}) is still live after being asked to stop; its Baton was left as it is.`;
-    case 'baton-pass-failed':
-      return `The Baton pass to code ${detail.successorCodeVersion} failed at ${detail.step}: ${detail.error}. `
-        + `The old Hephaestus keeps driving${detail.url === null ? '' : ` at ${detail.url}`} and shows this as a warning; `
+      return `Hephaestus at ${detail.url} (process ${detail.processId}) is still live after being asked to stop; its Hephaestus lock was left as it is.`;
+    case 'restart-failed':
+      return `The restart to code ${detail.successorCodeVersion} failed at ${detail.step}: ${detail.error}. `
+        + (detail.url === null
+          ? 'The old Hephaestus had let go, so no Hephaestus is on the board; '
+          : `The old Hephaestus keeps driving at ${detail.url} and shows this as a warning; `)
         + `see ${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} status\` and `, '')}the Hephaestus log.`;
     case 'hephaestus-control-is-runtime-only':
       return `${detail.commandKind} is sent to the live Hephaestus, never applied to the board. ${NOTHING_WAS_WRITTEN}`;
@@ -919,7 +921,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'picture-type-unsupported':
       return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
     case 'hephaestus-owns-the-lifecycle':
-      return `A Hephaestus drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
+      return `A Hephaestus drives this board at ${detail.url} (${detail.hephaestusLockFilePath}), so only it delivers tickets. `
         + 'Ask Hephaestus to record the ticket as delivered by hand'
         + `${adviceFor(channel, `, or stop Hephaestus with \`${PRODUCT_NAMES.PROGRAM} stop\` first`, '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'talos-protocol-differs':
@@ -931,7 +933,8 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The ${PRODUCT_NAMES.PROGRAM} crashed (${detail.component}) and stays off; `
         + `its crash log ${detail.crashLogPath === null ? 'could not be written' : `is ${detail.crashLogPath}`}.`;
     case 'forge-off-after-crash':
-      return `The ${PRODUCT_NAMES.PROGRAM} is off after a crash ${detail.crashedGeneration === null ? 'of a Baton nothing names' : `of Baton ${detail.crashedGeneration}`}`
+      return `The ${PRODUCT_NAMES.PROGRAM} is off after a crash `
+        + `${detail.crashedGeneration === null ? 'of a Hephaestus lock nothing names' : `of Hephaestus lock ${detail.crashedGeneration}`}`
         + `${detail.suspected ? ', suspected before the machine restarted' : ''}; `
         + adviceFor(
           channel,

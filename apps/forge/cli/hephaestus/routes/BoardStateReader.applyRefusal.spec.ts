@@ -82,7 +82,7 @@ function servedPipelineSetupOf(store: BoardStore) {
     boardChildren: talosChildReadingsWith(nativePlatformPorts(), workspace.trackerDirectory),
     notices:       () => [],
     hephaestus:    () => ({
-      state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, batonPassWarning: null
+      state: 'serving', url: null, generation: null, codeVersion: 'code-example', installVersion: 1, restartWarning: null
     }),
   });
   return BoardDocumentAssembly.boardDocumentOf({ ...read, now: FROZEN_NOW }).pipelineSetup;

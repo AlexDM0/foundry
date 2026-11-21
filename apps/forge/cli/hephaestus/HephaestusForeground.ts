@@ -1,7 +1,8 @@
 /**
- * `start --foreground`: wins the Baton, serves the board's API and lives until a stop signal, a `hephaestus-stop` command, a Baton pass to a
- * successor on the code on disk after `hephaestus-restart`, or a newer generation taking the board over, which ends it `baton-taken`
- * (exit 2) without touching what the new Hephaestus holds. `start --successor-of <generation>` is that successor's side of the Baton pass.
+ * `start --foreground`: wins the Hephaestus lock, serves the board's API and lives until a stop signal, a `hephaestus-stop` command, a
+ * `hephaestus-restart`, or a newer generation taking the board over, which ends it `hephaestus-lock-taken` (exit 2) without touching what the
+ * new Hephaestus holds. A restart proves the code on disk in a preflight, ends this generation `handed-over` and starts the successor, which
+ * `start --successor-of <generation>` runs as a start like any other.
  */
 import { randomBytes } from 'node:crypto';
 import {
@@ -12,51 +13,43 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 
-import { OperationRefusalWordingUtil }                    from '../../src/adapters/utils/OperationRefusalWordingUtil.ts';
-import { writeOwnerOnlyFileAtomically }                   from '../../src/lib/atomic-file/AtomicFile.ts';
-import { GitProcess }                                     from '../../src/lib/git/GitProcess.ts';
-import { LocalTimeUtil }                                  from '../../src/lib/local-time/LocalTimeUtil.ts';
-import type { PlatformPorts }                             from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { type ProcessIdentity, sameBoot }                 from '../../src/lib/process-identity/ProcessIdentity.ts';
-import { QuietWatch }                                     from '../../src/lib/quiet-watch/QuietWatch.ts';
-import { TALOS_PROTOCOL_VERSION }                         from '../../src/lib/talos/constants/TalosProtocol.ts';
-import type { StartOrigin }                               from '../../src/lib/tracker-model/@types/Job.ts';
-import type { LogRecordFieldsOf }                         from '../../src/lib/tracker-model/@types/LogRecord.ts';
-import { readingBoardOf }                                 from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { finishHalfAppliedSetup }                         from '../../src/services/control/PipelineSetupControls.ts';
-import type { CrashedComponent }                          from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
-import { AgentSlots }                                     from '../../src/services/hephaestus/AgentSlots.ts';
-import { Baton, type BatonAcquisition, type BatonRecord } from '../../src/services/hephaestus/Baton.ts';
-import {
-  type BatonPassFailure,
-  type BatonPassOutcome,
-  type BatonPassSchedule,
-  type BatonPassStep,
-  type BatonPassStepRun,
-  type RebindOutcome,
-  BatonPass
-} from '../../src/services/hephaestus/BatonPass.ts';
-import type { BoardChildren }                                             from '../../src/services/hephaestus/BoardChildren.ts';
-import { CodeVersion }                                                    from '../../src/services/hephaestus/CodeVersion.ts';
-import { CrashLog }                                                       from '../../src/services/hephaestus/CrashLog.ts';
-import { CrashPath, type CrashPathContext }                               from '../../src/services/hephaestus/CrashPath.ts';
-import { DataFolderWatch }                                                from '../../src/services/hephaestus/DataFolderWatch.ts';
-import { createDrivePass, type DrivePass }                                from '../../src/services/hephaestus/DrivePass.ts';
-import { EventBroker }                                                    from '../../src/services/hephaestus/EventBroker.ts';
-import { hephaestusFilesIn, hephaestusTokenPathOf, type HephaestusFiles } from '../../src/services/hephaestus/HephaestusFiles.ts';
-import type { HephaestusPortChoice }                                      from '../../src/services/hephaestus/HephaestusPort.ts';
-import { HephaestusServer, type HephaestusServer as StartedServer }       from '../../src/services/hephaestus/HephaestusServer.ts';
-import { createInstallChangeWatch, versionsFromTheBinary }                from '../../src/services/hephaestus/InstallChangeWatch.ts';
-import { type LeaseRenewal, startLeaseRenewal }                           from '../../src/services/hephaestus/LeaseRenewal.ts';
-import { MachineAgentLimit }                                              from '../../src/services/hephaestus/MachineAgentLimit.ts';
-import { MainLineReads }                                                  from '../../src/services/hephaestus/MainLineReads.ts';
-import { MonitorSnapshotAssembly, type MonitorHephaestusFacts }           from '../../src/services/hephaestus/MonitorSnapshotAssembly.ts';
-import { MonitorStream }                                                  from '../../src/services/hephaestus/MonitorStream.ts';
-import { Presence }                                                       from '../../src/services/hephaestus/Presence.ts';
-import { createTalosChildren }                                            from '../../src/services/hephaestus/TalosChildren.ts';
-import { type TalosConnection, connectToTalos }                           from '../../src/services/hephaestus/TalosConnection.ts';
-import { createLineRunner }                                               from '../../src/services/hephaestus/TalosLines.ts';
-import { quitTalosForRestart }                                            from '../../src/services/hephaestus/TalosRestart.ts';
+import { writeOwnerOnlyFileAtomically }                                              from '../../src/lib/atomic-file/AtomicFile.ts';
+import { GitProcess }                                                                from '../../src/lib/git/GitProcess.ts';
+import { LocalTimeUtil }                                                             from '../../src/lib/local-time/LocalTimeUtil.ts';
+import type { PlatformPorts }                                                        from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import { type ProcessIdentity, sameBoot }                                            from '../../src/lib/process-identity/ProcessIdentity.ts';
+import { QuietWatch }                                                                from '../../src/lib/quiet-watch/QuietWatch.ts';
+import { TALOS_PROTOCOL_VERSION }                                                    from '../../src/lib/talos/constants/TalosProtocol.ts';
+import type { StartOrigin }                                                          from '../../src/lib/tracker-model/@types/Job.ts';
+import type { LogRecordFieldsOf }                                                    from '../../src/lib/tracker-model/@types/LogRecord.ts';
+import { readingBoardOf }                                                            from '../../src/lib/tracker-model/ReadingBoard.ts';
+import { finishHalfAppliedSetup }                                                    from '../../src/services/control/PipelineSetupControls.ts';
+import type { CrashedComponent }                                                     from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
+import { AgentSlots }                                                                from '../../src/services/hephaestus/AgentSlots.ts';
+import type { BoardChildren }                                                        from '../../src/services/hephaestus/BoardChildren.ts';
+import { CodeVersion }                                                               from '../../src/services/hephaestus/CodeVersion.ts';
+import { CrashLog }                                                                  from '../../src/services/hephaestus/CrashLog.ts';
+import { CrashPath, type CrashPathContext }                                          from '../../src/services/hephaestus/CrashPath.ts';
+import { DataFolderWatch }                                                           from '../../src/services/hephaestus/DataFolderWatch.ts';
+import { createDrivePass, type DrivePass }                                           from '../../src/services/hephaestus/DrivePass.ts';
+import { EventBroker }                                                               from '../../src/services/hephaestus/EventBroker.ts';
+import { hephaestusFilesIn, hephaestusTokenPathOf, type HephaestusFiles }            from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock, type HephaestusLockAcquisition, type HephaestusLockRecord } from '../../src/services/hephaestus/HephaestusLock.ts';
+import type { HephaestusPortChoice }                                                 from '../../src/services/hephaestus/HephaestusPort.ts';
+import { HephaestusServer, type HephaestusServer as StartedServer }                  from '../../src/services/hephaestus/HephaestusServer.ts';
+import { createInstallChangeWatch, versionsFromTheBinary }                           from '../../src/services/hephaestus/InstallChangeWatch.ts';
+import { type LeaseRenewal, startLeaseRenewal }                                      from '../../src/services/hephaestus/LeaseRenewal.ts';
+import { MachineAgentLimit }                                                         from '../../src/services/hephaestus/MachineAgentLimit.ts';
+import { MainLineReads }                                                             from '../../src/services/hephaestus/MainLineReads.ts';
+import { MonitorSnapshotAssembly, type MonitorHephaestusFacts }                      from '../../src/services/hephaestus/MonitorSnapshotAssembly.ts';
+import { MonitorStream }                                                             from '../../src/services/hephaestus/MonitorStream.ts';
+import { Presence }                                                                  from '../../src/services/hephaestus/Presence.ts';
+import { type RestartFailure, type RestartStepRun, Restart }                         from '../../src/services/hephaestus/Restart.ts';
+import type { StartOriginReading }                                                   from '../../src/services/hephaestus/StartClassification.ts';
+import { createTalosChildren }                                                       from '../../src/services/hephaestus/TalosChildren.ts';
+import { type TalosConnection, connectToTalos }                                      from '../../src/services/hephaestus/TalosConnection.ts';
+import { createLineRunner }                                                          from '../../src/services/hephaestus/TalosLines.ts';
+import { quitTalosForRestart }                                                       from '../../src/services/hephaestus/TalosRestart.ts';
 import {
   type TalosAvailability,
   type TalosStartContext,
@@ -79,17 +72,16 @@ import { branchNamesOf }              from '../../src/shared/BranchNames.ts';
 import {
   agentVariableIsSet,
   environmentCopy,
-  outlivingProgramEnvironment,
   hephaestusPollIntervalOverride,
+  outlivingProgramEnvironment,
   versionsAnswerOverride
 } from '../../src/shared/Environment.ts';
-import { OperationRefusal }           from '../../src/shared/OperationRefusal.ts';
+import { OperationRefusal }                from '../../src/shared/OperationRefusal.ts';
 import {
-  BATON_PASS_READY_INTERVAL_MILLISECONDS,
-  BATON_PASS_READY_TRIES,
-  BATON_PASS_REBIND_TRIES,
-  BATON_PASS_RELEASE_TRIES,
-  HEPHAESTUS_STOP_WAIT_MILLISECONDS
+  HEPHAESTUS_STOP_INTERVAL_MILLISECONDS,
+  HEPHAESTUS_STOP_TRIES,
+  HEPHAESTUS_STOP_WAIT_MILLISECONDS,
+  RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
 import type { CommandContext }                                          from '../CommandContext.ts';
 import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                            from '../CommandControlContext.ts';
@@ -99,7 +91,7 @@ import { INSTALL_VERSION }                                              from '..
 import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
 import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
 import { writeAsHephaestus }                                            from './HephaestusBoardWrites.ts';
-import { type HephaestusPollSchedule, hephaestusPollScheduleOf }        from './HephaestusPollSchedule.ts';
+import { hephaestusPollScheduleOf }                                     from './HephaestusPollSchedule.ts';
 import { HephaestusWording }                                            from './HephaestusWording.ts';
 import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
 import { createMergeForecastCache, readBoardState }                     from './routes/BoardStateReader.ts';
@@ -135,7 +127,7 @@ interface CrashPathReach {
   contextNow: () => CrashPathContext | null;
 }
 
-/** One serving period under one Baton generation; a Baton pass that failed after the release starts another in the same process. */
+/** The serving period of this process, under one Hephaestus lock generation. */
 interface Serving {
   generation:      number;
   server:          StartedServer;
@@ -145,20 +137,7 @@ interface Serving {
   boardChildren:   BoardChildren;
 }
 
-const TOKEN_BYTES            = 32;
-
-function batonPassPollOf(tries: number): HephaestusPollSchedule {
-  return hephaestusPollScheduleOf({ tries, intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
-}
-
-function batonPassSchedule(): BatonPassSchedule {
-  const readyPoll = batonPassPollOf(BATON_PASS_READY_TRIES);
-  return {
-    readyTries:           readyPoll.tries,
-    releaseTries:         batonPassPollOf(BATON_PASS_RELEASE_TRIES).tries,
-    intervalMilliseconds: readyPoll.intervalMilliseconds,
-  };
-}
+const TOKEN_BYTES = 32;
 
 /** Every line goes to standard error and is appended to `<data>/hephaestus.log`, which a reader tails, so it is never rewritten whole. */
 export function hephaestusLoggerOf(context: CommandContext, files: HephaestusFiles): (line: string) => void {
@@ -173,13 +152,13 @@ export function hephaestusLoggerOf(context: CommandContext, files: HephaestusFil
   };
 }
 
-function alreadyRunningRefusal(files: HephaestusFiles, generation: number, record: BatonRecord): OperationRefusal {
-  const batonFilePath = Baton.batonFilePathFor(files.hephaestusDirectory, generation);
-  return new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: record.url, batonFilePath });
+function alreadyRunningRefusal(files: HephaestusFiles, generation: number, record: HephaestusLockRecord): OperationRefusal {
+  const hephaestusLockFilePath = HephaestusLock.filePathFor(files.hephaestusDirectory, generation);
+  return new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: record.url, hephaestusLockFilePath });
 }
 
 export function requireNoLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles): void {
-  const newest = Baton.newestBatonOf(ports, files.hephaestusDirectory);
+  const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
   if (newest.verdict === 'live') throw alreadyRunningRefusal(files, newest.generation, newest.record);
 }
 
@@ -205,16 +184,16 @@ export async function closeTheStoppedHephaestus(
 ): Promise<void> {
   const { context, workspace } = request;
   await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordHephaestusStopped('stopped', transaction.at));
-  if (Baton.batonGenerationsIn(files.hephaestusDirectory).at(-1) !== generation) return;
+  if (HephaestusLock.generationsIn(files.hephaestusDirectory).at(-1) !== generation) return;
   const stoppedAt = LocalTimeUtil.formatLocalIso(context.now());
   await registerHephaestus(request, { hephaestus: 'removed', presence: { state: 'stopped', generation, at: stoppedAt } });
   Presence.writeEnding(files, generation, { kind: 'stopped' }, stoppedAt);
-  Baton.release(files.hephaestusDirectory, generation);
+  HephaestusLock.release(files.hephaestusDirectory, generation);
 }
 
 /**
  * The ending of a generation that released the board to its successor: presence, then the registry, say `handed-over`, and the board log
- * `baton-passed`. `endingWritten` runs once presence holds the ending, so no crash is recorded over it.
+ * `handed-over`. `endingWritten` runs once presence holds the ending, so no crash is recorded over it.
  */
 export async function recordTheHandover(
   request: StoppedHephaestusRequest,
@@ -228,7 +207,7 @@ export async function recordTheHandover(
   Presence.writeEnding(files, generation, { kind: 'handed-over' }, handedOverAt);
   endingWritten();
   await registerHephaestus(request, { presence: { state: 'handed-over', generation, at: handedOverAt } });
-  await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordHephaestusStopped('baton-passed', transaction.at));
+  await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordHephaestusStopped('handed-over', transaction.at));
 }
 
 /** The lease renewal's hook: each renewal Talos confirmed is one beat of this generation. */
@@ -244,7 +223,7 @@ export interface StopWait {
 }
 
 /**
- * Runs the waits in turn, all of them under one bound, so a stop records itself and releases its Baton before Windows ends a closed console's
+ * Runs the waits in turn, all of them under one bound, so a stop records itself and releases its Hephaestus lock before Windows ends a closed console's
  * process. The wait the bound cuts short is logged by name; the waits after it are started and not awaited.
  */
 export async function waitOutTheStopWaits(waits: readonly StopWait[], log: (line: string) => void, boundMilliseconds: number): Promise<void> {
@@ -278,7 +257,7 @@ function writeToken({ ownerOnlyFiles }: PlatformPorts, tokenFilePath: string): s
   return token;
 }
 
-function batonRefusalOf(acquisition: Exclude<BatonAcquisition, { verdict: 'acquired' }>, files: HephaestusFiles): OperationRefusal {
+function hephaestusLockRefusalOf(acquisition: Exclude<HephaestusLockAcquisition, { verdict: 'acquired' }>, files: HephaestusFiles): OperationRefusal {
   if (acquisition.verdict === 'contended') return new OperationRefusal('refused', { kind: 'hephaestus-contended', hephaestusDirectory: files.hephaestusDirectory });
   return alreadyRunningRefusal(files, acquisition.generation, acquisition.record);
 }
@@ -290,7 +269,7 @@ function hephaestusLifetime(request: ForegroundRunRequest, files: HephaestusFile
   // Each drive pass checks before its effects; this watch ends an idle Hephaestus as soon as a newer generation appears.
   const beforeEffectBatch = () => {
     try {
-      Baton.requireNewestGeneration(files.hephaestusDirectory, generation);
+      HephaestusLock.requireNewestGeneration(files.hephaestusDirectory, generation);
     } catch (refusal) {
       finish({ kind: 'taken-over', refusal });
     }
@@ -327,11 +306,10 @@ function manifestMatchesIn(repositoryRoot: string): boolean {
   }
 }
 
-/** What the successor proves before it reports `ready`, holding no Baton and writing nothing. */
-function preparationSteps(request: ForegroundRunRequest, boardStore: BoardStore, boardChildren: BoardChildren): readonly BatonPassStepRun[] {
-  const { workspace } = request;
+/** What the code on disk proves before a restart lets go of the board, holding no Hephaestus lock and writing nothing. */
+function preflightSteps(workspace: Workspace, boardStore: BoardStore, boardChildren: BoardChildren): readonly RestartStepRun[] {
   const jobsOf = () => boardStore.reads.requireProgress().jobs ?? [];
-  const steps: readonly BatonPassStepRun[] = [
+  const steps: readonly RestartStepRun[] = [
     { step: 'read-board', run: () => { readingBoardOf(boardStore.reads.requireProgress(), [], []); } },
     {
       step: 'read-jobs',
@@ -363,6 +341,53 @@ function preparationSteps(request: ForegroundRunRequest, boardStore: BoardStore,
   return steps;
 }
 
+/** `start --preflight`: this code reads what a start reads and prints its report as one line; it serves nothing. */
+export async function runTheRestartPreflight(request: StoppedHephaestusRequest): Promise<void> {
+  const { context, workspace } = request;
+  const boardChildren = createTalosChildren({ boardFolder: workspace.trackerDirectory, platformPorts: context.platformPorts, connection: () => null });
+  const report = await Restart.preflightReportOf(CodeVersion.onDisk(), preflightSteps(workspace, hephaestusBoardStoreOf(request), boardChildren));
+  context.standardOutput(Restart.reportLineOf(report));
+}
+
+/** Runs the code on disk as a preflight and reads its report: `null` when it may take the board over. */
+export async function preflightFailureOf(
+  context: Pick<CommandContext, 'programCommand'>,
+  workspace: Pick<Workspace, 'rootDirectory'>,
+  files: Pick<HephaestusFiles, 'logFilePath'>,
+  boundMilliseconds: number = RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS,
+): Promise<RestartFailure | null> {
+  const successorCodeVersion = CodeVersion.onDisk();
+  if (context.programCommand.length === 0) return { successorCodeVersion, step: 'spawn', error: 'this process has no program command to run the code on disk from' };
+  const logFileDescriptor = openSync(files.logFilePath, 'a');
+  let boundTimer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const child = Bun.spawn([...context.programCommand, 'start', '--preflight'], {
+      cwd:         workspace.rootDirectory,
+      env:         outlivingProgramEnvironment(),
+      stdin:       'ignore',
+      stdout:      'pipe',
+      stderr:      logFileDescriptor,
+      windowsHide: true,
+    });
+    // A clock on purpose: a preflight that hangs must end in an actual time, or the restart is never answered.
+    const boundReached = new Promise<'bound-reached'>((resolve) => {
+      boundTimer = setTimeout(() => resolve('bound-reached'), boundMilliseconds);
+    });
+    const ended = await Promise.race([child.exited.then(() => 'ended' as const), boundReached]);
+    if (ended === 'bound-reached') {
+      child.kill();
+      return { successorCodeVersion, step: 'preflight', error: `the preflight left no report within ${boundMilliseconds} ms` };
+    }
+    const output = await new Response(child.stdout).text();
+    return Restart.failureOf(Restart.reportIn(output), successorCodeVersion, `the preflight exited ${child.exitCode} with no report`);
+  } catch (thrown) {
+    return { successorCodeVersion, step: 'spawn', error: thrown instanceof Error ? thrown.message : String(thrown) };
+  } finally {
+    clearTimeout(boundTimer);
+    closeSync(logFileDescriptor);
+  }
+}
+
 /** Why a start whose Talos cannot serve is refused: one of another protocol is never started again, and one that never served stops the start. */
 export function talosStartRefusalOf(availability: Extract<TalosAvailability, { verdict: 'held' | 'unavailable' }>): OperationRefusal {
   if (availability.verdict === 'held') {
@@ -372,7 +397,7 @@ export function talosStartRefusalOf(availability: Extract<TalosAvailability, { v
   return new OperationRefusal('unrepaired', { kind: 'talos-unavailable', reason: availability.reason, startNumber: availability.startNumber });
 }
 
-/** The successor on the code on disk, spawned so it outlives this Hephaestus; `null` when it did not start. */
+/** The successor on the code on disk, spawned once this Hephaestus let go, so it outlives it; `null` when it did not start. */
 export function spawnSuccessor(
   context: Pick<CommandContext, 'programCommand' | 'platformPorts'>,
   workspace: Pick<Workspace, 'rootDirectory'>,
@@ -398,6 +423,16 @@ export function spawnSuccessor(
     return null;
   } finally {
     closeSync(logFileDescriptor);
+  }
+}
+
+/** The Hephaestus that handed over starts its successor as its last act, so the successor waits for that process to end; one still live refuses it. */
+async function waitForThePredecessorToEnd(ports: PlatformPorts, files: HephaestusFiles, predecessorGeneration: number): Promise<void> {
+  const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_STOP_TRIES, intervalMilliseconds: HEPHAESTUS_STOP_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
+  for (let attempt = 0; attempt < schedule.tries; attempt++) {
+    const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
+    if (newest.verdict !== 'live' || newest.generation !== predecessorGeneration) return;
+    await Bun.sleep(schedule.intervalMilliseconds);
   }
 }
 
@@ -434,7 +469,8 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   mkdirSync(files.hephaestusDirectory, { recursive: true });
   // Before any worker starts: a folder absent when a sandbox is wrapped would go undenied.
   platformPorts.ownerOnlyFiles.restrictFolder(dirname(tokenFilePath));
-  if (request.successorOf === undefined) requireNoLiveHephaestus(platformPorts, files);
+  if (request.successorOf !== undefined) await waitForThePredecessorToEnd(platformPorts, files, request.successorOf);
+  requireNoLiveHephaestus(platformPorts, files);
 
   const readIdentity = platformPorts.processSupervision.identityOf(process.pid);
   if (readIdentity === null) {
@@ -444,16 +480,14 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   const ownIdentity: ProcessIdentity = readIdentity;
   const codeVersion = CodeVersion.onDisk();
   const log         = hephaestusLoggerOf(context, files);
-  const startOrigin: StartOrigin = request.successorOf === undefined ? request.startOrigin : 'successor';
-  // Before any Baton, port or Talos, so a start that stays off leaves nothing a later start would read as its own; a successor runs it once
-  // its predecessor released the board or is gone.
-  let startAdmission: ServingAdmission | null = request.successorOf === undefined
-    ? await admitTheStart({
-      context, workspace, boardStore, files, origin: { startOrigin: request.startOrigin }, log
-    })
-    : null;
-  // A rebind after a failed Baton pass serves again under the same admission; only the process's first serving period logs it.
-  let startClassificationLogged = false;
+  const origin: StartOriginReading = request.successorOf === undefined
+    ? { startOrigin: request.startOrigin }
+    : { startOrigin: 'successor', predecessorGeneration: request.successorOf };
+  const { startOrigin } = origin;
+  // Before any Hephaestus lock, port or Talos, so a start that stays off leaves nothing a later start would read as its own.
+  const startAdmission = await admitTheStart({
+    context, workspace, boardStore, files, origin, log
+  });
   // Git runs at the repository's root, never in a tracker's folder below it.
   const { repositoryRoot } = projectLocationOf(workspace.rootDirectory);
   const mainLine    = mainLineOf(repositoryRoot);
@@ -539,7 +573,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   async function recordTheCrash(generation: number, component: CrashedComponent, error: Parameters<typeof CrashPath.record>[1]['error']): Promise<void> {
     const outcome = await CrashPath.record(crashPathContextOf(generation), { component, error });
     recordedCrash = { component, crashLogPath: outcome.crashLogPath };
-    log(`Crashed (${component}) under Baton ${generation}; the crash log is ${outcome.crashLogPath ?? 'not written'} (${outcome.crashLog}).`);
+    log(`Crashed (${component}) under Hephaestus lock ${generation}; the crash log is ${outcome.crashLogPath ?? 'not written'} (${outcome.crashLog}).`);
     (lifetimeBeingStarted ?? current?.lifetime)?.crashed(recordedCrash);
   }
 
@@ -588,26 +622,20 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   // The lifetime of a generation between its creation and `current`, so a crash recorded in that gap still ends the loop.
   let lifetimeBeingStarted: ReturnType<typeof hephaestusLifetime> | null = null;
   let handingOver = false;
-  let batonPassWarning: BatonPassFailure | null = null;
+  let restartWarning: RestartFailure | null = null;
   let printedTheUrl = false;
 
   const hephaestusState = () => {
     const passState = current?.drivePass.state();
     if (passState === undefined) return null;
-    return { ...passState, runtimeState: handingOver ? 'passing-baton' as const : passState.runtimeState, batonPassWarning };
+    return { ...passState, runtimeState: handingOver ? 'restarting' as const : passState.runtimeState, restartWarning };
   };
 
-  /** Binds, takes a generation through `acquireBaton`, records the start, ensures Talos and regroups every child; what it took is let go on a failure. */
-  async function startServing(
-    portChoice: HephaestusPortChoice,
-    acquireBaton: (record: BatonRecord) => BatonAcquisition,
-    enterStep: (step: BatonPassStep) => void,
-  ): Promise<Serving> {
+  /** Binds, takes a generation, records the start, ensures Talos and regroups every child; what it took is let go on a failure. */
+  async function startServing(portChoice: HephaestusPortChoice): Promise<Serving> {
     const admission = startAdmission;
-    if (admission === null) throw new Error('A start serves only once the start gate admitted it.');
     let lifetime: ReturnType<typeof hephaestusLifetime> | null = null;
     let drivePass: DrivePass | null = null;
-    enterStep('bind-port');
     let broker: EventBroker | null = null;
     let monitorStream: MonitorStream | null = null;
     let servedUrl: string | null = null;
@@ -617,12 +645,12 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     const hephaestusFactsNow = () => {
       const state = hephaestusState();
       return {
-        state:            state?.runtimeState ?? 'serving',
-        url:              servedUrl,
-        generation:       state?.generation ?? null,
+        state:          state?.runtimeState ?? 'serving',
+        url:            servedUrl,
+        generation:     state?.generation ?? null,
         codeVersion,
-        installVersion:   INSTALL_VERSION,
-        batonPassWarning: state?.batonPassWarning ?? null,
+        installVersion: INSTALL_VERSION,
+        restartWarning: state?.restartWarning ?? null,
       } as const;
     };
     const monitorFolderOfTheMachine = context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory);
@@ -680,11 +708,16 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
             return outcome;
           }
           if (command.kind === 'hephaestus-restart') {
-          // Set at once, so a second command during this Baton pass never overwrites what the successor reported.
+            // Set at once, so a second command during this restart starts no second preflight.
             handingOver = true;
-            // Written before the command is answered, so whoever sent it never reads an earlier Baton pass's outcome.
-            BatonPass.writeBatonPass(BatonPass.batonPassFilePathOf(files.hephaestusDirectory, current.generation), { state: 'requested' });
-            current.lifetime.restart();
+            const failure = await preflightFailureOf(context, workspace, files);
+            if (failure !== null) {
+              await recordRestartFailure(failure);
+              handingOver = false;
+              throw new OperationRefusal('refused', { kind: 'restart-failed', ...failure, url: server.url });
+            }
+            restartWarning = null;
+            current?.lifetime.restart();
             return 'done';
           }
           current.lifetime.stopFor(command.kind, command.now);
@@ -693,8 +726,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       }),
     });
 
-    enterStep('take-baton');
-    const record: BatonRecord = {
+    const record: HephaestusLockRecord = {
       processId:            ownIdentity.processId,
       processStartStamp:    ownIdentity.startStamp,
       bootIdentity:         ownIdentity.bootIdentity,
@@ -705,16 +737,16 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       installVersion:       INSTALL_VERSION,
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
     };
-    let acquisition: BatonAcquisition;
+    let acquisition: HephaestusLockAcquisition;
     try {
-      acquisition = acquireBaton(record);
+      acquisition = HephaestusLock.acquire(platformPorts, files.hephaestusDirectory, record);
     } catch (refusal) {
       await server.stop();
       throw refusal;
     }
     if (acquisition.verdict !== 'acquired') {
       await server.stop();
-      throw batonRefusalOf(acquisition, files);
+      throw hephaestusLockRefusalOf(acquisition, files);
     }
     const { generation } = acquisition;
     const ownBroker = EventBroker.createEventBroker(generation);
@@ -760,7 +792,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       token    = writeToken(platformPorts, tokenFilePath);
       lifetime = hephaestusLifetime(request, files, generation, log);
       lifetimeBeingStarted = lifetime;
-      enterStep('regroup');
       await writeAsHephaestus(boardStore, context, workspace, (transaction) => {
         // Before the record it looks for: only the first start on a board submits the v16 leftovers.
         transaction.board.submitFirstRunLeftovers(transaction.at);
@@ -768,53 +799,52 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         PictureStore.sweepUnreferenced(workspace.trackerDirectory, PictureStore.referencedPictureIdsOf(transaction.board.logRecordsSoFar(), transaction.board.jobs()));
         finishHalfAppliedSetup(transaction, INSIDE_HEPHAESTUS_CONTROL_CONTEXT);
         const hephaestusStarted = transaction.board.recordHephaestusStarted({ codeVersion, installVersion: INSTALL_VERSION }, transaction.at);
-        if (!startClassificationLogged) transaction.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), transaction.at);
+        transaction.board.recordStartClassified(startClassifiedFieldsOf(admission, startOrigin), transaction.at);
         return hephaestusStarted;
       });
-      startClassificationLogged = true;
-      log(`Hephaestus serving ${server.url} under Baton ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);
+      log(`Hephaestus serving ${server.url} under Hephaestus lock ${generation} (code ${codeVersion}, install version ${INSTALL_VERSION}, agents ${context.agentAdapter.vendor}).`);
 
       const startedLifetime = lifetime;
       drivePass = createDrivePass({
         platformPorts,
         workspace,
         boardStore,
-        now:                   context.now,
-        formatStamp:           (moment) => LocalTimeUtil.formatLocalIso(moment),
-        hephaestusDirectory:   files.hephaestusDirectory,
+        now:                       context.now,
+        formatStamp:               (moment) => LocalTimeUtil.formatLocalIso(moment),
+        hephaestusDirectory:       files.hephaestusDirectory,
         generation,
         boardChildren,
         lineRunner,
         ensureTalosIfLost,
-        programCommand:        context.programCommand,
+        programCommand:            context.programCommand,
         codeVersion,
-        agentAdapter:          context.agentAdapter,
+        agentAdapter:              context.agentAdapter,
         monitorFolder,
-        inheritedEnvironment:  environmentCopy(),
+        inheritedEnvironment:      environmentCopy(),
         mainLine,
         branchNames,
-        installVersionChanged: installWatch.installVersionChanged,
-        installVersionsKnown:  installWatch.versionsSettled,
-        apiBillingKeyIsSet:    () => agentVariableIsSet(context.agentAdapter.credentials.billingKeyVariableName),
-        newCodeOnDisk:         installWatch.newCodeOnDisk,
-        decisionWordingOf:     (draft) => HephaestusWording.decisionWordingOf(draft, context.agentAdapter.credentials),
-        packageNeedWordingOf:  HephaestusWording.packageNeedWordingOf,
-        dependentFixWordingOf: HephaestusWording.dependentFixWordingOf,
-        launchTextOf:          (job, facts) => HephaestusWording.launchTextOf(job, facts, context.agentAdapter.promptFills),
-        assistantChatTextOf:   HephaestusWording.assistantChatTextOf,
-        windDownMessage:       HephaestusWording.windDownMessage(),
-        resumeMessage:         HephaestusWording.resumeMessage(),
-        redHandoffMessageOf:   HephaestusWording.redHandoffMessageOf,
-        answerMessageOf:       HephaestusWording.answerMessageOf,
-        setupMessageWordingOf: (message) => HephaestusWording.setupMessageWordingOf(message, context.agentAdapter.promptFills),
-        homeDirectory:         context.homeDirectory,
+        installVersionChanged:     installWatch.installVersionChanged,
+        installVersionsKnown:      installWatch.versionsSettled,
+        apiBillingKeyIsSet:        () => agentVariableIsSet(context.agentAdapter.credentials.billingKeyVariableName),
+        newCodeOnDisk:             installWatch.newCodeOnDisk,
+        decisionWordingOf:         (draft) => HephaestusWording.decisionWordingOf(draft, context.agentAdapter.credentials),
+        packageNeedWordingOf:      HephaestusWording.packageNeedWordingOf,
+        dependentFixWordingOf:     HephaestusWording.dependentFixWordingOf,
+        launchTextOf:              (job, facts) => HephaestusWording.launchTextOf(job, facts, context.agentAdapter.promptFills),
+        assistantChatTextOf:       HephaestusWording.assistantChatTextOf,
+        windDownMessage:           HephaestusWording.windDownMessage(),
+        resumeMessage:             HephaestusWording.resumeMessage(),
+        redHandoffMessageOf:       HephaestusWording.redHandoffMessageOf,
+        answerMessageOf:           HephaestusWording.answerMessageOf,
+        setupMessageWordingOf:     (message) => HephaestusWording.setupMessageWordingOf(message, context.agentAdapter.promptFills),
+        homeDirectory:             context.homeDirectory,
         log,
-        onBatonTakenOver:      (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
-        onPassCrashed:         (thrown) => recordThePassCrash(generation, thrown),
-        watchHatchFolder:      (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
-        unwatchHatchFolder:    (hatchDirectory) => dataFolderWatch?.unwatchHatchFolder(hatchDirectory),
-        afterPass:             publishState,
-        startClassification:   admission.classification,
+        onHephaestusLockTakenOver: (refusal) => (current?.lifetime ?? startedLifetime).takenOver(refusal),
+        onPassCrashed:             (thrown) => recordThePassCrash(generation, thrown),
+        watchHatchFolder:          (hatchDirectory) => dataFolderWatch?.watchHatchFolder(hatchDirectory),
+        unwatchHatchFolder:        (hatchDirectory) => dataFolderWatch?.unwatchHatchFolder(hatchDirectory),
+        afterPass:                 publishState,
+        startClassification:       admission.classification,
       });
       const startedPass = drivePass;
       dataFolderWatch = DataFolderWatch.startWatching({
@@ -877,14 +907,14 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       lifetime?.stopListening();
       await drivePass?.stop();
       await server.stop();
-      Baton.release(files.hephaestusDirectory, generation);
+      HephaestusLock.release(files.hephaestusDirectory, generation);
       throw thrown;
     }
   }
 
   /**
-   * The release half of a Baton pass: a landing in progress finishes, no effect batch starts, and the listener closes; Talos is sent nothing,
-   * and the lease renewal goes on until this process exits, so the successor's own renewal overlaps it.
+   * A restart's release: a landing in progress finishes, no effect batch starts, the ending `handed-over` is written and the listener closes.
+   * Talos is sent nothing, and the lease renewal goes on until this process exits, so the successor's own renewal overlaps it.
    */
   async function release(serving: Serving): Promise<void> {
     handingOver = true;
@@ -904,160 +934,57 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     log('Released the board to the successor.');
   }
 
-  async function handOver(serving: Serving, successor: ProcessIdentity | null): Promise<BatonPassOutcome> {
-    log(`Handing the board over to the code on disk (Baton ${serving.generation}).`);
-    return await BatonPass.handOver({
-      ports:                platformPorts,
-      batonPassFilePath:    BatonPass.batonPassFilePathOf(files.hephaestusDirectory, serving.generation),
-      successor,
-      successorCodeVersion: CodeVersion.onDisk(),
-      release:              () => release(serving),
-      recordFailure:        recordBatonPassFailure,
-      logSuccessorKill:     (outcome) => log(`The kill of the silent successor answered ${outcome.verdict}.`),
-      schedule:             batonPassSchedule(),
-    });
+  async function recordRestartFailure(failure: RestartFailure): Promise<void> {
+    restartWarning = failure;
+    log(`The restart was refused at ${failure.step}: ${failure.error}. This Hephaestus keeps driving.`);
+    await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordRestartFailed(failure, transaction.at));
   }
 
-  async function recordBatonPassFailure(failure: BatonPassFailure): Promise<void> {
-    batonPassWarning = failure;
-    log(`The Baton pass failed at ${failure.step}: ${failure.error}. This Hephaestus keeps driving.`);
-    await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
-  }
+  const serving = await startServing(request.portChoice);
 
-  /** A taken-back board whose port never came free: the failure, naming the port, is logged and recorded before Hephaestus exits 1. */
-  async function lostPortRefusal(port: number, rebound: Exclude<RebindOutcome<Serving>, { verdict: 'bound' }>): Promise<OperationRefusal> {
-    const cause = rebound.verdict === 'successor-live' ? 'the killed successor was still live' : rebound.error;
-    const failure: BatonPassFailure = {
-      successorCodeVersion: CodeVersion.onDisk(),
-      step:                 'bind-port',
-      error:                `port ${port} could not be bound again within ${batonPassPollOf(BATON_PASS_REBIND_TRIES).tries} tries: ${cause}`,
-    };
-    batonPassWarning = failure;
-    log(`Taking the board back failed: ${failure.error}. This Hephaestus exits with no Hephaestus on the board.`);
-    await writeAsHephaestus(boardStore, context, workspace, (transaction) => transaction.board.recordBatonPassFailed(failure, transaction.at));
-    return new OperationRefusal('refused', { kind: 'baton-pass-failed', ...failure, url: null });
-  }
-
-  /** Proves the new code, waits for the release, then serves; a failure is left in the Baton pass file and the process exits 1. */
-  async function takeOverAsSuccessor(predecessorGeneration: number): Promise<Serving> {
-    const batonPassFilePath = BatonPass.batonPassFilePathOf(files.hephaestusDirectory, predecessorGeneration);
-    const admission = await BatonPass.prepareAndAwaitRelease({
-      batonPassFilePath,
-      codeVersion,
-      predecessorIsLive: () => {
-        const newest = Baton.newestBatonOf(platformPorts, files.hephaestusDirectory);
-        return newest.verdict === 'live' && newest.generation === predecessorGeneration;
-      },
-      schedule: batonPassSchedule(),
-    }, preparationSteps(request, boardStore, boardChildren));
-    if (admission === 'failed') {
-      const report = BatonPass.readBatonPass(batonPassFilePath);
-      const reported = report?.state === 'successor-failed' || report?.state === 'failed';
-      const failure  = reported ? report : { successorCodeVersion: codeVersion, step: 'report-ready', error: 'no report was left' };
-      throw new OperationRefusal('refused', {
-        kind: 'baton-pass-failed', successorCodeVersion: failure.successorCodeVersion, step: failure.step, error: failure.error, url: null
-      });
-    }
-    log(admission === 'released' ? `Baton ${predecessorGeneration} released the board; taking it over.` : `Baton ${predecessorGeneration} is gone; classifying the start.`);
+  const settledEnd = await serving.lifetime.ended;
+  // A crash recorded while another end settled first still ends the loop crashed; the stop waits are checked again below.
+  const crashSeen = recordedCrashNow();
+  const end: HephaestusEnd = crashSeen === null ? settledEnd : { kind: 'crashed', ...crashSeen };
+  if (end.kind === 'restart') {
+    log(`Handing the board over to the code on disk (Hephaestus lock ${serving.generation}).`);
     try {
-      startAdmission = await admitTheStart({
-        context, workspace, boardStore, files, origin: { startOrigin: 'successor', predecessorGeneration }, log
-      });
-    } catch (refusal) {
-      const worded = refusal instanceof OperationRefusal ? new Error(OperationRefusalWordingUtil.messageOf(refusal)) : refusal;
-      BatonPass.reportFailure({ batonPassFilePath, codeVersion }, 'take-baton', worded, admission === 'released');
-      throw refusal;
-    }
-    return await startAsSuccessor(predecessorGeneration, admission);
-  }
-
-  let serving = request.successorOf === undefined
-    ? await startServing(request.portChoice, (record) => Baton.acquire(platformPorts, files.hephaestusDirectory, record), () => undefined)
-    : await takeOverAsSuccessor(request.successorOf);
-
-  async function startAsSuccessor(predecessorGeneration: number, admission: 'released' | 'predecessor-gone'): Promise<Serving> {
-    let step: BatonPassStep = 'bind-port';
-    const batonPassFilePath = BatonPass.batonPassFilePathOf(files.hephaestusDirectory, predecessorGeneration);
-    try {
-      const acquireBaton = admission === 'released'
-        ? (record: BatonRecord) => Baton.acquireAbove(files.hephaestusDirectory, record, predecessorGeneration)
-        : (record: BatonRecord) => Baton.acquire(platformPorts, files.hephaestusDirectory, record);
-      const started = await startServing(request.portChoice, acquireBaton, (entered) => { step = entered; });
-      BatonPass.reportServing({ batonPassFilePath, codeVersion }, started.generation, started.server.url);
-      return started;
-    } catch (thrown) {
-      BatonPass.reportFailure({ batonPassFilePath, codeVersion }, step, thrown, admission === 'released');
-      throw thrown;
-    }
-  }
-
-  for (;;) {
-    const settledEnd = await serving.lifetime.ended;
-    // A crash recorded while another end settled first still ends the loop crashed; the stop waits are checked again below.
-    const crashSeen = recordedCrashNow();
-    const end: HephaestusEnd = crashSeen === null ? settledEnd : { kind: 'crashed', ...crashSeen };
-    if (end.kind === 'restart') {
-      const successor = spawnSuccessor(context, workspace, files, serving.generation, serving.server.port);
-      const outcome = await handOver(serving, successor);
-      if (outcome.verdict === 'baton-passed') {
-        log(`Handed the board over to code ${outcome.successorCodeVersion} at ${outcome.url} under Baton ${outcome.generation}; exiting.`);
-        serving.lifetime.stopListening();
-        return;
-      }
-      if (outcome.verdict === 'kept-driving') {
-        serving.lifetime.stopWatching();
-        serving.lifetime.stopListening();
-        serving.lifetime = hephaestusLifetime(request, files, serving.generation, log);
-        handingOver = false;
-        const drivenOn = serving;
-        serving.drivePass.wake(true);
-        current = drivenOn;
-        continue;
-      }
-      serving.lifetime.stopListening();
-      const failedGeneration = serving.generation + 1;
-      const takeBack = (record: BatonRecord) => Baton.acquireAbove(files.hephaestusDirectory, record, failedGeneration);
-      const { port } = serving.server;
-      const rebound = await BatonPass.rebindAfterTakeBack({
-        ports: platformPorts,
-        successor,
-        ...batonPassPollOf(BATON_PASS_REBIND_TRIES),
-        bind:  () => startServing({ kind: 'given', port }, takeBack, () => undefined),
-      });
-      if (rebound.verdict !== 'bound') throw await lostPortRefusal(port, rebound);
-      serving = rebound.bound;
-      handingOver = false;
-      continue;
-    }
-    serving.lifetime.stopWatching();
-    serving.dataFolderWatch.stop();
-    const stoppingServing = serving;
-    const stopWaits: StopWait[] = [
-      { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
-      ...(end.kind === 'stopped' && end.now ? [{
-        name: 'the stop of the live lines',
-        run:  async () => { await stoppingServing.boardChildren.stopLiveLines(); },
-      }] : []),
-      { name: 'the server stop', run: () => stoppingServing.server.stop() },
-    ];
-    try {
-      await waitOutTheStopWaits(stopWaits, log, HEPHAESTUS_STOP_WAIT_MILLISECONDS);
-      // A pass awaited by the stop waits can record a crash of Talos after the end settled.
-      const crashRefusal = crashRefusalOrNull();
-      if (crashRefusal !== null) {
-        log('Crashed; staying off, keeping the Baton and the registry entry, until a start by hand.');
-        throw crashRefusal;
-      }
-      if (end.kind === 'taken-over') {
-        log('A newer Hephaestus took the board over; stopping without acting.');
-        throw end.refusal;
-      }
-      await closeTheStoppedHephaestus(request, files, serving.generation, boardStore);
-      crashableGeneration = null;
-      log('Hephaestus stopped; its Baton is released.');
+      await release(serving);
     } finally {
       serving.lifetime.stopListening();
     }
+    // The lock is kept and dies with this process, so the successor takes the next generation and no client reads a generation twice.
+    const successor = spawnSuccessor(context, workspace, files, serving.generation, serving.server.port);
+    log(successor === null ? 'The successor could not be started, so no Hephaestus is on the board.' : `Started the successor as process ${successor.processId}; exiting.`);
     return;
+  }
+  serving.lifetime.stopWatching();
+  serving.dataFolderWatch.stop();
+  const stoppingServing = serving;
+  const stopWaits: StopWait[] = [
+    { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
+    ...(end.kind === 'stopped' && end.now ? [{
+      name: 'the stop of the live lines',
+      run:  async () => { await stoppingServing.boardChildren.stopLiveLines(); },
+    }] : []),
+    { name: 'the server stop', run: () => stoppingServing.server.stop() },
+  ];
+  try {
+    await waitOutTheStopWaits(stopWaits, log, HEPHAESTUS_STOP_WAIT_MILLISECONDS);
+    // A pass awaited by the stop waits can record a crash of Talos after the end settled.
+    const crashRefusal = crashRefusalOrNull();
+    if (crashRefusal !== null) {
+      log('Crashed; staying off, keeping the Hephaestus lock and the registry entry, until a start by hand.');
+      throw crashRefusal;
+    }
+    if (end.kind === 'taken-over') {
+      log('A newer Hephaestus took the board over; stopping without acting.');
+      throw end.refusal;
+    }
+    await closeTheStoppedHephaestus(request, files, serving.generation, boardStore);
+    crashableGeneration = null;
+    log('Hephaestus stopped; its Hephaestus lock is released.');
+  } finally {
+    serving.lifetime.stopListening();
   }
 }

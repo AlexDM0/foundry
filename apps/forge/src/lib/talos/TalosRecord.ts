@@ -15,7 +15,7 @@ export interface LeaseRenewer {
   processId:    number;
   startStamp:   string;
   bootIdentity: string;
-  /** The Baton generation of the renewing Hephaestus. */
+  /** The Hephaestus lock generation of the renewing Hephaestus. */
   generation:   number;
 }
 

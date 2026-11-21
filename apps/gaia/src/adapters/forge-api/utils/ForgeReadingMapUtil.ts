@@ -73,8 +73,8 @@ function conditionOf(state: SummaryHephaestusState, paused: boolean): ForgeCondi
   switch (state) {
     case 'held-by-install-change':
       return 'held';
-    case 'passing-baton':
-      return 'passing-baton';
+    case 'restarting':
+      return 'restarting';
     case 'down':
       return 'dormant';
     case 'serving':

@@ -208,15 +208,16 @@ describe('the forges that need a look', () => {
     expect(refused.actions.map((action) => action.kind === 'command' && action.forgeAcceptsIt)).toEqual([false]);
   });
 
-  test('a failed baton pass shows the forge\'s own warning and opens the forge in place', () => {
-    const failed: FleetDocumentForge = { ...FLEET_FIVE_FORGES_READINGS.invoiceService, warnings: [{ kind: 'baton-pass-failed', text: 'The successor Hephaestus did not start.' }] };
+  test('a failed restart shows the forge\'s own warning and opens the forge in place', () => {
+    const warning = { kind: 'restart-failed', text: 'The restart to code example-code failed at preflight.' };
+    const failed: FleetDocumentForge = { ...FLEET_FIVE_FORGES_READINGS.invoiceService, warnings: [warning] };
     const fleet: FleetDocument = {
       ...FLEET_FIVE_FORGES,
       forges:     FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.invoiceService ? failed : forge)),
-      needsALook: [{ trackerId: TRACKER_IDS.invoiceService, kind: 'baton-pass-failed' }],
+      needsALook: [{ trackerId: TRACKER_IDS.invoiceService, kind: 'restart-failed' }],
     };
     const look = lookOf(fleetContentOf(fleet), TRACKER_IDS.invoiceService);
-    expect([look.tone, look.word, look.sentence]).toEqual(['error', 'Baton pass failed', 'The successor Hephaestus did not start.']);
+    expect([look.tone, look.word, look.sentence]).toEqual(['error', 'Restart failed', warning.text]);
     expect(actionsOf(look)).toEqual([['Open', 'quiet', `#forge/${TRACKER_IDS.invoiceService}`]]);
   });
 });
@@ -308,7 +309,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'neutral',
       'Counts only',
       'This forge is older than the monitor contract. Gaia reads its summary: 1 entry waits on you, 1 agent runs. Open it to see what waits.',
-      'summary 2 · no monitor contract',
+      'summary 3 · no monitor contract',
     ]);
     expect(actionsOf(countsOnly)).toEqual([
       ['Update forge', 'quiet', { kind: 'forge-update', trackerId: TRACKER_IDS.researchWiki }, true],
@@ -320,8 +321,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'sentence',
       'unreadable',
       'Newer than this Gaia',
-      'This forge publishes monitor contract 6. This Gaia reads 5, so it shows nothing of it and sends it nothing.',
-      'monitor 6 · control 4',
+      'This forge publishes monitor contract 7. This Gaia reads 6, so it shows nothing of it and sends it nothing.',
+      'monitor 7 · control 4',
     ]);
     expect(actionsOf(newer)).toEqual([]);
   });
@@ -385,10 +386,10 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, rightTextOf(reading), reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
       ['Example Storefront', 'forge 1.1', 'Everything, live.', false],
-      ['Invoice Service', 'monitor 5', 'Nothing since 13:14. Its rows show as last reported.', true],
-      ['Research Wiki', 'summary 2', 'Counts and jobs only. No questions or reviews by name.', true],
+      ['Invoice Service', 'monitor 6', 'Nothing since 13:14. Its rows show as last reported.', true],
+      ['Research Wiki', 'summary 3', 'Counts and jobs only. No questions or reviews by name.', true],
       ['Example Mobile App', 'forge 1.1', 'Everything, live.', false],
-      ['Analytics Sandbox', 'monitor 6', 'Nothing. Its contract is newer than this Gaia.', true],
+      ['Analytics Sandbox', 'monitor 7', 'Nothing. Its contract is newer than this Gaia.', true],
     ]);
     const marked = readings?.filter((reading) => reading.totalsCannotVouchForIt).map((reading) => reading.trackerId);
     expect(marked).toEqual(FLEET_DEGRADED.figures.incompleteFor);

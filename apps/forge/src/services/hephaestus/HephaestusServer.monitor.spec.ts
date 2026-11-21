@@ -3,7 +3,7 @@
  * matters: the identity carries its own version and the contracts this program serves; `GET /api/monitor` answers the snapshot only with the
  * token, and a 401, a 403 or a read's 500 answers its refusal with the routes' sentence; `GET /api/monitor/events` opens with a handshake
  * naming the system version, then sends the whole newest snapshot, and a later one only when it changed, each `monitor` event carrying
- * `monitorVersion` and the system version beside it, and ends when the server closes its streams, as a Baton pass does.
+ * `monitorVersion` and the system version beside it, and ends when the server closes its streams, as a restart does.
  */
 import {
   afterEach,
@@ -27,7 +27,7 @@ const TOKEN_HEADERS = { host: `127.0.0.1:${PORT}`, authorization: `Bearer ${TOKE
 const QUIET_HEARTBEAT_MILLISECONDS = 600_000;
 
 function snapshotWith(openIncidents: number): MonitorSnapshot {
-  return { monitorVersion: 5, openIncidents } as unknown as MonitorSnapshot;
+  return { monitorVersion: 6, openIncidents } as unknown as MonitorSnapshot;
 }
 
 const openHandlers: HephaestusRequestHandler[] = [];
@@ -87,7 +87,7 @@ describe('the identity', () => {
     const answer = await handlerOf(null).answer(get('/api/identity', { host: `127.0.0.1:${PORT}` }), PORT);
     expect(await answer.json()).toMatchObject({
       identityVersion: 1,
-      contracts:       { summary: 2, monitor: 5, control: 3 }
+      contracts:       { summary: 3, monitor: 6, control: 3 }
     });
   });
 });
@@ -148,7 +148,7 @@ describe('GET /api/monitor/events', () => {
     expect(await nextEventOf(reader)).toEqual({ kind: 'monitor', data: monitorEventWith(1, versions.current) });
   });
 
-  test('ends when the server closes its streams, as a Baton pass does', async () => {
+  test('ends when the server closes its streams, as a restart does', async () => {
     const monitorStream = MonitorStream.createMonitorStream();
     monitorStream.publish(snapshotWith(1));
     const handler = handlerOf(monitorStream);

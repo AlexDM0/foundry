@@ -28,7 +28,7 @@ import {
 /** The forge the F8 answers were recorded from, as the recording's stamp names it. */
 const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf(RECORDING_NAME_OF_FORGE_PROGRAM_STAGE['every-verb-done']);
 
-const EXAMPLE_CONTRACTS = { summary: 2, monitor: 5, control: 3 };
+const EXAMPLE_CONTRACTS = { summary: 3, monitor: 6, control: 3 };
 
 let forgeRoot = '';
 
@@ -128,7 +128,7 @@ describe('every verb done (recorded)', () => {
     });
     expect(await forgeProgram.update(registeredForge())).toEqual({
       verdict: 'done',
-      answer:  { outcome: 'done', installVersion: RECORDED_FORGE_VERSIONS.installVersion, batonPass: { outcome: 'not-needed' } },
+      answer:  { outcome: 'done', installVersion: RECORDED_FORGE_VERSIONS.installVersion, restart: { outcome: 'not-needed' } },
     });
   });
 

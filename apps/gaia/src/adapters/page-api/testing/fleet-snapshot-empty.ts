@@ -31,8 +31,8 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     forgeProgramInUse: null,
     settingsFile:      'absent',
     knownContracts:    {
-      summary: 2,
-      monitor: 5,
+      summary: 3,
+      monitor: 6,
       control: 3,
     },
     versions: {

@@ -373,9 +373,9 @@ export class Jobs {
     return job.state === 'interrupted' || Playbook.lostLineAwaitsResume(job, this.logRecordsSoFar());
   }
 
-  recordBatonPassFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
+  recordRestartFailed(failure: { successorCodeVersion: string; step: string; error: string }, at: string): Logged {
     const fields = { successorCodeVersion: failure.successorCodeVersion, step: failure.step, error: failure.error };
-    return { logged: [this.records.logger.log({ kind: 'baton-pass-failed', fields }, at)] };
+    return { logged: [this.records.logger.log({ kind: 'restart-failed', fields }, at)] };
   }
 
   recordUsageLimitHit(jobId: string, limit: { window: string; resetsAt: string }, at: string): Logged {

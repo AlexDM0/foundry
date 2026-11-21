@@ -5,7 +5,7 @@
  * gates. Before a launch a folder tracker's branch that committed `.claude/` inside the project's folder holds its ticket, while a root tracker, which
  * protects `.claude/` only at the root as always, launches it. On a pipeline with entities, a job of an entity is held to its entity's homes and
  * `reach`, and a change outside them sends its session back on a red handoff to take the change out, where a folder tracker's job fails; that handoff's
- * Baton pass names the paths to take out. A job of an entity is told its entity's gates, each folder from the project's folder, and Customs V15 holds
+ * restart names the paths to take out. A job of an entity is told its entity's gates, each folder from the project's folder, and Customs V15 holds
  * it to exactly those. A job without an entity keeps the checks it always had, and before a launch `.claude/` in every entity home holds the ticket. A
  * `needs-declared` report never reaches the gates: a job of an entity files its kept needs as tickets and ends with that outcome, one that kept none
  * fails, and a job without an entity fails as before. A session sent back once for V17 whose branch still changed only another entity's files opens
@@ -214,7 +214,7 @@ function pipelineWithEntities(exampleReach?: string[], exampleGates: PipelineEnt
 testWhenGitIsRecorded('a job of an entity that changed a file outside its homes and reach is sent back on a red handoff, not failed', () => {
   const build = verifyBuild('at the root', pipelineWithEntities(), 'example');
   expect(build.whereTheJobWent).toBe('interrupted: V17');
-  expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-only-outside-home-and-reach\n${FILE_OUTSIDE_THE_PROJECT}`);
+  expect(readFileSync(RedHandoff.gateFailureNotePathOf(build.jobFolder), 'utf8')).toContain(`changed-only-outside-home-and-reach\n${FILE_OUTSIDE_THE_PROJECT}`);
 });
 
 describe('a job of an entity with a gate', () => {
@@ -302,7 +302,7 @@ function leaveARedHandoff(kind: RedHandoffFacts['kind'], name: string, scopeResu
       fixCommand:          null,
       commit:              SCENARIO_COMMITS['<head>'],
       exitCode:            null,
-      batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+      gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
       fullLogPath:         null,
       resume:              1,
       resumesAllowed:      2,

@@ -3,7 +3,7 @@
  * and an epic map field by field, their statuses as the model names them; an optional field the model leaves absent stays absent, and a
  * field no reader names (a ticket's model, its stored extra lines, its body hash) never reaches the document; an unset Hephaestus setting
  * reads as paused and an absent draft list as none; a notice keeps its kind and its other fields as facts, and a value that is no notice is
- * dropped; a Baton warning that does not read as one is `null`.
+ * dropped; a Hephaestus lock warning that does not read as one is `null`.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -181,14 +181,14 @@ describe('BoardPageMappingUtil.hephaestusOf', () => {
     state: 'serving', paused: true, url: 'http://127.0.0.1:4100/', generation: 3, codeVersion: 'code-example', installVersion: 36
   } as const;
 
-  test('names the state, the pause and the code version, and the Baton warning that reads as one', () => {
-    const batonPassWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
-    expect(BoardPageMappingUtil.hephaestusOf({ ...hephaestus, batonPassWarning })).toEqual({
-      state: 'serving', paused: true, codeVersion: 'code-example', batonPassWarning
+  test('names the state, the pause and the code version, and the Hephaestus lock warning that reads as one', () => {
+    const restartWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
+    expect(BoardPageMappingUtil.hephaestusOf({ ...hephaestus, restartWarning })).toEqual({
+      state: 'serving', paused: true, codeVersion: 'code-example', restartWarning
     });
   });
 
-  test('reads a Baton warning that does not read as one as none', () => {
-    expect(BoardPageMappingUtil.hephaestusOf({ ...hephaestus, batonPassWarning: { step: 3 } }).batonPassWarning).toBeNull();
+  test('reads a Hephaestus lock warning that does not read as one as none', () => {
+    expect(BoardPageMappingUtil.hephaestusOf({ ...hephaestus, restartWarning: { step: 3 } }).restartWarning).toBeNull();
   });
 });

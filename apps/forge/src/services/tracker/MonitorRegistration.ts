@@ -67,7 +67,7 @@ export interface RegisteredCrash {
 
 /**
  * A kill from outside writes nothing: a stored `serving` whose process answers nothing is what a monitor sees until a start classifies it. A
- * `crashed` generation is `null` when neither a presence record nor a Baton names it.
+ * `crashed` generation is `null` when neither a presence record nor a Hephaestus lock names it.
  */
 export type PresenceRegistration =
   | { state: 'serving'; generation: number; at: string; process: { processId: number; startStamp: string; bootIdentity: string } }

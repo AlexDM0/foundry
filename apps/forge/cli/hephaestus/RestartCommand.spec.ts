@@ -1,6 +1,6 @@
 /**
  * `restart` over the recorded process table, its successor a program that only writes its arguments down: over a Hephaestus found dead it
- * keeps the port of the Baton record, also one dead before the hand-over, which it closes.
+ * keeps the port of the Hephaestus lock record, also one dead before the hand-over, which it closes.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -12,8 +12,8 @@ import {
 } from 'bun:test';
 
 import type { PlatformPorts }                     from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { Baton }                                  from '../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                         from '../../src/services/hephaestus/HephaestusLock.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                          from '../../src/shared/constants/ProductNames.ts';
 import { nativePlatformPorts }                    from '../../src/testing/NativePlatformPorts.ts';
@@ -51,8 +51,8 @@ afterEach(() => {
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart', () => {
-  /** Hephaestus dies between the Baton pass ask and the stop, so the stop finds its Baton dead; the successor only writes its arguments down. */
-  test('restart over a Hephaestus found dead starts the successor with the port of its Baton record', async () => {
+  /** Hephaestus dies between the restart ask and the stop, so the stop finds its Hephaestus lock dead; the successor only writes its arguments down. */
+  test('restart over a Hephaestus found dead starts the successor with the port of its Hephaestus lock record', async () => {
     const workspace = requireWorkspace(repositoryDirectory);
     const { hephaestusDirectory } = hephaestusFilesIn(workspace.trackerDirectory);
     // The restart writes the board, whose lock reads this process's identity for its record.
@@ -73,7 +73,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
         spawnOptionsFor: nativePlatformPorts().processSupervision.spawnOptionsFor,
       },
     };
-    const acquisition = Baton.acquire(platformPorts, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(platformPorts, hephaestusDirectory, {
       processId:            deadHephaestus.processId,
       processStartStamp:    deadHephaestus.startStamp,
       bootIdentity:         deadHephaestus.bootIdentity,
@@ -101,8 +101,8 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
   });
 
-  /** Hephaestus is dead before the Baton pass ask, so the hand-over finds no live Baton; the restart still reads the dead one. */
-  test('restart over a Baton already dead at the hand-over keeps its port and closes it', async () => {
+  /** Hephaestus is dead before the restart ask, so the hand-over finds no live Hephaestus lock; the restart still reads the dead one. */
+  test('restart over a Hephaestus lock already dead at the hand-over keeps its port and closes it', async () => {
     const workspace = requireWorkspace(repositoryDirectory);
     const { hephaestusDirectory } = hephaestusFilesIn(workspace.trackerDirectory);
     // The restart writes the board, whose lock reads this process's identity for its record.
@@ -112,7 +112,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
       ...processTable.ports,
       processSupervision: { ...processTable.ports.processSupervision, spawnOptionsFor: nativePlatformPorts().processSupervision.spawnOptionsFor },
     };
-    const acquisition = Baton.acquire(platformPorts, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(platformPorts, hephaestusDirectory, {
       processId:            deadHephaestus.processId,
       processStartStamp:    deadHephaestus.startStamp,
       bootIdentity:         deadHephaestus.bootIdentity,
@@ -139,6 +139,6 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'run restart'
 
     expect((JSON.parse(readFileSync(successorArgumentsFile, 'utf8')) as string[]).join(' ')).toBe('start --foreground --port 1 --started-by user');
     expect(hephaestusStoppedRecordsIn(storedLogKindsOf(repositoryDirectory))).toBe(1);
-    expect(Baton.newestBatonOf(platformPorts, hephaestusDirectory).verdict).toBe('none');
+    expect(HephaestusLock.newestOf(platformPorts, hephaestusDirectory).verdict).toBe('none');
   });
 });

@@ -435,7 +435,7 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 5 | Usage | each usage window observed, such as `5-hour window 14%` or `week 18%`, then the window and reset time after a limit was hit; nothing before the first observation |
 | 6 | `new code is on disk: restart Hephaestus to run it` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
 | 7 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
-| 8 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
+| 8 | Restart | a [restart](../glossary.md#restart) to the code on disk; offered only with the `new-code` line |
 | 9 | Stop Hephaestus | after a confirmation, stops Hephaestus; see [Stop for the day](#stop-for-the-day) |
 | 10 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says. The [concurrency limit](../glossary.md#concurrency-limit) itself is set on the Agents tab, see [Adjust concurrency](#adjust-concurrency) |
 | 10 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
@@ -465,7 +465,7 @@ Esc or a click outside closes it. Mark defaults seen hides the line in this brow
 incidents alone raise no line, as they are the Assistant's work, counted in the header's open incidents figure.
 
 Warnings and notices are banners too, one each, above that line: a warning in red, a notice in amber. Warnings cover a
-failed Baton pass and an Assistant that cannot come up.
+failed restart and an Assistant that cannot come up.
 
 ### What a disabled control means
 

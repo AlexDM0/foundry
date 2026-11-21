@@ -43,7 +43,7 @@ export const HEPHAESTUS_SITUATIONS = [
   'command-refused',
   'nothing-to-change',
   'port-held-by-another-program',
-  'baton-pass',
+  'restart',
   'snapshot-unreadable',
   'stream-cut-inside-event',
   'connection-broken',

@@ -169,9 +169,9 @@ export const CutoverSmokeUtil = Object.freeze({
       ]),
       ...(observation.buildJobsOnTheTicketAfterKill === 0 ? [] : [`${observation.buildJobsOnTheTicketAfterKill} more build jobs launched on the ticket`]),
       ...(observation.restartExitCode === 0 ? [] : [`restart exited ${observation.restartExitCode}`]),
-      ...(observation.childProcessAliveAfterRestart ? [] : ['the agent child died in the Baton pass']),
+      ...(observation.childProcessAliveAfterRestart ? [] : ['the agent child died in the restart']),
       ...(observation.childInstanceAfterRestart === observation.childInstanceBeforeKill ? [] : [
-        `the job moved to child instance ${observation.childInstanceAfterRestart} in the baton-pass`,
+        `the job moved to child instance ${observation.childInstanceAfterRestart} in the restart`,
       ]),
     ];
     return {

@@ -216,7 +216,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     expect(labelsIn('live')).toEqual(['Pause', 'Stop', 'Open']);
     expect(labelsIn('paused')).toEqual(['Unpause', 'Stop', 'Open']);
     expect(labelsIn('held')).toEqual(['Stop', 'Open']);
-    expect(labelsIn('passing-baton')).toEqual([]);
+    expect(labelsIn('restarting')).toEqual([]);
     expect(labelsIn('starting')).toEqual(['Starting']);
     expect(labelsIn('dormant')).toEqual(['Start']);
     expect(labelsIn('unreachable')).toEqual(['Look again', 'Stop']);

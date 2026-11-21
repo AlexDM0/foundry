@@ -1,25 +1,24 @@
 /**
- * What the CLI does to a Hephaestus it is not: start one detached, ask the live one to stop, and wait for its Baton to go. A stop goes to the
- * API with the token; when the API does not answer, the Baton's process is ended, its identity checked first. Talos and its children are
- * never touched. A Baton left naming a dead process says Hephaestus's own stop never finished, which the outcome reports for the caller
+ * What the CLI does to a Hephaestus it is not: start one detached, ask the live one to stop, and wait for its Hephaestus lock to go. A stop goes to the
+ * API with the token; when the API does not answer, the Hephaestus lock's process is ended, its identity checked first. Talos and its children are
+ * never touched. A Hephaestus lock left naming a dead process says Hephaestus's own stop never finished, which the outcome reports for the caller
  * to repair. A clean restart of Talos is only asked of the live Hephaestus, which sends Talos its quit.
  */
 import { readFileSync } from 'node:fs';
 
-import type { PlatformPorts }                                          from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { type BatonReading, type BatonRecord, Baton }                  from '../../src/services/hephaestus/Baton.ts';
-import { BatonPass }                                                   from '../../src/services/hephaestus/BatonPass.ts';
-import type { HephaestusFiles }                                        from '../../src/services/hephaestus/HephaestusFiles.ts';
-import { outlivingProgramEnvironment, hephaestusPollIntervalOverride } from '../../src/shared/Environment.ts';
-import { OperationRefusal }                                            from '../../src/shared/OperationRefusal.ts';
+import type { PlatformPorts }                                                    from '../../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { HephaestusFiles }                                                  from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { type HephaestusLockReading, type HephaestusLockRecord, HephaestusLock } from '../../src/services/hephaestus/HephaestusLock.ts';
+import { Presence }                                                              from '../../src/services/hephaestus/Presence.ts';
+import { outlivingProgramEnvironment, hephaestusPollIntervalOverride }           from '../../src/shared/Environment.ts';
+import { OperationRefusal }                                                      from '../../src/shared/OperationRefusal.ts';
 import {
-  BATON_PASS_OUTCOME_TRIES,
-  BATON_PASS_READY_INTERVAL_MILLISECONDS,
   HEPHAESTUS_READY_INTERVAL_MILLISECONDS,
   HEPHAESTUS_READY_TRIES,
   HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS,
   HEPHAESTUS_STOP_INTERVAL_MILLISECONDS,
-  HEPHAESTUS_STOP_TRIES
+  HEPHAESTUS_STOP_TRIES,
+  RESTART_REQUEST_TIMEOUT_MILLISECONDS
 } from '../../src/shared/constants/HephaestusLimits.ts';
 import type { CommandContext }      from '../CommandContext.ts';
 import { hephaestusPollScheduleOf } from './HephaestusPollSchedule.ts';
@@ -29,13 +28,13 @@ export type RuntimeStopKind = 'hephaestus-stop' | 'hephaestus-restart';
 /** `clean`: Hephaestus finished its own stop. `forced`: this command ended it by force. `unfinished`: it ended by itself before its stop finished. */
 export type HephaestusEnding = 'clean' | 'forced' | 'unfinished';
 
-/** `found-dead`: the newest Baton already named a dead process, so its Hephaestus's own stop never finished; an unreadable Baton has no record. */
+/** `found-dead`: the newest Hephaestus lock already named a dead process, so its Hephaestus's own stop never finished; an unreadable one has no record. */
 export type StopOutcome =
   | { verdict: 'was-down' }
-  | { verdict: 'stopped'; record: BatonRecord; generation: number; ending: HephaestusEnding }
-  | { verdict: 'found-dead'; record: BatonRecord | null; generation: number };
+  | { verdict: 'stopped'; record: HephaestusLockRecord; generation: number; ending: HephaestusEnding }
+  | { verdict: 'found-dead'; record: HephaestusLockRecord | null; generation: number };
 
-function tokenIn(record: BatonRecord): string | null {
+function tokenIn(record: HephaestusLockRecord): string | null {
   try {
     return readFileSync(record.tokenFile, 'utf8').trim();
   } catch {
@@ -43,7 +42,7 @@ function tokenIn(record: BatonRecord): string | null {
   }
 }
 
-async function identityAnswers(record: BatonRecord): Promise<boolean> {
+async function identityAnswers(record: HephaestusLockRecord): Promise<boolean> {
   try {
     const response = await fetch(new URL('api/identity', record.url), { signal: AbortSignal.timeout(HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS) });
     return response.ok;
@@ -52,7 +51,7 @@ async function identityAnswers(record: BatonRecord): Promise<boolean> {
   }
 }
 
-async function identityDocumentOf(record: BatonRecord): Promise<Readonly<Record<string, unknown>> | null> {
+async function identityDocumentOf(record: HephaestusLockRecord): Promise<Readonly<Record<string, unknown>> | null> {
   try {
     const response = await fetch(new URL('api/identity', record.url), { signal: AbortSignal.timeout(HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS) });
     if (!response.ok) return null;
@@ -64,7 +63,7 @@ async function identityDocumentOf(record: BatonRecord): Promise<Readonly<Record<
 }
 
 /** The live Hephaestus's identity once its API answers, looked for on the schedule a detached start waits on; `null` when it never answered. */
-async function identityOnceItAnswers(record: BatonRecord): Promise<Readonly<Record<string, unknown>> | null> {
+async function identityOnceItAnswers(record: HephaestusLockRecord): Promise<Readonly<Record<string, unknown>> | null> {
   const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_READY_TRIES, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
   for (let attempt = 0; attempt < schedule.tries; attempt++) {
     const identity = await identityDocumentOf(record);
@@ -74,7 +73,7 @@ async function identityOnceItAnswers(record: BatonRecord): Promise<Readonly<Reco
   return null;
 }
 
-async function commandWasTaken(record: BatonRecord, kind: RuntimeStopKind, now: boolean): Promise<boolean> {
+async function commandWasTaken(record: HephaestusLockRecord, kind: RuntimeStopKind, now: boolean): Promise<boolean> {
   const token = tokenIn(record);
   if (token === null) return false;
   try {
@@ -91,43 +90,43 @@ async function commandWasTaken(record: BatonRecord, kind: RuntimeStopKind, now: 
 }
 
 /**
- * Ends only the process the Baton names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees.
+ * Ends only the process the Hephaestus lock names, still being that process: a reused pid is never signalled. What it answers is what the wait below sees.
  * True when a forced end took effect, which no listener of that process ever hears.
  */
-function forcedTheBatonProcess({ processSupervision }: PlatformPorts, record: BatonRecord): boolean {
+function forcedTheHephaestusLockProcess({ processSupervision }: PlatformPorts, record: HephaestusLockRecord): boolean {
   const currentIdentity = processSupervision.identityOf(record.processId);
-  const batonIdentity   = { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
-  if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, batonIdentity)) return false;
+  const hephaestusLockIdentity   = { processId: record.processId, startStamp: record.processStartStamp, bootIdentity: record.bootIdentity };
+  if (currentIdentity === null || !processSupervision.sameProcess(currentIdentity, hephaestusLockIdentity)) return false;
   const { fallbackStopIsForced } = processSupervision;
   const outcome = processSupervision.stopProcess(record.processId, fallbackStopIsForced ? 'force' : 'ask');
   return fallbackStopIsForced && outcome.verdict === 'signalled';
 }
 
-/** The Baton's last reading: gone or naming a dead identity lets a successor start, as after a crash; `null` when it still names a live one. */
-async function batonReadingOnceGone(ports: PlatformPorts, files: HephaestusFiles, generation: number): Promise<BatonReading | null> {
+/** The Hephaestus lock's last reading: gone or naming a dead identity lets a successor start, as after a crash; `null` when it still names a live one. */
+async function hephaestusLockReadingOnceGone(ports: PlatformPorts, files: HephaestusFiles, generation: number): Promise<HephaestusLockReading | null> {
   const schedule = hephaestusPollScheduleOf({ tries: HEPHAESTUS_STOP_TRIES, intervalMilliseconds: HEPHAESTUS_STOP_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
   for (let attempt = 0; attempt < schedule.tries; attempt++) {
-    const newest = Baton.newestBatonOf(ports, files.hephaestusDirectory);
+    const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
     if (newest.verdict !== 'live' || newest.generation !== generation) return newest;
     await Bun.sleep(schedule.intervalMilliseconds);
   }
   return null;
 }
 
-/** No Baton left means Hephaestus released it, the last act of its own stop; a newer one overtaking a forced end leaves that end forced. */
-function endingOf(reading: BatonReading, generation: number, forced: boolean): HephaestusEnding {
+/** No Hephaestus lock left means Hephaestus released it, the last act of its own stop; a newer one overtaking a forced end leaves that end forced. */
+function endingOf(reading: HephaestusLockReading, generation: number, forced: boolean): HephaestusEnding {
   if (reading.verdict === 'none') return 'clean';
   if (forced) return 'forced';
   return reading.verdict === 'dead' && reading.generation === generation ? 'unfinished' : 'clean';
 }
 
 async function stopTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles, kind: RuntimeStopKind, now: boolean): Promise<StopOutcome> {
-  const newest = Baton.newestBatonOf(ports, files.hephaestusDirectory);
+  const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
   if (newest.verdict === 'none') return { verdict: 'was-down' };
   if (newest.verdict === 'dead') return { verdict: 'found-dead', record: newest.record, generation: newest.generation };
   const { generation, record } = newest;
-  const forced = !await commandWasTaken(record, kind, now) && forcedTheBatonProcess(ports, record);
-  const reading = await batonReadingOnceGone(ports, files, generation);
+  const forced = !await commandWasTaken(record, kind, now) && forcedTheHephaestusLockProcess(ports, record);
+  const reading = await hephaestusLockReadingOnceGone(ports, files, generation);
   if (reading === null) throw new OperationRefusal('refused', { kind: 'hephaestus-still-live', url: record.url, processId: record.processId });
   return {
     verdict: 'stopped', record, generation, ending: endingOf(reading, generation, forced)
@@ -136,32 +135,83 @@ async function stopTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFile
 
 export type RestartOutcome =
   | { verdict: 'was-down' }
-  | { verdict: 'not-taken'; record: BatonRecord }
-  | { verdict: 'baton-passed'; successorCodeVersion: string; url: string };
+  | { verdict: 'not-taken'; record: HephaestusLockRecord }
+  | { verdict: 'restarted'; successorCodeVersion: string; url: string };
 
-/**
- * Asks the live Hephaestus for its checked Baton pass and reads the outcome it leaves in its Baton pass file; a failed one is refused
- * `baton-pass-failed`, the old Hephaestus still driving. A Hephaestus whose API does not take the command is the caller's to stop and restart.
- */
-async function handOverTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles, now: boolean): Promise<RestartOutcome> {
-  const newest = Baton.newestBatonOf(ports, files.hephaestusDirectory);
-  if (newest.verdict !== 'live') return { verdict: 'was-down' };
-  if (!await commandWasTaken(newest.record, 'hephaestus-restart', now)) return { verdict: 'not-taken', record: newest.record };
-  const batonPassFilePath = BatonPass.batonPassFilePathOf(files.hephaestusDirectory, newest.generation);
-  const schedule = hephaestusPollScheduleOf({ tries: BATON_PASS_OUTCOME_TRIES, intervalMilliseconds: BATON_PASS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
+type RestartAnswer =
+  | { verdict: 'taken' }
+  | { verdict: 'not-taken' }
+  | { verdict: 'refused'; successorCodeVersion: string; step: string; error: string };
+
+function textFieldOf(fields: unknown, key: string): string {
+  const value = typeof fields === 'object' && fields !== null && Object.hasOwn(fields, key) ? (fields as Record<string, unknown>)[key] : undefined;
+  return typeof value === 'string' ? value : 'unknown';
+}
+
+/** The live Hephaestus answers a restart once the code on disk reported its preflight: taken, or refused `restart-failed` with its step. */
+async function restartAnswerOf(record: HephaestusLockRecord, now: boolean): Promise<RestartAnswer> {
+  const token = tokenIn(record);
+  if (token === null) return { verdict: 'not-taken' };
+  try {
+    const response = await fetch(new URL('api/commands', record.url), {
+      method:  'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body:    JSON.stringify({ kind: 'hephaestus-restart', now }),
+      signal:  AbortSignal.timeout(RESTART_REQUEST_TIMEOUT_MILLISECONDS),
+    });
+    if (response.ok) return { verdict: 'taken' };
+    const { refusal, fields } = await response.json() as { refusal?: unknown; fields?: unknown };
+    if (refusal !== 'restart-failed') return { verdict: 'not-taken' };
+    return {
+      verdict: 'refused', successorCodeVersion: textFieldOf(fields, 'successorCodeVersion'), step: textFieldOf(fields, 'step'), error: textFieldOf(fields, 'error')
+    };
+  } catch {
+    return { verdict: 'not-taken' };
+  }
+}
+
+/** The successor once it holds the Hephaestus lock as another process than the one restarted and its API answers; `null` when none came. */
+async function successorOnceItServes(ports: PlatformPorts, files: HephaestusFiles, restarted: HephaestusLockRecord): Promise<HephaestusLockRecord | null> {
+  const tries = HEPHAESTUS_STOP_TRIES + HEPHAESTUS_READY_TRIES;
+  const schedule = hephaestusPollScheduleOf({ tries, intervalMilliseconds: HEPHAESTUS_READY_INTERVAL_MILLISECONDS }, hephaestusPollIntervalOverride());
   for (let attempt = 0; attempt < schedule.tries; attempt++) {
-    const report = BatonPass.readBatonPass(batonPassFilePath);
-    if (report?.state === 'serving') return { verdict: 'baton-passed', successorCodeVersion: report.successorCodeVersion, url: report.url };
-    if (report?.state === 'failed') {
-      throw new OperationRefusal('refused', {
-        kind: 'baton-pass-failed', successorCodeVersion: report.successorCodeVersion, step: report.step, error: report.error, url: newest.record.url
-      });
-    }
+    const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
+    if (newest.verdict === 'live' && newest.record.processId !== restarted.processId && await identityAnswers(newest.record)) return newest.record;
     await Bun.sleep(schedule.intervalMilliseconds);
   }
-  throw new OperationRefusal('refused', {
-    kind: 'baton-pass-failed', successorCodeVersion: 'unknown', step: 'serve', error: `no outcome within ${schedule.tries} tries`, url: newest.record.url
-  });
+  return null;
+}
+
+function handedOver(files: HephaestusFiles, generation: number): boolean {
+  const presence = Presence.readPresence(files);
+  return presence.verdict === 'read' && presence.record.generation === generation && presence.record.ending?.kind === 'handed-over';
+}
+
+/**
+ * Asks the live Hephaestus for its checked restart and waits for the successor to serve. A refused preflight is refused `restart-failed`, the
+ * old Hephaestus still driving; a successor that never served is refused the same at `serve`, with no Hephaestus on the board. A Hephaestus
+ * whose API does not take the command is the caller's to stop and restart.
+ */
+async function restartTheLiveHephaestus(ports: PlatformPorts, files: HephaestusFiles, now: boolean): Promise<RestartOutcome> {
+  const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
+  if (newest.verdict === 'none' || newest.record === null) return { verdict: 'was-down' };
+  const answer: RestartAnswer = newest.verdict === 'live' ? await restartAnswerOf(newest.record, now) : { verdict: 'not-taken' };
+  // A generation that already handed over is being restarted by another command: its successor is waited for, and nothing is stopped.
+  if (answer.verdict === 'not-taken' && !handedOver(files, newest.generation)) {
+    return newest.verdict === 'live' ? { verdict: 'not-taken', record: newest.record } : { verdict: 'was-down' };
+  }
+  if (answer.verdict === 'refused') {
+    throw new OperationRefusal('refused', {
+      kind: 'restart-failed', successorCodeVersion: answer.successorCodeVersion, step: answer.step, error: answer.error, url: newest.record.url
+    });
+  }
+  const successor = await successorOnceItServes(ports, files, newest.record);
+  if (successor === null) {
+    throw new OperationRefusal('refused', {
+      kind: 'restart-failed', successorCodeVersion: 'unknown', step: 'serve', error: 'the successor did not serve', url: null
+    });
+  }
+  return { verdict: 'restarted', successorCodeVersion: successor.codeVersion, url: successor.url };
 }
 
 /** The same program with its streams dropped, in the root so it holds no worktree as its working directory; Hephaestus logs to `hephaestus.log` itself. */
@@ -186,17 +236,17 @@ async function startDetached(
     // A child that ends before the interval is over has already answered: it did not start.
     await Promise.race([Bun.sleep(schedule.intervalMilliseconds), child.exited]);
     if (child.exitCode !== null) break;
-    const newest = Baton.newestBatonOf(context.platformPorts, files.hephaestusDirectory);
+    const newest = HephaestusLock.newestOf(context.platformPorts, files.hephaestusDirectory);
     if (newest.verdict === 'live' && newest.record.processId === child.pid && await identityAnswers(newest.record)) return newest.record.url;
   }
-  // A child that lost the Baton to a Hephaestus started at the same time leaves the board served all the same.
-  const racingBaton = Baton.newestBatonOf(context.platformPorts, files.hephaestusDirectory);
-  if (child.exitCode !== null && racingBaton.verdict === 'live' && await identityAnswers(racingBaton.record)) return racingBaton.record.url;
+  // A child that lost the Hephaestus lock to a Hephaestus started at the same time leaves the board served all the same.
+  const racingHephaestusLock = HephaestusLock.newestOf(context.platformPorts, files.hephaestusDirectory);
+  if (child.exitCode !== null && racingHephaestusLock.verdict === 'live' && await identityAnswers(racingHephaestusLock.record)) return racingHephaestusLock.record.url;
   throw new OperationRefusal('refused', { kind: 'hephaestus-did-not-start', exitCode: child.exitCode, logFilePath: files.logFilePath });
 }
 
-/** The live Hephaestus's state document, read with the Baton's token; `null` when the token is unreadable or Hephaestus does not answer. */
-async function stateOf(record: BatonRecord): Promise<unknown> {
+/** The live Hephaestus's state document, read with the Hephaestus lock's token; `null` when the token is unreadable or Hephaestus does not answer. */
+async function stateOf(record: HephaestusLockRecord): Promise<unknown> {
   const token = tokenIn(record);
   if (token === null) return null;
   try {
@@ -215,7 +265,7 @@ export type TalosRestartRequestOutcome = 'done' | 'nothing-to-do' | 'not-taken';
 
 /** Asks the live Hephaestus for a clean restart of its Talos; Hephaestus alone sends Talos the quit and starts the next one. */
 async function restartTheTalosOf(ports: PlatformPorts, files: HephaestusFiles): Promise<TalosRestartRequestOutcome> {
-  const newest = Baton.newestBatonOf(ports, files.hephaestusDirectory);
+  const newest = HephaestusLock.newestOf(ports, files.hephaestusDirectory);
   const token = newest.verdict === 'live' ? tokenIn(newest.record) : null;
   if (newest.verdict !== 'live' || token === null) return 'not-taken';
   try {
@@ -234,5 +284,5 @@ async function restartTheTalosOf(ports: PlatformPorts, files: HephaestusFiles): 
 }
 
 export const HephaestusRemote = Object.freeze({
-  stopTheLiveHephaestus, handOverTheLiveHephaestus, startDetached, identityAnswers, identityOnceItAnswers, stateOf, restartTheTalosOf
+  stopTheLiveHephaestus, restartTheLiveHephaestus, startDetached, identityAnswers, identityOnceItAnswers, stateOf, restartTheTalosOf
 });

@@ -302,7 +302,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       if (snapshotWasUnreadable) return failedTry();
       if (end.verdict === 'ended' && end.ending === 'stopped') return;
       if (end.verdict !== 'ended' && WatchReadingUtil.failureMeansStarting(end)) return readStarting();
-      // A stream that gave a whole snapshot ended as a Baton pass or a lost connection does; one that gave none is a failed try.
+      // A stream that gave a whole snapshot ended as a restart or a lost connection does; one that gave none is a failed try.
       if (wholeSnapshotsRead === 0) return failedTry();
       scheduleRound(intervals.streamReconnectIntervalMilliseconds);
     }

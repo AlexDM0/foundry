@@ -48,11 +48,11 @@ function identityRequest(): HephaestusRequest {
 
 function monitorStreamRequest(): HephaestusStreamRequest {
   return {
-    hephaestusUrl: HEPHAESTUS_URL, path: '/api/v4/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
+    hephaestusUrl: HEPHAESTUS_URL, path: '/api/v5/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
   };
 }
 
-const MONITOR_STREAM_CALL_SHAPE = 'STREAM /api/v4/monitor/events with bearer';
+const MONITOR_STREAM_CALL_SHAPE = 'STREAM /api/v5/monitor/events with bearer';
 
 function streamAnswers(chunks: readonly string[], ending: 'closed' | 'broken' | 'stays-open'): RecordedHephaestusAnswer[] {
   return [{ callShape: MONITOR_STREAM_CALL_SHAPE, answer: { verdict: 'streaming', chunks, ending } }];
@@ -146,10 +146,10 @@ describe('the recorded versions of forges', () => {
   test('hold, for a forge ahead that Gaia talks to, each endpoint at its versioned path, and only the versions for a forge it cannot talk to', () => {
     expect(recordedVersionsAnswersOf('versions-ahead').map(({ callShape }) => callShape).sort()).toEqual([
       'GET /api/v1/identity',
-      'GET /api/v4/monitor with bearer',
+      'GET /api/v5/monitor with bearer',
       'GET /api/versions',
       'POST /api/v3/commands with bearer',
-      'STREAM /api/v4/monitor/events with bearer',
+      'STREAM /api/v5/monitor/events with bearer',
     ]);
     for (const situation of ['versions-newer', 'versions-older', 'versions-absent'] as const) {
       expect([situation, recordedVersionsAnswersOf(situation).map(({ callShape }) => callShape)]).toEqual([situation, ['GET /api/versions']]);

@@ -35,7 +35,7 @@ const DONE: CommandAnswerDocument = {
   answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
-/** An update was done, and the forge's live Hephaestus did not take the Baton pass. */
+/** An update was done, and the forge's live Hephaestus did not take the restart. */
 const RESTART_PENDING: CommandAnswerDocument = {
   answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
 };

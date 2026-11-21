@@ -92,27 +92,19 @@ export const HEPHAESTUS_READY_TRIES = 40;
 
 export const HEPHAESTUS_READY_INTERVAL_MILLISECONDS = 250;
 
-/** How many times the old Hephaestus looks for its successor's `ready` before it kills the successor as silent; a schedule only, never a decision. */
-export const BATON_PASS_READY_TRIES = 120;
+/** How long the code on disk may take to report its preflight before a restart is refused; real time, since a hung preflight must end. */
+export const RESTART_PREFLIGHT_TIMEOUT_MILLISECONDS = 20_000;
 
-export const BATON_PASS_READY_INTERVAL_MILLISECONDS = 250;
+/** How long `restart` and `update` wait for the live Hephaestus to answer a restart, which it does once the preflight reported. */
+export const RESTART_REQUEST_TIMEOUT_MILLISECONDS = 30_000;
 
-/** How many times, at the same interval, a successor waits for `released` and the old Hephaestus then waits for the successor to serve. */
-export const BATON_PASS_RELEASE_TRIES = 240;
-
-/** How many times, at the same interval, an old Hephaestus taking a Baton pass back waits for its killed successor to be gone and binds its port. */
-export const BATON_PASS_REBIND_TRIES = 40;
-
-/** How many times, at the same interval, `restart` and `update` look for a Baton pass's outcome: every wait of it end to end. */
-export const BATON_PASS_OUTCOME_TRIES = BATON_PASS_READY_TRIES + BATON_PASS_RELEASE_TRIES + BATON_PASS_RELEASE_TRIES;
-
-/** How many times `stop` looks for the stopped Hephaestus's Baton to be gone or dead before it reports Hephaestus still live. */
+/** How many times `stop` looks for the stopped Hephaestus's Hephaestus lock to be gone or dead before it reports Hephaestus still live. */
 export const HEPHAESTUS_STOP_TRIES = 40;
 
 export const HEPHAESTUS_STOP_INTERVAL_MILLISECONDS = 250;
 
 /**
- * How long a stopping Hephaestus waits, all its waits together, before it records its stop and releases its Baton anyway: under the 5 s Windows gives a
+ * How long a stopping Hephaestus waits, all its waits together, before it records its stop and releases its lock anyway: under the 5 s Windows gives a
  * process after its console closes.
  */
 export const HEPHAESTUS_STOP_WAIT_MILLISECONDS = 4000;

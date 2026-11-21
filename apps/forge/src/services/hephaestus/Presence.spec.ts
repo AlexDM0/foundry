@@ -2,7 +2,7 @@
  * The presence record and the heartbeat in a scratch board folder. What matters: a read is a verdict, never a throw, and another version reads
  * as unreadable since nothing older is read; an ending, an abandoned pass and a completed pass change only their own generation's record, so a
  * predecessor's late write never touches its successor's; a crash keeps its crash log's number, or none; the heartbeat's sequence rises within a
- * generation, and an older generation's beat never replaces a newer one whose record is current, as during a Baton pass, when both processes
+ * generation, and an older generation's beat never replaces a newer one whose record is current, as during a restart, when both processes
  * beat, while an ended run's beat never silences a run whose generations started again at 1.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -29,14 +29,14 @@ const CLASSIFICATION: StartClassificationVerdict = {
   crashSuspected:     false,
   crashedComponent:   null,
   evidence:           {
-    presence:               'read',
-    previousEnding:         'stopped',
-    previousBootIdentity:   'example-boot',
-    currentBootIdentity:    'example-boot',
-    newerBatonThanPresence: false,
-    talos:                  'quit',
-    lastHeartbeatAt:        '2026-11-19T08:59:45.000+01:00',
-    bootStartedAt:          null,
+    presence:                        'read',
+    previousEnding:                  'stopped',
+    previousBootIdentity:            'example-boot',
+    currentBootIdentity:             'example-boot',
+    newerHephaestusLockThanPresence: false,
+    talos:                           'quit',
+    lastHeartbeatAt:                 '2026-11-19T08:59:45.000+01:00',
+    bootStartedAt:                   null,
   },
 };
 

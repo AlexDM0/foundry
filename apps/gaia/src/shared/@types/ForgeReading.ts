@@ -9,7 +9,7 @@ import type { ForgePresenceReport, ForgeRegistryPresence } from './ForgePresence
 /** `older-contract`: the forge's system version is older than the one Gaia supports, so Gaia reads nothing of it until it is updated. */
 export type ForgeFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
-export type ForgeCondition = 'live' | 'paused' | 'held' | 'passing-baton' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
+export type ForgeCondition = 'live' | 'paused' | 'held' | 'restarting' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
 
 /** The contract numbers the forge's identity names; `null` for a contract it does not serve or that Gaia has not read. */
 export interface ForgeContracts {

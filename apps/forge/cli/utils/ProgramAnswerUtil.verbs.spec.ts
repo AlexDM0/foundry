@@ -1,7 +1,7 @@
 /**
  * The versioned JSON answers of the verbs a program outside the board runs: for each of `version`, `init`, `update`, `stop`, `start`,
  * `machine limit` and `login-item`, the answer of a success and of one refusal. What matters: every answer is one document on standard output
- * carrying `answerVersion: 2`, and a refusal under `--json` is `{answerVersion, refusal, text}` at exit 1, the code beside the sentence
+ * carrying `answerVersion: 3`, and a refusal under `--json` is `{answerVersion, refusal, text}` at exit 1, the code beside the sentence
  * standard error carries. `init`, `update` and `stop` on a tracker are in `ProgramAnswerUtil.trackerVerbs.spec.ts`; `start` twice against a
  * real Hephaestus is pinned by `cli/hephaestus/StartCommand.integration.spec.ts`.
  */
@@ -39,17 +39,17 @@ async function answerIn(currentDirectory: string, commandLine: readonly string[]
   return { exitCode, answer: JSON.parse(context.outputText()) as Record<string, unknown> };
 }
 
-const REFUSAL_OF_ARGUMENTS = { answerVersion: 2, refusal: 'arguments-refused', text: expect.any(String) };
+const REFUSAL_OF_ARGUMENTS = { answerVersion: 3, refusal: 'arguments-refused', text: expect.any(String) };
 
 test('version answers its versions, the contracts it serves, the Talos protocol version it starts and its monitor folder, and a refused argument as a refusal', async () => {
   const directory = untrackedDirectory();
   expect(await answerIn(directory, ['version', '--json'])).toEqual({
     exitCode: 0,
     answer:   {
-      answerVersion:        2,
+      answerVersion:        3,
       codeVersion:          expect.any(String),
       installVersion:       INSTALL_VERSION,
-      contracts:            { summary: 2, monitor: 5, control: 3 },
+      contracts:            { summary: 3, monitor: 6, control: 3 },
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       monitorFolder:        expect.any(String),
     },
@@ -62,16 +62,16 @@ test('machine limit answers the limit, its ceiling and the agents in flight, a s
   expect(await answerIn(directory, ['machine', 'limit', '--json'])).toEqual({
     exitCode: 0,
     answer:   {
-      answerVersion: 2, limit: expect.any(Number), ceiling: expect.any(Number), agentsInFlight: 0
+      answerVersion: 3, limit: expect.any(Number), ceiling: expect.any(Number), agentsInFlight: 0
     },
   });
   expect(await answerIn(directory, ['machine', 'limit', '1', '--json'])).toEqual({
     exitCode: 0,
     answer:   {
-      answerVersion: 2, outcome: 'done', limit: 1, ceiling: expect.any(Number)
+      answerVersion: 3, outcome: 'done', limit: 1, ceiling: expect.any(Number)
     },
   });
-  const refusalAboveTheCpus = { answerVersion: 2, refusal: 'machine-agent-limit-above-cpus', text: expect.stringContaining('CPUs') };
+  const refusalAboveTheCpus = { answerVersion: 3, refusal: 'machine-agent-limit-above-cpus', text: expect.stringContaining('CPUs') };
   expect(await answerIn(directory, ['machine', 'limit', '100000', '--json'])).toEqual({ exitCode: 1, answer: refusalAboveTheCpus });
 });
 
@@ -101,11 +101,11 @@ test('login-item answers its state, label and location for add, status and remov
   expect(loginItemAnswerOf(host, 'status', repository, 'tracker-example')).toEqual(expected(null, 'present'));
   expect(loginItemAnswerOf(host, 'remove', repository, 'tracker-example')).toEqual(expected('done', 'absent'));
   expect(loginItemAnswerOf(host, 'remove', repository, 'tracker-example')).toEqual(expected('nothing-to-do', 'absent'));
-  expect(ProgramAnswerUtil.answerOf({ ...expected(null, 'absent') })).toMatchObject({ answerVersion: 2 });
+  expect(ProgramAnswerUtil.answerOf({ ...expected(null, 'absent') })).toMatchObject({ answerVersion: 3 });
 });
 
 test('login-item and start refuse an unknown subcommand and a folder with no tracker, each as a refusal answer', async () => {
   const directory = untrackedDirectory();
   expect(await answerIn(directory, ['login-item', 'enable', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
-  expect((await answerIn(directory, ['start', '--port', '0', '--json'])).answer).toMatchObject({ answerVersion: 2, refusal: expect.any(String), text: expect.any(String) });
+  expect((await answerIn(directory, ['start', '--port', '0', '--json'])).answer).toMatchObject({ answerVersion: 3, refusal: expect.any(String), text: expect.any(String) });
 });

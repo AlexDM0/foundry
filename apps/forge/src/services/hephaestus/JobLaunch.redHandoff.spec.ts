@@ -53,7 +53,7 @@ function resumedScene(): ResumedScene {
     fixCommand:          null,
     commit:              'example-commit',
     exitCode:            1,
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     fullLogPath:         null,
     resume:              1,
     resumesAllowed:      2,

@@ -143,7 +143,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
 ];
 
 /**
- * D4: Example Mobile App, held since its install version changed, after an Update forge whose Baton pass its live Hephaestus did not take.
+ * D4: Example Mobile App, held since its install version changed, after an Update forge whose restart its live Hephaestus did not take.
  * Each screen is its artboard's, with the pending restart under the control that sent the update.
  */
 export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
@@ -165,19 +165,19 @@ export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
   },
 ];
 
-/** The sentence a forge at monitor contract 2 sends with its warning that a Baton pass failed, which names no command. */
-export const BATON_PASS_FAILED_SENTENCE = 'the Baton pass to code 4c1d9e2 failed at take-baton: the successor did not answer';
+/** The sentence a forge at monitor contract 2 sends with its warning that a restart failed, which names no command. */
+export const RESTART_FAILED_SENTENCE = 'the restart to code 4c1d9e2 failed at preflight: the code on disk did not start; this Hephaestus keeps driving';
 
 /** The notice that Research Wiki's Assistant cannot come up, as the server words it in Gaia's words. */
 export const ASSISTANT_DOWN_SENTENCE = 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.';
 
-/** Invoice Service warns that its Baton pass failed, so A1 shows that look before the two the artboard draws. */
-const FLEET_BATON_PASS_FAILED: FleetDocument = {
+/** Invoice Service warns that its restart failed, so A1 shows that look before the two the artboard draws. */
+const FLEET_RESTART_FAILED: FleetDocument = {
   ...FLEET_FIVE_FORGES,
   forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.invoiceService
-    ? { ...forge, warnings: [{ kind: 'baton-pass-failed', text: BATON_PASS_FAILED_SENTENCE }] }
+    ? { ...forge, warnings: [{ kind: 'restart-failed', text: RESTART_FAILED_SENTENCE }] }
     : forge)),
-  needsALook: [{ trackerId: TRACKER_IDS.invoiceService, kind: 'baton-pass-failed' }, ...FLEET_FIVE_FORGES.needsALook],
+  needsALook: [{ trackerId: TRACKER_IDS.invoiceService, kind: 'restart-failed' }, ...FLEET_FIVE_FORGES.needsALook],
 };
 
 /** Research Wiki's Assistant cannot come up: a notice under its row on A4. */
@@ -192,9 +192,9 @@ const FLEET_ASSISTANT_DOWN: FleetDocument = {
 export const MONITOR_WARNING_SCREENS: readonly ArtboardScreen[] = [
   {
     artboard:      'A1',
-    title:         'Attention, a Baton pass failed',
+    title:         'Attention, a restart failed',
     designFile:    'Main.dc.html',
-    fleetDocument: FLEET_BATON_PASS_FAILED,
+    fleetDocument: FLEET_RESTART_FAILED,
     fragment:      '#attention',
     viewState:     'as-routed',
   },

@@ -18,7 +18,7 @@ export interface OccasionAppliedPipeline {
 
 /**
  * The fields of the board the occasions read; Gaia's `BoardDocument` satisfies them unchanged. Gaia's board serves no Hephaestus
- * `generation`, so until it does a baton pass shows only on a `passing-baton` board and no regroup follows a generation's rise.
+ * `generation`, so until it does a restart of Hephaestus shows only on a `restarting` board and no regroup follows a generation's rise.
  */
 export interface OccasionBoard {
   readonly hephaestus:       { readonly state: string; readonly paused: boolean; readonly generation?: number | null };
@@ -43,7 +43,7 @@ export const WATCHER_SPARK_ATTENDANT: SpriteAttendant = 'watcher-spark';
 /** One spark for each agent in flight, up to the number the attendant shows. */
 const WATCHER_SPARK_MAXIMUM_COUNT = 4;
 
-const PASSING_BATON_STATE = 'passing-baton';
+const RESTARTING_STATE = 'restarting';
 
 const DOWN_STATE = 'down';
 
@@ -89,13 +89,13 @@ function generationRose(previous: OccasionBoard, next: OccasionBoard): boolean {
 function boardOccasionsOf(previous: OccasionBoard, next: OccasionBoard, flintLivesIn: string | null): SpriteIntent[] {
   const previousIncidentIds = new Set(previous.incidents.map((incident) => incident.id));
   const generationIsNew = generationRose(previous, next);
-  const batonPassWasShown = previous.hephaestus.state === PASSING_BATON_STATE;
+  const restartWasShown = previous.hephaestus.state === RESTARTING_STATE;
   const questionsHabitatAnswers = flintLivesIn === QUESTIONS_SPRITE_HABITAT.kind;
   const incidentSettled = QuestionsSpriteModel.incidentSettled(previous.questionHistory ?? [], next.questionHistory ?? []);
   const rows: readonly (readonly [boolean, SpriteIntent])[] = [
     [previous.hephaestus.state !== DOWN_STATE && next.hephaestus.state === DOWN_STATE, 'bank-fire'],
-    // A rise after a passing-baton board is the pass already shown; only a pass the page missed shows on the rise.
-    [!batonPassWasShown && (next.hephaestus.state === PASSING_BATON_STATE || generationIsNew), 'baton-pass'],
+    // A rise after a restarting board is the restart already shown; only a restart the page missed shows on the rise.
+    [!restartWasShown && (next.hephaestus.state === RESTARTING_STATE || generationIsNew), 'baton-pass'],
     [generationIsNew && next.jobs.length > 0, 'regroup'],
     [resetsAtOf(previous.usage) === null && resetsAtOf(next.usage) !== null, 'out-of-fuel'],
     [resetsAtOf(previous.usage) !== null && resetsAtOf(next.usage) === null, 'refuel'],

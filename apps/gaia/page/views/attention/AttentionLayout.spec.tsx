@@ -203,13 +203,13 @@ describe('a callout\'s command', () => {
       answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const restartRefused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'hephaestus-busy', text: 'Its Hephaestus is busy with a baton pass.', forges: []
+      answerVersion: 3, outcome: 'refused', refusal: 'hephaestus-busy', text: 'Its Hephaestus is busy with a restart.', forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     await sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp });
     const refusal = FailedActions.onlyFailedActionIn([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')]);
-    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Restart: ', 'hephaestus-busy', 'Its Hephaestus is busy with a baton pass.']);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Restart: ', 'hephaestus-busy', 'Its Hephaestus is busy with a restart.']);
   });
 
   test('a callout that leaves the document leaves the view', () => {

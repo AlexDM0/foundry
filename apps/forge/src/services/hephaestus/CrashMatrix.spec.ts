@@ -13,7 +13,7 @@
  * it applied, or still waiting for its commit, and never refuses the pipeline it stored itself; Hephaestus's start hold leaves no record
  * open either.
  *
- * Every row that kills or crashes a process, or needs a real Talos, git history or Baton pass, is in
+ * Every row that kills or crashes a process, or needs a real Talos, git history or restart, is in
  * `src/services/hephaestus/CrashMatrix.integration.spec.ts`.
  */
 import {
@@ -579,7 +579,7 @@ function withoutLiveAnswers(adapter: AgentAdapter): AgentAdapter {
   return { ...adapter, capabilities: { ...adapter.capabilities, takesLiveAnswers: false } };
 }
 
-/** A Hephaestus start: a newer Baton generation and a fresh DrivePass, which the spec regroups. */
+/** A Hephaestus start: a newer Hephaestus lock generation and a fresh DrivePass, which the spec regroups. */
 function startedHephaestus(
   adapter: AgentAdapter,
   afterHoldPhase?: (phase: string, board: Board) => void,
@@ -1211,7 +1211,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       fixCommand:          null,
       commit:              'example-commit',
       exitCode:            null,
-      batonPassPath:       RedHandoff.batonPassPathOf(staleGreenFolder),
+      gateFailureNotePath: RedHandoff.gateFailureNotePathOf(staleGreenFolder),
       fullLogPath:         null,
       resume:              1,
       resumesAllowed:      2,

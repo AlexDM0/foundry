@@ -15,11 +15,11 @@ What is agreed and not started, with the reason it waits.
   prompt must be answered and a notification clicked while another application is in front. A "no" there means PLAN 11's fallback, and
   the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`), and so is
   the "What notifies" checklist; version 2's C2 also draws the notification card and the permission line, which wait with W5.6.
-- **Record an update whose Baton pass was not taken.** `forge update --json` answers `batonPass: 'failed'` with `batonPassStep:
-  'restart-not-taken'` at exit 0 when the live Hephaestus does not take the pass, and Gaia answers it as restart pending
-  (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a pass that was not needed: a recording
-  needs a scratch Hephaestus on other code than the forge on disk that then declines the pass, which `src/testing/ScratchForge.ts` cannot
-  stage from one read-only forge checkout.
+- **Record an update whose restart was not taken.** `forge update --json` answers `restart: 'failed'` with `restartStep:
+  'restart-not-taken'` at exit 0 when the live Hephaestus does not take the restart, and Gaia answers it as restart pending
+  (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a restart that was not needed: a recording
+  needs a scratch Hephaestus on other code than the forge on disk that then declines the restart, which `src/testing/ScratchForge.ts`
+  cannot stage from one read-only forge checkout.
 - **Flint looks at the composer.** The design handoff's answer of the chat habitat to "the user types", and the look after the doubt of
   "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint (`page/lib/flint/`): no intent of the
   fixed list looks at an element, and neither the playground nor `02-animations.md` gives a look's motion. It waits for a look in the

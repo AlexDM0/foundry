@@ -9,8 +9,8 @@ export interface StopReport {
 }
 
 /**
- * An ending other than `clean` means the process is gone, by a dead Baton or a landed force, so what Hephaestus left undone runs without it. A
- * newest Baton found dead is closed the same way, so a close that was refused before is repaired by the next stop.
+ * An ending other than `clean` means the process is gone, by a dead Hephaestus lock or a landed force, so what Hephaestus left undone runs without it. A
+ * newest Hephaestus lock found dead is closed the same way, so a close that was refused before is repaired by the next stop.
  */
 export async function stopAndCloseTheLiveHephaestus(request: StoppedHephaestusRequest, files: HephaestusFiles, now: boolean): Promise<StopOutcome> {
   const stopped = await HephaestusRemote.stopTheLiveHephaestus(request.context.platformPorts, files, 'hephaestus-stop', now);

@@ -3,8 +3,8 @@
  * fails its own probe; this process's own probe only when no Hephaestus answers with a word.
  */
 import type { ConfinementVerdict, GateConfinement } from '../../../src/lib/gate-confinement/GateConfinement.ts';
-import { Baton }                                    from '../../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                        from '../../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                           from '../../../src/services/hephaestus/HephaestusLock.ts';
 import type { Workspace }                           from '../../../src/services/tracker/Workspace.ts';
 import type { CommandContext }                      from '../../CommandContext.ts';
 import type { ConfinementInForce }                  from '../../StatusDocuments.ts';
@@ -25,7 +25,7 @@ export function confinementInForceOf(hephaestusState: unknown, ownProbe: GateCon
 }
 
 export async function readConfinementInForce(context: Pick<CommandContext, 'platformPorts'>, workspace: Workspace): Promise<ConfinementInForce> {
-  const newest        = Baton.newestBatonOf(context.platformPorts, hephaestusFilesIn(workspace.trackerDirectory).hephaestusDirectory);
+  const newest        = HephaestusLock.newestOf(context.platformPorts, hephaestusFilesIn(workspace.trackerDirectory).hephaestusDirectory);
   const hephaestusState = newest.verdict === 'live' ? await HephaestusRemote.stateOf(newest.record) : null;
   return confinementInForceOf(hephaestusState, context.platformPorts.gateConfinement);
 }

@@ -73,10 +73,10 @@ interface ReadFacts {
 
 /** What the forge watch reads of a Hephaestus in each state; an unreachable forge keeps the contracts of its last whole reading. */
 const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
-  'full':           { condition: 'live', monitor: 5, control: 3 },
+  'full':           { condition: 'live', monitor: 6, control: 3 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
-  'newer-contract': { condition: 'unreadable', monitor: 6, control: 4 },
-  'unreachable':    { condition: 'unreachable', monitor: 5, control: 3 },
+  'newer-contract': { condition: 'unreadable', monitor: 7, control: 4 },
+  'unreachable':    { condition: 'unreachable', monitor: 6, control: 3 },
 };
 
 let scratchFolder = '';
@@ -141,7 +141,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
     fidelity:  state,
     condition,
     url:       entry.hephaestus?.url ?? null,
-    contracts: { summary: 2, monitor, control, },
+    contracts: { summary: 3, monitor, control, },
   };
   return { entry, reading };
 }
@@ -233,7 +233,7 @@ function hephaestusAnswering(situation: HephaestusSituation): RecordedHephaestus
 /** A live forge whose identity names this control contract. */
 function liveForgeAtControl(controlVersion: number): ExampleForge {
   const forge = exampleForgeOf();
-  return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 5, control: controlVersion } } };
+  return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 6, control: controlVersion } } };
 }
 
 /** The forge as the watch last read it, while the registry already names its Hephaestus at another address. */

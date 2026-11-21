@@ -44,7 +44,7 @@ guard spec holds is one line naming the guard: the spec is the full statement.
   for its product (`fullTextOf`), a boolean as a predicate phrase.
 - Design constants are `SCREAMING_CASE`, named for what they bound, with the unit.
 - The lifecycle components carry the names the owner decided: Hephaestus, Talos, Pass, Playbook, Hatch, Customs,
-  Airlock, Assistant, Baton, Regrouping and Bouncer, in code, stored values, wording and docs alike;
+  Airlock, Assistant, Hephaestus lock, Regrouping and Bouncer, in code, stored values, wording and docs alike;
   `src/ComponentNames.spec.ts` holds that no tracked file names one by its retired name.
 - The role that designs a board's pipeline is the pipeline agent: `pipeline-agent` as a job kind and role,
   `pipelineAgent` as a `pipeline.json` role key.

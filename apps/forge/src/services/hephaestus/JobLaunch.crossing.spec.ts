@@ -156,8 +156,8 @@ function shopTicketOf(board: Board) {
   return board.tickets().find((ticket) => ticket.frontmatter.id === SHOP_TICKET.id);
 }
 
-function batonPassOf(ticket: CrossingTicket, job: Readonly<Job>): string {
-  return readFileSync(RedHandoff.batonPassPathOf(jobFolderIn(ticket.context.workspace.trackerDirectory, job.id)), 'utf8');
+function restartOf(ticket: CrossingTicket, job: Readonly<Job>): string {
+  return readFileSync(RedHandoff.gateFailureNotePathOf(jobFolderIn(ticket.context.workspace.trackerDirectory, job.id)), 'utf8');
 }
 
 function ticketWorktreeOf(ticket: CrossingTicket): string {
@@ -201,7 +201,7 @@ describeWhenGitIsRecorded('stage 1 of a shop that whitelists the package', () =>
     const { job, whereTheJobWent } = runStage(ticket, SHOP_BUILD, runOf('SHOP_TICKET_ONLY_UI_KIT', '<start>', builtReportOf()));
 
     expect(whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, job)).toContain(`changed-only-outside-home-and-reach\n${sourceFileOf(UI_KIT)}`);
+    expect(restartOf(ticket, job)).toContain(`changed-only-outside-home-and-reach\n${sourceFileOf(UI_KIT)}`);
     expect(runStage(crossingTicketOf(), SHOP_BUILD, {
       scenario: ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_UI_KIT, startCommit: '<start>', reportOf: builtReportOf(), scopeResumed: true
     }).whereTheJobWent).toBe('failed: changed-only-outside-home-and-reach');
@@ -262,8 +262,8 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     const { job, whereTheJobWent } = runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_INTO_UI_KIT', '<start>', builtReportOf({ exposedSurfaceChanged: false })));
 
     expect(whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, job)).toContain(sourceFileOf(SHOP));
-    expect(batonPassOf(ticket, job)).toContain(ENTITY_FORGE_LOCK_FILE);
+    expect(restartOf(ticket, job)).toContain(sourceFileOf(SHOP));
+    expect(restartOf(ticket, job)).toContain(ENTITY_FORGE_LOCK_FILE);
   });
 
   test('whose own commits lie only in the shop is sent back, then fails, and opens no move to another entity (E23)', () => {
@@ -272,7 +272,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     const { job, whereTheJobWent } = runStage(ticket, PACKAGE_BUILDER, run);
 
     expect(whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(SHOP)}`);
+    expect(restartOf(ticket, job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(SHOP)}`);
     const sentBack = crossingTicketOf({ stage: PACKAGE_BUILD });
     expect(runStage(sentBack, PACKAGE_BUILDER, { ...run, scopeResumed: true }).whereTheJobWent).toBe('failed: changed-outside-home-and-reach');
     expect(sentBack.board.decisions()).toEqual([]);
@@ -286,7 +286,7 @@ describeWhenGitIsRecorded('stage 2, the package build', () => {
     const { job, whereTheJobWent } = runStage(ticket, PACKAGE_BUILDER, runOf('SHOP_TICKET_ADAPTED', '<stage tip>', builtReportOf({ exposedSurfaceChanged: false })));
 
     expect(whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, job)).toContain(sourceFileOf(SHOP));
+    expect(restartOf(ticket, job)).toContain(sourceFileOf(SHOP));
   });
 
   test('runs the package\'s gates, then those of its dependents but the home, each from its own home (E25, E26)', () => {
@@ -518,7 +518,7 @@ describeWhenGitIsRecorded('stage 3, the package review', () => {
 
     const homeReview = runStage(ticket, HOME_REVIEWER, runOf('SHOP_TICKET_PACKAGE_RESHAPED', '<stage tip>', reviewedReportOf()));
     expect(homeReview.whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, homeReview.job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
+    expect(restartOf(ticket, homeReview.job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
   });
 
   test('skips adapt when the package build stated no change of what the package exposes and the review confirmed it (E40)', () => {
@@ -633,7 +633,7 @@ describeWhenGitIsRecorded('a stage after the seal', () => {
     const { job, whereTheJobWent } = runStage(ticket, HOME_REVIEWER, run);
 
     expect(whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
+    expect(restartOf(ticket, job)).toContain(`sealed-change-altered\n${UI_KIT.key}`);
     const sentBack = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: 'an-example-seal-of-another-change' }, status: 'in-review' });
     expect(runStage(sentBack, HOME_REVIEWER, { ...run, scopeResumed: true }).whereTheJobWent).toBe('failed: sealed-change-altered');
   });
@@ -684,7 +684,7 @@ describeWhenGitIsRecorded('stage 5, the home review that fixes (E50)', () => {
     const sentBack = runStage(outsideTheHome, HOME_REVIEWER, runOf('SHOP_TICKET_REVIEW_IN_ADMIN', '<shop ticket tip>', reviewedReportOf()));
 
     expect(sentBack.whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(outsideTheHome, sentBack.job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
+    expect(restartOf(outsideTheHome, sentBack.job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
 
     const atHome = crossingTicketOf({ stage: HOME_REVIEW, seals: { [UI_KIT.key]: sealIn(ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ADAPTED) }, status: 'in-review' });
     expect(runStage(atHome, HOME_REVIEWER, runOf('SHOP_TICKET_ADAPTED', '<shop ticket tip>', reviewedReportOf())).whereTheJobWent).toBe('reviewed: ');
@@ -789,7 +789,7 @@ describeWhenGitIsRecorded('stage 4, adapt, that sends the ticket back to the pac
     const { job, whereTheJobWent } = runStage(ticket, ADAPT_BUILD, runOf('SHOP_TICKET_PACKAGE_RESHAPED', '<shop ticket tip>', packageReturnReportOf()));
 
     expect(whereTheJobWent).toBe('interrupted: V17');
-    expect(batonPassOf(ticket, job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(UI_KIT)}`);
+    expect(restartOf(ticket, job)).toContain(`changed-outside-home-and-reach\n${sourceFileOf(UI_KIT)}`);
     expect(ticket.board.ticketStageOf(SHOP_TICKET.id)).toEqual(ADAPT);
     expect(loggedPackageReturnsOf(ticket.board)).toEqual([]);
   });

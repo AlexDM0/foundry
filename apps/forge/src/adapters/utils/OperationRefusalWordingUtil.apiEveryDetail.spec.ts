@@ -270,7 +270,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
 
 const ROOT = '/example/repository';
 const URL = 'http://127.0.0.1:4242';
-const BATON = '/example/hephaestus/baton-1.json';
+const HEPHAESTUS_LOCK = '/example/hephaestus/lock-1.json';
 
 const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalDetail, { kind: Kind }> } = {
   'board-refusal':            { kind: 'board-refusal', boardRefusal: BOARD_SAMPLE_OF_REASON['unknown-task'] },
@@ -298,21 +298,21 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'role-command-refused':               { kind: 'role-command-refused', reason: 'worker-filing-flag', commandKind: 'ticket add' },
   'verb-not-relayable':                 { kind: 'verb-not-relayable', verb: 'init', jobId: 'J3' },
   'malformed-hatch-reply':              { kind: 'malformed-hatch-reply', replyFilePath: `${ROOT}/reply.json` },
-  'hephaestus-already-running':         { kind: 'hephaestus-already-running', url: URL, batonFilePath: BATON },
+  'hephaestus-already-running':         { kind: 'hephaestus-already-running', url: URL, hephaestusLockFilePath: HEPHAESTUS_LOCK },
   'hephaestus-down':                    { kind: 'hephaestus-down', hephaestusDirectory: '/example/hephaestus' },
   'hephaestus-contended':               { kind: 'hephaestus-contended', hephaestusDirectory: '/example/hephaestus' },
   'gate-confinement-unavailable':       { kind: 'gate-confinement-unavailable', reason: 'Example reason' },
   'malformed-hephaestus-poll-interval': { kind: 'malformed-hephaestus-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: 'soon' },
   'malformed-versions-answer':          { kind: 'malformed-versions-answer', variable: 'EXAMPLE_VERSIONS_ANSWER', value: 'newest' },
   'git-below-floor':                    { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
-  'baton-taken':                        { kind: 'baton-taken', batonFilePath: BATON },
-  'baton-not-created-whole':            { kind: 'baton-not-created-whole', batonFilePath: BATON, reason: 'Example reason' },
+  'hephaestus-lock-taken':              { kind: 'hephaestus-lock-taken', hephaestusLockFilePath: HEPHAESTUS_LOCK },
+  'hephaestus-lock-not-created-whole':  { kind: 'hephaestus-lock-not-created-whole', hephaestusLockFilePath: HEPHAESTUS_LOCK, reason: 'Example reason' },
   'hephaestus-port-in-use':             { kind: 'hephaestus-port-in-use', firstPort: 4242, lastPort: 4252 },
   'hephaestus-identity-unreadable':     { kind: 'hephaestus-identity-unreadable', processId: 4242, identitySources: [] },
   'hephaestus-did-not-start':           { kind: 'hephaestus-did-not-start', exitCode: 1, logFilePath: '/example/hephaestus.log' },
   'hephaestus-still-live':              { kind: 'hephaestus-still-live', url: URL, processId: 4242 },
-  'baton-pass-failed':                  {
-    kind: 'baton-pass-failed', successorCodeVersion: 'code-example', step: 'take-baton', error: 'Example error', url: URL
+  'restart-failed':                     {
+    kind: 'restart-failed', successorCodeVersion: 'code-example', step: 'read-jobs', error: 'Example error', url: URL
   },
   'hephaestus-control-is-runtime-only': { kind: 'hephaestus-control-is-runtime-only', commandKind: 'hephaestus-stop' },
   'intake-close-without-job':           { kind: 'intake-close-without-job' },
@@ -323,7 +323,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'too-many-pictures':                  { kind: 'too-many-pictures', pictureCount: 9, limit: 8 },
   'picture-too-large':                  { kind: 'picture-too-large', bytes: 9, sizeLimitBytes: 8 },
   'picture-type-unsupported':           { kind: 'picture-type-unsupported', mediaTypes: ['image/png'] },
-  'hephaestus-owns-the-lifecycle':      { kind: 'hephaestus-owns-the-lifecycle', url: URL, batonFilePath: BATON },
+  'hephaestus-owns-the-lifecycle':      { kind: 'hephaestus-owns-the-lifecycle', url: URL, hephaestusLockFilePath: HEPHAESTUS_LOCK },
   'talos-protocol-differs':             { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
   'talos-unavailable':                  { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
   'forge-crashed':                      { kind: 'forge-crashed', component: 'talos', crashLogPath: '/example/hephaestus/crash-logs/crash-4.json' },

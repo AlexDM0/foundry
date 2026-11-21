@@ -112,7 +112,7 @@ describe('item 2: regrouping', () => {
     buildJobsOnTheTicketAfterKill:    0,
   };
 
-  test('passes when the agent child lived through the kill and the Baton pass on one instance', () => {
+  test('passes when the agent child lived through the kill and the restart on one instance', () => {
     expect(CutoverSmokeUtil.regroupingVerdictOf(kept).passed).toBe(true);
   });
 

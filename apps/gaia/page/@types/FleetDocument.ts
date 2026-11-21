@@ -8,7 +8,7 @@ import type { PAGE_CONTRACT_VERSIONS } from '../../src/shared/constants/PageCont
 /** `newer-contract` and `older-contract`: Gaia reads nothing of the forge; `versions` says why when the forge's system version decided it. */
 export type FleetDocumentFidelity = 'full' | 'counts-only' | 'newer-contract' | 'older-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
-export type FleetDocumentCondition = 'live' | 'paused' | 'held' | 'passing-baton' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
+export type FleetDocumentCondition = 'live' | 'paused' | 'held' | 'restarting' | 'starting' | 'dormant' | 'unreachable' | 'unreadable' | 'missing';
 
 export interface FleetDocumentContracts {
   summary: number | null;
@@ -171,7 +171,7 @@ export interface FleetDocumentCrashSummary {
 export interface FleetDocumentCrashLogEntry {
   /** The crash log's own number, the key of its route. */
   number:     number;
-  /** The Baton generation that crashed, shown only. */
+  /** The Hephaestus lock generation that crashed, shown only. */
   generation: number | null;
   component:  'hephaestus' | 'talos' | 'unknown';
   suspected:  boolean;
@@ -275,7 +275,7 @@ export type FleetDocumentLookKind =
   | 'unreachable'
   | 'newer-contract'
   | 'older-contract'
-  | 'baton-pass-failed'
+  | 'restart-failed'
   | 'launches-held'
   | 'new-code'
   | 'counts-only'

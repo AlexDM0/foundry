@@ -1,9 +1,9 @@
 /**
  * The start gate on a scratch data folder, over a process table and a boot the spec plants. What matters: only a start the user made serves
  * after a crash or a crash suspected before a reboot, a login item and a successor stay off; the crash log is written once, whoever reads
- * the crash first, so a second refused start or the user's start finds the first log standing; a crash of a Baton generation that came round
+ * the crash first, so a second refused start or the user's start finds the first log standing; a crash of a Hephaestus lock generation that came round
  * again, after an older crash of that generation, writes a log of its own under the next number and the verdict names it; a start that died
- * before its presence write is named by its Baton's holder; a reboot with a fresh beat writes no log; a Talos lost in this boot names Talos;
+ * before its presence write is named by its Hephaestus lock's holder; a reboot with a fresh beat writes no log; a Talos lost in this boot names Talos;
  * and a crash whose generation nothing names is logged once, with no generation.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -27,9 +27,9 @@ import { createLocalFilesBoardStore }                     from '../store/LocalFi
 import { type Workspace, workspacePathsFor }              from '../tracker/Workspace.ts';
 import type { CrashLogError }                             from './@types/CrashLogRecord.ts';
 import type { PresenceEndingToWrite }                     from './@types/PresenceRecord.ts';
-import { Baton }                                          from './Baton.ts';
 import { CrashLog }                                       from './CrashLog.ts';
 import { hephaestusFilesIn, type HephaestusFiles }        from './HephaestusFiles.ts';
+import { HephaestusLock }                                 from './HephaestusLock.ts';
 import { Presence }                                       from './Presence.ts';
 import type { StartOriginReading }                        from './StartClassification.ts';
 import { StartGate }                                      from './StartGate.ts';
@@ -81,9 +81,9 @@ function crashedProcessIn(bootIdentity: string): ProcessIdentity {
   return { processId: CRASHED_PROCESS_ID, startStamp: '1700000000', bootIdentity };
 }
 
-function plantBaton(generation: number, { processId, startStamp, bootIdentity }: ProcessIdentity): void {
+function plantHephaestusLock(generation: number, { processId, startStamp, bootIdentity }: ProcessIdentity): void {
   mkdirSync(files.hephaestusDirectory, { recursive: true });
-  writeFileSync(Baton.batonFilePathFor(files.hephaestusDirectory, generation), `${JSON.stringify({
+  writeFileSync(HephaestusLock.filePathFor(files.hephaestusDirectory, generation), `${JSON.stringify({
     processId,
     processStartStamp:    startStamp,
     bootIdentity,
@@ -96,8 +96,8 @@ function plantBaton(generation: number, { processId, startStamp, bootIdentity }:
   }, null, 2)}\n`);
 }
 
-/** The generation before this start: its presence record, its ending, and the Baton it held unless it let go of it. */
-function plantPreviousGeneration(bootIdentity: string, ending: PresenceEndingToWrite | null, keptItsBaton: boolean): void {
+/** The generation before this start: its presence record, its ending, and the Hephaestus lock it held unless it let go of it. */
+function plantPreviousGeneration(bootIdentity: string, ending: PresenceEndingToWrite | null, keptItsHephaestusLock: boolean): void {
   Presence.writeStartedPresence(files, {
     generation:          CRASHED_GENERATION,
     process:             crashedProcessIn(bootIdentity),
@@ -107,7 +107,7 @@ function plantPreviousGeneration(bootIdentity: string, ending: PresenceEndingToW
     startClassification: null,
   });
   if (ending !== null) Presence.writeEnding(files, CRASHED_GENERATION, ending, '2026-11-19T09:00:00+01:00');
-  if (keptItsBaton) plantBaton(CRASHED_GENERATION, crashedProcessIn(bootIdentity));
+  if (keptItsHephaestusLock) plantHephaestusLock(CRASHED_GENERATION, crashedProcessIn(bootIdentity));
 }
 
 function beatBeforeBoot(millisecondsBeforeBoot: number): void {
@@ -130,8 +130,8 @@ function storedCrashLog(crashLogNumber = FIRST_CRASH_LOG_NUMBER) {
   return reading.record;
 }
 
-/** A crash log the crash path wrote for `generation`, of the process `batonHolder` names. */
-function crashPathLogOf(generation: number, error: CrashLogError | null = null, batonHolder: ProcessIdentity | null = null) {
+/** A crash log the crash path wrote for `generation`, of the process `hephaestusLockHolder` names. */
+function crashPathLogOf(generation: number, error: CrashLogError | null = null, hephaestusLockHolder: ProcessIdentity | null = null) {
   return CrashLog.assemble({
     crashedGeneration: generation,
     component:         'hephaestus',
@@ -141,7 +141,7 @@ function crashPathLogOf(generation: number, error: CrashLogError | null = null, 
     recordedBy:        { generation, startOrigin: 'user', crashPath: true },
     error,
     presence:          null,
-    batonHolder,
+    hephaestusLockHolder,
     heartbeat:         null,
     activeJobs:        [],
     talosChildren:     null,
@@ -203,7 +203,7 @@ describe('after a crash in this boot', () => {
     expect(admit(LOGIN_ITEM)).toMatchObject({ crashLogNumber: 2 });
   });
 
-  test('a successor whose predecessor died during the Baton pass stays off', () => {
+  test('a successor whose predecessor died during the restart stays off', () => {
     const verdict = admit({ startOrigin: 'successor', predecessorGeneration: CRASHED_GENERATION });
 
     expect(verdict.verdict).toBe('stay-off');
@@ -271,10 +271,10 @@ test('a login-item start after a stop on purpose, its Talos still live, serves w
   expect(CrashLog.list(files)).toEqual([]);
 });
 
-test('a start that took Baton 1 again after a stop and died before its presence write is logged as the crash of that Baton\'s holder', () => {
+test('a start that took Hephaestus lock 1 again after a stop and died before its presence write is logged as the crash of that Hephaestus lock\'s holder', () => {
   plantPreviousGeneration(CURRENT_BOOT, { kind: 'stopped' }, false);
   const diedBeforePresence = { processId: 4545, startStamp: '1700000300', bootIdentity: CURRENT_BOOT };
-  plantBaton(1, diedBeforePresence);
+  plantHephaestusLock(1, diedBeforePresence);
 
   const verdict = admit(LOGIN_ITEM);
 

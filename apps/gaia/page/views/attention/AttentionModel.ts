@@ -257,7 +257,7 @@ const FORGE_ALERT_SUBJECTS: Readonly<Record<'forge-crashed' | 'forge-down' | 'fo
   'forge-hung':    'The forge stopped supervising its agents. They wait for a resume.',
 };
 
-const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
+const RESTART_FAILED_WARNING_KIND = 'restart-failed';
 const NEW_CODE_NOTICE_KIND = 'new-code';
 
 function visibleForgesOf(fleetDocument: FleetDocument): FleetDocumentForge[] {
@@ -525,11 +525,11 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
       return newerContractCallout(forge, fleetDocument);
     case 'older-contract':
       return olderContractCallout(forge, fleetDocument);
-    case 'baton-pass-failed':
+    case 'restart-failed':
       return {
         tone:        'error' as const,
-        word:        'Baton pass failed',
-        sentence:    forgeTextOf(forge.warnings, BATON_PASS_FAILED_WARNING_KIND) ?? 'Its Hephaestus could not hand over to its successor.',
+        word:        'Restart failed',
+        sentence:    forgeTextOf(forge.warnings, RESTART_FAILED_WARNING_KIND) ?? 'Its Hephaestus could not restart and keeps driving on its old code.',
         machineLine: null,
         actions:     [linkAction('Open', forgeInPlaceHrefOf(trackerId, null))],
       };
@@ -592,7 +592,7 @@ function restartAfterUpdateOf(forge: FleetDocumentForge, parts: CalloutParts): L
  */
 const LOOK_CALLOUT_ORDER: readonly FleetDocumentLookKind[] = [
   'unreachable',
-  'baton-pass-failed',
+  'restart-failed',
   'launches-held',
   'older-contract',
   'newer-contract',

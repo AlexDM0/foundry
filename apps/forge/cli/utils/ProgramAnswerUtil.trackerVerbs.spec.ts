@@ -1,7 +1,7 @@
 /**
  * The versioned JSON answers of `init`, `update` and `stop` on a tracker, over recorded git: a success and one refusal each. What matters: the
- * answer carries `answerVersion: 2` and only the keys the command's reference names, a refusal under `--json` is the refusal document, and
- * a Baton pass the live Hephaestus did not take is `failed` at its step.
+ * answer carries `answerVersion: 3` and only the keys the command's reference names, a refusal under `--json` is the refusal document, and
+ * a restart the live Hephaestus did not take is `failed` at its step.
  */
 import { realpathSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -9,8 +9,8 @@ import { join }         from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
 
 import type { PlatformPorts }                                                  from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { Baton }                                                               from '../../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                                                   from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                                                      from '../../src/services/hephaestus/HephaestusLock.ts';
 import { requireWorkspace }                                                    from '../../src/services/tracker/Workspace.ts';
 import { nativePlatformPorts }                                                 from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                      from '../../src/testing/RecordedGit.ts';
@@ -51,7 +51,7 @@ async function answerIn(
   return { exitCode, answer: JSON.parse(context.outputText()) as Record<string, unknown> };
 }
 
-const REFUSAL_OF_ARGUMENTS = { answerVersion: 2, refusal: 'arguments-refused', text: expect.any(String) };
+const REFUSAL_OF_ARGUMENTS = { answerVersion: 3, refusal: 'arguments-refused', text: expect.any(String) };
 
 describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
   test('init answers created with the tracker id, the project and the root, and an unknown option as a refusal', async () => {
@@ -61,19 +61,19 @@ describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
     expect(created).toEqual({
       exitCode: 0,
       answer:   {
-        answerVersion: 2, outcome: 'created', trackerId: expect.any(String), project: 'Example Agency', root: realpathSync(directory)
+        answerVersion: 3, outcome: 'created', trackerId: expect.any(String), project: 'Example Agency', root: realpathSync(directory)
       },
     });
     expect(await answerIn(directory, ['init', '--unknown', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
   });
 
-  test('update answers done with no Baton pass needed, and an option it does not take as a refusal', async () => {
+  test('update answers done with no restart needed, and an option it does not take as a refusal', async () => {
     const directory = await trackedDirectory();
     const updated = await recordedGit.playStage(REFRESH_OF_AN_IGNORING_REPOSITORY, () => answerIn(directory, ['update', '--json']));
     expect(updated).toEqual({
       exitCode: 0,
       answer:   {
-        answerVersion: 2, outcome: 'done', installVersion: INSTALL_VERSION, batonPass: 'not-needed', batonPassStep: null
+        answerVersion: 3, outcome: 'done', installVersion: INSTALL_VERSION, restart: 'not-needed', restartStep: null
       },
     });
     expect(await answerIn(directory, ['update', '--root', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
@@ -81,17 +81,17 @@ describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
 
   test('stop answers nothing to do with no Hephaestus live, and an extra argument as a refusal', async () => {
     const directory = await trackedDirectory();
-    expect(await answerIn(directory, ['stop', '--json'])).toEqual({ exitCode: 0, answer: { answerVersion: 2, outcome: 'nothing-to-do' } });
+    expect(await answerIn(directory, ['stop', '--json'])).toEqual({ exitCode: 0, answer: { answerVersion: 3, outcome: 'nothing-to-do' } });
     expect(await answerIn(directory, ['stop', 'extra', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
   });
 });
 
 describeWhenRecorded(['git-recording', 'process-table-recording'], 'the answer of update over a live Hephaestus', () => {
-  test('update answers a Baton pass the live Hephaestus did not take as failed at its step, at exit 0', async () => {
+  test('update answers a restart the live Hephaestus did not take as failed at its step, at exit 0', async () => {
     const directory = await trackedDirectory();
     const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(directory).trackerDirectory);
     const liveHephaestus = processTable.bornProcess();
-    const acquisition = Baton.acquire(processTable.ports, hephaestusDirectory, {
+    const acquisition = HephaestusLock.acquire(processTable.ports, hephaestusDirectory, {
       processId:            liveHephaestus.processId,
       processStartStamp:    liveHephaestus.startStamp,
       bootIdentity:         liveHephaestus.bootIdentity,
@@ -107,7 +107,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the answer o
     expect(updated).toEqual({
       exitCode: 0,
       answer:   {
-        answerVersion: 2, outcome: 'done', installVersion: INSTALL_VERSION, batonPass: 'failed', batonPassStep: 'restart-not-taken'
+        answerVersion: 3, outcome: 'done', installVersion: INSTALL_VERSION, restart: 'failed', restartStep: 'restart-not-taken'
       },
     });
   });

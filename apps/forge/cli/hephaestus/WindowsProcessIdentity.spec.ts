@@ -1,6 +1,6 @@
 /**
  * The start path of a Hephaestus on Windows, over a fake kernel table in the place of `/bin/ps`. What matters: each consumer of `identityOf` gets a
- * real identity, so a Hephaestus passes its identity check, a Baton reads live, a child of Talos reads live while its Talos does; and a
+ * real identity, so a Hephaestus passes its identity check, a Hephaestus lock reads live, a child of Talos reads live while its Talos does; and a
  * failed boot read stops none of that and names no reboot.
  */
 import { mkdirSync } from 'node:fs';
@@ -19,7 +19,7 @@ import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY }                       
 import type { ProcessSupervision }                                                 from '../../src/lib/process-identity/ProcessSupervision.ts';
 import { windowsProcessSupervision }                                               from '../../src/lib/process-identity/ProcessSupervisionFor.ts';
 import { createUnsupportedProcessSupervision }                                     from '../../src/lib/process-identity/UnsupportedProcessSupervision.ts';
-import { Baton, type BatonRecord }                                                 from '../../src/services/hephaestus/Baton.ts';
+import { HephaestusLock, type HephaestusLockRecord }                               from '../../src/services/hephaestus/HephaestusLock.ts';
 import type { HephaestusPortChoice }                                               from '../../src/services/hephaestus/HephaestusPort.ts';
 import { Regrouping }                                                              from '../../src/services/hephaestus/Regrouping.ts';
 import { type Workspace, workspacePathsFor }                                       from '../../src/services/tracker/Workspace.ts';
@@ -116,8 +116,8 @@ describe('a Hephaestus starting on Windows', () => {
   });
 });
 
-describe('a Baton on Windows', () => {
-  function batonFor({ processId, startStamp, bootIdentity }: ProcessIdentity): BatonRecord {
+describe('a Hephaestus lock on Windows', () => {
+  function hephaestusLockFor({ processId, startStamp, bootIdentity }: ProcessIdentity): HephaestusLockRecord {
     return {
       processId,
       processStartStamp:    startStamp,
@@ -133,16 +133,16 @@ describe('a Baton on Windows', () => {
 
   test('names a live process while the kernel answers its start, and a dead one once the id is reused', () => {
     const ports = windowsPorts();
-    expect(Baton.acquire(ports, scratchDirectory, batonFor(identityOf(ports, OTHER_PROCESS_ID))).verdict).toBe('acquired');
-    expect(Baton.newestBatonOf(ports, scratchDirectory).verdict).toBe('live');
+    expect(HephaestusLock.acquire(ports, scratchDirectory, hephaestusLockFor(identityOf(ports, OTHER_PROCESS_ID))).verdict).toBe('acquired');
+    expect(HephaestusLock.newestOf(ports, scratchDirectory).verdict).toBe('live');
     kernel.table.set(OTHER_PROCESS_ID, { creationTime: REUSED_CREATION_TIME });
-    expect(Baton.newestBatonOf(ports, scratchDirectory).verdict).toBe('dead');
+    expect(HephaestusLock.newestOf(ports, scratchDirectory).verdict).toBe('dead');
   });
 
-  test('stays live when a successor cannot read the boot the Baton recorded', () => {
+  test('stays live when a successor cannot read the boot the Hephaestus lock recorded', () => {
     const ports = windowsPorts();
-    Baton.acquire(ports, scratchDirectory, batonFor(identityOf(ports, OTHER_PROCESS_ID)));
-    expect(Baton.newestBatonOf(portsWithoutBoot(), scratchDirectory).verdict).toBe('live');
+    HephaestusLock.acquire(ports, scratchDirectory, hephaestusLockFor(identityOf(ports, OTHER_PROCESS_ID)));
+    expect(HephaestusLock.newestOf(portsWithoutBoot(), scratchDirectory).verdict).toBe('live');
   });
 });
 

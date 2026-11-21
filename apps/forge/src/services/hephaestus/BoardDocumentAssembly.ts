@@ -1,5 +1,5 @@
 /**
- * The contract's board document of `GET /api/v3/board`, built from the same reading as `GET /api/state` and the monitor, part
+ * The contract's board document of `GET /api/v4/board`, built from the same reading as `GET /api/state` and the monitor, part
  * by part through the board document's mappers, with the Board's offers and the readings a view would otherwise recompute. Its return
  * type is the proof that the served document is the contract's.
  */
@@ -86,7 +86,7 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     pictureLimits:         BoardConversationMappingUtil.pictureLimitsOf(state.pictureLimits),
     limits:                BoardPageMappingUtil.limitsOf(state.page.payload.limits),
     notices:               BoardReadingMappingUtil.noticesOf(state.notices),
-    warnings:              BoardReadingMappingUtil.warningsOf(state.notices, NoticeWordingUtil.batonPassWarningIn(state.hephaestus.batonPassWarning)),
+    warnings:              BoardReadingMappingUtil.warningsOf(state.notices, NoticeWordingUtil.restartWarningIn(state.hephaestus.restartWarning)),
     attention:             attentionEntriesOf(state).map(BoardReadingMappingUtil.attentionEntryOf),
     today:                 BoardReadingMappingUtil.todayOf(
       todayCalendarDate,

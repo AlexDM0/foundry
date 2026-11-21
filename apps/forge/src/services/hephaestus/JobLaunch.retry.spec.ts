@@ -108,12 +108,12 @@ function jobById(board: Board, jobId: string): Readonly<Job> | undefined {
   return board.jobs().find((job) => job.id === jobId);
 }
 
-/** A refused V3 sends the session back with a red handoff naming the check, its reason in the Baton pass; `null` when nothing went red. */
+/** A refused V3 sends the session back with a red handoff naming the check, its reason in the restart; `null` when nothing went red. */
 function customsRefusalOf(scene: RetryScene, job: Readonly<Job>): string | null {
   const facts = RedHandoff.redHandoffFactsOf(jobFolderIn(scene.context.workspace.trackerDirectory, job.id));
   if (facts === null) return null;
-  const batonPass = readFileSync(facts.batonPassPath, 'utf8');
-  return `${facts.name}: ${batonPass.includes('no-commit-since-start') ? 'no-commit-since-start' : 'another reason'}`;
+  const restart = readFileSync(facts.gateFailureNotePath, 'utf8');
+  return `${facts.name}: ${restart.includes('no-commit-since-start') ? 'no-commit-since-start' : 'another reason'}`;
 }
 
 describeWhenGitIsRecorded('a build retry under V3', () => {

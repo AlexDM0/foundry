@@ -1,5 +1,5 @@
 /**
- * `restart [--now] [--json]`: the checked Baton pass to the code on disk; a failed one exits 1 `baton-pass-failed` with the old Hephaestus still
+ * `restart [--now] [--json]`: the checked restart to the code on disk; a refused one exits 1 `restart-failed` with the old Hephaestus still
  * driving. A Hephaestus whose API does not take the command is stopped and started again, and with none live one is started.
  */
 import { hephaestusFilesIn }             from '../../src/services/hephaestus/HephaestusFiles.ts';
@@ -23,13 +23,13 @@ export const restartCommand: CommandHandler = async (commandArguments, context) 
   await hatchWhenUnderJob(context, { kind: 'hephaestus-restart', now });
   const workspace = requireWorkspace(context.currentDirectory);
   const files     = hephaestusFilesIn(workspace.trackerDirectory);
-  const batonPass = await HephaestusRemote.handOverTheLiveHephaestus(context.platformPorts, files, now);
-  if (batonPass.verdict === 'baton-passed') {
-    OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url: batonPass.url, codeVersion: batonPass.successorCodeVersion },
-      `Hephaestus handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}`);
+  const restart = await HephaestusRemote.restartTheLiveHephaestus(context.platformPorts, files, now);
+  if (restart.verdict === 'restarted') {
+    OutputUtil.printEntity(commandArguments, context, { outcome: 'done', url: restart.url, codeVersion: restart.successorCodeVersion },
+      `Hephaestus handed over to code ${restart.successorCodeVersion} at ${restart.url}`);
     return;
   }
-  // A Baton already dead at the hand-over is read again here, so its port is kept and it is closed.
+  // A Hephaestus lock already dead at the hand-over is read again here, so its port is kept and it is closed.
   const stopped = await stopAndCloseTheLiveHephaestus({ commandArguments, context, workspace }, files, now);
   // The successor keeps the port the Hephaestus it replaces had, also one found dead, so its URL stays the one people opened.
   const record        = stopped.verdict === 'was-down' ? null : stopped.record;

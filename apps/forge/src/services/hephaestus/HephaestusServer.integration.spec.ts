@@ -68,7 +68,7 @@ function exampleState(ticketCount: number): BoardState {
     notices:    [],
     mergeQueue: { queuedTicketIds: [], slots: [] },
     hephaestus: {
-      state: 'serving', paused: false, url: null, generation: 1, codeVersion: 'code-example', installVersion: 17, batonPassWarning: null
+      state: 'serving', paused: false, url: null, generation: 1, codeVersion: 'code-example', installVersion: 17, restartWarning: null
     },
     usage:       { resetsAt: null, window: null, windows: [] },
     profileRuns: [],
@@ -94,8 +94,8 @@ function startExampleServer(
     onNudge:         () => nudges.push('nudge'),
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     board:           () => ({ project: 'Example Agency' }),
-    summary:         () => ({ summaryVersion: 2 }),
-    monitor:         () => ({ status: 200, body: { monitorVersion: 5 } }),
+    summary:         () => ({ summaryVersion: 3 }),
+    monitor:         () => ({ status: 200, body: { monitorVersion: 6 } }),
     presence:        () => ({ status: 200, body: { generation: 1 } }),
     crashLog:        () => ({ status: 404, body: { refusal: 'no-crash-log', number: null } }),
     monitorStream:   () => null,
@@ -185,7 +185,7 @@ describe('HephaestusServer guards', () => {
       installVersion:       17,
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       processId:            process.pid,
-      contracts:            { summary: 2, monitor: 5, control: 3 },
+      contracts:            { summary: 3, monitor: 6, control: 3 },
     });
   });
 
@@ -323,7 +323,7 @@ describe('HephaestusServer guards', () => {
     expect(nudges).toEqual(['nudge']);
     expect(commands).toEqual([]);
     expect(await (await fetch(new URL('api/state', server.url), { headers: TOKEN_HEADERS })).json()).toEqual({ notices: [{ kind: 'install-version-changed' }] });
-    expect(await (await fetch(new URL('api/summary', server.url))).json()).toEqual({ summaryVersion: 2 });
+    expect(await (await fetch(new URL('api/summary', server.url))).json()).toEqual({ summaryVersion: 3 });
   });
 
   test('a body that is no JSON is refused 400 as the control contract\'s refusal, before any route sees it', async () => {

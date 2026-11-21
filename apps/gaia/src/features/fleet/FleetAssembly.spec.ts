@@ -141,8 +141,8 @@ const RECORDED_FORGE_IDENTITY: ForgeIdentity = {
   ...recordedForgeVersionsOf('hephaestus-fetch-supported-forge'),
   processId: 48_107,
   contracts: {
-    summary: 2,
-    monitor: 5,
+    summary: 3,
+    monitor: 6,
     control: 3,
   },
 };

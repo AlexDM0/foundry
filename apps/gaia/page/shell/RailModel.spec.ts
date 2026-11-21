@@ -196,11 +196,11 @@ describe('the current row', () => {
     expect(inPlace.forges.filter((row) => row.isCurrent).map((row) => row.project)).toEqual(['Invoice Service']);
   });
 
-  test('a forge passing the baton shows the ring of a forge on its way', () => {
+  test('a restarting forge shows the ring of a forge on its way', () => {
     const [storefront] = FLEET_FIVE_FORGES.forges;
     if (storefront === undefined) throw new Error('The fixture holds no forge.');
-    const passing: FleetDocument = { ...FLEET_FIVE_FORGES, forges: [{ ...storefront, condition: 'passing-baton' }] };
-    expect(RailModel.railContentOf(passing, DEFAULT_ROUTE).forges.map((row) => row.condition)).toEqual(['starting']);
+    const restarting: FleetDocument = { ...FLEET_FIVE_FORGES, forges: [{ ...storefront, condition: 'restarting' }] };
+    expect(RailModel.railContentOf(restarting, DEFAULT_ROUTE).forges.map((row) => row.condition)).toEqual(['starting']);
   });
 
   test('a forge older than this Gaia shows the dashed orange dot of one needing an update, and a newer one the faded dot of one not readable', () => {

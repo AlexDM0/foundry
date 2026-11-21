@@ -56,10 +56,10 @@ export type SetupMessage =
   /** Hephaestus's, once the check ended `checked` or `cannot-run`. */
   | { kind: 'check-ended'; setupId: string; check: Readonly<PipelineCheck> };
 
-/** The live Hephaestus a by-hand delivery is refused for: where it serves, and the Baton that names it. */
+/** The live Hephaestus a by-hand delivery is refused for: where it serves, and the Hephaestus lock that names it. */
 export interface LiveHephaestus {
-  url:           string;
-  batonFilePath: string;
+  url:                    string;
+  hephaestusLockFilePath: string;
 }
 
 export interface ControlContext {

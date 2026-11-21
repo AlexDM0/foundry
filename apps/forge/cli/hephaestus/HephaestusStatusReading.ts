@@ -1,15 +1,15 @@
 /**
- * The process facts `status` prints above the board: the Baton, the stored pause, the code on disk against the live Hephaestus's, the notices and
- * presence, with the lines that word them. Read-only and lockless; the live Hephaestus's Baton says which code it runs.
+ * The process facts `status` prints above the board: the Hephaestus lock, the stored pause, the code on disk against the live one's, the notices and
+ * presence, with the lines that word them. Read-only and lockless; the live Hephaestus's Hephaestus lock says which code it runs.
  */
 import type { TrackerProgress }                                   from '../../src/lib/tracker-model/@types/TrackerProgress.ts';
 import { readingBoardOf }                                         from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { Baton, type BatonRecord }                                from '../../src/services/hephaestus/Baton.ts';
-import type { BatonPassFailure }                                  from '../../src/services/hephaestus/BatonPass.ts';
 import { CodeVersion }                                            from '../../src/services/hephaestus/CodeVersion.ts';
 import type { HephaestusNotice }                                  from '../../src/services/hephaestus/DrivePass.ts';
 import { hephaestusFilesIn }                                      from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock, type HephaestusLockRecord }              from '../../src/services/hephaestus/HephaestusLock.ts';
 import { PresenceStatus, type CrashReading, type StatusPresence } from '../../src/services/hephaestus/PresenceStatus.ts';
+import type { RestartFailure }                                    from '../../src/services/hephaestus/Restart.ts';
 import type { Workspace }                                         from '../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                          from '../../src/shared/constants/ProductNames.ts';
 import type { CommandContext }                                    from '../CommandContext.ts';
@@ -22,11 +22,11 @@ export interface HephaestusStatusFacts {
   state:               string;
   paused:              boolean;
   url:                 string | null;
-  baton:               ({ generation: number } & BatonRecord) | null;
+  hephaestusLock:      ({ generation: number } & HephaestusLockRecord) | null;
   codeVersionOnDisk:   string;
   codeVersionInMemory: string | null;
   notices:             HephaestusNotice[];
-  batonPassWarning:    BatonPassFailure | null;
+  restartWarning:      RestartFailure | null;
   presence:            StatusPresence;
 }
 
@@ -38,10 +38,10 @@ export interface HephaestusStatusReading {
 
 export async function readHephaestusStatus(context: CommandContext, workspace: Workspace, progress: TrackerProgress): Promise<HephaestusStatusReading> {
   const files           = hephaestusFilesIn(workspace.trackerDirectory);
-  const newest          = Baton.newestBatonOf(context.platformPorts, files.hephaestusDirectory);
+  const newest          = HephaestusLock.newestOf(context.platformPorts, files.hephaestusDirectory);
   const live            = newest.verdict === 'live' ? newest : null;
   const stateDocument   = live === null ? null : HephaestusWording.hephaestusStateOf(await HephaestusRemote.stateOf(live.record));
-  const answeringState  = async (record: BatonRecord): Promise<string> => (await HephaestusRemote.identityAnswers(record) ? 'serving' : 'starting');
+  const answeringState  = async (record: HephaestusLockRecord): Promise<string> => (await HephaestusRemote.identityAnswers(record) ? 'serving' : 'starting');
   const state           = live === null ? 'down' : stateDocument?.runtimeState ?? await answeringState(live.record);
   const presenceReading = PresenceStatus.readingOf(
     { ports: context.platformPorts, files, workspace },
@@ -52,11 +52,11 @@ export async function readHephaestusStatus(context: CommandContext, workspace: W
       state,
       paused:              readingBoardOf(progress, [], []).hephaestusState() === 'paused',
       url:                 live?.record.url ?? null,
-      baton:               live === null ? null : { generation: live.generation, ...live.record },
+      hephaestusLock:      live === null ? null : { generation: live.generation, ...live.record },
       codeVersionOnDisk:   CodeVersion.onDisk(),
       codeVersionInMemory: live?.record.codeVersion ?? null,
       notices:             stateDocument?.notices ?? [],
-      batonPassWarning:    stateDocument?.batonPassWarning ?? null,
+      restartWarning:      stateDocument?.restartWarning ?? null,
       presence:            presenceReading.presence,
     },
     crash: presenceReading.crash,
@@ -66,20 +66,20 @@ export async function readHephaestusStatus(context: CommandContext, workspace: W
 /** Down, the crash it stays off after comes first, with its log's path; live, where it serves and what it runs. */
 export function hephaestusStatusTextOf({ facts, crash }: HephaestusStatusReading): string {
   const pausedText = facts.paused ? 'paused' : 'not paused';
-  const { baton, codeVersionOnDisk } = facts;
-  if (baton === null) {
+  const { hephaestusLock, codeVersionOnDisk } = facts;
+  if (hephaestusLock === null) {
     return [
       ...(crash === null ? [] : [PresenceWording.offAfterACrashLineOf(crash, facts.presence.crashLog)]),
       `hephaestus: down; ${pausedText}`,
       `code on disk: ${codeVersionOnDisk}`,
     ].join('\n');
   }
-  const newCodeAdvice = baton.codeVersion === codeVersionOnDisk ? '' : ` (new code: run \`${PRODUCT_NAMES.PROGRAM} update\`)`;
+  const newCodeAdvice = hephaestusLock.codeVersion === codeVersionOnDisk ? '' : ` (new code: run \`${PRODUCT_NAMES.PROGRAM} update\`)`;
   return [
-    `hephaestus: ${facts.state} at ${baton.url}, process ${baton.processId}, Baton ${baton.generation}; ${pausedText}`,
-    `code on disk: ${codeVersionOnDisk}; in memory: ${baton.codeVersion}${newCodeAdvice}`,
+    `hephaestus: ${facts.state} at ${hephaestusLock.url}, process ${hephaestusLock.processId}, Hephaestus lock ${hephaestusLock.generation}; ${pausedText}`,
+    `code on disk: ${codeVersionOnDisk}; in memory: ${hephaestusLock.codeVersion}${newCodeAdvice}`,
     ...PresenceWording.livePresenceLinesOf(facts.presence),
     ...facts.notices.map((notice) => `notice: ${HephaestusWording.noticeTextOf(notice)}`),
-    ...(facts.batonPassWarning === null ? [] : [`warning: ${HephaestusWording.batonPassWarningTextOf(facts.batonPassWarning)}`]),
+    ...(facts.restartWarning === null ? [] : [`warning: ${HephaestusWording.restartWarningTextOf(facts.restartWarning)}`]),
   ].join('\n');
 }

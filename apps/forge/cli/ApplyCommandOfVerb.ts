@@ -1,7 +1,7 @@
 /** A verb's one control command, applied through the store's command face: the `--at` stamp and the skipped-file report are the command line's. */
 import type { ControlResultOf }                  from '../src/services/control/ControlService.ts';
-import { Baton }                                 from '../src/services/hephaestus/Baton.ts';
 import { hephaestusFilesIn }                     from '../src/services/hephaestus/HephaestusFiles.ts';
+import { HephaestusLock }                        from '../src/services/hephaestus/HephaestusLock.ts';
 import type { CommandWritten }                   from '../src/services/store/BoardStore.ts';
 import type { ControlCommand }                   from '../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                      from '../src/shared/OperationRefusal.ts';
@@ -16,11 +16,11 @@ import { OptionValueUtil }                       from './utils/OptionValueUtil.t
 import { OutputUtil }                            from './utils/OutputUtil.ts';
 
 /**
- * After the lock is released, so the pass it wakes can take it: a body-less `POST /api/nudge` to the live Baton's URL. Silent whatever
+ * After the lock is released, so the pass it wakes can take it: a body-less `POST /api/nudge` to the live Hephaestus lock's URL. Silent whatever
  * happens, since Hephaestus's watch of the data folder notices the write anyway; the verb itself only recorded.
  */
 async function nudgeHephaestus(context: CommandContext, trackerDirectory: string): Promise<void> {
-  const newest = Baton.newestBatonOf(context.platformPorts, hephaestusFilesIn(trackerDirectory).hephaestusDirectory);
+  const newest = HephaestusLock.newestOf(context.platformPorts, hephaestusFilesIn(trackerDirectory).hephaestusDirectory);
   if (newest.verdict !== 'live') return;
   try {
     await fetch(new URL('api/nudge', newest.record.url), { method: 'POST', signal: AbortSignal.timeout(HEPHAESTUS_NUDGE_TIMEOUT_MILLISECONDS) });

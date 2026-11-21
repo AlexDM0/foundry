@@ -84,8 +84,9 @@ export interface BarVersionPair {
 }
 
 /**
- * The running and the newest Hephaestus and Talos, and a clean restart of each: Restart Hephaestus is a Baton pass, Restart Talos its clean
- * quit. `pairs` is empty for a forge not answering, whose versions are not known; the restarts act only while the forge answers.
+ * The running and the newest Hephaestus and Talos, and a clean restart of each: Restart Hephaestus is the checked restart to the code on
+ * disk, Restart Talos its clean quit. `pairs` is empty for a forge not answering, whose versions are not known; the restarts act only
+ * while the forge answers.
  */
 export interface BarVersions {
   readonly pairs:             readonly BarVersionPair[];

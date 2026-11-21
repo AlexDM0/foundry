@@ -91,12 +91,12 @@ describe('BoardReadingMappingUtil.noticesOf', () => {
 
 describe('BoardReadingMappingUtil.warningsOf', () => {
   test('serves the monitor\'s warnings with the facts each sentence names', () => {
-    const batonPassWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
+    const restartWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
     const notices = [{
       kind: 'incident-defaulted', incidentId: 'I4', move: 'ticket-park', cause: 'no-assistant'
     }];
-    expect(BoardReadingMappingUtil.warningsOf(notices, batonPassWarning)).toEqual([
-      { kind: 'baton-pass-failed', facts: batonPassWarning, sentence: 'the Baton pass to code code-next failed at handover: Example failure.' },
+    expect(BoardReadingMappingUtil.warningsOf(notices, restartWarning)).toEqual([
+      { kind: 'restart-failed', facts: restartWarning, sentence: 'the restart to code code-next failed at handover: Example failure.' },
       { kind: 'assistant-down', facts: {}, sentence: 'no Assistant can come up: open incidents take their defaults' },
     ]);
     expect(BoardReadingMappingUtil.warningsOf([], null)).toEqual([]);

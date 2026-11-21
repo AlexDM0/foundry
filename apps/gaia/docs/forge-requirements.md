@@ -6,9 +6,9 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 3.0 meets V1 to V5 and V9: it answers `/api/versions` with current 3.0 and minimum 3.0, serves identity 1, summary 2, monitor 5
+Forge 4.0 meets V1 to V5 and V9: it answers `/api/versions` with current 4.0 and minimum 4.0, serves identity 1, summary 3, monitor 6
 and control 3 at their `/api/v<n>/` paths beside the unversioned ones, carries the system version in the monitor stream, and takes its
-documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 3.0. Since 2.0 forge serves no page of its own, so the
+documents from `forge-contracts`, every registry entry `shipped`. Gaia supports forge 4.0. Since 2.0 forge serves no page of its own, so the
 requirements that let a host frame that page, V6 and V8, went with it, and V5 keeps only its half about the monitor stream. The numbers
 V6 to V8 are not used again.
 
@@ -82,10 +82,10 @@ it is made, and the guard keeps the code and the registry in step after it.
 
 ### V5. Carry the system version in the monitor stream (Must)
 
-**Statement.** `GET /api/v4/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 3, "minor": 0 } }`, before the
+**Statement.** `GET /api/v5/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 4, "minor": 0 } }`, before the
 first `monitor` event, and every `monitor` event carries the same `systemVersion` beside the snapshot's own keys.
 
-**Reason.** A stream outlives the `/api/versions` answer it was opened after: a Hephaestus replaced at a Baton pass may be another
+**Reason.** A stream outlives the `/api/versions` answer it was opened after: a Hephaestus replaced at a restart may be another
 version, and the message is where a client learns it.
 
 **Acceptance.** Specs: the stream's first event is the handshake, and each `monitor` event names forge's current system version.
@@ -114,7 +114,7 @@ and skip the extra read.
 
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 3.0) and keeps nothing for an older forge: forge 1 or 2,
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 4.0) and keeps nothing for an older forge: forge 1, 2 or 3,
 and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |

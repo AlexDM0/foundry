@@ -495,7 +495,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'a build job end to end', () =
     expect(existsSync(join(jobFolderOf(firstBuildJobId()), 'gate-1'))).toBe(false);
   });
 
-  test('a red gate resumes the builder\'s own session by its id twice, told of the Baton pass, and the third red parks the ticket for User', async () => {
+  test('a red gate resumes the builder\'s own session by its id twice, told of the restart, and the third red parks the ticket for User', async () => {
     await run(['gate', 'add', 'tests', '--', 'echo expected 2, received 3; exit 1']);
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => buildJobEnding() !== undefined, 'the build job ending');

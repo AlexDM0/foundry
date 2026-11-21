@@ -129,7 +129,7 @@ describe('the bar\'s controls for each condition', () => {
     expect(controlsOf('paused')).toEqual({ pauseOrUnpause: 'Unpause', emphasis: 'primary', stop: true });
     expect(controlsOf('held')).toEqual({ pauseOrUnpause: null, emphasis: null, stop: true });
     expect(controlsOf('unreachable')).toEqual({ pauseOrUnpause: null, emphasis: null, stop: true });
-    for (const condition of ['passing-baton', 'starting', 'dormant', 'unreadable', 'missing'] as const) {
+    for (const condition of ['restarting', 'starting', 'dormant', 'unreadable', 'missing'] as const) {
       expect(controlsOf(condition)).toEqual({ pauseOrUnpause: null, emphasis: null, stop: false });
     }
   });

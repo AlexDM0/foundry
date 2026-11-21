@@ -23,7 +23,7 @@ const HELP_ALIASES     = new Set([`--${HELP_OPTION_NAME}`, HELP_SHORT_ALIAS]);
  * `machine` and `login-item` write nothing of a repository's install.
  */
 const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version', 'stop', 'talos-restart', 'machine', 'login-item']);
-/** A hook prints or guards whatever the install; `start` checks the repository it starts, and its successor form checks as a Baton pass step. */
+/** A hook prints or guards whatever the install; `start` checks the repository it starts, and its preflight form reports the check as a step. */
 const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'start']);
 
 /** The commands whose first argument names a subcommand, which the recorded verb then carries: `ticket hold`, not `ticket`. */

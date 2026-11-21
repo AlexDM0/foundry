@@ -17,7 +17,7 @@ import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }        from 
 import type { BoardRoute, BoardTab }                                       from './BoardRouter.ts';
 
 /** The state pill's state: `live` only while serving, unpaused, with the event stream up; the pill is orange and its dot pulses only then. */
-export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'passing-baton' | 'down';
+export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'restarting' | 'down';
 
 /** The Kanban lanes a header figure points at. */
 export type HeaderFigureLane = 'building' | 'done' | 'ready';
@@ -58,19 +58,19 @@ export interface HeaderModel {
 }
 
 const STATUS_LABEL: Readonly<Record<StatusToken, string>> = {
-  'live':          'Running',
-  'paused':        'Paused',
-  'connecting':    'Connecting',
-  'held':          'Held',
-  'passing-baton': 'Handing over',
-  'down':          'Down',
+  'live':       'Running',
+  'paused':     'Paused',
+  'connecting': 'Connecting',
+  'held':       'Held',
+  'restarting': 'Restarting',
+  'down':       'Down',
 };
 
 const SETUP_STATUS_LABEL = 'Setting up';
 
 const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<BoardHephaestusDocument['state'], 'serving'>, StatusToken>> = {
   'held-by-install-change': 'held',
-  'passing-baton':          'passing-baton',
+  'restarting':             'restarting',
   'down':                   'down',
 };
 

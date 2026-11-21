@@ -18,6 +18,8 @@ const PRESENCE_ADDED_IN: SystemVersion = { major: 1, minor: 20 };
 const VERSIONED_STREAMS_AND_PICTURES_ADDED_IN: SystemVersion = { major: 1, minor: 22 };
 /** The forge whose serving process is Hephaestus: the key `hephaestus` of the summary, the monitor and the board, and the four lifecycle command kinds. */
 const HEPHAESTUS_FORGE: SystemVersion = { major: 3, minor: 0 };
+/** The forge that restarts Hephaestus through a preflight: the state `restarting`, the warning kind restart-failed and the board's `restartWarning`. */
+const RESTARTING_FORGE: SystemVersion = { major: 4, minor: 0 };
 
 function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
   return {
@@ -36,14 +38,14 @@ function currentEndpointOf(endpoint: string, version: number): ForgeCompatibilit
 
 export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = [
   currentEndpointOf('identity', 1),
-  endpointAddedIn('summary', 2, HEPHAESTUS_FORGE),
-  endpointAddedIn('monitor', 4, HEPHAESTUS_FORGE),
-  endpointAddedIn('monitor/events', 4, HEPHAESTUS_FORGE),
+  endpointAddedIn('summary', 3, RESTARTING_FORGE),
+  endpointAddedIn('monitor', 5, RESTARTING_FORGE),
+  endpointAddedIn('monitor/events', 5, RESTARTING_FORGE),
   endpointAddedIn('commands', 3, HEPHAESTUS_FORGE),
   endpointAddedIn('presence', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('crash-log', 1, PRESENCE_ADDED_IN),
-  endpointAddedIn('board', 3, HEPHAESTUS_FORGE),
-  endpointAddedIn('events', 3, HEPHAESTUS_FORGE),
+  endpointAddedIn('board', 4, RESTARTING_FORGE),
+  endpointAddedIn('events', 4, RESTARTING_FORGE),
   endpointAddedIn('jobs/{jobId}/stream', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
   endpointAddedIn('profiles/{profileRunId}/stream', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
   endpointAddedIn('pictures', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),

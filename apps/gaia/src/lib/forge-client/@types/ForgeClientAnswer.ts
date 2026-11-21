@@ -18,7 +18,7 @@ export type ForgeCommandOutcome = 'done' | 'nothing-to-do';
 export type ForgeCommandAnswer = { readonly verdict: 'answered'; readonly outcome: ForgeCommandOutcome } | ForgeClientFailure;
 
 /**
- * How following a monitor stream ended. `closed`: the forge ended the stream, as at a Baton pass. `broken`: the connection broke.
+ * How following a monitor stream ended. `closed`: the forge ended the stream, as at a restart. `broken`: the connection broke.
  * `stopped`: the caller stopped following. A failure: the stream never opened.
  */
 export type MonitorFollowEnd = { readonly verdict: 'ended'; readonly ending: 'closed' | 'broken' | 'stopped' } | ForgeClientFailure;

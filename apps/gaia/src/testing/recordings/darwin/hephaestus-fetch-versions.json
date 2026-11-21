@@ -6,7 +6,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 45, code 5c7c0f3669b1, answering 1.0/0.0, 3.1/3.0 and 4.1/4.0 through FORGE_VERSIONS_ANSWER; before system versions: install version 28, code 018612099a0a"
+    "systemVersion": "install version 45, code 5c7c0f3669b1, answering 1.0/0.0, 4.1/4.0 and 5.1/5.0 through FORGE_VERSIONS_ANSWER; before system versions: install version 28, code 018612099a0a"
   },
   "answers": [
     {
@@ -25,17 +25,17 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"identityVersion\":1,\"application\":\"forge\",\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"codeVersion\":\"5c7c0f3669b1\",\"installVersion\":45,\"processId\":48107,\"talosProtocolVersion\":2,\"contracts\":{\"summary\":2,\"monitor\":5,\"control\":3}}",
+        "bodyText": "{\"identityVersion\":1,\"application\":\"forge\",\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"codeVersion\":\"5c7c0f3669b1\",\"installVersion\":45,\"processId\":48107,\"talosProtocolVersion\":2,\"contracts\":{\"summary\":3,\"monitor\":6,\"control\":3}}",
         "bodyBytes": null
       }
     },
     {
-      "callShape": "versions-ahead: GET /api/v4/monitor with bearer",
+      "callShape": "versions-ahead: GET /api/v5/monitor with bearer",
       "answer": {
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"monitorVersion\":5,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"hephaestus\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-21T17:42:45+01:00\",\"generation\":1,\"codeVersion\":\"5c7c0f3669b1\",\"codeVersionOnDisk\":\"5c7c0f3669b1\",\"installVersion\":45},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":0,\"ready-for-review\":0,\"committed\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.\",\"jobId\":null,\"askedBy\":\"hephaestus\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-21T17:42:46+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}}],\"jobs\":[],\"notices\":[],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus started on code 5c7c0f3669b1, install version 45\",\"target\":null},{\"logPosition\":1,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Forge started by User for the first time\",\"target\":null},{\"logPosition\":2,\"at\":\"2026-11-21T17:42:46+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}},{\"logPosition\":3,\"at\":\"2026-11-21T17:42:49+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus set to running\",\"target\":null}]}",
+        "bodyText": "{\"monitorVersion\":6,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"hephaestus\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-21T17:42:45+01:00\",\"generation\":1,\"codeVersion\":\"5c7c0f3669b1\",\"codeVersionOnDisk\":\"5c7c0f3669b1\",\"installVersion\":45},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":0,\"ready-for-review\":0,\"committed\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.\",\"jobId\":null,\"askedBy\":\"hephaestus\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-21T17:42:46+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}}],\"jobs\":[],\"notices\":[],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus started on code 5c7c0f3669b1, install version 45\",\"target\":null},{\"logPosition\":1,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Forge started by User for the first time\",\"target\":null},{\"logPosition\":2,\"at\":\"2026-11-21T17:42:46+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}},{\"logPosition\":3,\"at\":\"2026-11-21T17:42:49+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus set to running\",\"target\":null}]}",
         "bodyBytes": null
       }
     },
@@ -45,7 +45,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"current\":{\"major\":3,\"minor\":1},\"minimumSupported\":{\"major\":3,\"minor\":0}}",
+        "bodyText": "{\"current\":{\"major\":4,\"minor\":1},\"minimumSupported\":{\"major\":4,\"minor\":0}}",
         "bodyBytes": null
       }
     },
@@ -60,11 +60,11 @@
       }
     },
     {
-      "callShape": "versions-ahead: STREAM /api/v4/monitor/events with bearer",
+      "callShape": "versions-ahead: STREAM /api/v5/monitor/events with bearer",
       "answer": {
         "verdict": "streaming",
         "chunks": [
-          "event: handshake\ndata: {\"systemVersion\":{\"major\":3,\"minor\":1}}\n\nevent: monitor\ndata: {\"monitorVersion\":5,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"hephaestus\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-21T17:42:45+01:00\",\"generation\":1,\"codeVersion\":\"5c7c0f3669b1\",\"codeVersionOnDisk\":\"5c7c0f3669b1\",\"installVersion\":45},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":0,\"ready-for-review\":0,\"committed\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.\",\"jobId\":null,\"askedBy\":\"hephaestus\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-21T17:42:46+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}}],\"jobs\":[],\"notices\":[],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus started on code 5c7c0f3669b1, install version 45\",\"target\":null},{\"logPosition\":1,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Forge started by User for the first time\",\"target\":null},{\"logPosition\":2,\"at\":\"2026-11-21T17:42:46+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}},{\"logPosition\":3,\"at\":\"2026-11-21T17:42:49+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus set to running\",\"target\":null}],\"systemVersion\":{\"major\":3,\"minor\":1}}\n\n"
+          "event: handshake\ndata: {\"systemVersion\":{\"major\":4,\"minor\":1}}\n\nevent: monitor\ndata: {\"monitorVersion\":6,\"trackerId\":\"example-storefront-7c41\",\"project\":\"Example Storefront\",\"root\":\"/Users/alexexample/development/example-storefront\",\"hephaestus\":{\"state\":\"serving\",\"paused\":false,\"url\":\"http://127.0.0.1:4951/\",\"processId\":48107,\"startedAt\":\"2026-11-21T17:42:45+01:00\",\"generation\":1,\"codeVersion\":\"5c7c0f3669b1\",\"codeVersionOnDisk\":\"5c7c0f3669b1\",\"installVersion\":45},\"concurrency\":{\"limit\":2,\"agentsInFlight\":0,\"machineLimit\":10,\"machineAgentsInFlight\":0,\"ticketsWaitingForMachineSlot\":0},\"ticketCountByStatus\":{\"draft\":0,\"ready-for-review\":0,\"committed\":0,\"in-progress\":0,\"in-review\":0,\"reviewed\":0,\"delivered\":0,\"abandoned\":0},\"readyTicketIds\":[],\"openIncidents\":0,\"attention\":[{\"key\":\"decision:E1\",\"kind\":\"question\",\"idText\":\"E1\",\"ticketIds\":[],\"subject\":\"No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.\",\"jobId\":null,\"askedBy\":\"hephaestus\",\"decisionKind\":\"checks-not-set\",\"escalatedFromIncidentId\":null,\"metaText\":null,\"stamp\":\"2026-11-21T17:42:46+01:00\",\"stampWord\":\"opened\",\"actionLabel\":\"Answer\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}}],\"jobs\":[],\"notices\":[],\"warnings\":[],\"today\":{\"deliveredTickets\":0,\"tokens\":0},\"usage\":{\"resetsAt\":null,\"window\":null,\"currentWindow\":null,\"currentWindowResetsAt\":null},\"activity\":[{\"logPosition\":0,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus started on code 5c7c0f3669b1, install version 45\",\"target\":null},{\"logPosition\":1,\"at\":\"2026-11-21T17:42:45+01:00\",\"category\":\"forge\",\"text\":\"Forge started by User for the first time\",\"target\":null},{\"logPosition\":2,\"at\":\"2026-11-21T17:42:46+01:00\",\"category\":\"needs-user\",\"text\":\"Decision E1 opened: checks-not-set\",\"target\":{\"subject\":\"decision\",\"id\":\"E1\"}},{\"logPosition\":3,\"at\":\"2026-11-21T17:42:49+01:00\",\"category\":\"forge\",\"text\":\"Hephaestus set to running\",\"target\":null}],\"systemVersion\":{\"major\":4,\"minor\":1}}\n\n"
         ],
         "ending": "stays-open"
       }
@@ -75,7 +75,7 @@
         "verdict": "answered",
         "status": 200,
         "contentType": "application/json;charset=utf-8",
-        "bodyText": "{\"current\":{\"major\":4,\"minor\":1},\"minimumSupported\":{\"major\":4,\"minor\":0}}",
+        "bodyText": "{\"current\":{\"major\":5,\"minor\":1},\"minimumSupported\":{\"major\":5,\"minor\":0}}",
         "bodyBytes": null
       }
     },

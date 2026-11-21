@@ -306,11 +306,11 @@ function sentenceOf(record: LogRecordContent): string {
     case 'hephaestus-started':
       return `Hephaestus started on code ${record.fields.codeVersion}, install version ${record.fields.installVersion}`;
     case 'hephaestus-stopped':
-      return record.fields.reason === 'baton-passed' ? 'Hephaestus handed the board over to its successor' : 'Hephaestus stopped';
+      return record.fields.reason === 'handed-over' ? 'Hephaestus handed the board over to its successor' : 'Hephaestus stopped';
     case 'start-classified':
       return startClassifiedTextOf(record.fields);
-    case 'baton-pass-failed':
-      return `Hephaestus Baton pass to code ${record.fields.successorCodeVersion} failed at ${record.fields.step}: ${record.fields.error}; the old Hephaestus keeps driving`;
+    case 'restart-failed':
+      return `Hephaestus restart to code ${record.fields.successorCodeVersion} failed at ${record.fields.step}: ${record.fields.error}; the old Hephaestus keeps driving`;
     case 'job-launched':
       return jobLaunchedTextOf(record.jobId, record.fields);
     case 'job-interrupted':
@@ -401,7 +401,7 @@ const START_ORIGIN_PHRASES: Readonly<Record<StartOrigin, string>> = {
 };
 
 function startClassifiedTextOf(start: LogRecordFieldsOf<'start-classified'>): string {
-  const previous  = start.previousGeneration === undefined ? '' : ` (previous Baton ${start.previousGeneration})`;
+  const previous  = start.previousGeneration === undefined ? '' : ` (previous Hephaestus lock ${start.previousGeneration})`;
   const suspected = start.crashSuspected === true ? ', a crash suspected before it' : '';
   const crashLog  = start.crashLogNumber === undefined ? '' : `; crash log ${start.crashLogNumber} recorded`;
   return `Forge started by ${START_ORIGIN_PHRASES[start.startOrigin]} ${START_KIND_PHRASES[start.kind]}${previous}${suspected}${crashLog}`;

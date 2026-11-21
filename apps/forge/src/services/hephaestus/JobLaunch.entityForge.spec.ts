@@ -157,7 +157,7 @@ function leaveARedHandoff({ jobFolder }: ForgeBuild, kind: RedHandoffFacts['kind
     fixCommand:          null,
     commit:              '',
     exitCode:            null,
-    batonPassPath:       RedHandoff.batonPassPathOf(jobFolder),
+    gateFailureNotePath: RedHandoff.gateFailureNotePathOf(jobFolder),
     fullLogPath:         null,
     resume:              1,
     resumesAllowed:      LIFECYCLE_LIMITS.RED_HANDOFF_RESUMES_BEFORE_PARKING,
@@ -237,10 +237,10 @@ describeWhenGitIsRecorded('a build of the shop judged by its entity', () => {
     expect(verify(launchedBuildOf(SHOP), ENTITY_FORGE_SCENARIOS.SHOP_TICKET_AT_HOME)).toBe('gating');
   });
 
-  test('that also changed the admin app\'s files is sent back once, its Baton pass naming them (E11)', () => {
+  test('that also changed the admin app\'s files is sent back once, its restart naming them (E11)', () => {
     const build = launchedBuildOf(SHOP);
     expect(verify(build, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN)).toBe('interrupted: V17');
-    expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
+    expect(readFileSync(RedHandoff.gateFailureNotePathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
     expect(RedHandoff.redHandoffFactsOf(build.jobFolder)?.scopeResumed).toBe(true);
   });
 
@@ -277,14 +277,14 @@ describeWhenGitIsRecorded('a build of the shop judged by its entity', () => {
     expect(EntityOwnershipUtil.ownerOf(entityForgePipelineOf('strict-isolation').entities ?? {}, `/${sourceFileOf(ADMIN)}`)).toBe(ADMIN.key);
 
     expect(verify(build, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_INTO_ADMIN)).toBe('interrupted: V17');
-    expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
+    expect(readFileSync(RedHandoff.gateFailureNotePathOf(build.jobFolder), 'utf8')).toContain(`changed-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
   });
 
   test('E8: that changed the package\'s constitution, which its ticket names, is sent back once, then fails', () => {
     const build = launchedBuildOf(SHOP, 'on', withTheShopCrossingIntoTheUiKit);
     build.board.editTicket(SHOP_TICKET.id, NAMING_THE_UI_KIT_CONSTITUTION, AT);
     expect(verify(build, ENTITY_FORGE_SCENARIOS.CONSTITUTION_PROPOSED)).toBe('interrupted: V17');
-    expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`constitution-outside-ticket-entity\n${constitutionFileOf(UI_KIT)}`);
+    expect(readFileSync(RedHandoff.gateFailureNotePathOf(build.jobFolder), 'utf8')).toContain(`constitution-outside-ticket-entity\n${constitutionFileOf(UI_KIT)}`);
 
     const sentBack = launchedBuildOf(SHOP, 'on', withTheShopCrossingIntoTheUiKit);
     sentBack.board.editTicket(SHOP_TICKET.id, NAMING_THE_UI_KIT_CONSTITUTION, AT);
@@ -295,7 +295,7 @@ describeWhenGitIsRecorded('a build of the shop judged by its entity', () => {
   test('that changed only the admin app\'s files is sent back once, then fails and opens work-in-other-entity, which holds it (E15)', () => {
     const build = launchedBuildOf(SHOP);
     expect(verify(build, ENTITY_FORGE_SCENARIOS.SHOP_TICKET_ONLY_ADMIN)).toBe('interrupted: V17');
-    expect(readFileSync(RedHandoff.batonPassPathOf(build.jobFolder), 'utf8')).toContain(`changed-only-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
+    expect(readFileSync(RedHandoff.gateFailureNotePathOf(build.jobFolder), 'utf8')).toContain(`changed-only-outside-home-and-reach\n${sourceFileOf(ADMIN)}`);
 
     const sentBack = launchedBuildOf(SHOP);
     leaveARedHandoff(sentBack, 'customs', 'V17', true);

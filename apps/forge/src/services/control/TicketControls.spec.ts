@@ -396,7 +396,7 @@ test('ticket-deliver-by-hand with a live Hephaestus the context names is refused
     ...ECHOED_CONTROL_CONTEXT,
     liveHephaestusOf: (dataFolder: string) => {
       askedDataFolders.push(dataFolder);
-      return { url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/hephaestus/baton-3.json' };
+      return { url: 'http://127.0.0.1:4100', hephaestusLockFilePath: '/example-agency/.agent-progress/hephaestus/lock-3.json' };
     },
   };
   const ticketsBefore = board.tickets();
@@ -404,7 +404,8 @@ test('ticket-deliver-by-hand with a live Hephaestus the context names is refused
   const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-deliver-by-hand', ticketReference: '1' }, change, liveHephaestusContext));
 
   expect(refusal.status).toBe('refused');
-  expect(refusal.detail).toEqual({ kind: 'hephaestus-owns-the-lifecycle', url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/hephaestus/baton-3.json' });
+  const hephaestusLockFilePath = '/example-agency/.agent-progress/hephaestus/lock-3.json';
+  expect(refusal.detail).toEqual({ kind: 'hephaestus-owns-the-lifecycle', url: 'http://127.0.0.1:4100', hephaestusLockFilePath });
   expect(askedDataFolders).toEqual([change.workspace.trackerDirectory]);
   expect(board.tickets()).toEqual(ticketsBefore);
   expect(board.logRecordsSoFar()).toEqual([]);
