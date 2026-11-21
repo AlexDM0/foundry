@@ -53,3 +53,8 @@ export type ForgeDocumentReading =
   | NewerContractVerdict
   | OlderContractVerdict
   | MalformedVerdict;
+
+/** Why a forge document that carries no version key of its own maps to nothing: each key that is missing or fails its check. */
+export interface DocumentReadingFailure {
+  readonly invalidKeys: readonly string[];
+}

@@ -4,6 +4,9 @@
  */
 export type JsonObject = Readonly<Record<string, unknown>>;
 
+/** A value JSON can hold, read only. */
+export type JsonValue = string | number | boolean | null | readonly JsonValue[] | { readonly [key: string]: JsonValue };
+
 /** `null` for text that is no JSON, so a caller tells a parsed `null` apart from a failed parse. */
 function parsedValueOf(text: string): { readonly parsed: unknown } | null {
   try {

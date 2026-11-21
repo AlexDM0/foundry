@@ -129,6 +129,30 @@ and an empty history, since the fake agent writes no conversation) and a gate pr
 test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`. Every situation is a forge at a
 system version. Each answer keeps its content type, and an answer read as bytes, such as a picture, is recorded in base64.
 
+## A forge's board, in Gaia's model
+
+Gaia reads a forge's board into its own model at its boundary (decision 51) and holds the last one read per forge, never written back
+(decision 47). The model is `src/shared/@types/board/`, `ForgeBoard` at its root, written in Gaia's own unions; the page's board contract
+is a separate document Gaia serves.
+
+- **The board document**, `GET /api/v1/board` (`forge-contracts/ForgeBoardDocument`), carries no version key: its version is the `board`
+  endpoint's, derived from forge's registry at `SUPPORTED_FORGE_VERSION`. `src/adapters/forge-api/BoardStateIngestion.ts` checks the keys
+  Gaia reads against `constants/BoardDocumentShapes.ts`, each shape typed `satisfies ShapeOf<>` against the contract, and maps through
+  `utils/BoardMapUtil.ts` and `utils/PipelineMapUtil.ts`; a missing key or a value outside a value list makes it malformed and is named.
+  The shapes are the inventory of what the Bridge's views read plus the facts forge serves; a key no view reads is named `passed-over`
+  (the Baton pass warning, which `warnings` words, confinement, a ticket's `introducedBy` and `foundInReview`, a gate's `definedBy` and
+  `overseerOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and `openedAtEntity`, the Apply state's
+  `commitJobId`, a checked gate's outcomes and durations, an annotation's `lineIndex`, an edge's `edgeId`, an application's `appliedBy`).
+- **The value lists** map through `utils/VocabularyMapUtil.ts`, one record typed `Record<forge value, Gaia value>` per union, so a value
+  forge adds is a compile error there and nowhere else.
+- **The board event stream**, `GET /api/v1/events`, carries forge's internal board state in every event, never a contract document. Gaia
+  reads only the event's name (`BoardEventIngestion.ts`): `board` asks for the board document anew through `ForgeClient.boardOf`, and each
+  part event names its part.
+- **The conversation streams and the command answer** have no type in `forge-contracts` yet; their shapes are typed against
+  `src/adapters/forge-api/@types/ForgeStreamDocuments.ts`. `ConversationIngestion.ts` reads a job stream's `history` and `message` and a
+  profile stream's `line`; `CommandAnswerIngestion.ts` reads a command's answer under `forgeControl`: 200 applied, with the job an
+  applied command started, 423 held for an install change, any other status a refusal, its code, fields and sentence unchanged.
+
 ## The install version
 
 `GAIA_INSTALL_VERSION` (`src/shared/constants/InstallVersion.ts`) is the contract between Gaia and the `Gaia.app` it installs, kept apart

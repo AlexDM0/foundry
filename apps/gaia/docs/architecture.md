@@ -68,6 +68,16 @@ token and answers the Bridge's address with the code in its fragment, which the 
 the page. The Bridge and the page talk only over the embed channel (`page/views/forge-frame/EmbedChannel.ts`). A forge lets Gaia's
 origin frame it because Gaia writes its frame-ancestor record, `~/.forge-monitor/frame-ancestors/gaia.json`, while it serves.
 
+## A forge's board
+
+Gaia's server reads one forge's board document through `lib/forge-client/` and maps it at its boundary, `adapters/forge-api/`, into its
+own model, `ForgeBoard` (`shared/@types/board/`): the last document read, held per forge, never written to a forge or a file. Every forge
+value list maps into Gaia's own union, every refusal keeps the forge's code, fields and sentence, and every fact the forge serves (attention
+with its typed target, notices, today's figures, the open decisions in answering order, each ticket's and job's offers, the effective
+pipelines, the entities draft with its refusals, the Apply refusal, the step run times, limits and defaults) is read as served, never
+recomputed. The board's event stream is read as change signals only, since its events carry forge's internal state: a `board` event
+means the board document is read again. The page never sees this model; it reads the board contract Gaia serves.
+
 ## Flint's brain
 
 Each forge runs its own Flint and its brain; Gaia runs none and calls no model. A forge at the version Gaia supports reports

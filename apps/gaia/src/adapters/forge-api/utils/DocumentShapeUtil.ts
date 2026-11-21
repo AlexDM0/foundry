@@ -5,17 +5,25 @@
 import { JsonValueUtil, type JsonObject } from '../../../lib/json-value/JsonValueUtil.ts';
 
 /**
- * `text` is any string, `whole-number` a safe integer of zero or more, `text-list` an array of strings. `optional` lets the key be absent,
- * `nullable` lets it hold `null`; `listOf` is an array whose every item is an object of the shape.
+ * `text` is any string, `whole-number` a safe integer of zero or more, `number` any finite number, `text-list` an array of strings, `json`
+ * any value that is present, and `passed-over` a key the reader names but does not read, present or not. `optional` lets the key be absent,
+ * `nullable` lets it hold `null`; `listOf` is an array whose every item is an object of the shape, `eachOf` one whose every item fits the
+ * rule, `recordOf` an object whose every own value fits the rule, and `anyShapeOf` an object that fits one of the shapes.
  */
 export type FieldRule =
   | 'text'
   | 'whole-number'
+  | 'number'
   | 'boolean'
   | 'text-list'
+  | 'json'
+  | 'passed-over'
   | { readonly oneOf: readonly string[] }
   | { readonly object: DocumentShape }
   | { readonly listOf: DocumentShape }
+  | { readonly eachOf: FieldRule }
+  | { readonly recordOf: FieldRule }
+  | { readonly anyShapeOf: readonly DocumentShape[] }
   | { readonly nullable: FieldRule }
   | { readonly optional: FieldRule };
 
@@ -34,12 +42,20 @@ function keyPathOf(parentPath: string, key: string): string {
   return parentPath === '' ? key : `${parentPath}.${key}`;
 }
 
-function valueFitsNamedRule(value: unknown, rule: 'text' | 'whole-number' | 'boolean' | 'text-list'): boolean {
+type NamedRule = Extract<FieldRule, string>;
+
+function valueFitsNamedRule(value: unknown, rule: NamedRule): boolean {
   switch (rule) {
     case 'text':
       return typeof value === 'string';
     case 'whole-number':
       return isWholeNumber(value);
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'json':
+      return value !== undefined;
+    case 'passed-over':
+      return true;
     case 'boolean':
       return typeof value === 'boolean';
     case 'text-list':
@@ -87,9 +103,31 @@ function collectInvalidKeysOfValue(value: unknown, rule: FieldRule, path: string
     collectInvalidKeysOfList(value, rule.listOf, path, invalidKeys);
     return;
   }
+  if ('eachOf' in rule) {
+    if (Array.isArray(value)) value.forEach((item: unknown, i) => collectInvalidKeysOfValue(item, rule.eachOf, `${path}[${i}]`, invalidKeys));
+    else invalidKeys.push(path);
+    return;
+  }
+  if ('recordOf' in rule) {
+    const record = JsonValueUtil.jsonObjectOf(value);
+    if (record === null) invalidKeys.push(path);
+    else for (const key of Object.keys(record)) collectInvalidKeysOfValue(record[key], rule.recordOf, keyPathOf(path, key), invalidKeys);
+    return;
+  }
+  if ('anyShapeOf' in rule) {
+    const record = JsonValueUtil.jsonObjectOf(value);
+    if (record === null || !rule.anyShapeOf.some((shape) => invalidKeysOfRecord(record, shape).length === 0)) invalidKeys.push(path);
+    return;
+  }
   const record = JsonValueUtil.jsonObjectOf(value);
   if (record === null) invalidKeys.push(path);
   else collectInvalidKeysOfShape(record, rule.object, path, invalidKeys);
+}
+
+function invalidKeysOfRecord(record: JsonObject, shape: DocumentShape): readonly string[] {
+  const invalidKeys: string[] = [];
+  collectInvalidKeysOfShape(record, shape, '', invalidKeys);
+  return invalidKeys;
 }
 
 /** A document that is not a JSON object holds none of the shape's keys, so each key it requires is named. */

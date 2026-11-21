@@ -140,6 +140,14 @@ clients release apart.
 **Acceptance.** Forge's typecheck builds its routes against the package's types; the package is publishable and its README states the
 version rule.
 
+### V10. Declare the board stream's documents and the conversation entries in the contract (Should)
+
+The board event stream's events carry forge's internal board state, and the job stream's entries, the profile stream's lines and a
+command's applied and refused answers have no type in `forge-contracts`. Gaia reads the event stream as change signals and reads the
+board document anew on each `board` event, and types the rest against its own copy (`src/adapters/forge-api/@types/ForgeStreamDocuments.ts`).
+Declaring them in the contract, and carrying the board document in the `board` event, lets Gaia type every shape against the contract
+and skip the extra read.
+
 ## 3. What Gaia does with a forge that misses a requirement
 
 Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.1) and keeps nothing for an older forge: forge 1.0,
@@ -157,6 +165,7 @@ that cannot run Flint's brain reports none, and Gaia shows none of the brain's p
 | V7 | A forge that reports a client's name as `startedBy` is older than Flint's brain needs; Gaia reads only `bridge` and `api`. |
 | V8 | The Bridge refuses Gaia's frame: Gaia writes only the host-neutral record. |
 | V9 | Nothing at runtime. |
+| V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 
 ## 4. Order for the forge's board
 

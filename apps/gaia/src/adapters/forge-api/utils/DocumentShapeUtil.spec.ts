@@ -1,7 +1,8 @@
 /**
  * The shape check against its own contract: every key that is missing or fails its rule is named as a path, in the shape's order; an
- * optional key may be absent and a nullable one `null`, and nothing else; a document that is no object names every key it requires; and a
- * key is read only as the document's own.
+ * optional key may be absent and a nullable one `null`, and nothing else; a document that is no object names every key it requires; a key
+ * is read only as the document's own; a passed-over key may hold anything or be absent; and a list of values, a record of values and an
+ * object of one of several shapes are checked item by item.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -82,5 +83,34 @@ describe('invalidKeysOf', () => {
     const inheritsName = Object.assign(Object.create({ name: 'Example Agency' }) as Record<string, unknown>, wholeDocument());
     delete inheritsName['name'];
     expect(DocumentShapeUtil.invalidKeysOf(inheritsName, SHAPE)).toEqual(['name']);
+  });
+
+  test('passes over a key the reader names but does not read, present or absent, and takes any present value as JSON', () => {
+    const shape: DocumentShape = { skipped: 'passed-over', anything: 'json' };
+    expect(DocumentShapeUtil.invalidKeysOf({ skipped: { deep: [1] }, anything: null }, shape)).toEqual([]);
+    expect(DocumentShapeUtil.invalidKeysOf({ anything: 0 }, shape)).toEqual([]);
+    expect(DocumentShapeUtil.invalidKeysOf({ skipped: 1 }, shape)).toEqual(['anything']);
+  });
+
+  test('takes any finite number as a number, and nothing else', () => {
+    const shape: DocumentShape = { share: 'number' };
+    expect(DocumentShapeUtil.invalidKeysOf({ share: 0.6 }, shape)).toEqual([]);
+    expect(DocumentShapeUtil.invalidKeysOf({ share: -2 }, shape)).toEqual([]);
+    for (const share of [Number.POSITIVE_INFINITY, Number.NaN, '0.6']) expect(DocumentShapeUtil.invalidKeysOf({ share }, shape)).toEqual(['share']);
+  });
+
+  test('names each item of a list and each value of a record that fails the rule, by its index or key', () => {
+    const shape: DocumentShape = { numbers: { eachOf: 'whole-number' }, counts: { recordOf: 'whole-number' } };
+    expect(DocumentShapeUtil.invalidKeysOf({ numbers: [1, 2], counts: { web: 1, api: 0 } }, shape)).toEqual([]);
+    expect(DocumentShapeUtil.invalidKeysOf({ numbers: [1, 'two'], counts: { web: 1, api: 'none' } }, shape)).toEqual(['numbers[1]', 'counts.api']);
+    expect(DocumentShapeUtil.invalidKeysOf({ numbers: {}, counts: [] }, shape)).toEqual(['numbers', 'counts']);
+  });
+
+  test('takes an object that fits any one of its shapes, and names the key of one that fits none', () => {
+    const shape: DocumentShape = { step: { anyShapeOf: [{ kind: { oneOf: ['build'] }, attempt: 'whole-number' }, { kind: { oneOf: ['land'] }, target: { nullable: 'text' } }] }, };
+    expect(DocumentShapeUtil.invalidKeysOf({ step: { kind: 'build', attempt: 1 } }, shape)).toEqual([]);
+    expect(DocumentShapeUtil.invalidKeysOf({ step: { kind: 'land', target: null } }, shape)).toEqual([]);
+    expect(DocumentShapeUtil.invalidKeysOf({ step: { kind: 'land', attempt: 1 } }, shape)).toEqual(['step']);
+    expect(DocumentShapeUtil.invalidKeysOf({ step: 'build' }, shape)).toEqual(['step']);
   });
 });
