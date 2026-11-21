@@ -320,8 +320,8 @@ describe('forges Gaia cannot fully read (B3)', () => {
       'sentence',
       'unreadable',
       'Newer than this Gaia',
-      'This forge publishes monitor contract 4. This Gaia reads 3, so it shows nothing of it and sends it nothing.',
-      'monitor 4 · control 3',
+      'This forge publishes monitor contract 5. This Gaia reads 4, so it shows nothing of it and sends it nothing.',
+      'monitor 5 · control 3',
     ]);
     expect(actionsOf(newer)).toEqual([]);
   });
@@ -385,10 +385,10 @@ describe('forges Gaia cannot fully read (B3)', () => {
     const { readings } = fleetContentOf(FLEET_DEGRADED);
     expect(readings?.map((reading) => [reading.project, rightTextOf(reading), reading.readingText, reading.totalsCannotVouchForIt])).toEqual([
       ['Example Storefront', 'forge 1.1', 'Everything, live.', false],
-      ['Invoice Service', 'monitor 3', 'Nothing since 13:14. Its rows show as last reported.', true],
+      ['Invoice Service', 'monitor 4', 'Nothing since 13:14. Its rows show as last reported.', true],
       ['Research Wiki', 'summary 1', 'Counts and jobs only. No questions or reviews by name.', true],
       ['Example Mobile App', 'forge 1.1', 'Everything, live.', false],
-      ['Analytics Sandbox', 'monitor 4', 'Nothing. Its contract is newer than this Gaia.', true],
+      ['Analytics Sandbox', 'monitor 5', 'Nothing. Its contract is newer than this Gaia.', true],
     ]);
     const marked = readings?.filter((reading) => reading.totalsCannotVouchForIt).map((reading) => reading.trackerId);
     expect(marked).toEqual(FLEET_DEGRADED.figures.incompleteFor);

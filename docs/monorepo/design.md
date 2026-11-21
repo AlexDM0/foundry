@@ -116,7 +116,7 @@ of 2026-11-13's "nine shared names, forge's version as base", the `board.css` sp
 ### The shared contracts
 
 `packages/forge-contracts` (the design's proposed `overseer-contracts`) exists: forge's documents as types, the board document at
-`GET /api/v1/board`, the board commands and the refusal document among them, forge's system versions and its compatibility registry, with
+`GET /api/v2/board`, the board commands and the refusal document among them, forge's system versions and its compatibility registry, with
 the raise-the-minimum report and guard. Its types import nothing from forge: forge's tracker model, its readings and its refusal wording
 stay in `apps/forge`, which maps them into the documents in typed mappers of its own. The package's `README.md` lists what it holds, and
 forge's `docs/reference/overseer-api.md` the routes and versions. `packages/system-versions` holds the version model any server

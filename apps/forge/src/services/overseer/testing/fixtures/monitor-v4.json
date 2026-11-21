@@ -1,5 +1,5 @@
 {
-  "monitorVersion": 3,
+  "monitorVersion": 4,
   "trackerId": "tracker-example",
   "project": "Example Agency",
   "root": "/example/repository",

@@ -46,12 +46,10 @@ test('version answers its versions, the contracts it serves, the Talos protocol 
   expect(await answerIn(directory, ['version', '--json'])).toEqual({
     exitCode: 0,
     answer:   {
-      answerVersion:  2,
-      codeVersion:    expect.any(String),
-      installVersion: INSTALL_VERSION,
-      contracts:      {
-        summary: 1, monitor: 3, control: 1, embed: 1
-      },
+      answerVersion:        2,
+      codeVersion:          expect.any(String),
+      installVersion:       INSTALL_VERSION,
+      contracts:            { summary: 1, monitor: 4, control: 2 },
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       monitorFolder:        expect.any(String),
     },

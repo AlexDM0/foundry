@@ -60,9 +60,9 @@ describe('answerControlCommand', () => {
     expect(held.status).toBe(423);
     const heldText = 'The install version changed, so launches are held until the board is updated.';
     expect(held.body).toEqual({
-      controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: heldText
+      controlVersion: 2, refusal: 'launches-held-by-install-change', fields: {}, text: heldText
     });
-    const stopAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'overseer-stop' } };
+    const stopAnswer = { controlVersion: 2, outcome: 'done', result: { kind: 'overseer-stop' } };
     expect(await answerControlCommand({ kind: 'overseer-stop', now: true }, request)).toEqual({ status: 200, body: stopAnswer });
     expect(runtimeCommands).toEqual([{ kind: 'overseer-stop', now: true }]);
     expect(wakes).toEqual([]);
@@ -70,12 +70,12 @@ describe('answerControlCommand', () => {
 
   test('talos-restart reaches the Overseer while launches are held, carries no now, and answers the outcome the Overseer gave', async () => {
     const { request, runtimeCommands, wakes } = heldRoute(true);
-    const doneAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'talos-restart' } };
+    const doneAnswer = { controlVersion: 2, outcome: 'done', result: { kind: 'talos-restart' } };
     expect(await answerControlCommand({ kind: 'talos-restart', now: true }, request)).toEqual({ status: 200, body: doneAnswer });
     expect([runtimeCommands, wakes]).toEqual([[{ kind: 'talos-restart' }], []]);
 
     const withoutTalos = heldRoute(false, 'nothing-to-do');
-    const nothingAnswer = { controlVersion: 1, outcome: 'nothing-to-do', result: { kind: 'talos-restart' } };
+    const nothingAnswer = { controlVersion: 2, outcome: 'nothing-to-do', result: { kind: 'talos-restart' } };
     expect(await answerControlCommand({ kind: 'talos-restart' }, withoutTalos.request)).toEqual({ status: 200, body: nothingAnswer });
   });
 
@@ -114,7 +114,7 @@ describe('answerControlCommand', () => {
     const malformedAnswer = {
       status: 400,
       body:   {
-        controlVersion: 1, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
+        controlVersion: 2, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
       }
     };
     for (const body of wellShaped) expect((await answerControlCommand(body, request)).status, JSON.stringify(body)).toBe(423);

@@ -17,8 +17,8 @@ const TRACKER_IDS = FLEET_SNAPSHOT_FIVE_FORGES_TRACKER_IDS;
 
 const EVERY_CURRENT_CONTRACT = {
   summary: 1,
-  monitor: 3,
-  control: 1,
+  monitor: 4,
+  control: 2,
 };
 
 /** Every forge of the fleet answered its versions at the forge version this Gaia supports. */
@@ -878,8 +878,8 @@ export const FLEET_SNAPSHOT_FIVE_FORGES: FleetSnapshot = {
     settingsFile:      'read',
     knownContracts:    {
       summary: 1,
-      monitor: 3,
-      control: 1,
+      monitor: 4,
+      control: 2,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },

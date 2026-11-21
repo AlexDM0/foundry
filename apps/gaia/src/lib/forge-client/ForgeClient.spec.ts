@@ -73,7 +73,8 @@ interface OutcomeCase {
 }
 
 /** What a forge at the version this client supports answers at `/api/versions`. */
-const SUPPORTED_FORGE_VERSIONS = { current: SUPPORTED_FORGE_VERSION, minimumSupported: { major: 0, minor: 0 } };
+const FIRST_OF_THE_SUPPORTED_MAJOR = { major: SUPPORTED_FORGE_VERSION.major, minor: 0 };
+const SUPPORTED_FORGE_VERSIONS = { current: SUPPORTED_FORGE_VERSION, minimumSupported: FIRST_OF_THE_SUPPORTED_MAJOR };
 /** The version the ahead forge was recorded at: one minor past the one this client supports. */
 const ONE_MINOR_AHEAD = { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor + 1 };
 
@@ -115,9 +116,7 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
       verdict:  'answered',
       document: expect.objectContaining({
         identityVersion: 1,
-        contracts:       {
-          summary: 1, monitor: 3, control: 1, embed: 1
-        }
+        contracts:       { summary: 1, monitor: 4, control: 2 }
       })
     },
   },
@@ -180,56 +179,56 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
   {
     call:      'monitorOf',
     situation: 'serving-every-contract',
-    callShape: 'GET /api/v2/monitor with bearer',
+    callShape: 'GET /api/v3/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
-    expected:  { verdict: 'answered', document: expect.objectContaining({ monitorVersion: 3, trackerId: 'example-storefront-7c41' }) },
+    expected:  { verdict: 'answered', document: expect.objectContaining({ monitorVersion: 4, trackerId: 'example-storefront-7c41' }) },
   },
   {
     call:      'monitorOf',
     situation: 'stopped',
-    callShape: 'GET /api/v2/monitor with bearer',
+    callShape: 'GET /api/v3/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'monitorOf',
     situation: 'token-rejected',
-    callShape: 'GET /api/v2/monitor with bearer',
+    callShape: 'GET /api/v3/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'monitorOf',
     situation: 'board-unreadable',
-    callShape: 'GET /api/v2/monitor with bearer',
+    callShape: 'GET /api/v3/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
     expected:  READ_FAILED,
   },
   {
     call:      'monitorOf',
     situation: 'port-held-by-another-program',
-    callShape: 'GET /api/v2/monitor with bearer',
+    callShape: 'GET /api/v3/monitor with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'send',
     situation: 'serving-every-contract',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'answered', outcome: 'done' },
   },
   {
     call:      'send',
     situation: 'nothing-to-change',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'answered', outcome: 'nothing-to-do' },
   },
   {
     call:      'send',
     situation: 'command-refused',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, { kind: 'machine-agent-limit-set', limit: 64 }),
     expected:  {
       verdict: 'refused',
@@ -240,98 +239,98 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
   {
     call:      'send',
     situation: 'token-rejected',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'send',
     situation: 'stopped',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'send',
     situation: 'port-held-by-another-program',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'followMonitor',
     situation: 'serving-every-contract',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 2)).end,
     expected:  { verdict: 'ended', ending: 'stopped' },
   },
   {
     call:      'followMonitor',
     situation: 'baton-pass',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'ended', ending: 'closed' },
   },
   {
     call:      'followMonitor',
     situation: 'snapshot-unreadable',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'ended', ending: 'closed' },
   },
   {
     call:      'followMonitor',
     situation: 'stream-cut-inside-event',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'ended', ending: 'closed' },
   },
   {
     call:      'followMonitor',
     situation: 'connection-broken',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'ended', ending: 'broken' },
   },
   {
     call:      'followMonitor',
     situation: 'machine-limit-lowered',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
     expected:  [expect.objectContaining({ concurrency: expect.objectContaining({ machineLimit: LOWERED_MACHINE_LIMIT, machineAgentsInFlight: 0 }) })],
   },
   {
     call:      'followMonitor',
     situation: 'token-rejected',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'followMonitor',
     situation: 'stopped',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'followMonitor',
     situation: 'not-answering',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'followMonitor',
     situation: 'board-unreadable',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
-    expected:  [expect.objectContaining({ monitorVersion: 3, trackerId: 'example-storefront-7c41' })],
+    expected:  [expect.objectContaining({ monitorVersion: 4, trackerId: 'example-storefront-7c41' })],
   },
   {
     call:      'followMonitor',
     situation: 'port-held-by-another-program',
-    callShape: 'STREAM /api/v2/monitor/events with bearer',
+    callShape: 'STREAM /api/v3/monitor/events with bearer',
     answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
     expected:  { verdict: 'malformed' },
   },
@@ -356,8 +355,8 @@ describe('following a monitor stream', () => {
   test('hands on each whole snapshot in order, passing over the heartbeat, and closes the stream when stopped', async () => {
     const { snapshots, overseerFetch } = await followedSnapshotsOf(overseerFetchOf('serving-every-contract'), 2);
     expect(snapshots).toEqual([
-      expect.objectContaining({ monitorVersion: 3, concurrency: expect.objectContaining({ limit: 2 }) }),
-      expect.objectContaining({ monitorVersion: 3, concurrency: expect.objectContaining({ limit: 3 }) }),
+      expect.objectContaining({ monitorVersion: 4, concurrency: expect.objectContaining({ limit: 2 }) }),
+      expect.objectContaining({ monitorVersion: 4, concurrency: expect.objectContaining({ limit: 3 }) }),
     ]);
     expect(overseerFetch.streamsLeftOpen()).toBe(0);
   });
@@ -410,7 +409,7 @@ describe('the paths an Overseer is called at', () => {
   test('are /api/versions for its versions, and each endpoint at the version this client knows, for a forge ahead of it too', async () => {
     const versionedFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead'));
     const client = clientOf(versionedFetch);
-    expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: ONE_MINOR_AHEAD, minimumSupported: { major: 1, minor: 0 } } });
+    expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: ONE_MINOR_AHEAD, minimumSupported: FIRST_OF_THE_SUPPORTED_MAJOR } });
     await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
     await client.send(ACCESS, PAUSE_COMMAND);
@@ -420,9 +419,9 @@ describe('the paths an Overseer is called at', () => {
     expect(versionedFetch.callsAnswered().map(({ callShape }) => callShape)).toEqual([
       'GET /api/versions',
       'GET /api/v1/identity',
-      'GET /api/v2/monitor with bearer',
-      'POST /api/v1/commands with bearer',
-      'STREAM /api/v2/monitor/events with bearer',
+      'GET /api/v3/monitor with bearer',
+      'POST /api/v2/commands with bearer',
+      'STREAM /api/v3/monitor/events with bearer',
     ]);
   });
 
@@ -441,7 +440,7 @@ describe('the paths an Overseer is called at', () => {
       'pictures',
       'picture',
     ];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1]);
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 3, 3, 2, 2, 1, 2, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {
@@ -461,8 +460,8 @@ describe('the token', () => {
     await clientOf(todaysFetch).summaryOf(ADDRESS);
     expect([...servingFetch.callsAnswered(), ...todaysFetch.callsAnswered()].map(({ callShape, bearerToken }) => [callShape, bearerToken])).toEqual([
       ['GET /api/v1/identity', null],
-      ['GET /api/v2/monitor with bearer', EXAMPLE_TOKEN],
-      ['POST /api/v1/commands with bearer', EXAMPLE_TOKEN],
+      ['GET /api/v3/monitor with bearer', EXAMPLE_TOKEN],
+      ['POST /api/v2/commands with bearer', EXAMPLE_TOKEN],
       ['GET /api/v1/summary', null],
     ]);
   });
@@ -555,7 +554,7 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'boardOf',
     situation: 'board-at-work',
-    callShape: 'GET /api/v1/board with bearer',
+    callShape: 'GET /api/v2/board with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
@@ -577,14 +576,14 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'boardOf',
     situation: 'board-token-rejected',
-    callShape: 'GET /api/v1/board with bearer',
+    callShape: 'GET /api/v2/board with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'boardOf',
     situation: 'board-install-held',
-    callShape: 'GET /api/v1/board with bearer',
+    callShape: 'GET /api/v2/board with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
@@ -597,7 +596,7 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'followEvents',
     situation: 'board-at-work',
-    callShape: 'STREAM /api/v1/events with bearer',
+    callShape: 'STREAM /api/v2/events with bearer',
     answerOf:  async (overseerFetch) => {
       const { events, end } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, null, onEvent), 2);
       return [events.map(({ id, eventName }) => [id === null, eventName]), end];
@@ -607,7 +606,7 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'followEvents',
     situation: 'board-at-work',
-    callShape: 'STREAM /api/v1/events with bearer from a last event id',
+    callShape: 'STREAM /api/v2/events with bearer from a last event id',
     answerOf:  async (overseerFetch) => {
       const { events } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, '1-35', onEvent), 2);
       return [events[0], overseerFetch.callsAnswered().map(({ lastEventId }) => lastEventId)];
@@ -617,27 +616,27 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'followEvents',
     situation: 'board-token-rejected',
-    callShape: 'STREAM /api/v1/events with bearer',
+    callShape: 'STREAM /api/v2/events with bearer',
     answerOf:  async (overseerFetch) => (await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, null, onEvent), 1)).end,
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'sendBoardCommand',
     situation: 'board-command-applied',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
-    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 1, outcome: 'done' }) },
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 2, outcome: 'done' }) },
   },
   {
     call:      'sendBoardCommand',
     situation: 'board-command-refused',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
     expected:  {
       verdict: 'answered',
       status:  409,
       body:    {
-        controlVersion: 1,
+        controlVersion: 2,
         refusal:        'no-readable-ticket',
         fields:         { reference: '999' },
         text:           expect.stringContaining('There is no readable ticket 999.'),
@@ -647,14 +646,14 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'board-command-unknown-kind',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'example-unknown-kind' }),
     expected:  { verdict: 'answered', status: 400, body: expect.objectContaining({ refusal: 'malformed-body', fields: {} }) },
   },
   {
     call:      'sendBoardCommand',
     situation: 'board-install-held',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
     expected:  { verdict: 'answered', status: 423, body: expect.objectContaining({ refusal: 'launches-held-by-install-change', fields: {} }) },
   },
@@ -698,7 +697,7 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'intake-conversation',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'intake-start', text: 'Example: suggest searches.' }),
     expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ outcome: 'done' }) },
   },
@@ -715,7 +714,7 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'gate-profile-run',
-    callShape: 'POST /api/v1/commands with bearer',
+    callShape: 'POST /api/v2/commands with bearer',
     answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, {
       kind: 'gate-profile-start', setupId: 'S1', gateName: 'unit', phase: 'build'
     }),
@@ -755,14 +754,14 @@ describe('each outcome of each board call', () => {
   });
 
   test('fail on a call with no recorded answer, such as a board read where only a picture was recorded', async () => {
-    await expect(clientOf(boardFetchOf('picture-too-large')).boardOf(ACCESS)).rejects.toThrow('No recorded answer for GET /api/v1/board with bearer');
+    await expect(clientOf(boardFetchOf('picture-too-large')).boardOf(ACCESS)).rejects.toThrow('No recorded answer for GET /api/v2/board with bearer');
   });
 });
 
 describe('following a board stream', () => {
   test('hands on each whole event with its id, the handshake with none, and never one the stream left unfinished', async () => {
     // The program that is no forge answers every path alike, so its stream cut inside an event stands for the board's stream too.
-    const cutStream = recordedOverseerAnswersOf('stream-cut-inside-event').map(({ answer }) => ({ callShape: 'STREAM /api/v1/events with bearer', answer }));
+    const cutStream = recordedOverseerAnswersOf('stream-cut-inside-event').map(({ answer }) => ({ callShape: 'STREAM /api/v2/events with bearer', answer }));
     const events: ForgeStreamEvent[] = [];
     const end = await clientOf(recordedOverseerFetch(cutStream)).followEvents(ACCESS, null, (event) => events.push(event)).ended;
     expect([events.map(({ id, eventName }) => [id, eventName]), end]).toEqual([[[null, 'monitor']], { verdict: 'ended', ending: 'closed' }]);

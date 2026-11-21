@@ -63,7 +63,7 @@ describe('a forge that answers F8, every verb done', () => {
   test('version answers the code and install versions, the contracts and the monitor folder', async () => {
     expect(await forgeProgram.version(forge)).toMatchObject({
       verdict: 'done',
-      answer:  { contracts: { summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: 1 } }
+      answer:  { contracts: { summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl } }
     });
     recordSystemVersion(RECORDING_NAME, `install version ${String(lastDocument()['installVersion'])}, code ${String(lastDocument()['codeVersion'])}`);
   });

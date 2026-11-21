@@ -1,12 +1,11 @@
 /**
- * The control contract a monitor sends to `POST /api/v1/commands`: the nine kinds, each body and each answer, under `controlVersion` 1,
- * which forge 1.23 keeps although it adds the restart of Talos. What matters: the list
- * of kinds is exact both ways against `CONTROL_CONTRACT_KINDS`, and each body is both the package's `ForgeControlCommand` and forge's own
- * command, which the typecheck holds; every applied kind answers 200 `{controlVersion: 1, outcome, result}` with the outcome `done` or
- * `nothing-to-do`; a body of a contract kind with a field of the wrong type, or none, answers 400 and writes nothing, also where the
- * applier would not check the field; a refused command answers 409 and the install hold 423, each
- * `{controlVersion: 1, refusal, fields, text}` with the refusal's code, its facts (none for 400 and 423) and the sentence the command line
- * prints, also where the API's sentence differs. A change here raises the system version in `forge-contracts`.
+ * The control contract a monitor sends to `POST /api/v2/commands`: the nine kinds, each body and each answer, under `controlVersion` 2,
+ * forge 2.0's. What matters: the list of kinds is exact both ways against `CONTROL_CONTRACT_KINDS`, and each body is both the package's
+ * `ForgeControlCommand` and forge's own command, which the typecheck holds; every applied kind answers 200
+ * `{controlVersion: 2, outcome, result}` with the outcome `done` or `nothing-to-do`; a body of a contract kind with a field of the wrong
+ * type, or none, answers 400 and writes nothing, also where the applier would not check the field; a refused command answers 409 and the
+ * install hold 423, each `{controlVersion: 2, refusal, fields, text}` with the refusal's code, its facts (none for 400 and 423) and the
+ * sentence the command line prints, also where the API's sentence differs. A change here raises the system version in `forge-contracts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -122,7 +121,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     test(`${kind} answers 200 with control version 1 and an outcome of the contract`, async () => {
       const answer = await answerControlCommand(body, routeRequest());
       // `result` is the applier's own record, outside the contract.
-      expect(answer).toEqual({ status: 200, body: { controlVersion: 1, outcome: expect.any(String), result: expect.anything() } });
+      expect(answer).toEqual({ status: 200, body: { controlVersion: 2, outcome: expect.any(String), result: expect.anything() } });
       expect(outcomes).toContain(String((answer.body as Record<string, unknown>)['outcome']));
     });
   }
@@ -133,7 +132,7 @@ describeWhenGitIsRecorded('the control contract', () => {
       const malformedAnswer = {
         status: 400,
         body:   {
-          controlVersion: 1, refusal: 'malformed-body', fields: {}, text: expect.any(String)
+          controlVersion: 2, refusal: 'malformed-body', fields: {}, text: expect.any(String)
         }
       };
       expect(await answerControlCommand(body, routeRequest()), JSON.stringify(body)).toEqual(malformedAnswer);
@@ -146,7 +145,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     const malformedAnswer = {
       status: 400,
       body:   {
-        controlVersion: 1, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
+        controlVersion: 2, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
       }
     };
     const byHandBodies = [
@@ -170,7 +169,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     for (const limit of [0, 2.5, CONCURRENCY_LIMIT_CEILING_AGENTS + 1]) {
       const detail: OperationRefusalDetail = { kind: 'concurrency-limit-out-of-range', limit, ceiling: CONCURRENCY_LIMIT_CEILING_AGENTS };
       const refusedBody = {
-        controlVersion: 1, refusal: detail.kind, fields: { limit, ceiling: CONCURRENCY_LIMIT_CEILING_AGENTS }, text: commandLineSentenceOf(detail),
+        controlVersion: 2, refusal: detail.kind, fields: { limit, ceiling: CONCURRENCY_LIMIT_CEILING_AGENTS }, text: commandLineSentenceOf(detail),
       };
       expect(await answerControlCommand({ kind: 'concurrency-set', limit }, routeRequest())).toEqual({ status: 409, body: refusedBody });
     }
@@ -183,7 +182,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     const limit = MACHINE_AGENT_CEILING + 1;
     const detail: OperationRefusalDetail = { kind: 'machine-agent-limit-above-cpus', limit, ceiling: MACHINE_AGENT_CEILING };
     const refusedBody = {
-      controlVersion: 1, refusal: detail.kind, fields: { limit, ceiling: MACHINE_AGENT_CEILING }, text: commandLineSentenceOf(detail)
+      controlVersion: 2, refusal: detail.kind, fields: { limit, ceiling: MACHINE_AGENT_CEILING }, text: commandLineSentenceOf(detail)
     };
     expect(answer).toEqual({ status: 409, body: refusedBody });
     const monitorFolder = request.context.platformPorts.dataFolders.monitorFolderOf(request.context.homeDirectory);
@@ -192,7 +191,7 @@ describeWhenGitIsRecorded('the control contract', () => {
 
   test('a board kind of the contract while launches are held answers 423 with its code and sentence', async () => {
     const heldAnswer = {
-      controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: expect.stringContaining('update')
+      controlVersion: 2, refusal: 'launches-held-by-install-change', fields: {}, text: expect.stringContaining('update')
     };
     expect(await answerControlCommand({ kind: 'concurrency-set', limit: 3 }, routeRequest(true))).toEqual({ status: 423, body: heldAnswer });
   });
@@ -204,7 +203,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     expect(answer).toEqual({
       status: 409,
       body:   {
-        controlVersion: 1, refusal: 'unknown-job', fields: { jobId: 'J9' }, text: commandLineSentenceOf(detail)
+        controlVersion: 2, refusal: 'unknown-job', fields: { jobId: 'J9' }, text: commandLineSentenceOf(detail)
       }
     });
     expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
@@ -215,7 +214,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     const refusal = new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: '999' });
     expect(OperationRefusalWordingUtil.messageOf(refusal)).not.toBe(OperationRefusalWordingUtil.apiMessageOf(refusal));
     const refusedBody = {
-      controlVersion: 1, refusal: 'no-readable-ticket', fields: { reference: '999' }, text: OperationRefusalWordingUtil.messageOf(refusal)
+      controlVersion: 2, refusal: 'no-readable-ticket', fields: { reference: '999' }, text: OperationRefusalWordingUtil.messageOf(refusal)
     };
     expect(answer).toEqual({ status: 409, body: refusedBody });
   });
@@ -225,13 +224,13 @@ describeWhenGitIsRecorded('the control contract', () => {
     expect(await answerControlCommand({ kind: 'pipeline-assistant-set', on: true }, routeRequest())).toEqual({
       status: 409,
       body:   {
-        controlVersion: 1, refusal: 'assistant-without-pipeline', fields: {}, text: commandLineSentenceOf(detail)
+        controlVersion: 2, refusal: 'assistant-without-pipeline', fields: {}, text: commandLineSentenceOf(detail)
       }
     });
 
     expect((await answerControlCommand({ kind: 'pipeline-gates-none' }, routeRequest())).status).toBe(200);
     const switchedOn = await answerControlCommand({ kind: 'pipeline-assistant-set', on: true }, routeRequest());
-    expect(switchedOn).toMatchObject({ status: 200, body: { controlVersion: 1, outcome: 'done', result: { pipeline: { assistant: true } } } });
+    expect(switchedOn).toMatchObject({ status: 200, body: { controlVersion: 2, outcome: 'done', result: { pipeline: { assistant: true } } } });
     const switchedOff = await answerControlCommand({ kind: 'pipeline-assistant-set', on: false }, routeRequest());
     expect((switchedOff.body as { result: { pipeline: object } }).result.pipeline).not.toHaveProperty('assistant');
   });
@@ -246,7 +245,7 @@ describeWhenGitIsRecorded('the control contract', () => {
     const malformedAnswer = {
       status: 400,
       body:   {
-        controlVersion: 1, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
+        controlVersion: 2, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
       }
     };
     for (const kind of ['flint-brain-start', 'flint-brain-stop']) expect(await answerControlCommand({ kind }, routeRequest()), kind).toEqual(malformedAnswer);

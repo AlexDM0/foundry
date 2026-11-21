@@ -133,17 +133,17 @@ describe('agents', () => {
 
 const STOREFRONT = READINGS.exampleStorefront;
 
-/** The identity of the forge the Storefront at work was recorded from: Example Storefront at monitor 3 and control 1. */
+/** The identity of the forge the Storefront at work was recorded from: Example Storefront at monitor 4 and control 2. */
 const RECORDED_FORGE_IDENTITY: ForgeIdentity = {
   trackerId:      STOREFRONT.trackerId,
   project:        STOREFRONT.project,
-  codeVersion:    'bd4096d23eb2',
-  installVersion: 43,
+  codeVersion:    'f46fd1a4c461',
+  installVersion: 44,
   processId:      48_107,
   contracts:      {
     summary: 1,
-    monitor: 3,
-    control: 1,
+    monitor: 4,
+    control: 2,
   },
 };
 
@@ -157,7 +157,7 @@ describe('a forge whose snapshot still carries a `flintBrain` key', () => {
     const reading = new MonitorSnapshotIngestion(facts, RECORDED_FORGE_IDENTITY).readingOf({ ...recorded, flintBrain }, EXAMPLE_READ_STAMP);
     if (reading.verdict !== 'readable') throw new Error(`The snapshot does not read: ${reading.verdict}.`);
     const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [reading.reading]));
-    expect(snapshot.agents.map((row) => [row.jobId, row.role])).toEqual([['J1', 'assistant']]);
+    expect(snapshot.agents.map((row) => [row.jobId, row.role])).toEqual([['J1', 'product-owner']]);
   });
 
   test('no fixture\'s fleet holds a row of the role brain', () => {

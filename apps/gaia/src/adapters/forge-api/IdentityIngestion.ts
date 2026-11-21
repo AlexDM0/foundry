@@ -35,8 +35,6 @@ const CONTRACTS_SHAPE = {
   summary: OPTIONAL_WHOLE_NUMBER,
   monitor: OPTIONAL_WHOLE_NUMBER,
   control: OPTIONAL_WHOLE_NUMBER,
-  /** The forge serves its embed contract until it retires the frame; Gaia frames no forge and reads it no more. */
-  embed:   'passed-over',
 } as const satisfies ShapeOf<IdentityContractsDocument>;
 
 const IDENTITY_SHAPE = {

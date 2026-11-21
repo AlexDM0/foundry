@@ -48,11 +48,11 @@ function identityRequest(): OverseerRequest {
 
 function monitorStreamRequest(): OverseerStreamRequest {
   return {
-    overseerUrl: OVERSEER_URL, path: '/api/v2/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
+    overseerUrl: OVERSEER_URL, path: '/api/v3/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
   };
 }
 
-const MONITOR_STREAM_CALL_SHAPE = 'STREAM /api/v2/monitor/events with bearer';
+const MONITOR_STREAM_CALL_SHAPE = 'STREAM /api/v3/monitor/events with bearer';
 
 function streamAnswers(chunks: readonly string[], ending: 'closed' | 'broken' | 'stays-open'): RecordedOverseerAnswer[] {
   return [{ callShape: MONITOR_STREAM_CALL_SHAPE, answer: { verdict: 'streaming', chunks, ending } }];
@@ -146,10 +146,10 @@ describe('the recorded versions of forges', () => {
   test('hold, for a forge ahead that Gaia talks to, each endpoint at its versioned path, and only the versions for a forge it cannot talk to', () => {
     expect(recordedVersionsAnswersOf('versions-ahead').map(({ callShape }) => callShape).sort()).toEqual([
       'GET /api/v1/identity',
-      'GET /api/v2/monitor with bearer',
+      'GET /api/v3/monitor with bearer',
       'GET /api/versions',
-      'POST /api/v1/commands with bearer',
-      'STREAM /api/v2/monitor/events with bearer',
+      'POST /api/v2/commands with bearer',
+      'STREAM /api/v3/monitor/events with bearer',
     ]);
     for (const situation of ['versions-newer', 'versions-older', 'versions-absent'] as const) {
       expect([situation, recordedVersionsAnswersOf(situation).map(({ callShape }) => callShape)]).toEqual([situation, ['GET /api/versions']]);
@@ -189,13 +189,13 @@ describe('the recorded overseer fetch', () => {
   test('lists the calls it answered, in order, with the token and the body each carried', async () => {
     const overseerFetch  = recordedOverseerFetch(recordedOverseerAnswersOf('token-rejected'));
     const commandRequest: OverseerRequest = {
-      ...identityRequest(), method: 'POST', path: '/api/v1/commands', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}',
+      ...identityRequest(), method: 'POST', path: '/api/v2/commands', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}',
     };
     await overseerFetch.request(commandRequest);
     await overseerFetch.openStream(monitorStreamRequest());
     expect(overseerFetch.callsAnswered()).toEqual([
       {
-        callShape: 'POST /api/v1/commands with bearer', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}', byteBody: null, answerAs: 'text', lastEventId: null,
+        callShape: 'POST /api/v2/commands with bearer', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}', byteBody: null, answerAs: 'text', lastEventId: null,
       },
       {
         callShape: MONITOR_STREAM_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null, byteBody: null, answerAs: null, lastEventId: null,

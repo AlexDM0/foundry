@@ -26,10 +26,10 @@ function carrierAnswering(verdict: CommandVerdict): RecordingCarrier {
 }
 
 function commandRequestOf(body: string): Request {
-  return new Request('http://127.0.0.1:4790/api/v5/commands', { method: 'POST', body });
+  return new Request('http://127.0.0.1:4790/api/v6/commands', { method: 'POST', body });
 }
 
-const LOOK_AGAIN_BODY = JSON.stringify({ commandVersion: 4, kind: 'fleet-look-again' });
+const LOOK_AGAIN_BODY = JSON.stringify({ commandVersion: 5, kind: 'fleet-look-again' });
 
 const EXAMPLE_BODY_BOUND_BYTES = 256;
 
@@ -49,7 +49,7 @@ describe('a command Gaia can read', () => {
     const carrier = carrierAnswering({
       verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
     });
-    const body = JSON.stringify({ commandVersion: 4, kind: 'forge-restart', trackerId: 'example-storefront-7c41' });
+    const body = JSON.stringify({ commandVersion: 5, kind: 'forge-restart', trackerId: 'example-storefront-7c41' });
     const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
     expect([answer.status, await answer.json()]).toEqual([409, {
       answerVersion: 3,
@@ -83,7 +83,7 @@ describe('a command Gaia can read', () => {
 describe('a command Gaia cannot read', () => {
   test('reaches nothing, and is answered as not supported with the reason as its code', async () => {
     const carrier = carrierAnswering({ verdict: 'done' });
-    const bodies = ['look again', JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }), JSON.stringify({ commandVersion: 4, kind: 'forge-start' })];
+    const bodies = ['look again', JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }), JSON.stringify({ commandVersion: 5, kind: 'forge-start' })];
     const answers = await Promise.all(bodies.map(async (body) => {
       const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
       return [answer.status, await answer.json()] as const;
@@ -106,7 +106,7 @@ describe('a command Gaia cannot read', () => {
 describe('a command body over its bound', () => {
   test('reaches nothing and is answered as too large', async () => {
     const carrier = carrierAnswering({ verdict: 'done' });
-    const oversized = JSON.stringify({ commandVersion: 4, kind: 'fleet-look-again', padding: 'x'.repeat(EXAMPLE_BODY_BOUND_BYTES) });
+    const oversized = JSON.stringify({ commandVersion: 5, kind: 'fleet-look-again', padding: 'x'.repeat(EXAMPLE_BODY_BOUND_BYTES) });
     expect((await commandAnswerFor(commandRequestOf(oversized), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES)).status).toBe(413);
     expect(carrier.carriedCommands).toEqual([]);
   });

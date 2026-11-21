@@ -32,8 +32,8 @@ export const FLEET_SNAPSHOT_EMPTY: FleetSnapshot = {
     settingsFile:      'absent',
     knownContracts:    {
       summary: 1,
-      monitor: 3,
-      control: 1,
+      monitor: 4,
+      control: 2,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },

@@ -49,7 +49,7 @@ function boardEventsRequest(mapEvent: RelayStreamRequest['mapEvent'] = (event) =
   return {
     trackerId:          STOREFRONT_TRACKER_ID,
     forgeSystemVersion: SUPPORTED_FORGE_VERSION,
-    forgeStreamPath:    '/api/v1/events',
+    forgeStreamPath:    '/api/v2/events',
     follow:             (onEvent) => forgeClient.followEvents(EXAMPLE_ACCESS, null, onEvent),
     mapEvent,
   };

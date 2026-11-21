@@ -49,16 +49,16 @@ const HTTP_CONFLICT = 409;
 const HTTP_UNAUTHORIZED = 401;
 
 describe('sending one command', () => {
-  test('the command goes as one JSON body to /api/v5/commands, at the known commandVersion, with the page\'s own cookie', async () => {
+  test('the command goes as one JSON body to /api/v6/commands, at the known commandVersion, with the page\'s own cookie', async () => {
     const sent: SentRequest[] = [];
     await senderOver([() => Promise.resolve(answerResponse(DONE))], sent).send(STOP_EXAMPLE_MOBILE_APP);
     expect(sent).toHaveLength(1);
     const [request] = sent;
-    expect(request?.path).toBe('/api/v5/commands');
+    expect(request?.path).toBe('/api/v6/commands');
     expect([request?.requestOptions.method, request?.requestOptions.credentials]).toEqual(['POST', 'same-origin']);
     expect(request?.requestOptions.headers).toEqual({ 'content-type': 'application/json' });
     expect(JSON.parse(String(request?.requestOptions.body))).toEqual({
-      commandVersion: 4,
+      commandVersion: 5,
       kind:           'forge-stop',
       trackerId:      TRACKER_IDS.exampleMobileApp,
       agents:         'keep',

@@ -1,7 +1,7 @@
 /**
  * Asks Gaia's own server on a port of 127.0.0.1, as another process of the same user does: whether Gaia serves there and how far it is
  * with its forges, and, with Gaia's token, a one-time session code for a window. Every answer is a verdict; nothing answering is one. It
- * calls each route at the versioned path this Gaia knows, and at its unversioned path when the server is a Gaia from before versioned paths.
+ * calls each route at the versioned path this Gaia knows.
  */
 import { ApiPathUtil }                                         from '../../lib/api-paths/ApiPathUtil.ts';
 import { GAIA_ENDPOINT_VERSIONS }                              from '../../shared/constants/GaiaSystemVersions.ts';
@@ -25,9 +25,6 @@ export interface GaiaServerClient {
   readonly sessionCodeFor:   (port: number, token: string) => Promise<SessionCodeAnswer>;
 }
 
-/** A Gaia from before versioned paths answers a versioned one as any unknown path. */
-const NOT_FOUND_STATUS = 404;
-
 /** A Gaia that is up answers its health at once; one that takes longer is treated as absent, and the port then decides. */
 export const HEALTH_PROBE_TIMEOUT_MILLISECONDS = 1_000;
 
@@ -40,12 +37,8 @@ function addressOf(port: number, path: string): string {
   return `http://127.0.0.1:${port}${path}`;
 }
 
-/** The answer at the endpoint's versioned path, or, where the server knows no such path, at its unversioned one. */
-async function versionedFetch(port: number, endpoint: string, version: number, init: RequestInit): Promise<Response> {
-  const response = await fetch(addressOf(port, ApiPathUtil.versionedPathOf(endpoint, version)), init);
-  if (response.status !== NOT_FOUND_STATUS) return response;
-  await response.body?.cancel();
-  return fetch(addressOf(port, ApiPathUtil.unversionedPathOf(endpoint)), init);
+function versionedFetch(port: number, endpoint: string, version: number, init: RequestInit): Promise<Response> {
+  return fetch(addressOf(port, ApiPathUtil.versionedPathOf(endpoint, version)), init);
 }
 
 export async function healthReadingFor(port: number, timeoutMilliseconds = HEALTH_PROBE_TIMEOUT_MILLISECONDS): Promise<HealthReading> {

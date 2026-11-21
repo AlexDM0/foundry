@@ -95,7 +95,7 @@ function startExampleServer(
     state:           () => ({ notices: [{ kind: 'install-version-changed' }] }),
     board:           () => ({ project: 'Example Agency' }),
     summary:         () => ({ summaryVersion: 1 }),
-    monitor:         () => ({ status: 200, body: { monitorVersion: 3 } }),
+    monitor:         () => ({ status: 200, body: { monitorVersion: 4 } }),
     presence:        () => ({ status: 200, body: { generation: 1 } }),
     crashLog:        () => ({ status: 404, body: { refusal: 'no-crash-log', number: null } }),
     monitorStream:   () => null,
@@ -185,9 +185,7 @@ describe('OverseerServer guards', () => {
       installVersion:       17,
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       processId:            process.pid,
-      contracts:            {
-        summary: 1, monitor: 3, control: 1, embed: 1
-      },
+      contracts:            { summary: 1, monitor: 4, control: 2 },
     });
   });
 
@@ -333,7 +331,7 @@ describe('OverseerServer guards', () => {
     const response = await fetch(new URL('api/commands', server.url), { method: 'POST', headers: { authorization: `Bearer ${TOKEN}` }, body: '{' });
     expect(response.status).toBe(400);
     const malformedRefusal = {
-      controlVersion: 1, refusal: 'malformed-body', fields: {}, text: 'Example sentence for malformed-body'
+      controlVersion: 2, refusal: 'malformed-body', fields: {}, text: 'Example sentence for malformed-body'
     };
     expect(await response.json()).toEqual(malformedRefusal);
     expect(commands).toEqual([]);
@@ -488,7 +486,7 @@ describe('the answers the Overseer clients read', () => {
     const installHeldAnswer = {
       status: 423,
       body:   {
-        controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: INSTALL_HELD_TEXT
+        controlVersion: 2, refusal: 'launches-held-by-install-change', fields: {}, text: INSTALL_HELD_TEXT
       }
     };
     const { server } = startExampleServer({ command: async () => installHeldAnswer }, RECORDED_PROCESS_ID);

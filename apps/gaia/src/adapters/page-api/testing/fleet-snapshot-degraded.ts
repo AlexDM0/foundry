@@ -108,7 +108,7 @@ const ANALYTICS_SANDBOX: FleetForge = {
   processId: 49_012,
   contracts: {
     summary: 1,
-    monitor: 4,
+    monitor: 5,
     control: 3,
   },
   codeVersion:       '9c04e5b',

@@ -1,5 +1,5 @@
 /**
- * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 3`;
+ * The forge's `MonitorSnapshot` (F2), from `GET /api/monitor` and each `monitor` event (F3): the keys a reader checks at `monitorVersion: 4`;
  * and the stream's handshake and event, which carry the forge's system version.
  * Keys no reader checks, such as `ticketCountByStatus` and the Overseer's `generation`, are left out. Every string union is the wire's own
  * spelling.
@@ -183,12 +183,12 @@ export interface MonitorSnapshotEntityKeys {
   readonly openTickets?: readonly MonitorOpenTicketDocument[];
 }
 
-/** The first event of `GET /api/v2/monitor/events`, `event: handshake`, sent before any `monitor` event. */
+/** The first event of `GET /api/v3/monitor/events`, `event: handshake`, sent before any `monitor` event. */
 export interface MonitorStreamHandshake {
   readonly systemVersion: SystemVersion;
 }
 
-/** Each `monitor` event of `GET /api/v2/monitor/events`: the whole snapshot, and beside its keys the forge's system version. */
+/** Each `monitor` event of `GET /api/v3/monitor/events`: the whole snapshot, and beside its keys the forge's system version. */
 export interface MonitorEventDocument extends MonitorSnapshotDocument {
   readonly systemVersion: SystemVersion;
 }

@@ -1,7 +1,7 @@
 /**
  * The versions of the Overseer API's documents, taken from `forge-contracts`. `GET /api/identity` carries `IDENTITY_VERSION` and lists
  * `SERVED_CONTRACT_VERSIONS` as `contracts`; a contract this program does not serve has no entry. A change of shape in a contract raises
- * its number in the package in the same change. It imports only the packages, so the Bridge's project compiles it.
+ * its number in the package in the same change.
  */
 import type { ForgeBoardCommand }     from 'forge-contracts/BoardCommand';
 import type { ForgeControlCommand }   from 'forge-contracts/ForgeControlCommand';
@@ -14,7 +14,6 @@ export const SERVED_CONTRACT_VERSIONS = {
   summary: OVERSEER_CONTRACT_VERSIONS.summary,
   monitor: OVERSEER_CONTRACT_VERSIONS.monitor,
   control: OVERSEER_CONTRACT_VERSIONS.control,
-  embed:   OVERSEER_CONTRACT_VERSIONS.embed,
 } as const satisfies Readonly<Record<ServedContractName, number>>;
 
 export type ServedContract = keyof typeof SERVED_CONTRACT_VERSIONS;
@@ -37,7 +36,7 @@ export const CONTROL_CONTRACT_KINDS = [
 ] as const satisfies readonly ForgeControlCommand['kind'][];
 
 /**
- * The board's kinds of the contract from forge 1.21, under the same control version: what a view sends to `POST /api/commands`, each body
+ * The board's kinds of the contract, under the same control version: what a view sends to `POST /api/commands`, each body
  * the package's `ForgeBoardCommand`, read and mapped into forge's command by `src/adapters/board-commands/`, and pinned by
  * `cli/overseer/routes/CommandRoute.boardContract.spec.ts`.
  */

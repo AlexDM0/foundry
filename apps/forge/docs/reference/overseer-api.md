@@ -177,13 +177,13 @@ to the board, so it is taken during the install hold, and it is never relayed fr
 `machine limit <n>` sets: it changes no board, so it is applied in no lock hold and is taken during the install hold. A
 limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and writes nothing.
 
-### Control contract 1
+### Control contract 2
 
 The control contract is what a monitor may send and what it gets back. It names nine kinds, `CONTROL_CONTRACT_KINDS` in
 `src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`, `overseer-resume`, `overseer-stop {now}`,
 `overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, from
-forge 1.20, `interrupted-work-resume {target}`, and, from forge 1.23, `talos-restart`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
-`done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
+forge 1.20, `interrupted-work-resume {target}`, and, from forge 1.23, `talos-restart`. Each answer carries
+`controlVersion` 2. A 200 answers `outcome` `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
 and a 423 answer `refusal`, a code, `fields`, its facts (`{}` on a 400 and a 423), and `text`, from forge 1.21 the sentence the
 command line prints; a 401 answers `unauthorized`. A `concurrency-set` `limit`
 outside 1 to 10 answers 409 `concurrency-limit-out-of-range` and writes nothing.
@@ -198,15 +198,16 @@ with nothing waiting answer `nothing-to-do`, so a monitor may send them to every
 `cli/overseer/routes/CommandRoute.controlContract.spec.ts` pins each kind's body and answer. A change to one of them
 raises the system version in the same change, its minor when the change only adds; the other kinds may change and keep it.
 
-`contracts.control` on the identity and `controlVersion` stay 1 while a minor adds kinds: a client built for 1.0
-compares the number for equality, so a 2 would cut it off every control under a minor. The system version is what
-announces a kind; a client sends it only to a forge that new or newer.
+`contracts.control` on the identity and `controlVersion` are 2 from forge 2.0, which took Flint's brain's two kinds out
+and added the Assistant's switch to the board's kinds. They stay 2 while a minor adds kinds: a client compares the number
+for equality, so a raise would cut it off every control under a minor. The system version is what announces a kind; a
+client sends it only to a forge that new or newer.
 
 ### Board commands
 
 From forge 1.21 the contract also names the board's commands, the kinds a view sends: `ForgeBoardCommand` in
 `forge-contracts/BoardCommand`, listed as `BOARD_COMMAND_CONTRACT_KINDS` in `src/shared/constants/OverseerApiContracts.ts`.
-They are part of the contract under `controlVersion` 1, with the answers of control contract 1. The 35 kinds are
+They are part of the contract under `controlVersion` 2, with the answers of control contract 2. The 35 kinds are
 `chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
 `job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-apply`,
 `pipeline-apply-cancel`, `pipeline-assistant-set` (the Assistant's switch, `{ on }`, the `gate assistant` verb),
@@ -613,58 +614,23 @@ follows the selected session alone and reads every other session's last line fro
 `GET /api/versions` answers `{current, minimumSupported}`, each `{major, minor}`: forge's system version, and the oldest
 forge version a client may have been built for and still be served. Both are `FORGE_SYSTEM_VERSIONS` in
 `packages/forge-contracts`. The path is never versioned and never removed, it needs no token, and it answers at every
-moment the server answers, while the Overseer starts too. This forge answers `1.22` and `0.0`: 1.1 added [Flint's
-brain](#flint-brain) to the monitor and the commands, which a later forge took out again, 1.2 adds a ticket's and a filing draft's entity and crosses, the
-entities setup step, the layout finding and a setup record's entity parts, 1.3 adds the `ticket-entity` command, a
-ticket's entity at `ticket-add`, the `entity-assigned` record, the entity refusals, a draft's entity fields and a setup
-edit's batch, and the board's entity flows, profile runs and cache marks by entity, 1.4 adds a `job-launched` record's
-entity and stage, 1.5 adds a progress row's `pipelineHashes`, the `entity` of a level on `pipeline-agent-advise`,
-`pipeline-update-start`, `pipeline-constitution-edit` and `gate-profile-start` and the one the Overseer stamps on the
-pipeline agent's commands, the `setup-entity-unknown` refusal, an entity's agent session and check on a setup record,
-and `isACopy` on `pipeline-draft-edit`, 1.6 adds the `need-declare` command, a progress file's `needs`, the need
-refusals, the `needs-declared` job outcome, the `need-for-root`, `need-closes-circle`, `need-abandoned`,
-`work-in-other-entity` and `whitelist-removed-mid-crossing` decision kinds and the `need-declared` record, 1.7 adds the
-`changed-only-outside-home-and-reach` refusal and job-ended cause and the `pipeline-set-per-entity` refusal, 1.8 adds
-the `whitelist-not-supported` refusal, a pipeline with entities in the Overseer's documents and the board, and the
-`changed-outside-home-and-reach` job-ended cause, 1.9 adds a progress row's `stage`, `seals` and `packageReturns`, the
-`entity-named-by-tickets` and `entities-while-tickets-in-flight` refusals and apply reasons, the entity on the
-`constitution-moved` refusal, `entitiesToAssign` on the `job-launched` record and the board's `entityAssignment`, 1.10
-adds a `stage` on a review bar's progress row, `wholeBatch` on `pipeline-draft-undo` and the `draft-batch-undone` setup
-message, 1.11 adds the `sealed-change-altered` refusal and job-ended cause, the package builder's
-`exposedSurfaceChanged` and package reviewer's `exposedSurfaceConfirmed` reports and a package stage job's
-`stage-statement.json`, 1.12 adds the `package-gate-red` and `home-gate-red` job-ended causes, the
-`parked:second-return` hold, a merge agent's `entity` and `stage` on the `job-launched` record, the `refused` job
-outcome with `refusedReason`, the `package-refused`, `second-return` and `dependent-broken` decision kinds, the
-`stage-started`, `seal-set`, `seal-lifted` and `package-return` records and a crossing ticket's Handoff parts per stage,
-1.13 accepts a non-empty whitelist in the pipeline and the setup draft, so the `whitelist-not-supported` refusal is no
-longer sent, 1.14 adds the monitor snapshot's `entities` and `openTickets` and a job's `entity` and `stage`, the
-`work-outside-entity` refusal and the `hook stage-edits` command, 1.15 adds a ticket's `entity` and `stage` to the board
-state document's `boardFacts`, 1.16 adds the `constitution-outside-ticket-entity` refusal and job-ended cause, the
-`draft-copy-outside-entities` refusal, the `package-return` job outcome with the adapt builder's `packageReturnReason`
-and `packageReturnEntity`, the `need-for-sealed-package` refusal, the `adapt`, `package-review-findings` and
-`package-refused` variants of `stage-statement.json`, the `fresh-branch-started` job marker, option labels on the entity
-decisions' questions, the `whitelist-removed-mid-crossing` decision the Overseer opens, the `second-return` decision for
-a second package return from a red gate or a review catch-up, and install version 34, 1.17 adds the `ticket-group`
-command, the `group-of-a-settled-ticket` and `ticket-already-in-a-group` refusals, the `ticket-grouped` and
-`dependent-fix-filed` records, the fix-ticket option of the `dependent-broken` decision, a package build's
-`dependentsFixedInGroup` start key, the `reach-inside-another-home` reason of a `pipeline-draft-invalid` refusal, and
-install version 35, 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's
-non-converging review against the pipeline of the stage its review ran in, and adds install version 36, whose installed
-surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `talosProtocolVersion`, 1.20 adds the
-`interrupted-work-resume` command, the `ticket-not-interrupted` refusal, the `ticket-interrupted-hold-lifted` record,
-and the presence and crash-log endpoints with the `no-crash-log` refusal, and 1.21 adds the board document at
-`/api/v1/board`, the board command kinds, the refusal's structured fields and the command line's sentence on a refused
-command, and keeps an unfinished entities draft, and 1.22 serves the event stream, a job's transcript stream, a gate
-profile's stream and the pictures at versioned paths and opens each of the three streams with a `handshake`, and 1.23
-adds the `talos-restart` command and the presence document's `talos`, each minor only adds, and version 0.0 stands for every forge released before system versions.
+moment the server answers, while the Overseer starts too. This forge answers `2.0` and `2.0`.
+
+Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1 it has no Bridge, no browser session, no
+session code, no embed contract and no frame-ancestor record; the monitor and the commands hold no Flint's brain, and
+the monitor names what an entry opens by a typed `target`; the board document carries Markdown (`bodyMarkdown`,
+`descriptionMarkdown`, `constitutionMarkdown`) where it carried rendered HTML; the Assistant is a switch of the board
+(the `pipeline-assistant-set` command, the pipeline's `assistant` key, the incident default cause `assistant-off`); and
+a pipeline has one format, whose gate key is `forgeOnly`. The minimum is 2.0 too: no client built for forge 1 is served,
+and the registry keeps nothing for one.
 
 The system version is set by interoperability, never by a package's version:
 
 - A change that only adds, such as a key, a route, a command kind, a message kind or an event, raises the minor. Every
   client built for that major keeps working.
 - Any other change to a route, a document, a command or a message raises the major: a key removed, renamed or retyped, a
-  value that now means something else, a route removed. A breaking change to an endpoint is served at its next version
-  beside the old one, with a registry entry.
+  value that now means something else, a route removed. A breaking change to an endpoint is served at its next version,
+  beside the old one while a supported client still needs that, each with a registry entry.
 - Forge alone decides the minimum supported version, whoever calls. It is raised only to retire what the compatibility
   registry keeps; `bun run versions:raise-minimum <major.minor>` in `packages/forge-contracts` is the dry run that lists
   what a raise makes removable, and `ForgeCompatibilityRegistry.spec.ts` fails after a raise until each listed entry, and
@@ -687,41 +653,44 @@ id check are the same. An answer carries no endpoint version. A version or an en
 | --- | --- |
 | identity | `GET /api/v1/identity` |
 | summary | `GET /api/v1/summary` |
-| monitor | `GET /api/v2/monitor` |
-| monitor events | `GET /api/v2/monitor/events` |
-| commands | `POST /api/v1/commands` |
+| monitor | `GET /api/v3/monitor`, from 2.0 |
+| monitor events | `GET /api/v3/monitor/events`, from 2.0 |
+| commands | `POST /api/v2/commands`, from 2.0 |
 | presence | `GET /api/v1/presence`, from 1.20 |
 | crash log | `GET /api/v1/crash-log?number=<n>`, from 1.20 |
-| board | `GET /api/v1/board`, from 1.21 |
-| events | `GET /api/v1/events`, from 1.22 |
+| board | `GET /api/v2/board`, from 2.0 |
+| events | `GET /api/v2/events`, from 2.0 |
 | jobs/{jobId}/stream | `GET /api/v1/jobs/<J>/stream?after=<cursor>`, from 1.22 |
 | profiles/{profileRunId}/stream | `GET /api/v1/profiles/<P>/stream?after=<line>`, from 1.22 |
 | pictures | `POST /api/v1/pictures`, from 1.22 |
 | pictures/{pictureId} | `GET /api/v1/pictures/<id>`, from 1.22 |
 
-The monitor starts at v2: its warnings became objects before system versions. The unversioned paths stay as a
-compatibility path of the registry, for clients built before system versions, and the Bridge's own routes stay
-unversioned only: the Bridge is served by the same release.
+Forge 2.0 serves the monitor, its stream, the commands, the board and the board's event stream, whose `board` event
+carries the board's state, at their next version and the older one no more: `/api/v2/monitor`, `/api/v1/commands`,
+`/api/v1/board` and `/api/v1/events` are 404. The unversioned paths are no compatibility path: they are the routes
+themselves, which a versioned path is turned into, and forge's own command line reaches its Overseer through them
+(`cli/overseer/OverseerRemote.ts`, and the nudge after a write). `GET /api/state` is the command line's own reading and
+has no versioned path.
 
 ### Contract versions
 
 `GET /api/identity` answers `identityVersion`, the version of its own shape, now 1, and `contracts`, an object of whole
 numbers: the version of each contract this program serves. A contract it does not serve has no key. A forge's system
-version, not these numbers, says whether a client can talk to it; forge keeps them for clients built before system
-versions.
+version, not these numbers, says whether a client can talk to it. The numbers are the current contract all the same,
+not a compatibility path: a reader checks a document's own key before it maps the document, and reads a version it does
+not know as unreadable.
 
 | Contract | Version | What it covers |
 | --- | --- | --- |
 | `summary` | 1 | `GET /api/summary`, the `BoardSummary` of [the summary contract](#the-summary-contract), which carries the same number as `summaryVersion` |
-| `monitor` | 3 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
-| `control` | 1 | `POST /api/commands` for the nine kinds of [the control contract](#control-contract-1), each answer carrying the same number as `controlVersion`; frozen at 1, see there |
-| `embed` | 1 | [The embed contract](#the-embed-contract): the embed mode and the embed channel, whose messages carry the same number as `channelVersion` |
+| `monitor` | 4 | `GET /api/monitor` and `GET /api/monitor/events`, the `MonitorSnapshot` of [the monitor contract](#the-monitor-contract), which carries the same number as `monitorVersion` |
+| `control` | 2 | `POST /api/commands` for the nine kinds of [the control contract](#control-contract-2) and the board's kinds, each answer carrying the same number as `controlVersion` |
 
 A change of shape in a contract raises its number in the same change, and the system version with it: a key added,
 removed or renamed, a value that changes type or meaning, or a union that gains or loses a value. The numbers are
 `OVERSEER_CONTRACT_VERSIONS` in `packages/forge-contracts`, served through `SERVED_CONTRACT_VERSIONS` in
-`src/shared/constants/OverseerApiContracts.ts`; `control` stays at 1, since a minor adds commands under
-the system version. Each document forge sends extends the package's type of it. A client reads a contract only at a number
+`src/shared/constants/OverseerApiContracts.ts`; `control` keeps its number while a minor adds commands under the system
+version. Forge 2.0 raised `monitor` to 4 and `control` to 2 and serves no `embed`. Each document forge sends extends the package's type of it. A client reads a contract only at a number
 it knows; a forge with no `contracts` key serves `summary` 1 alone.
 
 ## The monitor contract
@@ -733,15 +702,18 @@ names a command line: the new-code notice asks to restart the Overseer, the inst
 request, from the same reading as `BoardState`.
 
 Version 2 renamed the job value `onboarder` to `pipeline-agent`, in `jobs[].kind` and `jobs[].role`; the keys are
-those of version 1. Version 3 gives each warning its kind, and adds the current usage window to `usage`; since the Bridge was deleted it names what an entry opens by a typed `target` where it carried the Bridge's `route`, and it has no `flintBrain` key since Flint's brain went. `src/services/overseer/testing/fixtures/monitor-v1.json`,
-`monitor-v2.json` and `monitor-v3.json` hold each version, frozen.
+those of version 1. Version 3 gave each warning its kind and added the current usage window to `usage`. Version 4,
+forge 2.0's, names what an entry opens by a typed `target` where version 3 carried the Bridge's `route`, and has no
+`flintBrain` key and no `kind` or `tokens` on an activity entry.
+`src/services/overseer/testing/fixtures/monitor-v1.json`, `monitor-v2.json` and `monitor-v4.json` hold versions 1, 2 and
+4, frozen.
 
 <details>
 <summary><code>MonitorSnapshot</code> keys</summary>
 
 | Key | Holds |
 | --- | --- |
-| `monitorVersion` | 3 |
+| `monitorVersion` | 4 |
 | `trackerId`, `project`, `root` | The tracker's id, the project name and the repository's root folder |
 | `overseer` | `{state, paused, url, processId, startedAt, generation, codeVersion, codeVersionOnDisk, installVersion}`. `state` is `serving`, `held-by-install-change` or `passing-baton`. `codeVersionOnDisk` is the code version the program on disk answered last, the one in memory until it answered. |
 | `concurrency` | `{limit, agentsInFlight, machineLimit, machineAgentsInFlight, ticketsWaitingForMachineSlot}`. `limit` and `agentsInFlight` are the board's, as `status --json` counts them. `machineLimit` is the machine agent limit, `machineAgentsInFlight` the live slot files in `<monitor>/agent-slots/` of every board, and `ticketsWaitingForMachineSlot` the tickets this board's last Pass would have launched but for the machine limit. These three completed version 1 as `FORGE_REQUIREMENTS.md` F2 defined it. |
@@ -842,7 +814,7 @@ The document serves as finished facts what a view would otherwise recompute with
 | The board command kinds each ticket accepts now, and the priorities it may move to | `page.tickets[].offers` | a reader |
 | The hold each stop mode leaves, and the stop modes, fresh agent and message each job takes | `jobs[].stopHolds`, `jobs[].offers` | forge (the holds); a reader (the offers) |
 | Each entity's pipeline as it runs; each draft entity's effective pipeline and its transitive dependents | `pipeline.entityPipelines`, `pipelineSetup.draftEntities` | a reader |
-| The refusal an Apply of the current draft meets now, as `POST /api/v1/commands` would answer it | `pipelineSetup.applyRefusal` | forge |
+| The refusal an Apply of the current draft meets now, as `POST /api/v2/commands` would answer it | `pipelineSetup.applyRefusal` | forge |
 | Each refusal the draft's entities hold, with the entities it names, the row that shows it, a sentence of what is wrong and that Continue and Apply wait for its fix, and the one gesture that resolves it as typed draft edits | `pipelineSetup.entityRefusals` | forge |
 | The concurrency bounds, the worker model and effort, the rework threshold, the default priority, the first repeat-review round, each role's default instructions and the re-review step | `limits` | a reader |
 | A question option's recommendation, as the agent adapter stored it (`isRecommended` in the store) | `decisions[].questions[].options[].recommended` | a reader |
@@ -875,41 +847,6 @@ the shape. A monitor's server calls it, since a page of another origin gets 403 
 | `usage` | `{resetsAt, window}` |
 
 </details>
-
-## The embed contract
-
-A host is a separate program that frames the Bridge of one board. Forge names no host: the query, the record and the
-messages below speak of a host only.
-
-**Framing.** No origin may frame an answer: every answer says `frame-ancestors 'none'`, and the Overseer reads no
-record of a host.
-
-**Embedded mode.** Only the parameter of `EMBED_MODE_QUERY` (`packages/forge-contracts`), `?embedded=frame`, marks the
-document embedded. The root then has `data-embedded="frame"`. The Bridge hides its title row (project name, status
-line, Overseer controls, Waiting on User pill, theme switch) and keeps its Agents-at-work strip, with Flint's slot, above
-the tab bar. The banners and the incident line stay above the tab bar when they show. Any other value is not embedded.
-
-**The embed channel, version 1.** Every `postMessage` in each direction is
-`{channel: 'forge-embed', channelVersion: 1, kind, ...}`, and the Bridge's carry its `systemVersion`, the `current` of
-[System versions](#system-versions). The Bridge accepts a message only from the framing parent at its origin, and posts
-only to that origin, never to `*`. It ignores a message of another `channel` or another `channelVersion`, an unknown
-`kind` and a malformed field, and sends no answer to it; it passes over a key it does not know, a host's
-`systemVersion` among them. `channelVersion` is `contracts.embed`.
-
-| Direction | `kind` | Fields | Meaning |
-| --- | --- | --- | --- |
-| Bridge to parent | `ready` | none | The Bridge painted and listens. Sent once for each load. |
-| Bridge to parent | `route` | `fragment` | The route that the Bridge shows changed, such as `#questions/E2`. Sent once after `ready` for the first route. |
-| Bridge to parent | `leave` | none | An Esc that no panel and no inner layer used. |
-| Bridge to parent | `session-lost` | none | An API call answered 401: the Overseer restarted. |
-| Parent to Bridge | `theme` | `themeChoice`: `auto`, `light`, `dark` | Applied and not stored. |
-| Parent to Bridge | `navigate` | `fragment`, which starts with `#` | Go to this route. The Bridge answers with `route`, also when the route does not change. |
-
-A route `#questions/<id>` that names an open question opens the question panel on that question. This is true in each
-mode, not only in a host's frame.
-
-The channel is `VersionedEmbedChannel` in `bridge/shell/VersionedEmbedChannel.ts`; `BridgeApp` sends `ready`, `route`
-and `session-lost`, and follows `navigate`.
 
 ## Invariants
 

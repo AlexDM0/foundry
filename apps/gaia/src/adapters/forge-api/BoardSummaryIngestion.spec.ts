@@ -108,8 +108,8 @@ describe('a summary at the known version', () => {
         attentionCount:    1,
         agents:            [{
           jobId:               'J1',
-          kind:                'assistant',
-          role:                'assistant',
+          kind:                'product-owner',
+          role:                'product-owner',
           state:               'launching',
           ticketIds:           [],
           tokens:              0,

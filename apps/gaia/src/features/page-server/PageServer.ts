@@ -73,10 +73,7 @@ interface PageServerRoute {
   readonly method:           'GET' | 'POST';
   /** Asked of the endpoint below `/api/` without its version, such as `fleet`. */
   readonly matchesEndpoint:  (endpoint: string) => boolean;
-  /**
-   * Served at `/api/v<version>/<endpoint>` and at `/api/<endpoint>`, which a page or a launcher from before versioned paths calls, so a
-   * window open across an upgrade keeps working; `null` for the one route served only at its unversioned path, `/api/versions`.
-   */
+  /** Served at `/api/v<version>/<endpoint>` alone; `null` for the one route served only at its unversioned path, `/api/versions`. */
   readonly version:          number | null;
   readonly access:           RouteAccess;
   /** A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing. */
@@ -251,10 +248,9 @@ function routesOf(context: RouteContext): readonly PageServerRoute[] {
   ];
 }
 
-/** A route answers at its versioned path and at its unversioned one; at another version, or a version of an unversioned-only route, at neither. */
+/** A route answers at its own version alone, and the unversioned-only route at no version. */
 function routeServesPath(route: PageServerRoute, { endpoint, version }: EndpointOfPath): boolean {
-  if (!route.matchesEndpoint(endpoint)) return false;
-  return version === null || version === route.version;
+  return route.matchesEndpoint(endpoint) && version === route.version;
 }
 
 function accessIsGranted(request: Request, access: RouteAccess, context: RouteContext): boolean {

@@ -85,7 +85,7 @@ describe('gaia serve', () => {
     const servingProgram = startServe(home, '0');
     const address = await servedAddressOf(servingProgram);
 
-    const health = await answerOf(address, '/api/health');
+    const health = await answerOf(address, '/api/v1/health');
     expect(await health.json()).toEqual({
       application:      'gaia',
       healthVersion:    1,
@@ -95,11 +95,11 @@ describe('gaia serve', () => {
     });
 
     const token = readFileSync(join(home, '.gaia', 'token'), 'utf8');
-    const codeAnswer = await answerOf(address, '/api/session-codes', { method: 'POST', headers: { authorization: `Bearer ${token}` } });
+    const codeAnswer = await answerOf(address, '/api/v1/session-codes', { method: 'POST', headers: { authorization: `Bearer ${token}` } });
     const { code } = await codeAnswer.json() as { readonly code: string };
-    const session = await answerOf(address, '/api/session', { method: 'POST', body: JSON.stringify({ code }) });
+    const session = await answerOf(address, '/api/v1/session', { method: 'POST', body: JSON.stringify({ code }) });
     const cookie = (session.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-    const fleet = await answerOf(address, '/api/fleet', { headers: { cookie } });
+    const fleet = await answerOf(address, '/api/v10/fleet', { headers: { cookie } });
     expect(await fleet.json()).toMatchObject({
       fleetVersion: PAGE_CONTRACT_VERSIONS.gaiaFleetDocument,
       forges:       [],
@@ -111,7 +111,7 @@ describe('gaia serve', () => {
       },
     });
 
-    const lookAgain = await answerOf(address, '/api/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 4, kind: 'fleet-look-again' }) });
+    const lookAgain = await answerOf(address, '/api/v6/commands', { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 5, kind: 'fleet-look-again' }) });
     expect(await lookAgain.json()).toEqual({
       answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });

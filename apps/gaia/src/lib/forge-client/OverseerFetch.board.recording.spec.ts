@@ -2,7 +2,8 @@
  * The real-system spec of overseer-fetch against Example Storefront's board, run only by
  * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record overseer-fetch-board`. It starts the forge under a scratch home in a scratch
  * repository with two apps, its fake agent playing every session, and brings the board to tickets in several statuses, an agent's question
- * with its recommendation escalated to User, an open incident and a defaulted one's notice, a pipeline applied over both apps, and an update
+ * with its recommendation escalated to User, an open incident and a defaulted one's notice, a pipeline applied over both apps with the
+ * Assistant switched on (a board whose Assistant is off defaults every incident at once), and an update
  * of it whose entities draft holds a standing refusal with its fix, which Apply refuses; then it records each situation of
  * `BOARD_SITUATIONS` at the versioned path Gaia calls. The values the run
  * draws are recorded as example values; the forge's install and code versions stamp it.
@@ -249,8 +250,8 @@ function setupOfAnswer(answer: OverseerAnswer): Record<string, unknown> {
 }
 
 /**
- * The fake agent asks no question and leaves no incident, so the board is given what an earlier Overseer whose Assistant's turn ended leaves
- * in the forge's own store: an incident of a merge's notes still to deliver, one delivered in that turn, and an agent's question routed to
+ * The fake agent asks no question and leaves no incident, so the stopped board is given what an earlier Overseer whose Assistant's turn ended
+ * leaves in the forge's own store: an incident of a merge's notes still to deliver, one delivered in that turn, and an agent's question routed to
  * the Assistant in that turn. The forge itself defaults the second, with its notice, and escalates the third into a question to User.
  */
 function leaveIncidentsOfAnEndedAssistantTurn(): void {
@@ -278,6 +279,21 @@ function leaveIncidentsOfAnEndedAssistantTurn(): void {
     },
   ];
   writeFileSync(progressPath, `${JSON.stringify({ ...progress, incidents, nextIncidentId: incidents.length + 1 }, null, 2)}\n`);
+}
+
+interface LiveOverseer {
+  readonly url:       string;
+  readonly processId: number;
+  readonly tokenPath: string;
+}
+
+/** Points the recording's requests at the Overseer the registry names now, with its token. */
+function followTheLiveOverseerOf(trackerId: string): LiveOverseer {
+  const overseer = scratchForge.registryEntryOf(trackerId)?.['overseer'] as LiveOverseer | undefined;
+  if (overseer === undefined) throw new Error('the registry names no live Overseer');
+  overseerUrl = overseer.url;
+  bearerToken = readFileSync(overseer.tokenPath, 'utf8').trim();
+  return overseer;
 }
 
 function noticeKindsOf(board: Record<string, unknown>): unknown[] {
@@ -316,11 +332,8 @@ function appEntityEditsOf(entityKey: string, home: string): Record<string, unkno
   ];
 }
 
-/**
- * Opens pipeline setup, has the layout of both apps found as the pipeline agent reports it, drafts an entity of each app with one gate,
- * applies it, and opens an update of the stored pipeline, whose draft the recording then edits.
- */
-async function applyAPipelineOverTheAppsAndOpenAnUpdate(): Promise<void> {
+/** Opens pipeline setup, has the layout of both apps found as the pipeline agent reports it, drafts an entity of each app with one gate and applies it. */
+async function applyAPipelineOverTheApps(): Promise<void> {
   const opened = await sendCommand({ kind: 'pipeline-setup-start', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false });
   const firstSetupId = String(setupOfAnswer(opened)['setupId']);
   setupId = firstSetupId;
@@ -343,6 +356,10 @@ async function applyAPipelineOverTheAppsAndOpenAnUpdate(): Promise<void> {
   })).toMatchObject({ status: SUCCESS_STATUS });
   await boardOnceItShows('the applied pipeline', (board) => appliedPipelineOf(board)['readingVerdict'] === 'readable'
     && appliedPipelineOf(board)['application'] !== null && board['pipelineSetup'] === null);
+}
+
+/** Opens an update of the stored pipeline, whose draft the recording then edits. */
+async function openAnUpdateOfThePipeline(): Promise<void> {
   const update = await sendCommand({ kind: 'pipeline-update-start' });
   expect(update).toMatchObject({ status: SUCCESS_STATUS });
   setupId = String(setupOfAnswer(update)['setupId']);
@@ -373,12 +390,15 @@ beforeAll(async () => {
   const committed = await scratchForge.runForDocument(repository, ['ticket', 'add', 'Example checkout page', '--type', 'ticket', '--body', READY_TICKET_BODY, '--json']);
   committedTicketId = String(recordOf(committed['ticket'])['id'] ?? recordOf(recordOf(committed['ticket'])['frontmatter'])['id'] ?? committed['id']);
   await scratchForge.runForDocument(repository, ['ticket', 'ready', committedTicketId, '--json']);
+  // A new board starts paused and launches nothing, so the stop that follows interrupts no job. The Assistant's switch needs a stored pipeline.
+  await scratchForge.runForDocument(repository, ['start', '--json']);
+  followTheLiveOverseerOf(trackerIdDrawn);
+  await applyAPipelineOverTheApps();
+  expect(await sendCommand({ kind: 'pipeline-assistant-set', on: true })).toMatchObject({ status: SUCCESS_STATUS });
+  await scratchForge.runForDocument(repository, ['stop', '--now', '--json']);
   leaveIncidentsOfAnEndedAssistantTurn();
   await scratchForge.runForDocument(repository, ['start', '--json']);
-  const overseer = scratchForge.registryEntryOf(trackerIdDrawn)?.['overseer'] as { url: string; processId: number; tokenPath: string } | undefined;
-  if (overseer === undefined) throw new Error('the registry names no live Overseer');
-  overseerUrl = overseer.url;
-  bearerToken = readFileSync(overseer.tokenPath, 'utf8').trim();
+  const overseer = followTheLiveOverseerOf(trackerIdDrawn);
   scratchForge.exampleValueFor({ drawn: new URL(overseer.url).host, example: STOREFRONT.overseerAddress });
   scratchForge.exampleValueFor({ drawn: `"processId":${overseer.processId}`, example: `"processId":${STOREFRONT.processId}` });
   scratchForge.exampleValueFor({ drawn: `process ${overseer.processId}`, example: `process ${STOREFRONT.processId}` });
@@ -388,7 +408,7 @@ beforeAll(async () => {
   expect(await sendCommand({ kind: 'overseer-resume' })).toMatchObject({ status: SUCCESS_STATUS });
   await boardOnceItShows('its first question, an escalated question and a defaulted incident\'s notice', (board) => listOf(board['openDecisionIds']).length > 0
     && listOf(board['escalatedDecisionIds']).length > 0 && noticeKindsOf(board).includes('incident-defaulted'));
-  await applyAPipelineOverTheAppsAndOpenAnUpdate();
+  await openAnUpdateOfThePipeline();
   const { installVersion, codeVersion } = await scratchForge.runForDocument(repository, ['version', '--json']);
   recordSystemVersion(RECORDING_NAME, `install version ${String(installVersion)}, code ${String(codeVersion)}`);
 }, SETUP_TIMEOUT_MILLISECONDS);

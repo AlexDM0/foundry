@@ -113,8 +113,9 @@ describe('boardDocumentOf, on the recorded board', () => {
     const document = BoardDocumentMapUtil.boardDocumentOf(board, markdownLeftAsWritten);
     expect(document.page.tickets.map(({ facts, offers }) => ({ facts, offers }))).toEqual(board.page.tickets.map(({ facts, offers }) => ({ facts, offers })));
     expect(document.page.tickets[1]?.offers.kinds).toContain('ticket-deliver-by-hand');
-    expect(document.jobs[0]?.stopHolds).toEqual({ stop: 'stopped by User (J1)', windDown: 'wound down by User (J1)' });
-    expect(document.jobs[0]?.offers).toEqual({ stopModes: ['stop', 'wind-down'], takesFresh: false, takesMessage: true });
+    const assistant = document.jobs.find((job) => job.role === 'assistant');
+    expect(assistant?.stopHolds).toEqual({ stop: `stopped by User (${assistant?.id})`, windDown: `wound down by User (${assistant?.id})` });
+    expect(assistant?.offers).toEqual({ stopModes: ['stop', 'wind-down'], takesFresh: false, takesMessage: true });
   });
 
   test('keeps the step run times, the entities draft\'s refusals with their typed fix, and the Apply refusal', async () => {

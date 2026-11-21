@@ -31,8 +31,8 @@ const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
 
 const CURRENT_CONTRACTS = {
   summary: 1,
-  monitor: 3,
-  control: 1,
+  monitor: 4,
+  control: 2,
 };
 
 const ANALYTICS_SANDBOX = FLEET_SNAPSHOT_DEGRADED.forges.find((reading) => reading.fidelity === 'newer-contract');
@@ -48,8 +48,8 @@ describe('the identity of a forge at the version Gaia supports', () => {
       identity: {
         trackerId:      'example-storefront-7c41',
         project:        'Example Storefront',
-        codeVersion:    'bd4096d23eb2',
-        installVersion: 43,
+        codeVersion:    'f46fd1a4c461',
+        installVersion: 44,
         processId:      48_107,
         contracts:      CURRENT_CONTRACTS,
       },
@@ -63,8 +63,8 @@ describe('the identity of a forge at the version Gaia supports', () => {
       identity: {
         trackerId:      '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
         project:        'Example Project',
-        codeVersion:    'bd4096d23eb2',
-        installVersion: 43,
+        codeVersion:    'f46fd1a4c461',
+        installVersion: 44,
         processId:      21_008,
         contracts:      CURRENT_CONTRACTS,
       },
@@ -81,7 +81,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
 
   test('reads an identity from before F1, which names no version, as older, with nothing read, and one that names no contracts as malformed', async () => {
     const { identityVersion, contracts, ...beforeF1 } = await storefrontIdentity();
-    expect([identityVersion, contracts]).toEqual([1, { ...CURRENT_CONTRACTS, embed: 1 }]);
+    expect([identityVersion, contracts]).toEqual([1, CURRENT_CONTRACTS]);
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf(beforeF1)).toEqual({ verdict: 'older-contract', contract: 'identity', version: null });
     expect(new IdentityIngestion(STOREFRONT_FACTS).readingOf({ ...beforeF1, identityVersion: 1 })).toEqual({ verdict: 'malformed', invalidKeys: ['contracts'] });
   });
@@ -98,7 +98,6 @@ describe('the identity of a forge at the version Gaia supports', () => {
         summary: 1,
         monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
         control: ANALYTICS_SANDBOX.contracts.control,
-        embed:   1,
       },
     };
     expect(new IdentityIngestion(registryFactsOf(ANALYTICS_SANDBOX)).readingOf(identity)).toEqual({

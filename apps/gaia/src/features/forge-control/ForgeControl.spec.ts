@@ -36,6 +36,7 @@ import { WatchReadingUtil }                                                     
 import type { CommandVerdict }                                                                          from '../../shared/@types/CommandVerdict.ts';
 import type { ForgeReading }                                                                            from '../../shared/@types/ForgeReading.ts';
 import type { GaiaCommand }                                                                             from '../../shared/@types/GaiaCommand.ts';
+import { CONTRACT_VERSIONS }                                                                            from '../../shared/constants/ContractVersions.ts';
 import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../shared/constants/GaiaSettingsDefaults.ts';
 import {
   recordedOverseerAnswersOf,
@@ -60,7 +61,7 @@ const WIKI_TRACKER_ID = 'research-wiki-2b90';
 const STOREFRONT_URL = 'http://127.0.0.1:4951/';
 const WIKI_URL = 'http://127.0.0.1:4952/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
-const COMMANDS_CALL_SHAPE = 'POST /api/v1/commands with bearer';
+const COMMANDS_CALL_SHAPE = 'POST /api/v2/commands with bearer';
 
 type ForgeState = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
@@ -72,10 +73,10 @@ interface ReadFacts {
 
 /** What the forge watch reads of an Overseer in each state; an unreachable forge keeps the contracts of its last whole reading. */
 const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
-  'full':           { condition: 'live', monitor: 3, control: 1 },
+  'full':           { condition: 'live', monitor: 4, control: 2 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
-  'newer-contract': { condition: 'unreadable', monitor: 4, control: 3 },
-  'unreachable':    { condition: 'unreachable', monitor: 3, control: 1 },
+  'newer-contract': { condition: 'unreadable', monitor: 5, control: 3 },
+  'unreachable':    { condition: 'unreachable', monitor: 4, control: 2 },
 };
 
 let scratchFolder = '';
@@ -232,7 +233,7 @@ function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch 
 /** A live forge whose identity names this control contract. */
 function liveForgeAtControl(controlVersion: number): ExampleForge {
   const forge = exampleForgeOf();
-  return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 3, control: controlVersion } } };
+  return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 4, control: controlVersion } } };
 }
 
 /** The forge as the watch last read it, while the registry already names its Overseer at another address. */
@@ -456,8 +457,8 @@ describe('forge-pause, forge-unpause, forge-restart and forge-talos-restart, car
 
   test('a resume to a forge ahead of the one Gaia supports goes to the versioned path of the commands Gaia knows', async () => {
     const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
-    const forge = liveForgeAtControl(1);
-    const versions = { verdict: 'ahead', current: { major: 1, minor: 3 }, minimumSupported: { major: 1, minor: 0 } } as const;
+    const forge = liveForgeAtControl(CONTRACT_VERSIONS.forgeControl);
+    const versions = { verdict: 'ahead', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } } as const;
     const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
     expect(await controlOver({ forges, overseerFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
     expect([overseerFetch.callsAnswered().map((call) => call.callShape), sentBodiesOf(overseerFetch)]).toEqual([[COMMANDS_CALL_SHAPE], [{ kind: 'overseer-resume' }]]);
@@ -524,7 +525,7 @@ describe('forge-pause, forge-unpause, forge-restart and forge-talos-restart, car
 describe('a live forge whose control contract Gaia does not know', () => {
   test('is sent nothing, and its command answers not-supported', async () => {
     const overseerFetch = recordedOverseerFetch([]);
-    for (const controlVersion of [2, 3]) {
+    for (const controlVersion of [CONTRACT_VERSIONS.forgeControl - 1, CONTRACT_VERSIONS.forgeControl + 1]) {
       expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
     }
     expect(overseerFetch.callsAnswered()).toEqual([]);

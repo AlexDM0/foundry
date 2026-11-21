@@ -123,19 +123,17 @@ describe('the done answers of each verb', () => {
 
   test('version reads the installed code, install and contract versions, the Talos protocol version it starts and the monitor folder', () => {
     const versionDocument = {
-      answerVersion:  2,
-      codeVersion:    '3a6e9e6043da',
-      installVersion: 43,
-      contracts:      {
-        summary: 1, monitor: 3, control: 1, embed: 1
-      },
+      answerVersion:        2,
+      codeVersion:          '3a6e9e6043da',
+      installVersion:       43,
+      contracts:            { summary: 1, monitor: 4, control: 2 },
       talosProtocolVersion: 2,
       monitorFolder:        '/Users/example/.forge-monitor',
     };
     expect(ForgeAnswerMapUtil.versionAnswerOf(versionDocument)).toEqual({
       codeVersion:          '3a6e9e6043da',
       installVersion:       43,
-      contracts:            { summary: 1, monitor: 3, control: 1 },
+      contracts:            { summary: 1, monitor: 4, control: 2 },
       talosProtocolVersion: 2,
       monitorFolder:        '/Users/example/.forge-monitor',
     });

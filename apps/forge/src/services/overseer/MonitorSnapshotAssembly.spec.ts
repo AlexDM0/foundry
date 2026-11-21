@@ -1,12 +1,10 @@
 /**
  * The `GET /api/monitor` document. What matters: for a board with one entry of every attention kind and one job of every role, plus a merge
- * job with none, `monitorSnapshotOf` answers `monitorVersion: 3` exactly as `testing/fixtures/monitor-v3.json` holds it, so a change to the
+ * job with none, `monitorSnapshotOf` answers `monitorVersion: 4` exactly as `testing/fixtures/monitor-v4.json` holds it, so a change to the
  * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` and
- * `monitor-v2.json` stay as versions 1 and 2 froze them. Two edits were made on purpose, under the system version's next major: with the Bridge
- * deleted, version 3 names what an entry opens by a typed `target` where it carried the Bridge's `route`, and with Flint's brain gone it
- * has no `flintBrain` key. Beside it: `activity` keeps
- * only the kinds a person cares about, newest last, each
- * at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs by the
+ * `monitor-v2.json` stay as versions 1 and 2 froze them. Version 4 is forge 2.0's: it names what an entry opens by a typed `target` where
+ * version 3 carried the Bridge's `route`, and it has no `flintBrain` key. Beside it: `activity` keeps only the kinds a person cares about,
+ * newest last, each at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs by the
  * instant its stamp names, an unstamped or unreadable stamp the oldest, and its reset is passed on as reported, also once it is past: a
  * clock decides nothing. No forge runs Flint's brain any more: the snapshot has no `flintBrain` key, and a `flint-brain-ended` record an
  * older log holds reads as an ordinary `agent` entry with no kind and no tokens, and adds nothing to today's tokens. On a forge with
@@ -29,7 +27,7 @@ import type { BoardState }                                                      
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts, type MonitorSnapshotSource } from './MonitorSnapshotAssembly.ts';
 import { liveJobFixture }                                                                 from './testing/LiveJobFixture.ts';
 
-const MONITOR_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'monitor-v3.json');
+const MONITOR_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'monitor-v4.json');
 
 
 /** Midday, so today's local calendar date is the stamps' date in any zone a spec runs in. */
@@ -238,7 +236,7 @@ const FLINT_BRAIN_ENDED_RECORD = {
 } as unknown as LogRecord;
 
 describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
-  test('answers monitorVersion 3 exactly as the fixture holds it, for every attention kind and every job role', () => {
+  test('answers monitorVersion 4 exactly as the fixture holds it, for every attention kind and every job role', () => {
     const fixture: unknown = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8'));
     expect(JSON.parse(JSON.stringify(MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE)))).toEqual(fixture);
   });

@@ -154,7 +154,7 @@ describe('a callout\'s command', () => {
     const sends: Promise<unknown>[] = [];
     PackageButtons.press(buttonNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender, sends), 'Update forge'));
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([
-      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 4 },
+      { kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 5 },
     ]);
     const onItsWay = unfoldedLayout(FLEET_FIVE_FORGES, sender);
     expect(buttonNamed(onItsWay, 'Update forge').props['disabled']).toBe(true);
@@ -191,7 +191,7 @@ describe('a callout\'s command', () => {
     expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
     expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withComponent(PendingStep))).toEqual([]);
     PackageButtons.press(buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart'));
-    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 4 });
+    expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 5 });
     const restarting = tree.onlyOfComponent([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')], PendingStep);
     expect(buttonNamed(tree.unfoldedProp(restarting, 'action'), 'Restart').props['disabled']).toBe(true);
     sender.dismissRestartPending({ trackerId: TRACKER_IDS.exampleMobileApp });
@@ -467,8 +467,8 @@ describe('the outage resume\'s answer', () => {
     const refusal = FailedActions.onlyFailedActionIn([tree.onlyWithClass(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'gaia-attention-refusal')]);
     tree.dispatch(refusal, 'onRetry');
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)) as unknown)).toEqual([
-      { ...OUTAGE_RESUME_COMMAND, commandVersion: 4 },
-      { ...OUTAGE_RESUME_COMMAND, commandVersion: 4 },
+      { ...OUTAGE_RESUME_COMMAND, commandVersion: 5 },
+      { ...OUTAGE_RESUME_COMMAND, commandVersion: 5 },
     ]);
   });
 });

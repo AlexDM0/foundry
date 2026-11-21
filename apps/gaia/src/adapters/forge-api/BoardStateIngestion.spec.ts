@@ -113,8 +113,8 @@ describe('boardOf, on the board of a forge at work', () => {
 
   test('keeps each job\'s stop holds as the forge words them and what it accepts now', async () => {
     const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
-    const assistant = board.jobs.find((job) => job.id === 'J1');
-    expect(assistant?.stopHolds).toEqual({ stop: 'stopped by User (J1)', windDown: 'wound down by User (J1)' });
+    const assistant = board.jobs.find((job) => job.role === 'assistant');
+    expect(assistant?.stopHolds).toEqual({ stop: `stopped by User (${assistant?.id})`, windDown: `wound down by User (${assistant?.id})` });
     expect(assistant?.offers).toEqual({ stopModes: ['stop', 'wind-down'], takesFresh: false, takesMessage: true });
     expect(assistant?.interruption).toBeNull();
   });
@@ -145,11 +145,11 @@ describe('boardOf, on the board of a forge at work', () => {
     });
   });
 
-  test('reads the Assistant\'s switch from the stored pipeline: off while the key is absent, on while the forge wrote it', async () => {
-    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument())).assistantIsOn).toBe(false);
-    const switchedOn = await boardAtWorkDocument();
-    recordAt(switchedOn, ['pipeline', 'pipeline'])['assistant'] = true;
-    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, switchedOn)).assistantIsOn).toBe(true);
+  test('reads the Assistant\'s switch from the stored pipeline: on while the forge wrote the key, as recorded, off while the key is absent', async () => {
+    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument())).assistantIsOn).toBe(true);
+    const switchedOff = await boardAtWorkDocument();
+    delete recordAt(switchedOff, ['pipeline', 'pipeline'])['assistant'];
+    expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, switchedOff)).assistantIsOn).toBe(false);
   });
 
   test('reads the Assistant\'s switch as off while no readable pipeline is stored', async () => {

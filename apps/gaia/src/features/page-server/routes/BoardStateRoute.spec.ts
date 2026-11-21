@@ -36,7 +36,7 @@ import {
 } from '../testing/ExampleRelayForge.ts';
 import { createBoardStateRoute, type BoardStateRoute } from './BoardStateRoute.ts';
 
-const BOARD_CALL_SHAPE = 'GET /api/v1/board with bearer';
+const BOARD_CALL_SHAPE = 'GET /api/v2/board with bearer';
 const BURST_OF_REQUESTS = 5;
 
 let scratchFolder = '';

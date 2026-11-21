@@ -1,8 +1,8 @@
 /**
- * The board's command kinds of the contract a view sends to `POST /api/v1/commands` from forge 1.21, under `controlVersion` 1. What
+ * The board's command kinds of the contract a view sends to `POST /api/v2/commands`, under `controlVersion` 2. What
  * matters: `BOARD_COMMAND_CONTRACT_KINDS` names exactly the package's `ForgeBoardCommand` kinds, both ways, which the typecheck and a
  * runtime comparison hold, and no kind is in both contract lists; a board kind applied through the route answers 200
- * `{controlVersion: 1, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit inside an
+ * `{controlVersion: 2, outcome, result}`, and a body of it missing a field answers 400 and writes nothing; a typed draft edit inside an
  * entity lands, and an edit written as a field string is malformed.
  */
 import { readFileSync } from 'node:fs';
@@ -81,7 +81,7 @@ const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
 const MALFORMED_ANSWER = {
   status: 400,
   body:   {
-    controlVersion: 1, refusal: 'malformed-body', fields: {}, text: expect.any(String)
+    controlVersion: 2, refusal: 'malformed-body', fields: {}, text: expect.any(String)
   }
 };
 
@@ -138,7 +138,7 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
     expect(filed.status).toBe(200);
     const body: ForgeBoardCommand = { kind: 'ticket-priority', ticketReference: '1', priority: 'high' };
 
-    expect(await answerOf(body)).toEqual({ status: 200, body: { controlVersion: 1, outcome: 'done', result: expect.anything() } });
+    expect(await answerOf(body)).toEqual({ status: 200, body: { controlVersion: 2, outcome: 'done', result: expect.anything() } });
   });
 
   test('a priority with no ticket answers 400 malformed-body and writes nothing', async () => {
@@ -162,7 +162,7 @@ describeWhenGitIsRecorded('the board commands of the contract', () => {
       ],
     };
 
-    expect(await answerOf(typedEdit)).toEqual({ status: 200, body: { controlVersion: 1, outcome: 'done', result: expect.anything() } });
+    expect(await answerOf(typedEdit)).toEqual({ status: 200, body: { controlVersion: 2, outcome: 'done', result: expect.anything() } });
     expect(storedSetup().draft?.entities?.['web']?.concurrency).toBe(2);
     const fieldStringEdit = {
       kind: 'pipeline-draft-edit', setupId: 'S1', draftRevision: 1, edits: [{ field: 'entity:web/concurrency', value: 3 }]

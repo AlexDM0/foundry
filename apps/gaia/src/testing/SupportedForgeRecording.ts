@@ -71,6 +71,8 @@ const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
 /** The question the Overseer's first pass opens on a board with no checks set. */
 const FIRST_PASS_QUESTION_KIND = 'question';
 const SETTLING_EVENTS_AT_MOST = 40;
+const INTAKE_REQUEST = 'Example: suggest searches as the shopper types.';
+const JOBS_AT_WORK_AFTER_AN_INTAKE = 1;
 /** Forge's test setting that keeps each fake agent's session working until it is stopped, so a job stays at work while it is recorded. */
 const FAKE_AGENT_KEEPS_WORKING_VARIABLE = 'FORGE_FAKE_AGENT_KEEPS_WORKING';
 interface KeptAnswer {
@@ -184,14 +186,17 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     return (chunks.join('').match(MONITOR_EVENT_PATTERN) ?? []).map((event) => JSON.parse(event.slice(event.indexOf('data: ') + 'data: '.length)) as Record<string, unknown>);
   }
 
-  /** Waits on the stream until the Overseer's first pass has opened its question and its Assistant's job beside the draft ticket. */
-  async function boardHasSettled(streamUrl: string = overseerUrl, token: string = bearerToken): Promise<void> {
+  /**
+   * Waits on the stream until the Overseer's first pass has opened its question and the board holds `jobsAtWork` jobs. A new board's
+   * Assistant is off, so only a job User asked for is at work on it.
+   */
+  async function boardHasSettled(jobsAtWork: number, streamUrl: string = overseerUrl, token: string = bearerToken): Promise<void> {
     const stream = await openedStream(token, streamUrl);
     try {
       for (let event = 1; event <= SETTLING_EVENTS_AT_MOST; event += 1) {
         const { chunks } = await chunksUntil(stream, 1);
         const settled = (snapshot: Record<string, unknown>): boolean => (snapshot['attention'] as { kind: string }[]).some((entry) => entry.kind === FIRST_PASS_QUESTION_KIND)
-          && (snapshot['jobs'] as unknown[]).length > 0;
+          && (snapshot['jobs'] as unknown[]).length === jobsAtWork;
         if (snapshotsIn(chunks).some(settled)) return;
       }
       throw new Error(`The board did not settle within ${SETTLING_EVENTS_AT_MOST} monitor events.`);
@@ -219,9 +224,10 @@ export function describeSupportedForgeRecording(recordingName: string): void {
     await scratchForge.runForDocument(repository, ['ticket', 'add', 'Search suggestions', '--type', 'ticket', '--json']);
     await scratchForge.runForDocument(repository, ['start', '--json']);
     followTheLiveOverseer();
-    // A new board starts paused; a forge at work runs.
+    // A new board starts paused; a forge at work runs, here the product owner of an intake User started.
     expect(await sendCommand({ kind: 'overseer-resume' })).toMatchObject({ verdict: 'answered', status: 200 });
-    await boardHasSettled();
+    expect(await sendCommand({ kind: 'intake-start', text: INTAKE_REQUEST, pictures: [] })).toMatchObject({ verdict: 'answered', status: 200 });
+    await boardHasSettled(JOBS_AT_WORK_AFTER_AN_INTAKE);
   }
 
   beforeAll(() => startStorefront(), SETUP_TIMEOUT_MILLISECONDS);
@@ -268,8 +274,11 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       const overseer = scratchForge.registryEntryOf(projectTrackerId)?.['overseer'] as { url: string; processId: number; tokenPath: string } | undefined;
       if (overseer === undefined) throw new Error('the registry names no live Overseer of Example Project');
       projectOverseerUrl = overseer.url;
-      // Its summary is recorded once the first pass opened its question and launched its Assistant, as on a board a person opens.
-      await boardHasSettled(projectOverseerUrl, readFileSync(overseer.tokenPath, 'utf8').trim());
+      const projectToken = readFileSync(overseer.tokenPath, 'utf8').trim();
+      // Its summary is recorded once the first pass opened its question and took up the intake User started, on a board still paused.
+      const intake = projectRequestOf('POST', PATHS.commands, projectToken, JSON.stringify({ kind: 'intake-start', text: INTAKE_REQUEST, pictures: [] }));
+      expect(await realOverseerFetch().request(intake)).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
+      await boardHasSettled(JOBS_AT_WORK_AFTER_AN_INTAKE, projectOverseerUrl, projectToken);
       scratchForge.exampleValueFor({ drawn: new URL(overseer.url).host, example: EXAMPLE_PROJECT.overseerAddress });
       scratchForge.exampleValueFor({ drawn: `"processId":${overseer.processId}`, example: `"processId":${EXAMPLE_PROJECT.processId}` });
     }, SETUP_TIMEOUT_MILLISECONDS);
@@ -313,9 +322,7 @@ export function describeSupportedForgeRecording(recordingName: string): void {
       expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
       expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : null).toMatchObject({
         identityVersion: 1,
-        contracts:       {
-          summary: 1, monitor: monitorVersion, control: controlVersion, embed: 1
-        }
+        contracts:       { summary: 1, monitor: monitorVersion, control: controlVersion }
       });
       stampWithTheForgeIn(answer);
       keep('serving-every-contract', requestCallShapeOf(identityRequest), answer);

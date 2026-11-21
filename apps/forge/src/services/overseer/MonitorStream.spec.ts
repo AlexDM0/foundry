@@ -8,7 +8,7 @@ import type { MonitorSnapshot } from '../../shared/monitor/@types/MonitorSnapsho
 import { MonitorStream }        from './MonitorStream.ts';
 
 function snapshotWith(openIncidents: number): MonitorSnapshot {
-  return { monitorVersion: 3, openIncidents } as unknown as MonitorSnapshot;
+  return { monitorVersion: 4, openIncidents } as unknown as MonitorSnapshot;
 }
 
 describe('MonitorStream', () => {

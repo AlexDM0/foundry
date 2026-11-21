@@ -84,7 +84,7 @@ it is made, and the guard keeps the code and the registry in step after it.
 
 ### V5. Carry the system version in the monitor stream and the embed channel (Must)
 
-**Statement.** `GET /api/v2/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 1, "minor": 0 } }`, before the
+**Statement.** `GET /api/v3/monitor/events` opens with a `handshake` event, `{ "systemVersion": { "major": 2, "minor": 0 } }`, before the
 first `monitor` event, and every `monitor` event carries the same `systemVersion` beside the snapshot's own keys. Every message the Bridge
 posts to its framing page, its `ready` first, carries `systemVersion` beside `channel` and `channelVersion`. The Bridge reads a framing
 page's message at `channelVersion: 1` and passes over its `systemVersion`, which is the host's own, and any other key it does not know.
@@ -138,7 +138,7 @@ and skip the extra read.
 
 ## 3. What Gaia does with a forge that misses a requirement
 
-Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.1) and keeps nothing for an older forge: forge 1.0,
+Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 2.0) and keeps nothing for an older forge: forge 1,
 and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |

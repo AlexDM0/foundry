@@ -29,7 +29,7 @@ import {
 } from '../testing/ExampleRelayForge.ts';
 import { boardCommandAnswerFor } from './BoardCommandRoute.ts';
 
-const COMMANDS_CALL_SHAPE = 'POST /api/v1/commands with bearer';
+const COMMANDS_CALL_SHAPE = 'POST /api/v2/commands with bearer';
 const COMMAND_BODY_BOUND_BYTES = 65_536;
 const TICKET_HOLD = EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-hold'];
 

@@ -1,5 +1,5 @@
 /**
- * The versioned path scheme against its own contract. What matters: a versioned path and its unversioned one name the same endpoint, an
+ * The versioned path scheme against its own contract. What matters: a versioned path and a path with no version name the same endpoint, an
  * endpoint below a version keeps every segment, a `v` that is no whole version of at least 1 is part of the endpoint and not a version, and
  * a path outside `/api/` names nothing.
  */
@@ -8,9 +8,8 @@ import { describe, expect, test } from 'bun:test';
 import { ApiPathUtil } from './ApiPathUtil.ts';
 
 describe('the paths of an endpoint', () => {
-  test('are /api/v<n>/<endpoint> and /api/<endpoint>, and the versions path stands apart from both', () => {
+  test('are /api/v<n>/<endpoint>, and the versions path stands apart from them', () => {
     expect(ApiPathUtil.versionedPathOf('fleet', 4)).toBe('/api/v4/fleet');
-    expect(ApiPathUtil.unversionedPathOf('fleet')).toBe('/api/fleet');
     expect(ApiPathUtil.VERSIONS_PATH).toBe('/api/versions');
   });
 });

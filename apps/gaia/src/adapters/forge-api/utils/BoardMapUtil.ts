@@ -462,15 +462,15 @@ function limitsOf(limits: BoardLimitsDocument): BoardLimits {
   };
 }
 
-/**
- * The board without its pipeline facts, which the caller maps with `PipelineMapUtil` and hands in, and with what each waiting job follows,
- * which the forge serves in its presence rather than its board.
- */
 /** The switch is the stored pipeline's `assistant` key, which the forge writes only while it is on. */
 function assistantIsOnIn(applied: BoardAppliedPipelineDocument): boolean {
   return applied.readingVerdict === 'readable' && applied.pipeline.assistant === true;
 }
 
+/**
+ * The board without its pipeline facts, which the caller maps with `PipelineMapUtil` and hands in, and with what each waiting job follows,
+ * which the forge serves in its presence rather than its board.
+ */
 function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: BoardPipelineFacts, resumeWaits: ResumeWaitsOfJobs): ForgeBoard {
   return {
     trackerId,

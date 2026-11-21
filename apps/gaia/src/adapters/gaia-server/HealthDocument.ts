@@ -1,5 +1,5 @@
 /**
- * Gaia's health contract, `GET /api/v1/health` and `/api/health`: that a server is Gaia, at which health and install version, and how far
+ * Gaia's health contract, `GET /api/v1/health`: that a server is Gaia, at which health and install version, and how far
  * it is with its forges. The page server answers it; the launcher's probe and `serve`'s refusal of a second Gaia read it.
  */
 import { JsonValueUtil }          from '../../lib/json-value/JsonValueUtil.ts';

@@ -3,4 +3,4 @@
  * number as `CONTRACT_VERSIONS.forgeControl`, written here because the page imports nothing of the forge's contract package and that file does.
  * `KnownForgeContractVersions.spec.ts` holds the two equal.
  */
-export const KNOWN_FORGE_CONTRACT_VERSIONS = { control: 1 } as const;
+export const KNOWN_FORGE_CONTRACT_VERSIONS = { control: 2 } as const;

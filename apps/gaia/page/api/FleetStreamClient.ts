@@ -1,5 +1,5 @@
 /**
- * Follows `GET /api/v4/events` and publishes the document of each `fleet` event. A stream that errs is closed and opened again after
+ * Follows `GET /api/v10/events` and publishes the document of each `fleet` event. A stream that errs is closed and opened again after
  * `FLEET_STREAM_REOPEN_INTERVAL_MILLISECONDS` by this client, not by the browser, so every wait is a schedule a spec controls; the stream
  * reads `lost` from the error until the next open. Gaia's server sends its current document first on every open, so a reopened stream
  * needs no separate read of `/api/fleet`. The stream opens on a handshake naming the server's system version, and every `fleet` event

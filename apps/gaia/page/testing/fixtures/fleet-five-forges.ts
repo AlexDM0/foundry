@@ -31,8 +31,8 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 
 const EVERY_CURRENT_CONTRACT = {
   summary: 1,
-  monitor: 3,
-  control: 1,
+  monitor: 4,
+  control: 2,
 };
 
 /** Under the limit, in a five-hour window that resets at 16:00 UTC, as every forge of the account reports it. */
@@ -753,7 +753,7 @@ function agentOf(forge: FleetDocumentForge, jobId: string): FleetDocumentFleetAg
 }
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
-  fleetVersion: 9,
+  fleetVersion: 10,
   forges:       [EXAMPLE_STOREFRONT, INVOICE_SERVICE, RESEARCH_WIKI, EXAMPLE_MOBILE_APP, DESIGN_SYSTEM, LEGACY_IMPORTER],
   attention:    [
     { ...INVOICE_ESCALATED_E4, trackerId: TRACKER_IDS.invoiceService },
@@ -834,8 +834,8 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     settingsFile:      'read',
     knownContracts:    {
       summary: 1,
-      monitor: 3,
-      control: 1,
+      monitor: 4,
+      control: 2,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },

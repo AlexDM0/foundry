@@ -228,7 +228,7 @@ describe('the route and the theme', () => {
     await Promise.resolve();
     expect(shown).toEqual(['light']);
     expect(sent.map((request) => JSON.parse(String(request.requestOptions.body)))).toEqual([{
-      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 4
+      kind: 'settings-set', key: 'theme', value: 'light', commandVersion: 5
     }]);
   });
 });

@@ -30,8 +30,8 @@ its keys.
   versioned endpoint, and every compatibility path that is no endpoint (an unversioned alias, a payload migration, an older message
   form), each with the version that introduced it and the last version whose clients still need it. The logic is the `system-versions`
   package's (`system-versions/CompatibilityRegistryUtil`), which names no server. Forge's is `forge-contracts/ForgeCompatibilityRegistry`;
-  Gaia's own, toward its page and launcher, is `GAIA_COMPATIBILITY_REGISTRY` (`src/shared/constants/GaiaCompatibilityRegistry.ts`), which
-  keeps Gaia's routes at their unversioned paths too, for a page or a launcher from before system versions. `bun run
+  Gaia's own, toward its page and launcher, is `GAIA_COMPATIBILITY_REGISTRY` (`src/shared/constants/GaiaCompatibilityRegistry.ts`). Since
+  Gaia 2.0 and forge 2.0, each with its minimum at 2.0, neither registry holds a compatibility path: only routes. `bun run
   versions:raise-minimum <major.minor>`, in `apps/gaia` for Gaia's and in `packages/forge-contracts` for forge's, is the dry run of a raise
   of the minimum: it lists what becomes removable and what must stay. The raise is then the one-line change of the minimum, after which the
   registry's spec fails until each listed entry, and what it keeps, is removed or its entry corrected.
@@ -44,9 +44,8 @@ its keys.
 - **The keys documents have always carried stay, as whole versions.** `monitorVersion`, `identityVersion`, `contracts`, `fleetVersion`,
   `answerVersion` and the like keep their integer, and Gaia reads exactly one number of each: the one the forge version it supports serves,
   or Gaia's own. A known number reads with its unknown keys passed over; another, older or newer, never reaches a mapper.
-  `src/shared/utils/ContractVersionUtil.ts` holds the reading rule once. Forge's registry keeps its documents' integer keys only for
-  clients from before system versions, so Gaia still leans on a compatibility path it was not built for; `docs/backlog.md` holds the step
-  that ends it, before forge's minimum is raised past 0.0.
+  `src/shared/utils/ContractVersionUtil.ts` holds the reading rule once. Forge's integer keys are its current contract, no
+  compatibility path: forge 2.0 serves them with its minimum at 2.0, and its API reference says so.
 - **Stored files keep their own format version**, major.minor: the integer `version` (or `recordingVersion`) is the major, an optional
   `minor` the minor, absent read as 0. A newer minor of a known major is read, and a file Gaia would rewrite at a newer minor is kept as
   it is (`kept-newer-version`), since the rewrite would drop the keys it adds.
@@ -70,18 +69,19 @@ A `/api/versions` answer that is no versions document, as another program on the
 ## Gaia's endpoints
 
 Each route of Gaia's server at its endpoint version, from `GAIA_ENDPOINT_VERSIONS` (`src/shared/constants/GaiaSystemVersions.ts`), with its
-lifetime in `GAIA_COMPATIBILITY_REGISTRY`, served at `/api/v<n>/<endpoint>` and, while the registry keeps them, at `/api/<endpoint>`,
-behind the same Host, Origin, CSP and session guards (`src/features/page-server/PageServer.ts`). A version above 1 names the breaking
-changes the endpoint already had.
+lifetime in `GAIA_COMPATIBILITY_REGISTRY`, served at `/api/v<n>/<endpoint>` alone, behind the Host, Origin, CSP and session guards
+(`src/features/page-server/PageServer.ts`). Gaia 2.0, whose minimum supported is 2.0, answers no route at `/api/<endpoint>`: only a page
+or a launcher of Gaia 1 called those paths, and no caller in this repository does. A version above 1 names the breaking changes the
+endpoint already had.
 
 | Key in `GAIA_ENDPOINT_VERSIONS` | Version | Path | Breaking changes |
 | --- | --- | --- | --- |
 | `health` | 1 | `GET /api/v1/health` | none |
 | `sessionCodes` | 1 | `POST /api/v1/session-codes` | none |
 | `session` | 1 | `POST /api/v1/session` | none |
-| `fleet` | 9 | `GET /api/v9/fleet` | monitor contract 2's warning kinds (2); a part since removed (3); a forge too old to talk to, fidelity `older-contract` (4); board routes in place of the Bridge's fragments (5); each forge's presence, crash, crash logs and waiting work, and the forge alerts in what waits (6); each forge's outage endings, their total, and the fleet's alert `agents-ended-on-outage`, an attention item of no one forge (7); each forge's `runningVersions`, the running and the newest Overseer and Talos (8); no forge's `embed` contract in `contracts` and `knownContracts` (9) |
-| `events` | 9 | `GET /api/v9/events` | as `fleet`, whose document each `fleet` event carries |
-| `commands` | 5 | `POST /api/v5/commands` | Gaia's own sentences for forge refusals (2); commands since removed (3); `forge-unpause` in place of `forge-resume`, and `forge-interrupted-work-resume` (4); `forge-talos-restart`, sent as the forge's `talos-restart` (a kind it only adds); no `forge-open-in-browser`, since Gaia runs no `forge open` (5) |
+| `fleet` | 10 | `GET /api/v10/fleet` | monitor contract 2's warning kinds (2); a part since removed (3); a forge too old to talk to, fidelity `older-contract` (4); board routes in place of the Bridge's fragments (5); each forge's presence, crash, crash logs and waiting work, and the forge alerts in what waits (6); each forge's outage endings, their total, and the fleet's alert `agents-ended-on-outage`, an attention item of no one forge (7); each forge's `runningVersions`, the running and the newest Overseer and Talos (8); no forge's `embed` contract in `contracts` and `knownContracts` (9); in Gaia 2.0, no Flint's brain on a forge, no brain row among its agents, and no `kind` or `tokens` on an activity entry (10) |
+| `events` | 10 | `GET /api/v10/events` | as `fleet`, whose document each `fleet` event carries |
+| `commands` | 6 | `POST /api/v6/commands` | Gaia's own sentences for forge refusals (2); commands since removed (3); `forge-unpause` in place of `forge-resume`, and `forge-interrupted-work-resume` (4); `forge-talos-restart`, sent as the forge's `talos-restart` (a kind it only adds); no `forge-open-in-browser`, since Gaia runs no `forge open` (5); in Gaia 2.0, no `forge-flint-brain-start` and `forge-flint-brain-stop` (6) |
 | `forgeBoard` | 1 | `GET /api/v1/forges/<trackerId>/board` | none |
 | `forgeBoardEvents` | 1 | `GET /api/v1/forges/<trackerId>/board/events` | none |
 | `forgeJobStream` | 1 | `GET /api/v1/forges/<trackerId>/jobs/<jobId>/stream?after=<cursor>` | none |
@@ -91,8 +91,9 @@ changes the endpoint already had.
 | `forgeCommands` | 1 | `POST /api/v1/forges/<trackerId>/commands` | none |
 | `forgeCrashLog` | 1 | `GET /api/v1/forges/<trackerId>/crash-logs/<number>` | none |
 
-`GET /api/versions` is the one route served only at its unversioned path. The seven `forge*` routes, Gaia's relay of one forge's board,
-came with Gaia 1.2, and `forgeCrashLog`, one crash log of a forge that serves again, with Gaia 1.3; every route reads a body of at most 65,536 bytes, the picture upload one of at most `BOARD_PICTURE_UPLOAD_LIMIT_BYTES`
+`GET /api/versions` is the one route served at an unversioned path. The seven `forge*` routes, Gaia's relay of one forge's board,
+came with Gaia 1.2, and `forgeCrashLog`, one crash log of a forge that serves again, with Gaia 1.3; Gaia 2.0 took Flint's brain out of the
+fleet document and the commands, dates `fleet`, `events` and `commands` at 2.0, and raised its minimum supported to 2.0; every route reads a body of at most 65,536 bytes, the picture upload one of at most `BOARD_PICTURE_UPLOAD_LIMIT_BYTES`
 (`src/lib/local-http-guards/BoundedBody.ts`), since Bun's own bound is one for the whole server.
 
 ## Versioned contracts
@@ -105,17 +106,17 @@ version, major.minor.
 | `forgeRegistry` | 1.0 | `version`, `minor` | `~/.forge-monitor/projects.json`, the registry every forge of the account writes itself into | reads | `src/adapters/forge-registry/RegistryFile.ts` | the forge; `program` per entry with F9 |
 | `forgeIdentity` | 1 | `identityVersion` | an Overseer's open `GET /api/v1/identity`; its `contracts` names the version of each contract below that the forge serves | reads | `forge-contracts/IdentityDocument`, `src/adapters/forge-api/IdentityIngestion.ts` | the forge; one without the version key or `contracts` is older than Gaia reads |
 | `forgeBoardSummary` | 1 | `summaryVersion` | an Overseer's open `GET /api/v1/summary`, polled for a forge whose registry entry names no token file | reads | `forge-contracts/BoardSummaryDocument`, `src/adapters/forge-api/BoardSummaryIngestion.ts` | the forge |
-| `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, with the bearer token | reads | `forge-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge at 1.1 |
-| `forgeControl` | 1 | `contracts.control` of the identity | an Overseer's `POST /api/v1/commands`, with the bearer token | sends | `forge-contracts/ForgeControlCommand` | the forge at 1.1; forge keeps `contracts.control` at 1, since a client built for 1.0 compares it for equality |
+| `forgeMonitor` | 4 | `monitorVersion` | an Overseer's `GET /api/v3/monitor` and each `monitor` event of `GET /api/v3/monitor/events`, with the bearer token | reads | `forge-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge at 2.0: a typed target on each entry, no Flint's brain |
+| `forgeControl` | 2 | `contracts.control` of the identity | an Overseer's `POST /api/v2/commands`, with the bearer token | sends | `forge-contracts/ForgeControlCommand` | the forge at 2.0; forge keeps `contracts.control` at 2 while a minor adds kinds, since a client compares it for equality |
 | `forgeProgramAnswer` | 2 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit); `version` names the Talos protocol version the program starts from forge 1.23 (2) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
 | `forgeMachineLimits` | 1.0 | `version`, `minor` | `~/.forge-monitor/machine-limits.json`, the machine-wide agent limit | never reads: the limit arrives in the monitor snapshot and is set through the control contract | the forge alone | the forge from F6 |
 | `gaiaSettings` | 1.0 | `version`, `minor` | `~/.gaia/settings.json` | reads and writes | `src/adapters/gaia-files/@types/StoredSettings.ts`, `SettingsFile.ts`, `SettingsWriter.ts` | Gaia |
-| `gaiaFleetDocument` | 9 | `fleetVersion` | `GET /api/v9/fleet` and the `fleet` event of `GET /api/v9/events`, which opens on a `handshake` event and carries Gaia's `systemVersion` in every event | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia; each forge's `program`, the one its registry entry names, from Gaia 1.1 |
-| `gaiaCommand` | 4 | `commandVersion` | the body of `POST /api/v5/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
-| `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/v5/commands`, with one answer per forge for `fleet-outage-resume` in `forges` (a key it only adds) | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
+| `gaiaFleetDocument` | 10 | `fleetVersion` | `GET /api/v10/fleet` and the `fleet` event of `GET /api/v10/events`, which opens on a `handshake` event and carries Gaia's `systemVersion` in every event | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia; each forge's `program`, the one its registry entry names, from Gaia 1.1 |
+| `gaiaCommand` | 5 | `commandVersion` | the body of `POST /api/v6/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
+| `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/v6/commands`, with one answer per forge for `fleet-outage-resume` in `forges` (a key it only adds) | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaHealth` | 1 | `healthVersion` | the open `GET /api/v1/health` | serves; the launcher and a second `serve` read | `src/adapters/gaia-server/HealthDocument.ts` | Gaia |
-| `gaiaBoard` | 1 | `boardVersion` | one forge's board as the page reads it, each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia, at `forgeBoard` and in the three relayed streams |
-| `gaiaBoardCommand` | 1 | `boardCommandVersion` | the body of a board command the page posts for one forge; each kind keeps the forge's kind name, with Gaia's payload | the page sends; the server reads | `page/@types/board/BoardCommandDocument.ts`, read in by `src/adapters/page-api/BoardCommandIngestion.ts` and sent as the forge's command by `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` | Gaia |
+| `gaiaBoard` | 1 | `boardVersion` | one forge's board as the page reads it, with `assistantIsOn` (a key it only adds), each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia, at `forgeBoard` and in the three relayed streams |
+| `gaiaBoardCommand` | 1 | `boardCommandVersion` | the body of a board command the page posts for one forge; each kind keeps the forge's kind name, with Gaia's payload; `pipeline-assistant-set` is a kind it only adds | the page sends; the server reads | `page/@types/board/BoardCommandDocument.ts`, read in by `src/adapters/page-api/BoardCommandIngestion.ts` and sent as the forge's command by `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` | Gaia |
 | `gaiaBoardStream` | 1 | `boardStreamVersion` | the `handshake` that opens every relayed board stream, with Gaia's and the forge's system versions, written with no id | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgeBoardEvents`, `forgeJobStream` and `forgeProfileStream` |
 | `gaiaBoardCommandAnswer` | 1 | `boardCommandAnswerVersion` | the answer to a board command: applied, refused with the forge's sentence or Gaia's own, held for an install change, unreachable or of unknown outcome | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgeCommands` |
 | `gaiaPictureUploadAnswer` | 1 | `pictureUploadAnswerVersion` | the answer to a picture the page uploads for one forge | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgePictureUpload` |
@@ -125,15 +126,17 @@ version, major.minor.
 
 The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9. Every fixture of a forge contract is recorded from a forge
 that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`. From this repository's
-forge 1.23: `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-board`, Example Storefront's board as the relay reads it:
-the board document (with a draft ticket and a committed one the product owner gives an entity; an agent's question with its
-recommendation, escalated to User; an open incident and a defaulted one's notice, left in the forge's store as an ended Assistant turn
-leaves them, since the fake agent asks nothing; a pipeline applied over two app entities; and an update setup whose entities draft holds a
+forge 2.0: `overseer-fetch-supported-forge`, the forge in each situation, its one job the product owner of an intake User started, since a
+new board's Assistant is off; `overseer-fetch-board`, Example Storefront's board as the relay reads it:
+the board document (with a draft ticket and a committed one the product owner gives an entity; a pipeline applied over two app entities
+with the Assistant switched on; an agent's question with its
+recommendation, escalated to User; an open incident and a defaulted one's notice, left in the stopped forge's store as an ended Assistant turn
+leaves them, since the fake agent asks nothing; and an update setup whose entities draft holds a
 standing `equal-homes` refusal with its fix, which Apply refuses as `entity-refusals-stand`), and refused
 another's token; the board's event stream from its start and from its first event's id; a board command applied,
 refused with its code, fields and sentence, of an unknown kind, and answered 423 while launches are held for an install change, with the
 board's notice in that hold; a picture accepted and read back, refused as too large and as no picture; a product owner job's stream (its handshake
-and an empty history, since the fake agent writes no conversation) and a gate profile run's output; and `overseer-fetch-versions`, the forge answering older (1.0), one minor ahead and newer (2.1) through its
+and an empty history, since the fake agent writes no conversation) and a gate profile run's output; and `overseer-fetch-versions`, the forge answering older (1.0), one minor ahead (2.1) and newer (3.1) through its
 test setting `FORGE_VERSIONS_ANSWER`, and a forge from before system versions, serving no `/api/versions`. Every situation is a forge at a
 system version. Each answer keeps its content type, and an answer read as bytes, such as a picture, is recorded in base64.
 
@@ -143,7 +146,7 @@ Gaia reads a forge's board into its own model at its boundary (decision 51) and 
 (decision 47). The model is `src/shared/@types/board/`, `ForgeBoard` at its root, written in Gaia's own unions; the page's board contract
 is a separate document Gaia serves.
 
-- **The board document**, `GET /api/v1/board` (`forge-contracts/ForgeBoardDocument`), carries no version key: its version is the `board`
+- **The board document**, `GET /api/v2/board` (`forge-contracts/ForgeBoardDocument`), carries no version key: its version is the `board`
   endpoint's, derived from forge's registry at `SUPPORTED_FORGE_VERSION`. `src/adapters/forge-api/BoardStateIngestion.ts` checks the keys
   Gaia reads against `constants/BoardDocumentShapes.ts`, each shape typed `satisfies ShapeOf<>` against the contract, and maps through
   `utils/BoardMapUtil.ts` and `utils/PipelineMapUtil.ts`; a missing key or a value outside a value list makes it malformed and is named.
@@ -180,7 +183,7 @@ is a separate document Gaia serves.
   (`src/features/fleet/utils/ForgePresenceUtil.ts`); a forge at a version Gaia cannot talk to answered its versions, so it is never down.
 - **The value lists** map through `utils/VocabularyMapUtil.ts`, one record typed `Record<forge value, Gaia value>` per union, so a value
   forge adds is a compile error there and nowhere else.
-- **The board event stream**, `GET /api/v1/events`, carries forge's internal board state in every event, never a contract document. Gaia
+- **The board event stream**, `GET /api/v2/events`, carries forge's internal board state in every event, never a contract document. Gaia
   reads only the event's name (`BoardEventIngestion.ts`): `board` asks for the board document anew through `ForgeClient.boardOf`, and each
   part event names its part.
 - **The conversation streams and the command answer** have no type in `forge-contracts` yet; their shapes are typed against

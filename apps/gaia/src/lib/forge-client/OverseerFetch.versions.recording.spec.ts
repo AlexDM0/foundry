@@ -49,8 +49,9 @@ const NOT_FOUND_STATUS = 404;
 const VERSIONS_ANSWER_VARIABLE = 'FORGE_VERSIONS_ANSWER';
 const OLDER_VERSIONS_ANSWER = '1.0/0.0';
 /** One minor ahead of the version Gaia supports, still serving it. */
-const AHEAD_VERSIONS_ANSWER = `${SUPPORTED_FORGE_VERSION.major}.${SUPPORTED_FORGE_VERSION.minor + 1}/1.0`;
-const NEWER_VERSIONS_ANSWER = '2.1/2.0';
+const AHEAD_VERSIONS_ANSWER = `${SUPPORTED_FORGE_VERSION.major}.${SUPPORTED_FORGE_VERSION.minor + 1}/${SUPPORTED_FORGE_VERSION.major}.0`;
+/** The next major, which serves no client of the major Gaia supports. */
+const NEWER_VERSIONS_ANSWER = `${SUPPORTED_FORGE_VERSION.major + 1}.1/${SUPPORTED_FORGE_VERSION.major + 1}.0`;
 const VERSIONS_ANSWER_UNSET = '';
 const MONITOR_EVENT_PATTERN = /event: monitor\ndata: [^\n]*\n\n/;
 const STOREFRONT = {

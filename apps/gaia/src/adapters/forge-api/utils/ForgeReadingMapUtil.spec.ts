@@ -63,7 +63,7 @@ describe('the condition of a forge', () => {
 
 function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapshotDocument {
   return {
-    monitorVersion: 3,
+    monitorVersion: 4,
     trackerId:      REGISTRY_FACTS.trackerId,
     project:        'Example Agency',
     root:           REGISTRY_FACTS.root,

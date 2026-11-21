@@ -97,7 +97,7 @@ const STOREFRONT_STAGES = {
   live:     [
     ...identityAnswersOf('serving-every-contract'),
     ...answersOf('connection-broken'),
-    ...answersOf('serving-every-contract', 'POST /api/v1/commands with bearer'),
+    ...answersOf('serving-every-contract', 'POST /api/v2/commands with bearer'),
   ],
   limitLowered: [
     ...identityAnswersOf('serving-every-contract'),
@@ -327,9 +327,9 @@ async function startGaia(): Promise<RunningGaia> {
 /** The page's road in: the launcher's code bought with Gaia's token, spent for the session cookie the page sends from then on. */
 async function sessionCookieOf(server: PageServer): Promise<string> {
   const token = await Bun.file(serverTokenPathIn(home)).text();
-  const codeAnswer = await fetch(new URL('/api/session-codes', server.url), { method: 'POST', headers: { authorization: `Bearer ${token}` } });
+  const codeAnswer = await fetch(new URL('/api/v1/session-codes', server.url), { method: 'POST', headers: { authorization: `Bearer ${token}` } });
   const { code } = await codeAnswer.json() as { readonly code: string };
-  const session = await fetch(new URL('/api/session', server.url), { method: 'POST', body: JSON.stringify({ code }) });
+  const session = await fetch(new URL('/api/v1/session', server.url), { method: 'POST', body: JSON.stringify({ code }) });
   return (session.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 }
 
@@ -341,7 +341,7 @@ interface FleetFollow {
 /** The page's `GET /api/events`: every `fleet` event the page would hear, in order. */
 async function followFleet(server: PageServer, cookie: string): Promise<FleetFollow> {
   eventStreamAbort = new AbortController();
-  const response = await fetch(new URL('/api/events', server.url), { headers: { cookie }, signal: eventStreamAbort.signal });
+  const response = await fetch(new URL('/api/v10/events', server.url), { headers: { cookie }, signal: eventStreamAbort.signal });
   const reader = response.body?.getReader();
   if (reader === undefined) throw new Error('The event stream has no body.');
   const decoder = new TextDecoder();
@@ -372,7 +372,7 @@ async function followFleet(server: PageServer, cookie: string): Promise<FleetFol
 }
 
 async function sendCommand(server: PageServer, cookie: string, command: Record<string, unknown>): Promise<unknown> {
-  const answer = await fetch(new URL('/api/commands', server.url), { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 4, ...command }) });
+  const answer = await fetch(new URL('/api/v6/commands', server.url), { method: 'POST', headers: { cookie }, body: JSON.stringify({ commandVersion: 5, ...command }) });
   return answer.json();
 }
 

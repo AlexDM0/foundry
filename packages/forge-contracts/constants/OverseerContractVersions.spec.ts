@@ -25,7 +25,9 @@ describe('the Overseer contract versions', () => {
     expect(inconsistenciesOf(OVERSEER_CONTRACT_VERSIONS)).toEqual([]);
   });
 
-  test('keep control at 1, which clients built for forge 1.0 compare for equality', () => {
-    expect(OVERSEER_CONTRACT_VERSIONS.control).toBe(1);
+  test('are the versions forge 2.0 serves, with no embed contract', () => {
+    expect(OVERSEER_CONTRACT_VERSIONS).toEqual({
+      identity: 1, summary: 1, monitor: 4, control: 2
+    });
   });
 });

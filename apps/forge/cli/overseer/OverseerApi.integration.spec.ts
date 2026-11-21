@@ -49,7 +49,7 @@ import { COMMON_FOLDER_OUTSIDE }                                                
 
 const SPEC_CLOCK = (): Date => new Date('2026-09-18T20:11:03Z');
 const SUMMARY_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'summary-v1.json');
-const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'monitor-v3.json');
+const MONITOR_FIXTURE_PATH = join(import.meta.dir, '..', '..', 'src', 'services', 'overseer', 'testing', 'fixtures', 'monitor-v4.json');
 
 const recordedGit = useRecordedGit();
 
@@ -204,10 +204,10 @@ describe('the Overseer API on a scratch board', () => {
     const monitor = await (await fetch(new URL('api/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     const monitorFixture = JSON.parse(readFileSync(MONITOR_FIXTURE_PATH, 'utf8')) as Record<string, unknown>;
     expect(Object.keys(monitor)).toEqual(Object.keys(monitorFixture));
-    expect(monitor).toMatchObject({ monitorVersion: 3, project: 'Example Agency', overseer: { state: 'serving', url, paused: false } });
+    expect(monitor).toMatchObject({ monitorVersion: 4, project: 'Example Agency', overseer: { state: 'serving', url, paused: false } });
     const versions: unknown = await (await fetch(new URL('api/versions', url))).json();
     expect(versions).toEqual(FORGE_SYSTEM_VERSIONS);
-    const versionedMonitor = await (await fetch(new URL('api/v2/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
+    const versionedMonitor = await (await fetch(new URL('api/v3/monitor', url), { headers: tokenHeaders() })).json() as Record<string, unknown>;
     expect(Object.keys(versionedMonitor)).toEqual(Object.keys(monitorFixture));
     const monitorStream = await fetch(new URL('api/monitor/events', url), { headers: tokenHeaders() });
     const streamReader = monitorStream.body?.getReader();
@@ -222,7 +222,7 @@ describe('the Overseer API on a scratch board', () => {
     expect(handshakeEvent).toBe(`event: handshake\ndata: ${JSON.stringify({ systemVersion: FORGE_SYSTEM_VERSIONS.current })}`);
     expect(/^event: (.+)$/m.exec(monitorEvent)?.[1]).toBe('monitor');
     const monitorEventData: unknown = JSON.parse(/^data: (.+)$/m.exec(monitorEvent)?.[1] ?? 'null');
-    expect(monitorEventData).toMatchObject({ monitorVersion: 3, project: 'Example Agency', systemVersion: FORGE_SYSTEM_VERSIONS.current });
+    expect(monitorEventData).toMatchObject({ monitorVersion: 4, project: 'Example Agency', systemVersion: FORGE_SYSTEM_VERSIONS.current });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a picture is stored owner-only by the hash of its bytes and served back; a refused one and a command naming an unknown one are worded', async () => {
@@ -259,10 +259,10 @@ describe('the Overseer API on a scratch board', () => {
     const command = (body: unknown) => fetch(new URL('api/commands', url), { method: 'POST', headers, body: JSON.stringify(body) });
     const unknown = await command({ kind: 'intake-start', text: 'A basket', pictures: [{ pictureId: 'b'.repeat(64), name: 'gone.png' }] });
     expect(unknown.status).toBe(409);
-    expect(await unknown.json()).toMatchObject({ controlVersion: 1, refusal: 'picture-unknown', text: expect.stringContaining(`No picture ${'b'.repeat(64)} is stored`) });
+    expect(await unknown.json()).toMatchObject({ controlVersion: 2, refusal: 'picture-unknown', text: expect.stringContaining(`No picture ${'b'.repeat(64)} is stored`) });
     const blank = await command({ kind: 'intake-start', text: ' ' });
     expect(blank.status).toBe(409);
-    expect(await blank.json()).toMatchObject({ controlVersion: 1, refusal: 'intake-empty', text: expect.stringContaining('blank and carries no picture') });
+    expect(await blank.json()).toMatchObject({ controlVersion: 2, refusal: 'intake-empty', text: expect.stringContaining('blank and carries no picture') });
     const state = await (await fetch(new URL('api/state', url), { headers })).json() as Record<string, unknown>;
     expect(state['pictureLimits']).toMatchObject({ perMessage: PICTURES_PER_MESSAGE_LIMIT, sizeLimitBytes: PICTURE_SIZE_LIMIT_BYTES });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
@@ -352,12 +352,12 @@ describe('the Overseer API on a scratch board', () => {
     const url = await overseer.firstOutputLine ?? '';
     const headers = tokenHeaders();
     for (const kind of ['flint-brain-start', 'flint-brain-stop']) {
-      const answered = await fetch(new URL('api/v1/commands', url), { method: 'POST', headers, body: JSON.stringify({ kind }) });
-      expect([answered.status, await answered.json()], kind).toEqual([400, expect.objectContaining({ controlVersion: 1, refusal: 'malformed-body' })]);
+      const answered = await fetch(new URL('api/v2/commands', url), { method: 'POST', headers, body: JSON.stringify({ kind }) });
+      expect([answered.status, await answered.json()], kind).toEqual([400, expect.objectContaining({ controlVersion: 2, refusal: 'malformed-body' })]);
     }
     const asked = await fetch(new URL('api/flint-brain/ask', url), { method: 'POST', headers, body: '{}' });
     expect([asked.status, await asked.json()]).toEqual([404, { refusal: 'not-found' }]);
-    const monitor = await (await fetch(new URL('api/v2/monitor', url), { headers })).json() as Record<string, unknown>;
+    const monitor = await (await fetch(new URL('api/v3/monitor', url), { headers })).json() as Record<string, unknown>;
     expect(Object.hasOwn(monitor, 'flintBrain')).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

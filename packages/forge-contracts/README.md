@@ -1,6 +1,6 @@
 # forge-contracts
 
-What a forge serves and reads, as TypeScript types: its Overseer's documents, the commands it takes, the embed channel of its Bridge, its
+What a forge serves and reads, as TypeScript types: its Overseer's documents, the commands it takes, its
 system versions and its compatibility registry. Forge owns it and decides every version in it; any client builds against it. The package
 names no client.
 
@@ -10,14 +10,14 @@ names no client.
 | `forge-contracts/ForgeCompatibilityRegistry` | `FORGE_COMPATIBILITY_REGISTRY`: every versioned endpoint and every compatibility path forge keeps, each with its lifetime |
 | `forge-contracts/IdentityDocument` | `GET /api/v1/identity`, with the `contracts` it names |
 | `forge-contracts/BoardSummaryDocument` | `GET /api/v1/summary` |
-| `forge-contracts/MonitorSnapshotDocument` | `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, at `monitorVersion` 3; the stream's `handshake` and `monitor` events, each with the forge's system version |
+| `forge-contracts/MonitorSnapshotDocument` | `GET /api/v3/monitor` and each `monitor` event of `GET /api/v3/monitor/events`, at `monitorVersion` 4; the stream's `handshake` and `monitor` events, each with the forge's system version |
 | `forge-contracts/MonitorInterruptionCauses` | `MONITOR_INTERRUPTION_CAUSES`, every cause a monitor job's `interruption` names, as the wire spells it |
 | `forge-contracts/ForgePresenceDocument` | `GET /api/v1/presence` from forge 1.20: the last start, Talos's supervision, the work that waits by cause, the held merges and the crash logs |
 | `forge-contracts/ForgeCrashLogDocument` | `GET /api/v1/crash-log?number=<n>` from forge 1.20, the newest log without the query |
-| `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands` |
-| `forge-contracts/ForgeControlCommandKinds` | `FORGE_CONTROL_COMMAND_KINDS`, every kind a client may send to `POST /api/v1/commands`: the control kinds, then the board kinds |
-| `forge-contracts/ForgeRefusalDocument` | a refusal as forge serves it from forge 1.21: its reason code, its fields and the sentence its command line prints, as `POST /api/v1/commands` answers it |
-| `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v1/board` from forge 1.21: a board's every fact a view reads, its parts in the seven files below |
+| `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v2/commands` |
+| `forge-contracts/ForgeControlCommandKinds` | `FORGE_CONTROL_COMMAND_KINDS`, every kind a client may send to `POST /api/v2/commands`: the control kinds, then the board kinds |
+| `forge-contracts/ForgeRefusalDocument` | a refusal as forge serves it from forge 1.21: its reason code, its fields and the sentence its command line prints, as `POST /api/v2/commands` answers it |
+| `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v2/board` from forge 1.21: a board's every fact a view reads, its parts in the seven files below |
 | `forge-contracts/BoardPageDocuments` | the board document's `page`: the tickets, the task rows, the worded log, the epics, the open filing drafts and the Board's facts of each row and ticket |
 | `forge-contracts/BoardJobDocuments` | the board document's jobs with their live facts, the jobs that left the board, and each open ticket's forecast |
 | `forge-contracts/BoardConversationDocuments` | the board document's open decisions and incidents, the records a settled one leaves, and the picture limits |
@@ -26,12 +26,9 @@ names no client.
 | `forge-contracts/BoardLimitsDocument` | the board document's `limits`: how a view cuts a stamp and lays out the progress chart, and the bounds and defaults forge's rules apply |
 | `forge-contracts/BoardReadingDocuments` | the board document's finished readings: what waits on the user and what it opens, worded notices and warnings, today's figures, each ticket's facts, each ticket's and job's offered commands and the hold each stop mode leaves |
 | `forge-contracts/BoardVocabulary` | the values of the board document's unions a view iterates or compares, each as a list in forge's order and its type |
-| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v1/commands` from forge 1.21, with their payloads (the typed draft edit is `BoardPipelineDocuments`') |
-| `forge-contracts/BoardStreamHandshake` | the first event of `GET /api/v1/events`, `/api/v1/jobs/<jobId>/stream` and `/api/v1/profiles/<profileRunId>/stream` from forge 1.22, with the forge's system version and no id |
-| `forge-contracts/EmbedChannelMessage` | the messages between a framing page and the Bridge in its frame, each with its sender's system version |
-| `forge-contracts/FrameAncestorRecord` | the record a framing page writes in the monitor folder's `frame-ancestors` folder, one per host, so every forge lets its origin frame the Bridge; its folder, extension and format version |
-| `forge-contracts/EmbedMode` | the query a framing page opens the Bridge with, `?embedded=frame` |
-| `forge-contracts/OverseerContractVersions` | the integer version each document has always carried |
+| `forge-contracts/BoardCommand` | `ForgeBoardCommand`, the board's command kinds of `POST /api/v2/commands` from forge 1.21, with their payloads (the typed draft edit is `BoardPipelineDocuments`') |
+| `forge-contracts/BoardStreamHandshake` | the first event of `GET /api/v2/events`, `/api/v1/jobs/<jobId>/stream` and `/api/v1/profiles/<profileRunId>/stream` from forge 1.22, with the forge's system version and no id |
+| `forge-contracts/OverseerContractVersions` | the integer version each document carries in its own key, which a reader checks before it maps the document |
 
 `SystemVersion`, `VersionsDocument` and the registry's logic are the `system-versions` package's, which names no server either.
 
@@ -47,12 +44,13 @@ its own.
 - **The system version** is forge's own, `major.minor` by interoperability, never this package's version: a minor change only adds, so
   every client built for that major keeps working; a major change may break one. Forge publishes it, with its **minimum supported**, the
   oldest forge version a client may have been built for and still be served, at `GET /api/versions`, a path never versioned and never
-  removed. Forge alone decides the minimum, whoever calls it. Version 0.0 stands for every forge released before system versions.
+  removed. Forge alone decides the minimum, whoever calls it. Version 0.0 stood for every forge released before system versions, and
+  forge 2.0 serves no client of one.
 - **REST endpoints are versioned by path**, `/api/v<n>/<endpoint>`, side by side; a breaking change to one endpoint is served at the next
-  version beside the old. An answer carries no per-endpoint version. The message protocols (the monitor stream, the embed channel) carry
-  the system version in their handshake and in every message.
-- **The compatibility registry** has one entry per thing forge keeps for clients of its older versions: each versioned endpoint, and each
-  compatibility path that is no endpoint, such as the unversioned routes and the integer version keys released clients check. Each names
+  version beside the old. An answer carries no per-endpoint version. The message protocols (the monitor stream and the board's
+  streams) carry the system version in their handshake, and the monitor stream in every message.
+- **The compatibility registry** has one entry per thing forge keeps for clients of its versions: each versioned endpoint, and each
+  compatibility path that is no endpoint (none since forge 2.0, whose minimum supported is 2.0). Each names
   the forge version that introduced it and the last whose clients still need it. An entry forge has not shipped yet is marked `authored`.
   A client calls, of each endpoint, the version the registry serves the forge version it is built for.
 - **The package version** (`package.json`) is this package's own semantic version. It says which types a build compiles against, never
@@ -63,7 +61,7 @@ its own.
 ## Raising the minimum
 
 ```bash
-bun run versions:raise-minimum 1.0
+bun run versions:raise-minimum 2.1
 ```
 
 is a dry run: it lists what becomes removable at that minimum and what must stay, and changes nothing. Raising the minimum is then the

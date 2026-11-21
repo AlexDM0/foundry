@@ -1,5 +1,5 @@
 /**
- * Every command kind a client may send to `POST /api/v1/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
+ * Every command kind a client may send to `POST /api/v2/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
  * `ForgeBoardCommand`, each in its contract's order. A kind the forge takes only from its own command line is in neither.
  */
 import type { ForgeBoardCommand }   from '../@types/BoardCommand.ts';

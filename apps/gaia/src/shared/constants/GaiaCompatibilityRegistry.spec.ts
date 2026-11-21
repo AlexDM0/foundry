@@ -1,11 +1,13 @@
 /**
  * Gaia's compatibility registry against Gaia's own versions. What matters: the guard holds today, with nothing kept below the minimum and
  * no entry contradicting itself; a client built for the current Gaia calls each route at the version `GAIA_ENDPOINT_VERSIONS` serves it at;
- * raising the minimum to 1.0 makes exactly the unversioned routes removable and keeps every route; and once that raise is made, the guard
- * fails, naming the unversioned routes, until they are removed.
+ * the registry holds routes only, each still needed, since Gaia 2.0 keeps nothing for a page or a launcher of Gaia 1; the fleet, its
+ * stream and the commands are dated 2.0, so a client of Gaia 1 is served none of them; and the guard names an entry kept below the
+ * minimum, planted here, until it is removed.
  */
 import { describe, expect, test } from 'bun:test';
 
+import type { CompatibilityEntry }   from 'system-versions/CompatibilityEntry';
 import { CompatibilityRegistryUtil } from 'system-versions/CompatibilityRegistryUtil';
 import type { VersionsDocument }     from 'system-versions/VersionsDocument';
 
@@ -13,8 +15,8 @@ import { GAIA_COMPATIBILITY_REGISTRY, GAIA_ENDPOINTS }                          
 import { GAIA_ENDPOINT_VERSIONS, GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION } from './GaiaSystemVersions.ts';
 
 const GAIA_VERSIONS: VersionsDocument = { current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION };
-const FIRST_VERSIONED_GAIA = { major: 1, minor: 0 };
-const UNVERSIONED_ROUTES = 'the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>, for a page or a launcher from before system versions';
+const LAST_GAIA_OF_MAJOR_ONE = { major: 1, minor: 4 };
+const ROUTES_GAIA_TWO_CHANGED = [GAIA_ENDPOINTS.fleet, GAIA_ENDPOINTS.events, GAIA_ENDPOINTS.commands];
 
 describe('Gaia\'s compatibility registry', () => {
   test('agrees with Gaia\'s versions: nothing is kept below the minimum supported, and no entry contradicts itself or another', () => {
@@ -28,18 +30,30 @@ describe('Gaia\'s compatibility registry', () => {
     }
   });
 
-  test('a raise of the minimum to 1.0 makes exactly the unversioned routes removable, and keeps every route', () => {
-    const report = CompatibilityRegistryUtil.raiseReportOf(GAIA_COMPATIBILITY_REGISTRY, GAIA_VERSIONS, FIRST_VERSIONED_GAIA);
-    expect(report.removable.map(CompatibilityRegistryUtil.labelOf)).toEqual([UNVERSIONED_ROUTES]);
-    expect(report.kept.every((entry) => entry.kind === 'endpoint')).toBe(true);
-    expect(report.kept).toHaveLength(Object.keys(GAIA_ENDPOINTS).length);
+  test('Gaia 2.0 supports no client of Gaia 1: the minimum supported is 2.0', () => {
+    expect(GAIA_VERSIONS).toEqual({ current: { major: 2, minor: 0 }, minimumSupported: { major: 2, minor: 0 } });
   });
 
-  test('once the minimum is raised to 1.0, the guard fails, naming the unversioned routes, until they are removed', () => {
-    const raised: VersionsDocument = { ...GAIA_VERSIONS, minimumSupported: FIRST_VERSIONED_GAIA };
-    expect(CompatibilityRegistryUtil.inconsistenciesOf(GAIA_COMPATIBILITY_REGISTRY, raised))
-      .toEqual([`${UNVERSIONED_ROUTES} is last needed by 0.0, below the minimum supported 1.0: remove it and what it keeps`]);
-    const cleared = GAIA_COMPATIBILITY_REGISTRY.filter((entry) => entry.kind === 'endpoint');
-    expect(CompatibilityRegistryUtil.inconsistenciesOf(cleared, raised)).toEqual([]);
+  test('holds routes only, each still needed, with no compatibility path, so nothing is removable', () => {
+    expect(GAIA_COMPATIBILITY_REGISTRY.filter((entry) => entry.kind !== 'endpoint' || entry.lastNeededBy !== null)).toEqual([]);
+    expect(GAIA_COMPATIBILITY_REGISTRY).toHaveLength(Object.keys(GAIA_ENDPOINTS).length);
+    expect(CompatibilityRegistryUtil.removableAt(GAIA_COMPATIBILITY_REGISTRY, MINIMUM_SUPPORTED_GAIA_VERSION)).toEqual([]);
+  });
+
+  test('the fleet, its stream and the commands are dated 2.0, so a client built for Gaia 1 is served none of them', () => {
+    const versionsAtMajorOne = ROUTES_GAIA_TWO_CHANGED
+      .map((endpoint) => CompatibilityRegistryUtil.endpointVersionAt(GAIA_COMPATIBILITY_REGISTRY, endpoint, LAST_GAIA_OF_MAJOR_ONE));
+    expect(versionsAtMajorOne).toEqual([null, null, null]);
+  });
+
+  test('the guard names an entry kept for a client of Gaia 1, planted, until it is removed', () => {
+    const keptForMajorOne: CompatibilityEntry = {
+      kind:         'compatibility-path',
+      name:         'an example path kept for a page of Gaia 1',
+      introducedIn: { major: 1, minor: 0 },
+      lastNeededBy: LAST_GAIA_OF_MAJOR_ONE,
+    };
+    expect(CompatibilityRegistryUtil.inconsistenciesOf([...GAIA_COMPATIBILITY_REGISTRY, keptForMajorOne], GAIA_VERSIONS))
+      .toEqual(['an example path kept for a page of Gaia 1 is last needed by 1.4, below the minimum supported 2.0: remove it and what it keeps']);
   });
 });

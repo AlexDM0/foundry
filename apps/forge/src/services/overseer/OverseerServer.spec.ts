@@ -253,16 +253,16 @@ const BOARD_STATE = BOARD_DOCUMENT_SOURCE.state;
 /** Routes that answer each versioned endpoint with a fixed body, so an answer shows which route gave it. */
 function versionedRoutesOf(started: () => boolean): OverseerRoutes {
   const monitorStream = MonitorStream.createMonitorStream();
-  monitorStream.publish({ monitorVersion: 3, openIncidents: 0 } as unknown as MonitorSnapshot);
+  monitorStream.publish({ monitorVersion: 4, openIncidents: 0 } as unknown as MonitorSnapshot);
   const broker = EventBroker.createEventBroker(1);
   broker.publishState(exampleState(1));
   broker.publishState(exampleState(2));
   return {
     token:         () => TOKEN,
     started,
-    command:       (body) => Promise.resolve({ status: 200, body: { controlVersion: 1, received: body } }),
+    command:       (body) => Promise.resolve({ status: 200, body: { controlVersion: 2, received: body } }),
     summary:       () => ({ summaryVersion: 1, project: 'Example Agency' }),
-    monitor:       () => ({ status: 200, body: { monitorVersion: 3 } }),
+    monitor:       () => ({ status: 200, body: { monitorVersion: 4 } }),
     presence:      () => ({ status: 200, body: { generation: 4 } }),
     crashLog:      (writtenNumber) => ({ status: 200, body: { number: writtenNumber } }),
     state:         () => BOARD_STATE,
@@ -406,7 +406,8 @@ describe('the versioned paths', () => {
       '/api/v0/summary',
       '/api/v01/summary',
       '/api/v1/state',
-      '/api/v2/events',
+      '/api/v1/events',
+      '/api/v3/events',
       '/api/v2/',
       '/api/v1/jobs/J1/extra',
       '/api/v1/jobs/J1/stream/extra',
@@ -449,17 +450,19 @@ describe('presence and the crash log', () => {
 });
 
 describe('the board document', () => {
-  test('answers GET /api/v1/board with the token by the assembly\'s document, and 401 unauthorized without it', async () => {
+  test('answers GET /api/v2/board with the token by the assembly\'s document, and 401 unauthorized without it', async () => {
     const handler = versionedHandlerOf();
-    const answered = await handler.answer(requestTo('/api/v1/board'), PORT);
+    const answered = await handler.answer(requestTo('/api/v2/board'), PORT);
     expect([answered.status, await answered.json()]).toEqual([200, JSON.parse(JSON.stringify(BoardDocumentAssembly.boardDocumentOf(BOARD_DOCUMENT_SOURCE)))]);
-    const refused = await handler.answer(requestTo('/api/v1/board', { headers: HOST_HEADERS }), PORT);
+    const refused = await handler.answer(requestTo('/api/v2/board', { headers: HOST_HEADERS }), PORT);
     expect([refused.status, await refused.json()]).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
   });
 
-  test('a version the registry does not serve it at is a 404 not-found', async () => {
-    const answer = await versionedHandlerOf().answer(requestTo('/api/v2/board'), PORT);
-    expect([answer.status, await answer.json()]).toEqual([404, { refusal: 'not-found' }]);
+  test('a version the registry does not serve it at is a 404 not-found, the version forge 1 served it at among them', async () => {
+    for (const path of ['/api/v1/board', '/api/v3/board']) {
+      const answer = await versionedHandlerOf().answer(requestTo(path), PORT);
+      expect([path, answer.status, await answer.json()]).toEqual([path, 404, { refusal: 'not-found' }]);
+    }
   });
 
   test('GET /api/state answers the state as before, at no versioned path', async () => {
@@ -483,20 +486,20 @@ describe('the board streams at their versioned paths', () => {
 
   test('each of the three streams writes the handshake with no id before any other event', async () => {
     const handler = versionedHandlerOf();
-    for (const path of ['/api/v1/events', '/api/v1/jobs/J1/stream', '/api/v1/profiles/P1/stream']) {
+    for (const path of ['/api/v2/events', '/api/v1/jobs/J1/stream', '/api/v1/profiles/P1/stream']) {
       const opening = await streamOpeningOf(await handler.answer(requestTo(path), PORT));
       expect(opening, path).toStartWith(HANDSHAKE_TEXT);
       expect(opening.slice(HANDSHAKE_TEXT.length), path).toStartWith('id: ');
     }
   });
 
-  test('a Last-Event-ID replay at /api/v1/events sends what was missed, as at /api/events', async () => {
+  test('a Last-Event-ID replay at /api/v2/events sends what was missed, as at /api/events', async () => {
     const replayedAt = async (path: string): Promise<string[] | null> => {
       const text = await streamOpeningOf(await versionedHandlerOf().answer(requestTo(path, { headers: { ...TOKEN_HEADERS, 'last-event-id': '1-1' } }), PORT));
       return text.match(/^id: .+$/gm);
     };
-    expect(await replayedAt('/api/v1/events')).toEqual(['id: 1-2']);
-    expect(await replayedAt('/api/v1/events')).toEqual(await replayedAt('/api/events'));
+    expect(await replayedAt('/api/v2/events')).toEqual(['id: 1-2']);
+    expect(await replayedAt('/api/v2/events')).toEqual(await replayedAt('/api/events'));
   });
 });
 

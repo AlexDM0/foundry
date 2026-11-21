@@ -202,12 +202,10 @@ describe('a tracker whose installed files are of another install version', () =>
     const context = trackedContext();
     expect(await runCommandLine(['version', '--json'], context), context.errorText()).toBe(0);
     expect(JSON.parse(context.outputText())).toEqual({
-      answerVersion:  2,
-      codeVersion:    expect.stringMatching(/^[0-9a-f]{12}$/),
-      installVersion: INSTALL_VERSION,
-      contracts:      {
-        summary: 1, monitor: 3, control: 1, embed: 1
-      },
+      answerVersion:        2,
+      codeVersion:          expect.stringMatching(/^[0-9a-f]{12}$/),
+      installVersion:       INSTALL_VERSION,
+      contracts:            { summary: 1, monitor: 4, control: 2 },
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       monitorFolder:        expect.stringMatching(/monitor$/),
     });

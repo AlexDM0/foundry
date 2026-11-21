@@ -3,8 +3,8 @@
  * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record overseer-fetch-presence`. It starts Example Storefront under a scratch home, its fake
  * agent playing every session, readies a ticket, and records its presence while it serves and a crash log it has none of; then kills its
  * Overseer from outside, starts it as User does, and records its presence after the crash and the crash log it wrote. Neither recorded
- * presence lists interrupted work: the crash log's only active job is the Assistant launching, so the waiting work rests on written
- * documents. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
+ * presence lists interrupted work, and the crash log names no active job, since a new board's Assistant is off: the waiting work rests on
+ * written documents. The values the run draws are recorded as example values; the forge's install and code versions stamp it.
  */
 import { readFileSync } from 'node:fs';
 import {

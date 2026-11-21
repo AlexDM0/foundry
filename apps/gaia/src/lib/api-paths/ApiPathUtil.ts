@@ -1,7 +1,7 @@
 /**
  * The address scheme of an HTTP API whose endpoints are versioned by path: `/api/v<n>/<endpoint>` for each version an endpoint is served
- * at, side by side, and `/api/<endpoint>`, its path from before versions, which a server keeps answering for older clients until it raises
- * its minimum. `/api/versions` is never versioned and never removed: it says which system version a server is.
+ * at, side by side. `/api/<endpoint>` is a path with no version, which names an endpoint all the same so that a server can refuse it by
+ * name. `/api/versions` is never versioned and never removed: it says which system version a server is.
  */
 export interface EndpointOfPath {
   /** The path below `/api/` without its version, such as `fleet` or `forges/example/board`. */
@@ -20,10 +20,6 @@ function versionedPathOf(endpoint: string, version: number): string {
   return `${API_ROOT}v${version}/${endpoint}`;
 }
 
-function unversionedPathOf(endpoint: string): string {
-  return `${API_ROOT}${endpoint}`;
-}
-
 /** The endpoint and version a path names; `null` for a path outside `/api/` or one that names no endpoint. */
 function endpointOfPath(pathname: string): EndpointOfPath | null {
   if (!pathname.startsWith(API_ROOT)) return null;
@@ -38,6 +34,5 @@ function endpointOfPath(pathname: string): EndpointOfPath | null {
 export const ApiPathUtil = {
   VERSIONS_PATH,
   versionedPathOf,
-  unversionedPathOf,
   endpointOfPath,
 } as const;

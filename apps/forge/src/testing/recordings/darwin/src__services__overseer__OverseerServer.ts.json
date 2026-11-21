@@ -58,9 +58,8 @@
           "talosProtocolVersion": 2,
           "contracts": {
             "summary": 1,
-            "monitor": 3,
-            "control": 1,
-            "embed": 1
+            "monitor": 4,
+            "control": 2
           }
         }
       }
@@ -115,7 +114,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "controlVersion": 1,
+          "controlVersion": 2,
           "outcome": "done",
           "result": {
             "logged": [
@@ -140,7 +139,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "controlVersion": 1,
+          "controlVersion": 2,
           "refusal": "no-readable-ticket",
           "fields": {
             "reference": "999"
@@ -157,7 +156,7 @@
           "content-type": "application/json;charset=utf-8"
         },
         "body": {
-          "controlVersion": 1,
+          "controlVersion": 2,
           "refusal": "launches-held-by-install-change",
           "fields": {},
           "text": "The install version changed, so launches are held until the board is updated."

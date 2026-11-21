@@ -54,7 +54,7 @@ status through the reply, so a session exits as a direct run would.
 | --- | --- | --- | --- |
 | 409 | The sentence, beside the Bridge control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
 | 423 | `The install version changed, so launches are held until the board is updated.` in the shell banner | Launches are held for an install change. | Update the board: run `update`. |
-| 400 | `The command body is not a control command this Overseer knows` | The body is not a known control command, or a field of a [control contract](overseer-api.md#control-contract-1) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
+| 400 | `The command body is not a control command this Overseer knows` | The body is not a known control command, or a field of a [control contract](overseer-api.md#control-contract-2) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
 
 ## When something was written
 
@@ -451,7 +451,7 @@ Words here: [Overseer](../glossary.md#overseer), [job](../glossary.md#job).
 | `CPUs this machine has, so nothing was written` | `machine-agent-limit-above-cpus` | `machine limit <n>` or `machine-agent-limit-set` with a limit above the CPU count the runtime reports. | Set a limit from 1 to the CPU count. | [cli.md](../cli.md#concurrency-and-gates) |
 | `is not a whole number of at least 1, so nothing was written` | `machine-agent-limit-not-whole` | `machine-agent-limit-set` with a limit that is not a whole number of at least 1. | Send a whole number. | [overseer-api.md](overseer-api.md#commands) |
 | `newer than this program knows, so it was not written over` | `machine-limits-newer-version` | `<monitor>/machine-limits.json` holds a newer version. | Update this program. | [cli.md](../cli.md#concurrency-and-gates) |
-| `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [overseer-api.md](overseer-api.md#control-contract-1) |
+| `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [overseer-api.md](overseer-api.md#control-contract-2) |
 | `No login item can start the Overseer on this machine` | `login-item-unavailable` | `login-item` on a platform with no login item, or where the item would never run. | Start the Overseer another way, such as `start`. | [cli.md](../cli.md#the-overseer) |
 | `was not changed:` | `login-item-not-changed` | The system refused to write or remove the login item; the reason ends the line. | Read the reason, repair it, and run `login-item` again. | [cli.md](../cli.md#the-overseer) |
 

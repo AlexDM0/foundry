@@ -170,6 +170,6 @@ describe('pipelineFactsOf', () => {
       profileRunId: 'P1', entity: 'web', gateName: 'unit', phase: 'build', state: 'passed', elapsedMilliseconds: expect.any(Number), cacheReport: null
     }]);
     expect(facts.agentDefaults).toEqual({ model: 'opus', effort: 'high' });
-    expect(facts.entityAssignment).toMatchObject({ jobId: 'J3', jobState: 'running' });
+    expect(facts.entityAssignment).toMatchObject({ jobId: 'J2', jobState: 'running' });
   });
 });

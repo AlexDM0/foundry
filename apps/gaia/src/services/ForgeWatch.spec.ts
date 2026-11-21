@@ -82,7 +82,7 @@ function identityAnswersOf(situation: OverseerSituation): readonly RecordedOvers
 }
 
 /** The program's unreadable snapshots on a stream held open after them, as a forge holds its stream open between heartbeats. */
-const UNREADABLE_SNAPSHOTS_HELD_OPEN: readonly RecordedOverseerAnswer[] = answersOf('snapshot-unreadable', 'STREAM /api/v2/monitor/events with bearer')
+const UNREADABLE_SNAPSHOTS_HELD_OPEN: readonly RecordedOverseerAnswer[] = answersOf('snapshot-unreadable', 'STREAM /api/v3/monitor/events with bearer')
   .map((recorded) => (recorded.answer.verdict === 'streaming' ? { ...recorded, answer: { ...recorded.answer, ending: 'stays-open' as const } } : recorded));
 
 const STAGE_ANSWERS = {
@@ -314,13 +314,13 @@ describe('a forge through every stage of PLAN 7.1', () => {
       'GET /api/v1/identity',
       'GET /api/versions',
       'GET /api/v1/identity',
-      'STREAM /api/v2/monitor/events with bearer',
+      'STREAM /api/v3/monitor/events with bearer',
       'GET /api/versions',
       'GET /api/versions',
       'GET /api/versions',
       'GET /api/versions',
       'GET /api/v1/identity',
-      'STREAM /api/v2/monitor/events with bearer',
+      'STREAM /api/v3/monitor/events with bearer',
     ]);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
 
@@ -443,7 +443,7 @@ describe('a forge that cannot be read', () => {
 
   test('counts a stream whose token is refused as a failed try', async () => {
     writeRegistry([{}]);
-    const tokenRejectedStream = answersOf('token-rejected', 'STREAM /api/v2/monitor/events with bearer');
+    const tokenRejectedStream = answersOf('token-rejected', 'STREAM /api/v3/monitor/events with bearer');
     const overseerFetch       = stagedOverseerFetch([...identityAnswersOf('serving-every-contract'), ...tokenRejectedStream]);
     const { watch, timers, untilReadings } = watchOver(overseerFetch);
     watch.start();
@@ -479,7 +479,7 @@ describe('the registry', () => {
     writeRegistry([{}]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await timers.untilPending(REGISTRY_CHECK_MILLISECONDS);
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v2/monitor/events with bearer']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v3/monitor/events with bearer']);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });
 
@@ -495,7 +495,7 @@ describe('the registry', () => {
     writeRegistry([{ lastCommand: 'ticket ready' }]);
     timers.fire(REGISTRY_CHECK_MILLISECONDS);
     await untilReadings((readings) => readings[0]?.lastCommand === 'ticket ready');
-    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v2/monitor/events with bearer']);
+    expect(overseerFetch.callShapes()).toEqual(['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v3/monitor/events with bearer']);
     expect(overseerFetch.streamsLeftOpen()).toBe(1);
   });
 
@@ -641,7 +641,10 @@ describe('a stopped watch', () => {
 describe('a forge\'s system version', () => {
   /** The version the ahead forge was recorded at: one minor past the one this Gaia supports. */
   const ONE_MINOR_AHEAD: SystemVersion = { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor + 1 };
-  const VERSIONED_PATHS_ASKED = ['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v2/monitor/events with bearer'];
+  /** The minimum the forge Gaia supports answers: it serves no client of an older major. */
+  const FIRST_OF_THE_SUPPORTED_MAJOR: SystemVersion = { major: SUPPORTED_FORGE_VERSION.major, minor: 0 };
+  const NEXT_MAJOR = SUPPORTED_FORGE_VERSION.major + 1;
+  const VERSIONED_PATHS_ASKED = ['GET /api/versions', 'GET /api/v1/identity', 'STREAM /api/v3/monitor/events with bearer'];
 
   async function onlyReadingOfAnswers(answers: readonly RecordedOverseerAnswer[], supportedForgeVersion: SystemVersion | null = null) {
     writeRegistry([{}]);
@@ -655,20 +658,20 @@ describe('a forge\'s system version', () => {
   test('of a forge at the version this Gaia supports is current, and it is read in full at the versioned paths', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(answersOf('serving-every-contract'));
     expect([reading.fidelity, reading.condition, reading.versions])
-      .toEqual(['full', 'live', { verdict: 'current', current: SUPPORTED_FORGE_VERSION, minimumSupported: { major: 0, minor: 0 } }]);
+      .toEqual(['full', 'live', { verdict: 'current', current: SUPPORTED_FORGE_VERSION, minimumSupported: FIRST_OF_THE_SUPPORTED_MAJOR }]);
     expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
   });
 
   test('of a forge ahead of this Gaia that still serves its version is ahead, and it is read in full with what this Gaia knows', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(recordedVersionsAnswersOf('versions-ahead'));
-    expect([reading.fidelity, reading.versions]).toEqual(['full', { verdict: 'ahead', current: ONE_MINOR_AHEAD, minimumSupported: { major: 1, minor: 0 } }]);
+    expect([reading.fidelity, reading.versions]).toEqual(['full', { verdict: 'ahead', current: ONE_MINOR_AHEAD, minimumSupported: FIRST_OF_THE_SUPPORTED_MAJOR }]);
     expect(callShapes()).toEqual(VERSIONED_PATHS_ASKED);
   });
 
   test('of a forge whose minimum is above the version this Gaia supports is newer: nothing more is asked and nothing of it is read', async () => {
     const { reading, callShapes } = await onlyReadingOfAnswers(recordedVersionsAnswersOf('versions-newer'));
     expect([reading.fidelity, reading.condition, reading.agents, reading.versions])
-      .toEqual(['newer-contract', 'unreadable', [], { verdict: 'newer', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } }]);
+      .toEqual(['newer-contract', 'unreadable', [], { verdict: 'newer', current: { major: NEXT_MAJOR, minor: 1 }, minimumSupported: { major: NEXT_MAJOR, minor: 0 } }]);
     expect(callShapes()).toEqual(['GET /api/versions']);
   });
 

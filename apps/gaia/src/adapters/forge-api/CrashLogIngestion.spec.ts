@@ -21,11 +21,17 @@ describe('crashLogOf', () => {
       suspected:  false,
       recordedAt: recordedBody['recordedAt'],
       error:      null,
-      activeJobs: [{
-        jobId: 'J1', kind: 'assistant', ticketIds: [], state: 'launching', interruption: null, airlockPhase: null,
-      }],
+      activeJobs: [],
     });
-    expect(reading.crashLog?.logTail?.length).toBe(3);
+    expect(reading.crashLog?.logTail?.length).toBe(2);
+  });
+
+  test('reads each job active at the crash, which the recorded forge had none of since a new board\'s Assistant is off', () => {
+    const activeJob = {
+      jobId: 'J1', kind: 'assistant', ticketIds: [], state: 'launching', interruption: null, airlockPhase: null,
+    };
+    const reading = INGESTION.crashLogOf({ ...recordedCrashLogBodyOf('started-after-a-crash'), activeJobs: [activeJob] });
+    expect(reading.crashLog?.activeJobs).toEqual([activeJob]);
   });
 
   test('reads a suspected crash with its error, and keeps a board and a log the forge could not read unread', () => {

@@ -5,48 +5,17 @@
 import type { VersionsDocument } from 'system-versions/VersionsDocument';
 
 /**
- * Forge 1.0 is the first forge that serves `/api/versions` and the versioned paths; 1.1 adds Flint's brain to the monitor and the commands; 1.2 adds a
- * ticket's and a filing draft's entity and crosses, the entities setup step, the layout finding and a setup record's entity parts; 1.3 adds the
- * ticket-entity command, a ticket's entity at ticket-add, the entity-assigned record, the entity refusals, a draft's entity fields and a setup edit's
- * batch, and the board's entity flows, profile runs and cache marks by entity; 1.4 adds a job-launched record's entity and stage; 1.5 adds a progress
- * row's entity hashes, the entity of a level on the pipeline agent's, update, constitution-edit and gate-profile commands, the setup-entity-unknown
- * refusal, an entity's agent session and check on a setup record, and a draft edit's copy flag; 1.6 adds the need-declare command, a progress
- * file's needs, the need refusals, the needs-declared job outcome, the need decision kinds and the need-declared record; 1.7 adds the
- * changed-only-outside-home-and-reach refusal and job-ended cause and the pipeline-set-per-entity refusal; 1.8 adds the whitelist-not-supported
- * refusal, a pipeline with entities in the Overseer's documents and the board, and the changed-outside-home-and-reach job-ended cause; 1.9 adds a
- * progress row's stage, seals and package returns, the entity-named-by-tickets and entities-while-tickets-in-flight refusals and
- * apply reasons, the entity on the constitution-moved refusal, the entities to assign on the job-launched record and the board's entity
- * assignment; 1.10 adds a stage on a review bar's progress row, the whole-batch flag on the pipeline-draft-undo command and the
- * draft-batch-undone setup message; 1.11 adds the sealed-change-altered refusal and job-ended cause, the package builder's and package
- * reviewer's reports and a package stage job's stage statement; 1.12 adds the package-gate-red and home-gate-red job-ended causes, the
- * parked:second-return hold, a merge agent's entity and stage on the job-launched record, the refused job outcome, the package-refused,
- * second-return and dependent-broken decision kinds, the stage-started, seal-set, seal-lifted and package-return records and a crossing
- * ticket's Handoff parts per stage; 1.13 accepts a non-empty whitelist in the pipeline and the setup draft, so the whitelist-not-supported
- * refusal is no longer sent; 1.14 adds the monitor snapshot's entities and open tickets' entity and stage, a job's entity and stage, the
- * work-outside-entity board refusal and the hook stage-edits command; 1.15 adds a ticket's entity and stage to the board state document's
- * board facts; 1.16 adds the constitution-outside-ticket-entity refusal and job-ended cause, the draft-copy-outside-entities refusal, the
- * package-return job outcome with the adapt builder's package return reason and entity, the need-for-sealed-package refusal, the adapt,
- * package-review-findings and package-refused stage statements, the fresh-branch-started job marker, option labels on the entity decisions'
- * questions, the whitelist-removed-mid-crossing decision the Overseer opens, the second-return decision for a second package return from a
- * red gate or a review catch-up, and install version 34; 1.17 adds the ticket-group command, the group-of-a-settled-ticket and
- * ticket-already-in-a-group refusals, the ticket-grouped and dependent-fix-filed records, the fix-ticket option of the dependent-broken
- * decision, a package build's dependentsFixedInGroup start key, the reach-inside-another-home reason of a pipeline-draft-invalid
- * refusal, and install version 35; 1.18 adds the entities step to the installed pipeline agent's brief, measures a ticket's non-converging
- * review against the pipeline of the stage its review ran in, and adds install version 36, whose installed surface is 35's; 1.19 adds a monitor
- * job's interruption cause, names the identity's Talos protocol version `talosProtocolVersion`, in place of the retired one, and adds the
- * pipeline facts' step run times; 1.20 adds the control command interrupted-work-resume, its refusal ticket-not-interrupted, the
- * ticket-interrupted-hold-lifted record, and the presence and crash-log endpoints with the refusal no-crash-log; 1.21 adds the board
- * document at `/api/v1/board`, the board command kinds, the refusal's structured fields and the command line's sentence on a refused command,
- * and keeps an unfinished entities draft; 1.22 serves the board event stream, a job's stream, a gate profile's stream and the pictures at
- * versioned paths, `/api/v1/events`, `/api/v1/jobs/<jobId>/stream`, `/api/v1/profiles/<profileRunId>/stream` and `/api/v1/pictures`, and
- * opens each of the three streams with a handshake naming the system version; 1.23 adds the control command talos-restart and the running
- * Talos in the presence document. Each minor only adds, but for 1.19's rename, whose key no
- * client reads.
- * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
- * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
- * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
+ * Forge 2.0 is the headless forge: it serves an API and no page. Against forge 1: no Bridge, no browser session or session code, no embed
+ * contract and no frame-ancestor record; no Flint's brain in the monitor or the commands; the monitor names what an entry opens by a typed
+ * target; the board document carries Markdown (`bodyMarkdown`, `descriptionMarkdown`, `constitutionMarkdown`) where it carried rendered
+ * HTML; the Assistant is a switch of the board (the command pipeline-assistant-set, the pipeline's `assistant` key, the default cause
+ * assistant-off); and a pipeline has one format, whose gate key is `forgeOnly`. The registry dates the endpoints this changed at 2.0
+ * (`ForgeCompatibilityRegistry.ts`).
+ * The minimum supported is the current major's first version: no client built for forge 1 is served. The current version is raised with
+ * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
+ * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 23 },
-  minimumSupported: { major: 0, minor: 0 },
+  current:          { major: 2, minor: 0 },
+  minimumSupported: { major: 2, minor: 0 },
 };

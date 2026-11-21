@@ -4,7 +4,7 @@
  * carried through the command port and answered with its verdict, each route of a forge's board's relay routed behind the session guard and
  * no frame session route, a body over a route's bound refused but on the picture upload, and the CSP on every answer, refusals and failures
  * included, framing nothing but its own origin. Gaia's system version answers at `/api/versions`, unversioned only; every other route
- * answers at its versioned path as at its unversioned one, behind the same guards, and at no other version. It refuses to start where Gaia
+ * answers at its versioned path alone, behind its guards, never at another version nor at its unversioned path. It refuses to start where Gaia
  * already answers, and a start that loses the port leaves the token as it was; a stop closes every relayed stream with the forge stream it
  * follows. The page's files are a stand-in for the build, whose own spec builds the real page; the command port is a stand-in for
  * forge-control, whose own spec carries every kind; the relay routes' own specs ask a forge; the heartbeat's timers are fired by hand.
@@ -143,7 +143,7 @@ function withBearer(token: string): RequestInit {
 }
 
 async function issuedCode(pageServer: PageServer): Promise<string> {
-  const response = await answerOf(pageServer, '/api/session-codes', withBearer(storedToken()));
+  const response = await answerOf(pageServer, '/api/v1/session-codes', withBearer(storedToken()));
   expect(response.status).toBe(200);
   const { code } = await response.json() as { readonly code: string };
   return code;
@@ -155,7 +155,7 @@ function sessionExchange(code: unknown): RequestInit {
 
 /** The `name=secret` pair a browser sends back for the cookie the exchange set. */
 async function sessionCookieOf(pageServer: PageServer): Promise<string> {
-  const response = await answerOf(pageServer, '/api/session', sessionExchange(await issuedCode(pageServer)));
+  const response = await answerOf(pageServer, '/api/v1/session', sessionExchange(await issuedCode(pageServer)));
   expect(response.status).toBe(204);
   return (response.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 }
@@ -186,7 +186,7 @@ function eventReaderOf(response: Response): EventReader {
   };
 }
 
-async function openEvents(pageServer: PageServer, cookie: string, path = '/api/events'): Promise<{ readonly response: Response; readonly events: EventReader }> {
+async function openEvents(pageServer: PageServer, cookie: string, path = '/api/v10/events'): Promise<{ readonly response: Response; readonly events: EventReader }> {
   const streamAbort = new AbortController();
   streamsToAbort.push(streamAbort);
   const response = await answerOf(pageServer, path, { headers: { cookie }, signal: streamAbort.signal });
@@ -222,7 +222,7 @@ describe('a headless start under a scratch home', () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
 
-    const fleetAnswer = await answerOf(pageServer, '/api/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v10/fleet', { headers: { cookie } });
     expect([fleetAnswer.status, fleetAnswer.headers.get('content-type')]).toEqual([200, 'application/json;charset=utf-8']);
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
 
@@ -241,7 +241,7 @@ describe('a headless start under a scratch home', () => {
 
   test('marks the session cookie HttpOnly and SameSite=Strict under a name that carries its port', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/session', sessionExchange(await issuedCode(pageServer)));
+    const response = await answerOf(pageServer, '/api/v1/session', sessionExchange(await issuedCode(pageServer)));
     const attributes = (response.headers.get('set-cookie') ?? '').split('; ');
     expect(attributes[0]?.startsWith(`gaia-session-${pageServer.port}=`)).toBe(true);
     expect(attributes).toContain('HttpOnly');
@@ -250,7 +250,7 @@ describe('a headless start under a scratch home', () => {
 
   test('answers its health to any local caller, with how far it is with its forges', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/health');
+    const response = await answerOf(pageServer, '/api/v1/health');
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       application:      'gaia',
@@ -287,12 +287,12 @@ describe('a headless start under a scratch home', () => {
         throw new Error('An example failure inside a route.');
       },
     });
-    expect((await answerOf(pageServer, '/api/health')).status).toBe(500);
+    expect((await answerOf(pageServer, '/api/v1/health')).status).toBe(500);
   });
 
   test('reads the fleet for a holder of the token as well as for a session', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/fleet', { headers: { authorization: `Bearer ${storedToken()}` } });
+    const response = await answerOf(pageServer, '/api/v10/fleet', { headers: { authorization: `Bearer ${storedToken()}` } });
     expect(response.status).toBe(200);
   });
 });
@@ -305,7 +305,7 @@ describe('a command', () => {
   test('is read, carried through the command port, and answered with its verdict in the page contract', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
-    const response = await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 4, kind: 'fleet-look-again' }));
+    const response = await answerOf(pageServer, '/api/v6/commands', commandRequest(cookie, { commandVersion: 5, kind: 'fleet-look-again' }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({
       answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
@@ -319,9 +319,9 @@ describe('a command', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
     };
     const stopCommand = {
-      commandVersion: 4, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
+      commandVersion: 5, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
     };
-    const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
+    const response = await answerOf(pageServer, '/api/v6/commands', commandRequest(await sessionCookieOf(pageServer), stopCommand));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       answerVersion: 3,
@@ -345,14 +345,14 @@ describe('a command', () => {
     const statuses: number[] = [];
     for (const verdict of verdicts) {
       nextCommandVerdict = verdict;
-      statuses.push((await answerOf(pageServer, '/api/commands', commandRequest(cookie, { commandVersion: 4, kind: 'fleet-look-again' }))).status);
+      statuses.push((await answerOf(pageServer, '/api/v6/commands', commandRequest(cookie, { commandVersion: 5, kind: 'fleet-look-again' }))).status);
     }
     expect(statuses).toEqual([200, 409, 502, 501]);
   });
 
   test('that Gaia cannot read is answered as not supported, and nothing is carried', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 1, kind: 'fleet-look-again' }));
+    const response = await answerOf(pageServer, '/api/v6/commands', commandRequest(await sessionCookieOf(pageServer), { commandVersion: 1, kind: 'fleet-look-again' }));
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
       answerVersion: 3, outcome: 'not-supported', refusal: 'other-version', text: null, forges: []
@@ -362,7 +362,7 @@ describe('a command', () => {
 
   test('is refused without a session, and nothing is carried', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 4, kind: 'fleet-look-again' }) });
+    const response = await answerOf(pageServer, '/api/v6/commands', { method: 'POST', body: JSON.stringify({ commandVersion: 5, kind: 'fleet-look-again' }) });
     expect(response.status).toBe(401);
     expect(carriedCommands).toEqual([]);
   });
@@ -372,7 +372,7 @@ describe('a frame session', () => {
   test('has no route: the page frames no forge, so a frame session is not found, behind the session guard or not', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
-    for (const path of ['/api/forges/example-storefront-7c41/frame-session', '/api/v1/forges/example-storefront-7c41/frame-session']) {
+    for (const path of ['/api/v1/forges/example-storefront-7c41/frame-session', '/api/v2/forges/example-storefront-7c41/frame-session']) {
       expect([path, (await answerOf(pageServer, path, { method: 'POST', headers: { cookie } })).status]).toEqual([path, 404]);
     }
     expect(overseerFetch.callsAnswered()).toEqual([]);
@@ -393,7 +393,7 @@ const RELAY_PATHS: readonly { readonly method: 'GET' | 'POST'; readonly endpoint
 const OVER_ROUTE_BOUND_BYTES = 65_537;
 
 describe('the relay of a forge\'s board', () => {
-  test('answers each route at its versioned and its unversioned path, behind the session guard', async () => {
+  test('answers each route at its versioned path, behind the session guard, and at no unversioned one', async () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
     const body = JSON.stringify({
@@ -401,11 +401,12 @@ describe('the relay of a forge\'s board', () => {
     });
     for (const { method, endpoint } of RELAY_PATHS) {
       const bodyOfMethod = method === 'POST' ? { body } : {};
-      for (const path of [`/api/v1/${endpoint}`, `/api/${endpoint}`]) {
-        expect([path, (await answerOf(pageServer, path, { method, ...bodyOfMethod })).status]).toEqual([path, 401]);
-        const answer = await answerOf(pageServer, path, { method, headers: { cookie }, ...bodyOfMethod });
-        expect([path, answer.status, (await answer.text()).includes('"forge-not-registered"')]).toEqual([path, 404, true]);
-      }
+      const path = `/api/v1/${endpoint}`;
+      expect([path, (await answerOf(pageServer, path, { method, ...bodyOfMethod })).status]).toEqual([path, 401]);
+      const answer = await answerOf(pageServer, path, { method, headers: { cookie }, ...bodyOfMethod });
+      expect([path, answer.status, (await answer.text()).includes('"forge-not-registered"')]).toEqual([path, 404, true]);
+      const unversioned = await answerOf(pageServer, `/api/${endpoint}`, { method, headers: { cookie }, ...bodyOfMethod });
+      expect([endpoint, unversioned.status, (await unversioned.text()).includes('"forge-not-registered"')]).toEqual([endpoint, 404, false]);
     }
     expect(overseerFetch.callsAnswered()).toEqual([]);
   });
@@ -414,7 +415,7 @@ describe('the relay of a forge\'s board', () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
     const oversized = { method: 'POST', headers: { cookie }, body: new Uint8Array(OVER_ROUTE_BOUND_BYTES) };
-    expect((await answerOf(pageServer, '/api/v5/commands', oversized)).status).toBe(413);
+    expect((await answerOf(pageServer, '/api/v6/commands', oversized)).status).toBe(413);
     expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/commands', oversized)).status).toBe(413);
     const picture = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/pictures', oversized);
     expect([picture.status, ((await picture.json()) as { readonly refusal: { readonly code: string } }).refusal.code]).toEqual([404, 'forge-not-registered']);
@@ -425,25 +426,26 @@ describe('the relay of a forge\'s board', () => {
 describe('one refused request per guard', () => {
   test('refuses a foreign Origin', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/session-codes', { method: 'POST', headers: { authorization: `Bearer ${storedToken()}`, origin: 'https://foreign.example' } });
+    const foreignOrigin = { method: 'POST', headers: { authorization: `Bearer ${storedToken()}`, origin: 'https://foreign.example' } };
+    const response = await answerOf(pageServer, '/api/v1/session-codes', foreignOrigin);
     expect(response.status).toBe(403);
   });
 
   test('refuses the text null as Origin', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/session', { ...sessionExchange(await issuedCode(pageServer)), headers: { origin: 'null' } });
+    const response = await answerOf(pageServer, '/api/v1/session', { ...sessionExchange(await issuedCode(pageServer)), headers: { origin: 'null' } });
     expect(response.status).toBe(403);
   });
 
   test('refuses a rebound Host', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/health', { headers: { host: `rebound.example:${pageServer.port}` } });
+    const response = await answerOf(pageServer, '/api/v1/health', { headers: { host: `rebound.example:${pageServer.port}` } });
     expect(response.status).toBe(403);
   });
 
   test('refuses a preflight, even from its own origin', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/fleet', { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } });
+    const response = await answerOf(pageServer, '/api/v10/fleet', { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } });
     expect(response.status).toBe(403);
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
@@ -451,35 +453,35 @@ describe('one refused request per guard', () => {
   test('refuses a spent code', async () => {
     const pageServer = await servingPageServer();
     const code = await issuedCode(pageServer);
-    expect((await answerOf(pageServer, '/api/session', sessionExchange(code))).status).toBe(204);
-    const spent = await answerOf(pageServer, '/api/session', sessionExchange(code));
+    expect((await answerOf(pageServer, '/api/v1/session', sessionExchange(code))).status).toBe(204);
+    const spent = await answerOf(pageServer, '/api/v1/session', sessionExchange(code));
     expect(spent.status).toBe(401);
     expect(spent.headers.get('set-cookie')).toBeNull();
   });
 
   test('refuses a wrong token', async () => {
     const pageServer = await servingPageServer();
-    expect((await answerOf(pageServer, '/api/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/session-codes', { method: 'POST' })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v1/session-codes', { method: 'POST' })).status).toBe(401);
   });
 
   test('refuses the fleet and its events to a request with neither session nor token', async () => {
     const pageServer = await servingPageServer();
-    expect((await answerOf(pageServer, '/api/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/events')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/fleet', { headers: { cookie: `gaia-session-${pageServer.port}=${'0'.repeat(64)}` } })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v10/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v10/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v10/fleet', { headers: { cookie: `gaia-session-${pageServer.port}=${'0'.repeat(64)}` } })).status).toBe(401);
   });
 
   test('refuses a session code that is no string, or a body that is no JSON', async () => {
     const pageServer = await servingPageServer();
-    expect((await answerOf(pageServer, '/api/session', sessionExchange(4790))).status).toBe(400);
-    expect((await answerOf(pageServer, '/api/session', { method: 'POST', body: 'code' })).status).toBe(400);
+    expect((await answerOf(pageServer, '/api/v1/session', sessionExchange(4790))).status).toBe(400);
+    expect((await answerOf(pageServer, '/api/v1/session', { method: 'POST', body: 'code' })).status).toBe(400);
   });
 
   test('answers an unknown API address as not found, and a known one under another method as not allowed', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/unknown')).status).toBe(404);
-    expect((await answerOf(pageServer, '/api/fleet', { method: 'POST' })).status).toBe(405);
+    expect((await answerOf(pageServer, '/api/v10/fleet', { method: 'POST' })).status).toBe(405);
     expect((await answerOf(pageServer, '/', { method: 'POST' })).status).toBe(404);
   });
 });
@@ -490,7 +492,7 @@ describe('the versioned paths', () => {
     const response = await answerOf(pageServer, '/api/versions');
     expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
     expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
-    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 4 });
+    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 2, minor: 0 }, { major: 2, minor: 0 }]);
   });
 
   test('serve /api/versions at no versioned path', async () => {
@@ -498,7 +500,7 @@ describe('the versioned paths', () => {
     expect((await answerOf(pageServer, '/api/v1/versions')).status).toBe(404);
   });
 
-  test('carry the whole road of the page at each route\'s own version, as at its unversioned path', async () => {
+  test('carry the whole road of the page at each route\'s own version', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/v1/health')).status).toBe(200);
     const codeAnswer = await answerOf(pageServer, '/api/v1/session-codes', withBearer(storedToken()));
@@ -507,18 +509,25 @@ describe('the versioned paths', () => {
     expect(exchange.status).toBe(204);
     const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
-    const fleetAnswer = await answerOf(pageServer, '/api/v9/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v10/fleet', { headers: { cookie } });
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const { events } = await openEvents(pageServer, cookie, '/api/v9/events');
+    const { events } = await openEvents(pageServer, cookie, '/api/v10/events');
     expect((await events.nextEvent()).eventName).toBe('handshake');
     expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const command = await answerOf(pageServer, '/api/v5/commands', commandRequest(cookie, { commandVersion: 4, kind: 'fleet-look-again' }));
+    const command = await answerOf(pageServer, '/api/v6/commands', commandRequest(cookie, { commandVersion: 5, kind: 'fleet-look-again' }));
     expect([command.status, carriedCommands]).toEqual([200, [{ kind: 'fleet-look-again' }]]);
   });
 
   test('answer each route at no version but its own', async () => {
     const pageServer = await servingPageServer();
-    for (const path of ['/api/v2/health', '/api/v8/fleet', '/api/v1/fleet', '/api/v8/events', '/api/v4/commands', '/api/v2/session-codes']) {
+    for (const path of ['/api/v2/health', '/api/v9/fleet', '/api/v1/fleet', '/api/v9/events', '/api/v5/commands', '/api/v2/session-codes']) {
+      expect([path, (await answerOf(pageServer, path)).status]).toEqual([path, 404]);
+    }
+  });
+
+  test('answer no route at its unversioned path, which only a page or a launcher of Gaia 1 called', async () => {
+    const pageServer = await servingPageServer();
+    for (const path of ['/api/health', '/api/session-codes', '/api/session', '/api/fleet', '/api/events', '/api/commands']) {
       expect([path, (await answerOf(pageServer, path)).status]).toEqual([path, 404]);
     }
   });
@@ -532,15 +541,15 @@ describe('the versioned paths', () => {
       expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
     }
     const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
-    expect((await answerOf(pageServer, '/api/v9/fleet', preflight)).status).toBe(403);
+    expect((await answerOf(pageServer, '/api/v10/fleet', preflight)).status).toBe(403);
   });
 
   test('keep the token and session guards on the versioned paths', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v9/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v9/events')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v5/commands', { method: 'POST', body: '{}' })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v10/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v10/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v6/commands', { method: 'POST', body: '{}' })).status).toBe(401);
     expect(carriedCommands).toEqual([]);
   });
 });

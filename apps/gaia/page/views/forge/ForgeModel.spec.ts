@@ -189,11 +189,6 @@ describe('the area under the bar', () => {
     expect(contentOf(TRACKER_IDS.invoiceService, FLEET_DEGRADED).area).toEqual({ kind: 'board', trackerId: TRACKER_IDS.invoiceService, project: 'Invoice Service' });
   });
 
-  test('is the board whatever embed contract the forge serves, since Gaia frames no forge', () => {
-    const withoutAnyEmbedContract = { ...READINGS.exampleStorefront, contracts: { summary: 1, monitor: 3, control: 1 } };
-    expect(contentOf(withoutAnyEmbedContract.trackerId, withForge(withoutAnyEmbedContract)).area.kind).toBe('board');
-  });
-
   test('cannot show a forge read through its summary, newer than Gaia, dormant or gone', () => {
     const kinds = [
       contentOf(TRACKER_IDS.researchWiki, FLEET_DEGRADED).area.kind,

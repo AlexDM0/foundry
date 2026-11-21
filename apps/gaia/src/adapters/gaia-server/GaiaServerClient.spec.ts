@@ -2,7 +2,7 @@
  * The client of Gaia's own server against servers of this spec on loopback ports. The health: an answer that says Gaia, at any health
  * version, is Gaia, with its forge counts only at the known version; any other answer is another program; a port where nothing listens
  * answers nothing. The session code: asked with the token as a bearer, issued only as a code, refused with the status otherwise. Both are
- * asked at their versioned paths, and at their unversioned ones of a Gaia from before versioned paths, which answers a versioned path 404.
+ * asked at their versioned paths alone: a server that answers a versioned path 404 is no Gaia this client talks to, and is asked nothing more.
  * The page server's spec proves the routes themselves, and the launcher's recording spec this client against a real `gaia serve`.
  */
 import {
@@ -21,7 +21,7 @@ const EXAMPLE_CODE = '0123456789abcdef';
 const HTTP_UNAUTHORIZED = 401;
 const HTTP_NOT_FOUND = 404;
 
-/** A Gaia from before versioned paths: its routes at their unversioned paths alone, and `not-found` for anything else under `/api/`. */
+/** A Gaia of major 1 or older: its routes at their unversioned paths, and `not-found` for anything else under `/api/`. */
 function gaiaBeforeVersionedPaths(routes: Readonly<Record<string, () => Response>>, pathsAsked: string[]): (request: Request) => Response {
   return (request) => {
     const { pathname } = new URL(request.url);
@@ -76,7 +76,7 @@ describe('the health reading', () => {
     expect(await healthReadingFor(port, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: { forgesRegistered: 5, forgesAnswered: 3 } });
   });
 
-  test('is asked at the versioned health path, and at /api/health of a Gaia from before versioned paths', async () => {
+  test('is asked at the versioned health path alone, so a server that knows only /api/health reads as another program', async () => {
     const pathsAskedOfThisGaia: string[] = [];
     const thisGaia = portAnswering((request) => {
       pathsAskedOfThisGaia.push(new URL(request.url).pathname);
@@ -87,8 +87,8 @@ describe('the health reading', () => {
     const olderGaia = portAnswering(gaiaBeforeVersionedPaths({ '/api/health': olderHealth }, pathsAskedOfAnOlderGaia));
 
     expect(await healthReadingFor(thisGaia, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: { forgesRegistered: 1, forgesAnswered: 1 } });
-    expect(await healthReadingFor(olderGaia, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'gaia-answers', forgeCounts: { forgesRegistered: 2, forgesAnswered: 0 } });
-    expect([pathsAskedOfThisGaia, pathsAskedOfAnOlderGaia]).toEqual([['/api/v1/health'], ['/api/v1/health', '/api/health']]);
+    expect(await healthReadingFor(olderGaia, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'another-program-answers' });
+    expect([pathsAskedOfThisGaia, pathsAskedOfAnOlderGaia]).toEqual([['/api/v1/health'], ['/api/v1/health']]);
   });
 
   test('carries no forge counts for a Gaia at another health version', async () => {
@@ -108,11 +108,11 @@ describe('the session code', () => {
     expect(requests).toEqual([{ method: 'POST', path: '/api/v1/session-codes', authorization: `Bearer ${EXAMPLE_TOKEN}` }]);
   });
 
-  test('is asked at /api/session-codes of a Gaia from before versioned paths', async () => {
+  test('is asked at the versioned path alone, so a server that knows only /api/session-codes refuses with its 404', async () => {
     const pathsAsked: string[] = [];
     const olderGaia = portAnswering(gaiaBeforeVersionedPaths({ '/api/session-codes': () => Response.json({ code: EXAMPLE_CODE }) }, pathsAsked));
-    expect(await sessionCodeFor(olderGaia, EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'issued', code: EXAMPLE_CODE });
-    expect(pathsAsked).toEqual(['/api/v1/session-codes', '/api/session-codes']);
+    expect(await sessionCodeFor(olderGaia, EXAMPLE_TOKEN, SHORT_BOUND_MILLISECONDS)).toEqual({ verdict: 'refused', status: HTTP_NOT_FOUND });
+    expect(pathsAsked).toEqual(['/api/v1/session-codes']);
   });
 
   test('is refused with the status of an answer that issues no code', async () => {

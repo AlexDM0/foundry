@@ -139,10 +139,10 @@ const NEWER_FLEET_VERSION_MARK = String(NEWER_FLEET_VERSION);
 const NEWER_FLEET_DOCUMENT_TEXT = JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: NEWER_FLEET_VERSION });
 
 describe('following the event stream', () => {
-  test('it opens /api/v9/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
+  test('it opens /api/v10/events, reads connecting until the stream opens and live from then, and publishes each fleet document', () => {
     const stage = streamStage();
     stage.client.follow();
-    expect(stage.opened.map((source) => source.path)).toEqual(['/api/v9/events']);
+    expect(stage.opened.map((source) => source.path)).toEqual(['/api/v10/events']);
     expect(stage.client.state()).toBe('connecting');
     stage.latest().emit('open');
     expect(stage.client.state()).toBe('live');
@@ -153,17 +153,17 @@ describe('following the event stream', () => {
 
   test('a handshake of this page\'s system major is passed over, and the document of a fleet event is published without the event\'s system version', () => {
     const stage = followedAndLive(streamStage());
-    stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, JSON.stringify({ systemVersion: { major: 1, minor: 4 } }));
-    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, systemVersion: { major: 1, minor: 4 } }));
+    stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, JSON.stringify({ systemVersion: { major: 2, minor: 0 } }));
+    stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, systemVersion: { major: 2, minor: 0 } }));
     expect([stage.client.state(), stage.published, stage.reloads]).toEqual(['live', [FLEET_FIVE_FORGES], []]);
   });
 
   test('a handshake of another system major reloads the page once, and a handshake that cannot be read is passed over', () => {
     const stage = followedAndLive(streamStage());
-    for (const data of ['not json', '{}', JSON.stringify({ systemVersion: { major: '2', minor: 0 } })]) stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, data);
+    for (const data of ['not json', '{}', JSON.stringify({ systemVersion: { major: '3', minor: 0 } })]) stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, data);
     expect([stage.client.state(), stage.reloads]).toEqual(['live', []]);
-    stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, JSON.stringify({ systemVersion: { major: 2, minor: 0 } }));
-    expect([stage.marks, stage.reloads, stage.latest().isClosed()]).toEqual([['system 2'], ['reloaded'], true]);
+    stage.latest().emit(FleetStreamClient.HANDSHAKE_EVENT_NAME, JSON.stringify({ systemVersion: { major: 3, minor: 0 } }));
+    expect([stage.marks, stage.reloads, stage.latest().isClosed()]).toEqual([['system 3'], ['reloaded'], true]);
   });
 
   test('following twice opens one stream', () => {
@@ -354,7 +354,7 @@ describe('another fleetVersion', () => {
 
   test('a document of each older fleetVersion, version 1 and the one before this page\'s, is refused as version 1 is: one reload and nothing published', () => {
     const olderVersions = Array.from({ length: FLEET_FIVE_FORGES.fleetVersion - 1 }, (_unused, i) => i + 1);
-    expect(olderVersions).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(olderVersions).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     for (const olderVersion of olderVersions) {
       const stage = followedAndLive(streamStage());
       stage.latest().emit(FleetStreamClient.FLEET_EVENT_NAME, JSON.stringify({ ...FLEET_FIVE_FORGES, fleetVersion: olderVersion }));

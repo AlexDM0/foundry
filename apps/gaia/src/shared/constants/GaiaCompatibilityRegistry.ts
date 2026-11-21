@@ -1,7 +1,7 @@
 /**
  * Gaia's compatibility registry toward its own clients, its page and its launcher: one entry per thing Gaia's server keeps for clients of
- * its versions, each route at its versioned path and each compatibility path that is no route, with the Gaia version that introduced it
- * and the last Gaia version whose clients still need it. `bun run versions:raise-minimum <major.minor>` lists what a raise of
+ * its versions, each route at its versioned path and each compatibility path that is no route (none today), with the Gaia version that
+ * introduced it and the last Gaia version whose clients still need it. `bun run versions:raise-minimum <major.minor>` lists what a raise of
  * `MINIMUM_SUPPORTED_GAIA_VERSION` makes removable, and `GaiaCompatibilityRegistry.spec.ts` fails while an entry is kept below that
  * minimum. `GET /api/versions` is in no entry: it is never removed.
  */
@@ -10,10 +10,11 @@ import type { SystemVersion }      from 'system-versions/VersionsDocument';
 
 import { GAIA_ENDPOINT_VERSIONS } from './GaiaSystemVersions.ts';
 
-const BEFORE_SYSTEM_VERSIONS: SystemVersion = { major: 0, minor: 0 };
 const FIRST_VERSIONED_GAIA: SystemVersion = { major: 1, minor: 0 };
 const BOARD_RELAY_ADDED_IN: SystemVersion = { major: 1, minor: 2 };
 const CRASH_LOG_ADDED_IN: SystemVersion = { major: 1, minor: 3 };
+/** Gaia 2.0 took Flint's brain out of the fleet document and the commands. */
+const FLEET_WITHOUT_FLINT_BRAIN_IN: SystemVersion = { major: 2, minor: 0 };
 
 /** Each route below `/api/`, without its version; a tracker id and an item id are placeholders. */
 export const GAIA_ENDPOINTS = {
@@ -47,9 +48,9 @@ export const GAIA_COMPATIBILITY_REGISTRY: readonly CompatibilityEntry[] = [
   currentEndpointOf('health'),
   currentEndpointOf('sessionCodes'),
   currentEndpointOf('session'),
-  currentEndpointOf('fleet'),
-  currentEndpointOf('events'),
-  currentEndpointOf('commands'),
+  currentEndpointOf('fleet', FLEET_WITHOUT_FLINT_BRAIN_IN),
+  currentEndpointOf('events', FLEET_WITHOUT_FLINT_BRAIN_IN),
+  currentEndpointOf('commands', FLEET_WITHOUT_FLINT_BRAIN_IN),
   currentEndpointOf('forgeBoard', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeBoardEvents', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeJobStream', BOARD_RELAY_ADDED_IN),
@@ -58,10 +59,4 @@ export const GAIA_COMPATIBILITY_REGISTRY: readonly CompatibilityEntry[] = [
   currentEndpointOf('forgePicture', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeCommands', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeCrashLog', CRASH_LOG_ADDED_IN),
-  {
-    kind:         'compatibility-path',
-    name:         'the unversioned routes, /api/<endpoint> beside each /api/v<n>/<endpoint>, for a page or a launcher from before system versions',
-    introducedIn: BEFORE_SYSTEM_VERSIONS,
-    lastNeededBy: BEFORE_SYSTEM_VERSIONS,
-  },
 ];

@@ -320,19 +320,23 @@ describe('a stream', () => {
 
   test('ends broken when the connection breaks inside the stream', async () => {
     const head = 'HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nTransfer-Encoding: chunked\r\n\r\n';
+    let breakTheConnection = (): void => undefined;
     const breakingListener = Bun.listen({
       hostname: '127.0.0.1',
       port:     0,
       socket:   {
         data: (socket) => {
           socket.write(`${head}7\r\nevent: \r\n`);
-          socket.end();
+          breakTheConnection = () => socket.end();
         },
       },
     });
     try {
       const stream = streamOf(await realOverseerFetch().openStream(streamRequestOf(`http://127.0.0.1:${breakingListener.port}/`)));
-      expect(await textUntilTheEndOf(stream)).toEqual({ text: 'event: ', ending: 'broken' });
+      // The connection breaks only once the client holds the first chunk: a break in the same moment may take the chunk with it.
+      expect(await stream.nextChunk()).toEqual({ kind: 'text', text: 'event: ' });
+      breakTheConnection();
+      expect(await textUntilTheEndOf(stream)).toEqual({ text: '', ending: 'broken' });
     } finally {
       breakingListener.stop(true);
     }

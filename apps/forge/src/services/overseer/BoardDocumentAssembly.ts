@@ -1,5 +1,5 @@
 /**
- * The contract's board document of `GET /api/v1/board`, built from the same reading as the Bridge's `GET /api/state` and the monitor, part
+ * The contract's board document of `GET /api/v2/board`, built from the same reading as the Bridge's `GET /api/state` and the monitor, part
  * by part through the board document's mappers, with the Board's offers and the readings a view would otherwise recompute. Its return
  * type is the proof that the served document is the contract's.
  */

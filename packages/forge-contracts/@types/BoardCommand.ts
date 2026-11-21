@@ -1,5 +1,5 @@
 /**
- * The board's commands a view may send to `POST /api/v1/commands` from forge 1.21, under `controlVersion` 1, beside the control contract's
+ * The board's commands a view may send to `POST /api/v2/commands` from forge 1.21, under `controlVersion` 2, beside the control contract's
  * kinds: each kind with the payload types the contract declares itself. A draft edit is typed, addressed by its target as the forge's
  * draft names it, never as a field string.
  */
