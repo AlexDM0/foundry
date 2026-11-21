@@ -17,7 +17,9 @@ What the owner does now, in this order:
 
 1. **Gate G6, second half, what is left.** The clone is pulled and `setup` has run. Set each board up anew with `init`
    (its pipeline's `reach` names no `/packages/design-system`, `/packages/flint` or `/packages/brand`, which are gone),
-   and add the login items again. The program's verbs are top-level now (`start`, `stop`, `restart`, `pause`,
+   The login items are not added again: the owner decided on 2026-11-21 that Hephaestus never launches itself at
+   login (package WP10.1 removes the login item from forge; Gaia may start at login later, as a setting in its own
+   GUI). The program's verbs are top-level now (`start`, `stop`, `restart`, `pause`,
    `unpause`, `status`, `crash-log`); `oversee` is gone, `setup`'s flag is `--login-item`, and the login item's label
    is `com.forge.hephaestus`. Forge and Gaia are system version 3.0.
 2. Work through "For tomorrow, with real sessions" below, then "Assumptions to confirm" and "Worth a look".
@@ -668,6 +670,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 9-A | WP9.2 | landed | bec16dce | 3 folders, 76 file names, 859 files, 7,931 hits. Raised: `progress.json` 3, registry 2 (Gaia `forgeRegistry` 2.0), `presence.json` 2, crash log 2, agent slot file 2. A scratch home named `hephaestus-home` pushed Talos's socket path past macOS's limit, so the spec uses `start-home` |
 | 9-A | WP9.3 | landed | bec16dce | 54 Markdown files, 1,146 hits; figures redrawn where their pixels named the Overseer; the stale Bridge comment in Gaia's `BoardStyleGuards.ts` reworded |
 | 9-A | WP9.4 | landed | bec16dce | Forge 3.0/3.0, `forge-contracts` 3.0.0, contract integers summary 2, monitor 5, control 3; Gaia 3.0/3.0 with fleet, events and `gaiaFleetDocument` 11; login item label `com.forge.hephaestus` (`com.agent-progress.overseer` kept as the released program's); Gaia's recordings re-taken as `hephaestus-fetch-*` |
+| 10-A | WP10.1 | running | | After the run, on the owner's word: remove the login item from forge |
 | 9-A | WP9.5 | landed | bec16dce | `RETIRED_NAMES` gains `Oversee`, `oversee`, `OVERSEE` and `watcher-lost`; the allowlist is `FrozenInstalledSurface.json`, `ProductNames.ts` and six vendor fixtures. `check.ts` exits 0. First check failed on two specs the rename had rewritten (a retired flag spelled from parts) and Watcher names left; the second on one printed sentence in `JobCommand.ts`; the third passed. One commit, about 1,080 paths. Verify 18/18 and `verify:integration` 872 pass, 1 skip after landing |
 
 ## Where the code differed from a stage file
