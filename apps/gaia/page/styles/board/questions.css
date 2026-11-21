@@ -1,0 +1,82 @@
+/* The Questions view and the question panel beside the board (views/questions/, views/question-panel/). */
+
+/* Questions, Assistant and Intake: sections under micro-caps heads, each a list of cards; an empty section is an empty card. */
+.board-view { display: flex; flex-direction: column; gap: var(--sp-5); }
+/* While the question panel shows beside the Questions tab, a wide window keeps the list clear of it, as the board docks it. */
+@media (min-width: 1100px) {
+  .board-view[data-question-open] { padding-right: calc(var(--side-panel-wide-width) - 8px); }
+}
+
+/* --------------------------------------------------------- question panel -- */
+/* One open decision beside the board over every tab, hidden while the detail panel shows. Its head and foot span both columns; the ask
+   column and the background column each scroll on their own, and below 900px they stack in one scroll. */
+.board-question-panel { display: contents; }
+.board-question-panel[hidden] { display: none; }
+.board-question-panel-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-2);
+  padding: var(--sp-3) 0 var(--sp-3) 20px;
+  font-size: var(--fs-small);
+}
+.board-question-panel-asker { font-size: var(--fs-body); font-weight: 600; }
+.board-question-panel-muted { color: var(--ink-muted); }
+.board-question-panel-head-end { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+.board-question-panel-columns { flex: 1 1 auto; display: grid; grid-template-columns: 400px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); min-width: 0; min-height: 0; }
+
+/* The ask column: the question large, its options as cards, User's own words, then the answer row. */
+.board-question-panel-ask {
+  display: flex; flex-direction: column; gap: var(--sp-3);
+  min-width: 0; min-height: 0; overflow: auto;
+  padding: var(--sp-4) var(--sp-5) var(--sp-5);
+  border-right: 1px solid var(--line);
+}
+.board-question-panel-eyebrow { font-size: var(--fs-pill); font-weight: 600; line-height: 16px; color: var(--link); }
+.board-question-panel-question { display: flex; flex-direction: column; gap: var(--sp-3); }
+.board-question-panel-text { margin: 0; font: 600 var(--fs-title)/21px var(--font-ui); color: var(--ink); }
+.board-question-panel-text > .board-question-header { display: block; margin-bottom: 4px; letter-spacing: 0.07em; }
+.board-question-panel-options { display: flex; flex-direction: column; gap: var(--sp-2); min-inline-size: 0; margin: 0; padding: 0; border: 0; }
+.board-question-panel-own-words { display: flex; flex-direction: column; gap: 6px; }
+.board-question-panel-own-words > label { font-size: var(--fs-small); font-weight: 500; color: var(--ink-4); }
+.board-question-panel-own-words > .board-textarea { min-height: 64px; background: var(--bg); }
+.board-question-panel-answer-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); margin-top: auto; padding-top: var(--sp-3);
+  font-size: var(--fs-tab); color: var(--ink-muted); border-top: 1px solid var(--line);
+}
+.board-question-panel-answer-row > .board-control { flex: none; margin-left: auto; }
+.board-question-panel-command { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* The background column on the page's ground: reading tabs over their own scroll. */
+.board-question-panel-background { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--bg); }
+.board-question-panel-reading { flex: none; padding: var(--sp-2) var(--sp-4) 0; border-bottom: 1px solid var(--line); }
+.board-question-panel-reading-body {
+  flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--sp-4);
+  min-height: 0; overflow: auto;
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+}
+.board-question-panel-reading-body .board-chat-thread { gap: var(--sp-3); padding: var(--sp-4); }
+.board-question-panel-ticket { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2); }
+.board-question-panel-ticket-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-2); }
+.board-question-panel-ticket-title { font-weight: 600; }
+.board-question-panel-held-count { font: var(--fs-micro)/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; }
+.board-question-panel-calls { font-size: var(--fs-small); color: var(--ink-muted); }
+/* An excerpt is the section's source text with its wrapped lines joined, so its paragraph and list breaks are kept. */
+.board-question-panel-excerpt { margin: 0; font-size: var(--fs-small); color: var(--ink); overflow-wrap: anywhere; }
+p.board-question-panel-excerpt { white-space: pre-wrap; }
+.board-question-panel-excerpt-label { margin-right: 4px; font-weight: 600; color: var(--ink-muted); }
+.board-question-panel-acceptance { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
+.board-question-panel-acceptance-id { display: inline-flex; width: 28px; }
+.board-question-panel-acceptance > li[data-waived] { color: var(--ink-muted); text-decoration: line-through; }
+.board-question-panel-step-text { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* The foot: a pip per open decision, the current one in the link colour, the queue line, then Next question. A long queue narrows
+   its pips, then clips them, and cuts its line short, never the button. */
+.board-question-panel-foot { display: flex; align-items: center; gap: var(--sp-3); padding: 10px var(--sp-4) 10px var(--sp-5); font-size: var(--fs-small); color: var(--ink-muted); }
+.board-question-panel-foot-end { display: flex; flex: none; gap: var(--sp-2); margin-left: auto; }
+.board-question-panel-queue { display: flex; flex: 0 1 auto; align-items: center; gap: 4px; min-width: 0; max-width: 40%; overflow: hidden; }
+.board-question-panel-queue-pip { flex: 0 1 18px; min-width: 4px; height: 4px; background: var(--line-strong); border-radius: 2px; }
+.board-question-panel-queue-line { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.board-question-panel-queue-pip[data-current] { background: var(--link); }
+@media (max-width: 900px) {
+  .board-question-panel-columns { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .board-question-panel-ask { overflow: visible; border-right: 0; border-bottom: 1px solid var(--line); }
+  .board-question-panel-reading-body { overflow: visible; }
+}

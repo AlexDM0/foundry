@@ -4,7 +4,9 @@
  * their routes through `goTo` under the mounted forge; a lost stream disables every control; the board reads itself at the start and again
  * after `board-changed`; the stored tab opens a route naming none; a detail tab the board draws opens the detail panel on the routed item,
  * which closes through `goTo`, while an unmoved one opens none; and the board root, keyed by its tracker id, unmounts one forge's board,
- * its Flint with it, before it mounts another's, so the document never holds two Flints (`.claude/rules/flint.md`).
+ * its Flint with it, before it mounts another's, so the document never holds two Flints (`.claude/rules/flint.md`). The Questions tab is
+ * drawn without a frame, the question panel shows beside a tab the board draws, `questions/<id>` opens it at that question, and beside a
+ * framed tab it is left to the frame.
  */
 import {
   act,
@@ -22,18 +24,23 @@ import {
 import type { FlintHandle }        from 'flint';
 import { FLINT_OVERLAY_ATTRIBUTE } from 'flint/SpriteHabitat';
 
-import type { BoardDocument }                                 from '../../@types/board/BoardDocument.ts';
-import type { BoardServices }                                 from '../@types/BoardServices.ts';
-import { Board }                                              from '../Board.tsx';
-import type { EventStreamHandlers }                           from '../api/BoardEventStreamClient.ts';
-import { boardHrefOf }                                        from '../testing/BoardRouteSurroundings.tsx';
-import { boardStateFixture, FIXTURE_NOW, FIXTURE_TRACKER_ID } from '../testing/BoardStateFixture.ts';
-import { createManualFlintFrames }                            from '../testing/ManualFlintFrames.ts';
-import { pipelineBoardStateOf }                               from '../testing/PipelineFixture.ts';
-import { BoardApp }                                           from './BoardApp.tsx';
-import type { BoardRoute }                                    from './BoardRouter.ts';
-import type { BoardTabViewTable }                             from './BoardTabViews.tsx';
-import { CommandButton }                                      from './CommandButton.tsx';
+import type { BoardDocument }       from '../../@types/board/BoardDocument.ts';
+import type { BoardServices }       from '../@types/BoardServices.ts';
+import { Board }                    from '../Board.tsx';
+import type { EventStreamHandlers } from '../api/BoardEventStreamClient.ts';
+import { boardHrefOf }              from '../testing/BoardRouteSurroundings.tsx';
+import {
+  boardStateFixture,
+  exampleAskingDecision,
+  FIXTURE_NOW,
+  FIXTURE_TRACKER_ID
+} from '../testing/BoardStateFixture.ts';
+import { createManualFlintFrames }                 from '../testing/ManualFlintFrames.ts';
+import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
+import { BoardApp }                                from './BoardApp.tsx';
+import type { BoardRoute }                         from './BoardRouter.ts';
+import { BOARD_TAB_VIEWS, type BoardTabViewTable } from './BoardTabViews.tsx';
+import { CommandButton }                           from './CommandButton.tsx';
 
 const OTHER_TRACKER_ID = 'other-tracker';
 
@@ -287,5 +294,36 @@ describe('the board root', () => {
     expect(document.querySelectorAll(`[${FLINT_OVERLAY_ATTRIBUTE}]`)).toHaveLength(1);
     const tabs = screen.getAllByRole('link').filter((link) => link.classList.contains('design-system-tab'));
     expect(tabs[0]?.getAttribute('href')).toBe(`#forge/${OTHER_TRACKER_ID}/kanban`);
+  });
+});
+
+describe('the questions', () => {
+  const TWO_OPEN_QUESTIONS = {
+    decisions:       [exampleAskingDecision({ id: 'E4', jobId: 'J12' }), exampleAskingDecision({ id: 'E5', jobId: 'J12', openedAt: '2026-10-29T11:55:00' })],
+    openDecisionIds: ['E4', 'E5'],
+  };
+
+  test('the Questions tab is drawn by the board without a frame, and the open question shows in the panel beside it', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'questions', item: null }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('heading', { level: 2, name: 'Questions' })).toBeDefined();
+    expect(screen.queryByText(UNMOVED_AREA_TEXT, { exact: false })).toBeNull();
+    expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Question E4 from J12');
+  });
+
+  test('questions/<id> opens the panel at that open question once the board brings it', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'questions', item: 'E5' }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard(TWO_OPEN_QUESTIONS));
+    expect(screen.getByRole('complementary').getAttribute('aria-label')).toBe('Question E5 from J12');
+  });
+
+  test('beside a framed tab the board draws no question panel of its own, the frame showing its own', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: null }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByText(`${UNMOVED_AREA_TEXT} at kanban`)).toBeDefined();
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 });

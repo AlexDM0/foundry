@@ -2,9 +2,10 @@
  * The board's shell for one forge: it reads the board through Gaia's relay at the start, after each `board-changed` and after its stream
  * comes back, follows the stream's connection, says whether controls may act, and draws the banners, the incident line, the header with its
  * tabs, and the main area. A tab `BOARD_TAB_VIEWS` lists is drawn by its view; any other tab's main area is what the forge view puts there,
- * the forge's own Bridge in a frame. Over a detail tab it draws, the detail panel opens on the routed item. It navigates by Gaia's address
- * alone, through `services.goTo`, and provides the tracker id and the way to go to every link below it. Flint lives over the whole board,
- * its habitat stored with the board's preferences.
+ * the forge's own Bridge in a frame. Over a detail tab it draws, the detail panel opens on the routed item. Beside a tab it draws, the
+ * question panel shows one open decision, opened by a view, by a decision that opens, or by `questions/<id>`; beside a framed tab the
+ * frame's own panel shows. It navigates by Gaia's address alone, through `services.goTo`, and provides the tracker id and the way to go to
+ * every link below it. Flint lives over the whole board, its habitat stored with the board's preferences.
  */
 import { EmptyState } from 'design-system/EmptyState';
 import {
@@ -23,6 +24,10 @@ import { BoardFlint }                                              from '../flin
 import type { BoardReading }                                       from '../flint/BoardOccasionModel.ts';
 import { boardPreferenceStoreOf }                                  from '../preferences/PreferenceStore.ts';
 import { TimeUtil }                                                from '../utils/TimeUtil.ts';
+import { QuestionPanel }                                           from '../views/question-panel/QuestionPanel.tsx';
+import { QuestionPanelModel }                                      from '../views/question-panel/QuestionPanelModel.ts';
+import { ShownQuestionContext, useQuestionPanelState }             from '../views/question-panel/QuestionPanelState.ts';
+import { QuestionsModelUtil }                                      from '../views/questions/QuestionsModel.ts';
 import { BROWSER_BOARD_CLOCK, BoardClockContext, type BoardClock } from './BoardClock.ts';
 import { BoardGoToContext, BoardTrackerContext }                   from './BoardRouteLinks.ts';
 import {
@@ -36,6 +41,7 @@ import { BoardStateUpdate }                                                     
 import { BOARD_TAB_VIEWS, type BoardTabViewTable }                                       from './BoardTabViews.tsx';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
 import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
+import { QuestionPanelShownContext }                                                     from './CoveringPanel.ts';
 import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
 import { DetailRoute }                                                                   from './DetailRoute.ts';
 import { DetailRoutingContext, detailRoutingOf, type DetailRouting }                     from './DetailRouting.ts';
@@ -43,6 +49,7 @@ import { Header }                                                               
 import { headerModelOf }                                                                 from './HeaderModel.ts';
 import { IncidentNotice }                                                                from './IncidentNotice.tsx';
 import { IncidentNoticeModelUtil }                                                       from './IncidentNoticeModel.ts';
+import { QuestionPanelOpenerContext }                                                    from './QuestionPanelOpener.ts';
 import { WaitingOnUserModel }                                                            from './WaitingOnUserModel.ts';
 
 export interface BoardAppProps {
@@ -180,6 +187,17 @@ export function BoardApp({
     // The line goes, and the focused button with it; the focus moves to the panel instead of falling to the body.
     mainPanelRef.current?.focus();
   };
+  const questionQueue = useMemo(() => (board === null ? [] : QuestionsModelUtil.openDecisionsOf(board)), [board]);
+  const pipelineReadingVerdict = board?.pipeline.applied.readingVerdict ?? null;
+  const quietDecisionIds = useMemo(() => QuestionPanelModel.decisionIdsTheSetupAnswersOf(questionQueue, pipelineReadingVerdict), [questionQueue, pipelineReadingVerdict]);
+  const questionPanel = useQuestionPanelState(boardStore, questionQueue, quietDecisionIds);
+  // `questions/<id>` opens that open question's panel, when the route arrives and when the question does.
+  const routedQuestionId = shownRoute.tab === 'questions' ? shownRoute.item : null;
+  const routedQuestionIsOpen = routedQuestionId !== null && questionQueue.some(({ decision }) => decision.id === routedQuestionId);
+  const openQuestionPanel = questionPanel.open;
+  useEffect(() => {
+    if (routedQuestionIsOpen && routedQuestionId !== null) openQuestionPanel(routedQuestionId);
+  }, [routedQuestionIsOpen, routedQuestionId, openQuestionPanel]);
   const flintBoardReading = useMemo((): BoardReading => ({ board, connection, refusedCommandCount }), [board, connection, refusedCommandCount]);
   const headerModel = headerModelOf(board, services.now(), connection);
   const TabView = tabViews[shownRoute.tab];
@@ -191,6 +209,8 @@ export function BoardApp({
     const openDetail = DetailRoute.openDetailOf({ tab: shownTab, item: shownItem });
     return detailRoutingOf(shownTab, openDetail, (detailRoute) => services.goTo(fragmentOf(detailRoute)), fragmentOf);
   }, [tabIsDrawnHere, shownTab, shownItem, services]);
+  // A framed tab shows the frame's own question panel, so the board draws its panel only beside a tab it draws itself.
+  const shownQuestion = TabView === undefined ? null : questionPanel.shownDecision;
 
   const mainArea = (): ReactNode => {
     if (TabView === undefined) return unmovedTabArea(shownRoute);
@@ -209,47 +229,69 @@ export function BoardApp({
     <BoardTrackerContext value={services.trackerId}>
       <BoardGoToContext value={services.goTo}>
         <ControlSurroundingsContext value={controlSurroundings}>
-          <BoardClockContext value={boardClock}>
-            <BoardFlint
-              boardStore={boardStore}
-              boardReading={flintBoardReading}
-              {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}
-              {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
-            >
-              <div className="board-shell">
-                <ConnectionBanners
-                  streamIsDown={streamIsDown}
-                  boardShownAsOf={boardShownAsOf}
-                  installHeldRefusal={installIsHeld ? installRefusal : undefined}
-                  warnings={headerModel.warnings}
-                  notices={headerModel.notices}
-                />
-                {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
-                <Header
-                  project={board?.project ?? project}
-                  model={headerModel}
-                  selectedTab={shownRoute.tab}
-                  shownTabs={shownTabs}
-                  activityIsLive={connection === 'live'}
-                  sidePanelIsOpen={false}
-                  clock={boardClock}
-                  waitingOnUser={waitingOnUser}
-                  tabCounts={tabCounts}
-                  questionNotifier={services.questionNotifier}
-                  timestampSlices={board === null ? null : IncidentNoticeModelUtil.timestampSlicesOf(board)}
-                />
-                <main
-                  ref={mainPanelRef}
-                  tabIndex={-1}
-                  className="board-panel"
-                  data-tab={shownRoute.tab}
-                  data-unmoved={TabView === undefined ? '' : undefined}
-                >
-                  {mainArea()}
-                </main>
-              </div>
-            </BoardFlint>
-          </BoardClockContext>
+          <QuestionPanelOpenerContext value={questionPanel.open}>
+            <BoardClockContext value={boardClock}>
+              <BoardFlint
+                boardStore={boardStore}
+                boardReading={flintBoardReading}
+                {...(services.flintFrameSource === undefined ? {} : { frameSource: services.flintFrameSource })}
+                {...(services.onFlintHandle === undefined ? {} : { onHandle: services.onFlintHandle })}
+              >
+                <div className="board-shell">
+                  <ConnectionBanners
+                    streamIsDown={streamIsDown}
+                    boardShownAsOf={boardShownAsOf}
+                    installHeldRefusal={installIsHeld ? installRefusal : undefined}
+                    warnings={headerModel.warnings}
+                    notices={headerModel.notices}
+                  />
+                  {incidentNotice === null ? null : <IncidentNotice model={incidentNotice} onMarkSeen={markIncidentDefaultsSeen} />}
+                  <Header
+                    project={board?.project ?? project}
+                    model={headerModel}
+                    selectedTab={shownRoute.tab}
+                    shownTabs={shownTabs}
+                    activityIsLive={connection === 'live'}
+                    sidePanelIsOpen={shownQuestion !== null}
+                    clock={boardClock}
+                    waitingOnUser={waitingOnUser}
+                    tabCounts={tabCounts}
+                    questionNotifier={services.questionNotifier}
+                    timestampSlices={board === null ? null : IncidentNoticeModelUtil.timestampSlicesOf(board)}
+                  />
+                  <main
+                    ref={mainPanelRef}
+                    tabIndex={-1}
+                    className="board-panel"
+                    data-tab={shownRoute.tab}
+                    data-unmoved={TabView === undefined ? '' : undefined}
+                  >
+                    <QuestionPanelShownContext value={shownQuestion !== null}>
+                      <ShownQuestionContext value={shownQuestion?.decision.id ?? null}>
+                        {mainArea()}
+                      </ShownQuestionContext>
+                    </QuestionPanelShownContext>
+                  </main>
+                  {board === null
+                    ? null
+                    : (
+                      <QuestionPanel
+                        board={board}
+                        queue={questionQueue}
+                        shownDecision={shownQuestion}
+                        isHiddenBehindDetail={DetailRoute.openDetailOf(shownRoute) !== null}
+                        format={{ todayCalendarDate: TimeUtil.calendarDateOf(boardNow), slices: IncidentNoticeModelUtil.timestampSlicesOf(board) }}
+                        followTranscript={services.followTranscript}
+                        onFold={questionPanel.fold}
+                        onClose={questionPanel.close}
+                        onNext={questionPanel.showNext}
+                        focusesCloseOnOpen={() => questionPanel.openedByUser}
+                      />
+                    )}
+                </div>
+              </BoardFlint>
+            </BoardClockContext>
+          </QuestionPanelOpenerContext>
         </ControlSurroundingsContext>
       </BoardGoToContext>
     </BoardTrackerContext>

@@ -733,6 +733,7 @@ const BOARD_STYLESHEETS: readonly string[] = [
   'detail-panel.css',
   'flint.css',
   'pipeline.css',
+  'questions.css',
   'sandboxed-html.css',
   'shell.css',
   'tokens.css',
