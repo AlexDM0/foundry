@@ -150,6 +150,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.21: record presence while interrupted work waits; a suspected crash after a real reboot; Gaia against a real
   crashed forge (Start, then Show log). `handed-over` is covered by unit specs only.
 
+- WP6.26: after G1, re-record `overseer-fetch-board` and presence with a session that ends on a network outage and is
+  resumed; check the alert, the counts and the fleet resume against a real outage.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -417,6 +420,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.10: no browser notification for new questions yet (`QuestionAlerts.useOpenQuestionAlerts` is not called; its
   title update would overwrite Gaia's window title).
 
+- WP6.26: "Resumed n agents" is the count Gaia last read, since forge's answer carries none; forge's `network-outage`
+  target also resumes outage jobs that wait for an answer or were already told, so the two can differ. A command already
+  on its way to a forge reads `not-reached`.
+
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
 The owner found the pace too slow and said to do all four speed-ups: packages that conflict only in a shared list
@@ -559,8 +566,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-L | WP6.17 | landed | 94c07567 | First round. The Waves tab; `data-freshness` on its canvas; the Held chip `board-dependency-held`; a waves-only fixture; the forecast orders by the served `resolvedPriority` and runs only while `page.progress.overseerSetting === 'running'` |
 | 6-L | WP6.20 | landed | 124b98a3 | First round. The Pipeline tab's route, DOM specs, line run times and setup conversation; the Flint home-corner rule carried; fixed WP6.19's `ApplyChangesDialogModel.levelGroupsOf` (grouped a single pipeline by level); the fixture now uses forge's real limits (effort medium, rework 750, re-review step 50). Stacked last of six: shared rows kept, duplicate flare blocks removed (values equal) |
 | 6-M | WP6.21 | landed | 30c5a82e | Second round (first: an older forge that answered read as down, with Start offered; the board route kept a second presence read; a down forge's row lost Stop). Gaia reads the registry's `presence`; a fleet forge carries `presence`, `crashSummary`, `crashLogs`, `waitingWork`; `ForgePresenceUtil` tells crashed, stopped, down and hung apart (older-contract counts as answering); forge alerts lead what waits on User (`forge-crashed`/`forge-down` with Start, `forge-hung` with Open); `GET /api/v1/forges/<id>/crash-logs/<n>`; one presence read per monitor change in `ForgeWatch.presenceReadingAfterNow`, shared with the board route; `forge-interrupted-work-resume` added, `forge-resume` renamed `forge-unpause`. Fleet, events and the fleet document 6, commands 4, gaiaCommand 3, gaiaCrashLog 1, Gaia 1.3. Recordings: a new `overseer-fetch-presence`; `forge-registry` re-recorded |
-| 6-N | WP6.26 | running | | |
-| 6-O | WP6.22 | waiting | | |
+| 6-N | WP6.26 | landed | 3b9e5f9b | First round. One rule for an outage's waiting jobs: served cause `network-outage` and `waitsFor` `'instruction'` (`OutageEndingUtil`), matching WP6.11. The fleet document carries each forge's `outageEndings`, `outageEndingsTotal` and one fleet alert `agents-ended-on-outage` (`trackerId: null`); the control `fleet-outage-resume` sends each forge's `interrupted-work-resume` with target `network-outage` in turn through WP6.21's path and answers per forge `resumed`, `nothing-to-do`, `refused` or `not-reached`. Fleet, events and the fleet document 7; `commands`, `gaiaCommand` unchanged (only added). No second presence read; the outage recording waits on G1 |
+| 6-O | WP6.22 | running | | |
 | 6-P | WP6.23 | waiting | | |
 | 8-A | WP8.1 | waiting | | |
 | 8-A | WP8.3 | waiting | | |
