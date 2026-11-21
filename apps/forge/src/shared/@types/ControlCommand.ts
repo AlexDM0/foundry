@@ -152,6 +152,8 @@ export type ControlCommand =
   | { kind: 'overseer-stop'; now: boolean }
   /** Runtime only: sent to the live Overseer, which hands the board to a successor on the code on disk. */
   | { kind: 'overseer-restart'; now: boolean }
+  /** Runtime only: sent to the live Overseer, which has Talos quit cleanly and starts the right one; never relayed from a job. */
+  | { kind: 'talos-restart' }
   | { kind: 'job-stop'; jobId: string; mode: Exclude<JobStopMode, 'fresh'> }
   /** `incidentId` names the incident the move handles, in the same hold; the orchestrator must name one. */
   | { kind: 'job-fresh'; jobId: string; incidentId?: string }

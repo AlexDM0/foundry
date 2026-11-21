@@ -130,13 +130,19 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
 
   const readRegistry = () => new RegistryFile(registryPath).read();
   const forgeClient = forgeClientOf({ overseerFetch: realOverseerFetch() });
+  const processRun = realProcessRun(environmentCopy);
+  const forgeProgram = createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath });
   const forgeWatch = createForgeWatch({
     readRegistry,
     forgeClient,
-    hiddenTrackerIds:  () => settingsStore.settings().hiddenTrackerIds,
-    timers:            realClockTimers(),
-    now:               stampOfNow,
-    onReadingsChanged: () => publishSnapshot(),
+    hiddenTrackerIds:   () => settingsStore.settings().hiddenTrackerIds,
+    timers:             realClockTimers(),
+    now:                stampOfNow,
+    onReadingsChanged:  () => publishSnapshot(),
+    readNewestVersions: async (entry) => {
+      const verdict = await forgeProgram.version({ root: entry.root, program: entry.program });
+      return verdict.verdict === 'done' ? { codeVersion: verdict.answer.codeVersion, talosProtocolVersion: verdict.answer.talosProtocolVersion } : null;
+    },
   });
   const snapshotNow = (): FleetSnapshot => fleetSnapshotOf({
     readings: forgeWatch.readings(),
@@ -167,13 +173,12 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
     fleetStore.publish(snapshotNow());
   }
 
-  const processRun = realProcessRun(environmentCopy);
   const pathChoiceCancellation = new AbortController();
   const forgeControl = createForgeControl({
     readRegistry,
     readings:        forgeWatch.readings,
     forgeClient,
-    forgeProgram:    createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath }),
+    forgeProgram,
     settingsStore,
     pathChooser:     createPathChooser({ processRun, workingDirectory: () => home, cancellation: pathChoiceCancellation.signal }),
     lookAgain:       forgeWatch.lookAgain,

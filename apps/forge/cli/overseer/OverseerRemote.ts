@@ -2,7 +2,7 @@
  * What the CLI does to an Overseer it is not: start one detached, ask the live one to stop, and wait for its Baton to go. A stop goes to the
  * API with the token; when the API does not answer, the Baton's process is ended, its identity checked first. Talos and its children are
  * never touched. A Baton left naming a dead process says the Overseer's own stop never finished, which the outcome reports for the caller
- * to repair.
+ * to repair. A clean restart of Talos is only asked of the live Overseer, which sends Talos its quit.
  */
 import { readFileSync } from 'node:fs';
 
@@ -229,6 +229,29 @@ async function sessionCodeOf(record: BatonRecord): Promise<string | null> {
   }
 }
 
+/** `not-taken`: no Overseer is live, or its API did not answer the command; `done` and `nothing-to-do` are the live Overseer's outcome. */
+export type TalosRestartRequestOutcome = 'done' | 'nothing-to-do' | 'not-taken';
+
+/** Asks the live Overseer for a clean restart of its Talos; the Overseer alone sends Talos the quit and starts the next one. */
+async function restartTheTalosOf(ports: PlatformPorts, files: OverseerFiles): Promise<TalosRestartRequestOutcome> {
+  const newest = Baton.newestBatonOf(ports, files.overseerDirectory);
+  const token = newest.verdict === 'live' ? tokenIn(newest.record) : null;
+  if (newest.verdict !== 'live' || token === null) return 'not-taken';
+  try {
+    const response = await fetch(new URL('api/commands', newest.record.url), {
+      method:  'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body:    JSON.stringify({ kind: 'talos-restart' }),
+      signal:  AbortSignal.timeout(OVERSEER_REQUEST_TIMEOUT_MILLISECONDS),
+    });
+    if (!response.ok) return 'not-taken';
+    const { outcome } = await response.json() as { outcome?: unknown };
+    return outcome === 'done' || outcome === 'nothing-to-do' ? outcome : 'not-taken';
+  } catch {
+    return 'not-taken';
+  }
+}
+
 export const OverseerRemote = Object.freeze({
-  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, identityOnceItAnswers, stateOf, sessionCodeOf
+  stopTheLiveOverseer, handOverTheLiveOverseer, startDetached, identityAnswers, identityOnceItAnswers, stateOf, sessionCodeOf, restartTheTalosOf
 });

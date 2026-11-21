@@ -3,15 +3,16 @@
  * need no real process are in `src/services/overseer/CrashMatrix.spec.ts`, and the merge rows in `CrashMatrix.merges.spec.ts`. The
  * processes, Talos and folders are real; git answers from the recorded flow stages of `src/testing/RecordedGitFlow.ts`.
  *
- * The session, Talos, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its
- * session the fake child: every crash is made by killing Talos, the child's group or both, a reboot by also giving Talos's and the child
- * records a foreign boot, and an Overseer restart by a fresh DrivePass that ensures its Talos and regroups. What matters there: an orphaned
- * agent group is killed before the resume, only the crash causes count toward the bound, a reboot and a spent bound wait for User's resume,
- * which gives the bound back, a resume is by id in the same folder, and a finished session never continues, save a closed product owner
- * User messages, which resumes by id. A Baton pass row hands a running session's board to a successor and holds that Talos is sent nothing.
- * The Assistant rows hold that it continues across an Overseer restart, is replaced and never resumed when down, and boots past two failed
- * boots only on a sweep while every incident defaults. A child lost while the forge stays up keeps its crash cause and resumes by itself; one
- * found gone at a crash start waits, as a reboot does, and an answer to its question is its instruction.
+ * The session, Talos, Overseer, reboot and question rows that need no Airlock run a build job on a scratch repository, its session the fake
+ * child: every crash is made by killing Talos, the child's group or both, a reboot by also giving Talos's and the child records a foreign
+ * boot, and an Overseer restart by a fresh DrivePass that ensures its Talos and regroups. What matters there: an orphaned agent group is
+ * killed before the resume, a clean restart of Talos pauses an agent that resumes by itself, never counted, only the crash causes count
+ * toward the bound, a reboot and a spent bound wait for User's resume, which gives the bound back, a resume is by id in the same folder,
+ * and a finished session never continues, save a closed product owner User messages, which resumes by id. A Baton pass row hands a running
+ * session's board to a successor and holds that Talos is sent nothing. The Assistant rows hold that it continues across an Overseer
+ * restart, is replaced and never resumed when down, and boots past two failed boots only on a sweep while every incident defaults. A child
+ * lost while the forge stays up keeps its crash cause and resumes by itself; one found gone at a crash start waits, as a reboot does, and
+ * an answer to its question is its instruction.
  *
  * The start rows start the forge as its foreground entry does, in its order: the start gate over the real ports, then the Baton, the presence
  * record and a drive pass reconciling by the gate's verdict; a kill writes nothing, a stop writes its ending, and the crash path is
@@ -111,6 +112,7 @@ import { Presence }                                                 from './Pres
 import { Regrouping }                                               from './Regrouping.ts';
 import type { StartOriginReading }                                  from './StartClassification.ts';
 import { StartGate }                                                from './StartGate.ts';
+import { quitTalosForRestart }                                      from './TalosRestart.ts';
 import { TALOS_START_BOUNDS, type TalosStartBounds, talosRecordAt } from './TalosStart.ts';
 
 const recordedGit = useRecordedGit();
@@ -793,6 +795,26 @@ describe('the session, Talos, Overseer and reboot rows', () => {
       id: job.id, state: 'running', childInstance: 2, crashResumes: 1
     });
     expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'agent-crashed' }]);
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('a clean restart of Talos while the forge stays up: the agent ends paused at its turn end, the job is interrupted talos-paused, '
+    + 'never counted, and resumes by itself under the next Talos', async () => {
+    const adapter   = recordingAdapter({ fresh: WAITING_STEPS, resumed: WAITING_STEPS });
+    const drivePass = await startedOverseer(adapter);
+    const job       = await runningBuildSession(drivePass);
+
+    expect(await quitTalosForRestart((await boardTalosOfTheCase()).connection())).toBe('done');
+    await until(() => childRecordOf(job.id, 1)?.end?.reason === 'paused', 'the agent never ended paused');
+    await until(() => talosRecordAt(sessionWorkspace.trackerDirectory, 1)?.state === 'quit', 'the first Talos never quit');
+    await passUntil(drivePass, () => sessionRuns(buildJobs()[0]) && requireBuildJob().childInstance === 2, 'the job never resumed under the next Talos');
+
+    expect(talosRecordAt(sessionWorkspace.trackerDirectory, 1)?.quitReason).toBe('restart');
+    expect(talosRecordAt(sessionWorkspace.trackerDirectory, 2)?.state).toBe('serving');
+    expect(storedRecords().find((record) => record.kind === 'job-interrupted' && record.jobId === job.id)?.fields).toMatchObject({ cause: 'talos-paused' });
+    expect(resumedRecordsOf(job.id).map((record) => record.fields)).toEqual([{ childInstance: 2, cause: 'talos-paused' }]);
+    expect(requireBuildJob()).toMatchObject({
+      id: job.id, state: 'running', childInstance: 2, crashResumes: 0
+    });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('Talos dies with its agent alive and the forge with it, then a user start: the agent group is killed first, the job is interrupted '

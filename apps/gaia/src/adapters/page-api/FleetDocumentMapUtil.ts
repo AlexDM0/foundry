@@ -16,19 +16,25 @@ import type {
   FleetDocumentForgeVersions,
   FleetDocumentGaia,
   FleetDocumentNotice,
+  FleetDocumentRunningVersions,
   FleetDocumentSettings,
   FleetDocumentSystemVersion,
 } from '../../../page/@types/FleetDocument.ts';
-import type { ActivityEntry }                        from '../../shared/@types/ActivityEntry.ts';
-import type { AgentRow }                             from '../../shared/@types/AgentRow.ts';
-import type { AttentionItem }                        from '../../shared/@types/AttentionItem.ts';
-import type { FleetForge, FleetSnapshot, GaiaFacts } from '../../shared/@types/FleetSnapshot.ts';
-import type { ForgeBrainReading }                    from '../../shared/@types/ForgeBrain.ts';
-import type { ForgeNotice, ForgeVersions }           from '../../shared/@types/ForgeReading.ts';
-import type { GaiaSettings }                         from '../../shared/@types/GaiaSettings.ts';
-import type { BoardRoute }                           from '../../shared/@types/board/BoardRoute.ts';
-import { PAGE_CONTRACT_VERSIONS }                    from '../../shared/constants/PageContractVersions.ts';
-import { ForgeSentenceUtil }                         from './ForgeSentenceUtil.ts';
+import type { ActivityEntry } from '../../shared/@types/ActivityEntry.ts';
+import type { AgentRow }      from '../../shared/@types/AgentRow.ts';
+import type { AttentionItem } from '../../shared/@types/AttentionItem.ts';
+import type {
+  FleetForge,
+  FleetSnapshot,
+  ForgeRunningVersions,
+  GaiaFacts
+} from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeBrainReading }          from '../../shared/@types/ForgeBrain.ts';
+import type { ForgeNotice, ForgeVersions } from '../../shared/@types/ForgeReading.ts';
+import type { GaiaSettings }               from '../../shared/@types/GaiaSettings.ts';
+import type { BoardRoute }                 from '../../shared/@types/board/BoardRoute.ts';
+import { PAGE_CONTRACT_VERSIONS }          from '../../shared/constants/PageContractVersions.ts';
+import { ForgeSentenceUtil }               from './ForgeSentenceUtil.ts';
 
 function boardRouteOut(route: BoardRoute | null): FleetDocumentBoardRoute | null {
   return route === null ? null : { tab: route.tab, item: route.item };
@@ -137,6 +143,17 @@ function forgeVersionsOut(versions: ForgeVersions | null): FleetDocumentForgeVer
   };
 }
 
+function runningVersionsOut(versions: ForgeRunningVersions | null): FleetDocumentRunningVersions | null {
+  if (versions === null) return null;
+  const { talosRunning } = versions;
+  return {
+    overseerRunning: versions.overseerRunning,
+    overseerNewest:  versions.overseerNewest,
+    talosRunning:    talosRunning === null ? null : { protocolVersion: talosRunning.protocolVersion, codeVersion: talosRunning.codeVersion },
+    talosNewest:     versions.talosNewest,
+  };
+}
+
 function forgeOut(reading: FleetForge): FleetDocumentForge {
   const {
     concurrency, contracts, today, usage, presence, crashSummary
@@ -206,7 +223,8 @@ function forgeOut(reading: FleetForge): FleetDocumentForge {
       cause:     job.cause,
       waitsFor:  job.waitsFor,
     })),
-    outageEndings: reading.outageEndings,
+    outageEndings:   reading.outageEndings,
+    runningVersions: runningVersionsOut(reading.runningVersions),
   };
 }
 

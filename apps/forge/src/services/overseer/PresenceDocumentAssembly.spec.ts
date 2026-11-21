@@ -4,7 +4,8 @@
  * reboot, a network outage and a lease end wait for an instruction, a crashed agent with a restart left resumes by itself, a lost child
  * reads `child-lost`, and a job whose lost line waits is listed with the line's cause; a ticket an `interrupted:` hold keeps is listed; the
  * crash logs are listed newest last, the forge's own process named `hephaestus`, and the last start names the newest log after a crash;
- * Talos's lease standing reads as supervision; a heartbeat of another generation is no beat of this one; and a crash log keeps a board or
+ * Talos's lease standing reads as supervision, and the running Talos is named by its protocol version, code version and start number, none
+ * without a live one; a heartbeat of another generation is no beat of this one; and a crash log keeps a board or
  * a log that could not be read as `null`, never as empty.
  */
 import { describe, expect, test } from 'bun:test';
@@ -255,6 +256,14 @@ describe('the start, the crash logs and the supervision', () => {
     expect(supervisionWith(talosRecordOf('waiting-after-gap'))).toBe('checking-after-a-gap');
     expect(supervisionWith(talosRecordOf('unheld'))).toBe('not-yet-renewed');
     expect(supervisionWith(null)).toBe('no-talos');
+  });
+
+  test('names the running Talos by its protocol version, the code version it started from and its start number; none without one', () => {
+    const talosWith = (liveTalosRecord: TalosRecord | null): unknown => PresenceDocumentAssembly
+      .presenceDocumentOf(inputsOf(boardWithTickets([]), { liveTalosRecord })).talos;
+
+    expect(talosWith(talosRecordOf('held'))).toEqual({ protocolVersion: 1, codeVersion: 'example-code', startNumber: 3 });
+    expect(talosWith(null)).toBeNull();
   });
 
   test('names the serving generation\'s process, start, beat and abandoned passes, and passes over a beat of another generation', () => {

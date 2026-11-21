@@ -7,7 +7,8 @@ import type {
   ForgeCrashedComponent,
   ForgeCrashLogEntry,
   ForgeInterruptedWork,
-  ForgePresenceDocument
+  ForgePresenceDocument,
+  ForgeRunningTalos
 } from 'forge-contracts/ForgePresenceDocument';
 
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }  from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
@@ -105,6 +106,11 @@ function crashLogEntryOf({ crashLogNumber, record }: NumberedCrashLog): ForgeCra
   };
 }
 
+function runningTalosOf(liveTalosRecord: TalosRecord | null): ForgeRunningTalos | null {
+  if (liveTalosRecord === null) return null;
+  return { protocolVersion: liveTalosRecord.protocolVersion, codeVersion: liveTalosRecord.codeVersion, startNumber: liveTalosRecord.startNumber };
+}
+
 function presenceDocumentOf(inputs: PresenceDocumentInputs): ForgePresenceDocument {
   const { presence, heartbeat, crashLogs } = inputs;
   const lastStart = presence.startClassification;
@@ -127,6 +133,7 @@ function presenceDocumentOf(inputs: PresenceDocumentInputs): ForgePresenceDocume
     interruptedWork: interruptedWorkListOf(inputs),
     heldMerges:      heldMergesOf(inputs.board),
     crashLogs:       crashLogs.map(crashLogEntryOf),
+    talos:           runningTalosOf(inputs.liveTalosRecord),
   };
 }
 

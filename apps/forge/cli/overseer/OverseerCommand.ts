@@ -22,11 +22,16 @@ import type { ArgumentParser }                                                  
 import { OutputUtil }                                                             from '../utils/OutputUtil.ts';
 import { requireTheOverseerCanStartIn, startContextOf, startTheOverseerDetached } from './DetachedOverseerStart.ts';
 import { type StoppedOverseerRequest, runOverseerInTheForeground }                from './OverseerForeground.ts';
-import { OverseerRemote, type RuntimeStopKind, type StopOutcome }                 from './OverseerRemote.ts';
-import { stopAndCloseTheLiveOverseer, stopTheOverseer }                           from './OverseerStop.ts';
-import { OverseerWording }                                                        from './OverseerWording.ts';
-import { PresenceWording }                                                        from './PresenceWording.ts';
-import { startOriginArgumentsOf, startOriginIn }                                  from './StartGateAdmission.ts';
+import {
+  OverseerRemote,
+  type RuntimeStopKind,
+  type StopOutcome,
+  type TalosRestartRequestOutcome
+} from './OverseerRemote.ts';
+import { stopAndCloseTheLiveOverseer, stopTheOverseer } from './OverseerStop.ts';
+import { OverseerWording }                              from './OverseerWording.ts';
+import { PresenceWording }                              from './PresenceWording.ts';
+import { startOriginArgumentsOf, startOriginIn }        from './StartGateAdmission.ts';
 
 const { PROGRAM } = PRODUCT_NAMES;
 
@@ -35,6 +40,7 @@ const SUCCESSOR_USAGE = `${PROGRAM} oversee --successor-of <generation> [--port 
 const STOP_USAGE    = `${PROGRAM} oversee stop|restart [--now] [--json]`;
 const PAUSE_USAGE   = `${PROGRAM} oversee pause|resume [--json]`;
 const STATUS_USAGE  = `${PROGRAM} oversee status [--json]`;
+const TALOS_RESTART_USAGE = `${PROGRAM} oversee talos-restart [--json]`;
 
 const HIGHEST_PORT          = 65535;
 const WHOLE_NUMBER_PATTERN  = /^\d+$/;
@@ -144,6 +150,22 @@ function pauseSubcommand(kind: 'overseer-pause' | 'overseer-resume'): RunSubcomm
   };
 }
 
+/** Human lines of a Talos restart's outcome; `--json` prints the outcome itself. */
+const TALOS_RESTART_LINES: Readonly<Record<TalosRestartRequestOutcome, string>> = {
+  'done':          'Talos was asked to quit cleanly; the Overseer starts the next Talos, and the paused agents resume by themselves.',
+  'nothing-to-do': 'No Talos took the restart: none runs, or it is quitting already.',
+  'not-taken':     'No live Overseer took the restart, so Talos was not restarted.',
+};
+
+/** The clean restart of the board's Talos, asked of the live Overseer; a session under a job is refused this verb before it runs. */
+async function restartTalos(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  commandArguments.rejectUnknownOptions(['json'], TALOS_RESTART_USAGE);
+  commandArguments.rejectExtraPositionals(1, TALOS_RESTART_USAGE);
+  const workspace = requireWorkspace(context.currentDirectory);
+  const outcome = await OverseerRemote.restartTheTalosOf(context.platformPorts, overseerFilesIn(workspace.trackerDirectory));
+  OutputUtil.printEntity(commandArguments, context, { outcome }, TALOS_RESTART_LINES[outcome]);
+}
+
 /** Read-only and lockless: the Baton, the stored drain flag and the code on disk, which the live Overseer's Baton says it runs. */
 async function printOverseerStatus(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(['json'], STATUS_USAGE);
@@ -188,11 +210,12 @@ async function printOverseerStatus(commandArguments: ArgumentParser, context: Co
 }
 
 const OVERSEE_SUBCOMMANDS: Readonly<Record<string, RunSubcommand>> = Object.freeze({
-  stop:    stopSubcommand('overseer-stop'),
-  restart: stopSubcommand('overseer-restart'),
-  pause:   pauseSubcommand('overseer-pause'),
-  resume:  pauseSubcommand('overseer-resume'),
-  status:  printOverseerStatus,
+  stop:            stopSubcommand('overseer-stop'),
+  restart:         stopSubcommand('overseer-restart'),
+  pause:           pauseSubcommand('overseer-pause'),
+  resume:          pauseSubcommand('overseer-resume'),
+  status:          printOverseerStatus,
+  'talos-restart': restartTalos,
 });
 
 export const OVERSEE_SUBCOMMAND_NAMES: readonly string[] = Object.freeze(Object.keys(OVERSEE_SUBCOMMANDS));

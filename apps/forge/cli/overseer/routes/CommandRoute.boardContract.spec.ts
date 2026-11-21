@@ -106,7 +106,7 @@ function routeRequest(): CommandRouteRequest {
     workspace,
     boardStore:       boardStoreIn(context, workspace),
     launchesHeld:     () => false,
-    onRuntimeCommand: () => undefined,
+    onRuntimeCommand: () => Promise.resolve('done'),
     wake:             () => undefined,
   };
 }

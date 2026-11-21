@@ -2,7 +2,8 @@
  * The Overseer's start, Baton and stop, end to end through real child processes, since an Overseer holds its process until it is stopped.
  * What matters: two starters at once leave exactly one Overseer serving; a Baton naming a dead process is taken over as after a crash; a
  * Overseer whose generation was overtaken stops at exit 2 touching nothing; `oversee --detach`, `oversee status`, `oversee restart` and `oversee stop`
- * agree with the Baton; a started Overseer has its board's Talos serving under a lease it renewed;
+ * agree with the Baton; a started Overseer has its board's Talos serving under a lease it renewed, and `oversee talos-restart` has it
+ * quit that Talos cleanly and follow the next, as no crash;
  * `oversee stop --now` stops a live line of Talos, which a plain stop leaves running; `oversee pause|resume` write the
  * drain flag with no Overseer up, which the Bridge header's board state and `oversee status` read alike, held in-process by
  * `cli/overseer/OverseerCommand.spec.ts`; and a spec-spawned Overseer resolves the fake agent, never the vendor's adapter. Every Overseer binds
@@ -29,7 +30,7 @@ import {
 
 import { processIsGone }                                  from '../../src/lib/process-identity/ProcessIdentity.ts';
 import { childFilesOf, talosRecordPathOf }                from '../../src/lib/talos/TalosFiles.ts';
-import { talosRecordOf }                                  from '../../src/lib/talos/TalosRecord.ts';
+import { type TalosRecord, talosRecordOf }                from '../../src/lib/talos/TalosRecord.ts';
 import { CodeVersion }                                    from '../../src/services/overseer/CodeVersion.ts';
 import { workspacePathsFor }                              from '../../src/services/tracker/Workspace.ts';
 import { fakeAgentVariableOf }                            from '../../src/shared/Environment.ts';
@@ -136,6 +137,13 @@ async function plantedEventLogPathOfTheListedJob(): Promise<string> {
 function firstTalosRecord(): ReturnType<typeof talosRecordOf> | null {
   const recordPath = talosRecordPathOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER), 1);
   return existsSync(recordPath) ? talosRecordOf(readFileSync(recordPath, 'utf8')) : null;
+}
+
+/** The board's Talos record of that start, when Talos claimed it and it reads. */
+function talosRecordAt(startNumber: number): TalosRecord | null {
+  const recordPath = talosRecordPathOf(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER), startNumber);
+  const reading = existsSync(recordPath) ? talosRecordOf(readFileSync(recordPath, 'utf8')) : null;
+  return reading?.verdict === 'read' ? reading.record : null;
 }
 
 /** The isolation check here asks git for the root of each scratch folder it is handed that holds no tracker and lies in no repository. */
@@ -315,7 +323,7 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(first.exitCode, first.standardError).toBe(0);
     const firstAnswer = JSON.parse(first.standardOutput) as Record<string, unknown>;
     expect(firstAnswer).toEqual({
-      answerVersion:  1,
+      answerVersion:  2,
       started:        true,
       url:            expect.stringMatching(/^http:\/\/127\.0\.0\.1:\d+\/$/),
       generation:     1,
@@ -331,7 +339,7 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(JSON.parse(second.standardOutput)).toEqual({ ...firstAnswer, started: false });
     expect(batonFileNames()).toEqual(['baton-1.json']);
     const stopped = await runAgentProgress(['stop', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
-    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 1, outcome: 'done' });
+    expect(JSON.parse(stopped.standardOutput)).toEqual({ answerVersion: 2, outcome: 'done' });
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a detached Overseer prints its URL once it answers; status reports it serving; restart keeps its port under a new process', async () => {
@@ -505,6 +513,26 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(servingLine, overseerLogText()).toBeGreaterThan(-1);
     // Talos starts once the Baton is taken and the start recorded, so a start refused earlier leaves no Talos behind.
     expect(talosLine, overseerLogText()).toBeGreaterThan(servingLine);
+    await stopOverseer();
+  }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
+
+  test('talos-restart has the live Overseer quit its Talos cleanly and start the next, which it follows, as no crash; with none live it is not taken', async () => {
+    const withNoOverseer = await runAgentProgress(['oversee', 'talos-restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(JSON.parse(withNoOverseer.standardOutput), withNoOverseer.standardError).toEqual({ outcome: 'not-taken' });
+
+    const detached = await runAgentProgress(['oversee', '--detach', '--port', '0'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(detached.exitCode, detached.standardError).toBe(0);
+    await waitUntil(() => talosRecordAt(1)?.state === 'serving', () => `Talos 1 serving:\n${overseerLogText()}`);
+
+    const restarted = await runAgentProgress(['oversee', 'talos-restart', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(JSON.parse(restarted.standardOutput), restarted.standardError).toEqual({ outcome: 'done' });
+    await waitUntil(() => overseerLogText().includes('Started Talos 2 (the one before quit'), () => `the Overseer following Talos 2:\n${overseerLogText()}`);
+
+    expect(talosRecordAt(1)).toMatchObject({ state: 'quit', quitReason: 'restart' });
+    expect(talosRecordAt(2)?.state).toBe('serving');
+    expect(existsSync(join(overseerDirectory(), 'crash-logs')), overseerLogText()).toBe(false);
+    const status = await runAgentProgress(['oversee', 'status', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(JSON.parse(status.standardOutput)).toMatchObject({ state: 'serving', baton: { generation: 1 } });
     await stopOverseer();
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

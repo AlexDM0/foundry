@@ -24,14 +24,14 @@ import type {
   OverseerAccess,
   OverseerAddress,
 } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
-import type { ForgeClient }                 from '../lib/forge-client/ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }          from '../lib/forge-client/constants/SupportedForgeVersions.ts';
-import type { ForgePresenceReport }         from '../shared/@types/ForgePresence.ts';
-import type { ForgeReading, ForgeVersions } from '../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil }                from '../shared/utils/ForgeVersionsUtil.ts';
-import { SystemVersionUtil }                from '../shared/utils/SystemVersionUtil.ts';
-import type { ClockTimer, ClockTimers }     from './Clock.ts';
-import { WatchReadingUtil }                 from './utils/WatchReadingUtil.ts';
+import type { ForgeClient }                                      from '../lib/forge-client/ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }                               from '../lib/forge-client/constants/SupportedForgeVersions.ts';
+import type { ForgePresenceReport }                              from '../shared/@types/ForgePresence.ts';
+import type { ForgeNewestVersions, ForgeReading, ForgeVersions } from '../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil }                                     from '../shared/utils/ForgeVersionsUtil.ts';
+import { SystemVersionUtil }                                     from '../shared/utils/SystemVersionUtil.ts';
+import type { ClockTimer, ClockTimers }                          from './Clock.ts';
+import { WatchReadingUtil }                                      from './utils/WatchReadingUtil.ts';
 
 export interface ForgeWatchIntervals {
   readonly registryCheckIntervalMilliseconds:   number;
@@ -52,6 +52,11 @@ export interface ForgeWatchOptions {
   readonly intervals?:             Partial<ForgeWatchIntervals>;
   /** The one forge version this Gaia supports; `SUPPORTED_FORGE_VERSION` when not given, and planted by a spec. */
   readonly supportedForgeVersion?: SystemVersion;
+  /**
+   * The installed program's versions, run once each time a registry check follows the forge afresh and when User looks again, never on a
+   * timer of its own; `null` when the program does not answer them. Absent, no reading names a newest version.
+   */
+  readonly readNewestVersions?:    (entry: RegisteredForge) => Promise<ForgeNewestVersions | null>;
 }
 
 export interface ForgeWatch {
@@ -171,6 +176,8 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     let monitorFollow: MonitorFollow | null = null;
     let presenceReport: ForgePresenceReport | null = null;
     let presenceReadAfterNow: PresenceReadAfterNow | null = null;
+    let newestVersions: ForgeNewestVersions | null = null;
+    let newestVersionsReads = 0;
 
     /**
      * The last command and the registry's presence are always the ones the entry names now, whatever round the reading was taken in; the
@@ -183,6 +190,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
         lastChangedAt:    entry.lastChangedAt,
         registryPresence: entry.presence,
         presenceReport:   nextReading.fidelity === 'full' ? presenceReport : null,
+        newestVersions,
       };
       if (reading !== null && contentHashOf(reading) === contentHashOf(readingWithLastCommand)) return;
       reading = readingWithLastCommand;
@@ -375,9 +383,26 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       return readSummary(round, forgeAddress, identity);
     }
 
+    /** Only the newest read counts: an answer that arrives after a later read began, or after the watch stopped, changes nothing. */
+    function readNewestVersions(): void {
+      const { readNewestVersions: readVersions } = options;
+      if (readVersions === undefined) return;
+      newestVersionsReads += 1;
+      const readNumber = newestVersionsReads;
+      readVersions(entry)
+        .then((versions) => {
+          if (isStopped || readNumber !== newestVersionsReads) return;
+          newestVersions = versions;
+          if (reading !== null) setReading(reading);
+        })
+        // A program that throws is a read that gave nothing, never a failed try of the watch.
+        .catch(() => undefined);
+    }
+
     function follow(nextEntry: RegisteredForge): void {
       entry       = nextEntry;
       failedTries = 0;
+      readNewestVersions();
       launchRound();
     }
 
@@ -387,6 +412,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     }
 
     function lookAgain(): void {
+      readNewestVersions();
       if (monitorFollow === null) launchRound();
     }
 

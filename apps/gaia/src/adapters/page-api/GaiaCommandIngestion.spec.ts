@@ -23,6 +23,7 @@ describe('a body this Gaia carries out', () => {
     'forge-pause',
     'forge-unpause',
     'forge-restart',
+    'forge-talos-restart',
     'forge-update',
     'forge-open-in-browser',
     'forge-hide',

@@ -18,7 +18,7 @@ describe('crashLogOf', () => {
       generation: 1,
       component:  'hephaestus',
       suspected:  false,
-      recordedAt: '2026-11-21T06:34:41+01:00',
+      recordedAt: '2026-11-21T07:41:07+01:00',
       error:      null,
       activeJobs: [{
         jobId: 'J1', kind: 'assistant', ticketIds: [], state: 'launching', interruption: null, airlockPhase: null,

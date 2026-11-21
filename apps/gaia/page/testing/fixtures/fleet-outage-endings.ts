@@ -1,12 +1,14 @@
 /**
  * The example data of the outage alert: A1's fleet after a network outage stopped two of Example Storefront's agents and one of Invoice
  * Service's, which wait for User's resume. Example Mobile App holds a job the outage stopped that was already told to resume and one whose
- * supervision ended: neither counts. The fleet's alert heads what waits on User.
+ * supervision ended: neither counts. The fleet's alert heads what waits on User. Each of the three serves its presence, so its running
+ * Overseer and Talos are known: Talos at protocol 2 on the forge's own code, the installed program not read yet.
  */
 import type {
   FleetDocument,
   FleetDocumentFleetAttentionItem,
   FleetDocumentForge,
+  FleetDocumentRunningVersions,
   FleetDocumentWaitingJob,
 } from '../../@types/FleetDocument.ts';
 
@@ -20,22 +22,38 @@ function waitingJobOf(jobId: string, ticketId: string, cause: FleetDocumentWaiti
   };
 }
 
+/** The Talos protocol version the presence the outage readings stand on names. */
+export const OUTAGE_TALOS_PROTOCOL_VERSION = 2;
+
+function runningVersionsOf(forge: FleetDocumentForge): FleetDocumentRunningVersions {
+  const codeVersion = forge.codeVersion ?? '';
+  return {
+    overseerRunning: codeVersion,
+    overseerNewest:  null,
+    talosRunning:    { protocolVersion: OUTAGE_TALOS_PROTOCOL_VERSION, codeVersion },
+    talosNewest:     null,
+  };
+}
+
 const EXAMPLE_STOREFRONT: FleetDocumentForge = {
   ...READINGS.exampleStorefront,
-  waitingWork:   [waitingJobOf('J7', '021', 'network-outage', 'instruction'), waitingJobOf('J9', '024', 'network-outage', 'instruction')],
-  outageEndings: 2,
+  runningVersions: runningVersionsOf(READINGS.exampleStorefront),
+  waitingWork:     [waitingJobOf('J7', '021', 'network-outage', 'instruction'), waitingJobOf('J9', '024', 'network-outage', 'instruction')],
+  outageEndings:   2,
 };
 
 const INVOICE_SERVICE: FleetDocumentForge = {
   ...READINGS.invoiceService,
-  waitingWork:   [waitingJobOf('J3', '052', 'network-outage', 'instruction')],
-  outageEndings: 1,
+  runningVersions: runningVersionsOf(READINGS.invoiceService),
+  waitingWork:     [waitingJobOf('J3', '052', 'network-outage', 'instruction')],
+  outageEndings:   1,
 };
 
 const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
   ...READINGS.exampleMobileApp,
-  waitingWork:   [waitingJobOf('J5', '061', 'network-outage', 'nothing'), waitingJobOf('J6', '062', 'lease-ended', 'instruction')],
-  outageEndings: 0,
+  runningVersions: runningVersionsOf(READINGS.exampleMobileApp),
+  waitingWork:     [waitingJobOf('J5', '061', 'network-outage', 'nothing'), waitingJobOf('J6', '062', 'lease-ended', 'instruction')],
+  outageEndings:   0,
 };
 
 export const FLEET_OUTAGE_ALERT: FleetDocumentFleetAttentionItem = {

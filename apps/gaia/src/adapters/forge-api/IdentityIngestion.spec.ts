@@ -49,8 +49,8 @@ describe('the identity of a forge at the version Gaia supports', () => {
       identity: {
         trackerId:      'example-storefront-7c41',
         project:        'Example Storefront',
-        codeVersion:    'fbc3c0ad0259',
-        installVersion: 42,
+        codeVersion:    'af2246de1aee',
+        installVersion: 43,
         processId:      48_107,
         contracts:      CURRENT_CONTRACTS,
       },
@@ -64,8 +64,8 @@ describe('the identity of a forge at the version Gaia supports', () => {
       identity: {
         trackerId:      '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
         project:        'Example Project',
-        codeVersion:    'fbc3c0ad0259',
-        installVersion: 42,
+        codeVersion:    'af2246de1aee',
+        installVersion: 43,
         processId:      21_008,
         contracts:      CURRENT_CONTRACTS,
       },

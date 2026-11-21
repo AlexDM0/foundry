@@ -1,12 +1,13 @@
 /**
  * A forge's presence (`GET /api/v1/presence`) as Gaia reads it: whether Talos still supervises its agents, its interrupted work with what
- * each job waits for, and its crash logs; the board reads only the waits. Every other key is passed over here; a document that does not
- * ingest reads as no report and names its keys.
+ * each job waits for, its crash logs, and the Talos that runs; the board reads only the waits. Every other key is passed over here; a
+ * document that does not ingest reads as no report and names its keys.
  */
 import type {
   ForgeCrashLogEntry,
   ForgeInterruptedWork,
   ForgePresenceDocument,
+  ForgeRunningTalos,
   ForgeSupervision
 } from 'forge-contracts/ForgePresenceDocument';
 
@@ -49,6 +50,12 @@ const CRASH_LOG_ENTRY_SHAPE = {
   suspected:  'boolean',
 } as const satisfies ShapeOf<ForgeCrashLogEntry>;
 
+const RUNNING_TALOS_SHAPE = {
+  protocolVersion: 'whole-number',
+  codeVersion:     'text',
+  startNumber:     'passed-over',
+} as const satisfies ShapeOf<ForgeRunningTalos>;
+
 const PRESENCE_SHAPE = {
   generation:      'passed-over',
   processId:       'passed-over',
@@ -62,6 +69,7 @@ const PRESENCE_SHAPE = {
   interruptedWork: { listOf: INTERRUPTED_WORK_SHAPE },
   heldMerges:      'passed-over',
   crashLogs:       { listOf: CRASH_LOG_ENTRY_SHAPE },
+  talos:           { nullable: { object: RUNNING_TALOS_SHAPE } },
 } as const satisfies ShapeOf<ForgePresenceDocument>;
 
 function waitingJobOf(work: ForgeInterruptedWork): Gaia.ForgeWaitingJob {
@@ -88,12 +96,15 @@ export class PresenceIngestion {
   public presenceReportOf(body: unknown): PresenceReportReading {
     const invalidKeys = DocumentShapeUtil.invalidKeysOf(body, PRESENCE_SHAPE);
     if (invalidKeys.length > 0) return { report: null, reason: { invalidKeys } };
-    const { supervision, interruptedWork, crashLogs } = body as ForgePresenceDocument;
+    const {
+      supervision, interruptedWork, crashLogs, talos
+    } = body as ForgePresenceDocument;
     return {
       report: {
         supervision:     SUPERVISION[supervision],
         interruptedWork: interruptedWork.map(waitingJobOf),
         crashLogs:       crashLogs.map(crashLogEntryOf),
+        talos:           talos === null ? null : { protocolVersion: talos.protocolVersion, codeVersion: talos.codeVersion },
       },
     };
   }

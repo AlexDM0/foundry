@@ -28,8 +28,8 @@ import {
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
 /** The code version and stamp of the Storefront at work; retake them after `bun run record overseer-fetch-supported-forge`. */
-const RECORDED_CODE_VERSION = 'fbc3c0ad0259';
-const RECORDED_STAMP = '2026-11-21T00:47:18+01:00';
+const RECORDED_CODE_VERSION = 'af2246de1aee';
+const RECORDED_STAMP = '2026-11-21T07:41:10+01:00';
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
 const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
 const ASSISTANT_DOWN_SENTENCE = 'no Assistant can come up: open incidents take their defaults';
@@ -39,7 +39,7 @@ function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
     trackerId:      STOREFRONT.trackerId,
     project:        STOREFRONT.project,
     codeVersion,
-    installVersion: 42,
+    installVersion: 43,
     processId:      48_107,
     contracts:      {
       summary: 1,
@@ -78,7 +78,7 @@ const RECORDED_READING: ForgeReading = {
   },
   codeVersion:       RECORDED_CODE_VERSION,
   lastReportedAt:    EXAMPLE_READ_STAMP,
-  overseerStartedAt: '2026-11-21T00:47:18+01:00',
+  overseerStartedAt: '2026-11-21T07:41:09+01:00',
   program:           STOREFRONT.program,
   lastCommand:       STOREFRONT.lastCommand,
   lastChangedAt:     STOREFRONT.lastChangedAt,
@@ -103,7 +103,7 @@ const RECORDED_READING: ForgeReading = {
       decisionKind:            null,
       escalatedFromIncidentId: null,
       metaText:                'draft ticket, no row yet',
-      stamp:                   '2026-11-21T00:47:17+01:00',
+      stamp:                   '2026-11-21T07:41:09+01:00',
       stampWord:               'filed',
       actionLabel:             'Ready',
       boardRoute:              { tab: 'kanban', item: 'ticket/001' },
@@ -119,7 +119,7 @@ const RECORDED_READING: ForgeReading = {
       decisionKind:            'checks-not-set',
       escalatedFromIncidentId: null,
       metaText:                null,
-      stamp:                   '2026-11-21T00:47:18+01:00',
+      stamp:                   '2026-11-21T07:41:10+01:00',
       stampWord:               'opened',
       actionLabel:             'Answer',
       boardRoute:              { tab: 'questions', item: 'E1' },
@@ -136,7 +136,7 @@ const RECORDED_READING: ForgeReading = {
       tokens:              0,
       ticketTitle:         null,
       attempt:             1,
-      startedAt:           '2026-11-21T00:47:18+01:00',
+      startedAt:           '2026-11-21T07:41:10+01:00',
       calls:               0,
       callBudget:          null,
       toolCalls:           0,
@@ -157,7 +157,7 @@ const RECORDED_READING: ForgeReading = {
   activity: [
     {
       logPosition: 0,
-      at:          '2026-11-21T00:47:17+01:00',
+      at:          '2026-11-21T07:41:09+01:00',
       category:    'needs-user',
       text:        'Ticket #001 filed: Search suggestions',
       boardRoute:  { tab: 'kanban', item: 'ticket/001' },
@@ -166,16 +166,16 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 1,
-      at:          '2026-11-21T00:47:18+01:00',
+      at:          '2026-11-21T07:41:09+01:00',
       category:    'forge',
-      text:        'Overseer started on code fbc3c0ad0259, install version 42',
+      text:        'Overseer started on code af2246de1aee, install version 43',
       boardRoute:  null,
       kind:        null,
       tokens:      null,
     },
     {
       logPosition: 2,
-      at:          '2026-11-21T00:47:18+01:00',
+      at:          '2026-11-21T07:41:09+01:00',
       category:    'forge',
       text:        'Forge started by User for the first time',
       boardRoute:  null,
@@ -184,7 +184,7 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 3,
-      at:          '2026-11-21T00:47:18+01:00',
+      at:          '2026-11-21T07:41:10+01:00',
       category:    'forge',
       text:        'Overseer set to running',
       boardRoute:  null,
@@ -193,7 +193,7 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 4,
-      at:          '2026-11-21T00:47:18+01:00',
+      at:          '2026-11-21T07:41:10+01:00',
       category:    'needs-user',
       text:        'Decision E1 opened: checks-not-set',
       boardRoute:  { tab: 'questions', item: 'E1' },
@@ -202,7 +202,7 @@ const RECORDED_READING: ForgeReading = {
     },
     {
       logPosition: 5,
-      at:          '2026-11-21T00:47:18+01:00',
+      at:          '2026-11-21T07:41:10+01:00',
       category:    'agent',
       text:        'Job J1 launched: assistant (assistant), attempt 1',
       boardRoute:  { tab: 'agents', item: 'J1' },
@@ -235,6 +235,7 @@ const RECORDED_READING: ForgeReading = {
   versions:         null,
   registryPresence: null,
   presenceReport:   null,
+  newestVersions:   null,
 };
 
 
@@ -261,14 +262,14 @@ describe('a snapshot at monitor version 3', () => {
     expect(reading.contracts.monitor).toBe(3);
     expect(reading.brain).toEqual({
       state:       'running',
-      startedAt:   '2026-11-20T23:45:19.939Z',
-      endsAt:      '2026-11-20T23:47:19.939Z',
+      startedAt:   '2026-11-21T07:05:52.612Z',
+      endsAt:      '2026-11-21T07:07:52.612Z',
       startedBy:   'api',
       model:       'haiku',
       effort:      'low',
       tokens:      11,
       calls:       1,
-      recentMoves: [{ at: '2026-11-20T23:45:20.504Z', intent: 'wave', emote: 'happy' }],
+      recentMoves: [{ at: '2026-11-21T07:05:53.183Z', intent: 'wave', emote: 'happy' }],
       endedAt:     null,
       endedReason: null,
       sentence:    'Flint\'s brain chooses Flint\'s moves.',
@@ -280,10 +281,10 @@ describe('a snapshot at monitor version 3', () => {
   test('reads an ended brain with its end, and its run as the one activity entry of its kind, with its tokens, which the day\'s include', async () => {
     const reading = await brainReadingOf('brain-ended');
     expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.endedReason, reading.brain.endedAt, reading.brain.tokens])
-      .toEqual(['ended', 'stopped', '2026-11-20T23:45:20.531Z', 11]);
+      .toEqual(['ended', 'stopped', '2026-11-21T07:05:53.214Z', 11]);
     expect(reading.activity.filter((entry) => entry.kind !== null)).toEqual([{
       logPosition: 6,
-      at:          '2026-11-21T00:45:20+01:00',
+      at:          '2026-11-21T08:05:53+01:00',
       category:    'agent',
       text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
       boardRoute:  null,
@@ -455,6 +456,7 @@ describe('a snapshot at a version this Gaia does not know', () => {
       versions:          null,
       registryPresence:  null,
       presenceReport:    null,
+      newestVersions:    null,
     });
   });
 

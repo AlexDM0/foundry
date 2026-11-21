@@ -25,10 +25,10 @@ import {
 } from './testing/RecordedForgeProgram.ts';
 
 /** The code version of the forge the F8 answers were recorded from; retake it after `bun run record forge-program-done`. */
-const RECORDED_CODE_VERSION = '2b47322f0984';
+const RECORDED_CODE_VERSION = 'af2246de1aee';
 
 const EXAMPLE_CONTRACTS = {
-  summary: 1, monitor: 2, control: 1, embed: 1
+  summary: 1, monitor: 3, control: 1, embed: 1
 };
 
 let forgeRoot = '';
@@ -113,7 +113,7 @@ describe('every verb done (recorded)', () => {
         generation:     1,
         trackerId:      'example-tracker',
         codeVersion:    RECORDED_CODE_VERSION,
-        installVersion: 27,
+        installVersion: 43,
         contracts:      EXAMPLE_CONTRACTS,
       },
     });
@@ -128,15 +128,15 @@ describe('every verb done (recorded)', () => {
         outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
       },
     });
-    expect(await forgeProgram.update(registeredForge())).toEqual({ verdict: 'done', answer: { outcome: 'done', installVersion: 27, batonPass: { outcome: 'not-needed' } } });
+    expect(await forgeProgram.update(registeredForge())).toEqual({ verdict: 'done', answer: { outcome: 'done', installVersion: 43, batonPass: { outcome: 'not-needed' } } });
   });
 
-  test('version answers done with the code and install versions, the contracts and the monitor folder', async () => {
+  test('version answers done with the code and install versions, the contracts, the Talos protocol version and the monitor folder', async () => {
     const { forgeProgram } = forgeProgramAt('every-verb-done');
     expect(await forgeProgram.version(registeredForge())).toEqual({
       verdict: 'done',
       answer:  {
-        codeVersion: RECORDED_CODE_VERSION, installVersion: 27, contracts: EXAMPLE_CONTRACTS, monitorFolder: '/Users/example/.forge-monitor'
+        codeVersion: RECORDED_CODE_VERSION, installVersion: 43, contracts: EXAMPLE_CONTRACTS, talosProtocolVersion: 2, monitorFolder: '/Users/example/.forge-monitor'
       },
     });
   });

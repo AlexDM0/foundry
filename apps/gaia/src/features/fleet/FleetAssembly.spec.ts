@@ -8,7 +8,7 @@
 import { describe, expect, test }    from 'bun:test';
 import type { ForgeInterruptedWork } from 'forge-contracts/ForgePresenceDocument';
 
-import { FLEET_OUTAGE_ENDINGS }                                              from '../../../page/testing/fixtures/fleet-outage-endings.ts';
+import { FLEET_OUTAGE_ENDINGS, OUTAGE_TALOS_PROTOCOL_VERSION }               from '../../../page/testing/fixtures/fleet-outage-endings.ts';
 import type { ForgeIdentity }                                                from '../../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { MonitorSnapshotIngestion }                                          from '../../adapters/forge-api/MonitorSnapshotIngestion.ts';
 import { PresenceIngestion }                                                 from '../../adapters/forge-api/PresenceIngestion.ts';
@@ -186,7 +186,7 @@ describe('Flint\'s brain', () => {
       state:      'running',
       tokens:     11,
       calls:      1,
-      startedAt:  '2026-11-20T23:45:19.939Z',
+      startedAt:  '2026-11-21T07:05:52.612Z',
       ticketIds:  [],
       boardRoute: null,
     });
@@ -224,7 +224,7 @@ describe('Flint\'s brain', () => {
     expect(snapshot.activity.filter((entry) => entry.kind === 'flint-brain')).toEqual([{
       trackerId:   STOREFRONT.trackerId,
       logPosition: 6,
-      at:          '2026-11-21T00:45:20+01:00',
+      at:          '2026-11-21T08:05:53+01:00',
       category:    'agent',
       text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
       boardRoute:  null,
@@ -290,20 +290,21 @@ function interruptedWorkOf(jobId: string, ticketId: string, cause: ForgeInterrup
   };
 }
 
-/** The recorded presence of a serving forge, holding this interrupted work instead of none. */
-function presenceReportHolding(interruptedWork: readonly ForgeInterruptedWork[]): ForgeReading['presenceReport'] {
-  const reading = new PresenceIngestion().presenceReportOf({ ...recordedPresenceDocumentOf('presence-serving'), interruptedWork });
+/** The recorded presence of a serving forge, holding this interrupted work instead of none, and its Talos on the forge's own code. */
+function presenceReportHolding(forge: ForgeReading, interruptedWork: readonly ForgeInterruptedWork[]): ForgeReading['presenceReport'] {
+  const talos = { protocolVersion: OUTAGE_TALOS_PROTOCOL_VERSION, codeVersion: forge.codeVersion ?? '', startNumber: 1 };
+  const reading = new PresenceIngestion().presenceReportOf({ ...recordedPresenceDocumentOf('presence-serving'), interruptedWork, talos });
   if (reading.report === null) throw new Error(`The presence document does not ingest: ${reading.reason.invalidKeys.join(', ')}`);
   return reading.report;
 }
 
 const OUTAGE_PRESENCE_REPORTS: Readonly<Record<string, ForgeReading['presenceReport']>> = {
-  [READINGS.exampleStorefront.trackerId]: presenceReportHolding([
+  [READINGS.exampleStorefront.trackerId]: presenceReportHolding(READINGS.exampleStorefront, [
     interruptedWorkOf('J7', '021', 'network-outage', 'instruction'),
     interruptedWorkOf('J9', '024', 'network-outage', 'instruction'),
   ]),
-  [READINGS.invoiceService.trackerId]:   presenceReportHolding([interruptedWorkOf('J3', '052', 'network-outage', 'instruction')]),
-  [READINGS.exampleMobileApp.trackerId]: presenceReportHolding([
+  [READINGS.invoiceService.trackerId]:   presenceReportHolding(READINGS.invoiceService, [interruptedWorkOf('J3', '052', 'network-outage', 'instruction')]),
+  [READINGS.exampleMobileApp.trackerId]: presenceReportHolding(READINGS.exampleMobileApp, [
     interruptedWorkOf('J5', '061', 'network-outage', 'nothing'),
     interruptedWorkOf('J6', '062', 'lease-ended', 'instruction'),
   ]),

@@ -145,6 +145,7 @@ describe('a summary at the known version', () => {
         versions:         null,
         registryPresence: null,
         presenceReport:   null,
+        newestVersions:   null,
       },
     });
   });

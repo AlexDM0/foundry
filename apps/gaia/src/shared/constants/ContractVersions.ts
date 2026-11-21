@@ -18,7 +18,7 @@ export const CONTRACT_VERSIONS = {
   forgeMonitor:             OVERSEER_CONTRACT_VERSIONS.monitor,
   forgeControl:             OVERSEER_CONTRACT_VERSIONS.control,
   forgeEmbedChannel:        OVERSEER_CONTRACT_VERSIONS.embed,
-  forgeProgramAnswer:       1,
+  forgeProgramAnswer:       2,
   forgeMachineLimits:       { major: 1, minor: 0 },
   forgeFrameAncestorRecord: { major: FRAME_ANCESTOR_RECORD_FORMAT.major, minor: FRAME_ANCESTOR_RECORD_FORMAT.minor },
   gaiaSettings:             { major: 1, minor: 0 },

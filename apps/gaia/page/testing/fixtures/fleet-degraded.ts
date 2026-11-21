@@ -100,6 +100,7 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   crashLogs:         [],
   waitingWork:       [],
   outageEndings:     0,
+  runningVersions:   null,
 };
 
 const ANALYTICS_SANDBOX: FleetDocumentForge = {
@@ -140,6 +141,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   crashLogs:         [],
   waitingWork:       [],
   outageEndings:     0,
+  runningVersions:   null,
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };

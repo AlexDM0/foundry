@@ -510,11 +510,13 @@ const EXAMPLE_STOREFRONT: FleetForge = {
   versions:         CURRENT_FORGE_VERSIONS,
   registryPresence: null,
   presenceReport:   null,
+  newestVersions:   null,
   presence:         { state: 'serving', generation: null, at: null },
   crashSummary:     null,
   crashLogs:        [],
   waitingWork:      [],
   outageEndings:    0,
+  runningVersions:  null,
 };
 
 const INVOICE_SERVICE: FleetForge = {
@@ -608,11 +610,13 @@ const INVOICE_SERVICE: FleetForge = {
   versions:         CURRENT_FORGE_VERSIONS,
   registryPresence: null,
   presenceReport:   null,
+  newestVersions:   null,
   presence:         { state: 'serving', generation: null, at: null },
   crashSummary:     null,
   crashLogs:        [],
   waitingWork:      [],
   outageEndings:    0,
+  runningVersions:  null,
 };
 
 const RESEARCH_WIKI: FleetForge = {
@@ -670,11 +674,13 @@ const RESEARCH_WIKI: FleetForge = {
   versions:         CURRENT_FORGE_VERSIONS,
   registryPresence: null,
   presenceReport:   null,
+  newestVersions:   null,
   presence:         { state: 'serving', generation: null, at: null },
   crashSummary:     null,
   crashLogs:        [],
   waitingWork:      [],
   outageEndings:    0,
+  runningVersions:  null,
 };
 
 const EXAMPLE_MOBILE_APP: FleetForge = {
@@ -733,11 +739,13 @@ const EXAMPLE_MOBILE_APP: FleetForge = {
   versions:         CURRENT_FORGE_VERSIONS,
   registryPresence: null,
   presenceReport:   null,
+  newestVersions:   null,
   presence:         { state: 'serving', generation: null, at: null },
   crashSummary:     null,
   crashLogs:        [],
   waitingWork:      [],
   outageEndings:    0,
+  runningVersions:  null,
 };
 
 /** Stopped in this run: what Gaia read of it before the stop stays, and the registry gives its last command. */
@@ -785,11 +793,13 @@ const DESIGN_SYSTEM: FleetForge = {
   versions:         CURRENT_FORGE_VERSIONS,
   registryPresence: null,
   presenceReport:   null,
+  newestVersions:   null,
   presence:         { state: 'unknown', generation: null, at: null },
   crashSummary:     null,
   crashLogs:        [],
   waitingWork:      [],
   outageEndings:    0,
+  runningVersions:  null,
 };
 
 const LEGACY_IMPORTER: FleetForge = {
@@ -827,18 +837,26 @@ const LEGACY_IMPORTER: FleetForge = {
   versions:          null,
   registryPresence:  null,
   presenceReport:    null,
+  newestVersions:    null,
   presence:          { state: 'unknown', generation: null, at: null },
   crashSummary:      null,
   crashLogs:         [],
   waitingWork:       [],
   outageEndings:     0,
+  runningVersions:   null,
 };
 
 /** Each forge of the fixture, for the fixtures that change one or two of them. */
 /** A fixture forge as the watch reads it, before the fleet tells how it is present. */
 export function forgeReadingOf(forge: FleetForge): ForgeReading {
   const {
-    presence: _presence, crashSummary: _crashSummary, crashLogs: _crashLogs, waitingWork: _waitingWork, outageEndings: _outageEndings, ...reading
+    presence: _presence,
+    crashSummary: _crashSummary,
+    crashLogs: _crashLogs,
+    waitingWork: _waitingWork,
+    outageEndings: _outageEndings,
+    runningVersions: _runningVersions,
+    ...reading
   } = forge;
   return reading;
 }
@@ -846,7 +864,13 @@ export function forgeReadingOf(forge: FleetForge): ForgeReading {
 /** A reading as the fleet holds a forge that serves with nothing waiting, no crash and no presence read. */
 export function servingFleetForgeOf(reading: ForgeReading): FleetForge {
   return {
-    ...reading, presence: { state: 'serving', generation: null, at: null }, crashSummary: null, crashLogs: [], waitingWork: [], outageEndings: 0,
+    ...reading,
+    presence:        { state: 'serving', generation: null, at: null },
+    crashSummary:    null,
+    crashLogs:       [],
+    waitingWork:     [],
+    outageEndings:   0,
+    runningVersions: null,
   };
 }
 

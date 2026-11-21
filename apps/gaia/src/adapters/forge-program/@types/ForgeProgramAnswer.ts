@@ -43,11 +43,13 @@ export interface ForgeUpdateAnswer {
   readonly batonPass:      ForgeBatonPass;
 }
 
+/** The installed program's versions: its code, its install version, its contracts and the protocol version of the Talos it starts. */
 export interface ForgeVersionAnswer {
-  readonly codeVersion:    string;
-  readonly installVersion: number;
-  readonly contracts:      ForgeContracts;
-  readonly monitorFolder:  string;
+  readonly codeVersion:          string;
+  readonly installVersion:       number;
+  readonly contracts:            ForgeContracts;
+  readonly talosProtocolVersion: number;
+  readonly monitorFolder:        string;
 }
 
 export type ForgeLoginItemAction = 'add' | 'remove' | 'status';

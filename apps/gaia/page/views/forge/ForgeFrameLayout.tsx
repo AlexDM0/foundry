@@ -1,7 +1,8 @@
 /**
  * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
  * question as a popover under its button and Flint's brain between Stop and Open in new tab, or, for a forge Gaia cannot talk to, the
- * controls it cannot send disabled and an older forge's Update forge step by step; a refusal under the bar; and the framed area:
+ * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
+ * Overseer and Talos with a restart of each; a refusal under the bar; and the framed area:
  * "Opening <project>." until the Bridge is ready, the Bridge's frame, B3's callout, the versions notice of a forge Gaia cannot talk to, or
  * why the forge cannot be shown here. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
@@ -33,6 +34,7 @@ import type {
   BarMarkWake,
   BarRefusal,
   BarUpdateStep,
+  BarVersions,
   ForgeBar,
   ForgeBarStatus,
   ForgeFrameArea,
@@ -214,6 +216,45 @@ function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk
  * Pause or Unpause, Stop with its question, Flint's brain, and Open in new tab; a forge whose control contract Gaia does not know takes only
  * the last, and a forge Gaia cannot talk to its own controls.
  */
+function BarLineSegmentText({ segment }: { readonly segment: BarLineSegment }) {
+  switch (segment.look) {
+    case 'words':
+      return segment.text;
+    case 'figure':
+      return <Text typeRole="small" mono>{segment.text}</Text>;
+    case 'version':
+      return <VersionsText text={[{ kind: 'version', text: segment.text }]} />;
+  }
+}
+
+function BarLine({ line }: { readonly line: readonly BarLineSegment[] }) {
+  return line.map((segment, i) => <BarLineSegmentText key={i} segment={segment} />);
+}
+
+export interface RunningVersionsLineProps {
+  readonly versions:          BarVersions;
+  /** While a command to this forge is on its way, both restarts wait for it, as the bar's controls do. */
+  readonly commandIsOnItsWay: boolean;
+  readonly onCommand:         (command: ForgeCommandBody) => void;
+}
+
+/** The bar's second line: the running and the newest Overseer and Talos, a pair a newer installed version marks, and a restart of each. */
+export function RunningVersionsLine({ versions, commandIsOnItsWay, onCommand }: RunningVersionsLineProps) {
+  const restartsMayAct = versions.restartsMayAct && !commandIsOnItsWay;
+  const { restartOverseer, restartTalos } = versions;
+  return (
+    <div className="gaia-forge-frame-running" role="group" aria-label="The running and the newest Overseer and Talos">
+      {versions.pairs.map((pair) => (
+        <span key={pair.component} className="gaia-forge-frame-running-pair" title={pair.title} data-newer={pair.newerIsInstalled ? '' : undefined}>
+          <BarLine line={pair.line} />
+        </span>
+      ))}
+      <Button label={restartOverseer.label} emphasis={restartOverseer.emphasis} compact disabled={!restartsMayAct} onPress={() => onCommand(restartOverseer.command)} />
+      <Button label={restartTalos.label} emphasis={restartTalos.emphasis} compact disabled={!restartsMayAct} onPress={() => onCommand(restartTalos.command)} />
+    </div>
+  );
+}
+
 export function ForgeBarControls(props: ForgeBarControlsProps) {
   const {
     bar, commandIsOnItsWay, stopIsOpen, stopAnchorRef, onCommand, onOpenStop, onCancelStop, onOpenInNewTab
@@ -259,21 +300,6 @@ export function forgeMarkPropsOf(markWake: BarMarkWake, commandIsOnItsWay: boole
     ...(markWake.title === null ? {} : { title: markWake.title }),
     ...(markWake.wakesBrain && !commandIsOnItsWay ? { onDoubleClick: onWake } : {}),
   };
-}
-
-function BarLineSegmentText({ segment }: { readonly segment: BarLineSegment }) {
-  switch (segment.look) {
-    case 'words':
-      return segment.text;
-    case 'figure':
-      return <Text typeRole="small" mono>{segment.text}</Text>;
-    case 'version':
-      return <VersionsText text={[{ kind: 'version', text: segment.text }]} />;
-  }
-}
-
-function BarLine({ line }: { readonly line: readonly BarLineSegment[] }) {
-  return line.map((segment, i) => <BarLineSegmentText key={i} segment={segment} />);
 }
 
 /** The bar heads the view, since a forge in place has no page title; its line keeps to one line, the whole reading in its tooltip. */

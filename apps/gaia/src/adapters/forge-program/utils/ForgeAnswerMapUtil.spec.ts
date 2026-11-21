@@ -49,34 +49,34 @@ describe('an answer Gaia does not understand', () => {
     expect(stopVerdictOf({
       verdict: 'finished', exitCode: 0, standardOutput: 'stopped\n', standardError: ''
     })).toEqual({ verdict: 'answer-not-understood', reason: 'no-json', exitCode: 0 });
-    expect(stopVerdictOf(finishedRun(0, [{ answerVersion: 1, outcome: 'done' }]))).toEqual({ verdict: 'answer-not-understood', reason: 'no-json', exitCode: 0 });
+    expect(stopVerdictOf(finishedRun(0, [{ answerVersion: 2, outcome: 'done' }]))).toEqual({ verdict: 'answer-not-understood', reason: 'no-json', exitCode: 0 });
   });
 
   test('is other-answer-version for a document at another answerVersion or without one, done or refused, and maps nothing', () => {
-    expect(stopVerdictOf(finishedRun(0, { answerVersion: 2, outcome: 'done' }))).toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 0 });
+    expect(stopVerdictOf(finishedRun(0, { answerVersion: 1, outcome: 'done' }))).toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 0 });
     expect(stopVerdictOf(finishedRun(0, { outcome: 'done' }))).toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 0 });
-    expect(stopVerdictOf(finishedRun(1, { answerVersion: 2, refusal: 'example-refusal', text: 'Refused by the example.' })))
+    expect(stopVerdictOf(finishedRun(1, { answerVersion: 3, refusal: 'example-refusal', text: 'Refused by the example.' })))
       .toEqual({ verdict: 'answer-not-understood', reason: 'other-answer-version', exitCode: 1 });
   });
 
   test('reads an answer of the known answerVersion passing over a key this Gaia does not know', () => {
-    expect(stopVerdictOf(finishedRun(0, { answerVersion: 1, outcome: 'done', exampleAddedKey: 'example' }))).toEqual({ verdict: 'done', answer: { outcome: 'done' } });
+    expect(stopVerdictOf(finishedRun(0, { answerVersion: 2, outcome: 'done', exampleAddedKey: 'example' }))).toEqual({ verdict: 'done', answer: { outcome: 'done' } });
   });
 
   test('is malformed for a done document without a key its answer needs, and for a refusal without its code or sentence', () => {
-    expect(stopVerdictOf(finishedRun(0, { answerVersion: 1, outcome: 'stopped' }))).toEqual({ verdict: 'answer-not-understood', reason: 'malformed', exitCode: 0 });
-    expect(stopVerdictOf(finishedRun(1, { answerVersion: 1, refusal: 'example-refusal' }))).toEqual({ verdict: 'answer-not-understood', reason: 'malformed', exitCode: 1 });
+    expect(stopVerdictOf(finishedRun(0, { answerVersion: 2, outcome: 'stopped' }))).toEqual({ verdict: 'answer-not-understood', reason: 'malformed', exitCode: 0 });
+    expect(stopVerdictOf(finishedRun(1, { answerVersion: 2, refusal: 'example-refusal' }))).toEqual({ verdict: 'answer-not-understood', reason: 'malformed', exitCode: 1 });
   });
 });
 
 describe('a refusal', () => {
   test('at exit 1 answers refused with the forge\'s code and sentence unchanged', () => {
     const text = '  The Overseer at http://127.0.0.1:47213 is still live; nothing more was done.  ';
-    expect(stopVerdictOf(finishedRun(1, { answerVersion: 1, refusal: 'overseer-still-live', text }))).toEqual({ verdict: 'refused', refusal: 'overseer-still-live', text });
+    expect(stopVerdictOf(finishedRun(1, { answerVersion: 2, refusal: 'overseer-still-live', text }))).toEqual({ verdict: 'refused', refusal: 'overseer-still-live', text });
   });
 
   test('at another exit but 0 answers refused too', () => {
-    expect(stopVerdictOf(finishedRun(2, { answerVersion: 1, refusal: 'unreadable-tracker', text: 'The board cannot be read.' })))
+    expect(stopVerdictOf(finishedRun(2, { answerVersion: 2, refusal: 'unreadable-tracker', text: 'The board cannot be read.' })))
       .toEqual({ verdict: 'refused', refusal: 'unreadable-tracker', text: 'The board cannot be read.' });
   });
 });
@@ -84,7 +84,7 @@ describe('a refusal', () => {
 describe('the done answers of each verb', () => {
   test('start reads a contract the forge does not serve as null, and refuses a contract that is no whole number', () => {
     const startDocument = {
-      answerVersion:  1,
+      answerVersion:  2,
       started:        false,
       url:            'http://127.0.0.1:47213',
       generation:     3,
@@ -110,7 +110,7 @@ describe('the done answers of each verb', () => {
 
   test('update reads a failed Baton pass with the step that failed, and refuses a failed one without it', () => {
     const updateDocument = {
-      answerVersion: 1, outcome: 'done', installVersion: 27, batonPass: 'failed', batonPassStep: 'restart-not-taken'
+      answerVersion: 2, outcome: 'done', installVersion: 27, batonPass: 'failed', batonPassStep: 'restart-not-taken'
     };
     const failedBatonPass: ForgeBatonPass = { outcome: 'failed', failedStep: 'restart-not-taken' };
     expect(ForgeAnswerMapUtil.updateAnswerOf(updateDocument)).toEqual({ outcome: 'done', installVersion: 27, batonPass: failedBatonPass });
@@ -122,7 +122,7 @@ describe('the done answers of each verb', () => {
 
   test('init reads whether it created the tracker or refreshed one that was there', () => {
     const initDocument = {
-      answerVersion: 1, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
+      answerVersion: 2, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
     };
     expect(ForgeAnswerMapUtil.initAnswerOf(initDocument)).toEqual({
       outcome: 'created', trackerId: 'example-tracker', project: 'Example Project', root: '/Users/example/development/example-project'
@@ -131,24 +131,47 @@ describe('the done answers of each verb', () => {
     expect(ForgeAnswerMapUtil.initAnswerOf({ ...initDocument, outcome: 'done' })).toBeNull();
   });
 
+  test('version reads the installed code, install and contract versions, the Talos protocol version it starts and the monitor folder', () => {
+    const versionDocument = {
+      answerVersion:  2,
+      codeVersion:    '3a6e9e6043da',
+      installVersion: 43,
+      contracts:      {
+        summary: 1, monitor: 3, control: 1, embed: 1
+      },
+      talosProtocolVersion: 2,
+      monitorFolder:        '/Users/example/.forge-monitor',
+    };
+    expect(ForgeAnswerMapUtil.versionAnswerOf(versionDocument)).toEqual({
+      codeVersion:    '3a6e9e6043da',
+      installVersion: 43,
+      contracts:      {
+        summary: 1, monitor: 3, control: 1, embed: 1
+      },
+      talosProtocolVersion: 2,
+      monitorFolder:        '/Users/example/.forge-monitor',
+    });
+    expect(ForgeAnswerMapUtil.versionAnswerOf({ ...versionDocument, talosProtocolVersion: 'two' })).toBeNull();
+  });
+
   test('the login item reads its state after the step, and the machine limit the limit it stored', () => {
     expect(ForgeAnswerMapUtil.loginItemAnswerOf({
-      answerVersion: 1, outcome: null, state: 'absent', label: 'com.forge.overseer.example-tracker', location: '/Users/example/Library/LaunchAgents', repository: '/Users/example'
+      answerVersion: 2, outcome: null, state: 'absent', label: 'com.forge.overseer.example-tracker', location: '/Users/example/Library/LaunchAgents', repository: '/Users/example'
     })).toEqual({ loginItem: 'absent' });
     expect(ForgeAnswerMapUtil.machineLimitAnswerOf({
-      answerVersion: 1, outcome: 'nothing-to-do', limit: 4, ceiling: 10
+      answerVersion: 2, outcome: 'nothing-to-do', limit: 4, ceiling: 10
     })).toEqual({ outcome: 'nothing-to-do', agentLimit: 4 });
   });
 
   test('init, version, the login item and the machine limit each refuse a document without a key they need', () => {
     expect(ForgeAnswerMapUtil.initAnswerOf({
-      answerVersion: 1, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project'
+      answerVersion: 2, outcome: 'created', trackerId: 'example-tracker', project: 'Example Project'
     })).toBeNull();
     expect(ForgeAnswerMapUtil.versionAnswerOf({
-      answerVersion: 1, codeVersion: '3a6e9e6043da', installVersion: 27, contracts: {}
+      answerVersion: 2, codeVersion: '3a6e9e6043da', installVersion: 27, contracts: {}
     })).toBeNull();
-    expect(ForgeAnswerMapUtil.loginItemAnswerOf({ answerVersion: 1, outcome: 'done', state: 'written' })).toBeNull();
-    expect(ForgeAnswerMapUtil.machineLimitAnswerOf({ answerVersion: 1, outcome: 'done', limit: -1 })).toBeNull();
+    expect(ForgeAnswerMapUtil.loginItemAnswerOf({ answerVersion: 2, outcome: 'done', state: 'written' })).toBeNull();
+    expect(ForgeAnswerMapUtil.machineLimitAnswerOf({ answerVersion: 2, outcome: 'done', limit: -1 })).toBeNull();
   });
 
   test('reads a key only as the document\'s own, never through its prototype', () => {

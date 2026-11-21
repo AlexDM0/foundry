@@ -274,6 +274,7 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
     versions:         null,
     registryPresence: null,
     presenceReport:   null,
+    newestVersions:   null,
   };
 }
 
@@ -317,6 +318,7 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
     versions:         null,
     registryPresence: null,
     presenceReport:   null,
+    newestVersions:   null,
   };
 }
 
@@ -369,6 +371,7 @@ function unreadReadingOf(
     versions:          null,
     registryPresence:  null,
     presenceReport:    null,
+    newestVersions:    null,
   };
 }
 

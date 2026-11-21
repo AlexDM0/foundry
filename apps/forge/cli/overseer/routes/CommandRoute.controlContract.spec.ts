@@ -1,12 +1,12 @@
 /**
- * The control contract a monitor sends to `POST /api/v1/commands`: the ten kinds, each body and each answer, under `controlVersion` 1,
- * which forge 1.1 keeps although it adds Flint's brain's two kinds. What matters: the list of kinds is exact both ways against
- * `CONTROL_CONTRACT_KINDS`, and each body is both the package's `ForgeControlCommand` and forge's own command, which the typecheck holds;
- * every applied kind answers 200 `{controlVersion: 1, outcome, result}` with the outcome `done` or `nothing-to-do`; a body of a contract kind
- * with a field of the wrong type, or none, answers 400 and writes nothing, also where the applier would not check the field; a refused
- * command, a brain's refusal among them, answers 409 and the install hold 423, each `{controlVersion: 1, refusal, fields, text}` with the
- * refusal's code, its facts (none for 400 and 423) and the sentence the command line prints, also where the API's sentence differs. A
- * change here raises the system version in `forge-contracts`.
+ * The control contract a monitor sends to `POST /api/v1/commands`: the eleven kinds, each body and each answer, under `controlVersion` 1,
+ * which forge 1.1 keeps although it adds Flint's brain's two kinds, and 1.23 although it adds the restart of Talos. What matters: the list
+ * of kinds is exact both ways against `CONTROL_CONTRACT_KINDS`, and each body is both the package's `ForgeControlCommand` and forge's own
+ * command, which the typecheck holds; every applied kind answers 200 `{controlVersion: 1, outcome, result}` with the outcome `done` or
+ * `nothing-to-do`; a body of a contract kind with a field of the wrong type, or none, answers 400 and writes nothing, also where the
+ * applier would not check the field; a refused command, a brain's refusal among them, answers 409 and the install hold 423, each
+ * `{controlVersion: 1, refusal, fields, text}` with the refusal's code, its facts (none for 400 and 423) and the sentence the command line
+ * prints, also where the API's sentence differs. A change here raises the system version in `forge-contracts`.
  */
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -61,6 +61,7 @@ const CONTRACT_BODIES: { readonly [Kind in ForgeControlCommand['kind']]: { body:
   'overseer-resume':         { body: { kind: 'overseer-resume' }, outcomes: ['done', 'nothing-to-do'] },
   'overseer-stop':           { body: { kind: 'overseer-stop', now: false }, outcomes: ['done'] },
   'overseer-restart':        { body: { kind: 'overseer-restart', now: true }, outcomes: ['done'] },
+  'talos-restart':           { body: { kind: 'talos-restart' }, outcomes: ['done', 'nothing-to-do'] },
   'concurrency-set':         { body: { kind: 'concurrency-set', limit: 3 }, outcomes: ['done', 'nothing-to-do'] },
   'job-stop-all':            { body: { kind: 'job-stop-all', mode: 'wind-down' }, outcomes: ['done', 'nothing-to-do'] },
   'machine-agent-limit-set': { body: { kind: 'machine-agent-limit-set', limit: 2 }, outcomes: ['done'] },
@@ -147,14 +148,14 @@ function routeRequest(launchesHeld = false, flintBrain = scriptedFlintBrain().br
     workspace,
     boardStore:          boardStoreIn(context, workspace),
     launchesHeld:        () => launchesHeld,
-    onRuntimeCommand:    () => undefined,
+    onRuntimeCommand:    () => Promise.resolve('done' as const),
     wake:                () => undefined,
     machineAgentCeiling: MACHINE_AGENT_CEILING,
   };
 }
 
 describeWhenGitIsRecorded('the control contract', () => {
-  test('names exactly the ten kinds of the contract, each a kind the command route takes', () => {
+  test('names exactly the eleven kinds of the contract, each a kind the command route takes', () => {
     expect(Object.keys(CONTRACT_BODIES).sort()).toEqual([...CONTROL_CONTRACT_KINDS].sort());
     expect(CONTROL_CONTRACT_KINDS.filter((kind) => !COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
   });

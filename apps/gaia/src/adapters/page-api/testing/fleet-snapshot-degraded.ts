@@ -91,11 +91,13 @@ const RESEARCH_WIKI: FleetForge = {
   versions:          CURRENT_FORGE_VERSIONS,
   registryPresence:  null,
   presenceReport:    null,
+  newestVersions:    null,
   presence:          { state: 'serving', generation: null, at: null },
   crashSummary:      null,
   crashLogs:         [],
   waitingWork:       [],
   outageEndings:     0,
+  runningVersions:   null,
 };
 
 const ANALYTICS_SANDBOX: FleetForge = {
@@ -133,11 +135,13 @@ const ANALYTICS_SANDBOX: FleetForge = {
   versions:          CURRENT_FORGE_VERSIONS,
   registryPresence:  null,
   presenceReport:    null,
+  newestVersions:    null,
   presence:          { state: 'serving', generation: null, at: null },
   crashSummary:      null,
   crashLogs:         [],
   waitingWork:       [],
   outageEndings:     0,
+  runningVersions:   null,
 };
 
 const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };

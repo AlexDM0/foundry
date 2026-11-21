@@ -185,6 +185,27 @@ async function chunksUntil(stream: OverseerStream, isEnough: (eventNames: readon
   return chunks;
 }
 
+/**
+ * The chunks of a job's stream up to a history that holds an entry: the product owner shows at work once its session printed a line, which
+ * can come before its first message is in its conversation, so an empty history waits for the stream's first message and is read again.
+ */
+async function historyWithItsFirstEntry(jobStreamRequest: OverseerStreamRequest): Promise<string[]> {
+  const firstStream = await openedStream(jobStreamRequest);
+  const firstChunks = await chunksUntil(firstStream, (eventNames) => eventNames.includes('history')).catch((thrown: unknown) => {
+    firstStream.close();
+    throw thrown;
+  });
+  const parser = eventStreamParserOf();
+  const history = firstChunks.flatMap((chunk) => parser.eventsOf(chunk)).find((event) => event.eventName === 'history');
+  if (history !== undefined && history.data !== '[]') {
+    firstStream.close();
+    return firstChunks;
+  }
+  await chunksUntil(firstStream, (eventNames) => eventNames.includes('message')).finally(() => firstStream.close());
+  const secondStream = await openedStream(jobStreamRequest);
+  return await chunksUntil(secondStream, (eventNames) => eventNames.includes('history')).finally(() => secondStream.close());
+}
+
 /** Waits on the board's event stream until the board document shows what `boardShows` asks, and answers that document. */
 async function boardOnceItShows(wanted: string, boardShows: (board: Record<string, unknown>) => boolean): Promise<Record<string, unknown>> {
   const stream = await openedStream(streamRequestOf(forgeEndpointPathOf('events')));
@@ -482,8 +503,7 @@ describe('Example Storefront\'s board, read as the relay reads it', () => {
     const board = await boardOnceItShows('the intake\'s product owner at work', (shown) => listOf(shown['jobs']).some((job) => intakeProductOwnerIsAtWork(shown, job)));
     const jobId = String(listOf(board['jobs']).find((job) => intakeProductOwnerIsAtWork(board, job))?.['id']);
     const jobStreamRequest = streamRequestOf(forgeEndpointPathOf('jobStream', { jobId }));
-    const jobStream = await openedStream(jobStreamRequest);
-    const chunks = await chunksUntil(jobStream, (eventNames) => eventNames.includes('history')).finally(() => jobStream.close());
+    const chunks = await historyWithItsFirstEntry(jobStreamRequest);
     keep('intake-conversation', streamCallShapeOf(jobStreamRequest), { verdict: 'streaming', chunks, ending: 'stays-open' });
   }, STEP_TIMEOUT_MILLISECONDS);
 

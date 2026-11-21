@@ -187,6 +187,7 @@ describe('a board that holds waiting work', () => {
       }],
       heldMerges: [],
       crashLogs:  [],
+      talos:      null,
     };
   }
 

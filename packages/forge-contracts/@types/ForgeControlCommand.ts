@@ -1,7 +1,7 @@
 /**
  * The commands of the forge's control contract (F7, G3) a monitor may send to `POST /api/commands`, as the forge spells them. The body
- * carries no version: the forge's system version names the kinds it reads, Flint's brain's two from 1.1 and the resume of interrupted
- * work from 1.20.
+ * carries no version: the forge's system version names the kinds it reads, Flint's brain's two from 1.1, the resume of interrupted work
+ * from 1.20 and the clean restart of Talos from 1.23.
  */
 
 /** `wind-down` lets each job finish its turn; `stop` ends it now. */
@@ -23,6 +23,8 @@ export type ForgeControlCommand =
   | { readonly kind: 'interrupted-work-resume'; readonly target: ForgeResumeTarget }
   | { readonly kind: 'overseer-stop'; readonly now: boolean }
   | { readonly kind: 'overseer-restart'; readonly now: boolean }
+  /** Runtime only: Talos quits cleanly and the right one starts; its paused agents resume by themselves. From forge 1.23. */
+  | { readonly kind: 'talos-restart' }
   | { readonly kind: 'concurrency-set'; readonly limit: number }
   | { readonly kind: 'job-stop-all'; readonly mode: ForgeJobStopMode }
   | { readonly kind: 'machine-agent-limit-set'; readonly limit: number }

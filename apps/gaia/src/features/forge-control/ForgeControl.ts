@@ -315,6 +315,8 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
         return carryOverApi(forge, reading, { kind: 'interrupted-work-resume', target: command.target });
       case 'forge-restart':
         return carryOverApi(forge, reading, { kind: 'overseer-restart', now: false });
+      case 'forge-talos-restart':
+        return carryOverApi(forge, reading, { kind: 'talos-restart' });
       case 'forge-concurrency-set':
         return carryOverApi(forge, reading, { kind: 'concurrency-set', limit: command.limit });
       case 'forge-update':

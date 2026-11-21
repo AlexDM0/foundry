@@ -58,6 +58,7 @@ import { Presence }                                                 from '../../
 import { createTalosChildren }                                      from '../../src/services/overseer/TalosChildren.ts';
 import { type TalosConnection, connectToTalos }                     from '../../src/services/overseer/TalosConnection.ts';
 import { createLineRunner }                                         from '../../src/services/overseer/TalosLines.ts';
+import { quitTalosForRestart }                                      from '../../src/services/overseer/TalosRestart.ts';
 import {
   type TalosAvailability,
   type TalosStartContext,
@@ -104,7 +105,7 @@ import { type OverseerPollSchedule, overseerPollScheduleOf }            from './
 import { OverseerWording }                                              from './OverseerWording.ts';
 import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
 import { createMergeForecastCache, readBoardState }                     from './routes/BoardStateReader.ts';
-import type { RuntimeOverseerCommand }                                  from './routes/CommandRoute.ts';
+import type { RuntimeCommandOutcome, RuntimeOverseerCommand }           from './routes/CommandRoute.ts';
 import { overseerRoutesOf }                                             from './routes/OverseerRoutes.ts';
 
 export interface ForegroundRunRequest {
@@ -691,18 +692,24 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         mergeForecastCache,
         mainLineReads,
         silentSweepsOf:   (jobId: string) => current?.drivePass.silentSweepsOf(jobId) ?? 0,
-        onRuntimeCommand: (command: RuntimeOverseerCommand) => {
-          log(`${command.kind} received${command.now ? ' (now)' : ''}.`);
-          if (current === null || handingOver) return;
+        onRuntimeCommand: async (command: RuntimeOverseerCommand): Promise<RuntimeCommandOutcome> => {
+          log(`${command.kind} received${'now' in command && command.now ? ' (now)' : ''}.`);
+          if (current === null || handingOver) return command.kind === 'talos-restart' ? 'nothing-to-do' : 'done';
+          if (command.kind === 'talos-restart') {
+            const outcome = await quitTalosForRestart(talosConnection);
+            log(`Talos ${followedTalosStartNumber ?? 'none'} was asked to quit for a clean restart: ${outcome}.`);
+            return outcome;
+          }
           if (command.kind === 'overseer-restart') {
           // Set at once, so a second command during this Baton pass never overwrites what the successor reported.
             handingOver = true;
             // Written before the command is answered, so whoever sent it never reads an earlier Baton pass's outcome.
             BatonPass.writeBatonPass(BatonPass.batonPassFilePathOf(files.overseerDirectory, current.generation), { state: 'requested' });
             current.lifetime.restart();
-            return;
+            return 'done';
           }
           current.lifetime.stopFor(command.kind, command.now);
+          return 'done';
         },
       }),
     });

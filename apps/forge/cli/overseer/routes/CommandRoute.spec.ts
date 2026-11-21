@@ -1,10 +1,11 @@
 /**
  * `POST /api/commands`' answers that need no running Overseer. What matters: while launches are held for an install change a board command
- * is refused 423 before the tracker is opened, while `overseer-stop` and `overseer-restart` still reach the Overseer; a body with no known
- * kind, or a runtime command whose `now` is no boolean, is 400 and reaches nothing; and a `range`, `clear` or by-hand delivery of the wrong
- * shape is 400 before the hold, since a clear of an unknown scope would otherwise clear. The 423's sentence names no command line: the Bridge
- * and a monitor show it to User, who runs no command. Flint's brain's commands reach the brain also while launches are held, and a start
- * names the Bridge as its starter only when the request carries a Bridge session, the API otherwise, whatever the body says.
+ * is refused 423 before the tracker is opened, while `overseer-stop`, `overseer-restart` and `talos-restart` still reach the Overseer,
+ * whose outcome the answer carries, `nothing-to-do` for a Talos restart with no Talos; a body with no known kind, or a runtime command
+ * whose `now` is no boolean, is 400 and reaches nothing; and a `range`, `clear` or by-hand delivery of the wrong shape is 400 before the
+ * hold, since a clear of an unknown scope would otherwise clear. The 423's sentence names no command line: the Bridge and a monitor show it
+ * to User, who runs no command. Flint's brain's commands reach the brain also while launches are held, and a start names the Bridge as its
+ * starter only when the request carries a Bridge session, the API otherwise, whatever the body says.
  */
 import {
   afterEach,
@@ -15,13 +16,18 @@ import {
 
 import type { MonitorFlintBrainStartedBy } from 'forge-contracts/MonitorSnapshotDocument';
 
-import type { CommandCaller }                                                     from '../../../src/services/overseer/OverseerServer.ts';
-import { workspacePathsFor }                                                      from '../../../src/services/tracker/Workspace.ts';
-import { createScratchDirectory, removeScratchDirectory }                         from '../../../src/testing/ScratchWorkspace.ts';
-import { boardStoreIn }                                                           from '../../BoardStoreOf.ts';
-import { createArgumentParser }                                                   from '../../arguments/ArgumentParser.ts';
-import { createCapturedCommandContext }                                           from '../../testing/CapturedCommandContext.ts';
-import { MALFORMED_BODY_TEXT, answerControlCommand, type RuntimeOverseerCommand } from './CommandRoute.ts';
+import type { CommandCaller }                             from '../../../src/services/overseer/OverseerServer.ts';
+import { workspacePathsFor }                              from '../../../src/services/tracker/Workspace.ts';
+import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
+import { boardStoreIn }                                   from '../../BoardStoreOf.ts';
+import { createArgumentParser }                           from '../../arguments/ArgumentParser.ts';
+import { createCapturedCommandContext }                   from '../../testing/CapturedCommandContext.ts';
+import {
+  MALFORMED_BODY_TEXT,
+  type RuntimeCommandOutcome,
+  type RuntimeOverseerCommand,
+  answerControlCommand
+} from './CommandRoute.ts';
 
 const scratchDirectories: string[] = [];
 
@@ -33,7 +39,7 @@ afterEach(() => {
   for (const directory of scratchDirectories.splice(0)) removeScratchDirectory(directory);
 });
 
-function heldRoute(launchesHeld: boolean) {
+function heldRoute(launchesHeld: boolean, runtimeOutcome: RuntimeCommandOutcome = 'done') {
   const directory = createScratchDirectory('command-route');
   scratchDirectories.push(directory);
   const runtimeCommands: RuntimeOverseerCommand[] = [];
@@ -47,9 +53,12 @@ function heldRoute(launchesHeld: boolean) {
     workspace,
     boardStore:       boardStoreIn(context, workspace),
     launchesHeld:     () => launchesHeld,
-    onRuntimeCommand: (command: RuntimeOverseerCommand) => runtimeCommands.push(command),
-    wake:             () => wakes.push('wake'),
-    flintBrain:       {
+    onRuntimeCommand: (command: RuntimeOverseerCommand) => {
+      runtimeCommands.push(command);
+      return Promise.resolve(runtimeOutcome);
+    },
+    wake:       () => wakes.push('wake'),
+    flintBrain: {
       start: async (startedBy: MonitorFlintBrainStartedBy) => {
         brainStarters.push(startedBy);
         return await Promise.resolve({ verdict: 'done' } as const);
@@ -75,6 +84,17 @@ describe('answerControlCommand', () => {
     expect(await answerControlCommand({ kind: 'overseer-stop', now: true }, request, API_CALLER)).toEqual({ status: 200, body: stopAnswer });
     expect(runtimeCommands).toEqual([{ kind: 'overseer-stop', now: true }]);
     expect(wakes).toEqual([]);
+  });
+
+  test('talos-restart reaches the Overseer while launches are held, carries no now, and answers the outcome the Overseer gave', async () => {
+    const { request, runtimeCommands, wakes } = heldRoute(true);
+    const doneAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'talos-restart' } };
+    expect(await answerControlCommand({ kind: 'talos-restart', now: true }, request, API_CALLER)).toEqual({ status: 200, body: doneAnswer });
+    expect([runtimeCommands, wakes]).toEqual([[{ kind: 'talos-restart' }], []]);
+
+    const withoutTalos = heldRoute(false, 'nothing-to-do');
+    const nothingAnswer = { controlVersion: 1, outcome: 'nothing-to-do', result: { kind: 'talos-restart' } };
+    expect(await answerControlCommand({ kind: 'talos-restart' }, withoutTalos.request, API_CALLER)).toEqual({ status: 200, body: nothingAnswer });
   });
 
   test('an unknown kind, a body that is no object and a runtime command whose now is no boolean are 400 and reach nothing', async () => {

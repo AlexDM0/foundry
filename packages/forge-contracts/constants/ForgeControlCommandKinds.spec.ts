@@ -14,6 +14,7 @@ const EVERY_CLIENT_COMMAND_KIND = {
   'interrupted-work-resume':    true,
   'overseer-stop':              true,
   'overseer-restart':           true,
+  'talos-restart':              true,
   'concurrency-set':            true,
   'job-stop-all':               true,
   'machine-agent-limit-set':    true,

@@ -35,6 +35,7 @@ import {
   type FrameAreaShown,
   ForgeFrameAreaLayout,
   forgeMarkPropsOf,
+  RunningVersionsLine,
 } from './ForgeFrameLayout.tsx';
 import {
   type ForgeBar,
@@ -113,35 +114,39 @@ function ForgeBarWithControls({ bar, onOpenInNewTab }: ForgeBarWithControlsProps
   const wakeBrain = (): void => void send({ kind: 'forge-brain-start', trackerId: bar.trackerId });
   const updateStep = ForgeFrameModel.updateStepOf(commandState);
   const subject = { trackerId: bar.trackerId };
+  const { versions } = bar;
   return (
-    <ForgeBarLayout
-      name={bar.project}
-      status={bar.status}
-      mark={forgeMarkPropsOf(markWake, commandIsOnItsWay, wakeBrain)}
-      controls={(
-        <ForgeBarControls
-          bar={bar}
-          brainShown={brainShown}
-          commandIsOnItsWay={commandIsOnItsWay}
-          stopIsOpen={stopIsOpen}
-          stopAnchorRef={stopAnchorRef}
-          stopAgents={stopAgents}
-          onCommand={(command) => {
-            if (command.kind === 'forge-stop') setStopIsOpen(false);
-            void send(command);
-          }}
-          onOpenStop={() => {
-            setStopAgents('keep');
-            setStopIsOpen((isOpen) => !isOpen);
-          }}
-          onChooseStop={setStopAgents}
-          onCancelStop={() => setStopIsOpen(false)}
-          updateStep={updateStep}
-          onDismissUpdate={() => (updateStep.step === 'refused' ? dismissFailure(subject) : dismissRestartPending(subject))}
-          onOpenInNewTab={onOpenInNewTab}
-        />
-      )}
-    />
+    <>
+      <ForgeBarLayout
+        name={bar.project}
+        status={bar.status}
+        mark={forgeMarkPropsOf(markWake, commandIsOnItsWay, wakeBrain)}
+        controls={(
+          <ForgeBarControls
+            bar={bar}
+            brainShown={brainShown}
+            commandIsOnItsWay={commandIsOnItsWay}
+            stopIsOpen={stopIsOpen}
+            stopAnchorRef={stopAnchorRef}
+            stopAgents={stopAgents}
+            onCommand={(command) => {
+              if (command.kind === 'forge-stop') setStopIsOpen(false);
+              void send(command);
+            }}
+            onOpenStop={() => {
+              setStopAgents('keep');
+              setStopIsOpen((isOpen) => !isOpen);
+            }}
+            onChooseStop={setStopAgents}
+            onCancelStop={() => setStopIsOpen(false)}
+            updateStep={updateStep}
+            onDismissUpdate={() => (updateStep.step === 'refused' ? dismissFailure(subject) : dismissRestartPending(subject))}
+            onOpenInNewTab={onOpenInNewTab}
+          />
+        )}
+      />
+      {versions === null ? null : <RunningVersionsLine versions={versions} commandIsOnItsWay={commandIsOnItsWay} onCommand={(command) => void send(command)} />}
+    </>
   );
 }
 

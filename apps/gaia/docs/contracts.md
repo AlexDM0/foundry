@@ -80,9 +80,9 @@ changes the endpoint already had.
 | `health` | 1 | `GET /api/v1/health` | none |
 | `sessionCodes` | 1 | `POST /api/v1/session-codes` | none |
 | `session` | 1 | `POST /api/v1/session` | none |
-| `fleet` | 7 | `GET /api/v7/fleet` | monitor contract 2's warning kinds (2); Flint's brain (3); a forge too old to talk to, fidelity `older-contract` (4); board routes in place of the Bridge's fragments (5); each forge's presence, crash, crash logs and waiting work, and the forge alerts in what waits (6); each forge's outage endings, their total, and the fleet's alert `agents-ended-on-outage`, an attention item of no one forge (7) |
-| `events` | 7 | `GET /api/v7/events` | as `fleet`, whose document each `fleet` event carries |
-| `commands` | 4 | `POST /api/v4/commands` | Gaia's own sentences for forge refusals (2); the brain's commands (3); `forge-unpause` in place of `forge-resume`, and `forge-interrupted-work-resume` (4) |
+| `fleet` | 8 | `GET /api/v8/fleet` | monitor contract 2's warning kinds (2); Flint's brain (3); a forge too old to talk to, fidelity `older-contract` (4); board routes in place of the Bridge's fragments (5); each forge's presence, crash, crash logs and waiting work, and the forge alerts in what waits (6); each forge's outage endings, their total, and the fleet's alert `agents-ended-on-outage`, an attention item of no one forge (7); each forge's `runningVersions`, the running and the newest Overseer and Talos (8) |
+| `events` | 8 | `GET /api/v8/events` | as `fleet`, whose document each `fleet` event carries |
+| `commands` | 4 | `POST /api/v4/commands` | Gaia's own sentences for forge refusals (2); the brain's commands (3); `forge-unpause` in place of `forge-resume`, and `forge-interrupted-work-resume` (4); `forge-talos-restart`, sent as the forge's `talos-restart` (a kind it only adds) |
 | `frameSession` | 1 | `POST /api/v1/forges/<trackerId>/frame-session` | none |
 | `forgeBoard` | 1 | `GET /api/v1/forges/<trackerId>/board` | none |
 | `forgeBoardEvents` | 1 | `GET /api/v1/forges/<trackerId>/board/events` | none |
@@ -110,11 +110,11 @@ version, major.minor.
 | `forgeMonitor` | 3 | `monitorVersion` | an Overseer's `GET /api/v2/monitor` and each `monitor` event of `GET /api/v2/monitor/events`, with the bearer token | reads | `forge-contracts/MonitorSnapshotDocument`, `src/adapters/forge-api/MonitorSnapshotIngestion.ts` | the forge at 1.1, with Flint's brain as `flintBrain` (`null` on a forge that cannot run it), and an ended brain's activity entry, category `agent`, of kind `flint-brain` with its tokens (G1, G2) |
 | `forgeControl` | 1 | `contracts.control` of the identity | an Overseer's `POST /api/v1/commands`, with the bearer token | sends | `forge-contracts/ForgeControlCommand` | the forge at 1.1, with `flint-brain-start` and `flint-brain-stop` and their refusals (G3); forge keeps `contracts.control` at 1, since a client built for 1.0 compares it for equality, and its system version, not the integer, announces the two commands |
 | `forgeEmbedChannel` | 1 | `channelVersion`, and `contracts.embed` of the identity; every message also carries its sender's `systemVersion` | the messages between Gaia's page and a forge's Bridge in Gaia's frame | reads and sends | `forge-contracts/EmbedChannelMessage`, `page/views/forge/EmbedChannel.ts` | the forge from F5; the Bridge's `systemVersion` from V5 |
-| `forgeProgramAnswer` | 1 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
+| `forgeProgramAnswer` | 2 | `answerVersion` | the forge program's JSON on standard output, for each verb Gaia runs (`start`, `stop`, `init`, `update`, `version`, `login-item`, the machine limit); `version` names the Talos protocol version the program starts from forge 1.23 (2) | reads | `src/adapters/forge-program/@types/ForgeProgramAnswer.ts`, `utils/ForgeAnswerMapUtil.ts` | the forge from F8 |
 | `forgeMachineLimits` | 1.0 | `version`, `minor` | `~/.forge-monitor/machine-limits.json`, the machine-wide agent limit | never reads: the limit arrives in the monitor snapshot and is set through the control contract | the forge alone | the forge from F6 |
 | `forgeFrameAncestorRecord` | 1.0 | `version`, `minor` | `~/.forge-monitor/frame-ancestors/gaia.json`, the frame-ancestor record every forge reads to let Gaia's origin frame its Bridge; Gaia adds `url`, `processId` and `startedAt`, which a forge passes over | writes | `forge-contracts/FrameAncestorRecord`, `src/adapters/gaia-files/ServerRecordWriter.ts` | Gaia; the forge reads it from V8 |
 | `gaiaSettings` | 1.0 | `version`, `minor` | `~/.gaia/settings.json` | reads and writes | `src/adapters/gaia-files/@types/StoredSettings.ts`, `SettingsFile.ts`, `SettingsWriter.ts` | Gaia |
-| `gaiaFleetDocument` | 7 | `fleetVersion` | `GET /api/v7/fleet` and the `fleet` event of `GET /api/v7/events`, which opens on a `handshake` event and carries Gaia's `systemVersion` in every event | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia; each forge's `program`, the one its registry entry names, from Gaia 1.1 |
+| `gaiaFleetDocument` | 8 | `fleetVersion` | `GET /api/v8/fleet` and the `fleet` event of `GET /api/v8/events`, which opens on a `handshake` event and carries Gaia's `systemVersion` in every event | serves; the page reads | `page/@types/FleetDocument.ts`, mapped out by `src/adapters/page-api/FleetDocumentMapUtil.ts` | Gaia; each forge's `program`, the one its registry entry names, from Gaia 1.1 |
 | `gaiaCommand` | 3 | `commandVersion` | the body of `POST /api/v4/commands` | the page sends; the server reads | `page/@types/CommandDocument.ts`, read in by `src/adapters/page-api/GaiaCommandIngestion.ts` | Gaia |
 | `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/v4/commands`, with one answer per forge for `fleet-outage-resume` in `forges` (a key it only adds) | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaFrameSession` | 1 | `frameSessionVersion` | the answer of `POST /api/v1/forges/<trackerId>/frame-session` | serves; the page reads | `page/@types/FrameSessionDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
@@ -131,7 +131,7 @@ version, major.minor.
 The forge's requirements are in `docs/forge-requirements.md`: forge 1.0 meets V1 to V6, V8 and V9, and forge 1.1 adds V7 and Flint's
 brain (G1 to G3), with the framed Bridge keeping its Agents-at-work strip (G4). Every fixture of a forge contract is recorded from a forge
 that serves it (`bun run record <name>`), and `bun run verify` fails on a forge recording stamped `authored`. From this repository's
-forge 1.22: `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of
+forge 1.23: `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of
 Flint's brain, its fake agent playing the brain's session: running after one ask, ended by a stop, refused while the Overseer is paused,
 and absent through its test setting `FORGE_WITHOUT_FLINT_BRAIN`; `overseer-fetch-board`, Example Storefront's board as the relay reads it:
 the board document (with a draft ticket and a committed one the product owner gives an entity; an agent's question with its
@@ -170,6 +170,11 @@ is a separate document Gaia serves.
   a job of the interrupted work whose cause is `network-outage` and which waits for an instruction. Each forge's count and the fleet's
   total are served in the fleet document, and `fleet-outage-resume` sends each forge whose API answers the forge's
   `interrupted-work-resume` with the target `network-outage`, one forge after another.
+- **The running and the newest Overseer and Talos** (`runningVersions`): the running Overseer's code version is its identity's, the
+  running Talos's protocol and code versions are its presence's `talos`; the newest are the installed program's `codeVersion` and
+  `talosProtocolVersion` from `forge version --json`, run when a registry check follows the forge afresh and when User looks again,
+  never on a timer of its own. A newer installed version marks the pair in the forge bar and restarts nothing; Restart Overseer sends
+  `forge-restart` (a Baton pass) and Restart Talos `forge-talos-restart`, the forge's clean quit after which its paused agents resume.
 - **A forge's presence in the registry** is the entry's `presence` key (`serving`, `stopped`, `handed-over` or `crashed` with its crash
   summary), read by `src/adapters/forge-registry/utils/RegistryMapUtil.ts`; a state Gaia does not know reads as no presence. The fleet
   tells crashed, stopped, down and hung apart from it, the Overseer's answer and the served supervision alone

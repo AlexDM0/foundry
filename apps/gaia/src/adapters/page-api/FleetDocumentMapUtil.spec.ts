@@ -66,7 +66,7 @@ describe('the fleet document mapper', () => {
 
   test('stamps the fleet contract version it was built for', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(7);
+    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(8);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {

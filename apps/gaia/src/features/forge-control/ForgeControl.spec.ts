@@ -458,7 +458,7 @@ describe('fleet-outage-resume, carried by each forge\'s API', () => {
   });
 });
 
-describe('forge-pause, forge-unpause and forge-restart, carried by the API', () => {
+describe('forge-pause, forge-unpause, forge-restart and forge-talos-restart, carried by the API', () => {
   test('pause sends `overseer-pause`', async () => {
     const overseerFetch = overseerAnswering('serving-every-contract');
     expect(await controlOver({ overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'done' });
@@ -484,6 +484,12 @@ describe('forge-pause, forge-unpause and forge-restart, carried by the API', () 
     const overseerFetch = overseerAnswering('serving-every-contract');
     expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
     expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-restart', now: false }]);
+  });
+
+  test('a restart of Talos sends the forge\'s `talos-restart`, which carries no field', async () => {
+    const overseerFetch = overseerAnswering('serving-every-contract');
+    expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-talos-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'talos-restart' }]);
   });
 
   test('passes the Overseer\'s refusal code and sentence on unchanged', async () => {

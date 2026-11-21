@@ -1,10 +1,11 @@
 /**
- * `POST /api/commands` behind the token, control contract 1: a `ControlCommand` applied in a hold of its own, answered 200 `{controlVersion,
- * outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an install change, each
- * `{controlVersion, refusal, fields, text}`: the refusal's code, its facts and the sentence the command line prints. `overseer-stop` and
- * `overseer-restart` are runtime only and go to the Overseer itself, held or not; `machine-agent-limit-set` writes the machine's limit, in no
- * hold; `flint-brain-start` and `flint-brain-stop` go to the Overseer's brain, held or not, a start naming the Bridge as its starter when the
- * request carries a Bridge session and the API otherwise, never from the body.
+ * `POST /api/commands` behind the token, control contract 1: a `ControlCommand` applied in a hold of its own, answered 200
+ * `{controlVersion, outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an
+ * install change, each `{controlVersion, refusal, fields, text}`: the refusal's code, its facts and the sentence the command line prints.
+ * `overseer-stop`, `overseer-restart` and `talos-restart` are runtime only and go to the Overseer itself, held or not;
+ * `machine-agent-limit-set` writes the machine's limit, in no hold; `flint-brain-start` and `flint-brain-stop` go to the Overseer's brain,
+ * held or not, a start naming the Bridge as its starter when the request carries a Bridge session and the API otherwise, never from the
+ * body.
  */
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
@@ -28,10 +29,12 @@ import { BY_HAND_COMMAND_KINDS }                                    from '../../
 import { OptionValueUtil }                                          from '../../utils/OptionValueUtil.ts';
 import { OutputUtil }                                               from '../../utils/OutputUtil.ts';
 
-export interface RuntimeOverseerCommand {
-  kind: 'overseer-stop' | 'overseer-restart';
-  now:  boolean;
-}
+export type RuntimeOverseerCommand =
+  | { kind: 'overseer-stop' | 'overseer-restart'; now: boolean }
+  | { kind: 'talos-restart' };
+
+/** `nothing-to-do` when the live Overseer had nothing to act on, as a `talos-restart` with no Talos that takes the quit. */
+export type RuntimeCommandOutcome = 'done' | 'nothing-to-do';
 
 export interface CommandRouteRequest {
   commandArguments:     ArgumentParser;
@@ -40,7 +43,7 @@ export interface CommandRouteRequest {
   /** The Overseer's one store; a command goes through its command face, never inside a transaction of the pass. */
   boardStore:           BoardStore;
   launchesHeld:         () => boolean;
-  onRuntimeCommand:     (command: RuntimeOverseerCommand) => void;
+  onRuntimeCommand:     (command: RuntimeOverseerCommand) => Promise<RuntimeCommandOutcome>;
   /** After a command was applied, so the pass acts on it at once. */
   wake:                 () => void;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
@@ -56,7 +59,7 @@ const HTTP_STATUS = {
   LOCKED:      423,
 } as const;
 
-const RUNTIME_COMMAND_KINDS: readonly string[] = ['overseer-stop', 'overseer-restart'];
+const RUNTIME_COMMAND_KINDS: readonly RuntimeOverseerCommand['kind'][] = ['overseer-stop', 'overseer-restart', 'talos-restart'];
 
 /** Every kind the route takes: the control service's but the by-hand kinds, and Flint's brain's. */
 export const COMMAND_ROUTE_KINDS: readonly string[] = Object.freeze([
@@ -152,16 +155,27 @@ function isFlintBrainKind(kind: string): kind is FlintBrainCommand['kind'] {
   return (FLINT_BRAIN_COMMAND_KINDS as readonly string[]).includes(kind);
 }
 
+function isRuntimeKind(kind: string): kind is RuntimeOverseerCommand['kind'] {
+  return (RUNTIME_COMMAND_KINDS as readonly string[]).includes(kind);
+}
+
+/** `talos-restart` carries no field; a stop or a restart of the Overseer reads `now`, absent being `false`. `null` for a `now` of the wrong type. */
+function runtimeCommandOf(kind: RuntimeOverseerCommand['kind'], body: Record<string, unknown>): RuntimeOverseerCommand | null {
+  if (kind === 'talos-restart') return { kind };
+  const { now } = body;
+  if (now !== undefined && typeof now !== 'boolean') return null;
+  return { kind, now: now === true };
+}
+
 /** `caller` is what the request itself proves, never what its body says. */
 export async function answerControlCommand(body: unknown, request: CommandRouteRequest, caller: CommandCaller): Promise<RouteAnswer> {
   if (!isRecord(body) || typeof body['kind'] !== 'string' || !COMMAND_ROUTE_KINDS.includes(body['kind'])) return MALFORMED;
   const { kind } = body;
   if (isFlintBrainKind(kind)) return await flintBrainAnswerOf(kind, request, caller);
-  if (RUNTIME_COMMAND_KINDS.includes(kind)) {
-    const { now } = body;
-    if (now !== undefined && typeof now !== 'boolean') return MALFORMED;
-    request.onRuntimeCommand({ kind: kind as RuntimeOverseerCommand['kind'], now: now === true });
-    return appliedAnswerOf({ outcome: 'done', result: { kind } });
+  if (isRuntimeKind(kind)) {
+    const runtimeCommand = runtimeCommandOf(kind, body);
+    if (runtimeCommand === null) return MALFORMED;
+    return appliedAnswerOf({ outcome: await request.onRuntimeCommand(runtimeCommand), result: { kind } });
   }
   if (kind === 'machine-agent-limit-set') return machineAgentLimitAnswerOf(body, request);
   if (!fieldsAreWellTyped(kind, body)) return MALFORMED;

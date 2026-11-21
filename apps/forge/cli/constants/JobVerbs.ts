@@ -40,6 +40,7 @@ export const UNRELAYED_VERB_OF_CONTROL_KIND = {
   'chart-range-set':        'range',
   'tracker-clear':          'clear',
   'ticket-deliver-by-hand': 'ticket deliver --by-hand',
+  'talos-restart':          'oversee talos-restart',
 } as const satisfies Partial<Record<ControlCommandKind, string>>;
 
 /**

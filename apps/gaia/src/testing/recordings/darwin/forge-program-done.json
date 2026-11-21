@@ -1,11 +1,12 @@
 {
   "recordingVersion": 1,
+  "recordingMinor": 0,
   "stamp": {
     "recordingName": "forge-program-done",
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 27, code 2b47322f0984"
+    "systemVersion": "install version 43, code af2246de1aee"
   },
   "answers": [
     {
@@ -13,7 +14,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"created\",\n  \"trackerId\": \"example-tracker\",\n  \"project\": \"Example Project\",\n  \"root\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"created\",\n  \"trackerId\": \"example-tracker\",\n  \"project\": \"Example Project\",\n  \"root\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -22,7 +23,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"state\": \"present\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"present\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -31,7 +32,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"state\": \"absent\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"absent\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -40,7 +41,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": null,\n  \"state\": \"present\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": null,\n  \"state\": \"present\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -49,7 +50,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"limit\": 4,\n  \"ceiling\": 10\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"limit\": 4,\n  \"ceiling\": 10\n}\n",
         "standardError": ""
       }
     },
@@ -58,7 +59,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"2b47322f0984\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 2,\n    \"control\": 1,\n    \"embed\": 1\n  }\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"af2246de1aee\",\n  \"installVersion\": 43,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  }\n}\n",
         "standardError": ""
       }
     },
@@ -67,7 +68,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\"\n}\n",
         "standardError": ""
       }
     },
@@ -76,7 +77,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"outcome\": \"done\",\n  \"installVersion\": 27,\n  \"batonPass\": \"not-needed\",\n  \"batonPassStep\": null\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"installVersion\": 43,\n  \"batonPass\": \"not-needed\",\n  \"batonPassStep\": null\n}\n",
         "standardError": ""
       }
     },
@@ -85,7 +86,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"2b47322f0984\",\n  \"installVersion\": 27,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 2,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"af2246de1aee\",\n  \"installVersion\": 43,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
         "standardError": ""
       }
     },

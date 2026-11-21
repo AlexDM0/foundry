@@ -74,7 +74,7 @@ function lastDocument(): Record<string, unknown> {
 describe('a forge that answers F8, every verb done', () => {
   test('init creates the tracker and answers its tracker id, project and root', async () => {
     const verdict = await forgeProgram.init(forge, 'Example Project');
-    expect(lastDocument()).toMatchObject({ answerVersion: 1, outcome: 'created', project: 'Example Project' });
+    expect(lastDocument()).toMatchObject({ answerVersion: 2, outcome: 'created', project: 'Example Project' });
     scratchForge.exampleValueFor({ drawn: String(lastDocument()['trackerId']), example: EXAMPLE_TRACKER_ID });
     expect(verdict.verdict).toBe('done');
   });

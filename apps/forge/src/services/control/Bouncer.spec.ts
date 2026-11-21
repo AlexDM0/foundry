@@ -1,12 +1,12 @@
 /**
  * The role table of design section 4.4, case by case: what a worker may file and how its filing is stamped, the worker limit, the product
  * owner's own-draft rule and its own-job stamp on `intake-close` and `intake-title`, its entity rule (its own draft or any ticket ready for
- * review or pending, stamped with its job), the own-job stamp on the `question-options` of every
- * role that asks User, a builder's need for another entity (only from the builder of an entity's stage, only complete, stamped
- * with its job; incomplete covering a field that is no text; never for a package sealed for its ticket, E42), the pipeline agent's
- * setup moves stamped with its job, its setup and, for an entity's session, its entity (every other kind refused, and a setup or entity
- * of the agent's own choosing too), the Assistant's incident moves, and the planted forgeries (a `role`, a `jobId` or an admission in the command).
- * Identity is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
+ * review or pending, stamped with its job), the own-job stamp on the `question-options` of every role that asks User, a builder's need for
+ * another entity (only from the builder of an entity's stage, only complete, stamped with its job; incomplete covering a field that is no
+ * text; never for a package sealed for its ticket, E42), the pipeline agent's setup moves stamped with its job, its setup and, for an
+ * entity's session, its entity (every other kind refused, and a setup or entity of the agent's own choosing too), the Assistant's incident
+ * moves, `talos-restart` refused for every role, and the planted forgeries (a `role`, a `jobId` or an admission in the command). Identity
+ * is the job record's, so a request in another job's folder is judged as that folder's job, which the last case plants.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -96,6 +96,16 @@ describe('builder and reviewer', () => {
       for (const kind of ['merge-accept', 'merge-update'] as const) {
         expect(Bouncer.verdictOf(jobOf(role), { kind, ticketReference: '7' }).verdict, `${role} ${kind}`).toBe('refused');
       }
+    }
+  });
+});
+
+describe('the runtime commands', () => {
+  // A clean restart of Talos stops every agent at its turn end: it is User's, from the live Overseer's API, never an agent's.
+  test('talos-restart is refused for every agent role, the Assistant and the pipeline agent included', () => {
+    const roles: readonly JobRole[] = ['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer', 'assistant', 'product-owner', 'pipeline-agent'];
+    for (const role of roles) {
+      expect(Bouncer.verdictOf(jobOf(role, { setupId: 'S1' }), { kind: 'talos-restart' }).verdict, role).toBe('refused');
     }
   });
 });

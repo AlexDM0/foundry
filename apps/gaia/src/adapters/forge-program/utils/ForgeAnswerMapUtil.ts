@@ -138,12 +138,14 @@ function versionAnswerOf(document: JsonObject): ForgeVersionAnswer | null {
   const codeVersion    = textOf(document, 'codeVersion');
   const installVersion = wholeNumberOf(document, 'installVersion');
   const contracts      = contractsOf(document);
+  const talosProtocolVersion = wholeNumberOf(document, 'talosProtocolVersion');
   const monitorFolder  = textOf(document, 'monitorFolder');
-  if (codeVersion === null || installVersion === null || contracts === null || monitorFolder === null) return null;
+  if (codeVersion === null || installVersion === null || contracts === null || talosProtocolVersion === null || monitorFolder === null) return null;
   return {
     codeVersion,
     installVersion,
     contracts,
+    talosProtocolVersion,
     monitorFolder,
   };
 }

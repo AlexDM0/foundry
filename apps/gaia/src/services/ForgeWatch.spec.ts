@@ -5,7 +5,8 @@
  * Gaia cannot read, a hidden forge, an unchanged registry, look again, a readings listener that throws, and a stop at any moment leaves no
  * timer and no open stream. Every round asks the forge's versions first: each of the four verdicts follows from what a forge answers there,
  * a forge that serves no versions is older, a forge Gaia can talk to is read at the versioned paths, one Gaia cannot talk to is asked
- * nothing more, and an answer that is no versions document is a failed try. No spec waits a real interval.
+ * nothing more, and an answer that is no versions document is a failed try. The installed program's versions are read when the watch
+ * follows a forge and at look again, never at a registry check that finds nothing changed. No spec waits a real interval.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -19,14 +20,15 @@ import {
 
 import type { SystemVersion } from 'system-versions/VersionsDocument';
 
-import { RegistryFile }                       from '../adapters/forge-registry/RegistryFile.ts';
-import { forgeClientOf }                      from '../lib/forge-client/ForgeClient.ts';
-import type { OverseerAnswer, OverseerFetch } from '../lib/forge-client/OverseerFetch.ts';
-import { SUPPORTED_FORGE_VERSION }            from '../lib/forge-client/constants/SupportedForgeVersions.ts';
-import type { ForgeRegistryPresence }         from '../shared/@types/ForgePresence.ts';
-import type { ForgeReading }                  from '../shared/@types/ForgeReading.ts';
-import { ForgeVersionsUtil }                  from '../shared/utils/ForgeVersionsUtil.ts';
-import { manualTimers, type ManualTimers }    from '../testing/ManualTimers.ts';
+import type { RegisteredForge }                   from '../adapters/forge-registry/@types/RegisteredForge.ts';
+import { RegistryFile }                           from '../adapters/forge-registry/RegistryFile.ts';
+import { forgeClientOf }                          from '../lib/forge-client/ForgeClient.ts';
+import type { OverseerAnswer, OverseerFetch }     from '../lib/forge-client/OverseerFetch.ts';
+import { SUPPORTED_FORGE_VERSION }                from '../lib/forge-client/constants/SupportedForgeVersions.ts';
+import type { ForgeRegistryPresence }             from '../shared/@types/ForgePresence.ts';
+import type { ForgeNewestVersions, ForgeReading } from '../shared/@types/ForgeReading.ts';
+import { ForgeVersionsUtil }                      from '../shared/utils/ForgeVersionsUtil.ts';
+import { manualTimers, type ManualTimers }        from '../testing/ManualTimers.ts';
 import {
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
@@ -36,8 +38,13 @@ import {
   type RecordedOverseerAnswer,
   type RecordedOverseerFetch,
 } from '../testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath }                   from '../testing/ScratchRoot.ts';
-import { createForgeWatch, type ForgeWatch, type ForgeWatchIntervals } from './ForgeWatch.ts';
+import { createScratchDirectory, removeScratchPath } from '../testing/ScratchRoot.ts';
+import {
+  createForgeWatch,
+  type ForgeWatch,
+  type ForgeWatchIntervals,
+  type ForgeWatchOptions
+} from './ForgeWatch.ts';
 
 /** Distinct delays, so the spec fires exactly the timer it means; none is ever waited out. */
 const INTERVALS: ForgeWatchIntervals = {
@@ -178,6 +185,7 @@ function watchOver(
   hiddenTrackerIds: readonly string[] = [],
   throwingListenerCalls: ReadonlySet<number> = new Set(),
   supportedForgeVersion: SystemVersion | null = null,
+  readNewestVersions: ForgeWatchOptions['readNewestVersions'] = undefined,
 ): WatchUnderTest {
   const timers = manualTimers();
   const waiters: { readonly claim: (readings: readonly ForgeReading[]) => boolean; readonly resolve: (readings: readonly ForgeReading[]) => void }[] = [];
@@ -190,6 +198,7 @@ function watchOver(
     now:               () => currentStamp,
     intervals:         INTERVALS,
     ...supportedForgeVersion === null ? {} : { supportedForgeVersion },
+    ...readNewestVersions === undefined ? {} : { readNewestVersions },
     onReadingsChanged: () => {
       changes += 1;
       const readings = watch.readings();
@@ -223,6 +232,34 @@ function onlyReadingOf(readings: readonly ForgeReading[]): ForgeReading {
   if (readings.length !== 1 || reading === undefined) throw new Error(`Expected one reading, got ${readings.length}.`);
   return reading;
 }
+
+describe('the installed program\'s versions', () => {
+  const NEWEST_VERSIONS = { codeVersion: 'example-installed-code', talosProtocolVersion: 2 } as const;
+
+  test('are read once when the watch follows a forge and at each look again, never at a registry check that finds nothing changed', async () => {
+    writeRegistry([{ hasOverseer: false }]);
+    const programReads: string[] = [];
+    const readNewestVersions = (entry: RegisteredForge): Promise<ForgeNewestVersions | null> => {
+      programReads.push(entry.trackerId);
+      return Promise.resolve(NEWEST_VERSIONS);
+    };
+    const { watch, timers, untilReadings } = watchOver(stagedOverseerFetch(STAGE_ANSWERS.dormant), [], new Set(), null, readNewestVersions);
+    watch.start();
+    const reading = onlyReadingOf(await untilReadings((readings) => readings[0]?.newestVersions !== null && readings[0]?.newestVersions !== undefined));
+    expect(reading.newestVersions).toEqual(NEWEST_VERSIONS);
+
+    timers.fire(REGISTRY_CHECK_MILLISECONDS);
+    await watch.lookAgain();
+    expect(programReads).toEqual([STOREFRONT_TRACKER_ID, STOREFRONT_TRACKER_ID]);
+  });
+
+  test('read as nothing leave the reading without a newest version', async () => {
+    writeRegistry([{ hasOverseer: false }]);
+    const { watch, untilReadings } = watchOver(stagedOverseerFetch(STAGE_ANSWERS.dormant), [], new Set(), null, () => Promise.resolve(null));
+    watch.start();
+    expect(onlyReadingOf(await untilReadings(onlyReadingIs('dormant', 'dormant'))).newestVersions).toBeNull();
+  });
+});
 
 describe('a forge through every stage of PLAN 7.1', () => {
   test('reads dormant, starting, live, keeps its reading through a lost stream, reads unreachable, then live again, and stops clean', async () => {
@@ -669,8 +706,9 @@ describe('a live forge\'s presence', () => {
       supervision:     'supervising',
       interruptedWork: [],
       crashLogs:       [{
-        number: 1, generation: 1, component: 'hephaestus', suspected: false, recordedAt: '2026-11-21T06:34:41+01:00',
+        number: 1, generation: 1, component: 'hephaestus', suspected: false, recordedAt: expect.any(String),
       }],
+      talos: { protocolVersion: 2, codeVersion: expect.any(String) },
     });
     const presenceReads = overseerFetch.callShapes().filter((callShape) => callShape === PRESENCE_CALL_SHAPE).length;
     expect(presenceReads).toBeGreaterThanOrEqual(1);

@@ -47,11 +47,19 @@ export interface ForgeCrashLogEntry {
   readonly recordedAt: string;
 }
 
+/** The Talos a forge runs: its protocol version and the code version of the forge program it started from. */
+export interface ForgeRunningTalos {
+  readonly protocolVersion: number;
+  readonly codeVersion:     string;
+}
+
 export interface ForgePresenceReport {
   readonly supervision:     ForgeSupervision;
   readonly interruptedWork: readonly ForgeWaitingJob[];
   /** Oldest first, by number. */
   readonly crashLogs:       readonly ForgeCrashLogEntry[];
+  /** `null` when no Talos runs. */
+  readonly talos:           ForgeRunningTalos | null;
 }
 
 /**

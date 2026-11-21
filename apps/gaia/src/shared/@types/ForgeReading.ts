@@ -58,6 +58,12 @@ export interface ForgeUsage {
   currentWindowResetsAt: string | null;
 }
 
+/** The installed forge program's versions, read with `forge version --json`: its code version and the Talos protocol version it starts. */
+export interface ForgeNewestVersions {
+  codeVersion:          string;
+  talosProtocolVersion: number;
+}
+
 export interface ForgeToday {
   deliveredTickets: number;
   tokens:           number;
@@ -100,4 +106,6 @@ export interface ForgeReading {
   registryPresence:  ForgeRegistryPresence | null;
   /** The presence a live forge serves, read at each change of its monitor snapshot; `null` for a forge not read in full. */
   presenceReport:    ForgePresenceReport | null;
+  /** The installed program's versions, read once per registry check that finds the forge's entry changed; `null` until read or unreadable. */
+  newestVersions:    ForgeNewestVersions | null;
 }

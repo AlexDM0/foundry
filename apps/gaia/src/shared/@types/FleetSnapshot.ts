@@ -8,22 +8,36 @@ import type {
   ForgeCrashLogEntry,
   ForgeCrashSummary,
   ForgePresence,
+  ForgeRunningTalos,
   ForgeWaitingJob,
 } from './ForgePresence.ts';
 import type { ForgeReading } from './ForgeReading.ts';
 import type { GaiaSettings } from './GaiaSettings.ts';
 
+/**
+ * The running and the newest Overseer and Talos: the Overseer's code version from its identity, the running Talos from presence, and the
+ * newest from the installed program; a newest is `null` until the program was read.
+ */
+export interface ForgeRunningVersions {
+  overseerRunning: string;
+  overseerNewest:  string | null;
+  talosRunning:    ForgeRunningTalos | null;
+  talosNewest:     number | null;
+}
+
 /** A forge's reading with what the fleet tells from its served presence: how it is present, its crash, its crash logs and its waiting work. */
 export interface FleetForge extends ForgeReading {
-  presence:      ForgePresence;
+  presence:        ForgePresence;
   /** The registry's summary, only for a crashed forge. */
-  crashSummary:  ForgeCrashSummary | null;
+  crashSummary:    ForgeCrashSummary | null;
   /** Listed by the presence of a live forge. */
-  crashLogs:     ForgeCrashLogEntry[];
+  crashLogs:       ForgeCrashLogEntry[];
   /** Empty for a forge not answering. */
-  waitingWork:   ForgeWaitingJob[];
+  waitingWork:     ForgeWaitingJob[];
   /** Its waiting jobs a network outage stopped (`OutageEndingUtil`); none for a forge not answering. */
-  outageEndings: number;
+  outageEndings:   number;
+  /** `null` for a forge not read in full: its Overseer does not answer, or Gaia cannot read its presence. */
+  runningVersions: ForgeRunningVersions | null;
 }
 
 /** `trackerId` is `null` only for the fleet's alert, which names every forge holding agents a network outage stopped. */

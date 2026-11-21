@@ -3,11 +3,11 @@
  * supervision its presence document serves; never a clock of Gaia's. A crashed, down or hung forge raises a forge alert in what waits on User.
  * A running Talos is not read as a running forge: only the Overseer's answer and the forge's own writes are.
  */
-import type { ForgeAlertKind }                              from '../../../shared/@types/AttentionItem.ts';
-import type { FleetAttentionItem, FleetForge }              from '../../../shared/@types/FleetSnapshot.ts';
-import type { ForgePresence, ForgePresenceState }           from '../../../shared/@types/ForgePresence.ts';
-import type { ForgeCondition, ForgeFidelity, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
-import { OVERSEER_ANSWERED_FIDELITIES }                     from '../../../shared/constants/ForgeFidelities.ts';
+import type { ForgeAlertKind }                                       from '../../../shared/@types/AttentionItem.ts';
+import type { FleetAttentionItem, FleetForge, ForgeRunningVersions } from '../../../shared/@types/FleetSnapshot.ts';
+import type { ForgePresence, ForgePresenceState }                    from '../../../shared/@types/ForgePresence.ts';
+import type { ForgeCondition, ForgeFidelity, ForgeReading }          from '../../../shared/@types/ForgeReading.ts';
+import { OVERSEER_ANSWERED_FIDELITIES }                              from '../../../shared/constants/ForgeFidelities.ts';
 
 import { OutageEndingUtil } from './OutageEndingUtil.ts';
 
@@ -50,6 +50,18 @@ function presenceOf(reading: ForgeReading): ForgePresence {
   return { state: presenceStateOf(reading), generation: reading.registryPresence?.generation ?? null, at: reading.registryPresence?.at ?? null };
 }
 
+/** A forge read in full served its identity and its presence, so its running Overseer and Talos are known, Talos's absence included. */
+function runningVersionsOf(reading: ForgeReading): ForgeRunningVersions | null {
+  const { codeVersion, presenceReport, newestVersions } = reading;
+  if (reading.fidelity !== 'full' || codeVersion === null || presenceReport === null) return null;
+  return {
+    overseerRunning: codeVersion,
+    overseerNewest:  newestVersions?.codeVersion ?? null,
+    talosRunning:    presenceReport.talos,
+    talosNewest:     newestVersions?.talosProtocolVersion ?? null,
+  };
+}
+
 function fleetForgeOf(reading: ForgeReading): FleetForge {
   const presence = presenceOf(reading);
   const report   = reading.fidelity === 'full' ? reading.presenceReport : null;
@@ -57,10 +69,11 @@ function fleetForgeOf(reading: ForgeReading): FleetForge {
   return {
     ...reading,
     presence,
-    crashSummary:  presence.state === 'crashed' ? reading.registryPresence?.crash ?? null : null,
-    crashLogs:     report === null ? [] : [...report.crashLogs],
+    crashSummary:    presence.state === 'crashed' ? reading.registryPresence?.crash ?? null : null,
+    crashLogs:       report === null ? [] : [...report.crashLogs],
     waitingWork,
-    outageEndings: OutageEndingUtil.outageEndingsOf(waitingWork),
+    outageEndings:   OutageEndingUtil.outageEndingsOf(waitingWork),
+    runningVersions: runningVersionsOf(reading),
   };
 }
 

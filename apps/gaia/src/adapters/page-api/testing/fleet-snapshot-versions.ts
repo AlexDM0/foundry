@@ -128,11 +128,13 @@ function readFromTheRegistryAlone(
     versions,
     registryPresence:  null,
     presenceReport:    null,
+    newestVersions:    null,
     presence:          { state: versions.verdict === 'newer' ? 'serving' : 'unknown', generation: null, at: null },
     crashSummary:      null,
     crashLogs:         [],
     waitingWork:       [],
     outageEndings:     0,
+    runningVersions:   null,
   };
 }
 

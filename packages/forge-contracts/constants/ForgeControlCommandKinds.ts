@@ -13,6 +13,7 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'interrupted-work-resume',
   'overseer-stop',
   'overseer-restart',
+  'talos-restart',
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',

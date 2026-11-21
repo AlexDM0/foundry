@@ -113,6 +113,7 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'interrupted-work-resume':   { kind: 'interrupted-work-resume', target: 'all' },
   'overseer-stop':             { kind: 'overseer-stop', now: true },
   'overseer-restart':          { kind: 'overseer-restart', now: false },
+  'talos-restart':             { kind: 'talos-restart' },
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },
   'machine-agent-limit-set':   { kind: 'machine-agent-limit-set', limit: 2 },
   'pipeline-prepare-step-set': { kind: 'pipeline-prepare-step-set', step: { name: 'install', run: 'bun install' } },

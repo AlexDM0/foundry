@@ -533,9 +533,9 @@ describe('the versioned paths', () => {
     expect(exchange.status).toBe(204);
     const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
-    const fleetAnswer = await answerOf(pageServer, '/api/v7/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v8/fleet', { headers: { cookie } });
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const { events } = await openEvents(pageServer, cookie, '/api/v7/events');
+    const { events } = await openEvents(pageServer, cookie, '/api/v8/events');
     expect((await events.nextEvent()).eventName).toBe('handshake');
     expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
     const command = await answerOf(pageServer, '/api/v4/commands', commandRequest(cookie, { commandVersion: 3, kind: 'fleet-look-again' }));
@@ -560,14 +560,14 @@ describe('the versioned paths', () => {
       expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
     }
     const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
-    expect((await answerOf(pageServer, '/api/v7/fleet', preflight)).status).toBe(403);
+    expect((await answerOf(pageServer, '/api/v8/fleet', preflight)).status).toBe(403);
   });
 
   test('keep the token and session guards on the versioned paths', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v7/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v7/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v8/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v8/events')).status).toBe(401);
     expect((await answerOf(pageServer, '/api/v4/commands', { method: 'POST', body: '{}' })).status).toBe(401);
     expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/frame-session', { method: 'POST' })).status).toBe(401);
     expect(carriedCommands).toEqual([]);

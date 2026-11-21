@@ -1,6 +1,6 @@
 /**
  * The versioned JSON answers of `init`, `update` and `stop` on a tracker, over recorded git: a success and one refusal each. What matters: the
- * answer carries `answerVersion: 1` and only the keys the command's reference names, a refusal under `--json` is the refusal document, and
+ * answer carries `answerVersion: 2` and only the keys the command's reference names, a refusal under `--json` is the refusal document, and
  * a Baton pass the live Overseer did not take is `failed` at its step.
  */
 import { realpathSync } from 'node:fs';
@@ -51,7 +51,7 @@ async function answerIn(
   return { exitCode, answer: JSON.parse(context.outputText()) as Record<string, unknown> };
 }
 
-const REFUSAL_OF_ARGUMENTS = { answerVersion: 1, refusal: 'arguments-refused', text: expect.any(String) };
+const REFUSAL_OF_ARGUMENTS = { answerVersion: 2, refusal: 'arguments-refused', text: expect.any(String) };
 
 describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
   test('init answers created with the tracker id, the project and the root, and an unknown option as a refusal', async () => {
@@ -61,7 +61,7 @@ describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
     expect(created).toEqual({
       exitCode: 0,
       answer:   {
-        answerVersion: 1, outcome: 'created', trackerId: expect.any(String), project: 'Example Agency', root: realpathSync(directory)
+        answerVersion: 2, outcome: 'created', trackerId: expect.any(String), project: 'Example Agency', root: realpathSync(directory)
       },
     });
     expect(await answerIn(directory, ['init', '--unknown', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
@@ -73,7 +73,7 @@ describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
     expect(updated).toEqual({
       exitCode: 0,
       answer:   {
-        answerVersion: 1, outcome: 'done', installVersion: INSTALL_VERSION, batonPass: 'not-needed', batonPassStep: null
+        answerVersion: 2, outcome: 'done', installVersion: INSTALL_VERSION, batonPass: 'not-needed', batonPassStep: null
       },
     });
     expect(await answerIn(directory, ['update', '--root', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
@@ -81,7 +81,7 @@ describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
 
   test('stop answers nothing to do with no Overseer live, and an extra argument as a refusal', async () => {
     const directory = await trackedDirectory();
-    expect(await answerIn(directory, ['stop', '--json'])).toEqual({ exitCode: 0, answer: { answerVersion: 1, outcome: 'nothing-to-do' } });
+    expect(await answerIn(directory, ['stop', '--json'])).toEqual({ exitCode: 0, answer: { answerVersion: 2, outcome: 'nothing-to-do' } });
     expect(await answerIn(directory, ['stop', 'extra', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
   });
 });
@@ -107,7 +107,7 @@ describeWhenRecorded(['git-recording', 'process-table-recording'], 'the answer o
     expect(updated).toEqual({
       exitCode: 0,
       answer:   {
-        answerVersion: 1, outcome: 'done', installVersion: INSTALL_VERSION, batonPass: 'failed', batonPassStep: 'restart-not-taken'
+        answerVersion: 2, outcome: 'done', installVersion: INSTALL_VERSION, batonPass: 'failed', batonPassStep: 'restart-not-taken'
       },
     });
   });

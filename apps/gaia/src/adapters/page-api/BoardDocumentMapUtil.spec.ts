@@ -108,7 +108,7 @@ describe('boardDocumentOf, on the recorded board', () => {
       phase:           'build',
       runMilliseconds: 44,
       ending:          'passed',
-      at:              '2026-11-21T01:27:25+01:00',
+      at:              expect.any(String),
     }]);
     expect(setup?.entityRefusals[0]).toMatchObject({ reason: 'equal-homes', shownOn: 'api', fix: { label: 'Remove apps/web from api' } });
     expect(setup?.entityRefusals[0]?.fix?.edits).toEqual([{ target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: null } }]);

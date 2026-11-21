@@ -25,6 +25,7 @@ const CONTROL_KIND_INGESTION: ControlKindIngestion = {
   'interrupted-work-resume': (command) => command,
   'overseer-stop':           (command) => command,
   'overseer-restart':        (command) => command,
+  'talos-restart':           (command) => command,
   'concurrency-set':         (command) => command,
   'job-stop-all':            (command) => command,
   'machine-agent-limit-set': (command) => command,

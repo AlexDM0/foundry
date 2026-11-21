@@ -9,7 +9,7 @@ import { JsonTextUtil }                        from '../../src/shared/utils/Json
 import type { CommandContext }                 from '../CommandContext.ts';
 import type { ArgumentParser }                 from '../arguments/ArgumentParser.ts';
 
-export const ANSWER_VERSION = 1;
+export const ANSWER_VERSION = 2;
 
 /** The verbs whose `--json` output is a versioned answer, a refusal included; `machine` and `login-item` with their subcommand. */
 export const VERBS_THAT_ANSWER_IN_VERSIONED_JSON: ReadonlySet<string> = new Set(['start', 'stop', 'init', 'update', 'version', 'machine', 'login-item']);

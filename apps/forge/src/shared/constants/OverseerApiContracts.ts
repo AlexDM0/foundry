@@ -30,6 +30,7 @@ export const CONTROL_CONTRACT_KINDS = [
   'interrupted-work-resume',
   'overseer-stop',
   'overseer-restart',
+  'talos-restart',
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',

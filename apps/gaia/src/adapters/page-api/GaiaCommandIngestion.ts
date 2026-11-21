@@ -57,6 +57,7 @@ const SINGLE_FORGE_KINDS: ReadonlySet<string> = new Set<SingleForgeKind>([
   'forge-pause',
   'forge-unpause',
   'forge-restart',
+  'forge-talos-restart',
   'forge-update',
   'forge-open-in-browser',
   'forge-hide',

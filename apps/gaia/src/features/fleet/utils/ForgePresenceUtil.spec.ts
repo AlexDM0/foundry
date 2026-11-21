@@ -31,6 +31,7 @@ const SUPERVISION_STOPPED: ForgePresenceReport = {
   crashLogs: [{
     number: 1, generation: 1, component: 'hephaestus', suspected: false, recordedAt: CRASH_AT,
   }],
+  talos: null,
 };
 
 function registryPresence(state: ForgeRegistryPresence['state']): ForgeRegistryPresence {

@@ -25,7 +25,7 @@ bare \`--\`). An option taking a value, given twice, is refused at exit 1.
 ${ROOT_OVERRIDE_VARIABLE} names the repository to use instead of walking up from the current directory. --json, accepted by every
 command but open, hook and help, prints one JSON document on standard output
 in place of the human output. The answers of start, stop, init, update, version, machine
-and login-item carry \`answerVersion\` 1, and under --json their refusal is the document
+and login-item carry \`answerVersion\` 2, and under --json their refusal is the document
 {answerVersion, refusal, text} at exit 1: the refusal's code and the sentence printed on
 standard error.
 
@@ -653,6 +653,11 @@ never carries it.
                               over and regroups around Talos; no agent is touched. A failed
                               Baton pass leaves the old Overseer driving with a warning and exits 1
                               (baton-pass-failed).
+  oversee talos-restart [--json]
+                              Ask the live Overseer to restart Talos cleanly: each agent stops at
+                              the end of its turn, the right Talos starts, and the paused agents
+                              resume by themselves. {outcome}: done, nothing-to-do (no Talos took
+                              it) or not-taken (no live Overseer took it). Refused under a job.
   oversee pause|resume [--json]
                               Store \`overseerState\` \`paused\` or \`running\`: no new jobs while
                               paused; oversee resume undoes a pause, and \`resume\` resumes
@@ -670,8 +675,9 @@ never carries it.
 
   version [--json]            Print the code version on disk and the install version:
                               {answerVersion, codeVersion, installVersion, contracts,
-                              monitorFolder}, \`contracts\` the Overseer API's contracts this
-                              program serves, as \`GET /api/identity\` names them. Read-only.
+                              talosProtocolVersion, monitorFolder}, \`contracts\` the Overseer
+                              API's contracts this program serves, as \`GET /api/identity\`
+                              names them, and the Talos protocol version it starts. Read-only.
 
   start [--started-by user|login-item] [--repository <path>] [--port <n>] [--json]
                               Start the board's Overseer detached, as \`open\` does, and open no

@@ -32,7 +32,7 @@ const OVERSEER_START_WORD     = 'oversee';
 /** `start` starts the Overseer detached; as a word it is common, so only an argument list a command line runner is given counts. */
 const START_VERB_WORD         = 'start';
 const COMMAND_LINE_RUNNERS    = new Set(['runAgentProgress', 'startAgentProgress', 'runCommandLine', 'runAgentProgressBesideRecordedGit']);
-const OVERSEER_SUBCOMMANDS    = new Set(['stop', 'restart', 'pause', 'resume', 'status']);
+const OVERSEER_SUBCOMMANDS    = new Set(['stop', 'restart', 'pause', 'resume', 'status', 'talos-restart']);
 const ANY_FREE_PORT_OPTION  = ['--port', '0'];
 
 function stringElementOf(element: ts.Expression | undefined): string | null {

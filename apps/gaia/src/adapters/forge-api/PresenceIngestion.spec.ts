@@ -33,11 +33,16 @@ const EXAMPLE_PRESENCE: ForgePresenceDocument = {
   ],
   heldMerges: [],
   crashLogs:  [],
+  talos:      { protocolVersion: 2, codeVersion: 'example-code', startNumber: 4 },
 };
 
 describe('presenceReportOf', () => {
   test('reads the presence a forge serves while it supervises its agents, with no work waiting and no crash log', () => {
-    expect(INGESTION.presenceReportOf(recordedPresenceDocumentOf('presence-serving'))).toEqual({ report: { supervision: 'supervising', interruptedWork: [], crashLogs: [] }, });
+    expect(INGESTION.presenceReportOf(recordedPresenceDocumentOf('presence-serving'))).toEqual({
+      report: {
+        supervision: 'supervising', interruptedWork: [], crashLogs: [], talos: { protocolVersion: 2, codeVersion: expect.any(String) },
+      },
+    });
   });
 
   test('reads the crash log a forge lists after User started it again after a crash', () => {
@@ -46,13 +51,20 @@ describe('presenceReportOf', () => {
         supervision:     'supervising',
         interruptedWork: [],
         crashLogs:       [{
-          number: 1, generation: 1, component: 'hephaestus', suspected: false, recordedAt: '2026-11-21T06:34:41+01:00',
+          number: 1, generation: 1, component: 'hephaestus', suspected: false, recordedAt: expect.any(String),
         }],
+        talos: { protocolVersion: 2, codeVersion: expect.any(String) },
       },
     });
   });
 
-  test('maps each waiting job with its kind, tickets, cause and wait, and reads a supervision that stopped', () => {
+  test('reads no Talos where none runs, and names a running Talos it cannot read', () => {
+    expect(INGESTION.presenceReportOf({ ...EXAMPLE_PRESENCE, talos: null }).report?.talos).toBeNull();
+    expect(INGESTION.presenceReportOf({ ...EXAMPLE_PRESENCE, talos: { protocolVersion: 'two', codeVersion: 'example-code', startNumber: 4 } }))
+      .toEqual({ report: null, reason: { invalidKeys: ['talos.protocolVersion'] } });
+  });
+
+  test('maps each waiting job with its kind, tickets, cause and wait, a supervision that stopped, and the Talos that runs', () => {
     const reading = INGESTION.presenceReportOf(EXAMPLE_PRESENCE);
     expect(reading.report).toEqual({
       supervision:     'stopped',
@@ -65,6 +77,7 @@ describe('presenceReportOf', () => {
         },
       ],
       crashLogs: [],
+      talos:     { protocolVersion: 2, codeVersion: 'example-code' },
     });
   });
 
@@ -76,7 +89,7 @@ describe('presenceReportOf', () => {
   test('names a wait it does not know, and every key it reads of a document that is no presence', () => {
     const unknownWait = { ...EXAMPLE_PRESENCE, interruptedWork: [{ ...EXAMPLE_PRESENCE.interruptedWork[0], waitsFor: 'tomorrow' }] };
     expect(INGESTION.presenceReportOf(unknownWait)).toEqual({ report: null, reason: { invalidKeys: ['interruptedWork[0].waitsFor'] } });
-    expect(INGESTION.presenceReportOf(['example'])).toEqual({ report: null, reason: { invalidKeys: ['supervision', 'interruptedWork', 'crashLogs'] } });
+    expect(INGESTION.presenceReportOf(['example'])).toEqual({ report: null, reason: { invalidKeys: ['supervision', 'interruptedWork', 'crashLogs', 'talos'] } });
   });
 
   test('names a supervision or a crash log it cannot read', () => {

@@ -246,6 +246,18 @@ export interface FleetDocumentWaitingJob {
   waitsFor:  FleetDocumentResumeWait;
 }
 
+export interface FleetDocumentRunningTalos {
+  protocolVersion: number;
+  codeVersion:     string;
+}
+
+export interface FleetDocumentRunningVersions {
+  overseerRunning: string;
+  overseerNewest:  string | null;
+  talosRunning:    FleetDocumentRunningTalos | null;
+  talosNewest:     number | null;
+}
+
 export interface FleetDocumentForge {
   trackerId:         string;
   project:           string;
@@ -286,6 +298,7 @@ export interface FleetDocumentForge {
   waitingWork:       FleetDocumentWaitingJob[];
   /** Its jobs a network outage stopped, which wait for User's resume; none for a forge not answering. */
   outageEndings:     number;
+  runningVersions:   FleetDocumentRunningVersions | null;
 }
 
 /** `trackerId` is `null` only for `agents-ended-on-outage`, the fleet's alert, which names the forges whose `outageEndings` it sums. */

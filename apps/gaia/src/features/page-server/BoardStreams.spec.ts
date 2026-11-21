@@ -94,7 +94,7 @@ describe('an event mapped for several page streams', () => {
       await events.nextEvent();
       await events.nextEvent();
     }
-    expect(mappedEvents.map((event) => [event.eventName, event.id])).toEqual([['board', '1-45']]);
+    expect(mappedEvents.map((event) => [event.eventName, event.id])).toEqual([['board', '1-43']]);
     await Promise.all(readers.map((events) => events.leave()));
   });
 });

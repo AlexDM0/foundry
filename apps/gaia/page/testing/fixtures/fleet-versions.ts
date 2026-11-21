@@ -143,6 +143,7 @@ function readFromTheRegistryAlone(
     crashLogs:         [],
     waitingWork:       [],
     outageEndings:     0,
+    runningVersions:   null,
   };
 }
 

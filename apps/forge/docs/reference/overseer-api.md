@@ -202,7 +202,7 @@ The route reads a board command whole (see [Board commands](#board-commands)); f
 | 400 | `{controlVersion, refusal: 'malformed-body', fields: {}, text}` | Not JSON, not an object, an unknown `kind`, a `now` that is not a boolean, a `limit` of `machine-agent-limit-set` or `concurrency-set` that is not a number, a `mode` of `job-stop-all` that is not `stop` or `wind-down`, a `target` of `interrupted-work-resume` that is neither `all`, `network-outage`, `{jobId}` nor `{ticketReference}` with text, a board command that does not read as its `ForgeBoardCommand`, or a control function reading a field the body lacks. Nothing was written. |
 | 401 | `{refusal: 'unauthorized', text}` | No token, a wrong one, or no token written yet. |
 | 409 | `{controlVersion, refusal: <code>, fields, text: <sentence>}` | The write was refused. The code is the refusal's reason code, such as `machine-agent-limit-above-cpus`; `fields` are the facts its detail names, without the field the code already says (a board refusal's `reason`, another detail's `kind`, a brain refusal's `code`); from forge 1.21 the sentence is the one the command line prints (`OperationRefusalWordingUtil.messageOf`), which may name a command, and the Bridge shows it verbatim. [Refusals](refusals.md) lists each sentence. |
-| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
+| 423 | `{controlVersion, refusal: 'launches-held-by-install-change', fields: {}, text}` | The install hold: the [install version](../glossary.md#install-version) changed, so every command but `overseer-stop`, `overseer-restart`, `talos-restart`, `machine-agent-limit-set` and Flint's brain's two is refused, a job stop included. A Baton pass lifts the 423 while it runs. |
 | 500 | Plain text | Any other throw, as under [Routes](#routes). |
 
 `outcome` is `done`, or `nothing-to-do` when the control function reports `changed: false`, as for an edit to the same
@@ -221,16 +221,25 @@ board and go to the running Overseer, so they are taken during the install hold,
 > **As built.** The `now` of a restart goes nowhere, and a stop arriving during a Baton pass is answered and dropped.
 > The install hold refuses a job stop too.
 
+`talos-restart` `{kind}`, from forge 1.23, is the third runtime command: the clean restart of the board's
+[Talos](../glossary.md#talos), the command of `oversee talos-restart`. The running Overseer sends Talos its quit frame
+with reason `restart`, and answers 200 `{outcome: 'done', result: {kind}}` once Talos took it, or `nothing-to-do` when
+no Talos took it: none is connected, it is quitting already, it did not answer, or a Baton pass runs. Talos then asks
+each agent to stop at the end of its turn, for at most 10 seconds, and quits; the Overseer's next pass starts the right
+Talos, and each agent Talos recorded as paused resumes by itself under it, never counted as a crash. It writes nothing
+to the board, so it is taken during the install hold, and it is never relayed from a job.
+
 `machine-agent-limit-set` `{kind, limit}` sets the machine agent limit in `<monitor>/machine-limits.json`, the one
 `machine limit <n>` sets: it changes no board, so it is applied in no lock hold and is taken during the install hold. A
 limit above the CPU count answers 409 `machine-agent-limit-above-cpus` and writes nothing.
 
 ### Control contract 1
 
-The control contract is what a monitor may send and what it gets back. It names ten kinds, `CONTROL_CONTRACT_KINDS` in
+The control contract is what a monitor may send and what it gets back. It names eleven kinds, `CONTROL_CONTRACT_KINDS` in
 `src/shared/constants/OverseerApiContracts.ts`: `overseer-pause`, `overseer-resume`, `overseer-stop {now}`,
 `overseer-restart {now}`, `concurrency-set {limit}`, `job-stop-all {mode}`, `machine-agent-limit-set {limit}`, from
-forge 1.1, `flint-brain-start` and `flint-brain-stop`, and, from forge 1.20, `interrupted-work-resume {target}`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
+forge 1.1, `flint-brain-start` and `flint-brain-stop`, from forge 1.20, `interrupted-work-resume {target}`, and, from
+forge 1.23, `talos-restart`. Each answer carries `controlVersion` 1. A 200 answers `outcome`
 `done` or `nothing-to-do`, and `result`, the control function's own record, which is outside the contract; a 400, a 409
 and a 423 answer `refusal`, a code, `fields`, its facts (`{}` on a 400 and a 423), and `text`, from forge 1.21 the sentence the
 command line prints; a 401 answers `unauthorized`. A `concurrency-set` `limit`
@@ -727,8 +736,8 @@ surface is 35's, 1.19 adds a monitor job's `interruption` and the identity's `ta
 and the presence and crash-log endpoints with the `no-crash-log` refusal, and 1.21 adds the board document at
 `/api/v1/board`, the board command kinds, the refusal's structured fields and the command line's sentence on a refused
 command, and keeps an unfinished entities draft, and 1.22 serves the event stream, a job's transcript stream, a gate
-profile's stream and the pictures at versioned paths and opens each of the three streams with a `handshake`, each minor
-only adds, and version 0.0 stands for every forge released before system versions.
+profile's stream and the pictures at versioned paths and opens each of the three streams with a `handshake`, and 1.23
+adds the `talos-restart` command and the presence document's `talos`, each minor only adds, and version 0.0 stands for every forge released before system versions.
 
 The system version is set by interoperability, never by a package's version:
 
@@ -887,6 +896,7 @@ the `handshake` of [the event stream](#the-event-stream), with no id, then a `li
 | `interruptedWork[]` | `{jobId, kind, ticketIds, cause, waitsFor, crashResumes, automaticRestartsLeft}` for each interrupted job and each job whose lost line waits; `cause` is the monitor's cause union, `waitsFor` is `instruction`, `answer`, `decision`, `nothing` (it resumes by itself) or `never`, and `automaticRestartsLeft` is `null` for a cause that is never counted |
 | `heldMerges[]` | `{ticketId, hold}` for each ticket an `interrupted:` hold keeps |
 | `crashLogs[]` | `{number, generation, component, recordedAt, suspected}`, oldest first; a log that cannot be read is left out |
+| `talos` | From forge 1.23, `{protocolVersion, codeVersion, startNumber}` of the Talos that runs: its protocol version, the code version of the program it started from, and its start number; `null` with no live Talos |
 
 `GET /api/crash-log?number=<n>` answers one `ForgeCrashLogDocument`: `number`, the crashed Baton `generation` (`null`
 when nothing names it), `component` (`hephaestus`, `talos` or `unknown`), `suspected`, `recordedAt`, `startKind`

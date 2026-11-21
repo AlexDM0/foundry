@@ -39,13 +39,14 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * document at `/api/v1/board`, the board command kinds, the refusal's structured fields and the command line's sentence on a refused command,
  * and keeps an unfinished entities draft; 1.22 serves the board event stream, a job's stream, a gate profile's stream and the pictures at
  * versioned paths, `/api/v1/events`, `/api/v1/jobs/<jobId>/stream`, `/api/v1/profiles/<profileRunId>/stream` and `/api/v1/pictures`, and
- * opens each of the three streams with a handshake naming the system version. Each minor only adds, but for 1.19's rename, whose key no
+ * opens each of the three streams with a handshake naming the system version; 1.23 adds the control command talos-restart and the running
+ * Talos in the presence document. Each minor only adds, but for 1.19's rename, whose key no
  * client reads.
  * Version 0.0 stands for every forge released before system versions: a client built for one calls the unversioned paths, which forge keeps until the
  * minimum is raised past it (`ForgeCompatibilityRegistry.ts`). The current version is raised with every change to a route, a document, a command or a
  * message, in its minor when the change only adds; the minimum only to retire what the registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 1, minor: 22 },
+  current:          { major: 1, minor: 23 },
   minimumSupported: { major: 0, minor: 0 },
 };
