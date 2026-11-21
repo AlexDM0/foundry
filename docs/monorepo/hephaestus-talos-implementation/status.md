@@ -136,6 +136,12 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.9: open a real forge in Gaia: the frame sits under the board header with the Bridge's head and Flint hidden, tab
   clicks keep the frame and the address in step, and the bar's Open in new tab opens Gaia's route on the same session.
 
+- WP6.10 to WP7.1 (the six views): open each tab in Gaia against a real forge. Questions: answer through the relay,
+  the panel's docking. Agents: a real presence answer with an interrupted job (the spec's presence is hand-built), the
+  outage words and Resume. Detail panel: a move and a real refusal, the mini Gantt. Assistant: chat, queued bubble,
+  incident rail. Pipeline: route it and run a real setup session. Intake: start one, attach a picture, send a
+  too-large one.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -272,6 +278,18 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.9: `BoardApp` reads the board again when the stream comes back live (`useBoardReading`), in case the relay
   replays no `board` event after `Last-Event-ID`.
 
+- WP6.10: a ticket's empty `bodyHtml` means no body, so no ticket tab (`QuestionPanelModel.ticketBlockOf`).
+
+- WP6.11: `network-outage` reads "Network outage" and `lease-ended` "Not supervised" only while the job is `interrupted`
+  (`JobStateUtil.INTERRUPTION_WAIT_STATE_OF_CAUSE`); if presence cannot be read, no Resume is offered.
+
+- WP6.19: an implied root entity's key is `'root'` (`EntitiesStepModel.IMPLIED_ROOT_ENTITY_KEY`); forge refuses a
+  `pipeline-draft-edit` whose entity key holds '/'; a served refusal names its tickets in `fields.ticketIds`
+  (`ApplyDialogModel.ticketIdsOf`).
+
+- WP7.1: "Close intake offers #… to ready" lists the session's drafts on the page, as the Bridge did; forge serves no
+  such list. Confirm against what `intake-close` offers.
+
 ### Blocked
 
 (none)
@@ -374,6 +392,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
   stream carrying board-document parts would be a forge change (stage 4's side). forge-contracts declares no type for
   transcript entries or command answers (V10). `AgentModel` names the vendor's model tiers, and Gaia repeats them.
   `appliedBy` is named passed-over, but the Bridge's live pipeline shows it.
+
+- WP6.10: no browser notification for new questions yet (`QuestionAlerts.useOpenQuestionAlerts` is not called; its
+  title update would overwrite Gaia's window title).
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
@@ -504,18 +525,18 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-H | WP6.7 | landed | a6922cf1 | First round. Bridge `flint/` moved to `page/board/flint/` without the brain; `BoardFlint` (no `flintBrain`), `FlintHabitatScene` and `ManualFlintFrames` in `page/board/testing/`; `BoardServices` gains `flintFrameSource?`, `onFlintHandle?`; `styles/board/flint.css`; 33 `--flint-*` tokens named in `BOARD_SAME_IN_BOTH_THEMES_TOKENS`. `TicketsSpriteModel` reads the served `resolvedPriority`. Handoffs: WP6.11 restores BoardFlint.dom.tsx's two agent-panel habitat cases (need AgentsView); WP6.20 carries board.css:2410's Flint home-corner rule (`bottom: 72px` beside a pipeline bar); WP6.13/WP6.14 map `facts.resolvedPriority` onto the cued ticket. Not mounted until WP6.9 |
 | 6-I | WP6.8 | landed | 349a78c0 | First round. The shell's 21 modules, `BoardErrorBoundary` and 14 view models under `page/board/`; `BoardRouter` gains `routeOf`, `shownTabsOf`, `shownRouteOf`, `routeOfTarget`; models return a `BoardRoute`, followed through the new `BoardGoToContext`/`useBoardNavigation`. `page/notifications/NotificationBoundary.ts` is the one reach of the Notification API (lint holds it); `questionNotifier` left for WP6.10. `shell.css` and `pipeline.css` created. Header drops the theme button, Flint's brain wake and the Overseer controls (Gaia's forge bar has them). Handoffs: WP6.9 carries `.board-shell` and the margins of `.board-banners`/`.board-incident-notice` (board.css:299-301) with BoardApp; WP6.19's callers build `FlowWording` from the served `limits.reworkRoundThresholdLines`. `HeaderModel.workerCount` is dead |
 | 6-J | WP6.9 | landed | 3c6c5532 | Third round, after a targeted fix (first: no spec checked the fragment Open in new tab opens, and the bar still sent `forge-open-in-browser` for a forge Gaia cannot talk to; second: `Board` mounted for 'cannot-show' forges that serve no board, so a dead stream reopened every 2 s, and the stored tab was overwritten before the first read). The forge route mounts `BoardApp` over the frame for unmoved tabs, keyed by tracker id (one Flint per document, proven), only where `ForgeContractUtil.canOpenInPlace` holds; GaiaRoute's forge form is `{trackerId, boardRoute}`; folder `views/forge/`; `fleet` and `events` v5, `fleetVersion` 5; the framed Bridge hides its head, banners and Flint but keeps its filter row; `BoardServices.questionNotifier` added here. The cannot-show area's own Open in new tab still sends `forge-open-in-browser` (WP6.23). The `<tab>/<item>` parse is written three times on the page |
-| 6-K | WP6.10 | running | | |
-| 6-K | WP6.11 | running | | |
-| 6-K | WP6.12 | running | | |
-| 6-K | WP6.18 | running | | |
-| 6-K | WP6.19 | running | | |
-| 6-K | WP7.1 | running | | |
-| 6-L | WP6.13 | waiting | | |
-| 6-L | WP6.14 | waiting | | |
-| 6-L | WP6.15 | waiting | | |
-| 6-L | WP6.16 | waiting | | |
-| 6-L | WP6.17 | waiting | | |
-| 6-L | WP6.20 | waiting | | |
+| 6-K | WP6.10 | landed | 95a38294 | First round. `QuestionsView` and the question panel; `BoardApp` opens the panel on `#questions/<id>` beside a tab it draws itself (a framed tab shows the Bridge's own panel). Recommendation only from the served `recommended`; the served answering order. `useOpenQuestionAlerts` not called yet (no browser notification; its title update would overwrite Gaia's). The shared `.board-view` rule lives in `questions.css` only |
+| 6-K | WP6.11 | landed | 23daf76c | First round. The Agents tab without a frame; "Network outage" and "Not supervised" in the waiting look; Resume only when the forge serves `waitsFor: 'instruction'`. The board serves no `waitsFor`, so `ForgeClient.presenceOf`, `PresenceIngestion` and a `waitsFor` field (contract, model, maps) were added; the route reads presence only with an interrupted job or a lost line (overlaps WP6.21). `TranscriptFollower` takes an optional `after`. WP6.7's two agent-panel Flint cases restored |
+| 6-K | WP6.12 | landed | a1b7eeb2 | First round, landed first of the six-wide group. The detail panel (30 files) in `page/board/views/detail-panel/`, `shell/DetailPanelHost`, `utils/DraftWordsUtil`, `detail-panel.css`; it reads the whole board document. Moves come from the forge's offers, so buttons differ from the Bridge: Hold and Priority… on a started ticket, Priority… in every status, Delivered by hand… gone for ready-for-review, shown for abandoned, hidden while a job runs. A `network-outage`/`lease-ended` interruption heads the state card "Network outage"/"Not supervised" (`TicketOverviewModel.HEADING_FOR_WAITING_CAUSE`, matching WP6.11) |
+| 6-K | WP6.18 | landed | 7d109ac8 | First round. The Assistant view; the escalated count from the served `escalatedDecisionIds`; `job-message` carries `pictures: []`, `incidentId: null`; no switch (WP6.27) |
+| 6-K | WP6.19 | landed | b5b28ee8 | First round. 148 Bridge pipeline files in `page/board/views/pipeline/` on the served facts; its style rules moved here too (~1,100 lines of `pipeline.css`, tokens `--see-through`, `--phase-ticket`, `--new-text-tint`), since the style contract fails on unstyled classes: WP6.20 keeps the DOM specs, the route, line run times and the setup conversation, and board.css:2410's Flint corner rule. Gestures send exact edits; the local '/' key check is gone (forge refuses); "by User" is a constant (`appliedBy` not served); `BOARD_ENTITY_AGENT_ROLES` added. A draft edit or gate profile shows one board read later (events carry no data) |
+| 6-K | WP7.1 | landed | 1340c73e | First round. The Intake conversation, pictures uploaded and shown through Gaia's relay; the started job from `result.startedJobId`; `IntakeSession.jobState`. Stacked last of six by the orchestrator's stacking agent: shared rows kept, the duplicate `.board-view` rules of assistant.css and intake.css removed, one Intake DOM case given no open question |
+| 6-L | WP6.13 | running | | |
+| 6-L | WP6.14 | running | | |
+| 6-L | WP6.15 | running | | |
+| 6-L | WP6.16 | running | | |
+| 6-L | WP6.17 | running | | |
+| 6-L | WP6.20 | running | | |
 | 6-M | WP6.21 | waiting | | |
 | 6-N | WP6.26 | waiting | | |
 | 6-O | WP6.22 | waiting | | |
