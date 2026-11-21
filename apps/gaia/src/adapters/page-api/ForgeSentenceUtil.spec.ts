@@ -1,9 +1,9 @@
 /**
- * Gaia's wording of a forge sentence that tells User to run a command (D10). What matters: a known refusal code or notice kind is worded
- * by Gaia whatever the forge's prose says, so a reworded forge sentence cannot slip through; an unknown sentence that names a command, by
- * a backticked span or by `forge <verb>`, is dropped for a neutral one; and a sentence that names none passes through unchanged, so Gaia
- * does not reword the forge where D10 does not ask it to. A registry entry's last command reaches the page only as the name of Gaia's own
- * command for it. The forge's sentences below are worded as the forge words them.
+ * Gaia's wording of a forge sentence that tells User to run a command (D10). What matters: a refusal is worded by none of it (decision
+ * 45); a known notice kind is worded by Gaia whatever the forge's prose says, so a reworded forge sentence cannot slip through; an unknown
+ * sentence that names a command, by a backticked span or by `forge <verb>`, is dropped for a neutral one; and a sentence that names none
+ * passes through unchanged, so Gaia does not reword the forge where D10 does not ask it to. A registry entry's last command reaches the
+ * page only as the name of Gaia's own command for it. The forge's sentences below are worded as the forge words them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -27,30 +27,9 @@ describe('whether a sentence names a command', () => {
   });
 });
 
-describe('the sentence of a forge\'s refusal', () => {
-  test('is Gaia\'s for each code the forge words with a command, whatever the forge\'s sentence', () => {
-    expect(ForgeSentenceUtil.refusalSentenceOf('launches-held-by-install-change', 'The install version changed: run `forge update`.'))
-      .toBe('The install version changed. Nothing launches until this forge is updated.');
-    expect(ForgeSentenceUtil.refusalSentenceOf('install-version-mismatch', 'A reworded sentence with no command.'))
-      .toBe('The install version of the forge files in this repository does not match the forge program Gaia runs, so nothing was done.');
-    expect(ForgeSentenceUtil.refusalSentenceOf('no-tracker-at-override', null)).toBe('No forge tracker was found in this repository, so nothing was done.');
-    expect(ForgeSentenceUtil.refusalSentenceOf('no-tracker-found', 'Run `forge init` in the repository you want tracked.'))
-      .toBe('No forge tracker was found in this repository, so nothing was done.');
-    expect(ForgeSentenceUtil.refusalSentenceOf('unauthorized', 'open the board again with `forge open`.'))
-      .toBe('The Overseer did not accept Gaia\'s token. It may have restarted.');
-    expect(ForgeSentenceUtil.refusalSentenceOf('read-failed', 'Run `forge status` in the repository.')).toBe('The Overseer could not read the board\'s files.');
-  });
-
-  test('is none for an unknown code whose sentence names a command, so the page words the refusal from its outcome', () => {
-    expect(ForgeSentenceUtil.refusalSentenceOf('arguments-refused', 'It is a bare repository. Run `forge init` in a checkout of it.')).toBeNull();
-    expect(ForgeSentenceUtil.refusalSentenceOf(null, 'Run forge start first.')).toBeNull();
-  });
-
-  test('is the forge\'s own, unchanged, when it names no command, and none when the forge gave none', () => {
-    const sentence = 'The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.';
-    expect(ForgeSentenceUtil.refusalSentenceOf('overseer-still-live', sentence)).toBe(sentence);
-    expect(ForgeSentenceUtil.refusalSentenceOf('overseer-still-live', null)).toBeNull();
-    expect(ForgeSentenceUtil.refusalSentenceOf('constructor', null)).toBeNull();
+describe('a forge\'s refusal', () => {
+  test('is worded by no function here, since it reads as the forge\'s own sentence (decision 45)', () => {
+    expect(Object.keys(ForgeSentenceUtil).filter((functionName) => /refusal/i.test(functionName))).toEqual([]);
   });
 });
 

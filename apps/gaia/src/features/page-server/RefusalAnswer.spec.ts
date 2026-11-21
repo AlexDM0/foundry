@@ -16,6 +16,7 @@ const EXPECTED_STATUS_OF_REFUSAL: Readonly<Record<PageServerRefusal, number>> = 
   'no-session':          401,
   'code-refused':        401,
   'body-not-understood': 400,
+  'body-too-large':      413,
   'not-found':           404,
   'method-not-allowed':  405,
   'page-unbuildable':    500,

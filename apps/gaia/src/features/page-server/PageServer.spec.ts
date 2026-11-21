@@ -1,13 +1,14 @@
 /**
  * The page server, headless, on any free port under a scratch home: the token and the server record it writes, the whole road of the page
  * (a code bought with the token, spent for the cookie, the fleet read, a `fleet` event heard after a store change), one refused request
- * per guard, a command carried through the command port and answered with its verdict, a frame session routed behind the session guard,
- * and the CSP on every answer, refusals and failures included. Gaia's system version answers at `/api/versions`, unversioned only; every
- * other route answers at its versioned path as at its unversioned one, behind the same guards, and at no other version. It refuses to
- * start where Gaia already answers, and a start that loses the port leaves the token as it was; a stop leaves a newer Gaia's server record
- * standing. The page's files are a stand-in for the build, whose own spec builds the real page; the command port is a stand-in for
- * forge-control, whose own spec carries every kind; the frame session route's own spec asks a forge for a code; the heartbeat's timers
- * are fired by hand.
+ * per guard, a command carried through the command port and answered with its verdict, a frame session and each route of a forge's
+ * board's relay routed behind the session guard, a body over a route's bound refused but on the picture upload, and the CSP on every
+ * answer, refusals and failures included. Gaia's system version answers at `/api/versions`, unversioned only; every other route answers
+ * at its versioned path as at its unversioned one, behind the same guards, and at no other version. It refuses to start where Gaia
+ * already answers, and a start that loses the port leaves the token as it was; a stop closes every relayed stream with the forge stream
+ * it follows, and leaves a newer Gaia's server record standing. The page's files are a stand-in for the build, whose own spec builds the
+ * real page; the command port is a stand-in for forge-control, whose own spec carries every kind; the frame session and relay routes' own
+ * specs ask a forge; the heartbeat's timers are fired by hand.
  */
 import {
   mkdirSync,
@@ -40,8 +41,10 @@ import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }          from '..
 import { manualTimers, type ManualTimers }                              from '../../testing/ManualTimers.ts';
 import { recordedOverseerFetch, type RecordedOverseerFetch }            from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                    from '../../testing/ScratchRoot.ts';
+import type { BoardRelayLogEntry }                                      from './@types/BoardRelayLogEntry.ts';
 import { startPageServer, type PageServer, type PageServerOptions }     from './PageServer.ts';
 import type { PageFilesSource }                                         from './routes/PageFilesRoute.ts';
+import { boardAnswering, exampleRelayForgeOf, relaySourcesOver }        from './testing/ExampleRelayForge.ts';
 
 const PAGE_POLICY = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
 
@@ -74,6 +77,7 @@ let streamsToAbort: AbortController[];
 let carriedCommands: GaiaCommand[];
 let nextCommandVerdict: CommandVerdict;
 let overseerFetch: RecordedOverseerFetch;
+let relayLogEntries: BoardRelayLogEntry[];
 
 beforeEach(() => {
   homeDirectory  = createScratchDirectory('page-server-home');
@@ -84,6 +88,7 @@ beforeEach(() => {
   carriedCommands    = [];
   nextCommandVerdict = { verdict: 'done' };
   overseerFetch      = recordedOverseerFetch([]);
+  relayLogEntries    = [];
 });
 
 afterEach(async () => {
@@ -103,10 +108,13 @@ function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOpti
       carriedCommands.push(command);
       return Promise.resolve(nextCommandVerdict);
     },
-    frameSessionSources: {
+    forgeAccessSources: {
       readRegistry: () => Promise.resolve({ verdict: 'absent' }),
       readings:     () => [],
       forgeClient:  forgeClientOf({ overseerFetch }),
+    },
+    logBoardRelay: (entry) => {
+      relayLogEntries.push(entry);
     },
     timers,
     now:                            () => STARTED_AT,
@@ -395,6 +403,49 @@ describe('a frame session', () => {
   });
 });
 
+const RELAY_PATHS: readonly { readonly method: 'GET' | 'POST'; readonly endpoint: string }[] = [
+  { method: 'GET', endpoint: 'forges/example-storefront-7c41/board' },
+  { method: 'GET', endpoint: 'forges/example-storefront-7c41/board/events' },
+  { method: 'GET', endpoint: 'forges/example-storefront-7c41/jobs/J4/stream' },
+  { method: 'GET', endpoint: 'forges/example-storefront-7c41/profiles/P1/stream' },
+  { method: 'POST', endpoint: 'forges/example-storefront-7c41/pictures' },
+  { method: 'GET', endpoint: 'forges/example-storefront-7c41/pictures/6b7fa434f92a8b80aab02d9bf1a12e49ffcae424e4013a1c4f68b67e3d2bbcd0' },
+  { method: 'POST', endpoint: 'forges/example-storefront-7c41/commands' },
+];
+
+/** One byte over the bound of every route but the picture upload. */
+const OVER_ROUTE_BOUND_BYTES = 65_537;
+
+describe('the relay of a forge\'s board', () => {
+  test('answers each route at its versioned and its unversioned path, behind the session guard', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+    const body = JSON.stringify({
+      boardCommandVersion: 1, kind: 'ticket-hold', ticketId: '001', reason: 'Waits for the example provider.'
+    });
+    for (const { method, endpoint } of RELAY_PATHS) {
+      const bodyOfMethod = method === 'POST' ? { body } : {};
+      for (const path of [`/api/v1/${endpoint}`, `/api/${endpoint}`]) {
+        expect([path, (await answerOf(pageServer, path, { method, ...bodyOfMethod })).status]).toEqual([path, 401]);
+        const answer = await answerOf(pageServer, path, { method, headers: { cookie }, ...bodyOfMethod });
+        expect([path, answer.status, (await answer.text()).includes('"forge-not-registered"')]).toEqual([path, 404, true]);
+      }
+    }
+    expect(overseerFetch.callsAnswered()).toEqual([]);
+  });
+
+  test('refuses a body one byte over the bound on the commands routes, and takes it on the picture route', async () => {
+    const pageServer = await servingPageServer();
+    const cookie = await sessionCookieOf(pageServer);
+    const oversized = { method: 'POST', headers: { cookie }, body: new Uint8Array(OVER_ROUTE_BOUND_BYTES) };
+    expect((await answerOf(pageServer, '/api/v3/commands', oversized)).status).toBe(413);
+    expect((await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/commands', oversized)).status).toBe(413);
+    const picture = await answerOf(pageServer, '/api/v1/forges/example-storefront-7c41/pictures', oversized);
+    expect([picture.status, ((await picture.json()) as { readonly refusal: { readonly code: string } }).refusal.code]).toEqual([404, 'forge-not-registered']);
+    expect(carriedCommands).toEqual([]);
+  });
+});
+
 describe('one refused request per guard', () => {
   test('refuses a foreign Origin', async () => {
     const pageServer = await servingPageServer();
@@ -463,7 +514,7 @@ describe('the versioned paths', () => {
     const response = await answerOf(pageServer, '/api/versions');
     expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
     expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
-    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 1 });
+    expect(GAIA_SYSTEM_VERSION).toEqual({ major: 1, minor: 2 });
   });
 
   test('serve /api/versions at no versioned path', async () => {
@@ -576,6 +627,21 @@ describe('a stop', () => {
     await pageServer.stop();
     await events.untilEnd();
     expect(timers.pendingDelays()).toEqual([]);
+  });
+
+  test('closes every open relayed stream and the forge stream it follows', async () => {
+    const tokenPath = join(homeDirectory, 'example-overseer-token');
+    writeFileSync(tokenPath, 'example-forge-token-0123456789abcdef\n');
+    const forge = exampleRelayForgeOf(homeDirectory, tokenPath);
+    const boardFetch = boardAnswering('board-at-work');
+    const pageServer = await servingPageServer({ forgeAccessSources: relaySourcesOver(forge, boardFetch) });
+    const { events } = await openEvents(pageServer, await sessionCookieOf(pageServer), '/api/v1/forges/example-storefront-7c41/board/events');
+    expect((await events.nextEvent()).eventName).toBe('handshake');
+    expect(boardFetch.streamsLeftOpen()).toBe(1);
+
+    await pageServer.stop();
+    await events.untilEnd();
+    expect([boardFetch.streamsLeftOpen(), timers.pendingDelays()]).toEqual([0, []]);
   });
 
   test('leaves the server record standing when a newer Gaia has written its own over it', async () => {

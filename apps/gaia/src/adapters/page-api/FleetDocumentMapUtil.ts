@@ -105,7 +105,7 @@ function brainOut(brain: ForgeBrainReading): FleetDocumentBrain | 'not-reported'
     endedAt:     brain.endedAt,
     endedReason: brain.endedReason,
     sentence:    brain.sentence === null ? null : ForgeSentenceUtil.sentenceNamingNoCommandOf(brain.sentence),
-    refusal:     refusal === null ? null : { code: refusal.code, sentence: ForgeSentenceUtil.refusalSentenceOf(refusal.code, refusal.sentence) },
+    refusal:     refusal === null ? null : { code: refusal.code, sentence: refusal.sentence },
   };
 }
 

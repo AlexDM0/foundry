@@ -1,6 +1,6 @@
 /**
  * The command answer the page reads: every verdict maps to its outcome at the known `answerVersion`, an update whose Baton pass was not
- * taken answers restart pending, a forge's refusal keeps its code and its sentence unless the sentence names a command (D10), Gaia's own
+ * taken answers restart pending, a forge's refusal keeps its code and its sentence unchanged (decision 45), Gaia's own
  * refusal carries its code with no sentence, a chosen path is a done answer's text, and a command Gaia could not read answers not-supported
  * with the reason as its code. Each refusal of Flint's brain recorded at control 2 reaches the page with its code and its sentence.
  */
@@ -58,25 +58,14 @@ describe('the command answer of a verdict', () => {
     });
   });
 
-  test('words a forge\'s refusal whose sentence names a command in Gaia\'s words, by its code, and keeps the code', () => {
-    const refusal = {
-      verdict: 'refused', refusedBy: 'forge', refusal: 'launches-held-by-install-change', text: 'The install version changed: run `forge update`.'
-    } as const;
-    expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
-      answerVersion: 3,
-      outcome:       'refused',
-      refusal:       'launches-held-by-install-change',
-      text:          'The install version changed. Nothing launches until this forge is updated.',
-    });
-  });
-
-  test('drops a sentence of an unknown code that names a command, so the page words the refusal from its outcome', () => {
-    const refusal = {
-      verdict: 'refused', refusedBy: 'forge', refusal: 'arguments-refused', text: 'It is a bare repository. Run `forge init` in a checkout of it.'
-    } as const;
-    expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
-      answerVersion: 3, outcome: 'refused', refusal: 'arguments-refused', text: null
-    });
+  test('passes a forge\'s refusal sentence that names a command through unchanged, with its code (decision 45)', () => {
+    const sentences = ['The install version changed: run `forge update`.', 'It is a bare repository. Run `forge init` in a checkout of it.'];
+    const answers = sentences.map((text) => PageAnswerMapUtil.commandAnswerOf({
+      verdict: 'refused', refusedBy: 'forge', refusal: 'launches-held-by-install-change', text,
+    }));
+    expect(answers).toEqual(sentences.map((text) => ({
+      answerVersion: 3, outcome: 'refused', refusal: 'launches-held-by-install-change', text,
+    })));
   });
 
   test('carries Gaia\'s own refusal as its code, with no sentence', () => {

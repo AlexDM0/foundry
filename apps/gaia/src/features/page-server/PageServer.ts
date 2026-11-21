@@ -16,20 +16,24 @@ import { monotonicMillisecondsOfNow }                                           
 import type { ClockTimers }                                                                        from '../../services/Clock.ts';
 import type { FleetStore }                                                                         from '../../services/FleetStore.ts';
 import { GAIA_ENDPOINT_VERSIONS }                                                                  from '../../shared/constants/GaiaSystemVersions.ts';
+import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                                        from '../../shared/constants/Limits.ts';
+import type { BoardRelayLog }                                                                      from './@types/BoardRelayLogEntry.ts';
+import { createBoardStreams, type BoardStreams }                                                   from './BoardStreams.ts';
 import { createFleetBroker, type FleetBroker }                                                     from './FleetBroker.ts';
+import type { ForgeAccessSources }                                                                 from './ForgeAccess.ts';
 import { refusalAnswerOf }                                                                         from './RefusalAnswer.ts';
 import { writeFreshServerToken }                                                                   from './ServerToken.ts';
+import { boardCommandAnswerFor }                                                                   from './routes/BoardCommandRoute.ts';
+import { pictureAnswerFor, pictureUploadAnswerFor }                                                from './routes/BoardPictureRoutes.ts';
+import { createBoardStateRoute, type BoardStateRoute }                                             from './routes/BoardStateRoute.ts';
+import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor }                        from './routes/BoardStreamRoutes.ts';
 import { commandAnswerFor, type CommandCarrier }                                                   from './routes/CommandsRoute.ts';
-import {
-  FRAME_SESSION_METHOD,
-  frameSessionAnswerFor,
-  trackerIdOfFrameSessionEndpoint,
-  type FrameSessionSources,
-} from './routes/FrameSessionRoute.ts';
-import { healthAnswerOf }                                                      from './routes/HealthRoute.ts';
-import { pageFileAnswerFor, type PageFilesSource }                             from './routes/PageFilesRoute.ts';
-import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './routes/SessionRoutes.ts';
-import { versionsAnswerOf }                                                    from './routes/VersionsRoute.ts';
+import { FRAME_SESSION_METHOD, frameSessionAnswerFor, trackerIdOfFrameSessionEndpoint }            from './routes/FrameSessionRoute.ts';
+import { healthAnswerOf }                                                                          from './routes/HealthRoute.ts';
+import { pageFileAnswerFor, type PageFilesSource }                                                 from './routes/PageFilesRoute.ts';
+import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor }                     from './routes/SessionRoutes.ts';
+import { versionsAnswerOf }                                                                        from './routes/VersionsRoute.ts';
+import { BoardRelayEndpointUtil, type BoardRelayEndpointName }                                     from './utils/BoardRelayEndpointUtil.ts';
 
 export interface PageServerOptions {
   /** `0` binds any free port, as a spec asks for. */
@@ -40,8 +44,10 @@ export interface PageServerOptions {
   readonly pageFiles:                       PageFilesSource;
   /** The command port: forge-control's carrier, which `Main.ts` wires, since no feature reaches another. */
   readonly carryCommand:                    CommandCarrier;
-  /** What the frame session route asks a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
-  readonly frameSessionSources:             FrameSessionSources;
+  /** What the frame session and the board's relay reach a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
+  readonly forgeAccessSources:              ForgeAccessSources;
+  /** Where the board's relay logs an event it dropped, a handshake at another version and a board it could not read. */
+  readonly logBoardRelay:                   BoardRelayLog;
   readonly timers:                          ClockTimers;
   /** The stamp the server record carries: recorded for a reader to show, never compared. */
   readonly now:                             () => string;
@@ -55,7 +61,10 @@ export interface PageServerOptions {
 export interface PageServer {
   readonly url:  URL;
   readonly port: number;
-  /** Ends every event stream, closes the listener and its connections, and removes the server record while it is still this process's. */
+  /**
+   * Ends every event stream, the fleet's and each relayed board stream with the forge stream it follows, closes the listener and its
+   * connections, and removes the server record while it is still this process's.
+   */
   readonly stop: () => Promise<ServerRecordRemoveVerdict>;
 }
 
@@ -68,26 +77,28 @@ export type PageServerStartVerdict =
 type RouteAccess = 'open' | 'token' | 'session-or-token';
 
 interface PageServerRoute {
-  readonly method:          'GET' | 'POST';
+  readonly method:           'GET' | 'POST';
   /** Asked of the endpoint below `/api/` without its version, such as `fleet`. */
-  readonly matchesEndpoint: (endpoint: string) => boolean;
+  readonly matchesEndpoint:  (endpoint: string) => boolean;
   /**
    * Served at `/api/v<version>/<endpoint>` and at `/api/<endpoint>`, which a page or a launcher from before versioned paths calls, so a
    * window open across an upgrade keeps working; `null` for the one route served only at its unversioned path, `/api/versions`.
    */
-  readonly version:         number | null;
-  readonly access:          RouteAccess;
+  readonly version:          number | null;
+  readonly access:           RouteAccess;
   /** A stream is quiet between events by design, so Bun's idle timeout is off for it rather than left to the heartbeat's timing. */
-  readonly isStream:        boolean;
-  readonly answer:          (request: Request, endpoint: string) => Response | Promise<Response>;
+  readonly isStream:         boolean;
+  /** The largest body the route reads, since Bun's own bound is one for every route and is raised to the largest of them. */
+  readonly maximumBodyBytes: number;
+  readonly answer:           (request: Request, endpoint: string, maximumBodyBytes: number) => Response | Promise<Response>;
 }
 
 const LOOPBACK_ADDRESS = '127.0.0.1';
 
 const API_PATH_PREFIX = '/api/';
 
-/** The largest body any route reads; a session code or a command is a few hundred bytes. */
-const MAXIMUM_REQUEST_BODY_BYTES = 65_536;
+/** The largest body a route reads but the picture upload; a session code or a command is a few hundred bytes. */
+const ROUTE_BODY_BOUND_BYTES = 65_536;
 
 const NO_IDLE_TIMEOUT = 0;
 
@@ -103,10 +114,12 @@ function failureOf(error: unknown): string {
 }
 
 interface RouteContext {
-  readonly broker:       FleetBroker;
-  readonly sessionCodes: SessionCodes;
-  readonly token:        string;
-  readonly options:      PageServerOptions;
+  readonly broker:          FleetBroker;
+  readonly boardStreams:    BoardStreams;
+  readonly boardStateRoute: BoardStateRoute;
+  readonly sessionCodes:    SessionCodes;
+  readonly token:           string;
+  readonly options:         PageServerOptions;
 }
 
 interface Routing {
@@ -122,78 +135,132 @@ function exactly(expectedEndpoint: string): (endpoint: string) => boolean {
   return (endpoint) => endpoint === expectedEndpoint;
 }
 
-function frameSessionAnswerOf(endpoint: string, sources: FrameSessionSources): Promise<Response> {
+function frameSessionAnswerOf(endpoint: string, sources: ForgeAccessSources): Promise<Response> {
   const trackerId = trackerIdOfFrameSessionEndpoint(endpoint);
   return trackerId === null ? Promise.resolve(refusalAnswerOf('not-found')) : frameSessionAnswerFor(trackerId, sources);
 }
 
+/** The forge and the item a relay endpoint names; the route matched it, so it names both as its pattern asks. */
+function relayValuesOf(endpointName: BoardRelayEndpointName, endpoint: string): { readonly trackerId: string; readonly itemId: string } {
+  const values = BoardRelayEndpointUtil.valuesOf(endpointName, endpoint);
+  if (values === null) throw new Error(`The ${endpointName} route answered ${endpoint}, which it does not match.`);
+  return { trackerId: values.trackerId, itemId: values.itemId ?? '' };
+}
+
+function boardRelayRoutesOf(context: RouteContext): readonly PageServerRoute[] {
+  const { boardStreams, boardStateRoute, options } = context;
+  const forgeAccess = options.forgeAccessSources;
+  const streamSources = { forgeAccess, boardStreams };
+  const relayRoute = (
+    method: PageServerRoute['method'],
+    endpointName: BoardRelayEndpointName,
+    version: number,
+    answer: PageServerRoute['answer'],
+    shape: { readonly isStream?: boolean; readonly maximumBodyBytes?: number } = {},
+  ): PageServerRoute => ({
+    method,
+    matchesEndpoint:  BoardRelayEndpointUtil.matches(endpointName),
+    version,
+    access:           'session-or-token',
+    isStream:         shape.isStream ?? false,
+    maximumBodyBytes: shape.maximumBodyBytes ?? ROUTE_BODY_BOUND_BYTES,
+    answer,
+  });
+  return [
+    relayRoute('GET', 'board', GAIA_ENDPOINT_VERSIONS.forgeBoard, (_request, endpoint) => boardStateRoute.answerFor(relayValuesOf('board', endpoint).trackerId)),
+    relayRoute('GET', 'boardEvents', GAIA_ENDPOINT_VERSIONS.forgeBoardEvents, (request, endpoint) => {
+      return boardEventsAnswerFor(request, relayValuesOf('boardEvents', endpoint).trackerId, streamSources);
+    }, { isStream: true }),
+    relayRoute('GET', 'jobStream', GAIA_ENDPOINT_VERSIONS.forgeJobStream, (request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('jobStream', endpoint);
+      return jobStreamAnswerFor(request, trackerId, itemId, streamSources);
+    }, { isStream: true }),
+    relayRoute('GET', 'profileStream', GAIA_ENDPOINT_VERSIONS.forgeProfileStream, (request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('profileStream', endpoint);
+      return profileStreamAnswerFor(request, trackerId, itemId, streamSources);
+    }, { isStream: true }),
+    relayRoute('POST', 'pictures', GAIA_ENDPOINT_VERSIONS.forgePictureUpload, (request, endpoint, maximumBodyBytes) => {
+      return pictureUploadAnswerFor(request, relayValuesOf('pictures', endpoint).trackerId, forgeAccess, maximumBodyBytes);
+    }, { maximumBodyBytes: BOARD_PICTURE_UPLOAD_LIMIT_BYTES }),
+    relayRoute('GET', 'picture', GAIA_ENDPOINT_VERSIONS.forgePicture, (_request, endpoint) => {
+      const { trackerId, itemId } = relayValuesOf('picture', endpoint);
+      return pictureAnswerFor(trackerId, itemId, forgeAccess);
+    }),
+    relayRoute('POST', 'commands', GAIA_ENDPOINT_VERSIONS.forgeCommands, (request, endpoint, maximumBodyBytes) => {
+      return boardCommandAnswerFor(request, relayValuesOf('commands', endpoint).trackerId, forgeAccess, maximumBodyBytes);
+    }),
+  ];
+}
+
 function routesOf(context: RouteContext): readonly PageServerRoute[] {
   const { broker, sessionCodes, options } = context;
+  const route = (shape: Omit<PageServerRoute, 'maximumBodyBytes'>): PageServerRoute => ({ ...shape, maximumBodyBytes: ROUTE_BODY_BOUND_BYTES });
   return [
-    {
+    route({
       method:          'GET',
       matchesEndpoint: exactly('versions'),
       version:         null,
       access:          'open',
       isStream:        false,
       answer:          () => versionsAnswerOf(),
-    },
-    {
+    }),
+    route({
       method:          'GET',
       matchesEndpoint: exactly('health'),
       version:         GAIA_ENDPOINT_VERSIONS.health,
       access:          'open',
       isStream:        false,
       answer:          () => healthAnswerOf(options.forgeCounts()),
-    },
-    {
+    }),
+    route({
       method:          'POST',
       matchesEndpoint: exactly('session-codes'),
       version:         GAIA_ENDPOINT_VERSIONS.sessionCodes,
       access:          'token',
       isStream:        false,
       answer:          () => sessionCodeAnswerOf(sessionCodes),
-    },
-    {
+    }),
+    route({
       method:          'POST',
       matchesEndpoint: exactly('session'),
       version:         GAIA_ENDPOINT_VERSIONS.session,
       access:          'open',
       isStream:        false,
-      answer:          (request) => sessionExchangeAnswerFor(request, sessionCodes),
-    },
-    {
+      answer:          (request, _endpoint, maximumBodyBytes) => sessionExchangeAnswerFor(request, sessionCodes, maximumBodyBytes),
+    }),
+    route({
       method:          'GET',
       matchesEndpoint: exactly('fleet'),
       version:         GAIA_ENDPOINT_VERSIONS.fleet,
       access:          'session-or-token',
       isStream:        false,
       answer:          () => fleetAnswerOf(broker),
-    },
-    {
+    }),
+    route({
       method:          'GET',
       matchesEndpoint: exactly('events'),
       version:         GAIA_ENDPOINT_VERSIONS.events,
       access:          'session-or-token',
       isStream:        true,
       answer:          () => broker.openEventStream(),
-    },
-    {
+    }),
+    route({
       method:          'POST',
       matchesEndpoint: exactly('commands'),
       version:         GAIA_ENDPOINT_VERSIONS.commands,
       access:          'session-or-token',
       isStream:        false,
-      answer:          (request) => commandAnswerFor(request, options.carryCommand),
-    },
-    {
+      answer:          (request, _endpoint, maximumBodyBytes) => commandAnswerFor(request, options.carryCommand, maximumBodyBytes),
+    }),
+    route({
       method:          FRAME_SESSION_METHOD,
       matchesEndpoint: (endpoint) => trackerIdOfFrameSessionEndpoint(endpoint) !== null,
       version:         GAIA_ENDPOINT_VERSIONS.frameSession,
       access:          'session-or-token',
       isStream:        false,
-      answer:          (_request, endpoint) => frameSessionAnswerOf(endpoint, options.frameSessionSources),
-    },
+      answer:          (_request, endpoint) => frameSessionAnswerOf(endpoint, options.forgeAccessSources),
+    }),
+    ...boardRelayRoutesOf(context),
   ];
 }
 
@@ -228,7 +295,7 @@ async function routedAnswerFor(request: Request, server: Bun.Server<undefined>, 
   if (route === undefined) return refusalAnswerOf('method-not-allowed');
   if (!accessIsGranted(request, route.access, context)) return refusalAnswerOf(refusalOfAccess(route.access));
   if (route.isStream) server.timeout(request, NO_IDLE_TIMEOUT);
-  return route.answer(request, endpointOfPath.endpoint);
+  return route.answer(request, endpointOfPath.endpoint, route.maximumBodyBytes);
 }
 
 export async function startPageServer(options: PageServerOptions): Promise<PageServerStartVerdict> {
@@ -238,6 +305,11 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   }
 
   const contentSecurityPolicy = pageContentSecurityPolicyFor({ frameSources: [LOOPBACK_ANY_PORT_FRAME_SOURCE] });
+  const boardStreams = createBoardStreams({
+    timers: options.timers,
+    log:    options.logBoardRelay,
+    ...options.heartbeatIntervalMilliseconds === undefined ? {} : { heartbeatIntervalMilliseconds: options.heartbeatIntervalMilliseconds },
+  });
   const broker = createFleetBroker({
     fleetStore: options.fleetStore,
     timers:     options.timers,
@@ -251,7 +323,7 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
       port:               options.port,
       reusePort:          false,
       development:        false,
-      maxRequestBodySize: MAXIMUM_REQUEST_BODY_BYTES,
+      maxRequestBodySize: BOARD_PICTURE_UPLOAD_LIMIT_BYTES,
       fetch:              async (request, ownServer) => {
         const port = ownServer.port ?? options.port;
         let answer: Response;
@@ -266,11 +338,13 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
     });
   } catch (error) {
     broker.stop();
+    boardStreams.stop();
     return { verdict: 'port-unavailable', port: options.port, failure: failureOf(error) };
   }
 
   const stopListening = async (): Promise<void> => {
     broker.stop();
+    boardStreams.stop();
     // Graceful, so each stream the broker just ended still sends its last bytes; a command still in flight holds the stop until it answers.
     await server.stop(false);
   };
@@ -287,8 +361,10 @@ export async function startPageServer(options: PageServerOptions): Promise<PageS
   const url  = urlOfPort(port);
   const context: RouteContext = {
     broker,
-    sessionCodes: createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
-    token:        tokenWrite.token,
+    boardStreams,
+    boardStateRoute: createBoardStateRoute(options.forgeAccessSources, options.logBoardRelay),
+    sessionCodes:    createSessionCodes({ cookieName: sessionCookieNameFor(port), now: options.monotonicNow ?? monotonicMillisecondsOfNow }),
+    token:           tokenWrite.token,
     options,
   };
   routing = { context, routes: routesOf(context) };

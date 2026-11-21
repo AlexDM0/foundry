@@ -38,6 +38,19 @@ describe('a served event stream', () => {
     ]);
   });
 
+  test('sends an event under its id, and one without an id leaves the reader\'s last event id as it was', async () => {
+    const stream = servedEventStreamOf({ onEnded: () => undefined });
+    stream.sendEvent('handshake', '{}');
+    stream.sendEvent('board', '{}', '1-45');
+    stream.sendEvent('note', '{}');
+    stream.close();
+    expect(eventsIn(await wholeBodyOf(stream.response)).map((event) => [event.eventName, event.lastEventId])).toEqual([
+      ['handshake', ''],
+      ['board', '1-45'],
+      ['note', '1-45'],
+    ]);
+  });
+
   test('sends a comment that the reader skips', async () => {
     const stream = servedEventStreamOf({ onEnded: () => undefined });
     stream.sendComment('heartbeat');

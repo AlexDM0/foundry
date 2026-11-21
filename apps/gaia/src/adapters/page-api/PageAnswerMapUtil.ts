@@ -1,14 +1,13 @@
 /**
  * Maps the answers of the page's requests out to the page contract: how a command ended (PLAN 6.3), a verdict of a command Gaia carried or
- * the reason it could not read the command at all, and how a frame session ended. A forge's refusal code passes through unchanged and its
- * sentence too, unless it names a command (D10), and a chosen path is a command answer's text.
+ * the reason it could not read the command at all, and how a frame session ended. A forge's refusal code and its sentence pass through
+ * unchanged, even a sentence that names a command (decision 45), and a chosen path is a command answer's text.
  */
 import type { CommandAnswerDocument }      from '../../../page/@types/CommandDocument.ts';
 import type { FrameSessionAnswerDocument } from '../../../page/@types/FrameSessionDocument.ts';
 import type { CommandVerdict }             from '../../shared/@types/CommandVerdict.ts';
 import type { FrameSessionVerdict }        from '../../shared/@types/FrameSessionVerdict.ts';
 import { PAGE_CONTRACT_VERSIONS }          from '../../shared/constants/PageContractVersions.ts';
-import { ForgeSentenceUtil }               from './ForgeSentenceUtil.ts';
 import type { GaiaCommandReading }         from './GaiaCommandIngestion.ts';
 
 export type UnreadableCommandReading = Exclude<GaiaCommandReading, { readonly verdict: 'readable' }>;
@@ -35,7 +34,7 @@ function frameSessionAnswerContentOf(verdict: FrameSessionVerdict): FrameSession
         outcome:  'refused',
         frameUrl: null,
         refusal:  verdict.refusal,
-        text:     verdict.refusedBy === 'forge' ? ForgeSentenceUtil.refusalSentenceOf(verdict.refusal, verdict.text) : null,
+        text:     verdict.refusedBy === 'forge' ? verdict.text : null,
       };
     case 'unreachable':
     case 'not-supported':
@@ -50,7 +49,7 @@ export const PageAnswerMapUtil = {
     if (verdict.verdict === 'path-chosen') return answerOf('done', null, verdict.path);
     if (verdict.verdict !== 'refused') return answerOf(verdict.verdict);
     if (verdict.refusedBy === 'gaia') return answerOf('refused', verdict.refusal);
-    return answerOf('refused', verdict.refusal, ForgeSentenceUtil.refusalSentenceOf(verdict.refusal, verdict.text));
+    return answerOf('refused', verdict.refusal, verdict.text);
   },
 
   /** A command Gaia cannot read is one it cannot carry: a stale page's, or no command at all. The reason is the code. */

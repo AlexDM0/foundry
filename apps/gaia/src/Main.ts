@@ -22,6 +22,7 @@ import { browserWindowWatchOver }                                        from '.
 import { createLauncher, launchMessageOf, type LaunchVerdict }           from './features/launcher/Launcher.ts';
 import { startPageServer, type PageServerStartVerdict }                  from './features/page-server/PageServer.ts';
 import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
+import { BoardRelayLogUtil }                                             from './features/page-server/utils/BoardRelayLogUtil.ts';
 import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
 import { realOverseerFetch }                                             from './lib/forge-client/OverseerFetch.ts';
 import { SUPPORTED_FORGE_VERSION }                                       from './lib/forge-client/constants/SupportedForgeVersions.ts';
@@ -179,15 +180,16 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
 
   const startVerdict = await startPageServer({
     port,
-    homeDirectory:       home,
+    homeDirectory:      home,
     fleetStore,
-    forgeCounts:         () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
-    pageFiles:           builtPageFilesOf(pageIndexFilePath()),
-    carryCommand:        forgeControl.carry,
-    frameSessionSources: { readRegistry, readings: forgeWatch.readings, forgeClient },
-    timers:              realClockTimers(),
-    now:                 stampOfNow,
-    processId:           process.pid,
+    forgeCounts:        () => ({ forgesRegistered: forgeWatch.watchedForgeCount(), forgesAnswered: forgeWatch.readings().length }),
+    pageFiles:          builtPageFilesOf(pageIndexFilePath()),
+    carryCommand:       forgeControl.carry,
+    forgeAccessSources: { readRegistry, readings: forgeWatch.readings, forgeClient },
+    logBoardRelay:      (entry) => output.writeStandardError(BoardRelayLogUtil.lineOf(entry)),
+    timers:             realClockTimers(),
+    now:                stampOfNow,
+    processId:          process.pid,
   });
   if (startVerdict.verdict !== 'serving') throw refusalOfStart(startVerdict);
   const { pageServer } = startVerdict;

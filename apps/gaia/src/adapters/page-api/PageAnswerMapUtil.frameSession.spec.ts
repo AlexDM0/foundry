@@ -1,6 +1,6 @@
 /**
  * The frame session verdict mapped out to the page contract. What matters: every answer carries `frameSessionVersion`, only `done`
- * carries a frame address, a forge's refusal passes its code through unchanged and its sentence too, unless it names a command (D10), and
+ * carries a frame address, a forge's refusal passes its code and its sentence through unchanged (decision 45), and
  * Gaia's own refusal carries its code only.
  */
 import { describe, expect, test } from 'bun:test';
@@ -25,7 +25,7 @@ describe('a frame session verdict mapped out', () => {
     });
   });
 
-  test('words a forge\'s refusal whose sentence names a command in Gaia\'s words, by its code', () => {
+  test('passes a forge\'s refusal sentence that names a command through unchanged (decision 45)', () => {
     const verdict = {
       verdict: 'refused', refusedBy: 'forge', refusal: 'unauthorized', text: 'The Overseer may have restarted: open the board again with `forge open`.',
     } as const;
@@ -34,7 +34,7 @@ describe('a frame session verdict mapped out', () => {
       outcome:             'refused',
       frameUrl:            null,
       refusal:             'unauthorized',
-      text:                'The Overseer did not accept Gaia\'s token. It may have restarted.',
+      text:                'The Overseer may have restarted: open the board again with `forge open`.',
     });
   });
 

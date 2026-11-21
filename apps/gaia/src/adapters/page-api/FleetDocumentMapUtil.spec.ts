@@ -1,9 +1,10 @@
 /**
  * The page sees the fleet only through this mapper. What matters: each internal fixture maps to exactly the page fixture of the same
  * artboards, the contract's version is stamped, a key the contract does not name never reaches the page, a value a forge did not
- * report stays `null` rather than becoming zero, a notice, warning, activity entry, brain sentence or brain move that names a command reaches it in
- * Gaia's words or not at all (D10), a forge's brain and a running brain's row outside every limit reach it as the forge reports them, and
- * a forge's system versions and their verdict as the watch read them.
+ * report stays `null` rather than becoming zero, a notice, warning, activity entry, brain sentence or brain move that names a command
+ * reaches it in Gaia's words or not at all (D10) while a brain's refusal keeps the forge's sentence (decision 45), a forge's brain and a
+ * running brain's row outside every limit reach it as the forge reports them, and a forge's system versions and their verdict as the
+ * watch read them.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -122,7 +123,7 @@ describe('the fleet document mapper', () => {
       .toEqual([`${FLEET_SNAPSHOT_FIVE_FORGES.forges[0]?.trackerId ?? ''} flint-brain brain`]);
   });
 
-  test('words a brain\'s sentence or refusal that names a command in Gaia\'s words, or leaves it for the page to word, and passes the others through', () => {
+  test('leaves a brain\'s sentence that names a command for the page to word, passes the others through, and keeps its refusal\'s sentence unchanged', () => {
     const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
     const runningBrain = storefront?.brain;
     if (storefront === undefined || runningBrain === undefined || runningBrain === 'not-reported') throw new Error('The five-forges model shows no brain on its first forge.');
@@ -138,10 +139,8 @@ describe('the fleet document mapper', () => {
     const namingACommand = 'Flint\'s brain cannot start: run `forge update` first.';
     expect(brainOf({ state: 'refused', sentence: namingACommand, refusal: { code: 'example-new-refusal', sentence: namingACommand } })).toMatchObject({
       sentence: null,
-      refusal:  { code: 'example-new-refusal', sentence: null },
+      refusal:  { code: 'example-new-refusal', sentence: namingACommand },
     });
-    const unauthorized = brainOf({ state: 'refused', sentence: null, refusal: { code: 'unauthorized', sentence: namingACommand } });
-    expect(unauthorized).toMatchObject({ refusal: { code: 'unauthorized', sentence: 'The Overseer did not accept Gaia\'s token. It may have restarted.' } });
   });
 
   test('carries an ended brain\'s activity entry with its kind and tokens', () => {

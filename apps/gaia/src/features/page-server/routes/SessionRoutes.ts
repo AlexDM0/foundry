@@ -2,6 +2,8 @@
  * The page's session, bought as the Bridge buys its own: a holder of Gaia's token asks `POST /api/session-codes` for a one-time code, and
  * the page spends it at `POST /api/session` for the session cookie. The code travels only in a JSON body, never in an address.
  */
+import { JsonValueUtil }     from '../../../lib/json-value/JsonValueUtil.ts';
+import { BoundedBody }       from '../../../lib/local-http-guards/BoundedBody.ts';
 import type { SessionCodes } from '../../../lib/local-http-guards/SessionCodes.ts';
 import { PRODUCT_NAMES }     from '../../../shared/constants/ProductNames.ts';
 import { refusalAnswerOf }   from '../RefusalAnswer.ts';
@@ -19,20 +21,17 @@ export function sessionCodeAnswerOf(sessionCodes: SessionCodes): Response {
   return Response.json({ code: sessionCodes.issueCode() }, { headers: { 'cache-control': 'no-store' } });
 }
 
-async function offeredCodeIn(request: Request): Promise<string | null> {
-  let parsed: unknown;
-  try {
-    parsed = await request.json();
-  } catch {
-    return null;
-  }
-  if (typeof parsed !== 'object' || parsed === null || !Object.hasOwn(parsed, CODE_KEY)) return null;
-  const { code } = parsed as { readonly code: unknown };
+function offeredCodeIn(bodyText: string): string | null {
+  const parsing = JsonValueUtil.parsedValueOf(bodyText);
+  const body = parsing === null ? null : JsonValueUtil.jsonObjectOf(parsing.parsed);
+  const code = body === null ? undefined : JsonValueUtil.ownValueOf(body, CODE_KEY);
   return typeof code === 'string' ? code : null;
 }
 
-export async function sessionExchangeAnswerFor(request: Request, sessionCodes: SessionCodes): Promise<Response> {
-  const code = await offeredCodeIn(request);
+export async function sessionExchangeAnswerFor(request: Request, sessionCodes: SessionCodes, maximumBodyBytes: number): Promise<Response> {
+  const body = await BoundedBody.boundedTextOf(request, maximumBodyBytes);
+  if (body.verdict === 'too-large') return refusalAnswerOf('body-too-large');
+  const code = offeredCodeIn(body.text);
   if (code === null) return refusalAnswerOf('body-not-understood');
   const exchange = sessionCodes.exchangeCode(code);
   if (exchange.verdict === 'refused') return refusalAnswerOf('code-refused');

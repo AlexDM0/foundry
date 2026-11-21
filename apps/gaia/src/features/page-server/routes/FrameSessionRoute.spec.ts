@@ -20,6 +20,7 @@ import type { FrameSessionAnswerDocument }   from '../../../../page/@types/Frame
 import type { RegisteredForge }              from '../../../adapters/forge-registry/@types/RegisteredForge.ts';
 import type { RegistryReading }              from '../../../adapters/forge-registry/RegistryFile.ts';
 import { forgeClientOf }                     from '../../../lib/forge-client/ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }           from '../../../lib/forge-client/constants/SupportedForgeVersions.ts';
 import { WatchReadingUtil }                  from '../../../services/utils/WatchReadingUtil.ts';
 import type { ForgeContracts, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
 import {
@@ -93,6 +94,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
     condition: fidelity === 'unreachable' ? 'unreachable' : 'live',
     url:       STOREFRONT_URL,
     contracts: forgeOptions.contracts ?? EVERY_CONTRACT,
+    versions:  { verdict: 'current', current: SUPPORTED_FORGE_VERSION, minimumSupported: { major: 1, minor: 0 } },
   };
   return { entry, reading };
 }
@@ -197,6 +199,16 @@ describe('the token', () => {
       expect(loggedText).not.toContain(EXAMPLE_TOKEN);
     });
   }
+});
+
+describe('a forge at a system version Gaia cannot talk to', () => {
+  test('answers not-supported, and asks it for nothing', async () => {
+    const forge = exampleForgeOf();
+    const versions = { verdict: 'newer', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } } as const;
+    const overseerFetch = recordedOverseerFetch([]);
+    const exchange = await exchangeOf(sourcesOver({ ...forge, reading: { ...forge.reading, versions } }, overseerFetch));
+    expect([exchange.status, exchange.document.outcome, overseerFetch.callsAnswered()]).toEqual([501, 'not-supported', []]);
+  });
 });
 
 describe('a forge with no embed channel Gaia knows', () => {

@@ -12,8 +12,11 @@ export interface ServedEventStreamOptions {
 
 export interface ServedEventStream {
   readonly response:    Response;
-  /** `eventName` holds no line break; `data` may, and is sent as one `data` line per line. */
-  readonly sendEvent:   (eventName: string, data: string) => void;
+  /**
+   * `eventName` and `eventId` hold no line break; `data` may, and is sent as one `data` line per line. An event sent with no id leaves the
+   * reader's last event id as it was.
+   */
+  readonly sendEvent:   (eventName: string, data: string, eventId?: string | null) => void;
   /** A line a reader skips, such as a heartbeat that keeps an idle connection from looking dead. */
   readonly sendComment: (comment: string) => void;
   readonly close:       () => void;
@@ -27,9 +30,10 @@ const UNREAD_BYTES_BOUND = 4_194_304;
 
 const LINE_BREAK = /\r\n|\r|\n/;
 
-function eventTextOf(eventName: string, data: string): string {
+function eventTextOf(eventName: string, data: string, eventId: string | null): string {
   const dataLines = data.split(LINE_BREAK).map((line) => `data: ${line}\n`).join('');
-  return `event: ${eventName}\n${dataLines}\n`;
+  const idLine = eventId === null ? '' : `id: ${eventId}\n`;
+  return `${idLine}event: ${eventName}\n${dataLines}\n`;
 }
 
 function commentTextOf(comment: string): string {
@@ -71,7 +75,7 @@ export function servedEventStreamOf(options: ServedEventStreamOptions): ServedEv
 
   return {
     response:    new Response(body, { headers: { 'content-type': EVENT_STREAM_CONTENT_TYPE, 'cache-control': 'no-store' } }),
-    sendEvent:   (eventName, data) => write(eventTextOf(eventName, data)),
+    sendEvent:   (eventName, data, eventId = null) => write(eventTextOf(eventName, data, eventId)),
     sendComment: (comment) => write(commentTextOf(comment)),
     close,
     isOpen:      () => isOpen,

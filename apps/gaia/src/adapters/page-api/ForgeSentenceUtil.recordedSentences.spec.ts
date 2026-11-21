@@ -1,7 +1,8 @@
 /**
- * D10 over every sentence a real forge was recorded answering: none reaches the page naming a command. What matters: every string of
- * every recorded forge answer is searched, so a command-naming sentence anywhere but a refusal's text fails here first; each recorded
- * refusal reaches the page through the command answer and the frame session answer the page reads; and each recorded monitor snapshot
+ * D10 over every sentence a real forge was recorded answering: none but a refusal's reaches the page naming a command. What matters: every
+ * string of every recorded forge answer is searched, so a command-naming sentence anywhere but a refusal's text fails here first; each
+ * recorded refusal reaches the page through the command answer and the frame session answer as the forge's own sentence, unchanged
+ * (decision 45); and each recorded monitor snapshot
  * reaches it through the fleet document, its notices, warnings, activity entries and brain moves among it. The frozen list of refusal
  * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
  * forge-program-refused` or an overseer-fetch recording.
@@ -160,24 +161,23 @@ describe('the sentences recorded from a real forge', () => {
     expect([...codes].sort()).toEqual(REFUSALS_RECORDED_NAMING_A_COMMAND);
   });
 
-  test('reach the page in no refused command\'s answer naming a command', () => {
+  test('reach the page in a refused command\'s answer as the forge\'s own sentence, unchanged, a command named included (decision 45)', () => {
     const refusals = recordedRefusals();
     expect(refusals.length).toBeGreaterThan(REFUSALS_RECORDED_NAMING_A_COMMAND.length);
     for (const { refusal, text } of refusals) {
       const answer = PageAnswerMapUtil.commandAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       });
-      expect(answer.refusal).toBe(refusal);
-      expect(ForgeSentenceUtil.sentenceNamesACommand(answer.text ?? '')).toBe(false);
+      expect([answer.refusal, answer.text]).toEqual([refusal, text]);
     }
   });
 
-  test('reach the page in no refused frame session\'s answer naming a command', () => {
+  test('reach the page in a refused frame session\'s answer as the forge\'s own sentence, unchanged', () => {
     for (const { refusal, text } of recordedRefusals()) {
       const answer = PageAnswerMapUtil.frameSessionAnswerOf({
         verdict: 'refused', refusedBy: 'forge', refusal, text,
       });
-      expect(ForgeSentenceUtil.sentenceNamesACommand(answer.text ?? '')).toBe(false);
+      expect(answer.text).toBe(text);
     }
   });
 

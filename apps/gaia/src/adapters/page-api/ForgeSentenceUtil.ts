@@ -1,6 +1,7 @@
 /**
- * D10 at the page's edge: no forge sentence reaches the page telling User to run a command. A refusal or a notice the forge is known to word
- * with a command leaves in Gaia's words, by its code or kind; any other sentence that still names a command is dropped for a neutral one.
+ * D10 at the page's edge: no forge sentence but a refusal reaches the page telling User to run a command. A notice the forge is known to
+ * word with a command leaves in Gaia's words, by its kind; any other sentence that still names a command is dropped for a neutral one. A
+ * refusal is never routed here: it reads as the forge's own sentence, unchanged (decision 45).
  */
 import { FORGE_NOTICE_KINDS } from '../../shared/constants/ForgeNoticeKinds.ts';
 
@@ -13,16 +14,6 @@ const FORGE_VERB_NAMED = new RegExp(
   + '|question|incidents|incident|jobs|job|intake|advise|await|range|open|clear|oversee|version|start|stop|machine|login-item|help)\\b',
   'i',
 );
-
-/** The forge's refusal codes whose sentence names a command, each in Gaia's words: Gaia updates, starts and opens the forge itself. */
-const REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
-  'launches-held-by-install-change': 'The install version changed. Nothing launches until this forge is updated.',
-  'install-version-mismatch':        'The install version of the forge files in this repository does not match the forge program Gaia runs, so nothing was done.',
-  'no-tracker-at-override':          'No forge tracker was found in this repository, so nothing was done.',
-  'no-tracker-found':                'No forge tracker was found in this repository, so nothing was done.',
-  'unauthorized':                    'The Overseer did not accept Gaia\'s token. It may have restarted.',
-  'read-failed':                     'The Overseer could not read the board\'s files.',
-};
 
 /**
  * The Overseer's notice kinds Gaia words itself: those whose sentence names a command in monitor contract 1, and `assistant-down`, the
@@ -63,13 +54,6 @@ function sentenceNamesACommand(sentence: string): boolean {
   return BACKTICKED_SPAN.test(sentence) || FORGE_VERB_NAMED.test(sentence);
 }
 
-/** `null` when the forge's sentence names a command Gaia has no words for, so the page words the refusal from its outcome. */
-function refusalSentenceOf(refusal: string | null, text: string | null): string | null {
-  const gaiaSentence = refusal === null ? null : ownSentenceOf(REFUSAL_SENTENCES, refusal);
-  if (gaiaSentence !== null) return gaiaSentence;
-  return text === null || sentenceNamesACommand(text) ? null : text;
-}
-
 function noticeSentenceOf(kind: string, text: string): string {
   const gaiaSentence = ownSentenceOf(NOTICE_SENTENCES, kind);
   if (gaiaSentence !== null) return gaiaSentence;
@@ -103,7 +87,6 @@ function brainIntentSentenceOf(intent: string): string {
 
 export const ForgeSentenceUtil = {
   sentenceNamesACommand,
-  refusalSentenceOf,
   sentenceNamingNoCommandOf,
   noticeSentenceOf,
   lastCommandNameOf,

@@ -134,20 +134,21 @@ describe('gaia serve', () => {
 
   test('refuses to start where Gaia already answers, and writes no token', async () => {
     const runningGaia = await startPageServer({
-      port:                0,
-      homeDirectory:       scratchHome(),
-      fleetStore:          createFleetStore(FLEET_SNAPSHOT_EMPTY),
-      forgeCounts:         () => ({ forgesRegistered: 0, forgesAnswered: 0 }),
-      pageFiles:           () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
-      carryCommand:        () => Promise.resolve({ verdict: 'not-supported' }),
-      frameSessionSources: {
+      port:               0,
+      homeDirectory:      scratchHome(),
+      fleetStore:         createFleetStore(FLEET_SNAPSHOT_EMPTY),
+      forgeCounts:        () => ({ forgesRegistered: 0, forgesAnswered: 0 }),
+      pageFiles:          () => Promise.resolve({ verdict: 'unbuildable', failure: 'no page in this spec' }),
+      carryCommand:       () => Promise.resolve({ verdict: 'not-supported' }),
+      forgeAccessSources: {
         readRegistry: () => Promise.resolve({ verdict: 'absent' }),
         readings:     () => [],
         forgeClient:  forgeClientOf({ overseerFetch: recordedOverseerFetch([]) }),
       },
-      timers:    manualTimers(),
-      now:       () => '2026-11-13T09:00:00.000Z',
-      processId: process.pid,
+      logBoardRelay: () => undefined,
+      timers:        manualTimers(),
+      now:           () => '2026-11-13T09:00:00.000Z',
+      processId:     process.pid,
     });
     if (runningGaia.verdict !== 'serving') throw new Error('The running Gaia of this spec did not start.');
     try {

@@ -56,9 +56,10 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 3. `ForgeControl` picks the carrier: the Overseer's control API while it answers and its control contract is known; the forge program
    (`adapters/forge-program/`, through `lib/process-run/`) for what no API can do, such as start, update and add; Gaia's own settings for
    hiding a forge or a setting. One command per forge is on its way at a time.
-4. It answers a verdict. A forge's refusal passes through unchanged; only `page-server` maps the verdict to an HTTP status and the command
-   answer. On the way out, `adapters/page-api/ForgeSentenceUtil.ts` puts a forge sentence that names a command into Gaia's words, in the
-   command answer, the frame session answer and the fleet document's notices and warnings alike, so no screen tells User to run one (D10).
+4. It answers a verdict. A forge's refusal passes through unchanged, its sentence the one the forge's command line prints (decision 45);
+   only `page-server` maps the verdict to an HTTP status and the command answer. On the way out, `adapters/page-api/ForgeSentenceUtil.ts`
+   puts a notice, a warning or another forge sentence that names a command into Gaia's words, so no screen but a refusal tells User to run
+   one (D10).
 5. The change itself reaches the page as the next fleet snapshot, not through the answer.
 
 ## One forge in place
@@ -80,6 +81,12 @@ means the board document is read again. The page never sees this model; it reads
 (`page/@types/board/`), which `adapters/page-api/BoardDocumentMapUtil.ts` maps the model out to, key by key. A board command comes in
 the other way: the page's body is read into Gaia's `BoardCommand` (`adapters/page-api/BoardCommandIngestion.ts`) and sent as the forge's
 command of the same kind (`adapters/forge-api/utils/BoardCommandMapUtil.ts`).
+
+The page reaches a forge's board only through Gaia's server, which keeps the token (`features/page-server/`): `ForgeAccess.ts` turns a
+tracker id into the Overseer's address and token, or a refusal; the board route reads the document afresh, sharing one read per forge
+among the requests that come while it is on its way; `BoardStreams.ts` holds every relayed stream, one forge stream per page stream,
+opened with Gaia's handshake, each event mapped once per forge and closed together at the server's stop; the picture and command routes
+read their body to their own bound and forward it. The page reads change signals from the stream and the board afresh from the route.
 
 ## Flint's brain
 

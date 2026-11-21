@@ -52,3 +52,17 @@ export interface ForgeCommandRefusalAnswer {
   readonly fields:         Readonly<Record<string, JsonValue>>;
   readonly text:           string;
 }
+
+/** A picture the forge stored, answered 200 by `POST /api/v1/pictures`. */
+export interface ForgePictureUploadedAnswer {
+  readonly pictureId: string;
+  readonly bytes:     number;
+  readonly mediaType: string;
+}
+
+/** A picture the forge refused (413 too large, 415 no picture it takes, 400 an empty body), with no control version. */
+export interface ForgePictureRefusalAnswer {
+  readonly refusal: string;
+  readonly fields:  Readonly<Record<string, JsonValue>>;
+  readonly text:    string;
+}

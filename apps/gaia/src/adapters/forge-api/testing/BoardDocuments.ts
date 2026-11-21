@@ -34,6 +34,15 @@ export async function recordedCommandAnswerOf(
   return { status: answer.status, body: answer.body };
 }
 
+/** A picture upload's answer as the forge gave it: its status and its parsed body. */
+export async function recordedPictureUploadAnswerOf(
+  situation: Extract<BoardSituation, 'picture-accepted' | 'picture-too-large' | 'picture-not-a-picture'>,
+): Promise<{ readonly status: number; readonly body: unknown }> {
+  const answer = await clientOf(situation).uploadPicture(EXAMPLE_ACCESS, new Uint8Array([0]), 'image/png');
+  if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no upload answer: ${answer.verdict}.`);
+  return { status: answer.status, body: answer.body };
+}
+
 async function recordedEventsOf(follow: (onEvent: (event: ForgeStreamEvent) => void) => ForgeStreamFollow): Promise<readonly ForgeStreamEvent[]> {
   const events: ForgeStreamEvent[] = [];
   const following = follow((event) => {

@@ -5,8 +5,10 @@
  */
 import { GaiaCommandIngestion } from '../../../adapters/page-api/GaiaCommandIngestion.ts';
 import { PageAnswerMapUtil }    from '../../../adapters/page-api/PageAnswerMapUtil.ts';
+import { BoundedBody }          from '../../../lib/local-http-guards/BoundedBody.ts';
 import type { CommandVerdict }  from '../../../shared/@types/CommandVerdict.ts';
 import type { GaiaCommand }     from '../../../shared/@types/GaiaCommand.ts';
+import { refusalAnswerOf }      from '../RefusalAnswer.ts';
 
 /** Carries one command and answers how it ended; never throws for a forge that is down. */
 export type CommandCarrier = (command: GaiaCommand) => Promise<CommandVerdict>;
@@ -23,8 +25,10 @@ const HTTP_STATUS_OF_VERDICT: Readonly<Record<CommandVerdict['verdict'], number>
 
 const HTTP_BAD_REQUEST = 400;
 
-export async function commandAnswerFor(request: Request, carryCommand: CommandCarrier): Promise<Response> {
-  const reading = new GaiaCommandIngestion(await request.text()).read();
+export async function commandAnswerFor(request: Request, carryCommand: CommandCarrier, maximumBodyBytes: number): Promise<Response> {
+  const body = await BoundedBody.boundedTextOf(request, maximumBodyBytes);
+  if (body.verdict === 'too-large') return refusalAnswerOf('body-too-large');
+  const reading = new GaiaCommandIngestion(body.text).read();
   if (reading.verdict !== 'readable') return Response.json(PageAnswerMapUtil.unreadableCommandAnswerOf(reading), { status: HTTP_BAD_REQUEST });
   const verdict = await carryCommand(reading.command);
   return Response.json(PageAnswerMapUtil.commandAnswerOf(verdict), { status: HTTP_STATUS_OF_VERDICT[verdict.verdict] });

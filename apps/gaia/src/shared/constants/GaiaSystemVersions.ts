@@ -9,7 +9,7 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
  * Raised in its minor when a route, the fleet stream or a message to the Bridge only adds, so every page and launcher of this major keeps
  * working; in its major when one changes in a way a client built for the older major cannot read.
  */
-export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 1, minor: 1 };
+export const GAIA_SYSTEM_VERSION: SystemVersion = { major: 1, minor: 2 };
 
 /**
  * The oldest Gaia a page or a launcher may have been built for and still be served; 0.0 stands for every Gaia before system versions.
@@ -23,11 +23,18 @@ export const MINIMUM_SUPPORTED_GAIA_VERSION: SystemVersion = { major: 0, minor: 
  * commands (3).
  */
 export const GAIA_ENDPOINT_VERSIONS = {
-  health:       1,
-  sessionCodes: 1,
-  session:      1,
-  fleet:        4,
-  events:       4,
-  commands:     3,
-  frameSession: 1,
+  health:             1,
+  sessionCodes:       1,
+  session:            1,
+  fleet:              4,
+  events:             4,
+  commands:           3,
+  frameSession:       1,
+  forgeBoard:         1,
+  forgeBoardEvents:   1,
+  forgeJobStream:     1,
+  forgeProfileStream: 1,
+  forgePictureUpload: 1,
+  forgePicture:       1,
+  forgeCommands:      1,
 } as const;

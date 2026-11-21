@@ -84,8 +84,17 @@ changes the endpoint already had.
 | `events` | 4 | `GET /api/v4/events` | as `fleet`, whose document each `fleet` event carries |
 | `commands` | 3 | `POST /api/v3/commands` | Gaia's own sentences for forge refusals (2); the brain's commands (3) |
 | `frameSession` | 1 | `POST /api/v1/forges/<trackerId>/frame-session` | none |
+| `forgeBoard` | 1 | `GET /api/v1/forges/<trackerId>/board` | none |
+| `forgeBoardEvents` | 1 | `GET /api/v1/forges/<trackerId>/board/events` | none |
+| `forgeJobStream` | 1 | `GET /api/v1/forges/<trackerId>/jobs/<jobId>/stream?after=<cursor>` | none |
+| `forgeProfileStream` | 1 | `GET /api/v1/forges/<trackerId>/profiles/<profileRunId>/stream?after=<line>` | none |
+| `forgePictureUpload` | 1 | `POST /api/v1/forges/<trackerId>/pictures`, raw bytes to `BOARD_PICTURE_UPLOAD_LIMIT_BYTES` | none |
+| `forgePicture` | 1 | `GET /api/v1/forges/<trackerId>/pictures/<pictureId>` | none |
+| `forgeCommands` | 1 | `POST /api/v1/forges/<trackerId>/commands` | none |
 
-`GET /api/versions` is the one route served only at its unversioned path.
+`GET /api/versions` is the one route served only at its unversioned path. The seven `forge*` routes, Gaia's relay of one forge's board,
+came with Gaia 1.2; every route reads a body of at most 65,536 bytes, the picture upload one of at most `BOARD_PICTURE_UPLOAD_LIMIT_BYTES`
+(`src/lib/local-http-guards/BoundedBody.ts`), since Bun's own bound is one for the whole server.
 
 ## Versioned contracts
 
@@ -109,11 +118,11 @@ version, major.minor.
 | `gaiaCommandAnswer` | 3 | `answerVersion` | the answer of `POST /api/v3/commands` | serves; the page reads | `page/@types/CommandDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaFrameSession` | 1 | `frameSessionVersion` | the answer of `POST /api/v1/forges/<trackerId>/frame-session` | serves; the page reads | `page/@types/FrameSessionDocument.ts`, mapped out by `src/adapters/page-api/PageAnswerMapUtil.ts` | Gaia |
 | `gaiaHealth` | 1 | `healthVersion` | the open `GET /api/v1/health` | serves; the launcher and a second `serve` read | `src/adapters/gaia-server/HealthDocument.ts` | Gaia |
-| `gaiaBoard` | 1 | `boardVersion` | one forge's board as the page reads it, each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia; the relay routes (WP6.3) |
+| `gaiaBoard` | 1 | `boardVersion` | one forge's board as the page reads it, each event of its relayed board stream (a change signal) and each relayed conversation event (a job stream's `history` and `message`, a profile stream's `line`) | serves; the page reads | `page/@types/board/BoardDocument.ts`, `BoardEventDocument.ts`, `ConversationDocument.ts`, mapped out by `src/adapters/page-api/BoardDocumentMapUtil.ts` | Gaia, at `forgeBoard` and in the three relayed streams |
 | `gaiaBoardCommand` | 1 | `boardCommandVersion` | the body of a board command the page posts for one forge; each kind keeps the forge's kind name, with Gaia's payload | the page sends; the server reads | `page/@types/board/BoardCommandDocument.ts`, read in by `src/adapters/page-api/BoardCommandIngestion.ts` and sent as the forge's command by `src/adapters/forge-api/utils/BoardCommandMapUtil.ts` | Gaia |
-| `gaiaBoardStream` | 1 | `boardStreamVersion` | the `handshake` that opens every relayed board stream, with Gaia's and the forge's system versions, written with no id | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts` | Gaia; the relay routes (WP6.3) |
-| `gaiaBoardCommandAnswer` | 1 | `boardCommandAnswerVersion` | the answer to a board command: applied, refused with the forge's sentence or Gaia's own, held for an install change, unreachable or of unknown outcome | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts` | Gaia; the relay routes (WP6.3) |
-| `gaiaPictureUploadAnswer` | 1 | `pictureUploadAnswerVersion` | the answer to a picture the page uploads for one forge | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts` | Gaia; the relay routes (WP6.3) |
+| `gaiaBoardStream` | 1 | `boardStreamVersion` | the `handshake` that opens every relayed board stream, with Gaia's and the forge's system versions, written with no id | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgeBoardEvents`, `forgeJobStream` and `forgeProfileStream` |
+| `gaiaBoardCommandAnswer` | 1 | `boardCommandAnswerVersion` | the answer to a board command: applied, refused with the forge's sentence or Gaia's own, held for an install change, unreachable or of unknown outcome | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgeCommands` |
+| `gaiaPictureUploadAnswer` | 1 | `pictureUploadAnswerVersion` | the answer to a picture the page uploads for one forge | serves; the page reads | `page/@types/board/BoardRelayDocuments.ts`, mapped out by `src/adapters/page-api/BoardRelayAnswerMapUtil.ts` | Gaia, at `forgePictureUpload` |
 | `gaiaProgramAnswer` | 1 | `answerVersion` | `gaia version --json` on standard output | writes | `src/Main.ts` | Gaia |
 | `boundaryRecording` | 1.0 | `recordingVersion`, `recordingMinor` | `src/testing/recordings/<os>/<name>.json`, a boundary's recorded answers; test-only | writes in `bun run record`, reads in specs and verify | `src/testing/BoundaryRecordings.ts` | Gaia |
 
@@ -173,6 +182,16 @@ none of the model and no `forge-contracts` type.
   through one table whose type pairs it with the contract's command of the same kind, so Gaia sends only kinds of
   `FORGE_CONTROL_COMMAND_KINDS`, never a kind the forge's command line alone runs. A key Gaia holds as `null` is absent from the forge's
   command. No view applies a command before the forge answers.
+- **Relayed:** the `forge*` routes (`src/features/page-server/`) reach a forge through `ForgeAccess.ts`: the registry's entry, the
+  watch's reading at the same address, a version verdict of `current` or `ahead`, and the token file read at each request; the token
+  reaches no answer and no log line. The board is read afresh for each request, reads of one forge shared: a request that comes while a
+  read is on its way waits for the next, so a burst of change signals costs at most two reads. A relayed stream opens with Gaia's
+  `handshake` once the forge's own names the version the watch read, then re-emits each forge event under its name and id, mapped once
+  per forge for every page stream that follows it (`BoardStreams.ts`); an event that does not ingest is dropped and logged, never
+  forwarded raw. The page's `Last-Event-ID` and `after` reach the forge; a forge stream that ends ends the page's, and a page that goes
+  stops the forge's. Statuses (`BoardRelayAnswers.ts`): 200 answered, 400 a body that is no command Gaia knows, 404 an unregistered forge
+  or an unknown picture, 409 a forge's refusal, 413 a body over its bound, 423 a forge's install hold, 501 a forge version Gaia cannot
+  talk to, 502 a forge that does not answer, a document that does not ingest, an unreadable token file or a refused token.
 
 ## The install version
 

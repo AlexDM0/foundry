@@ -8,6 +8,7 @@ import { createSessionCodes, type SessionCodes }                               f
 import { sessionCodeAnswerOf, sessionCookieNameFor, sessionExchangeAnswerFor } from './SessionRoutes.ts';
 
 const EXAMPLE_PORT = 4790;
+const EXAMPLE_BODY_BOUND_BYTES = 256;
 
 function sessionCodesOnAStoppedClock(): SessionCodes {
   return createSessionCodes({ cookieName: sessionCookieNameFor(EXAMPLE_PORT), now: () => 0 });
@@ -39,21 +40,31 @@ describe('a session code', () => {
     const sessionCodes = sessionCodesOnAStoppedClock();
     const code = await issuedCodeOf(sessionCodes);
 
-    const exchanged = await sessionExchangeAnswerFor(exchangeRequestOf(JSON.stringify({ code })), sessionCodes);
+    const exchanged = await sessionExchangeAnswerFor(exchangeRequestOf(JSON.stringify({ code })), sessionCodes, EXAMPLE_BODY_BOUND_BYTES);
     expect([exchanged.status, exchanged.headers.get('cache-control')]).toEqual([204, 'no-store']);
     const cookieAttributes = (exchanged.headers.get('set-cookie') ?? '').split('; ');
     expect(cookieAttributes[0]).toMatch(/^gaia-session-4790=[0-9a-f]{64}$/);
     expect(cookieAttributes).toContain('HttpOnly');
     expect(cookieAttributes).toContain('SameSite=Strict');
 
-    const spent = await sessionExchangeAnswerFor(exchangeRequestOf(JSON.stringify({ code })), sessionCodes);
+    const spent = await sessionExchangeAnswerFor(exchangeRequestOf(JSON.stringify({ code })), sessionCodes, EXAMPLE_BODY_BOUND_BYTES);
     expect([spent.status, spent.headers.get('set-cookie')]).toEqual([401, null]);
   });
 
   test('is not understood from a body that is no JSON, no object, or holds no code as a string', async () => {
     const sessionCodes = sessionCodesOnAStoppedClock();
     const bodies = ['code', 'null', '["code"]', '{}', '{"code": 4790}'];
-    const statuses = await Promise.all(bodies.map(async (body) => (await sessionExchangeAnswerFor(exchangeRequestOf(body), sessionCodes)).status));
+    const statuses = await Promise.all(bodies.map(async (body) => (await sessionExchangeAnswerFor(exchangeRequestOf(body), sessionCodes, EXAMPLE_BODY_BOUND_BYTES)).status));
     expect(statuses).toEqual([400, 400, 400, 400, 400]);
+  });
+});
+
+describe('a session exchange body', () => {
+  test('over its bound is refused as too large, and spends no code', async () => {
+    const sessionCodes = sessionCodesOnAStoppedClock();
+    const code = await issuedCodeOf(sessionCodes);
+    const oversized = JSON.stringify({ code, padding: 'x'.repeat(EXAMPLE_BODY_BOUND_BYTES) });
+    expect((await sessionExchangeAnswerFor(exchangeRequestOf(oversized), sessionCodes, EXAMPLE_BODY_BOUND_BYTES)).status).toBe(413);
+    expect((await sessionExchangeAnswerFor(exchangeRequestOf(JSON.stringify({ code })), sessionCodes, EXAMPLE_BODY_BOUND_BYTES)).status).toBe(204);
   });
 });

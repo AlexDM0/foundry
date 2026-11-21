@@ -1,7 +1,7 @@
 /**
  * The commands route over a command port that answers a verdict set by the spec: a readable command reaches the port as the internal
  * command and its verdict is answered in the page contract under its own status; a command Gaia cannot read reaches nothing and is
- * answered as not supported, with the reason as its code.
+ * answered as not supported, with the reason as its code; a body over its bound reaches nothing and is answered as too large.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -31,10 +31,12 @@ function commandRequestOf(body: string): Request {
 
 const LOOK_AGAIN_BODY = JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again' });
 
+const EXAMPLE_BODY_BOUND_BYTES = 256;
+
 describe('a command Gaia can read', () => {
   test('reaches the command port as the internal command, and is answered with its verdict', async () => {
     const carrier = carrierAnswering({ verdict: 'done' });
-    const answer = await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrier.carryCommand);
+    const answer = await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
     expect(answer.status).toBe(200);
     expect(await answer.json()).toEqual({
       answerVersion: 3, outcome: 'done', refusal: null, text: null
@@ -48,7 +50,7 @@ describe('a command Gaia can read', () => {
       verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
     });
     const body = JSON.stringify({ commandVersion: 2, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
-    const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand);
+    const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
     expect([answer.status, await answer.json()]).toEqual([409, {
       answerVersion: 3, outcome: 'refused', refusal: 'usage-limit-holds', text,
     }]);
@@ -68,7 +70,7 @@ describe('a command Gaia can read', () => {
       { verdict: 'not-supported' },
     ];
     const statuses = await Promise.all(verdicts.map(async (verdict) => {
-      return (await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrierAnswering(verdict).carryCommand)).status;
+      return (await commandAnswerFor(commandRequestOf(LOOK_AGAIN_BODY), carrierAnswering(verdict).carryCommand, EXAMPLE_BODY_BOUND_BYTES)).status;
     }));
     expect(statuses).toEqual([200, 200, 200, 409, 409, 502, 501]);
   });
@@ -79,7 +81,7 @@ describe('a command Gaia cannot read', () => {
     const carrier = carrierAnswering({ verdict: 'done' });
     const bodies = ['look again', JSON.stringify({ commandVersion: 1, kind: 'fleet-look-again' }), JSON.stringify({ commandVersion: 2, kind: 'forge-start' })];
     const answers = await Promise.all(bodies.map(async (body) => {
-      const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand);
+      const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
       return [answer.status, await answer.json()] as const;
     }));
     expect(answers).toEqual([
@@ -93,6 +95,15 @@ describe('a command Gaia cannot read', () => {
         answerVersion: 3, outcome: 'not-supported', refusal: 'malformed', text: null
       }],
     ]);
+    expect(carrier.carriedCommands).toEqual([]);
+  });
+});
+
+describe('a command body over its bound', () => {
+  test('reaches nothing and is answered as too large', async () => {
+    const carrier = carrierAnswering({ verdict: 'done' });
+    const oversized = JSON.stringify({ commandVersion: 2, kind: 'fleet-look-again', padding: 'x'.repeat(EXAMPLE_BODY_BOUND_BYTES) });
+    expect((await commandAnswerFor(commandRequestOf(oversized), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES)).status).toBe(413);
     expect(carrier.carriedCommands).toEqual([]);
   });
 });

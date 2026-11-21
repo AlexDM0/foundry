@@ -8,6 +8,7 @@ export type PageServerRefusal =
   | 'no-session'
   | 'code-refused'
   | 'body-not-understood'
+  | 'body-too-large'
   | 'not-found'
   | 'method-not-allowed'
   | 'page-unbuildable'
@@ -19,6 +20,7 @@ const HTTP_STATUS = {
   forbidden:           403,
   notFound:            404,
   methodNotAllowed:    405,
+  contentTooLarge:     413,
   internalServerError: 500,
 } as const;
 
@@ -36,6 +38,7 @@ const REFUSAL_ANSWERS: Readonly<Record<PageServerRefusal, RefusalAnswer>> = {
   'no-session':          { status: HTTP_STATUS.unauthorized, sentence: 'This route needs a session of Gaia\'s page.' },
   'code-refused':        { status: HTTP_STATUS.unauthorized, sentence: 'The session code is spent, past its life or never issued.' },
   'body-not-understood': { status: HTTP_STATUS.badRequest, sentence: 'Gaia did not understand the request\'s body.' },
+  'body-too-large':      { status: HTTP_STATUS.contentTooLarge, sentence: 'The request\'s body is larger than Gaia takes at this address.' },
   'not-found':           { status: HTTP_STATUS.notFound, sentence: 'Gaia has nothing at this address.' },
   'method-not-allowed':  { status: HTTP_STATUS.methodNotAllowed, sentence: 'Gaia answers this address with another method.' },
   'page-unbuildable':    { status: HTTP_STATUS.internalServerError, sentence: 'Gaia could not build its page.' },
