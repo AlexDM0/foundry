@@ -1,0 +1,246 @@
+/*
+ * The Kanban (`page/board/views/kanban/`): its lanes and cards, the hover arrows, the entity rail in monorepo mode, and the filter menu's
+ * Kanban sections. A card that an agent works on pulses only while the board's stream is live (`.board-kanban[data-freshness="live"]`).
+ */
+/* ----------------------------------------------------------------- kanban -- */
+/* Lanes share the width, stretch to the tallest and grow with their cards (the page scrolls, never a lane); a narrow window scrolls the
+   board sideways and the frame fades the edge it can still scroll to. */
+.board-kanban { display: flex; flex-direction: column; gap: 14px; }
+.board-kanban-frame { position: relative; }
+.board-kanban-frame::before,
+.board-kanban-frame::after { content: ""; position: absolute; top: 0; bottom: var(--sp-1); z-index: 3; width: 40px; pointer-events: none; opacity: 0; transition: opacity var(--motion-fast); }
+.board-kanban-frame::before { left: 0; background: linear-gradient(90deg, var(--bg), var(--see-through)); }
+/* --panel-cover: how much of the board the open detail panel covers, so the end fade sits at the panel's edge. */
+.board-kanban-frame::after {
+  right: var(--panel-cover, 0px); background: linear-gradient(270deg, var(--bg), var(--see-through));
+  transition: opacity var(--motion-fast), right var(--side-panel-motion) var(--ease-out);
+}
+.board-kanban-frame[data-overflow~="start"]::before,
+.board-kanban-frame[data-overflow~="end"]::after { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .board-kanban-frame::after { transition: none; }
+}
+.board-kanban-lanes { display: flex; align-items: stretch; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; padding-bottom: var(--sp-1); }
+/* While the detail panel is open the board gains room at its end the width of what the panel covers, its lanes frozen at the width they
+   had, so any lane scrolls clear of the panel. */
+.board-kanban-lanes[data-panel-room] { scroll-padding-inline-end: calc(var(--panel-room) + 24px); }
+.board-kanban-lanes[data-panel-room] > .board-lane:not([data-collapsed]) { flex: 0 0 var(--frozen-lane-w); }
+.board-kanban-lanes[data-panel-room]::after { content: ""; flex: 0 0 max(0px, calc(var(--panel-room) - 10px)); }
+.board-lane {
+  flex: 1 1 0; min-width: 220px;
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 10px; overflow: hidden; container-type: inline-size;
+  background: var(--lane-bg); border: 1px solid var(--line); border-radius: var(--r-3);
+}
+/* A header figure's lane, outlined for a moment in its head's edge colour; drawn inside the lane, so the board's scroll box clips none. */
+.board-lane[data-highlighted] { outline: 2px solid var(--lane-highlight-edge, var(--line-strong)); outline-offset: -2px; animation: board-lane-highlight 0.3s ease-out; }
+@keyframes board-lane-highlight { from { outline-color: var(--see-through); } }
+@media (prefers-reduced-motion: reduce) { .board-lane[data-highlighted] { animation: none; } }
+
+/* The head: the state's dot, the title and count as one uppercase line in ink over a 2px rule in the state's fill; Ready and Done, whose
+   fills do not read as a rule, take the strong line. Its controls sit at its right end, and wrap under it when crowded. */
+.board-lane-head {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-2); min-height: 30px; box-sizing: border-box; padding: 0 2px 6px;
+  border-bottom: 2px solid var(--s-fill);
+}
+.board-lane-head:is([data-state="committed"], [data-state="delivered"]) { border-bottom-color: var(--line-strong); }
+.board-lane-title,
+.board-lane-count {
+  margin: 0; font: 700 var(--fs-small)/16px var(--font-ui); text-transform: uppercase; letter-spacing: 0.12em; white-space: nowrap; color: var(--ink);
+}
+.board-lane-count { font-family: var(--font-mono); font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: 0; color: var(--ink-4); }
+.board-lane-head-end { display: flex; align-items: center; gap: var(--sp-1); margin-left: auto; min-width: 0; }
+.board-lane-head-link { font-size: var(--fs-small); }
+
+.board-lane-cards { flex: 1; display: flex; flex-direction: column; gap: var(--sp-2); }
+.board-lane-empty { margin: 0; padding: var(--sp-3) var(--sp-1); text-align: center; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-lane-group {
+  display: flex; align-items: center; gap: var(--sp-2); padding-top: 2px;
+  font: 600 var(--fs-micro)/16px var(--font-ui); text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-4);
+}
+/* What leads a lane waits on User, so its head reads in the link colour. */
+.board-lane-group[data-leading-group] { color: var(--link); }
+.board-lane-group::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
+.board-lane-group-count { font-family: var(--font-mono); font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+/* Ready by wave: each wave a group, a one-ticket wave tinted as the bottleneck. */
+.board-lane-wave { display: flex; flex-direction: column; gap: var(--sp-2); }
+.board-lane-wave[data-narrow] { padding: 4px; border-radius: var(--r-3); background: var(--wave-bottleneck-tint); }
+.board-lane-group-note { font-weight: 400; text-transform: none; letter-spacing: 0; }
+/* A swimlane names its entity by its key, machine text, so the key keeps its case. */
+.board-lane-group[data-swimlane] { padding-top: var(--sp-1); color: var(--ink-muted); }
+.board-lane-swimlane-title { font-family: var(--font-mono); font-weight: 600; text-transform: none; letter-spacing: 0; }
+/* The lane of the tickets without an entity is named in words, not by a key. */
+.board-lane-group[data-swimlane="none"] .board-lane-swimlane-title { font-family: var(--font-ui); }
+
+/* Monorepo mode: the entity filter beside the lanes. */
+.board-kanban-body { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+.board-kanban-body > .board-kanban-frame { flex: 1 1 auto; min-width: 0; }
+.board-kanban-entity-rail { display: flex; flex: 0 0 232px; flex-direction: column; min-width: 0; }
+@media (max-width: 900px) {
+  .board-kanban-body { flex-direction: column; align-items: stretch; }
+  .board-kanban-entity-rail { flex-basis: auto; }
+}
+.board-lane-wave[data-narrow] .board-lane-group-note { color: var(--link); }
+
+.board-lane-more {
+  display: flex; flex-direction: column; gap: 6px; padding-top: var(--sp-2);
+  font: var(--fs-small)/1.5 var(--font-ui); color: var(--ink-muted);
+}
+.board-lane-more > span { padding-left: 2px; font-family: var(--font-mono); font-size: var(--fs-micro); font-variant-numeric: tabular-nums; }
+.board-lane-hidden-line { display: flex; align-items: baseline; gap: var(--sp-1); padding-left: 2px; }
+
+/* The foldable lane's whole head is its toggle; folded, the lane is a dashed strip with the head set vertically. */
+.board-lane-toggle {
+  display: flex; flex: 1 1 auto; align-items: center; gap: var(--sp-2); min-width: 0; padding: 0;
+  border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer;
+}
+.board-lane-toggle::after {
+  content: ""; margin-inline-start: auto;
+  border-top: 4px solid var(--see-through); border-bottom: 4px solid var(--see-through); border-right: 6px solid var(--ink-muted);
+}
+.board-lane-toggle:hover .board-lane-title,
+.board-lane-toggle:hover .board-lane-count { color: var(--ink); }
+.board-lane-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; border-radius: var(--r-1); }
+.board-lane[data-collapsed] { flex: 0 0 44px; min-width: 44px; padding: var(--sp-3) 0; background: var(--see-through); border-style: dashed; border-color: var(--line-strong); }
+.board-lane[data-collapsed] > :not(.board-lane-head) { display: none; }
+.board-lane[data-collapsed] > .board-lane-head { flex: 1; align-content: flex-start; padding: 0; border-bottom: 0; }
+.board-lane[data-collapsed] .board-lane-toggle { writing-mode: vertical-rl; height: 100%; justify-content: flex-start; }
+.board-lane[data-collapsed] .board-lane-toggle::after { margin-inline-start: 0; border-right: 0; border-left: 6px solid var(--ink-muted); }
+
+/* A card is the design system's Card at the step radius, dashed while its state waits for a person (the model's isDashed). Its left edge,
+   inset 8px top and bottom, is its row's bar: the state's fill, an outline for a state not yet at work, absent with no row. */
+.board-kanban-card { position: relative; flex: none; border-radius: var(--r-2); cursor: pointer; transition: var(--feedback-transition); }
+.board-kanban-card::before {
+  content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; z-index: 1; width: 3px; box-sizing: border-box; pointer-events: none;
+  border-radius: 0 2px 2px 0; background: var(--s-fill);
+}
+.board-kanban-card[data-row="none"]::before { content: none; }
+.board-kanban-card:is([data-state="committed"], [data-state="in-review"])::before { background: var(--see-through); border: 1px dashed var(--s-fill); }
+.board-kanban-card[data-state="abandoned"]::before { background: var(--see-through); border: 1px solid var(--s-fill); }
+.board-kanban-card:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+/* "Needed first" sits on the card's top edge, out of the head's line, so it fading in on hover moves nothing and takes no room from the
+   id line; a head too crowded for one line wraps its right end, "↦ N" and the tokens together, rather than run them under one another. */
+.board-kanban-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; min-width: 0; min-height: 18px; }
+.board-kanban-size {
+  flex: none; padding: 0 5px; font: 600 10.5px/16px var(--font-mono); color: var(--ink-muted);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.board-kanban-size:hover { color: var(--ink); border-color: var(--line-strong); }
+.board-kanban-head-end { display: flex; align-items: center; gap: 6px; margin-left: auto; white-space: nowrap; }
+.board-kanban-needed-first {
+  position: absolute; top: -9px; right: 10px; z-index: 2; padding: 0 6px;
+  font: 500 var(--fs-micro)/18px var(--font-ui); color: var(--link); white-space: nowrap;
+  background: var(--surface); border: 1px solid var(--accent-edge); border-radius: var(--r-pill);
+  opacity: 0; pointer-events: none; transition: opacity var(--motion-fast);
+}
+.board-kanban-card[data-needed-first] .board-kanban-needed-first { opacity: 1; }
+.board-kanban-held-count { font: var(--fs-small)/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); white-space: nowrap; }
+.board-kanban-held-count[data-heavy] { color: var(--ink); }
+.board-kanban-tokens { flex: none; font: var(--fs-micro)/18px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-4); }
+.board-kanban-title {
+  margin: 0; font: 600 var(--fs-lead)/18px var(--font-ui);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.board-kanban-title[data-abandoned] { color: var(--ink-4); text-decoration: line-through; }
+/* Held is a decision, not a blocker: neutral, so it never reads as the amber "high" or "waiting on". */
+.board-kanban-held {
+  padding: 0 6px; font: 500 var(--fs-micro)/1.5 var(--font-ui); color: var(--ink-muted);
+  background: var(--wash); border: 1px dashed var(--line-strong); border-radius: var(--r-pill); cursor: help;
+}
+.board-kanban-no-row { font-size: var(--fs-micro); color: var(--ink-4); cursor: help; }
+.board-kanban-note { margin: 0; font-size: var(--fs-small); line-height: 18px; color: var(--ink-muted); }
+.board-kanban-entity {
+  flex: none; padding: 0 6px; font: 500 var(--fs-micro)/16px var(--font-mono); color: var(--ink-muted);
+  border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+/* A crossing's stages: done filled, the current one in the accent edge, the rest outlined; a package's stages dashed and tinted neutral, so
+   they differ without colour. */
+.board-kanban-crossing { display: flex; flex-direction: column; gap: 4px; }
+.board-kanban-crossing-stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; margin: 0; padding: 0; list-style: none; }
+.board-kanban-crossing-stage { height: 6px; box-sizing: border-box; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--see-through); }
+.board-kanban-crossing-stage[data-owner="package"] { border-style: dashed; background: var(--wash); }
+.board-kanban-crossing-stage[data-status="done"] { border-color: var(--done-edge); background: var(--done-fill); }
+.board-kanban-crossing-stage[data-status="current"] { border-color: var(--accent-edge); background: var(--link-tint); }
+.board-kanban-crossing-text { font-size: var(--fs-micro); line-height: 16px; color: var(--ink-muted); }
+.board-kanban-state { display: flex; align-items: center; gap: 4px; min-height: 20px; font-size: var(--fs-small); color: var(--s-ink); }
+.board-kanban-reviewed-mark { font: 600 var(--fs-small)/1 var(--font-ui); color: var(--s-fill); cursor: help; }
+.board-kanban-state > span:not(.board-kanban-reviewed-mark) { color: var(--pass-ink); }
+.board-kanban-stamp {
+  margin-left: auto; font: var(--fs-micro)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-4); white-space: nowrap;
+}
+.board-kanban-card[data-live] .board-kanban-stamp { font-weight: 600; color: var(--ink); }
+
+/* A pressed card darkens; its hover ring is the Card's. Neither moves. */
+.board-kanban-card:active { filter: brightness(0.94); }
+
+/* A card that changed since the previous board washes once through its Card's wash and, new or moved, rises into its place; reduced motion
+   holds a still outline as long instead. */
+.board-kanban-card[data-changed] { animation: board-rise var(--motion-rise) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .board-kanban-card[data-changed] { outline: 2px solid var(--s-edge); outline-offset: -2px; animation: none; }
+}
+
+/* A card an agent works on pulses while the stream is live: its bar flares, then a sheen leaves the bar and crosses the card. */
+@media (prefers-reduced-motion: no-preference) {
+  .board-kanban[data-freshness="live"] .board-kanban-card[data-live]::before { animation: board-kanban-card-flare var(--pulse-card) ease-in-out infinite; }
+  .board-kanban[data-freshness="live"] .board-kanban-card[data-live]::after {
+    content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(100deg, var(--see-through) 30%, var(--s-sheen) 50%, var(--see-through) 70%) 117% 0 / 250% 100% no-repeat;
+    animation: board-kanban-card-sheen var(--pulse-card) ease-in-out infinite;
+  }
+}
+/* Every keyframe names the same halo colour, var(--see-through) at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes board-kanban-card-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
+}
+/* At 117% the band's leading edge touches the bar; it leaves at 7%, on the flare's rise, just before its peak at 12%. */
+@keyframes board-kanban-card-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
+
+/* The hover arrows, over the whole board and under its edge fades; each draws in, then its head fades in. */
+.board-kanban-arrows { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.board-kanban-arrow-line {
+  fill: none; stroke: var(--link); stroke-width: 2; stroke-linecap: butt; stroke-dasharray: 1; stroke-dashoffset: 1;
+  animation: board-arrow-draw 420ms var(--ease-out) var(--arrow-delay, 0ms) forwards;
+}
+.board-kanban-arrow-head { fill: var(--link); opacity: 0; animation: board-arrow-head 140ms ease-out calc(var(--arrow-delay, 0ms) + 340ms) forwards; }
+@keyframes board-arrow-head { to { opacity: 1; } }
+@keyframes board-arrow-draw { to { stroke-dashoffset: 0; } }
+.board-kanban-arrows[data-still] .board-kanban-arrow-line { animation: none; stroke-dashoffset: 0; }
+.board-kanban-arrows[data-still] .board-kanban-arrow-head { animation: none; opacity: 1; }
+
+/* Reduced motion keeps the colour feedback and drops every movement. */
+@media (prefers-reduced-motion: reduce) {
+  .board-kanban-needed-first { transition: none; }
+  .board-kanban-arrow-line { animation: none; stroke-dashoffset: 0; }
+  .board-kanban-arrow-head { animation: none; opacity: 1; }
+}
+
+/* A lane's count ticks up into its place once it changed (`page/board/shell/ChangedSinceMount.ts`). */
+.board-lane-count[data-value-changed] { animation: board-figure-tick var(--motion-tick) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .board-lane-count[data-value-changed] { animation: none; }
+}
+
+/* The size mark gives the same eased feedback as a button. */
+.board-kanban-size { transition: var(--feedback-transition); }
+
+/* ------------------------------------------------- the filter menu's Kanban sections -- */
+.board-filter-epic-list { display: flex; flex-direction: column; gap: 2px; }
+/* An epic chip drawn as a checkable row: box, swatch, title, then its count at the far end. */
+.board-filter-epic-list .board-chip {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 4px;
+  border: 0; border-radius: var(--r-1); background: var(--see-through); color: var(--ink); text-align: left;
+}
+.board-filter-epic-list .board-chip::before {
+  content: ""; flex: none; order: -2; width: 12px; height: 12px; border: 1px solid var(--line-strong); border-radius: 3px;
+}
+.board-filter-epic-list .board-chip .board-epic-swatch { order: -1; }
+.board-filter-epic-list .board-chip:not([data-epic-slot])::after { content: ""; flex: none; order: -1; width: 8px; }
+.board-filter-epic-list .board-chip[aria-pressed="true"] { background: var(--see-through); color: var(--ink); font-weight: 400; }
+.board-filter-epic-list .board-chip[aria-pressed="true"]::before { border-color: var(--link); background: var(--link); box-shadow: inset 0 0 0 2px var(--surface); }
+.board-filter-epic-list .board-chip:hover { background: var(--surface-2); }
+.board-filter-epic-list .board-chip .board-chip-count { margin-left: auto; }
+.board-epic-strip-rollup { display: flex; flex-wrap: wrap; align-items: center; gap: 4px var(--sp-3); padding: 0 4px 6px 24px; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-epic-strip-meter { display: block; width: 96px; }
+.board-kanban-order-hint { margin: var(--sp-3) 0 0; font-size: var(--fs-small); line-height: 1.5; color: var(--ink-muted); }

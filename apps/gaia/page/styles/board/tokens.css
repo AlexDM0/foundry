@@ -9,6 +9,7 @@
   --page-gutter: 28px;
 
   --pulse-activity: 1.4s;
+  --pulse-card:     3.2s;
 
   /* A figure or a state word swapping in; a list item fading out where it stood (`LEAVING_MILLISECONDS`). */
   --motion-tick:  260ms;
@@ -111,4 +112,26 @@
 /* The names for colours another token already holds: one line follows both themes. */
 :root {
   --new-text-tint: var(--pass-tint);
+}
+
+/* A live Kanban card's flare and sheen, mixed from the theme's and the state's own colours. */
+:is([data-state], [data-state-tone]) {
+  --s-flare:      color-mix(in oklch, var(--s-fill) 45%, var(--flare-light));
+  --s-flare-rest: color-mix(in oklch, var(--s-flare) 0%, transparent);
+  --s-sheen:      color-mix(in oklch, var(--s-fill) 16%, transparent);
+}
+
+/* The Kanban's Ready lane by wave: a one-ticket wave's band, a wash of the link colour. */
+:root {
+  --wave-bottleneck-tint: color-mix(in oklch, var(--link) 6%, transparent);
+}
+
+/* What the Kanban sets on its own elements as it lays out (`KanbanView.tsx`), at rest: no room or cover for a panel, the lane's own width,
+   the head's edge for a lane's outline, and no delay before an arrow draws. */
+:root {
+  --panel-room:          0px;
+  --panel-cover:         0px;
+  --frozen-lane-w:       auto;
+  --lane-highlight-edge: var(--line-strong);
+  --arrow-delay:         0ms;
 }

@@ -6,7 +6,8 @@
  * which closes through `goTo`, while an unmoved one opens none; and the board root, keyed by its tracker id, unmounts one forge's board,
  * its Flint with it, before it mounts another's, so the document never holds two Flints (`.claude/rules/flint.md`). The Questions tab is
  * drawn without a frame, the question panel shows beside a tab the board draws, `questions/<id>` opens it at that question, and beside a
- * framed tab it is left to the frame.
+ * framed tab it is left to the frame. The Kanban is drawn without a frame under the filter line, a card opens the detail panel over it, a
+ * header figure outlines its lane, and its item `merge-queue` draws the Merge queue's detail.
  */
 import {
   act,
@@ -37,6 +38,7 @@ import {
 } from '../testing/BoardStateFixture.ts';
 import { createManualFlintFrames }                 from '../testing/ManualFlintFrames.ts';
 import { pipelineBoardStateOf }                    from '../testing/PipelineFixture.ts';
+import { QuestionsTabView }                        from '../views/questions/QuestionsView.tsx';
 import { BoardApp }                                from './BoardApp.tsx';
 import type { BoardRoute }                         from './BoardRouter.ts';
 import { BOARD_TAB_VIEWS, type BoardTabViewTable } from './BoardTabViews.tsx';
@@ -321,9 +323,48 @@ describe('the questions', () => {
 
   test('beside a framed tab the board draws no question panel of its own, the frame showing its own', async () => {
     const fake = fakeBoardOf();
-    renderedBoard(fake, { tab: 'kanban', item: null }, BOARD_TAB_VIEWS);
+    renderedBoard(fake, { tab: 'kanban', item: null }, { questions: QuestionsTabView });
     await fake.answerReads(servingBoard());
     expect(screen.getByText(`${UNMOVED_AREA_TEXT} at kanban`)).toBeDefined();
     expect(screen.queryByRole('complementary')).toBeNull();
+  });
+});
+
+describe('the Kanban', () => {
+  test('is drawn by the board without a frame, under the filter line, and a card opens the detail panel over it through goTo', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: null }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('region', { name: 'Kanban' })).toBeDefined();
+    expect(screen.queryByText(UNMOVED_AREA_TEXT, { exact: false })).toBeNull();
+    expect(document.querySelector('.board-filter-line')).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(document.querySelector('.board-kanban-card[data-ticket-id="3"]') ?? document.body);
+      await Promise.resolve();
+    });
+    expect(fake.followed.at(-1)).toBe(boardHrefOf('kanban/ticket/3'));
+    cleanup();
+    renderedBoard(fake, { tab: 'kanban', item: 'ticket/3' }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('complementary', { name: 'Ticket #3' })).toBeDefined();
+    expect(document.querySelector('.board-kanban-card[data-ticket-id="3"]')?.hasAttribute('data-selected')).toBe(true);
+  });
+
+  test('a header figure pointing at a lane outlines that lane', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: null }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    act(() => {
+      fireEvent.click(screen.getByRole('link', { name: /agents working on Kanban/u }));
+    });
+    expect(screen.getByRole('region', { name: 'Building' }).hasAttribute('data-highlighted')).toBe(true);
+  });
+
+  test('its item merge-queue draws the Merge queue\'s detail in place of the lanes', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: 'merge-queue' }, BOARD_TAB_VIEWS);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('region', { name: 'Merge queue' })).toBeDefined();
+    expect(screen.queryByRole('region', { name: 'Kanban' })).toBeNull();
   });
 });

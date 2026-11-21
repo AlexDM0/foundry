@@ -24,6 +24,7 @@ import { BoardFlint }                                              from '../flin
 import type { BoardReading }                                       from '../flint/BoardOccasionModel.ts';
 import { boardPreferenceStoreOf }                                  from '../preferences/PreferenceStore.ts';
 import { TimeUtil }                                                from '../utils/TimeUtil.ts';
+import { KanbanTabSurroundingsContext }                            from '../views/kanban/KanbanTabSurroundings.ts';
 import { QuestionPanel }                                           from '../views/question-panel/QuestionPanel.tsx';
 import { QuestionPanelModel }                                      from '../views/question-panel/QuestionPanelModel.ts';
 import { ShownQuestionContext, useQuestionPanelState }             from '../views/question-panel/QuestionPanelState.ts';
@@ -38,6 +39,7 @@ import {
   type BoardTab
 } from './BoardRouter.ts';
 import { BoardStateUpdate }                                                              from './BoardStateUpdate.ts';
+import { useBoardTabFilters }                                                            from './BoardTabFilters.tsx';
 import { BOARD_TAB_VIEWS, type BoardTabViewTable }                                       from './BoardTabViews.tsx';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
 import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
@@ -45,6 +47,7 @@ import { QuestionPanelShownContext }                                            
 import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
 import { DetailRoute }                                                                   from './DetailRoute.ts';
 import { DetailRoutingContext, detailRoutingOf, type DetailRouting }                     from './DetailRouting.ts';
+import { FinishedWorkWindowContext }                                                     from './FinishedWorkWindow.ts';
 import { Header }                                                                        from './Header.tsx';
 import { headerModelOf }                                                                 from './HeaderModel.ts';
 import { IncidentNotice }                                                                from './IncidentNotice.tsx';
@@ -203,6 +206,7 @@ export function BoardApp({
   const TabView = tabViews[shownRoute.tab];
   const tabIsDrawnHere = TabView !== undefined;
   const { tab: shownTab, item: shownItem } = shownRoute;
+  const tabFilters = useBoardTabFilters(board, shownTab, tabIsDrawnHere, boardStore, boardNow);
   const detailRouting = useMemo((): DetailRouting | null => {
     if (!tabIsDrawnHere || !DetailRoute.isDetailTab(shownTab)) return null;
     const fragmentOf = (detailRoute: BoardRoute): string => BoardRouter.fragmentOf(services.trackerId, detailRoute);
@@ -215,7 +219,13 @@ export function BoardApp({
   const mainArea = (): ReactNode => {
     if (TabView === undefined) return unmovedTabArea(shownRoute);
     if (board === null) return <EmptyState text={WAITING_FOR_THE_FIRST_BOARD} />;
-    const tabView = <TabView board={board} route={shownRoute} connection={connection} boardStore={boardStore} services={services} />;
+    const tabView = (
+      <FinishedWorkWindowContext value={tabFilters.finishedWorkWindow}>
+        <KanbanTabSurroundingsContext value={tabFilters.kanbanSurroundings}>
+          <TabView board={board} route={shownRoute} connection={connection} boardStore={boardStore} services={services} />
+        </KanbanTabSurroundingsContext>
+      </FinishedWorkWindowContext>
+    );
     if (detailRouting === null) return tabView;
     return (
       <DetailRoutingContext value={detailRouting}>
@@ -254,6 +264,8 @@ export function BoardApp({
                     activityIsLive={connection === 'live'}
                     sidePanelIsOpen={shownQuestion !== null}
                     clock={boardClock}
+                    tabBarEnd={tabFilters.filterLine}
+                    onShowLane={tabFilters.showLane}
                     waitingOnUser={waitingOnUser}
                     tabCounts={tabCounts}
                     questionNotifier={services.questionNotifier}
