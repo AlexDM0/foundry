@@ -453,7 +453,7 @@ describe('the Overseer state', () => {
 });
 
 const VERIFIED_PIPELINE: Pipeline = {
-  version: 3, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+  version: 5, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
 };
 
 /** A board with a pipeline, so nothing but a job's own policy holds its resume, and one in-progress ticket per id. */

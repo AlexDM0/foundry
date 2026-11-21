@@ -1092,6 +1092,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   const assistantQuietWatch = AssistantSession.createAssistantQuietWatch(QUIET_JOB_SWEEPS);
   const quietAssistantIdsDue: string[] = [];
   let assistantsMidTurnAtTheLastPass: readonly string[] = [];
+  let assistantWasOnAtTheLastPass = false;
   let assistantBootRetryRequested = false;
   let state: OverseerStateDocument = {
     generation: request.generation, passes: 0, runtimeState: 'serving', notices: [], ticketsWaitingForMachineSlot: 0
@@ -1608,6 +1609,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
     gateProfiling.followRuns(written.board);
     pipelineChecking.followChecks(written.board);
     jobsAtTheLastPass = written.board.jobs();
+    assistantWasOnAtTheLastPass = written.board.assistantIsOn();
     assistantsMidTurnAtTheLastPass = AssistantSession.midTurnJobIdsOf(request.workspace.trackerDirectory, written.board, observation.assistantReadings);
     state = {
       generation:   request.generation,
@@ -1742,13 +1744,14 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
   }
 
   /**
-   * Also the once-per-sweep boot of an Assistant past the failed-boot bound: a pass with no Assistant live may boot one. A held target is
-   * rechecked each sweep, since the checkout that holds it is not in the fingerprint: User cleaning it wakes nothing else.
+   * Also the once-per-sweep boot of an Assistant past the failed-boot bound: a pass with no Assistant live may boot one while the board has
+   * it on. A held target is rechecked each sweep, since the checkout that holds it is not in the fingerprint: User cleaning it wakes
+   * nothing else.
    */
   function sweep(): void {
     const due = quietJobWatch.sweep(jobsAtTheLastPass);
     const quietAssistants = assistantQuietWatch.sweep(jobsAtTheLastPass, assistantsMidTurnAtTheLastPass);
-    const noAssistantIsLive = !jobsAtTheLastPass.some((job) => AssistantBoot.isAssistantJob(job));
+    const noAssistantIsLive = assistantWasOnAtTheLastPass && !jobsAtTheLastPass.some((job) => AssistantBoot.isAssistantJob(job));
     const forcedStopRetries = RefusedForcedStops.jobIdsToRetryOf(jobsAtTheLastPass);
     // Another board's job that ended frees a machine slot without a change on this board, so only a sweep tries a waiting ticket again.
     const ticketsAwaitMachineSlot = state.ticketsWaitingForMachineSlot > 0;

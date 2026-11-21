@@ -19,10 +19,10 @@ import { BoardPipelineMappingUtil }      from './BoardPipelineMappingUtil.ts';
 const AT = '2026-11-19T10:00:00+01:00';
 
 const PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install', in: 'apps/web' }],
   gates:   [{ name: 'test', run: 'bun test' }, {
-    name: 'lint', run: 'bun run lint', fix: 'bun run lint:fix', overseerOnly: true, network: ['registry.example.com']
+    name: 'lint', run: 'bun run lint', fix: 'bun run lint:fix', forgeOnly: true, network: ['registry.example.com']
   }],
   phases:    { build: ['test', 'lint'], review: ['test'], merge: [] },
   review:    { name: 'review' },
@@ -57,7 +57,7 @@ describe('BoardPipelineMappingUtil.pipelineDefinitionOf', () => {
 
   test('names no field the pipeline leaves absent', () => {
     const minimal: Pipeline = {
-      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
     };
     expect(Object.keys(BoardPipelineMappingUtil.pipelineDefinitionOf(minimal))).toEqual(['version', 'prepare', 'gates', 'phases']);
   });

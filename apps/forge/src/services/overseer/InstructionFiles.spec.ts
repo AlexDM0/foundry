@@ -48,7 +48,7 @@ const MAIN_LINE = 'main';
 const EXAMPLE_NOTES_PATH = `${PRODUCT_NAMES.DATA_FOLDER}/example-notes.md`;
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 const ENTITY_CONSTITUTION_PATH = 'apps/gaia/CONSTITUTION.md';

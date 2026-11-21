@@ -90,7 +90,7 @@ function appEntityOf(entity: EntityForgeEntity, summary: string): PipelineEntity
   };
 }
 
-/** The forge's pipeline: version 4, the forge's own steps empty, each entity with its own; the root entity has no gates, so it is a person's. */
+/** The forge's pipeline: the forge's own steps empty, each entity with its own; the root entity has no gates, so it is a person's. */
 export function entityForgePipelineOf(whitelists: EntityForgeWhitelists): Pipeline {
   const {
     SHOP, ADMIN, UI_KIT, ROOT

@@ -1,11 +1,9 @@
 /**
- * `pipeline.json` version 2 and 3 both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version`
- * first and an optional key only once set; it is written as version 2 unless it holds a step folder, a gate folder from the repository's
- * root or a reach, so a release that reads only version 2 reads every pipeline that needs nothing newer and refuses the rest; version 2 is
- * read with its own keys; the minimal pipeline is readable; an empty gate list stays written, since it is "no gates on purpose", not "none
- * set"; a file with no `version` or one below 2 is `older`, never mapped; a file nobody could trust whole is `malformed` with a reason
- * naming the offending part, one distinct reason per rule, never a throw; and no file is `absent`. A file version 2 wrote is
- * `PipelineFile.versionTwo.spec.ts`'s, and a file with entities `PipelineFile.entities.spec.ts`'s.
+ * `pipeline.json` in its one format, both ways. What matters: a written pipeline reads back whole and writes back byte for byte, `version`
+ * first and an optional key only once set, the Assistant's switch and a gate the forge alone runs included; the minimal pipeline is
+ * readable; an empty gate list stays written, since it is "no gates on purpose", not "none set"; a file with no `version` or an earlier one,
+ * version 2, 3 and 4 included, is `older`, never mapped; a file nobody could trust whole is `malformed` with a reason naming the offending
+ * part, one distinct reason per rule, never a throw; and no file is `absent`. A file with entities is `PipelineFile.entities.spec.ts`'s.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -23,18 +21,18 @@ import { PipelineFile }                                   from './PipelineFile.t
 const NO_PHASES = { build: [], review: [], merge: [] };
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 const EXAMPLE_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile', in: '/' }, { name: 'generate', run: 'bun run generate', in: 'packages/example' }],
   gates:   [
     {
       name: 'types', run: 'bun run typecheck', definedBy: ['tsconfig.json'], in: '/apps/example'
     },
     {
-      name: 'lint', run: 'bun run lint', fix: 'bun run lint --fix', in: 'packages/example', network: ['registry.example.com'], writes: ['~/.cache/example'], overseerOnly: true
+      name: 'lint', run: 'bun run lint', fix: 'bun run lint --fix', in: 'packages/example', network: ['registry.example.com'], writes: ['~/.cache/example'], forgeOnly: true
     },
   ],
   phases:       { build: ['types', 'lint'], review: ['types'], merge: ['lint', 'types'] },
@@ -50,6 +48,7 @@ const EXAMPLE_PIPELINE: Pipeline = {
   approvals: { tickets: false },
   billing:   { mode: 'api', maxBudgetUsd: 2.5 },
   reach:     ['/packages/shared', '/bun.lock'],
+  assistant: true,
 };
 
 let scratchDirectory = '';
@@ -73,11 +72,14 @@ function reasonOf(document: unknown): string {
 /** The minimal pipeline with `fields` over it, so a case names only the part it breaks. */
 function minimalWith(fields: Record<string, unknown>): Record<string, unknown> {
   return {
-    version: 3, prepare: [], gates: [], phases: NO_PHASES, ...fields
+    version: 5, prepare: [], gates: [], phases: NO_PHASES, ...fields
   };
 }
 
 const TEST_GATE = { name: 'test', run: 'bun test' };
+
+/** The gate key's name before `forgeOnly`, joined from its parts so no tracked line holds the retired name. */
+const RETIRED_FORGE_ONLY_KEY = ['overseer', 'Only'].join('');
 
 function withTestGateAnd(fields: Record<string, unknown>): Record<string, unknown> {
   return minimalWith({ gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }, ...fields });
@@ -100,26 +102,26 @@ describe('a readable pipeline', () => {
     const contents = PipelineFile.contentsOf(EXAMPLE_PIPELINE);
     const reading  = readingOfText(contents);
 
-    expect(JSON.parse(contents)).toMatchObject({ version: 3 });
+    expect(JSON.parse(contents)).toMatchObject({ version: 5, assistant: true, gates: [{}, { forgeOnly: true }] });
     expect(reading).toEqual({ verdict: 'readable', pipeline: EXAMPLE_PIPELINE });
     expect(reading.verdict === 'readable' ? PipelineFile.contentsOf(reading.pipeline) : '').toBe(contents);
     expect(readFileSync(pipelineFilePath(), 'utf8')).toBe(contents);
   });
 
-  test('the minimal pipeline is readable, written as version 2 with version first and only the required keys', () => {
+  test('the minimal pipeline is readable, written with version first and only the required keys', () => {
     const contents = PipelineFile.contentsOf(MINIMAL_PIPELINE);
 
     expect(Object.keys(JSON.parse(contents) as object)).toEqual(['version', 'prepare', 'gates', 'phases']);
-    expect(JSON.parse(contents)).toMatchObject({ version: 2 });
+    expect(JSON.parse(contents)).toMatchObject({ version: 5 });
     expect(readingOfText(contents)).toEqual({ verdict: 'readable', pipeline: MINIMAL_PIPELINE });
   });
 
   test('keys written in another order are read and written back in the format\'s order', () => {
     const reordered = {
-      phases: NO_PHASES, approvals: { merge: true }, gates: [], prepare: [], version: 3
+      assistant: true, phases: NO_PHASES, approvals: { merge: true }, gates: [], prepare: [], version: 5
     };
 
-    expect(Object.keys(JSON.parse(PipelineFile.contentsOf(reordered as Pipeline)) as object)).toEqual(['version', 'prepare', 'gates', 'phases', 'approvals']);
+    expect(Object.keys(JSON.parse(PipelineFile.contentsOf(reordered as Pipeline)) as object)).toEqual(['version', 'prepare', 'gates', 'phases', 'approvals', 'assistant']);
   });
 
   test('an empty instruction list is kept, since it replaces the role\'s default list', () => {
@@ -135,18 +137,18 @@ describe('a file an earlier release wrote', () => {
     expect(readingOf({})).toEqual({ verdict: 'older' });
   });
 
-  test('with a version below 2 is older', () => {
-    expect(readingOf(minimalWith({ version: 1 }))).toEqual({ verdict: 'older' });
-    expect(readingOf(minimalWith({ version: 0 }))).toEqual({ verdict: 'older' });
+  test.each([0, 1, 2, 3, 4])('with version %d is older, a version an earlier release read included', (version) => {
+    expect(readingOf(minimalWith({ version }))).toEqual({ verdict: 'older' });
+    expect(readingOf(withTestGateAnd({ version, reach: ['/bun.lock'] }))).toEqual({ verdict: 'older' });
   });
 
-  test('with a version above 4 is malformed as a newer format', () => {
-    expect(reasonOf(minimalWith({ version: 5 }))).toBe('version is 5, a newer format than version 4, which this build reads (newer-format)');
+  test('with a version above the one format\'s is malformed as a newer format', () => {
+    expect(reasonOf(minimalWith({ version: 6 }))).toBe('version is 6, a newer format than version 5, which this build reads (newer-format)');
   });
 
   test('with a version that is not a whole number is malformed', () => {
-    expect(reasonOf(minimalWith({ version: '2' }))).toBe('version is not a whole number');
-    expect(reasonOf(minimalWith({ version: 2.5 }))).toBe('version is not a whole number');
+    expect(reasonOf(minimalWith({ version: '5' }))).toBe('version is not a whole number');
+    expect(reasonOf(minimalWith({ version: 5.5 }))).toBe('version is not a whole number');
   });
 });
 
@@ -157,14 +159,14 @@ describe('a malformed file', () => {
   });
 
   test('missing a required key names it', () => {
-    expect(reasonOf({ version: 3, gates: [], phases: NO_PHASES })).toBe('prepare is missing');
-    expect(reasonOf({ version: 3, prepare: [], phases: NO_PHASES })).toBe('gates is missing');
-    expect(reasonOf({ version: 3, prepare: [], gates: [] })).toBe('phases is missing');
+    expect(reasonOf({ version: 5, gates: [], phases: NO_PHASES })).toBe('prepare is missing');
+    expect(reasonOf({ version: 5, prepare: [], phases: NO_PHASES })).toBe('gates is missing');
+    expect(reasonOf({ version: 5, prepare: [], gates: [] })).toBe('phases is missing');
   });
 
   test('an unknown key at every level is refused with a reason naming it', () => {
     expect(reasonOf(minimalWith({ checks: 'bun test' })))
-      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach');
+      .toBe('"checks" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach, entities, assistant');
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, cache: true }] }))).toContain('gates[0]."cache" is not a pipeline key');
     expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: 'bun install', network: [] }] }))).toContain('prepare[0]."network" is not a pipeline key');
     expect(reasonOf(minimalWith({ phases: { ...NO_PHASES, deploy: [] } }))).toContain('phases."deploy" is not a pipeline key');
@@ -192,7 +194,8 @@ describe('a malformed file', () => {
     expect(reasonOf(minimalWith({ gates: [{ name: 'test' }] }))).toBe('gates[0] has no run line');
     expect(reasonOf(minimalWith({ prepare: [{ name: 'install', run: '  ' }] }))).toBe('prepare[0] has no run line');
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, definedBy: 'package.json' }] }))).toBe('gates[0].definedBy is not a list of non-blank texts');
-    expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, overseerOnly: false }] }))).toBe('gates[0].overseerOnly is present and is not true');
+    expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, forgeOnly: false }] }))).toBe('gates[0].forgeOnly is present and is not true');
+    expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, [RETIRED_FORGE_ONLY_KEY]: true }] }))).toContain(`gates[0]."${RETIRED_FORGE_ONLY_KEY}" is not a pipeline key`);
     expect(reasonOf(withTestGateAnd({ gates: [{ ...TEST_GATE, writes: ['~/.cache/example', 'cache'] }] }))).toBe('gates[0].writes holds a folder that is not absolute or ~/');
   });
 
@@ -272,42 +275,25 @@ describe('a malformed file', () => {
   });
 });
 
-describe('the version a pipeline is written in', () => {
-  test('is 2 while no step has a folder, no gate folder starts at the repository\'s root and no reach is set, a version 3 file included', () => {
-    const projectFolderGate = withTestGateAnd({ gates: [{ ...TEST_GATE, in: 'packages/example' }] });
-    const reading = readingOf({ ...projectFolderGate, version: 3 });
+describe('the Assistant\'s switch', () => {
+  test('is on while the key holds true and off without it, with and without entities, and writes back byte for byte', () => {
+    const packageEntity = {
+      kind: 'package', home: ['/packages/shared'], prepare: [], gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+    };
+    for (const document of [withTestGateAnd({ assistant: true }), minimalWith({ assistant: true, entities: { shared: packageEntity } })]) {
+      const reading  = readingOf(document);
+      const contents = reading.verdict === 'readable' ? PipelineFile.contentsOf(reading.pipeline) : '';
 
-    expect(reading).toMatchObject({ verdict: 'readable' });
-    expect(reading.verdict === 'readable' ? JSON.parse(PipelineFile.contentsOf(reading.pipeline)) : null).toEqual({ ...projectFolderGate, version: 2 });
-  });
-
-  test('is 3 for a step folder, a gate folder from the repository\'s root or a reach, each alone', () => {
-    for (const fields of [
-      { prepare: [{ name: 'install', run: 'bun install', in: 'packages/example' }] },
-      { gates: [{ ...TEST_GATE, in: '/apps/example' }] },
-      { reach: ['/bun.lock'] },
-    ]) {
-      const reading = readingOf(withTestGateAnd(fields));
-      expect(reading.verdict === 'readable' ? JSON.parse(PipelineFile.contentsOf(reading.pipeline)) : reading).toMatchObject({ version: 3, ...fields });
+      expect(reading).toMatchObject({ verdict: 'readable', pipeline: { assistant: true } });
+      expect(JSON.parse(contents)).toEqual(document);
+      const readAgain = readingOfText(contents);
+      expect(readAgain.verdict === 'readable' ? PipelineFile.contentsOf(readAgain.pipeline) : '').toBe(contents);
     }
-  });
-});
-
-describe('a version 2 file', () => {
-  const versionTwoWith = (fields: Record<string, unknown>): Record<string, unknown> => withTestGateAnd({ version: 2, ...fields });
-
-  test('holding a step folder or a reach is malformed, since version 2 has neither key', () => {
-    expect(reasonOf(versionTwoWith({ prepare: [{ name: 'install', run: 'bun install', in: '/' }] })))
-      .toBe('prepare[0]."in" is not a pipeline key; the keys are name, run');
-    expect(reasonOf(versionTwoWith({ reach: ['/bun.lock'] })))
-      .toBe('"reach" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing');
+    expect(readingOf(withTestGateAnd({}))).not.toMatchObject({ pipeline: { assistant: true } });
   });
 
-  test('reads any non-blank gate folder, as version 2 did, and refuses a blank one', () => {
-    for (const folder of ['packages/example', '../sibling']) {
-      expect(readingOf(versionTwoWith({ gates: [{ ...TEST_GATE, in: folder }] }))).toMatchObject({ verdict: 'readable', pipeline: { gates: [{ in: folder }] } });
-    }
-    expect(reasonOf(versionTwoWith({ gates: [{ ...TEST_GATE, in: ' ' }] }))).toBe('gates[0].in is present and is not a non-blank text');
+  test('held as anything but true is a problem, false included', () => {
+    for (const assistant of [false, 'on', 1, null]) expect(reasonOf(minimalWith({ assistant })), String(assistant)).toBe('assistant is present and is not true');
   });
 });
 

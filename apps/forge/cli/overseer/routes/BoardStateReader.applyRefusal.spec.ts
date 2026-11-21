@@ -29,7 +29,7 @@ const FROZEN_NOW = new Date('2026-11-21T11:00:00+01:00');
 const NO_PHASES = { build: [], review: [], merge: [] };
 
 const STORED_WEB_AND_API: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [],
   gates:    [],
   phases:   NO_PHASES,

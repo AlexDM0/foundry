@@ -114,6 +114,14 @@ describe('historyLinesOf', () => {
     ]);
   });
 
+  test('the Assistant\'s switch reads as turned on or off', () => {
+    const switched = [
+      { kind: 'pipeline-assistant-set', state: 'on', at: '2026-11-12T10:32:00' },
+      { kind: 'pipeline-assistant-set', state: 'off', at: '2026-11-12T10:33:00' },
+    ] as const;
+    expect(FlowActivityPanelModel.historyLinesOf(switched, null).map((line) => line.text)).toEqual(['Assistant turned on', 'Assistant turned off']);
+  });
+
   test('with no stamp slices a line shows no clock', () => {
     expect(FlowActivityPanelModel.historyLinesOf(records, null).every((line) => line.clock === null)).toBe(true);
   });

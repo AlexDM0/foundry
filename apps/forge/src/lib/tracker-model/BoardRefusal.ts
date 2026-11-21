@@ -107,6 +107,7 @@ export type BoardRefusalDetail =
   | { reason: 'unknown-gate-phase'; phase: string; phases: readonly GatePhase[] }
   | { reason: 'phase-order-not-a-reorder'; phase: GatePhase; names: readonly string[]; phaseGateNames: readonly string[] }
   | { reason: 'approval-without-pipeline'; approval: string }
+  | { reason: 'assistant-without-pipeline' }
   | { reason: 'reach-without-pipeline' }
   /** A `gate` write of the forge's own steps, gates or reach while each entity of `entityKeys` holds its own. */
   | { reason: 'pipeline-set-per-entity'; entityKeys: readonly string[] }

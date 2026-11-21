@@ -104,6 +104,6 @@ test('a pipeline without entities in a tracker in a folder is stored as before',
   });
 
   expect(JSON.parse(storedFileContentsOf(workspace)['pipeline.json'] ?? 'null')).toEqual({
-    version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+    version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
   });
 });

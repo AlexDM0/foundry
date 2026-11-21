@@ -519,6 +519,8 @@ function historyEntryOf(entry: BoardPipelineHistoryEntryDocument): BoardPipeline
       return {
         kind: 'pipeline-approval-set', at: entry.at, approval: entry.fields.approval, state: entry.fields.state
       };
+    case 'pipeline-assistant-set':
+      return { kind: 'pipeline-assistant-set', at: entry.at, state: entry.fields.state };
     case 'pipeline-setup-opened':
       return {
         kind:                       'pipeline-setup-opened',

@@ -29,7 +29,7 @@ function entityOf(home: string[], gateName: string): PipelineEntity {
 }
 
 const ENTITIES_PIPELINE: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [],
   gates:    [],
   phases:   { build: [], review: [], merge: [] },
@@ -41,7 +41,7 @@ const ENTITIES_PIPELINE: Pipeline = {
 };
 
 const SINGLE_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install' }],
   gates:   [{ name: 'verify', run: 'bun run verify' }],
   phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },

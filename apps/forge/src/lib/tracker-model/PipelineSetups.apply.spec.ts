@@ -43,7 +43,7 @@ const FIRST_SETUP: PipelineSetupOpening = {
 };
 
 const STORED_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [],
   gates:   [{ name: 'test', run: 'bun test' }],
   phases:  { build: ['test'], review: ['test'], merge: ['test'] },
@@ -242,6 +242,7 @@ describe('stage 1 while main lacks the draft\'s text', () => {
     expect(refusalDetailOf(() => board.discardDraft(setupId, AT))).toEqual({ reason: 'pipeline-apply-pending', setupId });
     expect(refusalDetailOf(() => board.addGate({ name: 'lint', run: 'bun run lint' }, AT))).toEqual({ reason: 'pipeline-apply-pending', setupId });
     expect(refusalDetailOf(() => board.setNoGates(AT))).toEqual({ reason: 'pipeline-apply-pending', setupId });
+    expect(refusalDetailOf(() => board.setAssistant(true, AT))).toEqual({ reason: 'pipeline-apply-pending', setupId });
   });
 
   test('the same revision again answers with the waiting request, and another revision refuses pipeline-apply-pending', () => {
@@ -365,7 +366,7 @@ describe('stage 2 when main already holds the draft\'s text', () => {
 
     expect(applied.outcome).toBe('applied');
     expect(board.pipeline()).toEqual({
-      version:      3,
+      version:      5,
       prepare:      [],
       gates:        [{ name: 'types', run: 'bun run typecheck' }],
       phases:       { build: ['types'], review: [], merge: [] },

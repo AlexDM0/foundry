@@ -37,7 +37,7 @@ const FIRST_SETUP: PipelineSetupOpening = {
 };
 
 const STORED_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install' }, { name: 'build', run: 'bun run build' }],
   gates:   [{ name: 'types', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
   phases:  { build: ['types', 'test'], review: ['test'], merge: ['types', 'test'] },
@@ -670,7 +670,7 @@ describe('the draft', () => {
 
 describe('the draft over entities', () => {
   const STORED_OVER_ENTITIES: Pipeline = {
-    version:  3,
+    version:  5,
     prepare:  [],
     gates:    [],
     phases:   { build: [], review: [], merge: [] },
@@ -778,7 +778,7 @@ describe('an unfinished entities draft', () => {
   const NO_PHASES = { build: [], review: [], merge: [] };
 
   const STORED_WEB_AND_API: Pipeline = {
-    version:  3,
+    version:  5,
     prepare:  [],
     gates:    [],
     phases:   NO_PHASES,

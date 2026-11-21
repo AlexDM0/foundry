@@ -238,10 +238,10 @@ function gateEntryOf(gate: Readonly<PipelineGate>, position: number): string {
   return gate.fix === undefined ? entry : `${entry}\n   Fix: \`${gate.fix}\`. Run it before you fix anything by hand.`;
 }
 
-/** The builder's gates in run order with each fix; an `overseerOnly` gate is named as the Overseer's, never as one to run or claim. */
+/** The builder's gates in run order with each fix; a `forgeOnly` gate is named as the Overseer's, never as one to run or claim. */
 function gateListOf(gates: readonly Readonly<PipelineGate>[] | null): string {
-  const agentGates    = (gates ?? []).filter((gate) => gate.overseerOnly !== true);
-  const overseerGates = (gates ?? []).filter((gate) => gate.overseerOnly === true);
+  const agentGates    = (gates ?? []).filter((gate) => gate.forgeOnly !== true);
+  const overseerGates = (gates ?? []).filter((gate) => gate.forgeOnly === true);
   const overseerLine  = overseerGates.length === 0
     ? []
     : ['', `The Overseer alone runs ${overseerGates.map((gate) => `\`${gate.name}\``).join(', ')}: never run or claim it.`];

@@ -786,10 +786,10 @@ function isAbsentOrTextList(value: unknown): boolean {
 /** A gate as `pipeline.json` stores it, so its confinement and red handoff read only what they expect. */
 function isStoredGate(value: unknown): boolean {
   const optionalTexts = [reportFieldOf(value, 'fix'), reportFieldOf(value, 'in')];
-  const overseerOnly  = reportFieldOf(value, 'overseerOnly');
+  const forgeOnly     = reportFieldOf(value, 'forgeOnly');
   return isNamedLine(value) && optionalTexts.every((text) => text === undefined || typeof text === 'string')
     && ['definedBy', 'network', 'writes'].every((field) => isAbsentOrTextList(reportFieldOf(value, field)))
-    && (overseerOnly === undefined || overseerOnly === true);
+    && (forgeOnly === undefined || forgeOnly === true);
 }
 
 function isAbsentOrTextRecord(value: unknown): boolean {

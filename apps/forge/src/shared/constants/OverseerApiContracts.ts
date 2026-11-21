@@ -56,6 +56,7 @@ export const BOARD_COMMAND_CONTRACT_KINDS = [
   'pipeline-agent-advise',
   'pipeline-apply',
   'pipeline-apply-cancel',
+  'pipeline-assistant-set',
   'pipeline-check',
   'pipeline-constitution-edit',
   'pipeline-draft-discard',

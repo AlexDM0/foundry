@@ -69,7 +69,7 @@ const CONFLICTED_FILE = 'shared.txt';
 const RE_REVIEW_THRESHOLD_LINES = 10;
 
 const REVIEW_PIPELINE: Pipeline = {
-  version:   3,
+  version:   5,
   prepare:   [],
   gates:     [{ name: 'lint', run: 'bun run lint' }, { name: 'tests', run: 'bun test' }],
   phases:    { build: ['tests'], review: ['lint'], merge: ['lint'] },

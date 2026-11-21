@@ -313,6 +313,7 @@ afterEach(async () => {
 describe('a build job end to end, on the real Talos', () => {
   test('prepares, installs, launches, verifies, gates, writes the Handoff, finishes the ticket and gets a review job launched', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
+    await run(['gate', 'assistant', 'on']);
     await run(['gate', 'prepare', 'install', '--', 'true']);
     setReviewPhase({ name: 'Security pass' }, { model: 'sonnet', effort: 'high' });
     const drivePass = await drivePassPlaying(buildingSession());
@@ -356,6 +357,7 @@ describe('a merge gate on the real Talos', () => {
   test('a merge gate runs in the narrowed environment of the Overseer: LANG is the Overseer\'s, a planted API key stays behind, and core.longpaths rides along', async () => {
     const longPathsSetting = 'test "${GIT_CONFIG_KEY_0-}" = core.longpaths && test "${GIT_CONFIG_VALUE_0-}" = true';
     await run(['gate', 'add', 'checks', '--', `test "$LANG" = example-narrowed && test -z "\${ANTHROPIC_API_KEY-}" && ${longPathsSetting}`]);
+    await run(['gate', 'assistant', 'on']);
     const overseerEnvironment = { ...inheritedEnvironment(), LANG: 'example-narrowed', ANTHROPIC_API_KEY: 'planted' };
     afterEachHoldPhase = (board) => {
       if (!board.logRecordsSoFar().some((record) => record.kind === 'merge-queued')) return;
@@ -376,6 +378,7 @@ describe('operational failures on the real Talos', () => {
   const cannotRunLines = [['exits 127', 'exit 127'], ['exits 126', 'exit 126'], ['is killed by a signal', 'kill -9 $$']];
   test.each(cannotRunLines)('a checks process that %s opens gate-cannot-run, never a failed pass', async (_name, cannotRun) => {
     await run(['gate', 'add', 'checks', '--', `test ! -f built.txt || ${cannotRun}`]);
+    await run(['gate', 'assistant', 'on']);
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('gate-cannot-run'), 'the gate-cannot-run incident');
     expect(buildJobEnding()).toMatchObject({ outcome: 'stopped', cause: 'gate-cannot-run' });
@@ -383,6 +386,7 @@ describe('operational failures on the real Talos', () => {
 
   test('a worktree that cannot be created opens setup-failed', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
+    await run(['gate', 'assistant', 'on']);
     // The branch is checked out elsewhere already, so `git worktree add` refuses it.
     recordedGit.enterFlowStage('ticket branch checked out elsewhere', repositoryDirectory);
     const drivePass = await drivePassPlaying(buildingSession());
@@ -393,6 +397,7 @@ describe('operational failures on the real Talos', () => {
   // A CRLF blob under a `text` attribute checks out converted, so the fresh tree already differs from its commit and every gate would fail on it.
   test('a worktree dirty straight after checkout opens one setup-failed naming normalisation, and runs no install line or gate', async () => {
     await run(['gate', 'add', 'checks', '--', 'true']);
+    await run(['gate', 'assistant', 'on']);
     recordedGit.enterFlowStage('line endings normalised', repositoryDirectory);
     const drivePass = await drivePassPlaying(buildingSession());
     await passUntil(drivePass, () => openIncidentKinds().includes('setup-failed'), 'the setup-failed incident');

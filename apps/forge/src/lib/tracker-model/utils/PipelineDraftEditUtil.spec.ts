@@ -14,7 +14,7 @@ import type { EntityDraftEdit, PipelineDraftEdit, PipelineDraftField } from '../
 import { PipelineDraftEditUtil }                                       from './PipelineDraftEditUtil.ts';
 
 const ENTITIES_BASE: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [],
   gates:    [],
   phases:   { build: [], review: [], merge: [] },
@@ -37,7 +37,7 @@ const ENTITIES_BASE: Pipeline = {
 };
 
 const BASE: Pipeline = {
-  version:   3,
+  version:   5,
   prepare:   [{ name: 'install', run: 'bun install' }, { name: 'build', run: 'bun run build' }],
   gates:     [{ name: 'types', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
   phases:    { build: ['types', 'test'], review: ['test'], merge: ['types', 'test'] },

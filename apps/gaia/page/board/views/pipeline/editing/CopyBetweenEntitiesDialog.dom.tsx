@@ -23,7 +23,7 @@ const WEB = exampleEntity('app', ['/apps/web'], { gates: [exampleGate('typecheck
 
 const ADMIN = exampleEntity('app', ['/apps/admin'], { gates: [exampleGate('typecheck', 'tsc --noEmit')], phases: { build: ['typecheck'], review: [], merge: [] } });
 
-const DRAFT = examplePipeline({ version: 3, entities: { web: WEB, admin: ADMIN, root: exampleEntity('root', ['/']) } });
+const DRAFT = examplePipeline({ version: 5, entities: { web: WEB, admin: ADMIN, root: exampleEntity('root', ['/']) } });
 
 function renderCopy() {
   const controls = fakeControls();

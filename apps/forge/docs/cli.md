@@ -194,7 +194,7 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 | `FORGE_REQUIRE_EVERY_TOOL` | Yes, on a test run only | On for any value but empty, whitespace or `0` | User, for a test run | Turns every spec `src/testing/ToolGuard.ts` would skip for a missing tool into a failure, for a machine that must prove every claim. |
 | `FORGE_FAKE_AGENT` | Only on a scratch board, where the sessions do no real work | On for any value but empty, whitespace or `0` | Specs, the demo script, or User | Launches every session the Overseer starts as the scripted fake agent rather than the vendor's CLI. |
 | `FORGE_FAKE_AGENT_KEEPS_WORKING` | Only to stage a running board | On for any value but empty, whitespace or `0` | `.readme-graphics/bridge-demo.sh` | Under the fake-agent switch, keeps every fake session working until its standard input closes. Read only while `FORGE_FAKE_AGENT` is on. |
-| `FORGE_FAKE_AGENT_REPORTS` | Only to run a scratch ticket to its landing | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake builder appends a line to `fake-agent-work.md` in each folder its stage may change that the ticket's `Work belongs in:` line names (in each such folder when the line names none), commits it and reports `built`, and each fake reviewer reports every Acceptance item as holding, by the report schema of the stage, a crossing ticket's package and adapt stages included. It claims no gate, so only a gate with `overseerOnly: true` passes. Every other session plays as without it. Read only while `FORGE_FAKE_AGENT` is on. |
+| `FORGE_FAKE_AGENT_REPORTS` | Only to run a scratch ticket to its landing | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake builder appends a line to `fake-agent-work.md` in each folder its stage may change that the ticket's `Work belongs in:` line names (in each such folder when the line names none), commits it and reports `built`, and each fake reviewer reports every Acceptance item as holding, by the report schema of the stage, a crossing ticket's package and adapt stages included. It claims no gate, so only a gate with `forgeOnly: true` passes. Every other session plays as without it. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_FAKE_AGENT_NETWORK_OUTAGE` | Only to see a session end on a network outage | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake session starts, prints the retry lines of a request that keeps failing and ends its turn on the error result Claude Code printed when its retries ran out on a network outage, then waits until its standard input closes. Its retry lines need the fake agent's recorded `network-outage` session. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` | No, a test setting | Empty or whitespace reads as unset; any value but a positive whole number is refused, `malformed-overseer-poll-interval`, at exit 1 | `cli/testing/CliProcess.ts`, on every child a spec spawns | Replaces the 250 ms between the polls of `oversee --detach`, `oversee restart`, `oversee stop` and a Baton pass; the polls grow in number to keep each whole wait. |
 | `FORGE_VERSIONS_ANSWER` | No, a test setting | Empty or whitespace reads as unset; any value but two `major.minor` versions, `<current>/<minimum supported>` with the minimum not newer, is refused, `malformed-versions-answer`, when the Overseer starts | A client's recording of a scratch forge | Replaces what `GET /api/versions` answers and the system version the monitor stream names, such as `1.3/1.0`, so a client can record a forge ahead of it or of another major ([The Overseer API](reference/overseer-api.md#system-versions)). |
@@ -881,21 +881,22 @@ before the first listing is out of reach, as it is on POSIX.
 | `machine limit [<n>] [--json]` | Print the machine agent limit: how many build and review jobs may run at once across every board of this user on this machine, at most the number of CPUs the runtime reports, which it is when none was set. With `<n>`, store a new one in `<monitor>/machine-limits.json`, `{ version: 1, agentLimit }`, which every Overseer reads at its next launch; a value above the CPU count is refused `machine-agent-limit-above-cpus` at exit 1 with nothing written, and a stored value above it reads as the CPU count. Lowering it stops no job in flight. Every Overseer claims a slot file in `<monitor>/agent-slots/` before it launches a build or review job, and a ticket that finds none stays ready and is tried again at the Overseer's next sweep; a slot whose Overseer is gone is taken over by the next claim, and a job that outlived its Overseer's restart keeps its slot under the new Overseer. `--json` prints `{ answerVersion, limit, ceiling, agentsInFlight }`, after a set `{ answerVersion, outcome, limit, ceiling }`. A live Overseer takes the same change as the control command `machine-agent-limit-set`. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. The text names the phases of a gate that runs in only some (`lint (runs in merge): bun run lint`); a gate with none runs in every phase. `--json` prints `{ pipelineIsSet, contentHash, phaseHashes, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `contentHash` and `phaseHashes` `null`, both lists empty, and `version` and `phases` absent. [The hashes](#the-pipeline-hashes) are below. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
 | `gate prepare <name> [--in <folder>] [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. `--in` names the folder it runs in, as a gate's `--in` does. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added. |
-| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--overseer-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
+| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--forge-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate order build\|review\|merge <name>… [--json]` | Set the run order of the gates a phase runs, with one log line (`Gates of the merge phase ordered: <names>`, kind `pipeline-gates-ordered`). Name each gate the phase runs once and no other: a gate joins or leaves a phase only through `gate add --phases`, so no gate is left in no phase. An unknown gate (`unknown-gate`) or any other list (`phase-order-not-a-reorder`) is refused at exit 1 with nothing written. |
 | `gate none [--json]` | Store an empty gate list and empty phases on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>` from the gates and from every phase, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
 | `gate approval tickets on\|off [--json]` | Switch ticket review, stored as `approvals.tickets` in `pipeline.json`, with one log line (`Approval tickets set off`, kind `pipeline-approval-set`). On, as with no `approvals` key, a filer's closed draft waits in `ready-for-review` until User runs `ticket ready`; off, `ticket submit` and `intake close` make a complete draft `committed` at once. Any other approval or switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`approval-without-pipeline`), since a file holding only the switch would read as no gates on purpose. No role an agent runs under may relay it. |
 | `gate approval merge on\|off [--json]` | Switch merge approval, stored as `approvals.merge` in `pipeline.json`, with one log line of kind `pipeline-approval-set`. Off, as with no key, the Airlocks work as without it. On, on every target (the main line, each group integration and the group release), a ticket in review done waits for merge until User runs `merge accept`: see [Merge approval](#merge-approval). Refused as `gate approval tickets` is. |
+| `gate assistant on\|off [--json]` | Switch the board's [Assistant](#the-assistant), stored as `assistant: true` in `pipeline.json` while on and as no key while off, with one log line (`Assistant set on`, kind `pipeline-assistant-set`). A new board has it off. On, the next pass boots an Assistant. Off, no pass boots one; a live one is asked to wind down in the same hold (`job-stop-requested`, mode `wind-down`), finishes its turn and ends, and every open incident takes its default with the cause `assistant-off`, one delivered in a turn still open once that turn closes. Any other switch word is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`assistant-without-pipeline`). A pipeline with entities takes it. It prints what `gate approval` prints. No role an agent runs under may relay it. |
 | `gate reach <path>…\|none [--json]` | Store the repository paths besides the project that a ticket may change as `reach` in `pipeline.json`, with one log line (`Reach set to <paths>`, kind `pipeline-reach-set`). Each path starts with `/`, the repository's root, and holds no `..` or backslash; `none` clears the list. A path named twice is refused at exit 1 with nothing written, and so is a board with no `pipeline.json` (`reach-without-pipeline`). No role an agent runs under may relay it. |
 | `gate retry <J> [--incident <I>] [--json]` | Settle job `J`'s `gate-cannot-run` or `sandbox-unavailable` incident (`incident-handled`): a merge job's [Airlock](glossary.md#airlock) gates its merged tree again on the next sweep, and an ended build's ticket is free for its next attempt. Without `--incident` it takes `J`'s one open incident that allows it; with none there is nothing to do. |
 
-Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`) takes the lock, writes `pipeline.json`
-atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
-`pipeline.json` at exit 1 rather than overwrite it. On a pipeline with entities every write but `gate approval` is
-refused at exit 1 with nothing written (`pipeline-set-per-entity`): each entity holds its own prepare steps, gates and
-reach, which the pipeline builder sets. On a board with no `pipeline.json` it starts from the minimal
-pipeline, version 2 with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
+Every `gate` write (`prepare`, `add`, `order`, `none`, `remove`, `approval`, `assistant`) takes the lock, writes
+`pipeline.json` atomically after `progress.json`, is accepted with tickets in flight and refuses a malformed or an older
+`pipeline.json` at exit 1 rather than overwrite it. On a pipeline with entities every write but `gate approval` and
+`gate assistant` is refused at exit 1 with nothing written (`pipeline-set-per-entity`): each entity holds its own
+prepare steps, gates and reach, which the pipeline builder sets. On a board with no `pipeline.json` it starts from the
+minimal pipeline, with no gates. A ticket's row records the phase it was gated in (`greenPhase`) and that phase's hash
 (`pipelineHash`) at its next gate run, as the run read the pipeline at its start. `--json` on these writes prints
 `{ pipeline, contentHash, phaseHashes }`.
 
@@ -966,7 +967,7 @@ What a session receives:
   commits with. On macOS and Linux a line splits outside quotes on `&&`, `||`, `;`, `|`, `&`, a newline and
   parentheses, past a leading `NAME=value`; on Windows outside double quotes on `&&`, `||`, `&`, `|`, a newline and a
   group's parentheses, a `^` escaping the next character. An `&` inside a redirection such as `2>&1` splits nothing.
-- An `--overseer-only` gate gives it none of these, since only the Overseer runs it.
+- A `--forge-only` gate gives it none of these, since only the Overseer runs it.
 - On Linux a worker's ref protection is `packed-refs` and the loose refs present at launch of the targets and of the
   ticket branches a worktree holds, with check V14 for any other ref; a Linux worker commits unsigned.
 - Every session, whatever its role, may not read `~/.ssh`, `~/.aws`, `~/.netrc`, `~/.git-credentials`, Claude Code's
@@ -2155,9 +2156,15 @@ is current.
 
 ### The Assistant
 
-The Overseer always has one `assistant` job, the [Assistant](glossary.md#assistant): no ticket, no launch slot, never
-resumed, with no off switch. It receives open [incidents](glossary.md#incident) in numbered chats and settles them
-through its Hatch. An incident it leaves takes its default when its chat turn closes.
+While the board's switch is on (`gate assistant on`; a new board has it off), the Overseer has one `assistant` job, the
+[Assistant](glossary.md#assistant): no ticket, no launch slot, never resumed. It receives open
+[incidents](glossary.md#incident) in numbered chats and settles them through its Hatch. An incident it leaves takes its
+default when its chat turn closes.
+
+While the switch is off no Assistant boots, and every open incident takes its default in the pass, logged
+`incident-defaulted` with the cause `assistant-off`. Switching it off lets a live Assistant finish its turn: an incident
+delivered in that turn waits for the turn's end, then takes its default if the Assistant left it, and the Assistant's
+input closes once it is idle.
 
 User reads and talks to it with `incidents`, `job message <J>`, `incident note`, and the Assistant tab. `job message` is
 written at its next idle point.
@@ -2539,15 +2546,13 @@ lives in [`pipeline.json`](#datapipelinejson).
 ### `<data>/pipeline.json`
 
 The board's pipeline, beside `progress.json`, never tracked and never inside a branch. The `gate` verbs and an
-[Apply](#apply) write it through the lock, in format version 2 unless it holds a prepare step's `in`, a gate `in` that
-starts with `/` or a `reach`, which only version 3 has: a release that reads only version 2 then refuses the file
-rather than misread it. A pipeline with `entities` is version 4, which only a tracker at its repository's root holds: in
-a tracker in a folder a write that would store one is refused at exit 1 with nothing written, and a stored one reads as
-malformed, both as `entities-in-a-folder`. This build reads all three.
+[Apply](#apply) write it through the lock, in its one format, version 5; a file of any other version is refused. Only a
+tracker at its repository's root holds a pipeline with `entities`: in a tracker in a folder a write that would store one
+is refused at exit 1 with nothing written, and a stored one reads as malformed, both as `entities-in-a-folder`.
 
 ```json
 {
-  "version": 3,
+  "version": 5,
   "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile", "in": "/" }],
   "gates": [
     { "name": "tests", "run": "bun test", "fix": "bun run lint:fix", "definedBy": ["package.json"] }
@@ -2568,9 +2573,9 @@ malformed, both as `entities-in-a-folder`. This build reads all three.
 
 | key | required | value |
 |---|---|---|
-| `version` | yes | `2`, `3` for a pipeline that holds a prepare step's `in`, a gate `in` that starts with `/` or a `reach`, or `4` for one with `entities`; written first |
-| `prepare` | yes | steps in run order, each `name` and `run`, with an optional `in` (version 3), the folder it runs in as a gate's `in` names one |
-| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `overseerOnly: true`; an empty list is no gates on purpose. `in` is a folder of the project in the worktree, or of the repository when it starts with `/`, which alone is the repository's root (version 3); it holds no `..`, drive or backslash. A version 2 file keeps any `in` that version 2 wrote |
+| `version` | yes | `5`, the one format; written first |
+| `prepare` | yes | steps in run order, each `name` and `run`, with an optional `in`, the folder it runs in as a gate's `in` names one |
+| `gates` | yes | every gate, defined once, each `name` and `run`, with optional `fix`, `in`, `definedBy`, `network`, `writes` and `forgeOnly: true`; an empty list is no gates on purpose. `in` is a folder of the project in the worktree, or of the repository when it starts with `/`, which alone is the repository's root; it holds no `..`, drive or backslash. `forgeOnly: true` is a gate run by the forge alone, never by an agent in its worktree |
 | `phases` | yes | `build`, `review` and `merge`, each a list of gate names in run order; every gate is in at least one phase, and a phase names each gate at most once. The `gate` verbs put a new gate in every phase |
 | `review` | no | `name`, and `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after the review's fixes is on; its presence sets the review phase. On a pipeline with `entities`, a ticket's own entity's `review` sets it for that ticket, whatever this one says |
 | `airlock` | no | the merge train: `reReview` (`thresholdLines`, a whole number of at least 50) when a re-review after a conflict merge is on: see [The Airlocks](#the-airlocks) |
@@ -2578,10 +2583,11 @@ malformed, both as `entities-in-a-folder`. This build reads all three.
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
 | `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the subscription of the agent's own login (for Claude Code, the Claude login). `{ "mode": "api", "maxBudgetUsd": <number> }` bills the account of the API key in the variable the agent adapter names (for Claude Code, the Claude Console account of `ANTHROPIC_API_KEY`; [API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that the agent adapter gives each launch of a session as its budget (for Claude Code, `--max-budget-usd`). It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
-| `reach` | no | version 3: the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
-| `entities` | no | version 4: each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. A ticket of an entity that whitelists a package can cross into it by stages. |
+| `assistant` | no | `true` while the board's Assistant is on, as `gate assistant on` writes it; absent is off, and any other value makes the file malformed. It is not part of `pipelineHash`. |
+| `reach` | no | the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
+| `entities` | no | each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. A ticket of an entity that whitelists a package can cross into it by stages. |
 
-A file with no `version`, or a version below 2, is older: an earlier release wrote it, and no release converts it. The
+A file with no `version`, or a version below 5, is older: an earlier release wrote it, and no release converts it. The
 board reads it as no pipeline, and `gate list` and every `gate` write refuse it at exit 1 (`older-pipeline`); set the
 pipeline up again. A higher version, an unknown key at any level, a missing required key, a step or gate without `name`
 or `run`, a name given twice or shared by a prepare step and a gate, a phase naming an unknown gate, a gate in no
@@ -2661,7 +2667,7 @@ for the entities' set check, so it keeps entities the validator refuses until Us
       { "letter": "b", "text": "No" }], "recommended": ["a"], "multiple": false, "answer": null }
   ],
   "constitution": null,                          // or { markdown, annotations, draftedFrom, baseBlob, revision }
-  "draft": null,                                 // or the whole version 3 pipeline being designed, as pipeline.json
+  "draft": null,                                 // or the whole pipeline being designed, as pipeline.json
   "draftRevision": 0,
   "edits": [],                                   // { editId, by: agent | user, field, summary, undone, batch? }
   "replacesUnreadablePipeline": false,
@@ -2923,6 +2929,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `pipeline-gate-removed` | none | `name` |
 | `pipeline-gates-ordered` | none | `phase` (`build`, `review` or `merge`), `names` (the phase's gates in their new run order) |
 | `pipeline-approval-set` | none | `approval`: `tickets`, `state`: `on` or `off` |
+| `pipeline-assistant-set` | none | `state`: `on` or `off` |
 | `pipeline-reach-set` | none | `paths`: the repository paths, an empty list when cleared |
 | `branch-namespace-set` | none | `namespace` |
 | `check-command-set` | none | `command` (the shell line, or `null` when cleared); retired: still read, never logged |
@@ -2987,7 +2994,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 |---|---|---|
 | `incident-opened` | `incidentId` | `kind`, `ticketIds` |
 | `incident-handled` | `incidentId` | `move`: the move that closed it |
-| `incident-defaulted` | `incidentId` | `move`: its default move, `cause`: `turn-closed`, `turn-budget` or `no-assistant` |
+| `incident-defaulted` | `incidentId` | `move`: its default move, `cause`: `turn-closed`, `turn-budget`, `no-assistant` or `assistant-off` |
 | `incident-escalated` | `incidentId` | `decisionId`: the `agent-question` decision it became |
 | `incident-noted` | `incidentId` | `text`: a finding recorded under the open incident |
 | `incident-answered` | `incidentId` | `answer`, as `decision-answered`; `requestId`, when one |

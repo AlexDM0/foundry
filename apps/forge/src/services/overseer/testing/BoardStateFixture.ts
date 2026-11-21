@@ -24,7 +24,7 @@ import { liveJobFixture }                      from './LiveJobFixture.ts';
 const AT = '2026-11-19T10:00:00+01:00';
 
 export const BOARD_STATE_FIXTURE_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install' }],
   gates:   [{ name: 'test', run: 'bun test', network: ['registry.example.com'] }],
   phases:  { build: ['test'], review: ['test'], merge: ['test'] },

@@ -141,6 +141,7 @@ async function writeBoard(gate: PipelineGate): Promise<void> {
     now:       () => new Date(Date.parse(STAMP)),
     mutate:    (change) => {
       change.board.addGate(gate, change.at);
+      change.board.setAssistant(true, change.at);
       change.board.setOverseerState('running', change.at);
     },
   });

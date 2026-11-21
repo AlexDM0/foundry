@@ -267,7 +267,7 @@ export interface WorkerToolchain {
 export const NO_TOOLCHAIN: WorkerToolchain = Object.freeze({ networkDomains: [], writes: [], executables: [] });
 
 /**
- * Every prepare step and every gate of the catalogue, whatever phases run it, but an `overseerOnly` one, which only the Overseer runs; the
+ * Every prepare step and every gate of the catalogue, whatever phases run it, but a `forgeOnly` one, which only the Overseer runs; the
  * ticket's own `network` line is added to the gates' domains. The lines are split in the grammar they run in, so a worker is granted what
  * they invoke and no more. A job of an entity takes its entity's steps and gates, none when the pipeline names no such entity.
  */
@@ -275,7 +275,7 @@ function workerToolchainOf(
   pipeline: Readonly<Pipeline> | null, ticketNetworkDomains: readonly string[], shellLine: Pick<ShellLine, 'executablesOf'>, entityKey?: EntityKey
 ): WorkerToolchain {
   const toolchainPipeline = pipeline === null || entityKey === undefined ? pipeline : PipelineUtil.pipelineOfEntity(pipeline, entityKey);
-  const gates = (toolchainPipeline?.gates ?? []).filter((gate) => gate.overseerOnly !== true);
+  const gates = (toolchainPipeline?.gates ?? []).filter((gate) => gate.forgeOnly !== true);
   const lines = [...(toolchainPipeline?.prepare ?? []).map((step) => step.run), ...gates.map((gate) => gate.run)];
   return {
     networkDomains: [...new Set([...ticketNetworkDomains, ...gates.flatMap((gate) => gate.network ?? [])])],

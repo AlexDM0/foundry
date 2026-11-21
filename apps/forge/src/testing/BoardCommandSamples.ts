@@ -12,7 +12,7 @@ export const DRAFT_EDIT_SAMPLES: readonly PipelineDraftEditDocument[] = [
     target: 'gate',
     name:   'test',
     value:  {
-      name: 'test', run: 'bun test', fix: 'bun run lint:fix', in: '/apps/web', definedBy: ['bunfig.toml'], network: ['registry.npmjs.org'], writes: ['~/.cache'], overseerOnly: true
+      name: 'test', run: 'bun test', fix: 'bun run lint:fix', in: '/apps/web', definedBy: ['bunfig.toml'], network: ['registry.npmjs.org'], writes: ['~/.cache'], forgeOnly: true
     },
   },
   { target: 'gate', name: 'lint', value: null },
@@ -64,6 +64,7 @@ export const BOARD_COMMAND_SAMPLES: BoardCommandSamples = {
     kind: 'pipeline-apply', setupId: 'S1', draftRevision: 3, resumesBoard: true
   },
   'pipeline-apply-cancel':      { kind: 'pipeline-apply-cancel', setupId: 'S1' },
+  'pipeline-assistant-set':     { kind: 'pipeline-assistant-set', on: false },
   'pipeline-check':             { kind: 'pipeline-check', setupId: 'S1' },
   'pipeline-constitution-edit': {
     kind:        'pipeline-constitution-edit',

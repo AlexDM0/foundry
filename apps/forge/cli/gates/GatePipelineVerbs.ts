@@ -1,5 +1,5 @@
 /**
- * `gate prepare|add|order|none|remove|approval|reach|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one
+ * `gate prepare|add|order|none|remove|approval|assistant|reach|list`: the only writers and the reader of the board's `pipeline.json`. Each write is one
  * control command applied in a hold (relayed when run under a job); a command line goes after `--`, so its words are never read as options.
  * On a pipeline with entities the Board refuses each write of the forge's own steps, gates and reach, since every entity holds its own.
  */
@@ -31,16 +31,17 @@ const { PROGRAM } = PRODUCT_NAMES;
 export const GATE_PIPELINE_USAGE = {
   prepare: `${PROGRAM} gate prepare <name> [--in <folder>] [--json] -- <command>`,
   add:     `${PROGRAM} gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… `
-    + '[--overseer-only] [--phases <phase>,…] [--json] -- <command>',
-  order:    `${PROGRAM} gate order build|review|merge <name>… [--json]`,
-  none:     `${PROGRAM} gate none [--json]`,
-  remove:   `${PROGRAM} gate remove <name> [--json]`,
-  list:     `${PROGRAM} gate list [--json]`,
-  approval: `${PROGRAM} gate approval tickets|merge on|off [--json]`,
-  reach:    `${PROGRAM} gate reach <path>…|none [--json]`,
+    + '[--forge-only] [--phases <phase>,…] [--json] -- <command>',
+  order:     `${PROGRAM} gate order build|review|merge <name>… [--json]`,
+  none:      `${PROGRAM} gate none [--json]`,
+  remove:    `${PROGRAM} gate remove <name> [--json]`,
+  list:      `${PROGRAM} gate list [--json]`,
+  approval:  `${PROGRAM} gate approval tickets|merge on|off [--json]`,
+  assistant: `${PROGRAM} gate assistant on|off [--json]`,
+  reach:     `${PROGRAM} gate reach <path>…|none [--json]`,
 } as const;
 
-const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'overseer-only', 'phases', 'json'];
+const GATE_ADD_OPTION_NAMES = ['fix', 'in', 'defined-by', 'network', 'writes', 'forge-only', 'phases', 'json'];
 
 const NAME_PATTERN = /^[a-z0-9][a-z0-9._-]*$/i;
 
@@ -143,7 +144,7 @@ export async function addGate(commandArguments: ArgumentParser, context: Command
   if (network.length > 0) gate.network = network;
   for (const path of writes) refuseUnwritableFolder(path, context, usage);
   if (writes.length > 0) gate.writes = writes;
-  if (commandArguments.flag('overseer-only')) gate.overseerOnly = true;
+  if (commandArguments.flag('forge-only')) gate.forgeOnly = true;
   const phases = phasesFrom(commandArguments, usage);
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-gate-add', gate, ...(phases === null ? {} : { phases }) });
 }
@@ -180,6 +181,15 @@ export async function setApproval(commandArguments: ArgumentParser, context: Com
   await applyPipelineChange(commandArguments, context, { kind: 'pipeline-approval-set', approval, on: switchState === 'on' });
 }
 
+export async function setAssistant(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
+  const usage = GATE_PIPELINE_USAGE.assistant;
+  commandArguments.rejectUnknownOptions(['json'], usage);
+  commandArguments.rejectExtraPositionals(2, usage);
+  const [, switchState] = commandArguments.positionals();
+  if (switchState !== 'on' && switchState !== 'off') refuseUsage('Write on or off.', usage);
+  await applyPipelineChange(commandArguments, context, { kind: 'pipeline-assistant-set', on: switchState === 'on' });
+}
+
 /** The whole reach at once, each path once: `none` clears it. A path that is not the repository's, leading with `/`, is refused. */
 export async function setReach(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   const usage = GATE_PIPELINE_USAGE.reach;
@@ -210,8 +220,9 @@ function pipelineTextOf(pipeline: Readonly<Pipeline> | null): string {
   const gates   = pipeline.gates.length === 0 ? ['  none, on purpose'] : pipeline.gates.map((gate) => gateLineOf(gate, pipeline.phases));
   const ticketReview  = `Ticket review: ${pipeline.approvals?.tickets === false ? 'off' : 'on'}`;
   const mergeApproval = `Merge approval: ${pipeline.approvals?.merge === true ? 'on' : 'off'}`;
+  const assistant     = `Assistant: ${pipeline.assistant === true ? 'on' : 'off'}`;
   const reach = pipeline.reach === undefined ? [] : [`Reach: ${pipeline.reach.join(' ')}`];
-  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval, ...reach].join('\n');
+  return [...(prepare.length === 0 ? [] : ['Prepare:', ...prepare]), 'Gates:', ...gates, ticketReview, mergeApproval, assistant, ...reach].join('\n');
 }
 
 /** Takes no lock and writes nothing; a pipeline the store judges malformed, older or out of place is refused, since nothing could be listed from it. */
@@ -230,7 +241,7 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
   const entity = {
     pipelineIsSet: pipeline !== null,
     ...(pipeline === null ? { contentHash: null, phaseHashes: null } : hashesOf(pipeline)),
-    ...(pipeline === null ? {} : { version: PipelineUtil.formatVersionOf(pipeline) }),
+    ...(pipeline === null ? {} : { version: pipeline.version }),
     prepare:       pipeline?.prepare ?? [],
     gates:         pipeline?.gates ?? [],
     ...(pipeline === null ? {} : { phases: pipeline.phases }),
@@ -239,6 +250,7 @@ export function listPipeline(commandArguments: ArgumentParser, context: CommandC
     ...(pipeline?.constitution === undefined ? {} : { constitution: pipeline.constitution }),
     ...(pipeline?.agents === undefined ? {} : { agents: pipeline.agents }),
     ...(pipeline?.approvals === undefined ? {} : { approvals: pipeline.approvals }),
+    ...(pipeline === null ? {} : { assistant: pipeline.assistant === true }),
     ...(pipeline?.reach === undefined ? {} : { reach: pipeline.reach }),
   };
   OutputUtil.printEntity(commandArguments, context, entity, pipelineTextOf(pipeline));

@@ -67,6 +67,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gate-removed","fields":{"name":"checks"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-gates-none","fields":{}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-approval-set","fields":{"approval":"tickets","state":"off"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-assistant-set","fields":{"state":"on"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-reach-set","fields":{"paths":["/packages/shared"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"gate-ran","fields":{"tree":"4b825dc642cb6eb9a060e54bf8d69288fbee4904","outcome":"passed","cached":true}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"pipeline-step-ran","fields":{"stepKind":"gate","stepName":"tests","phase":"build","entity":"web",'

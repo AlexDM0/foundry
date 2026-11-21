@@ -219,6 +219,8 @@ function historyTextOf(record: BoardPipelineHistoryEntryDocument): string {
       const { approval, state } = record;
       return `${Object.hasOwn(APPROVAL_WORDS, approval) ? APPROVAL_WORDS[approval] : `Approval ${approval}`} turned ${state}`;
     }
+    case 'pipeline-assistant-set':
+      return `Assistant turned ${record.state}`;
     case 'pipeline-setup-opened':
       return SETUP_OPENED_TEXTS[record.mode];
     case 'pipeline-draft-discarded':

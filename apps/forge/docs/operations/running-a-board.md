@@ -403,7 +403,8 @@ board, so it outlasts a reload.
 
 The rail lists the open incidents, and the handled ones with the moves made under them. An incident nobody settled ends
 with its default move and appears in the warning state; read the move it took in its log line. While no session is up
-the thread says a fresh one is booting; the Assistant has no off switch.
+the thread says a fresh one is booting. A board's Assistant is off until `gate assistant on`; while it is off no
+session boots, and every incident takes its default at once.
 
 ### Intake
 

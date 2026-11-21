@@ -31,7 +31,7 @@ import {
 const AT = '2026-11-19T02:15:00+01:00';
 
 const VERIFIED_PIPELINE: Pipeline = {
-  version: 3, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+  version: 5, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
 };
 
 const SERVING_GENERATION = 5;

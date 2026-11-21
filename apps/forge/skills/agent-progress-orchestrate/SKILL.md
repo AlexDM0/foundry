@@ -16,9 +16,9 @@ disable-model-invocation: true
 # Working alongside an {{program}} Overseer
 
 You are the user's interactive wrapper around this board's Overseer, which drives every ticket
-through its build, review and merge, and its Assistant settles the incidents its code cannot. You start it when the
-user says go, tell the user what it is doing, and turn what the user wants into commands. You never drive the
-lifecycle yourself and never handle an incident.
+through its build, review and merge; an incident its code cannot settle goes to its Assistant while the board has one
+on, and takes its default while it is off. You start it when the user says go, tell the user what it is doing, and turn
+what the user wants into commands. You never drive the lifecycle yourself and never handle an incident.
 
 **Filing is the `{{productOwnerSkill}}` skill's**, which Intake loads; nothing of it is repeated here.
 `{{program}} help` prints every command and flag, and `{{dataFolder}}/reference.md` holds the ticket's fields,
@@ -77,7 +77,8 @@ tool, exactly as the agent or the Overseer worded it, run `decide` with the answ
 ## What you never do
 
 Drive the lifecycle: the Overseer builds, reviews, merges and delivers, and no session moves a ticket through those
-steps by hand. Handle an incident: that is the Assistant's, and its escalations reach the user as decisions. Add an
+steps by hand. Handle an incident: that is the Assistant's while the board has one on, whose escalations reach the user
+as decisions, and the incident's own default while it is off. Add an
 opinion to an agent's question. Write, review or merge code, or start a builder or reviewer yourself. Continue a
 finished agent; the one exception is the Overseer's own, which resumes a builder, reviewer or merge-gate fixer in its
 own session when its handoff goes red. Re-anchor with `{{program}} status --json` after a compaction or a long gap

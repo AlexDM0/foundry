@@ -71,20 +71,20 @@ function profileOf(role: ProfiledRole, networkDomains: readonly string[] = [], f
 
 describe('the pipeline\'s toolchain', () => {
   const pipeline: Pipeline = {
-    version: 3,
+    version: 5,
     prepare: [{ name: 'install', run: 'uv sync' }],
     gates:   [
       {
         name: 'tests', run: 'uv run pytest', in: 'service', network: ['pypi.example.org'], writes: ['~/.cache/example-uv']
       },
       {
-        name: 'deploy-check', run: 'terraform plan', network: ['cloud.example.com'], writes: ['/example/terraform-cache'], overseerOnly: true
+        name: 'deploy-check', run: 'terraform plan', network: ['cloud.example.com'], writes: ['/example/terraform-cache'], forgeOnly: true
       },
     ],
     phases: { build: ['tests', 'deploy-check'], review: ['tests', 'deploy-check'], merge: ['tests', 'deploy-check'] },
   };
 
-  test('gives a builder the network and writes of every gate but an overseerOnly one, its ticket\'s line added, and their executables', () => {
+  test('gives a builder the network and writes of every gate but an forgeOnly one, its ticket\'s line added, and their executables', () => {
     const toolchain = WorkerProfiles.workerToolchainOf(pipeline, ['docs.example.org'], POSIX_SHELL_LINE);
     const profile   = WorkerProfiles.profileOf('builder', ABSENT_HOME_FACTS, toolchain);
 
@@ -97,7 +97,7 @@ describe('the pipeline\'s toolchain', () => {
   test('splits the lines in the grammar they run in: on cmd, a & b grants both, and a caret-escaped & grants neither word after it', () => {
     const windowsShellLine = createWindowsCommandLine({ commandInterpreter: () => 'C:\\Windows\\system32\\cmd.exe', systemRoot: () => undefined });
     const cmdPipeline: Pipeline = {
-      version: 3,
+      version: 5,
       prepare: [{ name: 'install', run: 'npm ci & npx playwright install' }],
       gates:   [{ name: 'tests', run: 'echo a ^& b' }],
       phases:  { build: ['tests'], review: ['tests'], merge: ['tests'] },

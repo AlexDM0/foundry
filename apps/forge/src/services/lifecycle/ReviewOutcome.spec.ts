@@ -64,7 +64,7 @@ function newBoard(): Board {
     logger:           createLogger(() => undefined),
     storedLogRecords: [],
     pipeline:         {
-      version: 3, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
+      version: 5, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, review: { name: 'Review' }
     },
   });
 }

@@ -27,7 +27,7 @@ const CHANGED_AT = '2026-11-12T10:00:00+01:00';
 const REPOSITORY_ROOT = '/example-agency/storefront';
 
 const STORED_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
   gates:   [{
     name: 'browser-tests', run: 'bun run test:browser', in: 'web', network: ['registry.npmjs.org'], writes: ['~/.cache/ms-playwright'], fix: 'bun run fix'
@@ -158,7 +158,7 @@ describe('a start of an entity\'s gate', () => {
     kind: 'root', home: ['/'], prepare: [], gates: [{ name: 'tests', run: 'bun run check' }], phases: { build: ['tests'], review: [], merge: [] },
   };
   const entityPipeline: Pipeline = {
-    version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: webEntity, root: rootEntity },
+    version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: webEntity, root: rootEntity },
   };
   const startOf = (entity: string, gateName: string, phase: 'build' | 'merge'): ControlCommand => ({
     kind: 'gate-profile-start', setupId: null, gateName, phase, entity

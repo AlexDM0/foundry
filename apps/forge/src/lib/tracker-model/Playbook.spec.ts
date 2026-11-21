@@ -21,8 +21,10 @@ import {
   FIXTURE_LIMITS,
   FIXTURE_OBSERVATIONS,
   LIVE_ASSISTANT,
+  WINDING_DOWN_ASSISTANT,
   endedRecord,
   factsWith,
+  factsWithTheAssistantOff,
   finishedJobRecords,
   interruptedRecord,
   jobFixture,
@@ -810,6 +812,57 @@ const CLAIMS: PolicyClaim[] = [
     }),
     holds:  (steps) => steps.length === 1 && steps[0]?.kind === 'default-incident' && steps[0].cause === 'no-assistant',
     mutant: policyLine('>= limits.FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING', '> limits.FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING'),
+  },
+  {
+    name:   'with the Assistant off and none live, none boots',
+    facts:  factsWithTheAssistantOff(),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('!assistantIsLive && facts.assistantIsOn && assistantMayBoot', '!assistantIsLive && assistantMayBoot'),
+  },
+  {
+    name:   'with the Assistant off every open incident no open turn holds takes its default in the pass, cause assistant-off',
+    facts:  factsWithTheAssistantOff({ incidents: [incidentOf({}), incidentOf({ id: 'I2', deliveredInTurn: { jobId: 'J7', chatSequence: 1 } })] }),
+    holds:  (steps) => steps.length === 2 && steps.every((step) => step.kind === 'default-incident' && step.cause === 'assistant-off'),
+    mutant: policyLine('if (!facts.assistantIsOn && !incidentIsInAnOpenTurn(incident, facts))', 'if (false)'),
+  },
+  {
+    name:  'with the Assistant off an incident delivered in the open turn of a winding-down Assistant waits for that turn',
+    facts: factsWithTheAssistantOff({
+      jobs:      [WINDING_DOWN_ASSISTANT],
+      incidents: [incidentOf({ deliveredInTurn: { jobId: 'J900', chatSequence: 3 } })],
+    }),
+    holds:  (steps) => steps.length === 0,
+    mutant: policyLine('incident.deliveredInTurn !== null && !turnIsClosed(incident, facts)', 'false'),
+  },
+  {
+    name:  'with the Assistant off an incident of a winding-down Assistant\'s turn takes its default once that turn closes, cause assistant-off',
+    facts: factsWithTheAssistantOff({
+      jobs:         [WINDING_DOWN_ASSISTANT],
+      incidents:    [incidentOf({ deliveredInTurn: { jobId: 'J900', chatSequence: 3 } })],
+      observations: { ...FIXTURE_OBSERVATIONS, closedDeliveryTurns: [{ jobId: 'J900', chatSequence: 3 }] },
+    }),
+    holds:  (steps) => steps.length === 1 && steps[0]?.kind === 'default-incident' && steps[0].cause === 'assistant-off',
+    mutant: policyLine('incidentId: incident.id, cause: \'assistant-off\' }', 'incidentId: incident.id, cause: \'turn-closed\' }'),
+  },
+  {
+    name:  'with the Assistant off the open turn of a winding-down Assistant at its call budget defaults its incident, cause turn-budget',
+    facts: factsWithTheAssistantOff({
+      jobs:         [WINDING_DOWN_ASSISTANT],
+      incidents:    [incidentOf({ deliveredInTurn: { jobId: 'J900', chatSequence: 3 } })],
+      observations: { ...FIXTURE_OBSERVATIONS, budgetSpentDeliveryTurns: [{ jobId: 'J900', chatSequence: 3 }] },
+    }),
+    holds:  (steps) => steps.length === 1 && steps[0]?.kind === 'default-incident' && steps[0].cause === 'turn-budget',
+    mutant: policyLine('if (!facts.assistantIsOn) return turnSpentItsBudget(incident, facts) ? ', 'if (!facts.assistantIsOn) return false ? '),
+  },
+  {
+    name:  'with the Assistant on an undelivered incident still takes no-assistant while none can come up',
+    facts: factsWith({
+      jobs:      [],
+      incidents: [incidentOf({})],
+      decisions: [decisionOf('api-authentication-failed')],
+    }),
+    holds:  (steps) => steps.some((step) => step.kind === 'default-incident' && step.cause === 'no-assistant') && !stepKindsOf(steps).includes('boot-assistant'),
+    mutant: policyLine('const noAssistantCanComeUp = usageLimitHolds(limits) || authenticationHolds || ', 'const noAssistantCanComeUp = usageLimitHolds(limits) || '),
   },
   {
     name:  'an incident delivered in a closed turn takes its default',

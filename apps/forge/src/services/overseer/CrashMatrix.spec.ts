@@ -756,6 +756,7 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the session rows behind the T
       now,
       mutate:    (change) => {
         change.board.addGate({ name: 'checks', run: 'true' }, change.at);
+        change.board.setAssistant(true, change.at);
         change.board.setOverseerState('running', change.at);
       },
     });

@@ -151,7 +151,8 @@ is a separate document Gaia serves.
   pipeline setup and of each of its entities arrive as Markdown, and the model holds them as Markdown under the same names.
   The shapes are the inventory of what the Bridge's views read plus the facts forge serves; a key no view reads is named `passed-over`
   (the Baton pass warning, which `warnings` words, confinement, a gate's `definedBy` and
-  `overseerOnly`, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and `openedAtEntity`, the Apply state's
+  `forgeOnly`, the pipeline's `assistant` switch, a draft's `baseBlob`, the setup record's `baseContentHash`, `applyRequest` and
+  `openedAtEntity`, the Apply state's
   `commitJobId`, a checked gate's outcomes and durations, an annotation's `lineIndex`, an edge's `edgeId`, an application's `appliedBy`).
 - **What a waiting job follows** (`waitsFor`) is served in the forge's presence, `GET /api/v1/presence`
   (`forge-contracts/ForgePresenceDocument`), not in its board. The forge watch has the one presence reader: it reads once per change of

@@ -176,6 +176,7 @@ beforeEach(async () => {
   monitorFolder = createScratchDirectory('h');
   overseerLog = [];
   await run(['gate', 'add', 'checks', '--', 'true']);
+  await run(['gate', 'assistant', 'on']);
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
 });

@@ -43,7 +43,7 @@ const DESIGN_SYSTEM_TEXT = '# Design system\n\n- Compose before you add a part.\
 const DESIGN_SYSTEM_ON_MAIN: MainConstitution = { path: 'packages/design-system/CONSTITUTION.md', markdown: DESIGN_SYSTEM_TEXT, blob: 'b'.repeat(40) };
 
 const SINGLE_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [],
   gates:   [{ name: 'test', run: 'bun test' }],
   phases:  { build: ['test'], review: ['test'], merge: ['test'] },

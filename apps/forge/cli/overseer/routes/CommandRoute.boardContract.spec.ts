@@ -55,6 +55,7 @@ const EVERY_BOARD_KIND: Readonly<Record<BoardCommandKind, true>> = {
   'pipeline-agent-advise':      true,
   'pipeline-apply':             true,
   'pipeline-apply-cancel':      true,
+  'pipeline-assistant-set':     true,
   'pipeline-check':             true,
   'pipeline-constitution-edit': true,
   'pipeline-draft-discard':     true,

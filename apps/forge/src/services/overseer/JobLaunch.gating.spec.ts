@@ -65,7 +65,7 @@ import {
 import { jobFolderIn } from './OverseerFiles.ts';
 
 const PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [],
   gates:   [{ name: 'tests', run: 'true' }, { name: 'lint', run: 'true' }],
   phases:  { build: ['tests', 'lint'], review: ['tests', 'lint'], merge: ['tests', 'lint'] },
@@ -273,7 +273,7 @@ testWhenGitIsRecorded('a prepare step that exits 0 but changes a tracked file is
 
 /** Each phase runs a gate of its own, none of them first in the gate list, so the gate a job's first gate folder runs names its phase. */
 const ONE_GATE_PER_PHASE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [{ name: 'install', run: 'bun install' }],
   gates:   [{ name: 'audit', run: 'bun run audit' }, { name: 'tests', run: 'bun test' }, { name: 'lint', run: 'bun run lint' }],
   phases:  { build: ['lint'], review: ['tests'], merge: ['audit'] },
@@ -528,7 +528,7 @@ describe('a gate\'s cache report', () => {
 
 /** A forge with entities: the `forge` app installs and gates in its home, one gate at the repository root and one in a folder of the home. */
 const PIPELINE_WITH_ENTITIES: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [],
   gates:    [],
   phases:   { build: [], review: [], merge: [] },
@@ -711,7 +711,7 @@ describe('the step run times', () => {
 describe('a gate line a start found lost', () => {
   const HEAD_COMMIT = '5'.repeat(40);
   const ONE_GATE: Pipeline = {
-    version: 3, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] },
+    version: 5, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] },
   };
 
   interface LostGateScene {

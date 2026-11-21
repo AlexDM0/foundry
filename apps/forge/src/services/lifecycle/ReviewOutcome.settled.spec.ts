@@ -113,7 +113,7 @@ function newBoard(
     logger:   createLogger((record) => logRecords.push(record)),
     storedLogRecords,
     pipeline: {
-      version: 3,
+      version: 5,
       prepare: [],
       gates:   [{ name: 'verify', run: 'bun run verify' }],
       phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },

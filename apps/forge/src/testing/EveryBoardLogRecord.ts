@@ -162,6 +162,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.removeGate('checks', at);
   board.setNoGates(at);
   board.setApproval('tickets', false, at);
+  board.setAssistant(true, at);
   board.setReach(['/packages/shared'], at);
   board.recordGateRan({ tree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904', outcome: 'passed', cached: true }, at);
   board.recordPipelineStepsRan([{

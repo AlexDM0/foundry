@@ -57,7 +57,7 @@ export const INCIDENT_MOVES = [
   'open-quiet-job-decision',
 ] as const satisfies readonly IncidentMove[];
 
-export const INCIDENT_DEFAULT_CAUSES = ['turn-closed', 'turn-budget', 'no-assistant'] as const satisfies readonly IncidentDefaultCause[];
+export const INCIDENT_DEFAULT_CAUSES = ['turn-closed', 'turn-budget', 'no-assistant', 'assistant-off'] as const satisfies readonly IncidentDefaultCause[];
 
 export const DECISION_ID_PREFIX = 'E';
 

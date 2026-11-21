@@ -186,11 +186,12 @@ a parked ticket, a proposed waiver, a refused landing or merge, and the other ki
 the Overseer opens from the facts. `{{program}} decisions` lists the open ones; `decide` answers one with the Overseer
 up or down, the first answer winning. An agent's question carries exactly its words, never anybody's opinion.
 
-**An incident** is operational trouble the Overseer's code cannot settle alone, addressed to the Assistant, never to
-User: an agent's `system` or `ticket` question, a failed setup, a job out of calls, a blocked or lost job, a gate
-that cannot run, a quiet job, or a delivered ticket's
-findings. Each kind allows a fixed set of moves (`{{program}} incidents` shows them) and has a default, taken when
-the Assistant's turn ends without a move. What only User can settle the Assistant escalates as a decision.
+**An incident** is operational trouble the Overseer's code cannot settle alone, never addressed to User: an agent's
+`system` or `ticket` question, a failed setup, a job out of calls, a blocked or lost job, a gate that cannot run, a
+quiet job, or a delivered ticket's findings. Each kind allows a fixed set of moves (`{{program}} incidents` shows them)
+and has a default. While the board's Assistant is on, the incident goes to the Assistant, and takes its default when
+the Assistant's turn ends without a move; what only User can settle the Assistant escalates as a decision. While the
+Assistant is off, as on a new board, the incident takes its default at once.
 
 **A notice** is a condition shown in the header and in `jobs` while it holds, never stored and never answered: an
 install version that changed, a dirty main checkout, an attribution trailer, review rounds that do not converge.

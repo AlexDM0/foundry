@@ -116,7 +116,7 @@ describe('a green of entities\' gates', () => {
   }
 
   const ENTITIES_PIPELINE: Pipeline = {
-    version:  3,
+    version:  5,
     prepare:  [],
     gates:    [],
     phases:   { build: [], review: [], merge: [] },

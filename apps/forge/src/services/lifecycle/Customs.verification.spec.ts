@@ -358,8 +358,8 @@ describeWhenGitIsRecorded('verification by code', () => {
     expect(refusalOf('V15', builderSubject({ gates, report: { ...report, gates: [{ name: 'tests', commit: HEAD_COMMIT }, { name: 'lint', commit: HEAD_COMMIT }] } }))).toBeNull();
   });
 
-  test('V15 asks no claim for an overseerOnly gate, and a builder report without gates is refused by V1', () => {
-    const gates: PipelineGate[] = [{ name: 'tests', run: 'true' }, { name: 'audit', run: 'true', overseerOnly: true }];
+  test('V15 asks no claim for an forgeOnly gate, and a builder report without gates is refused by V1', () => {
+    const gates: PipelineGate[] = [{ name: 'tests', run: 'true' }, { name: 'audit', run: 'true', forgeOnly: true }];
     const report = { ...builderReport(), gates: [{ name: 'tests', commit: HEAD_COMMIT }] };
 
     expect(refusalOf('V15', builderSubject({ gates, report }))).toBeNull();

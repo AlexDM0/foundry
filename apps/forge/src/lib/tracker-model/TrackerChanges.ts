@@ -184,6 +184,17 @@ export class TrackerChanges {
     }, logged);
   }
 
+  /** Refused with no stored pipeline, as an approval is; a pipeline with entities takes it, since the switch is the board's own. */
+  setAssistant(on: boolean, at: string): PipelineChanged {
+    this.refusePendingApply();
+    if (this.records.pipeline === null) throw new BoardRefusal({ reason: 'assistant-without-pipeline' });
+    const logged = [this.records.logger.log({ kind: 'pipeline-assistant-set', fields: { state: on ? 'on' : 'off' } }, at)];
+    return this.changedPipelineOf((pipeline) => {
+      if (on) pipeline.assistant = true;
+      else delete pipeline.assistant;
+    }, logged);
+  }
+
   /** Refused with no stored pipeline, as an approval is: a file holding only the reach would read as no gates on purpose. */
   setReach(paths: readonly string[], at: string): PipelineChanged {
     this.refuseEntityPipeline();

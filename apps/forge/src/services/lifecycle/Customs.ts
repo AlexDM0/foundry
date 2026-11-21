@@ -796,12 +796,12 @@ function changesStayInHomeAndReach(subject: CustomsSubject): CheckVerdict {
   return sealedChangesHeld(subject);
 }
 
-/** Every gate but an `overseerOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */
+/** Every gate but a `forgeOnly` one must be claimed on HEAD itself; a claim on any other commit is stale, and an unknown name is ignored. */
 function everyAgentGateClaimedOnHead(subject: CustomsSubject): CheckVerdict {
   const headCommit = worktreeCommitOf(subject.worktreePath, 'HEAD');
   if (headCommit === null) return refused('git-failed', ['HEAD']);
   const claimedOnHead = reportListOf(subject.report, 'gates').filter((claim) => claim['commit'] === headCommit).map((claim) => String(claim['name']));
-  const unclaimed = (subject.gates ?? []).filter((gate) => gate.overseerOnly !== true && !claimedOnHead.includes(gate.name)).map((gate) => gate.name);
+  const unclaimed = (subject.gates ?? []).filter((gate) => gate.forgeOnly !== true && !claimedOnHead.includes(gate.name)).map((gate) => gate.name);
   return unclaimed.length === 0 ? PASSED : refused('gate-unclaimed', unclaimed);
 }
 

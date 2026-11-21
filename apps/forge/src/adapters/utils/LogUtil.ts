@@ -275,6 +275,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Gates of the ${record.fields.phase} phase ordered: ${record.fields.names.join(', ')}`;
     case 'pipeline-approval-set':
       return `Approval ${record.fields.approval} set ${record.fields.state}`;
+    case 'pipeline-assistant-set':
+      return `Assistant set ${record.fields.state}`;
     case 'pipeline-reach-set':
       return record.fields.paths.length === 0 ? 'Reach cleared' : `Reach set to ${record.fields.paths.join(' ')}`;
     case 'branch-namespace-set':
@@ -371,9 +373,10 @@ const JOB_STOP_MODE_PHRASES: Readonly<Record<JobStopMode, string>> = {
 };
 
 const INCIDENT_DEFAULT_CAUSE_TEXT: Readonly<Record<IncidentDefaultCause, string>> = {
-  'turn-closed':  'when its delivery turn closed',
-  'turn-budget':  'when its delivery turn reached its call budget',
-  'no-assistant': 'while no Assistant could come up',
+  'turn-closed':   'when its delivery turn closed',
+  'turn-budget':   'when its delivery turn reached its call budget',
+  'no-assistant':  'while no Assistant could come up',
+  'assistant-off': 'while the Assistant was off',
 };
 
 const FLINT_BRAIN_ENDING_PHRASES: Readonly<Record<FlintBrainEndedReason, string>> = {

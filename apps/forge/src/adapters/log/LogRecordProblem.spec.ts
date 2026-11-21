@@ -81,7 +81,11 @@ const EXACT_REASONS: readonly (readonly [string, Record<string, unknown>, string
   ['empty decision answer', withFields('decision-answered', { answer: {} }), 'fields.answer is not an object of at least one answer keyed by its question'],
   ['incident kind', withFields('incident-opened', { kind: 'outage' }), `fields.kind is "outage", which is not one of ${INCIDENT_KINDS.join(', ')}`],
   ['incident move', withFields('incident-handled', { move: 'ticket-waive' }), `fields.move is "ticket-waive", which is not one of ${INCIDENT_MOVES.join(', ')}`],
-  ['incident default cause', withFields('incident-defaulted', { cause: 'timeout' }), 'fields.cause is "timeout", which is not one of turn-closed, turn-budget, no-assistant'],
+  [
+    'incident default cause',
+    withFields('incident-defaulted', { cause: 'timeout' }),
+    'fields.cause is "timeout", which is not one of turn-closed, turn-budget, no-assistant, assistant-off',
+  ],
   ['optional ticket ids', withFields('hatch-applied', { ticketIds: ['001', 2] }), 'fields.ticketIds is not a list of ticket ids'],
   ['optional refusal status', withFields('hatch-applied', { status: 'denied' }), 'fields.status is "denied", which is not one of refused, unrepaired'],
   ['optional refusal detail', withFields('hatch-applied', { detail: { requestId: 'request-5' } }), 'fields.detail is not a refusal detail, an object naming its kind'],

@@ -70,7 +70,7 @@ TypeScript source directly.
   so one app's stale recording stamp never turns the other tracker's gate red. Forge copies a gate's `--writes` into its agents'
   sandboxes, which is the intended shared read-write cache.
 - **Trust:** agents can write the cache, so a planted pass is possible. An Overseer-only merge gate audits it:
-  `gate add cache-audit --in / --overseer-only --phases merge --writes <repository>/.turbo/cache -- bun run cache:audit`. `cache:audit` re-runs,
+  `gate add cache-audit --in / --forge-only --phases merge --writes <repository>/.turbo/cache -- bun run cache:audit`. `cache:audit` re-runs,
   past the cache, the tasks of every package changed since the target and of their dependents; on red it removes those tasks' entries
   and exits non-zero, so forge refuses the landing.
 - A cached indicator for gate runs is a forge feature, stack-neutral and opt-in: forge hands every gate run a report path, a gate may

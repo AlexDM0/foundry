@@ -38,7 +38,7 @@ const PROJECT_FOLDER = TWO_TRACKER_PROJECTS.FORGE.folder;
 const DATA_FOLDER_NOTES_PATH = `${PRODUCT_NAMES.DATA_FOLDER}/example-notes.md`;
 
 const MINIMAL_PIPELINE: Pipeline = {
-  version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+  version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
 };
 
 let repository = '';

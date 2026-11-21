@@ -119,7 +119,7 @@ describe('the denied roots a launch makes', () => {
 const NO_PHASES = { build: [], review: [], merge: [] };
 
 const PIPELINE_WITH_ENTITIES: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [{ name: 'install', run: 'bun install' }],
   gates:    [],
   phases:   NO_PHASES,

@@ -163,7 +163,7 @@ describe('a row\'s pipelineHashes', () => {
   const AT = '2026-11-17T10:00:00+01:00';
   const GREEN_TREE = '4b825dc642cb6eb9a060e54bf8d69288fbee4904';
   const SINGLE_PIPELINE: Pipeline = {
-    version: 3, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }
+    version: 5, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }
   };
 
   function textOfRows(rows: object[]): string {

@@ -319,11 +319,13 @@ describe('pipeline agent', () => {
 describe('ticket review', () => {
   const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'pipeline-agent', null];
 
-  test('no Overseer-launched session relays ticket ready, ticket submit or a switch of ticket review', () => {
+  test('no Overseer-launched session relays ticket ready, ticket submit, a switch of ticket review or the Assistant\'s switch', () => {
     const commands: ControlCommand[] = [
       { kind: 'ticket-ready', ticketReferences: ['7'] },
       { kind: 'ticket-submit', ticketReferences: ['7'] },
       { kind: 'pipeline-approval-set', approval: 'tickets', on: false },
+      { kind: 'pipeline-assistant-set', on: true },
+      { kind: 'pipeline-assistant-set', on: false },
     ];
     for (const role of ROLES) {
       for (const command of commands) expect(Bouncer.verdictOf(jobOf(role), command).verdict, `${String(role)} ${command.kind}`).toBe('refused');

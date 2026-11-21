@@ -470,7 +470,7 @@ testWhenGitIsRecorded('runs of two entities that share a slow gate\'s name each 
     kind: 'app', home: [home], prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: [], merge: [] },
   });
   const pipeline: Pipeline = {
-    version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: entityOf('/apps/web/'), api: entityOf('/apps/api/') },
+    version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: entityOf('/apps/web/'), api: entityOf('/apps/api/') },
   };
   const { board } = boardFixture({ pipeline });
   board.openSetup({

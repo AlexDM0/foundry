@@ -161,7 +161,7 @@ To run a ticket on to its landing, also `export FORGE_FAKE_AGENT_REPORTS=1` befo
 commits a line in each folder its stage may change and reports, and each fake reviewer reports every Acceptance item as
 holding. When the ticket's Brief has a `Work belongs in:` line, the builder writes only in the folders it names, so a
 ticket of an app crosses only into the packages it names. It claims no gate, so give the board only gates with
-`overseerOnly: true`. Unset it with the other variables when you end the board.
+`forgeOnly: true`. Unset it with the other variables when you end the board.
 
 **End the scratch board:**
 

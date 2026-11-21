@@ -79,7 +79,7 @@ describe('pipelineFactsOf', () => {
   test('keeps a pipeline\'s absent parts absent, and an API billing\'s budget', async () => {
     const document = await recordedDocument();
     const pipeline = {
-      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, billing: { mode: 'api', maxBudgetUsd: 2.5 }
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, billing: { mode: 'api', maxBudgetUsd: 2.5 }
     } as const;
     const applied = {
       readingVerdict: 'readable', pipeline, contentHash: 'example-hash', fileText: '{}', application: null, entityPipelines: {}
@@ -87,7 +87,7 @@ describe('pipelineFactsOf', () => {
     expect(PipelineMapUtil.pipelineFactsOf({ ...document, pipeline: applied }).applied).toEqual({
       readingVerdict: 'readable',
       pipeline:       {
-        version:          3,
+        version:          5,
         prepare:          [],
         gates:            [],
         phases:           { build: [], review: [], merge: [] },
@@ -123,6 +123,7 @@ describe('pipelineFactsOf', () => {
       { kind: 'pipeline-gates-ordered', at, fields: { phase: 'build', names: ['unit'] } },
       { kind: 'pipeline-prepare-step-set', at, fields: { name: 'install', run: 'bun install' } },
       { kind: 'pipeline-approval-set', at, fields: { approval: 'merge', state: 'on' } },
+      { kind: 'pipeline-assistant-set', at, fields: { state: 'off' } },
       {
         kind: 'pipeline-setup-opened', at, setupId: 'S1', fields: { mode: 'setup', replacesUnreadablePipeline: false }
       },
@@ -147,6 +148,7 @@ describe('pipelineFactsOf', () => {
       {
         kind: 'pipeline-approval-set', at, approval: 'merge', state: 'on'
       },
+      { kind: 'pipeline-assistant-set', at, state: 'off' },
       {
         kind: 'pipeline-setup-opened', at, setupId: 'S1', mode: 'setup', replacesUnreadablePipeline: false
       },

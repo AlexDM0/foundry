@@ -169,7 +169,7 @@ export function createRecordedAirlocksHarness(
   const worktreeOf = (ticketId: string): string => join(worktreesRoot, `ticket-${ticketId}`);
   const { board } = boardFixture({
     pipeline: {
-      version: 3,
+      version: 5,
       prepare: [],
       gates:   [],
       phases:  { build: [], review: [], merge: [] },

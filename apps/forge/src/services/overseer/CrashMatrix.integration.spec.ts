@@ -685,6 +685,7 @@ describe('the session, Talos, Overseer and reboot rows', () => {
       now,
       mutate:    (change) => {
         change.board.addGate({ name: 'checks', run: 'true' }, change.at);
+        change.board.setAssistant(true, change.at);
         change.board.setOverseerState('running', change.at);
       },
     });

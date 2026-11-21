@@ -30,20 +30,20 @@ export interface PipelineStepDocument {
 }
 
 export interface PipelineGateDocument {
-  readonly name:          string;
-  readonly run:           string;
+  readonly name:       string;
+  readonly run:        string;
   /** The shell line that repairs what the gate reports, such as a formatter. */
-  readonly fix?:          string;
+  readonly fix?:       string;
   /** The folder the gate runs in, relative to the project's folder, or to the repository's root when it leads with `/`. */
-  readonly in?:           string;
+  readonly in?:        string;
   /** The pathspec patterns of the files that define the gate. */
-  readonly definedBy?:    readonly string[];
+  readonly definedBy?: readonly string[];
   /** The domains the gate may reach. */
-  readonly network?:      readonly string[];
+  readonly network?:   readonly string[];
   /** The folders the gate may write besides the worktree and temp. */
-  readonly writes?:       readonly string[];
+  readonly writes?:    readonly string[];
   /** Run by the forge alone, never by an agent in its worktree. */
-  readonly overseerOnly?: true;
+  readonly forgeOnly?: true;
 }
 
 /** The gate names of each phase, in run order. */
@@ -129,6 +129,8 @@ export interface PipelineDefinitionDocument {
   readonly reach?:        readonly string[];
   /** Present: a forge at the repository's root over these entities. */
   readonly entities?:     Readonly<Record<EntityKey, PipelineEntityDocument>>;
+  /** Present: the board turned the Assistant on; absent is off. */
+  readonly assistant?:    true;
 }
 
 /** The newest Apply. */
@@ -764,6 +766,8 @@ export type BoardPipelineHistoryEntryDocument =
   | { readonly kind: 'pipeline-prepare-step-set'; readonly at: string; readonly fields: { readonly name: string; readonly run: string } }
   /** `state` is `on` or `off`. */
   | { readonly kind: 'pipeline-approval-set'; readonly at: string; readonly fields: { readonly approval: string; readonly state: string } }
+  /** The Assistant's switch; `state` is `on` or `off`. */
+  | { readonly kind: 'pipeline-assistant-set'; readonly at: string; readonly fields: { readonly state: string } }
   | {
     readonly kind:    'pipeline-setup-opened';
     readonly at:      string;

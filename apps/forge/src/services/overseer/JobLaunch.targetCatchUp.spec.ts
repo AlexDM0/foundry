@@ -48,7 +48,7 @@ import { RedHandoff }                                            from './RedHand
 
 const AT = '2026-11-02T10:00:00+01:00';
 const PIPELINE: Pipeline = {
-  version: 3, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] }, review: { name: 'Review' },
+  version: 5, prepare: [], gates: [{ name: 'tests', run: 'bun test' }], phases: { build: ['tests'], review: ['tests'], merge: ['tests'] }, review: { name: 'Review' },
 };
 const TARGET = 'master';
 const TARGET_TIP = '1'.repeat(40);

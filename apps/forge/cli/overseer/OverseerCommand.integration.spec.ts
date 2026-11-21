@@ -121,6 +121,14 @@ function jobsOnTheBoard(): readonly JobOnTheBoard[] {
   return progress.jobs ?? [];
 }
 
+/** The Assistant is the job these cases list, and a new board has it off: it is switched on over a pipeline with no gates. */
+async function turnTheAssistantOn(): Promise<void> {
+  for (const gateVerb of [['gate', 'none'], ['gate', 'assistant', 'on']]) {
+    const switched = await runAgentProgress(gateVerb, { currentDirectory: repositoryDirectory, homeDirectory });
+    expect(switched.exitCode, switched.standardError).toBe(0);
+  }
+}
+
 /**
  * The event log of the job the board lists now, its current instance's child record planted as a running child of Talos. A job whose
  * session ended may be replaced at a later generation, so a fixed job id would name a job a later generation no longer lists.
@@ -393,6 +401,7 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('a successor that fails a step exits; restart exits 1 baton-pass-failed and the old Overseer keeps driving, logging it and warning', async () => {
+    await turnTheAssistantOn();
     const detached = await runAgentProgress(['oversee', '--detach', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);
     const { url } = JSON.parse(detached.standardOutput) as { url: string };
@@ -419,6 +428,7 @@ describeWhenGitIsRecorded('run --detach, status, restart and stop', () => {
     expect(withNoOverseer.exitCode, withNoOverseer.standardError).toBe(0);
     expect(withNoOverseer.standardOutput).not.toContain('Handing the overseer');
 
+    await turnTheAssistantOn();
     const detached = await runAgentProgress(['oversee', '--detach', '--port', '0', '--json'], { currentDirectory: repositoryDirectory, homeDirectory });
     expect(detached.exitCode, detached.standardError).toBe(0);
     const onTheSameCode = await runAgentProgress(['update'], { currentDirectory: repositoryDirectory, homeDirectory });

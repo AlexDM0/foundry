@@ -101,7 +101,7 @@ function assistantBoard(storedLogRecords: LogRecord[] = [], jobs: Job[] = [{ ...
     logger:   createLogger((record) => records.push(record)),
     storedLogRecords,
     pipeline: {
-      version: 3, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }
+      version: 5, prepare: [], gates: [{ name: 'verify', run: 'bun run verify' }], phases: { build: ['verify'], review: ['verify'], merge: ['verify'] }, assistant: true
     },
   });
   return { board, records };
@@ -184,6 +184,52 @@ describe('bounded turns and a fresh one past the token count (A4)', () => {
 
     expect(board.jobById(ASSISTANT_ID)?.state).toBe('stopping');
     expect(board.incidents()[0]?.deliveredInTurn).toBeNull();
+  });
+});
+
+describe('the board\'s switch turned off (decision 24)', () => {
+  test('a busy Assistant asked to wind down keeps its turn and its incident; idle, its input closes, and the incident it left defaults assistant-off', () => {
+    const { board, records } = assistantBoard();
+    const { incident: delivered } = board.openIncident(BLOCKED, FIXTURE_AT);
+    board.markIncidentDelivered(delivered?.id ?? '', { jobId: ASSISTANT_ID, chatSequence: 2 });
+    board.setAssistant(false, FIXTURE_AT);
+    board.requestJobStop(ASSISTANT_ID, 'wind-down', FIXTURE_AT);
+    const { incident: undelivered } = board.openIncident({ ...BLOCKED, ticketIds: ['002'] }, FIXTURE_AT);
+
+    advance(board, [readingOf(1)]);
+    deliverWhenIdle(board, [readingOf(1)]);
+
+    expect(board.jobById(ASSISTANT_ID)?.state).toBe('running');
+    expect(board.incidents().map((open) => open.id)).toEqual([delivered?.id ?? '']);
+    expect(records.filter((record) => record.kind === 'incident-defaulted')).toMatchObject([{ incidentId: undelivered?.id, fields: { cause: 'assistant-off' } }]);
+
+    advance(board, [readingOf(2)]);
+    deliverWhenIdle(board, [readingOf(2)]);
+
+    expect(board.jobById(ASSISTANT_ID)?.state).toBe('stopping');
+    expect(board.incidents()).toEqual([]);
+    expect(records.filter((record) => record.kind === 'incident-defaulted')).toMatchObject([
+      { incidentId: undelivered?.id, fields: { cause: 'assistant-off' } }, { incidentId: delivered?.id, fields: { cause: 'assistant-off' } },
+    ]);
+  });
+
+  test('with the switch off and no Assistant live none boots, and an incident takes its default in the pass that follows its opening', () => {
+    const { board, records } = assistantBoard([], []);
+    board.setAssistant(false, FIXTURE_AT);
+    board.openIncident(BLOCKED, FIXTURE_AT);
+
+    advance(board, []);
+
+    expect(board.jobs()).toEqual([]);
+    expect(records.find((record) => record.kind === 'incident-defaulted')).toMatchObject({ fields: { cause: 'assistant-off' } });
+  });
+
+  test('with the switch on and no Assistant live one boots', () => {
+    const { board } = assistantBoard([], []);
+
+    advance(board, []);
+
+    expect(board.jobs().map((job) => job.kind)).toEqual(['assistant']);
   });
 });
 

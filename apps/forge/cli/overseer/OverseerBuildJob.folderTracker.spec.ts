@@ -238,6 +238,7 @@ beforeEach(async () => {
   await run(['oversee', 'resume']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
   await run(['gate', 'add', 'checks', '--', GATE_LINE]);
+  await run(['gate', 'assistant', 'on']);
 });
 
 afterEach(() => {

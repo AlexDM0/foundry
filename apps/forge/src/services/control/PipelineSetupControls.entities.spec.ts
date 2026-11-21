@@ -201,7 +201,7 @@ describe('a level of advise and update', () => {
   test.each([
     ['an entity the stored pipeline does not hold', entityPipelineFixture(), ['root', 'web', 'design-system']],
     ['any entity of a stored pipeline without entities', {
-      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
     } as Pipeline, []],
   ])('an advise at %s is refused, with no record opened and no session launched', (_case, pipeline, entityKeys) => {
     const fixture = boardFixture({ pipeline });

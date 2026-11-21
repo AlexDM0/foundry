@@ -175,7 +175,7 @@ export function exampleGate(name: string, run: string, changes: Partial<BoardPip
 /** A pipeline as the forge holds it, everything it leaves out absent, unless the changes say otherwise. */
 export function examplePipeline(changes: Partial<BoardPipelineDefinitionDocument> = {}): BoardPipelineDefinitionDocument {
   return {
-    version:          3,
+    version:          5,
     prepare:          [],
     gates:            [],
     phases:           NO_PHASES,
@@ -1012,7 +1012,7 @@ const MONOREPO_APPLIED_PIPELINE: BoardAppliedPipelineDocument = {
   readingVerdict:  'readable',
   pipeline:        MONOREPO_PIPELINE,
   contentHash:     'example-content-hash-0004',
-  fileText:        `${JSON.stringify({ ...MONOREPO_PIPELINE, version: 4 }, null, 2)}\n`,
+  fileText:        `${JSON.stringify({ ...MONOREPO_PIPELINE, version: 5 }, null, 2)}\n`,
   application:     { appliedRevision: 1, appliedAt: '2026-11-12T10:30:00', constitutionCommit: '4444444444444444444444444444444444444444' },
   entityPipelines: servedEntityPipelinesOf(MONOREPO_PIPELINE),
 };
@@ -1251,7 +1251,7 @@ function monorepoEditingState(): BoardDocument {
 
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument>> = {
   'A0':             () => pipelineBoardState({}),
-  'A0-unreadable':  () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 3 }\n' } }),
+  'A0-unreadable':  () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 5 }\n' } }),
   'A0b-running':    () => setupState(setupRecord()),
   'A0b-at-billing': () => setupState(setupRecord({
     stepStates: {

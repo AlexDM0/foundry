@@ -76,6 +76,7 @@ export function factsWith(overrides: Partial<PlaybookFacts> = {}): PlaybookFacts
     concurrencyLimit:            3,
     overseerState:               'running',
     pipelineIsSet:               true,
+    assistantIsOn:               true,
     reviewIsSet:                 true,
     pipelineHasEntities:         false,
     entitiesWithReview:          [],
@@ -84,6 +85,16 @@ export function factsWith(overrides: Partial<PlaybookFacts> = {}): PlaybookFacts
     ...overrides,
   };
 }
+
+/** A board whose Assistant is off, as a new board is, with none live unless the overrides keep one that still winds down. */
+export function factsWithTheAssistantOff(overrides: Partial<PlaybookFacts> = {}): PlaybookFacts {
+  return factsWith({ jobs: [], assistantIsOn: false, ...overrides });
+}
+
+/** A live Assistant asked to wind down because the board switched it off. */
+export const WINDING_DOWN_ASSISTANT = jobFixture({
+  id: 'J900', kind: 'assistant', role: 'assistant', target: null, stopRequest: 'wind-down'
+});
 
 export function launchedRecord(jobId: string, kind: JobKind, ticketIds: readonly string[], attempt: number = 1): LogRecord {
   return {

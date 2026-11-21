@@ -2,8 +2,8 @@
  * User's job controls as frames to the board's Talos, a recording one answering for it. What matters: a Talos that answers no frame on one
  * pass is sent it on a later pass, its marker written only once Talos took it; a session is asked to quit at its turn end, never sent a
  * close; a session's stop has a marker of its own, so a `job stop` recorded after its quit still reaches the session; a stop asked before
- * any quit sends the quit then the stop, each once, a restarted Overseer included; and a message's pictures are read from the board's
- * store and written into its chat line.
+ * any quit sends the quit then the stop, each once, a restarted Overseer included; a message's pictures are read from the board's store
+ * and written into its chat line; and a wind-down is a chat to a build job, and to the Assistant no chat at all.
  */
 import { existsSync } from 'node:fs';
 import { join }       from 'node:path';
@@ -123,6 +123,32 @@ describe('a session job\'s control frames', () => {
     });
     const line = JSON.stringify({ message: 'Like this.', pictures: [{ mediaType: 'image/png', base64Data: Buffer.from(pngBytes).toString('base64') }] });
     expect(frames).toEqual([JSON.stringify({ act: 'write-line', line })]);
+  });
+
+  test('an Assistant asked to wind down gets no wind-down chat while it runs, since its chats are numbered, and its quit once its input closes', async () => {
+    const assistant = (state: Job['state']): Job => productOwnerJob({
+      id: 'J9', kind: 'assistant', role: 'assistant', state, stopRequest: 'wind-down'
+    });
+    plantLiveSession(assistant('running'));
+    const whileRunning = await actingFramesWhile(async () => {
+      await deliverPass(assistant('running'));
+    });
+    const onceStopping = await actingFramesWhile(async () => {
+      await deliverPass(assistant('stopping'));
+    });
+    expect({ whileRunning, onceStopping }).toEqual({ whileRunning: [], onceStopping: [QUIT_AT_TURN_END] });
+  });
+
+  test('a build job asked to wind down gets the wind-down chat once', async () => {
+    const builder = productOwnerJob({
+      id: 'J4', kind: 'build', role: 'builder', ticketIds: ['001'], state: 'running', stopRequest: 'wind-down'
+    });
+    plantLiveSession(builder);
+    const frames = await actingFramesWhile(async () => {
+      await deliverPass(builder);
+      await deliverPass(builder);
+    });
+    expect(frames).toEqual([JSON.stringify({ act: 'write-line', line: JSON.stringify({ message: 'Example wind-down', pictures: [] }) })]);
   });
 
   test('a stop asked before any quit sends the quit then the stop, each once across an Overseer restart', async () => {

@@ -2,22 +2,8 @@
 import type { GatePhase }               from './GatePhase.ts';
 import type { AgentEffort, AgentModel } from './Ticket.ts';
 
-/**
- * The `pipeline.json` format that adds a prepare step's folder, a gate folder from the repository's root and `reach`, written only for a
- * pipeline that holds one of them and no entity; also the version every pipeline carries in memory.
- */
-export const PIPELINE_FORMAT_VERSION = 3;
-
-/** The earliest format this build reads, written for every pipeline that needs nothing newer, so a release that reads only it still can. */
-export const EARLIEST_PIPELINE_FORMAT_VERSION = 2;
-
-/** The format that adds `entities`, written only for a pipeline that holds them, so a release that knows no entity refuses it. */
-export const ENTITIES_PIPELINE_FORMAT_VERSION = 4;
-
-export type PipelineFormatVersion =
-  | typeof EARLIEST_PIPELINE_FORMAT_VERSION
-  | typeof PIPELINE_FORMAT_VERSION
-  | typeof ENTITIES_PIPELINE_FORMAT_VERSION;
+/** The one `pipeline.json` format: every pipeline is read and written in it, and a file of any other version is refused. */
+export const PIPELINE_FORMAT_VERSION = 5;
 
 export interface PipelineStep {
   name: string;
@@ -27,23 +13,23 @@ export interface PipelineStep {
 }
 
 export interface PipelineGate {
-  name:          string;
-  run:           string;
+  name:       string;
+  run:        string;
   /** The shell line that repairs what the gate reports, such as a formatter; absent when the gate has none. */
-  fix?:          string;
+  fix?:       string;
   /**
    * The folder the gate runs in, relative to the project's folder in the worktree, or to the worktree's root when it leads with `/`;
    * absent runs it in the project's folder.
    */
-  in?:           string;
+  in?:        string;
   /** The git pathspec-style patterns of the files that define the gate. */
-  definedBy?:    string[];
+  definedBy?: string[];
   /** The domains the gate may reach. */
-  network?:      string[];
+  network?:   string[];
   /** The folders the gate may write besides the worktree and temp, absolute or `~/`. */
-  writes?:       string[];
-  /** Run by the Overseer alone, never by an agent in its worktree. */
-  overseerOnly?: true;
+  writes?:    string[];
+  /** Run by the forge alone, never by an agent in its worktree. */
+  forgeOnly?: true;
 }
 
 /** The gate names of each phase, in run order. A gate is defined once and may run in several phases. */
@@ -152,7 +138,6 @@ export interface PipelineEntity {
 }
 
 export interface Pipeline {
-  /** The model's format; the file holds `PipelineUtil.formatVersionOf`'s, the earliest that holds the pipeline. */
   version:       typeof PIPELINE_FORMAT_VERSION;
   /** Empty beside `entities`, whose own steps run instead. */
   prepare:       PipelineStep[];
@@ -174,4 +159,6 @@ export interface Pipeline {
   reach?:        string[];
   /** Present: a forge at the repository's root over these entities, each read through `PipelineUtil.pipelineOfEntity`. */
   entities?:     Record<EntityKey, PipelineEntity>;
+  /** Present: the board turned the Assistant on. Absent is off; not part of the pipeline hash, as `approvals` is not. */
+  assistant?:    true;
 }

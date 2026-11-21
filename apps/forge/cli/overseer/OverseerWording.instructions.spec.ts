@@ -40,7 +40,7 @@ const BUILD_JOB = {
 const BUILDER_DEFAULT = 'Build ticket #{{ticketId}} as job {{jobId}}: {{ticketTitle}}.\n';
 
 const PIPELINE: Pipeline = {
-  version:      3,
+  version:      5,
   prepare:      [],
   gates:        [],
   phases:       { build: [], review: [], merge: [] },

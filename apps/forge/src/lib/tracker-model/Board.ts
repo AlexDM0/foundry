@@ -860,6 +860,7 @@ export class Board {
       concurrencyLimit:            this.concurrency().limit,
       overseerState:               this.overseerState(),
       pipelineIsSet:               this.records.pipeline !== null,
+      assistantIsOn:               this.assistantIsOn(),
       reviewIsSet:                 this.records.pipeline?.review !== undefined,
       pipelineHasEntities:         this.records.pipeline?.entities !== undefined,
       entitiesWithReview:          Object.entries(this.records.pipeline?.entities ?? {})
@@ -991,6 +992,15 @@ export class Board {
 
   setApproval(approval: PipelineApproval, on: boolean, at: string): PipelineChanged {
     return this.trackerChanges.setApproval(approval, on, at);
+  }
+
+  /** The board's switch for the Assistant: a pass boots one only while it is on. */
+  setAssistant(on: boolean, at: string): PipelineChanged {
+    return this.trackerChanges.setAssistant(on, at);
+  }
+
+  assistantIsOn(): boolean {
+    return this.records.pipeline?.assistant === true;
   }
 
   recordPipelineJudgedBy(ticketId: string, greenTree: string | null, stamp: GateRunStamp | null, at: string): void {

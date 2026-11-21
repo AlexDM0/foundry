@@ -161,11 +161,12 @@ export class LifecycleWorld {
       epics:    [],
       logger:   createLogger((record) => this.logRecords.push(record)),
       pipeline: {
-        version: 3,
-        prepare: [],
-        gates:   [{ name: 'verify', run: 'bun run verify' }],
-        phases:  { build: ['verify'], review: ['verify'], merge: ['verify'] },
-        review:  { name: 'Review' },
+        version:   5,
+        prepare:   [],
+        gates:     [{ name: 'verify', run: 'bun run verify' }],
+        phases:    { build: ['verify'], review: ['verify'], merge: ['verify'] },
+        review:    { name: 'Review' },
+        assistant: true,
       },
     });
   }

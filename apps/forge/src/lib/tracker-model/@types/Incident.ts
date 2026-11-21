@@ -31,8 +31,11 @@ export type IncidentMove =
   | 'ticket-park'
   | 'open-quiet-job-decision';
 
-/** Why an incident took its default: its delivery turn closed, the turn reached its call budget, or no Assistant can come up. */
-export type IncidentDefaultCause = 'turn-closed' | 'turn-budget' | 'no-assistant';
+/**
+ * Why an incident took its default: its delivery turn closed, the turn reached its call budget, no Assistant can come up, or the board's
+ * Assistant is off.
+ */
+export type IncidentDefaultCause = 'turn-closed' | 'turn-budget' | 'no-assistant' | 'assistant-off';
 
 /** The Assistant's chat turn an incident went out in: the n-th `result` after chat `chatSequence` closes it. */
 export interface IncidentDeliveryTurn {

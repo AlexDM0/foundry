@@ -282,6 +282,7 @@ export const LOG_RECORD_SCHEMA = {
   'pipeline-gates-ordered':      { subject: 'board', fields: { phase: 'gate-phase', names: 'gate-names' } },
   // `state` is `on` or `off`: whether User approves what `approval` names, such as `tickets`, before it moves on.
   'pipeline-approval-set':       { subject: 'board', fields: { approval: 'text', state: 'text' } },
+  'pipeline-assistant-set':      { subject: 'board', fields: { state: 'text' } },
   // An empty `paths` is the reach cleared.
   'pipeline-reach-set':          { subject: 'board', fields: { paths: 'file-paths' } },
   'branch-namespace-set':        { subject: 'board', fields: { namespace: 'text' } },

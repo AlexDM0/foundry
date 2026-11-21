@@ -104,6 +104,7 @@ function startedDrivePass(): DrivePass {
 /** An update's Apply of a constitution main does not hold yet: the request waits for its commit. */
 function requestApply(board: Board, at: string): void {
   board.addGate({ name: 'checks', run: 'true' }, at);
+  board.setAssistant(true, at);
   board.setOverseerState('running', at);
   const { setupId } = board.openSetup({
     mode: 'update', billing: { mode: 'subscription' }, replacesUnreadablePipeline: false, mainConstitution: null, storedAnnotations: []

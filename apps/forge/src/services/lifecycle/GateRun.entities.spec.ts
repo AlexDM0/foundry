@@ -31,7 +31,7 @@ function entityOf(kind: PipelineEntity['kind'], home: string[], gates: PipelineE
 const EVERY_PHASE_VERIFIES: PipelineEntity['phases'] = { build: ['verify'], review: ['verify'], merge: ['verify'] };
 
 const ENTITIES_PIPELINE: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [],
   gates:    [],
   phases:   { build: [], review: [], merge: [] },

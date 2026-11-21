@@ -170,8 +170,14 @@ function setAgentSettings(agents: Readonly<Record<string, AgentStepSettings>>): 
   writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, agents }, null, 2)}\n`);
 }
 
-function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: GateConfinement = seatbeltThatApplies()): Promise<DrivePass> {
-  return Promise.resolve(createScratchDrivePass({
+/** Every case here runs a board whose Assistant is on, which a new board has off: it is switched on once the case stored its pipeline. */
+async function turnTheAssistantOn(): Promise<void> {
+  if (existsSync(join(requireWorkspace(repositoryDirectory).trackerDirectory, 'pipeline.json'))) await run(['gate', 'assistant', 'on']);
+}
+
+async function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: GateConfinement = seatbeltThatApplies()): Promise<DrivePass> {
+  await turnTheAssistantOn();
+  return createScratchDrivePass({
     platformPorts:        { ...ports, gateConfinement },
     processStarts:        world.processStarts,
     workspace:            requireWorkspace(repositoryDirectory),
@@ -188,7 +194,7 @@ function drivePassPlaying(steps: readonly FakeAgentStep[], gateConfinement: Gate
       recordBuildStateChanges(phase, board);
       afterEachHoldPhase(board);
     },
-  }));
+  });
 }
 
 async function passUntil(drivePass: DrivePass, holds: () => boolean, what: string): Promise<void> {

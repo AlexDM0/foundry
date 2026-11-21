@@ -179,6 +179,7 @@ const READER_OF_KIND: Readonly<Record<BoardCommandKind, BoardCommandReader>> = {
     kind: 'pipeline-apply', setupId: textAt(body, 'setupId'), draftRevision: wholeNumberAt(body, 'draftRevision'), resumesBoard: booleanAt(body, 'resumesBoard')
   }),
   'pipeline-apply-cancel':      (body) => ({ kind: 'pipeline-apply-cancel', setupId: textAt(body, 'setupId') }),
+  'pipeline-assistant-set':     (body) => ({ kind: 'pipeline-assistant-set', on: booleanAt(body, 'on') }),
   'pipeline-check':             (body) => ({ kind: 'pipeline-check', setupId: textAt(body, 'setupId') }),
   'pipeline-constitution-edit': (body) => ({
     kind:     'pipeline-constitution-edit',

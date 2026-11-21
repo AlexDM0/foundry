@@ -95,7 +95,8 @@ async function deliverJobControls(request: JobControlDeliveryRequest): Promise<v
       children, jobFolder, job, `message-${message.number}`,
       () => inputOf(adapter.chatLineOf(message.text, PictureStore.attachmentsOf(request.trackerDirectory, message.pictures)))
     ));
-    if (job.stopRequest === 'wind-down' && job.state === 'running') {
+    // The Assistant's chats are numbered against its results, so its wind-down is its input closing once it is idle, never an extra chat.
+    if (job.stopRequest === 'wind-down' && job.state === 'running' && job.kind !== 'assistant') {
       sends.push(async () => await sendOnce(children, jobFolder, job, 'wind-down', () => inputOf(adapter.chatLineOf(request.windDownMessage))));
     }
     if (job.state === 'stopping' && SESSION_JOB_KINDS.includes(job.kind)) {

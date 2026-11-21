@@ -31,6 +31,7 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'pipeline-agent-advise',
   'pipeline-apply',
   'pipeline-apply-cancel',
+  'pipeline-assistant-set',
   'pipeline-check',
   'pipeline-constitution-edit',
   'pipeline-draft-discard',

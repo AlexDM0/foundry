@@ -1,7 +1,7 @@
 /**
  * The build prompt's gates section. What matters: each gate the builder runs is listed by name with its exact command and its fix, in the
  * pipeline's order, under the rule to pass every gate on the final commit; a gate with a fix says to run it before fixing by hand; an
- * `overseerOnly` gate is named as the Overseer's and never listed as one to run or claim; and after `gate none`, or with no pipeline stored,
+ * `forgeOnly` gate is named as the Overseer's and never listed as one to run or claim; and after `gate none`, or with no pipeline stored,
  * the message says the repository has no gates. The prompt names the ticket's branch as the board names it, namespaced or bare. A builder
  * or reviewer at the root of a folder tracker's worktree is told the project's folder first, since its ticket names paths from there. A
  * build that runs its stage again after its needs are settled is told each need with its ticket and status and to merge the main line in,
@@ -28,7 +28,7 @@ const BUILD_JOB = {
 const GATES: readonly PipelineGate[] = [
   { name: 'format', run: 'bun run format:check', fix: 'bun run format' },
   { name: 'tests', run: 'bun test', in: 'packages/example' },
-  { name: 'audit', run: 'bun audit', overseerOnly: true },
+  { name: 'audit', run: 'bun audit', forgeOnly: true },
   { name: 'lint', run: 'bun run lint', fix: 'bun run lint --fix' },
 ];
 
@@ -66,7 +66,7 @@ describe('the build prompt\'s gates', () => {
     expect(message).not.toMatch(/\{\{\w+\}\}/);
   });
 
-  test('names an overseerOnly gate as the Overseer\'s and never lists it as one to run or claim', () => {
+  test('names an forgeOnly gate as the Overseer\'s and never lists it as one to run or claim', () => {
     expect(message).toContain('The Overseer alone runs `audit`: never run or claim it.');
     expect(message).not.toContain('`audit`: `bun audit`');
     expect(message).not.toContain('bun audit');
@@ -81,11 +81,11 @@ describe('the build prompt\'s gates', () => {
     }
   });
 
-  test('with only overseerOnly gates, says no gate is the builder\'s and names the Overseer\'s', () => {
-    const overseerOnly = buildMessageOf([{ name: 'audit', run: 'bun audit', overseerOnly: true }]);
+  test('with only forgeOnly gates, says no gate is the builder\'s and names the Overseer\'s', () => {
+    const forgeOnly = buildMessageOf([{ name: 'audit', run: 'bun audit', forgeOnly: true }]);
 
-    expect(overseerOnly).toContain('No gate is yours to run');
-    expect(overseerOnly).toContain('The Overseer alone runs `audit`');
+    expect(forgeOnly).toContain('No gate is yours to run');
+    expect(forgeOnly).toContain('The Overseer alone runs `audit`');
   });
 });
 

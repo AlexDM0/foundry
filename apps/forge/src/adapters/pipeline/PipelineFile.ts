@@ -1,18 +1,16 @@
 /**
- * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in version
- * 2, 3 or 4. A file that cannot be read whole is `malformed` with the reason, and one below version 2 is `older`, never a throw. Version 4
- * holds entities, which this build maps and validates in full, a whitelist that names a package included; a setup record's draft is read
- * the same way but for the entities' set check, so it may hold the refusals User has not resolved yet.
+ * `pipeline.json` beside the progress file: the board's pipeline, read, validated and mapped here, and written through the hold, in its
+ * one format. A file that cannot be read whole is `malformed` with the reason, and one of an earlier version is `older`, never a throw.
+ * Entities are mapped and validated in full, a whitelist that names a package included; a setup record's draft is read the same way but
+ * for the entities' set check, so it may hold the refusals User has not resolved yet.
  */
 import { JsonRecordUtil } from '../../lib/json-record/JsonRecordUtil.ts';
 import type { GatePhase } from '../../lib/tracker-model/@types/GatePhase.ts';
 import {
   type AgentStepSettings,
   type ConditionalReReview,
-  EARLIEST_PIPELINE_FORMAT_VERSION,
   type EntityAgentRole,
   type EntityKey,
-  ENTITIES_PIPELINE_FORMAT_VERSION,
   type InstructionEntry,
   PIPELINE_FORMAT_VERSION,
   type Pipeline,
@@ -23,7 +21,6 @@ import {
   type PipelineConstitution,
   type PipelineEntity,
   type PipelineEntityKind,
-  type PipelineFormatVersion,
   type PipelineGate,
   type PipelinePhaseOrders,
   type PipelineReview,
@@ -31,7 +28,6 @@ import {
 } from '../../lib/tracker-model/@types/Pipeline.ts';
 import { RE_REVIEW_THRESHOLD_STEP_LINES } from '../../lib/tracker-model/constants/PipelineDefaults.ts';
 import { EntityValidationUtil }           from '../../lib/tracker-model/utils/EntityValidationUtil.ts';
-import { PipelineUtil }                   from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { VocabularyUtil }                 from '../../lib/tracker-model/utils/VocabularyUtil.ts';
 import { JsonTextUtil }                   from '../../shared/utils/JsonTextUtil.ts';
 import { PathNestingUtil }                from '../../shared/utils/PathNestingUtil.ts';
@@ -51,17 +47,21 @@ export type PipelineReading =
 /** A stored file the board cannot use, which nothing writes over. */
 export type UnreadablePipelineReading = Extract<PipelineReading, { verdict: 'older' | 'malformed' }>;
 
-const EARLIEST_PIPELINE_KEYS = ['version', 'prepare', 'gates', 'phases', 'review', 'airlock', 'constitution', 'agents', 'approvals', 'billing'] as const;
-const PIPELINE_KEYS_OF_VERSION = {
-  [EARLIEST_PIPELINE_FORMAT_VERSION]: EARLIEST_PIPELINE_KEYS,
-  [PIPELINE_FORMAT_VERSION]:          [...EARLIEST_PIPELINE_KEYS, 'reach'],
-  [ENTITIES_PIPELINE_FORMAT_VERSION]: [...EARLIEST_PIPELINE_KEYS, 'reach', 'entities'],
-} as const satisfies Record<PipelineFormatVersion, readonly string[]>;
-const READABLE_FORMAT_VERSIONS = [
-  EARLIEST_PIPELINE_FORMAT_VERSION,
-  PIPELINE_FORMAT_VERSION,
-  ENTITIES_PIPELINE_FORMAT_VERSION
-] as const satisfies readonly PipelineFormatVersion[];
+const PIPELINE_KEYS = [
+  'version',
+  'prepare',
+  'gates',
+  'phases',
+  'review',
+  'airlock',
+  'constitution',
+  'agents',
+  'approvals',
+  'billing',
+  'reach',
+  'entities',
+  'assistant'
+] as const satisfies readonly (keyof Pipeline)[];
 const REQUIRED_KEYS = ['version', 'prepare', 'gates', 'phases'] as const;
 /** Each entity holds its own steps, gates, constitution and reach, so beside `entities` the forge's own stay empty. */
 const KEYS_EMPTY_BESIDE_ENTITIES = ['prepare', 'gates', 'constitution', 'reach'] as const satisfies readonly (keyof Pipeline)[];
@@ -86,12 +86,8 @@ const REPOSITORY_ROOT_HOME = '/';
 const ENTITY_AGENT_ROLES   = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'] as const satisfies readonly EntityAgentRole[];
 const BILLING_KEYS         = ['mode', 'maxBudgetUsd'] as const;
 const APPROVALS            = ['tickets', 'merge'] as const satisfies readonly PipelineApproval[];
-const STEP_KEYS_OF_VERSION = {
-  [EARLIEST_PIPELINE_FORMAT_VERSION]: ['name', 'run'],
-  [PIPELINE_FORMAT_VERSION]:          ['name', 'run', 'in'],
-  [ENTITIES_PIPELINE_FORMAT_VERSION]: ['name', 'run', 'in'],
-} as const satisfies Record<PipelineFormatVersion, readonly string[]>;
-const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'overseerOnly'] as const;
+const STEP_KEYS            = ['name', 'run', 'in'] as const satisfies readonly (keyof PipelineStep)[];
+const GATE_KEYS            = ['name', 'run', 'fix', 'in', 'definedBy', 'network', 'writes', 'forgeOnly'] as const satisfies readonly (keyof PipelineGate)[];
 const PHASE_KEYS           = ['build', 'review', 'merge'] as const satisfies readonly GatePhase[];
 const REVIEW_KEYS          = ['name', 'reReview'] as const;
 const AIRLOCK_KEYS         = ['reReview'] as const;
@@ -180,8 +176,8 @@ function repositoryPathsOf(value: unknown, path: string): Mapped<string[] | unde
   return repeated === undefined ? paths : problemOf(`${path} names ${JSON.stringify(repeated)} twice`);
 }
 
-function stepOf(value: unknown, path: string, formatVersion: PipelineFormatVersion): Mapped<PipelineStep> {
-  const record = namedRecordOf(value, path, STEP_KEYS_OF_VERSION[formatVersion]);
+function stepOf(value: unknown, path: string): Mapped<PipelineStep> {
+  const record = namedRecordOf(value, path, STEP_KEYS);
   if ('problem' in record) return record;
   const { name, run } = record.value;
   if (!textIsPresent(run)) return problemOf(`${path} has no run line`);
@@ -190,23 +186,18 @@ function stepOf(value: unknown, path: string, formatVersion: PipelineFormatVersi
   return { value: { name: String(name), run, ...(folder.value === undefined ? {} : { in: folder.value }) } };
 }
 
-/** Version 2 stored any text as a gate's folder, so its file reads as that release read it. */
-function gateFolderOf(value: unknown, path: string, formatVersion: PipelineFormatVersion): Mapped<string | undefined> {
-  return formatVersion === EARLIEST_PIPELINE_FORMAT_VERSION ? optionalTextOf(value, path) : optionalFolderInRepositoryOf(value, path);
-}
-
-function gateOf(value: unknown, path: string, formatVersion: PipelineFormatVersion): Mapped<PipelineGate> {
+function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
   const record = namedRecordOf(value, path, GATE_KEYS);
   if ('problem' in record) return record;
   const fields = record.value;
-  const { name, run, overseerOnly } = fields;
+  const { name, run, forgeOnly } = fields;
   if (!textIsPresent(run)) return problemOf(`${path} has no run line`);
-  if (overseerOnly !== undefined && overseerOnly !== true) return problemOf(`${path}.overseerOnly is present and is not true`);
+  if (forgeOnly !== undefined && forgeOnly !== true) return problemOf(`${path}.forgeOnly is present and is not true`);
   const gate: PipelineGate = { name: String(name), run };
   const fix = optionalTextOf(fields['fix'], `${path}.fix`);
   if ('problem' in fix) return fix;
   if (fix.value !== undefined) gate.fix = fix.value;
-  const folder = gateFolderOf(fields['in'], `${path}.in`, formatVersion);
+  const folder = optionalFolderInRepositoryOf(fields['in'], `${path}.in`);
   if ('problem' in folder) return folder;
   if (folder.value !== undefined) gate.in = folder.value;
   for (const key of ['definedBy', 'network', 'writes'] as const) {
@@ -216,7 +207,7 @@ function gateOf(value: unknown, path: string, formatVersion: PipelineFormatVersi
   }
   // A relative folder would resolve against wherever the Overseer runs.
   if (gate.writes !== undefined && !gate.writes.every(PathNestingUtil.wirePathIsWellFormed)) return problemOf(`${path}.writes holds a folder that is not absolute or ~/`);
-  if (overseerOnly === true) gate.overseerOnly = true;
+  if (forgeOnly === true) gate.forgeOnly = true;
   return { value: gate };
 }
 
@@ -406,10 +397,10 @@ interface OwnSteps {
 }
 
 /** The prepare steps, gates and phases a pipeline or an entity runs, each path named under `keyPrefix`. */
-function ownStepsOf(record: Record<string, unknown>, keyPrefix: string, formatVersion: PipelineFormatVersion): Mapped<OwnSteps> {
-  const prepare = namedListOf(record['prepare'], `${keyPrefix}prepare`, (step, stepPath) => stepOf(step, stepPath, formatVersion));
+function ownStepsOf(record: Record<string, unknown>, keyPrefix: string): Mapped<OwnSteps> {
+  const prepare = namedListOf(record['prepare'], `${keyPrefix}prepare`, stepOf);
   if ('problem' in prepare) return prepare;
-  const gates = namedListOf(record['gates'], `${keyPrefix}gates`, (gate, gatePath) => gateOf(gate, gatePath, formatVersion));
+  const gates = namedListOf(record['gates'], `${keyPrefix}gates`, gateOf);
   if ('problem' in gates) return gates;
   const sharedNameProblem = sharedNameProblemOf(prepare.value, gates.value);
   if (sharedNameProblem !== null) return sharedNameProblem;
@@ -435,7 +426,7 @@ function homeOf(value: unknown, path: string, entityKind: PipelineEntityKind): M
   return folders.value === undefined || folders.value.length === 0 ? problemOf(`${path} names no folder`) : { value: folders.value };
 }
 
-function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineFormatVersion): Mapped<PipelineEntity> {
+function entityOf(value: unknown, entityKey: EntityKey): Mapped<PipelineEntity> {
   const path   = `entities.${entityKey}`;
   const record = closedRecordOf(value, path, ENTITY_KEYS);
   if ('problem' in record) return record;
@@ -446,7 +437,7 @@ function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineF
   if ('problem' in entityKind) return entityKind;
   const home = homeOf(fields['home'], `${path}.home`, entityKind.value);
   if ('problem' in home) return home;
-  const ownSteps = ownStepsOf(fields, `${path}.`, formatVersion);
+  const ownSteps = ownStepsOf(fields, `${path}.`);
   if ('problem' in ownSteps) return ownSteps;
   const summary      = optionalTextOf(fields['summary'], `${path}.summary`);
   const constitution = constitutionOf(fields['constitution'], `${path}.constitution`);
@@ -482,13 +473,13 @@ function entityOf(value: unknown, entityKey: EntityKey, formatVersion: PipelineF
 }
 
 /** Each entity mapped on its own; whether the entities stand together is `entitySetProblemOf`'s. */
-function entitiesOf(value: unknown, formatVersion: PipelineFormatVersion): Mapped<Record<EntityKey, PipelineEntity> | undefined> {
+function entitiesOf(value: unknown): Mapped<Record<EntityKey, PipelineEntity> | undefined> {
   if (value === undefined) return { value: undefined };
   if (!JsonRecordUtil.valueIsAPlainObject(value)) return problemOf('entities is not an object');
   const entities: Record<EntityKey, PipelineEntity> = {};
   for (const [entityKey, entityValue] of Object.entries(value)) {
     if (!textIsPresent(entityKey)) return problemOf('entities holds a blank key');
-    const entity = entityOf(entityValue, entityKey, formatVersion);
+    const entity = entityOf(entityValue, entityKey);
     if ('problem' in entity) return entity;
     entities[entityKey] = entity.value;
   }
@@ -501,11 +492,9 @@ function entitySetProblemOf(entities: Readonly<Record<EntityKey, PipelineEntity>
   return firstRefusal === undefined ? null : problemOf(OperationRefusalWordingUtil.entityRefusalReasonOf(firstRefusal));
 }
 
-/** A version 4 file holds entities, the only reason it exists, and beside them the forge's own steps, gates, constitution and reach stay empty. */
-function entitiesProblemOf(document: Record<string, unknown>, formatVersion: PipelineFormatVersion): { problem: string } | null {
-  const holdsEntities = document['entities'] !== undefined;
-  if (formatVersion === ENTITIES_PIPELINE_FORMAT_VERSION && !holdsEntities) return problemOf(`version is ${formatVersion} and entities is missing`);
-  if (!holdsEntities) return null;
+/** Beside entities the forge's own steps, gates, constitution and reach stay empty. */
+function entitiesProblemOf(document: Record<string, unknown>): { problem: string } | null {
+  if (document['entities'] === undefined) return null;
   const keyNotEmpty = KEYS_EMPTY_BESIDE_ENTITIES.find((key) => {
     const keyValue = document[key];
     return keyValue !== undefined && !(Array.isArray(keyValue) && keyValue.length === 0);
@@ -519,14 +508,20 @@ function entitiesProblemOf(document: Record<string, unknown>, formatVersion: Pip
  */
 type PipelineReadingPurpose = 'stored' | 'draft';
 
-function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFormatVersion, purpose: PipelineReadingPurpose): Mapped<Pipeline> {
-  const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS_OF_VERSION[formatVersion], '');
+/** The Assistant's switch is on while the key is present, so the file holds `true` or no key, never `false`. */
+function assistantOf(value: unknown): Mapped<true | undefined> {
+  if (value === undefined || value === true) return { value };
+  return problemOf('assistant is present and is not true');
+}
+
+function pipelineOf(document: Record<string, unknown>, purpose: PipelineReadingPurpose): Mapped<Pipeline> {
+  const unknownKeyProblem = unknownKeyProblemOf(document, PIPELINE_KEYS, '');
   if (unknownKeyProblem !== null) return problemOf(unknownKeyProblem);
   const missingKey = REQUIRED_KEYS.find((key) => document[key] === undefined);
   if (missingKey !== undefined) return problemOf(`${missingKey} is missing`);
-  const entitiesProblem = entitiesProblemOf(document, formatVersion);
+  const entitiesProblem = entitiesProblemOf(document);
   if (entitiesProblem !== null) return entitiesProblem;
-  const ownSteps = ownStepsOf(document, '', formatVersion);
+  const ownSteps = ownStepsOf(document, '');
   if ('problem' in ownSteps) return ownSteps;
   const review       = reviewOf(document['review'], 'review');
   const airlock      = airlockOf(document['airlock']);
@@ -535,7 +530,8 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
   const approvals    = approvalsOf(document['approvals']);
   const billing      = billingOf(document['billing']);
   const reach        = repositoryPathsOf(document['reach'], 'reach');
-  const entities     = entitiesOf(document['entities'], formatVersion);
+  const entities     = entitiesOf(document['entities']);
+  const assistant    = assistantOf(document['assistant']);
   if ('problem' in review) return review;
   if ('problem' in airlock) return airlock;
   if ('problem' in constitution) return constitution;
@@ -544,6 +540,7 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
   if ('problem' in billing) return billing;
   if ('problem' in reach) return reach;
   if ('problem' in entities) return entities;
+  if ('problem' in assistant) return assistant;
   const entitySetProblem = purpose === 'stored' ? entitySetProblemOf(entities.value) : null;
   if (entitySetProblem !== null) return entitySetProblem;
   return {
@@ -558,25 +555,22 @@ function pipelineOf(document: Record<string, unknown>, formatVersion: PipelineFo
       ...(billing.value === undefined ? {} : { billing: billing.value }),
       ...(reach.value === undefined ? {} : { reach: reach.value }),
       ...(entities.value === undefined ? {} : { entities: entities.value }),
+      ...(assistant.value === undefined ? {} : { assistant: assistant.value }),
     },
   };
 }
 
-/**
- * Version 2, 3 and 4 are mapped, each by its exact version with its own keys; no release converts an earlier file, so one with no version
- * or a lower one is `older`, never mapped, and a higher one is malformed.
- */
+/** Only the one format is mapped; no release converts an earlier file, so one with no version or a lower one is `older`, and a higher one is malformed. */
 function readingOf(document: unknown, purpose: PipelineReadingPurpose): PipelineReading {
   if (!JsonRecordUtil.valueIsAPlainObject(document)) return { verdict: 'malformed', reason: 'the document is not a JSON object' };
   const { version } = document;
   if (version === undefined) return { verdict: 'older' };
   if (typeof version !== 'number' || !Number.isInteger(version)) return { verdict: 'malformed', reason: 'version is not a whole number' };
-  if (version < EARLIEST_PIPELINE_FORMAT_VERSION) return { verdict: 'older' };
-  const formatVersion = READABLE_FORMAT_VERSIONS.find((readableVersion) => readableVersion === version);
-  if (formatVersion === undefined) {
-    return { verdict: 'malformed', reason: `version is ${version}, a newer format than version ${Math.max(...READABLE_FORMAT_VERSIONS)}, which this build reads (newer-format)` };
+  if (version < PIPELINE_FORMAT_VERSION) return { verdict: 'older' };
+  if (version > PIPELINE_FORMAT_VERSION) {
+    return { verdict: 'malformed', reason: `version is ${version}, a newer format than version ${PIPELINE_FORMAT_VERSION}, which this build reads (newer-format)` };
   }
-  const pipeline = pipelineOf(document, formatVersion, purpose);
+  const pipeline = pipelineOf(document, purpose);
   return 'problem' in pipeline ? { verdict: 'malformed', reason: pipeline.problem } : { verdict: 'readable', pipeline: pipeline.value };
 }
 
@@ -607,9 +601,9 @@ function read(pipelineFilePath: string): PipelineReading {
   return documentReadingOf(parsedJson.value);
 }
 
-/** The document the pipeline is stored as: in the earliest format that holds it, so a release that reads only version 2 still can. */
+/** The document the pipeline is stored as. */
 function storedDocumentOf(pipeline: Readonly<Pipeline>): Record<string, unknown> {
-  return { ...(JSON.parse(JSON.stringify(pipeline)) as Record<string, unknown>), version: PipelineUtil.formatVersionOf(pipeline) };
+  return JSON.parse(JSON.stringify(pipeline)) as Record<string, unknown>;
 }
 
 /**
@@ -619,7 +613,7 @@ function storedDocumentOf(pipeline: Readonly<Pipeline>): Record<string, unknown>
 function textOf(pipeline: Readonly<Pipeline>, purpose: PipelineReadingPurpose): string {
   const document = storedDocumentOf(pipeline);
   const reading  = readingOf(document, purpose);
-  return JsonTextUtil.storedFileTextOf(reading.verdict === 'readable' ? { ...reading.pipeline, version: document['version'] } : document);
+  return JsonTextUtil.storedFileTextOf(reading.verdict === 'readable' ? reading.pipeline : document);
 }
 
 function contentsOf(pipeline: Readonly<Pipeline>): string {

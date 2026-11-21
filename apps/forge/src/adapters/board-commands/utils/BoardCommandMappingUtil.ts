@@ -56,7 +56,7 @@ function gateOf(gate: PipelineGateDocument): PipelineGate {
     ...(gate.definedBy === undefined ? {} : { definedBy: [...gate.definedBy] }),
     ...(gate.network === undefined ? {} : { network: [...gate.network] }),
     ...(gate.writes === undefined ? {} : { writes: [...gate.writes] }),
-    ...(gate.overseerOnly === undefined ? {} : { overseerOnly: gate.overseerOnly }),
+    ...(gate.forgeOnly === undefined ? {} : { forgeOnly: gate.forgeOnly }),
   };
 }
 
@@ -170,6 +170,7 @@ const MAPPER_OF_KIND: BoardCommandMappers = {
     kind: 'pipeline-apply', setupId: command.setupId, draftRevision: command.draftRevision, resumesBoard: command.resumesBoard
   }),
   'pipeline-apply-cancel':      (command) => ({ kind: 'pipeline-apply-cancel', setupId: command.setupId }),
+  'pipeline-assistant-set':     (command) => ({ kind: 'pipeline-assistant-set', on: command.on }),
   'pipeline-check':             (command) => ({ kind: 'pipeline-check', setupId: command.setupId }),
   'pipeline-constitution-edit': (command) => ({
     kind:     'pipeline-constitution-edit',

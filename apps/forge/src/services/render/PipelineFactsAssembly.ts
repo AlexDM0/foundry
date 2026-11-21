@@ -71,6 +71,7 @@ const PIPELINE_HISTORY_KINDS: ReadonlySet<LogRecord['kind']> = new Set<LogRecord
   'pipeline-gates-ordered',
   'pipeline-prepare-step-set',
   'pipeline-approval-set',
+  'pipeline-assistant-set',
   'pipeline-setup-opened',
   'pipeline-draft-discarded',
   'pipeline-setup-discarded',

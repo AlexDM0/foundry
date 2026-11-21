@@ -506,6 +506,8 @@ export type BoardPipelineHistoryEntryDocument =
   | { readonly kind: 'pipeline-gates-ordered'; readonly at: string; readonly phase: BoardGatePhase; readonly names: readonly string[] }
   | { readonly kind: 'pipeline-prepare-step-set'; readonly at: string; readonly name: string; readonly run: string }
   | { readonly kind: 'pipeline-approval-set'; readonly at: string; readonly approval: string; readonly state: string }
+  /** The Assistant's switch; `state` is `on` or `off`. */
+  | { readonly kind: 'pipeline-assistant-set'; readonly at: string; readonly state: string }
   | {
     readonly kind:                       'pipeline-setup-opened';
     readonly at:                         string;

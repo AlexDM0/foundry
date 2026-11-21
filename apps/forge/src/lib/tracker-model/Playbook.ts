@@ -67,6 +67,8 @@ export interface PlaybookFacts {
   concurrencyLimit:            number;
   overseerState:               OverseerState;
   pipelineIsSet:               boolean;
+  /** The board's switch: off boots no Assistant, and every incident no open turn holds takes its default. */
+  assistantIsOn:               boolean;
   /** The pipeline has a `review` phase; without one no reviewer is ever launched, and a gated build queues to merge. */
   reviewIsSet:                 boolean;
   /**
@@ -806,9 +808,19 @@ function turnSpentItsBudget(incident: Readonly<Incident>, facts: PlaybookFacts):
   return turn !== null && facts.observations.budgetSpentDeliveryTurns.some((spent) => spent.jobId === turn.jobId && spent.chatSequence === turn.chatSequence);
 }
 
-/** A delivered incident defaults when its turn closes. While no Assistant can come up, every one defaults. */
+/** An incident a live Assistant was handed in a turn that has not closed: switching the Assistant off lets that turn finish. */
+function incidentIsInAnOpenTurn(incident: Readonly<Incident>, facts: PlaybookFacts): boolean {
+  return incident.deliveredInTurn !== null && !turnIsClosed(incident, facts);
+}
+
+/**
+ * A delivered incident defaults when its turn closes. While no Assistant can come up, every one defaults. While the Assistant is off, every
+ * one defaults but those of a turn still open, which wait for its end or its call budget.
+ */
 function incidentDefaultStepsOf(facts: PlaybookFacts, noAssistantCanComeUp: boolean): PlaybookStep[] {
   return facts.incidents.flatMap((incident): PlaybookStep[] => {
+    if (!facts.assistantIsOn && !incidentIsInAnOpenTurn(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'assistant-off' }];
+    if (!facts.assistantIsOn) return turnSpentItsBudget(incident, facts) ? [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-budget' }] : [];
     if (noAssistantCanComeUp) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'no-assistant' }];
     if (turnIsClosed(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-closed' }];
     if (turnSpentItsBudget(incident, facts)) return [{ kind: 'default-incident', incidentId: incident.id, cause: 'turn-budget' }];
@@ -859,7 +871,7 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   // The pipeline agent sets the pipeline up, so neither the missing pipeline nor the pause holds its resume.
   steps.push(...crashBoundStepsOf(facts, limits, { resumesAreHeld, pipelineAgentResumesAreHeld: versionOrUsageHolds || outageHolds }));
   steps.push(...waiverAnswerStepsOf(facts));
-  if (!assistantIsLive && assistantMayBoot && !facts.observations.installVersionChanged) steps.push({ kind: 'boot-assistant' });
+  if (!assistantIsLive && facts.assistantIsOn && assistantMayBoot && !facts.observations.installVersionChanged) steps.push({ kind: 'boot-assistant' });
   const parkSteps          = parkStepsOf(facts, limits);
   const jobLostSteps       = jobLostStepsOf(facts, limits);
   const abandonedNeedSteps = abandonedNeedStepsOf(facts);

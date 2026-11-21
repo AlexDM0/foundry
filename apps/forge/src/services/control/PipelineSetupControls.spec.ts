@@ -50,7 +50,7 @@ const recordedGit = useRecordedGit();
 const WORKSPACE = workspacePathsFor('/example-agency/storefront');
 
 const STORED_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [],
   gates:   [{ name: 'test', run: 'bun test' }],
   phases:  { build: ['test'], review: ['test'], merge: ['test'] },
@@ -744,7 +744,7 @@ describe('Apply', () => {
 
 describe('a check', () => {
   const STORED_WITH_THREE_GATES: Pipeline = {
-    version: 3,
+    version: 5,
     prepare: [{ name: 'install', run: 'bun install --frozen-lockfile' }],
     gates:   [{ name: 'test', run: 'bun test' }, { name: 'types', run: 'tsc' }, { name: 'format', run: 'prettier --check .' }],
     phases:  { build: ['test', 'types', 'format'], review: ['test'], merge: ['test'] },

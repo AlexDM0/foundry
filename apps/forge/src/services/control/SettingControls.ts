@@ -29,6 +29,15 @@ function inReadablePipeline<Result>(change: BoardTransaction, apply: () => Resul
   return apply();
 }
 
+/** Off lets a live Assistant finish its turn: its wind-down is asked in the same hold, and the pass closes its input once it is idle. */
+function setAssistant(command: CommandOf<'pipeline-assistant-set'>, change: BoardTransaction): ReturnType<BoardTransaction['board']['setAssistant']> {
+  const changed = change.board.setAssistant(command.on, change.at);
+  if (command.on) return changed;
+  const liveAssistants = change.board.jobs().filter((job) => job.kind === 'assistant' && job.stopRequest === undefined && job.state !== 'stopping');
+  const windDowns      = liveAssistants.flatMap((job) => change.board.requestJobStop(job.id, 'wind-down', change.at).logged);
+  return { ...changed, logged: [...changed.logged, ...windDowns] };
+}
+
 export const SETTING_CONTROLS = {
   'concurrency-set':           setConcurrencyLimit,
   'pipeline-prepare-step-set': (command: CommandOf<'pipeline-prepare-step-set'>, change: BoardTransaction) => inReadablePipeline(
@@ -51,6 +60,10 @@ export const SETTING_CONTROLS = {
   'pipeline-approval-set': (command: CommandOf<'pipeline-approval-set'>, change: BoardTransaction) => inReadablePipeline(
     change,
     () => change.board.setApproval(command.approval, command.on, change.at),
+  ),
+  'pipeline-assistant-set': (command: CommandOf<'pipeline-assistant-set'>, change: BoardTransaction) => inReadablePipeline(
+    change,
+    () => setAssistant(command, change),
   ),
   'pipeline-reach-set': (command: CommandOf<'pipeline-reach-set'>, change: BoardTransaction) => inReadablePipeline(
     change,

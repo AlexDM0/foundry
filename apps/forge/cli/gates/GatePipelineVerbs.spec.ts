@@ -1,13 +1,14 @@
 /**
  * The `gate` verbs over a scratch tracker. What matters: no pipeline and `gate none` are told apart in `pipeline.json`, `gate list` and the
- * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write version 2 unless a step folder, a gate
- * folder from the repository's root or a reach needs version 3, a gate in every phase
- * unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per phase, the
+ * log; the verbs are the file's writers, through the lock, accepted with a ticket in flight, and write the one format, a gate in every
+ * phase unless `--phases` names some, each phase's run order set by `gate order`; the hashes printed are the content hash and one per phase, the
  * content hash moving on any change and a phase hash only on its own phase's; `gate list` in text names the phases of a gate that runs in
  * only some, since a line with none reads as every phase; a step or gate folder stays in the repository, `/` leading for its root; the
  * reach holds repository paths and needs a stored pipeline; a malformed file is refused, never overwritten, and a refused write leaves the
  * progress file, the pipeline and the log as they were, a pipeline with entities byte for byte, since each entity's steps, gates and
- * reach are set in the pipeline builder. An older file is `cli/OlderPipelineRefusal.spec.ts`'s.
+ * reach are set in the pipeline builder; the Assistant's switch is the board's own, off until `gate assistant on`, and needs a stored
+ * pipeline; a gate the forge alone runs is `--forge-only`, and the flag's earlier name is an unknown option. An older file is
+ * `cli/OlderPipelineRefusal.spec.ts`'s.
  */
 import {
   existsSync,
@@ -48,6 +49,9 @@ const ENTITY_PIPELINE_WRITES: readonly (readonly string[])[] = [
   ['gate', 'remove', 'test'],
   ['gate', 'reach', '/bun.lock'],
 ];
+
+/** The flag's name before `--forge-only`, joined from its parts so no tracked line holds the retired name. */
+const RETIRED_FORGE_ONLY_FLAG = `--${['overseer', 'only'].join('-')}`;
 
 let repositoryDirectory = '';
 
@@ -106,7 +110,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     await run(['gate', 'none']);
 
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
-      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
     });
     expect(storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"pipeline-gates-none"'))).toHaveLength(1);
     const pipeline = await listed();
@@ -125,7 +129,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     await run(['gate', 'none']);
     await run(['gate', 'approval', 'tickets', 'off']);
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
-      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { tickets: false },
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { tickets: false },
     });
     expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ approvals: { tickets: false } });
     expect((await run(['gate', 'list'])).outputText()).toContain('Ticket review: off');
@@ -143,7 +147,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect((await run(['gate', 'list'])).outputText()).toContain('Merge approval: off');
     await run(['gate', 'approval', 'merge', 'on']);
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
-      version: 2, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { merge: true },
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, approvals: { merge: true },
     });
     expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ approvals: { merge: true } });
     expect((await run(['gate', 'list'])).outputText()).toContain('Merge approval: on');
@@ -154,6 +158,55 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
       expect.stringContaining('"approval":"merge","state":"on"'),
       expect.stringContaining('"approval":"merge","state":"off"'),
     ]);
+  });
+
+  test('gate add refuses the earlier name of --forge-only as an unknown option, and writes nothing', async () => {
+    const before  = storedFiles();
+    const refused = await runWithExitCode(['gate', 'add', 'test', RETIRED_FORGE_ONLY_FLAG, '--', 'bun test']);
+
+    expect(refused.exitCode).toBe(1);
+    expect(refused.context.errorText()).toContain(RETIRED_FORGE_ONLY_FLAG);
+    expect(storedFiles()).toEqual(before);
+  });
+
+  test('gate assistant is refused at exit 1 with no pipeline stored, so the switch never lifts checks-not-set', async () => {
+    const refusal = await runWithExitCode(['gate', 'assistant', 'on']);
+
+    expect(refusal.exitCode).toBe(1);
+    expect(refusal.context.errorText()).toContain('No gate pipeline is stored, so the Assistant was not switched');
+    expect(existsSync(pipelineFilePath())).toBe(false);
+  });
+
+  test('gate assistant on writes assistant: true and off removes the key, each logged once, and gate list prints the switch, off on a new pipeline', async () => {
+    await run(['gate', 'none']);
+    expect((await run(['gate', 'list'])).outputText()).toContain('Assistant: off');
+    expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ assistant: false });
+
+    const switchedOn = JSON.parse((await run(['gate', 'assistant', 'on', '--json'])).outputText()) as { pipeline: unknown; contentHash: string; phaseHashes: unknown };
+    expect(switchedOn.pipeline).toEqual({
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, assistant: true
+    });
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual(switchedOn.pipeline);
+    expect((await run(['gate', 'list'])).outputText()).toContain('Assistant: on');
+    expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ assistant: true, contentHash: switchedOn.contentHash });
+
+    expect((await run(['gate', 'assistant', 'off'])).outputText()).toContain('Assistant set off');
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).not.toHaveProperty('assistant');
+    expect(storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line.includes('"pipeline-assistant-set"'))).toEqual([
+      expect.stringContaining('"fields":{"state":"on"}'),
+      expect.stringContaining('"fields":{"state":"off"}'),
+    ]);
+  });
+
+  test('gate assistant refuses a switch that is not on or off, a missing one and an extra word with its usage, and writes nothing', async () => {
+    await run(['gate', 'none']);
+    const before = storedFiles();
+    for (const words of [['yes'], [], ['on', 'now']]) {
+      const refused = await runWithExitCode(['gate', 'assistant', ...words]);
+      expect(refused.exitCode, words.join(' ')).toBe(1);
+      expect(refused.context.errorText(), words.join(' ')).toContain('gate assistant on|off [--json]');
+    }
+    expect(storedFiles()).toEqual(before);
   });
 
   test('gate approval refuses an unknown approval or a switch that is not on or off, and writes nothing', async () => {
@@ -167,13 +220,18 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
   test('gate prepare, add and remove write the pipeline in run order, a same-named gate replaced where it stands', async () => {
     await run(['gate', 'prepare', 'install', '--', 'bun', 'install']);
     await run(['gate', 'add', 'types', '--defined-by', 'tsconfig.json', '--', 'bun run typecheck']);
-    await run(['gate', 'add', 'test', '--in', 'packages/example', '--writes', '~/.cache/example', '--overseer-only', '--', 'bun test']);
+    await run(['gate', 'add', 'test', '--in', 'packages/example', '--writes', '~/.cache/example', '--forge-only', '--', 'bun test']);
     await run(['gate', 'add', 'types', '--', 'tsc --noEmit']);
+    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({
+      gates: [{ name: 'types' }, {
+        name: 'test', run: 'bun test', in: 'packages/example', writes: ['~/.cache/example'], forgeOnly: true
+      }]
+    });
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ phases: { build: ['types', 'test'], review: ['types', 'test'], merge: ['types', 'test'] } });
     await run(['gate', 'remove', 'test']);
 
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toEqual({
-      version: 2,
+      version: 5,
       prepare: [{ name: 'install', run: 'bun install' }],
       gates:   [{ name: 'types', run: 'tsc --noEmit' }],
       phases:  { build: ['types'], review: ['types'], merge: ['types'] },
@@ -195,7 +253,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect([after.phaseHashes?.build, after.phaseHashes?.review]).toEqual([before.phaseHashes?.build, before.phaseHashes?.review]);
   });
 
-  test('gate add --phases writes a version 2 file with the gate in those phases, and gate order reorders one phase', async () => {
+  test('gate add --phases writes the gate in those phases, and gate order reorders one phase', async () => {
     await run(['gate', 'add', 'types', '--', 'bun run typecheck']);
     await run(['gate', 'add', 'test', '--phases', 'build,merge', '--', 'bun test']);
     await run(['gate', 'add', 'lint', '--phases', 'merge', '--', 'bun run lint']);
@@ -203,7 +261,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     const ordered = JSON.parse((await run(['gate', 'order', 'merge', 'lint', 'types', 'test', '--json'])).outputText()) as { pipeline: unknown; contentHash: string | null };
 
     const stored = JSON.parse(readFileSync(pipelineFilePath(), 'utf8')) as { version: number; phases: unknown };
-    expect(stored.version).toBe(2);
+    expect(stored.version).toBe(5);
     expect(stored.phases).toEqual({ build: ['types', 'test'], review: ['types'], merge: ['lint', 'types', 'test'] });
     expect(ordered.pipeline).toEqual(stored);
     expect(ordered.contentHash).toBe((await listed()).contentHash);
@@ -247,7 +305,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(unknown.context.errorText()).toContain('There is no gate lint: the gates are test.');
     expect(storedFiles()).toEqual(before);
 
-    writeFileSync(pipelineFilePath(), '{ "version": 3, "prepare": [], "gates": [{ "run": "bun test" }], "phases": { "build": [], "review": [], "merge": [] } }\n');
+    writeFileSync(pipelineFilePath(), '{ "version": 5, "prepare": [], "gates": [{ "run": "bun test" }], "phases": { "build": [], "review": [], "merge": [] } }\n');
     const malformedBefore = storedFiles();
     for (const verb of [['gate', 'none'], ['gate', 'list']]) {
       const refused = await runWithExitCode(verb);
@@ -267,8 +325,8 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     }
   });
 
-  // Gate approval is not set per entity, so it stays writable.
-  test('each such write is refused as set per entity, and gate approval is accepted', async () => {
+  // Gate approval and the Assistant's switch are not set per entity, so they stay writable.
+  test('each such write is refused as set per entity, and gate approval and gate assistant are accepted', async () => {
     writeFileSync(pipelineFilePath(), entityForgePipelineTextOf('strict-isolation'));
     const before = storedFiles();
     for (const write of ENTITY_PIPELINE_WRITES) {
@@ -280,6 +338,8 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     const approval = await runWithExitCode(['gate', 'approval', 'merge', 'on']);
     expect(approval.exitCode).toBe(0);
     expect(PipelineFile.read(pipelineFilePath())).toMatchObject({ verdict: 'readable', pipeline: { approvals: { merge: true } } });
+    expect((await runWithExitCode(['gate', 'assistant', 'on'])).exitCode).toBe(0);
+    expect(PipelineFile.read(pipelineFilePath())).toMatchObject({ verdict: 'readable', pipeline: { approvals: { merge: true }, assistant: true } });
   });
 
   test.each([
@@ -313,7 +373,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(PipelineFile.read(pipelineFilePath())).toEqual({
       verdict:  'readable',
       pipeline: {
-        version: 3,
+        version: 5,
         prepare: [],
         gates:   [{ name: 'test', run: 'bun test', writes: ['C:\\cache', '~\\AppData\\cache'] }],
         phases:  { build: ['test'], review: ['test'], merge: ['test'] },
@@ -346,18 +406,13 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(existsSync(pipelineFilePath())).toBe(false);
   });
 
-  test('gate prepare --in and gate add --in store a project folder or a repository folder in version 3, and gate list names each', async () => {
+  test('gate prepare --in and gate add --in store a project folder or a repository folder, and gate list names each', async () => {
     await run(['gate', 'add', 'docs', '--in', 'docs', '--', 'bun run docs']);
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ version: 2 });
-    await run(['gate', 'add', 'verify', '--in', '/apps/example', '--', 'bun run verify']);
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ version: 3 });
-    await run(['gate', 'remove', 'verify']);
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ version: 2 });
     await run(['gate', 'prepare', 'install', '--in', '/', '--', 'bun install --frozen-lockfile']);
     await run(['gate', 'add', 'verify', '--in', '/apps/example', '--', 'bun run verify']);
 
     const stored = JSON.parse(readFileSync(pipelineFilePath(), 'utf8')) as { version: number; prepare: unknown; gates: unknown };
-    expect(stored.version).toBe(3);
+    expect(stored.version).toBe(5);
     expect(stored.prepare).toEqual([{ name: 'install', run: 'bun install --frozen-lockfile', in: '/' }]);
     expect(stored.gates).toEqual([{ name: 'docs', run: 'bun run docs', in: 'docs' }, { name: 'verify', run: 'bun run verify', in: '/apps/example' }]);
     const text = (await run(['gate', 'list'])).outputText();
@@ -374,7 +429,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(existsSync(pipelineFilePath())).toBe(false);
   });
 
-  test('gate reach stores the repository paths in version 3 and logs them, none clears them back to version 2, and gate list prints them', async () => {
+  test('gate reach stores the repository paths and logs them, none clears them, and gate list prints them', async () => {
     await run(['gate', 'none']);
     await run(['gate', 'reach', '/packages/shared', '/bun.lock']);
 
@@ -382,11 +437,9 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     expect(JSON.parse((await run(['gate', 'list', '--json'])).outputText())).toMatchObject({ reach: ['/packages/shared', '/bun.lock'] });
     expect((await run(['gate', 'list'])).outputText()).toContain('Reach: /packages/shared /bun.lock');
     expect(storedLogTextOf(repositoryDirectory)).toContain('"kind":"pipeline-reach-set","fields":{"paths":["/packages/shared","/bun.lock"]}');
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ version: 3 });
 
     await run(['gate', 'reach', 'none']);
     expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).not.toHaveProperty('reach');
-    expect(JSON.parse(readFileSync(pipelineFilePath(), 'utf8'))).toMatchObject({ version: 2 });
     expect(storedLogTextOf(repositoryDirectory)).toContain('"kind":"pipeline-reach-set","fields":{"paths":[]}');
   });
 

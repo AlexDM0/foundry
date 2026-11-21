@@ -1,7 +1,8 @@
 /**
  * The `gate` writes on a pipeline with entities. What matters: each write of the forge's own prepare steps, gates, phases or reach is
  * refused with the entity keys, before anything is changed or logged, since beside `entities` those stay empty and each entity's are set in
- * the pipeline builder; an approval, which stays the forge's own, is still set; and a pipeline without entities takes every write as before.
+ * the pipeline builder; an approval and the Assistant's switch, which stay the forge's own, are still set; a pipeline without entities takes
+ * every write as before; and a board with no pipeline refuses the Assistant's switch.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -53,6 +54,19 @@ describe('a pipeline with entities', () => {
     expect(board.pipeline()?.approvals).toEqual({ merge: true });
     expect(board.pipelineChanged()).toBe(true);
   });
+
+  test('the Assistant\'s switch, which is the board\'s own, is still set, and off again leaves no key', () => {
+    const { board, records } = boardFixture({ pipeline: entityPipelineFixture() });
+
+    board.setAssistant(true, CHANGED_AT);
+    expect(board.pipeline()?.assistant).toBe(true);
+    expect(board.assistantIsOn()).toBe(true);
+
+    board.setAssistant(false, CHANGED_AT);
+    expect(board.pipeline()).not.toHaveProperty('assistant');
+    expect(board.assistantIsOn()).toBe(false);
+    expect(records.map((record) => (record.kind === 'pipeline-assistant-set' ? record.fields.state : record.kind))).toEqual(['on', 'off']);
+  });
 });
 
 describe('a pipeline without entities', () => {
@@ -67,4 +81,15 @@ describe('a pipeline without entities', () => {
       expect(board.pipeline()?.entities).toBeUndefined();
     },
   );
+});
+
+describe('a board with no pipeline', () => {
+  test('has the Assistant off and refuses the switch assistant-without-pipeline', () => {
+    const { board, records } = boardFixture();
+
+    expect(board.assistantIsOn()).toBe(false);
+    expect(refusalDetailOf(() => board.setAssistant(true, CHANGED_AT))).toEqual({ reason: 'assistant-without-pipeline' });
+    expect(board.pipelineChanged()).toBe(false);
+    expect(records).toEqual([]);
+  });
 });

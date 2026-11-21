@@ -88,7 +88,7 @@ const EXAMPLE_SETUP: PipelineSetup = {
     revision:    3,
   },
   draft: {
-    version: 3, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: [], merge: ['test'] }, review: { name: 'Review' }
+    version: 5, prepare: [], gates: [{ name: 'test', run: 'bun test' }], phases: { build: ['test'], review: [], merge: ['test'] }, review: { name: 'Review' }
   },
   draftRevision: 4,
   edits:         [{
@@ -338,7 +338,7 @@ describe('a readable record', () => {
       kind: 'app', home: [home], prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
     });
     const refusedDraft: Pipeline = {
-      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: appOn('/apps/web'), admin: appOn('/apps/web') }
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities: { web: appOn('/apps/web'), admin: appOn('/apps/web') }
     };
     const record: PipelineSetup = { ...EXAMPLE_OVER_ENTITIES, draft: refusedDraft };
     const text = PipelineSetupFile.contentsOf(record);
@@ -419,7 +419,7 @@ describe('a malformed record', () => {
         }
       }),
       'nextNumbers.rule is not a key of nextNumbers; the keys are finding, question, edit'],
-    ['a draft that is not a pipeline', (document) => ({ ...document, draft: { version: 3, prepare: [], gates: [] } }), 'draft is not a pipeline: phases is missing'],
+    ['a draft that is not a pipeline', (document) => ({ ...document, draft: { version: 5, prepare: [], gates: [] } }), 'draft is not a pipeline: phases is missing'],
     ['an edit naming no draft field',
       (document) => ({
         ...document,

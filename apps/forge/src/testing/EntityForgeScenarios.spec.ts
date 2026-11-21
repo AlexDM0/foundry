@@ -88,9 +88,9 @@ describe('the entity-forge pipeline', () => {
     expect(EntityValidationUtil.refusalsOf(entityForgePipelineOf(whitelists).entities ?? {})).toEqual([]);
   });
 
-  test.each(WHITELIST_FORMS)('is stored as version 4 with the four entities as "%s"', (whitelists) => {
+  test.each(WHITELIST_FORMS)('is stored with the four entities as "%s"', (whitelists) => {
     const stored = JSON.parse(entityForgePipelineTextOf(whitelists)) as { version: number; entities: Record<string, unknown> };
-    expect(stored.version).toBe(4);
+    expect(stored.version).toBe(5);
     expect(Object.keys(stored.entities)).toEqual([SHOP.key, ADMIN.key, UI_KIT.key, ROOT.key]);
   });
 

@@ -1,11 +1,11 @@
 /**
- * `pipeline.json` version 4, the format that holds entities. What matters: a pipeline with entities is mapped and checked whole, so a
+ * `pipeline.json` with entities, in its one format. What matters: a pipeline with entities is mapped and checked whole, so a
  * stored file gets every refusal the entities earn, each with its own reason naming the entity; once nothing is wrong it is read, and
  * writes back byte for byte; an entity whose whitelist names a package is read with its whitelist, the setup draft's read among them,
  * since a crossing's stages run, and an empty whitelist names none and is read too; beside
- * entities the forge's own prepare steps, gates, constitution and reach stay empty; only the root entity's home may be `/`, alone; version
- * 4 exists only for entities, and only version 4 holds them; a pipeline with entities is written as version 4 in the read's key order;
- * and a setup record's draft is read and written the same way but for the entities' set check, so its refused entities are kept.
+ * entities the forge's own prepare steps, gates, constitution and reach stay empty; only the root entity's home may be `/`, alone; a file
+ * of the version that once held entities is older; a pipeline with entities is written in the read's key order, the Assistant's switch
+ * after them; and a setup record's draft is read and written the same way but for the entities' set check, so its refused entities are kept.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -47,10 +47,10 @@ function entity(fields: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
-/** A version 4 pipeline over `entities`, with `fields` over its top level. */
+/** A pipeline over `entities`, with `fields` over its top level. */
 function withEntities(entities: Record<string, unknown>, fields: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    version: 4, prepare: [], gates: [], phases: NO_PHASES, entities, ...fields
+    version: 5, prepare: [], gates: [], phases: NO_PHASES, entities, ...fields
   };
 }
 
@@ -82,7 +82,7 @@ describe('a pipeline with entities', () => {
   test('a stored pipeline with entities is written back byte for byte', () => {
     const pipelineFilePath = join(scratchDirectory, 'pipeline.json');
     const pipeline = {
-      version: 4, prepare: [], gates: [], phases: NO_PHASES, entities: SOUND_ENTITIES
+      version: 5, prepare: [], gates: [], phases: NO_PHASES, entities: SOUND_ENTITIES, assistant: true
     } as unknown as Pipeline;
     writeFileSync(pipelineFilePath, PipelineFile.contentsOf(pipeline));
     const reading = PipelineFile.read(pipelineFilePath);
@@ -110,26 +110,19 @@ describe('a pipeline with entities', () => {
     expect(reasonOf(withEntities({ web }))).toStartWith('entities.web.home names "/", which is not a repository path leading with /');
   });
 
-  test('a version 4 file without entities is malformed, since version 4 exists only for them', () => {
-    expect(reasonOf({
-      version: 4, prepare: [], gates: [], phases: NO_PHASES
-    })).toBe('version is 4 and entities is missing');
+  test('a file of version 4, which once held entities, is older', () => {
+    expect(PipelineFile.documentReadingOf(withEntities(SOUND_ENTITIES, { version: 4 }))).toEqual({ verdict: 'older' });
   });
 
-  test('a version 3 file with entities is malformed, since only version 4 holds them', () => {
-    expect(reasonOf(withEntities(SOUND_ENTITIES, { version: 3 })))
-      .toBe('"entities" is not a pipeline key; the keys are version, prepare, gates, phases, review, airlock, constitution, agents, approvals, billing, reach');
-  });
-
-  test('is written as version 4, version first and entities last, each entity in the read\'s key order', () => {
+  test('is written with version first, the entities and then the Assistant\'s switch last, each entity in the read\'s key order', () => {
     const pipeline = {
-      version: 3, prepare: [], gates: [], phases: NO_PHASES, entities: SOUND_ENTITIES
+      assistant: true, version: 5, prepare: [], gates: [], phases: NO_PHASES, entities: SOUND_ENTITIES
     } as unknown as Pipeline;
 
     const written = JSON.parse(PipelineFile.contentsOf(pipeline)) as { entities: Record<string, object> };
 
-    expect(Object.keys(written)).toEqual(['version', 'prepare', 'gates', 'phases', 'entities']);
-    expect(written).toMatchObject({ version: 4 });
+    expect(Object.keys(written)).toEqual(['version', 'prepare', 'gates', 'phases', 'entities', 'assistant']);
+    expect(written).toMatchObject({ version: 5, assistant: true });
     expect(Object.keys(written.entities['web'] ?? {})).toEqual([
       'kind', 'home', 'summary', 'constitution', 'prepare', 'gates', 'phases', 'agents', 'whitelist', 'reach', 'dependsOn', 'concurrency'
     ]);

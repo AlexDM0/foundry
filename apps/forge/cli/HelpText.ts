@@ -559,7 +559,7 @@ never carries it.
                               a step of the same name is replaced where it stands. --in runs it in
                               a folder, as a gate's --in names one. One log line.
   gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]
-           [--network <domain>] [--writes <path>] [--overseer-only] [--phases <phase>,…]
+           [--network <domain>] [--writes <path>] [--forge-only] [--phases <phase>,…]
            [--json] -- <command>
                               Add the gate <name>, run last, or replace one of the same name where
                               it stands; --defined-by, --network and --writes repeat. --phases
@@ -588,6 +588,11 @@ never carries it.
                               Refused at exit 1 while no pipeline is stored: set the gates first.
                               Merge approval, approvals.merge, is off without the key; on, a
                               reviewed ticket waits for merge until User's merge accept.
+  gate assistant on|off [--json]
+                              Switch the board's Assistant, stored as assistant, off without
+                              the key. On, a pass boots one; off, a live one finishes its turn
+                              and ends, and every open incident takes its default. One log line.
+                              Refused at exit 1 while no pipeline is stored: set the gates first.
   gate reach <path>…|none [--json]
                               Set the repository paths besides the project that a ticket may
                               change, stored as reach: each starts with /, as /bun.lock or

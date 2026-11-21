@@ -1,15 +1,26 @@
 /**
  * The setting kinds of the control contract, applied to a Board in a change. What matters: an older or malformed `pipeline.json` refuses
  * every pipeline write with its own reason before the Board is touched, so nothing overwrites it, while the concurrency limit, which is not
- * stored there, is still set; and the gate kinds carry their phases and phase orders to the Board as sent.
+ * stored there, is still set; the gate kinds carry their phases and phase orders to the Board as sent; and the Assistant's switch writes
+ * `assistant: true` or removes the key, logs its state, is refused with no stored pipeline, and switched off asks a live Assistant to wind
+ * down in the same hold, so it finishes its turn.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { UnreadablePipelineReading }                       from '../../adapters/pipeline/PipelineFile.ts';
-import type { Pipeline }                                        from '../../lib/tracker-model/@types/Pipeline.ts';
-import type { ControlCommand }                                  from '../../shared/@types/ControlCommand.ts';
-import { OperationRefusal, type OperationRefusalDetail }        from '../../shared/OperationRefusal.ts';
-import { boardFixture, type BoardFixture }                      from '../../testing/BoardFixtures.ts';
+import type { UnreadablePipelineReading }                from '../../adapters/pipeline/PipelineFile.ts';
+import type { Job }                                      from '../../lib/tracker-model/@types/Job.ts';
+import type { LogRecord }                                from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Pipeline }                                 from '../../lib/tracker-model/@types/Pipeline.ts';
+import { Board }                                         from '../../lib/tracker-model/Board.ts';
+import { createLogger }                                  from '../../lib/tracker-model/Logger.ts';
+import type { ControlCommand }                           from '../../shared/@types/ControlCommand.ts';
+import { OperationRefusal, type OperationRefusalDetail } from '../../shared/OperationRefusal.ts';
+import {
+  boardFixture,
+  type BoardFixture,
+  entityPipelineFixture,
+  refusalDetailOf
+} from '../../testing/BoardFixtures.ts';
 import { ECHOED_CONTROL_CONTEXT }                               from '../../testing/EchoedControlContext.ts';
 import { createFixtureRecordAllocation, NO_UNREADABLE_RECORDS } from '../../testing/FixtureRecordAllocation.ts';
 import type { BoardTransaction }                                from '../tracker/BoardTransaction.ts';
@@ -23,7 +34,7 @@ const WORKSPACE = workspacePathsFor('/example-agency/storefront');
 const PIPELINE_LOCATION = createFixtureRecordAllocation(boardFixture().board).locationOf({ record: 'pipeline' });
 
 const STORED_PIPELINE: Pipeline = {
-  version: 3,
+  version: 5,
   prepare: [],
   gates:   [{ name: 'types', run: 'bun run typecheck' }, { name: 'test', run: 'bun test' }],
   phases:  { build: ['types', 'test'], review: ['types'], merge: ['types', 'test'] },
@@ -37,9 +48,48 @@ const PIPELINE_WRITES: readonly ControlCommand[] = [
   { kind: 'pipeline-gates-none' },
   { kind: 'pipeline-gate-remove', name: 'test' },
   { kind: 'pipeline-approval-set', approval: 'merge', on: true },
+  { kind: 'pipeline-assistant-set', on: true },
+  { kind: 'pipeline-assistant-set', on: false },
 ];
 
-function changeOf(fixture: BoardFixture, unreadablePipeline: UnreadablePipelineReading | null): BoardTransaction {
+const LIVE_ASSISTANT: Job = {
+  id:                 'J900',
+  kind:               'assistant',
+  role:               'assistant',
+  ticketIds:          [],
+  parentJobId:        null,
+  attempt:            1,
+  target:             null,
+  state:              'running',
+  childInstance:      1,
+  eventCursor:        { instance: 1, sequence: 0 },
+  answeredRequestIds: [],
+  crashResumes:       0,
+};
+
+/** A board whose Assistant is on, with one live. */
+function boardWithALiveAssistant(): Pick<BoardFixture, 'board' | 'records'> {
+  const records: LogRecord[] = [];
+  const board = new Board({
+    progress: {
+      trackerId:  'example-tracker-id',
+      project:    'Example Agency',
+      startedAt:  CHANGED_AT,
+      view:       { kind: 'auto' },
+      nextTaskId: 1,
+      nextJobId:  901,
+      jobs:       [{ ...LIVE_ASSISTANT }],
+      tasks:      [],
+    },
+    tickets:  [],
+    epics:    [],
+    logger:   createLogger((record) => records.push(record)),
+    pipeline: { ...structuredClone(STORED_PIPELINE), assistant: true },
+  });
+  return { board, records };
+}
+
+function changeOf(fixture: Pick<BoardFixture, 'board'>, unreadablePipeline: UnreadablePipelineReading | null): BoardTransaction {
   return {
     board:                          fixture.board,
     workspace:                      WORKSPACE,
@@ -111,5 +161,58 @@ describe('the gate kinds on a readable pipeline', () => {
 
     expect(applied.outcome).toBe('done');
     expect(applied.result.pipeline.phases).toEqual({ build: ['types', 'test'], review: ['types'], merge: ['test', 'types'] });
+  });
+});
+
+describe('the Assistant\'s switch', () => {
+  test('on writes assistant: true and logs state on, also on a pipeline with entities', () => {
+    for (const pipeline of [structuredClone(STORED_PIPELINE), entityPipelineFixture()]) {
+      const fixture = boardFixture({ pipeline });
+
+      const applied = ControlService.apply({ kind: 'pipeline-assistant-set', on: true }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT);
+
+      expect(applied.outcome).toBe('done');
+      expect(applied.result.pipeline.assistant).toBe(true);
+      expect(fixture.board.assistantIsOn()).toBe(true);
+      expect(fixture.records).toEqual([{ kind: 'pipeline-assistant-set', fields: { state: 'on' }, at: CHANGED_AT }]);
+    }
+  });
+
+  test('off removes the key, logs state off and asks a live Assistant to wind down in the same hold', () => {
+    const fixture = boardWithALiveAssistant();
+
+    const applied = ControlService.apply({ kind: 'pipeline-assistant-set', on: false }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT);
+
+    expect(applied.result.pipeline).not.toHaveProperty('assistant');
+    expect(fixture.board.assistantIsOn()).toBe(false);
+    expect(fixture.board.jobById(LIVE_ASSISTANT.id)).toMatchObject({ state: 'running', stopRequest: 'wind-down' });
+    expect(fixture.records).toEqual([
+      { kind: 'pipeline-assistant-set', fields: { state: 'off' }, at: CHANGED_AT },
+      {
+        kind: 'job-stop-requested', jobId: LIVE_ASSISTANT.id, fields: { mode: 'wind-down' }, at: CHANGED_AT
+      },
+    ]);
+    expect(applied.result.logged).toEqual(fixture.records);
+  });
+
+  test('off twice asks the wind-down once, and on leaves a live Assistant as it is', () => {
+    const fixture = boardWithALiveAssistant();
+
+    ControlService.apply({ kind: 'pipeline-assistant-set', on: true }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT);
+    expect(fixture.board.jobById(LIVE_ASSISTANT.id)?.stopRequest).toBeUndefined();
+    ControlService.apply({ kind: 'pipeline-assistant-set', on: false }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT);
+    ControlService.apply({ kind: 'pipeline-assistant-set', on: false }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT);
+
+    expect(fixture.records.filter((record) => record.kind === 'job-stop-requested')).toHaveLength(1);
+  });
+
+  test('with no stored pipeline it is refused assistant-without-pipeline, and nothing is written', () => {
+    const fixture = boardFixture();
+
+    const detail = refusalDetailOf(() => ControlService.apply({ kind: 'pipeline-assistant-set', on: true }, changeOf(fixture, null), ECHOED_CONTROL_CONTEXT));
+
+    expect(detail).toEqual({ reason: 'assistant-without-pipeline' });
+    expect(fixture.board.pipelineChanged()).toBe(false);
+    expect(fixture.records).toEqual([]);
   });
 });

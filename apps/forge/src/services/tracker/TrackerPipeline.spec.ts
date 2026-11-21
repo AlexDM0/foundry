@@ -452,7 +452,7 @@ describe('the pipeline a hold hands the Board', () => {
   test.each<[string, string | null, 'older' | 'malformed' | null]>([
     ['no file', null, null],
     ['an older file', '{ "prepare": [], "gates": [] }\n', 'older'],
-    ['a malformed file', '{ "version": 3, "prepare": [], "gates": [] }\n', 'malformed'],
+    ['a malformed file', '{ "version": 5, "prepare": [], "gates": [] }\n', 'malformed'],
   ])('%s gives the Board no pipeline, as unset, and names the unreadable verdict to the change', async (_case, pipelineText, verdict) => {
     writeReadableTracker(workspace);
     if (pipelineText !== null) writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, pipelineText);
@@ -470,7 +470,7 @@ describe('the pipeline a hold hands the Board', () => {
 
   test('a readable minimal file gives the Board that pipeline, which counts as set', async () => {
     writeReadableTracker(workspace);
-    writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, '{ "version": 3, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }\n');
+    writeFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, '{ "version": 5, "prepare": [], "gates": [], "phases": { "build": [], "review": [], "merge": [] } }\n');
 
     const written = await writeTracker({
       lockTaker: LIVE_HOLDERS_LOCK_TAKER,
@@ -481,7 +481,7 @@ describe('the pipeline a hold hands the Board', () => {
     });
 
     expect(written.result).toEqual({
-      version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+      version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
     });
   });
 });
@@ -561,7 +561,7 @@ describe('the setup record a hold reads and writes', () => {
       layout.progressRecordPath, layout.pipelineRecordPath, layout.constitutionSourcesRecordPath, layout.logRecordPath, layout.pipelineSetupRecordPath
     ]);
     expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
-    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, 'utf8'))).toMatchObject({ version: 2, constitution: { path: 'CONSTITUTION.md' } });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, 'utf8'))).toMatchObject({ version: 5, constitution: { path: 'CONSTITUTION.md' } });
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).constitutionSourcesRecordPath, 'utf8'))).toMatchObject({ formatVersion: 1, blob: constitution.blob });
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ overseerState: 'running' });
   });

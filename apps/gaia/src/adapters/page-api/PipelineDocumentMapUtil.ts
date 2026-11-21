@@ -575,6 +575,8 @@ function historyEntryOut(entry: BoardPipelineHistoryEntry): BoardPipelineHistory
       return {
         kind: entry.kind, at: entry.at, approval: entry.approval, state: entry.state
       };
+    case 'pipeline-assistant-set':
+      return { kind: entry.kind, at: entry.at, state: entry.state };
     case 'pipeline-setup-opened':
       return {
         kind:                       entry.kind,

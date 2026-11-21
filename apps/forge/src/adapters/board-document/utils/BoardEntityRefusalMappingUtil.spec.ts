@@ -35,7 +35,7 @@ function draftWith(changes: Readonly<Record<EntityKey, Partial<PipelineEntity>>>
   const entities = structuredClone(SOUND_ENTITIES) as Record<EntityKey, PipelineEntity>;
   for (const [entityKey, change] of Object.entries(changes)) entities[entityKey] = { ...entities[entityKey], ...change } as PipelineEntity;
   return {
-    version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities,
+    version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }, entities,
   };
 }
 

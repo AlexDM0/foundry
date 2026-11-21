@@ -617,14 +617,14 @@ const AGENT_PAIR_SHAPE = { model: vocabularyRule('agentModel'), effort: vocabula
 const STEP_SHAPE = { name: 'text', run: 'text', in: OPTIONAL_TEXT } as const satisfies ShapeOf<PipelineStepDocument>;
 
 const GATE_SHAPE = {
-  name:         'text',
-  run:          'text',
-  fix:          OPTIONAL_TEXT,
-  in:           OPTIONAL_TEXT,
-  definedBy:    'passed-over',
-  network:      OPTIONAL_TEXT_LIST,
-  writes:       OPTIONAL_TEXT_LIST,
-  overseerOnly: 'passed-over',
+  name:      'text',
+  run:       'text',
+  fix:       OPTIONAL_TEXT,
+  in:        OPTIONAL_TEXT,
+  definedBy: 'passed-over',
+  network:   OPTIONAL_TEXT_LIST,
+  writes:    OPTIONAL_TEXT_LIST,
+  forgeOnly: 'passed-over',
 } as const satisfies ShapeOf<PipelineGateDocument>;
 
 const PHASE_ORDERS_SHAPE = keyedByVocabularyShape('gatePhase', 'text-list');
@@ -681,6 +681,7 @@ const PIPELINE_DEFINITION_SHAPE = {
   billing:      { optional: BILLING_RULE },
   reach:        OPTIONAL_TEXT_LIST,
   entities:     { optional: { recordOf: { object: PIPELINE_ENTITY_SHAPE } } },
+  assistant:    'passed-over',
 } as const satisfies ShapeOf<PipelineDefinitionDocument>;
 
 const APPLICATION_SHAPE = {
@@ -1084,6 +1085,11 @@ const PIPELINE_HISTORY_ENTRY_RULE = {
       at:     'text',
       fields: { object: { approval: 'text', state: 'text' } },
     } as const satisfies ShapeOf<HistoryEntryOf<'pipeline-approval-set'>>,
+    {
+      kind:   { oneOf: ['pipeline-assistant-set'] },
+      at:     'text',
+      fields: { object: { state: 'text' } },
+    } as const satisfies ShapeOf<HistoryEntryOf<'pipeline-assistant-set'>>,
     {
       kind:    { oneOf: ['pipeline-setup-opened'] },
       at:      'text',

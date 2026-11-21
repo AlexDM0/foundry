@@ -220,6 +220,28 @@ describeWhenGitIsRecorded('the control contract', () => {
     expect(answer).toEqual({ status: 409, body: refusedBody });
   });
 
+  test('the Assistant\'s switch with no pipeline stored answers 409 assistant-without-pipeline with its sentence, and once one is stored 200', async () => {
+    const detail: OperationRefusalDetail = { kind: 'board-refusal', boardRefusal: { reason: 'assistant-without-pipeline' } };
+    expect(await answerControlCommand({ kind: 'pipeline-assistant-set', on: true }, routeRequest())).toEqual({
+      status: 409,
+      body:   {
+        controlVersion: 1, refusal: 'assistant-without-pipeline', fields: {}, text: commandLineSentenceOf(detail)
+      }
+    });
+
+    expect((await answerControlCommand({ kind: 'pipeline-gates-none' }, routeRequest())).status).toBe(200);
+    const switchedOn = await answerControlCommand({ kind: 'pipeline-assistant-set', on: true }, routeRequest());
+    expect(switchedOn).toMatchObject({ status: 200, body: { controlVersion: 1, outcome: 'done', result: { pipeline: { assistant: true } } } });
+    const switchedOff = await answerControlCommand({ kind: 'pipeline-assistant-set', on: false }, routeRequest());
+    expect((switchedOff.body as { result: { pipeline: object } }).result.pipeline).not.toHaveProperty('assistant');
+  });
+
+  test('the Assistant\'s switch with an on that is not a boolean, or none, answers 400 malformed-body', async () => {
+    for (const body of [{ kind: 'pipeline-assistant-set', on: 'yes' }, { kind: 'pipeline-assistant-set' }]) {
+      expect(await answerControlCommand(body, routeRequest())).toMatchObject({ status: 400, body: { refusal: 'malformed-body' } });
+    }
+  });
+
   test('the kinds of Flint\'s brain, which no forge runs any more, answer 400 malformed-body as any unknown kind', async () => {
     const malformedAnswer = {
       status: 400,

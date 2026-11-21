@@ -44,7 +44,7 @@ export const ENTITIES_STEP_ENTITIES: Readonly<Record<string, BoardPipelineEntity
 /** A draft holding the given entities, or the fixture's. */
 export function entitiesStepDraftOf(entities: Readonly<Record<string, BoardPipelineEntityDocument>> = ENTITIES_STEP_ENTITIES): BoardPipelineDefinitionDocument {
   return {
-    version:          3,
+    version:          5,
     prepare:          [],
     gates:            [],
     phases:           { build: [], review: [], merge: [] },

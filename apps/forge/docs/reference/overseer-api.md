@@ -206,10 +206,11 @@ announces a kind; a client sends it only to a forge that new or newer.
 
 From forge 1.21 the contract also names the board's commands, the kinds a view sends: `ForgeBoardCommand` in
 `forge-contracts/BoardCommand`, listed as `BOARD_COMMAND_CONTRACT_KINDS` in `src/shared/constants/OverseerApiContracts.ts`.
-They are part of the contract under `controlVersion` 1, with the answers of control contract 1. The 34 kinds are
+They are part of the contract under `controlVersion` 1, with the answers of control contract 1. The 35 kinds are
 `chart-range-set`, `decision-answer`, `gate-profile-start`, `gate-profile-stop`, `intake-close`, `intake-start`,
 `job-fresh`, `job-message`, `job-stop`, `merge-accept`, `merge-update`, `pipeline-agent-advise`, `pipeline-apply`,
-`pipeline-apply-cancel`, `pipeline-check`, `pipeline-constitution-edit`, `pipeline-draft-discard`,
+`pipeline-apply-cancel`, `pipeline-assistant-set` (the Assistant's switch, `{ on }`, the `gate assistant` verb),
+`pipeline-check`, `pipeline-constitution-edit`, `pipeline-draft-discard`,
 `pipeline-draft-edit`, `pipeline-draft-undo`, `pipeline-setup-answer`, `pipeline-setup-billing`,
 `pipeline-setup-resume`, `pipeline-setup-start`, `pipeline-setup-start-over`, `pipeline-setup-step`,
 `pipeline-update-start`, `ticket-deliver-by-hand`, `ticket-hold`, `ticket-network`, `ticket-park`, `ticket-priority`,

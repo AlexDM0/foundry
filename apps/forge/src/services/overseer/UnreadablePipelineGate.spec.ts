@@ -47,7 +47,7 @@ describe('a merged-tree gate run on a pipeline.json it cannot read', () => {
     expect(unreadablePipelineGateOf({
       verdict:  'readable',
       pipeline: {
-        version: 3, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
+        version: 5, prepare: [], gates: [], phases: { build: [], review: [], merge: [] }
       }
     } as Parameters<typeof unreadablePipelineGateOf>[0])).toBeNull();
   });

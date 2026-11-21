@@ -49,7 +49,7 @@ const FACTS: SandboxFacts = {
 const NO_PHASES = { build: [], review: [], merge: [] };
 
 const PIPELINE: Pipeline = {
-  version:  3,
+  version:  5,
   prepare:  [],
   gates:    [],
   phases:   NO_PHASES,
@@ -63,7 +63,7 @@ const PIPELINE: Pipeline = {
         {
           name: 'verify', run: 'bun run gate:gaia', network: ['registry.example.org'], writes: ['~/.cache/example-bun']
         },
-        { name: 'deploy-check', run: 'terraform plan', overseerOnly: true },
+        { name: 'deploy-check', run: 'terraform plan', forgeOnly: true },
       ],
       phases: { build: ['verify'], review: ['verify'], merge: ['verify'] },
     },
@@ -98,7 +98,7 @@ function deniedEditPathsOf(entityKey: string, folderEntries: FolderEntries = PLA
 
 describe('a forge without entities', () => {
   const pipeline: Pipeline = {
-    version: 3, prepare: [], gates: [{ name: 'tests', run: 'uv run pytest' }], phases: NO_PHASES
+    version: 5, prepare: [], gates: [{ name: 'tests', run: 'uv run pytest' }], phases: NO_PHASES
   };
 
   test('adds no sandbox fact, so a job gets the profile it always had', () => {
@@ -117,7 +117,7 @@ describe('a forge without entities', () => {
 });
 
 describe('the toolchain of a job of an entity', () => {
-  test('is its entity\'s steps and gates, an overseerOnly gate left out, its ticket\'s line added', () => {
+  test('is its entity\'s steps and gates, an forgeOnly gate left out, its ticket\'s line added', () => {
     expect(WorkerProfiles.workerToolchainOf(PIPELINE, ['docs.example.org'], POSIX_SHELL_LINE, 'gaia')).toEqual({
       networkDomains: ['docs.example.org', 'registry.example.org'],
       writes:         ['~/.cache/example-bun'],

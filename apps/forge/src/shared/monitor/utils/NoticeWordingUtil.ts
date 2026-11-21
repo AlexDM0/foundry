@@ -19,9 +19,10 @@ export interface BatonPassWarningFacts {
 }
 
 const DEFAULT_CAUSE_TEXT: Readonly<Record<string, string>> = {
-  'turn-closed':  'its delivery turn closed',
-  'turn-budget':  'the turn budget ran out',
-  'no-assistant': 'no Assistant was up',
+  'turn-closed':   'its delivery turn closed',
+  'turn-budget':   'the turn budget ran out',
+  'no-assistant':  'no Assistant was up',
+  'assistant-off': 'the Assistant is off',
 };
 
 const ABANDONED_PASS_REASON_TEXT: Readonly<Record<string, string>> = {

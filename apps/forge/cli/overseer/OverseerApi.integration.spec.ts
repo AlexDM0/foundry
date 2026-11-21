@@ -332,6 +332,7 @@ describe('the Overseer API on a scratch board', () => {
     try {
       await waitUntil(() => stream.events.some((event) => event.kind === 'board'), 'the first board event');
       await run(['gate', 'add', 'checks', '--', 'true']);
+      await run(['gate', 'assistant', 'on']);
       await run(['oversee', 'resume']);
       await fileReadyTicketThrough(run, (result) => result.standardOutput, ['ticket', 'add', '--type', 'ticket', 'Export the example roles']);
       const ticketStatusesOf = (event: StreamedEvent) => (event.data['tickets'] as { id: string; status: string }[] | undefined) ?? [];

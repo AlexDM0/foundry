@@ -110,7 +110,7 @@ function gateOf(gate: PipelineGate): PipelineGateDocument {
     ...(gate.definedBy === undefined ? {} : { definedBy: [...gate.definedBy] }),
     ...(gate.network === undefined ? {} : { network: [...gate.network] }),
     ...(gate.writes === undefined ? {} : { writes: [...gate.writes] }),
-    ...(gate.overseerOnly === undefined ? {} : { overseerOnly: gate.overseerOnly }),
+    ...(gate.forgeOnly === undefined ? {} : { forgeOnly: gate.forgeOnly }),
   };
 }
 
@@ -205,6 +205,7 @@ function pipelineDefinitionOf(pipeline: Pipeline): PipelineDefinitionDocument {
     ...(pipeline.billing === undefined ? {} : { billing: billingOf(pipeline.billing) }),
     ...(pipeline.reach === undefined ? {} : { reach: [...pipeline.reach] }),
     ...(pipeline.entities === undefined ? {} : { entities: byEntityOf(pipeline.entities, entityOf) }),
+    ...(pipeline.assistant === undefined ? {} : { assistant: pipeline.assistant }),
   };
 }
 
@@ -566,6 +567,8 @@ function pipelineHistoryEntriesOf(record: LogRecord): BoardPipelineHistoryEntryD
       return [{ kind: record.kind, at: record.at, fields: { name: record.fields.name, run: record.fields.run } }];
     case 'pipeline-approval-set':
       return [{ kind: record.kind, at: record.at, fields: { approval: record.fields.approval, state: record.fields.state } }];
+    case 'pipeline-assistant-set':
+      return [{ kind: record.kind, at: record.at, fields: { state: record.fields.state } }];
     case 'pipeline-setup-opened':
       return [{
         kind:    record.kind,

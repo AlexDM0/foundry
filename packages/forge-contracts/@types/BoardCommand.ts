@@ -58,6 +58,8 @@ export type ForgeBoardCommand =
   | { readonly kind: 'pipeline-agent-advise'; readonly entity?: EntityKey }
   | { readonly kind: 'pipeline-apply'; readonly setupId: string; readonly draftRevision: number; readonly resumesBoard: boolean }
   | { readonly kind: 'pipeline-apply-cancel'; readonly setupId: string }
+  /** The board's switch for the Assistant; off also winds a live Assistant down at the end of its turn. */
+  | { readonly kind: 'pipeline-assistant-set'; readonly on: boolean }
   | { readonly kind: 'pipeline-check'; readonly setupId: string }
   | {
     readonly kind:         'pipeline-constitution-edit';

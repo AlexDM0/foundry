@@ -1,5 +1,5 @@
 /**
- * The gate writes on version 2: which phases a gate runs in and their run order. What matters: with no phases a new gate runs in every
+ * The gate writes: which phases a gate runs in and their run order. What matters: with no phases a new gate runs in every
  * phase and a replaced one keeps its phases, so the verbs as typed before phases existed still mean the same; with phases a gate runs in
  * exactly those, keeping its place where it was; a reorder takes only the gates the phase runs, each once; and a refusal writes and logs
  * nothing, so an order sent to a board with no pipeline never stores one.
@@ -18,7 +18,7 @@ const LINT_GATE: PipelineGate  = { name: 'lint', run: 'bun run lint' };
 
 function pipelineWith(phases: Pipeline['phases']): Pipeline {
   return {
-    version: 3, prepare: [], gates: [TYPES_GATE, TEST_GATE, LINT_GATE], phases
+    version: 5, prepare: [], gates: [TYPES_GATE, TEST_GATE, LINT_GATE], phases
   };
 }
 
@@ -33,13 +33,13 @@ function refusalDetailOf(attempt: () => unknown): BoardRefusalDetail {
 }
 
 describe('adding a gate', () => {
-  test('with no pipeline and no phases, the gate runs in every phase of a version 2 pipeline', () => {
+  test('with no pipeline and no phases, the gate runs in every phase of the minimal pipeline', () => {
     const { board } = boardFixture();
 
     board.addGate(TEST_GATE, CHANGED_AT);
 
     expect(board.pipeline()).toEqual({
-      version: 3, prepare: [], gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }
+      version: 5, prepare: [], gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }
     });
   });
 

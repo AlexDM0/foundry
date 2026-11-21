@@ -64,6 +64,7 @@ export interface AssistantQuietWatch {
 const CHATS_FILE = 'assistant-chats.json';
 const MARKERS_FOLDER = 'assistant-frames';
 const DOWN_CAUSE = 'assistant-down';
+const WIND_DOWN_REQUEST = 'wind-down';
 
 function liveAssistantsOf(board: Pick<Board, 'jobs'>): readonly Readonly<Job>[] {
   return board.jobs().filter((job) => AssistantBoot.isAssistantJob(job));
@@ -158,15 +159,16 @@ function turnObservationsOf(board: Pick<Board, 'jobs' | 'incidents'>, readings: 
 }
 
 /**
- * Run in the hold after the lifecycle. An idle Assistant past the context-token count has its input closed, and the next delivery goes to a
- * fresh one; otherwise every undelivered incident goes out as its next numbered chat.
+ * Run in the hold after the lifecycle. An idle Assistant that was asked to wind down, or is past the context-token count, has its input
+ * closed, and the next delivery goes to a fresh one if the board boots one; otherwise every undelivered incident goes out as its next
+ * numbered chat.
  */
 function deliverIncidentsWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string, at: string): void {
   for (const job of liveAssistantsOf(board)) {
     const reading = readings.find((candidate) => candidate.jobId === job.id);
     const newestChat = newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id);
     if (!isIdle(job, reading, newestChat)) continue;
-    if ((reading?.lastContextTokens ?? 0) >= ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH) {
+    if (job.stopRequest === WIND_DOWN_REQUEST || (reading?.lastContextTokens ?? 0) >= ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH) {
       board.moveJob(job.id, 'stopping', at);
       continue;
     }

@@ -123,6 +123,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
   'epic-still-named':                  { reason: 'epic-still-named', epicKey: 'checkout-redesign', ticketIds: ['004'] },
   'unknown-gate':                      { reason: 'unknown-gate', gateName: 'lint', gateNames: ['test'] },
   'approval-without-pipeline':         { reason: 'approval-without-pipeline', approval: 'merge' },
+  'assistant-without-pipeline':        { reason: 'assistant-without-pipeline' },
   'reach-without-pipeline':            { reason: 'reach-without-pipeline' },
   'pipeline-set-per-entity':           { reason: 'pipeline-set-per-entity', entityKeys: ['root', 'web'] },
   'unknown-draft':                     { reason: 'unknown-draft', draftId: 'D9' },
