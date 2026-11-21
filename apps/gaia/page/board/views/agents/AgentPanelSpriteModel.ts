@@ -4,9 +4,9 @@
  * appeared; and the cues of a change between two payloads. A launch has one answer, the `strike-spark` of the copy: a job that appears
  * launching is not greeted, and the rise of the slots while a job launches is that launch, so it is not cued.
  */
-import type { SpriteCue, SpriteIntent } from 'flint/SpriteHabitat';
+import type { BoardOverseerDocument }   from '../../../@types/board/BoardDocument.ts';
+import type { SpriteCue, SpriteIntent } from '../../../lib/flint/FlintInterface.ts';
 
-import type { BoardOverseerDocument }                   from '../../../@types/board/BoardDocument.ts';
 import type { CueOccasion }                             from '../../flint/UseCueOnChange.ts';
 import type { AgentJobDocument, EndedAgentJobDocument } from './AgentJobDocument.ts';
 import { AGENT_PANEL_CUES }                             from './AgentPanelSpriteHabitat.ts';

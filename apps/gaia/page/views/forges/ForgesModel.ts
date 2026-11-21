@@ -5,7 +5,6 @@
  * left pending shows; the page's clock only prints clock times. A value the document does not hold is absent, never zero. A forge at
  * another version than this Gaia is built for opens its versions under its row; one Gaia cannot talk to shows nothing of its work.
  */
-import type { ButtonEmphasis } from 'design-system/Button';
 
 import type {
   CommandBody,
@@ -20,7 +19,8 @@ import type {
   FleetDocumentForgeVersions,
 } from '../../@types/FleetDocument.ts';
 import { CommandSender, type CommandStates }                           from '../../api/CommandSender.ts';
-import type { DotCondition }                                           from '../../design-system/ConditionDot.tsx';
+import type { DotCondition }                                           from '../../components/ConditionDot.tsx';
+import type { ButtonEmphasis }                                         from '../../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                                           from '../../shared/@types/ClockReading.ts';
 import type { PageFigure }                                             from '../../shared/@types/ViewParts.ts';
 import { HashRouter }                                                  from '../../shared/HashRouter.ts';

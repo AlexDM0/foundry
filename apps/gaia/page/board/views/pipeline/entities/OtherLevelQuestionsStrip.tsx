@@ -2,9 +2,7 @@
  * The line over a level's chat that counts the open questions of the other levels, with a link to each of those levels: a question stays
  * in the thread of the session that asked it, and only this line says it waits elsewhere.
  */
-import { MonoId }   from 'design-system/MonoId';
-import { StateDot } from 'design-system/StateDot';
-import { Text }     from 'design-system/Text';
+import { MonoId, StateDot, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { OtherLevelQuestionsView }           from '../agent-panel/PipelineAgentPanelModel.ts';
 import { PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';

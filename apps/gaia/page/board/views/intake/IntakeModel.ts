@@ -4,7 +4,6 @@
  * chat worded as turns, User's request after the line that started it and each open decision placed where it was asked. A closed session
  * keeps its transcript and chat: a message resumes it by id. A session that ended any other way, stopped or failed, is read only.
  */
-import type { TagProps } from 'design-system/Tag';
 
 import type { BoardDecisionDocument, BoardQuestionHistoryEntryDocument }     from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                                from '../../../@types/board/BoardDocument.ts';
@@ -12,6 +11,7 @@ import type { BoardJobIntakeDocument }                                       fro
 import type { BoardTicketDocument }                                          from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState, BoardJobState, BoardJobTurn }               from '../../../@types/board/BoardVocabulary.ts';
 import type { BoardTranscriptEntryDocument, BoardTranscriptPictureDocument } from '../../../@types/board/ConversationDocument.ts';
+import type { TagProps }                                                     from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { ChatTurn, UserChatTurn }                                       from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil, type ChatThreadItem }                          from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                               from '../../conversation/ChatTurnWordingUtil.ts';

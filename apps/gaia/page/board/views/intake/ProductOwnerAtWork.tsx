@@ -1,7 +1,5 @@
 /** The product owner's live turn at the end of the chat: Flint writing in its slot beside "Product owner", the session's pill and its calls so far. */
-import { Row }        from 'design-system/Row';
-import { StateBadge } from 'design-system/StateBadge';
-import { Text }       from 'design-system/Text';
+import { Row, StateBadge, Text } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FLINT_SLOT_CUES }                   from '../../flint/FlintSlotCues.ts';
 import { FlintSlotHabitat }                  from '../../flint/FlintSlotHabitat.tsx';

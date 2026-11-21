@@ -3,7 +3,7 @@
  * lifebuoy for the Assistant and a flow for the pipeline agent; a roleless merge, refresh or constitution commit draws its kind, and any
  * other a dot. The label names the role to assistive technology, so the word printed beside the tile is hidden from it.
  */
-import { Icon } from 'design-system/Icon';
+import { Icon } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { StateToneUtil } from '../../utils/StateToneUtil.ts';
 import type { RoleMark } from './AgentsModel.ts';

@@ -3,8 +3,9 @@
  * imports a view; the board, which a view may draw, imports neither the shell nor a view. And the page reaches no forge: no module the page
  * project compiles, the shared files its tsconfig names among them, imports `forge-contracts` or a path under `apps/forge/`, and no page
  * module or shared file reaches a file outside `page/` but those shared files; read through the compiler, the page program compiles no
- * Gaia file the tsconfig leaves out, nothing under `apps/forge/` and no `forge-contracts` file. Flint is imported
- * only from `page/board/`, and only by the names its package exports. What matters: the rules read every shipping module, specs aside,
+ * Gaia file the tsconfig leaves out, nothing under `apps/forge/` and no `forge-contracts` file. Gaia's own components under
+ * `page/components/` import no shell, view or board. The Flint library is imported only from `page/board/`; that every import of a library
+ * names its interface file is `LibraryBoundaries.spec.ts`'s to hold. What matters: the rules read every shipping module, specs aside,
  * since a spec may render the whole shell; and each guard is first proved on a planted case, in memory.
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -19,15 +20,15 @@ const WORKSPACE_ROOT = join(GAIA_FOLDER, '..', '..');
 const PAGE_PROJECT_PATH = join(PAGE_FOLDER, 'tsconfig.json');
 const FORGE_APP_PATH_PREFIX = 'apps/forge/';
 const FORGE_CONTRACTS_PACKAGE = 'forge-contracts';
-const FLINT_PACKAGE = 'flint';
-const FLINT_MANIFEST_PATH = join(WORKSPACE_ROOT, 'packages', FLINT_PACKAGE, 'package.json');
+const FLINT_LIBRARY_FOLDER_PREFIX = 'page/lib/flint/';
 const BOARD_FOLDER_PREFIX = 'page/board/';
 
 /** Each folder that must not reach another, with the folders it must not import. */
 const FORBIDDEN_IMPORTS: Readonly<Record<string, readonly string[]>> = {
-  views:  ['shell'],
-  shared: ['shell', 'views'],
-  board:  ['shell', 'views'],
+  views:      ['shell'],
+  shared:     ['shell', 'views'],
+  board:      ['shell', 'views'],
+  components: ['shell', 'views', 'board'],
 };
 
 const FORGE_CONTRACTS_FOLDER_PREFIX = 'packages/forge-contracts/';
@@ -119,21 +120,15 @@ function forgeReachesOf(modulePath: string, source: string, sharedFiles: Readonl
   });
 }
 
-/** The specifiers Flint's package exports: `flint` for its root entry, `flint/<entry>` for each other. */
-function flintExportedSpecifiers(): ReadonlySet<string> {
-  const manifest = JSON.parse(readFileSync(FLINT_MANIFEST_PATH, 'utf8')) as { readonly exports?: Readonly<Record<string, string>> };
-  return new Set(Object.keys(manifest.exports ?? {}).map((entry) => (entry === '.' ? FLINT_PACKAGE : `${FLINT_PACKAGE}/${entry.replace(/^\.\//, '')}`)));
-}
-
-/** A page module's imports of Flint: only from `page/board/`, and only by a name the package exports. */
-function flintReachesOf(modulePath: string, source: string, exportedSpecifiers: ReadonlySet<string>): string[] {
+/** A page module's imports of the Flint library: only a module under `page/board/` reaches it. */
+function flintReachesOf(modulePath: string, source: string): string[] {
   const moduleName = relative(GAIA_FOLDER, modulePath);
+  if (moduleName.startsWith(BOARD_FOLDER_PREFIX) || moduleName.startsWith(FLINT_LIBRARY_FOLDER_PREFIX)) return [];
   return importSpecifiersOf(source)
-    .filter((specifier) => specifier === FLINT_PACKAGE || specifier.startsWith(`${FLINT_PACKAGE}/`))
-    .flatMap((specifier) => [
-      ...(moduleName.startsWith(BOARD_FOLDER_PREFIX) ? [] : [`${moduleName} imports ${specifier} outside ${BOARD_FOLDER_PREFIX}`]),
-      ...(exportedSpecifiers.has(specifier) ? [] : [`${moduleName} imports ${specifier}, which flint does not export`]),
-    ]);
+    .filter((specifier) => specifier.startsWith('.'))
+    .map((specifier) => relative(GAIA_FOLDER, join(dirname(modulePath), specifier)))
+    .filter((importedName) => importedName.startsWith(FLINT_LIBRARY_FOLDER_PREFIX))
+    .map((importedName) => `${moduleName} imports ${importedName} outside ${BOARD_FOLDER_PREFIX}`);
 }
 
 describe('the page\'s import direction', () => {
@@ -153,7 +148,16 @@ describe('the page\'s import direction', () => {
     expect(forbiddenImportsOf('views', join(PAGE_FOLDER, 'views', 'forge', 'Planted.tsx'), 'import { BoardRoot } from \'../../board/shell/BoardRoot.tsx\';')).toEqual([]);
   });
 
-  test('no view and nothing shared imports the shell, nothing shared imports a view, and the board imports neither', () => {
+  test('the guard catches a component of Gaia that imports the shell, a view or the board, and passes one that imports a library', () => {
+    const plantedComponent = join(PAGE_FOLDER, 'components', 'Planted.tsx');
+    expect(forbiddenImportsOf('components', plantedComponent, 'import { RailModel } from \'../shell/RailModel.ts\';')).toEqual(['components/Planted.tsx imports page/shell']);
+    expect(forbiddenImportsOf('components', plantedComponent, 'import { BoardRoot } from \'../board/shell/BoardRoot.tsx\';'))
+      .toEqual(['components/Planted.tsx imports page/board']);
+    expect(forbiddenImportsOf('components', plantedComponent, 'import { Button } from \'../lib/design-system/DesignSystemInterface.ts\';')).toEqual([]);
+  });
+
+  test('no view and nothing shared imports the shell, nothing shared imports a view, the board imports neither, and no component imports any', () => {
+    expect(shippingModulesUnder(join(PAGE_FOLDER, 'components')).length).toBeGreaterThan(0);
     const forbidden = Object.keys(FORBIDDEN_IMPORTS).flatMap((folder) => shippingModulesUnder(join(PAGE_FOLDER, folder))
       .flatMap((modulePath) => forbiddenImportsOf(folder, modulePath, readFileSync(modulePath, 'utf8'))));
     expect(forbidden).toEqual([]);
@@ -205,7 +209,7 @@ describe('the page\'s reach past its boundary', () => {
       join(WORKSPACE_ROOT, 'apps', 'forge', 'src', 'shared', 'model', 'Board.ts'),
       join(WORKSPACE_ROOT, 'packages', 'forge-contracts', '@types', 'ForgeBoardDocument.ts'),
       join(WORKSPACE_ROOT, 'packages', 'forge-contracts', '@types', 'IdentityDocument.ts'),
-      join(WORKSPACE_ROOT, 'packages', 'design-system', 'atoms', 'Button.tsx'),
+      join(PAGE_FOLDER, 'lib', 'design-system', 'atoms', 'Button.tsx'),
     ];
     expect(compiledFileSentencesOf(plantedCompiledFiles, [namedSharedFile])).toEqual([
       'src/shared/constants/ContractVersions.ts is compiled by the page program but page/tsconfig.json does not name it',
@@ -236,31 +240,29 @@ describe('the page\'s reach past its boundary', () => {
     expect(projectModules.flatMap((modulePath) => forgeReachesOf(modulePath, readFileSync(modulePath, 'utf8'), sharedFiles))).toEqual([]);
   });
 
-  test('the page program, read through the compiler, compiles the package files it reaches and no file it may not hold', () => {
+  test('the page program, read through the compiler, compiles the library files it reaches and no file it may not hold', () => {
     const compiledFiles = pageProgramFiles();
-    expect(compiledFiles.map((path) => relative(WORKSPACE_ROOT, path))).toContain('packages/design-system/atoms/Button.tsx');
+    expect(compiledFiles.map((path) => relative(GAIA_FOLDER, path))).toContain('page/lib/design-system/atoms/Button.tsx');
     expect(compiledFileSentencesOf(compiledFiles, pageProjectModules())).toEqual([]);
   });
 });
 
 describe('Flint on the page', () => {
-  const plantedExports: ReadonlySet<string> = new Set(['flint', 'flint/react']);
+  const flintInterfaceImport = 'import { Flint } from \'../../lib/flint/FlintInterface.ts\';';
 
-  test('the guard names Flint imported outside page/board/, and by a path the package does not export', () => {
-    expect(flintReachesOf(join(PAGE_FOLDER, 'views', 'agents', 'Planted.tsx'), 'import { Flint } from \'flint/react\';', plantedExports))
-      .toEqual(['page/views/agents/Planted.tsx imports flint/react outside page/board/']);
-    expect(flintReachesOf(join(PAGE_FOLDER, 'board', 'Planted.tsx'), 'import { mindOf } from \'flint/mind/Mind.ts\';', plantedExports))
-      .toEqual(['page/board/Planted.tsx imports flint/mind/Mind.ts, which flint does not export']);
-    expect(flintReachesOf(join(PAGE_FOLDER, 'board', 'Planted.tsx'), 'import { createFlint } from \'flint\';\nimport { Flint } from \'flint/react\';', plantedExports)).toEqual([]);
+  test('the guard names Flint imported outside page/board/, and passes a board module and Flint\'s own', () => {
+    expect(flintReachesOf(join(PAGE_FOLDER, 'views', 'agents', 'Planted.tsx'), flintInterfaceImport))
+      .toEqual(['page/views/agents/Planted.tsx imports page/lib/flint/FlintInterface.ts outside page/board/']);
+    expect(flintReachesOf(join(PAGE_FOLDER, 'Planted.tsx'), 'import { mindOf } from \'./lib/flint/mind/Mind.ts\';'))
+      .toEqual(['page/Planted.tsx imports page/lib/flint/mind/Mind.ts outside page/board/']);
+    expect(flintReachesOf(join(PAGE_FOLDER, 'board', 'flint', 'Planted.tsx'), flintInterfaceImport)).toEqual([]);
+    expect(flintReachesOf(join(PAGE_FOLDER, 'lib', 'flint', 'react', 'Planted.tsx'), 'import { createFlint } from \'../CreateFlint.ts\';')).toEqual([]);
   });
 
-  test('the package\'s exports are read from its manifest', () => {
-    expect(flintExportedSpecifiers()).toContain('flint');
-    expect(flintExportedSpecifiers()).toContain('flint/react');
-  });
-
-  test('every page module imports Flint only from page/board/ and only by an exported name', () => {
-    const exportedSpecifiers = flintExportedSpecifiers();
-    expect(pageProjectModules().flatMap((modulePath) => flintReachesOf(modulePath, readFileSync(modulePath, 'utf8'), exportedSpecifiers))).toEqual([]);
+  test('every page module that imports Flint sits under page/board/, and the board does import it', () => {
+    const shippingPageModules = shippingModulesUnder(PAGE_FOLDER).filter((modulePath) => !relative(PAGE_FOLDER, modulePath).startsWith('lib/'));
+    const flintImporters = shippingPageModules.filter((modulePath) => readFileSync(modulePath, 'utf8').includes('lib/flint/FlintInterface.ts'));
+    expect(flintImporters.length).toBeGreaterThan(0);
+    expect(shippingPageModules.flatMap((modulePath) => flintReachesOf(modulePath, readFileSync(modulePath, 'utf8')))).toEqual([]);
   });
 });

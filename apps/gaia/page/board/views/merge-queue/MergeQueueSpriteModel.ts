@@ -4,7 +4,7 @@
  * previous payload predicted otherwise against the same target, in its order or waiting for merge, is now conflicting; a ticket joins a
  * target's order.
  */
-import type { SpriteCue }        from 'flint/SpriteHabitat';
+import type { SpriteCue }        from '../../../lib/flint/FlintInterface.ts';
 import type { MergeQueueTarget } from './MergeQueueModel.ts';
 import { MERGE_QUEUE_CUES }      from './MergeQueueSpriteHabitat.ts';
 

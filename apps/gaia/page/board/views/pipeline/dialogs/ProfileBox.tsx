@@ -5,16 +5,19 @@
  * the board's facts and event stream carry none.
  */
 
-import { BusyIndicator }             from 'design-system/BusyIndicator';
-import { LogTail, type LogTailLine } from 'design-system/LogTail';
-import { Row }                       from 'design-system/Row';
-import { Text }                      from 'design-system/Text';
-import { View }                      from 'design-system/View';
 import { useEffect, useState }       from 'react';
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
-import type { ProfileOutputLine }    from '../../../api/ProfileStreamClient.ts';
-import { CommandButton }             from '../../../shell/CommandButton.tsx';
+import {
+  BusyIndicator,
+  LogTail,
+  type LogTailLine,
+  Row,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { ProfileOutputLine } from '../../../api/ProfileStreamClient.ts';
+import { CommandButton }          from '../../../shell/CommandButton.tsx';
 
 import { GateDialogModel, type ProfileBoxView } from './GateDialogModel.ts';
 

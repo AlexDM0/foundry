@@ -2,9 +2,7 @@
  * One row of the Intake list, a link to its session's chat: the job id and title on one line, then its state, an asks-User tag per open
  * decision and what it filed, then its last line. The new chat's row stands first while it is open.
  */
-import { MonoId }     from 'design-system/MonoId';
-import { StateBadge } from 'design-system/StateBadge';
-import { Tag }        from 'design-system/Tag';
+import { MonoId, StateBadge, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardHrefOf }                                            from '../../shell/BoardRouteLinks.ts';
 import { StateToneUtil }                                             from '../../utils/StateToneUtil.ts';

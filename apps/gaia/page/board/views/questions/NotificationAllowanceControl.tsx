@@ -1,6 +1,6 @@
 /** The button that asks the browser to allow question notifications, shown only while User has neither allowed nor refused them. */
-import { Button }   from 'design-system/Button';
 import { useState } from 'react';
+import { Button }   from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { NotificationAllowance } from '../../../notifications/NotificationBoundary.ts';
 import type { QuestionNotifier }      from './QuestionAlerts.ts';

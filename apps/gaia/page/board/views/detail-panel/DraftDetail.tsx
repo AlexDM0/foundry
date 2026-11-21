@@ -1,8 +1,10 @@
 /** The read-only form a filing draft opens: head, facts, its Request as the user wrote it, then its Questions tree. */
-import { ChoiceOption } from 'design-system/ChoiceOption';
-import { MonoId }       from 'design-system/MonoId';
-import { StatePill }    from 'design-system/StatePill';
-import { TitledBlock }  from 'design-system/TitledBlock';
+import {
+  ChoiceOption,
+  MonoId,
+  StatePill,
+  TitledBlock
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { StateToneUtil }                                                    from '../../utils/StateToneUtil.ts';
 import { DetailFacts }                                                      from './DetailParts.tsx';

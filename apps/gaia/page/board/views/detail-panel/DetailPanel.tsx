@@ -3,10 +3,10 @@
  * naming what the board lacks; switching items cross-fades its contents. The ticket form brings its own head; every other form scrolls
  * whole under the lone ×.
  */
-import { SidePanel, SidePanelBody, SidePanelHead } from 'design-system/SidePanel';
-import type { RefObject }                          from 'react';
+import type { RefObject } from 'react';
 
 import type { BoardDocument }                          from '../../../@types/board/BoardDocument.ts';
+import { SidePanel, SidePanelBody, SidePanelHead }     from '../../../lib/design-system/DesignSystemInterface.ts';
 import { DetailRoute, type DetailItem }                from '../../shell/DetailRoute.ts';
 import type { DetailFormat }                           from './DetailFactsModel.ts';
 import { DetailPanelModel, type DetailPanelViewModel } from './DetailPanelModel.ts';

@@ -2,12 +2,11 @@
  * The Progress tab's board-wide controls under the chart: the range shown saved as the board's default axis, which `range` stores, and
  * Clear…, which asks first and then clears the task rows and the log, keeping the tickets or deleting them too, as `clear` does.
  */
-import { Button }       from 'design-system/Button';
-import { ConfirmStrip } from 'design-system/ConfirmStrip';
-import { useState }     from 'react';
+import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../@types/board/BoardCommandDocument.ts';
+import { Button, ConfirmStrip }      from '../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }             from '../../shell/CommandButton.tsx';
 import { ProgressModel }             from './ProgressModel.ts';
 import type { StoredViewOverride }   from './utils/ChartPreferenceUtil.ts';

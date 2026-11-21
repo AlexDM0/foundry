@@ -3,9 +3,8 @@
  * waits there (a question, the live tickets, the editing changes), which pops in. A press opens that phase; the open one carries the orange
  * tint.
  */
-import { Tag }      from 'design-system/Tag';
-import { Text }     from 'design-system/Text';
-import { Fragment } from 'react';
+import { Fragment }  from 'react';
+import { Tag, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlowGlyph }                        from './FlowGlyph.tsx';
 import type { PhaseTabView, PipelinePhase } from './PipelinePhaseModel.ts';

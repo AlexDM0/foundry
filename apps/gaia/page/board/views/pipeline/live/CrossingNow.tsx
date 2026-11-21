@@ -2,9 +2,7 @@
  * The crossings an entity's live page shows over its phases (MonoLive): each ticket that runs a package stage now, out of the entity or
  * into it, as its id linking to its detail, its entity and the package it crosses into, and the stage with whose agent and gates it runs.
  */
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { MonoId }         from 'design-system/MonoId';
-import { Text }           from 'design-system/Text';
+import { MicroCapsLabel, MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardHrefOf }       from '../../../shell/BoardRouteLinks.ts';
 import type { CrossingNowView } from './EntityWorkModel.ts';

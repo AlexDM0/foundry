@@ -4,13 +4,15 @@
  * Remove. Expanded, the row adds a home folder; an app sets its whitelist and its reach, and a package names the apps that whitelist it.
  * Every change is a gesture of draft edits that the step sends or holds.
  */
-import { Button }                                                    from 'design-system/Button';
-import { Icon }                                                      from 'design-system/Icon';
-import { IconButton }                                                from 'design-system/IconButton';
-import { Text }                                                      from 'design-system/Text';
-import { TextField }                                                 from 'design-system/TextField';
-import { useId, useState }                                           from 'react';
-import type { BoardDraftEditDocument, BoardPipelineEntityDocument }  from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useId, useState }                                          from 'react';
+import type { BoardDraftEditDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  Button,
+  Icon,
+  IconButton,
+  Text,
+  TextField
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CompactSelect }                                             from './CompactSelect.tsx';
 import { EntitiesStepModel, type EntityRowView, type RowEntityKind } from './EntitiesStepModel.ts';
 import { RemovableChip }                                             from './RemovableChip.tsx';

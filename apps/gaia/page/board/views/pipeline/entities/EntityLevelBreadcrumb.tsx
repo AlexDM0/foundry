@@ -2,8 +2,7 @@
  * The level in a monorepo page's head: `Pipeline › web` or `Pipeline › Forge`. "Pipeline" links to the forge level of the same screen,
  * and the level's own name is the current location, an entity's key set in mono.
  */
-import { MonoId } from 'design-system/MonoId';
-import { Text }   from 'design-system/Text';
+import { MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
 

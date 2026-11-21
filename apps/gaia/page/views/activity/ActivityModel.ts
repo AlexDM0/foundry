@@ -11,7 +11,7 @@ import type {
   FleetDocumentForge,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { DotRole }       from '../../design-system/RoleDot.tsx';
+import type { DotRole }       from '../../components/RoleDot.tsx';
 import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
 import type { PageFigure }    from '../../shared/@types/ViewParts.ts';
 import { HashRouter }         from '../../shared/HashRouter.ts';

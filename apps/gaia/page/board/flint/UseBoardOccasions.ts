@@ -3,8 +3,8 @@
  * (`page/board/flint/BoardOccasionModel.ts`), given the habitat Flint lives in, and on each board it sets the sparks of `watcher-spark`. The
  * reading it starts with is no change, and an occasion while no Flint is made is not kept for a later one.
  */
-import type { FlintHandle }  from 'flint';
 import { useEffect, useRef } from 'react';
+import type { FlintHandle }  from '../../lib/flint/FlintInterface.ts';
 
 import { BoardOccasionModel, WATCHER_SPARK_ATTENDANT, type BoardReading } from './BoardOccasionModel.ts';
 

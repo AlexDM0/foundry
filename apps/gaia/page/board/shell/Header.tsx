@@ -6,12 +6,16 @@
  * step bar: no figures, no Waiting on User pill, no activity strip and no tabs.
  */
 
-import { ForgeMark }                          from 'brand/ForgeMark';
-import { CountBadge, type CountBadgeColours } from 'design-system/CountBadge';
-import type { StepperStep }                   from 'design-system/Stepper';
-import { Tabs, type LinkTabItem }             from 'design-system/Tabs';
-import { Text }                               from 'design-system/Text';
-import type { ReactNode }                     from 'react';
+import type { ReactNode } from 'react';
+import { ForgeMark }      from '../../lib/brand/BrandInterface.ts';
+import {
+  CountBadge,
+  type CountBadgeColours,
+  type LinkTabItem,
+  type StepperStep,
+  Tabs,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { StateToneUtil }                      from '../utils/StateToneUtil.ts';
 import type { TimestampSlices }               from '../utils/TimeUtil.ts';

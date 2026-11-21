@@ -4,16 +4,19 @@
  * note when main moved since the research; the footer counts the done steps and offers Start over, which asks first in the footer, and
  * Resume, which reopens the agent and goes to the current step.
  */
-import { ActionBar }                           from 'design-system/ActionBar';
-import { Button }                              from 'design-system/Button';
-import { ConfirmStrip }                        from 'design-system/ConfirmStrip';
-import { Row }                                 from 'design-system/Row';
-import { Stepper, type StepperStep }           from 'design-system/Stepper';
-import { Tag }                                 from 'design-system/Tag';
-import { Text }                                from 'design-system/Text';
-import { View }                                from 'design-system/View';
-import { useState }                            from 'react';
-import type { BoardPipelineSetupDocument }     from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useState }                        from 'react';
+import type { BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  ActionBar,
+  Button,
+  ConfirmStrip,
+  Row,
+  Stepper,
+  type StepperStep,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf, useBoardNavigation }  from '../../../shell/BoardRouteLinks.ts';
 import type { BoardRoute }                     from '../../../shell/BoardRouter.ts';
 import { CommandButton }                       from '../../../shell/CommandButton.tsx';

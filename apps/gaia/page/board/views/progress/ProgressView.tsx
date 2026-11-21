@@ -7,10 +7,6 @@
  * (`UseTimelineHabitat.ts`).
  */
 
-import { Icon }           from 'design-system/Icon';
-import { Menu, MenuItem } from 'design-system/Menu';
-import { Row }            from 'design-system/Row';
-import { StateBadge }     from 'design-system/StateBadge';
 import {
   useCallback,
   useLayoutEffect,
@@ -24,7 +20,14 @@ import {
   type RefObject
 } from 'react';
 
-import type { BoardDocument }                                          from '../../../@types/board/BoardDocument.ts';
+import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
+import {
+  Icon,
+  Menu,
+  MenuItem,
+  Row,
+  StateBadge
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 import { EpicChips }                                                   from '../../chips/EpicChips.tsx';
 import type { PreferenceStore }                                        from '../../preferences/PreferenceStore.ts';
 import { useBoardHrefOf }                                              from '../../shell/BoardRouteLinks.ts';

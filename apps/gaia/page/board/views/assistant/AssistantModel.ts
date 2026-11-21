@@ -3,13 +3,12 @@
  * messages it has not taken yet as queued bubbles; the composer's status; its open incidents; and the handled ones read back from the log
  * through `IncidentTrailUtil`, each with the moves, notes and escalations made under it.
  */
-import type { StampProps } from 'design-system/Stamp';
-import type { TagProps }   from 'design-system/Tag';
 
 import type { BoardQuestionHistoryEntryDocument }              from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardDocument }                                  from '../../../@types/board/BoardDocument.ts';
 import type { BoardJobDocument }                               from '../../../@types/board/BoardJobDocuments.ts';
 import type { BoardDisplayState, BoardJobState, BoardJobTurn } from '../../../@types/board/BoardVocabulary.ts';
+import type { StampProps, TagProps }                           from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { ChatTurn }                                       from '../../conversation/ChatThread.tsx';
 import type { ChatThreadItem, QueuedMessage }                  from '../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                 from '../../conversation/ChatTurnWordingUtil.ts';

@@ -3,13 +3,13 @@
  * copies the state of an agent that works, standing below the job column, shows the one action of the job it copies one time, answers the
  * changes of a job and of the launch slots, and reads the playbook when every agent is idle.
  */
-import type {
-  SpriteCopyTarget,
-  SpriteCue,
-  SpriteHabitat,
-  SpriteSuggestion
-} from 'flint/SpriteHabitat';
-import { ARRIVED_CUE } from 'flint/SpriteHabitat';
+import {
+  ARRIVED_CUE,
+  type SpriteCopyTarget,
+  type SpriteCue,
+  type SpriteHabitat,
+  type SpriteSuggestion
+} from '../../../lib/flint/FlintInterface.ts';
 
 export const AGENT_PANEL_CUES = Object.freeze({
   AGENT_APPEARS:           'agent-appears',

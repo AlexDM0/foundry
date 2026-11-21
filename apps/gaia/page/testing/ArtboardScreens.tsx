@@ -63,7 +63,7 @@ const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
 /** B1's forge in place: Example Storefront at its open question E2. */
 const STOREFRONT_IN_PLACE_FRAGMENT = HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } });
 
-const BRAND_STYLESHEET_EXPORT = 'brand/brand.css';
+const BRAND_STYLESHEET_PAGE_PATH = 'lib/brand/styles/brand.css';
 
 const PAGE_FOLDER = join(import.meta.dir, '..');
 
@@ -590,7 +590,7 @@ export function documentAround(title: string, theme: ScreenTheme, bodyMarkup: st
   const stylesheetTexts = [
     DesignSystemStylesheet.fontFaceRules(),
     DesignSystemStylesheet.text(),
-    PackageStylesheet.inlinedText(BRAND_STYLESHEET_EXPORT),
+    PackageStylesheet.inlinedText(BRAND_STYLESHEET_PAGE_PATH),
     ...pageOwnStylesheetPaths().map((stylesheetPath) => readFileSync(stylesheetPath, 'utf8')),
   ];
   const stylesheets = stylesheetTexts.map((stylesheetText) => `<style>\n${stylesheetText}</style>`).join('\n');

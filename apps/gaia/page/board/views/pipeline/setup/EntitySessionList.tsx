@@ -3,11 +3,13 @@
  * button that shows that session's findings and chat, with its key in mono, its kind, its state in words and its open research questions;
  * beside a live session, its own Stop. The selected row has the boards' selection look, never an orange edge.
  */
-import { CountBadge }                                      from 'design-system/CountBadge';
-import { MonoId }                                          from 'design-system/MonoId';
-import { Tag }                                             from 'design-system/Tag';
-import { Text }                                            from 'design-system/Text';
-import type { BoardDisplayState }                          from '../../../../@types/board/BoardVocabulary.ts';
+import type { BoardDisplayState } from '../../../../@types/board/BoardVocabulary.ts';
+import {
+  CountBadge,
+  MonoId,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                   from '../../../shell/CommandButton.tsx';
 import { StateToneUtil }                                   from '../../../utils/StateToneUtil.ts';
 import { PipelineLevelModel, type PipelineLevel }          from '../entities/PipelineLevelModel.ts';

@@ -8,13 +8,6 @@
  * The Kanban is the tickets habitat of Flint (`page/board/flint/UseTicketsHabitat.ts`).
  */
 
-import { Button }                                        from 'design-system/Button';
-import { Card }                                          from 'design-system/Card';
-import { MonoId }                                        from 'design-system/MonoId';
-import { Row }                                           from 'design-system/Row';
-import { StateDot }                                      from 'design-system/StateDot';
-import { Tag }                                           from 'design-system/Tag';
-import { TextButton }                                    from 'design-system/TextButton';
 import type { CSSProperties, KeyboardEvent, MouseEvent } from 'react';
 import {
   Fragment,
@@ -24,6 +17,15 @@ import {
   useRef,
   useState
 } from 'react';
+import {
+  Button,
+  Card,
+  MonoId,
+  Row,
+  StateDot,
+  Tag,
+  TextButton
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { CARD_EPIC_CHIP_LIMIT }                                           from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                                                      from '../../chips/EpicChips.tsx';

@@ -2,8 +2,7 @@
  * The setup header's step bar, in the tab bar's place while the board has no readable pipeline: the setup steps in a compact stepper,
  * five in single mode and six with the entities step in monorepo mode, and at the right end which step this is.
  */
-import { Stepper, type StepperStep } from 'design-system/Stepper';
-import { Text }                      from 'design-system/Text';
+import { Stepper, type StepperStep, Text } from '../../lib/design-system/DesignSystemInterface.ts';
 
 export interface SetupStepBarProps {
   readonly steps: readonly StepperStep[];

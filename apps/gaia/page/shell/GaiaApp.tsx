@@ -5,7 +5,6 @@
  * banner and the view, from those values alone. While the stream is lost one disabled fieldset disables every button and field of the shell
  * and the view, so a view's control needs no word of the stream; a link, as every rail row is, still navigates.
  */
-import { PageHead }       from 'design-system/PageHead';
 import {
   useEffect,
   useLayoutEffect,
@@ -19,7 +18,8 @@ import { type CommandSender, CommandSenderContext }                      from '.
 import { FleetStreamClient, type FleetStreamState }                      from '../api/FleetStreamClient.ts';
 import { browserBoardServicesOf }                                        from '../board/Board.tsx';
 import { BOARD_TAB_VIEWS }                                               from '../board/shell/BoardTabViews.tsx';
-import { BrandBar }                                                      from '../design-system/BrandBar.tsx';
+import { BrandBar }                                                      from '../components/BrandBar.tsx';
+import { PageHead }                                                      from '../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                                             from '../shared/@types/ClockReading.ts';
 import type { ThemeChoice }                                              from '../shared/@types/ThemeChoice.ts';
 import type { ViewParts }                                                from '../shared/@types/ViewParts.ts';

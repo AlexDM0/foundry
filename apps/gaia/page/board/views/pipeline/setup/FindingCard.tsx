@@ -3,7 +3,7 @@
  * its findings: the stack as chips that pop in as they come, every other topic as lines with their own source paths. A finding to recheck
  * carries its tag.
  */
-import { Tag } from 'design-system/Tag';
+import { Tag } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlowGlyph }                        from '../flow/FlowGlyph.tsx';
 import type { FindingItem, FindingSection } from './ResearchStepModel.ts';

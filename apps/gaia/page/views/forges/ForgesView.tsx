@@ -4,12 +4,12 @@
  * the content from the fleet document, and lays it out, with "Add a repository" over it when the route asks. `forgesViewPartsOf` hands the
  * shell the page title's parts with it, so a new fleet document changes both at once, with no reload.
  */
-import { Button }              from 'design-system/Button';
 import { useEffect, useState } from 'react';
 
 import type { CommandBody, ForgeCommandBody }                             from '../../@types/CommandDocument.ts';
 import type { FleetDocument }                                             from '../../@types/FleetDocument.ts';
 import { useCommandSender }                                               from '../../api/CommandSender.ts';
+import { Button }                                                         from '../../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                                              from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }                                                 from '../../shared/@types/ViewParts.ts';
 import { HashRouter }                                                     from '../../shared/HashRouter.ts';

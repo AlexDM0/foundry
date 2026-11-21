@@ -2,7 +2,7 @@
  * The pipeline agent's model and effort at the right end of a panel head; nothing while no model is named. In monorepo mode each session
  * shows its meter, named for the session: "Pipeline agent · web: Opus, high effort".
  */
-import { ModelEffortMeter } from 'design-system/ModelEffortMeter';
+import { ModelEffortMeter } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { PipelineAgentMeter } from '../setup/BillingStepModel.ts';
 

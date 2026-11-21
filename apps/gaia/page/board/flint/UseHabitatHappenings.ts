@@ -5,9 +5,6 @@
  * this habitat; with the element not on the page, its fallback cue is sent instead. The facts the view mounts with are no change.
  */
 
-import type { SpriteCue, SpriteHabitat } from 'flint/SpriteHabitat';
-import { useFlintHabitat }               from 'flint/react/UseFlintHabitat';
-import { useFlintPerform }               from 'flint/react/UseFlintPerform';
 import {
   useContext,
   useEffect,
@@ -15,6 +12,12 @@ import {
   useRef,
   type RefObject
 } from 'react';
+import {
+  type SpriteCue,
+  type SpriteHabitat,
+  useFlintHabitat,
+  useFlintPerform
+} from '../../lib/flint/FlintInterface.ts';
 import { FlintDwellingContext } from './FlintDwelling.ts';
 
 /** A behaviour that runs on one of the view's elements, named by the model with a key the view finds it by. */

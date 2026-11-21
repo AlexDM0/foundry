@@ -3,5 +3,5 @@
   // above stays the proof.
   "extends": "./tsconfig.json",
   "compilerOptions": { "types": ["bun"], "tsBuildInfoFile": "../node_modules/.cache/typecheck/page-specs.tsbuildinfo" },
-  "exclude": []
+  "exclude": ["./lib/**"]
 }

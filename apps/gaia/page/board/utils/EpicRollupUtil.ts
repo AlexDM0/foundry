@@ -3,10 +3,10 @@
  * segments in settled-first order, its facts line and the order epics are shown in. The span's duration measures against the moment
  * handed in, a stated clock exception that decides only the text printed.
  */
-import type { StateTone } from 'design-system/StateTone';
 
 import type { BoardEpicDocument }                             from '../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState, BoardTicketStatus }          from '../../@types/board/BoardVocabulary.ts';
+import type { StateTone }                                     from '../../lib/design-system/DesignSystemInterface.ts';
 import { CountTextUtil }                                      from '../../shared/utils/CountTextUtil.ts';
 import { DisplayStateWordingUtil }                            from './DisplayStateWordingUtil.ts';
 import { StateToneUtil }                                      from './StateToneUtil.ts';

@@ -1,8 +1,6 @@
 /** MonoApply's "What is stored, per level": one line for the forge, then one per entity, each key in mono beside what Apply stores for it. */
-import { MonoId }                               from 'design-system/MonoId';
-import { Text }                                 from 'design-system/Text';
-import { View }                                 from 'design-system/View';
 import type { BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { MonoId, Text, View }                   from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { LevelSummaryListModel }                from './LevelSummaryListModel.ts';
 
 export function LevelSummaryList({ draft }: { readonly draft: BoardPipelineDefinitionDocument | null }) {

@@ -3,8 +3,8 @@
  * `DataTableRow`, with the flags Gaia gave it as its props and, as its children, a `DataTableCell` per column in the table's order and a
  * `DataTableBelow` for what it holds under its cells, each holding that content unfolded; none of it is markup the table draws.
  */
-import { DataTable }      from 'design-system/DataTable';
 import type { ReactNode } from 'react';
+import { DataTable }      from '../lib/design-system/DesignSystemInterface.ts';
 
 import { type HostElement, ReactElementTree, type RenderedNode } from './ReactElementTree.ts';
 

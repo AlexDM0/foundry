@@ -5,14 +5,16 @@
  * proposal, with each entity's cap under it; then a note that the forge level holds no gates, and the table of the entities, each linking
  * to its level. A switch goes to the draft through the flow's edit sender.
  */
-import { Button }                                                 from 'design-system/Button';
-import { NumberStepper }                                          from 'design-system/NumberStepper';
-import { Row }                                                    from 'design-system/Row';
-import { Switch }                                                 from 'design-system/Switch';
-import { Text }                                                   from 'design-system/Text';
-import { View }                                                   from 'design-system/View';
-import { useState }                                               from 'react';
-import type { BoardConcurrencyBoundsDocument }                    from '../../../../@types/board/BoardFactDocuments.ts';
+import { useState }                            from 'react';
+import type { BoardConcurrencyBoundsDocument } from '../../../../@types/board/BoardFactDocuments.ts';
+import {
+  Button,
+  NumberStepper,
+  Row,
+  Switch,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                          from '../../../shell/CommandButton.tsx';
 import type { PipelineViewFacts }                                 from '../PipelineViewModel.ts';
 import type { FlowSelection }                                     from '../flow/FlowSelection.ts';

@@ -3,7 +3,7 @@
  * subject succeeds: the forge's code and sentence, or Gaia's when nothing answered for it. Nothing shows while the subject has no failure.
  */
 import { CommandSender, type CommandStates, type CommandSubject } from '../api/CommandSender.ts';
-import { Refusal }                                                from '../design-system/Refusal.tsx';
+import { Refusal }                                                from '../components/Refusal.tsx';
 import { CommandFailureTextUtil }                                 from './utils/CommandFailureTextUtil.ts';
 
 export interface CommandFailureRefusalProps {

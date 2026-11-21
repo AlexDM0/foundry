@@ -2,9 +2,8 @@
  * The title row a board view opens with: the view's name in the display role, as the page's `h2`, and one sentence under it in the lead
  * role, muted. The space under the row is the view's own.
  */
-import { Text }           from 'design-system/Text';
-import { View }           from 'design-system/View';
 import type { ReactNode } from 'react';
+import { Text, View }     from '../../lib/design-system/DesignSystemInterface.ts';
 
 export interface ViewTitleProps {
   readonly title: string;

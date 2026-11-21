@@ -7,10 +7,12 @@
  * machine is one link to the Forges view, with its slot meter and its lines.
  */
 import { describe, expect, test } from 'bun:test';
-import { CountBadge }             from 'design-system/CountBadge';
-import { MicroCapsLabel }         from 'design-system/MicroCapsLabel';
-import { SlotMeter }              from 'design-system/SlotMeter';
-import { StateDot }               from 'design-system/StateDot';
+import {
+  CountBadge,
+  MicroCapsLabel,
+  SlotMeter,
+  StateDot
+} from '../lib/design-system/DesignSystemInterface.ts';
 
 import { DEFAULT_ROUTE, type GaiaRoute }                    from '../shared/HashRouter.ts';
 import { DrawnDots }                                        from '../testing/DrawnDots.ts';

@@ -5,7 +5,7 @@
  * reading holds the board, the event stream's connection and how many commands the Overseer refused so far. An incident that opens or
  * settles has one answer: while Flint lives in the questions habitat, that habitat answers it, so the board does not.
  */
-import type { SpriteAttendant, SpriteIntent }         from 'flint/SpriteHabitat';
+import type { SpriteAttendant, SpriteIntent }         from '../../lib/flint/FlintInterface.ts';
 import type { ConnectionState }                       from '../api/BoardEventStreamClient.ts';
 import { QUESTIONS_SPRITE_HABITAT }                   from './QuestionsSpriteHabitat.ts';
 import { QuestionsSpriteModel, type QuestionHistory } from './QuestionsSpriteModel.ts';

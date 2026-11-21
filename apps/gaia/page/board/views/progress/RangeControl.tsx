@@ -4,14 +4,13 @@
  * back when it closes from inside.
  */
 
-import { MicroCapsLabel }                       from 'design-system/MicroCapsLabel';
-import { SegmentedControl, type SegmentOption } from 'design-system/SegmentedControl';
 import {
   useCallback,
   useId,
   useRef,
   useState
 } from 'react';
+import { MicroCapsLabel, type SegmentOption, SegmentedControl } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { CustomRangePopover } from './CustomRangePopover.tsx';
 import {

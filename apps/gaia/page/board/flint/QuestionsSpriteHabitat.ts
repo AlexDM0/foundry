@@ -4,8 +4,12 @@
  * incident that will take its default move and is happy when one settles, signs a waiver User granted, and is happy when any other
  * decision is answered.
  */
-import type { SpriteCue, SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
-import { ARRIVED_CUE }                                     from 'flint/SpriteHabitat';
+import {
+  ARRIVED_CUE,
+  type SpriteCue,
+  type SpriteHabitat,
+  type SpriteSuggestion
+} from '../../lib/flint/FlintInterface.ts';
 
 export const QUESTIONS_CUES = Object.freeze({
   DECISION_WAITS:         'decision-waits',

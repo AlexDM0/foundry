@@ -5,7 +5,6 @@
  * User changed it while the command was on its way, and stays on a refusal, which shows verbatim under the text box. Inside a chat card,
  * the first letter of a text cues Flint that User types.
  */
-import { Tag, type TagProps } from 'design-system/Tag';
 import {
   useContext,
   useState,
@@ -15,6 +14,7 @@ import {
 } from 'react';
 
 import type { BoardCommandDocument } from '../../@types/board/BoardCommandDocument.ts';
+import { Tag, type TagProps }        from '../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardCommandResult }   from '../api/BoardCommandClient.ts';
 import { useControlCommand }         from '../shell/ControlCommandSender.ts';
 import { ChatCueRelayContext }       from './ChatCueRelay.ts';

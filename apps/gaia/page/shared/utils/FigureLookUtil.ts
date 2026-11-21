@@ -1,6 +1,5 @@
 /** How a figure looks: a value that waits on User or stands at a limit takes the package's accent tone, every other value none. */
-import type { PageHeadFigure } from 'design-system/PageHead';
-import type { StateTone }      from 'design-system/StateTone';
+import type { PageHeadFigure, StateTone } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import type { PageFigure } from '../@types/ViewParts.ts';
 

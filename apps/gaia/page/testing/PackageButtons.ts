@@ -1,5 +1,5 @@
 /** Test-only: reads the design-system package's button, kept folded, by the props Gaia hands it: its emphasis, its name and its press. */
-import { Button } from 'design-system/Button';
+import { Button } from '../lib/design-system/DesignSystemInterface.ts';
 
 import { type HostElement, ReactElementTree, type RenderedNode } from './ReactElementTree.ts';
 

@@ -2,9 +2,8 @@
  * What every form of the detail panel draws with: the note line, the facts (one wrapping line, or the ticket form's grid with second lines),
  * a link that opens another detail over the tab the panel is on, worded parts, and the log lines.
  */
-import { FactList }                 from 'design-system/FactList';
-import { Stamp }                    from 'design-system/Stamp';
 import { Fragment, type ReactNode } from 'react';
+import { FactList, Stamp }          from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { EpicChips }        from '../../chips/EpicChips.tsx';
 import { useBoardHrefOf }   from '../../shell/BoardRouteLinks.ts';

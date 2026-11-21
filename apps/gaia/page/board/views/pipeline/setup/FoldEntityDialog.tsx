@@ -3,15 +3,17 @@
  * (a border costs stages on every ticket that crosses it, a fold removes the border and the package follows the target's gates and
  * constitution), and the target's home folders before and after. Fold sends the fold as one gesture; nothing is stored until Apply.
  */
-import { Button }                                                   from 'design-system/Button';
-import { Callout }                                                  from 'design-system/Callout';
-import { Dialog }                                                   from 'design-system/Dialog';
-import { Text }                                                     from 'design-system/Text';
-import { View }                                                     from 'design-system/View';
 import { useState }                                                 from 'react';
 import type { BoardDraftEditDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { CompactSelect }                                            from './CompactSelect.tsx';
-import { FoldEntityDialogModel }                                    from './FoldEntityDialogModel.ts';
+import {
+  Button,
+  Callout,
+  Dialog,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CompactSelect }         from './CompactSelect.tsx';
+import { FoldEntityDialogModel } from './FoldEntityDialogModel.ts';
 
 export interface FoldEntityDialogProps {
   readonly packageKey: string;

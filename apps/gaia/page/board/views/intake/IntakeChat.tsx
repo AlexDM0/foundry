@@ -4,11 +4,11 @@
  * picture limits served, or no picture client in the shell, no picture is offered and a pasted or dropped one is ignored. What sends the
  * chat habitat's own cues of the intake goes inside the card, where the relay reaches the thread.
  */
-import type { TagProps }                            from 'design-system/Tag';
 import { useState, type DragEvent, type ReactNode } from 'react';
 
 import type { BoardCommandDocument }                              from '../../../@types/board/BoardCommandDocument.ts';
 import type { BoardPictureLimitsDocument }                        from '../../../@types/board/BoardFactDocuments.ts';
+import type { TagProps }                                          from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardCommandResult }                                from '../../api/BoardCommandClient.ts';
 import { ChatCard }                                               from '../../conversation/ChatThread.tsx';
 import { Composer }                                               from '../../conversation/Composer.tsx';

@@ -2,8 +2,7 @@
  * The Sessions card: intake and Assistant jobs, which never take a launch slot, in the same rows as the worker list. Its head tallies the
  * live sessions of each kind, linked to their tabs, with how many wait on User; a session's About cell says what it is about.
  */
-import { Pane } from 'design-system/Pane';
-import { Tag }  from 'design-system/Tag';
+import { Pane, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardHrefOf }                                from '../../shell/BoardRouteLinks.ts';
 import { StateToneUtil }                                 from '../../utils/StateToneUtil.ts';

@@ -1,10 +1,10 @@
 /**
- * The stylesheets a board in Gaia's page loads, for a DOM spec that lays the board out as the page does: every stylesheet of the package
- * `design-system`, then the board's own under `page/styles/board/`, its tokens first. A package stylesheet is named
- * `design-system/<path in the package>` and a board one `page/styles/board/<name>`. Test-only.
+ * The stylesheets a board in Gaia's page loads, for a DOM spec that lays the board out as the page does: every stylesheet of the library
+ * `design-system`, then the board's own under `page/styles/board/`, its tokens first. A library stylesheet is named
+ * `design-system/<path in the library>` and a board one `page/styles/board/<name>`. Test-only.
  */
-import { readFileSync }  from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { join }         from 'node:path';
 
 export interface PageStylesheet {
   readonly path: string;
@@ -14,11 +14,11 @@ export interface PageStylesheet {
 const GAIA_FOLDER = join(import.meta.dir, '..', '..', '..');
 const BOARD_STYLESHEET_FOLDER = 'page/styles/board';
 const BOARD_TOKENS_STYLESHEET_NAME = 'tokens.css';
-const DESIGN_SYSTEM_PACKAGE_NAME = 'design-system';
+const DESIGN_SYSTEM_LIBRARY_NAME = 'design-system';
 
-/** The design-system package's folder, resolved as the page imports it, through the workspace link. */
+/** The design-system library's folder under the page. */
 export function designSystemFolder(): string {
-  return dirname(Bun.resolveSync(`${DESIGN_SYSTEM_PACKAGE_NAME}/package.json`, GAIA_FOLDER));
+  return join(GAIA_FOLDER, 'page', 'lib', DESIGN_SYSTEM_LIBRARY_NAME);
 }
 
 function boardStylesheetNames(): string[] {
@@ -27,12 +27,12 @@ function boardStylesheetNames(): string[] {
 }
 
 export function pageStylesheets(): PageStylesheet[] {
-  const packageFolder = designSystemFolder();
-  const designSystemStylesheets = [...new Bun.Glob('**/*.css').scanSync({ cwd: packageFolder })]
+  const libraryFolder = designSystemFolder();
+  const designSystemStylesheets = [...new Bun.Glob('**/*.css').scanSync({ cwd: libraryFolder })]
     .map((path) => path.split('\\').join('/'))
     .filter((path) => !path.split('/').includes('node_modules'))
     .sort()
-    .map((path) => ({ path: `${DESIGN_SYSTEM_PACKAGE_NAME}/${path}`, text: readFileSync(join(packageFolder, path), 'utf8') }));
+    .map((path) => ({ path: `${DESIGN_SYSTEM_LIBRARY_NAME}/${path}`, text: readFileSync(join(libraryFolder, path), 'utf8') }));
   const boardStylesheets = boardStylesheetNames().map((name) => {
     const path = `${BOARD_STYLESHEET_FOLDER}/${name}`;
     return { path, text: readFileSync(join(GAIA_FOLDER, path), 'utf8') };

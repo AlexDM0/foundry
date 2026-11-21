@@ -1,9 +1,10 @@
 /**
  * Test-only: unfolds what a hook-free component returns into its host elements, the tags and props React would hand the DOM, so a spec can
- * read the markup and call a handler without a document. Every component the design-system package exports stays folded, so a spec reads
+ * read the markup and call a handler without a document. Every component the design-system library exports stays folded, so a spec reads
  * the props Gaia hands a package part and never the markup the package draws. A component that uses a hook, or an element type it does not
  * know, fails loudly.
  */
+import { readFileSync }  from 'node:fs';
 import { createRequire } from 'node:module';
 
 import {
@@ -23,27 +24,27 @@ export type RenderedNode = HostElement | string;
 
 type ElementProps = Readonly<Record<string, unknown>> & { readonly children?: ReactNode };
 
-/** The package whose components stay folded, whatever they draw inside and whichever hooks they hold. */
-const FOLDED_PACKAGE_NAMES = ['design-system'] as const;
+/** The interface files of the libraries whose components stay folded, whatever they draw inside and whichever hooks they hold. */
+const FOLDED_LIBRARY_INTERFACE_SPECIFIERS = ['../lib/design-system/DesignSystemInterface.ts'] as const;
 
-/** A package's components live in the `.tsx` modules its exports map names; its types, styles and utils do not. */
-const COMPONENT_MODULE = /\.tsx$/;
+/** A library's components are the values its interface file exports from a `.tsx` module; its types, constants and utils are not. */
+const COMPONENT_EXPORT_STATEMENT = /^export \{([^}]*)\} from '[^']+\.tsx';$/gmu;
 
 const requireFromHere = createRequire(import.meta.url);
 
 let packageComponentsFound: ReadonlySet<unknown> | undefined;
 
-function componentsExportedBy(packageName: string): unknown[] {
-  const manifest = requireFromHere(`${packageName}/package.json`) as { readonly exports?: Readonly<Record<string, unknown>> };
-  return Object.entries(manifest.exports ?? {})
-    .filter(([, target]) => typeof target === 'string' && COMPONENT_MODULE.test(target))
-    .flatMap(([subpath]) => Object.values(requireFromHere(`${packageName}/${subpath.replace(/^\.\//, '')}`) as Readonly<Record<string, unknown>>))
-    .filter((exported) => typeof exported === 'function');
+function componentsExportedBy(interfaceSpecifier: string): unknown[] {
+  const interfaceText = readFileSync(requireFromHere.resolve(interfaceSpecifier), 'utf8');
+  const componentNames = [...interfaceText.matchAll(COMPONENT_EXPORT_STATEMENT)]
+    .flatMap(([, names = '']) => names.split(',').map((name) => name.trim()).filter((name) => name !== ''));
+  const exported = requireFromHere(interfaceSpecifier) as Readonly<Record<string, unknown>>;
+  return componentNames.map((name) => exported[name]).filter((component) => typeof component === 'function');
 }
 
-/** Read from the package's own exports map on the first unfold, so a component the package adds stays folded with no list kept here. */
+/** Read from the library's own interface file on the first unfold, so a component the library adds stays folded with no list kept here. */
 function packageComponents(): ReadonlySet<unknown> {
-  packageComponentsFound ??= new Set(FOLDED_PACKAGE_NAMES.flatMap(componentsExportedBy));
+  packageComponentsFound ??= new Set(FOLDED_LIBRARY_INTERFACE_SPECIFIERS.flatMap(componentsExportedBy));
   return packageComponentsFound;
 }
 

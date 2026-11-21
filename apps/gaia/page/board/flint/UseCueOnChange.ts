@@ -2,8 +2,8 @@
  * A habitat's cue for a happening it derives from its own data: the cue goes to Flint each time the occasion changes, and not for the
  * occasion the component mounts with, which is no happening.
  */
-import type { SpriteCue }    from 'flint/SpriteHabitat';
 import { useEffect, useRef } from 'react';
+import type { SpriteCue }    from '../../lib/flint/FlintInterface.ts';
 
 
 /** One happening: its cue, and a key that changes when the same cue names a new happening, such as the next turn. */

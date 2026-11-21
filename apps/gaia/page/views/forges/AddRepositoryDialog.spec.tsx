@@ -5,11 +5,10 @@
  * Gaia's server stood in for by authored answers. The dialog's layout is unfolded, the package's dialog around its body and foot folded.
  */
 import { describe, expect, test } from 'bun:test';
-import { Dialog }                 from 'design-system/Dialog';
-import { TextField }              from 'design-system/TextField';
 
 import type { CommandAnswerDocument }                                     from '../../@types/CommandDocument.ts';
 import type { CommandStates }                                             from '../../api/CommandSender.ts';
+import { Dialog, TextField }                                              from '../../lib/design-system/DesignSystemInterface.ts';
 import { NOTHING_SENT }                                                   from '../../shared/add-repository/AddRepositoryFields.tsx';
 import { AddRepositoryForm }                                              from '../../shared/add-repository/AddRepositoryForm.ts';
 import { answerResponse, senderOver }                                     from '../../testing/CommandServer.ts';

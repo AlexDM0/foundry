@@ -2,11 +2,9 @@
  * The 232 px rail under the brand bar: the four views with their counts, one row per forge or the line saying there is none, and this
  * machine with its slot meter. Every row is a link to its route; the current one carries `aria-current`.
  */
-import { CountBadge }     from 'design-system/CountBadge';
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { SlotMeter }      from 'design-system/SlotMeter';
+import { ConditionDot }                          from '../components/ConditionDot.tsx';
+import { CountBadge, MicroCapsLabel, SlotMeter } from '../lib/design-system/DesignSystemInterface.ts';
 
-import { ConditionDot }                               from '../design-system/ConditionDot.tsx';
 import type { MachineLoad }                           from '../shared/MachineLoadModel.ts';
 import type { RailContent, RailCount, RailCountMark } from './RailModel.ts';
 

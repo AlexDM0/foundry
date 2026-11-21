@@ -4,7 +4,6 @@
  * button posts the board command, and Cancel closes it with nothing sent. A closed row hands the focus back to the move that opened it,
  * or to the first move when that one is gone. Keyed by ticket by its caller, so typed text never carries over to the next ticket opened.
  */
-import { Button } from 'design-system/Button';
 import {
   Fragment,
   useEffect,
@@ -14,6 +13,7 @@ import {
 
 import { PAGE_CONTRACT_VERSIONS }     from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }  from '../../../@types/board/BoardCommandDocument.ts';
+import { Button }                     from '../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }              from '../../shell/CommandButton.tsx';
 import { DetailControlsModelUtil }    from './DetailControlsModel.ts';
 import { TextParts }                  from './DetailParts.tsx';

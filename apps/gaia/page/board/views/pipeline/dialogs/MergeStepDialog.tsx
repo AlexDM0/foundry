@@ -6,18 +6,20 @@
  * re-reviewer, linking the forge for the rest.
  */
 
-import { Button }                                                                                    from 'design-system/Button';
-import { Card }                                                                                      from 'design-system/Card';
-import { Dialog }                                                                                    from 'design-system/Dialog';
-import { ModelEffortMeter }                                                                          from 'design-system/ModelEffortMeter';
-import { Row }                                                                                       from 'design-system/Row';
-import { Text }                                                                                      from 'design-system/Text';
-import { View }                                                                                      from 'design-system/View';
 import { useRef, useState }                                                                          from 'react';
 import type { BoardLimitsDocument }                                                                  from '../../../../@types/board/BoardFactDocuments.ts';
 import type { BoardFlowNodeDocument, BoardPipelineChoicesDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { PipelineFlowEditSender }                                                               from '../flow/PipelineFlowEditSender.ts';
-import { PipelineFlowModel }                                                                         from '../flow/PipelineFlowModel.ts';
+import {
+  Button,
+  Card,
+  Dialog,
+  ModelEffortMeter,
+  Row,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';
+import { PipelineFlowModel }           from '../flow/PipelineFlowModel.ts';
 
 import type { ConstitutionPlace }                                           from './InstructionsEditorModel.ts';
 import { MergeStepDialogModel }                                             from './MergeStepDialogModel.ts';

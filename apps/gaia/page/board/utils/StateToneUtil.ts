@@ -3,12 +3,12 @@
  * no state of the board, so every badge, dot, pill, meter and state-coloured element of the board takes its tone and shape from here. A
  * job state looks like the display state nearest its meaning.
  */
-import type { StateDotShape, StateTone } from 'design-system/StateTone';
 
-import type { BoardJobDocument } from '../../@types/board/BoardJobDocuments.ts';
-import type { BoardJobState }    from '../../@types/board/BoardVocabulary.ts';
-import type { JobDisplayState }  from '../@types/JobDisplayState.ts';
-import { JobStateUtil }          from './JobStateUtil.ts';
+import type { BoardJobDocument }         from '../../@types/board/BoardJobDocuments.ts';
+import type { BoardJobState }            from '../../@types/board/BoardVocabulary.ts';
+import type { StateDotShape, StateTone } from '../../lib/design-system/DesignSystemInterface.ts';
+import type { JobDisplayState }          from '../@types/JobDisplayState.ts';
+import { JobStateUtil }                  from './JobStateUtil.ts';
 
 export interface StateLook {
   readonly tone:     StateTone;

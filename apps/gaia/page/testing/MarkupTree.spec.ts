@@ -5,8 +5,8 @@
  * the package part itself; and markup it cannot read fails rather than passing as empty.
  */
 import { describe, expect, test } from 'bun:test';
-import { Button }                 from 'design-system/Button';
 import { createElement }          from 'react';
+import { Button }                 from '../lib/design-system/DesignSystemInterface.ts';
 
 import { MarkupTree } from './MarkupTree.ts';
 

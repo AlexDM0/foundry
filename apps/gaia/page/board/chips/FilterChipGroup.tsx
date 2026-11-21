@@ -4,12 +4,11 @@
  * `ChipFilterUtil`. A toolbar's group shows its label before the chips, as the Tickets toolbar does.
  */
 
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { StateDot }       from 'design-system/StateDot';
-import { useId }          from 'react';
+import { useId } from 'react';
 
-import type { BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
-import { StateToneUtil }          from '../utils/StateToneUtil.ts';
+import type { BoardDisplayState }   from '../../@types/board/BoardVocabulary.ts';
+import { MicroCapsLabel, StateDot } from '../../lib/design-system/DesignSystemInterface.ts';
+import { StateToneUtil }            from '../utils/StateToneUtil.ts';
 
 export interface FilterChip {
   readonly value:       string;

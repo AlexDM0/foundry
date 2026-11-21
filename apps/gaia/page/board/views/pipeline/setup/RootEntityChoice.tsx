@@ -3,10 +3,13 @@
  * User chooses what the root gets: kept for a person, the default, with no gates and no constitution, or gates and a constitution of its
  * own, so tickets may name it.
  */
-import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
-import { MonoId }                    from 'design-system/MonoId';
-import { Text }                      from 'design-system/Text';
-import { useId }                     from 'react';
+import { useId } from 'react';
+import {
+  ChoiceInput,
+  ChoiceOption,
+  MonoId,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { RootChoice, RootEntityView } from './EntitiesStepModel.ts';
 

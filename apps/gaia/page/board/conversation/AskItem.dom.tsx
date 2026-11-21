@@ -12,7 +12,7 @@ import {
   expect,
   test
 } from 'bun:test';
-import { Button } from 'design-system/Button';
+import { Button } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { BoardTrackerContext }        from '../shell/BoardRouteLinks.ts';
 import { AskItem, type AskItemProps } from './AskItem.tsx';

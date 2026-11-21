@@ -10,13 +10,12 @@
  * props Gaia hands it.
  */
 import { describe, expect, test } from 'bun:test';
-import { Button }                 from 'design-system/Button';
-import { Switch }                 from 'design-system/Switch';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import { CommandSenderContext }                                                     from '../../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../../api/FleetStreamClient.ts';
+import { Button, Switch }                                                           from '../../lib/design-system/DesignSystemInterface.ts';
 import { createFleetSource, type FleetSource }                                      from '../../shell/FleetSource.ts';
 import { GaiaApp }                                                                  from '../../shell/GaiaApp.tsx';
 import { senderOver }                                                               from '../../testing/CommandServer.ts';

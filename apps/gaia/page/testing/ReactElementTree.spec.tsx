@@ -11,13 +11,6 @@ import {
   spyOn,
   test
 } from 'bun:test';
-import { Button }        from 'design-system/Button';
-import { Card }          from 'design-system/Card';
-import { Checkbox }      from 'design-system/Checkbox';
-import { CountBadge }    from 'design-system/CountBadge';
-import { Dialog }        from 'design-system/Dialog';
-import { NumberStepper } from 'design-system/NumberStepper';
-import { Tooltip }       from 'design-system/Tooltip';
 import {
   createElement,
   forwardRef,
@@ -25,6 +18,15 @@ import {
   useRef,
 } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  Button,
+  Card,
+  Checkbox,
+  CountBadge,
+  Dialog,
+  NumberStepper,
+  Tooltip
+} from '../lib/design-system/DesignSystemInterface.ts';
 
 import { ReactElementTree } from './ReactElementTree.ts';
 

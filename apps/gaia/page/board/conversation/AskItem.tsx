@@ -3,15 +3,17 @@
  * is about, the question, the meta line, its age and its action. A row is an entry of its caller's list (an inbox); a strip sits under the job it blocks.
  */
 
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { MonoId }         from 'design-system/MonoId';
-import { Stamp }          from 'design-system/Stamp';
-import { Text }           from 'design-system/Text';
 import type { ReactNode } from 'react';
 
 import type { BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
-import { StateToneUtil }          from '../utils/StateToneUtil.ts';
-import { MetaLine }               from './ConversationParts.tsx';
+import {
+  MicroCapsLabel,
+  MonoId,
+  Stamp,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import { StateToneUtil } from '../utils/StateToneUtil.ts';
+import { MetaLine }      from './ConversationParts.tsx';
 
 export interface AskKind {
   readonly text:   string;

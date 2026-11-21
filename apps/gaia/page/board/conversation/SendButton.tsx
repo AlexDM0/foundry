@@ -2,7 +2,7 @@
  * The Send of a message box: an orange square holding a paper plane, as tall as the text box beside it. Its words are only its
  * accessible name, so a refusal is shown by its caller.
  */
-import { Icon } from 'design-system/Icon';
+import { Icon } from '../../lib/design-system/DesignSystemInterface.ts';
 
 export interface SendButtonProps {
   readonly accessibleName: string;

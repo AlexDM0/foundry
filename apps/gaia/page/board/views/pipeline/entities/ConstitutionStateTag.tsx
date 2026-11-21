@@ -2,8 +2,7 @@
  * The state of one entity's constitution as a tag, its meaning in the title, as MonoConstitution's legend draws them: Adopted in the
  * success tone, Drafted on the wash, Default dashed, Not started outlined, and a root kept for a person as quiet text.
  */
-import { Tag }  from 'design-system/Tag';
-import { Text } from 'design-system/Text';
+import { Tag, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { ConstitutionStateTagModel, type ConstitutionState } from './ConstitutionStateTagModel.ts';
 

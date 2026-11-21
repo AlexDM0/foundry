@@ -4,33 +4,35 @@
  * a refusal or a pending restart under them, and beside them what Gaia reads of each forge, the running forges and what just happened. It
  * takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Banner }      from 'design-system/Banner';
-import { Button }      from 'design-system/Button';
-import { Card }        from 'design-system/Card';
-import { EmptyState }  from 'design-system/EmptyState';
-import { Figure }      from 'design-system/Figure';
-import { MonoId }      from 'design-system/MonoId';
-import { PendingStep } from 'design-system/PendingStep';
-import { Row }         from 'design-system/Row';
-import { SectionHead } from 'design-system/SectionHead';
-import { Stamp }       from 'design-system/Stamp';
-import { Tag }         from 'design-system/Tag';
-import { Text }        from 'design-system/Text';
-import { TextButton }  from 'design-system/TextButton';
 
 import type { CommandBody }                                       from '../../@types/CommandDocument.ts';
 import { CommandSender, type CommandStates, type CommandSubject } from '../../api/CommandSender.ts';
-import { Callout }                                                from '../../design-system/Callout.tsx';
-import { ConditionDot }                                           from '../../design-system/ConditionDot.tsx';
-import { ListCard }                                               from '../../design-system/ListCard.tsx';
-import { Refusal }                                                from '../../design-system/Refusal.tsx';
-import { RoleDot }                                                from '../../design-system/RoleDot.tsx';
-import { CommandFailureRefusal }                                  from '../../shared/CommandFailureRefusal.tsx';
-import { VersionsLine, VersionsText }                             from '../../shared/VersionsText.tsx';
-import { ACTIVITY_SENTENCES }                                     from '../../shared/constants/ActivitySentences.ts';
-import { CommandFailureTextUtil }                                 from '../../shared/utils/CommandFailureTextUtil.ts';
-import { FigureLookUtil }                                         from '../../shared/utils/FigureLookUtil.ts';
-import { ForgeCommandTextUtil }                                   from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { Callout }                                                from '../../components/Callout.tsx';
+import { ConditionDot }                                           from '../../components/ConditionDot.tsx';
+import { ListCard }                                               from '../../components/ListCard.tsx';
+import { Refusal }                                                from '../../components/Refusal.tsx';
+import { RoleDot }                                                from '../../components/RoleDot.tsx';
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  Figure,
+  MonoId,
+  PendingStep,
+  Row,
+  SectionHead,
+  Stamp,
+  Tag,
+  Text,
+  TextButton
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import { CommandFailureRefusal }      from '../../shared/CommandFailureRefusal.tsx';
+import { VersionsLine, VersionsText } from '../../shared/VersionsText.tsx';
+import { ACTIVITY_SENTENCES }         from '../../shared/constants/ActivitySentences.ts';
+import { CommandFailureTextUtil }     from '../../shared/utils/CommandFailureTextUtil.ts';
+import { FigureLookUtil }             from '../../shared/utils/FigureLookUtil.ts';
+import { ForgeCommandTextUtil }       from '../../shared/utils/ForgeCommandTextUtil.ts';
 import {
   type AttentionContent,
   type AttentionKindTone,

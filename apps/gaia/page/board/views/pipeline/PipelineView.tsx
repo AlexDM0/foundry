@@ -18,21 +18,23 @@
  * and the footer counting the levels they are in, and Apply changes groups the tickets in flight by entity; an entity's settings can be
  * copied to other entities from its page.
  */
-import { ActionBar }                                                  from 'design-system/ActionBar';
-import { Banner }                                                     from 'design-system/Banner';
-import { Button }                                                     from 'design-system/Button';
-import { Tag }                                                        from 'design-system/Tag';
-import { Text }                                                       from 'design-system/Text';
-import { TextButton }                                                 from 'design-system/TextButton';
-import { Toast }                                                      from 'design-system/Toast';
 import { useEffect, useState }                                        from 'react';
 import type { BoardPipelineFlowDocument, BoardPipelineSetupDocument } from '../../../@types/board/BoardPipelineDocuments.ts';
-import type { ProfileLogFollower, TranscriptFollower }                from '../../@types/BoardServices.ts';
-import { type BoardClock, useTickingNow }                             from '../../shell/BoardClock.ts';
-import { useBoardHrefOf, useBoardNavigation }                         from '../../shell/BoardRouteLinks.ts';
-import type { BoardRoute }                                            from '../../shell/BoardRouter.ts';
-import { CommandButton }                                              from '../../shell/CommandButton.tsx';
-import { TimeUtil }                                                   from '../../utils/TimeUtil.ts';
+import {
+  ActionBar,
+  Banner,
+  Button,
+  Tag,
+  Text,
+  TextButton,
+  Toast
+} from '../../../lib/design-system/DesignSystemInterface.ts';
+import type { ProfileLogFollower, TranscriptFollower } from '../../@types/BoardServices.ts';
+import { type BoardClock, useTickingNow }              from '../../shell/BoardClock.ts';
+import { useBoardHrefOf, useBoardNavigation }          from '../../shell/BoardRouteLinks.ts';
+import type { BoardRoute }                             from '../../shell/BoardRouter.ts';
+import { CommandButton }                               from '../../shell/CommandButton.tsx';
+import { TimeUtil }                                    from '../../utils/TimeUtil.ts';
 
 import { FlowWorkspace }                                                  from './FlowWorkspace.tsx';
 import { PipelineViewModel, type PipelineScreen, type PipelineViewFacts } from './PipelineViewModel.ts';

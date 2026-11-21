@@ -4,16 +4,18 @@
  * habitat of Flint (`board/flint/UseQuestionsHabitat.ts`). As a tab of the board it reads the decision the question panel shows from the
  * shell.
  */
-import { Button }                      from 'design-system/Button';
-import { ListSection }                 from 'design-system/ListSection';
-import { MonoId }                      from 'design-system/MonoId';
-import { Row }                         from 'design-system/Row';
-import { Stamp }                       from 'design-system/Stamp';
-import { StateBadge }                  from 'design-system/StateBadge';
-import { Text }                        from 'design-system/Text';
 import { useContext, useMemo, useRef } from 'react';
 
-import type { BoardDocument }                   from '../../../@types/board/BoardDocument.ts';
+import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
+import {
+  Button,
+  ListSection,
+  MonoId,
+  Row,
+  Stamp,
+  StateBadge,
+  Text
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 import { DecisionCard }                         from '../../conversation/DecisionCard.tsx';
 import type { QuestionsFacts }                  from '../../flint/QuestionsSpriteModel.ts';
 import { useQuestionsHabitat }                  from '../../flint/UseQuestionsHabitat.ts';

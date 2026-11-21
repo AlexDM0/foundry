@@ -5,17 +5,19 @@
  * At the forge level of a monorepo, the product owner's dialog says it also names each ticket's entity.
  */
 
-import { Button }                                                                                    from 'design-system/Button';
-import { Card }                                                                                      from 'design-system/Card';
-import { Dialog }                                                                                    from 'design-system/Dialog';
-import { ModelEffortMeter }                                                                          from 'design-system/ModelEffortMeter';
-import { Row }                                                                                       from 'design-system/Row';
-import { Text }                                                                                      from 'design-system/Text';
-import { View }                                                                                      from 'design-system/View';
 import { useState }                                                                                  from 'react';
 import type { BoardLimitsDocument }                                                                  from '../../../../@types/board/BoardFactDocuments.ts';
 import type { BoardFlowNodeDocument, BoardPipelineChoicesDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { PipelineFlowEditSender }                                                               from '../flow/PipelineFlowEditSender.ts';
+import {
+  Button,
+  Card,
+  Dialog,
+  ModelEffortMeter,
+  Row,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';
 
 import { AgentStepDialogModel, type AgentStepForm, type AgentStepRole } from './AgentStepDialogModel.ts';
 import { InstructionsEditor }                                           from './InstructionsEditor.tsx';

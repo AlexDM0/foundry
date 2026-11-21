@@ -5,8 +5,7 @@
  * the habitat cued by the first running job. The times tick each second from the injected clock while the event stream is live. The
  * strip is a polite live region, so its ticking times are hidden from assistive technology.
  */
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { Tag }            from 'design-system/Tag';
+import { MicroCapsLabel, Tag } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlintSlotHabitat }    from '../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS } from '../flint/FlintSlotHabitats.ts';

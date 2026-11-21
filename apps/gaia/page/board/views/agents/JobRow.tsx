@@ -4,9 +4,8 @@
  * job that asks User is marked and followed by its Asks User strip.
  */
 
-import { StateBadge }     from 'design-system/StateBadge';
-import { Tag }            from 'design-system/Tag';
-import type { ReactNode } from 'react';
+import type { ReactNode }  from 'react';
+import { StateBadge, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardHrefOf }           from '../../shell/BoardRouteLinks.ts';
 import { StateToneUtil }            from '../../utils/StateToneUtil.ts';

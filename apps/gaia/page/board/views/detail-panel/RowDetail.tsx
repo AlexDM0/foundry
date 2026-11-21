@@ -1,8 +1,10 @@
 /** The row form a Gantt row or ticket-table line opens: head, the controls the forge offers on its ticket, then Task, Phases, Ticket and Log. */
-import { Stamp }       from 'design-system/Stamp';
-import { StateBadge }  from 'design-system/StateBadge';
-import { StatePill }   from 'design-system/StatePill';
-import { TitledBlock } from 'design-system/TitledBlock';
+import {
+  Stamp,
+  StateBadge,
+  StatePill,
+  TitledBlock
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { TicketIdMark, TypeMark }            from '../../chips/TicketMarks.tsx';
 import { SandboxedHtmlFrame }                from '../../sandboxed-html/SandboxedHtmlFrame.tsx';

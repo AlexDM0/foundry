@@ -11,15 +11,17 @@
  * to that level, and a question in any level holds Apply.
  */
 
-import { ActionBar }                                           from 'design-system/ActionBar';
-import { Button }                                              from 'design-system/Button';
-import { CountBadge }                                          from 'design-system/CountBadge';
-import { Tabs }                                                from 'design-system/Tabs';
-import { Tag }                                                 from 'design-system/Tag';
-import { Text }                                                from 'design-system/Text';
-import { TextButton }                                          from 'design-system/TextButton';
-import { useState }                                            from 'react';
-import type { BoardPipelineSetupDocument }                     from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useState }                        from 'react';
+import type { BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  ActionBar,
+  Button,
+  CountBadge,
+  Tabs,
+  Tag,
+  Text,
+  TextButton
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }                             from '../../../@types/BoardServices.ts';
 import { type BoardClock, useTickingNow }                      from '../../../shell/BoardClock.ts';
 import { useBoardHrefOf, useBoardNavigation }                  from '../../../shell/BoardRouteLinks.ts';

@@ -7,7 +7,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { ARRIVED_CUE, isSpriteIntent, type SpriteHabitat } from 'flint/SpriteHabitat';
+import { ARRIVED_CUE, type SpriteHabitat, isSpriteIntent } from '../../lib/flint/FlintInterface.ts';
 import { FLINT_SLOT_CUES, LASTING_FLINT_SLOT_CUES }        from './FlintSlotCues.ts';
 import { FLINT_SLOT_HABITATS, lastingIntentOf }            from './FlintSlotHabitats.ts';
 

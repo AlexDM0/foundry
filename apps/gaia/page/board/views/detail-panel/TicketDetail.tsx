@@ -5,14 +5,18 @@
  * body's frame measures itself once it is visible.
  */
 
-import { CountBadge }                   from 'design-system/CountBadge';
-import { Row }                          from 'design-system/Row';
-import { SidePanelBody, SidePanelHead } from 'design-system/SidePanel';
-import { StatePill }                    from 'design-system/StatePill';
-import { Tabs, type LinkTabItem }       from 'design-system/Tabs';
-import { Text }                         from 'design-system/Text';
-import { View }                         from 'design-system/View';
-import { useEffect, useRef }            from 'react';
+import { useEffect, useRef } from 'react';
+import {
+  CountBadge,
+  type LinkTabItem,
+  Row,
+  SidePanelBody,
+  SidePanelHead,
+  StatePill,
+  Tabs,
+  Text,
+  View
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { PriorityMark, TypeMark }             from '../../chips/TicketMarks.tsx';
 import { SandboxedHtmlFrame }                 from '../../sandboxed-html/SandboxedHtmlFrame.tsx';

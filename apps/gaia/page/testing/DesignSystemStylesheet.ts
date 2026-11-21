@@ -1,16 +1,16 @@
 /**
- * Test-only: the design-system package's stylesheet and fonts for a page a browser opens from a file, where no bundler runs. The entry
+ * Test-only: the design-system library's stylesheet and fonts for a page a browser opens from a file, where no bundler runs. The entry
  * stylesheet, as the page links it, comes with its imports inlined; the fonts come as the `@font-face` rules the font loader stands in
  * for, each file inlined as a `data:` address, since a file page may not load a font from another file.
  */
 import { readFileSync } from 'node:fs';
 
-import { type FontFaceFactory, loadDesignSystemFonts } from 'design-system/FontLoader';
+import { type FontFaceFactory, loadDesignSystemFonts } from '../lib/design-system/DesignSystemInterface.ts';
 
 import { PackageStylesheet } from './PackageStylesheet.ts';
 
-/** The package's entry stylesheet as `page/index.html` links it. */
-const ENTRY_STYLESHEET_EXPORTS = ['design-system/design-system.css'];
+/** The library's entry stylesheet as `page/index.html` links it. */
+const ENTRY_STYLESHEET_PAGE_PATHS = ['lib/design-system/styles/design-system.css'];
 
 const FONT_FILE_SOURCE = /^url\("([^"]+)"\) format\("woff2"\)$/;
 
@@ -44,7 +44,7 @@ let fontFaceRulesText: string | null = null;
 export const DesignSystemStylesheet = {
   /** The entry stylesheets as a bundler links them: every imported stylesheet in place of its import, in order. */
   text(): string {
-    return ENTRY_STYLESHEET_EXPORTS.map((entryExport) => PackageStylesheet.inlinedText(entryExport)).join('\n');
+    return ENTRY_STYLESHEET_PAGE_PATHS.map((entryPagePath) => PackageStylesheet.inlinedText(entryPagePath)).join('\n');
   },
 
   /** A rule per face the font loader registers, read once and kept, since the files are large and the same for every screen. */

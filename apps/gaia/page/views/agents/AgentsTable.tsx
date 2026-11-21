@@ -3,14 +3,16 @@
  * limit, and what of it waits on User), then a row per agent. A row selects itself through a link stretched over it; its job's own link sits
  * above that one.
  */
-import { FillMeter }      from 'design-system/FillMeter';
-import { MonoId }         from 'design-system/MonoId';
-import { SlotMeter }      from 'design-system/SlotMeter';
-import type { StateTone } from 'design-system/StateTone';
-import { Tag }            from 'design-system/Tag';
 
-import { ConditionDot } from '../../design-system/ConditionDot.tsx';
-import { RoleDot }      from '../../design-system/RoleDot.tsx';
+import { ConditionDot } from '../../components/ConditionDot.tsx';
+import { RoleDot }      from '../../components/RoleDot.tsx';
+import {
+  FillMeter,
+  MonoId,
+  SlotMeter,
+  type StateTone,
+  Tag
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import type {
   AgentCalls,
   AgentGroupContent,

@@ -23,10 +23,9 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { FlintHandle }        from 'flint';
-import { FLINT_OVERLAY_ATTRIBUTE } from 'flint/SpriteHabitat';
+import type { BoardDocument }                        from '../../@types/board/BoardDocument.ts';
+import { FLINT_OVERLAY_ATTRIBUTE, type FlintHandle } from '../../lib/flint/FlintInterface.ts';
 
-import type { BoardDocument }       from '../../@types/board/BoardDocument.ts';
 import type { BoardServices }       from '../@types/BoardServices.ts';
 import { Board }                    from '../Board.tsx';
 import type { EventStreamHandlers } from '../api/BoardEventStreamClient.ts';

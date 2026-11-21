@@ -5,7 +5,7 @@
  * `8+` while a forge at a version Gaia cannot talk to runs agents no total counts.
  */
 import type { FleetDocument, FleetDocumentForge }    from '../@types/FleetDocument.ts';
-import type { DotCondition }                         from '../design-system/ConditionDot.tsx';
+import type { DotCondition }                         from '../components/ConditionDot.tsx';
 import { type GaiaRoute, type GaiaView, HashRouter } from '../shared/HashRouter.ts';
 import { type MachineLoad, MachineLoadModel }        from '../shared/MachineLoadModel.ts';
 import { FleetDocumentUtil }                         from '../shared/utils/FleetDocumentUtil.ts';

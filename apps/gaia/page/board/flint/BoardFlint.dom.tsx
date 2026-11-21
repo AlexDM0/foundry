@@ -25,12 +25,16 @@ import {
   test
 } from 'bun:test';
 
-import type { FlintHandle }                                from 'flint';
-import type { Director, PerceptionDigest, SpriteIntent }   from 'flint/SpriteHabitat';
-import { useFlintPerform }                                 from 'flint/react/UseFlintPerform';
-import { useRef, type ReactNode }                          from 'react';
-import { PRODUCT_NAMES }                                   from '../../../src/shared/constants/ProductNames.ts';
-import type { BoardJobDocument }                           from '../../@types/board/BoardJobDocuments.ts';
+import { useRef, type ReactNode } from 'react';
+import { PRODUCT_NAMES }          from '../../../src/shared/constants/ProductNames.ts';
+import type { BoardJobDocument }  from '../../@types/board/BoardJobDocuments.ts';
+import {
+  type Director,
+  type FlintHandle,
+  type PerceptionDigest,
+  type SpriteIntent,
+  useFlintPerform
+} from '../../lib/flint/FlintInterface.ts';
 import { ChatCard, ChatThread, type ChatTurn }             from '../conversation/ChatThread.tsx';
 import { Composer }                                        from '../conversation/Composer.tsx';
 import { boardPreferenceStoreOf, type PreferenceStore }    from '../preferences/PreferenceStore.ts';

@@ -4,7 +4,6 @@
  * phase and reorders only among the prepare rows; a removed row stays drawn until Apply, struck, and moves nowhere. Each row's last run
  * is the newest run time the forge served for its line, worded here and never computed.
  */
-import { ReorderIndexUtil }          from 'design-system/ReorderIndexUtil';
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
 import type {
@@ -14,6 +13,7 @@ import type {
   BoardStepRunTimeDocument
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardGatePhase, BoardStepEnding } from '../../../../@types/board/BoardVocabulary.ts';
+import { ReorderIndexUtil }                     from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { FlowChange }                      from '../flow/PipelineFlowModel.ts';
 import { GateCacheMarkModel }                   from './GateCacheMarkModel.ts';
 

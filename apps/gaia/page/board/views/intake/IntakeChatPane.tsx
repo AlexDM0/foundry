@@ -5,13 +5,11 @@
  * pictures and Close intake. It follows the one transcript stream of its job. Its
  * chat cues the chat habitat of Flint when a filing draft is researched.
  */
-import { Row }        from 'design-system/Row';
-import { StateBadge } from 'design-system/StateBadge';
-import { Tag }        from 'design-system/Tag';
 
 import { PAGE_CONTRACT_VERSIONS }                                   from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardDecisionDocument }                               from '../../../@types/board/BoardDecisionDocuments.ts';
 import type { BoardPictureLimitsDocument }                          from '../../../@types/board/BoardFactDocuments.ts';
+import { Row, StateBadge, Tag }                                     from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }                                  from '../../@types/BoardServices.ts';
 import { ChatCard, ChatThread, type ChatTurn }                      from '../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil }                                      from '../../conversation/ChatThreadModel.ts';

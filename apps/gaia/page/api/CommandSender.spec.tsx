@@ -11,7 +11,7 @@ import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { CommandAnswerDocument, CommandBody }               from '../@types/CommandDocument.ts';
-import { Refusal }                                               from '../design-system/Refusal.tsx';
+import { Refusal }                                               from '../components/Refusal.tsx';
 import { answerResponse, senderOver, type SentRequest }          from '../testing/CommandServer.ts';
 import { FLEET_FIVE_FORGES_TRACKER_IDS }                         from '../testing/fixtures/fleet-five-forges.ts';
 import { CommandSender, CommandSenderContext, useCommandSender } from './CommandSender.ts';

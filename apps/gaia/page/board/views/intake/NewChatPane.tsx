@@ -2,11 +2,10 @@
  * A new product-owner session before it exists: only a composer, whose first message, with or without pictures, starts the session
  * (`intake-start`); once the forge applied it the route follows the job it started. What User typed is this pane's own until then.
  */
-import { Tag }  from 'design-system/Tag';
-import { Text } from 'design-system/Text';
 
 import { PAGE_CONTRACT_VERSIONS }          from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardPictureLimitsDocument } from '../../../@types/board/BoardFactDocuments.ts';
+import { Tag, Text }                       from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardNavigation }              from '../../shell/BoardRouteLinks.ts';
 import { IntakeChat }                      from './IntakeChat.tsx';
 import { IntakeModelUtil }                 from './IntakeModel.ts';

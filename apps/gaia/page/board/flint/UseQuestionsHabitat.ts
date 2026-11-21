@@ -3,8 +3,8 @@
  * and, after each new set of facts, sends the cues of `QuestionsSpriteModel`, the first row last so it is the newest. The facts the view
  * mounts with are no change.
  */
-import { useFlintHabitat }                   from 'flint/react/UseFlintHabitat';
 import { useEffect, useRef, type RefObject } from 'react';
+import { useFlintHabitat }                   from '../../lib/flint/FlintInterface.ts';
 
 import { QUESTIONS_SPRITE_HABITAT }                  from './QuestionsSpriteHabitat.ts';
 import { QuestionsSpriteModel, type QuestionsFacts } from './QuestionsSpriteModel.ts';

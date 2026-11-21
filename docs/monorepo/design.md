@@ -36,11 +36,10 @@ Decisions taken on 2026-11-14 and 2026-11-15:
   apps/forge/             forge's former root, moved as is (cli, src, bridge, skills, resources, setup.*, launcher.ts,
                           bunfig.toml, tsconfig.json, eslint.config.js, turbo.json, CLAUDE.md, README.md, docs/)
   apps/gaia/              Gaia (src, page, resources, docs, bunfig.toml, tsconfigs, eslint.config.js, CLAUDE.md)
-  packages/design-system/ the design system both apps draw with, under its CONSTITUTION.md
-  packages/flint/         forge's Flint
+  apps/gaia/page/lib/     the libraries of Gaia's page, each behind its interface file: design-system (under its
+                          CONSTITUTION.md), flint and brand
   packages/forge-contracts/  forge's contract with any client: documents, the board document, the board commands, the
                           refusal document, system versions, compatibility registry
-  packages/brand/         forge's mark, its tokens and the geometry a host's mark may draw alike
   packages/system-versions/  the version model and the compatibility registry's logic, naming no server
 ```
 
@@ -97,14 +96,17 @@ TypeScript source directly.
 - **DOM specs:** each package has its own DOM spec runner and preload; one spec suffix, forge's `.dom.tsx`.
 - **Lint:** `eslint.config.js` per workspace; no root config.
 
-### packages/flint
+### The libraries of Gaia's page
 
-Pure UI, committed and a workspace package that only forge declares. The Bridge imports it by name (`flint`, `flint/react`, ...). Gaia
-draws no Flint, and the brain stays in the forge's Overseer: the package buys a boundary, not reuse by Gaia.
+With the Bridge deleted, Gaia is the only consumer of the design system, Flint and forge's mark, so the three left `packages/` and are
+libraries under `apps/gaia/page/lib/` (decision 52 of `hephaestus-talos.md`): `design-system`, `flint` and `brand`. A library is a folder
+with no manifest, with its own specs, description, lint rules and two TypeScript projects, which Gaia's scripts run. Code outside a
+library imports only its interface file (`DesignSystemInterface.ts`, `FlintInterface.ts`, `BrandInterface.ts`), and a page links only
+the stylesheets and fonts the library offers by path; inside a library a file imports exactly what it needs, reaches no other library
+and no Gaia file, and only the interface file re-exports. `apps/gaia/page/LibraryBoundaries.spec.ts` holds this. Gaia's own components
+are in `apps/gaia/page/components/`.
 
-### packages/design-system
-
-Forge's design-system package, with its own README and constitution, is the design system both apps draw with. This reverses Gaia's
+The design system, with its own README and constitution, came from forge's design-system package. That reversed Gaia's
 decisions D8/V8 ("own copy, drift accepted") and D12 ("the build writes only in the Gaia repository"); Gaia's own copies of shared
 components are gone. Gaia's additions arrived through the design-system merge: the parts Gaia contributed moved into the package beside
 the layer they belong to, each of Gaia's fourteen patches was implemented in the package with the patch as its specification, Gaia's
@@ -118,7 +120,7 @@ of 2026-11-13's "nine shared names, forge's version as base", the `board.css` sp
 the raise-the-minimum report and guard. Its types import nothing from forge: forge's tracker model, its readings and its refusal wording
 stay in `apps/forge`, which maps them into the documents in typed mappers of its own. The package's `README.md` lists what it holds, and
 forge's `docs/reference/overseer-api.md` the routes and versions. `packages/system-versions` holds the version model any server
-and client share. `packages/brand` holds forge's mark. None names Gaia. The recorded fixtures stay with Gaia, the reader, because a
+and client share. Neither names Gaia. The recorded fixtures stay with Gaia, the reader, because a
 recording is of a released forge, never of the source beside it.
 
 Not shared: `ProductNames`, `Limits`, `AtomicFile`, the recording harness. Small and diverged; sharing them adds coupling for little gain.

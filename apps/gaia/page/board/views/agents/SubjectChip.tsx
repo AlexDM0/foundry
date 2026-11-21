@@ -1,5 +1,5 @@
 /** What a job works on as a bordered link chip: a ticket's mono id and title, or an intake's request, ellipsised with its whole text on hover. */
-import { MonoId } from 'design-system/MonoId';
+import { MonoId } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 export interface SubjectChipProps {
   readonly href:   string;

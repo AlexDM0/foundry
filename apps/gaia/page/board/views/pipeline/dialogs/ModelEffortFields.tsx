@@ -2,11 +2,9 @@
  * A step's model and effort side by side, as the step dialogs draw them: the model as a native select in a narrow column, the effort as a
  * row of choices filling the rest, one per value the board offers, and the effort hint under both where the dialog shows one.
  */
-import { SegmentedControl }                       from 'design-system/SegmentedControl';
-import { Text }                                   from 'design-system/Text';
-import { View }                                   from 'design-system/View';
 import { useId, type Ref }                        from 'react';
 import type { BoardAgentEffort, BoardAgentModel } from '../../../../@types/board/BoardVocabulary.ts';
+import { SegmentedControl, Text, View }           from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 export interface ModelEffortFieldsProps {
   readonly models:          readonly BoardAgentModel[];

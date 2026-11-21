@@ -3,14 +3,14 @@
  * question, the job it blocks, how long it has been open, and Answer, a link to the Questions tab, which holds the answer form. The
  * selected job's controls keep the text answer.
  */
-import { Button } from 'design-system/Button';
-
 import type { BoardDisplayState } from '../../../@types/board/BoardVocabulary.ts';
-import { AskItem }                from '../../conversation/AskItem.tsx';
-import { useBoardHrefOf }         from '../../shell/BoardRouteLinks.ts';
-import { ElapsedTimeUtil }        from '../../utils/ElapsedTimeUtil.ts';
-import { StateToneUtil }          from '../../utils/StateToneUtil.ts';
-import type { JobAsk }            from './AgentsModel.ts';
+import { Button }                 from '../../../lib/design-system/DesignSystemInterface.ts';
+
+import { AskItem }         from '../../conversation/AskItem.tsx';
+import { useBoardHrefOf }  from '../../shell/BoardRouteLinks.ts';
+import { ElapsedTimeUtil } from '../../utils/ElapsedTimeUtil.ts';
+import { StateToneUtil }   from '../../utils/StateToneUtil.ts';
+import type { JobAsk }     from './AgentsModel.ts';
 
 /** The lane colours of a job that waits on User, on its row, its strip and the Sessions tally. */
 export const ASKING_STATE: BoardDisplayState = 'in-review';

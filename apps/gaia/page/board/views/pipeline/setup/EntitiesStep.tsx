@@ -5,41 +5,43 @@
  * pipeline agent at the forge level. Each gesture is a set of draft edits, sent at once as one `pipeline-draft-edit`, one gesture in flight
  * at a time: the step holds no edit, and a draft the forge refuses is shown as stored, with its refusals, until a further gesture fixes it.
  */
-import { ActionBar }                                                                            from 'design-system/ActionBar';
-import { Button }                                                                               from 'design-system/Button';
-import { Card }                                                                                 from 'design-system/Card';
-import { Skeleton }                                                                             from 'design-system/Skeleton';
-import { Tag }                                                                                  from 'design-system/Tag';
-import { Text }                                                                                 from 'design-system/Text';
-import { TextField }                                                                            from 'design-system/TextField';
-import { View }                                                                                 from 'design-system/View';
 import { useState }                                                                             from 'react';
 import type { BoardCommandDocument }                                                            from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardDraftEditDocument, BoardPipelineEntityDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { TranscriptFollower }                                                              from '../../../@types/BoardServices.ts';
-import { type BoardClock, useTickingNow }                                                       from '../../../shell/BoardClock.ts';
-import { useBoardHrefOf, useBoardNavigation }                                                   from '../../../shell/BoardRouteLinks.ts';
-import { CommandButton }                                                                        from '../../../shell/CommandButton.tsx';
-import { TimeUtil }                                                                             from '../../../utils/TimeUtil.ts';
-import { ViewTitle }                                                                            from '../../ViewTitle.tsx';
-import { PipelinePage }                                                                         from '../PipelinePage.tsx';
-import { PipelinePanel }                                                                        from '../PipelinePanel.tsx';
-import { PipelineViewModel, type PipelineViewFacts }                                            from '../PipelineViewModel.ts';
-import { AgentMeter }                                                                           from '../agent-panel/AgentMeter.tsx';
-import { PipelineAgentPanel }                                                                   from '../agent-panel/PipelineAgentPanel.tsx';
-import { PipelineAgentPanelModel }                                                              from '../agent-panel/PipelineAgentPanelModel.ts';
-import { CrossingDialog }                                                                       from '../entities/CrossingDialog.tsx';
-import { CrossingDialogModel }                                                                  from '../entities/CrossingDialogModel.ts';
-import { FORGE_LEVEL, PipelineLevelModel }                                                      from '../entities/PipelineLevelModel.ts';
-import { usePipelineFlowEditSender }                                                            from '../flow/PipelineFlowEditSender.ts';
-import { BillingStepModel }                                                                     from './BillingStepModel.ts';
-import { CompactSelect }                                                                        from './CompactSelect.tsx';
-import { EntitiesStepModel, type EntitiesMode, type RowEntityKind }                             from './EntitiesStepModel.ts';
-import { EntityRefusals }                                                                       from './EntityRefusals.tsx';
-import { EntityRefusalsModel }                                                                  from './EntityRefusalsModel.ts';
-import { EntityRow }                                                                            from './EntityRow.tsx';
-import { FoldEntityDialog }                                                                     from './FoldEntityDialog.tsx';
-import { RootEntityChoice }                                                                     from './RootEntityChoice.tsx';
+import {
+  ActionBar,
+  Button,
+  Card,
+  Skeleton,
+  Tag,
+  Text,
+  TextField,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { TranscriptFollower }                                  from '../../../@types/BoardServices.ts';
+import { type BoardClock, useTickingNow }                           from '../../../shell/BoardClock.ts';
+import { useBoardHrefOf, useBoardNavigation }                       from '../../../shell/BoardRouteLinks.ts';
+import { CommandButton }                                            from '../../../shell/CommandButton.tsx';
+import { TimeUtil }                                                 from '../../../utils/TimeUtil.ts';
+import { ViewTitle }                                                from '../../ViewTitle.tsx';
+import { PipelinePage }                                             from '../PipelinePage.tsx';
+import { PipelinePanel }                                            from '../PipelinePanel.tsx';
+import { PipelineViewModel, type PipelineViewFacts }                from '../PipelineViewModel.ts';
+import { AgentMeter }                                               from '../agent-panel/AgentMeter.tsx';
+import { PipelineAgentPanel }                                       from '../agent-panel/PipelineAgentPanel.tsx';
+import { PipelineAgentPanelModel }                                  from '../agent-panel/PipelineAgentPanelModel.ts';
+import { CrossingDialog }                                           from '../entities/CrossingDialog.tsx';
+import { CrossingDialogModel }                                      from '../entities/CrossingDialogModel.ts';
+import { FORGE_LEVEL, PipelineLevelModel }                          from '../entities/PipelineLevelModel.ts';
+import { usePipelineFlowEditSender }                                from '../flow/PipelineFlowEditSender.ts';
+import { BillingStepModel }                                         from './BillingStepModel.ts';
+import { CompactSelect }                                            from './CompactSelect.tsx';
+import { EntitiesStepModel, type EntitiesMode, type RowEntityKind } from './EntitiesStepModel.ts';
+import { EntityRefusals }                                           from './EntityRefusals.tsx';
+import { EntityRefusalsModel }                                      from './EntityRefusalsModel.ts';
+import { EntityRow }                                                from './EntityRow.tsx';
+import { FoldEntityDialog }                                         from './FoldEntityDialog.tsx';
+import { RootEntityChoice }                                         from './RootEntityChoice.tsx';
 
 export interface EntitiesStepProps {
   readonly facts:            PipelineViewFacts;

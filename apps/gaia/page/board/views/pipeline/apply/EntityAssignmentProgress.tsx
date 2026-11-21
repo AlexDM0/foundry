@@ -3,17 +3,19 @@
  * dialog lists each ticket with its title, the product owner's reason and the entity, or that it waits; Close is its one action. The
  * forge level's line counts the progress and opens the dialog.
  */
-import { Button }                                                      from 'design-system/Button';
-import { DataTable }                                                   from 'design-system/DataTable';
-import { Dialog }                                                      from 'design-system/Dialog';
-import { MonoId }                                                      from 'design-system/MonoId';
-import { Row }                                                         from 'design-system/Row';
-import { Tag }                                                         from 'design-system/Tag';
-import { Text }                                                        from 'design-system/Text';
-import { View }                                                        from 'design-system/View';
-import { useState }                                                    from 'react';
-import type { ReactNode }                                              from 'react';
-import type { BoardEntityAssignmentDocument }                          from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useState }                           from 'react';
+import type { ReactNode }                     from 'react';
+import type { BoardEntityAssignmentDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  Button,
+  DataTable,
+  Dialog,
+  MonoId,
+  Row,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf }                                              from '../../../shell/BoardRouteLinks.ts';
 import { EntityAssignmentProgressModel, type EntityAssignmentRowView } from './EntityAssignmentProgressModel.ts';
 

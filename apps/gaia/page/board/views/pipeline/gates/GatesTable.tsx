@@ -8,21 +8,23 @@
  * on a live board there, the head's line also names the entity's gate profiles of the phase under way (MonoLive). Every row shows its
  * line's last recorded run in the phase, for the entity in view.
  */
-import { Button }                                                                           from 'design-system/Button';
-import { ReorderableList }                                                                  from 'design-system/ReorderableList';
-import { Row }                                                                              from 'design-system/Row';
-import { Tag }                                                                              from 'design-system/Tag';
-import { Text }                                                                             from 'design-system/Text';
 import type { ReactNode }                                                                   from 'react';
 import type { BoardGateProfileRunDocument, BoardGateRowDocument, BoardStepRunTimeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardGatePhase }                                                              from '../../../../@types/board/BoardVocabulary.ts';
-import { useBoardHrefOf }                                                                   from '../../../shell/BoardRouteLinks.ts';
-import { StateToneUtil }                                                                    from '../../../utils/StateToneUtil.ts';
-import { entityKeyOfScope, useMonorepoLevelScope }                                          from '../entities/MonorepoLevelContext.ts';
-import { FlowGlyph }                                                                        from '../flow/FlowGlyph.tsx';
-import type { PipelineFlowEditSender }                                                      from '../flow/PipelineFlowEditSender.ts';
-import type { OccupantChipView }                                                            from '../live/FlowActivityPanelModel.ts';
-import { LivePipelineModel }                                                                from '../live/LivePipelineModel.ts';
+import {
+  Button,
+  ReorderableList,
+  Row,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { useBoardHrefOf }                          from '../../../shell/BoardRouteLinks.ts';
+import { StateToneUtil }                           from '../../../utils/StateToneUtil.ts';
+import { entityKeyOfScope, useMonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
+import { FlowGlyph }                               from '../flow/FlowGlyph.tsx';
+import type { PipelineFlowEditSender }             from '../flow/PipelineFlowEditSender.ts';
+import type { OccupantChipView }                   from '../live/FlowActivityPanelModel.ts';
+import { LivePipelineModel }                       from '../live/LivePipelineModel.ts';
 
 import { GateRow }                               from './GateRow.tsx';
 import { GatesAreaModel, type GatesOpenRequest } from './GatesAreaModel.ts';

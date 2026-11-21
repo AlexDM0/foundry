@@ -3,12 +3,14 @@
  * agent's panel. `AgentsView` takes no hooks: its root builds the content from the fleet document and hands it the way to change the
  * filters, which it writes into the route. `agentsViewPartsOf` hands the shell the page title's parts with it.
  */
-import { EmptyState }       from 'design-system/EmptyState';
-import { FillMeter }        from 'design-system/FillMeter';
-import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
-import { SegmentedControl } from 'design-system/SegmentedControl';
+import type { FleetDocument } from '../../@types/FleetDocument.ts';
+import {
+  EmptyState,
+  FillMeter,
+  MicroCapsLabel,
+  SegmentedControl
+} from '../../lib/design-system/DesignSystemInterface.ts';
 
-import type { FleetDocument }                                       from '../../@types/FleetDocument.ts';
 import type { ClockReading }                                        from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }                                           from '../../shared/@types/ViewParts.ts';
 import type { SelectedAgent }                                       from '../../shared/HashRouter.ts';

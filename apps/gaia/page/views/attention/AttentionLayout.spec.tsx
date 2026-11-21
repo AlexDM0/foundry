@@ -10,18 +10,20 @@
  * the command sender is the real one over Gaia's server stood in for by authored answers.
  */
 import { describe, expect, test } from 'bun:test';
-import { Banner }                 from 'design-system/Banner';
-import { Button }                 from 'design-system/Button';
-import { EmptyState }             from 'design-system/EmptyState';
-import { Figure }                 from 'design-system/Figure';
-import { MonoId }                 from 'design-system/MonoId';
-import { PendingStep }            from 'design-system/PendingStep';
-import { Tag }                    from 'design-system/Tag';
-import { TextButton }             from 'design-system/TextButton';
 
-import type { CommandAnswerDocument }                                               from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
-import { type CommandSender, type CommandSubject }                                  from '../../api/CommandSender.ts';
+import type { CommandAnswerDocument }              from '../../@types/CommandDocument.ts';
+import type { FleetDocument }                      from '../../@types/FleetDocument.ts';
+import { type CommandSender, type CommandSubject } from '../../api/CommandSender.ts';
+import {
+  Banner,
+  Button,
+  EmptyState,
+  Figure,
+  MonoId,
+  PendingStep,
+  Tag,
+  TextButton
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../../testing/CommandServer.ts';
 import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
 import { FailedActions }                                                            from '../../testing/FailedActions.ts';

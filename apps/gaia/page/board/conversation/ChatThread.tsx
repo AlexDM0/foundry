@@ -5,11 +5,6 @@
  * chat habitat of Flint: it cues what its newest turn shows, and the card relays the composer's cue to it.
  */
 
-import { Stamp, type StampProps } from 'design-system/Stamp';
-import { StateDot }               from 'design-system/StateDot';
-import { Tag, type TagProps }     from 'design-system/Tag';
-import { TextButton }             from 'design-system/TextButton';
-import { useFlintHabitat }        from 'flint/react/UseFlintHabitat';
 import {
   useContext,
   useEffect,
@@ -17,8 +12,17 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import type { BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
+import {
+  Stamp,
+  type StampProps,
+  StateDot,
+  Tag,
+  type TagProps,
+  TextButton
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import { useFlintHabitat } from '../../lib/flint/FlintInterface.ts';
 
-import type { BoardDisplayState }                  from '../../@types/board/BoardVocabulary.ts';
 import { useCueOnChange }                          from '../flint/UseCueOnChange.ts';
 import { presenceAttributeOf, useItemPresence }    from '../shell/ItemPresence.ts';
 import type { ItemPresence }                       from '../utils/ItemPresenceUtil.ts';

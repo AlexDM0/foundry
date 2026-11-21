@@ -11,8 +11,8 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { SpriteHabitat, SpriteSuggestion } from 'flint/SpriteHabitat';
 import { useRef }                               from 'react';
+import type { SpriteHabitat, SpriteSuggestion } from '../../lib/flint/FlintInterface.ts';
 
 import {
   elementOf,

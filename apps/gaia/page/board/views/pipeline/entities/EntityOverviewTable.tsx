@@ -2,11 +2,13 @@
  * The forge level's entities as a table: each row names the entity in mono with its kind, its home folders, its gates, its constitution and
  * its open questions, and the entity's name links to its level.
  */
-import { DataTable }                                          from 'design-system/DataTable';
-import { MonoId }                                             from 'design-system/MonoId';
-import { Tag }                                                from 'design-system/Tag';
-import { Text }                                               from 'design-system/Text';
-import type { ReactNode }                                     from 'react';
+import type { ReactNode } from 'react';
+import {
+  DataTable,
+  MonoId,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { EntityOverviewTableModel, type EntityOverviewFacts } from './EntityOverviewTableModel.ts';
 
 type EntityOverviewColumn = 'entity' | 'home' | 'gates' | 'constitution';

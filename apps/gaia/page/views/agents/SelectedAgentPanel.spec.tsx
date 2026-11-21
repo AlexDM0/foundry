@@ -5,8 +5,8 @@
  * messages and stops are sent from the agent's forge, with no control of its own to send either.
  */
 import { describe, expect, test } from 'bun:test';
-import { FactList }               from 'design-system/FactList';
 import type { ReactNode }         from 'react';
+import { FactList }               from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { PackageButtons }            from '../../testing/PackageButtons.ts';
 import { ReactElementTree }          from '../../testing/ReactElementTree.ts';

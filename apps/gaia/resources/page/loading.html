@@ -5,20 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gaia</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="../../../../node_modules/design-system/styles/tokens.css">
+  <link rel="stylesheet" href="../../page/lib/design-system/styles/tokens.css">
   <link rel="stylesheet" href="../../page/styles/tokens.css">
   <!--
     The launcher's splash (artboard C3), opened from this file when the launcher starts Gaia's server. A file page cannot read Gaia's
     health: the server answers no cross-origin read and refuses a file page's origin. So the launcher follows the health route and moves
     this page on: the address and the theme come in the query, the step and the forge counts in the fragment, and at the end it navigates
-    the window to Gaia's page. The package's tokens and fonts are reached by their files, because a file page resolves no package export:
+    the window to Gaia's page. The design-system library's tokens and fonts are reached by their files under page/lib/design-system/:
     the installed app runs from this checkout, so the paths hold there too. One line shows the step that is on its way, and fades in as
     the launcher moves it on.
   -->
   <style>
     @font-face {
       font-family: "Inter";
-      src: url("../../../../node_modules/design-system/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
+      src: url("../../page/lib/design-system/fonts/inter/inter-latin-wght-normal.woff2") format("woff2");
       font-weight: 100 900;
       font-display: swap;
       unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
@@ -26,7 +26,7 @@
     }
     @font-face {
       font-family: "Inter";
-      src: url("../../../../node_modules/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2") format("woff2");
+      src: url("../../page/lib/design-system/fonts/inter/inter-latin-ext-wght-normal.woff2") format("woff2");
       font-weight: 100 900;
       font-display: swap;
       unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,

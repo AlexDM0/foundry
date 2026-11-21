@@ -7,18 +7,20 @@
  * never block Apply, and the committed tickets the product owner gives an entity after Apply. Only in update mode over a stored pipeline
  * without entities does it show that tickets in flight refuse Apply (E94), each a link to its detail, with Apply disabled.
  */
-import { Callout }                                                       from 'design-system/Callout';
-import { Dialog }                                                        from 'design-system/Dialog';
-import { Text }                                                          from 'design-system/Text';
-import { View }                                                          from 'design-system/View';
 import { useState }                                                      from 'react';
 import type { BoardAppliedPipelineDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { useBoardHrefOf }                                                from '../../../shell/BoardRouteLinks.ts';
-import { ApplyDialogModel, type ApplyRefusalView }                       from './ApplyDialogModel.ts';
-import { ApplyFoot, ApplyPendingState }                                  from './ApplyPendingState.tsx';
-import { ConstitutionCommitList }                                        from './ConstitutionCommitList.tsx';
-import { ConstitutionCommitListModel }                                   from './ConstitutionCommitListModel.ts';
-import { LevelSummaryList }                                              from './LevelSummaryList.tsx';
+import {
+  Callout,
+  Dialog,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { useBoardHrefOf }                          from '../../../shell/BoardRouteLinks.ts';
+import { ApplyDialogModel, type ApplyRefusalView } from './ApplyDialogModel.ts';
+import { ApplyFoot, ApplyPendingState }            from './ApplyPendingState.tsx';
+import { ConstitutionCommitList }                  from './ConstitutionCommitList.tsx';
+import { ConstitutionCommitListModel }             from './ConstitutionCommitListModel.ts';
+import { LevelSummaryList }                        from './LevelSummaryList.tsx';
 
 export interface ApplyDialogProps {
   readonly setup:                            BoardPipelineSetupDocument;

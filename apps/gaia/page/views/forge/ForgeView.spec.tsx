@@ -12,7 +12,6 @@
  * spec reads the markup the package draws.
  */
 import { describe, expect, test }         from 'bun:test';
-import { Text }                           from 'design-system/Text';
 import { isValidElement, type ReactNode } from 'react';
 import { renderToStaticMarkup }           from 'react-dom/server';
 
@@ -20,7 +19,8 @@ import type { CommandAnswerDocument }                                           
 import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
 import { CommandSender }                                                            from '../../api/CommandSender.ts';
 import type { FleetStreamState }                                                    from '../../api/FleetStreamClient.ts';
-import { Refusal }                                                                  from '../../design-system/Refusal.tsx';
+import { Refusal }                                                                  from '../../components/Refusal.tsx';
+import { Text }                                                                     from '../../lib/design-system/DesignSystemInterface.ts';
 import { HashRouter }                                                               from '../../shared/HashRouter.ts';
 import { createFleetSource }                                                        from '../../shell/FleetSource.ts';
 import { GaiaApp }                                                                  from '../../shell/GaiaApp.tsx';

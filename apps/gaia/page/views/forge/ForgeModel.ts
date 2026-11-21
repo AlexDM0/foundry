@@ -4,7 +4,6 @@
  * board of an Overseer that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
  * whose board Gaia cannot read. Also the steps of an older forge's Update forge.
  */
-import type { ButtonEmphasis } from 'design-system/Button';
 
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type {
@@ -15,8 +14,9 @@ import type {
   FleetDocumentRunningVersions,
 } from '../../@types/FleetDocument.ts';
 import type { CommandFailure, CommandState }        from '../../api/CommandSender.ts';
-import type { DotCondition }                        from '../../design-system/ConditionDot.tsx';
-import type { RefusedBy }                           from '../../design-system/Refusal.tsx';
+import type { DotCondition }                        from '../../components/ConditionDot.tsx';
+import type { RefusedBy }                           from '../../components/Refusal.tsx';
+import type { ButtonEmphasis }                      from '../../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                        from '../../shared/@types/ClockReading.ts';
 import { CommandFailureTextUtil, type RefusalText } from '../../shared/utils/CommandFailureTextUtil.ts';
 import { CountTextUtil }                            from '../../shared/utils/CountTextUtil.ts';

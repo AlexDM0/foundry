@@ -5,13 +5,16 @@
  * that reads it shows, and the tab starts at Background for every decision, since the column is keyed by it.
  */
 
-import { Callout }            from 'design-system/Callout';
-import { KeyedLineList }      from 'design-system/KeyedLineList';
-import { MonoId }             from 'design-system/MonoId';
-import { Tabs, type TabItem } from 'design-system/Tabs';
-import { TextButton }         from 'design-system/TextButton';
-import { TitledBlock }        from 'design-system/TitledBlock';
-import { useState }           from 'react';
+import { useState } from 'react';
+import {
+  Callout,
+  KeyedLineList,
+  MonoId,
+  type TabItem,
+  Tabs,
+  TextButton,
+  TitledBlock
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { TranscriptFollower } from '../../@types/BoardServices.ts';
 import { EpicChips }               from '../../chips/EpicChips.tsx';

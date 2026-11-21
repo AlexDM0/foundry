@@ -2,10 +2,10 @@
  * A session's transcript, followed from the forge's job stream through Gaia's relay and shown as text, every entry with its role; the
  * board never parses a vendor line, and an agent's text never reaches the DOM as markup. The Agents view words an entry's mark and line its own way.
  */
-import { Stamp, type StampProps } from 'design-system/Stamp';
-import { useEffect, useState }    from 'react';
+import { useEffect, useState } from 'react';
 
 import type { BoardTranscriptEntryDocument }    from '../../@types/board/ConversationDocument.ts';
+import { Stamp, type StampProps }               from '../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }              from '../@types/BoardServices.ts';
 import { presenceAttributeOf, useItemPresence } from '../shell/ItemPresence.ts';
 

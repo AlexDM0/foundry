@@ -9,7 +9,7 @@ import type {
   FleetDocumentPresenceState,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { DotCondition } from '../../design-system/ConditionDot.tsx';
+import type { DotCondition } from '../../components/ConditionDot.tsx';
 
 import { CountTextUtil } from './CountTextUtil.ts';
 

@@ -6,10 +6,6 @@
  * caught before the detail panel's, which then stays open: one Esc closes one thing.
  */
 
-import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
-import { Popover }          from 'design-system/Popover';
-import { SegmentedControl } from 'design-system/SegmentedControl';
-import { TextButton }       from 'design-system/TextButton';
 import {
   useCallback,
   useEffect,
@@ -20,7 +16,13 @@ import {
 } from 'react';
 
 import type { BoardEpicDocument, BoardTicketDocument } from '../../@types/board/BoardTicketDocuments.ts';
-import type { PreferenceStore }                        from '../preferences/PreferenceStore.ts';
+import {
+  MicroCapsLabel,
+  Popover,
+  SegmentedControl,
+  TextButton
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import type { PreferenceStore } from '../preferences/PreferenceStore.ts';
 import {
   DEFAULT_FINISHED_WORK_CHOICE,
   FINISHED_WORK_CHOICE_NAME,

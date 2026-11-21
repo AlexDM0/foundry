@@ -2,11 +2,13 @@
  * The Merge queue lane's detail: no controls of its own, since merge moves belong to the incident or decision they answer, and a ticket
  * waiting for merge links to its detail panel, which holds Accept and Update branch. It is the merge-queue habitat of Flint.
  */
-import { Card }       from 'design-system/Card';
-import { EmptyState } from 'design-system/EmptyState';
-import { IdLink }     from 'design-system/IdLink';
-import { StateBadge } from 'design-system/StateBadge';
-import { useRef }     from 'react';
+import { useRef } from 'react';
+import {
+  Card,
+  EmptyState,
+  IdLink,
+  StateBadge
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { PriorityMark }                               from '../../chips/TicketMarks.tsx';
 import { useHabitatCues }                             from '../../flint/UseHabitatHappenings.ts';

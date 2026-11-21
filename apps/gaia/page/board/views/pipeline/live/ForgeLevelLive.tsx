@@ -6,26 +6,28 @@
  * Apply over entities, the Ticket phase also counts the product owner's entity assignments and opens their progress. Nothing here
  * changes the pipeline: an update does that.
  */
-import { DataTable }                      from 'design-system/DataTable';
-import { MonoId }                         from 'design-system/MonoId';
-import { Row }                            from 'design-system/Row';
-import { Tag }                            from 'design-system/Tag';
-import { Text }                           from 'design-system/Text';
-import { View }                           from 'design-system/View';
 import type { ReactNode }                 from 'react';
 import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { useBoardHrefOf }                 from '../../../shell/BoardRouteLinks.ts';
-import { StateToneUtil }                  from '../../../utils/StateToneUtil.ts';
-import { EntityAssignmentLine }           from '../apply/EntityAssignmentProgress.tsx';
-import { ForgeLevelPageModel }            from '../entities/ForgeLevelPageModel.ts';
-import { PhaseKicker }                    from '../entities/PhaseKicker.tsx';
-import type { FlowSelection }             from '../flow/FlowSelection.ts';
-import { PipelineFlowModel }              from '../flow/PipelineFlowModel.ts';
-import { StepCard }                       from '../flow/StepCard.tsx';
-import { EntityWorkModel }                from './EntityWorkModel.ts';
-import { FlowActivityPanelModel }         from './FlowActivityPanelModel.ts';
-import { ForgeLevelLiveModel }            from './ForgeLevelLiveModel.ts';
-import type { LivePipelineFacts }         from './LivePipelineModel.ts';
+import {
+  DataTable,
+  MonoId,
+  Row,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { useBoardHrefOf }         from '../../../shell/BoardRouteLinks.ts';
+import { StateToneUtil }          from '../../../utils/StateToneUtil.ts';
+import { EntityAssignmentLine }   from '../apply/EntityAssignmentProgress.tsx';
+import { ForgeLevelPageModel }    from '../entities/ForgeLevelPageModel.ts';
+import { PhaseKicker }            from '../entities/PhaseKicker.tsx';
+import type { FlowSelection }     from '../flow/FlowSelection.ts';
+import { PipelineFlowModel }      from '../flow/PipelineFlowModel.ts';
+import { StepCard }               from '../flow/StepCard.tsx';
+import { EntityWorkModel }        from './EntityWorkModel.ts';
+import { FlowActivityPanelModel } from './FlowActivityPanelModel.ts';
+import { ForgeLevelLiveModel }    from './ForgeLevelLiveModel.ts';
+import type { LivePipelineFacts } from './LivePipelineModel.ts';
 
 type MergeTrainColumn = 'position' | 'ticket' | 'entity' | 'state' | 'waiting';
 

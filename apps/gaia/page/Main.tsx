@@ -3,12 +3,12 @@
  * the fragment, then follows Gaia's event stream and mounts the one React root over the browser's own location, storage and title. The
  * fleet source starts empty; the event stream fills it.
  */
-import { loadDesignSystemFonts } from 'design-system/FontLoader';
-import { StrictMode }            from 'react';
-import { createRoot }            from 'react-dom/client';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 
 import { CommandSender }                     from './api/CommandSender.ts';
 import { FleetStreamClient }                 from './api/FleetStreamClient.ts';
+import { loadDesignSystemFonts }             from './lib/design-system/DesignSystemInterface.ts';
 import { createFleetSource }                 from './shell/FleetSource.ts';
 import { browserShellSurroundings, GaiaApp } from './shell/GaiaApp.tsx';
 import { SessionCodeExchange }               from './shell/SessionCodeExchange.ts';

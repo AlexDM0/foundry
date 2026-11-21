@@ -5,10 +5,6 @@
  * habitat of Flint (`page/board/flint/UseTicketsHabitat.ts`).
  */
 
-import { Button }       from 'design-system/Button';
-import { SegmentMeter } from 'design-system/SegmentMeter';
-import { StateBadge }   from 'design-system/StateBadge';
-import { TextButton }   from 'design-system/TextButton';
 import {
   useMemo,
   useRef,
@@ -18,7 +14,13 @@ import {
   type MouseEvent
 } from 'react';
 
-import type { BoardDocument }                    from '../../../@types/board/BoardDocument.ts';
+import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
+import {
+  Button,
+  SegmentMeter,
+  StateBadge,
+  TextButton
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 import { ChipFilterUtil }                        from '../../chips/ChipFilterUtil.ts';
 import { CARD_EPIC_CHIP_LIMIT }                  from '../../chips/EpicChipUtil.ts';
 import { EpicChips }                             from '../../chips/EpicChips.tsx';

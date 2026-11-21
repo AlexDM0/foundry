@@ -4,11 +4,9 @@
  * (SCREENS C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
  */
 import { describe, expect, test } from 'bun:test';
-import { Card }                   from 'design-system/Card';
-import { Checkbox }               from 'design-system/Checkbox';
-import { Dialog }                 from 'design-system/Dialog';
+import type { CommandStates }     from '../../api/CommandSender.ts';
+import { Card, Checkbox, Dialog } from '../../lib/design-system/DesignSystemInterface.ts';
 
-import type { CommandStates }                                  from '../../api/CommandSender.ts';
 import { senderOver }                                          from '../../testing/CommandServer.ts';
 import { ReactElementTree }                                    from '../../testing/ReactElementTree.ts';
 import { FLEET_FIVE_FORGES }                                   from '../../testing/fixtures/fleet-five-forges.ts';

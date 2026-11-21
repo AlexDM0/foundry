@@ -1,10 +1,10 @@
 /** A job's calls against its budget: a fill meter in its role's lane colour and the figure, "used · none" for a session with no budget. */
-import { FillMeter } from 'design-system/FillMeter';
-
 import type { BoardDisplayState } from '../../../@types/board/BoardVocabulary.ts';
-import { StateToneUtil }          from '../../utils/StateToneUtil.ts';
-import type { AgentJobDocument }  from './AgentJobDocument.ts';
-import { AgentsModel }            from './AgentsModel.ts';
+import { FillMeter }              from '../../../lib/design-system/DesignSystemInterface.ts';
+
+import { StateToneUtil }         from '../../utils/StateToneUtil.ts';
+import type { AgentJobDocument } from './AgentJobDocument.ts';
+import { AgentsModel }           from './AgentsModel.ts';
 
 export interface CallBudgetMeterProps {
   readonly job:       AgentJobDocument;

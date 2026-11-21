@@ -3,18 +3,20 @@
  * copy is a set of ordinary edits shown as one row in Changes, and sends them as one copy. Once the Overseer applied it, the popover closes
  * and the head says where the gates went and how many edits it made.
  */
-import { Button }                               from 'design-system/Button';
-import { Checkbox }                             from 'design-system/Checkbox';
-import { Popover }                              from 'design-system/Popover';
-import { Text }                                 from 'design-system/Text';
-import { View }                                 from 'design-system/View';
 import { useRef, useState }                     from 'react';
 import type { BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardGatePhase }                  from '../../../../@types/board/BoardVocabulary.ts';
-import { CommandButton }                        from '../../../shell/CommandButton.tsx';
-import { CopyBetweenEntitiesDialogModel }       from '../editing/CopyBetweenEntitiesDialogModel.ts';
-import type { DraftEditTarget }                 from '../flow/PipelineFlowModel.ts';
-import { GatesAreaModel }                       from './GatesAreaModel.ts';
+import {
+  Button,
+  Checkbox,
+  Popover,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CommandButton }                  from '../../../shell/CommandButton.tsx';
+import { CopyBetweenEntitiesDialogModel } from '../editing/CopyBetweenEntitiesDialogModel.ts';
+import type { DraftEditTarget }           from '../flow/PipelineFlowModel.ts';
+import { GatesAreaModel }                 from './GatesAreaModel.ts';
 
 export interface CopyToEntityMenuProps {
   readonly phase:         BoardGatePhase;

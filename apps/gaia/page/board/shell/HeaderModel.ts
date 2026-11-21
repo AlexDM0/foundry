@@ -5,10 +5,10 @@
  * line's (`IncidentNoticeModel.ts`), one line however many. While the board has no readable pipeline the header is in setup: its state
  * pill reads Setting up, and it holds the setup steps with the record's statuses, and no usage.
  */
-import type { StepperStep } from 'design-system/Stepper';
 
 import type { BoardDocument, BoardOverseerDocument, BoardUsageDocument } from '../../@types/board/BoardDocument.ts';
 import type { BoardSetupRecordDocument }                                 from '../../@types/board/BoardPipelineDocuments.ts';
+import type { StepperStep }                                              from '../../lib/design-system/DesignSystemInterface.ts';
 import { CountTextUtil }                                                 from '../../shared/utils/CountTextUtil.ts';
 import type { ConnectionState }                                          from '../api/BoardEventStreamClient.ts';
 import { TimeUtil }                                                      from '../utils/TimeUtil.ts';

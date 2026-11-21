@@ -2,15 +2,17 @@
  * The panel beside the Agents table: the selected agent's job, state and ticket, what its forge reports of it, its last line, and the way
  * to the agent in its forge. Gaia sends an agent no message and stops no single job, and the panel says so in every state of a job.
  */
-import { Button }         from 'design-system/Button';
-import { FactList }       from 'design-system/FactList';
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { MonoId }         from 'design-system/MonoId';
-import { Tag }            from 'design-system/Tag';
-import { Text }           from 'design-system/Text';
 import type { ReactNode } from 'react';
 
-import { RoleDot }                              from '../../design-system/RoleDot.tsx';
+import { RoleDot } from '../../components/RoleDot.tsx';
+import {
+  Button,
+  FactList,
+  MicroCapsLabel,
+  MonoId,
+  Tag,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import type { AgentFact, SelectedAgentContent } from './AgentsModel.ts';
 import { AgentCallsMeter, RoleWord }            from './AgentsTable.tsx';
 

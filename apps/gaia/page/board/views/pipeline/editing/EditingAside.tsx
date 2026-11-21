@@ -6,11 +6,9 @@
  * agent's tab. Over entities (MonoEditing) the Changes tab groups the changes of every level, a copy's set with one Undo, names the
  * entities the check covers, and the agent's tab is the session of the level shown.
  */
-import { CountBadge }                                          from 'design-system/CountBadge';
-import { Tabs }                                                from 'design-system/Tabs';
-import { Text }                                                from 'design-system/Text';
 import { useState }                                            from 'react';
 import type { BoardPipelineSetupDocument }                     from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { CountBadge, Tabs, Text }                              from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }                             from '../../../@types/BoardServices.ts';
 import { type BoardClock, useTickingNow }                      from '../../../shell/BoardClock.ts';
 import { CommandButton }                                       from '../../../shell/CommandButton.tsx';

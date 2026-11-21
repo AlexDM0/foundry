@@ -722,8 +722,8 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('monorepo-scripts/CacheAudit') })).toEqual([
       `workspace-package-not-declared — cli/overseer/PlantedPart.ts:1 imports monorepo-scripts/CacheAudit: ${undeclaredReason}`,
     ]);
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('design-system/Button') })).toEqual([
-      `workspace-package-not-declared — cli/overseer/PlantedPart.ts:1 imports design-system/Button: ${undeclaredReason}`,
+    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('gaia/page/Main.tsx') })).toEqual([
+      `workspace-package-not-declared — cli/overseer/PlantedPart.ts:1 imports gaia/page/Main.tsx: ${undeclaredReason}`,
     ]);
     expect(plantedSentencesOf({ 'forge-contracts/constants/PlantedValue.ts': importing('forge') })).toEqual([
       `workspace-package-not-declared — forge-contracts/constants/PlantedValue.ts:1 imports forge: ${undeclaredReason}`,

@@ -5,18 +5,20 @@
  * Cancel, and a gate with no phase ticked cannot be saved. At an entity's level of a monorepo screen, its profile measures that entity's gate.
  */
 
-import { Button }                                                            from 'design-system/Button';
-import { Dialog }                                                            from 'design-system/Dialog';
-import { Switch }                                                            from 'design-system/Switch';
-import { Text }                                                              from 'design-system/Text';
-import { View }                                                              from 'design-system/View';
 import { useId, useState }                                                   from 'react';
 import type { BoardGateProfileRunDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import { BOARD_GATE_PHASES, type BoardPipelineNodeMark }                     from '../../../../@types/board/BoardVocabulary.ts';
-import type { ProfileLogFollower }                                           from '../../../@types/BoardServices.ts';
-import { entityKeyOfScope, useMonorepoLevelScope }                           from '../entities/MonorepoLevelContext.ts';
-import type { PipelineFlowEditSender }                                       from '../flow/PipelineFlowEditSender.ts';
-import { GatesAreaModel }                                                    from '../gates/GatesAreaModel.ts';
+import {
+  Button,
+  Dialog,
+  Switch,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { ProfileLogFollower }                 from '../../../@types/BoardServices.ts';
+import { entityKeyOfScope, useMonorepoLevelScope } from '../entities/MonorepoLevelContext.ts';
+import type { PipelineFlowEditSender }             from '../flow/PipelineFlowEditSender.ts';
+import { GatesAreaModel }                          from '../gates/GatesAreaModel.ts';
 
 import { GateDialogModel, type GateDialogSubject, type GateForm } from './GateDialogModel.ts';
 import { ProfileBox }                                             from './ProfileBox.tsx';

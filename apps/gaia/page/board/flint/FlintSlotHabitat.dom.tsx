@@ -13,9 +13,8 @@ import {
 } from '@testing-library/react';
 import { afterEach, expect, test } from 'bun:test';
 
-import type { SpriteHabitat } from 'flint/SpriteHabitat';
-import { useFlintHabitat }    from 'flint/react/UseFlintHabitat';
-import { useRef }             from 'react';
+import { useRef }                              from 'react';
+import { type SpriteHabitat, useFlintHabitat } from '../../lib/flint/FlintInterface.ts';
 import {
   elementOf,
   flintHabitatSceneOf,

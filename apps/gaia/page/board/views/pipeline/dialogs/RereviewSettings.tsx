@@ -5,20 +5,22 @@
  * switch and threshold alone, and an entity sets its own conflict re-reviewer, with the forge's switch and threshold read only and linked.
  */
 
-import { Card }           from 'design-system/Card';
-import { NumberStepper }  from 'design-system/NumberStepper';
-import { Row }            from 'design-system/Row';
-import { Switch }         from 'design-system/Switch';
-import { Tag }            from 'design-system/Tag';
-import { Text }           from 'design-system/Text';
-import { TextButton }     from 'design-system/TextButton';
-import { View }           from 'design-system/View';
 import type { RefObject } from 'react';
 
 import type { BoardPipelineChoicesDocument, BoardResolvedInstructionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { InstructionsEditor }                                                  from './InstructionsEditor.tsx';
-import type { ConstitutionPlace }                                              from './InstructionsEditorModel.ts';
-import { ModelEffortFields }                                                   from './ModelEffortFields.tsx';
+import {
+  Card,
+  NumberStepper,
+  Row,
+  Switch,
+  Tag,
+  Text,
+  TextButton,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { InstructionsEditor }     from './InstructionsEditor.tsx';
+import type { ConstitutionPlace } from './InstructionsEditorModel.ts';
+import { ModelEffortFields }      from './ModelEffortFields.tsx';
 import {
   RereviewSettingsModel,
   type ReReviewForm,

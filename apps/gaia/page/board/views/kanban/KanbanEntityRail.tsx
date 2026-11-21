@@ -3,11 +3,14 @@
  * every entity, then the entities in the groups Apps, Packages and Root, each with the count of open tickets it holds. A press shows only
  * that entity's tickets; the chosen row is pressed.
  */
-import { CountBadge }                           from 'design-system/CountBadge';
-import { MonoId }                               from 'design-system/MonoId';
-import { SelectionRail, type SelectionRailRow } from 'design-system/SelectionRail';
-import { Text }                                 from 'design-system/Text';
-import { useState }                             from 'react';
+import { useState } from 'react';
+import {
+  CountBadge,
+  MonoId,
+  SelectionRail,
+  type SelectionRailRow,
+  Text
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { KanbanEntityFilterModel, type KanbanEntityFilter, type KanbanEntityRailRow } from './KanbanEntityFilterModel.ts';
 

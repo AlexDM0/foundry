@@ -4,14 +4,14 @@
  * where the questions may stand side by side; the first answer wins, and a later one shows the forge's refusal beside the control. An
  * option shows what it touches, trades off and does to the Acceptance once the asking agent noted it.
  */
-import { ChoiceInput, ChoiceMark, ChoiceOption } from 'design-system/ChoiceOption';
-import { useState, type ReactNode }              from 'react';
+import { useState, type ReactNode } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }     from '../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument } from '../../@types/board/BoardDecisionDocuments.ts';
-import { CommandButton }              from '../shell/CommandButton.tsx';
-import { presenceAttributeOf }        from '../shell/ItemPresence.ts';
-import type { ItemPresence }          from '../utils/ItemPresenceUtil.ts';
+import { PAGE_CONTRACT_VERSIONS }                from '../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardDecisionDocument }            from '../../@types/board/BoardDecisionDocuments.ts';
+import { ChoiceInput, ChoiceMark, ChoiceOption } from '../../lib/design-system/DesignSystemInterface.ts';
+import { CommandButton }                         from '../shell/CommandButton.tsx';
+import { presenceAttributeOf }                   from '../shell/ItemPresence.ts';
+import type { ItemPresence }                     from '../utils/ItemPresenceUtil.ts';
 import {
   CardHead,
   JobLink,

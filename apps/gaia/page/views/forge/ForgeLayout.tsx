@@ -5,20 +5,23 @@
  * Overseer and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
  * talk to or why its board cannot be shown. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { ForgeMark }                 from 'brand/ForgeMark';
-import { Button }                    from 'design-system/Button';
-import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
-import { ConfirmStrip }              from 'design-system/ConfirmStrip';
-import { IconButton }                from 'design-system/IconButton';
-import { MonoId }                    from 'design-system/MonoId';
-import { Popover }                   from 'design-system/Popover';
-import { Text }                      from 'design-system/Text';
 import type { ReactNode, RefObject } from 'react';
 
-import type { ForgeCommandBody, ForgeStopAgents }  from '../../@types/CommandDocument.ts';
-import { ButtonGlyph }                             from '../../design-system/ButtonGlyph.tsx';
-import { ConditionDot }                            from '../../design-system/ConditionDot.tsx';
-import { Refusal }                                 from '../../design-system/Refusal.tsx';
+import type { ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
+import { ButtonGlyph }                            from '../../components/ButtonGlyph.tsx';
+import { ConditionDot }                           from '../../components/ConditionDot.tsx';
+import { Refusal }                                from '../../components/Refusal.tsx';
+import { ForgeMark }                              from '../../lib/brand/BrandInterface.ts';
+import {
+  Button,
+  ChoiceInput,
+  ChoiceOption,
+  ConfirmStrip,
+  IconButton,
+  MonoId,
+  Popover,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import { VersionsPair }                            from '../../shared/VersionsPair.tsx';
 import { VersionsText }                            from '../../shared/VersionsText.tsx';
 import { ForgeCommandTextUtil, type StopQuestion } from '../../shared/utils/ForgeCommandTextUtil.ts';

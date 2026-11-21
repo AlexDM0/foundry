@@ -5,16 +5,18 @@
  * dialog's Save.
  */
 
-import { Button }                                                          from 'design-system/Button';
-import { Dialog }                                                          from 'design-system/Dialog';
-import { ListedFile }                                                      from 'design-system/ListedFile';
-import { Row }                                                             from 'design-system/Row';
-import { Switch }                                                          from 'design-system/Switch';
-import { Text }                                                            from 'design-system/Text';
-import { TextButton }                                                      from 'design-system/TextButton';
 import { useId, useState }                                                 from 'react';
 import type { BoardInstructionDocument, BoardResolvedInstructionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { FlowGlyph }                                                       from '../flow/FlowGlyph.tsx';
+import {
+  Button,
+  Dialog,
+  ListedFile,
+  Row,
+  Switch,
+  Text,
+  TextButton
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { FlowGlyph } from '../flow/FlowGlyph.tsx';
 
 import type { StepDialogRole }                                                      from './AgentStepDialogModel.ts';
 import { InstructionsEditorModel, type ConstitutionPlace, type InstructionRowView } from './InstructionsEditorModel.ts';

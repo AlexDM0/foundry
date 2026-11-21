@@ -2,8 +2,8 @@
  * Whether the window is as narrow as the width under which `board.css` wraps the header figures and the tab bar's filter line to the left
  * edge, so a popover hanging from them opens from its anchor's start instead of its end.
  */
-import type { PopoverPlacement } from 'design-system/Popover';
 import { useSyncExternalStore }  from 'react';
+import type { PopoverPlacement } from '../../lib/design-system/DesignSystemInterface.ts';
 
 
 /** The `@media (max-width: 900px)` blocks of `board.css` that move the header figures and the filter line to the left. */

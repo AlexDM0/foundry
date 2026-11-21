@@ -4,17 +4,19 @@
  * with the notification allowance while it is unasked. The ages tick each second from the injected clock while the stream is live.
  */
 
-import { Button }         from 'design-system/Button';
-import { IdLink }         from 'design-system/IdLink';
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { SectionHead }    from 'design-system/SectionHead';
-import { Stamp }          from 'design-system/Stamp';
 import {
   useEffect,
   useRef,
   type MouseEvent,
   type ReactNode
 } from 'react';
+import {
+  Button,
+  IdLink,
+  MicroCapsLabel,
+  SectionHead,
+  Stamp
+} from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { AskItem, type AskAge }                                           from '../conversation/AskItem.tsx';
 import { JobLink }                                                        from '../conversation/ConversationParts.tsx';

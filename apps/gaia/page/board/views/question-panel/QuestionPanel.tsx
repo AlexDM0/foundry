@@ -6,17 +6,6 @@
  * the questions habitat of Flint (`board/flint/UseQuestionsHabitat.ts`).
  */
 
-import { Button } from 'design-system/Button';
-import { MonoId } from 'design-system/MonoId';
-import {
-  SidePanel,
-  SidePanelBody,
-  SidePanelFoot,
-  SidePanelHead
-} from 'design-system/SidePanel';
-import { Stamp }    from 'design-system/Stamp';
-import { StateDot } from 'design-system/StateDot';
-import { Tag }      from 'design-system/Tag';
 import {
   useEffect,
   useLayoutEffect,
@@ -25,6 +14,17 @@ import {
   useState,
   type ReactNode
 } from 'react';
+import {
+  Button,
+  MonoId,
+  SidePanel,
+  SidePanelBody,
+  SidePanelFoot,
+  SidePanelHead,
+  Stamp,
+  StateDot,
+  Tag
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { TranscriptFollower }                                              from '../../@types/BoardServices.ts';
 import { TicketLinks }                                                          from '../../conversation/ConversationParts.tsx';

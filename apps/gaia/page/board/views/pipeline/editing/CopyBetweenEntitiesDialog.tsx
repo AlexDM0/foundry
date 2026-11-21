@@ -3,14 +3,16 @@
  * (gates with their phases, prepare steps, agent settings), a preview line for each target the copy changes, and Copy, which sends the set
  * as one copy and closes once the Overseer applied it. With no target or nothing to copy, the foot says what to pick.
  */
-import { Button }                                                        from 'design-system/Button';
-import { Checkbox }                                                      from 'design-system/Checkbox';
-import { Dialog }                                                        from 'design-system/Dialog';
-import { SegmentedControl }                                              from 'design-system/SegmentedControl';
-import { Text }                                                          from 'design-system/Text';
-import { View }                                                          from 'design-system/View';
-import { useState }                                                      from 'react';
-import type { BoardPipelineDefinitionDocument }                          from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useState }                             from 'react';
+import type { BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  SegmentedControl,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                                 from '../../../shell/CommandButton.tsx';
 import type { DraftEditTarget }                                          from '../flow/PipelineFlowModel.ts';
 import { COPIED_PARTS, CopyBetweenEntitiesDialogModel, type CopiedPart } from './CopyBetweenEntitiesDialogModel.ts';

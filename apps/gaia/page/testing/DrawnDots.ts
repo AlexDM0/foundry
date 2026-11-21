@@ -2,10 +2,10 @@
  * Test-only: reads back which condition or role a drawn dot shows, from the tone and shape Gaia hands the package's state dot, kept folded,
  * so a view's spec can still claim "the dots read live, live, held".
  */
-import { StateDot } from 'design-system/StateDot';
 
-import { CONDITION_LOOKS, type DotCondition } from '../design-system/ConditionDot.tsx';
-import { type DotRole, ROLE_LOOKS }           from '../design-system/RoleDot.tsx';
+import { CONDITION_LOOKS, type DotCondition } from '../components/ConditionDot.tsx';
+import { type DotRole, ROLE_LOOKS }           from '../components/RoleDot.tsx';
+import { StateDot }                           from '../lib/design-system/DesignSystemInterface.ts';
 import { type HostElement, ReactElementTree } from './ReactElementTree.ts';
 
 /** The package's state dot is solid unless it is given a shape. */

@@ -2,10 +2,10 @@
  * The delivered and abandoned tickets the finished-work choice lets through, latest closed first, in a card under the Progress chart. Each
  * line is drawn as a chart row is, its id, title and state badge, and opens its ticket's row detail in place.
  */
-import { StateBadge } from 'design-system/StateBadge';
 
 import type { BoardTicketDocument }                  from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardDisplayState }                    from '../../../@types/board/BoardVocabulary.ts';
+import { StateBadge }                                from '../../../lib/design-system/DesignSystemInterface.ts';
 import { TicketIdMark }                              from '../../chips/TicketMarks.tsx';
 import { useDetailRouting }                          from '../../shell/DetailRouting.ts';
 import { DisplayStateWordingUtil }                   from '../../utils/DisplayStateWordingUtil.ts';

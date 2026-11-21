@@ -3,13 +3,11 @@
  * either sends its draft edit or asks for a new gate's dialog in its phase; while the shell holds controls, every choice is disabled.
  */
 
-import { Card }  from 'design-system/Card';
-import { Row }   from 'design-system/Row';
-import { Text }  from 'design-system/Text';
 import { useId } from 'react';
 
 import type { BoardDraftEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardGatePhase }         from '../../../../@types/board/BoardVocabulary.ts';
+import { Card, Row, Text }             from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { FlowGlyph }                   from './FlowGlyph.tsx';
 
 import type { FlowInsertChoice, FlowSlotView } from './PipelineFlowModel.ts';

@@ -4,11 +4,11 @@
  * says that it must be opened again, naming no command; a live or connecting stream shows none.
  */
 import { describe, expect, test } from 'bun:test';
-import { Banner }                 from 'design-system/Banner';
+import type { FleetStreamState }  from '../api/FleetStreamClient.ts';
+import { Banner }                 from '../lib/design-system/DesignSystemInterface.ts';
 
-import type { FleetStreamState } from '../api/FleetStreamClient.ts';
-import { ReactElementTree }      from '../testing/ReactElementTree.ts';
-import { ConnectionBanner }      from './ConnectionBanner.tsx';
+import { ReactElementTree } from '../testing/ReactElementTree.ts';
+import { ConnectionBanner } from './ConnectionBanner.tsx';
 
 const tree = ReactElementTree;
 

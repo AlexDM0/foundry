@@ -5,10 +5,9 @@
  */
 import { act, render } from '@testing-library/react';
 
-import type { FlintHandle }                                from 'flint';
-import type { Director, PerceptionDigest }                 from 'flint/SpriteHabitat';
 import { createElement, type ReactElement }                from 'react';
 import { PRODUCT_NAMES }                                   from '../../../src/shared/constants/ProductNames.ts';
+import type { Director, FlintHandle, PerceptionDigest }    from '../../lib/flint/FlintInterface.ts';
 import { BoardFlint }                                      from '../flint/BoardFlint.tsx';
 import { FLINT_HABITAT_CHOICE_NAME }                       from '../flint/FlintHabitatStorage.ts';
 import { boardPreferenceStoreOf }                          from '../preferences/PreferenceStore.ts';

@@ -4,14 +4,16 @@
  * the trail of steps made under them, a delivery linking its Assistant and an escalation its decision, each applied default in the
  * warning state. While no session is up the thread says a fresh one is booting.
  */
-import { ListSection } from 'design-system/ListSection';
-import { Row }         from 'design-system/Row';
-import { Stamp }       from 'design-system/Stamp';
-import { Tag }         from 'design-system/Tag';
-import { Text }        from 'design-system/Text';
-import { View }        from 'design-system/View';
-
 import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
+import {
+  ListSection,
+  Row,
+  Stamp,
+  Tag,
+  Text,
+  View
+} from '../../../lib/design-system/DesignSystemInterface.ts';
+
 
 import type { TranscriptFollower } from '../../@types/BoardServices.ts';
 import type { ChatTurn }           from '../../conversation/ChatThread.tsx';

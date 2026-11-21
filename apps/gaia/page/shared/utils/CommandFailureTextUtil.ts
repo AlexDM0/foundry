@@ -4,7 +4,7 @@
  */
 import type { CommandKind, CommandOutcome } from '../../@types/CommandDocument.ts';
 import type { CommandFailure }              from '../../api/CommandSender.ts';
-import type { RefusedBy }                   from '../../design-system/Refusal.tsx';
+import type { RefusedBy }                   from '../../components/Refusal.tsx';
 
 export interface RefusalText {
   readonly refusedBy: RefusedBy;

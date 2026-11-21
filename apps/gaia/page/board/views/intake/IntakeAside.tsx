@@ -2,13 +2,11 @@
  * Beside a session's chat: the tickets it filed, each linking to its card with its status badge; the pictures sent in the chat; and, while
  * the session is live, Close intake (`intake-close`), which offers its drafts to ready.
  */
-import { MonoId }     from 'design-system/MonoId';
-import { StateBadge } from 'design-system/StateBadge';
-import { Text }       from 'design-system/Text';
 
 import { PAGE_CONTRACT_VERSIONS }              from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardTicketDocument }            from '../../../@types/board/BoardTicketDocuments.ts';
 import type { BoardTranscriptPictureDocument } from '../../../@types/board/ConversationDocument.ts';
+import { MonoId, StateBadge, Text }            from '../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf }                      from '../../shell/BoardRouteLinks.ts';
 import { CommandButton }                       from '../../shell/CommandButton.tsx';
 import { DetailRoute }                         from '../../shell/DetailRoute.ts';

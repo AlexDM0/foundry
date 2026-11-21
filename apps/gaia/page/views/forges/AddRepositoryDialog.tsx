@@ -4,10 +4,9 @@
  * or `start` shows in it. Its body and foot take no hooks, the package's dialog holds them; `AddRepositoryDialog` keeps the form and sends
  * its commands.
  */
-import { Button } from 'design-system/Button';
-import { Dialog } from 'design-system/Dialog';
-
 import { type CommandStates, type CommandSubject, useCommandSender } from '../../api/CommandSender.ts';
+import { Button, Dialog }                                            from '../../lib/design-system/DesignSystemInterface.ts';
+
 import {
   AddRepositoryFields,
   type AddRepositorySentResults,

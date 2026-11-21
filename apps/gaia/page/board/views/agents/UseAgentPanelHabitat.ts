@@ -6,8 +6,6 @@
  * as shown, so a return to the view cues none again.
  */
 
-import type { SpriteCopyTarget } from 'flint/SpriteHabitat';
-import { useFlintHabitat }       from 'flint/react/UseFlintHabitat';
 import {
   useEffect,
   useMemo,
@@ -17,6 +15,7 @@ import {
 } from 'react';
 
 import type { BoardOverseerDocument }                  from '../../../@types/board/BoardDocument.ts';
+import { type SpriteCopyTarget, useFlintHabitat }      from '../../../lib/flint/FlintInterface.ts';
 import { useCueOnChange }                              from '../../flint/UseCueOnChange.ts';
 import type { EndedAgentJobDocument }                  from './AgentJobDocument.ts';
 import { AGENT_PANEL_CUES, agentPanelSpriteHabitatOf } from './AgentPanelSpriteHabitat.ts';

@@ -6,9 +6,7 @@
  * panel holds the session of one level, the forge's or one entity's: its job, its questions and its findings, never another level's; the
  * open questions of the other levels are only counted and linked.
  */
-import type { TagProps } from 'design-system/Tag';
 
-import type { SpriteHabitat }        from 'flint/SpriteHabitat';
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
 import type {
@@ -19,6 +17,8 @@ import type {
 } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardDisplayState, BoardJobState, BoardSetupQuestionStep } from '../../../../@types/board/BoardVocabulary.ts';
 import type { BoardTranscriptEntryDocument }                             from '../../../../@types/board/ConversationDocument.ts';
+import type { TagProps }                                                 from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { SpriteHabitat }                                            from '../../../../lib/flint/FlintInterface.ts';
 import type { ChatTurn }                                                 from '../../../conversation/ChatThread.tsx';
 import { ChatThreadModelUtil }                                           from '../../../conversation/ChatThreadModel.ts';
 import { ChatTurnWordingUtil }                                           from '../../../conversation/ChatTurnWordingUtil.ts';

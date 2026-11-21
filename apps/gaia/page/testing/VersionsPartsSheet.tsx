@@ -5,8 +5,8 @@
  */
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import { ConditionDot }                                  from '../design-system/ConditionDot.tsx';
-import { VersionsVerdictLabel }                          from '../design-system/VersionsVerdictMark.tsx';
+import { ConditionDot }                                  from '../components/ConditionDot.tsx';
+import { VersionsVerdictLabel }                          from '../components/VersionsVerdictMark.tsx';
 import { VersionsPair }                                  from '../shared/VersionsPair.tsx';
 import { VersionsLine }                                  from '../shared/VersionsText.tsx';
 import { ForgeTextUtil, type ShownCondition }            from '../shared/utils/ForgeTextUtil.ts';

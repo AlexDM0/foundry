@@ -11,7 +11,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { SpriteIntent }                                         from 'flint/SpriteHabitat';
+import type { SpriteIntent }                                         from '../../lib/flint/FlintInterface.ts';
 import { BoardOccasionModel, type BoardReading, type OccasionBoard } from './BoardOccasionModel.ts';
 
 type BoardChanges = Partial<Omit<OccasionBoard, 'overseer'>> & { readonly overseer?: Partial<OccasionBoard['overseer']> };

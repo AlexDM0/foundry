@@ -5,14 +5,16 @@
  * with the "What notifies" list.
  */
 
-import { Checkbox }                 from 'design-system/Checkbox';
-import { Switch }                   from 'design-system/Switch';
-import { Text }                     from 'design-system/Text';
-import { TextButton }               from 'design-system/TextButton';
 import { Fragment, type ReactNode } from 'react';
 
 import type { CommandSubject } from '../../api/CommandSender.ts';
-import { Refusal }             from '../../design-system/Refusal.tsx';
+import { Refusal }             from '../../components/Refusal.tsx';
+import {
+  Checkbox,
+  Switch,
+  Text,
+  TextButton
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import type {
   GaiaFact,
   GaiaPanelContent,

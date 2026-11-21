@@ -3,14 +3,13 @@
  * dot and a word, and an end such as the agent's model and effort, over the panel's tabs; under the head, the content that the caller
  * composes from the parts this file exports: a scrolling body, then a foot such as the composer.
  */
-import { Row }     from 'design-system/Row';
-import { Text }    from 'design-system/Text';
 import {
   useEffect,
   useRef,
   type ReactNode,
   type RefObject
 } from 'react';
+import { Row, Text } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 /** How near the end a reader may scroll and still be taken along to new lines. */
 const FOLLOWED_END_SLACK_PIXELS = 24;

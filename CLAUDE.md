@@ -6,17 +6,18 @@ Two apps share this Bun workspace, each under its own rules. Read the rules of w
 | --- | --- | --- |
 | `apps/forge/` | forge: the tracker, the Overseer, the Bridge, the CLI | `apps/forge/CLAUDE.md` and the path-scoped `.claude/rules/*.md` |
 | `apps/gaia/` | Gaia: one window over every forge on the machine | `apps/gaia/CLAUDE.md` |
-| `packages/<name>/` | a shared package | its own `README.md` and, where it has one, `CONSTITUTION.md`, plus the rules named below |
+| `packages/<name>/` | a shared package: `forge-contracts` and `system-versions` | its own `README.md`, plus the rules named below |
 | `docs/monorepo/` | the monorepo's design (`design.md`) and the migration checklist (`migration.md`) | this file |
 | `scripts/` | the root's own scripts (`gate:<app>`, `cache:audit`), a workspace member so turbo checks them | this file |
 
 Whose rules a package follows beside its own `README.md`:
 
-- `packages/design-system` is reached by both apps: whichever app's change it is, its `CONSTITUTION.md`, the one constitution of a
-  package here, and `.claude/rules/design-system.md`.
-- `packages/forge-contracts` and `packages/brand` are forge's. Nothing in a package forge depends on names Gaia.
-- `packages/flint` is both apps' (`.claude/rules/flint.md`) until stage 8 folds it into Gaia's page (decision 52).
+- `packages/forge-contracts` is forge's. Nothing in a package forge depends on names Gaia.
 - `packages/system-versions` is both apps'; it names no server.
+
+The design system, Flint and forge's mark are libraries of Gaia's page, under `apps/gaia/page/lib/`, each reached through its interface
+file (`apps/gaia/CLAUDE.md`). The design system's `CONSTITUTION.md` is the one constitution here and governs
+`apps/gaia/page/lib/design-system/`, with `.claude/rules/design-system.md`; `.claude/rules/flint.md` governs `apps/gaia/page/lib/flint/`.
 
 ## The two trackers
 
@@ -24,8 +25,8 @@ From the landing on, each app has its own forge tracker in its own folder, and n
 
 | Tracker | Home | Branch namespace | Reach beyond its home |
 | --- | --- | --- | --- |
-| forge's | `apps/forge/` | `forge` | every package forge depends on (`/packages/design-system`, `/packages/flint`, `/packages/forge-contracts`, `/packages/brand`, `/packages/system-versions`), `/package.json`, `/bun.lock`, `/turbo.json` |
-| Gaia's | `apps/gaia/` | `gaia` | `/packages/design-system`, `/packages/flint`, `/packages/system-versions`, `/package.json`, `/bun.lock`, `/turbo.json` |
+| forge's | `apps/forge/` | `forge` | `/packages/forge-contracts`, `/packages/system-versions`, `/package.json`, `/bun.lock`, `/turbo.json` |
+| Gaia's | `apps/gaia/` | `gaia` | `/packages/system-versions`, `/package.json`, `/bun.lock`, `/turbo.json` |
 
 - A tracker's agents change only its home and its reach; Customs refuses the rest. `scripts/`, `docs/monorepo/`, this file and
   `.claude/` are in neither tracker's reach: a person changes them.

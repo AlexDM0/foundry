@@ -3,12 +3,10 @@
  * (`intake/new`), which opens too while there is no session at all. A session the new chat just started shows as starting until a board
  * names it or a `job-ended` record does. Only the selected session's transcript is followed.
  */
-import { EmptyState } from 'design-system/EmptyState';
-import { Tag }        from 'design-system/Tag';
-import { Text }       from 'design-system/Text';
-import { useState }   from 'react';
+import { useState } from 'react';
 
 import type { BoardDocument }      from '../../../@types/board/BoardDocument.ts';
+import { EmptyState, Tag, Text }   from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower } from '../../@types/BoardServices.ts';
 import { useBoardClock }           from '../../shell/BoardClock.ts';
 import { TimeUtil }                from '../../utils/TimeUtil.ts';

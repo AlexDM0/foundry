@@ -3,8 +3,8 @@
  * `researching`, also a draft that appears researching, which is a draft opened with no question. A draft names no session, so the chat
  * of any intake session shows it.
  */
-import type { SpriteCue }                from 'flint/SpriteHabitat';
 import type { BoardFilingDraftDocument } from '../../../@types/board/BoardTicketDocuments.ts';
+import type { SpriteCue }                from '../../../lib/flint/FlintInterface.ts';
 import { CHAT_CUES }                     from '../../conversation/ChatSpriteHabitat.ts';
 
 /** The fields of an open filing draft the cue reads; the board's drafts satisfy it unchanged. */

@@ -3,12 +3,14 @@
  * chip linking to its detail. The caller words the lead and the text from the applied revision. Over entities (MonoApplyChanges) the
  * chips stand in one group per entity, a ticket that runs a package stage under the package with the crossing it comes from.
  */
-import { Card }   from 'design-system/Card';
-import { MonoId } from 'design-system/MonoId';
-import { Row }    from 'design-system/Row';
-import { Tag }    from 'design-system/Tag';
-import { Text }   from 'design-system/Text';
-import { View }   from 'design-system/View';
+import {
+  Card,
+  MonoId,
+  Row,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardHrefOf }                                from '../../../shell/BoardRouteLinks.ts';
 import { StateToneUtil }                                 from '../../../utils/StateToneUtil.ts';

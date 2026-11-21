@@ -4,10 +4,6 @@
  * focus back, and a click or focus outside discards it.
  */
 
-import { Button }           from 'design-system/Button';
-import { useDismissal }     from 'design-system/Dismissal';
-import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
-import { SegmentedControl } from 'design-system/SegmentedControl';
 import {
   useEffect,
   useId,
@@ -16,6 +12,12 @@ import {
   type KeyboardEvent,
   type RefObject
 } from 'react';
+import {
+  Button,
+  MicroCapsLabel,
+  SegmentedControl,
+  useDismissal
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import {
   customRangeDraftVerdict,

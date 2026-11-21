@@ -4,7 +4,6 @@
  * and what Gaia reads of each forge. The page's clock only prints ages and clock times; no order reads it. A value the document does not hold is absent,
  * never zero.
  */
-import type { ButtonEmphasis } from 'design-system/Button';
 
 import type { CommandAnswerDocument, CommandBody, OutageResumeOutcome } from '../../@types/CommandDocument.ts';
 import type {
@@ -17,9 +16,10 @@ import type {
   FleetDocumentLook,
   FleetDocumentLookKind,
 } from '../../@types/FleetDocument.ts';
-import type { CalloutTone }      from '../../design-system/Callout.tsx';
-import type { DotCondition }     from '../../design-system/ConditionDot.tsx';
-import type { DotRole }          from '../../design-system/RoleDot.tsx';
+import type { CalloutTone }      from '../../components/Callout.tsx';
+import type { DotCondition }     from '../../components/ConditionDot.tsx';
+import type { DotRole }          from '../../components/RoleDot.tsx';
+import type { ButtonEmphasis }   from '../../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }     from '../../shared/@types/ClockReading.ts';
 import { HashRouter }            from '../../shared/HashRouter.ts';
 import { AddRepositoryForm }     from '../../shared/add-repository/AddRepositoryForm.ts';

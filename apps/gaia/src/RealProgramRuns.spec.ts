@@ -19,6 +19,12 @@ const DIRECT_PROCESS_STARTS_ALLOWED: Readonly<Record<string, string>> = {
   'src/testing/LeakCheck.ts':          'reads the repository\'s git status and lists the run\'s child processes, to find what a run left behind',
   'src/testing/LeakCheck.spec.ts':     'runs a planted test run under the preload, since the leak check judges a whole run',
   'page/testing/RunDomSpecs.ts':       'runs the board\'s DOM specs in their own isolated test run, which bun test does not discover',
+
+  // A library of page/lib/ imports no Gaia file (`LibraryBoundaries.spec.ts`), so its test-only helpers cannot reach process-run.
+  'page/lib/design-system/testing/RunDomSpecs.ts': 'runs the design-system library\'s DOM specs in their own isolated test run',
+  'page/lib/flint/testing/RunDomSpecs.ts':         'runs the Flint library\'s DOM specs in their own isolated test run',
+  'page/lib/brand/testing/RunDomSpecs.ts':         'runs the brand library\'s DOM specs in their own isolated test run',
+  'page/lib/flint/testing/HeadlessChrome.ts':      'starts the browser that captures Flint\'s frames for a person to look at, test-only and run by no spec',
 };
 
 /** Each spec or test helper allowed to use the real process-run besides the recording specs, with the reason. */
@@ -236,6 +242,10 @@ describe('the guard on program starts', () => {
       { path: 'src/testing/LeakCheck.ts', reaches: programReachesIn('LeakCheck.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/LeakCheck.spec.ts', reaches: programReachesIn('LeakCheck.spec.ts', 'Bun.spawnSync([]);') },
       { path: 'page/testing/RunDomSpecs.ts', reaches: programReachesIn('RunDomSpecs.ts', 'Bun.spawnSync([]);') },
+      { path: 'page/lib/design-system/testing/RunDomSpecs.ts', reaches: programReachesIn('RunDomSpecs.ts', 'Bun.spawnSync([]);') },
+      { path: 'page/lib/flint/testing/RunDomSpecs.ts', reaches: programReachesIn('RunDomSpecs.ts', 'Bun.spawnSync([]);') },
+      { path: 'page/lib/brand/testing/RunDomSpecs.ts', reaches: programReachesIn('RunDomSpecs.ts', 'Bun.spawnSync([]);') },
+      { path: 'page/lib/flint/testing/HeadlessChrome.ts', reaches: programReachesIn('HeadlessChrome.ts', 'Bun.spawn([]);') },
       { path: 'src/testing/RecordBoundary.ts', reaches: programReachesIn('RecordBoundary.ts', realBoundaryImport) },
       { path: 'src/testing/ScratchForge.ts', reaches: programReachesIn('ScratchForge.ts', realBoundaryImport) },
       { path: 'src/features/example/Example.spec.ts', reaches: programReachesIn('Example.spec.ts', 'Bun.spawnSync([]);') },

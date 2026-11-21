@@ -4,13 +4,15 @@
  * edits it made, undoes the set with one press, and unfolds each edit with its own Undo. The draft has no move of its own that takes a
  * set back, so the caller gives the set's command.
  */
-import { ChangeRow }       from 'design-system/ChangeRow';
-import { CountBadge }      from 'design-system/CountBadge';
-import { Icon }            from 'design-system/Icon';
-import { MonoId }          from 'design-system/MonoId';
-import { Tag }             from 'design-system/Tag';
-import { Text }            from 'design-system/Text';
 import { useId, useState } from 'react';
+import {
+  ChangeRow,
+  CountBadge,
+  Icon,
+  MonoId,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { CommandButton }                                                from '../../../shell/CommandButton.tsx';
 import { ChangeListModel, type ChangeRowView }                          from '../apply/ChangeListModel.ts';

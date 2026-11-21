@@ -7,8 +7,12 @@
  * it changes: its arrival says it. Each setup step's slot also answers a question that waits on User and a stopped agent. A slot has
  * content around it, so it keeps Flint inside: Flint pops in through its edge and never shows over that content.
  */
-import type { SpriteHabitat, SpriteIntent, SpriteSuggestion }          from 'flint/SpriteHabitat';
-import { ARRIVED_CUE }                                                 from 'flint/SpriteHabitat';
+import {
+  ARRIVED_CUE,
+  type SpriteHabitat,
+  type SpriteIntent,
+  type SpriteSuggestion
+} from '../../lib/flint/FlintInterface.ts';
 import { FLINT_SLOT_CUES, LASTING_FLINT_SLOT_CUES, type FlintSlotCue } from './FlintSlotCues.ts';
 
 const SLOT_CUE_ANSWERS: Readonly<Record<FlintSlotCue, SpriteIntent>> = Object.freeze({

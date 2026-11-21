@@ -6,7 +6,6 @@
  * `questions/<id>`. It navigates by Gaia's address alone, through `services.goTo`, and provides the tracker id and the way to go to every
  * link below it. Flint lives over the whole board, its habitat stored with the board's preferences.
  */
-import { EmptyState } from 'design-system/EmptyState';
 import {
   useCallback,
   useEffect,
@@ -17,6 +16,7 @@ import {
 } from 'react';
 
 import type { BoardDocument }                                      from '../../@types/board/BoardDocument.ts';
+import { EmptyState }                                              from '../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardServices }                                      from '../@types/BoardServices.ts';
 import type { ConnectionState }                                    from '../api/BoardEventStreamClient.ts';
 import { BoardFlint }                                              from '../flint/BoardFlint.tsx';

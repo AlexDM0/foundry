@@ -2,10 +2,8 @@
  * What the smallest pipeline is, as the About tab of the pipeline panel: the warning while no phase has a gate, and where an add card adds
  * a step. While it is edited, the panel shows About alone; on a live board, About is the first tab of the activity panel.
  */
-import { Tabs }                             from 'design-system/Tabs';
-import { Text }                             from 'design-system/Text';
-import { View }                             from 'design-system/View';
 import type { BoardPipelineFlowDocument }   from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { Tabs, Text, View }                 from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { PipelinePanel, PipelinePanelBody } from '../PipelinePanel.tsx';
 import { FlowGlyph }                        from '../flow/FlowGlyph.tsx';
 import { MinimalPipelineNoteModel }         from './MinimalPipelineNoteModel.ts';

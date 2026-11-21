@@ -6,14 +6,16 @@
  * view's caller the new filters; and the view holds no control that would message or stop a job, and says so.
  */
 import { describe, expect, test } from 'bun:test';
-import { EmptyState }             from 'design-system/EmptyState';
-import { FactList }               from 'design-system/FactList';
-import { FillMeter }              from 'design-system/FillMeter';
-import { SegmentedControl }       from 'design-system/SegmentedControl';
-import { SlotMeter }              from 'design-system/SlotMeter';
 import type { ReactNode }         from 'react';
 
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { FleetDocument } from '../../@types/FleetDocument.ts';
+import {
+  EmptyState,
+  FactList,
+  FillMeter,
+  SegmentedControl,
+  SlotMeter
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
 import { PackageControls }                                                          from '../../testing/PackageControls.ts';
 import { type HostElement, ReactElementTree }                                       from '../../testing/ReactElementTree.ts';

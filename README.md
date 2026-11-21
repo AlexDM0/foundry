@@ -124,9 +124,9 @@ Gaia shows it and makes no model call.
 | --- | --- |
 | [`apps/forge/`](apps/forge/) | forge: the tracker, the Overseer, the Bridge and the CLI |
 | [`apps/gaia/`](apps/gaia/) | Gaia: one window over every forge on the machine |
-| [`packages/design-system/`](packages/design-system/) | React components with their own light and dark theme, for both apps |
-| [`packages/flint/`](packages/flint/) | Flint, the orange diamond that acts out what the agents do, drawn over its host page |
-| [`packages/brand/`](packages/brand/) | forge's mark as a React component, with its colour tokens |
+| [`apps/gaia/page/lib/design-system/`](apps/gaia/page/lib/design-system/) | a library of Gaia's page: React components with their own light and dark theme |
+| [`apps/gaia/page/lib/flint/`](apps/gaia/page/lib/flint/) | a library of Gaia's page: Flint, the orange diamond that acts out what the agents do, drawn over its host page |
+| [`apps/gaia/page/lib/brand/`](apps/gaia/page/lib/brand/) | a library of Gaia's page: forge's mark as a React component, with its colour tokens |
 | [`packages/forge-contracts/`](packages/forge-contracts/) | what a forge serves and reads, as TypeScript types, with its system versions |
 | [`packages/system-versions/`](packages/system-versions/) | the version model a server and its clients share, and its compatibility logic |
 | [`docs/monorepo/`](docs/monorepo/) | the monorepo's design and the migration checklist |

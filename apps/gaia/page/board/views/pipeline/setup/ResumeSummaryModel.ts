@@ -3,11 +3,11 @@
  * questions, the pipeline agent's job), the footer's count of the done steps, the commands of Resume and Start over, and the note that
  * main moved since the research. Every word comes from the facts' counts and values; the record's statuses decide, a time never does.
  */
-import type { StepperStatus }                                                                     from 'design-system/Stepper';
 import { PAGE_CONTRACT_VERSIONS }                                                                 from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                                              from '../../../../@types/board/BoardCommandDocument.ts';
 import type { BoardBillingDocument, BoardPipelineDefinitionDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardJobState, BoardSetupStep }                                                     from '../../../../@types/board/BoardVocabulary.ts';
+import type { StepperStatus }                                                                     from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { BoardRoute }                                                                        from '../../../shell/BoardRouter.ts';
 import { PipelineViewModel, SETUP_STEP_LABELS }                                                   from '../PipelineViewModel.ts';
 import { ApplyPendingStateModel }                                                                 from '../apply/ApplyPendingStateModel.ts';

@@ -4,16 +4,14 @@
  * Agents table links its tickets the same way, and the shell's incident drawer draws its trails with the same step.
  */
 
-import { IdLink }                   from 'design-system/IdLink';
-import { MonoId }                   from 'design-system/MonoId';
-import { StateBadge }               from 'design-system/StateBadge';
 import { Fragment, type ReactNode } from 'react';
 
-import type { BoardDisplayState } from '../../@types/board/BoardVocabulary.ts';
-import { useBoardHrefOf }         from '../shell/BoardRouteLinks.ts';
-import { DetailRoute }            from '../shell/DetailRoute.ts';
-import type { IncidentStep }      from '../utils/IncidentTrailUtil.ts';
-import { StateToneUtil }          from '../utils/StateToneUtil.ts';
+import type { BoardDisplayState }     from '../../@types/board/BoardVocabulary.ts';
+import { IdLink, MonoId, StateBadge } from '../../lib/design-system/DesignSystemInterface.ts';
+import { useBoardHrefOf }             from '../shell/BoardRouteLinks.ts';
+import { DetailRoute }                from '../shell/DetailRoute.ts';
+import type { IncidentStep }          from '../utils/IncidentTrailUtil.ts';
+import { StateToneUtil }              from '../utils/StateToneUtil.ts';
 
 export interface CardPill {
   readonly state: BoardDisplayState;

@@ -9,7 +9,7 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { SpriteIntent } from 'flint/SpriteHabitat';
+import type { SpriteIntent } from '../../../lib/flint/FlintInterface.ts';
 import {
   AgentPanelSpriteModel,
   type AgentPanelFacts,

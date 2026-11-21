@@ -11,16 +11,7 @@
  * quiet line stands under its row until the pair is shown; Update forge on its way says so under the row, and its restart pending stands
  * without an edge; this machine names the forges it leaves out of its figure.
  */
-import { describe, expect, test }  from 'bun:test';
-import type { ChoiceOptionProps }  from 'design-system/ChoiceOption';
-import { ConfirmStrip }            from 'design-system/ConfirmStrip';
-import { DataTable }               from 'design-system/DataTable';
-import { FillMeter }               from 'design-system/FillMeter';
-import { IconButton }              from 'design-system/IconButton';
-import { MonoId }                  from 'design-system/MonoId';
-import type { NumberStepperProps } from 'design-system/NumberStepper';
-import { PendingStep }             from 'design-system/PendingStep';
-import { SlotMeter }               from 'design-system/SlotMeter';
+import { describe, expect, test } from 'bun:test';
 
 import type {
   CommandAnswerDocument,
@@ -28,8 +19,19 @@ import type {
   ForgeCommandBody,
   ForgeStopAgents
 } from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
-import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
+import type { FleetDocument }                 from '../../@types/FleetDocument.ts';
+import type { CommandStates, CommandSubject } from '../../api/CommandSender.ts';
+import {
+  type ChoiceOptionProps,
+  ConfirmStrip,
+  DataTable,
+  FillMeter,
+  IconButton,
+  MonoId,
+  type NumberStepperProps,
+  PendingStep,
+  SlotMeter
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import { answerResponse, senderOver }                                               from '../../testing/CommandServer.ts';
 import { DataTableRows }                                                            from '../../testing/DataTableRows.ts';
 import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';

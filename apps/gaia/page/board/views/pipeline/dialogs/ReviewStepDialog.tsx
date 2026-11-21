@@ -5,17 +5,19 @@
  * node, it opens on the Re-review tab with its switch focused.
  */
 
-import { Button }                                                                                    from 'design-system/Button';
-import { ConfirmStrip }                                                                              from 'design-system/ConfirmStrip';
-import { Dialog }                                                                                    from 'design-system/Dialog';
-import { ModelEffortMeter }                                                                          from 'design-system/ModelEffortMeter';
-import { Tabs }                                                                                      from 'design-system/Tabs';
-import { Text }                                                                                      from 'design-system/Text';
-import { View }                                                                                      from 'design-system/View';
 import { useRef, useState }                                                                          from 'react';
 import type { BoardLimitsDocument }                                                                  from '../../../../@types/board/BoardFactDocuments.ts';
 import type { BoardFlowNodeDocument, BoardPipelineChoicesDocument, BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { PipelineFlowEditSender }                                                               from '../flow/PipelineFlowEditSender.ts';
+import {
+  Button,
+  ConfirmStrip,
+  Dialog,
+  ModelEffortMeter,
+  Tabs,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { PipelineFlowEditSender } from '../flow/PipelineFlowEditSender.ts';
 
 import { AgentStepDialogModel, type AgentStepForm }  from './AgentStepDialogModel.ts';
 import { InstructionsEditor }                        from './InstructionsEditor.tsx';

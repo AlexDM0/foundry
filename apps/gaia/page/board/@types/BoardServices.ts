@@ -2,8 +2,8 @@
  * Everything a board reaches outside itself for one forge, handed in by whoever mounts it: the relay's clients for that forge, browser
  * storage, the clock and the page's route. The board names no address and holds no token; each client speaks to Gaia's relay alone.
  */
-import type { FlintHandle }                          from 'flint';
 import type { BoardDocument }                        from '../../@types/board/BoardDocument.ts';
+import type { FlintHandle }                          from '../../lib/flint/FlintInterface.ts';
 import type { BoardCommandClient }                   from '../api/BoardCommandClient.ts';
 import type { ConnectionState, EventStreamHandlers } from '../api/BoardEventStreamClient.ts';
 import type { BoardRead }                            from '../api/BoardReadClient.ts';

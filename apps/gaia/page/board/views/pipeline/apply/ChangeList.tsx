@@ -3,8 +3,8 @@
  * edit that made it; Undo sends `pipeline-draft-undo` for that edit, and its refusal shows verbatim beside it. While an applied pipeline is
  * edited, a card also shows the values before and after, and a new gate's card offers its benchmark, which sends `gate-profile-start`.
  */
-import { ChangeRow }                                                   from 'design-system/ChangeRow';
 import type { BoardPipelineChangeDocument, BoardSetupEditDocument }    from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { ChangeRow }                                                   from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                               from '../../../shell/CommandButton.tsx';
 import { ChangeListModel, type ChangeListEditing, type ChangeRowView } from './ChangeListModel.ts';
 

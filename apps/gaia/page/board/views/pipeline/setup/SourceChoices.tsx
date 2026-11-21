@@ -3,9 +3,8 @@
  * with that one flipped; the box shows the facts, so it turns once the Overseer applied it. They steer the agent; they are not the tags.
  * At an entity they name its own CONTRIBUTING.md and research, and each tick names the entity.
  */
-import { ChoiceInput, ChoiceOption }                                from 'design-system/ChoiceOption';
-import { Text }                                                     from 'design-system/Text';
 import type { BoardPipelineSetupDocument }                          from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { ChoiceInput, ChoiceOption, Text }                          from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useControlCommand }                                        from '../../../shell/ControlCommandSender.ts';
 import { ConstitutionStepModel, SOURCE_CHOICES, type SourceChoice } from './ConstitutionStepModel.ts';
 

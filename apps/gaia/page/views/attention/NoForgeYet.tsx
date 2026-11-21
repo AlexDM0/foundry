@@ -4,17 +4,19 @@
  * or the forge program Gaia found and that a forge set up elsewhere appears by itself. `NoForgeYetLayout` takes no hooks; `NoForgeYet` keeps
  * the form through the shared add-a-repository form and sends its commands.
  */
-import { Button }         from 'design-system/Button';
-import { Card }           from 'design-system/Card';
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { Text }           from 'design-system/Text';
-
 import {
   CommandSender,
   type CommandStates,
   type CommandSubject,
   useCommandSender,
 } from '../../api/CommandSender.ts';
+import {
+  Button,
+  Card,
+  MicroCapsLabel,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
+
 import { CommandFailureRefusal } from '../../shared/CommandFailureRefusal.tsx';
 import {
   AddRepositoryFields,

@@ -4,7 +4,6 @@
  * kicker over the title; the profile box's state, result and words from the newest profile run of the gate in the dialog's phase; and
  * the log lines its output stream gives.
  */
-import type { LogTailLine }   from 'design-system/LogTail';
 import type {
   BoardDraftEditDocument,
   BoardGateProfileRunDocument,
@@ -17,6 +16,7 @@ import {
   type BoardGateRowKind,
   type BoardPipelineNodeMark
 } from '../../../../@types/board/BoardVocabulary.ts';
+import type { LogTailLine }       from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { ProfileOutputLine } from '../../../api/ProfileStreamClient.ts';
 import { GateCacheMarkModel }     from '../gates/GateCacheMarkModel.ts';
 

@@ -6,8 +6,6 @@
  * program's path chosen and kept through `settings-set`. Both choosers share `path-choose`, and other screens send `settings-set`, so the
  * form keeps the result of each send it made and shows a refusal of those subjects only beside the button whose send it was.
  */
-import { Button }                      from 'design-system/Button';
-import { TextField }                   from 'design-system/TextField';
 import { useEffect, useRef, useState } from 'react';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';
@@ -17,7 +15,8 @@ import {
   type CommandStates,
   type CommandSubject
 } from '../../api/CommandSender.ts';
-import { ConditionDot }          from '../../design-system/ConditionDot.tsx';
+import { ConditionDot }          from '../../components/ConditionDot.tsx';
+import { Button, TextField }     from '../../lib/design-system/DesignSystemInterface.ts';
 import { CommandFailureRefusal } from '../CommandFailureRefusal.tsx';
 import { AddRepositoryForm }     from './AddRepositoryForm.ts';
 

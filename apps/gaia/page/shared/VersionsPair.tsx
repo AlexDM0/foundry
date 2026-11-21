@@ -2,7 +2,7 @@
  * The forge's versions beside this Gaia's, and the verdict above a rule with its reason: under a Forges row whose disclosure is open, and
  * in the notice the forge view holds instead of a board Gaia cannot show.
  */
-import { VersionsVerdictLabel }                         from '../design-system/VersionsVerdictMark.tsx';
+import { VersionsVerdictLabel }                         from '../components/VersionsVerdictMark.tsx';
 import { VersionsText }                                 from './VersionsText.tsx';
 import { ForgeVersionsTextUtil, type VersionsPairText } from './utils/ForgeVersionsTextUtil.ts';
 

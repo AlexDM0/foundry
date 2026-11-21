@@ -11,8 +11,6 @@
  * carries it and it ignores the pointer. Every choice here is the host's, and easy to change.
  */
 
-import type { FlintHandle, FlintOptions } from 'flint';
-import { Flint }                          from 'flint/react';
 import {
   useEffect,
   useMemo,
@@ -20,13 +18,14 @@ import {
   useState,
   type ReactNode
 } from 'react';
-import type { PreferenceStore }             from '../preferences/PreferenceStore.ts';
-import type { BoardReading }                from './BoardOccasionModel.ts';
-import { dwellingOf, FlintDwellingContext } from './FlintDwelling.ts';
-import { flintHabitatStorageOf }            from './FlintHabitatStorage.ts';
-import { FlintSlotShowingContext }          from './FlintSlotShowing.ts';
-import { useBoardOccasions }                from './UseBoardOccasions.ts';
-import { createVisitTargetTracker }         from './VisitTargetTracker.ts';
+import { Flint, type FlintHandle, type FlintOptions } from '../../lib/flint/FlintInterface.ts';
+import type { PreferenceStore }                       from '../preferences/PreferenceStore.ts';
+import type { BoardReading }                          from './BoardOccasionModel.ts';
+import { dwellingOf, FlintDwellingContext }           from './FlintDwelling.ts';
+import { flintHabitatStorageOf }                      from './FlintHabitatStorage.ts';
+import { FlintSlotShowingContext }                    from './FlintSlotShowing.ts';
+import { useBoardOccasions }                          from './UseBoardOccasions.ts';
+import { createVisitTargetTracker }                   from './VisitTargetTracker.ts';
 
 /** Flint is 40 by 50 units; at this size it takes 30 by 37.5 pixels. */
 const PIXELS_FOR_ONE_UNIT = 0.75;

@@ -4,17 +4,19 @@
  * Watch is a link, so a stream that is down never disables it; every move posts a board command.
  */
 
-import { Button }      from 'design-system/Button';
-import { MonoId }      from 'design-system/MonoId';
-import { Row }         from 'design-system/Row';
-import { Stamp }       from 'design-system/Stamp';
-import { StateDot }    from 'design-system/StateDot';
-import { Text }        from 'design-system/Text';
-import { TitledBlock } from 'design-system/TitledBlock';
-import { View }        from 'design-system/View';
-import { useState }    from 'react';
+import { useState } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }            from '../../../../src/shared/constants/PageContractVersions.ts';
+import { PAGE_CONTRACT_VERSIONS } from '../../../../src/shared/constants/PageContractVersions.ts';
+import {
+  Button,
+  MonoId,
+  Row,
+  Stamp,
+  StateDot,
+  Text,
+  TitledBlock,
+  View
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 import { FlintSlotHabitat }                  from '../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }               from '../../flint/FlintSlotHabitats.ts';
 import { useBoardHrefOf }                    from '../../shell/BoardRouteLinks.ts';

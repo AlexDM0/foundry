@@ -4,10 +4,9 @@
  * out. A press on the time chip sends `gate-profile-start` for this gate in the table's phase, and its refusal shows in the row.
  */
 
-import { Tag }                                from 'design-system/Tag';
-import { Text }                               from 'design-system/Text';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 import type { BoardCommandDocument }          from '../../../../@types/board/BoardCommandDocument.ts';
+import { Tag, Text }                          from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useControlCommand }                  from '../../../shell/ControlCommandSender.ts';
 
 import {

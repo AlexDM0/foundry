@@ -2,8 +2,7 @@
  * The strip above the pipeline agent's composer: Flint's slot, the habitat of this step, and what the agent does on it; an entity's
  * research session names the entity it reads, in mono.
  */
-import { MonoId } from 'design-system/MonoId';
-import { Text }   from 'design-system/Text';
+import { MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlintSlotHabitat }                  from '../../../flint/FlintSlotHabitat.tsx';
 import { useCoveringPanelHoldsTheFlintSlot } from '../../../shell/CoveringPanel.ts';

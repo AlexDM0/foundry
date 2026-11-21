@@ -5,10 +5,10 @@
  * shows verbatim. In monorepo mode the panel shows one level's session, the forge's or an entity's, under a line that links the open
  * questions of the other levels; the head that holds the panel names the level by `PipelineAgentPanelModel.panelTitleOf`.
  */
-import { TypingIndicator }                                 from 'design-system/TypingIndicator';
 import type { ReactNode }                                  from 'react';
 import type { BoardPipelineSetupDocument }                 from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardSetupQuestionStep }                     from '../../../../@types/board/BoardVocabulary.ts';
+import { TypingIndicator }                                 from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }                         from '../../../@types/BoardServices.ts';
 import { ChatThread }                                      from '../../../conversation/ChatThread.tsx';
 import { Composer }                                        from '../../../conversation/Composer.tsx';

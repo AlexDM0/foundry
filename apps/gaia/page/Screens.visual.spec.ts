@@ -18,18 +18,20 @@
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
-import { Banner }                 from 'design-system/Banner';
-import { Button }                 from 'design-system/Button';
-import { DataTable }              from 'design-system/DataTable';
-import { Icon }                   from 'design-system/Icon';
-import { SlotMeter }              from 'design-system/SlotMeter';
-import { Stamp }                  from 'design-system/Stamp';
-import { Tag }                    from 'design-system/Tag';
-import { Text }                   from 'design-system/Text';
 import { createElement }          from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import { GaiaMark }       from './design-system/GaiaMark.tsx';
+import { GaiaMark } from './components/GaiaMark.tsx';
+import {
+  Banner,
+  Button,
+  DataTable,
+  Icon,
+  SlotMeter,
+  Stamp,
+  Tag,
+  Text
+} from './lib/design-system/DesignSystemInterface.ts';
 import {
   ARTBOARD_SCREENS,
   ARTBOARD_SIZE_PIXELS,
@@ -161,7 +163,7 @@ describe('the screens of the visual pass', () => {
   });
 
   test('a screen document names its theme on the root as the page does before its first paint, leaves motion off, and holds every stylesheet whole', () => {
-    const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text(), PackageStylesheet.inlinedText('brand/brand.css')];
+    const packageStylesheets = [DesignSystemStylesheet.fontFaceRules(), DesignSystemStylesheet.text(), PackageStylesheet.inlinedText('lib/brand/styles/brand.css')];
     for (const screen of ARTBOARD_SCREENS) {
       for (const theme of SCREEN_THEMES) {
         const screenDocument = screenDocumentOf(screen, theme);

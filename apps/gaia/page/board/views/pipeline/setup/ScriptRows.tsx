@@ -3,7 +3,7 @@
  * found and that none runs here. A script that needs a network or a service shows its dot and its note in place of its meaning; one that
  * is no gate says so.
  */
-import { Tag } from 'design-system/Tag';
+import { Tag } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlowGlyph }      from '../flow/FlowGlyph.tsx';
 import type { ScriptRow } from './ResearchStepModel.ts';

@@ -6,16 +6,18 @@
  * pipeline's constitution, it goes Back to the flow. In monorepo mode (MonoConstitution) each entity has its own document under the level
  * the route holds, beside the entity rail that marks each entity's state; the forge level lists the entities, and has no document.
  */
-import { ActionBar }                                                                       from 'design-system/ActionBar';
-import { Button }                                                                          from 'design-system/Button';
-import { MonoId }                                                                          from 'design-system/MonoId';
-import { Row }                                                                             from 'design-system/Row';
-import { SegmentedControl }                                                                from 'design-system/SegmentedControl';
-import { Tag }                                                                             from 'design-system/Tag';
-import { Text }                                                                            from 'design-system/Text';
-import { View }                                                                            from 'design-system/View';
-import { useId, useState, type ReactNode }                                                 from 'react';
-import type { BoardPipelineEntityDocument, BoardPipelineSetupDocument }                    from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useId, useState, type ReactNode }                              from 'react';
+import type { BoardPipelineEntityDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  ActionBar,
+  Button,
+  MonoId,
+  Row,
+  SegmentedControl,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }                                                         from '../../../@types/BoardServices.ts';
 import { SandboxedHtmlFrame }                                                              from '../../../sandboxed-html/SandboxedHtmlFrame.tsx';
 import { type BoardClock, useTickingNow }                                                  from '../../../shell/BoardClock.ts';

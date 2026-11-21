@@ -3,9 +3,9 @@
  * the server no longer knows this window's session, or while no server answers at all; with no page title, as for a forge in place, it heads
  * the main area.
  */
-import { Banner } from 'design-system/Banner';
-
 import type { FleetStreamState } from '../api/FleetStreamClient.ts';
+import { Banner }                from '../lib/design-system/DesignSystemInterface.ts';
+
 
 export interface ConnectionBannerProps {
   readonly streamState: FleetStreamState;

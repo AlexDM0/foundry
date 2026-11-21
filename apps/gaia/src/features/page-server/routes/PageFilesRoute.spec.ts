@@ -50,7 +50,7 @@ async function reactModulePathsOfThePage(): Promise<string[]> {
 }
 
 function packageFontFilePaths(): string[] {
-  const fontFolder = dirname(Bun.resolveSync('design-system/FontLoader', import.meta.dir));
+  const fontFolder = join(dirname(pageIndexFilePath()), 'lib', 'design-system', 'fonts');
   return [...new Bun.Glob('**/*.woff2').scanSync({ cwd: fontFolder })].map((relativePath) => join(fontFolder, relativePath)).sort();
 }
 

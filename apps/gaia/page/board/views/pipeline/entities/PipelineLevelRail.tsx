@@ -5,14 +5,17 @@
  * own marks, as the constitution step marks each entity's constitution, in place of the gates marks, and a live screen a line of each
  * level's work after its kind.
  */
-import { CountBadge }                           from 'design-system/CountBadge';
-import { Icon }                                 from 'design-system/Icon';
-import { MonoId }                               from 'design-system/MonoId';
-import { SelectionRail, type SelectionRailRow } from 'design-system/SelectionRail';
-import { StateDot }                             from 'design-system/StateDot';
-import { Tag }                                  from 'design-system/Tag';
-import { Text }                                 from 'design-system/Text';
-import { useState, type ReactNode }             from 'react';
+import { useState, type ReactNode } from 'react';
+import {
+  CountBadge,
+  Icon,
+  MonoId,
+  SelectionRail,
+  type SelectionRailRow,
+  StateDot,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { PipelineLevelModel, type PipelineLevel } from './PipelineLevelModel.ts';
 import {

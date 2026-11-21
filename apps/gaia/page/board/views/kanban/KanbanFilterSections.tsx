@@ -3,13 +3,15 @@
  * Order Ready, filed or by wave, shown only on a board with dependencies, and Swimlanes, by entity or none, shown only in monorepo mode.
  */
 
-import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
-import { SegmentMeter }     from 'design-system/SegmentMeter';
-import { SegmentedControl } from 'design-system/SegmentedControl';
-import { TextButton }       from 'design-system/TextButton';
-import { Fragment, useId }  from 'react';
+import { Fragment, useId } from 'react';
 
-import type { BoardEpicDocument }                                             from '../../../@types/board/BoardTicketDocuments.ts';
+import type { BoardEpicDocument } from '../../../@types/board/BoardTicketDocuments.ts';
+import {
+  MicroCapsLabel,
+  SegmentMeter,
+  SegmentedControl,
+  TextButton
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 import { CountTextUtil }                                                      from '../../../shared/utils/CountTextUtil.ts';
 import { useBoardHrefOf }                                                     from '../../shell/BoardRouteLinks.ts';
 import { DetailRoute }                                                        from '../../shell/DetailRoute.ts';

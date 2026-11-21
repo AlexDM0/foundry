@@ -2,9 +2,8 @@
  * The entities step's refusals, before Continue: one alert, "Continue is refused", over each refusal the forge serves for its stored
  * draft, in the forge's sentence, with Show, which opens the entity's row, and the one gesture the forge serves that resolves it.
  */
-import { Button }                      from 'design-system/Button';
-import { Text }                        from 'design-system/Text';
 import type { BoardDraftEditDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { Button, Text }                from '../../../../lib/design-system/DesignSystemInterface.ts';
 import type { EntityRefusalView }      from './EntityRefusalsModel.ts';
 
 export interface EntityRefusalsProps {

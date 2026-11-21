@@ -8,12 +8,15 @@
  * whose entity the advise command carries.
  */
 
-import { ActivityRow }                    from 'design-system/ActivityRow';
-import { MicroCapsLabel }                 from 'design-system/MicroCapsLabel';
-import { ModelEffortMeter }               from 'design-system/ModelEffortMeter';
-import { Tabs, type TabItem }             from 'design-system/Tabs';
-import { Text }                           from 'design-system/Text';
-import { useState, type ReactNode }       from 'react';
+import { useState, type ReactNode } from 'react';
+import {
+  ActivityRow,
+  MicroCapsLabel,
+  ModelEffortMeter,
+  type TabItem,
+  Tabs,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { type BoardClock, useTickingNow } from '../../../shell/BoardClock.ts';
 import { useBoardHrefOf }                 from '../../../shell/BoardRouteLinks.ts';
 import { CommandButton }                  from '../../../shell/CommandButton.tsx';

@@ -3,9 +3,8 @@
  * while anything is escalated. A click toggles the inbox popover under it; Esc closes it and hands the focus back to the pill, a pointer
  * or focus outside closes it, and so does following any link in it.
  */
-import type { DismissalReason } from 'design-system/Dismissal';
-import { Popover }              from 'design-system/Popover';
-import { useRef, useState }     from 'react';
+import { useRef, useState }              from 'react';
+import { type DismissalReason, Popover } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { StateToneUtil }                          from '../utils/StateToneUtil.ts';
 import type { TimestampSlices }                   from '../utils/TimeUtil.ts';

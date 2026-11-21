@@ -11,17 +11,20 @@
  * own server renderer, which runs its hooks without a document, and is held to the layout it opens on.
  */
 import { describe, expect, test } from 'bun:test';
-import { Card }                   from 'design-system/Card';
-import { EmptyState }             from 'design-system/EmptyState';
-import { FillMeter }              from 'design-system/FillMeter';
-import { Menu, MenuItem }         from 'design-system/Menu';
-import { SegmentedControl }       from 'design-system/SegmentedControl';
-import { Stamp }                  from 'design-system/Stamp';
-import { StateDot }               from 'design-system/StateDot';
-import { Text }                   from 'design-system/Text';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { FleetDocument } from '../../@types/FleetDocument.ts';
+import {
+  Card,
+  EmptyState,
+  FillMeter,
+  Menu,
+  MenuItem,
+  SegmentedControl,
+  Stamp,
+  StateDot,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import type { ClockReading }                                                        from '../../shared/@types/ClockReading.ts';
 import { DataTableRows }                                                            from '../../testing/DataTableRows.ts';
 import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';

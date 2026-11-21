@@ -7,37 +7,39 @@
  * stands beside the findings of the session shown, which the route's level holds, and the panel holds that session's chat. Each live
  * session has its own Stop, and the footer offers Stop all and Continue to the next step. No setting limits how many sessions run.
  */
-import { ActionBar } from 'design-system/ActionBar';
-import { MonoId }    from 'design-system/MonoId';
-import { Skeleton }  from 'design-system/Skeleton';
-import { Tag }       from 'design-system/Tag';
-import { Text }      from 'design-system/Text';
-import { View }      from 'design-system/View';
 
 import type { ReactNode }                                                from 'react';
 import type { BoardPipelineSetupDocument, BoardResearchFindingDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { TranscriptFollower }                                       from '../../../@types/BoardServices.ts';
-import { type BoardClock, useTickingNow }                                from '../../../shell/BoardClock.ts';
-import { useBoardHrefOf, useBoardNavigation }                            from '../../../shell/BoardRouteLinks.ts';
-import type { BoardRoute }                                               from '../../../shell/BoardRouter.ts';
-import { CommandButton }                                                 from '../../../shell/CommandButton.tsx';
-import { StateToneUtil }                                                 from '../../../utils/StateToneUtil.ts';
-import { TimeUtil }                                                      from '../../../utils/TimeUtil.ts';
-import { ViewTitle }                                                     from '../../ViewTitle.tsx';
-import { PipelinePage }                                                  from '../PipelinePage.tsx';
-import { PipelinePanel }                                                 from '../PipelinePanel.tsx';
-import { PipelineViewModel, type PipelineViewFacts }                     from '../PipelineViewModel.ts';
-import { AgentMeter }                                                    from '../agent-panel/AgentMeter.tsx';
-import { PipelineAgentPanel }                                            from '../agent-panel/PipelineAgentPanel.tsx';
-import { PipelineAgentPanelModel }                                       from '../agent-panel/PipelineAgentPanelModel.ts';
-import { PipelineLevelModel, type PipelineLevel }                        from '../entities/PipelineLevelModel.ts';
-import { BillingStepModel }                                              from './BillingStepModel.ts';
-import { EntitySessionList }                                             from './EntitySessionList.tsx';
-import { EntitySessionListModel }                                        from './EntitySessionListModel.ts';
-import { FindingCard }                                                   from './FindingCard.tsx';
-import { LayoutFinding }                                                 from './LayoutFinding.tsx';
-import { ResearchStepModel }                                             from './ResearchStepModel.ts';
-import { ScriptRows }                                                    from './ScriptRows.tsx';
+import {
+  ActionBar,
+  MonoId,
+  Skeleton,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { TranscriptFollower }                   from '../../../@types/BoardServices.ts';
+import { type BoardClock, useTickingNow }            from '../../../shell/BoardClock.ts';
+import { useBoardHrefOf, useBoardNavigation }        from '../../../shell/BoardRouteLinks.ts';
+import type { BoardRoute }                           from '../../../shell/BoardRouter.ts';
+import { CommandButton }                             from '../../../shell/CommandButton.tsx';
+import { StateToneUtil }                             from '../../../utils/StateToneUtil.ts';
+import { TimeUtil }                                  from '../../../utils/TimeUtil.ts';
+import { ViewTitle }                                 from '../../ViewTitle.tsx';
+import { PipelinePage }                              from '../PipelinePage.tsx';
+import { PipelinePanel }                             from '../PipelinePanel.tsx';
+import { PipelineViewModel, type PipelineViewFacts } from '../PipelineViewModel.ts';
+import { AgentMeter }                                from '../agent-panel/AgentMeter.tsx';
+import { PipelineAgentPanel }                        from '../agent-panel/PipelineAgentPanel.tsx';
+import { PipelineAgentPanelModel }                   from '../agent-panel/PipelineAgentPanelModel.ts';
+import { PipelineLevelModel, type PipelineLevel }    from '../entities/PipelineLevelModel.ts';
+import { BillingStepModel }                          from './BillingStepModel.ts';
+import { EntitySessionList }                         from './EntitySessionList.tsx';
+import { EntitySessionListModel }                    from './EntitySessionListModel.ts';
+import { FindingCard }                               from './FindingCard.tsx';
+import { LayoutFinding }                             from './LayoutFinding.tsx';
+import { ResearchStepModel }                         from './ResearchStepModel.ts';
+import { ScriptRows }                                from './ScriptRows.tsx';
 
 export interface ResearchStepProps {
   readonly facts:            PipelineViewFacts;

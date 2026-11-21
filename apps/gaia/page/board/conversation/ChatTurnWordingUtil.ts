@@ -2,7 +2,7 @@
  * The words a chat view gives the items `ChatThreadModelUtil` reads from a session's transcript, the same for every session: a stamp in
  * local time with seconds, a system line, and a turn's tool fold. Each view names its own speaker and its own boot line.
  */
-import type { StampProps } from 'design-system/Stamp';
+import type { StampProps } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { TimeUtil }                                 from '../utils/TimeUtil.ts';
 import type { SystemLineFacts, ToolCall, ToolFold } from './ChatThreadModel.ts';

@@ -4,17 +4,18 @@ Gaia is one window over every forge on this machine: what waits on User, every r
 server (`src/`) and a React page (`page/`) in TypeScript, opened as a macOS app. Gaia runs no agent and talks only to forges.
 
 Gaia lives in `apps/gaia/` of the forge monorepo, a Bun workspace, and every path below is relative to that folder. Forge lives beside it
-in `apps/forge/`, the shared packages in `packages/`. The repository root holds only the workspace: its manifest, the one `bun.lock`, the
+in `apps/forge/`, the shared packages in `packages/`: `forge-contracts` and `system-versions`. The repository root holds only the workspace: its manifest, the one `bun.lock`, the
 hoisted `node_modules`, `turbo.json` and the scripts that run every workspace's tasks through Turborepo (`README.md` there says how to set
 up and verify). Gaia's `package.json` names Gaia's own dependencies and is released on its own; the dev tools every workspace shares are
 the root's.
 
 ## Gaia's own rules
 
-1. **Change Gaia and, under their own rules, the packages Gaia's tracker reaches.** Claude and agents working on Gaia change
-   `apps/gaia/`, `packages/design-system` under its `CONSTITUTION.md` and `.claude/rules/design-system.md`, `packages/flint` under
-   `.claude/rules/flint.md`, `packages/system-versions` under its `README.md`, and the root's `package.json`, `bun.lock` and `turbo.json`
-   only for Gaia's own dependencies and tasks. `apps/forge/`, `packages/brand` and `packages/forge-contracts` are forge's: what Gaia needs
+1. **Change Gaia and, under its own rules, the package Gaia's tracker reaches.** Claude and agents working on Gaia change
+   `apps/gaia/`, its libraries under `page/lib/` among them (`page/lib/design-system` under its `CONSTITUTION.md` and
+   `.claude/rules/design-system.md`, `page/lib/flint` under `.claude/rules/flint.md`), `packages/system-versions` under its `README.md`,
+   and the root's `package.json`, `bun.lock` and `turbo.json`
+   only for Gaia's own dependencies and tasks. `apps/forge/` and `packages/forge-contracts` are forge's: what Gaia needs
    there is a forge requirement (`docs/forge-requirements.md`). Agent-dashboard and books-explorer are read-only references outside this repository. They never run a
    forge verb in this repository or talk to a running forge, but for the recordings' scratch forge: `apps/forge/agent-progress.ts` run
    through `src/testing/ScratchForge.ts` with `FORGE_ROOT` pinned to a scratch repository.
@@ -25,7 +26,7 @@ the root's.
    without `env`, Bun hands a child the environment the run started with, the real home.
 3. **Every data model carries a version.** A stored file or JSON contract without a version key is a defect. Forge and Gaia are released
    apart and meet only through system versions; `docs/contracts.md` holds the model, the tables and the verdicts. Forge never knows Gaia:
-   nothing forge serves, and nothing in a package forge depends on (`forge-contracts`, `brand`, the design system), names Gaia, and Gaia
+   nothing forge serves, and nothing in a package forge depends on (`forge-contracts`, `system-versions`), names Gaia, and Gaia
    sends forge client-neutral values only (`docs/forge-requirements.md`). Gaia frames no forge's page: every board tab is Gaia's own view, it
    runs no `forge open`, and it writes no frame-ancestor record. Each system has one system version,
    major.minor by interoperability (a minor only adds; a major may break a client of an older major), never its package version. A server
@@ -57,26 +58,27 @@ the root's.
    Never `--no-verify`.
 9. **Verify** with `bun run verify` at the repository root, which runs every workspace's `typecheck`, `lint`, `test`, `test:dom` and
    `check` through Turborepo and replays a task whose inputs have not changed; `bun run verify:gaia` there runs Gaia's and the packages
-   it depends on. Gaia's tasks are the typecheck of `src/` and `page/`, lint, specs, and `check`: the recording-stamp check and the
+   it depends on. Gaia's tasks are the typecheck of `src/`, `page/` and each library, lint, specs, and `check`: the recording-stamp check and the
    supported-forge check, which warns while `SUPPORTED_FORGE_VERSION` is behind forge's current version in `forge-contracts`. Gaia's
    tracker's gate runs `bun run gate:gaia`: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then Gaia's `check` alone, so
    another app's stale recording never turns Gaia's gate red. Never verify with ad-hoc compiler flags.
-10. **Colour lives only in tokens:** the design-system package's `tokens.css`, the brand package's for Forge's mark, and, for Gaia's own
-    parts only (its mark, a fill the package keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no
-    package token but `--press-scale`, which the package leaves to its host (set to 1: a press changes no size).
-    `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
+10. **Colour lives only in tokens:** the design-system library's `tokens.css`, the brand library's for Forge's mark, and, for Gaia's own
+    parts only (its mark, a fill the library keeps to a state tone), `page/styles/tokens.css`, in a light and a dark value, redefining no
+    library token but `--press-scale`, which the library leaves to its host (set to 1: a press changes no size).
+    `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a library class), and lets a hover
     or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
     both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
-    `page/design-system/` holds only the parts no package has (Gaia's mark, the brand bar, the callout and the like)
-    and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
-    a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
-    `page/testing/ReactElementTree.ts`, which keeps every component the design-system package's exports map names folded: a spec reads and calls the
-    props Gaia hands a package part, never the markup the package draws, so a package's insides may change, hooks included, without a
+    `page/components/` holds only Gaia's own parts, the ones no library has (Gaia's mark, the brand bar, the callout and the like)
+    and Gaia's words around a library part (the refusal around the failed action), composed from the libraries' components; they import
+    no shell, view or board (`page/PageImportDirection.spec.ts`). A state reaches
+    a library component as a state tone mapped in one place, `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
+    `page/testing/ReactElementTree.ts`, which keeps every component the design-system library's interface file exports folded: a spec reads and calls the
+    props Gaia hands a library part, never the markup the library draws, so a library's insides may change, hooks included, without a
     Gaia spec noticing. The page's specs have no document at all: a component that needs hooks keeps its layout in a hook-free part, and a
     spec renders a hooked root with `react-dom/server`, which runs the hooks but no effect, as `page/shell/GaiaApp.spec.tsx` does, and
-    reads Gaia's own markup there, a package part only whole, as drawn for the props Gaia hands it. The visual harness reads its screens
+    reads Gaia's own markup there, a library part only whole, as drawn for the props Gaia hands it. The visual harness reads its screens
     through `page/testing/MarkupTree.ts`: a control by its role and name, a text by what it reads, a part of Gaia's by its own class, and a
-    package part whole or by the attributes a variant prop adds to its root, never by a package's class or nesting.
+    library part whole or by the attributes a variant prop adds to its root, never by a library's class or nesting.
     The board's views under `page/board/` are the exception to the document-free specs: they keep their behaviour in `.dom.tsx` specs,
     which `bun run test:dom` runs with a document and the page project leaves out. `page/board/` is styled by `page/styles/board/*.css`,
     never by `gaia.css`, under the board section of `page/StyleContract.spec.ts`, which holds it with the Bridge's own guards
@@ -85,18 +87,22 @@ the root's.
     themes set once, in the light block), its text pairs at 4.5:1, a hover or press that moves nothing, and a winning reduced-motion rule
     for each animation outside the no-preference query. Browser storage is reached only by
     `page/board/preferences/PreferenceStore.ts`, `page/shell/ThemeBootstrap.ts` and `page/api/FleetStreamClient.ts` (`eslint.config.js`).
-11. **The design system is Forge's `design-system` package (`packages/design-system/`), used as it is.** It is a workspace member and a
-    dependency at `workspace:^`, so the root's `bun install` hoists it with the one React every workspace shares. Import each entry by its
-    export name (`design-system/Button`, `design-system/design-system.css`), never by a file path; the splash, a file page that resolves no
-    export, is the one exception. `page/index.html` links the package's stylesheet before Gaia's, and `page/Main.tsx` registers its fonts,
-    which the page build emits and Gaia's server serves under their hashed names. The parts Gaia built for the package (the text field,
-    the checkbox, the figure, the page head, the data table, the theme button, the failed action and the pending step) are the package's
-    own, and Gaia passes every word in. Forge's mark comes from the workspace package `brand` (`packages/brand/`), a dependency at
-    `workspace:^` with a version of its own that names no Gaia: the mark by its export name (`brand/ForgeMark`), its stylesheet
-    `brand/brand.css` linked after the design-system package's and before Gaia's own. Gaia's mark is Gaia's
-    (`page/design-system/GaiaMark.tsx`), drawn on the brand's `MarkGeometry`; the splash, which links no `gaia.css`, carries its rules.
-    Flint is the workspace package `flint` (`packages/flint/`), a dependency at `workspace:^`, imported by its export names only and only
-    from `page/board/` (`page/PageImportDirection.spec.ts`), until stage 8 folds it into the page's `lib/`.
+11. **The design system, Flint and Forge's mark are libraries of the page, under `page/lib/`: `design-system`, `flint` and `brand`.**
+    A library is a folder with no manifest, independent of the other two and of Gaia's features, with its own specs, description,
+    `eslint.config.js` and two TypeScript projects; the design system keeps its `CONSTITUTION.md`. Code outside a library imports only
+    its interface file, by a relative path: `page/lib/design-system/DesignSystemInterface.ts`, `page/lib/flint/FlintInterface.ts`,
+    `page/lib/brand/BrandInterface.ts`. A page links only the files a library offers by path: the design system's
+    `styles/design-system.css`, `styles/tokens.css` and fonts, and the brand's `styles/brand.css`. Inside a library a file imports
+    exactly the module it needs, never the interface file, nothing of another library and no Gaia file, and only the interface file
+    re-exports, one name at a time. `page/LibraryBoundaries.spec.ts` holds all of it, and `src/WorkspaceDependencies.spec.ts` that no
+    file names a library by a bare specifier. A library names no Gaia (its `PackageIsolation.spec.ts`). Gaia's scripts run each
+    library's tooling: `typecheck` its two projects, which the page's own projects leave out; `lint` its ESLint from its own folder,
+    since Gaia's configuration ignores `page/lib/`; `bun test` its specs; `test:dom` its `testing/RunDomSpecs.ts`;
+    `storybook:design-system` and `storybook:brand` its Storybook. `page/index.html` links the design system's stylesheet, then the
+    brand's, before Gaia's, and `page/Main.tsx` registers the fonts, which the page build emits and Gaia's server serves under their
+    hashed names; the splash links the tokens and fonts by their files. Gaia passes every word into a library part. Gaia's mark is
+    Gaia's (`page/components/GaiaMark.tsx`), drawn on the brand's `MARK_GEOMETRY`; the splash, which links no `gaia.css`, carries its
+    rules. Flint is imported only from `page/board/` (`page/PageImportDirection.spec.ts`).
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
     no shadow at rest; mono for machine values. Gaia draws Flint only in the forge route, one per forge, and calls no model (a forge's own
@@ -105,9 +111,9 @@ the root's.
 
 ## Map
 
-Gaia's folders under `apps/gaia/`. Beside them Gaia depends on five workspace packages at `workspace:^`: `design-system` (rule 11),
-`brand` for Forge's mark, `flint` for Flint in the board (rule 11), `forge-contracts` for forge's documents, system versions and
-compatibility registry, which only the server imports, and `system-versions` for the version model both systems share (rule 3). The page
+Gaia's folders under `apps/gaia/`. Beside them Gaia depends on two workspace packages at `workspace:^`: `forge-contracts` for forge's
+documents, system versions and compatibility registry, which only the server imports, and `system-versions` for the version model both
+systems share (rule 3). The page
 imports no `forge-contracts` and reads its own contract versions from `src/shared/constants/PageContractVersions.ts`
 (`page/PageImportDirection.spec.ts`, with no exception). Gaia's
 tracker lives in `apps/gaia/.forge`, beside forge's in `apps/forge/.forge`.
@@ -125,8 +131,9 @@ src/lib/           building blocks: forge-client, event-stream, process-run, ato
 src/shared/        the internal model's types, app-wide constants, the contract version rule, GaiaError
 src/shared/@types/board/ Gaia's board model, which the server maps each forge's board into
 src/testing/       the scratch root, the test run preload, the leak check, the recordings and their mocks; test-only
-page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system package (rule 11)
-page/design-system/ Gaia's own parts that the design-system package does not have, composed from the package (rule 10)
+page/              the browser runtime, with its own tsconfig listing exactly the shared files it may reach; drawn with the design-system library (rule 11)
+page/lib/          the page's libraries, each behind its interface file: design-system, flint, brand (rule 11)
+page/components/   Gaia's own parts that no library has, composed from the libraries (rule 10)
 page/shared/       what several parts of the page word, show or offer alike, hoisted from a view once a second part needs it
 page/@types/       the page contract (`FleetDocument`, `CommandDocument`); the server maps across it in src/adapters/page-api/, and only there
 page/@types/board/ the page's board contract, Gaia's own, never the forge's

@@ -1,5 +1,5 @@
 /** What an option touches, trades off and does to the Acceptance, under the option: one row a fact, each path a mono chip. */
-import { FactList } from 'design-system/FactList';
+import { FactList } from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { OptionConsequencesUtil, type OptionConsequences, type OptionFact } from './OptionConsequencesUtil.ts';
 

@@ -4,11 +4,13 @@
  * notifies while notifications are off, and the refusal of a change it sent. It closes on Done, on its close button and on Escape, never on
  * a stray click beside it. The package's dialog holds the hooks; its body and foot take none, so a spec unfolds them whole.
  */
-import { Button } from 'design-system/Button';
-import { Card }   from 'design-system/Card';
-import { Dialog } from 'design-system/Dialog';
-import { Text }   from 'design-system/Text';
-import { View }   from 'design-system/View';
+import {
+  Button,
+  Card,
+  Dialog,
+  Text,
+  View
+} from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { formDialogDismissalOf }                                             from './FormDialogDismissal.ts';
 import { type GaiaPanelHandlers, SettingsCheckboxView, SettingsRefusalLine } from './GaiaPanel.tsx';

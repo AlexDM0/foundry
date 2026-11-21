@@ -5,22 +5,24 @@
  * closes it; Esc hands the focus back to the line's button. "Mark defaults seen" hides the line in this browser until the next default.
  */
 
-import { Banner }         from 'design-system/Banner';
-import { Button }         from 'design-system/Button';
-import { useDismissal }   from 'design-system/Dismissal';
-import { KeyedLineList }  from 'design-system/KeyedLineList';
-import { MicroCapsLabel } from 'design-system/MicroCapsLabel';
-import { MonoId }         from 'design-system/MonoId';
-import { Pane }           from 'design-system/Pane';
-import { Stamp }          from 'design-system/Stamp';
-import { StateBadge }     from 'design-system/StateBadge';
-import { TextButton }     from 'design-system/TextButton';
 import {
   useId,
   useRef,
   useState,
   type RefObject
 } from 'react';
+import {
+  Banner,
+  Button,
+  KeyedLineList,
+  MicroCapsLabel,
+  MonoId,
+  Pane,
+  Stamp,
+  StateBadge,
+  TextButton,
+  useDismissal
+} from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { IncidentStepText, JobLink, TicketLinks } from '../conversation/ConversationParts.tsx';
 import { StateToneUtil }                          from '../utils/StateToneUtil.ts';

@@ -3,18 +3,20 @@
  * agent, constitution and gates; the package's stages carry a dashed edge as well as the neutral tint, so they differ without colour.
  * With several packages on the whitelist, User picks the one to see. Nothing here edits: Close is the one action.
  */
-import { Button }                                                          from 'design-system/Button';
-import { Callout }                                                         from 'design-system/Callout';
-import { Card }                                                            from 'design-system/Card';
-import { Dialog }                                                          from 'design-system/Dialog';
-import { MonoId }                                                          from 'design-system/MonoId';
-import { SegmentedControl }                                                from 'design-system/SegmentedControl';
-import { Tag }                                                             from 'design-system/Tag';
-import { Text }                                                            from 'design-system/Text';
-import { View }                                                            from 'design-system/View';
 import { useState }                                                        from 'react';
 import type { BoardDraftEntityFactsDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { CrossingDialogModel, type CrossingStageView }                     from './CrossingDialogModel.ts';
+import {
+  Button,
+  Callout,
+  Card,
+  Dialog,
+  MonoId,
+  SegmentedControl,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { CrossingDialogModel, type CrossingStageView } from './CrossingDialogModel.ts';
 
 export interface CrossingDialogProps {
   readonly appKey:        string;

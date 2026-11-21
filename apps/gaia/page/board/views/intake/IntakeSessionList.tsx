@@ -1,6 +1,5 @@
 /** The Intake list: every product-owner session, the selected one marked, under a head that counts them and opens a new chat. */
-import { Button } from 'design-system/Button';
-import { Tag }    from 'design-system/Tag';
+import { Button, Tag } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import { ChatTurnWordingUtil }                      from '../../conversation/ChatTurnWordingUtil.ts';
 import { useBoardHrefOf }                           from '../../shell/BoardRouteLinks.ts';

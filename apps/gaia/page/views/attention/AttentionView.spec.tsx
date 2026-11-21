@@ -11,11 +11,11 @@
  * package draws it for the props Gaia hands it.
  */
 import { describe, expect, test } from 'bun:test';
-import { Button }                 from 'design-system/Button';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
 import type { FleetDocument, FleetDocumentFleetAttentionItem }                          from '../../@types/FleetDocument.ts';
 import type { FleetStreamState }                                                        from '../../api/FleetStreamClient.ts';
+import { Button }                                                                       from '../../lib/design-system/DesignSystemInterface.ts';
 import { createFleetSource, type FleetSource }                                          from '../../shell/FleetSource.ts';
 import { GaiaApp }                                                                      from '../../shell/GaiaApp.tsx';
 import { senderOver }                                                                   from '../../testing/CommandServer.ts';

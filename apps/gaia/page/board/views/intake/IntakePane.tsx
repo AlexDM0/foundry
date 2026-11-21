@@ -3,10 +3,8 @@
  * beside it, then its end at the far side) over a hairline, then its body edge to edge.
  */
 
-import { Card }           from 'design-system/Card';
-import { Row }            from 'design-system/Row';
-import { Text }           from 'design-system/Text';
-import type { ReactNode } from 'react';
+import type { ReactNode }  from 'react';
+import { Card, Row, Text } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 export interface IntakePaneProps {
   readonly label:        string;

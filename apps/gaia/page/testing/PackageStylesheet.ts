@@ -1,10 +1,11 @@
 /**
- * Test-only: a package's entry stylesheet as a bundler links it, for a page a browser opens from a file, where no bundler runs: every
+ * Test-only: a library's linked stylesheet as a bundler links it, for a page a browser opens from a file, where no bundler runs: every
  * imported stylesheet in place of its import, in order.
  */
 import { readFileSync }  from 'node:fs';
 import { dirname, join } from 'node:path';
 
+const PAGE_FOLDER = join(import.meta.dir, '..');
 const STYLESHEET_IMPORT = /@import\s+"([^"]+)";/g;
 
 function inlinedStylesheetOf(stylesheetPath: string): string {
@@ -13,8 +14,8 @@ function inlinedStylesheetOf(stylesheetPath: string): string {
 }
 
 export const PackageStylesheet = {
-  /** The stylesheet a package exports under this specifier, such as `brand/brand.css`, with its imports inlined. */
-  inlinedText(stylesheetExport: string): string {
-    return inlinedStylesheetOf(Bun.resolveSync(stylesheetExport, import.meta.dir));
+  /** A library's linked stylesheet by its path under `page/`, such as `lib/brand/styles/brand.css`, with its imports inlined. */
+  inlinedText(stylesheetPagePath: string): string {
+    return inlinedStylesheetOf(join(PAGE_FOLDER, stylesheetPagePath));
   },
 } as const;

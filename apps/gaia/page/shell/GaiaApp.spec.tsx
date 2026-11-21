@@ -14,23 +14,25 @@
  * props Gaia hands it, never its insides. `GaiaShell` takes no hooks and unfolds, its package parts folded.
  */
 import { describe, expect, test } from 'bun:test';
-import { Banner }                 from 'design-system/Banner';
-import { Button }                 from 'design-system/Button';
-import { CountBadge }             from 'design-system/CountBadge';
-import { Icon }                   from 'design-system/Icon';
-import { IconButton }             from 'design-system/IconButton';
-import { SegmentedControl }       from 'design-system/SegmentedControl';
-import { SlotMeter }              from 'design-system/SlotMeter';
-import { StateBadge }             from 'design-system/StateBadge';
-import { TextField }              from 'design-system/TextField';
-import { ThemeCycleButton }       from 'design-system/ThemeCycleButton';
 import type { ReactElement }      from 'react';
 import { renderToStaticMarkup }   from 'react-dom/server';
 
-import type { FleetDocument, FleetDocumentForge }                                   from '../@types/FleetDocument.ts';
-import { CommandSender }                                                            from '../api/CommandSender.ts';
-import type { FleetStreamState }                                                    from '../api/FleetStreamClient.ts';
-import { BrandBar, themeButtonNameOf }                                              from '../design-system/BrandBar.tsx';
+import type { FleetDocument, FleetDocumentForge } from '../@types/FleetDocument.ts';
+import { CommandSender }                          from '../api/CommandSender.ts';
+import type { FleetStreamState }                  from '../api/FleetStreamClient.ts';
+import { BrandBar, themeButtonNameOf }            from '../components/BrandBar.tsx';
+import {
+  Banner,
+  Button,
+  CountBadge,
+  Icon,
+  IconButton,
+  SegmentedControl,
+  SlotMeter,
+  StateBadge,
+  TextField,
+  ThemeCycleButton
+} from '../lib/design-system/DesignSystemInterface.ts';
 import type { ThemeChoice }                                                         from '../shared/@types/ThemeChoice.ts';
 import { DEFAULT_ROUTE, HashRouter }                                                from '../shared/HashRouter.ts';
 import { answerResponse, senderOver, type SentRequest }                             from '../testing/CommandServer.ts';

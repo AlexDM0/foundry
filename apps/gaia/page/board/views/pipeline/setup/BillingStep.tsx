@@ -6,16 +6,19 @@
  * billing change is saved to the record, and the start is replaced by the way back to the current step, or by Continue while the record
  * is still at billing.
  */
-import { ActionBar }                                 from 'design-system/ActionBar';
-import { Button }                                    from 'design-system/Button';
-import { Card }                                      from 'design-system/Card';
-import { ChoiceInput, ChoiceOption }                 from 'design-system/ChoiceOption';
-import { Row }                                       from 'design-system/Row';
-import { Tag }                                       from 'design-system/Tag';
-import { Text }                                      from 'design-system/Text';
-import { View }                                      from 'design-system/View';
-import { useId, useState, type ReactNode }           from 'react';
-import type { BoardSetupRecordDocument }             from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { useId, useState, type ReactNode } from 'react';
+import type { BoardSetupRecordDocument }   from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  ActionBar,
+  Button,
+  Card,
+  ChoiceInput,
+  ChoiceOption,
+  Row,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { FlintSlotHabitat }                          from '../../../flint/FlintSlotHabitat.tsx';
 import { FLINT_SLOT_HABITATS }                       from '../../../flint/FlintSlotHabitats.ts';
 import { useBoardHrefOf, useBoardNavigation }        from '../../../shell/BoardRouteLinks.ts';

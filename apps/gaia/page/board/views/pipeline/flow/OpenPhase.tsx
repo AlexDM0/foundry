@@ -7,12 +7,14 @@
  * offers to copy the phase's gates to another entity.
  */
 
-import { Button }                                                           from 'design-system/Button';
-import { Row }                                                              from 'design-system/Row';
-import { Tag }                                                              from 'design-system/Tag';
-import { Text }                                                             from 'design-system/Text';
-import type { ReactNode }                                                   from 'react';
-import type { BoardPipelineFlowDocument }                                   from '../../../../@types/board/BoardPipelineDocuments.ts';
+import type { ReactNode }                 from 'react';
+import type { BoardPipelineFlowDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import {
+  Button,
+  Row,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useBoardHrefOf }                                                   from '../../../shell/BoardRouteLinks.ts';
 import { StateToneUtil }                                                    from '../../../utils/StateToneUtil.ts';
 import type { PipelineViewFacts }                                           from '../PipelineViewModel.ts';

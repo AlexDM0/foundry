@@ -3,13 +3,11 @@
  * and the log once read, and the waiting work with its causes, a Resume per job that waits for an instruction and Resume all. Hook-free:
  * which logs are open and what each read gave come in as props.
  */
-import { Button } from 'design-system/Button';
-import { MonoId } from 'design-system/MonoId';
-import { Text }   from 'design-system/Text';
 
-import type { CommandBody } from '../../@types/CommandDocument.ts';
-import { Callout }          from '../../design-system/Callout.tsx';
-import { ConditionDot }     from '../../design-system/ConditionDot.tsx';
+import type { CommandBody }     from '../../@types/CommandDocument.ts';
+import { Callout }              from '../../components/Callout.tsx';
+import { ConditionDot }         from '../../components/ConditionDot.tsx';
+import { Button, MonoId, Text } from '../../lib/design-system/DesignSystemInterface.ts';
 import {
   type CrashLogLine,
   type CrashLogShown,

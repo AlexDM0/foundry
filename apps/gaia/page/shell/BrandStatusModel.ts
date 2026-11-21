@@ -3,7 +3,7 @@
  * conditions counted in the sentence after it, over the forges not hidden. Before the first document the bar says nothing of the fleet.
  */
 import type { FleetDocument, FleetDocumentCondition } from '../@types/FleetDocument.ts';
-import type { BrandStatus }                           from '../design-system/BrandBar.tsx';
+import type { BrandStatus }                           from '../components/BrandBar.tsx';
 import { CountTextUtil }                              from '../shared/utils/CountTextUtil.ts';
 import { ForgeTextUtil, type ShownCondition }         from '../shared/utils/ForgeTextUtil.ts';
 

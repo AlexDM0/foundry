@@ -6,8 +6,6 @@
  * until User saves again or discards it.
  */
 
-import { Tag }         from 'design-system/Tag';
-import { TextButton }  from 'design-system/TextButton';
 import {
   useEffect,
   useId,
@@ -17,6 +15,7 @@ import {
   type KeyboardEvent
 } from 'react';
 import type { BoardSourceAnnotationDocument }                                 from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { Tag, TextButton }                                                    from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { useChangedKeys }                                                     from '../../../shell/ChangeHighlight.ts';
 import { useControlCommand }                                                  from '../../../shell/ControlCommandSender.ts';
 import { ConstitutionEditorModel, type ConstitutionVersion, type EditorText } from './ConstitutionEditorModel.ts';

@@ -1,8 +1,8 @@
 /** "Look again" in a page title: asks the registry and every registered forge again at once, and waits while that is on its way. */
-import { Button } from 'design-system/Button';
 
 import type { CommandBody }                from '../@types/CommandDocument.ts';
 import { CommandSender, useCommandSender } from '../api/CommandSender.ts';
+import { Button }                          from '../lib/design-system/DesignSystemInterface.ts';
 
 const LOOK_AGAIN: CommandBody = { kind: 'fleet-look-again' };
 

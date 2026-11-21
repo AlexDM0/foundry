@@ -3,11 +3,13 @@
  * it, the content hash and the constitution commit the newest Apply made (each entity's constitutions over entities); View stored pipeline
  * opens the stored text, and Update pipeline opens an update of it with `pipeline-update-start` and moves to `pipeline/edit`.
  */
-import { ActionBar } from 'design-system/ActionBar';
-import { Button }    from 'design-system/Button';
-import { Tag }       from 'design-system/Tag';
-import { Text }      from 'design-system/Text';
-import { useState }  from 'react';
+import { useState } from 'react';
+import {
+  ActionBar,
+  Button,
+  Tag,
+  Text
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardNavigation }   from '../../../shell/BoardRouteLinks.ts';
 import { CommandButton }        from '../../../shell/CommandButton.tsx';

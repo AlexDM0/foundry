@@ -5,15 +5,13 @@
  * the detail panel in place, over the Waves tab. A live node pulses only while the board's stream is live.
  */
 
-import { StateBadge } from 'design-system/StateBadge';
-import { Text }       from 'design-system/Text';
-import { View }       from 'design-system/View';
 import {
   useEffect,
   useMemo,
   useRef,
   useState
 } from 'react';
+import { StateBadge, Text, View } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { ConnectionState }   from '../../api/BoardEventStreamClient.ts';
 import { TicketIdMark }           from '../../chips/TicketMarks.tsx';

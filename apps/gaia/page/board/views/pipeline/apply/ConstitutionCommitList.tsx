@@ -1,10 +1,12 @@
 /** MonoApply's "Constitutions": how many drafted constitutions go to main in the one commit, each by its entity, and what the others keep. */
-import { MonoId }                        from 'design-system/MonoId';
-import { Tag }                           from 'design-system/Tag';
-import { Text }                          from 'design-system/Text';
-import { View }                          from 'design-system/View';
 import type { BoardSetupRecordDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { ConstitutionCommitListModel }   from './ConstitutionCommitListModel.ts';
+import {
+  MonoId,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { ConstitutionCommitListModel } from './ConstitutionCommitListModel.ts';
 
 export function ConstitutionCommitList({ record }: { readonly record: Pick<BoardSetupRecordDocument, 'draft' | 'entities'> }) {
   const view = ConstitutionCommitListModel.viewOf(record);

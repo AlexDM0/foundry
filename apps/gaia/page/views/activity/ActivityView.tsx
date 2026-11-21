@@ -4,25 +4,30 @@
  * forge menu is open; `ActivityLayout` takes no hooks and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the
  * page title's parts with the view.
  */
-import { Card }                                 from 'design-system/Card';
-import { DataTable, type DataTableColumn }      from 'design-system/DataTable';
-import { EmptyState }                           from 'design-system/EmptyState';
-import { FillMeter }                            from 'design-system/FillMeter';
-import { Icon }                                 from 'design-system/Icon';
-import { Menu, MenuItem }                       from 'design-system/Menu';
-import { SectionHead }                          from 'design-system/SectionHead';
-import { type SegmentOption, SegmentedControl } from 'design-system/SegmentedControl';
-import { Stamp }                                from 'design-system/Stamp';
-import { StateDot }                             from 'design-system/StateDot';
-import type { StateTone }                       from 'design-system/StateTone';
-import { Text }                                 from 'design-system/Text';
-import { useMemo, useState }                    from 'react';
+import { useMemo, useState } from 'react';
 
 import { LIMITS }             from '../../../src/shared/constants/Limits.ts';
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
-import { RoleDot }            from '../../design-system/RoleDot.tsx';
-import type { ClockReading }  from '../../shared/@types/ClockReading.ts';
-import type { ViewParts }     from '../../shared/@types/ViewParts.ts';
+import { RoleDot }            from '../../components/RoleDot.tsx';
+import {
+  Card,
+  DataTable,
+  type DataTableColumn,
+  EmptyState,
+  FillMeter,
+  Icon,
+  Menu,
+  MenuItem,
+  SectionHead,
+  type SegmentOption,
+  SegmentedControl,
+  Stamp,
+  StateDot,
+  type StateTone,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import type { ClockReading } from '../../shared/@types/ClockReading.ts';
+import type { ViewParts }    from '../../shared/@types/ViewParts.ts';
 import {
   type ActivityContent,
   type ActivityFilters,

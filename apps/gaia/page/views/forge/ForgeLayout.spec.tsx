@@ -7,13 +7,15 @@
  * with no way to open its own Bridge, or that the registry names no such forge.
  */
 import { describe, expect, test } from 'bun:test';
-import type { ChoiceOptionProps } from 'design-system/ChoiceOption';
-import { ConfirmStrip }           from 'design-system/ConfirmStrip';
-import { MonoId }                 from 'design-system/MonoId';
-import { Popover }                from 'design-system/Popover';
 
-import type { CommandBody }                                   from '../../@types/CommandDocument.ts';
-import type { FleetDocumentForge }                            from '../../@types/FleetDocument.ts';
+import type { CommandBody }        from '../../@types/CommandDocument.ts';
+import type { FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import {
+  type ChoiceOptionProps,
+  ConfirmStrip,
+  MonoId,
+  Popover
+} from '../../lib/design-system/DesignSystemInterface.ts';
 import { FailedActions }                                      from '../../testing/FailedActions.ts';
 import { PackageButtons }                                     from '../../testing/PackageButtons.ts';
 import { type HostElement, ReactElementTree }                 from '../../testing/ReactElementTree.ts';

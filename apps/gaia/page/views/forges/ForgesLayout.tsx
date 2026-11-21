@@ -5,28 +5,33 @@
  * A forge at another version than this Gaia is built for opens its versions pair under its row from the disclosure under its condition,
  * and the table's note says what the verdicts mean. It takes no hooks: the command states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { Button }                                             from 'design-system/Button';
-import { Card }                                               from 'design-system/Card';
-import { ChoiceInput, ChoiceOption }                          from 'design-system/ChoiceOption';
-import { ConfirmStrip }                                       from 'design-system/ConfirmStrip';
-import { CountBadge }                                         from 'design-system/CountBadge';
-import { DataTable, type DataTableColumn, type DataTableRow } from 'design-system/DataTable';
-import { EmptyState }                                         from 'design-system/EmptyState';
-import { Icon }                                               from 'design-system/Icon';
-import { MonoId }                                             from 'design-system/MonoId';
-import { NumberStepper }                                      from 'design-system/NumberStepper';
-import { PendingStep }                                        from 'design-system/PendingStep';
-import { SectionHead }                                        from 'design-system/SectionHead';
-import { SlotMeter }                                          from 'design-system/SlotMeter';
-import { StatePill }                                          from 'design-system/StatePill';
-import { Text }                                               from 'design-system/Text';
 
 import type { CommandBody, ForgeCommandBody, ForgeStopAgents } from '../../@types/CommandDocument.ts';
 import type { CommandStates, CommandSubject }                  from '../../api/CommandSender.ts';
-import { ConditionDot }                                        from '../../design-system/ConditionDot.tsx';
-import { Refusal }                                             from '../../design-system/Refusal.tsx';
-import { CommandFailureRefusal }                               from '../../shared/CommandFailureRefusal.tsx';
-import { VersionsPair }                                        from '../../shared/VersionsPair.tsx';
+import { ConditionDot }                                        from '../../components/ConditionDot.tsx';
+import { Refusal }                                             from '../../components/Refusal.tsx';
+import {
+  Button,
+  Card,
+  ChoiceInput,
+  ChoiceOption,
+  ConfirmStrip,
+  CountBadge,
+  DataTable,
+  type DataTableColumn,
+  type DataTableRow,
+  EmptyState,
+  Icon,
+  MonoId,
+  NumberStepper,
+  PendingStep,
+  SectionHead,
+  SlotMeter,
+  StatePill,
+  Text
+} from '../../lib/design-system/DesignSystemInterface.ts';
+import { CommandFailureRefusal } from '../../shared/CommandFailureRefusal.tsx';
+import { VersionsPair }          from '../../shared/VersionsPair.tsx';
 import type {
   ForgeAgentsCell,
   ForgeButton,

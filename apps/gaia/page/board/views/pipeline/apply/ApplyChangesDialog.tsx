@@ -7,20 +7,22 @@
  * tickets in flight group by entity, a ticket in a package stage under the package as a crossing from its entity; a refusal, such as
  * removing an entity a ticket names, shows verbatim as every refusal does.
  */
-import { ChangeRow }                                                                                from 'design-system/ChangeRow';
-import { CountBadge }                                                                               from 'design-system/CountBadge';
-import { Dialog }                                                                                   from 'design-system/Dialog';
-import { MonoId }                                                                                   from 'design-system/MonoId';
-import { Tag }                                                                                      from 'design-system/Tag';
-import { Text }                                                                                     from 'design-system/Text';
-import { View }                                                                                     from 'design-system/View';
 import type { BoardAppliedPipelineDocument, BoardPipelineFlowDocument, BoardPipelineSetupDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
-import type { ChangeGroupView }                                                                     from '../entities/ChangeGroupModel.ts';
-import { PipelineLevelModel }                                                                       from '../entities/PipelineLevelModel.ts';
-import { EntityWorkModel, type EntityWorkTicket }                                                   from '../live/EntityWorkModel.ts';
-import { ApplyChangesDialogModel }                                                                  from './ApplyChangesDialogModel.ts';
-import { ApplyFoot, ApplyPendingState }                                                             from './ApplyPendingState.tsx';
-import { InFlightNote }                                                                             from './InFlightNote.tsx';
+import {
+  ChangeRow,
+  CountBadge,
+  Dialog,
+  MonoId,
+  Tag,
+  Text,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import type { ChangeGroupView }                   from '../entities/ChangeGroupModel.ts';
+import { PipelineLevelModel }                     from '../entities/PipelineLevelModel.ts';
+import { EntityWorkModel, type EntityWorkTicket } from '../live/EntityWorkModel.ts';
+import { ApplyChangesDialogModel }                from './ApplyChangesDialogModel.ts';
+import { ApplyFoot, ApplyPendingState }           from './ApplyPendingState.tsx';
+import { InFlightNote }                           from './InFlightNote.tsx';
 
 export interface ApplyChangesDialogProps {
   readonly setup:        BoardPipelineSetupDocument;

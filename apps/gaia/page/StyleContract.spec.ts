@@ -39,6 +39,8 @@ import {
 
 const PAGE_FOLDER = import.meta.dir;
 const BOARD_FOLDER_NAME = 'board';
+const LIBRARY_FOLDER_NAME = 'lib';
+const DESIGN_SYSTEM_LIBRARY_FOLDER = join(PAGE_FOLDER, LIBRARY_FOLDER_NAME, 'design-system');
 const TOKENS_PATH = join(PAGE_FOLDER, 'styles', 'tokens.css');
 const STYLESHEET_PATH = join(PAGE_FOLDER, 'styles', 'gaia.css');
 const SPLASH_PATH = join(PAGE_FOLDER, '..', 'resources', 'page', 'loading.html');
@@ -610,8 +612,13 @@ interface EmittedClasses {
   readonly unreadable: readonly string[];
 }
 
+/** A library under `page/lib/` styles its own classes and holds them in its own style contract, so no component of one is Gaia's to style. */
+function isLibraryFile(path: string): boolean {
+  return path.startsWith(`${LIBRARY_FOLDER_NAME}/`);
+}
+
 function isShippingComponent(path: string): boolean {
-  return path.endsWith('.tsx') && !path.endsWith('.spec.tsx') && !path.endsWith('.dom.tsx') && !path.split('/').includes('testing');
+  return path.endsWith('.tsx') && !path.endsWith('.spec.tsx') && !path.endsWith('.dom.tsx') && !path.split('/').includes('testing') && !isLibraryFile(path);
 }
 
 function isBoardComponent(path: string): boolean {
@@ -705,8 +712,8 @@ function boardKeyframeSentencesOf(boardStylesheetTexts: readonly string[], gaiaS
   ];
 }
 
-/** The package's tokens sit beside its entry stylesheet, which exports no path to them of its own. */
-const PACKAGE_TOKENS_PATH = join(dirname(Bun.resolveSync('design-system/design-system.css', PAGE_FOLDER)), 'tokens.css');
+/** The design-system library's tokens, one of the two stylesheets a page links by path. */
+const PACKAGE_TOKENS_PATH = join(DESIGN_SYSTEM_LIBRARY_FOLDER, 'styles', 'tokens.css');
 const PACKAGE_TOKENS_TEXT = readFileSync(PACKAGE_TOKENS_PATH, 'utf8');
 const TOKENS_TEXT = readFileSync(TOKENS_PATH, 'utf8');
 /** Both token files as the page links them: the package's first, so a token of Gaia's own wins. */
@@ -762,7 +769,7 @@ const BOARD_STYLESHEET_FOLDER_PATH = 'page/styles/board';
 /** The board's rules as the Bridge's guards read them, each named by its path under `apps/gaia/`. */
 const BOARD_RULES: readonly StylesheetRule[] = [...BOARD_STYLESHEET_TEXTS].flatMap(([name, text]) => stylesheetRulesOf(`${BOARD_STYLESHEET_FOLDER_PATH}/${name}`, text));
 /** The package's rules, read beside the board's so a reduce rule of the package's may stop a board animation, as it may the Bridge's. */
-const PACKAGE_FOLDER = dirname(Bun.resolveSync('design-system/package.json', PAGE_FOLDER));
+const PACKAGE_FOLDER = DESIGN_SYSTEM_LIBRARY_FOLDER;
 const PACKAGE_RULES: readonly StylesheetRule[] = [...new Bun.Glob('**/*.css').scanSync({ cwd: PACKAGE_FOLDER })]
   .filter((path) => !path.split('/').includes('node_modules'))
   .sort()
@@ -774,7 +781,7 @@ const BOARD_MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [];
 const BOARD_ANCESTORS_THE_MARKUP_GUARANTEES: readonly string[] = [];
 /** The board's colours the same in both themes, set once in the light block, as the Bridge's `SAME_IN_BOTH_THEMES_TOKENS`. */
 const BOARD_SAME_IN_BOTH_THEMES_TOKENS: readonly string[] = [
-  // Flint's colours, its own in both themes (`packages/flint/constants/Palette.ts`).
+  // Flint's colours, its own in both themes (`page/lib/flint/constants/Palette.ts`).
   '--flint-body',
   '--flint-eye',
   '--flint-hand',
@@ -1126,7 +1133,8 @@ describe('the board\'s guards, on planted stylesheets and components', () => {
 
 describe('the scan itself', () => {
   test('it reads the shipping components and both stylesheets, and finds a floor of each', () => {
-    expect(SOURCES.map(({ path }) => path)).toContain('design-system/Refusal.tsx');
+    expect(SOURCES.map(({ path }) => path)).toContain('components/Refusal.tsx');
+    expect(SHIPPING_SOURCES.some(({ path }) => isLibraryFile(path))).toBe(false);
     expect(SOURCES.some(({ path }) => path.endsWith('.spec.tsx') || path.endsWith('.dom.tsx') || path.startsWith('testing/'))).toBe(false);
     expect(SOURCES.some(({ path }) => isBoardComponent(path))).toBe(false);
     expect(BOARD_SOURCES.every(({ path }) => isBoardComponent(path))).toBe(true);

@@ -5,11 +5,11 @@
  * may be sent within the bounds the forge serves. Which job holds a launch slot is the forge's `launchSlots` fact, never a kind list copied
  * here.
  */
-import type { IconName } from 'design-system/Icon';
 
 import type { BoardLaunchSlotsDocument }           from '../../../@types/board/BoardDocument.ts';
 import type { BoardConcurrencyBoundsDocument }     from '../../../@types/board/BoardFactDocuments.ts';
 import type { BoardDisplayState, BoardResumeWait } from '../../../@types/board/BoardVocabulary.ts';
+import type { IconName }                           from '../../../lib/design-system/DesignSystemInterface.ts';
 import { DisplayStateWordingUtil }                 from '../../utils/DisplayStateWordingUtil.ts';
 import { JobStateUtil }                            from '../../utils/JobStateUtil.ts';
 import { TimeUtil, type TimestampSlices }          from '../../utils/TimeUtil.ts';

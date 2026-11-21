@@ -3,17 +3,17 @@
  * job's facts (role, tickets, calls, last tool, subagents); for a job that waits for a resume, what it waits for as the forge serves it;
  * the job's controls; its transcript; and in the foot the message box where the job takes messages.
  */
-import { MonoId } from 'design-system/MonoId';
-import { Row }    from 'design-system/Row';
 import {
+  MonoId,
+  Row,
   SidePanel,
   SidePanelBody,
   SidePanelFoot,
-  SidePanelHead
-} from 'design-system/SidePanel';
-import { StateDot } from 'design-system/StateDot';
-import { Text }     from 'design-system/Text';
-import { View }     from 'design-system/View';
+  SidePanelHead,
+  StateDot,
+  Text,
+  View
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { TranscriptFollower }                    from '../../@types/BoardServices.ts';
 import { FlintSlotHabitat }                           from '../../flint/FlintSlotHabitat.tsx';

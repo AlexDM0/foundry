@@ -2,8 +2,7 @@
  * The layout the pipeline agent reports first in monorepo mode: each stand-alone codebase's folder in mono with what it is, the files the
  * report came from, and that User confirms the entities in the next step. It runs nothing and proposes nothing.
  */
-import { MonoId } from 'design-system/MonoId';
-import { Text }   from 'design-system/Text';
+import { MonoId, Text } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { FlowGlyph }       from '../flow/FlowGlyph.tsx';
 import type { LayoutItem } from './ResearchStepModel.ts';

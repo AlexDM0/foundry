@@ -7,8 +7,8 @@
  * A row's last run is the served run of its line in the phase and entity in view, a prepare step's install run included, the newest first.
  */
 import { describe, expect, test }                                                           from 'bun:test';
-import { ReorderIndexUtil }                                                                 from 'design-system/ReorderIndexUtil';
 import type { BoardGateProfileRunDocument, BoardGateRowDocument, BoardStepRunTimeDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { ReorderIndexUtil }                                                                 from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { GatesAreaModel }                                                                   from './GatesAreaModel.ts';
 
 function gateRow(name: string, changes: Partial<BoardGateRowDocument> = {}): BoardGateRowDocument {

@@ -5,7 +5,6 @@
  * is the live flow; anything else is the setup landing, which names an unreadable file's reason. In monorepo mode a route leads with its
  * level (`PipelineLevelModel`), and the screen reads the item under it.
  */
-import type { StepperStatus } from 'design-system/Stepper';
 import type { BoardDocument } from '../../../@types/board/BoardDocument.ts';
 import type {
   BoardAppliedPipelineDocument,
@@ -14,6 +13,7 @@ import type {
   BoardSetupRecordDocument
 } from '../../../@types/board/BoardPipelineDocuments.ts';
 import type { BoardFlowStage, BoardSetupMode, BoardSetupStep } from '../../../@types/board/BoardVocabulary.ts';
+import type { StepperStatus }                                  from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { BoardRoute }                                     from '../../shell/BoardRouter.ts';
 import { FORGE_LEVEL, PipelineLevelModel, type PipelineLevel } from './entities/PipelineLevelModel.ts';

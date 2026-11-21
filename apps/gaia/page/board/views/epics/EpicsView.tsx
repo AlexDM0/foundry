@@ -5,15 +5,13 @@
  * HTML, shows only in its sandboxed frame, behind a disclosure. Its live work pulses only while the board's stream is live. The view is the
  * epics habitat of Flint.
  */
-import { SegmentMeter } from 'design-system/SegmentMeter';
-import { StateBadge }   from 'design-system/StateBadge';
-import { StateDot }     from 'design-system/StateDot';
 import {
   useEffect,
   useRef,
   useState,
   type ReactNode
 } from 'react';
+import { SegmentMeter, StateBadge, StateDot } from '../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { ConnectionState }  from '../../api/BoardEventStreamClient.ts';
 import { TicketIdMark }          from '../../chips/TicketMarks.tsx';

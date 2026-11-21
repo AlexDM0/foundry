@@ -4,13 +4,11 @@
  * a slot (`launchSlots`); a job in this list that holds none is marked not counted.
  */
 
-import { Button }                   from 'design-system/Button';
-import { Pane }                     from 'design-system/Pane';
-import { SlotMeter }                from 'design-system/SlotMeter';
 import { Fragment, type ReactNode } from 'react';
 
 import type { BoardConcurrencyDocument, BoardLaunchSlotsDocument } from '../../../@types/board/BoardDocument.ts';
 import type { BoardConcurrencyBoundsDocument }                     from '../../../@types/board/BoardFactDocuments.ts';
+import { Button, Pane, SlotMeter }                                 from '../../../lib/design-system/DesignSystemInterface.ts';
 import { JobLink, TicketLinks }                                    from '../../conversation/ConversationParts.tsx';
 import { StateToneUtil }                                           from '../../utils/StateToneUtil.ts';
 import type { TimestampSlices }                                    from '../../utils/TimeUtil.ts';

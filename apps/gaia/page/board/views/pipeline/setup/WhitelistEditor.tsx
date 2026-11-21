@@ -3,9 +3,8 @@
  * and, when the forge refuses it, why; a select that adds another package; and the link to how a crossing runs, with its cost on
  * hover.
  */
-import { Button }                                                   from 'design-system/Button';
-import { Text }                                                     from 'design-system/Text';
 import type { BoardDraftEditDocument, BoardPipelineEntityDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
+import { Button, Text }                                             from '../../../../lib/design-system/DesignSystemInterface.ts';
 import { CompactSelect }                                            from './CompactSelect.tsx';
 import { EntitiesStepModel, type EntityRowView }                    from './EntitiesStepModel.ts';
 import { RemovableChip }                                            from './RemovableChip.tsx';

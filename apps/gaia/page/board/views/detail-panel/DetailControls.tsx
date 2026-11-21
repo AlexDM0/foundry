@@ -2,10 +2,10 @@
  * The controls on a ticket the forge offers, in the panel's section style: Merge while the ticket waits for merge (Accept, Update branch),
  * then Controls (Ready, Hold or Unhold, Park, Set network). Each posts its board command and shows the forge's refusal verbatim.
  */
-import { TitledBlock } from 'design-system/TitledBlock';
-import { useState }    from 'react';
+import { useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS }                                                 from '../../../../src/shared/constants/PageContractVersions.ts';
+import { TitledBlock }                                                            from '../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                                          from '../../shell/CommandButton.tsx';
 import { DetailControlsModelUtil, type DetailControlsModel, type MergeWaitModel } from './DetailControlsModel.ts';
 

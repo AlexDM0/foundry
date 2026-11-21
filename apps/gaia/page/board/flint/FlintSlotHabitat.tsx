@@ -4,10 +4,6 @@
  * change, and a screen whose agent does one thing the whole time gives none; while its cue lasts, it offers Flint that answer to copy in
  * the box, so a Flint that arrives later keeps it up too; and it tells the host that it shows, so Flint visits the open screen's slot.
  */
-import { FlintSlot, type FlintSlotGround, type FlintSlotSize } from 'design-system/FlintSlot';
-
-import type { SpriteCopyTarget, SpriteHabitat, SpriteIntent } from 'flint/SpriteHabitat';
-import { useFlintHabitat }                                    from 'flint/react/UseFlintHabitat';
 import {
   useContext,
   useEffect,
@@ -15,6 +11,14 @@ import {
   useRef,
   useState
 } from 'react';
+import { FlintSlot, type FlintSlotGround, type FlintSlotSize } from '../../lib/design-system/DesignSystemInterface.ts';
+
+import {
+  type SpriteCopyTarget,
+  type SpriteHabitat,
+  type SpriteIntent,
+  useFlintHabitat
+} from '../../lib/flint/FlintInterface.ts';
 import type { FlintSlotCue }       from './FlintSlotCues.ts';
 import { lastingIntentOf }         from './FlintSlotHabitats.ts';
 import { FlintSlotShowingContext } from './FlintSlotShowing.ts';

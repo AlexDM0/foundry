@@ -2,8 +2,7 @@
  * The dialog of a node that waits on a question: the node's open setup questions as stacked question cards, in place of the node's own
  * dialog, which opens again once nothing on the node is open. It closes once an answer is applied.
  */
-import { Dialog } from 'design-system/Dialog';
-import { View }   from 'design-system/View';
+import { Dialog, View } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import type { SetupQuestionCard } from '../agent-panel/PipelineAgentPanelModel.ts';
 import { SetupQuestionForm }      from '../agent-panel/SetupQuestionForm.tsx';

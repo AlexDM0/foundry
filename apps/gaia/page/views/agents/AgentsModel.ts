@@ -4,12 +4,11 @@
  * filters live in the route, so both survive a new document; a value the forge did not report is `null` here and a dash on screen, never
  * zero.
  */
-import type { SegmentOption } from 'design-system/SegmentedControl';
-import type { TagTone }       from 'design-system/Tag';
 
 import type { FleetDocument, FleetDocumentFleetAgentRow, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import type { DotCondition }                                                  from '../../design-system/ConditionDot.tsx';
-import type { DotRole }                                                       from '../../design-system/RoleDot.tsx';
+import type { DotCondition }                                                  from '../../components/ConditionDot.tsx';
+import type { DotRole }                                                       from '../../components/RoleDot.tsx';
+import type { SegmentOption, TagTone }                                        from '../../lib/design-system/DesignSystemInterface.ts';
 import type { PageFigure }                                                    from '../../shared/@types/ViewParts.ts';
 import { HashRouter, type SelectedAgent }                                     from '../../shared/HashRouter.ts';
 import { type MachineLoad, MachineLoadModel }                                 from '../../shared/MachineLoadModel.ts';

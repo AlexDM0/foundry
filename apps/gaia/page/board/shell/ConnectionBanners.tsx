@@ -3,7 +3,7 @@
  * colours (a lost session is Gaia's own page banner); launches held for an install change in the held orange; and the Overseer's warnings
  * (in the error colours) and notices.
  */
-import { Banner } from 'design-system/Banner';
+import { Banner } from '../../lib/design-system/DesignSystemInterface.ts';
 
 export interface ConnectionBannersProps {
   readonly streamIsDown:       boolean;

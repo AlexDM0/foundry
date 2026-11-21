@@ -2,10 +2,10 @@
  * The marks a ticket carries wherever it shows: its mono id, its priority (low quiet, high amber; normal unmarked), its type in small
  * capitals, and the dashed "waiting on" note whose ids each link where the caller says.
  */
-import { MonoId, type MonoIdProps } from 'design-system/MonoId';
-import { Fragment }                 from 'react';
+import { Fragment } from 'react';
 
 import type { BoardTicketPriority, BoardTicketType } from '../../@types/board/BoardVocabulary.ts';
+import { MonoId, type MonoIdProps }                  from '../../lib/design-system/DesignSystemInterface.ts';
 
 const PRIORITY_MARK_TITLE: Readonly<Record<Exclude<BoardTicketPriority, 'normal'>, string>> = {
   low:  'Low priority: no row on the chart until it is started, and worked once every normal and high ticket is done',

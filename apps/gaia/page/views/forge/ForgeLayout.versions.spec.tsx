@@ -6,9 +6,9 @@
  * a named dismiss; the area under the bar holds the notice with its word, heading, sentence and versions pair, and no button.
  */
 import { describe, expect, test } from 'bun:test';
-import { IconButton }             from 'design-system/IconButton';
+import type { CommandBody }       from '../../@types/CommandDocument.ts';
+import { IconButton }             from '../../lib/design-system/DesignSystemInterface.ts';
 
-import type { CommandBody }                                              from '../../@types/CommandDocument.ts';
 import { PackageButtons }                                                from '../../testing/PackageButtons.ts';
 import { ReactElementTree }                                              from '../../testing/ReactElementTree.ts';
 import { FLEET_FIXTURES_READ_AT }                                        from '../../testing/fixtures/fleet-five-forges.ts';

@@ -3,8 +3,8 @@
  * its result. A running call ticks its elapsed time on the board clock. User's open or close outlasts every later entry of the turn and
  * its end; until User chooses, the fold follows the caller.
  */
-import { StateDot }            from 'design-system/StateDot';
 import { useEffect, useState } from 'react';
+import { StateDot }            from '../../lib/design-system/DesignSystemInterface.ts';
 
 import { useBoardClock }   from '../shell/BoardClock.ts';
 import { ElapsedTimeUtil } from '../utils/ElapsedTimeUtil.ts';

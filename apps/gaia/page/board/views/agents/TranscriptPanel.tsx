@@ -3,12 +3,10 @@
  * panel opened again on the same job shows it at once and asks only after the last cursor it holds. Every entry renders as text, with its
  * local time: an agent's markup is never markup here.
  */
-import { EmptyState }          from 'design-system/EmptyState';
-import { Row }                 from 'design-system/Row';
-import { Text }                from 'design-system/Text';
 import { useEffect, useState } from 'react';
 
 import type { BoardTranscriptEntryDocument } from '../../../@types/board/ConversationDocument.ts';
+import { EmptyState, Row, Text }             from '../../../lib/design-system/DesignSystemInterface.ts';
 import type { TranscriptFollower }           from '../../@types/BoardServices.ts';
 import { ChatTurnWordingUtil }               from '../../conversation/ChatTurnWordingUtil.ts';
 import { TranscriptLog }                     from '../../conversation/TranscriptLog.tsx';

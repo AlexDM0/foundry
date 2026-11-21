@@ -3,10 +3,10 @@
  * every job a network outage stopped across all forges. It is never disabled, with nothing to resume or a forge down, and the answer says
  * what happened in each forge.
  */
-import { Button } from 'design-system/Button';
 
 import type { CommandBody } from '../../@types/CommandDocument.ts';
 import { useCommandSender } from '../../api/CommandSender.ts';
+import { Button }           from '../../lib/design-system/DesignSystemInterface.ts';
 
 export const OUTAGE_RESUME: CommandBody = { kind: 'fleet-outage-resume' };
 

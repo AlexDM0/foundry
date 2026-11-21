@@ -2,8 +2,8 @@
  * One setup question as a question card: the recommended option starts chosen, Answer sends the chosen letters or the Other text as
  * `pipeline-setup-answer`, and the card turns into its answered confirmation once the answer is applied. A refusal shows verbatim.
  */
-import { MultipleChoiceQuestion, QuestionOption, QuestionOtherOption } from 'design-system/MultipleChoiceQuestion';
 import { useState }                                                    from 'react';
+import { MultipleChoiceQuestion, QuestionOption, QuestionOtherOption } from '../../../../lib/design-system/DesignSystemInterface.ts';
 
 import { useControlCommand }                                                   from '../../../shell/ControlCommandSender.ts';
 import { OTHER_OPTION_LABEL, PipelineAgentPanelModel, type SetupQuestionCard } from './PipelineAgentPanelModel.ts';

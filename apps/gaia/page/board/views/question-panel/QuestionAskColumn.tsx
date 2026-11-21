@@ -6,14 +6,18 @@
  * choices start empty for every decision, since the column is keyed by it.
  */
 
-import { Card }                                  from 'design-system/Card';
-import { ChoiceInput, ChoiceMark, ChoiceOption } from 'design-system/ChoiceOption';
-import { Text }                                  from 'design-system/Text';
-import { View }                                  from 'design-system/View';
-import { useState, type ReactNode }              from 'react';
+import { useState, type ReactNode } from 'react';
 
-import { PAGE_CONTRACT_VERSIONS }                      from '../../../../src/shared/constants/PageContractVersions.ts';
-import type { BoardDecisionDocument }                  from '../../../@types/board/BoardDecisionDocuments.ts';
+import { PAGE_CONTRACT_VERSIONS }     from '../../../../src/shared/constants/PageContractVersions.ts';
+import type { BoardDecisionDocument } from '../../../@types/board/BoardDecisionDocuments.ts';
+import {
+  Card,
+  ChoiceInput,
+  ChoiceMark,
+  ChoiceOption,
+  Text,
+  View
+} from '../../../lib/design-system/DesignSystemInterface.ts';
 import { DecisionAnswerUtil, type QuestionSelections } from '../../conversation/DecisionAnswerUtil.ts';
 import { OptionConsequenceFacts }                      from '../../conversation/OptionConsequenceFacts.tsx';
 import { FLINT_SLOT_CUES }                             from '../../flint/FlintSlotCues.ts';

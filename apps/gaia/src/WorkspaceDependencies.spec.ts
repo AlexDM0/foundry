@@ -2,7 +2,8 @@
  * Every workspace package Gaia's code names by a bare specifier is declared in Gaia's `package.json`, or neither the workspace install nor
  * turbo knows Gaia depends on it, and a change to that package would leave Gaia's cached checks green. What matters: the scan reads the
  * imports, re-exports and dynamic imports of `src/` and `page/` and the stylesheets `page/index.html` links, sees the workspace's packages
- * from its manifest, and each form is planted to prove the guard names it.
+ * from its manifest, and each form is planted to prove the guard names it. The libraries under `page/lib/` are no workspace packages: a
+ * bare specifier that names one is a finding, since a library is reached by a relative path to its interface file or a linked file.
  */
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
@@ -16,6 +17,7 @@ const PAGE_INDEX_PATH = 'page/index.html';
 const LINKED_ADDRESS = /(?:href|src)="(?<address>[^"]+)"/g;
 const RELATIVE_OR_ABSOLUTE_ADDRESS = /^(?:\.|\/|[a-z]+:)/;
 const MINIMUM_SCANNED_SOURCE_COUNT = 100;
+const PAGE_LIBRARY_FOLDER = 'page/lib';
 
 interface PackageManifest {
   readonly name?:            string;
@@ -38,6 +40,11 @@ function workspacePackageNames(): Set<string> {
     .flatMap((memberPattern) => [...new Bun.Glob(`${memberPattern}/package.json`).scanSync({ cwd: WORKSPACE_ROOT })]);
   const memberNames = memberManifestPaths.map((manifestPath) => manifestAt(join(WORKSPACE_ROOT, manifestPath, '..')).name ?? '');
   return new Set(memberNames.filter((memberName) => memberName !== '' && memberName !== manifestAt(GAIA_FOLDER).name));
+}
+
+/** The libraries of Gaia's page, by their folder names under `page/lib/`. */
+function pageLibraryNames(): Set<string> {
+  return new Set([...new Bun.Glob('*/*Interface.ts').scanSync({ cwd: join(GAIA_FOLDER, PAGE_LIBRARY_FOLDER) })].map((interfacePath) => interfacePath.split('/')[0] ?? ''));
 }
 
 function declaredPackageNames(): Set<string> {
@@ -77,6 +84,12 @@ function undeclaredWorkspaceReachesOf(files: readonly ScannedFile[], workspaceNa
     .map((packageName) => `${path} imports the workspace package ${packageName}, which Gaia's package.json does not declare`));
 }
 
+function bareLibraryReachesOf(files: readonly ScannedFile[], libraryNames: ReadonlySet<string>): string[] {
+  return files.flatMap(({ path, bareSpecifiers }) => bareSpecifiers
+    .filter((specifier) => libraryNames.has(packageNameOf(specifier)))
+    .map((specifier) => `${path} names ${specifier}, a bare specifier of the library ${PAGE_LIBRARY_FOLDER}/${packageNameOf(specifier)}; reach the library by a relative path`));
+}
+
 describe('the workspace packages Gaia reaches', () => {
   test('the scan sees Gaia\'s sources, its page and the workspace\'s packages', () => {
     const scannedPaths = scannedFiles().map(({ path }) => path);
@@ -84,9 +97,18 @@ describe('the workspace packages Gaia reaches', () => {
     expect(scannedPaths).toContain('page/Main.tsx');
     expect(scannedPaths).toContain(PAGE_INDEX_PATH);
     expect(scannedPaths.length).toBeGreaterThanOrEqual(MINIMUM_SCANNED_SOURCE_COUNT);
-    expect([...workspacePackageNames()]).toEqual(expect.arrayContaining(['design-system', 'brand', 'flint', 'forge-contracts']));
-    expect(declaredPackageNames().has('flint')).toBe(true);
+    expect([...workspacePackageNames()]).toEqual(expect.arrayContaining(['forge-contracts', 'system-versions']));
+    expect(declaredPackageNames().has('forge-contracts')).toBe(true);
     expect(workspacePackageNames().has('gaia')).toBe(false);
+  });
+
+  test('the libraries of the page are no workspace packages, and Gaia\'s package.json declares none of them', () => {
+    expect([...pageLibraryNames()].sort()).toEqual(['brand', 'design-system', 'flint']);
+    expect([...pageLibraryNames()].filter((libraryName) => workspacePackageNames().has(libraryName) || declaredPackageNames().has(libraryName))).toEqual([]);
+  });
+
+  test('no file names a library of the page by a bare specifier', () => {
+    expect(bareLibraryReachesOf(scannedFiles(), pageLibraryNames())).toEqual([]);
   });
 
   test('every workspace package a file names is declared in Gaia\'s package.json', () => {
@@ -119,6 +141,22 @@ describe('the guard on undeclared workspace packages', () => {
     const plantedFile = { path: PAGE_INDEX_PATH, bareSpecifiers: bareSpecifiersInPage(plantedPage) };
     expect(undeclaredWorkspaceReachesOf([plantedFile], plantedWorkspaceNames, plantedDeclaredNames))
       .toEqual([`${PAGE_INDEX_PATH} imports the workspace package example-package, which Gaia's package.json does not declare`]);
+  });
+
+  test('names a library of the page imported or linked by a bare specifier, and passes over its interface file by a relative path', () => {
+    const plantedLibraryNames = new Set(['design-system']);
+    const plantedSource = 'import { Button } from \'design-system/Button\';\nimport { Text } from \'./lib/design-system/DesignSystemInterface.ts\';';
+    const plantedFiles = [
+      { path: 'page/Planted.tsx', bareSpecifiers: bareSpecifiersInSource(plantedSource) },
+      {
+        path:           PAGE_INDEX_PATH,
+        bareSpecifiers: bareSpecifiersInPage('<link href="design-system/design-system.css"><link href="./lib/design-system/styles/design-system.css">'),
+      },
+    ];
+    expect(bareLibraryReachesOf(plantedFiles, plantedLibraryNames)).toEqual([
+      'page/Planted.tsx names design-system/Button, a bare specifier of the library page/lib/design-system; reach the library by a relative path',
+      `${PAGE_INDEX_PATH} names design-system/design-system.css, a bare specifier of the library page/lib/design-system; reach the library by a relative path`,
+    ]);
   });
 
   test('passes over a declared package, an outside package and a relative import', () => {

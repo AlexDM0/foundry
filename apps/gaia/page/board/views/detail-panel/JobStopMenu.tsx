@@ -4,12 +4,11 @@
  * board command and closes the menu once applied, a refusal showing verbatim beside it; Cancel puts the item back and the focus on it.
  */
 
-import { ConfirmStrip }                from 'design-system/ConfirmStrip';
-import { Menu, MenuItem }              from 'design-system/Menu';
 import { useEffect, useRef, useState } from 'react';
 
 import { PAGE_CONTRACT_VERSIONS }                                     from '../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                                  from '../../../@types/board/BoardCommandDocument.ts';
+import { ConfirmStrip, Menu, MenuItem }                               from '../../../lib/design-system/DesignSystemInterface.ts';
 import { CommandButton }                                              from '../../shell/CommandButton.tsx';
 import { TextParts }                                                  from './DetailParts.tsx';
 import type { JobStopItemModel, JobStopMove, TicketJobControlsModel } from './TicketOverviewModel.ts';

@@ -5,19 +5,21 @@
  * on; a press inside a control stays that control's. At an entity of a monorepo, a switch the forge sets is a link to the forge level.
  */
 
-import { Card }                               from 'design-system/Card';
-import { ModelEffortMeter }                   from 'design-system/ModelEffortMeter';
-import { Row }                                from 'design-system/Row';
-import { Switch }                             from 'design-system/Switch';
-import { Tag }                                from 'design-system/Tag';
-import { Text }                               from 'design-system/Text';
-import { TextButton }                         from 'design-system/TextButton';
-import { View }                               from 'design-system/View';
 import type { KeyboardEvent, SyntheticEvent } from 'react';
 import type { BoardDraftEditDocument }        from '../../../../@types/board/BoardPipelineDocuments.ts';
-import { useBoardHrefOf }                     from '../../../shell/BoardRouteLinks.ts';
-import { StateToneUtil }                      from '../../../utils/StateToneUtil.ts';
-import type { OccupantChipView }              from '../live/FlowActivityPanelModel.ts';
+import {
+  Card,
+  ModelEffortMeter,
+  Row,
+  Switch,
+  Tag,
+  Text,
+  TextButton,
+  View
+} from '../../../../lib/design-system/DesignSystemInterface.ts';
+import { useBoardHrefOf }        from '../../../shell/BoardRouteLinks.ts';
+import { StateToneUtil }         from '../../../utils/StateToneUtil.ts';
+import type { OccupantChipView } from '../live/FlowActivityPanelModel.ts';
 
 import { FlowGlyph } from './FlowGlyph.tsx';
 import {
