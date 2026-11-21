@@ -1,0 +1,114 @@
+/* The Epics view (views/epics/): its title row over a grid of epic cards, each with its roll-up, links, waves and ticket lines. */
+
+/* The epic marks are links, yet give the same eased feedback as a button. */
+:is(.board-epic-link-chip, .board-epic-wave-pill, .board-epic-ticket, .board-epic-title) {
+  transition: var(--feedback-transition);
+}
+
+/* The Epics tab: the title row over cards in a grid of at least 380px columns, one card never stretched across the page. */
+.board-epics { display: flex; flex-direction: column; gap: 14px; margin-bottom: var(--sp-4); }
+.board-epic-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr)); gap: 16px; align-items: start; }
+.board-epic-grid:has(> .board-epic:only-child) { grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr)); }
+.board-epics-empty { grid-column: 1 / -1; padding: var(--sp-5) var(--sp-4); color: var(--ink-muted); font-size: var(--fs-small); }
+.board-epic { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3); }
+.board-epic[data-selected] { border-color: var(--accent-edge); box-shadow: 0 0 0 1px var(--accent-edge); }
+.board-epic-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 46px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.board-epic-title { display: inline-flex; align-items: center; gap: 9px; font: 600 var(--fs-title)/1.3 var(--font-ui); color: var(--ink); }
+.board-epic-title:hover { color: var(--ink); text-underline-offset: 3px; }
+.board-epic-title:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.board-epic-title .board-epic-swatch { width: 10px; height: 10px; }
+.board-epic-key { font: 400 var(--fs-micro)/1.5 var(--font-mono); color: var(--ink-4); }
+.board-epic-done { margin-left: auto; font: var(--fs-small)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.board-epic-body { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px 4px; }
+.board-epic-summary { margin: 0; font-size: var(--fs-body); line-height: var(--line-height-body); color: var(--ink-muted); }
+.board-epic-description { margin-top: -6px; font-size: var(--fs-small); }
+.board-epic-description-toggle { width: max-content; font-weight: 500; color: var(--link); cursor: pointer; }
+.board-epic-description-toggle:hover { color: var(--ink); text-decoration: underline; }
+.board-epic-description-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-epic-legend { display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 8px 0 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-epic-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.board-epic-legend b { font: 600 var(--fs-small)/1 var(--font-mono); color: var(--ink); }
+.board-epic-facts { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: var(--fs-small); }
+.board-epic-fact { display: inline-flex; align-items: baseline; gap: 6px; }
+.board-epic-fact b { font-size: var(--fs-micro); font-weight: 600; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.06em; }
+.board-epic-fact span { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+
+.board-epic-link-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 22px; font-size: var(--fs-tab); }
+.board-epic-link-label { flex: none; width: 70px; font-size: var(--fs-micro); line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-4); }
+.board-epic-link-empty { color: var(--ink-muted); }
+.board-epic-link-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; height: 22px; padding: 0 9px; box-sizing: border-box;
+  font: 500 var(--fs-small)/1 var(--font-ui); color: var(--ink); white-space: nowrap;
+  background: var(--wash); border: 1px solid var(--line); border-radius: var(--r-pill); cursor: pointer;
+}
+.board-epic-link-chip[data-frees] { background: var(--see-through); }
+.board-epic-link-chip:hover { color: var(--ink); border-color: var(--line-strong); text-decoration: none; }
+.board-epic-link-chip:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.board-epic-link-chip .board-epic-swatch { width: 7px; height: 7px; }
+.board-epic-link-epic { color: var(--ink-muted); }
+.board-epic-link-via { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+
+.board-epic-waves { display: flex; gap: 10px; padding: 10px; overflow-x: auto; background: var(--bg); border-radius: var(--r-3); }
+/* Overlay scrollbars show nothing, so an overflowing strip fades out on each side that still has columns to scroll to;
+   a strip that fits has no scroll timeline, so its animation is inactive and both fades stay 0px. */
+@keyframes board-epic-waves-fade {
+  0% { --wave-fade-start: 0px; --wave-fade-end: 40px; }
+  10% { --wave-fade-start: 40px; }
+  90% { --wave-fade-end: 40px; }
+  100% { --wave-fade-start: 40px; --wave-fade-end: 0px; }
+}
+@supports (animation-timeline: scroll()) {
+  .board-epic-waves {
+    animation: board-epic-waves-fade linear both;
+    animation-timeline: scroll(self inline);
+    mask-image: linear-gradient(90deg, var(--see-through), var(--bg) var(--wave-fade-start), var(--bg) calc(100% - var(--wave-fade-end)), var(--see-through));
+  }
+}
+.board-epic-wave { flex: 1 1 0; min-width: 115px; display: flex; flex-direction: column; gap: 6px; }
+.board-epic-wave-head { display: flex; align-items: center; gap: 6px; }
+.board-epic-wave-name { font-size: var(--fs-micro); line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-4); }
+/* A one-at-a-time wave says so in its head, in the link colour; its tickets keep their plain cards, with no orange border. */
+.board-epic-wave[data-narrow] .board-epic-wave-name { color: var(--link); }
+.board-epic-wave-note { font-size: var(--fs-micro); color: var(--ink-4); }
+.board-epic-wave-pill {
+  position: relative; display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 8px 5px 11px; overflow: hidden;
+  font: inherit; color: var(--ink); text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-2);
+}
+.board-epic-wave-pill::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--s-fill); }
+.board-epic-wave-pill:hover { color: var(--ink); border-color: var(--line-strong); text-decoration: none; }
+.board-epic-wave-pill[data-done] { opacity: 0.6; }
+.board-epic-wave-pill[data-selected] { border-color: var(--accent-edge); box-shadow: 0 0 0 1px var(--accent-edge); }
+.board-epic-wave-pill:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.board-epic-wave-title { font-size: var(--fs-small); line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* An epic with live work pulses while the stream is live: its live pills' stripes, its live tickets' badges and its own square flare. */
+@media (prefers-reduced-motion: no-preference) {
+  .board-epics[data-freshness="live"] .board-epic-wave-pill[data-live]::before,
+  .board-epics[data-freshness="live"] .board-epic-ticket[data-live] .board-epic-ticket-badge,
+  .board-epics[data-freshness="live"] .board-epic[data-live] > .board-epic-head .board-epic-swatch { animation: board-epic-flare var(--pulse-card) ease-in-out infinite; }
+}
+/* The square carries no state, so its halo takes the epic's own colour. */
+.board-epic[data-live] > .board-epic-head .board-epic-swatch { --s-flare: var(--epic-flare); --s-flare-rest: var(--epic-flare-rest); }
+/* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes board-epic-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
+}
+
+.board-epic-tickets { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.board-epic-tickets li + li { border-top: 1px solid var(--line); }
+.board-epic-ticket {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  width: 100%; min-height: 32px; padding: 0 2px; font: var(--fs-body)/1.4 var(--font-ui); color: var(--ink); text-align: left; cursor: pointer;
+}
+.board-epic-ticket:hover { color: var(--ink); text-decoration: none; }
+.board-epic-ticket:hover .board-epic-ticket-title,
+.board-epic-ticket[data-selected] .board-epic-ticket-title { text-decoration: underline; text-underline-offset: 3px; }
+.board-epic-ticket:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.board-epic-ticket-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-epic-ticket[data-state="abandoned"] .board-epic-ticket-title { color: var(--ink-muted); text-decoration: line-through; }
+.board-epic-ticket-badge { display: flex; }
+.board-epic-also { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; font-size: var(--fs-micro); color: var(--ink-muted); white-space: nowrap; vertical-align: middle; }
+.board-epic-also .board-epic-swatch { width: 7px; height: 7px; }

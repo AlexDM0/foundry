@@ -733,6 +733,7 @@ const BOARD_STYLESHEETS: readonly string[] = [
   'controls.css',
   'conversation.css',
   'detail-panel.css',
+  'epics.css',
   'flint.css',
   'intake.css',
   'kanban.css',

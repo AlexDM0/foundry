@@ -133,6 +133,17 @@
   --s-paused-stripe: color-mix(in oklch, var(--s-fill) 35%, var(--see-through));
 }
 
+/* The Epics waves strip's scroll fades (`epics.css`), registered so its scroll timeline animates them; 0px while the strip fits. */
+@property --wave-fade-start { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --wave-fade-end { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.board-epic-waves { --wave-fade-start: 0px; --wave-fade-end: 0px; }
+
+/* Epics: an epic's own flare, for its square, which carries no state. */
+[data-epic-slot] {
+  --epic-flare:      color-mix(in oklch, var(--epic-fill) 45%, var(--flare-light));
+  --epic-flare-rest: color-mix(in oklch, var(--epic-flare) 0%, transparent);
+}
+
 /* The names for colours another token already holds: one line follows both themes. */
 :root {
   --new-text-tint: var(--pass-tint);
