@@ -439,6 +439,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 ### How the run goes from here (the owner, 2026-11-19 morning)
 
+- 2026-11-21, the owner: "I want you to switch to Fable models for all of the workflows after this". Every builder,
+  checker, fixer and stacking agent from WP6.23b's successor on runs on Fable.
+
 The owner found the pace too slow and said to do all four speed-ups: packages that conflict only in a shared list
 (the agent guard's allowlist, the three shared lines of stage 6) run side by side and the conflicts are resolved at
 landing; renames, deletions, documents and the stage 8 and 9 packages get a medium-effort check, and only packages that
