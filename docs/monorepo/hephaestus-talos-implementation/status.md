@@ -147,6 +147,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
   Waves (canvas, ETA lines) and Pipeline (agent panel with a real setup session, a real gate profile log) in Gaia
   against a real forge.
 
+- WP6.21: record presence while interrupted work waits; a suspected crash after a real reboot; Gaia against a real
+  crashed forge (Start, then Show log). `handed-over` is covered by unit specs only.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -303,6 +306,10 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP6.20: a prepare row shows the newer of its install run and its run in the tab's phase, by `at`
   (`GatesAreaModel.runTimeMatchesRow`).
+
+- WP6.21: a crashed registry presence wins over an Overseer that answers (`ForgePresenceUtil.presenceStateOf`); a hung
+  forge reads "stopped supervising", a crashed or down one "unreachable" (`ForgeTextUtil`); forge alerts sort first
+  (`FleetAssembly`); a down forge's row keeps Stop (`ForgesModel.BUTTONS_BY_PRESENCE_OFF`).
 
 ### Blocked
 
@@ -551,8 +558,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-L | WP6.16 | landed | 6d578deb | First round. The Epics tab; the live pulse gated by `data-freshness` on `.board-epics` from `connection === 'live'`; wave-fade `@property` registrations in tokens.css |
 | 6-L | WP6.17 | landed | 94c07567 | First round. The Waves tab; `data-freshness` on its canvas; the Held chip `board-dependency-held`; a waves-only fixture; the forecast orders by the served `resolvedPriority` and runs only while `page.progress.overseerSetting === 'running'` |
 | 6-L | WP6.20 | landed | 124b98a3 | First round. The Pipeline tab's route, DOM specs, line run times and setup conversation; the Flint home-corner rule carried; fixed WP6.19's `ApplyChangesDialogModel.levelGroupsOf` (grouped a single pipeline by level); the fixture now uses forge's real limits (effort medium, rework 750, re-review step 50). Stacked last of six: shared rows kept, duplicate flare blocks removed (values equal) |
-| 6-M | WP6.21 | running | | |
-| 6-N | WP6.26 | waiting | | |
+| 6-M | WP6.21 | landed | 30c5a82e | Second round (first: an older forge that answered read as down, with Start offered; the board route kept a second presence read; a down forge's row lost Stop). Gaia reads the registry's `presence`; a fleet forge carries `presence`, `crashSummary`, `crashLogs`, `waitingWork`; `ForgePresenceUtil` tells crashed, stopped, down and hung apart (older-contract counts as answering); forge alerts lead what waits on User (`forge-crashed`/`forge-down` with Start, `forge-hung` with Open); `GET /api/v1/forges/<id>/crash-logs/<n>`; one presence read per monitor change in `ForgeWatch.presenceReadingAfterNow`, shared with the board route; `forge-interrupted-work-resume` added, `forge-resume` renamed `forge-unpause`. Fleet, events and the fleet document 6, commands 4, gaiaCommand 3, gaiaCrashLog 1, Gaia 1.3. Recordings: a new `overseer-fetch-presence`; `forge-registry` re-recorded |
+| 6-N | WP6.26 | running | | |
 | 6-O | WP6.22 | waiting | | |
 | 6-P | WP6.23 | waiting | | |
 | 8-A | WP8.1 | waiting | | |
