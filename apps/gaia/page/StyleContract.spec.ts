@@ -726,7 +726,7 @@ const MOTION_STYLESHEETS = [STYLESHEET_TEXT, SPLASH_STYLE_TEXT] as const;
 const BOARD_STYLES_FOLDER = join(PAGE_FOLDER, 'styles', BOARD_FOLDER_NAME);
 const BOARD_TOKENS_FILE_NAME = 'tokens.css';
 /** Every stylesheet of the board, by its name under `page/styles/board/`; the package that moves one in names it here. */
-const BOARD_STYLESHEETS: readonly string[] = [];
+const BOARD_STYLESHEETS: readonly string[] = ['controls.css', 'tokens.css'];
 const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];
 const BOARD_STYLESHEET_TEXTS: ReadonlyMap<string, string> = new Map(BOARD_STYLESHEETS
   .filter((name) => BOARD_STYLESHEETS_PRESENT.includes(name))
@@ -755,7 +755,11 @@ const BOARD_ANCESTORS_THE_MARKUP_GUARANTEES: readonly string[] = [];
 /** The board's colours the same in both themes, set once in the light block, as the Bridge's `SAME_IN_BOTH_THEMES_TOKENS`. */
 const BOARD_SAME_IN_BOTH_THEMES_TOKENS: readonly string[] = [];
 /** The board's text pairs, each at 4.5:1 in both themes; the package that moves a board view in names its pairs here. */
-const BOARD_TEXT_PAIRS: readonly TextPair[] = [];
+const BOARD_TEXT_PAIRS: readonly TextPair[] = [
+  // The refusal beside a command button, on the page and on a card.
+  textPair('--err-ink', '--bg'),
+  textPair('--err-ink', '--surface'),
+];
 
 function boardThemeSentencesOf(tokenBlocks: ReturnType<typeof tokenBlocksOf>, sameInBothThemesTokens: readonly string[]): string[] {
   const themedTokens = themedColourTokensOf(tokenBlocks).filter((token) => !sameInBothThemesTokens.includes(token));

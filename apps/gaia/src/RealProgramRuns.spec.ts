@@ -18,6 +18,7 @@ const DIRECT_PROCESS_STARTS_ALLOWED: Readonly<Record<string, string>> = {
   'src/Main.serve.spec.ts':            'runs gaia serve as the program the launcher starts, and stops it with a signal',
   'src/testing/LeakCheck.ts':          'reads the repository\'s git status and lists the run\'s child processes, to find what a run left behind',
   'src/testing/LeakCheck.spec.ts':     'runs a planted test run under the preload, since the leak check judges a whole run',
+  'page/testing/RunDomSpecs.ts':       'runs the board\'s DOM specs in their own isolated test run, which bun test does not discover',
 };
 
 /** Each spec or test helper allowed to use the real process-run besides the recording specs, with the reason. */
@@ -234,6 +235,7 @@ describe('the guard on program starts', () => {
       { path: 'src/Main.serve.spec.ts', reaches: programReachesIn('Main.serve.spec.ts', 'Bun.spawn([]);') },
       { path: 'src/testing/LeakCheck.ts', reaches: programReachesIn('LeakCheck.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/LeakCheck.spec.ts', reaches: programReachesIn('LeakCheck.spec.ts', 'Bun.spawnSync([]);') },
+      { path: 'page/testing/RunDomSpecs.ts', reaches: programReachesIn('RunDomSpecs.ts', 'Bun.spawnSync([]);') },
       { path: 'src/testing/RecordBoundary.ts', reaches: programReachesIn('RecordBoundary.ts', realBoundaryImport) },
       { path: 'src/testing/ScratchForge.ts', reaches: programReachesIn('ScratchForge.ts', realBoundaryImport) },
       { path: 'src/features/example/Example.spec.ts', reaches: programReachesIn('Example.spec.ts', 'Bun.spawnSync([]);') },

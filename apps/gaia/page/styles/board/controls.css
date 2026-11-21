@@ -1,0 +1,11 @@
+/* A command button of the board and, beside it, the forge's refusal verbatim. */
+.board-control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.board-refusal {
+  color: var(--err-ink);
+  font-size: var(--fs-tab);
+}

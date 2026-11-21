@@ -5,7 +5,12 @@
  */
 import type { PAGE_CONTRACT_VERSIONS } from '../../../src/shared/constants/PageContractVersions.ts';
 
-export type BoardPartName = 'job' | 'decision' | 'incident' | 'overseer' | 'usage' | 'profile' | 'pipeline';
+export const BOARD_PART_NAMES = ['job', 'decision', 'incident', 'overseer', 'usage', 'profile', 'pipeline'] as const;
+
+export type BoardPartName = typeof BOARD_PART_NAMES[number];
+
+/** Every event name the relayed board stream sends beside its handshake: the forge's `board`, then one per part. */
+export const BOARD_STREAM_EVENT_NAMES = ['board', ...BOARD_PART_NAMES] as const;
 
 export type BoardEventDocument = { readonly boardVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoard } & (
   | { readonly kind: 'board-changed' }

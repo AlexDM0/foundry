@@ -1,0 +1,4 @@
+/*
+ * The board's own design tokens, carried over from the Bridge's `tokens.css` as the board's views move in: only the values the board's
+ * classes read that the design system does not define. Light under :root, dark under :root[data-theme="dark"].
+ */

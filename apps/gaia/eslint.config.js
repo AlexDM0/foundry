@@ -5,7 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 
 const TYPESCRIPT_FILES = ['**/*.{ts,tsx}'];
 
-const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.spec.tsx', '**/testing/**/*.ts'];
+const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/*.spec.tsx', '**/*.dom.tsx', '**/testing/**/*.ts'];
 
 /** Gaia's own manifest and the workspace root's, which holds the dev tools every workspace shares. */
 const MANIFEST_FOLDERS = [import.meta.dirname, join(import.meta.dirname, '..', '..')];
