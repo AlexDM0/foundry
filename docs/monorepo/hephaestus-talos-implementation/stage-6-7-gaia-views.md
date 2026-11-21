@@ -279,7 +279,8 @@ WP6.5 to WP6.20 and WP7.1 move Bridge code by these steps. Each package names it
 
    The behaviour a moved spec holds stays; where a spec fed a forge rule its input, it now feeds the served fact, and
    the case keeps its expected view. Every value import of `src/` a package moves is listed in it; after the package,
-   `grep -rn "src/" page/board/<folder>` prints no import.
+   `grep -rnE "apps/forge|forge-contracts|\.\./forge/" page/board/<folder>` prints no import (imports of Gaia's
+   own `src/shared` and `src/lib/api-paths` are allowed; the page import guard holds the rest).
 4. Rename what names the Bridge. Identifiers: `BridgeApp` → `BoardApp`, `BridgeClock` → `BoardClock`,
    `BridgeClockContext` → `BoardClockContext`, `BridgeFlint` → `BoardFlint`, `BridgeTab` → `BoardTab`,
    `BRIDGE_TABS` → `BOARD_TABS`, `BridgeRoute` → `BoardRoute`, `BridgeErrorBoundary` → `BoardErrorBoundary`, and
@@ -825,7 +826,8 @@ into `page/styles/board/chips.css`, `conversation.css`, `sandboxed-html.css`.
 in `SandboxedHtmlDocument.spec.ts`: a title with `<`, `&` and `"` reaches the frame as text.
 
 **Done when.** At the root green; in `apps/gaia/`: `bun test page/board` and `bun run test:dom` pass, and
-`grep -rn "src/" page/board` prints no import.
+`grep -rnE "apps/forge|forge-contracts|\.\./forge/" page/board` prints no import (Gaia's own `src/shared` and
+`src/lib/api-paths` are allowed).
 
 **Parallel.** Alone.
 
