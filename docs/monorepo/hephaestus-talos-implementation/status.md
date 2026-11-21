@@ -124,6 +124,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP6.24: test transcript entries against a real session's job stream (the recording has only the intake entry).
 
+- WP6.3: reconnect a relayed conversation stream through Gaia with a real session and check its history is not
+  repeated.
+
 ### Assumptions to confirm
 
 - WP4.8: a missing `overseerState` maps to `paused`; notices naming no kind are dropped; the merge queue's `slots` are
@@ -241,6 +244,11 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP6.24: every board stream event is a change signal and a `board` event means read `/api/v1/board` again
   (`BoardEventIngestion.BOARD_EVENT_OF_EVENT_NAME`), because forge's stream carries its internal `BoardState`. Rests on
   EventBroker sending `board` last in every pass. Confirm by watching a live stream.
+
+- WP6.3: a command with no answer back reads `outcome-unknown` (`BoardCommandRoute.ts`; ForgeClient folds a refused
+  connection and a timeout into one verdict); a non-200 picture read answers `not-found` (`BoardPictureRoutes.ts`); a
+  forge refusal answers 409 whatever forge's status (`BoardRelayAnswers.ts`). Confirm by stopping a forge mid-command
+  and asking for a missing picture.
 
 ### Blocked
 
@@ -468,8 +476,8 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 6-B | WP7.2 | landed | 8bc867c6 | Second round (first: `forge help` and the glossary still said two skills). `skills/agent-pipeline/SKILL.md`, `PIPELINE_SETUP_SKILL` (`forge-pipeline`); the pipeline agent's profile now `skills: true` and its first line is the adapter's `instructionBundleLineOf`; `INSTALL_VERSION` 43; the `InstallChangeWatch` recording reads 43 throughout |
 | 6-C | WP6.24 | landed | e68591ff | First round. Gaia's board model in `apps/gaia/src/shared/@types/board/`, four ingestions in `src/adapters/forge-api/`, `BoardMapUtil`, `PipelineMapUtil`, `VocabularyMapUtil`, `testing/BoardDocuments.ts` from the recording; every shape `satisfies ShapeOf<contract type>` (16 keys named `passed-over`). `BoardTarget` is `{subject, id}` (step 4 and N2, not the interface block's `{tab, item}`). `BoardEventIngestion.eventOf(eventName)` reads no data: every stream event is a change signal (`board-changed` or `part-changed` with the part's name), a `board` event means read `/api/v1/board` again (`BOARD_EVENT_OF_EVENT_NAME`). Local `ForgeStreamDocuments.ts` types transcript entries, profile lines and command answers that forge-contracts lacks (V10 in forge-requirements.md). No contract key added |
 | 6-D | WP6.25 | landed | 197ac3e6 | First round. The page board contract in `apps/gaia/page/@types/board/` (every document carries `boardVersion`, commands `boardCommandVersion`; events are change signals); `BoardDocumentMapUtil`, `PipelineDocumentMapUtil` (src/adapters/page-api); `BoardCommand`, `BoardCommandIngestion`, `forge-api/utils/BoardCommandMapUtil` (a typed table: 43 kinds, all in `FORGE_CONTROL_COMMAND_KINDS`, no by-hand kind; `job-stop-all` and `machine-agent-limit-set` not sent). A forge refusal reaches the page as `{refusedBy:'forge', code, fields, text}` with the sentence unchanged. `DocumentShapeUtil` moved to `src/lib/json-value/`. `PAGE_CONTRACT_VERSIONS` gains `gaiaBoard`, `gaiaBoardCommand`, `gaiaBoardStream`, `gaiaBoardCommandAnswer`, `gaiaPictureUploadAnswer`. `pipeline-assistant-set` and `talos-restart` wait for WP6.27 and WP6.22 |
-| 6-E | WP6.3 | running | | |
-| 6-F | WP6.5 | waiting | | |
+| 6-E | WP6.3 | landed | eb72c66f | Second round (first: the stream cache keyed a mapped event without its data, so a resumed conversation stream got another stream's `history`; now keyed with a sha256 of the data). `ForgeAccess.ts` (also used by the frame session route), seven `forge*` routes at v1, `BoardStreams.ts` (heartbeat, each event mapped once per forge, closed at stop), `BoundedBody`; Bun's body limit 4 MiB; Gaia 1.2; `REFUSAL_SENTENCES` removed so forge refusals read in forge's words. Board reads shared per forge with an in-flight read plus one pending read, no timer. `frameSessionSources` is `forgeAccessSources`. The frame session now answers `unreachable`/`not-supported` before asking for a code |
+| 6-F | WP6.5 | running | | |
 | 6-G | WP6.6 | waiting | | |
 | 6-H | WP6.7 | waiting | | |
 | 6-I | WP6.8 | waiting | | |
