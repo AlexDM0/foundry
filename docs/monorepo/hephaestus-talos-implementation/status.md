@@ -501,7 +501,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | G3 | passed | 2026-11-18: the owner stopped both trackers and removed both login items; the machine checks printed nothing |
 | G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's. Ran at the end of WP2.13 (`fdf751b4`): 913 pass, 0 fail. |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
-| G6 | waiting | Before and after stage 9: the owner's machine steps only |
+| G6 | first half confirmed 2026-11-21; second half the owner's | Before stage 9, read on the machine: no `com.forge.overseer` LaunchAgent in `~/Library/LaunchAgents` or `launchctl list`, and no `forge-program` process (the only match is pid 55155, a spec Overseer of worktree `entities-b7` under `/private/tmp/agent-progress-tests`, started Tuesday 17 Nov, left alone). After stage 9: the owner's machine steps only |
 | G7 | waiting | End of the run |
 
 ## Packages
@@ -645,13 +645,13 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 8-J | WP8.11 | landed | ca227d2b | First round, on Fable. All eight forge recordings Gaia plays re-taken for real from forge 2.0 (code `7be0e9b545ff`); `forge-registry` has no `progressHtml`; the board recording gained `assistant-switched-off` and `assistant-switched-on`, and the presence recording's crash log names a running Assistant, so no spec plants those. `recordedForgeVersionsOf` in `BoundaryRecordings.ts` reads versions from the stamp. `forge-program` stays a pre-versioned forge at install 27 by design, re-taken from a temporary clone. Forge's `cli__overseer__routes.json` re-taken (`controlVersion` 2). Found in forge: switching the Assistant off then on with one live leaves it `running` with `stopRequest: wind-down`, and the board then never showed `held-by-install-change`; fix package WP8.9b. Verify 18/18 after landing |
 | 8-J | WP8.12 | landed | 075c7d89 | Passed on its third check, on Fable. The first check found `open` left in `contributing.md` and figures that still drew the Bridge; the second a dead link in `guards-and-testing.md` and the Bridge named as present in Gaia's README and CLAUDE.md. 80 files: forge's documents, rule files and four installed texts describe a headless forge; `Bridge` and `bridge/` are in `RETIRED_NAMES` with planted cases and `docs/research/` is unscanned. 18 figures whose pixels drew the Bridge, a served page, `open` or `progress.html` were deleted and replaced by prose (originals in `71037b5e`); `your-day-on-the-bridge.png` renamed. Three refusal sentences reworded (`pipeline-set-per-entity`, `older-pipeline`, `overseer-owns-the-lifecycle`). `INSTALL_VERSION` stays 44 (wording only), `FrozenClaudeInstall.json` retaken. The Deviations row for `older-pipeline` is restored. Both Done-when greps print lines that must stay (the guard's own entry and planted case; four true facts). Verify 18/18 after landing |
 | 8-K | WP8.9b | landed | 13aff34d | Passed on its second check, on Fable; the first asked for a spec of the usage-limit path. Causes: under a usage limit an idle winding-down Assistant never had its input closed and lingered; one whose turn never ends ended `failed` after the quiet sweeps, not `closed`; a hand-removed `assistant` key asked no wind-down. `Board.windDownAssistants` (`JobControls.ts`) is the one rule, called by `SettingControls` and by the pass (`AssistantSession.windDownWhileOff`); `closeInputWhenIdle` runs in every pass. What WP8.11 saw was most likely the 3.5 minute quiet watch, longer than the 120 seconds it waited. `verify:integration` 872 pass, 1 skip. Verify 18/18 after landing |
-| 8-V | Stage 8 verification | running | | |
-| 9-A | WP9.1 | waiting | | |
-| 9-A | WP9.6 | waiting | | |
-| 9-A | WP9.2 | waiting | | |
-| 9-A | WP9.3 | waiting | | |
-| 9-A | WP9.4 | waiting | | |
-| 9-A | WP9.5 | waiting | | |
+| 8-V | Stage 8 verification | passed, one comment handed to stage 9 | (no commit) | Run on Fable in a fresh worktree at `0054a752`: install and verify exit 0 (18/18); the 11 named forge specs 334 pass, forge-contracts 16, Gaia's named specs 1510, `test:dom` 799 + 379 + 126 + 4, both `check` green; `verify:integration` 872 pass, 1 skip (G1), 0 fail; `overseer-fetch-supported-forge` re-taken and identical but for times and the code hash (versions 2.0/2.0, contracts summary 1, monitor 4, control 2, no `embed`, no `flintBrain`, no session route), Gaia's `bun test` 5027 pass after it; forge's routes recording byte-identical; `assistant-off` and Markdown rendering shown by spec; the claude trap never called. The one leftover is a comment: `apps/gaia/page/testing/BoardStyleGuards.ts:1-6` names the Bridge and `apps/forge/bridge/testing/StyleRuleReader.ts` as present; stage 9's prose package rewords it. The crash matrix holds no `assistant-off` case; `AssistantSession.spec.ts` and `Playbook.spec.ts` prove it. Output in `.claude/.evidence/hephaestus-talos/stage-8/verification/` |
+| 9-A | WP9.1 | running | | |
+| 9-A | WP9.6 | running | | |
+| 9-A | WP9.2 | running | | |
+| 9-A | WP9.3 | running | | |
+| 9-A | WP9.4 | running | | |
+| 9-A | WP9.5 | running | | |
 
 ## Where the code differed from a stage file
 - The agent-port plan (`49c7fa93` rule, `ba5192bb` plan, `7725c98b` rows; measurement in the main checkout's
