@@ -2,12 +2,14 @@
  * Everything a board reaches outside itself for one forge, handed in by whoever mounts it: the relay's clients for that forge, browser
  * storage, the clock and the page's route. The board names no address and holds no token; each client speaks to Gaia's relay alone.
  */
+import type { FlintHandle }              from 'flint';
 import type { BoardCommandClient }       from '../api/BoardCommandClient.ts';
 import type { EventStreamHandlers }      from '../api/BoardEventStreamClient.ts';
 import type { BoardRead }                from '../api/BoardReadClient.ts';
 import type { PictureUploadClient }      from '../api/PictureUploadClient.ts';
 import type { ProfileOutputLine }        from '../api/ProfileStreamClient.ts';
 import type { TranscriptStreamHandlers } from '../api/TranscriptStreamClient.ts';
+import type { FlintFrameSource }         from '../flint/BoardFlint.tsx';
 import type { PreferenceStorage }        from '../preferences/PreferenceStore.ts';
 
 /** Follows one job's transcript until closed. */
@@ -28,4 +30,8 @@ export interface BoardServices {
   readonly storage:             () => PreferenceStorage;
   readonly now:                 () => Date;
   readonly goTo:                (fragment: string) => void;
+  /** The default is the browser's animation frames; a DOM spec gives its own. */
+  readonly flintFrameSource?:   FlintFrameSource;
+  /** Called with Flint's handle once it exists and with null once it is gone. */
+  readonly onFlintHandle?:      (handle: FlintHandle | null) => void;
 }

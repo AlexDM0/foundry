@@ -1,0 +1,4 @@
+/* Flint's home corner and the drop target of a carried Flint; Flint draws itself. Flint stays in its box and shows only inside it, so the
+   corner is tall enough for its marks and embers. */
+.board-flint-home { position: fixed; right: var(--sp-5); bottom: var(--sp-3); width: 112px; height: 96px; pointer-events: none; }
+[data-sprite-habitat][data-sprite-drop-target] { outline: 2px dashed var(--flint-body); outline-offset: 2px; }

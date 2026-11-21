@@ -726,7 +726,7 @@ const MOTION_STYLESHEETS = [STYLESHEET_TEXT, SPLASH_STYLE_TEXT] as const;
 const BOARD_STYLES_FOLDER = join(PAGE_FOLDER, 'styles', BOARD_FOLDER_NAME);
 const BOARD_TOKENS_FILE_NAME = 'tokens.css';
 /** Every stylesheet of the board, by its name under `page/styles/board/`; the package that moves one in names it here. */
-const BOARD_STYLESHEETS: readonly string[] = ['chips.css', 'controls.css', 'conversation.css', 'sandboxed-html.css', 'tokens.css'];
+const BOARD_STYLESHEETS: readonly string[] = ['chips.css', 'controls.css', 'conversation.css', 'flint.css', 'sandboxed-html.css', 'tokens.css'];
 const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];
 const BOARD_STYLESHEET_TEXTS: ReadonlyMap<string, string> = new Map(BOARD_STYLESHEETS
   .filter((name) => BOARD_STYLESHEETS_PRESENT.includes(name))
@@ -753,7 +753,42 @@ const BOARD_MOVEMENTS_ALLOWED: readonly AllowedMovement[] = [];
 /** An ancestor a board reduce selector may name though the animated one does not, as the Bridge's `ANCESTORS_THE_MARKUP_GUARANTEES`. */
 const BOARD_ANCESTORS_THE_MARKUP_GUARANTEES: readonly string[] = [];
 /** The board's colours the same in both themes, set once in the light block, as the Bridge's `SAME_IN_BOTH_THEMES_TOKENS`. */
-const BOARD_SAME_IN_BOTH_THEMES_TOKENS: readonly string[] = [];
+const BOARD_SAME_IN_BOTH_THEMES_TOKENS: readonly string[] = [
+  // Flint's colours, its own in both themes (`packages/flint/constants/Palette.ts`).
+  '--flint-body',
+  '--flint-eye',
+  '--flint-hand',
+  '--flint-glow',
+  '--flint-ember-light',
+  '--flint-ember-dark',
+  '--flint-alarm',
+  '--flint-water',
+  '--flint-water-light',
+  '--flint-done',
+  '--flint-paper',
+  '--flint-paper-edge',
+  '--flint-paper-text',
+  '--flint-graphite',
+  '--flint-paper-stacked',
+  '--flint-paper-fold',
+  '--flint-lens',
+  '--flint-keyboard',
+  '--flint-hardware',
+  '--flint-bolt',
+  '--flint-thinking',
+  '--flint-bulb-glass-light',
+  '--flint-bulb-glass-middle',
+  '--flint-bulb-glass-deep',
+  '--flint-bulb-outline',
+  '--flint-bulb-rays',
+  '--flint-bulb-fitting-dark',
+  '--flint-bulb-fitting-shine',
+  '--flint-bulb-fitting-middle',
+  '--flint-bulb-fitting-shadow',
+  '--flint-bulb-contact',
+  '--flint-husk',
+  '--flint-ribbon',
+];
 /** The board's text pairs, each at 4.5:1 in both themes; the package that moves a board view in names its pairs here. */
 const BOARD_TEXT_PAIRS: readonly TextPair[] = [
   // The refusal beside a command button, on the page and on a card.

@@ -15,6 +15,42 @@
   --epic-4-fill: #b08a12; --epic-4-tint: #f8f1dc; --epic-4-ink: #755900;
   --epic-5-fill: #5b7a93; --epic-5-tint: #ebf0f4; --epic-5-ink: #415d74;
   --epic-6-fill: #8a6a4c; --epic-6-tint: #f3ede7; --epic-6-ink: #6b4f36;
+
+  /* Flint (`flint/`), the sprite of the agents: the board's values for its colour properties. The dark theme keeps the same values, so
+     the dark block sets none. */
+  --flint-body:                 #fa5f01;
+  --flint-eye:                  #181818;
+  --flint-hand:                 #e24f00;
+  --flint-glow:                 #ffc9a3;
+  --flint-ember-light:          #ffb27a;
+  --flint-ember-dark:           #c43300;
+  --flint-alarm:                #b7014d;
+  --flint-water:                #8cc7d0;
+  --flint-water-light:          #e4f2f5;
+  --flint-done:                 #3d9c5e;
+  --flint-paper:                #fefefe;
+  --flint-paper-edge:           #8a8a8a;
+  --flint-paper-text:           #b5b5b5;
+  --flint-graphite:             #454545;
+  --flint-paper-stacked:        #f3f3f3;
+  --flint-paper-fold:           #d9d9d9;
+  --flint-lens:                 #eef6f8;
+  --flint-keyboard:             #e6e6e6;
+  --flint-hardware:             #e6e6e6;
+  --flint-bolt:                 #a8a8a8;
+  --flint-thinking:             #8a8a8a;
+  --flint-bulb-glass-light:     #ffedb8;
+  --flint-bulb-glass-middle:    #ffe191;
+  --flint-bulb-glass-deep:      #ffd475;
+  --flint-bulb-outline:         #f5b650;
+  --flint-bulb-rays:            #ffd475;
+  --flint-bulb-fitting-dark:    #6e6e6e;
+  --flint-bulb-fitting-shine:   #dcdcdc;
+  --flint-bulb-fitting-middle:  #9a9a9a;
+  --flint-bulb-fitting-shadow:  #5c5c5c;
+  --flint-bulb-contact:         #5c5c5c;
+  --flint-husk:                 #f3c9a8;
+  --flint-ribbon:               #8cc7d0;
 }
 
 /* The board's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
