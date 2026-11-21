@@ -1,10 +1,10 @@
 /**
- * The control contract a monitor sends to `POST /api/v1/commands`: the eleven kinds, each body and each answer, under `controlVersion` 1,
- * which forge 1.1 keeps although it adds Flint's brain's two kinds, and 1.23 although it adds the restart of Talos. What matters: the list
+ * The control contract a monitor sends to `POST /api/v1/commands`: the nine kinds, each body and each answer, under `controlVersion` 1,
+ * which forge 1.23 keeps although it adds the restart of Talos. What matters: the list
  * of kinds is exact both ways against `CONTROL_CONTRACT_KINDS`, and each body is both the package's `ForgeControlCommand` and forge's own
  * command, which the typecheck holds; every applied kind answers 200 `{controlVersion: 1, outcome, result}` with the outcome `done` or
  * `nothing-to-do`; a body of a contract kind with a field of the wrong type, or none, answers 400 and writes nothing, also where the
- * applier would not check the field; a refused command, a brain's refusal among them, answers 409 and the install hold 423, each
+ * applier would not check the field; a refused command answers 409 and the install hold 423, each
  * `{controlVersion: 1, refusal, fields, text}` with the refusal's code, its facts (none for 400 and 423) and the sentence the command line
  * prints, also where the API's sentence differs. A change here raises the system version in `forge-contracts`.
  */
@@ -16,18 +16,14 @@ import {
   expect,
   test
 } from 'bun:test';
-import type { ForgeControlCommand }        from 'forge-contracts/ForgeControlCommand';
-import type { MonitorFlintBrainStartedBy } from 'forge-contracts/MonitorSnapshotDocument';
+import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 
 import { MachineLimitsFile }                             from '../../../src/adapters/machine-limits/MachineLimitsFile.ts';
 import { OperationRefusalWordingUtil }                   from '../../../src/adapters/utils/OperationRefusalWordingUtil.ts';
 import { CONCURRENCY_LIMIT_CEILING_AGENTS }              from '../../../src/lib/tracker-model/constants/ConcurrencyLimits.ts';
-import type { FlintBrainRefusal }                        from '../../../src/services/overseer/@types/FlintBrainRun.ts';
-import type { FlintBrainVerdict }                        from '../../../src/services/overseer/FlintBrain.ts';
-import { FlintBrainWordingUtil }                         from '../../../src/services/overseer/utils/FlintBrainWordingUtil.ts';
 import { localStoreLayoutOf }                            from '../../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                              from '../../../src/services/tracker/Workspace.ts';
-import type { OverseerApiCommandOf }                     from '../../../src/shared/@types/ControlCommand.ts';
+import type { ControlCommandOf }                         from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal, type OperationRefusalDetail } from '../../../src/shared/OperationRefusal.ts';
 import { CONTROL_CONTRACT_KINDS }                        from '../../../src/shared/constants/OverseerApiContracts.ts';
 import { useRecordedGit }                                from '../../../src/testing/RecordedGit.ts';
@@ -51,7 +47,7 @@ const MACHINE_AGENT_CEILING = 4;
 type ContractKind = (typeof CONTROL_CONTRACT_KINDS)[number];
 
 /** A body of the kind as the package and as forge both spell it, so a change to either side's shape fails the typecheck. */
-type ContractBody<Kind extends ContractKind> = Extract<ForgeControlCommand, { kind: Kind }> & OverseerApiCommandOf<Kind>;
+type ContractBody<Kind extends ContractKind> = Extract<ForgeControlCommand, { kind: Kind }> & ControlCommandOf<Kind>;
 
 
 /** Each kind of the control contract, its body as a monitor sends it, and the outcomes its answer may carry. */
@@ -64,20 +60,8 @@ const CONTRACT_BODIES: { readonly [Kind in ForgeControlCommand['kind']]: { body:
   'concurrency-set':         { body: { kind: 'concurrency-set', limit: 3 }, outcomes: ['done', 'nothing-to-do'] },
   'job-stop-all':            { body: { kind: 'job-stop-all', mode: 'wind-down' }, outcomes: ['done', 'nothing-to-do'] },
   'machine-agent-limit-set': { body: { kind: 'machine-agent-limit-set', limit: 2 }, outcomes: ['done'] },
-  'flint-brain-start':       { body: { kind: 'flint-brain-start' }, outcomes: ['done'] },
-  'flint-brain-stop':        { body: { kind: 'flint-brain-stop' }, outcomes: ['done'] },
   'interrupted-work-resume': { body: { kind: 'interrupted-work-resume', target: 'network-outage' }, outcomes: ['nothing-to-do'] },
 };
-
-/** Each refusal of Flint's brain, by the command that meets it. */
-const FLINT_BRAIN_REFUSALS: readonly { kind: 'flint-brain-start' | 'flint-brain-stop'; refusal: FlintBrainRefusal }[] = [
-  { kind: 'flint-brain-start', refusal: { code: 'brain-already-running' } },
-  { kind: 'flint-brain-start', refusal: { code: 'overseer-paused' } },
-  { kind: 'flint-brain-start', refusal: { code: 'usage-limit-holds', resetsAt: '2026-11-12T14:00:00.000Z' } },
-  { kind: 'flint-brain-start', refusal: { code: 'brain-failed-to-start' } },
-  { kind: 'flint-brain-start', refusal: { code: 'no-flint' } },
-  { kind: 'flint-brain-stop', refusal: { code: 'brain-not-running' } },
-];
 
 /** A body of each kind with a field: the field of the wrong type, or missing. */
 const MALFORMED_BODIES: readonly Record<string, unknown>[] = [
@@ -113,35 +97,10 @@ function progressRecordPath(): string {
   return localStoreLayoutOf(requireWorkspace(repositoryDirectory)).progressRecordPath;
 }
 
-/** A brain that answers each command with the verdict a case gives it, `done` by default, and keeps who started it. */
-function scriptedFlintBrain() {
-  const starters: MonitorFlintBrainStartedBy[] = [];
-  let nextVerdict: FlintBrainVerdict = { verdict: 'done' };
-  const answer = async (): Promise<FlintBrainVerdict> => {
-    const verdict = nextVerdict;
-    nextVerdict = { verdict: 'done' };
-    return await Promise.resolve(verdict);
-  };
-  return {
-    starters,
-    refuseNextWith: (refusal: FlintBrainRefusal) => {
-      nextVerdict = { verdict: 'refused', refusal, sentence: FlintBrainWordingUtil.refusalSentenceOf(refusal) };
-    },
-    brain: {
-      start: async (startedBy: MonitorFlintBrainStartedBy) => {
-        starters.push(startedBy);
-        return await answer();
-      },
-      stop: answer,
-    },
-  };
-}
-
-function routeRequest(launchesHeld = false, flintBrain = scriptedFlintBrain().brain): CommandRouteRequest {
+function routeRequest(launchesHeld = false): CommandRouteRequest {
   const context   = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
   const workspace = requireWorkspace(repositoryDirectory);
   return {
-    flintBrain,
     commandArguments:    createArgumentParser([]),
     context,
     workspace,
@@ -154,7 +113,7 @@ function routeRequest(launchesHeld = false, flintBrain = scriptedFlintBrain().br
 }
 
 describeWhenGitIsRecorded('the control contract', () => {
-  test('names exactly the eleven kinds of the contract, each a kind the command route takes', () => {
+  test('names exactly the nine kinds of the contract, each a kind the command route takes', () => {
     expect(Object.keys(CONTRACT_BODIES).sort()).toEqual([...CONTROL_CONTRACT_KINDS].sort());
     expect(CONTROL_CONTRACT_KINDS.filter((kind) => !COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
   });
@@ -261,15 +220,14 @@ describeWhenGitIsRecorded('the control contract', () => {
     expect(answer).toEqual({ status: 409, body: refusedBody });
   });
 
-  test('each refusal of Flint\'s brain answers 409 with its code and sentence', async () => {
-    for (const { kind, refusal } of FLINT_BRAIN_REFUSALS) {
-      const scripted = scriptedFlintBrain();
-      scripted.refuseNextWith(refusal);
-      const { code, ...fields } = refusal;
-      const refusedBody = {
-        controlVersion: 1, refusal: code, fields, text: FlintBrainWordingUtil.refusalSentenceOf(refusal),
-      };
-      expect(await answerControlCommand({ kind }, routeRequest(false, scripted.brain)), refusal.code).toEqual({ status: 409, body: refusedBody });
-    }
+  test('the kinds of Flint\'s brain, which no forge runs any more, answer 400 malformed-body as any unknown kind', async () => {
+    const malformedAnswer = {
+      status: 400,
+      body:   {
+        controlVersion: 1, refusal: 'malformed-body', fields: {}, text: MALFORMED_BODY_TEXT
+      }
+    };
+    for (const kind of ['flint-brain-start', 'flint-brain-stop']) expect(await answerControlCommand({ kind }, routeRequest()), kind).toEqual(malformedAnswer);
   });
+
 });

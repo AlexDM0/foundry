@@ -1,11 +1,12 @@
 /**
  * log.jsonl is rewritten whole from the records read back, so a record the Board logged must map to itself byte for byte, in the Board's key
  * order (at, kind, taskId, ticketId, fields), and a key the tool does not know, at the top or inside the fields, must not travel on; a
- * refusal detail travels whole, since a lost Hatch reply is written again from it.
+ * refusal detail travels whole, since a lost Hatch reply is written again from it. A `flint-brain-ended` record of an older log still reads.
  */
 import { expect, test } from 'bun:test';
 
 import { everyRecordKindTheBoardLogs } from '../../../testing/EveryBoardLogRecord.ts';
+import { LogUtil }                     from '../../utils/LogUtil.ts';
 import { LogRecordMappingUtil }        from './LogRecordMappingUtil.ts';
 
 const { recordOf } = LogRecordMappingUtil;
@@ -17,6 +18,14 @@ test('every record the Board logs maps back to the same line, key for key and in
     const line = JSON.stringify(record);
     expect(JSON.stringify(recordOf(JSON.parse(line))), record.kind).toBe(line);
   }
+});
+
+test('a stored flint-brain-ended record, which no forge writes any more, still reads whole and words as before', () => {
+  const line = `{"at":"${RECORDED_AT}","kind":"flint-brain-ended","fields":{"startedBy":"bridge","startedAt":"2026-09-18T19:28:00.000Z",`
+    + '"endedAt":"2026-09-18T19:30:00.000Z","endedReason":"time","tokens":4200,"calls":3}}';
+  const record = recordOf(JSON.parse(line));
+  expect(JSON.stringify(record)).toBe(line);
+  expect(LogUtil.sentenceOf(record)).toBe('Flint\'s brain stopped after its whole time, after 3 model calls and 4.2k tokens');
 });
 
 test('a review-bar record keeps the order at, kind, taskId, ticketId, fields', () => {

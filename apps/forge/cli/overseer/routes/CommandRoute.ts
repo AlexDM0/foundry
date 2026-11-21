@@ -3,31 +3,28 @@
  * `{controlVersion, outcome, result}`, and 400 for a malformed body, 409 for a refused command or 423 while launches are held for an
  * install change, each `{controlVersion, refusal, fields, text}`: the refusal's code, its facts and the sentence the command line prints.
  * `overseer-stop`, `overseer-restart` and `talos-restart` are runtime only and go to the Overseer itself, held or not;
- * `machine-agent-limit-set` writes the machine's limit, in no hold; `flint-brain-start` and `flint-brain-stop` go to the Overseer's brain,
- * held or not, a start naming the Bridge as its starter when the request carries a Bridge session and the API otherwise, never from the
- * body.
+ * `machine-agent-limit-set` writes the machine's limit, in no hold.
  */
 import type { ForgeRefusalDocument } from 'forge-contracts/ForgeRefusalDocument';
 
-import { BoardCommandMappingUtil }                                  from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
-import { BoardCommandReadingUtil }                                  from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
-import { RefusalDocumentUtil }                                      from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
-import { CONTROL_COMMAND_KINDS, FLINT_BRAIN_COMMAND_KINDS }         from '../../../src/services/control/ControlService.ts';
-import type { FlintBrain }                                          from '../../../src/services/overseer/FlintBrain.ts';
-import { MachineAgentLimit }                                        from '../../../src/services/overseer/MachineAgentLimit.ts';
-import type { RouteAnswer }                                         from '../../../src/services/overseer/OverseerServer.ts';
-import type { BoardStore }                                          from '../../../src/services/store/BoardStore.ts';
-import type { Workspace }                                           from '../../../src/services/tracker/Workspace.ts';
-import type { ControlCommand, ControlCommandOf, FlintBrainCommand } from '../../../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                                         from '../../../src/shared/OperationRefusal.ts';
-import { SERVED_CONTRACT_VERSIONS }                                 from '../../../src/shared/constants/OverseerApiContracts.ts';
-import type { CommandContext }                                      from '../../CommandContext.ts';
-import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                      from '../../CommandControlContext.ts';
-import { registerWrittenTracker }                                   from '../../RegisterWrittenTracker.ts';
-import type { ArgumentParser }                                      from '../../arguments/ArgumentParser.ts';
-import { BY_HAND_COMMAND_KINDS }                                    from '../../constants/JobVerbs.ts';
-import { OptionValueUtil }                                          from '../../utils/OptionValueUtil.ts';
-import { OutputUtil }                                               from '../../utils/OutputUtil.ts';
+import { BoardCommandMappingUtil }               from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
+import { BoardCommandReadingUtil }               from '../../../src/adapters/board-commands/utils/BoardCommandReadingUtil.ts';
+import { RefusalDocumentUtil }                   from '../../../src/adapters/utils/RefusalDocumentUtil.ts';
+import { CONTROL_COMMAND_KINDS }                 from '../../../src/services/control/ControlService.ts';
+import { MachineAgentLimit }                     from '../../../src/services/overseer/MachineAgentLimit.ts';
+import type { RouteAnswer }                      from '../../../src/services/overseer/OverseerServer.ts';
+import type { BoardStore }                       from '../../../src/services/store/BoardStore.ts';
+import type { Workspace }                        from '../../../src/services/tracker/Workspace.ts';
+import type { ControlCommand, ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                      from '../../../src/shared/OperationRefusal.ts';
+import { SERVED_CONTRACT_VERSIONS }              from '../../../src/shared/constants/OverseerApiContracts.ts';
+import type { CommandContext }                   from '../../CommandContext.ts';
+import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }   from '../../CommandControlContext.ts';
+import { registerWrittenTracker }                from '../../RegisterWrittenTracker.ts';
+import type { ArgumentParser }                   from '../../arguments/ArgumentParser.ts';
+import { BY_HAND_COMMAND_KINDS }                 from '../../constants/JobVerbs.ts';
+import { OptionValueUtil }                       from '../../utils/OptionValueUtil.ts';
+import { OutputUtil }                            from '../../utils/OutputUtil.ts';
 
 export type RuntimeOverseerCommand =
   | { kind: 'overseer-stop' | 'overseer-restart'; now: boolean }
@@ -48,8 +45,6 @@ export interface CommandRouteRequest {
   wake:                 () => void;
   /** The CPU count the machine agent limit is capped at; the runtime's when not given. */
   machineAgentCeiling?: number;
-  /** The live Overseer's brain, which the route starts and stops. */
-  flintBrain:           Pick<FlintBrain, 'start' | 'stop'>;
 }
 
 const HTTP_STATUS = {
@@ -61,11 +56,10 @@ const HTTP_STATUS = {
 
 const RUNTIME_COMMAND_KINDS: readonly RuntimeOverseerCommand['kind'][] = ['overseer-stop', 'overseer-restart', 'talos-restart'];
 
-/** Every kind the route takes: the control service's but the by-hand kinds, and Flint's brain's. */
-export const COMMAND_ROUTE_KINDS: readonly string[] = Object.freeze([
-  ...CONTROL_COMMAND_KINDS.filter((kind) => !(BY_HAND_COMMAND_KINDS as readonly string[]).includes(kind)),
-  ...FLINT_BRAIN_COMMAND_KINDS,
-]);
+/** Every kind the route takes: the control service's but the by-hand kinds. */
+export const COMMAND_ROUTE_KINDS: readonly string[] = Object.freeze(
+  CONTROL_COMMAND_KINDS.filter((kind) => !(BY_HAND_COMMAND_KINDS as readonly string[]).includes(kind))
+);
 
 const CONTROL_VERSION = SERVED_CONTRACT_VERSIONS.control;
 
@@ -140,21 +134,6 @@ function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: Comma
   }
 }
 
-async function flintBrainAnswerOf(kind: FlintBrainCommand['kind'], request: CommandRouteRequest): Promise<RouteAnswer> {
-  const verdict = kind === 'flint-brain-start'
-    ? await request.flintBrain.start('api')
-    : await request.flintBrain.stop();
-  if (verdict.verdict === 'refused') {
-    const { refusal, sentence } = verdict;
-    return { status: HTTP_STATUS.CONFLICT, body: refusalBodyOf({ code: refusal.code, fields: RefusalDocumentUtil.jsonFieldsOf(refusal, 'code'), sentence }) };
-  }
-  return appliedAnswerOf({ outcome: 'done', result: { kind } });
-}
-
-function isFlintBrainKind(kind: string): kind is FlintBrainCommand['kind'] {
-  return (FLINT_BRAIN_COMMAND_KINDS as readonly string[]).includes(kind);
-}
-
 function isRuntimeKind(kind: string): kind is RuntimeOverseerCommand['kind'] {
   return (RUNTIME_COMMAND_KINDS as readonly string[]).includes(kind);
 }
@@ -170,7 +149,6 @@ function runtimeCommandOf(kind: RuntimeOverseerCommand['kind'], body: Record<str
 export async function answerControlCommand(body: unknown, request: CommandRouteRequest): Promise<RouteAnswer> {
   if (!isRecord(body) || typeof body['kind'] !== 'string' || !COMMAND_ROUTE_KINDS.includes(body['kind'])) return MALFORMED;
   const { kind } = body;
-  if (isFlintBrainKind(kind)) return await flintBrainAnswerOf(kind, request);
   if (isRuntimeKind(kind)) {
     const runtimeCommand = runtimeCommandOf(kind, body);
     if (runtimeCommand === null) return MALFORMED;

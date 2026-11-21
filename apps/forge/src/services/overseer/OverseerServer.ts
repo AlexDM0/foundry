@@ -22,7 +22,6 @@ import { TALOS_PROTOCOL_VERSION }                     from '../../lib/talos/cons
 import type { TranscriptEntry }                       from '../../shared/@types/TranscriptEntry.ts';
 import { IDENTITY_VERSION, SERVED_CONTRACT_VERSIONS } from '../../shared/constants/OverseerApiContracts.ts';
 import {
-  FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES,
   PICTURE_SIZE_LIMIT_BYTES,
   PROFILE_OUTPUT_FOLLOW_MILLISECONDS,
   SERVED_JOB_FILE_NAMES,
@@ -77,8 +76,6 @@ export interface OverseerRoutes {
   started:         () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
   command:         (body: unknown) => Promise<RouteAnswer>;
-  /** A parsed digest for Flint's brain behind the token: the brain's move, or why the rule director moves. */
-  askFlintBrain:   (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
   onNudge:         () => void;
   /** `GET /api/state`: the command line's own reading, served at no versioned path. */
@@ -159,8 +156,6 @@ const BOARD_PATH          = '/api/board';
 const CRASH_LOG_PATH      = '/api/crash-log';
 const CRASH_LOG_NUMBER_PARAMETER = 'number';
 const MONITOR_EVENTS_PATH = '/api/monitor/events';
-// Unversioned and in no registry entry.
-const FLINT_BRAIN_ASK_PATH = '/api/flint-brain/ask';
 
 /** The API serves no page: an answer may load nothing, post nowhere and sit in no frame. */
 const API_CONTENT_SECURITY_POLICY = 'default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'none\'';
@@ -270,20 +265,6 @@ function pictureResponse(routes: OverseerRoutes, pictureId: string): Response {
       'content-type': picture.mediaType, 'x-content-type-options': 'nosniff', 'content-security-policy': 'sandbox', 'cache-control': 'no-store'
     },
   });
-}
-
-/** The digest is read no further than its size limit; past it, or as no JSON, nothing reaches the brain. */
-async function answerFlintBrainAsk(request: Request, routes: OverseerRoutes): Promise<Response> {
-  if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
-  const body = await boundedBodyOf(request, FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES);
-  if (body.verdict === 'over-limit') return jsonResponse({ status: HTTP_STATUS.TOO_LARGE, body: { refusal: 'too-large' } });
-  let digest: unknown;
-  try {
-    digest = JSON.parse(new TextDecoder().decode(body.bytes));
-  } catch {
-    return refusalResponse(routes, 'malformed-body');
-  }
-  return jsonResponse(await routes.askFlintBrain(digest));
 }
 
 export interface EventStreams {
@@ -469,7 +450,6 @@ function routeOf(request: Request, routes: OverseerRoutes, documents: OpenDocume
   }
   if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() }));
   if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
-  if (method === 'POST' && pathname === FLINT_BRAIN_ASK_PATH) return answerFlintBrainAsk(request, routes);
   if (method === 'POST' && pathname === '/api/pictures') return answerPictureUpload(request, routes);
   if (method === 'POST' && pathname === '/api/nudge') {
     routes.onNudge();

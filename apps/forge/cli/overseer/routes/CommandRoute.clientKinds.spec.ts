@@ -7,15 +7,15 @@ import { describe, expect, test }      from 'bun:test';
 import type { ForgeControlCommand }    from 'forge-contracts/ForgeControlCommand';
 import { FORGE_CONTROL_COMMAND_KINDS } from 'forge-contracts/ForgeControlCommandKinds';
 
-import { BoardCommandMappingUtil }   from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
-import type { OverseerApiCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
-import { BY_HAND_COMMAND_KINDS }     from '../../constants/JobVerbs.ts';
-import { COMMAND_ROUTE_KINDS }       from './CommandRoute.ts';
+import { BoardCommandMappingUtil } from '../../../src/adapters/board-commands/utils/BoardCommandMappingUtil.ts';
+import type { ControlCommandOf }   from '../../../src/shared/@types/ControlCommand.ts';
+import { BY_HAND_COMMAND_KINDS }   from '../../constants/JobVerbs.ts';
+import { COMMAND_ROUTE_KINDS }     from './CommandRoute.ts';
 
 type ListedKind = (typeof FORGE_CONTROL_COMMAND_KINDS)[number];
 
 type ControlKindIngestion = {
-  readonly [Kind in ForgeControlCommand['kind']]: (command: Extract<ForgeControlCommand, { kind: Kind }>) => OverseerApiCommandOf<Kind>
+  readonly [Kind in ForgeControlCommand['kind']]: (command: Extract<ForgeControlCommand, { kind: Kind }>) => ControlCommandOf<Kind>
 };
 
 /** The route reads a control kind's body as forge's own command, field for field; a kind whose fields differ fails the typecheck. */
@@ -29,8 +29,6 @@ const CONTROL_KIND_INGESTION: ControlKindIngestion = {
   'concurrency-set':         (command) => command,
   'job-stop-all':            (command) => command,
   'machine-agent-limit-set': (command) => command,
-  'flint-brain-start':       (command) => command,
-  'flint-brain-stop':        (command) => command,
 };
 
 const INGESTION_OF_LISTED_KIND = {

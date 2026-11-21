@@ -5,7 +5,7 @@
  */
 import type { ServedContractName } from '../@types/IdentityDocument.ts';
 
-/** Control stays 1 although forge 1.1 adds Flint's brain's two kinds: a client built for 1.0 compares it for equality. */
+/** Control stays 1 while the system version names the kinds a forge reads: a client built for 1.0 compares it for equality. */
 export const OVERSEER_CONTRACT_VERSIONS = {
   identity: 1,
   summary:  1,

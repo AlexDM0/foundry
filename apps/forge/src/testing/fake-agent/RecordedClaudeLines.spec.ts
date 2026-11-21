@@ -1,21 +1,17 @@
 /**
  * The fake agent prints only recorded `claude` lines. What matters: a line is the recorded one with only the selector's values put in; a
  * kind or a key no recording holds is refused; a line already filled comes back unchanged, since the child fills every line again; and an
- * OS with no recording fails, naming the command that records it. The brain's scenario, played by a session with no tool, prints only
- * recorded lines too, and answers on Flint's lists.
+ * OS with no recording fails, naming the command that records it.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { recordCommandOf }       from '../BoundaryRecordings.ts';
+import { recordCommandOf } from '../BoundaryRecordings.ts';
 import {
-  FAKE_FLINT_BRAIN_ANSWER,
-  fakeAgentAdapter,
   fakeAssistantTurnLine,
   fakeQuestionLine,
   fakeRateLimitedResultLine,
   fakeResultLine,
-  fakeStartedLine,
-  FLINT_BRAIN_FAKE_AGENT_STEPS
+  fakeStartedLine
 } from '../FakeAgentAdapter.ts';
 import { CLAUDE_WIRE_BOUNDARY, recordedLineOf, recordedSessionOf } from './RecordedClaudeLines.ts';
 
@@ -75,17 +71,5 @@ describe('a recorded claude line', () => {
   test('an OS with no recording fails, naming the command that records it', () => {
     expect(() => recordedLineOf(JSON.stringify({ type: 'system', subtype: 'init' }), 'example-os'))
       .toThrow(`Record it with \`${recordCommandOf(CLAUDE_WIRE_BOUNDARY)}\``);
-  });
-});
-
-describe('the fake brain scenario', () => {
-  test('prints only recorded lines, one model call and one answer per ask', () => {
-    const adapter = fakeAgentAdapter();
-    const events = FLINT_BRAIN_FAKE_AGENT_STEPS.flatMap((step) => (step.kind === 'print' ? [...adapter.eventsOf(recordedLineOf(step.line))] : []));
-    const asks = FLINT_BRAIN_FAKE_AGENT_STEPS.filter((step) => step.kind === 'await-line').length - 1;
-    expect(events.filter((event) => event.kind === 'assistant-turn')).toHaveLength(asks);
-    const results = events.filter((event) => event.kind === 'result');
-    expect(results).toHaveLength(asks);
-    for (const result of results) expect(result).toMatchObject({ isError: false, structuredReport: FAKE_FLINT_BRAIN_ANSWER });
   });
 });

@@ -3,33 +3,30 @@
  * by part through the board document's mappers, with the Board's offers and the readings a view would otherwise recompute. Its return
  * type is the proof that the served document is the contract's.
  */
-import type { ForgeBoardDocument }        from 'forge-contracts/ForgeBoardDocument';
-import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
+import type { ForgeBoardDocument } from 'forge-contracts/ForgeBoardDocument';
 
-import type { MergeQueueFacts }                                  from '../../adapters/@types/BoardStateParts.ts';
-import { BoardConversationMappingUtil }                          from '../../adapters/board-document/utils/BoardConversationMappingUtil.ts';
-import { BoardJobMappingUtil }                                   from '../../adapters/board-document/utils/BoardJobMappingUtil.ts';
-import { BoardMergeQueueMappingUtil }                            from '../../adapters/board-document/utils/BoardMergeQueueMappingUtil.ts';
-import { BoardPageMappingUtil, type TicketReadings }             from '../../adapters/board-document/utils/BoardPageMappingUtil.ts';
-import { BoardPipelineMappingUtil }                              from '../../adapters/board-document/utils/BoardPipelineMappingUtil.ts';
-import { BoardReadingMappingUtil }                               from '../../adapters/board-document/utils/BoardReadingMappingUtil.ts';
-import type { LogRecord }                                        from '../../lib/tracker-model/@types/LogRecord.ts';
-import type { Board }                                            from '../../lib/tracker-model/Board.ts';
-import type { MergeForecast }                                    from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
-import type { PageTicket }                                       from '../../shared/@types/PagePayload.ts';
-import { attentionEntriesOf }                                    from '../../shared/monitor/AttentionEntries.ts';
-import { flintBrainRunsOf, todayCalendarDateOf, todayFiguresOf } from '../../shared/monitor/TodayFigures.ts';
-import { NoticeWordingUtil }                                     from '../../shared/monitor/utils/NoticeWordingUtil.ts';
-import { OpenDecisionsUtil }                                     from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
-import type { BoardState }                                       from './BoardState.ts';
+import type { MergeQueueFacts }                      from '../../adapters/@types/BoardStateParts.ts';
+import { BoardConversationMappingUtil }              from '../../adapters/board-document/utils/BoardConversationMappingUtil.ts';
+import { BoardJobMappingUtil }                       from '../../adapters/board-document/utils/BoardJobMappingUtil.ts';
+import { BoardMergeQueueMappingUtil }                from '../../adapters/board-document/utils/BoardMergeQueueMappingUtil.ts';
+import { BoardPageMappingUtil, type TicketReadings } from '../../adapters/board-document/utils/BoardPageMappingUtil.ts';
+import { BoardPipelineMappingUtil }                  from '../../adapters/board-document/utils/BoardPipelineMappingUtil.ts';
+import { BoardReadingMappingUtil }                   from '../../adapters/board-document/utils/BoardReadingMappingUtil.ts';
+import type { LogRecord }                            from '../../lib/tracker-model/@types/LogRecord.ts';
+import type { Board }                                from '../../lib/tracker-model/Board.ts';
+import type { MergeForecast }                        from '../../lib/tracker-model/utils/MergeQueueUtil.ts';
+import type { PageTicket }                           from '../../shared/@types/PagePayload.ts';
+import { attentionEntriesOf }                        from '../../shared/monitor/AttentionEntries.ts';
+import { todayCalendarDateOf, todayFiguresOf }       from '../../shared/monitor/TodayFigures.ts';
+import { NoticeWordingUtil }                         from '../../shared/monitor/utils/NoticeWordingUtil.ts';
+import { OpenDecisionsUtil }                         from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
+import type { BoardState }                           from './BoardState.ts';
 
 /** One reading of the board: the state the monitor reads, the Board it was read from for the offers, and the clock's moment. */
 export interface BoardDocumentSource {
   state:      BoardState;
   board:      Pick<Board, 'ticketOffersOf' | 'jobOffersOf'>;
   logRecords: readonly LogRecord[];
-  /** The Overseer's reading of Flint's brain, whose runs count in today's tokens; `null` where it cannot run confined. */
-  flintBrain: MonitorFlintBrainDocument | null;
   /** Today is this moment's local calendar date; the moment is only shown, never compared. */
   now:        Date;
 }
@@ -93,7 +90,7 @@ function boardDocumentOf(source: BoardDocumentSource): ForgeBoardDocument {
     attention:             attentionEntriesOf(state).map(BoardReadingMappingUtil.attentionEntryOf),
     today:                 BoardReadingMappingUtil.todayOf(
       todayCalendarDate,
-      todayFiguresOf(state, todayCalendarDate, flintBrainRunsOf(source.logRecords, source.flintBrain)),
+      todayFiguresOf(state, todayCalendarDate),
     ),
     openDecisionIds:      openDecisions.map(({ decision }) => decision.id),
     escalatedDecisionIds: openDecisions.filter(({ escalated }) => escalated).map(({ decision }) => decision.id),

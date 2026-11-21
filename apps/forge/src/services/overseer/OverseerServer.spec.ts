@@ -118,7 +118,6 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
     token:         () => null,
     started:       () => true,
     command:       neverCalled,
-    askFlintBrain: neverCalled,
     onNudge:       neverCalled,
     state:         neverCalled,
     board:         neverCalled,
@@ -532,6 +531,13 @@ describe('the bearer token is the only credential', () => {
         expect([answer.status, await answer.json()], `${method} ${path}`).toEqual([404, { refusal: 'not-found' }]);
         expect(answer.headers.get('set-cookie'), `${method} ${path}`).toBeNull();
       }
+    }
+  });
+
+  test('the ask of Flint\'s brain, which no forge runs any more, is a 404 with the token and without', async () => {
+    for (const headers of [TOKEN_HEADERS, HOST_HEADERS]) {
+      const answer = await versionedHandlerOf().answer(requestTo('/api/flint-brain/ask', { method: 'POST', headers, body: { cues: [] } }), PORT);
+      expect([answer.status, await answer.json()]).toEqual([404, { refusal: 'not-found' }]);
     }
   });
 

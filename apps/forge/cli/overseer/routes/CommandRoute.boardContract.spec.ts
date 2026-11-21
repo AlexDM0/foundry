@@ -99,7 +99,6 @@ function routeRequest(): CommandRouteRequest {
   const context   = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
   const workspace = requireWorkspace(repositoryDirectory);
   return {
-    flintBrain:       { start: async () => await Promise.resolve({ verdict: 'done' }), stop: async () => await Promise.resolve({ verdict: 'done' }) },
     commandArguments: createArgumentParser([]),
     context,
     workspace,

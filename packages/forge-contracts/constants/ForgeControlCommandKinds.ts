@@ -17,8 +17,6 @@ export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Ob
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',
-  'flint-brain-start',
-  'flint-brain-stop',
   'chart-range-set',
   'decision-answer',
   'gate-profile-start',

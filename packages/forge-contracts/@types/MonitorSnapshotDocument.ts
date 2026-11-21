@@ -22,13 +22,6 @@ export type MonitorInterruptionCause = typeof MONITOR_INTERRUPTION_CAUSES[number
 
 export type MonitorActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
 
-export type MonitorFlintBrainState = 'off' | 'starting' | 'running' | 'ended' | 'refused';
-
-/** `api` for a start a client asked for through `POST /api/v1/commands`. */
-export type MonitorFlintBrainStartedBy = 'bridge' | 'api';
-
-export type MonitorFlintBrainEndedReason = 'time' | 'stopped' | 'usage-limit' | 'failed';
-
 export type MonitorOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton';
 
 export interface MonitorOverseerDocument {
@@ -99,7 +92,6 @@ export interface MonitorNoticeDocument {
   readonly text: string;
 }
 
-/** `kind` and `tokens` come only on the entry an ended brain leaves (G2); every other entry leaves them out. */
 export interface MonitorActivityEntryDocument {
   readonly logPosition: number;
   readonly at:          string;
@@ -107,8 +99,6 @@ export interface MonitorActivityEntryDocument {
   readonly text:        string;
   /** `null` for an entry about the board's own. */
   readonly target:      BoardTarget | null;
-  readonly kind?:       string | null;
-  readonly tokens?:     number | null;
 }
 
 export interface MonitorTodayDocument {
@@ -128,35 +118,6 @@ export interface MonitorUsageDocument extends UsageLimitDocument {
   readonly currentWindowResetsAt: string | null;
 }
 
-export interface MonitorFlintBrainMoveDocument {
-  readonly at:     string;
-  readonly intent: string;
-  readonly emote:  string | null;
-}
-
-export interface MonitorFlintBrainRefusalDocument {
-  readonly code:     string;
-  readonly sentence: string;
-}
-
-/** Flint's brain as the forge reports it (G1): `ended` and `refused` stay until the next start or for 60 seconds. */
-export interface MonitorFlintBrainDocument {
-  readonly state:       MonitorFlintBrainState;
-  readonly startedAt:   string | null;
-  readonly endsAt:      string | null;
-  readonly startedBy:   MonitorFlintBrainStartedBy | null;
-  readonly model:       string | null;
-  readonly effort:      string | null;
-  readonly tokens:      number | null;
-  readonly calls:       number | null;
-  /** At most five, newest first. */
-  readonly recentMoves: readonly MonitorFlintBrainMoveDocument[];
-  readonly endedAt:     string | null;
-  readonly endedReason: MonitorFlintBrainEndedReason | null;
-  readonly sentence:    string | null;
-  readonly refusal:     MonitorFlintBrainRefusalDocument | null;
-}
-
 export interface MonitorSnapshotDocument {
   readonly monitorVersion: number;
   readonly trackerId:      string;
@@ -174,8 +135,6 @@ export interface MonitorSnapshotDocument {
   readonly today:          MonitorTodayDocument;
   readonly usage:          MonitorUsageDocument;
   readonly activity:       readonly MonitorActivityEntryDocument[];
-  /** `null` for a forge without Flint. */
-  readonly flintBrain:     MonitorFlintBrainDocument | null;
 }
 
 /** An entity's kind: an app, a package, or the one root entity that owns every path no other entity owns. */

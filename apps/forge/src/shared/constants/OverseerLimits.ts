@@ -161,32 +161,3 @@ export const PICTURES_PER_MESSAGE_LIMIT = 4;
 
 /** The picture types the Overseer stores, each known by its first bytes, never by a name or a header. */
 export const ACCEPTED_PICTURE_MEDIA_TYPES: readonly string[] = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-
-/** Flint's brain: a second director for the sprite, one confined session per run, never a job and never in a launch slot. */
-export const FLINT_BRAIN_MODEL = 'haiku';
-
-export const FLINT_BRAIN_EFFORT = 'low' as const;
-
-/** At most one model call in this time, and only when the digest's content or cues changed. */
-export const FLINT_BRAIN_ASK_INTERVAL_MILLISECONDS = 3000;
-
-/** The excerpt of a digest the brain reads: untrusted text, so it can only change which move Flint makes. */
-export const FLINT_BRAIN_EXCERPT_LIMIT_CHARACTERS = 2000;
-
-/** How long one brain run lasts at most; the rule director goes on after it. */
-export const FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS = 120_000;
-
-/** How long an ended or refused brain stays in the monitor snapshot before it reads `off`, unless the next start comes first. */
-export const FLINT_BRAIN_ENDED_STATE_KEPT_MILLISECONDS = 60_000;
-
-/** The newest moves the brain chose that the monitor snapshot shows. */
-export const FLINT_BRAIN_RECENT_MOVES_LIMIT = 5;
-
-/** How long an ask waits for the session's answer before the rule director answers that time; a schedule only. */
-export const FLINT_BRAIN_ANSWER_TIMEOUT_MILLISECONDS = 15_000;
-
-/** How often the Overseer reads a brain run's event log for the session's lines and its child's end; a schedule only, never a decision. */
-export const FLINT_BRAIN_SESSION_READ_INTERVAL_MILLISECONDS = 250;
-
-/** The largest digest the Bridge's ask may send; the brain reads a capped excerpt of it, so a longer body is refused unread. */
-export const FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES = 32_768;

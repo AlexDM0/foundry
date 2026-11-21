@@ -238,7 +238,7 @@ export function boardDocumentSourceFixture(): BoardDocumentSource {
     },
   });
   return {
-    state, board, logRecords: LOG_RECORDS, flintBrain: null, now: new Date(AT)
+    state, board, logRecords: LOG_RECORDS, now: new Date(AT)
   };
 }
 

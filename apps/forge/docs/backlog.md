@@ -50,8 +50,8 @@ The pipeline setup plan meant to close this gap; its items did not change this c
 ## Flint parts not built
 
 The build of Flint (`packages/flint/`, and its host in `bridge/flint/`) took steps 1 to 8 of the design handoff, and
-forge 1.1 the brain of step 9 on the Overseer's side ([Flint's brain](reference/overseer-api.md#flint-brain)). One part
-of the handoff is agreed and not built.
+forge 1.1 the brain of step 9 on the Overseer's side, which was taken out again
+([Flint's brain](reference/overseer-api.md#flint-brain)). One part of the handoff is agreed and not built.
 
 | Part | Why it waits | Waits for |
 | --- | --- | --- |

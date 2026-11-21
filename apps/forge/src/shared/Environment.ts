@@ -98,21 +98,6 @@ export function versionsAnswerOverride(): VersionsDocument | undefined {
   return { current, minimumSupported };
 }
 
-export function flintBrainMaximumVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
-  return `${ENVIRONMENT_PREFIX}FLINT_BRAIN_MAXIMUM_MILLISECONDS`;
-}
-
-export const FLINT_BRAIN_MAXIMUM_VARIABLE = flintBrainMaximumVariableOf(PRODUCT_NAMES);
-
-/**
- * A test setting for a client's recordings: how long one run of Flint's brain lasts, in place of `FLINT_BRAIN_MAXIMUM_RUN_MILLISECONDS`, so
- * a recording sees a run end on its own. Any value but a positive whole number reads as unset, and a run keeps its whole maximum.
- */
-export function flintBrainMaximumOverride(): number | undefined {
-  const value = nonBlankValueOf(FLINT_BRAIN_MAXIMUM_VARIABLE)?.trim();
-  return value !== undefined && WHOLE_MILLISECONDS.test(value) ? Number(value) : undefined;
-}
-
 export const HATCH_REPLY_INTERVAL_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX}HATCH_REPLY_INTERVAL_MILLISECONDS`;
 
 /**
@@ -122,20 +107,6 @@ export const HATCH_REPLY_INTERVAL_VARIABLE = `${PRODUCT_NAMES.ENVIRONMENT_PREFIX
 export function hatchReplyIntervalOverride(): number | undefined {
   const value = nonBlankValueOf(HATCH_REPLY_INTERVAL_VARIABLE)?.trim();
   return value !== undefined && WHOLE_MILLISECONDS.test(value) ? Number(value) : undefined;
-}
-
-export function flintBrainWithheldVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
-  return `${ENVIRONMENT_PREFIX}WITHOUT_FLINT_BRAIN`;
-}
-
-export const FLINT_BRAIN_WITHHELD_VARIABLE = flintBrainWithheldVariableOf(PRODUCT_NAMES);
-
-/**
- * A test setting for a client's recordings: the forge answers as one that cannot run Flint's brain confined, with no brain in its monitor
- * snapshot and a start refused `no-flint`. Read like the every-tool switch.
- */
-export function flintBrainIsWithheld(): boolean {
-  return switchIsOn(FLINT_BRAIN_WITHHELD_VARIABLE);
 }
 
 export const EVERY_TOOL_REQUIRED_VARIABLE = everyToolRequiredVariableOf(PRODUCT_NAMES);

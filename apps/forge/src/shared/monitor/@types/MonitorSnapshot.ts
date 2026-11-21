@@ -11,7 +11,6 @@ import type {
   MonitorAttentionEntryDocument,
   MonitorAttentionKind,
   MonitorAttentionStampWord,
-  MonitorFlintBrainDocument,
   MonitorEntityDocument,
   MonitorInterruptionCause,
   MonitorJobDocument,
@@ -109,9 +108,6 @@ export interface MonitorActivityEntry extends MonitorActivityEntryDocument {
   readonly category:    ActivityCategory;
   readonly text:        string;
   readonly target:      BoardTarget | null;
-  /** `flint-brain` on the entry an ended brain leaves, with its tokens; every other entry has neither. */
-  readonly kind?:       'flint-brain';
-  readonly tokens?:     number;
 }
 
 export interface MonitorNotice extends MonitorNoticeDocument {
@@ -169,8 +165,6 @@ export interface MonitorSnapshot extends MonitorSnapshotDocument, MonitorSnapsho
   readonly today:               { readonly deliveredTickets: number; readonly tokens: number };
   readonly usage:               MonitorUsage;
   readonly activity:            readonly MonitorActivityEntry[];
-  /** Flint's brain, `null` where this forge cannot run it confined. */
-  readonly flintBrain:          MonitorFlintBrainDocument | null;
   /** Only on a forge with entities: each entity, in the pipeline's order. */
   readonly entities?:           readonly MonitorEntityDocument[];
   /** Only on a forge with entities: each ticket not delivered or abandoned, with its entity and the stage it is in, in board order. */

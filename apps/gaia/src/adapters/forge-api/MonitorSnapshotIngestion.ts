@@ -98,8 +98,6 @@ const ACTIVITY_ENTRY_SHAPE = {
   category:    { oneOf: ['needs-user', 'landed', 'agent', 'forge'] },
   text:        'text',
   target:      { nullable: TARGET_OBJECT },
-  kind:        'passed-over',
-  tokens:      'passed-over',
 } as const satisfies ShapeOf<MonitorActivityEntryDocument>;
 
 const TODAY_SHAPE = { deliveredTickets: 'whole-number', tokens: 'whole-number' } as const satisfies ShapeOf<MonitorTodayDocument>;
@@ -131,7 +129,6 @@ const MONITOR_SNAPSHOT_SHAPE = {
   today:          { object: TODAY_SHAPE },
   usage:          { object: USAGE_SHAPE },
   activity:       { listOf: ACTIVITY_ENTRY_SHAPE },
-  flintBrain:     'passed-over',
 } as const satisfies ShapeOf<MonitorSnapshotDocument>;
 
 export class MonitorSnapshotIngestion {

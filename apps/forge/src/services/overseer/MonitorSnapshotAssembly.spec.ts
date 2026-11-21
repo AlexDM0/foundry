@@ -2,14 +2,14 @@
  * The `GET /api/monitor` document. What matters: for a board with one entry of every attention kind and one job of every role, plus a merge
  * job with none, `monitorSnapshotOf` answers `monitorVersion: 3` exactly as `testing/fixtures/monitor-v3.json` holds it, so a change to the
  * shape a monitor reads fails here; a new shape is a new version and a new fixture, never an edit of this one, and `monitor-v1.json` and
- * `monitor-v2.json` stay as versions 1 and 2 froze them. One edit was made on purpose: with the Bridge deleted, version 3 names what an entry
- * opens by a typed `target` where it carried the Bridge's `route`, under the system version's next major. Beside it: `activity` keeps
+ * `monitor-v2.json` stay as versions 1 and 2 froze them. Two edits were made on purpose, under the system version's next major: with the Bridge
+ * deleted, version 3 names what an entry opens by a typed `target` where it carried the Bridge's `route`, and with Flint's brain gone it
+ * has no `flintBrain` key. Beside it: `activity` keeps
  * only the kinds a person cares about, newest last, each
  * at its log position, and holds at most the newest fifty. The current usage window is the newest report across the board's jobs by the
  * instant its stamp names, an unstamped or unreadable stamp the oldest, and its reset is passed on as reported, also once it is past: a
- * clock decides nothing. Flint's brain is the Overseer's reading as it stands, in each state, and none for a forge that cannot run it
- * confined; it is never in `jobs`. With a brain, `testing/fixtures/monitor-v3-flint-brain.json` holds the snapshot: the ended run's activity
- * entry, of the category `agent` with its kind and tokens, and today's tokens counting the running run and the ended one. On a forge with
+ * clock decides nothing. No forge runs Flint's brain any more: the snapshot has no `flintBrain` key, and a `flint-brain-ended` record an
+ * older log holds reads as an ordinary `agent` entry with no kind and no tokens, and adds nothing to today's tokens. On a forge with
  * entities the snapshot adds its entities in the pipeline's order, each open ticket's entity and stage in board order (a delivered or
  * abandoned ticket left out, an unassigned or uncrossed one `null`), and each job's entity with its stage's name only where set; a forge
  * without entities gets none of these keys, so its snapshot stays exactly the frozen fixture. A job's `interruption` is its cause, spelt as the
@@ -18,8 +18,6 @@
 import { readFileSync }           from 'node:fs';
 import { join }                   from 'node:path';
 import { describe, expect, test } from 'bun:test';
-
-import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
 
 import type { JobLiveFactsWithSilence, JobWithLiveFacts }                                 from '../../adapters/@types/BoardStateParts.ts';
 import type { LogRecord }                                                                 from '../../lib/tracker-model/@types/LogRecord.ts';
@@ -33,7 +31,6 @@ import { liveJobFixture }                                                       
 
 const MONITOR_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'monitor-v3.json');
 
-const FLINT_BRAIN_MONITOR_FIXTURE_PATH = join(import.meta.dir, 'testing', 'fixtures', 'monitor-v3-flint-brain.json');
 
 /** Midday, so today's local calendar date is the stamps' date in any zone a spec runs in. */
 const NOW = new Date(2026, 10, 12, 12, 0, 0);
@@ -229,54 +226,7 @@ const BOARD = {
 } as unknown as MonitorSnapshotSource['board'];
 
 const SOURCE: MonitorSnapshotSource = {
-  state: STATE, project: 'Example Agency', board: BOARD, logRecords: LOG_RECORDS, overseer: OVERSEER, flintBrain: null, now: NOW
-};
-
-const BRAIN_OFF: MonitorFlintBrainDocument = {
-  state:       'off',
-  startedAt:   null,
-  endsAt:      null,
-  startedBy:   null,
-  model:       null,
-  effort:      null,
-  tokens:      null,
-  calls:       null,
-  recentMoves: [],
-  endedAt:     null,
-  endedReason: null,
-  sentence:    null,
-  refusal:     null,
-};
-
-const BRAIN_RUNNING: MonitorFlintBrainDocument = {
-  ...BRAIN_OFF,
-  state:       'running',
-  startedAt:   '2026-11-12T10:59:00.000Z',
-  endsAt:      '2026-11-12T11:01:00.000Z',
-  startedBy:   'api',
-  model:       'haiku',
-  effort:      'low',
-  tokens:      900,
-  calls:       2,
-  recentMoves: [{ at: '2026-11-12T10:59:40.000Z', intent: 'wave', emote: 'happy' }, { at: '2026-11-12T10:59:20.000Z', intent: 'wander', emote: null }],
-  sentence:    'Flint\'s brain chooses Flint\'s moves.',
-};
-
-const BRAIN_STATES: Readonly<Record<MonitorFlintBrainDocument['state'], MonitorFlintBrainDocument>> = {
-  off:      BRAIN_OFF,
-  starting: {
-    ...BRAIN_RUNNING, state: 'starting', tokens: 0, calls: 0, recentMoves: [], sentence: 'Flint\'s brain is starting.'
-  },
-  running: BRAIN_RUNNING,
-  ended:   {
-    ...BRAIN_RUNNING, state: 'ended', endedAt: '2026-11-12T11:00:00.000Z', endedReason: 'stopped', sentence: 'Flint\'s brain was stopped after 1:00.'
-  },
-  refused: {
-    ...BRAIN_OFF,
-    state:    'refused',
-    sentence: 'The Overseer is paused, so Flint\'s brain does not start.',
-    refusal:  { code: 'overseer-paused', sentence: 'The Overseer is paused, so Flint\'s brain does not start.' },
-  },
+  state: STATE, project: 'Example Agency', board: BOARD, logRecords: LOG_RECORDS, overseer: OVERSEER, now: NOW
 };
 
 const FLINT_BRAIN_ENDED_RECORD = {
@@ -286,8 +236,6 @@ const FLINT_BRAIN_ENDED_RECORD = {
     startedBy: 'bridge', startedAt: '2026-11-12T10:27:00.000Z', endedAt: '2026-11-12T10:29:00.000Z', endedReason: 'time', tokens: 4200, calls: 6
   },
 } as unknown as LogRecord;
-
-const FLINT_BRAIN_SOURCE: MonitorSnapshotSource = { ...SOURCE, logRecords: [...LOG_RECORDS, FLINT_BRAIN_ENDED_RECORD], flintBrain: BRAIN_RUNNING };
 
 describe('MonitorSnapshotAssembly.monitorSnapshotOf', () => {
   test('answers monitorVersion 3 exactly as the fixture holds it, for every attention kind and every job role', () => {
@@ -348,28 +296,12 @@ describe('a job\'s interruption in the monitor snapshot', () => {
   });
 });
 
-describe('Flint\'s brain in the monitor snapshot', () => {
-  test('answers monitorVersion 3 with a running brain and an ended run exactly as its fixture holds it', () => {
-    const fixture: unknown = JSON.parse(readFileSync(FLINT_BRAIN_MONITOR_FIXTURE_PATH, 'utf8'));
-    expect(JSON.parse(JSON.stringify(MonitorSnapshotAssembly.monitorSnapshotOf(FLINT_BRAIN_SOURCE)))).toEqual(fixture);
+describe('a forge without Flint\'s brain', () => {
+  test('serves no flintBrain key', () => {
+    expect(Object.hasOwn(MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE), 'flintBrain')).toBe(false);
   });
 
-  test('is the Overseer\'s reading in each state, and none where the forge cannot run it confined', () => {
-    for (const reading of Object.values(BRAIN_STATES)) {
-      expect(MonitorSnapshotAssembly.monitorSnapshotOf({ ...SOURCE, flintBrain: reading }).flintBrain, reading.state).toEqual(reading);
-    }
-    expect(MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE).flintBrain).toBeNull();
-  });
-
-  test('is never one of the jobs', () => {
-    const withoutBrain = MonitorSnapshotAssembly.monitorSnapshotOf(SOURCE);
-    for (const reading of Object.values(BRAIN_STATES)) {
-      const snapshot = MonitorSnapshotAssembly.monitorSnapshotOf({ ...SOURCE, flintBrain: reading });
-      expect([snapshot.jobs, snapshot.concurrency]).toEqual([withoutBrain.jobs, withoutBrain.concurrency]);
-    }
-  });
-
-  test('leaves an ended run as an agent entry of the kind flint-brain with its tokens, which no other entry has', () => {
+  test('reads a stored flint-brain-ended record as an ordinary agent entry, with no kind and no tokens', () => {
     const activity = MonitorSnapshotAssembly.activityOf([...LOG_RECORDS, FLINT_BRAIN_ENDED_RECORD]);
     expect(activity.at(-1)).toEqual({
       logPosition: LOG_RECORDS.length,
@@ -377,26 +309,13 @@ describe('Flint\'s brain in the monitor snapshot', () => {
       category:    'agent',
       text:        'Flint\'s brain stopped after its whole time, after 6 model calls and 4.2k tokens',
       target:      null,
-      kind:        'flint-brain',
-      tokens:      4200,
     });
-    expect(activity.slice(0, -1).filter((entry) => 'kind' in entry || 'tokens' in entry)).toEqual([]);
+    expect(activity.filter((entry) => 'kind' in entry || 'tokens' in entry)).toEqual([]);
   });
 
-  test('adds the running run\'s tokens and today\'s ended runs to today\'s tokens, a run both logged and read once', () => {
-    const tokensWith = (flintBrain: MonitorFlintBrainDocument | null, logRecords: readonly LogRecord[]) => (
-      MonitorSnapshotAssembly.monitorSnapshotOf({ ...SOURCE, flintBrain, logRecords }).today.tokens
-    );
-    const withoutBrain = tokensWith(null, LOG_RECORDS);
-    expect(tokensWith(BRAIN_RUNNING, LOG_RECORDS) - withoutBrain).toBe(900);
-    expect(tokensWith(BRAIN_RUNNING, [...LOG_RECORDS, FLINT_BRAIN_ENDED_RECORD]) - withoutBrain).toBe(5100);
-    const loggedEndedRun = {
-      ...FLINT_BRAIN_ENDED_RECORD,
-      fields: {
-        startedBy: 'api', startedAt: BRAIN_RUNNING.startedAt, endedAt: '2026-11-12T11:00:00.000Z', endedReason: 'stopped', tokens: 900, calls: 2
-      },
-    } as unknown as LogRecord;
-    expect(tokensWith(BRAIN_STATES.ended, [...LOG_RECORDS, loggedEndedRun]) - withoutBrain).toBe(900);
+  test('adds no tokens to today\'s figures for a stored run that ended today', () => {
+    const tokensWith = (logRecords: readonly LogRecord[]) => MonitorSnapshotAssembly.monitorSnapshotOf({ ...SOURCE, logRecords }).today.tokens;
+    expect(tokensWith([...LOG_RECORDS, FLINT_BRAIN_ENDED_RECORD])).toBe(tokensWith(LOG_RECORDS));
   });
 });
 

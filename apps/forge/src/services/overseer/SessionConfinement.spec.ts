@@ -16,7 +16,6 @@ import type { ConfinementVerdict }                                            fr
 import { fakeAgentAdapter }                                                   from '../../testing/FakeAgentAdapter.ts';
 import { FAKE_CONFINER_ARGV, FAKE_MISSING_TOOLS_REASON, fakeGateConfinement } from '../../testing/FakeGateConfinement.ts';
 import { createScratchDirectory, removeScratchDirectory }                     from '../../testing/ScratchWorkspace.ts';
-import { FlintBrainProfile }                                                  from './FlintBrainProfile.ts';
 import { IntakeSessions }                                                     from './IntakeSessions.ts';
 import { PipelineAgentSessions }                                              from './PipelineAgentSessions.ts';
 import { NETWORK_DOMAINS_REFUSAL, SessionConfinement }                        from './SessionConfinement.ts';
@@ -64,11 +63,6 @@ const PROFILE_OF_ROLE: Readonly<Record<string, WorkerProfile>> = {
   'assistant':      roleProfileOf('assistant'),
   'product-owner':  IntakeSessions.productOwnerProfileOf(roleProfileOf('product-owner')),
   'pipeline-agent': PipelineAgentSessions.pipelineAgentProfileOf(roleProfileOf('assistant'), HATCH_DIRECTORY),
-  'flint-brain':    FlintBrainProfile.profileOf(
-    { run: 1, workingDirectory: '/example/repository/.forge/flint-brain/session', jobFilesDirectory: JOB_FILES_DIRECTORY },
-    '/example/repository',
-    ['/home/alex-example/.ssh'],
-  ),
 };
 
 const AGENT_FOLDERS = ['/home/alex-example/.example-agent'];

@@ -34,8 +34,6 @@ export const CONTROL_CONTRACT_KINDS = [
   'concurrency-set',
   'job-stop-all',
   'machine-agent-limit-set',
-  'flint-brain-start',
-  'flint-brain-stop',
 ] as const satisfies readonly ForgeControlCommand['kind'][];
 
 /**

@@ -95,8 +95,7 @@ function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapsho
       currentWindow:         null,
       currentWindowResetsAt: null,
     },
-    activity:   [],
-    flintBrain: null,
+    activity: [],
     ...changes,
   };
 }

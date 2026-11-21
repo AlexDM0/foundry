@@ -8,10 +8,7 @@
  * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
  * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`; a
  * gate profile the board holds streams its output lines after the cursor, while a run it does not hold and a cursor that is no line number
- * are 404; and Flint's brain, started by the token at `/api/v1/commands`, is the API's, starts and runs on the fake agent, shows in each
- * state in the monitor, its stream sending a `monitor` event for each, refuses a start while paused, a second start and a stop while off,
- * never sits in the jobs,
- * and on its stop leaves its run in the log, the activity and today's tokens.
+ * are 404; and no forge runs Flint's brain: its two commands are malformed, its ask path is a 404 and the monitor holds no brain.
  */
 import { createHash } from 'node:crypto';
 import {
@@ -349,53 +346,17 @@ describe('the Overseer API on a scratch board', () => {
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('Flint\'s brain starts by the token as the API\'s, runs, shows in the monitor and its stream, stops, and leaves its run behind', async () => {
+  test('no forge runs Flint\'s brain: its commands are malformed, its ask path is a 404 and the monitor holds no brain', async () => {
     const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const headers = tokenHeaders();
-    const command = async (kind: string) => {
-      const answered = await fetch(new URL('api/v1/commands', url), { method: 'POST', headers, body: JSON.stringify({ kind, startedBy: 'bridge' }) });
-      return { status: answered.status, body: await answered.json() as Record<string, unknown> };
-    };
-    const monitor = async () => await (await fetch(new URL('api/v2/monitor', url), { headers })).json() as Record<string, unknown> & {
-      flintBrain: Record<string, unknown>; jobs: unknown[]; today: { tokens: number }; activity: Record<string, unknown>[];
-    };
-    const stream = collectEvents(url, 'api/v2/monitor/events');
-    try {
-      await waitUntil(() => stream.events.some((event) => event.kind === 'monitor'), 'the first monitor event');
-      expect((await monitor()).flintBrain).toMatchObject({ state: 'off', startedBy: null });
-      expect(await command('flint-brain-stop')).toMatchObject({ status: 409, body: { controlVersion: 1, refusal: 'brain-not-running' } });
-      expect(await command('flint-brain-start')).toMatchObject({ status: 409, body: { controlVersion: 1, refusal: 'overseer-paused' } });
-      expect((await monitor()).flintBrain).toMatchObject({ state: 'refused', refusal: { code: 'overseer-paused' } });
-      expect((await command('overseer-resume')).status).toBe(200);
-
-      expect(await command('flint-brain-start')).toEqual({ status: 200, body: { controlVersion: 1, outcome: 'done', result: { kind: 'flint-brain-start' } } });
-      await waitUntil(async () => (await monitor()).flintBrain['state'] === 'running', 'the brain running');
-      const running = await monitor();
-      expect(running.flintBrain).toMatchObject({
-        state: 'running', startedBy: 'api', model: 'haiku', effort: 'low'
-      });
-      // Resuming launched the Assistant: the monitor's jobs are the board's own, and the brain is none of them.
-      const boardState = await (await fetch(new URL('api/state', url), { headers })).json() as { jobs: { id: string }[] };
-      expect((running.jobs as { id: string }[]).map((job) => job.id)).toEqual(boardState.jobs.map((job) => job.id));
-      expect(await command('flint-brain-start')).toMatchObject({ status: 409, body: { controlVersion: 1, refusal: 'brain-already-running' } });
-
-      expect(await command('flint-brain-stop')).toEqual({ status: 200, body: { controlVersion: 1, outcome: 'done', result: { kind: 'flint-brain-stop' } } });
-      const endedRunEntry = async () => (await monitor()).activity.find((entry) => entry['kind'] === 'flint-brain');
-      await waitUntil(async () => await endedRunEntry() !== undefined, 'the ended run in the activity');
-      const ended = await monitor();
-      expect(ended.flintBrain).toMatchObject({ state: 'ended', endedReason: 'stopped', startedBy: 'api' });
-      expect(await endedRunEntry()).toMatchObject({ category: 'agent', kind: 'flint-brain', tokens: ended.flintBrain['tokens'] });
-      const logLines = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'log.jsonl'), 'utf8').split('\n');
-      expect(logLines.filter((line) => line.includes('"kind":"flint-brain-ended"')).map((line) => JSON.parse(line) as { fields: unknown }))
-        .toEqual([expect.objectContaining({ fields: expect.objectContaining({ startedBy: 'api', endedReason: 'stopped' }) })]);
-
-      const streamedStates = stream.events.filter((event) => event.kind === 'monitor')
-        .map((event) => (event.data['flintBrain'] as { state: string } | null)?.state)
-        .filter((state, index, states) => state !== states[index - 1]);
-      expect(streamedStates).toEqual(['off', 'refused', 'starting', 'running', 'ended']);
-    } finally {
-      await stream.stop();
+    for (const kind of ['flint-brain-start', 'flint-brain-stop']) {
+      const answered = await fetch(new URL('api/v1/commands', url), { method: 'POST', headers, body: JSON.stringify({ kind }) });
+      expect([answered.status, await answered.json()], kind).toEqual([400, expect.objectContaining({ controlVersion: 1, refusal: 'malformed-body' })]);
     }
+    const asked = await fetch(new URL('api/flint-brain/ask', url), { method: 'POST', headers, body: '{}' });
+    expect([asked.status, await asked.json()]).toEqual([404, { refusal: 'not-found' }]);
+    const monitor = await (await fetch(new URL('api/v2/monitor', url), { headers })).json() as Record<string, unknown>;
+    expect(Object.hasOwn(monitor, 'flintBrain')).toBe(false);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 });

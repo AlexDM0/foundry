@@ -1,8 +1,7 @@
 /**
- * The routes the Overseer's API serves, over the board, its job folders, its picture store, Flint's brain and the framing programs' server
- * records: the state, summary, monitor snapshot, presence and crash logs read fresh each request, the brain's commands and the Bridge's
- * asks, the sentence of each refusal, a job's transcript and served files, a gate profile's output, the pictures User uploads and the ones
- * a transcript names and the origins allowed to frame the Bridge. The Overseer serves no page.
+ * The routes the Overseer's API serves, over the board, its job folders and its picture store: the state, summary, monitor snapshot,
+ * presence and crash logs read fresh each request, the commands, the sentence of each refusal, a job's transcript and served files, a gate
+ * profile's output, and the pictures User uploads and the ones a transcript names. The Overseer serves no page.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -12,7 +11,6 @@ import type { LogRecord }                                     from '../../../src
 import { BoardDocumentAssembly }                              from '../../../src/services/overseer/BoardDocumentAssembly.ts';
 import { BoardStateAssembly }                                 from '../../../src/services/overseer/BoardState.ts';
 import type { EventBroker }                                   from '../../../src/services/overseer/EventBroker.ts';
-import type { FlintBrain }                                    from '../../../src/services/overseer/FlintBrain.ts';
 import { GateProfiling }                                      from '../../../src/services/overseer/GateProfiling.ts';
 import { JobTranscript }                                      from '../../../src/services/overseer/JobTranscript.ts';
 import { MonitorSnapshotAssembly, type MonitorOverseerFacts } from '../../../src/services/overseer/MonitorSnapshotAssembly.ts';
@@ -24,7 +22,6 @@ import type {
   ServerRefusal,
   TranscriptFollower
 } from '../../../src/services/overseer/OverseerServer.ts';
-import { FlintBrainDigestUtil }                                                from '../../../src/services/overseer/utils/FlintBrainDigestUtil.ts';
 import type { StoreReadFace }                                                  from '../../../src/services/store/BoardStore.ts';
 import { PictureStore, type PictureStoring }                                   from '../../../src/services/tracker/PictureStore.ts';
 import { OperationRefusal, type OperationRefusalDetail }                       from '../../../src/shared/OperationRefusal.ts';
@@ -34,8 +31,7 @@ import { readBoardState, type BoardStateSource }                               f
 import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
 import { PresenceReader }                                                      from './PresenceReader.ts';
 
-export interface OverseerRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context' | 'flintBrain'> {
-  flintBrain:    Pick<FlintBrain, 'start' | 'stop' | 'ask'>;
+export interface OverseerRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context'> {
   token:         () => string | null;
   started:       () => boolean;
   broker:        () => EventBroker | null;
@@ -50,11 +46,6 @@ const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
   'read-failed':    'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
   'malformed-body': MALFORMED_BODY_TEXT,
 };
-
-const FLINT_BRAIN_ASK_STATUS = {
-  ANSWERED:  200,
-  MALFORMED: 400,
-} as const;
 
 const MONITOR_STATUS = {
   ANSWERED: 200,
@@ -114,14 +105,9 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
     return existsSync(jobFolder) ? jobFolder : null;
   };
   return {
-    token:         request.token,
-    started:       request.started,
-    command:       (body) => answerControlCommand(body, { ...request, context }),
-    askFlintBrain: async (body) => {
-      const digest = FlintBrainDigestUtil.digestOf(body);
-      if (digest === null) return { status: FLINT_BRAIN_ASK_STATUS.MALFORMED, body: { refusal: 'malformed-body', text: SERVER_REFUSAL_TEXT['malformed-body'] } };
-      return { status: FLINT_BRAIN_ASK_STATUS.ANSWERED, body: await request.flintBrain.ask(digest) };
-    },
+    token:   request.token,
+    started: request.started,
+    command: (body) => answerControlCommand(body, { ...request, context }),
     onNudge: request.wake,
     state:   () => readBoardState(boardStateSource).state,
     board:   () => BoardDocumentAssembly.boardDocumentOf({ ...readBoardState(boardStateSource), now: context.now() }),

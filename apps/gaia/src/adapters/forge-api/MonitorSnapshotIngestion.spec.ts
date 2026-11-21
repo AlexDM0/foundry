@@ -1,9 +1,9 @@
 /**
  * The monitor snapshot ingestion over the snapshots a forge at the version Gaia supports answered as Example Storefront, at monitor
- * contract 3, read through the forge client. What matters: the snapshot of the Storefront at work maps to its frozen reading below, and reads
- * the same with a `flintBrain` key and without one, since Gaia passes that key over; a warning keeps its kind, `assistant-down` becoming a
- * notice; the current usage window is read; a job's turn, its interruption cause and a lost launch stamp read as the forge sends them, a
- * job of a forge before 1.19, which sends no cause, as having none, a cause outside the contract's list as malformed; a snapshot at a newer
+ * contract 3, read through the forge client. What matters: the snapshot of the Storefront at work maps to its frozen reading below; a
+ * warning keeps its kind, `assistant-down` becoming a notice; the current usage window is read; a job's turn, its interruption cause and a
+ * lost launch stamp read as the forge sends them, a job of a forge before 1.19, which sends no cause, as having none, a cause outside the
+ * contract's list as malformed; a snapshot at a newer
  * `monitorVersion` maps nothing of itself, so no attention entry leaks from it, and one at an older version, monitor 2 included, is older
  * than Gaia reads; a malformed snapshot or one of another forge maps nothing; every key the reading needs is checked.
  */
@@ -251,24 +251,6 @@ describe('the snapshot of Example Storefront at work', () => {
     const recorded = recordedFactsOf(snapshot);
     expect(recorded.activity.map(({ text }) => text).toSorted()).toEqual([...MAPPED_ACTIVITY_BY_TEXT.keys()].toSorted());
     expect(ingestion().readingOf(snapshot, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: recordedReadingOf(recorded) });
-  });
-
-  test('reads the same with a `flintBrain` key, whatever it holds, and without one', async () => {
-    const { flintBrain: _passedOverKey, ...withoutTheKey } = await storefrontSnapshot();
-    const readingWithoutTheKey = ingestion().readingOf(withoutTheKey, EXAMPLE_READ_STAMP);
-    expect(readingWithoutTheKey.verdict).toBe('readable');
-    for (const flintBrain of [null, { state: 'running', recentMoves: [{ at: 'now', intent: 7 }] }, 'example text']) {
-      expect(ingestion().readingOf({ ...withoutTheKey, flintBrain }, EXAMPLE_READ_STAMP)).toEqual(readingWithoutTheKey);
-    }
-  });
-
-  test('passes over an activity entry\'s kind and tokens, present or not', async () => {
-    const snapshot = await storefrontSnapshot();
-    const activity = (snapshot['activity'] as Record<string, unknown>[]).map(({ kind: _passedOverKind, tokens: _passedOverTokens, ...entry }) => entry);
-    const readingWithoutTheKeys = ingestion().readingOf({ ...snapshot, activity }, EXAMPLE_READ_STAMP);
-    expect(readingWithoutTheKeys.verdict).toBe('readable');
-    const withTheKeys = activity.map((entry) => ({ ...entry, kind: 'example-kind', tokens: 11 }));
-    expect(ingestion().readingOf({ ...snapshot, activity: withTheKeys }, EXAMPLE_READ_STAMP)).toEqual(readingWithoutTheKeys);
   });
 
   test('keeps a failed Baton pass as a warning of its kind, and shows an Assistant that cannot come up as a notice', async () => {

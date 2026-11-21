@@ -1,11 +1,10 @@
 /**
  * The `MonitorSnapshot` of `GET /api/monitor` and of each `monitor` event, from the same reading as the Overseer's `BoardState`: the
  * Waiting on User list, the notices, the warnings and today's figures as the Bridge computes them, each job's live facts, the newest usage
- * window a session reported, the newest log entries a person cares about, worded as the Bridge words a log entry, and Flint's brain, which
- * is no job and so never in `jobs`. On a forge with entities only, its entities, each open ticket's entity and stage, and each job's.
+ * window a session reported and the newest log entries a person cares about, worded as the Bridge words a log entry. On a forge with
+ * entities only, its entities, each open ticket's entity and stage, and each job's.
  */
-import type { BoardTarget }               from 'forge-contracts/BoardReadingDocuments';
-import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
+import type { BoardTarget } from 'forge-contracts/BoardReadingDocuments';
 
 import type { JobWithLiveFacts, UsageWindowReport } from '../../adapters/@types/BoardStateParts.ts';
 import { MONITOR_INTERRUPTION_CAUSE_OF_CAUSE }      from '../../adapters/constants/MonitorInterruptionCauseOfCause.ts';
@@ -27,11 +26,11 @@ import type {
   MonitorSnapshot,
   MonitorUsage
 } from '../../shared/monitor/@types/MonitorSnapshot.ts';
-import { attentionEntriesOf }                                    from '../../shared/monitor/AttentionEntries.ts';
-import { flintBrainRunsOf, todayCalendarDateOf, todayFiguresOf } from '../../shared/monitor/TodayFigures.ts';
-import { NoticeWordingUtil }                                     from '../../shared/monitor/utils/NoticeWordingUtil.ts';
-import { OpenDecisionsUtil }                                     from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
-import type { BoardState }                                       from './BoardState.ts';
+import { attentionEntriesOf }                  from '../../shared/monitor/AttentionEntries.ts';
+import { todayCalendarDateOf, todayFiguresOf } from '../../shared/monitor/TodayFigures.ts';
+import { NoticeWordingUtil }                   from '../../shared/monitor/utils/NoticeWordingUtil.ts';
+import { OpenDecisionsUtil }                   from '../../shared/monitor/utils/OpenDecisionsUtil.ts';
+import type { BoardState }                     from './BoardState.ts';
 
 /** What the Overseer knows of itself and no board file holds; read at each snapshot, so a Baton taken over or new code on disk shows. */
 export interface MonitorOverseerFacts {
@@ -62,8 +61,6 @@ export interface MonitorSnapshotSource {
   board:      Pick<Board, 'concurrency' | 'readyTicketEntries' | 'ticketCountByStatus' | 'pipeline' | 'tickets' | 'ticketStageOf'>;
   logRecords: readonly LogRecord[];
   overseer:   MonitorOverseerFacts;
-  /** The Overseer's reading of Flint's brain; `null` where it cannot run confined. */
-  flintBrain: MonitorFlintBrainDocument | null;
   /** Today is this moment's local calendar date; the moment is only shown, never compared. */
   now:        Date;
 }
@@ -204,8 +201,6 @@ const RUNNING_SUBAGENT_STATE = 'running';
 
 const QUIET_JOB_INCIDENT_KIND = 'quiet-job';
 
-const FLINT_BRAIN_ACTIVITY_KIND = 'flint-brain';
-
 /** The subject a record is about: its decision, its job, its ticket, its draft or its incident, the first it names; `null` for the board's own. */
 function activityTargetOf(record: LogRecord): BoardTarget | null {
   if ('decisionId' in record) return { subject: 'decision', id: record.decisionId };
@@ -223,10 +218,9 @@ function activityOf(logRecords: readonly LogRecord[]): MonitorActivityEntry[] {
     const record = logRecords[logPosition];
     const category = record === undefined ? null : ACTIVITY_CATEGORY_OF_KIND[record.kind];
     if (record === undefined || category === null) continue;
-    const entry = {
+    entries.push({
       logPosition, at: record.at, category, text: LogUtil.sentenceOf(record), target: activityTargetOf(record)
-    };
-    entries.push(record.kind === 'flint-brain-ended' ? { ...entry, kind: FLINT_BRAIN_ACTIVITY_KIND, tokens: record.fields.tokens } : entry);
+    });
   }
   return entries.reverse();
 }
@@ -342,10 +336,9 @@ function monitorSnapshotOf(source: MonitorSnapshotSource): MonitorSnapshot {
     jobs:                state.jobs.map((job) => jobOf(job, state.decisions, state.incidents, (ticketId) => ticketTitleById.get(ticketId) ?? null)),
     notices:             notices.map((notice) => ({ kind: notice.kind, text: NoticeWordingUtil.noticeSentenceOf(notice) })),
     warnings:            NoticeWordingUtil.warningsOf(notices, NoticeWordingUtil.batonPassWarningIn(state.overseer.batonPassWarning)),
-    today:               todayFiguresOf(state, todayCalendarDate, flintBrainRunsOf(source.logRecords, source.flintBrain)),
+    today:               todayFiguresOf(state, todayCalendarDate),
     usage:               { resetsAt: state.usage.resetsAt, window: state.usage.window, ...currentUsageWindowOf(state.jobs) },
     activity:            activityOf(source.logRecords),
-    flintBrain:          source.flintBrain,
     ...snapshotEntityKeysOf(board),
   };
 }

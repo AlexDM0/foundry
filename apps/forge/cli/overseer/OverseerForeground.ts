@@ -99,7 +99,6 @@ import { INSTALL_VERSION }                                              from '..
 import { OutputUtil }                                                   from '../utils/OutputUtil.ts';
 import { type BoardRegistration, registerTheBoard }                     from './BoardRegistration.ts';
 import { writeAsTheOverseer }                                           from './OverseerBoardWrites.ts';
-import { type OverseerFlintBrain, createOverseerFlintBrain }            from './OverseerFlintBrain.ts';
 import { type OverseerPollSchedule, overseerPollScheduleOf }            from './OverseerPollSchedule.ts';
 import { OverseerWording }                                              from './OverseerWording.ts';
 import { type ServingAdmission, type StartOriginByHand, admitTheStart } from './StartGateAdmission.ts';
@@ -143,8 +142,6 @@ interface Serving {
   drivePass:       DrivePass;
   dataFolderWatch: { stop: () => void };
   lifetime:        ReturnType<typeof overseerLifetime>;
-  /** Lives and ends with the serving period: a Baton pass or a stop ends a running brain. */
-  flintBrain:      OverseerFlintBrain;
   boardChildren:   BoardChildren;
 }
 
@@ -608,19 +605,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
   ): Promise<Serving> {
     const admission = startAdmission;
     if (admission === null) throw new Error('A start serves only once the start gate admitted it.');
-    // Set once the Baton is taken; a brain change before then has no stream to reach.
-    let publishFlintBrainChange: () => void = () => undefined;
-    const overseerFlintBrain = createOverseerFlintBrain({
-      context,
-      workspace,
-      boardStore,
-      trackerId: progress.trackerId,
-      repositoryRoot,
-      boardChildren,
-      publish:   () => publishFlintBrainChange(),
-      log,
-    });
-    const flintBrainReading = () => overseerFlintBrain.brain.reading();
     let lifetime: ReturnType<typeof overseerLifetime> | null = null;
     let drivePass: DrivePass | null = null;
     enterStep('bind-port');
@@ -679,8 +663,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         broker:           () => broker,
         monitorStream:    () => monitorStream,
         monitorFacts:     monitorFactsNow,
-        flintBrain:       overseerFlintBrain.brain,
-        flintBrainReading,
         wake:             () => drivePass?.wake(),
         launchesHeld:     () => overseerState()?.runtimeState === 'held-by-install-change',
         notices:          () => overseerState()?.notices ?? [],
@@ -728,12 +710,10 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       acquisition = acquireBaton(record);
     } catch (refusal) {
       await server.stop();
-      await overseerFlintBrain.close();
       throw refusal;
     }
     if (acquisition.verdict !== 'acquired') {
       await server.stop();
-      await overseerFlintBrain.close();
       throw batonRefusalOf(acquisition, files);
     }
     const { generation } = acquisition;
@@ -752,7 +732,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
           mainLine,
           mergeForecastCache,
           mainLineReads,
-          flintBrainReading,
         });
         ownBroker.publishState(read.state);
         const monitorFacts = monitorFactsNow();
@@ -763,7 +742,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     };
     broker           = ownBroker;
     monitorStream    = ownMonitorStream;
-    publishFlintBrainChange = publishState;
     servedUrl        = server.url;
     servedGeneration = generation;
     startedAt        = LocalTimeUtil.formatLocalIso(context.now());
@@ -870,7 +848,7 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
         onRenewed:            heartbeatOnRenewalOf(files, generation),
       });
       const serving: Serving = {
-        generation, server, drivePass, dataFolderWatch, lifetime, flintBrain: overseerFlintBrain, boardChildren
+        generation, server, drivePass, dataFolderWatch, lifetime, boardChildren
       };
       current = serving;
       lifetimeBeingStarted = null;
@@ -897,7 +875,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
       dataFolderWatch?.stop();
       lifetime?.stopWatching();
       lifetime?.stopListening();
-      await overseerFlintBrain.close();
       await drivePass?.stop();
       await server.stop();
       Baton.release(files.overseerDirectory, generation);
@@ -913,7 +890,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     handingOver = true;
     serving.lifetime.stopWatching();
     serving.dataFolderWatch.stop();
-    await serving.flintBrain.close();
     await serving.drivePass.stop();
     const crashRefusal = crashRefusalOrNull();
     if (crashRefusal !== null) {
@@ -1057,8 +1033,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     serving.dataFolderWatch.stop();
     const stoppingServing = serving;
     const stopWaits: StopWait[] = [
-      // First, so the run it ends is logged while the board is still this Overseer's.
-      { name: 'the stop of Flint\'s brain', run: () => stoppingServing.flintBrain.close() },
       { name: 'the drive pass', run: () => stoppingServing.drivePass.stop() },
       ...(end.kind === 'stopped' && end.now ? [{
         name: 'the stop of the live lines',

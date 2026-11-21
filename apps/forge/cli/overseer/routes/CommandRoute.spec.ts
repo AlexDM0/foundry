@@ -4,8 +4,7 @@
  * whose outcome the answer carries, `nothing-to-do` for a Talos restart with no Talos; a body with no known kind, or a runtime command
  * whose `now` is no boolean, is 400 and reaches nothing; and a `range`, `clear` or by-hand delivery of the wrong shape is 400 before the
  * hold, since a clear of an unknown scope would otherwise clear. The 423's sentence names no command line: the Bridge and a monitor show it
- * to User, who runs no command. Flint's brain's commands reach the brain also while launches are held, and a start names the API as its
- * starter, whatever the body says.
+ * to User, who runs no command.
  */
 import {
   afterEach,
@@ -13,8 +12,6 @@ import {
   expect,
   test
 } from 'bun:test';
-
-import type { MonitorFlintBrainStartedBy } from 'forge-contracts/MonitorSnapshotDocument';
 
 import { workspacePathsFor }                              from '../../../src/services/tracker/Workspace.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../../src/testing/ScratchWorkspace.ts';
@@ -39,7 +36,6 @@ function heldRoute(launchesHeld: boolean, runtimeOutcome: RuntimeCommandOutcome 
   scratchDirectories.push(directory);
   const runtimeCommands: RuntimeOverseerCommand[] = [];
   const wakes: string[] = [];
-  const brainStarters: MonitorFlintBrainStartedBy[] = [];
   const context   = createCapturedCommandContext({ currentDirectory: directory });
   const workspace = workspacePathsFor(directory);
   const request = {
@@ -52,18 +48,9 @@ function heldRoute(launchesHeld: boolean, runtimeOutcome: RuntimeCommandOutcome 
       runtimeCommands.push(command);
       return Promise.resolve(runtimeOutcome);
     },
-    wake:       () => wakes.push('wake'),
-    flintBrain: {
-      start: async (startedBy: MonitorFlintBrainStartedBy) => {
-        brainStarters.push(startedBy);
-        return await Promise.resolve({ verdict: 'done' } as const);
-      },
-      stop: async () => await Promise.resolve({ verdict: 'done' } as const),
-    },
+    wake: () => wakes.push('wake'),
   };
-  return {
-    request, runtimeCommands, wakes, brainStarters
-  };
+  return { request, runtimeCommands, wakes };
 }
 
 describe('answerControlCommand', () => {
@@ -134,19 +121,4 @@ describe('answerControlCommand', () => {
     for (const body of malformed) expect(await answerControlCommand(body, request), JSON.stringify(body)).toEqual(malformedAnswer);
   });
 
-  test('Flint\'s brain\'s commands reach the brain while launches are held, and wake no pass', async () => {
-    const { request, wakes, brainStarters } = heldRoute(true);
-    const startAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'flint-brain-start' } };
-    expect(await answerControlCommand({ kind: 'flint-brain-start' }, request)).toEqual({ status: 200, body: startAnswer });
-    const stopAnswer = { controlVersion: 1, outcome: 'done', result: { kind: 'flint-brain-stop' } };
-    expect(await answerControlCommand({ kind: 'flint-brain-stop' }, request)).toEqual({ status: 200, body: stopAnswer });
-    expect([brainStarters, wakes]).toEqual([['api'], []]);
-  });
-
-  test('a start names the API, whatever the body names', async () => {
-    const { request, brainStarters } = heldRoute(false);
-    await answerControlCommand({ kind: 'flint-brain-start' }, request);
-    await answerControlCommand({ kind: 'flint-brain-start', startedBy: 'bridge' }, request);
-    expect(brainStarters).toEqual(['api', 'api']);
-  });
 });

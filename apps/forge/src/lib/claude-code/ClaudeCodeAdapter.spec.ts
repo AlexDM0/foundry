@@ -552,7 +552,7 @@ describe('the session endings, for every session kind', () => {
   const SESSION_KINDS: readonly (readonly [string, AgentLaunchRequest])[] = [
     ...ROLES.map((role) => [`a fresh ${role}`, requestOf(role)] as const),
     ...ROLES.map((role) => [`a resumed ${role}`, requestOf(role, { resume: true })] as const),
-    ['a session with no tool, as Flint\'s brain is one', requestOf('assistant', { profile: { ...profileOf('assistant'), availableTools: 'none' } })],
+    ['a session with no tool', requestOf('assistant', { profile: { ...profileOf('assistant'), availableTools: 'none' } })],
     ['a session billed to an API account', requestOf('builder', { billing: { mode: 'api' } })],
   ];
 

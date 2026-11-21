@@ -14,7 +14,7 @@ names no client.
 | `forge-contracts/MonitorInterruptionCauses` | `MONITOR_INTERRUPTION_CAUSES`, every cause a monitor job's `interruption` names, as the wire spells it |
 | `forge-contracts/ForgePresenceDocument` | `GET /api/v1/presence` from forge 1.20: the last start, Talos's supervision, the work that waits by cause, the held merges and the crash logs |
 | `forge-contracts/ForgeCrashLogDocument` | `GET /api/v1/crash-log?number=<n>` from forge 1.20, the newest log without the query |
-| `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands`, Flint's brain's two kinds from forge 1.1 |
+| `forge-contracts/ForgeControlCommand` | the bodies of `POST /api/v1/commands` |
 | `forge-contracts/ForgeControlCommandKinds` | `FORGE_CONTROL_COMMAND_KINDS`, every kind a client may send to `POST /api/v1/commands`: the control kinds, then the board kinds |
 | `forge-contracts/ForgeRefusalDocument` | a refusal as forge serves it from forge 1.21: its reason code, its fields and the sentence its command line prints, as `POST /api/v1/commands` answers it |
 | `forge-contracts/ForgeBoardDocument` | the board document, `GET /api/v1/board` from forge 1.21: a board's every fact a view reads, its parts in the seven files below |

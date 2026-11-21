@@ -18,8 +18,6 @@ const EVERY_CLIENT_COMMAND_KIND = {
   'concurrency-set':            true,
   'job-stop-all':               true,
   'machine-agent-limit-set':    true,
-  'flint-brain-start':          true,
-  'flint-brain-stop':           true,
   'chart-range-set':            true,
   'decision-answer':            true,
   'gate-profile-start':         true,

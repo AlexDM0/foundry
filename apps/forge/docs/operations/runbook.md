@@ -592,8 +592,8 @@ forge oversee --detach
 newer than the program. Update the program in the forge checkout with `git pull` and `bun install`, then run
 `forge update` again in the tracked repository.
 
-**No rollback to forge 1.0 past a brain run:** forge 1.1 logs each ended run of Flint's brain as a `flint-brain-ended`
-record, which a forge 1.0 cannot read, so once a board's brain has run, that board's log reads only on forge 1.1 or newer.
+**A log that holds a brain run:** a forge that ran Flint's brain logged each ended run as a `flint-brain-ended` record.
+No forge writes that record any more, and every forge still reads it.
 
 ## Cleaning up by hand
 

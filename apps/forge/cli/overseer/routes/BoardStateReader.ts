@@ -1,9 +1,6 @@
 /**
- * Reads the board without a lock into the Overseer's `BoardState`, its `status --json --full` part built as `status` builds it, with Flint's
- * brain beside it: the Overseer's reading and the brain's runs, which the Bridge's header counts in today's tokens.
+ * Reads the board without a lock into the Overseer's `BoardState`, its `status --json --full` part built as `status` builds it.
  */
-import type { MonitorFlintBrainDocument } from 'forge-contracts/MonitorSnapshotDocument';
-
 import type { OverseerFacts, UsageFacts } from '../../../src/adapters/@types/BoardStateParts.ts';
 import { UsageMarkerFile }                from '../../../src/adapters/usage-marker/UsageMarkerFile.ts';
 import { UsageWindowsFile }               from '../../../src/adapters/usage-marker/UsageWindowsFile.ts';
@@ -20,16 +17,15 @@ import {
   type MergeForecasting,
   type MergeForecasts
 } from '../../../src/services/overseer/BoardState.ts';
-import { JobLiveFactsReader }                        from '../../../src/services/overseer/JobLiveFactsReader.ts';
-import { MainLineReads }                             from '../../../src/services/overseer/MainLineReads.ts';
-import { UsageLimits }                               from '../../../src/services/overseer/UsageLimits.ts';
-import type { StoreReadFace }                        from '../../../src/services/store/BoardStore.ts';
-import { readingBoardOfContents }                    from '../../../src/services/tracker/BoardOfContents.ts';
-import type { Workspace }                            from '../../../src/services/tracker/Workspace.ts';
-import { type BranchNames, branchNamesOf }           from '../../../src/shared/BranchNames.ts';
-import { flintBrainRunsOf, type TodayFlintBrainRun } from '../../../src/shared/monitor/TodayFigures.ts';
-import type { CommandContext }                       from '../../CommandContext.ts';
-import { fullDocumentOf }                            from '../../StatusDocuments.ts';
+import { JobLiveFactsReader }              from '../../../src/services/overseer/JobLiveFactsReader.ts';
+import { MainLineReads }                   from '../../../src/services/overseer/MainLineReads.ts';
+import { UsageLimits }                     from '../../../src/services/overseer/UsageLimits.ts';
+import type { StoreReadFace }              from '../../../src/services/store/BoardStore.ts';
+import { readingBoardOfContents }          from '../../../src/services/tracker/BoardOfContents.ts';
+import type { Workspace }                  from '../../../src/services/tracker/Workspace.ts';
+import { type BranchNames, branchNamesOf } from '../../../src/shared/BranchNames.ts';
+import type { CommandContext }             from '../../CommandContext.ts';
+import { fullDocumentOf }                  from '../../StatusDocuments.ts';
 
 export interface BoardStateSource {
   context:             CommandContext;
@@ -47,17 +43,7 @@ export interface BoardStateSource {
   mergeForecastCache?: MergeForecastCache;
   /** Held across reads, so a read whose main tip has not moved runs no `git show`; without it every read asks git afresh. */
   mainLineReads?:      MainLineReads;
-  /** The live Overseer's reading of Flint's brain; absent outside one, when there is none. */
-  flintBrainReading?:  () => MonitorFlintBrainDocument | null;
 }
-
-/** Flint's brain as the Bridge reads it: the Overseer's reading, `null` where it cannot run confined, and every run of it. */
-export interface FlintBrainBoardFacts {
-  reading: MonitorFlintBrainDocument | null;
-  runs:    TodayFlintBrainRun[];
-}
-
-export type BoardStateWithFlintBrain = BoardState & { flintBrain: FlintBrainBoardFacts };
 
 /** One target's last forecasts, kept while its tip and every candidate's tip stay where they were; a failed prediction is never kept. */
 export interface MergeForecastCache {
@@ -132,12 +118,11 @@ function usageOf(context: CommandContext, apiBilling: boolean): UsageFacts {
 
 /** The state, and the Board and the log records it was read from, which the monitor snapshot reads beside it. */
 export interface BoardStateRead {
-  state:          BoardStateWithFlintBrain;
+  state:          BoardState;
   project:        string;
   readyTicketIds: string[];
   board:          Board;
   logRecords:     readonly LogRecord[];
-  flintBrain:     MonitorFlintBrainDocument | null;
 }
 
 export function readBoardState(source: BoardStateSource): BoardStateRead {
@@ -188,13 +173,11 @@ export function readBoardState(source: BoardStateSource): BoardStateRead {
       mainLineTexts:    BoardStateAssembly.mainLineTextsOf(source.mainLineReads ?? new MainLineReads(workspace.rootDirectory), workspace.rootDirectory, source.mainLine ?? null),
     },
   });
-  const flintBrain = source.flintBrainReading?.() ?? null;
   return {
-    state:          { ...assembledState, flintBrain: { reading: flintBrain, runs: flintBrainRunsOf(storedLog.records, flintBrain) } },
+    state:          assembledState,
     project:        progress.project,
     readyTicketIds: board.readyTicketEntries().map((ready) => ready.id),
     board,
     logRecords:     storedLog.records,
-    flintBrain,
   };
 }
