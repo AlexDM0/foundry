@@ -1,34 +1,31 @@
 /**
  * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
- * question as a popover under its button and Flint's brain between Stop and Open in new tab, or, for a forge Gaia cannot talk to, the
+ * question as a popover under its button and Open in new tab, or, for a forge Gaia cannot talk to, the
  * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
  * Overseer and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
  * talk to or why its board cannot be shown. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
-import { ForgeMark, type ForgeMarkProps } from 'brand/ForgeMark';
-import { Button }                         from 'design-system/Button';
-import { ChoiceInput, ChoiceOption }      from 'design-system/ChoiceOption';
-import { ConfirmStrip }                   from 'design-system/ConfirmStrip';
-import { IconButton }                     from 'design-system/IconButton';
-import { MonoId }                         from 'design-system/MonoId';
-import { Popover }                        from 'design-system/Popover';
-import { Text }                           from 'design-system/Text';
-import type { ReactNode, RefObject }      from 'react';
+import { ForgeMark }                 from 'brand/ForgeMark';
+import { Button }                    from 'design-system/Button';
+import { ChoiceInput, ChoiceOption } from 'design-system/ChoiceOption';
+import { ConfirmStrip }              from 'design-system/ConfirmStrip';
+import { IconButton }                from 'design-system/IconButton';
+import { MonoId }                    from 'design-system/MonoId';
+import { Popover }                   from 'design-system/Popover';
+import { Text }                      from 'design-system/Text';
+import type { ReactNode, RefObject } from 'react';
 
-import type { ForgeCommandBody, ForgeStopAgents }            from '../../@types/CommandDocument.ts';
-import { BrainChip, type BrainChipProps, type BrainControl } from '../../design-system/BrainChip.tsx';
-import { ButtonGlyph }                                       from '../../design-system/ButtonGlyph.tsx';
-import { ConditionDot }                                      from '../../design-system/ConditionDot.tsx';
-import { Refusal }                                           from '../../design-system/Refusal.tsx';
-import { VersionsPair }                                      from '../../shared/VersionsPair.tsx';
-import { VersionsText }                                      from '../../shared/VersionsText.tsx';
-import { ForgeCommandTextUtil, type StopQuestion }           from '../../shared/utils/ForgeCommandTextUtil.ts';
-import { ForgeVersionsTextUtil }                             from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import type { ForgeCommandBody, ForgeStopAgents }  from '../../@types/CommandDocument.ts';
+import { ButtonGlyph }                             from '../../design-system/ButtonGlyph.tsx';
+import { ConditionDot }                            from '../../design-system/ConditionDot.tsx';
+import { Refusal }                                 from '../../design-system/Refusal.tsx';
+import { VersionsPair }                            from '../../shared/VersionsPair.tsx';
+import { VersionsText }                            from '../../shared/VersionsText.tsx';
+import { ForgeCommandTextUtil, type StopQuestion } from '../../shared/utils/ForgeCommandTextUtil.ts';
+import { ForgeVersionsTextUtil }                   from '../../shared/utils/ForgeVersionsTextUtil.ts';
 import type {
-  BarBrainShown,
   BarCannotTalk,
   BarLineSegment,
-  BarMarkWake,
   BarRefusal,
   BarUpdateStep,
   BarVersions,
@@ -39,8 +36,6 @@ import type {
 
 export interface ForgeBarControlsProps {
   readonly bar:               ForgeBar;
-  /** What the brain's group shows, the forge's state or a wake refused here; `null` for a forge that reports no brain. */
-  readonly brainShown:        BarBrainShown | null;
   /** While a command to this forge is on its way, every control of the bar waits for it. */
   readonly commandIsOnItsWay: boolean;
   readonly stopIsOpen:        boolean;
@@ -108,30 +103,6 @@ function StopQuestionStrip({
       onCancel={onCancelStop}
     />
   );
-}
-
-/** The brain's state as the chip draws it, with Wake and Stop for this forge only where its control contract carries them. */
-function brainChipPropsOf({
-  bar, brainShown, commandIsOnItsWay, onCommand
-}: Pick<ForgeBarControlsProps, 'bar' | 'brainShown' | 'commandIsOnItsWay' | 'onCommand'>): BrainChipProps | null {
-  const { brain } = bar;
-  if (brain === null || brainShown === null) return null;
-  const controlSending = (kind: 'forge-brain-start' | 'forge-brain-stop'): BrainControl | null => (brain.controlsAreServed
-    ? { onPress: () => onCommand({ kind, trackerId: bar.trackerId }), disabled: commandIsOnItsWay }
-    : null);
-  const wake = controlSending('forge-brain-start');
-  switch (brainShown.state) {
-    case 'off':
-      return wake === null ? null : { state: 'off', wake };
-    case 'starting':
-      return { state: 'starting' };
-    case 'running':
-      return { ...brainShown, forgeName: bar.project, stop: controlSending('forge-brain-stop') };
-    case 'refused':
-      return { ...brainShown, wake };
-    case 'ended':
-      return brainShown;
-  }
 }
 
 type UpdateForgeStepProps = Pick<ForgeBarControlsProps, 'bar' | 'updateStep' | 'commandIsOnItsWay' | 'onCommand' | 'onDismissUpdate'>;
@@ -213,7 +184,7 @@ function CannotTalkControls(props: ForgeBarControlsProps & { readonly cannotTalk
 }
 
 /**
- * Pause or Unpause, Stop with its question, Flint's brain, and Open in new tab; a forge whose control contract Gaia does not know takes only
+ * Pause or Unpause, Stop with its question, and Open in new tab; a forge whose control contract Gaia does not know takes only
  * the last, and a forge Gaia cannot talk to its own controls.
  */
 function BarLineSegmentText({ segment }: { readonly segment: BarLineSegment }) {
@@ -260,7 +231,6 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
     bar, commandIsOnItsWay, stopIsOpen, stopAnchorRef, onCommand, onOpenStop, onCancelStop, onOpenInNewTab
   } = props;
   if (bar.cannotTalk !== null) return <CannotTalkControls {...props} cannotTalk={bar.cannotTalk} />;
-  const brainChip = brainChipPropsOf(props);
   const controlsMayAct = bar.controlContractIsKnown && !commandIsOnItsWay;
   const { pauseOrUnpause, stop } = bar;
   return (
@@ -278,7 +248,6 @@ export function ForgeBarControls(props: ForgeBarControlsProps) {
           ) : null}
         </span>
       )}
-      {brainChip === null ? null : <BrainChip {...brainChip} />}
       <OpenInNewTabButton disabled={commandIsOnItsWay} onPress={onOpenInNewTab} />
     </>
   );
@@ -289,26 +258,14 @@ export interface ForgeBarLayoutProps {
   readonly name:     string;
   /** `null` until the fleet document reports the forge. */
   readonly status:   ForgeBarStatus | null;
-  /** The forge mark's title and double click, for Flint's brain; none before the fleet document reports a brain. */
-  readonly mark:     ForgeMarkProps;
   readonly controls: ReactNode;
 }
 
-/** The mark wakes the brain by a double click, as Wake does, and like Wake not while a command to the forge is on its way. */
-export function forgeMarkPropsOf(markWake: BarMarkWake, commandIsOnItsWay: boolean, onWake: () => void): ForgeMarkProps {
-  return {
-    ...(markWake.title === null ? {} : { title: markWake.title }),
-    ...(markWake.wakesBrain && !commandIsOnItsWay ? { onDoubleClick: onWake } : {}),
-  };
-}
-
 /** The bar heads the view, since a forge in place has no page title; its line keeps to one line, the whole reading in its tooltip. */
-export function ForgeBarLayout({
-  name, status, mark, controls
-}: ForgeBarLayoutProps) {
+export function ForgeBarLayout({ name, status, controls }: ForgeBarLayoutProps) {
   return (
     <header className="gaia-forge-frame-bar">
-      <ForgeMark {...mark} />
+      <ForgeMark />
       <h1 className="gaia-forge-frame-bar-name">{name}</h1>
       {status === null ? null : (
         <span className="gaia-forge-frame-bar-status">

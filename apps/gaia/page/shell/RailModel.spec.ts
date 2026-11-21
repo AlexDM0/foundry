@@ -1,10 +1,10 @@
 /**
  * The rail's model, on the four fleet fixtures. What matters (SCREENS "The shell", acceptance 1): each count is the fleet document's own
- * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the job rows, never a
- * running brain's (shell acceptance 2: 10 with the brain running on Example Storefront); Forges and the forge rows count and list the forges
+ * figure for its row: Attention is `figures.waitingOnUser`, with `+` when a forge cannot vouch for it; Agents counts the
+ * agent rows (shell acceptance 2: 10); Forges and the forge rows count and list the forges
  * not hidden, in registry order. A count the document does not hold is absent, never 0.
  * Also: each condition's dot, where a forge row leads, the line that says no forge is registered only when the registry holds none, and
- * this machine's slots and lines at, under and without a limit: the brain outside the limit, and the agents an unreachable forge last
+ * this machine's slots and lines at, under and without a limit, and the agents an unreachable forge last
  * reported (B3). U1: Agents reads `8+` while a forge Gaia cannot talk to at its version runs agents no total counts, and each forge row's
  * title says what its version means.
  */
@@ -49,7 +49,7 @@ describe('each rail count is the fleet document\'s figure for its row', () => {
       const attentionFigure = waitingOnUser === 0 && incompleteFor.length === 0 ? null : `${waitingOnUser}${incompleteFor.length > 0 ? '+' : ''}`;
       expect(viewCountsOf(content)).toEqual({
         attention: attentionFigure,
-        agents:    String(fleetDocument.agents.filter((row) => row.countsAgainstLimit).length),
+        agents:    String(fleetDocument.agents.length),
         activity:  null,
         forges:    String(fleetDocument.forges.length),
       });
@@ -78,20 +78,16 @@ describe('the rail of artboard A1', () => {
     expect(content.forges.every((row) => row.count === null || row.count.tone === 'attention')).toBe(true);
   });
 
-  test('this machine reads 10 / 12 agents with the brain running, 10 of 12 slots filled, and the limit against the CPUs with the brain outside it', () => {
+  test('this machine reads 10 / 12 agents, 10 of 12 slots filled, and the limit against the CPUs', () => {
     expect(RailModel.railContentOf(FLEET_FIVE_FORGES, DEFAULT_ROUTE).machine).toEqual({
       agentsText:     '10 / 12',
       meter:          { filled: 10, slots: 12, label: '10 of 12 agents' },
       atTheLimitLine: null,
-      limitLine:      'limit 12 of 12 CPUs · Flint\'s brain runs outside it',
+      limitLine:      'limit 12 of 12 CPUs',
       isAtTheLimit:   false,
     });
   });
 
-  test('a fleet whose every forge reports no brain says nothing of one', () => {
-    const noBrain: FleetDocument = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, brain: 'not-reported' })) };
-    expect(RailModel.railContentOf(noBrain, DEFAULT_ROUTE).machine?.limitLine).toBe('limit 12 of 12 CPUs');
-  });
 });
 
 describe('a fleet Gaia cannot fully read (B3)', () => {
@@ -107,7 +103,7 @@ describe('a fleet Gaia cannot fully read (B3)', () => {
     ]);
   });
 
-  test('this machine\'s line names the agents of the unreachable forge as it last reported them, in the brain clause\'s place', () => {
+  test('this machine\'s line names the agents of the unreachable forge as it last reported them', () => {
     expect(RailModel.railContentOf(FLEET_DEGRADED, DEFAULT_ROUTE).machine?.limitLine).toBe('limit 12 of 12 CPUs · 3 of the 10 as last reported');
   });
 
@@ -176,7 +172,7 @@ describe('this machine at its limit (B2)', () => {
       agentsText:     '10 / 10',
       meter:          { filled: 10, slots: 10, label: '10 of 10 agents' },
       atTheLimitLine: 'at the limit · 3 tickets wait',
-      limitLine:      'limit 10 of 12 CPUs · Flint\'s brain runs outside it',
+      limitLine:      'limit 10 of 12 CPUs',
       isAtTheLimit:   true,
     });
   });

@@ -236,8 +236,6 @@ const COMMAND_SHAPES = {
   'overseer-stop':           { ...PASSED_OVER_HEAD, now: 'boolean' },
   'overseer-restart':        { ...PASSED_OVER_HEAD, now: 'boolean' },
   'concurrency-set':         { ...PASSED_OVER_HEAD, limit: 'whole-number' },
-  'flint-brain-start':       { ...PASSED_OVER_HEAD },
-  'flint-brain-stop':        { ...PASSED_OVER_HEAD },
   'interrupted-work-resume': { ...PASSED_OVER_HEAD, target: 'json' },
   'chart-range-set':         { ...PASSED_OVER_HEAD, range: CHART_RANGE_RULE },
   'decision-answer':         { ...PASSED_OVER_HEAD, decisionId: 'text', answer: ANSWER_RULE },
@@ -465,8 +463,6 @@ function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'int
   switch (document.kind) {
     case 'overseer-pause':
     case 'overseer-resume':
-    case 'flint-brain-start':
-    case 'flint-brain-stop':
       return { kind: document.kind };
     case 'overseer-stop':
     case 'overseer-restart':

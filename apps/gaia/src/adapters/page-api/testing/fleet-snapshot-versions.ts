@@ -72,11 +72,8 @@ const WIKI_J21: AgentRow = {
   boardRoute:          { tab: 'agents', item: 'J21' },
 };
 
-/** Its brain is off, so the entry of the brain's start is not in its log. */
 const EXAMPLE_STOREFRONT: FleetForge = {
   ...READINGS.exampleStorefront,
-  activity: READINGS.exampleStorefront.activity.filter((entry) => entry.kind !== 'flint-brain'),
-  brain:    READINGS.researchWiki.brain,
   versions: VERSIONS.ahead,
 };
 
@@ -123,7 +120,6 @@ function readFromTheRegistryAlone(
     activity:          [],
     today:             null,
     usage:             null,
-    brain:             'not-reported',
     versions,
     registryPresence:  null,
     presenceReport:    null,
@@ -189,7 +185,7 @@ function activityOf(forge: ForgeReading, logPosition: number) {
 function agentOf(forge: ForgeReading, jobId: string) {
   const row = forge.agents.find((candidate) => candidate.jobId === jobId);
   if (row === undefined) throw new Error(`The fixture names job ${jobId}, which ${forge.project} does not run.`);
-  return { ...row, trackerId: forge.trackerId, countsAgainstLimit: true };
+  return { ...row, trackerId: forge.trackerId };
 }
 
 function attentionOf(forge: ForgeReading, idText: string) {
@@ -231,7 +227,6 @@ export const FLEET_SNAPSHOT_VERSIONS: FleetSnapshot = {
     activityOf(INVOICE_SERVICE, 318),
     activityOf(INVOICE_SERVICE, 315),
     activityOf(RESEARCH_WIKI, 120),
-    activityOf(INVOICE_SERVICE, 312),
     activityOf(INVOICE_SERVICE, 309),
     activityOf(EXAMPLE_STOREFRONT, 431),
     activityOf(INVOICE_SERVICE, 301),

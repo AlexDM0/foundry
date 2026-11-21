@@ -37,8 +37,6 @@ export type BoardCommand =
   | { readonly kind: 'overseer-stop'; readonly now: boolean }
   | { readonly kind: 'overseer-restart'; readonly now: boolean }
   | { readonly kind: 'concurrency-set'; readonly limit: number }
-  | { readonly kind: 'flint-brain-start' }
-  | { readonly kind: 'flint-brain-stop' }
   | { readonly kind: 'interrupted-work-resume'; readonly target: BoardResumeTarget }
   | { readonly kind: 'chart-range-set'; readonly range: BoardChartRange }
   | { readonly kind: 'decision-answer'; readonly decisionId: string; readonly answer: BoardAnswerForm }

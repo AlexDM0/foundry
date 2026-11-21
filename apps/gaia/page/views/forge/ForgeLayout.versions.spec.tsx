@@ -45,7 +45,6 @@ function controlsOf(trackerId: string, overrides: Partial<ForgeBarControlsProps>
   const events: string[] = [];
   const props: ForgeBarControlsProps = {
     bar:               barOf(trackerId),
-    brainShown:        null,
     commandIsOnItsWay: false,
     stopIsOpen:        false,
     stopAnchorRef:     { current: null },

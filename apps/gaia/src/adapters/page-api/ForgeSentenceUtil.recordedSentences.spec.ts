@@ -2,11 +2,10 @@
  * D10 over every sentence a real forge was recorded answering: none but a refusal's reaches the page naming a command. What matters: every
  * string of every recorded forge answer is searched, so a command-naming sentence anywhere but a refusal's text fails here first; each
  * recorded refusal reaches the page through the command answer as the forge's own sentence, unchanged (decision 45); and each recorded
- * monitor snapshot reaches it through the fleet document, its notices, warnings, activity entries and brain moves among it. The frozen list of refusal
+ * monitor snapshot reaches it through the fleet document, its notices, warnings and activity entries among it. The frozen list of refusal
  * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
  * forge-program-refused` or an overseer-fetch recording.
- * The recording of the forge Gaia supports holds the brain's refusals (`usage-limit-holds`, `no-flint`), which reach the page through the
- * command answer. The board's answers are left out: the board contract shows a forge's sentence as the forge serves it (decision 45).
+ * The board's answers are left out: the board contract shows a forge's sentence as the forge serves it (decision 45).
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -170,11 +169,10 @@ describe('the sentences recorded from a real forge', () => {
     }
   });
 
-  test('reach the page in no fleet document of a recorded monitor snapshot naming a command, its notices, warnings, activity and brain moves among it', () => {
+  test('reach the page in no fleet document of a recorded monitor snapshot naming a command, its notices, warnings and activity among it', () => {
     const forgeDocuments = recordedForgeDocuments();
     expect(forgeDocuments.length).toBeGreaterThan(0);
     expect(forgeDocuments.flatMap((forgeDocument) => forgeDocument.activity).length).toBeGreaterThan(0);
-    expect(forgeDocuments.flatMap((forgeDocument) => (forgeDocument.brain === 'not-reported' ? [] : forgeDocument.brain.recentMoves)).length).toBeGreaterThan(0);
     const commandNaming = forgeDocuments.flatMap((forgeDocument) => stringsIn(forgeDocument, 'forge', {}))
       .filter((found) => ForgeSentenceUtil.sentenceNamesACommand(found.text));
     expect(commandNaming.map((found) => found.place)).toEqual([]);

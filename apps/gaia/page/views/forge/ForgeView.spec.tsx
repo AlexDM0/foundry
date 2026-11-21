@@ -4,8 +4,7 @@
  * name, its word, its line of agents and what waits with the figures in mono and the whole reading with since in its tooltip, its controls
  * with the arrow of "Open in new tab", and no theme button, over the board, which waits for its first read; an unreachable forge still
  * shows its board as last reported; a forge whose board Gaia cannot read says so; a command on its way disables the bar's controls, and
- * the forge's refusal shows under the bar; Flint's brain shows in the bar as the forge reports it, Wake waits while it is on its way, and a
- * refused wake shows beside Wake, not under the bar; nothing of the board is asked for or painted before the first fleet document, and the
+ * the forge's refusal shows under the bar; nothing of the board is asked for or painted before the first fleet document, and the
  * page's markup carries no session code and no frame. The board's own header and tabs stand under the bar for every tab, and no tab is
  * left to a frame. The bar's Open in new tab opens the same route of Gaia's own address, for a forge Gaia cannot talk to as for any other,
  * and sends no command. `GaiaApp` is rendered with React's own server renderer, which runs the hooks but no effect. The bar's
@@ -29,7 +28,6 @@ import { answerResponse, senderOver }                                           
 import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
 import { ReactElementTree }                                                         from '../../testing/ReactElementTree.ts';
 import { forgeViewSurroundingsAt, shellSurroundingsAt, silentBoardServicesOf }      from '../../testing/ShellSurroundingsAt.ts';
-import { fleetWithStorefrontBrainOf }                                               from '../../testing/fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }                                                           from '../../testing/fixtures/fleet-degraded.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
 import { ForgeBarControls }                                                         from './ForgeLayout.tsx';
@@ -83,7 +81,6 @@ function buttonsIn({
   const controls = (
     <ForgeBarControls
       bar={bar}
-      brainShown={bar.brain === null ? null : ForgeModel.brainShownAfter(bar.brain, commandState.failure)}
       commandIsOnItsWay={commandState.onItsWay !== null}
       stopIsOpen={false}
       stopAnchorRef={{ current: null }}
@@ -115,7 +112,7 @@ describe('from Answer on E2 to Example Storefront in place', () => {
     const line = `${figure('4 / 5')} agents · ${figure('2')} wait on you`;
     expect(markup).toContain(`<span class="gaia-forge-frame-bar-word">Live</span><span class="gaia-forge-frame-bar-line" title="${wholeReading}">${line}</span>`);
     expect(markup).toContain('<header class="gaia-forge-frame-bar"><svg class="brand-forge-mark" role="img" aria-label="Forge" width="22" height="22"');
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Stop brain', 'Open in new tab']);
+    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
     const barControls = /<span class="gaia-forge-frame-bar-controls">.*<\/span><\/header>/.exec(markup)?.[0];
     expect(barControls).toContain('<svg class="design-system-icon" viewBox="0 0 16 16" data-icon="arrow-out-of-square" aria-hidden="true"');
     expect(markup).not.toContain('aria-label="Theme: ');
@@ -249,7 +246,7 @@ describe('the bar\'s commands', () => {
   test('while a command to the forge is on its way, every control of its bar is disabled', () => {
     const sender = senderOver([() => new Promise<Response>(() => undefined)]);
     void sender.send({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront });
-    const disabledControls = ['Pause (disabled)', 'Stop (disabled)', 'Stop brain (disabled)', 'Open in new tab (disabled)'];
+    const disabledControls = ['Pause (disabled)', 'Stop (disabled)', 'Open in new tab (disabled)'];
     expect(buttonsIn(markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, sender))).toEqual(disabledControls);
   });
 
@@ -263,63 +260,6 @@ describe('the bar\'s commands', () => {
     const { markup } = rendered;
     const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="overseer-still-live" sentence="The Overseer did not stop within its tries." onDismiss={doNothing} />;
     expect(markup).toContain(`<div class="gaia-forge-frame-refusal">${renderToStaticMarkup(refusal)}</div>`);
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Stop brain', 'Open in new tab']);
-  });
-});
-
-describe('Flint\'s brain in the bar', () => {
-  const BRAIN_OFF = fleetWithStorefrontBrainOf('off');
-
-  test('a running brain shows its chip, as the five forges\' fixture publishes it', () => {
-    expect(markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES).markup).toContain('<span class="gaia-brain-chip-group" data-state="running"><span class="gaia-brain-chip">');
-  });
-
-  test('the running brain\'s Stop brain sits between the forge\'s Stop and Open in new tab', () => {
-    expect(buttonsIn(markupAt(STOREFRONT_ON_E2, fleetWithStorefrontBrainOf('running')))).toEqual(['Pause', 'Stop', 'Stop brain', 'Open in new tab']);
-  });
-
-  test('a brain that is off offers Wake, and the forge mark says a double click wakes it', () => {
-    const rendered = markupAt(STOREFRONT_ON_E2, BRAIN_OFF);
-    const { markup } = rendered;
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
-    expect(markup).toContain('aria-label="Forge" width="22" height="22" viewBox="0 0 64 64"><title>Double-click to wake Flint&#x27;s brain</title>');
-  });
-
-  test('while the wake is on its way, Wake waits with the rest of the bar', () => {
-    const sender = senderOver([() => new Promise<Response>(() => undefined)]);
-    void sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
-    expect(buttonsIn(markupAt(STOREFRONT_ON_E2, BRAIN_OFF, sender))).toEqual([
-      'Pause (disabled)', 'Stop (disabled)', 'Wake Flint\'s brain (disabled)', 'Open in new tab (disabled)',
-    ]);
-  });
-
-  test('a refused wake shows beside Wake, where it was asked, and not under the bar', async () => {
-    const refused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused', forges: []
-    };
-    const sender = senderOver([async () => answerResponse(refused)]);
-    await sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
-    const rendered = markupAt(STOREFRONT_ON_E2, BRAIN_OFF, sender);
-    const { markup } = rendered;
-    expect(markup).toContain('<span class="gaia-brain-chip-group" data-state="refused">');
-    expect(markup).toContain('title="The forge refused: the Overseer is paused overseer-paused"');
-    expect(markup).not.toContain('class="gaia-forge-frame-refusal"');
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
-  });
-
-  test('a wake refused on Example Storefront is not Invoice Service\'s: its bar offers its own Wake, with no refusal', async () => {
-    const everyForgeServesTheBrain = {
-      ...BRAIN_OFF,
-      forges: BRAIN_OFF.forges.map((forge) => ({ ...forge, contracts: { ...forge.contracts, control: 1 } })),
-    };
-    const sender = senderOver([async () => answerResponse({
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-paused', text: 'the Overseer is paused', forges: []
-    })]);
-    await sender.send({ kind: 'forge-brain-start', trackerId: TRACKER_IDS.exampleStorefront });
-    const rendered = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, everyForgeServesTheBrain, sender);
-    const { markup } = rendered;
-    expect(markup).toContain('<span class="gaia-brain-chip-group" data-state="off">');
-    expect(markup).not.toContain('gaia-brain-chip-refusal');
-    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']);
+    expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });
 });

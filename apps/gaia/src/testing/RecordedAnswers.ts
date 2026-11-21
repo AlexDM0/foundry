@@ -53,19 +53,6 @@ export const OVERSEER_SITUATIONS = [
 export type OverseerSituation = typeof OVERSEER_SITUATIONS[number];
 
 /**
- * The states of Flint's brain on a forge that runs it, each with the command answer that brought it there: `brain-refused` a start while
- * the Overseer is paused, and `no-flint` a forge that runs no brain, through forge's test setting `FORGE_WITHOUT_FLINT_BRAIN`.
- */
-export const FLINT_BRAIN_SITUATIONS = [
-  'brain-running',
-  'brain-ended',
-  'brain-refused',
-  'no-flint',
-] as const;
-
-export type FlintBrainSituation = typeof FLINT_BRAIN_SITUATIONS[number];
-
-/**
  * Example Storefront's board as the relay reads it, each situation holding one outcome of a call whose shape another one shares:
  * `board-at-work` the board document and its event stream, from its start and from the first event's id; both refused another's token;
  * a board command applied, refused, of an unknown kind and held for an install change, the board document read in that hold too; a picture
@@ -148,12 +135,11 @@ export interface RecordedOverseerFetch extends OverseerFetch {
 }
 
 /**
- * The recordings of a forge at the version Gaia supports, of a forge in each state of Flint's brain, and of programs that are no forge.
+ * The recordings of a forge at the version Gaia supports and of programs that are no forge.
  * Each situation's call shapes are unique across them.
  */
 export const OVERSEER_RECORDING_NAMES = [
   'overseer-fetch-supported-forge',
-  'overseer-fetch-flint-brain',
   'overseer-fetch-board',
   'overseer-fetch-presence',
   'overseer-fetch-other-programs',
@@ -182,7 +168,7 @@ export function streamCallShapeOf(request: Pick<OverseerStreamRequest, 'path' | 
   return `${STREAM_CALL_SHAPE_PREFIX}${request.path}${bearer}${request.lastEventId === null ? '' : LAST_EVENT_ID_SUFFIX}`;
 }
 
-export type RecordedSituation = OverseerSituation | FlintBrainSituation | VersionsSituation | BoardSituation | PresenceSituation;
+export type RecordedSituation = OverseerSituation | VersionsSituation | BoardSituation | PresenceSituation;
 
 export function situationCallShapeOf(situation: RecordedSituation, callShape: string): string {
   return `${situation}${SITUATION_SEPARATOR}${callShape}`;
@@ -266,11 +252,6 @@ function answersOfSituation(answers: readonly RecordedOverseerAnswer[], situatio
 
 /** The answers of one situation, from every recording `OVERSEER_RECORDING_NAMES` names, each call shape without its situation. */
 export function recordedOverseerAnswersOf(situation: OverseerSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
-  return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
-}
-
-/** The answers of one state of Flint's brain on a forge that runs it, each call shape without its situation. */
-export function recordedFlintBrainAnswersOf(situation: FlintBrainSituation, operatingSystem: string = process.platform): readonly RecordedOverseerAnswer[] {
   return answersOfSituation(everyRecordedOverseerAnswerOf(operatingSystem), situation);
 }
 

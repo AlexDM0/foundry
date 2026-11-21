@@ -1,8 +1,7 @@
 /**
- * The Agents view (SCREENS A2): the two filters over every running agent and Flint brain on the machine, grouped by forge, and beside them
- * the selected agent's or brain's panel. `AgentsView` takes no hooks: its root reads the command sender, builds the content from the fleet
- * document, and hands it the way to change the filters, which it writes into the route, and to send a forge's brain its Wake or Stop.
- * `agentsViewPartsOf` hands the shell the page title's parts with it.
+ * The Agents view (SCREENS A2): the two filters over every running agent on the machine, grouped by forge, and beside them the selected
+ * agent's panel. `AgentsView` takes no hooks: its root builds the content from the fleet document and hands it the way to change the
+ * filters, which it writes into the route. `agentsViewPartsOf` hands the shell the page title's parts with it.
  */
 import { EmptyState }       from 'design-system/EmptyState';
 import { FillMeter }        from 'design-system/FillMeter';
@@ -10,17 +9,16 @@ import { MicroCapsLabel }   from 'design-system/MicroCapsLabel';
 import { SegmentedControl } from 'design-system/SegmentedControl';
 
 import type { FleetDocument }                                       from '../../@types/FleetDocument.ts';
-import { type CommandSenderInView, useCommandSender }               from '../../api/CommandSender.ts';
 import type { ClockReading }                                        from '../../shared/@types/ClockReading.ts';
 import type { ViewParts }                                           from '../../shared/@types/ViewParts.ts';
 import type { SelectedAgent }                                       from '../../shared/HashRouter.ts';
 import type { MachineLoad }                                         from '../../shared/MachineLoadModel.ts';
 import type { AgentConditionFilter, AgentFilters, AgentRoleFilter } from './AgentsFilters.ts';
 import { type AgentsContent, AgentsModel }                          from './AgentsModel.ts';
-import { AgentsTable, type BrainHandlers }                          from './AgentsTable.tsx';
+import { AgentsTable }                                              from './AgentsTable.tsx';
 import { SelectedAgentPanel }                                       from './SelectedAgentPanel.tsx';
 
-export interface AgentsHandlers extends BrainHandlers {
+export interface AgentsHandlers {
   readonly onFiltersChange: (filters: AgentFilters) => void;
 }
 
@@ -33,14 +31,6 @@ const ROLE_LABEL_ID = 'gaia-agents-role-label';
 const CONDITION_LABEL_ID = 'gaia-agents-condition-label';
 
 const EACH_FORGE_REPORTS_NOTE = 'Gaia shows what each forge reports.';
-
-function footnoteOf(content: AgentsContent): string {
-  if (content.brainCount === 0) return EACH_FORGE_REPORTS_NOTE;
-  const brainSentence = content.brainCount === 1
-    ? `Flint's brain is not one of the ${content.machineAgentsFigure} machine agents.`
-    : `Flint's brains are not among the ${content.machineAgentsFigure} machine agents.`;
-  return `${brainSentence} ${EACH_FORGE_REPORTS_NOTE}`;
-}
 
 function NoAgentRuns({ machine }: { readonly machine: MachineLoad }) {
   return (
@@ -84,13 +74,12 @@ function AgentFilterBar({ content, onFiltersChange }: { readonly content: Agents
   );
 }
 
-/** With neither a job nor a brain running the view says no agent runs; a brain alone still gets its forge's group. */
 export function AgentsView({ content, handlers }: AgentsViewProps) {
-  if (content.agentCount === 0 && content.brainCount === 0) {
+  if (content.agentCount === 0) {
     return (
       <div className="gaia-agents" data-layout="empty">
         <NoAgentRuns machine={content.machine} />
-        {content.selected.kind === 'none-selected' ? null : <SelectedAgentPanel content={content.selected} handlers={handlers} />}
+        {content.selected.kind === 'none-selected' ? null : <SelectedAgentPanel content={content.selected} />}
       </div>
     );
   }
@@ -100,10 +89,10 @@ export function AgentsView({ content, handlers }: AgentsViewProps) {
         <AgentFilterBar content={content} onFiltersChange={handlers.onFiltersChange} />
         {content.groups.length === 0
           ? <EmptyState text="No agent matches these filters." />
-          : <AgentsTable groups={content.groups} handlers={handlers} />}
-        <p className="gaia-agents-footnote">{footnoteOf(content)}</p>
+          : <AgentsTable groups={content.groups} />}
+        <p className="gaia-agents-footnote">{EACH_FORGE_REPORTS_NOTE}</p>
       </section>
-      <SelectedAgentPanel content={content.selected} handlers={handlers} />
+      <SelectedAgentPanel content={content.selected} />
     </div>
   );
 }
@@ -120,34 +109,22 @@ export interface AgentsViewRootProps {
   readonly goTo:          (fragment: string) => void;
 }
 
-/** A filter press goes to the fragment that keeps the selected agent; Wake and Stop go to the command sender. */
-export function agentsHandlersOf(
-  selectedAgent: SelectedAgent | null,
-  goTo: (fragment: string) => void,
-  sender: Pick<CommandSenderInView, 'send' | 'dismissFailure'>,
-): AgentsHandlers {
-  return {
-    onFiltersChange:  (filters) => goTo(AgentsModel.agentsFragmentOf(selectedAgent, filters)),
-    onBrainCommand:   (command) => void sender.send(command),
-    onDismissFailure: sender.dismissFailure,
-  };
+/** A filter press goes to the fragment that keeps the selected agent. */
+export function agentsHandlersOf(selectedAgent: SelectedAgent | null, goTo: (fragment: string) => void): AgentsHandlers {
+  return { onFiltersChange: (filters) => goTo(AgentsModel.agentsFragmentOf(selectedAgent, filters)) };
 }
 
-/** The view's root: it reads the command sender, so a Wake or Stop on its way disables its button and a refused one shows its refusal. */
 export function AgentsViewRoot({
   fleetDocument, route, clock, goTo
 }: AgentsViewRootProps) {
-  const sender = useCommandSender();
   const { selectedAgent, query } = route;
   const content = AgentsModel.agentsContentOf({
     fleetDocument,
     selectedAgent,
     query,
     readAtMilliseconds: clock.nowEpochMilliseconds,
-    timeZone:           clock.timeZone,
-    commandStates:      sender.states,
   });
-  return <AgentsView content={content} handlers={agentsHandlersOf(selectedAgent, goTo, sender)} />;
+  return <AgentsView content={content} handlers={agentsHandlersOf(selectedAgent, goTo)} />;
 }
 
 const TITLE = 'Agents';

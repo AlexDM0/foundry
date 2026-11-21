@@ -44,8 +44,6 @@ const NEUTRAL_WARNING_SENTENCE = 'This forge reports a warning that Gaia does no
 
 const NEUTRAL_ACTIVITY_SENTENCE = 'This forge logged an entry that Gaia does not word yet.';
 
-const NEUTRAL_BRAIN_INTENT_SENTENCE = 'Flint\'s brain made a move that Gaia does not word yet.';
-
 function ownSentenceOf(sentences: Readonly<Record<string, string>>, key: string): string | null {
   return Object.hasOwn(sentences, key) ? sentences[key] ?? null : null;
 }
@@ -80,11 +78,6 @@ function activitySentenceOf(text: string): string {
   return sentenceNamesACommand(text) ? NEUTRAL_ACTIVITY_SENTENCE : text;
 }
 
-/** A brain move's intent is the brain's own free text, so only the guard words one; its emote is dropped instead, since a move needs none. */
-function brainIntentSentenceOf(intent: string): string {
-  return sentenceNamesACommand(intent) ? NEUTRAL_BRAIN_INTENT_SENTENCE : intent;
-}
-
 export const ForgeSentenceUtil = {
   sentenceNamesACommand,
   sentenceNamingNoCommandOf,
@@ -92,5 +85,4 @@ export const ForgeSentenceUtil = {
   lastCommandNameOf,
   warningSentenceOf,
   activitySentenceOf,
-  brainIntentSentenceOf,
 } as const;

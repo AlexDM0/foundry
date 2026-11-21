@@ -2,11 +2,9 @@
  * The command answer the page reads: every verdict maps to its outcome at the known `answerVersion`, an update whose Baton pass was not
  * taken answers restart pending, a forge's refusal keeps its code and its sentence unchanged (decision 45), Gaia's own
  * refusal carries its code with no sentence, a chosen path is a done answer's text, and a command Gaia could not read answers not-supported
- * with the reason as its code. Each refusal of Flint's brain recorded at control 2 reaches the page with its code and its sentence.
+ * with the reason as its code.
  */
 import { describe, expect, test } from 'bun:test';
-
-import { recordedFlintBrainAnswersOf } from '../../testing/RecordedAnswers.ts';
 
 import { PageAnswerMapUtil } from './PageAnswerMapUtil.ts';
 
@@ -106,23 +104,6 @@ describe('the command answer of the outage resume', () => {
     expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'outage-resume-answered', forges: [NOTHING] }).outcome).toBe('nothing-to-do');
     expect(PageAnswerMapUtil.commandAnswerOf({ verdict: 'outage-resume-answered', forges: [] }).outcome).toBe('nothing-to-do');
   });
-});
-
-describe('the command answer of a command of Flint\'s brain', () => {
-  test('carries each recorded refusal of the forge to the page with its code and its sentence', () => {
-    const refusals = (['brain-refused', 'no-flint'] as const).flatMap((situation) => recordedFlintBrainAnswersOf(situation))
-      .filter(({ callShape }) => callShape === 'POST /api/v1/commands with bearer')
-      .flatMap(({ answer }) => (answer.verdict === 'answered' ? [JSON.parse(answer.bodyText) as { refusal: string; text: string }] : []));
-    expect(refusals.map(({ refusal }) => refusal)).toEqual(['overseer-paused', 'no-flint']);
-    for (const { refusal, text } of refusals) {
-      expect(PageAnswerMapUtil.commandAnswerOf({
-        verdict: 'refused', refusedBy: 'forge', refusal, text,
-      })).toEqual({
-        answerVersion: 3, outcome: 'refused', refusal, text, forges: [],
-      });
-    }
-  });
-
 });
 
 describe('the command answer of a command Gaia could not read', () => {

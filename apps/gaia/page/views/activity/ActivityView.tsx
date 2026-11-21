@@ -1,6 +1,6 @@
 /**
  * The Activity view (artboard A3): the two filters across the top, then what happened across the fleet, newest first, beside the cards of today's
- * landings and tokens per forge, with the note of the brain's tokens they include, and the usage line. `ActivityView` keeps the filters and whether the
+ * landings and tokens per forge, and the usage line. `ActivityView` keeps the filters and whether the
  * forge menu is open; `ActivityLayout` takes no hooks and lays the view out from the model's content alone; `activityViewPartsOf` hands the shell the
  * page title's parts with the view.
  */
@@ -29,7 +29,6 @@ import {
   type ActivityKindFilter,
   ActivityModel,
   type ActivityRow,
-  type BrainTokensNote,
   type CountedKind,
   EVERY_ENTRY,
   type ForgeChoices,
@@ -153,38 +152,13 @@ function ForgeMenu({
   );
 }
 
-/** Under the tokens' bars: the diamond, then how many of today's tokens were Flint's brain's, per forge, each figure in mono. */
-function BrainTokensLine({ note }: { readonly note: BrainTokensNote }) {
-  return (
-    <p className="gaia-activity-brain-note">
-      <RoleDot role="brain" />
-      <span>
-        {'Includes '}
-        <span className="gaia-activity-brain-note-figure">{note.totalText}</span>
-        {' of Flint\'s brain: '}
-        {note.forges.map((forge, index) => (
-          <span key={forge.trackerId}>
-            {index === 0 ? '' : ', '}
-            {`${forge.project} `}
-            <span className="gaia-activity-brain-note-figure">{forge.tokensText}</span>
-          </span>
-        ))}
-        .
-      </span>
-    </p>
-  );
-}
-
 interface TodaySectionProps {
-  readonly head:       string;
-  readonly list:       TodayList;
-  readonly tone:       StateTone;
-  readonly brainNote?: BrainTokensNote | null;
+  readonly head: string;
+  readonly list: TodayList;
+  readonly tone: StateTone;
 }
 
-function TodaySection({
-  head, list, tone, brainNote = null
-}: TodaySectionProps) {
+function TodaySection({ head, list, tone }: TodaySectionProps) {
   return (
     <section className="gaia-activity-side-section">
       <Card paddingTop="fourteen" paddingHorizontal="eighteen" paddingBottom="sixteen" gap="twelve">
@@ -206,7 +180,6 @@ function TodaySection({
             ))}
           </ul>
         )}
-        {brainNote === null ? null : <BrainTokensLine note={brainNote} />}
       </Card>
     </section>
   );
@@ -275,7 +248,7 @@ export function ActivityLayout({
         </section>
         <aside className="gaia-activity-side" aria-label="Today">
           <TodaySection head="Landed today" list={content.landedToday} tone="success" />
-          <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" brainNote={content.brainTokensNote} />
+          <TodaySection head="Tokens today" list={content.tokensToday} tone="neutral" />
           <UsageSection lines={content.usageLines} linesAtTheLimit={content.usageLinesAtTheLimit} />
         </aside>
       </div>
@@ -285,7 +258,7 @@ export function ActivityLayout({
 
 export interface ActivityViewProps {
   readonly fleetDocument: FleetDocument;
-  /** The page's clock: the time zone clock times are shown in, and the day whose brain runs are counted. */
+  /** The page's clock: the time zone clock times are shown in. */
   readonly clock:         ClockReading;
 }
 
@@ -313,7 +286,7 @@ export function activityViewPartsOf(fleetDocument: FleetDocument | null, clock: 
   return {
     title:   TITLE,
     lead:    LEAD,
-    figures: fleetDocument === null ? [] : ActivityModel.titleFiguresOf(fleetDocument, clock),
+    figures: fleetDocument === null ? [] : ActivityModel.titleFiguresOf(fleetDocument),
     actions: null,
     content: fleetDocument === null ? null : <ActivityView fleetDocument={fleetDocument} clock={clock} />,
   };

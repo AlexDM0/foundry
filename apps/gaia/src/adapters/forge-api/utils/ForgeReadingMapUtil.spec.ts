@@ -1,8 +1,7 @@
 /**
  * The reading mapper against its own contract, on documents its ingestions have checked: the Overseer's state and pause to a condition,
  * a held launch outranking a pause; a contract an identity leaves out to `null`; the contract just read at the number its document carries;
- * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a
- * brain only from a snapshot, absent for a forge without Flint; an ended brain's activity entry keeping its kind and tokens; a summary's
+ * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a summary's
  * usage with no current window; a monitor job's interruption cause on its row, `null` from a summary; a monitor's typed target
  * as that subject's place on Gaia's board, an entry with no target as none; and a newer
  * contract's reading with no fact of any document. The whole mappings are held by the ingestion specs against the fixtures.
@@ -119,52 +118,6 @@ describe('the warnings and notices of a snapshot read in full', () => {
       currentWindowResetsAt: '2026-11-12T15:00:00.000Z',
     };
     expect(ForgeReadingMapUtil.fullReadingOf(snapshotWith({ usage }), REGISTRY_FACTS, IDENTITY, 'stamp').usage).toEqual(usage);
-  });
-});
-
-const RUNNING_BRAIN = {
-  state:       'running',
-  startedAt:   '2026-11-12T08:01:00.000Z',
-  endsAt:      '2026-11-12T08:03:00.000Z',
-  startedBy:   'bridge',
-  model:       'haiku',
-  effort:      'low',
-  tokens:      1840,
-  calls:       3,
-  recentMoves: [{ at: '2026-11-12T08:01:20.000Z', intent: 'walk-to-column', emote: 'wave' }],
-  endedAt:     null,
-  endedReason: null,
-  sentence:    'Flint\'s brain is running until 08:03',
-  refusal:     null,
-} as const satisfies MonitorSnapshotDocument['flintBrain'];
-
-describe('the brain of a snapshot read in full', () => {
-  test('carries every fact the forge reports of its brain, and reads a forge without Flint as reporting no brain', () => {
-    expect(ForgeReadingMapUtil.fullReadingOf(snapshotWith({ flintBrain: RUNNING_BRAIN }), REGISTRY_FACTS, IDENTITY, 'stamp').brain).toEqual({
-      ...RUNNING_BRAIN,
-      recentMoves: [{ at: '2026-11-12T08:01:20.000Z', intent: 'walk-to-column', emote: 'wave' }],
-    });
-    expect(ForgeReadingMapUtil.fullReadingOf(snapshotWith({ flintBrain: null }), REGISTRY_FACTS, IDENTITY, 'stamp').brain).toBe('not-reported');
-  });
-
-  test('is not reported by a summary or by a contract newer than this Gaia', () => {
-    expect(ForgeReadingMapUtil.countsOnlyReadingOf(summaryAt('serving', false), REGISTRY_FACTS, IDENTITY, 'stamp').brain).toBe('not-reported');
-    expect(ForgeReadingMapUtil.newerContractReadingOf(REGISTRY_FACTS, IDENTITY, ForgeReadingMapUtil.contractsWith(IDENTITY, { monitor: 4 })).brain).toBe('not-reported');
-  });
-});
-
-describe('the activity of a snapshot read in full', () => {
-  test('keeps the kind and tokens of an ended brain\'s entry, and reads an entry of no kind, or of a kind this Gaia does not know, as of none', () => {
-    const entry = {
-      logPosition: 6,
-      at:          '2026-11-12T08:03:00.000Z',
-      category:    'agent',
-      text:        'Flint\'s brain stopped after 2:00',
-      target:      null,
-    } as const;
-    const activity = [{ ...entry, kind: 'flint-brain', tokens: 2960 }, entry, { ...entry, kind: 'example-new-kind', tokens: null }];
-    const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ activity }), REGISTRY_FACTS, IDENTITY, 'stamp');
-    expect(reading.activity.map(({ kind, tokens }) => [kind, tokens])).toEqual([['flint-brain', 2960], [null, null], [null, null]]);
   });
 });
 

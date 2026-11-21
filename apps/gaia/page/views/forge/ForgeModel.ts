@@ -2,16 +2,13 @@
  * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the board, with the forge's name, its condition, one short
  * line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the
  * board of an Overseer that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
- * whose board Gaia cannot read. Also Flint's brain in the bar, in the state the forge reports, with a wake refused here in its place, and
- * the steps of an older forge's Update forge.
+ * whose board Gaia cannot read. Also the steps of an older forge's Update forge.
  */
 import type { ButtonEmphasis } from 'design-system/Button';
 
 import type { CommandKind, ForgeCommandBody } from '../../@types/CommandDocument.ts';
 import type {
   FleetDocument,
-  FleetDocumentBrain,
-  FleetDocumentBrainState,
   FleetDocumentCondition,
   FleetDocumentFidelity,
   FleetDocumentForge,
@@ -51,33 +48,13 @@ export interface BarLineSegment {
 
 /**
  * The bar's status: the condition's dot and its word, so the dot is never the only sign; the line it shows, agents and what waits, kept
- * short so the bar stays on one line beside the brain's group (D2); and `text`, the whole reading with usage and since, for its tooltip.
+ * short so the bar stays on one line (D2); and `text`, the whole reading with usage and since, for its tooltip.
  */
 export interface ForgeBarStatus {
   readonly condition: DotCondition;
   readonly word:      string;
   readonly line:      readonly BarLineSegment[];
   readonly text:      string;
-}
-
-/** What the bar's brain group shows, each figure already worded; the time left is counted for display only. */
-export type BarBrainShown =
-  | { readonly state: 'off' }
-  | { readonly state: 'starting' }
-  | {
-    readonly state:     'running';
-    readonly model:     string;
-    readonly effort:    string;
-    readonly countdown: string;
-    readonly tokens:    string;
-  }
-  | { readonly state: 'refused'; readonly refusedBy: RefusedBy; readonly code: string; readonly sentence: string }
-  | { readonly state: 'ended'; readonly sentence: string };
-
-/** Flint's brain as the forge reports it; Wake, Stop and the mark's double click only where the forge's control contract carries them. */
-export interface BarBrain {
-  readonly shown:             BarBrainShown;
-  readonly controlsAreServed: boolean;
 }
 
 /** The verdicts at which Gaia cannot talk to a forge: newer than this Gaia, or older and waiting on Update forge. */
@@ -125,9 +102,7 @@ export interface ForgeBar {
   readonly stop:                   StopQuestion | null;
   /** Pause, Unpause and Stop are sent to the forge's control contract. */
   readonly controlContractIsKnown: boolean;
-  /** `null` for a forge that reports no brain: its monitor is older than contract 3, or it has no Flint. */
-  readonly brain:                  BarBrain | null;
-  /** `null` for a forge Gaia talks to; then Pause, Unpause, Stop and the brain follow the forge's condition. */
+  /** `null` for a forge Gaia talks to; then Pause, Unpause and Stop follow the forge's condition. */
   readonly cannotTalk:             BarCannotTalk | null;
   /** `null` for a forge Gaia cannot talk to, which it can restart neither way. */
   readonly versions:               BarVersions | null;
@@ -163,42 +138,11 @@ export interface ForgeContent {
 const LINE_SEPARATOR = ' · ';
 
 /** The bar's commands that carry nothing but the forge, so Try again can send them as they were; Stop asks its question again instead. */
-type KindSentAgainAsItWas = 'forge-pause' | 'forge-unpause' | 'forge-brain-stop' | 'forge-talos-restart';
+type KindSentAgainAsItWas = 'forge-pause' | 'forge-unpause' | 'forge-talos-restart';
 
 const SENT_AGAIN_AS_THEY_WERE: ReadonlySet<CommandKind> = new Set<KindSentAgainAsItWas>([
-  'forge-pause', 'forge-unpause', 'forge-brain-stop', 'forge-talos-restart',
+  'forge-pause', 'forge-unpause', 'forge-talos-restart',
 ]);
-
-/** A refused wake shows in the brain's group, where it was asked, beside Wake; not under the bar as well. */
-const SHOWN_IN_THE_BRAIN_GROUP: ReadonlySet<CommandKind> = new Set<CommandKind>(['forge-brain-start']);
-
-/** The states in which Wake shows and the forge mark's double click wakes the brain (SCREENS B1). */
-const BRAIN_WAKES_FROM: ReadonlySet<FleetDocumentBrainState> = new Set<FleetDocumentBrainState>(['off', 'refused', 'ended']);
-
-const WAKE_BY_DOUBLE_CLICK_TITLE = 'Double-click to wake Flint\'s brain';
-
-/** The forge mark's title where its double click does not wake the brain, as artboard B1 words them. */
-const MARK_TITLES_WHILE_AWAKE: Readonly<Partial<Record<FleetDocumentBrainState, string>>> = {
-  starting: 'Flint\'s brain is waking',
-  running:  'Flint\'s brain is awake',
-};
-
-/** Gaia's words for a refusal whose sentence names a command (D10), by the codes of control contract 2 (G3), read after "The forge refused:". */
-const BRAIN_REFUSAL_SENTENCES: Readonly<Record<string, string>> = {
-  'no-flint':              'this forge has no Flint',
-  'brain-already-running': 'Flint\'s brain is already awake',
-  'brain-not-running':     'Flint\'s brain is not awake',
-  'usage-limit-holds':     'launches are held until the usage limit resets',
-  'overseer-paused':       'the Overseer is paused',
-  'brain-failed-to-start': 'Flint\'s brain did not start',
-};
-
-const BRAIN_REFUSED_SENTENCE = 'Flint\'s brain did not wake';
-
-const BRAIN_ENDED_SENTENCE = 'Flint\'s brain stopped';
-
-/** A figure of a running brain the forge did not report. */
-const UNREPORTED_FIGURE = '–';
 
 /** Pause and Stop for a newer forge, Stop alone beside an older forge's Update forge, as the Versions boards draw them. */
 const UNSENT_CONTROLS: Readonly<Record<CannotTalkVerdict, readonly string[]>> = {
@@ -295,51 +239,6 @@ function pauseOrUnpauseOf(forge: FleetDocumentForge): BarCommand | null {
 
 function stopQuestionOf(forge: FleetDocumentForge): StopQuestion | null {
   return STOPPABLE.has(forge.condition) ? ForgeCommandTextUtil.stopQuestionOf(forge) : null;
-}
-
-/** The time left to the forge's `endsAt`, which stays at `0:00` once it passed: the brain stays until the forge reports it ended. */
-function countdownTextOf(endsAt: string | null, clock: ClockReading): string {
-  return (endsAt === null ? null : StampTextUtil.countdownTextOf(endsAt, clock.nowEpochMilliseconds)) ?? UNREPORTED_FIGURE;
-}
-
-function brainRefusalSentenceOf(code: string, sentence: string | null): string {
-  const ownSentence = Object.hasOwn(BRAIN_REFUSAL_SENTENCES, code) ? BRAIN_REFUSAL_SENTENCES[code] : undefined;
-  return sentence ?? ownSentence ?? BRAIN_REFUSED_SENTENCE;
-}
-
-function brainEndedSentenceOf(brain: FleetDocumentBrain): string {
-  if (brain.sentence !== null) return brain.sentence;
-  return brain.tokens === null ? BRAIN_ENDED_SENTENCE : `${BRAIN_ENDED_SENTENCE} · ${CountTextUtil.shortCountTextOf(brain.tokens)} tokens`;
-}
-
-function brainShownOf(brain: FleetDocumentBrain, clock: ClockReading): BarBrainShown {
-  switch (brain.state) {
-    case 'off':
-    case 'starting':
-      return { state: brain.state };
-    case 'running':
-      return {
-        state:     'running',
-        model:     brain.model ?? UNREPORTED_FIGURE,
-        effort:    brain.effort ?? UNREPORTED_FIGURE,
-        countdown: countdownTextOf(brain.endsAt, clock),
-        tokens:    brain.tokens === null ? UNREPORTED_FIGURE : CountTextUtil.shortCountTextOf(brain.tokens),
-      };
-    case 'refused': {
-      const code = brain.refusal?.code ?? 'refused';
-      return {
-        state: 'refused', refusedBy: 'forge', code, sentence: brainRefusalSentenceOf(code, brain.refusal?.sentence ?? null)
-      };
-    }
-    case 'ended':
-      return { state: 'ended', sentence: brainEndedSentenceOf(brain) };
-  }
-}
-
-function barBrainOf(forge: FleetDocumentForge, clock: ClockReading): BarBrain | null {
-  const { brain } = forge;
-  if (brain === 'not-reported') return null;
-  return { shown: brainShownOf(brain, clock), controlsAreServed: ForgeContractUtil.brainCommandsAreServed(forge) };
 }
 
 function withVersionsOf(forge: FleetDocumentForge): ForgeWithVersions | null {
@@ -455,7 +354,6 @@ function barOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions, clock: Clo
     pauseOrUnpause:         talks ? pauseOrUnpauseOf(forge) : null,
     stop:                   talks ? stopQuestionOf(forge) : null,
     controlContractIsKnown: ForgeContractUtil.controlContractIsKnown(forge),
-    brain:                  talks ? barBrainOf(forge, clock) : null,
     cannotTalk,
     versions:               talks ? barVersionsOf(forge) : null,
   };
@@ -501,7 +399,7 @@ function kindIsSentAgainAsItWas(kind: CommandKind): kind is KindSentAgainAsItWas
 /** A refused Update forge of an older forge shows in the bar, beside where Update forge was, not under it as well. */
 function barRefusalOf(trackerId: string, failure: CommandFailure | null, updateIsInTheBar = false): BarRefusal | null {
   const commandLabel = failure === null ? null : ForgeCommandTextUtil.commandLabelOf(failure.kind);
-  if (failure === null || commandLabel === null || SHOWN_IN_THE_BRAIN_GROUP.has(failure.kind)) return null;
+  if (failure === null || commandLabel === null) return null;
   if (updateIsInTheBar && failure.kind === 'forge-update') return null;
   const { kind } = failure;
   return {
@@ -511,41 +409,8 @@ function barRefusalOf(trackerId: string, failure: CommandFailure | null, updateI
   };
 }
 
-/**
- * What the brain's group shows now: a wake refused here, while the forge reports a brain that may be woken, in place of the forge's state;
- * the forge's state once it reports the brain waking or awake, since the refusal is then out of date.
- */
-function brainShownAfter(brain: BarBrain, failure: CommandFailure | null): BarBrainShown {
-  if (failure === null || failure.kind !== 'forge-brain-start' || !BRAIN_WAKES_FROM.has(brain.shown.state)) return brain.shown;
-  const { result } = failure;
-  if (result.verdict === 'answered' && result.answer.refusal !== null) {
-    return { state: 'refused', ...CommandFailureTextUtil.refusalTextOf(failure), sentence: brainRefusalSentenceOf(result.answer.refusal, result.answer.text) };
-  }
-  return { state: 'refused', ...CommandFailureTextUtil.refusalTextOf(failure) };
-}
-
-/** A wake refused here is out of date once the forge reports its brain waking or awake, whichever route woke it, and is then dismissed. */
-function brainWakeRefusalIsOutOfDate(brain: BarBrain | null, failure: CommandFailure | null): boolean {
-  return brain !== null && failure?.kind === 'forge-brain-start' && !BRAIN_WAKES_FROM.has(brain.shown.state);
-}
-
-/** The forge mark's part in the brain (PLAN B2): a double click wakes it where Wake would; otherwise its title says how the brain is, if awake. */
-export interface BarMarkWake {
-  readonly title:      string | null;
-  readonly wakesBrain: boolean;
-}
-
-function markWakeOf(brain: BarBrain | null, shown: BarBrainShown | null): BarMarkWake {
-  if (brain === null || shown === null) return { title: null, wakesBrain: false };
-  const wakesBrain = brain.controlsAreServed && BRAIN_WAKES_FROM.has(shown.state);
-  return { title: wakesBrain ? WAKE_BY_DOUBLE_CLICK_TITLE : MARK_TITLES_WHILE_AWAKE[shown.state] ?? null, wakesBrain };
-}
-
 export const ForgeModel = {
   forgeContentOf,
   barRefusalOf,
   updateStepOf,
-  brainShownAfter,
-  brainWakeRefusalIsOutOfDate,
-  markWakeOf,
 } as const;

@@ -92,7 +92,6 @@ const RESEARCH_WIKI: FleetDocumentForge = {
   activity:          [],
   today:             null,
   usage:             USAGE_OF_A_SUMMARY,
-  brain:             'not-reported',
   versions:          CURRENT_FORGE_VERSIONS,
   presence:          { state: 'serving', generation: null, at: null },
   crashSummary:      null,
@@ -132,7 +131,6 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   activity:          [],
   today:             null,
   usage:             null,
-  brain:             'not-reported',
   versions:          CURRENT_FORGE_VERSIONS,
   presence:          { state: 'serving', generation: null, at: null },
   crashSummary:      null,
@@ -142,7 +140,7 @@ const ANALYTICS_SANDBOX: FleetDocumentForge = {
   runningVersions:   null,
 };
 
-const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki, countsAgainstLimit: true };
+const WIKI_COUNTS_ONLY_J2_ROW = { ...WIKI_COUNTS_ONLY_J2, trackerId: TRACKER_IDS.researchWiki };
 
 const READ_IN_FULL_OR_AS_LAST_REPORTED = new Set<string>([TRACKER_IDS.exampleStorefront, TRACKER_IDS.invoiceService, TRACKER_IDS.exampleMobileApp]);
 

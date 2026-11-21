@@ -4,7 +4,6 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
 import type { ActivityEntry }                              from './ActivityEntry.ts';
 import type { AgentRow }                                   from './AgentRow.ts';
 import type { AttentionItem }                              from './AttentionItem.ts';
-import type { ForgeBrainReading }                          from './ForgeBrain.ts';
 import type { ForgePresenceReport, ForgeRegistryPresence } from './ForgePresence.ts';
 
 /** `older-contract`: the forge's system version is older than the one Gaia supports, so Gaia reads nothing of it until it is updated. */
@@ -98,7 +97,6 @@ export interface ForgeReading {
   activity:          ActivityEntry[];
   today:             ForgeToday | null;
   usage:             ForgeUsage | null;
-  brain:             ForgeBrainReading;
   /** `null` for a reading taken without the forge's `/api/versions`, such as a dormant or an unreachable forge's. */
   versions:          ForgeVersions | null;
   /** What the registry says the forge last wrote of its presence, as the entry names it now. */

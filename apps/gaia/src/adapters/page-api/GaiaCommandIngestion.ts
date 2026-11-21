@@ -61,8 +61,6 @@ const SINGLE_FORGE_KINDS: ReadonlySet<string> = new Set<SingleForgeKind>([
   'forge-update',
   'forge-hide',
   'forge-unhide',
-  'forge-brain-start',
-  'forge-brain-stop',
 ] satisfies readonly CommandKind[]);
 
 const STOP_AGENTS: ReadonlySet<unknown> = new Set<ForgeStopAgents>(['keep', 'stop-first']);

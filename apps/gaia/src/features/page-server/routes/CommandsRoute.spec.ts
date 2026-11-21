@@ -44,12 +44,12 @@ describe('a command Gaia can read', () => {
     expect(carrier.carriedCommands).toEqual([{ kind: 'fleet-look-again' }]);
   });
 
-  test('of Flint\'s brain reaches the command port with its tracker id, and a refusal is answered with the forge\'s code and sentence', async () => {
-    const text = 'Flint\'s brain cannot start while the usage limit holds. It resets at 14:00.';
+  test('to one forge reaches the command port with its tracker id, and a refusal is answered with the forge\'s code and sentence', async () => {
+    const text = 'The Overseer cannot restart while the usage limit holds. It resets at 14:00.';
     const carrier = carrierAnswering({
       verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
     });
-    const body = JSON.stringify({ commandVersion: 4, kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' });
+    const body = JSON.stringify({ commandVersion: 4, kind: 'forge-restart', trackerId: 'example-storefront-7c41' });
     const answer = await commandAnswerFor(commandRequestOf(body), carrier.carryCommand, EXAMPLE_BODY_BOUND_BYTES);
     expect([answer.status, await answer.json()]).toEqual([409, {
       answerVersion: 3,
@@ -58,7 +58,7 @@ describe('a command Gaia can read', () => {
       text,
       forges:        [],
     }]);
-    expect(carrier.carriedCommands).toEqual([{ kind: 'forge-brain-start', trackerId: 'example-storefront-7c41' }]);
+    expect(carrier.carriedCommands).toEqual([{ kind: 'forge-restart', trackerId: 'example-storefront-7c41' }]);
   });
 
   test('is answered under the status of its verdict', async () => {

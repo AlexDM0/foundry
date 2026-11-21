@@ -138,52 +138,12 @@ export interface FleetDocumentAgentRow {
 
 export type FleetDocumentActivityCategory = 'needs-user' | 'landed' | 'agent' | 'forge';
 
-/** `flint-brain`: the run of a brain that ended, with its tokens (G2). */
-export type FleetDocumentActivityKind = 'flint-brain';
-
 export interface FleetDocumentActivityEntry {
   logPosition: number;
   at:          string;
   category:    FleetDocumentActivityCategory;
   text:        string;
   boardRoute:  FleetDocumentBoardRoute | null;
-  kind:        FleetDocumentActivityKind | null;
-  tokens:      number | null;
-}
-
-export type FleetDocumentBrainState = 'off' | 'starting' | 'running' | 'ended' | 'refused';
-
-export interface FleetDocumentBrainMove {
-  at:     string;
-  intent: string;
-  emote:  string | null;
-}
-
-/** `sentence` is `null` when the forge's sentence names a command Gaia has no words for (D10); the page then words the refusal from its code. */
-export interface FleetDocumentBrainRefusal {
-  code:     string;
-  sentence: string | null;
-}
-
-/**
- * A forge's Flint brain as its forge reports it, each fact `null` when the forge did not report it. The page counts down to `endsAt` for
- * display and decides nothing from it: the brain's row and line leave when the forge reports `ended`.
- */
-export interface FleetDocumentBrain {
-  state:       FleetDocumentBrainState;
-  startedAt:   string | null;
-  endsAt:      string | null;
-  startedBy:   'bridge' | 'api' | null;
-  model:       string | null;
-  effort:      string | null;
-  tokens:      number | null;
-  calls:       number | null;
-  recentMoves: FleetDocumentBrainMove[];
-  endedAt:     string | null;
-  endedReason: 'time' | 'stopped' | 'usage-limit' | 'failed' | null;
-  /** The forge's words for the brain's state, `null` when they name a command (D10). */
-  sentence:    string | null;
-  refusal:     FleetDocumentBrainRefusal | null;
 }
 
 /**
@@ -284,8 +244,6 @@ export interface FleetDocumentForge {
   activity:          FleetDocumentActivityEntry[];
   today:             FleetDocumentToday | null;
   usage:             FleetDocumentUsage | null;
-  /** `not-reported` under a monitor older than contract 3 and for a forge without Flint: the brain is then absent, not empty. */
-  brain:             FleetDocumentBrain | 'not-reported';
   /** `null` for a forge read without its versions, such as a dormant or an unreachable one. */
   versions:          FleetDocumentForgeVersions | null;
   presence:          FleetDocumentPresence;
@@ -305,10 +263,8 @@ export interface FleetDocumentFleetAttentionItem extends FleetDocumentAttentionI
   trackerId: string | null;
 }
 
-/** A running brain's row has the role `brain` and the id `flint-brain`, and counts against no forge's limit and not the machine's. */
 export interface FleetDocumentFleetAgentRow extends FleetDocumentAgentRow {
-  trackerId:          string;
-  countsAgainstLimit: boolean;
+  trackerId: string;
 }
 
 export interface FleetDocumentFleetActivityEntry extends FleetDocumentActivityEntry {

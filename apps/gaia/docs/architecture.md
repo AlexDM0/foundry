@@ -88,15 +88,6 @@ among the requests that come while it is on its way; `BoardStreams.ts` holds eve
 opened with Gaia's handshake, each event mapped once per forge and closed together at the server's stop; the picture and command routes
 read their body to their own bound and forward it. The page reads change signals from the stream and the board afresh from the route.
 
-## Flint's brain
-
-Each forge runs its own Flint and its brain; Gaia runs none and calls no model. A forge at the version Gaia supports reports
-`flintBrain` in its monitor snapshot, which its ingestion maps into the reading's `brain` (`'not-reported'` for a forge without Flint).
-The fleet adds a running brain as an agent row of role `brain` that counts in no figure, limit or slot Gaia computes, and shows an ended run as the
-forge's one activity entry for it. Wake and Stop are the commands `forge-brain-start` and `forge-brain-stop`, sent as the control
-contract's `flint-brain-start` and `flint-brain-stop`. The page counts the forge's `endsAt` down for display only: the brain leaves when
-the forge reports it ended.
-
 ## Guards and sessions
 
 The server binds `127.0.0.1` only and checks Host and Origin on every request (`lib/local-http-guards/`); no route answers a cross-origin

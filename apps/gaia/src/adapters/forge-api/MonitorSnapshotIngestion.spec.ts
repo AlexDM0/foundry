@@ -1,8 +1,7 @@
 /**
  * The monitor snapshot ingestion over the snapshots a forge at the version Gaia supports answered as Example Storefront, at monitor
- * contract 3, read through the forge client. What matters: each brain
- * state reads as the forge reports it, an ended brain's run as one activity entry with its tokens, and a forge without Flint as reporting
- * no brain; the snapshot of the Storefront at work maps to its frozen reading below; a warning keeps its kind, `assistant-down` becoming a
+ * contract 3, read through the forge client. What matters: the snapshot of the Storefront at work maps to its frozen reading below, and reads
+ * the same with a `flintBrain` key and without one, since Gaia passes that key over; a warning keeps its kind, `assistant-down` becoming a
  * notice; the current usage window is read; a job's turn, its interruption cause and a lost launch stamp read as the forge sends them, a
  * job of a forge before 1.19, which sends no cause, as having none, a cause outside the contract's list as malformed; a snapshot at a newer
  * `monitorVersion` maps nothing of itself, so no attention entry leaks from it, and one at an older version, monitor 2 included, is older
@@ -13,17 +12,11 @@ import { describe, expect, test } from 'bun:test';
 import type { ForgeReading }                   from '../../shared/@types/ForgeReading.ts';
 import { CONTRACT_VERSIONS }                   from '../../shared/constants/ContractVersions.ts';
 import { FORGE_NOTICE_KINDS }                  from '../../shared/constants/ForgeNoticeKinds.ts';
-import type { FlintBrainSituation }            from '../../testing/RecordedAnswers.ts';
 import { FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../page-api/testing/fleet-snapshot-five-forges.ts';
 
-import type { ForgeIdentity }       from './@types/ForgeDocumentReading.ts';
-import { MonitorSnapshotIngestion } from './MonitorSnapshotIngestion.ts';
-import {
-  EXAMPLE_READ_STAMP,
-  recordedDocumentOf,
-  recordedFlintBrainDocumentOf,
-  registryFactsOf,
-} from './testing/ExampleForgeDocuments.ts';
+import type { ForgeIdentity }                                      from './@types/ForgeDocumentReading.ts';
+import { MonitorSnapshotIngestion }                                from './MonitorSnapshotIngestion.ts';
+import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf } from './testing/ExampleForgeDocuments.ts';
 
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
@@ -91,8 +84,6 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     {
       category:   'needs-user',
       boardRoute: { tab: 'kanban', item: 'ticket/001' },
-      kind:       null,
-      tokens:     null,
     },
   ],
   [
@@ -100,8 +91,6 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     {
       category:   'forge',
       boardRoute: null,
-      kind:       null,
-      tokens:     null,
     },
   ],
   [
@@ -109,8 +98,6 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     {
       category:   'forge',
       boardRoute: null,
-      kind:       null,
-      tokens:     null,
     },
   ],
   [
@@ -118,8 +105,6 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     {
       category:   'needs-user',
       boardRoute: { tab: 'questions', item: 'E1' },
-      kind:       null,
-      tokens:     null,
     },
   ],
   [
@@ -127,8 +112,6 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     {
       category:   'agent',
       boardRoute: { tab: 'agents', item: 'J1' },
-      kind:       null,
-      tokens:     null,
     },
   ],
   [
@@ -136,8 +119,6 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     {
       category:   'forge',
       boardRoute: null,
-      kind:       null,
-      tokens:     null,
     },
   ],
 ]);
@@ -149,8 +130,8 @@ function mappedActivityOf(text: string): Omit<ForgeReading['activity'][number], 
 }
 
 /**
- * What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened, its Assistant
- * at work and its brain off.
+ * What the Storefront's snapshot at work maps to: a running board with a draft ticket, the question its first pass opened, and its Assistant
+ * at work.
  */
 function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
   return {
@@ -254,21 +235,6 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
       currentWindow:         null,
       currentWindowResetsAt: null,
     },
-    brain: {
-      state:       'off',
-      startedAt:   null,
-      endsAt:      null,
-      startedBy:   null,
-      model:       null,
-      effort:      null,
-      tokens:      null,
-      calls:       null,
-      recentMoves: [],
-      endedAt:     null,
-      endedReason: null,
-      sentence:    null,
-      refusal:     null,
-    },
     versions:         null,
     registryPresence: null,
     presenceReport:   null,
@@ -279,91 +245,30 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
 
 const NEWER_MONITOR_VERSION = CONTRACT_VERSIONS.forgeMonitor + 1;
 
-/** The brain's states are recorded from the same forge as the Storefront at work, and taken again with it. */
-function brainIngestion(): MonitorSnapshotIngestion {
-  return ingestion();
-}
-
-async function brainSnapshot(situation: FlintBrainSituation): Promise<Record<string, unknown>> {
-  return await recordedFlintBrainDocumentOf(situation, 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
-}
-
-async function brainReadingOf(situation: FlintBrainSituation): Promise<ForgeReading> {
-  const reading = brainIngestion().readingOf(await brainSnapshot(situation), EXAMPLE_READ_STAMP);
-  if (reading.verdict !== 'readable') throw new Error(`The ${situation} snapshot does not read: ${reading.verdict}.`);
-  return reading.reading;
-}
-
-describe('a snapshot at monitor version 3', () => {
-  test('reads a running brain as the forge reports it, beside the jobs, which it is not one of', async () => {
-    const reading = await brainReadingOf('brain-running');
-    const recordedBrain = (await brainSnapshot('brain-running'))['flintBrain'] as { startedAt: string; endsAt: string; recentMoves: [{ at: string }] };
-    expect(reading.contracts.monitor).toBe(3);
-    expect(reading.brain).toEqual({
-      state:       'running',
-      startedAt:   recordedBrain.startedAt,
-      endsAt:      recordedBrain.endsAt,
-      startedBy:   'api',
-      model:       'haiku',
-      effort:      'low',
-      tokens:      11,
-      calls:       1,
-      recentMoves: [{ at: recordedBrain.recentMoves[0].at, intent: 'wave', emote: 'happy' }],
-      endedAt:     null,
-      endedReason: null,
-      sentence:    'Flint\'s brain chooses Flint\'s moves.',
-      refusal:     null,
-    });
-    expect([reading.agents.map((row) => row.jobId), reading.concurrency?.agentsInFlight]).toEqual([['J1'], 0]);
-  });
-
-  test('reads an ended brain with its end, and its run as the one activity entry of its kind, with its tokens, which the day\'s include', async () => {
-    const reading = await brainReadingOf('brain-ended');
-    const snapshot = await brainSnapshot('brain-ended');
-    const recordedBrain = snapshot['flintBrain'] as { endedAt: string };
-    const recordedBrainEntry = (snapshot['activity'] as { logPosition: number; at: string; kind?: string }[]).find((entry) => entry.kind === 'flint-brain');
-    if (recordedBrainEntry === undefined) throw new Error('The ended brain was recorded with no activity entry of its own.');
-    expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.endedReason, reading.brain.endedAt, reading.brain.tokens])
-      .toEqual(['ended', 'stopped', recordedBrain.endedAt, 11]);
-    expect(reading.activity.filter((entry) => entry.kind !== null)).toEqual([{
-      logPosition: recordedBrainEntry.logPosition,
-      at:          recordedBrainEntry.at,
-      category:    'agent',
-      text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
-      boardRoute:  null,
-      kind:        'flint-brain',
-      tokens:      11,
-    }]);
-    expect(reading.today?.tokens).toBe(11);
-  });
-
-  test('reads a refused start with the forge\'s code and sentence, and no run', async () => {
-    const reading = await brainReadingOf('brain-refused');
-    const sentence = 'The Overseer is paused, so Flint\'s brain does not start.';
-    expect(reading.brain === 'not-reported' ? null : [reading.brain.state, reading.brain.startedAt, reading.brain.refusal])
-      .toEqual(['refused', null, { code: 'overseer-paused', sentence }]);
-  });
-
-  test('reads a forge without Flint as one that reports no brain', async () => {
-    expect((await brainReadingOf('no-flint')).brain).toBe('not-reported');
-  });
-
-  test('names a brain key that is missing or fails its check, as a path into the snapshot', async () => {
-    const snapshot = await brainSnapshot('brain-running');
-    const brain = snapshot['flintBrain'] as Record<string, unknown>;
-    const { flintBrain: _droppedBrain, ...withoutBrain } = snapshot;
-    expect(brainIngestion().readingOf(withoutBrain, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['flintBrain'] });
-    const broken = { ...snapshot, flintBrain: { ...brain, state: 'asleep', recentMoves: [{ at: 'now', intent: 7, emote: null }] } };
-    expect(brainIngestion().readingOf(broken, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'malformed', invalidKeys: ['flintBrain.state', 'flintBrain.recentMoves[0].intent'] });
-  });
-});
-
 describe('the snapshot of Example Storefront at work', () => {
-  test('maps to its reading, which reports its brain off', async () => {
+  test('maps to its reading', async () => {
     const snapshot = await storefrontSnapshot();
     const recorded = recordedFactsOf(snapshot);
     expect(recorded.activity.map(({ text }) => text).toSorted()).toEqual([...MAPPED_ACTIVITY_BY_TEXT.keys()].toSorted());
     expect(ingestion().readingOf(snapshot, EXAMPLE_READ_STAMP)).toEqual({ verdict: 'readable', reading: recordedReadingOf(recorded) });
+  });
+
+  test('reads the same with a `flintBrain` key, whatever it holds, and without one', async () => {
+    const { flintBrain: _passedOverKey, ...withoutTheKey } = await storefrontSnapshot();
+    const readingWithoutTheKey = ingestion().readingOf(withoutTheKey, EXAMPLE_READ_STAMP);
+    expect(readingWithoutTheKey.verdict).toBe('readable');
+    for (const flintBrain of [null, { state: 'running', recentMoves: [{ at: 'now', intent: 7 }] }, 'example text']) {
+      expect(ingestion().readingOf({ ...withoutTheKey, flintBrain }, EXAMPLE_READ_STAMP)).toEqual(readingWithoutTheKey);
+    }
+  });
+
+  test('passes over an activity entry\'s kind and tokens, present or not', async () => {
+    const snapshot = await storefrontSnapshot();
+    const activity = (snapshot['activity'] as Record<string, unknown>[]).map(({ kind: _passedOverKind, tokens: _passedOverTokens, ...entry }) => entry);
+    const readingWithoutTheKeys = ingestion().readingOf({ ...snapshot, activity }, EXAMPLE_READ_STAMP);
+    expect(readingWithoutTheKeys.verdict).toBe('readable');
+    const withTheKeys = activity.map((entry) => ({ ...entry, kind: 'example-kind', tokens: 11 }));
+    expect(ingestion().readingOf({ ...snapshot, activity: withTheKeys }, EXAMPLE_READ_STAMP)).toEqual(readingWithoutTheKeys);
   });
 
   test('keeps a failed Baton pass as a warning of its kind, and shows an Assistant that cannot come up as a notice', async () => {
@@ -497,7 +402,6 @@ describe('a snapshot at a version this Gaia does not know', () => {
       activity:          [],
       today:             null,
       usage:             null,
-      brain:             'not-reported',
       versions:          null,
       registryPresence:  null,
       presenceReport:    null,
@@ -555,10 +459,10 @@ describe('a snapshot that cannot be read', () => {
 
 describe('a snapshot with keys this Gaia does not know', () => {
   test('reads a snapshot of the known version as it reads one without them, a key named as a minor included', async () => {
-    const withoutAddedKeys = brainIngestion().readingOf(await brainSnapshot('brain-running'), EXAMPLE_READ_STAMP);
-    const withAddedKeys = { ...await brainSnapshot('brain-running'), monitorMinor: 2, exampleAddedKey: { exampleNested: 1 } };
+    const withoutAddedKeys = ingestion().readingOf(await storefrontSnapshot(), EXAMPLE_READ_STAMP);
+    const withAddedKeys = { ...await storefrontSnapshot(), monitorMinor: 2, exampleAddedKey: { exampleNested: 1 } };
 
     expect(withoutAddedKeys.verdict).toBe('readable');
-    expect(brainIngestion().readingOf(withAddedKeys, EXAMPLE_READ_STAMP)).toEqual(withoutAddedKeys);
+    expect(ingestion().readingOf(withAddedKeys, EXAMPLE_READ_STAMP)).toEqual(withoutAddedKeys);
   });
 });

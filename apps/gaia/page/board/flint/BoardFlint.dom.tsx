@@ -1,5 +1,5 @@
 /**
- * The board's host of Flint in a happy-dom document, on manual frames and stubbed boxes, with a recording brain to read what Flint
+ * The board's host of Flint in a happy-dom document, on manual frames and stubbed boxes, with a recording director to read what Flint
  * perceives. What matters: one overlay, hidden from assistive technology and blind to the pointer, so Flint blocks no click below it, and
  * the home corner beside it; Flint stays in its box, so it is drawn only inside the home corner, its body takes no press and a drag on it
  * carries nothing; the chat thread is the chat habitat and its card a workplace; Flint starts in the habitat the board stored and
@@ -8,8 +8,8 @@
  * an agent that works is copied, Flint walking below the job column of its row, and after the agents were idle and Flint slept at home a
  * working agent does not wake it; a board occasion
  * reaches Flint wherever it is, a stream that comes back ends the unplugged loop with a wave, and each board shows a watcher spark for
- * each agent in flight, at most 4; a view below reaches Flint through `useFlintPerform`, with one of its own elements; and Flint has no
- * brain: no brain part is drawn and no request leaves the page while its director is asked.
+ * each agent in flight, at most 4; a view below reaches Flint through `useFlintPerform`, with one of its own elements; and Gaia calls
+ * no model for Flint: no request leaves the page while its director is asked.
  */
 import {
   act,
@@ -96,7 +96,7 @@ function advanceFor(frames: ManualFlintFrames, milliseconds: number): void {
   for (let elapsed = 0; elapsed < milliseconds; elapsed += FRAME_MILLISECONDS) act(() => frames.advance(FRAME_MILLISECONDS));
 }
 
-function recordingBrain(): Director & { readonly digests: PerceptionDigest[] } {
+function recordingDirector(): Director & { readonly digests: PerceptionDigest[] } {
   const digests: PerceptionDigest[] = [];
   return {
     nextIntent: (digest): SpriteIntent => {
@@ -214,10 +214,10 @@ describe('the chat habitat', () => {
     render(<Host boardStore={boardStoreOver(entries)} frames={frames}><Chat turns={[]} /></Host>);
     placeChat();
     advanceFor(frames, FRAME_MILLISECONDS);
-    const brain = recordingBrain();
-    handle().startBrain(brain, 60000);
+    const director = recordingDirector();
+    handle().startBrain(director, 60000);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests[0]?.habitatKind).toBe('chat');
+    expect(director.digests[0]?.habitatKind).toBe('chat');
     handle().stopBrain();
     handle().perform('sleep');
     advanceFor(frames, FRAME_MILLISECONDS * 2);
@@ -231,15 +231,15 @@ describe('the chat habitat', () => {
     const page = render(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN]} /></Host>);
     placeChat();
     advanceFor(frames, FRAME_MILLISECONDS);
-    const brain = recordingBrain();
-    handle().startBrain(brain, 60000);
+    const director = recordingDirector();
+    handle().startBrain(director, 60000);
     advanceFor(frames, FRAME_MILLISECONDS * 2);
     page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN, { ...WRITING_TURN, key: 'turn-2' }]} /></Host>);
     const composer = screen.getByLabelText(COMPOSER_LABEL);
     fireEvent.change(composer, { target: { value: 'E' } });
     fireEvent.change(composer, { target: { value: 'Ex' } });
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests.flatMap((digest) => digest.newCues)).toEqual(['agent-is-writing', 'user-is-typing']);
+    expect(director.digests.flatMap((digest) => digest.newCues)).toEqual(['agent-is-writing', 'user-is-typing']);
   });
 
   test('the turns a history brings, at the first open and after a switch to another job, cue nothing; a turn after them does', () => {
@@ -249,15 +249,15 @@ describe('the chat habitat', () => {
     const page = render(<Host boardStore={boardStore} frames={frames}><Chat turns={[]} historyKey={null} /></Host>);
     placeChat();
     advanceFor(frames, FRAME_MILLISECONDS);
-    const brain = recordingBrain();
-    handle().startBrain(brain, 60000);
+    const director = recordingDirector();
+    handle().startBrain(director, 60000);
     advanceFor(frames, FRAME_MILLISECONDS * 2);
     page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN]} historyKey="J1" /></Host>);
     page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN, { ...WRITING_TURN, key: 'turn-2' }]} historyKey="J1" /></Host>);
     page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[]} historyKey={null} /></Host>);
     page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[{ ...DONE_TURN, key: 'turn-9' }]} historyKey="J2" /></Host>);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests.flatMap((digest) => digest.newCues)).toEqual(['agent-is-writing']);
+    expect(director.digests.flatMap((digest) => digest.newCues)).toEqual(['agent-is-writing']);
   });
 
   test('a press on the composer makes the thread the habitat Flint visits', () => {
@@ -266,10 +266,10 @@ describe('the chat habitat', () => {
     placeChat();
     advanceFor(frames, FRAME_MILLISECONDS);
     fireEvent.pointerDown(screen.getByLabelText(COMPOSER_LABEL));
-    const brain = recordingBrain();
-    handle().startBrain(brain, 60000);
+    const director = recordingDirector();
+    handle().startBrain(director, 60000);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests[0]).toMatchObject({ habitatKind: null, visitTargetKind: 'chat' });
+    expect(director.digests[0]).toMatchObject({ habitatKind: null, visitTargetKind: 'chat' });
   });
 });
 
@@ -377,11 +377,11 @@ describe('the board occasions', () => {
     const page = render(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
     placeChat();
     advanceFor(frames, FRAME_MILLISECONDS);
-    const brain = recordingBrain();
-    handle().startBrain(brain, 60000);
+    const director = recordingDirector();
+    handle().startBrain(director, 60000);
     page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ paused: true })}><Chat turns={[]} /></Host>);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests[0]?.lastIntent).toBe('hold');
+    expect(director.digests[0]?.lastIntent).toBe('hold');
   });
 
   test('a stream that goes down unplugs Flint, and once it is back Flint waves, which ends the unplugged loop', () => {
@@ -389,16 +389,16 @@ describe('the board occasions', () => {
     const page = render(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
     placeChat();
     advanceFor(frames, FRAME_MILLISECONDS);
-    const brain = recordingBrain();
-    handle().startBrain(brain, 60000);
+    const director = recordingDirector();
+    handle().startBrain(director, 60000);
     page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ connection: 'down' })}><Chat turns={[]} /></Host>);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests.at(-1)?.lastIntent).toBe('unplugged');
+    expect(director.digests.at(-1)?.lastIntent).toBe('unplugged');
     expect(unpluggedSocketIsShown()).toBe(true);
     page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf({ connection: 'connecting' })}><Chat turns={[]} /></Host>);
     page.rerender(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
-    expect(brain.digests.at(-1)?.lastIntent).toBe('wave');
+    expect(director.digests.at(-1)?.lastIntent).toBe('wave');
     expect(unpluggedSocketIsShown()).toBe(false);
   });
 
@@ -436,10 +436,8 @@ describe('a view below the host', () => {
   });
 });
 
-describe('no brain', () => {
-  const BRAIN_WORDS = /brain/iu;
-
-  test('no brain part is drawn and no request leaves the page while Flint\'s director is asked', () => {
+describe('no model call', () => {
+  test('no request leaves the page while Flint\'s director is asked', () => {
     const requests: string[] = [];
     const pageFetch = globalThis.fetch;
     globalThis.fetch = Object.assign((request: Parameters<typeof fetch>[0]) => {
@@ -454,9 +452,7 @@ describe('no brain', () => {
       placeChat();
       page.rerender(<Host boardStore={boardStore} frames={frames}><Chat turns={[DONE_TURN, { ...WRITING_TURN, key: 'turn-2' }]} /></Host>);
       advanceFor(frames, DIRECTOR_ASK_MILLISECONDS * 3);
-      const labelledParts = [...document.querySelectorAll('[aria-label], [data-flint-part], button')]
-        .flatMap((element) => [element.getAttribute('aria-label') ?? '', element.getAttribute('data-flint-part') ?? '', element.textContent]);
-      expect([requests, labelledParts.filter((text) => BRAIN_WORDS.test(text))]).toEqual([[], []]);
+      expect(requests).toEqual([]);
     } finally {
       globalThis.fetch = pageFetch;
     }

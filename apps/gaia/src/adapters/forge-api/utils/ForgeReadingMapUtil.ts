@@ -1,7 +1,7 @@
 /**
  * Maps the forge documents an ingestion has checked to the internal model: an identity to a `ForgeIdentity`, and a monitor snapshot, a
  * board summary or a contract Gaia does not know to a `ForgeReading` at its fidelity (PLAN 6.1, 7.1). What a document does not carry
- * comes from the registry and the identity; a fact no source gives is `null`, never zero. Only a snapshot reports a brain. A monitor's
+ * comes from the registry and the identity; a fact no source gives is `null`, never zero. A monitor's
  * `target` names the thing an entry opens, and maps to that subject's place on Gaia's board; an entry with no target maps to none.
  */
 import type { BoardTarget, BoardTargetSubject }                                from 'forge-contracts/BoardReadingDocuments';
@@ -10,15 +10,13 @@ import type { IdentityDocument }                                               f
 import type {
   MonitorActivityEntryDocument,
   MonitorAttentionEntryDocument,
-  MonitorFlintBrainDocument,
   MonitorJobDocument,
   MonitorNoticeDocument,
   MonitorSnapshotDocument,
 } from 'forge-contracts/MonitorSnapshotDocument';
-import type { ActivityEntry, ActivityKind } from '../../../shared/@types/ActivityEntry.ts';
-import type { AgentRow }                    from '../../../shared/@types/AgentRow.ts';
-import type { AttentionItem }               from '../../../shared/@types/AttentionItem.ts';
-import type { ForgeBrainReading }           from '../../../shared/@types/ForgeBrain.ts';
+import type { ActivityEntry } from '../../../shared/@types/ActivityEntry.ts';
+import type { AgentRow }      from '../../../shared/@types/AgentRow.ts';
+import type { AttentionItem } from '../../../shared/@types/AttentionItem.ts';
 import type {
   ForgeCondition,
   ForgeContracts,
@@ -167,8 +165,6 @@ function warningIsANotice(warning: MonitorNoticeDocument): boolean {
   return warning.kind === FORGE_NOTICE_KINDS.assistantDown;
 }
 
-const FLINT_BRAIN_ACTIVITY_KIND: ActivityKind = 'flint-brain';
-
 function activityEntryOf(entry: MonitorActivityEntryDocument): ActivityEntry {
   return {
     logPosition: entry.logPosition,
@@ -176,29 +172,6 @@ function activityEntryOf(entry: MonitorActivityEntryDocument): ActivityEntry {
     category:    entry.category,
     text:        entry.text,
     boardRoute:  boardRouteOf(entry.target),
-    kind:        entry.kind === FLINT_BRAIN_ACTIVITY_KIND ? FLINT_BRAIN_ACTIVITY_KIND : null,
-    tokens:      entry.tokens ?? null,
-  };
-}
-
-/** A forge without Flint sends no brain, and it reads as one that reports none. */
-function brainOf(flintBrain: MonitorFlintBrainDocument | null): ForgeBrainReading {
-  if (flintBrain === null) return 'not-reported';
-  const { refusal } = flintBrain;
-  return {
-    state:       flintBrain.state,
-    startedAt:   flintBrain.startedAt,
-    endsAt:      flintBrain.endsAt,
-    startedBy:   flintBrain.startedBy,
-    model:       flintBrain.model,
-    effort:      flintBrain.effort,
-    tokens:      flintBrain.tokens,
-    calls:       flintBrain.calls,
-    recentMoves: flintBrain.recentMoves.map((move) => ({ at: move.at, intent: move.intent, emote: move.emote })),
-    endedAt:     flintBrain.endedAt,
-    endedReason: flintBrain.endedReason,
-    sentence:    flintBrain.sentence,
-    refusal:     refusal === null ? null : { code: refusal.code, sentence: refusal.sentence },
   };
 }
 
@@ -247,7 +220,6 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
       currentWindow:         usage.currentWindow,
       currentWindowResetsAt: usage.currentWindowResetsAt,
     },
-    brain:            brainOf(snapshot.flintBrain),
     versions:         null,
     registryPresence: null,
     presenceReport:   null,
@@ -291,7 +263,6 @@ function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: Forge
       currentWindow:         null,
       currentWindowResetsAt: null,
     },
-    brain:            'not-reported',
     versions:         null,
     registryPresence: null,
     presenceReport:   null,
@@ -344,7 +315,6 @@ function unreadReadingOf(
     activity:          [],
     today:             null,
     usage:             null,
-    brain:             'not-reported',
     versions:          null,
     registryPresence:  null,
     presenceReport:    null,

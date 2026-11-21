@@ -1,7 +1,7 @@
 /**
  * The "What notifies" list as C2 draws it in version 2. What matters: the count of kinds on sits at the end of the dialog's title line and
- * follows the settings, never a number of its own; the seven kinds sit in one card with a hairline between each two; and no kind is the
- * brain's, since Flint's brain notifies nothing (SCREENS C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
+ * follows the settings, never a number of its own; the seven kinds sit in one card with a hairline between each two
+ * (SCREENS C2). The behaviour of the list is held in `GaiaPanel.spec.tsx`.
  */
 import { describe, expect, test } from 'bun:test';
 import { Card }                   from 'design-system/Card';
@@ -55,7 +55,7 @@ describe('"What notifies" in version 2 (C2)', () => {
     expect(card.props['divider']).toBe(true);
   });
 
-  test('no kind is Flint\'s brain\'s, which notifies nothing', () => {
+  test('the kinds are the seven of C2, in its order', () => {
     const labels = contentOf().kinds.map((checkbox) => checkbox.label);
     expect(labels).toEqual([
       'Escalated questions',
@@ -66,6 +66,5 @@ describe('"What notifies" in version 2 (C2)', () => {
       'The machine is at its agent limit',
       'Draft tickets',
     ]);
-    expect(labels.filter((label) => /brain|flint/i.test(label))).toEqual([]);
   });
 });

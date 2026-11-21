@@ -248,8 +248,6 @@ const CONTRACT_COMMAND_OF_KIND: { readonly [Kind in BoardCommandKind]: (command:
   'overseer-stop':           (command) => ({ kind: command.kind, now: command.now }),
   'overseer-restart':        (command) => ({ kind: command.kind, now: command.now }),
   'concurrency-set':         (command) => ({ kind: command.kind, limit: command.limit }),
-  'flint-brain-start':       (command) => ({ kind: command.kind }),
-  'flint-brain-stop':        (command) => ({ kind: command.kind }),
   'interrupted-work-resume': (command) => ({ kind: command.kind, target: resumeTargetOut(command.target) }),
   'chart-range-set':         (command) => ({ kind: command.kind, range: chartRangeOut(command.range) }),
   'decision-answer':         (command) => ({ kind: command.kind, decisionId: command.decisionId, answer: answerOut(command.answer) }),

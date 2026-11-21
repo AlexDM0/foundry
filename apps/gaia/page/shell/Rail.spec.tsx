@@ -125,7 +125,7 @@ describe('the rail', () => {
     expect([meter.props['label'], meter.props['tone']]).toEqual(['10 of 12 agents', 'accent']);
     expect(slotsOf(meter)).toEqual([10, 12]);
     expect(tree.hostElementsIn([machine], tree.withClass('gaia-rail-machine-at-the-limit'))).toEqual([]);
-    expect(tree.textOf([tree.onlyWithClass([machine], 'gaia-rail-machine-line')])).toBe('limit 12 of 12 CPUs · Flint\'s brain runs outside it');
+    expect(tree.textOf([tree.onlyWithClass([machine], 'gaia-rail-machine-line')])).toBe('limit 12 of 12 CPUs');
   });
 
   test('at the limit the machine link is marked, every slot is filled, and the line of what waits stands over the limit line', () => {
@@ -133,7 +133,7 @@ describe('the rail', () => {
     expect(atLimit.props['data-at-the-limit']).toBe('');
     expect(slotsOf(tree.onlyOfComponent([atLimit], SlotMeter))).toEqual([10, 10]);
     const lines = tree.hostElementsIn([atLimit], (element) => ['gaia-rail-machine-at-the-limit', 'gaia-rail-machine-line'].some((className) => tree.hasClass(element, className)));
-    expect(lines.map((line) => tree.textOf([line]))).toEqual(['at the limit · 3 tickets wait', 'limit 10 of 12 CPUs · Flint\'s brain runs outside it']);
+    expect(lines.map((line) => tree.textOf([line]))).toEqual(['at the limit · 3 tickets wait', 'limit 10 of 12 CPUs']);
   });
 
   test('with no forge registered (B4) the forges\' group is headed as ever and says so in one line, with no forge row, and every slot is free', () => {

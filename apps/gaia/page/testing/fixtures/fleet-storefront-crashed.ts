@@ -6,8 +6,7 @@
 import type { CrashLogDocument }                  from '../../@types/CrashLogDocument.ts';
 import type { FleetDocument, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 
-import { fleetWithStorefrontBrainOf }                            from './fleet-brain-states.ts';
-import { FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from './fleet-five-forges.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from './fleet-five-forges.ts';
 
 const STOREFRONT_TRACKER_ID = FLEET_FIVE_FORGES_TRACKER_IDS.exampleStorefront;
 
@@ -41,13 +40,11 @@ export const STOREFRONT_CRASH_LOG: CrashLogDocument = {
   ],
 };
 
-/** B1's own fleet, Example Storefront's brain off, since a crash ends a running brain. */
 function fleetWithStorefront(storefrontChanges: Partial<FleetDocumentForge>, keepsItsAgents: boolean): FleetDocument {
-  const fleet = fleetWithStorefrontBrainOf('off');
   return {
-    ...fleet,
-    forges: fleet.forges.map((forge) => (forge.trackerId === STOREFRONT_TRACKER_ID ? { ...forge, ...storefrontChanges } : forge)),
-    agents: keepsItsAgents ? fleet.agents : fleet.agents.filter((row) => row.trackerId !== STOREFRONT_TRACKER_ID),
+    ...FLEET_FIVE_FORGES,
+    forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === STOREFRONT_TRACKER_ID ? { ...forge, ...storefrontChanges } : forge)),
+    agents: keepsItsAgents ? FLEET_FIVE_FORGES.agents : FLEET_FIVE_FORGES.agents.filter((row) => row.trackerId !== STOREFRONT_TRACKER_ID),
   };
 }
 

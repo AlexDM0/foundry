@@ -1,12 +1,11 @@
 /**
  * A forge's stamp as the page prints it: an age against the page's clock (`4m`, `2h 04m`, `3d 05h`), a clock time in the page's time
- * zone, with its month and day when it is from another day, or the time left until it (`1:24`). A stamp that does not parse prints nothing
- * rather than a wrong time. Comparing a stamp with the clock is a stated clock exception: it decides only the text and the counts printed.
+ * zone, with its month and day when it is from another day. A stamp that does not parse prints nothing rather than a wrong time. Comparing
+ * a stamp with the clock is a stated clock exception: it decides only the text printed.
  */
-import type { ClockReading }                                from '../@types/ClockReading.ts';
-import { MILLISECONDS_PER_MINUTE, MILLISECONDS_PER_SECOND } from '../constants/TimeUnits.ts';
+import type { ClockReading }       from '../@types/ClockReading.ts';
+import { MILLISECONDS_PER_MINUTE } from '../constants/TimeUnits.ts';
 
-const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
 
@@ -79,23 +78,8 @@ function stampIsOfTheClocksDay(stamp: string, nowEpochMilliseconds: number, time
   return calendarPartsOf(stampEpochMilliseconds, timeZone).calendarDay === calendarPartsOf(nowEpochMilliseconds, timeZone).calendarDay;
 }
 
-/** A span as whole minutes and padded seconds, `1:24` or `12:05`, its part second dropped; a negative span reads as `0:00`. */
-function minutesAndSecondsTextOf(milliseconds: number): string {
-  const totalSeconds = Math.max(0, Math.floor(milliseconds / MILLISECONDS_PER_SECOND));
-  return `${Math.floor(totalSeconds / SECONDS_PER_MINUTE)}:${padToTwoDigits(totalSeconds % SECONDS_PER_MINUTE)}`;
-}
-
-/** Whole minutes and padded seconds left until the stamp, `1:24`; it stops at `0:00` once the stamp has passed. */
-function countdownTextOf(stamp: string, nowEpochMilliseconds: number): string | null {
-  const stampEpochMilliseconds = epochMillisecondsOf(stamp);
-  return stampEpochMilliseconds === null ? null : minutesAndSecondsTextOf(stampEpochMilliseconds - nowEpochMilliseconds);
-}
-
 export const StampTextUtil = {
   ageTextOf,
   clockTextOf,
   clockTextAtReadingOf,
-  stampIsOfTheClocksDay,
-  minutesAndSecondsTextOf,
-  countdownTextOf,
 } as const;

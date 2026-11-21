@@ -1,13 +1,11 @@
 /**
- * The example data of artboards A1 to A4: four running forges, one dormant, one whose repository is gone, Flint's brain running on
- * Example Storefront with the entry of its start, and the entry of a brain that ended on Invoice Service. Stamps are UTC; read at
+ * The example data of artboards A1 to A4: four running forges, one dormant and one whose repository is gone. Stamps are UTC; read at
  * `FLEET_FIXTURES_READ_AT`, every age and running time is the one the artboards show.
  */
 import type {
   FleetDocument,
   FleetDocumentAgentRow,
   FleetDocumentAttentionItem,
-  FleetDocumentBrain,
   FleetDocumentFleetAgentRow,
   FleetDocumentForge,
   FleetDocumentForgeVersions,
@@ -43,63 +41,6 @@ const USAGE_UNDER_THE_LIMIT: FleetDocumentUsage = {
   window:                null,
   currentWindow:         'five_hour',
   currentWindowResetsAt: '2026-11-12T16:00:00.000Z',
-};
-
-/** A forge with Flint whose brain is not awake. */
-const BRAIN_OFF: FleetDocumentBrain = {
-  state:       'off',
-  startedAt:   null,
-  endsAt:      null,
-  startedBy:   null,
-  model:       null,
-  effort:      null,
-  tokens:      null,
-  calls:       null,
-  recentMoves: [],
-  endedAt:     null,
-  endedReason: null,
-  sentence:    null,
-  refusal:     null,
-};
-
-/** Woken from Gaia 0:36 before the page clock, so 1:24 of its two minutes are left, as A2 and B1 show it. */
-const STOREFRONT_BRAIN_RUNNING: FleetDocumentBrain = {
-  state:       'running',
-  startedAt:   '2026-11-12T13:18:54.000Z',
-  endsAt:      '2026-11-12T13:20:54.000Z',
-  startedBy:   'api',
-  model:       'haiku',
-  effort:      'low',
-  tokens:      3_100,
-  calls:       9,
-  recentMoves: [
-    { at: '2026-11-12T13:19:28.000Z', intent: 'visit Agents', emote: 'wave' },
-    { at: '2026-11-12T13:19:19.000Z', intent: 'walk to Kanban · look at #013', emote: null },
-    { at: '2026-11-12T13:19:06.000Z', intent: 'read the board · 4 jobs, 1 question', emote: null },
-    { at: '2026-11-12T13:18:58.000Z', intent: 'wake', emote: 'stretch' },
-  ],
-  endedAt:     null,
-  endedReason: null,
-  sentence:    'Flint\'s brain is running until 13:20',
-  refusal:     null,
-};
-
-/** Stopped from the Bridge after 0:26, and still reported within the forge's minute, as a spec puts it in the running brain's place. */
-const STOREFRONT_BRAIN_ENDED: FleetDocumentBrain = {
-  ...STOREFRONT_BRAIN_RUNNING,
-  state:       'ended',
-  tokens:      2_400,
-  endedAt:     '2026-11-12T13:19:20.000Z',
-  endedReason: 'stopped',
-  sentence:    'Flint\'s brain stopped after 0:26',
-};
-
-/** A start the forge refused while the usage limit held, as a spec puts it in the running brain's place. */
-const STOREFRONT_BRAIN_REFUSED: FleetDocumentBrain = {
-  ...BRAIN_OFF,
-  state:    'refused',
-  sentence: null,
-  refusal:  { code: 'usage-limit-holds', sentence: 'The usage limit holds until 16:00.' },
 };
 
 const STOREFRONT_DRAFT_015: FleetDocumentAttentionItem = {
@@ -460,22 +401,11 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
   warnings:         [],
   activity:         [
     {
-      logPosition: 457,
-      at:          '2026-11-12T13:18:54.000Z',
-      category:    'agent',
-      text:        'Flint\'s brain started through the API · haiku low · 2:00 at most',
-      boardRoute:  null,
-      kind:        'flint-brain',
-      tokens:      null,
-    },
-    {
       logPosition: 455,
       at:          '2026-11-12T13:16:20.000Z',
       category:    'agent',
       text:        'J4 builder started on #013 Product image zoom',
       boardRoute:  { tab: 'agents', item: 'J4' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 452,
@@ -483,8 +413,6 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       category:    'needs-user',
       text:        'J3 asked E2: How long should a password reset link stay valid?',
       boardRoute:  { tab: 'questions', item: 'E2' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 447,
@@ -492,8 +420,6 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       category:    'landed',
       text:        '#010 Wishlist sharing landed on main',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/010' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 431,
@@ -501,8 +427,6 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       category:    'landed',
       text:        '#009 Guest checkout landed on main',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/009' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 418,
@@ -510,8 +434,6 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       category:    'needs-user',
       text:        '#015 Search suggestions was filed as a draft',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/015' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 412,
@@ -519,13 +441,10 @@ const EXAMPLE_STOREFRONT: FleetDocumentForge = {
       category:    'landed',
       text:        '#008 Order history filters landed on main',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/008' },
-      kind:        null,
-      tokens:      null,
     },
   ],
   today:           { deliveredTickets: 3, tokens: 512_000 },
   usage:           USAGE_UNDER_THE_LIMIT,
-  brain:           STOREFRONT_BRAIN_RUNNING,
   versions:        CURRENT_FORGE_VERSIONS,
   presence:        { state: 'serving', generation: null, at: null },
   crashSummary:    null,
@@ -571,8 +490,6 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       category:    'needs-user',
       text:        '#031 Round VAT per line, not per invoice was reviewed and waits for your accept',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/031' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 318,
@@ -580,8 +497,6 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       category:    'agent',
       text:        'J14 reviewer started on #032 VAT rounding rules',
       boardRoute:  { tab: 'agents', item: 'J14' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 315,
@@ -589,17 +504,6 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       category:    'needs-user',
       text:        'E4 escalated from incident I2: the VAT gate cannot run in the sandbox',
       boardRoute:  { tab: 'questions', item: 'E4' },
-      kind:        null,
-      tokens:      null,
-    },
-    {
-      logPosition: 312,
-      at:          '2026-11-12T12:46:00.000Z',
-      category:    'agent',
-      text:        'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API',
-      boardRoute:  null,
-      kind:        'flint-brain',
-      tokens:      4_200,
     },
     {
       logPosition: 309,
@@ -607,8 +511,6 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       category:    'landed',
       text:        '#030 Reminder emails landed on main',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/030' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 301,
@@ -616,13 +518,10 @@ const INVOICE_SERVICE: FleetDocumentForge = {
       category:    'landed',
       text:        '#029 Payment terms on quotes landed on main',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/029' },
-      kind:        null,
-      tokens:      null,
     },
   ],
   today:           { deliveredTickets: 2, tokens: 418_000 },
   usage:           USAGE_UNDER_THE_LIMIT,
-  brain:           BRAIN_OFF,
   versions:        CURRENT_FORGE_VERSIONS,
   presence:        { state: 'serving', generation: null, at: null },
   crashSummary:    null,
@@ -668,8 +567,6 @@ const RESEARCH_WIKI: FleetDocumentForge = {
       category:    'needs-user',
       text:        'E1 opened: two gates are proposed for this repository',
       boardRoute:  { tab: 'questions', item: 'E1' },
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 120,
@@ -677,13 +574,10 @@ const RESEARCH_WIKI: FleetDocumentForge = {
       category:    'landed',
       text:        '#006 Glossary page landed on main',
       boardRoute:  { tab: 'tickets', item: 'ticket-row/006' },
-      kind:        null,
-      tokens:      null,
     },
   ],
   today:           { deliveredTickets: 1, tokens: 164_000 },
   usage:           USAGE_UNDER_THE_LIMIT,
-  brain:           BRAIN_OFF,
   versions:        CURRENT_FORGE_VERSIONS,
   presence:        { state: 'serving', generation: null, at: null },
   crashSummary:    null,
@@ -729,8 +623,6 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
       category:    'forge',
       text:        'Launches held: the install version changed',
       boardRoute:  null,
-      kind:        null,
-      tokens:      null,
     },
     {
       logPosition: 210,
@@ -738,13 +630,10 @@ const EXAMPLE_MOBILE_APP: FleetDocumentForge = {
       category:    'agent',
       text:        'J7 reviewer started on #020 Push permission prompt',
       boardRoute:  { tab: 'agents', item: 'J7' },
-      kind:        null,
-      tokens:      null,
     },
   ],
   today:           { deliveredTickets: 0, tokens: 146_000 },
   usage:           USAGE_UNDER_THE_LIMIT,
-  brain:           BRAIN_OFF,
   versions:        CURRENT_FORGE_VERSIONS,
   presence:        { state: 'serving', generation: null, at: null },
   crashSummary:    null,
@@ -790,12 +679,9 @@ const DESIGN_SYSTEM: FleetDocumentForge = {
     category:    'forge',
     text:        'Overseer stopped',
     boardRoute:  null,
-    kind:        null,
-    tokens:      null,
   }],
   today:           null,
   usage:           null,
-  brain:           'not-reported',
   versions:        CURRENT_FORGE_VERSIONS,
   presence:        { state: 'unknown', generation: null, at: null },
   crashSummary:    null,
@@ -835,7 +721,6 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   activity:          [],
   today:             null,
   usage:             null,
-  brain:             'not-reported',
   versions:          null,
   presence:          { state: 'unknown', generation: null, at: null },
   crashSummary:      null,
@@ -844,14 +729,6 @@ const LEGACY_IMPORTER: FleetDocumentForge = {
   outageEndings:     0,
   runningVersions:   null,
 };
-
-/** A brain in each state the forge reports, for the specs that put one in Example Storefront's place. */
-export const FLEET_FIVE_FORGES_BRAINS = {
-  off:     BRAIN_OFF,
-  running: STOREFRONT_BRAIN_RUNNING,
-  ended:   STOREFRONT_BRAIN_ENDED,
-  refused: STOREFRONT_BRAIN_REFUSED,
-} as const;
 
 /** Each forge of the fixture, for the fixtures that change one or two of them. */
 export const FLEET_FIVE_FORGES_READINGS = {
@@ -869,38 +746,11 @@ function activityOf(forge: FleetDocumentForge, logPosition: number) {
   return { ...entry, trackerId: forge.trackerId };
 }
 
-function agentOf(forge: FleetDocumentForge, jobId: string) {
+function agentOf(forge: FleetDocumentForge, jobId: string): FleetDocumentFleetAgentRow {
   const row = forge.agents.find((candidate) => candidate.jobId === jobId);
   if (row === undefined) throw new Error(`The fixture names job ${jobId}, which ${forge.project} does not run.`);
-  return { ...row, trackerId: forge.trackerId, countsAgainstLimit: true };
+  return { ...row, trackerId: forge.trackerId };
 }
-
-/** The running brain's row, last in its forge's group: no job, so it counts against no limit. */
-const STOREFRONT_BRAIN_ROW: FleetDocumentFleetAgentRow = {
-  trackerId:           TRACKER_IDS.exampleStorefront,
-  countsAgainstLimit:  false,
-  jobId:               'flint-brain',
-  kind:                'flint-brain',
-  role:                'brain',
-  state:               'running',
-  ticketIds:           [],
-  tokens:              3_100,
-  ticketTitle:         null,
-  attempt:             null,
-  startedAt:           '2026-11-12T13:18:54.000Z',
-  calls:               9,
-  callBudget:          null,
-  toolCalls:           null,
-  lastToolCall:        null,
-  runningSubagents:    null,
-  silentSweeps:        null,
-  quiet:               null,
-  turn:                null,
-  messagesWaiting:     null,
-  lastLine:            null,
-  waitingOnDecisionId: null,
-  boardRoute:          null,
-};
 
 export const FLEET_FIVE_FORGES: FleetDocument = {
   fleetVersion: 9,
@@ -923,14 +773,12 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     agentOf(EXAMPLE_STOREFRONT, 'J3'),
     agentOf(EXAMPLE_STOREFRONT, 'J4'),
     agentOf(EXAMPLE_STOREFRONT, 'J6'),
-    STOREFRONT_BRAIN_ROW,
     agentOf(INVOICE_SERVICE, 'J11'),
     agentOf(INVOICE_SERVICE, 'J12'),
     agentOf(INVOICE_SERVICE, 'J14'),
     agentOf(RESEARCH_WIKI, 'J2'),
   ],
   activity: [
-    activityOf(EXAMPLE_STOREFRONT, 457),
     activityOf(EXAMPLE_STOREFRONT, 455),
     activityOf(EXAMPLE_STOREFRONT, 452),
     activityOf(INVOICE_SERVICE, 321),
@@ -939,7 +787,6 @@ export const FLEET_FIVE_FORGES: FleetDocument = {
     activityOf(INVOICE_SERVICE, 315),
     activityOf(RESEARCH_WIKI, 124),
     activityOf(RESEARCH_WIKI, 120),
-    activityOf(INVOICE_SERVICE, 312),
     activityOf(EXAMPLE_MOBILE_APP, 213),
     activityOf(EXAMPLE_MOBILE_APP, 210),
     activityOf(INVOICE_SERVICE, 309),

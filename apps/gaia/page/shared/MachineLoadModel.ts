@@ -1,6 +1,6 @@
 /**
  * This machine's agents against its limit, as a fleet document reports them: the figure, the meter's slots and the lines at, under and
- * without a limit. Every count is the document's own figure; a brain's row counts against no limit, and the limit's line says so.
+ * without a limit. Every count is the document's own figure.
  */
 import type { FleetDocument } from '../@types/FleetDocument.ts';
 import { CountTextUtil }      from './utils/CountTextUtil.ts';
@@ -24,8 +24,6 @@ export interface MachineLoad {
 
 const LINE_SEPARATOR = ' · ';
 
-const BRAIN_OUTSIDE_THE_LIMIT_CLAUSE = 'Flint\'s brain runs outside it';
-
 function atTheLimitLineOf(fleetDocument: FleetDocument): string {
   const { ticketsWaitingForMachineSlot } = fleetDocument.machine;
   if (ticketsWaitingForMachineSlot === null || ticketsWaitingForMachineSlot === 0) return 'at the limit';
@@ -34,8 +32,7 @@ function atTheLimitLineOf(fleetDocument: FleetDocument): string {
 
 /**
  * The limit against the CPUs, then what the figure holds that Gaia cannot vouch for now: the agents of an unreachable forge as it last
- * reported them (B3), and the forges at a version Gaia cannot talk to, whose agents it leaves out; otherwise, under a known limit, that
- * Flint's brain runs outside it, once a forge reports a brain at all.
+ * reported them (B3), and the forges at a version Gaia cannot talk to, whose agents it leaves out.
  */
 function limitLineOf(fleetDocument: FleetDocument): string {
   const { machineLimit, agentsInFlight } = fleetDocument.figures;
@@ -43,14 +40,12 @@ function limitLineOf(fleetDocument: FleetDocument): string {
   const limitClause = machineLimit === null ? `no limit known${LINE_SEPARATOR}${cpus}` : `limit ${machineLimit} of ${cpus}`;
   const unreachable = new Set(fleetDocument.forges.filter((forge) => forge.fidelity === 'unreachable').map((forge) => forge.trackerId));
   const notCounted = FleetDocumentUtil.forgesWhoseAgentsAreNotCountedIn(fleetDocument).length;
-  const asLastReported = fleetDocument.agents.filter((row) => row.countsAgainstLimit && unreachable.has(row.trackerId)).length;
+  const asLastReported = fleetDocument.agents.filter((row) => unreachable.has(row.trackerId)).length;
   const vouchClauses = [
     unreachable.size === 0 ? null : `${asLastReported} of the ${agentsInFlight} as last reported`,
     notCounted === 0 ? null : CountTextUtil.countedPhrase(notCounted, 'forge not counted', 'forges not counted'),
   ].filter((clause) => clause !== null);
-  if (vouchClauses.length > 0) return [limitClause, ...vouchClauses].join(LINE_SEPARATOR);
-  const aBrainIsReported = fleetDocument.forges.some((forge) => forge.brain !== 'not-reported');
-  return machineLimit !== null && aBrainIsReported ? `${limitClause}${LINE_SEPARATOR}${BRAIN_OUTSIDE_THE_LIMIT_CLAUSE}` : limitClause;
+  return [limitClause, ...vouchClauses].join(LINE_SEPARATOR);
 }
 
 /** `8 / 12`, or `8+ / 12` while a forge Gaia cannot talk to runs agents the figure leaves out. */

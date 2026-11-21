@@ -26,9 +26,7 @@ export type ForgeCommandBody =
       | 'forge-talos-restart'
       | 'forge-update'
       | 'forge-hide'
-      | 'forge-unhide'
-      | 'forge-brain-start'
-      | 'forge-brain-stop';
+      | 'forge-unhide';
     trackerId: string;
   }
   | { kind: 'forge-stop'; trackerId: string; agents: ForgeStopAgents }

@@ -31,10 +31,8 @@ describe('the fleet-degraded fixture', () => {
     });
   });
 
-  test('lists ten agents and Example Storefront\'s running brain, the counts-only one with only what its summary holds', () => {
-    expect(FLEET_DEGRADED.agents.filter((row) => row.countsAgainstLimit)).toHaveLength(10);
-    const brainRows = FLEET_DEGRADED.agents.filter((row) => !row.countsAgainstLimit);
-    expect(brainRows.map((row) => [row.trackerId, row.role])).toEqual([[forgeNamed('Example Storefront')?.trackerId ?? null, 'brain']]);
+  test('lists ten agents, the counts-only one with only what its summary holds', () => {
+    expect(FLEET_DEGRADED.agents).toHaveLength(10);
     const countsOnlyJob = FLEET_DEGRADED.agents.find((row) => row.trackerId === forgeNamed('Research Wiki')?.trackerId);
     expect(countsOnlyJob).toMatchObject({
       jobId:     'J2',

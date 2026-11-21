@@ -41,7 +41,6 @@ import {
   type OutageResumeAnswer,
   type ReadingsNote,
   type RecentEntry,
-  type RunningBrainLine,
   type RunningCard,
   type RunningCardForm,
   type UnreachableBanner,
@@ -81,10 +80,6 @@ const ACTIVITY_HREF = '#activity';
 const WAITING_ORDER_SENTENCE = 'oldest first · escalations on top';
 
 const HEAD_SEPARATOR = ' · ';
-
-const LINE_SEPARATOR = ' · ';
-
-const BRAIN_NAME = 'Flint\'s brain';
 
 function commandIsOnItsWay(commandStates: CommandStates, command: CommandBody): boolean {
   return CommandSender.stateOf(commandStates, CommandSender.subjectOf(command)).onItsWay !== null;
@@ -385,26 +380,6 @@ function RunningJobChip({ job }: { readonly job: RunningCard['jobs'][number] }) 
   );
 }
 
-/** Flint's brain under the job chips: the diamond, then the model and the time left as its forge reports them. */
-function RunningBrain({ brain }: { readonly brain: RunningBrainLine }) {
-  return (
-    <span className="gaia-attention-running-brain">
-      <RoleDot role="brain" />
-      <span>
-        {BRAIN_NAME}
-        {brain.model === null ? null : `${LINE_SEPARATOR}${brain.model}`}
-        {brain.countdown === null ? null : (
-          <>
-            {LINE_SEPARATOR}
-            <span className="gaia-attention-running-brain-countdown">{brain.countdown}</span>
-            {' left'}
-          </>
-        )}
-      </span>
-    </span>
-  );
-}
-
 function RunningCardLink({ card, form }: { readonly card: RunningCard; readonly form: RunningCardForm }) {
   return (
     <a className="gaia-attention-running-card" href={card.href} data-stale={card.isStale ? '' : undefined} data-form={form}>
@@ -418,7 +393,6 @@ function RunningCardLink({ card, form }: { readonly card: RunningCard; readonly 
       <span className="gaia-attention-running-jobs">
         {card.jobs.map((job) => <RunningJobChip key={job.jobId} job={job} />)}
       </span>
-      {card.brain === null ? null : <RunningBrain brain={card.brain} />}
       {form === 'full' ? <RunningWaiting card={card} /> : null}
     </a>
   );

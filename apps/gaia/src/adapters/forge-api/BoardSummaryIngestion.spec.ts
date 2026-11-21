@@ -140,7 +140,6 @@ describe('a summary at the known version', () => {
           currentWindow:         null,
           currentWindowResetsAt: null,
         },
-        brain:            'not-reported',
         versions:         null,
         registryPresence: null,
         presenceReport:   null,

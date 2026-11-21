@@ -49,8 +49,6 @@ export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
   'overseer-stop':           { ...VERSION, kind: 'overseer-stop', now: false },
   'overseer-restart':        { ...VERSION, kind: 'overseer-restart', now: true },
   'concurrency-set':         { ...VERSION, kind: 'concurrency-set', limit: 3 },
-  'flint-brain-start':       { ...VERSION, kind: 'flint-brain-start' },
-  'flint-brain-stop':        { ...VERSION, kind: 'flint-brain-stop' },
   'interrupted-work-resume': { ...VERSION, kind: 'interrupted-work-resume', target: { ticketReference: '002' } },
   'chart-range-set':         {
     ...VERSION,

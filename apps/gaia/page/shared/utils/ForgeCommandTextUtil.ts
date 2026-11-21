@@ -32,8 +32,6 @@ const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> =
   'forge-unhide':          'Show again',
   'forge-stop':            'Stop',
   'forge-concurrency-set': 'the agent limit',
-  'forge-brain-start':     'Wake Flint\'s brain',
-  'forge-brain-stop':      'Stop Flint\'s brain',
 
   'forge-interrupted-work-resume': 'Resume',
 };

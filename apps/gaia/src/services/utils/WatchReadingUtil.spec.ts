@@ -1,6 +1,6 @@
 /**
  * The readings of a forge the watch cannot read now, held against the five-forge fixture: a forge stopped in this run keeps what it last
- * reported about its board, log and limits and loses what only a running Overseer knows, its brain included; an unreachable forge keeps its
+ * reported about its board, log and limits and loses what only a running Overseer knows; an unreachable forge keeps its
  * whole last reading; a forge never read shows only what the registry says, and no fact stands in as zero. An Overseer is starting while
  * it refuses as starting or not ready, and for no other failure.
  */
@@ -54,7 +54,6 @@ const DESIGN_SYSTEM_BEFORE_THE_STOP: ForgeReading = {
   overseerStartedAt: EXAMPLE_OVERSEER.startedAt,
   attention:         READINGS.exampleStorefront.attention,
   agents:            READINGS.exampleStorefront.agents,
-  brain:             READINGS.exampleStorefront.brain,
   notices:           [{ kind: 'new-code', text: 'New code is on disk.' }],
   warnings:          [{ kind: 'baton-pass-failed', text: 'The Baton pass failed.' }],
   today:             { deliveredTickets: 2, tokens: 88_000 },
@@ -67,7 +66,7 @@ const DESIGN_SYSTEM_BEFORE_THE_STOP: ForgeReading = {
 };
 
 describe('a dormant forge', () => {
-  test('keeps what it reported in this run about its board, log and limits, and loses its address, jobs, brain, what waits and today', () => {
+  test('keeps what it reported in this run about its board, log and limits, and loses its address, jobs, what waits and today', () => {
     const dormant = WatchReadingUtil.dormantReadingOf(entryOf(READINGS.designSystem, null), DESIGN_SYSTEM_BEFORE_THE_STOP);
     expect(dormant).toEqual(READINGS.designSystem);
   });
@@ -93,7 +92,6 @@ describe('a dormant forge', () => {
       concurrency:      null,
       readyTicketCount: null,
       activity:         [],
-      brain:            'not-reported',
       versions:         null,
     });
   });
@@ -139,8 +137,6 @@ describe('an unreachable forge', () => {
     const invoiceEntry = entryOf(READINGS.invoiceService, { ...EXAMPLE_OVERSEER, url: 'http://127.0.0.1:4958/' });
     expect(WatchReadingUtil.unreachableReadingOf(invoiceEntry, READINGS.invoiceService))
       .toEqual({ ...READINGS.invoiceService, fidelity: 'unreachable', condition: 'unreachable' });
-    const storefrontEntry = entryOf(READINGS.exampleStorefront, EXAMPLE_OVERSEER);
-    expect(WatchReadingUtil.unreachableReadingOf(storefrontEntry, READINGS.exampleStorefront).brain).toEqual(READINGS.exampleStorefront.brain);
   });
 
   test('names the last command its registry entry names now, whether this run read it or not', () => {

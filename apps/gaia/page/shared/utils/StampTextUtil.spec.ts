@@ -1,9 +1,7 @@
 /**
  * How a forge's stamp prints. What matters: the ages of artboard A1 come out of the fixtures' stamps at the clock the artboard was drawn
  * at; an age is minutes alone under an hour and two units above it; a stamp ahead of the clock or one that does not parse prints no wrong
- * time; a clock time carries its month and day only when it is from another day than the clock's, in the time zone handed in; the time
- * left until a brain's end is A2's `1:24` at the fixtures' clock, its part second dropped in every view alike, and stops at `0:00`, since
- * the page decides nothing from it.
+ * time; a clock time carries its month and day only when it is from another day than the clock's, in the time zone handed in.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -49,36 +47,5 @@ describe('the clock time of a stamp', () => {
     expect(StampTextUtil.clockTextAtReadingOf('2026-11-12T13:14:05.000Z', clock)).toBe('14:14');
     expect(StampTextUtil.clockTextAtReadingOf('2026-09-03T17:40:00.000Z', clock)).toBe('09-03 19:40');
     expect(StampTextUtil.clockTextAtReadingOf(null, clock)).toBeNull();
-  });
-});
-
-describe('whether a stamp is of the clock\'s day', () => {
-  test('holds for a stamp of the same calendar day in the time zone handed in, and not for the day before', () => {
-    expect(StampTextUtil.stampIsOfTheClocksDay('2026-11-12T00:10:00.000Z', READ_AT, 'UTC')).toBe(true);
-    expect(StampTextUtil.stampIsOfTheClocksDay('2026-11-11T23:50:00.000Z', READ_AT, 'UTC')).toBe(false);
-    expect(StampTextUtil.stampIsOfTheClocksDay('2026-11-11T23:50:00.000Z', READ_AT, 'Europe/Amsterdam')).toBe(true);
-  });
-
-  test('does not hold for a stamp that does not parse', () => {
-    expect(StampTextUtil.stampIsOfTheClocksDay('today', READ_AT, 'UTC')).toBe(false);
-  });
-});
-
-describe('a span as minutes and seconds', () => {
-  test('drops the part second, pads the seconds and reads a negative span as none', () => {
-    expect([84_000, 84_999, 725_000, 0, -5_000].map((milliseconds) => StampTextUtil.minutesAndSecondsTextOf(milliseconds))).toEqual(['1:24', '1:24', '12:05', '0:00', '0:00']);
-  });
-});
-
-describe('the time left until a stamp', () => {
-  test('is the 1:24 that A2 shows for the fixtures\' brain, in whole seconds', () => {
-    expect(StampTextUtil.countdownTextOf('2026-11-12T13:20:54.000Z', READ_AT)).toBe('1:24');
-    expect(StampTextUtil.countdownTextOf('2026-11-12T13:20:54.900Z', READ_AT)).toBe('1:24');
-    expect(StampTextUtil.countdownTextOf('2026-11-12T13:19:35.000Z', READ_AT)).toBe('0:05');
-  });
-
-  test('stops at 0:00 once the stamp has passed, and prints nothing for a stamp that does not parse', () => {
-    expect(StampTextUtil.countdownTextOf('2026-11-12T13:19:00.000Z', READ_AT)).toBe('0:00');
-    expect(StampTextUtil.countdownTextOf('soon', READ_AT)).toBeNull();
   });
 });

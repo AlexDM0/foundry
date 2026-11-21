@@ -67,7 +67,7 @@ the root's.
     `page/styles/gaia.css` reads only tokens, styles exactly the classes Gaia's components emit (never a package class), and lets a hover
     or press change no size or place; `page/StyleContract.spec.ts` holds this, 4.5:1 on every text pair of COMPONENT_LIBRARY section 4 in
     both themes, and 3:1 on the primary button, the one exception (PLAN V9). A variant is a `data-*` attribute, never a class.
-    `page/design-system/` holds only the parts no package has (Gaia's mark, the brand bar, the brain chip, the callout and the like)
+    `page/design-system/` holds only the parts no package has (Gaia's mark, the brand bar, the callout and the like)
     and Gaia's words around a package part (the refusal around the failed action), composed from the packages' components; a state reaches
     a package component as a state tone mapped in one place, `ConditionDot`, `RoleDot`, `VersionsVerdictMark` and `FigureLookUtil`. Gaia's parts take no hooks, so their specs unfold them with
     `page/testing/ReactElementTree.ts`, which keeps every component the design-system package's exports map names folded: a spec reads and calls the
@@ -99,9 +99,8 @@ the root's.
     from `page/board/` (`page/PageImportDirection.spec.ts`), until stage 8 folds it into the page's `lib/`.
 12. **The design rules hold in both themes, on every screen.** Orange is work, what waits on User and the one primary button of an area;
     crimson is a failure only and never a button; a dot, edge or tint stands beside its word; fill holds, a ring changes, dashed waits;
-    no shadow at rest; mono for machine values. Gaia draws Flint only in the forge route, one per forge, with no brain, and calls no model:
-    outside the forge route the brain's only mark is the diamond, a brain counts in no figure, limit or slot Gaia computes (a forge's own
-    figure, such as its tokens today, is passed on as the forge reports it), and a forge that reports no brain shows none of its parts. `page/Screens.visual.spec.ts` paints every artboard from
+    no shadow at rest; mono for machine values. Gaia draws Flint only in the forge route, one per forge, and calls no model (a forge's own
+    figure, such as its tokens today, is passed on as the forge reports it). `page/Screens.visual.spec.ts` paints every artboard from
     `page/testing/ArtboardScreens.tsx` in light and dark for the by-eye pass against the design's renders.
 
 ## Map
@@ -157,8 +156,7 @@ with the system's version. Verify fails on a stale stamp and on a forge recordin
 for the OS as not finished. One recording is stamped `authored`, and verify lists it as a warning: a dialog only a person can answer.
 `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. Every forge recording is recorded. From this repository's forge, at `SUPPORTED_FORGE_VERSION`
-(1.1): `overseer-fetch-supported-forge`, the forge in each situation; `overseer-fetch-flint-brain`, the forge in each state of Flint's
-brain (`brain-refused` while its Overseer is paused, `no-flint` through forge's test setting `FORGE_WITHOUT_FLINT_BRAIN`);
+(1.1): `overseer-fetch-supported-forge`, the forge in each situation;
 `overseer-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the crash log it wrote; and
 `overseer-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
 system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a scratch clone's `agent-progress.ts`). macOS's programs are
@@ -168,7 +166,7 @@ stamped with the Darwin release. The forge's version is read only by running it:
 scratch repositories with `FORGE_ROOT` pinned to each one, so its walk up for a tracker never reaches a board above the scratch root.
 The forge is handed that home through a short link under `/tmp/gaia-scratch-forges`, since its board's Talos socket path below it must fit
 (no folder below a worktree's scratch root keeps it short enough); the link goes with the scratch forge, the folder once it is empty, and
-the leak check names either left behind. Every agent it launches, Flint's brain's session included, is the forge's fake agent, so a recording makes no model call. It records the paths, tracker
+the leak check names either left behind. Every agent it launches is the forge's fake agent, so a recording makes no model call. It records the paths, tracker
 ids, ports and process ids a run draws as fixed example values, stamps the recording with the forge's install and code versions, and
 verify lists it as not checked against an installed forge. `src/RealProgramRuns.spec.ts` holds the exact list of
 files that may start a program another way.

@@ -8,27 +8,19 @@
  * again is read normally. The Versions boards (U1): an older forge is an orange callout with Update forge and its steps, a newer one a neutral dashed
  * callout that only explains, each with its versions line; the figures stay in the title with the agents marked `+`, the side panel names each forge by
  * its version, and the totals and the running cards name the forges they leave out. B4: no forge gives its own screen, while every forge hidden does
- * not; the forge program is missing only when neither the settings nor Gaia know one, and a known one is named from ~. Flint's brain (A1, R4.6): a
- * running brain gives its forge's card a line with the model and the time left, and changes nothing else; an ended, refused, off or unreported brain
- * gives no line, and a brain in a forge with no job gives no card.
+ * not; the forge program is missing only when neither the settings nor Gaia know one, and a known one is named from ~.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { CommandAnswerDocument } from '../../@types/CommandDocument.ts';
-import type {
-  FleetDocument,
-  FleetDocumentBrain,
-  FleetDocumentForge,
-  FleetDocumentLookKind
-} from '../../@types/FleetDocument.ts';
-import type { ClockReading }     from '../../shared/@types/ClockReading.ts';
-import { ForgeVersionsTextUtil } from '../../shared/utils/ForgeVersionsTextUtil.ts';
-import { FLEET_AT_LIMIT }        from '../../testing/fixtures/fleet-at-limit.ts';
-import { FLEET_DEGRADED }        from '../../testing/fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }           from '../../testing/fixtures/fleet-empty.ts';
+import type { CommandAnswerDocument }                                    from '../../@types/CommandDocument.ts';
+import type { FleetDocument, FleetDocumentForge, FleetDocumentLookKind } from '../../@types/FleetDocument.ts';
+import type { ClockReading }                                             from '../../shared/@types/ClockReading.ts';
+import { ForgeVersionsTextUtil }                                         from '../../shared/utils/ForgeVersionsTextUtil.ts';
+import { FLEET_AT_LIMIT }                                                from '../../testing/fixtures/fleet-at-limit.ts';
+import { FLEET_DEGRADED }                                                from '../../testing/fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }                                                   from '../../testing/fixtures/fleet-empty.ts';
 import {
   FLEET_FIVE_FORGES,
-  FLEET_FIVE_FORGES_BRAINS,
   FLEET_FIVE_FORGES_READINGS,
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
@@ -256,63 +248,6 @@ describe('the running forges and what just happened', () => {
     ]);
   });
 });
-
-function withStorefrontBrain(brain: FleetDocumentBrain | 'not-reported', agents = FLEET_FIVE_FORGES_READINGS.exampleStorefront.agents): FleetDocument {
-  const storefront: FleetDocumentForge = { ...FLEET_FIVE_FORGES_READINGS.exampleStorefront, brain, agents };
-  return { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? storefront : forge)) };
-}
-
-describe('Flint\'s brain on A1', () => {
-  test('a running brain gives its forge\'s card a line with the forge\'s model and the time left until its end', () => {
-    const { running } = fleetContentOf(FLEET_FIVE_FORGES);
-    expect(running.map((card) => [card.project, card.brain])).toEqual([
-      ['Example Storefront', { model: 'haiku', countdown: '1:24' }],
-      ['Invoice Service', null],
-      ['Research Wiki', null],
-      ['Example Mobile App', null],
-    ]);
-  });
-
-  test('the time left follows the page\'s clock and stops at 0:00; the line stays until the forge reports the brain ended', () => {
-    const later = (seconds: number): ClockReading => ({ ...ARTBOARD_CLOCK, nowEpochMilliseconds: ARTBOARD_CLOCK.nowEpochMilliseconds + seconds * 1000 });
-    expect(fleetContentOf(FLEET_FIVE_FORGES, later(60)).running[0]?.brain).toEqual({ model: 'haiku', countdown: '0:24' });
-    expect(fleetContentOf(FLEET_FIVE_FORGES, later(600)).running[0]?.brain).toEqual({ model: 'haiku', countdown: '0:00' });
-  });
-
-  test('a fact the forge does not report is left out of the line, not invented', () => {
-    const unworded = withStorefrontBrain({ ...FLEET_FIVE_FORGES_BRAINS.running, model: null, endsAt: null });
-    expect(fleetContentOf(unworded).running[0]?.brain).toEqual({ model: null, countdown: null });
-  });
-
-  test('an ended, refused, off or unreported brain gives the card no line', () => {
-    const brains = [FLEET_FIVE_FORGES_BRAINS.ended, FLEET_FIVE_FORGES_BRAINS.refused, FLEET_FIVE_FORGES_BRAINS.off, 'not-reported' as const];
-    expect(brains.map((brain) => fleetContentOf(withStorefrontBrain(brain)).running[0]?.brain)).toEqual([null, null, null, null]);
-  });
-
-  test('the brain changes no other part of A1: the cards, the figures, the rows and just happened read as without it', () => {
-    const withBrain = fleetContentOf(FLEET_FIVE_FORGES);
-    const withoutBrain = fleetContentOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.off));
-    expect(withBrain.running.map(({ brain, ...card }) => card)).toEqual(withoutBrain.running.map(({ brain, ...card }) => card));
-    const partsOf = (content: AttentionContent) => [content.figures, content.rows, content.looks, content.runningHead];
-    expect(partsOf(withBrain)).toEqual(partsOf(withoutBrain));
-    expect(withBrain.recent.map((entry) => entry.text)).not.toContain('Flint\'s brain started through the API · haiku low · 2:00 at most');
-  });
-
-  test('just happened leaves out the brain\'s entries, ended runs included, and takes the newest four others', () => {
-    const endedFirst: FleetDocument = {
-      ...FLEET_FIVE_FORGES,
-      activity: FLEET_FIVE_FORGES.activity.toSorted((a, b) => Number(b.kind === 'flint-brain') - Number(a.kind === 'flint-brain')),
-    };
-    expect(fleetContentOf(endedFirst).recent.map((entry) => entry.clockText)).toEqual(['13:16', '13:15', '13:07', '13:05']);
-  });
-
-  test('a brain running in a forge with no job gives that forge no card', () => {
-    const { running, runningHead } = fleetContentOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.running, []));
-    expect(running.map((card) => card.project)).toEqual(['Invoice Service', 'Research Wiki', 'Example Mobile App']);
-    expect(runningHead).toBe('Running · 3');
-  });
-});
-
 describe('forges Gaia cannot fully read (B3)', () => {
   test('the head and the waiting figure say more is possible, and every figure is the document\'s own', () => {
     const content = fleetContentOf(FLEET_DEGRADED);

@@ -1,10 +1,10 @@
 /**
  * A forge in place at each version this Gaia, built for forge 3.1, meets (the Versions boards' U3). What matters: a forge Gaia cannot talk
  * to, newer or older, gets the versions notice and pair in place of the board, so no board is read; its bar shows the condition
- * of its verdict, a line that names its version and the whole sentence in its title, no brain and no control Gaia would send, only those
+ * of its verdict, a line that names its version and the whole sentence in its title and no control Gaia would send, only those
  * controls disabled with a title naming both versions; an older forge, also one that states no version, offers Update forge, whose steps
- * follow the forge's command state and whose refusal shows in the bar rather than under it; an ahead forge keeps its condition, every
- * control and its brain, its line ending in a quiet version clause; a current forge's bar names no version.
+ * follow the forge's command state and whose refusal shows in the bar rather than under it; an ahead forge keeps its condition and every
+ * control, its line ending in a quiet version clause; a current forge's bar names no version.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -61,13 +61,12 @@ describe('the area under the bar of a forge Gaia cannot talk to', () => {
 });
 
 describe('the bar at each verdict', () => {
-  test('of a newer forge reads "Not readable", names its version in the line and both in the title, and offers no brain', () => {
+  test('of a newer forge reads "Not readable", names its version in the line and both in the title', () => {
     const bar = barOf(TRACKER_IDS.analyticsSandbox);
     expect(bar.status.word).toBe('Not readable');
     expect(lineTextOf(TRACKER_IDS.analyticsSandbox)).toBe('forge 4.1 · newer than this Gaia, built for 3.1');
     expect(bar.status.line.filter((segment) => segment.look === 'version').map((segment) => segment.text)).toEqual(['4.1', '3.1']);
     expect(bar.status.text).toBe('Analytics Sandbox is forge 4.1 and serves clients built for forge 4.0 and later; this Gaia is built for forge 3.1, so they cannot talk.');
-    expect(bar.brain).toBeNull();
     expect(bar.pauseOrUnpause).toBeNull();
     expect(bar.stop).toBeNull();
     expect(bar.cannotTalk).toEqual({
@@ -95,7 +94,7 @@ describe('the bar at each verdict', () => {
     expect(barOf(TRACKER_IDS.exampleDocs, FLEET_VERSIONS_STATING_NO_VERSION).cannotTalk?.verdict).toBe('older');
   });
 
-  test('of an ahead forge keeps its condition, controls and brain, and ends its line with the quiet version clause', () => {
+  test('of an ahead forge keeps its condition and controls, and ends its line with the quiet version clause', () => {
     const bar = barOf(TRACKER_IDS.exampleStorefront);
     expect(bar.status.word).toBe('Live');
     expect(lineTextOf(TRACKER_IDS.exampleStorefront)).toBe('4 / 5 agents · 2 wait on you · forge 3.4, its newest parts only in its Bridge');
@@ -103,7 +102,6 @@ describe('the bar at each verdict', () => {
     expect(bar.cannotTalk).toBeNull();
     expect(bar.pauseOrUnpause?.label).toBe('Pause');
     expect(bar.stop).not.toBeNull();
-    expect(bar.brain).not.toBeNull();
   });
 
   test('of a current forge names no version', () => {

@@ -1,6 +1,6 @@
 /**
  * A view under the board's host of Flint, in a happy-dom document on manual frames: Flint starts in the stored habitat, or at home, and has
- * lived a frame there; a recording brain reads what Flint perceived, such as the cues it received and its visit target; and every intent
+ * lived a frame there; a recording director reads what Flint perceived, such as the cues it received and its visit target; and every intent
  * performed through the handle is recorded with its element before Flint carries it out. Test-only.
  */
 import { act, render } from '@testing-library/react';
@@ -17,7 +17,7 @@ import { createManualFlintFrames, type ManualFlintFrames } from './ManualFlintFr
 const FRAME_MILLISECONDS = 16;
 /** A little over the time between two asks of the director, so it is asked once more. */
 const DIRECTOR_ASK_MILLISECONDS = 3100;
-const BRAIN_MAXIMUM_MILLISECONDS = 60000;
+const RECORDING_MAXIMUM_MILLISECONDS = 60000;
 const TRACKER_ID = 'example-tracker';
 const STORED_HABITAT_KEY = `${PRODUCT_NAMES.programName}:board:${TRACKER_ID}:${FLINT_HABITAT_CHOICE_NAME}`;
 
@@ -28,9 +28,9 @@ export interface FlintHabitatScene<Props> {
   readonly handle:       FlintHandle;
   /** Each intent performed through the handle, with the element it was given. */
   readonly performed:    readonly (readonly [intent: string, toward: Element | undefined])[];
-  /** Starts a brain that answers `wander` and gives the cues of every ask after a director's interval. */
+  /** Starts a director that answers `wander` and gives the cues of every ask after a director's interval. */
   readonly cuesReceived: (whileShowing: () => void) => readonly string[];
-  /** Starts a brain that answers `wander` and gives what Flint perceived at every ask after a director's interval. */
+  /** Starts a director that answers `wander` and gives what Flint perceived at every ask after a director's interval. */
   readonly perceived:    (whileShowing: () => void) => readonly PerceptionDigest[];
 }
 
@@ -98,13 +98,13 @@ export function flintHabitatSceneOf<Props>({
   if (handle === undefined) throw new Error('Flint was not made');
   const perceived = (whileShowing: () => void): readonly PerceptionDigest[] => {
     const digests: PerceptionDigest[] = [];
-    const brain: Director = {
+    const recordingDirector: Director = {
       nextIntent: (digest) => {
         digests.push(digest);
         return 'wander';
       },
     };
-    handle.startBrain(brain, BRAIN_MAXIMUM_MILLISECONDS);
+    handle.startBrain(recordingDirector, RECORDING_MAXIMUM_MILLISECONDS);
     whileShowing();
     advanceFor(frames, DIRECTOR_ASK_MILLISECONDS);
     handle.stopBrain();

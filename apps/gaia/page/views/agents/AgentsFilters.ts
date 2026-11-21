@@ -1,11 +1,10 @@
 /**
- * The Agents view's two filters, kept in the route's query so a link and a reload keep them: the role (`role=builders`, `role=brain` for
- * Flint's brain) and the condition (`condition=needs-a-look`). A value the view does not know reads as no filter, and no filter is written
- * as no parameter.
+ * The Agents view's two filters, kept in the route's query so a link and a reload keep them: the role (`role=builders`) and the
+ * condition (`condition=needs-a-look`). A value the view does not know reads as no filter, and no filter is written as no parameter.
  */
 import type { FleetDocumentAgentRow } from '../../@types/FleetDocument.ts';
 
-export type AgentRoleFilter = 'all' | 'builders' | 'reviewers' | 'brain';
+export type AgentRoleFilter = 'all' | 'builders' | 'reviewers';
 
 export type AgentConditionFilter = 'every-agent' | 'needs-a-look';
 
@@ -23,11 +22,10 @@ const CONDITION_PARAMETER = 'condition';
 const ROLE_OF_ROLE_FILTER: Readonly<Record<Exclude<AgentRoleFilter, 'all'>, string>> = {
   builders:  'builder',
   reviewers: 'reviewer',
-  brain:     'brain',
 };
 
 function roleFilterOf(value: string | null): AgentRoleFilter {
-  return value === 'builders' || value === 'reviewers' || value === 'brain' ? value : NO_AGENT_FILTERS.role;
+  return value === 'builders' || value === 'reviewers' ? value : NO_AGENT_FILTERS.role;
 }
 
 function conditionFilterOf(value: string | null): AgentConditionFilter {

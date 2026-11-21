@@ -10,7 +10,7 @@ import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { CommandAnswerDocument, ForgeCommandBody }                                           from '../@types/CommandDocument.ts';
-import type { FleetDocument, FleetDocumentBrainState }                                            from '../@types/FleetDocument.ts';
+import type { FleetDocument }                                                                     from '../@types/FleetDocument.ts';
 import { type CommandSender, CommandSenderContext, type CommandStates }                           from '../api/CommandSender.ts';
 import type { BoardServices }                                                                     from '../board/@types/BoardServices.ts';
 import { HashRouter }                                                                             from '../shared/HashRouter.ts';
@@ -23,7 +23,6 @@ import { DesignSystemStylesheet }                                               
 import { PackageStylesheet }                                                                      from './PackageStylesheet.ts';
 import { forgeViewSurroundingsAt, silentBoardServicesOf }                                         from './ShellSurroundingsAt.ts';
 import { FLEET_AT_LIMIT }                                                                         from './fixtures/fleet-at-limit.ts';
-import { fleetWithStorefrontBrainOf }                                                             from './fixtures/fleet-brain-states.ts';
 import { FLEET_DEGRADED }                                                                         from './fixtures/fleet-degraded.ts';
 import { FLEET_EMPTY }                                                                            from './fixtures/fleet-empty.ts';
 import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT }               from './fixtures/fleet-five-forges.ts';
@@ -113,7 +112,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     artboard:      'B1',
     title:         'A forge in place',
     designFile:    'Forge.dc.html',
-    fleetDocument: fleetWithStorefrontBrainOf('off'),
+    fleetDocument: FLEET_FIVE_FORGES,
     fragment:      STOREFRONT_IN_PLACE_FRAGMENT,
     viewState:     'as-routed',
   },
@@ -139,37 +138,6 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     designFile:    'Empty.dc.html',
     fleetDocument: FLEET_EMPTY,
     fragment:      '#attention',
-    viewState:     'as-routed',
-  },
-];
-
-export interface BrainStateScreen extends ArtboardScreen {
-  readonly artboard:   'B1';
-  /** The state of B1's `brain` tweak the screen paints; its artboard render is `B1-<state>-<theme>.png`. */
-  readonly brainState: FleetDocumentBrainState;
-}
-
-const BRAIN_STATES_OF_B1: readonly FleetDocumentBrainState[] = ['off', 'starting', 'running', 'refused', 'ended'];
-
-/** B1 in each state of its `brain` tweak, Example Storefront's brain set to it: off, the artboard's own state, then the four others. */
-export const BRAIN_STATE_SCREENS: readonly BrainStateScreen[] = BRAIN_STATES_OF_B1.map((brainState) => ({
-  artboard:      'B1',
-  title:         `A forge in place, Flint's brain ${brainState}`,
-  designFile:    'Forge.dc.html',
-  fleetDocument: fleetWithStorefrontBrainOf(brainState),
-  fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } }),
-  viewState:     'as-routed',
-  brainState,
-}));
-
-/** A2's `selected` tweak at `brain`: Example Storefront's running brain selected, its panel beside the table (SCREENS A2, R4.5). */
-export const BRAIN_SCREENS: readonly ArtboardScreen[] = [
-  {
-    artboard:      'A2',
-    title:         'Agents, Flint\'s brain selected',
-    designFile:    'AgentsBrain.dc.html',
-    fleetDocument: FLEET_FIVE_FORGES,
-    fragment:      HashRouter.fragmentOf({ view: 'agents', selectedAgent: { trackerId: TRACKER_IDS.exampleStorefront, jobId: 'flint-brain' }, query: '' }),
     viewState:     'as-routed',
   },
 ];

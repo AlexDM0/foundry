@@ -7,8 +7,7 @@
  * is the launcher's own splash file, opened at both its steps and drawing the page's own mark. The restart an update left pending, which no
  * artboard draws, is painted over A1 and A4, the two artboards whose Update forge can leave it, under the same checks; so are the two
  * warnings of monitor contract 2, a failed Baton pass as A1's look and an Assistant that cannot come up as a notice on A4, and B4's second
- * state, the forge program found. B1 is painted in each of the five states of its `brain` tweak, each showing exactly its own parts of
- * Flint's brain between Stop and Open in new tab. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
+ * state, the forge program found. The Versions boards (U1 to U3) are painted over A1, A4 and B1 from the fleet-versions
  * fixture, one screen per board render, Example Billing's Update forge at each of its steps.
  *
  * The by-eye pass itself is not a spec: it writes `screenDocumentOf` for each screen and theme to a scratch folder, opens each at the
@@ -37,8 +36,6 @@ import {
   ASSISTANT_DOWN_SENTENCE,
   type ArtboardScreen,
   B2_STOP_REFUSAL,
-  BRAIN_SCREENS,
-  BRAIN_STATE_SCREENS,
   BATON_PASS_FAILED_SENTENCE,
   CRASHED_FORGE_SCREENS,
   FORGE_PROGRAM_FOUND_SCREENS,
@@ -72,8 +69,6 @@ const COLOUR_VALUE = /oklch\(|rgba?\(|hsla?\(|#[0-9a-f]{3,8}\b|\bcolor:/i;
 /** Every screen painted from the page: each artboard, and each state the owner added over one. */
 const PAINTED_OVER_ARTBOARDS: readonly ArtboardScreen[] = [
   ...ARTBOARD_SCREENS,
-  ...BRAIN_SCREENS,
-  ...BRAIN_STATE_SCREENS,
   ...RESTART_PENDING_SCREENS,
   ...MONITOR_WARNING_SCREENS,
   ...OUTAGE_ENDINGS_SCREENS,
@@ -225,8 +220,8 @@ describe('the screens of the visual pass', () => {
     }
   });
 
-  test('B1, whose route has no theme button, paints the very same markup in both themes, in every state of its brain', () => {
-    for (const forgeInPlace of [screenOf('B1'), ...BRAIN_STATE_SCREENS]) expect(screenMarkupOf(forgeInPlace, 'dark')).toBe(screenMarkupOf(forgeInPlace, 'light'));
+  test('B1, whose route has no theme button, paints the very same markup in both themes', () => {
+    expect(screenMarkupOf(screenOf('B1'), 'dark')).toBe(screenMarkupOf(screenOf('B1'), 'light'));
   });
 });
 
@@ -256,32 +251,17 @@ describe('each screen shows the state its artboard draws', () => {
     }
   });
 
-  test('A2: the Agents table holds its ten agents and the brain under their four forges with J4 of Example Storefront selected, as its job tweak draws', () => {
+  test('A2: the Agents table holds its ten agents under their four forges with J4 of Example Storefront selected, as its job tweak draws', () => {
     const markup = screenMarkupOf(screenOf('A2'), 'dark');
     const tree = MarkupTree.parse(markup);
     const agentRows = MarkupTree.elementsIn(tree, (element) => MarkupTree.withClass('gaia-agents-row')(element) && MarkupTree.withRole('row')(element));
-    expect(agentRows.filter((row) => row.attributes['data-head'] === undefined)).toHaveLength(11);
-    const wakeLabels = elementsLabelled(tree, /^Wake Flint's brain on /).map((element) => element.attributes['aria-label']);
-    expect(wakeLabels).toEqual(['Wake Flint\'s brain on Invoice Service', 'Wake Flint\'s brain on Research Wiki']);
+    expect(agentRows.filter((row) => row.attributes['data-head'] === undefined)).toHaveLength(10);
     expect(MarkupTree.elementsIn(tree, (element) => MarkupTree.withClass('gaia-agents-group')(element) && MarkupTree.withRole('rowgroup')(element))).toHaveLength(4);
     const selectedRow = selectedOf(markup);
     expect(MarkupTree.roleOf(selectedRow)).toBe('row');
     expect(elementsLabelled(selectedRow, 'Example Storefront, J4')).toHaveLength(1);
     expect(elementsReading(selectedRow, 'J4').length).toBeGreaterThan(0);
     expect(markup).toContain('Open J4 in its forge');
-  });
-
-  test('A2 with the brain selected: its row marked, its panel beside the table with Stop, both themes from its own artboard source', () => {
-    expect(BRAIN_SCREENS.map((screen) => [screen.artboard, screen.designFile])).toEqual([['A2', 'AgentsBrain.dc.html']]);
-    const [brainScreen] = BRAIN_SCREENS;
-    if (brainScreen === undefined) throw new Error('No screen paints A2 with the brain selected.');
-    const markup = screenMarkupOf(brainScreen, 'dark');
-    const selectedRow = selectedOf(markup);
-    expect(MarkupTree.roleOf(selectedRow)).toBe('row');
-    expect(elementsLabelled(selectedRow, 'Example Storefront, Flint\'s brain')).toHaveLength(1);
-    const tree = MarkupTree.parse(markup);
-    expect(elementsReading(tree, 'Last moves it chose').length).toBeGreaterThan(0);
-    expect(elementsLabelled(tree, 'Stop Flint\'s brain on Example Storefront')).toHaveLength(2);
   });
 
   test('A3 and A4: Activity and Forges each open under their own title', () => {
@@ -398,7 +378,7 @@ describe('each screen shows the state its artboard draws', () => {
   });
 });
 
-describe('B1 in each state of its brain tweak', () => {
+describe('B1\'s bar', () => {
   function barControlsOf(markup: string): MarkupElement {
     return MarkupTree.onlyElementIn(MarkupTree.parse(markup), MarkupTree.withClass('gaia-forge-frame-bar-controls'));
   }
@@ -407,30 +387,8 @@ describe('B1 in each state of its brain tweak', () => {
     return MarkupTree.elementsIn(controls, MarkupTree.withRole('button')).map(MarkupTree.textOf);
   }
 
-  test('paints the five states in the tweak\'s order, off being the artboard\'s own, each from B1\'s source in both themes', () => {
-    expect(BRAIN_STATE_SCREENS.map((screen) => [screen.artboard, screen.designFile, screen.brainState])).toEqual([
-      ['B1', 'Forge.dc.html', 'off'],
-      ['B1', 'Forge.dc.html', 'starting'],
-      ['B1', 'Forge.dc.html', 'running'],
-      ['B1', 'Forge.dc.html', 'refused'],
-      ['B1', 'Forge.dc.html', 'ended'],
-    ]);
-    expect(screenMarkupOf(screenOf('B1'), 'dark')).toBe(screenMarkupOf(BRAIN_STATE_SCREENS[0] ?? screenOf('B1'), 'dark'));
-  });
-
-  test('each state shows its own parts of the brain between Stop and Open in new tab, and nothing of another', () => {
-    const barByState = BRAIN_STATE_SCREENS.map((screen) => {
-      const controls = barControlsOf(screenMarkupOf(screen, 'dark'));
-      const groups = MarkupTree.elementsIn(controls, MarkupTree.withClass('gaia-brain-chip-group'));
-      return [screen.brainState, groups[0]?.attributes['data-state'] ?? null, buttonLabelsOf(controls)];
-    });
-    expect(barByState).toEqual([
-      ['off', 'off', ['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']],
-      ['starting', 'starting', ['Pause', 'Stop', 'Open in new tab']],
-      ['running', 'running', ['Pause', 'Stop', 'Stop brain', 'Open in new tab']],
-      ['refused', 'refused', ['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']],
-      ['ended', 'ended', ['Pause', 'Stop', 'Open in new tab']],
-    ]);
+  test('holds Pause, Stop and Open in new tab, and nothing more', () => {
+    expect(buttonLabelsOf(barControlsOf(screenMarkupOf(screenOf('B1'), 'dark')))).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });
 });
 

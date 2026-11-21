@@ -38,8 +38,6 @@ export type BoardCommandDocument = { readonly boardCommandVersion: typeof PAGE_C
   | { readonly kind: 'overseer-stop'; readonly now: boolean }
   | { readonly kind: 'overseer-restart'; readonly now: boolean }
   | { readonly kind: 'concurrency-set'; readonly limit: number }
-  | { readonly kind: 'flint-brain-start' }
-  | { readonly kind: 'flint-brain-stop' }
   | { readonly kind: 'interrupted-work-resume'; readonly target: BoardResumeTargetDocument }
   | { readonly kind: 'chart-range-set'; readonly range: BoardChartRangeDocument }
   | { readonly kind: 'decision-answer'; readonly decisionId: string; readonly answer: BoardAnswerFormDocument }

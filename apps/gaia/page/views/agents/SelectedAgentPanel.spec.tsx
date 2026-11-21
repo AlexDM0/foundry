@@ -43,7 +43,7 @@ const RUNNING: Extract<SelectedAgentContent, { kind: 'running' }> = {
 };
 
 function unfoldedPanel(content: SelectedAgentContent) {
-  return tree.unfolded(<SelectedAgentPanel content={content} handlers={{ onBrainCommand: () => undefined, onDismissFailure: () => undefined }} />);
+  return tree.unfolded(<SelectedAgentPanel content={content} />);
 }
 
 /** The words of the part with this class, each package part in it written as `[Name words]`. */

@@ -6,12 +6,11 @@ forge never knows about it: each requirement below speaks of a client or a host,
 
 ## Status
 
-Forge 1.0 meets V1 to V6, V8 and V9: it answers `/api/versions` with current 1.0 and minimum 0.0, serves identity 1, summary 1, monitor 3
-(with `flintBrain` always `null`), control 1 and embed 1 at their `/api/v<n>/` paths beside the unversioned ones, carries the system
+Forge 1.0 meets V1 to V6, V8 and V9: it answers `/api/versions` with current 1.0 and minimum 0.0, serves identity 1, summary 1, monitor 3,
+control 1 and embed 1 at their `/api/v<n>/` paths beside the unversioned ones, carries the system
 version in the monitor stream and the embed channel, enters its embed mode on `?embedded=frame` only, reads every record in its
-`frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. Forge 1.1 meets V7 with
-Flint's brain (G1 to G3), only adding: the brain in the monitor snapshot, its ended runs in the activity and the day's tokens, and its two
-commands under control 1, which it keeps for clients built for 1.0; its framed Bridge keeps the Agents-at-work strip (G4). Gaia supports
+`frame-ancestors/` folder, and takes its documents from `forge-contracts`, every registry entry `shipped`. Forge 1.1 only adds to it;
+its framed Bridge keeps the Agents-at-work strip (G4). Gaia supports
 forge 1.1. From Gaia 1.4 Gaia frames no Bridge: it reads no `contracts.embed`, speaks no embed channel and writes no frame-ancestor
 record, so V6, V8 and V5's embed-channel half no longer change what Gaia shows; the forge keeps serving them until it retires its Bridge.
 
@@ -106,18 +105,6 @@ another `channelVersion` is ignored, as today.
 
 **Acceptance.** A spec: the Bridge opened with `?embedded=frame` is in its embed mode; one opened without the query is not.
 
-### V7. Name who started Flint's brain without naming a client (Must, with G1)
-
-**Statement.** The monitor's `flintBrain.startedBy` is `bridge` for a start from the Bridge and `api` for a start a client asked for
-through `POST /api/v1/commands` (`forge-contracts/MonitorSnapshotDocument`), and the activity sentence an ended brain leaves names no
-client either. A client words `api` as it sees fit.
-
-**Reason.** Rule 1. A forge that still sends a client's name there is older than the version that brings Flint's brain, which a client
-reads as a forge to update.
-
-**Acceptance.** Specs: a brain started by the control command reports `startedBy: "api"`; one started from the Bridge, `bridge`. Met
-by forge 1.1, and Gaia's `overseer-fetch-flint-brain` recording holds a brain started through the control command as `api`.
-
 ### V8. Read the framing host's origin from a host-neutral record (Should)
 
 **Statement.** The Overseer lets a host's origin frame the Bridge from a record any host may write, at a path that names no host, rather
@@ -152,8 +139,7 @@ and skip the extra read.
 ## 3. What Gaia does with a forge that misses a requirement
 
 Gaia supports exactly one forge system version (`SUPPORTED_FORGE_VERSION`, forge 1.1) and keeps nothing for an older forge: forge 1.0,
-and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge. A forge 1.1
-that cannot run Flint's brain reports none, and Gaia shows none of the brain's parts for it.
+and a forge that serves no V1 to V3, as every forge from before system versions, read as older, and Gaia offers Update forge.
 
 | Missing | Gaia shows |
 | --- | --- |
@@ -163,12 +149,10 @@ that cannot run Flint's brain reports none, and Gaia shows none of the brain's p
 | V4 | Nothing at runtime: the registry is a build-time definition, and Gaia's endpoint versions are derived from it as prepared. |
 | V5 | Nothing different: Gaia takes the forge's version from `/api/versions` at every round of its watch. |
 | V6 | Nothing: Gaia frames no Bridge. |
-| V7 | A forge that reports a client's name as `startedBy` is older than Flint's brain needs; Gaia reads only `bridge` and `api`. |
 | V8 | Nothing: Gaia frames no Bridge and writes no frame-ancestor record. |
 | V9 | Nothing at runtime. |
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 
 ## 4. Order for the forge's board
 
-V1 to V6, V8 and V9 shipped together as forge 1.0. V7 shipped with Flint's brain (G1 to G3) and G4 as forge 1.1, a minor, since it only
-adds.
+V1 to V6, V8 and V9 shipped together as forge 1.0. G4 shipped as forge 1.1, a minor, since it only adds.

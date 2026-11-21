@@ -3,22 +3,16 @@
  * and the page compares no stamp to reorder them (acceptance 1); a forge that reports no `today` is absent from both side lists, not shown as
  * 0 (acceptance 2); each filter keeps exactly its rows; past three forges the rest sit in the menu; a row links into its forge only when the
  * forge gave it a route; the text is the forge's, unedited; every value no forge reports stays absent; and, for version 2's look (SCREENS
- * A3), the kind counts follow the chosen forge and the page title's figures total what the side lists show. Flint's brain (R4.6): its
- * entries carry the kind word "Flint's brain" and the diamond, the Agents filter keeps them and Landed drops them; the tokens-today total
- * stays the forges' own, and its note names the brain's part per forge, a running brain's tokens and today's ended runs', absent with no
- * brain today; the brain runs today count each run ended today and each brain running now, absent when no forge reports a brain, and read
- * as at least when a forge's entries were cut within the day. An entry of an earlier day carries its month and day. Clock times are read
- * in UTC, the fixtures' own zone, so the specs do not depend on the machine's.
+ * A3), the kind counts follow the chosen forge and the page title's figures total what the side lists show. An entry of an earlier day
+ * carries its month and day. Clock times are read in UTC, the fixtures' own zone, so the specs do not depend on the machine's.
  */
 import { describe, expect, test } from 'bun:test';
 
-import { LIMITS }                                                     from '../../../src/shared/constants/Limits.ts';
-import type { FleetDocument, FleetDocumentBrain, FleetDocumentForge } from '../../@types/FleetDocument.ts';
-import type { ClockReading }                                          from '../../shared/@types/ClockReading.ts';
-import { FLEET_EMPTY }                                                from '../../testing/fixtures/fleet-empty.ts';
+import type { FleetDocument, FleetDocumentForge } from '../../@types/FleetDocument.ts';
+import type { ClockReading }                      from '../../shared/@types/ClockReading.ts';
+import { FLEET_EMPTY }                            from '../../testing/fixtures/fleet-empty.ts';
 import {
   FLEET_FIVE_FORGES,
-  FLEET_FIVE_FORGES_BRAINS,
   FLEET_FIVE_FORGES_READINGS,
   FLEET_FIVE_FORGES_TRACKER_IDS,
   FLEET_FIXTURES_READ_AT,
@@ -36,10 +30,6 @@ function contentOf(fleetDocument: FleetDocument, filters: ActivityFilters = EVER
   return ActivityModel.activityContentOf(fleetDocument, filters, clock);
 }
 
-function withStorefrontBrain(brain: FleetDocumentBrain | 'not-reported'): FleetDocument {
-  return { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? { ...forge, brain } : forge)) };
-}
-
 function withForges(forges: readonly FleetDocumentForge[]): FleetDocument {
   return { ...FLEET_FIVE_FORGES, forges: [...forges] };
 }
@@ -48,7 +38,6 @@ describe('the entries', () => {
   test('rows from several forges interleave by at, newest first, as the artboard lists them', () => {
     const rows = contentOf(FLEET_FIVE_FORGES).rows.map((row) => [row.clockTime, row.project, row.categoryWord, row.text]);
     expect(rows).toEqual([
-      ['13:18', 'Example Storefront', 'Flint\'s brain', 'Flint\'s brain started through the API · haiku low · 2:00 at most'],
       ['13:16', 'Example Storefront', 'Agent', 'J4 builder started on #013 Product image zoom'],
       ['13:15', 'Example Storefront', 'Needs you', 'J3 asked E2: How long should a password reset link stay valid?'],
       ['13:07', 'Invoice Service', 'Needs you', '#031 Round VAT per line, not per invoice was reviewed and waits for your accept'],
@@ -57,7 +46,6 @@ describe('the entries', () => {
       ['12:58', 'Invoice Service', 'Needs you', 'E4 escalated from incident I2: the VAT gate cannot run in the sandbox'],
       ['12:53', 'Research Wiki', 'Needs you', 'E1 opened: two gates are proposed for this repository'],
       ['12:47', 'Research Wiki', 'Landed', '#006 Glossary page landed on main'],
-      ['12:46', 'Invoice Service', 'Flint\'s brain', 'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API'],
       ['12:40', 'Example Mobile App', 'Forge', 'Launches held: the install version changed'],
       ['12:38', 'Example Mobile App', 'Agent', 'J7 reviewer started on #020 Push permission prompt'],
       ['12:31', 'Invoice Service', 'Landed', '#030 Reminder emails landed on main'],
@@ -78,35 +66,33 @@ describe('the entries', () => {
 
   test('a row with a route goes to its forge in place at that route, and a row without one links nowhere', () => {
     const { rows } = contentOf(FLEET_FIVE_FORGES);
-    expect(rows[1]?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/agents/J4`);
-    expect(rows[3]?.href).toBe(`#forge/${TRACKER_IDS.invoiceService}/tickets/ticket-row/031`);
+    expect(rows[0]?.href).toBe(`#forge/${TRACKER_IDS.exampleStorefront}/agents/J4`);
+    expect(rows[2]?.href).toBe(`#forge/${TRACKER_IDS.invoiceService}/tickets/ticket-row/031`);
     expect(rows.filter((row) => row.href === null).map((row) => row.text)).toEqual([
-      'Flint\'s brain started through the API · haiku low · 2:00 at most',
-      'Flint\'s brain ran 2:00 · 4.2k tokens · started through the API',
       'Launches held: the install version changed',
       'Overseer stopped',
     ]);
   });
 
-  test('each category has its dot, the brain\'s entries the diamond, and an agent\'s entry takes the role of the job the forge still reports', () => {
-    expect(contentOf(FLEET_FIVE_FORGES).rows.slice(0, 11).map((row) => row.dotRole)).toEqual([
-      'brain', 'builder', 'needs-user', 'needs-user', 'landed', 'reviewer', 'needs-user', 'needs-user', 'landed', 'brain', 'forge',
+  test('each category has its dot, and an agent\'s entry takes the role of the job the forge still reports', () => {
+    expect(contentOf(FLEET_FIVE_FORGES).rows.slice(0, 9).map((row) => row.dotRole)).toEqual([
+      'builder', 'needs-user', 'needs-user', 'landed', 'reviewer', 'needs-user', 'needs-user', 'landed', 'forge',
     ]);
     const storefrontWithoutJ4 = { ...READINGS.exampleStorefront, agents: READINGS.exampleStorefront.agents.filter((agent) => agent.jobId !== 'J4') };
     const jobEnded = withForges(FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? storefrontWithoutJ4 : forge)));
-    expect(contentOf(jobEnded).rows[1]?.dotRole).toBeNull();
+    expect(contentOf(jobEnded).rows[0]?.dotRole).toBeNull();
   });
 
   test('a clock time is read in the zone given, and a stamp that does not parse is shown as the forge wrote it', () => {
     const [newest] = FLEET_FIVE_FORGES.activity;
     if (newest === undefined) throw new Error('The fixture holds no entry.');
-    expect(contentOf(FLEET_FIVE_FORGES, EVERY_ENTRY, { ...ARTBOARD_CLOCK, timeZone: 'Europe/Amsterdam' }).rows[1]?.clockTime).toBe('14:16');
+    expect(contentOf(FLEET_FIVE_FORGES, EVERY_ENTRY, { ...ARTBOARD_CLOCK, timeZone: 'Europe/Amsterdam' }).rows[0]?.clockTime).toBe('14:16');
     const unparsable = { ...FLEET_FIVE_FORGES, activity: [{ ...newest, at: 'shortly after lunch' }] };
     expect(contentOf(unparsable).rows.map((row) => row.clockTime)).toEqual(['shortly after lunch']);
   });
 
   test('an entry of an earlier day than the clock\'s carries its month and day, so it does not read as today\'s', () => {
-    expect(contentOf(FLEET_FIVE_FORGES, EVERY_ENTRY, NEXT_DAY_CLOCK).rows[0]?.clockTime).toBe('11-12 13:18');
+    expect(contentOf(FLEET_FIVE_FORGES, EVERY_ENTRY, NEXT_DAY_CLOCK).rows[0]?.clockTime).toBe('11-12 13:16');
   });
 });
 
@@ -122,7 +108,7 @@ describe('the filters', () => {
       '#008 Order history filters landed on main',
     ]);
     expect(contentOf(FLEET_FIVE_FORGES, { kind: 'needs-user', trackerId: null }).rows).toHaveLength(5);
-    expect(contentOf(FLEET_FIVE_FORGES, { kind: 'agent', trackerId: null }).rows).toHaveLength(5);
+    expect(contentOf(FLEET_FIVE_FORGES, { kind: 'agent', trackerId: null }).rows).toHaveLength(3);
     expect(contentOf(FLEET_FIVE_FORGES, { kind: 'forge', trackerId: null }).rows).toHaveLength(2);
   });
 
@@ -148,7 +134,7 @@ describe('the filters', () => {
     };
     const content = contentOf(withoutWiki, { kind: 'everything', trackerId: TRACKER_IDS.researchWiki });
     expect(content.forgeChoices.chosen).toBeNull();
-    expect(content.rows).toHaveLength(16);
+    expect(content.rows).toHaveLength(14);
   });
 
   test('the table\'s place says why it is empty: no entry at all, or none that the filters keep', () => {
@@ -166,20 +152,19 @@ describe('the counts on the kind filter', () => {
 });
 
 describe('the page title\'s figures', () => {
-  test('what needs User leads in orange, then today\'s landings and tokens as the side lists total them, then the brain\'s runs today', () => {
-    expect(ActivityModel.titleFiguresOf(FLEET_FIVE_FORGES, ARTBOARD_CLOCK)).toEqual([
+  test('what needs User leads in orange, then today\'s landings and tokens as the side lists total them', () => {
+    expect(ActivityModel.titleFiguresOf(FLEET_FIVE_FORGES)).toEqual([
       { value: '5', label: 'need you', attention: true },
       { value: '6', label: 'landed today' },
       { value: '1.24M', label: 'tokens today' },
-      { value: '2', label: 'brain runs today' },
     ]);
   });
 
-  test('what needs User takes a + while a forge is not fully read, and with no forge reporting today or a brain only it stands', () => {
+  test('what needs User takes a + while a forge is not fully read, and with no forge reporting today it stands alone', () => {
     const notFullyRead = { ...FLEET_FIVE_FORGES, figures: { ...FLEET_FIVE_FORGES.figures, incompleteFor: [TRACKER_IDS.researchWiki] } };
-    expect(ActivityModel.titleFiguresOf(notFullyRead, ARTBOARD_CLOCK)[0]?.value).toBe('5+');
-    const nobodyReports = withForges(FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, today: null, brain: 'not-reported' as const })));
-    expect(ActivityModel.titleFiguresOf(nobodyReports, ARTBOARD_CLOCK).map((figure) => figure.label)).toEqual(['need you']);
+    expect(ActivityModel.titleFiguresOf(notFullyRead)[0]?.value).toBe('5+');
+    const nobodyReports = withForges(FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, today: null })));
+    expect(ActivityModel.titleFiguresOf(nobodyReports).map((figure) => figure.label)).toEqual(['need you']);
   });
 });
 
@@ -256,74 +241,5 @@ describe('the usage line', () => {
 
   test('when no forge reports usage there is no line', () => {
     expect(contentOf(withForges([READINGS.designSystem, READINGS.legacyImporter])).usageLines).toEqual([]);
-  });
-});
-
-describe('Flint\'s brain on A3', () => {
-  test('its entries fall under the Agents filter, and Landed and Needs you drop them', () => {
-    const brainTexts = (kind: ActivityFilters['kind']) => contentOf(FLEET_FIVE_FORGES, { kind, trackerId: null }).rows
-      .filter((row) => row.categoryWord === 'Flint\'s brain')
-      .map((row) => row.clockTime);
-    expect([brainTexts('agent'), brainTexts('landed'), brainTexts('needs-user'), brainTexts('forge')]).toEqual([['13:18', '12:46'], [], [], []]);
-  });
-
-  test('the brain runs today count each run that ended today and each brain running now: 2 at the artboard\'s clock', () => {
-    const brainRunsOf = (fleetDocument: FleetDocument, clock: ClockReading = ARTBOARD_CLOCK) => ActivityModel.titleFiguresOf(fleetDocument, clock)
-      .find((figure) => figure.label === 'brain runs today')?.value ?? null;
-    expect(brainRunsOf(FLEET_FIVE_FORGES)).toBe('2');
-    expect(brainRunsOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.ended))).toBe('1');
-    expect(brainRunsOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.off))).toBe('1');
-    expect(brainRunsOf(FLEET_FIVE_FORGES, NEXT_DAY_CLOCK)).toBe('1');
-    expect(brainRunsOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.off), NEXT_DAY_CLOCK)).toBe('0');
-  });
-
-  test('the brain runs today are absent when no forge reports a brain, since no forge then serves monitor 3 with a Flint', () => {
-    const noBrain = withForges(FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, brain: 'not-reported' as const })));
-    expect(ActivityModel.titleFiguresOf(noBrain, ARTBOARD_CLOCK).map((figure) => figure.label)).toEqual(['need you', 'landed today', 'tokens today']);
-  });
-
-  test('the tokens-today note names the brain\'s part, the running brain\'s tokens and the ended run\'s, while the total stays the forges\' own', () => {
-    const { brainTokensNote, tokensToday } = contentOf(FLEET_FIVE_FORGES);
-    expect(brainTokensNote).toEqual({
-      totalText: '7.3k',
-      forges:    [
-        { trackerId: TRACKER_IDS.exampleStorefront, project: 'Example Storefront', tokensText: '3.1k' },
-        { trackerId: TRACKER_IDS.invoiceService, project: 'Invoice Service', tokensText: '4.2k' },
-      ],
-    });
-    expect(tokensToday.totalText).toBe('1.24M');
-    expect(tokensToday).toEqual(contentOf(withStorefrontBrain('not-reported')).tokensToday);
-  });
-
-  test('the note follows each brain: ended or not reported, the storefront\'s part leaves; the next day, the ended run\'s leaves', () => {
-    const invoiceOnly = [{ trackerId: TRACKER_IDS.invoiceService, project: 'Invoice Service', tokensText: '4.2k' }];
-    expect(contentOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.ended)).brainTokensNote).toEqual({ totalText: '4.2k', forges: invoiceOnly });
-    expect(contentOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.refused)).brainTokensNote).toEqual({ totalText: '4.2k', forges: invoiceOnly });
-    expect(contentOf(withStorefrontBrain('not-reported')).brainTokensNote).toEqual({ totalText: '4.2k', forges: invoiceOnly });
-    expect(contentOf(FLEET_FIVE_FORGES, EVERY_ENTRY, NEXT_DAY_CLOCK).brainTokensNote?.forges.map((forge) => forge.project)).toEqual(['Example Storefront']);
-  });
-
-  test('a forge whose kept entries were cut within the day may hold more ended runs: its runs and its brain tokens read as at least', () => {
-    const [newest] = FLEET_FIVE_FORGES.activity.filter((entry) => entry.trackerId === TRACKER_IDS.invoiceService && entry.kind === 'flint-brain');
-    if (newest === undefined) throw new Error('The fixture holds no ended brain run of Invoice Service.');
-    const fillers = Array.from({ length: LIMITS.activityEntriesShownPerForge - 1 }, (_filler, i) => ({
-      ...newest, logPosition: newest.logPosition - 1 - i, kind: null, tokens: null, category: 'forge' as const, text: 'Example filler entry',
-    }));
-    const otherEntries = FLEET_FIVE_FORGES.activity.filter((entry) => entry.trackerId !== TRACKER_IDS.invoiceService);
-    const cutToday: FleetDocument = { ...FLEET_FIVE_FORGES, activity: [...otherEntries, newest, ...fillers] };
-    expect(ActivityModel.titleFiguresOf(cutToday, ARTBOARD_CLOCK).find((figure) => figure.label === 'brain runs today')?.value).toBe('2+');
-    expect(contentOf(cutToday).brainTokensNote).toEqual({
-      totalText: '7.3k+',
-      forges:    [
-        { trackerId: TRACKER_IDS.exampleStorefront, project: 'Example Storefront', tokensText: '3.1k' },
-        { trackerId: TRACKER_IDS.invoiceService, project: 'Invoice Service', tokensText: '4.2k+' },
-      ],
-    });
-  });
-
-  test('the note is absent when no brain ran today', () => {
-    expect(contentOf(withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.off), EVERY_ENTRY, NEXT_DAY_CLOCK).brainTokensNote).toBeNull();
-    const noBrainEntries = { ...withStorefrontBrain(FLEET_FIVE_FORGES_BRAINS.off), activity: FLEET_FIVE_FORGES.activity.filter((entry) => entry.kind !== 'flint-brain') };
-    expect(contentOf(noBrainEntries).brainTokensNote).toBeNull();
   });
 });

@@ -323,10 +323,6 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
         return ProgramVerdictUtil.verdictOfUpdate(await forgeProgram.update(programTargetOf(forge)));
       case 'forge-hide':
         return verdictOfSettingsUpdate(await settingsStore.update(hiding(command.trackerId)));
-      case 'forge-brain-start':
-        return carryOverApi(forge, reading, { kind: 'flint-brain-start' });
-      case 'forge-brain-stop':
-        return carryOverApi(forge, reading, { kind: 'flint-brain-stop' });
     }
   }
 

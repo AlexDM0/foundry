@@ -8,9 +8,6 @@ import type {
   MonitorActivityEntryDocument,
   MonitorAttentionEntryDocument,
   MonitorConcurrencyDocument,
-  MonitorFlintBrainDocument,
-  MonitorFlintBrainMoveDocument,
-  MonitorFlintBrainRefusalDocument,
   MonitorJobDocument,
   MonitorNoticeDocument,
   MonitorOverseerDocument,
@@ -95,15 +92,14 @@ const JOB_SHAPE = {
 
 const NOTICE_SHAPE = { kind: 'text', text: 'text' } as const satisfies ShapeOf<MonitorNoticeDocument>;
 
-/** An entry's kind is read as text: a kind this Gaia does not know is shown by its category, as an entry of no kind is. */
 const ACTIVITY_ENTRY_SHAPE = {
   logPosition: 'whole-number',
   at:          'text',
   category:    { oneOf: ['needs-user', 'landed', 'agent', 'forge'] },
   text:        'text',
   target:      { nullable: TARGET_OBJECT },
-  kind:        { optional: NULLABLE_TEXT },
-  tokens:      { optional: NULLABLE_WHOLE_NUMBER },
+  kind:        'passed-over',
+  tokens:      'passed-over',
 } as const satisfies ShapeOf<MonitorActivityEntryDocument>;
 
 const TODAY_SHAPE = { deliveredTickets: 'whole-number', tokens: 'whole-number' } as const satisfies ShapeOf<MonitorTodayDocument>;
@@ -118,30 +114,6 @@ const USAGE_SHAPE = {
 
 /** A warning's kind is read as text: a kind this Gaia does not know is shown as a warning, worded only by the command guard. */
 const WARNING_SHAPE = NOTICE_SHAPE;
-
-const FLINT_BRAIN_MOVE_SHAPE = {
-  at:     'text',
-  intent: 'text',
-  emote:  NULLABLE_TEXT,
-} as const satisfies ShapeOf<MonitorFlintBrainMoveDocument>;
-
-const FLINT_BRAIN_REFUSAL_SHAPE = { code: 'text', sentence: 'text' } as const satisfies ShapeOf<MonitorFlintBrainRefusalDocument>;
-
-const FLINT_BRAIN_SHAPE = {
-  state:       { oneOf: ['off', 'starting', 'running', 'ended', 'refused'] },
-  startedAt:   NULLABLE_TEXT,
-  endsAt:      NULLABLE_TEXT,
-  startedBy:   { nullable: { oneOf: ['bridge', 'api'] } },
-  model:       NULLABLE_TEXT,
-  effort:      NULLABLE_TEXT,
-  tokens:      NULLABLE_WHOLE_NUMBER,
-  calls:       NULLABLE_WHOLE_NUMBER,
-  recentMoves: { listOf: FLINT_BRAIN_MOVE_SHAPE },
-  endedAt:     NULLABLE_TEXT,
-  endedReason: { nullable: { oneOf: ['time', 'stopped', 'usage-limit', 'failed'] } },
-  sentence:    NULLABLE_TEXT,
-  refusal:     { nullable: { object: FLINT_BRAIN_REFUSAL_SHAPE } },
-} as const satisfies ShapeOf<MonitorFlintBrainDocument>;
 
 const MONITOR_SNAPSHOT_SHAPE = {
   monitorVersion: 'whole-number',
@@ -159,7 +131,7 @@ const MONITOR_SNAPSHOT_SHAPE = {
   today:          { object: TODAY_SHAPE },
   usage:          { object: USAGE_SHAPE },
   activity:       { listOf: ACTIVITY_ENTRY_SHAPE },
-  flintBrain:     { nullable: { object: FLINT_BRAIN_SHAPE } },
+  flintBrain:     'passed-over',
 } as const satisfies ShapeOf<MonitorSnapshotDocument>;
 
 export class MonitorSnapshotIngestion {

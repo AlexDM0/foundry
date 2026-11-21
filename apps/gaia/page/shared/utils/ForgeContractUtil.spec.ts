@@ -1,7 +1,7 @@
 /**
  * What Gaia can do with a forge by its contracts. What matters: a forge's board opens in place while it is read in full or as last
- * reported, so a forge read through its summary, or of a newer contract, never does; only a control contract Gaia sends is sent what an
- * Overseer carries; and the brain's commands go only to an Overseer that answers.
+ * reported, so a forge read through its summary, or of a newer contract, never does; and only a control contract Gaia sends is sent what
+ * an Overseer carries.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -38,14 +38,5 @@ describe('the control contract', () => {
     expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } })).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Research Wiki'))).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
-  });
-});
-
-describe('the brain\'s commands', () => {
-  test('are served only by an Overseer that answers, at the control contract Gaia sends', () => {
-    expect(ForgeContractUtil.brainCommandsAreServed(STOREFRONT)).toBe(true);
-    expect(ForgeContractUtil.brainCommandsAreServed({ ...STOREFRONT, fidelity: 'unreachable' })).toBe(false);
-    expect(ForgeContractUtil.brainCommandsAreServed({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } })).toBe(false);
-    expect(ForgeContractUtil.brainCommandsAreServed(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });
 });

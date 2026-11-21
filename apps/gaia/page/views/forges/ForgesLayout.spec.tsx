@@ -4,9 +4,7 @@
  * stepper sends the limit one step on and is off past its ends, the machine's plus at the CPU count; without F6 the machine panel says so
  * with its stepper off; the forge's refusal of a limit above the CPU count shows in the panel; a row's refusal offers Try again and its
  * dismissal; a held forge's banner sends Update forge, and once that left a restart pending, Restart and its dismissal; a forge whose
- * Assistant cannot come up says so under its row; a paused row offers Unpause first; a hidden forge folds away with Show again. Flint's
- * brain (R4.6): a running brain's mark sits after its forge's name, the diamond, "BRAIN" and the time left, read aloud as one sentence; no
- * other row has one; the machine panel's last line, under a hairline, says the brain runs outside the limit and where one runs. The command
+ * Assistant cannot come up says so under its row; a paused row offers Unpause first; a hidden forge folds away with Show again. The command
  * states come from the real sender over Gaia's server stood in for by authored answers. Versions (U2): a forge at another version opens its
  * pair under its row from the disclosure under its condition, the row expanded, never selected; a current forge has no disclosure; a forge
  * Gaia cannot talk to reads "not read" for its agents and what waits, and a control it cannot send says why in its title; an ahead forge's
@@ -30,26 +28,21 @@ import type {
   ForgeCommandBody,
   ForgeStopAgents
 } from '../../@types/CommandDocument.ts';
-import type { FleetDocument }                                    from '../../@types/FleetDocument.ts';
-import type { CommandStates, CommandSubject }                    from '../../api/CommandSender.ts';
-import { answerResponse, senderOver }                            from '../../testing/CommandServer.ts';
-import { DataTableRows }                                         from '../../testing/DataTableRows.ts';
-import { DrawnDots }                                             from '../../testing/DrawnDots.ts';
-import { FailedActions }                                         from '../../testing/FailedActions.ts';
-import { PackageButtons }                                        from '../../testing/PackageButtons.ts';
-import { PackageControls }                                       from '../../testing/PackageControls.ts';
-import { type HostElement, ReactElementTree, type RenderedNode } from '../../testing/ReactElementTree.ts';
-import { FLEET_AT_LIMIT }                                        from '../../testing/fixtures/fleet-at-limit.ts';
-import {
-  FLEET_FIVE_FORGES,
-  FLEET_FIVE_FORGES_BRAINS,
-  FLEET_FIVE_FORGES_TRACKER_IDS,
-  FLEET_FIXTURES_READ_AT,
-} from '../../testing/fixtures/fleet-five-forges.ts';
-import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS } from '../../testing/fixtures/fleet-versions.ts';
-import { ForgesLayout, forgeAnchorIdOf }              from './ForgesLayout.tsx';
-import { ForgesModel, type ForgesSurroundings }       from './ForgesModel.ts';
-import { GaiaPanelModel }                             from './GaiaPanelModel.ts';
+import type { FleetDocument }                                                       from '../../@types/FleetDocument.ts';
+import type { CommandStates, CommandSubject }                                       from '../../api/CommandSender.ts';
+import { answerResponse, senderOver }                                               from '../../testing/CommandServer.ts';
+import { DataTableRows }                                                            from '../../testing/DataTableRows.ts';
+import { DrawnDots }                                                                from '../../testing/DrawnDots.ts';
+import { FailedActions }                                                            from '../../testing/FailedActions.ts';
+import { PackageButtons }                                                           from '../../testing/PackageButtons.ts';
+import { PackageControls }                                                          from '../../testing/PackageControls.ts';
+import { type HostElement, ReactElementTree, type RenderedNode }                    from '../../testing/ReactElementTree.ts';
+import { FLEET_AT_LIMIT }                                                           from '../../testing/fixtures/fleet-at-limit.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from '../../testing/fixtures/fleet-five-forges.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                               from '../../testing/fixtures/fleet-versions.ts';
+import { ForgesLayout, forgeAnchorIdOf }                                            from './ForgesLayout.tsx';
+import { ForgesModel, type ForgesSurroundings }                                     from './ForgesModel.ts';
+import { GaiaPanelModel }                                                           from './GaiaPanelModel.ts';
 
 const tree = ReactElementTree;
 
@@ -361,39 +354,6 @@ describe('a paused row and the hidden forges', () => {
     expect(rowsIn(unfolded).some((row) => tree.hostElementsIn([row], (element) => element.props['id'] === forgeAnchorIdOf(TRACKER_IDS.designSystem)).length > 0)).toBe(false);
     press(controlNamed([group], 'Show again'));
     expect(handled.commands).toEqual([{ kind: 'forge-unhide', trackerId: TRACKER_IDS.designSystem }]);
-  });
-});
-
-describe('Flint\'s brain on A4 (acceptance 2)', () => {
-  test('a running brain\'s mark follows its forge\'s name: the diamond, BRAIN and the time left, read as one sentence', () => {
-    const storefront = rowOf(layoutOf(FLEET_FIVE_FORGES).unfolded, TRACKER_IDS.exampleStorefront);
-    const nameLine = tree.onlyWithClass([storefront], 'gaia-forges-forge-name-line');
-    const brain = tree.onlyWithClass([nameLine], 'gaia-forges-brain');
-    expect(tree.textOf([tree.onlyWithClass([brain], 'gaia-visually-hidden')])).toBe('Flint\'s brain is running, 1:24 left, outside the agent limit');
-    const mark = tree.onlyWithClass([brain], 'gaia-forges-brain-mark');
-    expect([mark.props['aria-hidden'], tree.textOf([mark])]).toEqual(['true', 'Brain1:24']);
-    expect(tree.hostElementsIn([mark], DrawnDots.isDot).map(DrawnDots.roleOf)).toEqual(['brain']);
-  });
-
-  test('no other row carries the mark, and with the brain ended, refused, off or not reported none does', () => {
-    expect(tree.hostElementsIn(rowsIn(layoutOf(FLEET_FIVE_FORGES).unfolded), tree.withClass('gaia-forges-brain'))).toHaveLength(1);
-    for (const brain of [FLEET_FIVE_FORGES_BRAINS.ended, FLEET_FIVE_FORGES_BRAINS.refused, FLEET_FIVE_FORGES_BRAINS.off, 'not-reported' as const]) {
-      const fleet = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => (forge.trackerId === TRACKER_IDS.exampleStorefront ? { ...forge, brain } : forge)) };
-      expect(tree.hostElementsIn(rowsIn(layoutOf(fleet).unfolded), tree.withClass('gaia-forges-brain'))).toEqual([]);
-    }
-  });
-
-  test('the machine panel ends with the brain\'s line beside the diamond, while its figure stays 10 / 12', () => {
-    const panel = tree.onlyWithClass(layoutOf(FLEET_FIVE_FORGES).unfolded, 'gaia-forges-machine');
-    const line = tree.onlyWithClass([panel], 'gaia-forges-machine-brain');
-    expect(tree.textOf([line])).toBe('Flint\'s brain runs outside this limit. 1 is running now, in Example Storefront, and takes no agent slot.');
-    expect(tree.hostElementsIn([line], DrawnDots.isDot).map(DrawnDots.roleOf)).toEqual(['brain']);
-    expect(tree.textOf([tree.onlyWithClass([panel], 'gaia-forges-machine-agents')])).toBe('10 / 12agents');
-  });
-
-  test('with no forge reporting a brain the panel has no brain line', () => {
-    const noBrain = { ...FLEET_FIVE_FORGES, forges: FLEET_FIVE_FORGES.forges.map((forge) => ({ ...forge, brain: 'not-reported' as const })) };
-    expect(tree.hostElementsIn(layoutOf(noBrain).unfolded, tree.withClass('gaia-forges-machine-brain'))).toEqual([]);
   });
 });
 

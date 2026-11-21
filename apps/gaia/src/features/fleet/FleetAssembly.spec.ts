@@ -2,37 +2,29 @@
  * The assembly of one `FleetSnapshot` from every forge's reading. What matters: the readings behind each artboard's fixture assemble to
  * exactly that fixture's model; the attention order of A1 holds whatever order the forges come in; a hidden forge is absent from everything
  * but the settings that hide it; agents and activity keep the orders PLAN 7.4 states; a forge's activity is cut at its newest 50; and
- * Flint's brain (PLAN 7.5), read from the recorded answers of the forge Gaia supports: running, it adds one agent row of role `brain` that
- * counts in no figure or limit; ended, it leaves one activity entry with its tokens.
+ * a forge whose snapshot still carries a `flintBrain` key adds no row for it, so no row has the role `brain`.
  */
 import { describe, expect, test }    from 'bun:test';
 import type { ForgeInterruptedWork } from 'forge-contracts/ForgePresenceDocument';
 
-import { FLEET_OUTAGE_ENDINGS, OUTAGE_TALOS_PROTOCOL_VERSION }               from '../../../page/testing/fixtures/fleet-outage-endings.ts';
-import type { ForgeIdentity }                                                from '../../adapters/forge-api/@types/ForgeDocumentReading.ts';
-import { MonitorSnapshotIngestion }                                          from '../../adapters/forge-api/MonitorSnapshotIngestion.ts';
-import { PresenceIngestion }                                                 from '../../adapters/forge-api/PresenceIngestion.ts';
-import { EXAMPLE_READ_STAMP, recordedFlintBrainDocumentOf, registryFactsOf } from '../../adapters/forge-api/testing/ExampleForgeDocuments.ts';
-import { recordedPresenceDocumentOf }                                        from '../../adapters/forge-api/testing/PresenceDocuments.ts';
-import { FleetDocumentMapUtil }                                              from '../../adapters/page-api/FleetDocumentMapUtil.ts';
-import { FLEET_SNAPSHOT_AT_LIMIT }                                           from '../../adapters/page-api/testing/fleet-snapshot-at-limit.ts';
-import { FLEET_SNAPSHOT_DEGRADED }                                           from '../../adapters/page-api/testing/fleet-snapshot-degraded.ts';
-import { FLEET_SNAPSHOT_EMPTY }                                              from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
-import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS }   from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
-import type { ActivityEntry }                                                from '../../shared/@types/ActivityEntry.ts';
-import type { AgentRow }                                                     from '../../shared/@types/AgentRow.ts';
-import type { FleetSnapshot }                                                from '../../shared/@types/FleetSnapshot.ts';
-import type { ForgeBrain }                                                   from '../../shared/@types/ForgeBrain.ts';
-import type { ForgeReading }                                                 from '../../shared/@types/ForgeReading.ts';
-import { LIMITS }                                                            from '../../shared/constants/Limits.ts';
-import type { FlintBrainSituation }                                          from '../../testing/RecordedAnswers.ts';
+import { FLEET_OUTAGE_ENDINGS, OUTAGE_TALOS_PROTOCOL_VERSION }             from '../../../page/testing/fixtures/fleet-outage-endings.ts';
+import type { ForgeIdentity }                                              from '../../adapters/forge-api/@types/ForgeDocumentReading.ts';
+import { MonitorSnapshotIngestion }                                        from '../../adapters/forge-api/MonitorSnapshotIngestion.ts';
+import { PresenceIngestion }                                               from '../../adapters/forge-api/PresenceIngestion.ts';
+import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf }         from '../../adapters/forge-api/testing/ExampleForgeDocuments.ts';
+import { recordedPresenceDocumentOf }                                      from '../../adapters/forge-api/testing/PresenceDocuments.ts';
+import { FleetDocumentMapUtil }                                            from '../../adapters/page-api/FleetDocumentMapUtil.ts';
+import { FLEET_SNAPSHOT_AT_LIMIT }                                         from '../../adapters/page-api/testing/fleet-snapshot-at-limit.ts';
+import { FLEET_SNAPSHOT_DEGRADED }                                         from '../../adapters/page-api/testing/fleet-snapshot-degraded.ts';
+import { FLEET_SNAPSHOT_EMPTY }                                            from '../../adapters/page-api/testing/fleet-snapshot-empty.ts';
+import { FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_FIVE_FORGES_READINGS } from '../../adapters/page-api/testing/fleet-snapshot-five-forges.ts';
+import type { ActivityEntry }                                              from '../../shared/@types/ActivityEntry.ts';
+import type { AgentRow }                                                   from '../../shared/@types/AgentRow.ts';
+import type { FleetSnapshot }                                              from '../../shared/@types/FleetSnapshot.ts';
+import type { ForgeReading }                                               from '../../shared/@types/ForgeReading.ts';
+import { LIMITS }                                                          from '../../shared/constants/Limits.ts';
 
-import {
-  FLINT_BRAIN_ROLE,
-  FLINT_BRAIN_ROW_ID,
-  fleetSnapshotOf,
-  type FleetAssemblyInput,
-} from './FleetAssembly.ts';
+import { fleetSnapshotOf, type FleetAssemblyInput } from './FleetAssembly.ts';
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
@@ -63,8 +55,6 @@ function landedEntryAt(logPosition: number, at: string): ActivityEntry {
     category:   'landed',
     text:       `#${logPosition} landed on main`,
     boardRoute: null,
-    kind:       null,
-    tokens:     null,
   };
 }
 
@@ -117,7 +107,7 @@ describe('a hidden forge', () => {
 });
 
 describe('agents', () => {
-  test('are sorted by forge name, then by job id read as a number, a running brain\'s row closing its forge\'s rows', () => {
+  test('are sorted by forge name, then by job id read as a number', () => {
     const storefront = { ...READINGS.exampleStorefront, project: 'Zebra Storefront' };
     const wikiWithLaterJob = { ...READINGS.researchWiki, agents: [{ ...onlyAgentOf(READINGS.researchWiki), jobId: 'J11' }, ...READINGS.researchWiki.agents] };
     const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [storefront, wikiWithLaterJob, READINGS.invoiceService]));
@@ -131,7 +121,6 @@ describe('agents', () => {
       `${READINGS.exampleStorefront.trackerId} J3`,
       `${READINGS.exampleStorefront.trackerId} J4`,
       `${READINGS.exampleStorefront.trackerId} J6`,
-      `${READINGS.exampleStorefront.trackerId} ${FLINT_BRAIN_ROW_ID}`,
     ]);
   });
 
@@ -144,12 +133,12 @@ describe('agents', () => {
 
 const STOREFRONT = READINGS.exampleStorefront;
 
-/** The identity of the forge the brain's answers were recorded from: Example Storefront at monitor 3 and control 1. */
-const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
+/** The identity of the forge the Storefront at work was recorded from: Example Storefront at monitor 3 and control 1. */
+const RECORDED_FORGE_IDENTITY: ForgeIdentity = {
   trackerId:      STOREFRONT.trackerId,
   project:        STOREFRONT.project,
-  codeVersion:    'fbc3c0ad0259',
-  installVersion: 42,
+  codeVersion:    'bd4096d23eb2',
+  installVersion: 43,
   processId:      48_107,
   contracts:      {
     summary: 1,
@@ -158,84 +147,23 @@ const BRAIN_FORGE_IDENTITY: ForgeIdentity = {
   },
 };
 
-/** Example Storefront as the recorded snapshot of one state of its brain reads, through the ingestion. */
-async function recordedBrainReadingOf(situation: FlintBrainSituation): Promise<ForgeReading> {
-  const facts = registryFactsOf(STOREFRONT);
-  const snapshot = await recordedFlintBrainDocumentOf(situation, 'monitor', facts.overseerUrl);
-  const reading = new MonitorSnapshotIngestion(facts, BRAIN_FORGE_IDENTITY).readingOf(snapshot, EXAMPLE_READ_STAMP);
-  if (reading.verdict !== 'readable') throw new Error(`The ${situation} snapshot does not read: ${reading.verdict}.`);
-  return reading.reading;
-}
-
-function brainIn(state: ForgeBrain['state']): ForgeBrain {
-  const { brain } = STOREFRONT;
-  if (brain === 'not-reported') throw new Error('The five-forges fixture shows no brain on Example Storefront.');
-  return { ...brain, state };
-}
-
-describe('Flint\'s brain', () => {
-  test('a running brain adds one agent row of role brain, after its forge\'s jobs, that counts against no limit', async () => {
-    const brainReading = await recordedBrainReadingOf('brain-running');
-    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [brainReading]));
-    expect(snapshot.agents.map((row) => [row.jobId, row.role, row.countsAgainstLimit])).toEqual([
-      ['J1', 'assistant', true],
-      [FLINT_BRAIN_ROW_ID, FLINT_BRAIN_ROLE, false],
-    ]);
-    expect(snapshot.agents.at(-1)).toMatchObject({
-      trackerId:  STOREFRONT.trackerId,
-      state:      'running',
-      tokens:     11,
-      calls:      1,
-      startedAt:  brainReading.brain === 'not-reported' ? 'no brain reported' : brainReading.brain.startedAt,
-      ticketIds:  [],
-      boardRoute: null,
-    });
+describe('a forge whose snapshot still carries a `flintBrain` key', () => {
+  test('adds no row of the role brain and no row beside its jobs, whatever the key holds', async () => {
+    const facts = registryFactsOf(STOREFRONT);
+    const recorded = await recordedDocumentOf('serving-every-contract', 'monitor', facts.overseerUrl) as Record<string, unknown>;
+    const flintBrain = {
+      state: 'running', startedAt: EXAMPLE_READ_STAMP, tokens: 11, calls: 1
+    };
+    const reading = new MonitorSnapshotIngestion(facts, RECORDED_FORGE_IDENTITY).readingOf({ ...recorded, flintBrain }, EXAMPLE_READ_STAMP);
+    if (reading.verdict !== 'readable') throw new Error(`The snapshot does not read: ${reading.verdict}.`);
+    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [reading.reading]));
+    expect(snapshot.agents.map((row) => [row.jobId, row.role])).toEqual([['J1', 'assistant']]);
   });
 
-  test('a running brain counts in no figure, no machine fact and no forge\'s jobs, and is no attention item', () => {
-    const withoutBrain = { ...STOREFRONT, brain: 'not-reported' as const };
-    const running = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES));
-    const notReported = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [withoutBrain, ...FLEET_SNAPSHOT_FIVE_FORGES.forges.slice(1)]));
-    expect(running.agents).toHaveLength(notReported.agents.length + 1);
-    const countedPartsOf = (snapshot: FleetSnapshot) => [snapshot.figures, snapshot.machine, snapshot.attention, snapshot.needsALook];
-    expect(countedPartsOf(running)).toEqual(countedPartsOf(notReported));
-    expect(running.forges[0]?.agents).toEqual(STOREFRONT.agents);
-    expect([running.figures.agentsInFlight, running.figures.machineLimit]).toEqual([10, 12]);
-  });
-
-  test('a brain that is off, starting, ended or refused, or that is not reported, adds no row', () => {
-    for (const brain of [...(['off', 'starting', 'ended', 'refused'] as const).map(brainIn), 'not-reported' as const]) {
-      const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [{ ...STOREFRONT, brain }]));
-      const brainName = brain === 'not-reported' ? brain : brain.state;
-      expect([brainName, snapshot.agents.map((row) => row.jobId)]).toEqual([brainName, ['J2', 'J3', 'J4', 'J6']]);
+  test('no fixture\'s fleet holds a row of the role brain', () => {
+    for (const fixture of [FLEET_SNAPSHOT_FIVE_FORGES, FLEET_SNAPSHOT_AT_LIMIT, FLEET_SNAPSHOT_DEGRADED, FLEET_SNAPSHOT_EMPTY]) {
+      expect(fleetSnapshotOf(inputBehind(fixture)).agents.filter((row) => row.role === 'brain')).toEqual([]);
     }
-  });
-
-  test('a running brain of a dormant forge or of one whose contract is newer adds no row; one of an unreachable forge stays as last reported', () => {
-    const dormant = { ...STOREFRONT, fidelity: 'dormant' as const };
-    const newer   = { ...STOREFRONT, fidelity: 'newer-contract' as const };
-    expect(fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [dormant, newer])).agents).toEqual([]);
-    const unreachable = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [{ ...STOREFRONT, fidelity: 'unreachable' as const }]));
-    expect(unreachable.agents.at(-1)?.jobId).toBe(FLINT_BRAIN_ROW_ID);
-  });
-
-  test('an ended brain adds one activity entry, the forge\'s own words with its tokens, and no row', async () => {
-    const brainReading = await recordedBrainReadingOf('brain-ended');
-    const recordedBrainEntry = brainReading.activity.find((entry) => entry.kind === 'flint-brain');
-    if (recordedBrainEntry === undefined) throw new Error('The ended brain was recorded with no activity entry of its own.');
-    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [brainReading]));
-    expect(snapshot.activity.filter((entry) => entry.kind === 'flint-brain')).toEqual([{
-      trackerId:   STOREFRONT.trackerId,
-      logPosition: recordedBrainEntry.logPosition,
-      at:          recordedBrainEntry.at,
-      category:    'agent',
-      text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
-      boardRoute:  null,
-      kind:        'flint-brain',
-      tokens:      11,
-    }]);
-    expect(snapshot.agents.map((row) => row.jobId)).toEqual(['J1']);
-    expect(snapshot.figures.tokensToday).toBe(11);
   });
 });
 

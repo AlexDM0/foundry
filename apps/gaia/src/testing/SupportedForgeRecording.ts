@@ -1,15 +1,12 @@
 /**
- * The real-system suites of overseer-fetch against a forge, which two recording specs run: `overseer-fetch-supported-forge`, a forge at the
- * one system version Gaia supports, and `overseer-fetch-flint-brain`, the same forge running Flint's brain, each recorded with
- * `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record <name>` and the program of such a forge. Each starts that forge under a scratch
- * home in scratch repositories and records `GET /api/versions` and each endpoint at the versioned path Gaia calls. The supported forge: as
- * Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running forge can be brought into:
- * serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board file it cannot read,
- * suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. The brain: Example Storefront in the
- * states of Flint's brain that the brain's commands bring it into, its fake agent playing the brain's session so no model is called:
- * running after one ask as the Bridge sends it, ended by a stop, refused while the Overseer is paused, and absent on a forge run with its
- * test setting `FORGE_WITHOUT_FLINT_BRAIN`. The values the run draws (paths, tracker ids, ports, process ids) are
- * recorded as example values; the forge's install and code versions stamp the recording. Test-only.
+ * The real-system suite of overseer-fetch against a forge, which the recording spec of `overseer-fetch-supported-forge` runs: a forge at the
+ * one system version Gaia supports, recorded with `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record <name>` and the program of such a
+ * forge. It starts that forge under a scratch home in scratch repositories and records `GET /api/versions` and each endpoint at the
+ * versioned path Gaia calls: as Example Project, serving, a token it refuses, and stopped; as Example Storefront, each situation a running
+ * forge can be brought into: serving, a token it refuses, a command it refuses or finds already done, the machine limit lowered, a board
+ * file it cannot read, suspended so it accepts and never answers, a Baton pass, killed under an open stream, and starting. The values the
+ * run draws (paths, tracker ids, ports, process ids) are recorded as example values; the forge's install and code versions stamp the
+ * recording. Test-only.
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -38,7 +35,6 @@ import {
   requestCallShapeOf,
   situationCallShapeOf,
   streamCallShapeOf,
-  type FlintBrainSituation,
   type OverseerSituation,
   type RecordedStreamAnswer,
 } from './RecordedAnswers.ts';
@@ -64,7 +60,6 @@ const EXAMPLE_PROJECT = {
 const EXAMPLE_TOKEN = 'example-token';
 const UNAUTHORIZED_STATUS = 401;
 const SUCCESS_STATUS = 200;
-const CONFLICT_STATUS = 409;
 const RAISED_CONCURRENCY_LIMIT = 3;
 const LOWERED_MACHINE_LIMIT = 4;
 const MACHINE_LIMIT_ABOVE_ANY_CPU_COUNT = 64;
@@ -76,37 +71,8 @@ const BOARD_FILE_PATH = ['.forge', 'progress.json'] as const;
 /** The question the Overseer's first pass opens on a board with no checks set. */
 const FIRST_PASS_QUESTION_KIND = 'question';
 const SETTLING_EVENTS_AT_MOST = 40;
-/** A brain the forge starts ends by itself after at most two minutes (G3), so its states are looked for within that and a margin. */
-const FLINT_BRAIN_TIMEOUT_MILLISECONDS = 180_000;
 /** Forge's test setting that keeps each fake agent's session working until it is stopped, so a job stays at work while it is recorded. */
 const FAKE_AGENT_KEEPS_WORKING_VARIABLE = 'FORGE_FAKE_AGENT_KEEPS_WORKING';
-/** Forge's test setting for a forge that cannot run Flint's brain confined: no brain in its snapshot, and a start refused `no-flint`. */
-const FLINT_BRAIN_WITHHELD_VARIABLE = 'FORGE_WITHOUT_FLINT_BRAIN';
-/** The Bridge's own route for its digest; Gaia never calls it, so no answer of it is recorded. */
-const FLINT_BRAIN_ASK_PATH = '/api/flint-brain/ask';
-/** A digest as the Bridge's Flint sends it from Agents at work, its moves including the one the forge's fake brain answers. */
-const FLINT_BRAIN_DIGEST = {
-  habitatKind:       'chat',
-  description:       'Agents at work on Example Storefront',
-  suggestions:       [],
-  recentCues:        [],
-  newCues:           ['agent-started'],
-  content:           { facts: { agentsRunning: 1 } },
-  lastIntent:        null,
-  isAsleep:          false,
-  visitTargetKind:   null,
-  copyIsOffered:     false,
-  quietMilliseconds: 0,
-  intents:           ['wander', 'wave', 'happy'],
-  emotes:            ['happy'],
-} as const;
-
-/** The keys of Flint's brain in a monitor snapshot that the recording waits on. */
-interface FlintBrainReading {
-  readonly state:        string;
-  readonly recentMoves?: readonly unknown[];
-}
-
 interface KeptAnswer {
   readonly callShape:    string;
   readonly answer:       OverseerAnswer | RecordedStreamAnswer;
@@ -127,10 +93,7 @@ const PATHS = {
   commands:      pathOf('commands', 'commands'),
 } as const;
 
-/** `supported-forge`: every situation but Flint's brain's; `flint-brain`: the brain's states only. */
-export type ForgeRecordingPart = 'supported-forge' | 'flint-brain';
-
-export function describeSupportedForgeRecording(recordingName: string, recordingPart: ForgeRecordingPart): void {
+export function describeSupportedForgeRecording(recordingName: string): void {
   const monitorVersion = CONTRACT_VERSIONS.forgeMonitor;
   const controlVersion = CONTRACT_VERSIONS.forgeControl;
   let scratchForge: ScratchForge;
@@ -145,7 +108,7 @@ export function describeSupportedForgeRecording(recordingName: string, recording
   const createdForges: ScratchForge[] = [];
   const keptAnswers: KeptAnswer[] = [];
 
-  function keep(situation: OverseerSituation | FlintBrainSituation, callShape: string, answer: OverseerAnswer | RecordedStreamAnswer): void {
+  function keep(situation: OverseerSituation, callShape: string, answer: OverseerAnswer | RecordedStreamAnswer): void {
     keptAnswers.push({ callShape: situationCallShapeOf(situation, callShape), answer, scratchForge });
   }
 
@@ -162,7 +125,7 @@ export function describeSupportedForgeRecording(recordingName: string, recording
   }
 
   /** Keeps what the forge answers at `/api/versions` in a situation, which Gaia asks before anything else. */
-  async function keepVersions(situation: OverseerSituation | FlintBrainSituation, timeoutMilliseconds = GENEROUS_BOUND_MILLISECONDS): Promise<OverseerAnswer> {
+  async function keepVersions(situation: OverseerSituation, timeoutMilliseconds = GENEROUS_BOUND_MILLISECONDS): Promise<OverseerAnswer> {
     const versionsRequest = { ...requestOf('GET', ApiPathUtil.VERSIONS_PATH, null), timeoutMilliseconds };
     const answer = await realOverseerFetch().request(versionsRequest);
     keep(situation, requestCallShapeOf(versionsRequest), answer);
@@ -237,46 +200,15 @@ export function describeSupportedForgeRecording(recordingName: string, recording
     }
   }
 
-  /** Reads the stream until a snapshot's Flint's brain is as `brainIsAsWanted` says, worded by `wantedState`, and answers its chunks. */
-  async function chunksOnceTheBrainIs(wantedState: string, brainIsAsWanted: (brain: FlintBrainReading | null) => boolean): Promise<string[]> {
-    const stream = await openedStream(bearerToken);
-    const chunks: string[] = [];
-    try {
-      const snapshotShowsTheBrain = (snapshot: Record<string, unknown>): boolean => brainIsAsWanted(snapshot['flintBrain'] as FlintBrainReading | null);
-      for (let event = 1; !snapshotsIn(chunks).some(snapshotShowsTheBrain); event += 1) {
-        if (event > SETTLING_EVENTS_AT_MOST) throw new Error(`Flint's brain was not ${wantedState} within ${SETTLING_EVENTS_AT_MOST} monitor events.`);
-        const { chunks: eventChunks, ending } = await chunksUntil(stream, 1);
-        chunks.push(...eventChunks);
-        if (ending !== null) throw new Error(`The monitor stream ended ${ending} before Flint's brain was ${wantedState}.`);
-      }
-    } finally {
-      stream.close();
-    }
-    return chunks;
-  }
-
-  /** Waits until a snapshot's Flint's brain is as `brainIsAsWanted` says, and keeps what the stream, the monitor and the identity answer then. */
-  async function keepTheBrainOnceItIs(situation: FlintBrainSituation, wantedState: string, brainIsAsWanted: (brain: FlintBrainReading | null) => boolean): Promise<void> {
-    const chunks = await chunksOnceTheBrainIs(wantedState, brainIsAsWanted);
-    keep(situation, streamCallShapeOf(streamRequestOf(bearerToken)), { verdict: 'streaming', chunks, ending: 'stays-open' });
-    const monitorRequest = requestOf('GET', PATHS.monitor, bearerToken);
-    keep(situation, requestCallShapeOf(monitorRequest), await realOverseerFetch().request(monitorRequest));
-    const identityRequest = requestOf('GET', PATHS.identity, null);
-    const identityAnswer = await realOverseerFetch().request(identityRequest);
-    keep(situation, requestCallShapeOf(identityRequest), identityAnswer);
-    stampWithTheForgeIn(identityAnswer);
-    await keepVersions(situation);
-  }
-
   function exampleAnswerOf({ answer, scratchForge: answeringForge }: KeptAnswer): OverseerAnswer | RecordedStreamAnswer {
     if (answer.verdict === 'answered') return { ...answer, bodyText: answeringForge.exampleTextOf(answer.bodyText) };
     if (answer.verdict === 'streaming') return { ...answer, chunks: answer.chunks.map((chunk) => answeringForge.exampleTextOf(chunk)) };
     return answer;
   }
 
-  /** Starts Example Storefront at work on a scratch forge of its own, with forge's own settings `forgeVariables`, and follows its Overseer. */
-  async function startStorefront(forgeVariables: Readonly<Record<string, string>> = {}): Promise<void> {
-    scratchForge = createScratchForge(recordingName, { forgeVariables: { [FAKE_AGENT_KEEPS_WORKING_VARIABLE]: '1', ...forgeVariables } });
+  /** Starts Example Storefront at work on a scratch forge of its own, and follows its Overseer. */
+  async function startStorefront(): Promise<void> {
+    scratchForge = createScratchForge(recordingName, { forgeVariables: { [FAKE_AGENT_KEEPS_WORKING_VARIABLE]: '1' } });
     createdForges.push(scratchForge);
     processIdsSeen = 0;
     repository     = await scratchForge.createRepository('example-storefront');
@@ -302,53 +234,6 @@ export function describeSupportedForgeRecording(recordingName: string, recording
     for (const createdForge of createdForges.splice(0)) await createdForge.remove();
     if (scratchPathsLeft.length > 0) throw new Error(`A scratch path is left in ${scratchPathsLeft.map(({ callShape }) => callShape).join(', ')}: nothing is recorded.`);
   }, SETUP_TIMEOUT_MILLISECONDS);
-
-  if (recordingPart === 'flint-brain') {
-    describe('Example Storefront running Flint\'s brain', () => {
-      const commandShape = (): string => requestCallShapeOf(requestOf('POST', PATHS.commands, bearerToken));
-      const outcomeOf = (answer: OverseerAnswer): unknown => (answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : answer);
-
-      test('answers a start of the brain done, and serves the brain running with the move it chose for the Bridge\'s digest', async () => {
-        const answer = await sendCommand({ kind: 'flint-brain-start' });
-        expect(outcomeOf(answer)).toMatchObject({ outcome: 'done' });
-        keep('brain-running', commandShape(), answer);
-        await chunksOnceTheBrainIs('running', (brain) => brain?.state === 'running');
-        const asked = await realOverseerFetch().request(requestOf('POST', FLINT_BRAIN_ASK_PATH, bearerToken, JSON.stringify(FLINT_BRAIN_DIGEST)));
-        expect(outcomeOf(asked)).toMatchObject({ intent: expect.any(String) });
-        await keepTheBrainOnceItIs('brain-running', 'running with a move', (brain) => brain?.state === 'running' && (brain.recentMoves?.length ?? 0) > 0);
-      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
-
-      test('answers a stop of the running brain done, and serves the brain ended', async () => {
-        const answer = await sendCommand({ kind: 'flint-brain-stop' });
-        expect(outcomeOf(answer)).toMatchObject({ outcome: 'done' });
-        keep('brain-ended', commandShape(), answer);
-        await keepTheBrainOnceItIs('brain-ended', 'ended', (brain) => brain?.state === 'ended');
-      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
-
-      test('refuses a start while its Overseer is paused, and serves the brain refused', async () => {
-        expect(await sendCommand({ kind: 'overseer-pause' })).toMatchObject({ verdict: 'answered', status: SUCCESS_STATUS });
-        try {
-          const answer = await sendCommand({ kind: 'flint-brain-start' });
-          expect(answer).toMatchObject({ verdict: 'answered', status: CONFLICT_STATUS });
-          expect(outcomeOf(answer)).toMatchObject({ refusal: 'overseer-paused' });
-          keep('brain-refused', commandShape(), answer);
-          await keepTheBrainOnceItIs('brain-refused', 'refused', (brain) => brain?.state === 'refused');
-        } finally {
-          await sendCommand({ kind: 'overseer-resume' });
-        }
-      }, FLINT_BRAIN_TIMEOUT_MILLISECONDS);
-
-      test('refuses a start on a forge that runs no brain, and serves no brain', async () => {
-        await startStorefront({ [FLINT_BRAIN_WITHHELD_VARIABLE]: '1' });
-        const answer = await sendCommand({ kind: 'flint-brain-start' });
-        expect(answer).toMatchObject({ verdict: 'answered', status: CONFLICT_STATUS });
-        expect(outcomeOf(answer)).toMatchObject({ refusal: 'no-flint' });
-        keep('no-flint', commandShape(), answer);
-        await keepTheBrainOnceItIs('no-flint', 'absent', (brain) => brain === null);
-      }, SETUP_TIMEOUT_MILLISECONDS);
-    });
-    return;
-  }
 
   describe('Example Project, a second forge', () => {
     let projectRepository = '';

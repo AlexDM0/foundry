@@ -1,12 +1,11 @@
 /**
  * A forge's board, the root of `#forge/<trackerId>[/<tab>[/<item>]]` (SCREENS B1), the one way a board opens (decision 43). Gaia's bar heads
  * it, then the board's own header and tabs, then the main area, where the view of every tab is Gaia's own. A forge whose board Gaia cannot
- * read shows why in place of the board. The bar reads the command sender and keeps the Stop question's state; its Wake, its Stop for
- * Flint's brain and the forge mark's double click send the brain's commands for this forge alone, and its Open in new tab opens the same
- * route of Gaia's own address in a new tab. The view heads itself with the forge's bar, so `forgeViewPartsOf` hands the shell no page
+ * read shows why in place of the board. The bar reads the command sender and keeps the Stop question's state, and its Open in new tab
+ * opens the same route of Gaia's own address in a new tab. The view heads itself with the forge's bar, so `forgeViewPartsOf` hands the shell no page
  * title. A new fleet document changes both at once.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import type { CommandBody, ForgeStopAgents }      from '../../@types/CommandDocument.ts';
 import type { CrashLogDocument }                  from '../../@types/CrashLogDocument.ts';
@@ -24,7 +23,6 @@ import {
   ForgeAreaLayout,
   ForgeBarControls,
   ForgeBarLayout,
-  forgeMarkPropsOf,
   RunningVersionsLine,
 } from './ForgeLayout.tsx';
 import { type ForgeBar, type ForgeContent, ForgeModel } from './ForgeModel.ts';
@@ -64,13 +62,6 @@ function ForgeBarWithControls({ bar, onOpenInNewTab }: ForgeBarWithControlsProps
   const stopAnchorRef = useRef<HTMLSpanElement | null>(null);
   const commandState = CommandSender.stateOf(states, { trackerId: bar.trackerId });
   const commandIsOnItsWay = commandState.onItsWay !== null;
-  const brainShown = bar.brain === null ? null : ForgeModel.brainShownAfter(bar.brain, commandState.failure);
-  const wakeRefusalIsOutOfDate = ForgeModel.brainWakeRefusalIsOutOfDate(bar.brain, commandState.failure);
-  useEffect(() => {
-    if (wakeRefusalIsOutOfDate) dismissFailure({ trackerId: bar.trackerId });
-  }, [wakeRefusalIsOutOfDate, dismissFailure, bar.trackerId]);
-  const markWake = ForgeModel.markWakeOf(bar.brain, brainShown);
-  const wakeBrain = (): void => void send({ kind: 'forge-brain-start', trackerId: bar.trackerId });
   const updateStep = ForgeModel.updateStepOf(commandState);
   const subject = { trackerId: bar.trackerId };
   const { versions } = bar;
@@ -79,11 +70,9 @@ function ForgeBarWithControls({ bar, onOpenInNewTab }: ForgeBarWithControlsProps
       <ForgeBarLayout
         name={bar.project}
         status={bar.status}
-        mark={forgeMarkPropsOf(markWake, commandIsOnItsWay, wakeBrain)}
         controls={(
           <ForgeBarControls
             bar={bar}
-            brainShown={brainShown}
             commandIsOnItsWay={commandIsOnItsWay}
             stopIsOpen={stopIsOpen}
             stopAnchorRef={stopAnchorRef}
@@ -192,7 +181,7 @@ export function forgeViewPartsOf(route: ForgeViewRoute, fleetDocument: FleetDocu
     title: null, lead: '', figures: [], actions: null
   } as const;
   if (fleetDocument === null) {
-    return { ...selfHeaded, content: <div className="gaia-forge-frame-view"><ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} /></div> };
+    return { ...selfHeaded, content: <div className="gaia-forge-frame-view"><ForgeBarLayout name={route.trackerId} status={null} controls={null} /></div> };
   }
   const content = ForgeModel.forgeContentOf(route.trackerId, fleetDocument, clock);
   const { bar } = content;
@@ -203,7 +192,7 @@ export function forgeViewPartsOf(route: ForgeViewRoute, fleetDocument: FleetDocu
     content: (
       <div className="gaia-forge-frame-view">
         {bar === null
-          ? <ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} />
+          ? <ForgeBarLayout name={route.trackerId} status={null} controls={null} />
           : <ForgeBarWithControls key={bar.trackerId} bar={bar} onOpenInNewTab={openRouteInNewTab} />}
         {forge === undefined ? null : (
           <ForgePresenceArea

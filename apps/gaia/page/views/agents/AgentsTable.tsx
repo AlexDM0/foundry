@@ -1,40 +1,22 @@
 /**
  * The Agents table (SCREENS A2): a head row, then one group per forge, its head row first (the forge's condition, its agents against its
- * limit, its brain's pill, Wake, starting note or refusal, and what of it waits on User), then a row per agent, and last its running brain's
- * row with its Stop. A row selects itself through a link stretched over it; its job's own link and the brain's Stop sit above that one.
+ * limit, and what of it waits on User), then a row per agent. A row selects itself through a link stretched over it; its job's own link sits
+ * above that one.
  */
-import { Button }         from 'design-system/Button';
 import { FillMeter }      from 'design-system/FillMeter';
 import { MonoId }         from 'design-system/MonoId';
 import { SlotMeter }      from 'design-system/SlotMeter';
 import type { StateTone } from 'design-system/StateTone';
 import { Tag }            from 'design-system/Tag';
 
-import type { ForgeCommandBody } from '../../@types/CommandDocument.ts';
-import type { CommandSubject }   from '../../api/CommandSender.ts';
-import { BrainChip }             from '../../design-system/BrainChip.tsx';
-import { ConditionDot }          from '../../design-system/ConditionDot.tsx';
-import { Refusal }               from '../../design-system/Refusal.tsx';
-import { RoleDot }               from '../../design-system/RoleDot.tsx';
+import { ConditionDot } from '../../design-system/ConditionDot.tsx';
+import { RoleDot }      from '../../design-system/RoleDot.tsx';
 import type {
   AgentCalls,
   AgentGroupContent,
   AgentMeterTone,
   AgentRowContent
 } from './AgentsModel.ts';
-import type { BrainCommandButton, BrainRowContent, GroupBrainContent } from './BrainModel.ts';
-
-/** What the brain's controls hand the view: the command to send its forge, and the dismissal of a refused one. */
-export interface BrainHandlers {
-  readonly onBrainCommand:   (command: ForgeCommandBody) => void;
-  readonly onDismissFailure: (subject: CommandSubject) => void;
-}
-
-export const BRAIN_NAME = 'Flint\'s brain';
-
-const WAKE_LABEL = 'Wake Flint\'s brain';
-
-const BRAIN_ROLE = 'brain';
 
 const COLUMN_LABELS = ['Job', 'Ticket · last tool', 'State', 'Calls', 'Tokens'] as const;
 
@@ -47,8 +29,8 @@ const METER_STATE_TONES: Readonly<Record<AgentMeterTone, StateTone>> = {
   paused:   'neutral',
 };
 
-/** The role word takes its role's ink: orange for a builder and the brain, teal for a reviewer, the muted ink for any other. */
-type RoleInk = 'builder' | 'reviewer' | 'brain' | 'other';
+/** The role word takes its role's ink: orange for a builder, teal for a reviewer, the muted ink for any other. */
+type RoleInk = 'builder' | 'reviewer' | 'other';
 
 /** What a cell shows for a value the forge did not report. */
 const NOT_REPORTED = '—';
@@ -58,7 +40,7 @@ function NotReported() {
 }
 
 function roleInkOf(role: string | null): RoleInk {
-  return role === 'builder' || role === 'reviewer' || role === BRAIN_ROLE ? role : 'other';
+  return role === 'builder' || role === 'reviewer' ? role : 'other';
 }
 
 export function AgentCallsMeter({ calls }: { readonly calls: AgentCalls }) {
@@ -133,62 +115,7 @@ function AgentRow({ row }: { readonly row: AgentRowContent }) {
   );
 }
 
-/** Stop on the brain's row and panel: its forge's brain only, named for that forge, with no confirmation (PLAN Q16). */
-export function BrainStopButton({
-  stop, project, onBrainCommand, place
-}: { readonly stop: BrainCommandButton; readonly project: string; readonly onBrainCommand: BrainHandlers['onBrainCommand']; readonly place: 'row' | 'panel' }) {
-  const sizeProps = place === 'row' ? { dense: true } : { compact: true };
-  return (
-    <Button label="Stop" accessibleName={`Stop ${BRAIN_NAME} on ${project}`} {...sizeProps} disabled={stop.disabled} onPress={() => onBrainCommand(stop.command)} />
-  );
-}
-
-function WakeButton({ wake, project, onBrainCommand }: { readonly wake: BrainCommandButton; readonly project: string; readonly onBrainCommand: BrainHandlers['onBrainCommand'] }) {
-  return (
-    <Button
-      label={WAKE_LABEL}
-      accessibleName={`${WAKE_LABEL} on ${project}`}
-      leading={<RoleDot role="brain" />}
-      emphasis="ghost"
-      dense
-      disabled={wake.disabled}
-      onPress={() => onBrainCommand(wake.command)}
-    />
-  );
-}
-
-/** The brain's part of its forge's head: as B1's bar draws the starting note and the refusal; a running brain is a pill, not the chip. */
-function GroupBrain({ brain, project, onBrainCommand }: { readonly brain: GroupBrainContent; readonly project: string; readonly onBrainCommand: BrainHandlers['onBrainCommand'] }) {
-  switch (brain.kind) {
-    case 'none':
-      return null;
-    case 'off':
-      return <WakeButton wake={brain.wake} project={project} onBrainCommand={onBrainCommand} />;
-    case 'starting':
-      return <BrainChip state="starting" />;
-    case 'running':
-      return (
-        <span className="gaia-agents-group-brain-pill">
-          <RoleDot role="brain" />
-          + brain
-        </span>
-      );
-    case 'refused': {
-      const { wake } = brain;
-      return (
-        <BrainChip
-          state="refused"
-          refusedBy={brain.refusedBy}
-          sentence={brain.sentence}
-          code={brain.code}
-          wake={wake === null ? null : { disabled: wake.disabled, onPress: () => onBrainCommand(wake.command) }}
-        />
-      );
-    }
-  }
-}
-
-function GroupHead({ group, handlers }: { readonly group: AgentGroupContent; readonly handlers: BrainHandlers }) {
+function GroupHead({ group }: { readonly group: AgentGroupContent }) {
   return (
     <div className="gaia-agents-group-head" role="row">
       <span className="gaia-agents-group-head-cell" role="rowheader" aria-colspan={COLUMN_LABELS.length}>
@@ -199,85 +126,13 @@ function GroupHead({ group, handlers }: { readonly group: AgentGroupContent; rea
           <span className="gaia-agents-group-figure">{group.agentsFigure}</span>
           <span className="gaia-agents-group-word">{group.agentsWord}</span>
         </span>
-        <GroupBrain brain={group.brain} project={group.project} onBrainCommand={handlers.onBrainCommand} />
         {group.noteText === null ? null : <span className="gaia-agents-group-note">{group.noteText}</span>}
       </span>
     </div>
   );
 }
 
-/** Gaia's answer to the forge's last brain command, under its forge's head until dismissed or until the next command to it succeeds. */
-function GroupBrainRefusal({ group, handlers }: { readonly group: AgentGroupContent; readonly handlers: BrainHandlers }) {
-  const refusal = group.brainRefusal;
-  if (refusal === null) return null;
-  return (
-    <div className="gaia-agents-group-refusal" role="row">
-      <span className="gaia-agents-group-refusal-cell" role="cell" aria-colspan={COLUMN_LABELS.length}>
-        <Refusal
-          commandLabel={refusal.commandLabel}
-          refusedBy={refusal.refusedBy}
-          code={refusal.code}
-          sentence={refusal.sentence}
-          onDismiss={() => handlers.onDismissFailure({ trackerId: group.trackerId })}
-        />
-      </span>
-    </div>
-  );
-}
-
-/** Not a job: the brain's name is no link, it has no ticket, budget or meter, and its time left is the forge's `endsAt` counted down. */
-function BrainRow({ row, onBrainCommand }: { readonly row: BrainRowContent; readonly onBrainCommand: BrainHandlers['onBrainCommand'] }) {
-  return (
-    <div className="gaia-agents-row" role="row" data-brain="" data-selected={row.isSelected ? '' : undefined} aria-current={row.isSelected ? 'true' : undefined}>
-      <span className="gaia-agents-cell" role="cell">
-        <span className="gaia-agents-job-cell">
-          <a className="gaia-agents-select" href={row.selectHref} aria-label={`${row.project}, ${BRAIN_NAME}`} />
-          <RoleDot role="brain" />
-          <span className="gaia-agents-job-lines">
-            <span className="gaia-agents-brain-name">{BRAIN_NAME}</span>
-            <span className="gaia-agents-job-line">
-              <RoleWord role={BRAIN_ROLE} />
-              {row.runTimeText === null ? <NotReported /> : <span className="gaia-agents-running">{row.runTimeText}</span>}
-            </span>
-          </span>
-        </span>
-      </span>
-      <span className="gaia-agents-cell" role="cell">
-        <span className="gaia-agents-brain-ticket-cell">
-          <span className="gaia-agents-ticket-cell">
-            <span className="gaia-agents-brain-outside">outside the limit</span>
-            {row.newestMoveText === null ? <NotReported /> : <span className="gaia-agents-last-tool-call">{row.newestMoveText}</span>}
-          </span>
-          {row.stop === null ? null : (
-            <span className="gaia-agents-brain-stop">
-              <BrainStopButton stop={row.stop} project={row.project} onBrainCommand={onBrainCommand} place="row" />
-            </span>
-          )}
-        </span>
-      </span>
-      <span className="gaia-agents-cell" role="cell">
-        <span className="gaia-agents-state">
-          Running
-          {row.timeLeftText === null ? null : <span className="gaia-agents-brain-time-left">{`${row.timeLeftText} left`}</span>}
-        </span>
-      </span>
-      <span className="gaia-agents-cell" role="cell">
-        <span className="gaia-agents-brain-calls">
-          {row.model === null ? <NotReported /> : (
-            <span>
-              <span className="gaia-agents-brain-model">{row.model}</span>
-              {row.effort === null ? null : <span className="gaia-agents-brain-effort">{` · ${row.effort}`}</span>}
-            </span>
-          )}
-          {row.calls === null ? null : <span className="gaia-agents-brain-calls-text">{row.calls === 1 ? '1 call' : `${row.calls} calls`}</span>}
-        </span>
-      </span>
-      <span className="gaia-agents-cell" role="cell" data-align="end"><span className="gaia-agents-tokens">{row.tokensText}</span></span>
-    </div>
-  );
-}
-
-export function AgentsTable({ groups, handlers }: { readonly groups: readonly AgentGroupContent[]; readonly handlers: BrainHandlers }) {
+export function AgentsTable({ groups }: { readonly groups: readonly AgentGroupContent[] }) {
   return (
     <div className="gaia-agents-table" role="table" aria-label="Agents">
       <div className="gaia-agents-row" role="row" data-head="">
@@ -287,10 +142,8 @@ export function AgentsTable({ groups, handlers }: { readonly groups: readonly Ag
       </div>
       {groups.map((group) => (
         <div key={group.trackerId} className="gaia-agents-group" role="rowgroup" aria-label={group.project}>
-          <GroupHead group={group} handlers={handlers} />
-          <GroupBrainRefusal group={group} handlers={handlers} />
+          <GroupHead group={group} />
           {group.rows.map((row) => <AgentRow key={row.key} row={row} />)}
-          {group.brainRow === null ? null : <BrainRow row={group.brainRow} onBrainCommand={handlers.onBrainCommand} />}
         </div>
       ))}
     </div>

@@ -1,6 +1,6 @@
 /**
  * How a count prints, in every view alike. What matters: a phrase agrees with its count, one alone in the singular and none in the plural;
- * a short count keeps three significant digits, so a brain's `3.1k` and the fleet's `1.24M` read as the artboards write them; and the
+ * a short count keeps three significant digits, so an agent's `3.1k` and the fleet's `1.24M` read as the artboards write them; and the
  * rounding picks the unit, so a count just under a million reads `1M`, never `1000k`.
  */
 import { describe, expect, test } from 'bun:test';

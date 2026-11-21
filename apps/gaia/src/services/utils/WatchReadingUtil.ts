@@ -56,7 +56,6 @@ function registryOnlyReadingOf(forge: RegisteredForge, fidelity: ForgeReading['f
     activity:          [],
     today:             null,
     usage:             null,
-    brain:             'not-reported',
     versions:          null,
     registryPresence:  forge.presence,
     presenceReport:    null,
@@ -66,7 +65,7 @@ function registryOnlyReadingOf(forge: RegisteredForge, fidelity: ForgeReading['f
 
 /**
  * A forge with no Overseer keeps what the forge last reported in this run about its board, its log and its limits; what only a running
- * Overseer knows (its address, its jobs, its brain, what waits on User or for a machine slot, its notices and today's figures) is gone
+ * Overseer knows (its address, its jobs, what waits on User or for a machine slot, its notices and today's figures) is gone
  * with it.
  */
 function dormantReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReading | null): ForgeReading {
@@ -93,7 +92,6 @@ function dormantReadingOf(forge: RegisteredForge, lastWholeReading: ForgeReading
     warnings:          [],
     today:             null,
     usage:             null,
-    brain:             'not-reported',
   };
 }
 

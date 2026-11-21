@@ -6,24 +6,17 @@
  * its controls, and a forge whose control contract Gaia does not know cannot be paused, unpaused or stopped from Gaia; the Stop question
  * offers its two choices only while agents run; the area under the bar is the board for a forge read in full or as an Overseer that
  * stopped answering last reported it, and otherwise why it cannot be shown; a refusal is worded with the forge's own sentence.
- * Flint's brain: each state the forge reports is worded for the bar, the time left counted down to the forge's `endsAt` and never ending
- * the brain by itself; it is absent under a monitor older than contract 3 and for a forge without Flint, both reported as `not-reported`;
- * its controls are served only by an Overseer that answers, at a control contract that carries them; a wake refused here shows in the
- * brain's group, not under the bar, and only until the forge reports the brain waking or awake.
  */
 import { describe, expect, test } from 'bun:test';
 
 import type {
   FleetDocument,
-  FleetDocumentBrain,
   FleetDocumentCondition,
   FleetDocumentForge,
   FleetDocumentUsage,
 } from '../../@types/FleetDocument.ts';
-import type { CommandFailure } from '../../api/CommandSender.ts';
-import type { ClockReading }   from '../../shared/@types/ClockReading.ts';
-import { STOREFRONT_BRAINS }   from '../../testing/fixtures/fleet-brain-states.ts';
-import { FLEET_DEGRADED }      from '../../testing/fixtures/fleet-degraded.ts';
+import type { ClockReading } from '../../shared/@types/ClockReading.ts';
+import { FLEET_DEGRADED }    from '../../testing/fixtures/fleet-degraded.ts';
 import {
   FLEET_FIVE_FORGES,
   FLEET_FIVE_FORGES_READINGS,
@@ -245,164 +238,6 @@ describe('a refusal under the bar', () => {
   test('is absent with no failure, and for a command that names no forge', () => {
     expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, null)).toBeNull();
     expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'fleet-look-again', result: { verdict: 'server-unreachable' } })).toBeNull();
-  });
-});
-
-describe('Flint\'s brain in the bar', () => {
-  const MILLISECONDS_PER_SECOND = 1000;
-
-  /** Example Storefront at the control contract Gaia sends, unless the overrides say otherwise. */
-  function brainOf(brain: FleetDocumentBrain | 'not-reported', overrides: Partial<FleetDocumentForge> = {}, clock: ClockReading = CLOCK) {
-    const storefront = READINGS.exampleStorefront;
-    const forge = {
-      ...storefront, contracts: { ...storefront.contracts, control: 1 }, brain, ...overrides,
-    };
-    const { bar } = ForgeModel.forgeContentOf(forge.trackerId, withForge(forge), clock);
-    if (bar === null) throw new Error('The forge has no bar.');
-    return bar.brain;
-  }
-
-  function clockLaterBy(seconds: number): ClockReading {
-    return { ...CLOCK, nowEpochMilliseconds: CLOCK.nowEpochMilliseconds + seconds * MILLISECONDS_PER_SECOND };
-  }
-
-  test('words each state B1 draws, the running brain\'s figures as the forge reports them and its time left to the forge\'s end', () => {
-    expect(brainOf(STOREFRONT_BRAINS.off)).toEqual({ shown: { state: 'off' }, controlsAreServed: true });
-    expect(brainOf(STOREFRONT_BRAINS.starting)?.shown).toEqual({ state: 'starting' });
-    expect(brainOf(STOREFRONT_BRAINS.running)?.shown).toEqual({
-      state: 'running', model: 'haiku', effort: 'low', countdown: '1:24', tokens: '3.1k',
-    });
-    expect(brainOf(STOREFRONT_BRAINS.refused)?.shown).toEqual({
-      state: 'refused', refusedBy: 'forge', code: 'usage-limit-holds', sentence: 'launches are held until 16:00 (usage limit)'
-    });
-    expect(brainOf(STOREFRONT_BRAINS.ended)?.shown).toEqual({ state: 'ended', sentence: 'Flint\'s brain stopped after 2:00 · 4.2k tokens' });
-  });
-
-  test('counts the time left down with the page\'s clock, its part second dropped as in every view, and stays at 0:00 running until the forge reports the brain ended', () => {
-    const countdownAt = (seconds: number) => {
-      const shown = brainOf(STOREFRONT_BRAINS.running, {}, clockLaterBy(seconds))?.shown;
-      return shown?.state === 'running' ? shown.countdown : shown?.state;
-    };
-    expect([countdownAt(0), countdownAt(0.4), countdownAt(30), countdownAt(83.5), countdownAt(84), countdownAt(600)]).toEqual(['1:24', '1:23', '0:54', '0:00', '0:00', '0:00']);
-  });
-
-  test('a figure the forge did not report reads as a dash, never as zero', () => {
-    const unreported = {
-      ...STOREFRONT_BRAINS.running, model: null, effort: null, tokens: null, endsAt: null
-    };
-    expect(brainOf(unreported)?.shown).toEqual({
-      state: 'running', model: '–', effort: '–', countdown: '–', tokens: '–',
-    });
-  });
-
-  test('a refusal or an end whose sentence names a command is worded by Gaia from its code and tokens', () => {
-    const refusedWithoutSentence = { ...STOREFRONT_BRAINS.refused, refusal: { code: 'overseer-paused', sentence: null } };
-    expect(brainOf(refusedWithoutSentence)?.shown).toEqual({
-      state: 'refused', refusedBy: 'forge', code: 'overseer-paused', sentence: 'the Overseer is paused'
-    });
-    const unknownCode = { ...STOREFRONT_BRAINS.refused, refusal: { code: 'constructor', sentence: null } };
-    expect(brainOf(unknownCode)?.shown).toEqual({
-      state: 'refused', refusedBy: 'forge', code: 'constructor', sentence: 'Flint\'s brain did not wake'
-    });
-    expect(brainOf({ ...STOREFRONT_BRAINS.ended, sentence: null })?.shown).toEqual({ state: 'ended', sentence: 'Flint\'s brain stopped · 4.2k tokens' });
-  });
-
-  test('is absent under a monitor older than contract 3 and for a forge without Flint, which both report no brain', () => {
-    expect(brainOf('not-reported', { contracts: { ...READINGS.exampleStorefront.contracts, monitor: 2 } })).toBeNull();
-    expect(brainOf('not-reported', { contracts: { ...READINGS.exampleStorefront.contracts, monitor: 1 } })).toBeNull();
-    expect(brainOf('not-reported')).toBeNull();
-  });
-
-  test('takes Wake and Stop only at the control contract Gaia sends, never under another number or none', () => {
-    const servedAt = (control: number | null) => brainOf(STOREFRONT_BRAINS.running, { contracts: { ...READINGS.exampleStorefront.contracts, control } })?.controlsAreServed;
-    expect([servedAt(1), servedAt(2), servedAt(3), servedAt(null)]).toEqual([true, false, false, false]);
-  });
-
-  test('takes neither from an Overseer that stopped answering, whose brain shows as last reported', () => {
-    expect(brainOf(STOREFRONT_BRAINS.running, { fidelity: 'unreachable', condition: 'unreachable' })).toEqual({
-      shown: {
-        state: 'running', model: 'haiku', effort: 'low', countdown: '1:24', tokens: '3.1k'
-      },
-      controlsAreServed: false,
-    });
-  });
-
-  test('a wake refused here replaces off, refused and ended in the group, a refused stop does not, and neither shows under the bar as well', () => {
-    const wakeRefused = { kind: 'forge-brain-start', result: { verdict: 'server-unreachable' } } as const;
-    const stopRefused = { kind: 'forge-brain-stop', result: { verdict: 'server-unreachable' } } as const;
-    const refusedHere = {
-      state: 'refused', refusedBy: 'gaia', code: 'server-unreachable', sentence: 'Gaia\'s server could not be reached.'
-    } as const;
-    for (const state of ['off', 'refused', 'ended'] as const) {
-      const brain = brainOf(STOREFRONT_BRAINS[state]);
-      if (brain === null) throw new Error('The forge has no brain.');
-      expect(ForgeModel.brainShownAfter(brain, wakeRefused)).toEqual(refusedHere);
-      expect(ForgeModel.brainShownAfter(brain, stopRefused)).toBe(brain.shown);
-    }
-    const running = brainOf(STOREFRONT_BRAINS.running);
-    if (running === null) throw new Error('The forge has no brain.');
-    expect(ForgeModel.brainShownAfter(running, wakeRefused)).toBe(running.shown);
-    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, wakeRefused)).toBeNull();
-    expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, stopRefused)).toEqual({
-      refusedBy:    'gaia',
-      commandLabel: 'Stop Flint\'s brain',
-      code:         'server-unreachable',
-      sentence:     'Gaia\'s server could not be reached.',
-      tryAgain:     { kind: 'forge-brain-stop', trackerId: TRACKER_IDS.exampleStorefront },
-    });
-  });
-
-  test('a wake refused here lasts only until the forge reports its brain waking or awake, so the forge\'s own later end shows', () => {
-    const wakeRefused = { kind: 'forge-brain-start', result: { verdict: 'server-unreachable' } } as const;
-    let failure: CommandFailure | null = wakeRefused;
-    const shownStates = (['off', 'running', 'ended'] as const).map((state) => {
-      const brain = brainOf(STOREFRONT_BRAINS[state]);
-      if (brain === null) throw new Error('The forge has no brain.');
-      if (ForgeModel.brainWakeRefusalIsOutOfDate(brain, failure)) failure = null;
-      return ForgeModel.brainShownAfter(brain, failure).state;
-    });
-    expect(shownStates).toEqual(['refused', 'running', 'ended']);
-  });
-
-  test('a wake refused here with no sentence is worded as the forge\'s own brain refusal of that code, never as a bare refusal', () => {
-    const brain = brainOf(STOREFRONT_BRAINS.off);
-    if (brain === null) throw new Error('The forge has no brain.');
-    const refusedWithoutText = (refusal: string) => ({
-      kind:   'forge-brain-start',
-      result: {
-        verdict: 'answered',
-        answer:  {
-          answerVersion: 3,
-          outcome:       'refused',
-          refusal,
-          text:          null,
-          forges:        [],
-        },
-      },
-    } as const);
-    const usageLimit = {
-      state: 'refused', refusedBy: 'forge', code: 'usage-limit-holds', sentence: 'launches are held until the usage limit resets'
-    } as const;
-    const exampleRefusal = {
-      state: 'refused', refusedBy: 'forge', code: 'example-refusal', sentence: 'Flint\'s brain did not wake'
-    } as const;
-    expect(ForgeModel.brainShownAfter(brain, refusedWithoutText('usage-limit-holds'))).toEqual(usageLimit);
-    expect(ForgeModel.brainShownAfter(brain, refusedWithoutText('example-refusal'))).toEqual(exampleRefusal);
-  });
-
-  test('the mark wakes the brain only where Wake shows, and its title says so or says how the brain is', () => {
-    const markOf = (brain: FleetDocumentBrain | 'not-reported', control: number | null = 1) => {
-      const barBrain = brainOf(brain, { contracts: { ...READINGS.exampleStorefront.contracts, control } });
-      return ForgeModel.markWakeOf(barBrain, barBrain?.shown ?? null);
-    };
-    const wakes = { title: 'Double-click to wake Flint\'s brain', wakesBrain: true };
-    expect(markOf(STOREFRONT_BRAINS.off)).toEqual(wakes);
-    expect(markOf(STOREFRONT_BRAINS.refused)).toEqual(wakes);
-    expect(markOf(STOREFRONT_BRAINS.ended)).toEqual(wakes);
-    expect(markOf(STOREFRONT_BRAINS.starting)).toEqual({ title: 'Flint\'s brain is waking', wakesBrain: false });
-    expect(markOf(STOREFRONT_BRAINS.running)).toEqual({ title: 'Flint\'s brain is awake', wakesBrain: false });
-    expect(markOf(STOREFRONT_BRAINS.off, 3)).toEqual({ title: null, wakesBrain: false });
-    expect(markOf('not-reported')).toEqual({ title: null, wakesBrain: false });
   });
 });
 

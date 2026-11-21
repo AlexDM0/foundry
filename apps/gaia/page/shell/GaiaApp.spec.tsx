@@ -281,7 +281,7 @@ describe('Tab and names', () => {
       'Example Mobile App',
       'Design System',
       'Legacy Importer',
-      '10 / 12agentslimit 12 of 12 CPUs · Flint\'s brain runs outside it',
+      '10 / 12agentslimit 12 of 12 CPUs',
       'Open Example Storefront in a new tab',
     ]);
   });
@@ -398,7 +398,7 @@ describe('the Agents view in the shell', () => {
     const markup = renderToStaticMarkup(appAt(source, '#agents'));
     const agents = viewPageHeadAt('#agents', FLEET_FIVE_FORGES);
     expect(agents.title).toBe('Agents');
-    expect(agents.figures.map(({ value, label }) => `${value} ${label}`)).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight', '1 brain, outside the limit']);
+    expect(agents.figures.map(({ value, label }) => `${value} ${label}`)).toEqual(['10 / 12 agents', '4 forges', '821,300 tokens in flight']);
     expect(pageTitleAreaIn(markup)).toBe(agents.markup);
     expect(markup).toContain('<div class="gaia-agents-table" role="table" aria-label="Agents">');
   });
@@ -435,7 +435,6 @@ describe('the Agents view in the shell', () => {
       goTo:               (fragment) => visited.push(fragment),
       forgeView:          forgeViewSurroundingsAt(),
     });
-    // The view's root reads the command sender, a hook; its hook-free view is unfolded with the root's own props and handlers instead.
     const root = parts.content as ReactElement<AgentsViewRootProps>;
     expect(root.type).toBe(AgentsViewRoot);
     const { route: agentsRoute, clock, goTo } = root.props;
@@ -444,10 +443,8 @@ describe('the Agents view in the shell', () => {
       selectedAgent:      agentsRoute.selectedAgent,
       query:              agentsRoute.query,
       readAtMilliseconds: clock.nowEpochMilliseconds,
-      timeZone:           clock.timeZone,
-      commandStates:      SENDER_OF_NOTHING.states(),
     });
-    const view = tree.unfolded(<AgentsView content={content} handlers={agentsHandlersOf(agentsRoute.selectedAgent, goTo, SENDER_OF_NOTHING)} />);
+    const view = tree.unfolded(<AgentsView content={content} handlers={agentsHandlersOf(agentsRoute.selectedAgent, goTo)} />);
     const optionsOf = (element: { readonly props: Readonly<Record<string, unknown>> }) => element.props['options'] as readonly { readonly value: string; readonly label: string }[];
     const conditionFilter = tree.onlyHostElementIn(view, (element) => element.tag === SegmentedControl.name
       && optionsOf(element).some((option) => option.label.startsWith('Needs a look')));

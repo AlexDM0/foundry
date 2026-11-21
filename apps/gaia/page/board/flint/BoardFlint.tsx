@@ -4,7 +4,7 @@
  * their elements (`page/board/flint/FlintDwelling.ts`); the visit target, the open screen's Flint slot unless User focused or clicked in
  * another habitat since it showed (`page/board/flint/VisitTargetTracker.ts`), which each slot reaches through `FlintSlotShowingContext`, and
  * where Flint goes at once when a slot shows or Flint is made, not at its director's next turn, so it never waits at home on a screen; and
- * the board occasions, which Flint answers wherever it is (`page/board/flint/UseBoardOccasions.ts`). Flint has no brain here: its rule
+ * the board occasions, which Flint answers wherever it is (`page/board/flint/UseBoardOccasions.ts`). Its rule
  * director alone moves it, Gaia makes no model call for it, and one forge route mounts one host (the package refuses a second). The habitats
  * are the components below it that call `useFlintHabitat`; a component below it that starts an intent with one of its own elements calls
  * `useFlintPerform`. For now Flint stays in its box (`FLINT_CONFINEMENT`): it shows only inside its home or the slot it lives in, nobody

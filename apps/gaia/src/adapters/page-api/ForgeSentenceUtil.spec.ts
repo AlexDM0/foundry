@@ -59,15 +59,13 @@ describe('the sentence of a notice and of a warning', () => {
   });
 });
 
-describe('the sentence of an activity entry and of a brain\'s move', () => {
-  test('is neutral for an activity entry or a move\'s intent that names a command', () => {
+describe('the sentence of an activity entry', () => {
+  test('is neutral for an activity entry that names a command', () => {
     expect(ForgeSentenceUtil.activitySentenceOf('The Baton pass failed: run `forge oversee restart`.')).toBe('This forge logged an entry that Gaia does not word yet.');
-    expect(ForgeSentenceUtil.brainIntentSentenceOf('run forge merges')).toBe('Flint\'s brain made a move that Gaia does not word yet.');
   });
 
   test('is the forge\'s own, unchanged, when it names no command', () => {
-    expect(ForgeSentenceUtil.activitySentenceOf('Flint\'s brain ran 2:00')).toBe('Flint\'s brain ran 2:00');
-    expect(ForgeSentenceUtil.brainIntentSentenceOf('walk-to-column')).toBe('walk-to-column');
+    expect(ForgeSentenceUtil.activitySentenceOf('J4 ran 2:00')).toBe('J4 ran 2:00');
   });
 });
 

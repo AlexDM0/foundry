@@ -19,9 +19,9 @@ export const MINIMUM_SUPPORTED_GAIA_VERSION: SystemVersion = { major: 0, minor: 
 
 /**
  * Each route's version: v1, except where the route already had a breaking change. The fleet document and its stream: monitor contract 2's
- * warning kinds (2), Flint's brain (3), a forge too old to talk to (4), board routes in place of the Bridge's fragments (5), a forge's
+ * warning kinds (2), a part since removed (3), a forge too old to talk to (4), board routes in place of the Bridge's fragments (5), a forge's
  * presence, crash and waiting work (6), the fleet's alert of the agents a network outage stopped (7), the running and newest Overseer and
- * Talos (8), no forge's embed contract (9). The commands: Gaia's sentences for forge refusals (2), the brain's commands (3), Unpause in
+ * Talos (8), no forge's embed contract (9). The commands: Gaia's sentences for forge refusals (2), commands since removed (3), Unpause in
  * place of Resume beside the resume of interrupted work (4), and no Open in new tab of a forge's own Bridge (5).
  */
 export const GAIA_ENDPOINT_VERSIONS = {

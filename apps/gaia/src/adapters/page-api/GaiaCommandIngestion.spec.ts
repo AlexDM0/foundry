@@ -27,8 +27,6 @@ describe('a body this Gaia carries out', () => {
     'forge-update',
     'forge-hide',
     'forge-unhide',
-    'forge-brain-start',
-    'forge-brain-stop',
   ] as const;
 
   for (const kind of SINGLE_FORGE_KINDS) {

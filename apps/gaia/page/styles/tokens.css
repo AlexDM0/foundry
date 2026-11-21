@@ -11,7 +11,6 @@
   --fs-wordmark: 20px; --line-height-wordmark: 24px;
   --fs-splash: 60px; --line-height-splash: 64px;
   --weight-figure: 500;
-  --weight-chip: 500;
   --weight-label: 500;
   --weight-wordmark: 650;
   --wordmark-tracking: -0.035em;
@@ -23,8 +22,6 @@
   --versions-check-stroke-width: 1.6;
   --line-height-versions-line: 17px;
   --versions-pair-name-width: 146px;
-  --brain-chip-height:   24px;
-  --brain-chip-refusal-width: 232px;
   --selected-edge-width: 3px;
   --banner-edge-width:   4px;
   --brand-bar-height:    52px;
@@ -59,9 +56,7 @@
   --agents-role-tracking: 0.08em;
   --fs-agents-panel-kind: 14px;
   --line-height-agents-last-line: 18px;
-  --agents-brain-pill-height: 20px;
-  --agents-brain-move-time-width: 64px;
-  /* The artboard's tracks would leave the Forge column too little room for a name, Flint's brain beside it and the root path on their
+  /* The artboard's tracks would leave the Forge column too little room for a name and the root path on their
      lines, since Agents holds the package's number stepper after the agents in flight: Overseer and Code are a little narrower, and so is
      the aside, which gives way, down to its least width, before the Forge column does. */
   --forges-forge-column-width:     228px;
@@ -91,7 +86,7 @@
   --attention-no-forge-width:     640px;
 
   --forge-frame-notice-width:        640px;
-  /* Wider than the brain's refusal, so the forge's code stays whole beside Try again. */
+  /* Wide enough that the forge's code stays whole beside Try again. */
   --forge-bar-update-refusal-width:  340px;
   /* A row Gaia shows as last reported reads at reduced contrast: it can be read, not acted on. */
   --stale-opacity:                0.62;

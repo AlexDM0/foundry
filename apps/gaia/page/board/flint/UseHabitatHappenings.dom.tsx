@@ -1,5 +1,5 @@
 /**
- * `useHabitatHappenings` under the board's host of Flint, in a happy-dom document on manual frames, with a recording brain to read the
+ * `useHabitatHappenings` under the board's host of Flint, in a happy-dom document on manual frames, with a recording director to read the
  * cues Flint received. What matters: the facts a view mounts with send nothing; new facts send the model's cues with the first one last,
  * so it is the newest; a behaviour on an element is performed with the view's element while Flint lives in the view's habitat, and not
  * while Flint lives elsewhere; and with the element not on the page its fallback cue is sent in its place.

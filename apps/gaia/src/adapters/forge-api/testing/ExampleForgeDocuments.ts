@@ -6,10 +6,8 @@ import type { ForgeDocumentAnswer } from '../../../lib/forge-client/@types/Forge
 import { forgeClientOf }            from '../../../lib/forge-client/ForgeClient.ts';
 import type { ForgeReading }        from '../../../shared/@types/ForgeReading.ts';
 import {
-  recordedFlintBrainAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
-  type FlintBrainSituation,
   type OverseerSituation,
   type RecordedOverseerAnswer,
 } from '../../../testing/RecordedAnswers.ts';
@@ -33,13 +31,6 @@ async function documentAnsweredOf(answers: readonly RecordedOverseerAnswer[], ro
 /** The parsed document one route answered in one situation of the forge; a spec fails when the route answered no document. */
 export async function recordedDocumentOf(situation: OverseerSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
   const answer = await documentAnsweredOf(recordedOverseerAnswersOf(situation), route, overseerUrl);
-  if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no ${route} document: ${answer.verdict}.`);
-  return answer.document;
-}
-
-/** The same, from the forge in one state of Flint's brain. */
-export async function recordedFlintBrainDocumentOf(situation: FlintBrainSituation, route: ForgeDocumentRoute, overseerUrl: string): Promise<unknown> {
-  const answer = await documentAnsweredOf(recordedFlintBrainAnswersOf(situation), route, overseerUrl);
   if (answer.verdict !== 'answered') throw new Error(`The ${situation} answers hold no ${route} document: ${answer.verdict}.`);
   return answer.document;
 }

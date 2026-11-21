@@ -2,7 +2,7 @@
  * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
  * spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code and sentence
  * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
- * know, Flint's brain's commands sent at the control contract Gaia knows, every command sent at the versioned path of the commands, also
+ * know, every command sent at the versioned path of the commands, also
  * to a forge ahead of the one Gaia supports, a stop and a machine limit that fall back to the program, or the next live forge,
  * when no Overseer answers or no token can be read, a command sent only to the Overseer at the address the watch read, a registry Gaia
  * cannot read refused with its reason, an add that runs `init`, then `start`, and stops at the first refusal, settings changed one key at
@@ -38,11 +38,9 @@ import type { ForgeReading }                                                    
 import type { GaiaCommand }                                                                             from '../../shared/@types/GaiaCommand.ts';
 import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../shared/constants/GaiaSettingsDefaults.ts';
 import {
-  recordedFlintBrainAnswersOf,
   recordedOverseerAnswersOf,
   recordedOverseerFetch,
   recordedVersionsAnswersOf,
-  type FlintBrainSituation,
   type OverseerSituation,
   type RecordedOverseerFetch,
 } from '../../testing/RecordedAnswers.ts';
@@ -229,19 +227,6 @@ function holdingFirstRun(recorded: RecordedProcessRun): { readonly processRun: P
 
 function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch {
   return recordedOverseerFetch(recordedOverseerAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
-}
-
-/** The forge answering a command as it was recorded for one state of Flint's brain. */
-function overseerAnsweringTheBrain(situation: FlintBrainSituation): RecordedOverseerFetch {
-  return recordedOverseerFetch(recordedFlintBrainAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
-}
-
-/** The forge's refusal of a brain command, read from the recording itself. */
-function recordedBrainRefusal(situation: FlintBrainSituation): { readonly refusal: string; readonly text: string } {
-  const [recorded] = recordedFlintBrainAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE);
-  if (recorded?.answer.verdict !== 'answered') throw new Error(`The ${situation} situation holds no answered command.`);
-  const { refusal, text } = JSON.parse(recorded.answer.bodyText) as { refusal: string; text: string };
-  return { refusal, text };
 }
 
 /** A live forge whose identity names this control contract. */
@@ -536,40 +521,13 @@ describe('forge-pause, forge-unpause, forge-restart and forge-talos-restart, car
   });
 });
 
-const BRAIN_START: GaiaCommand = { kind: 'forge-brain-start', trackerId: STOREFRONT_TRACKER_ID };
-const BRAIN_STOP: GaiaCommand = { kind: 'forge-brain-stop', trackerId: STOREFRONT_TRACKER_ID };
-
-describe('forge-brain-start and forge-brain-stop, carried by the API of a forge at the control contract Gaia knows', () => {
-  test('a start sends `flint-brain-start` with the token as the bearer, and answers done', async () => {
-    const overseerFetch = overseerAnsweringTheBrain('brain-running');
-    expect(await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'flint-brain-start' }]);
-    expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
-  });
-
-  test('a stop sends `flint-brain-stop`, and answers done', async () => {
-    const overseerFetch = overseerAnsweringTheBrain('brain-ended');
-    expect(await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch }).carry(BRAIN_STOP)).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'flint-brain-stop' }]);
-  });
-
-  test('passes the forge\'s refusals overseer-paused and no-flint on with their code and sentence unchanged', async () => {
-    for (const situation of ['brain-refused', 'no-flint'] as const) {
-      const verdict = await controlOver({ forges: [liveForgeAtControl(1)], overseerFetch: overseerAnsweringTheBrain(situation) }).carry(BRAIN_START);
-      expect([situation, verdict]).toEqual([situation, { verdict: 'refused', refusedBy: 'forge', ...recordedBrainRefusal(situation) }]);
-    }
-    expect([recordedBrainRefusal('brain-refused').refusal, recordedBrainRefusal('no-flint').refusal]).toEqual(['overseer-paused', 'no-flint']);
-  });
-
-  test('sends nothing to a forge whose control contract Gaia does not know, the brain\'s or newer, and answers unreachable for a dormant one', async () => {
+describe('a live forge whose control contract Gaia does not know', () => {
+  test('is sent nothing, and its command answers not-supported', async () => {
     const overseerFetch = recordedOverseerFetch([]);
     for (const controlVersion of [2, 3]) {
-      expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(BRAIN_START)).toEqual({ verdict: 'not-supported' });
       expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
     }
     expect(overseerFetch.callsAnswered()).toEqual([]);
-    expect(await controlOver({ forges: [exampleForgeOf({ state: 'counts-only' })] }).carry(BRAIN_STOP)).toEqual({ verdict: 'not-supported' });
-    expect(await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] }).carry(BRAIN_START)).toEqual({ verdict: 'unreachable' });
   });
 });
 
