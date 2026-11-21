@@ -21,5 +21,5 @@
     "../src/shared/utils/SystemVersionUtil.ts"
   ],
   // The specs, the board's DOM specs and the test-only helpers stay out; the spec project compiles them.
-  "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./**/*.dom.tsx", "./testing/**"]
+  "exclude": ["./**/*.spec.ts", "./**/*.spec.tsx", "./**/*.dom.tsx", "./testing/**", "./board/testing/**"]
 }

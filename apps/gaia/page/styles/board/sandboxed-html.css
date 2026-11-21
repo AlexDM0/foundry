@@ -1,0 +1,31 @@
+/* Agent-written HTML in its sandboxed frame: a ticket's body, an epic's description or the constitution's preview. */
+.board-sandboxed-html,
+.board-ticket-body {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  background: none;
+}
+
+/* The frame takes the page's stylesheets, so its own document is styled here by the body's mark, never a class. The body's height stays
+   its content's, so the frame's height measure can shrink it. */
+body[data-sandboxed-body] { height: auto; margin: 0; padding: 0; background: var(--surface); color: var(--ink); font: var(--fs-body)/1.5 var(--font-ui); }
+[data-sandboxed-body] > :first-child { margin-top: 0; }
+[data-sandboxed-body] > :last-child { margin-bottom: 0; }
+[data-sandboxed-body] h1, [data-sandboxed-body] h2, [data-sandboxed-body] h3, [data-sandboxed-body] h4 { font-size: var(--fs-body); font-weight: 600; margin: var(--sp-4) 0 var(--sp-1); letter-spacing: 0.01em; }
+[data-sandboxed-body] h1 { font-size: var(--fs-title); }
+[data-sandboxed-body] h2 { color: var(--ink); }
+[data-sandboxed-body] p { margin: var(--sp-2) 0; text-wrap: pretty; }
+[data-sandboxed-body] ul, [data-sandboxed-body] ol { margin: var(--sp-2) 0; padding-left: 20px; }
+[data-sandboxed-body] li { margin: 2px 0; }
+[data-sandboxed-body] a { text-decoration: underline; }
+[data-sandboxed-body] code { font-family: var(--font-mono); font-size: var(--fs-small); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-1); padding: 0 4px; }
+[data-sandboxed-body] pre { background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-2); padding: var(--sp-3); overflow-x: auto; font-size: var(--fs-small); line-height: 1.5; }
+[data-sandboxed-body] pre code { background: none; border: 0; padding: 0; }
+[data-sandboxed-body] blockquote { margin: var(--sp-2) 0; padding: 2px 0 2px var(--sp-3); border-left: 2px solid var(--line-strong); color: var(--ink-muted); }
+[data-sandboxed-body] table { border-collapse: collapse; font-size: var(--fs-small); margin: var(--sp-2) 0; }
+[data-sandboxed-body] th, [data-sandboxed-body] td { border: 1px solid var(--line); padding: 4px 9px; text-align: left; }
+[data-sandboxed-body] th { background: var(--surface-2); font-weight: 600; }
+[data-sandboxed-body] hr { border: 0; border-top: 1px solid var(--line); margin: var(--sp-4) 0; }
+[data-sandboxed-body] img { max-width: 100%; }

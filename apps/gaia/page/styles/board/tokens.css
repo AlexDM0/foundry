@@ -1,4 +1,41 @@
 /*
  * The board's own design tokens, carried over from the Bridge's `tokens.css` as the board's views move in: only the values the board's
  * classes read that the design system does not define. Light under :root, dark under :root[data-theme="dark"].
+ *
+ * [data-epic-slot="1".."6"] sets --epic-fill, --epic-tint and --epic-ink from the six epic colours.
  */
+:root {
+  /* A list item fading out where it stood (`LEAVING_MILLISECONDS`). */
+  --motion-leave: 220ms;
+
+  /* Six epic colours, given out in the order epics are added: Cobalt, Violet, Plum, Ochre, Steel and Umber. */
+  --epic-1-fill: #3a66d0; --epic-1-tint: #e8eefb; --epic-1-ink: #2a4fa8;
+  --epic-2-fill: #7651c8; --epic-2-tint: #f0ebfa; --epic-2-ink: #5b3aa6;
+  --epic-3-fill: #b0378a; --epic-3-tint: #f9e9f3; --epic-3-ink: #922a71;
+  --epic-4-fill: #b08a12; --epic-4-tint: #f8f1dc; --epic-4-ink: #755900;
+  --epic-5-fill: #5b7a93; --epic-5-tint: #ebf0f4; --epic-5-ink: #415d74;
+  --epic-6-fill: #8a6a4c; --epic-6-tint: #f3ede7; --epic-6-ink: #6b4f36;
+}
+
+/* The board's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
+@media (prefers-reduced-motion: reduce) {
+  :root { --motion-leave: 0ms; }
+}
+:root:not([data-motion="ready"]) { --motion-leave: 0ms; }
+
+:root[data-theme="dark"] {
+  --epic-1-fill: #6e95f2; --epic-1-tint: #1c2742; --epic-1-ink: #b9cdfb;
+  --epic-2-fill: #a183f0; --epic-2-tint: #28213f; --epic-2-ink: #d2c3fa;
+  --epic-3-fill: #e277bd; --epic-3-tint: #3a1c31; --epic-3-ink: #f5c2e2;
+  --epic-4-fill: #d6b245; --epic-4-tint: #352c12; --epic-4-ink: #ecd892;
+  --epic-5-fill: #8eabc2; --epic-5-tint: #222b34; --epic-5-ink: #c6d6e3;
+  --epic-6-fill: #bf9c7d; --epic-6-tint: #33291f; --epic-6-ink: #e2cdb9;
+}
+
+/* [data-epic-slot] picks one of the six epic colours; an epic's mark is a rounded square, never a status's round dot. */
+[data-epic-slot="1"] { --epic-fill: var(--epic-1-fill); --epic-tint: var(--epic-1-tint); --epic-ink: var(--epic-1-ink); }
+[data-epic-slot="2"] { --epic-fill: var(--epic-2-fill); --epic-tint: var(--epic-2-tint); --epic-ink: var(--epic-2-ink); }
+[data-epic-slot="3"] { --epic-fill: var(--epic-3-fill); --epic-tint: var(--epic-3-tint); --epic-ink: var(--epic-3-ink); }
+[data-epic-slot="4"] { --epic-fill: var(--epic-4-fill); --epic-tint: var(--epic-4-tint); --epic-ink: var(--epic-4-ink); }
+[data-epic-slot="5"] { --epic-fill: var(--epic-5-fill); --epic-tint: var(--epic-5-tint); --epic-ink: var(--epic-5-ink); }
+[data-epic-slot="6"] { --epic-fill: var(--epic-6-fill); --epic-tint: var(--epic-6-tint); --epic-ink: var(--epic-6-ink); }

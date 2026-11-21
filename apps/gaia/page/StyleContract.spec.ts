@@ -726,7 +726,7 @@ const MOTION_STYLESHEETS = [STYLESHEET_TEXT, SPLASH_STYLE_TEXT] as const;
 const BOARD_STYLES_FOLDER = join(PAGE_FOLDER, 'styles', BOARD_FOLDER_NAME);
 const BOARD_TOKENS_FILE_NAME = 'tokens.css';
 /** Every stylesheet of the board, by its name under `page/styles/board/`; the package that moves one in names it here. */
-const BOARD_STYLESHEETS: readonly string[] = ['controls.css', 'tokens.css'];
+const BOARD_STYLESHEETS: readonly string[] = ['chips.css', 'controls.css', 'conversation.css', 'sandboxed-html.css', 'tokens.css'];
 const BOARD_STYLESHEETS_PRESENT = existsSync(BOARD_STYLES_FOLDER) ? readdirSync(BOARD_STYLES_FOLDER).filter((name) => name.endsWith('.css')).sort() : [];
 const BOARD_STYLESHEET_TEXTS: ReadonlyMap<string, string> = new Map(BOARD_STYLESHEETS
   .filter((name) => BOARD_STYLESHEETS_PRESENT.includes(name))
@@ -759,6 +759,21 @@ const BOARD_TEXT_PAIRS: readonly TextPair[] = [
   // The refusal beside a command button, on the page and on a card.
   textPair('--err-ink', '--bg'),
   textPair('--err-ink', '--surface'),
+  // A chip, an epic chip, a chat bubble and a card's text, its meta and its stamps, on a card, a wash and a link tint.
+  textPair('--ink', '--surface'),
+  textPair('--ink', '--wash', '--surface'),
+  textPair('--ink-muted', '--surface'),
+  textPair('--ink-muted', '--wash', '--surface'),
+  textPair('--ink-4', '--surface'),
+  textPair('--ink-4', '--wash', '--surface'),
+  textPair('--link', '--surface'),
+  textPair('--link', '--link-tint', '--surface'),
+  textPair('--ink', '--link-tint', '--surface'),
+  // A chip of an epic, its slot's ink on its slot's tint.
+  ...[1, 2, 3, 4, 5, 6].map((slot) => textPair(`--epic-${slot}-ink`, `--epic-${slot}-tint`, '--surface')),
+  // A warning card, and a failed tool call's result.
+  textPair('--warn-ink', '--warn-tint', '--surface'),
+  textPair('--err-ink', '--err-tint', '--surface'),
 ];
 
 function boardThemeSentencesOf(tokenBlocks: ReturnType<typeof tokenBlocksOf>, sameInBothThemesTokens: readonly string[]): string[] {

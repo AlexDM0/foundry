@@ -3,10 +3,9 @@
  * zone, with its month and day when it is from another day, or the time left until it (`1:24`). A stamp that does not parse prints nothing
  * rather than a wrong time. Comparing a stamp with the clock is a stated clock exception: it decides only the text and the counts printed.
  */
-import type { ClockReading } from '../@types/ClockReading.ts';
+import type { ClockReading }                                from '../@types/ClockReading.ts';
+import { MILLISECONDS_PER_MINUTE, MILLISECONDS_PER_SECOND } from '../constants/TimeUnits.ts';
 
-const MILLISECONDS_PER_SECOND = 1_000;
-const MILLISECONDS_PER_MINUTE = 60_000;
 const SECONDS_PER_MINUTE = 60;
 const MINUTES_PER_HOUR = 60;
 const HOURS_PER_DAY = 24;
