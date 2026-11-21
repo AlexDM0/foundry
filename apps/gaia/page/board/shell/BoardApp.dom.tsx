@@ -2,7 +2,8 @@
  * The board's shell for one forge against fake services, in a happy-dom document. What matters: a tab no view of the board draws renders no
  * view, its main area holding what the forge view puts there, while a moved tab renders its view and not that area; the header's tabs go to
  * their routes through `goTo` under the mounted forge; a lost stream disables every control; the board reads itself at the start and again
- * after `board-changed`; the stored tab opens a route naming none; and the board root, keyed by its tracker id, unmounts one forge's board,
+ * after `board-changed`; the stored tab opens a route naming none; a detail tab the board draws opens the detail panel on the routed item,
+ * which closes through `goTo`, while an unmoved one opens none; and the board root, keyed by its tracker id, unmounts one forge's board,
  * its Flint with it, before it mounts another's, so the document never holds two Flints (`.claude/rules/flint.md`).
  */
 import {
@@ -49,6 +50,9 @@ const AGENTS_MOVED: BoardTabViewTable = {
     </section>
   ),
 };
+
+/** Kanban drawn by the board itself, so the detail panel opens over it. */
+const KANBAN_MOVED: BoardTabViewTable = { kanban: () => <section aria-label="The moved Kanban view" />, };
 
 interface FakeBoard {
   readonly services:      BoardServices;
@@ -193,6 +197,27 @@ describe('the main area', () => {
     await fake.answerReads(servingBoard());
     expect(screen.getByText(`${UNMOVED_AREA_TEXT} at pipeline`)).toBeDefined();
     expect(fake.storage.get(`gaia:board:${FIXTURE_TRACKER_ID}:tab`)).toBe('pipeline');
+  });
+});
+
+describe('the detail panel', () => {
+  test('opens over a detail tab the board draws on the routed item, and × closes it through goTo', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: 'ticket/3' }, KANBAN_MOVED);
+    await fake.answerReads(servingBoard());
+    expect(screen.getByRole('complementary', { name: 'Ticket #3' })).toBeDefined();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      await Promise.resolve();
+    });
+    expect(fake.followed.at(-1)).toBe(boardHrefOf('kanban'));
+  });
+
+  test('opens over no tab the forge view still draws', async () => {
+    const fake = fakeBoardOf();
+    renderedBoard(fake, { tab: 'kanban', item: 'ticket/3' });
+    await fake.answerReads(servingBoard());
+    expect(screen.queryByRole('complementary')).toBeNull();
   });
 });
 

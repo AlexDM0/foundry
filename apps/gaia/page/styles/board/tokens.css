@@ -57,6 +57,16 @@
   --flint-bulb-contact:         #5c5c5c;
   --flint-husk:                 #f3c9a8;
   --flint-ribbon:               #8cc7d0;
+
+  /* The ticket form's mini Gantt (`detail-panel.css`): its name and time columns, its row, the now line, and its build bars' fill and hatch. */
+  --ticket-gantt-name-width: 90px;
+  --ticket-gantt-time-width: 64px;
+  --ticket-gantt-row-height: 26px;
+  --now:                     var(--signal);
+  --bar-building:            #fa5f01;
+  --hatch-building:          rgba(254, 254, 254, 0.35);
+  --hatch-live:              rgba(254, 254, 254, 0.35);
+  --hatch-gap:               transparent;
 }
 
 /* The board's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
@@ -76,6 +86,10 @@
   --epic-4-fill: #d6b245; --epic-4-tint: #352c12; --epic-4-ink: #ecd892;
   --epic-5-fill: #8eabc2; --epic-5-tint: #222b34; --epic-5-ink: #c6d6e3;
   --epic-6-fill: #bf9c7d; --epic-6-tint: #33291f; --epic-6-ink: #e2cdb9;
+
+  --bar-building:   #ed9e2f;
+  --hatch-building: rgba(255, 255, 255, 0.38);
+  --hatch-live:     rgba(26, 29, 36, 0.35);
 }
 
 /* [data-epic-slot] picks one of the six epic colours; an epic's mark is a rounded square, never a status's round dot. */

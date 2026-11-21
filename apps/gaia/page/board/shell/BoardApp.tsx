@@ -2,8 +2,9 @@
  * The board's shell for one forge: it reads the board through Gaia's relay at the start, after each `board-changed` and after its stream
  * comes back, follows the stream's connection, says whether controls may act, and draws the banners, the incident line, the header with its
  * tabs, and the main area. A tab `BOARD_TAB_VIEWS` lists is drawn by its view; any other tab's main area is what the forge view puts there,
- * the forge's own Bridge in a frame. It navigates by Gaia's address alone, through `services.goTo`, and provides the tracker id and the way
- * to go to every link below it. Flint lives over the whole board, its habitat stored with the board's preferences.
+ * the forge's own Bridge in a frame. Over a detail tab it draws, the detail panel opens on the routed item. It navigates by Gaia's address
+ * alone, through `services.goTo`, and provides the tracker id and the way to go to every link below it. Flint lives over the whole board,
+ * its habitat stored with the board's preferences.
  */
 import { EmptyState } from 'design-system/EmptyState';
 import {
@@ -35,6 +36,9 @@ import { BoardStateUpdate }                                                     
 import { BOARD_TAB_VIEWS, type BoardTabViewTable }                                       from './BoardTabViews.tsx';
 import { ConnectionBanners }                                                             from './ConnectionBanners.tsx';
 import { ControlAvailabilityUtil, ControlSurroundingsContext, type ControlSurroundings } from './ControlAvailability.ts';
+import { DetailPanelHost }                                                               from './DetailPanelHost.tsx';
+import { DetailRoute }                                                                   from './DetailRoute.ts';
+import { DetailRoutingContext, detailRoutingOf, type DetailRouting }                     from './DetailRouting.ts';
 import { Header }                                                                        from './Header.tsx';
 import { headerModelOf }                                                                 from './HeaderModel.ts';
 import { IncidentNotice }                                                                from './IncidentNotice.tsx';
@@ -179,11 +183,26 @@ export function BoardApp({
   const flintBoardReading = useMemo((): BoardReading => ({ board, connection, refusedCommandCount }), [board, connection, refusedCommandCount]);
   const headerModel = headerModelOf(board, services.now(), connection);
   const TabView = tabViews[shownRoute.tab];
+  const tabIsDrawnHere = TabView !== undefined;
+  const { tab: shownTab, item: shownItem } = shownRoute;
+  const detailRouting = useMemo((): DetailRouting | null => {
+    if (!tabIsDrawnHere || !DetailRoute.isDetailTab(shownTab)) return null;
+    const fragmentOf = (detailRoute: BoardRoute): string => BoardRouter.fragmentOf(services.trackerId, detailRoute);
+    const openDetail = DetailRoute.openDetailOf({ tab: shownTab, item: shownItem });
+    return detailRoutingOf(shownTab, openDetail, (detailRoute) => services.goTo(fragmentOf(detailRoute)), fragmentOf);
+  }, [tabIsDrawnHere, shownTab, shownItem, services]);
 
   const mainArea = (): ReactNode => {
     if (TabView === undefined) return unmovedTabArea(shownRoute);
     if (board === null) return <EmptyState text={WAITING_FOR_THE_FIRST_BOARD} />;
-    return <TabView board={board} route={shownRoute} connection={connection} boardStore={boardStore} services={services} />;
+    const tabView = <TabView board={board} route={shownRoute} connection={connection} boardStore={boardStore} services={services} />;
+    if (detailRouting === null) return tabView;
+    return (
+      <DetailRoutingContext value={detailRouting}>
+        {tabView}
+        <DetailPanelHost board={board} item={detailRouting.openItem} todayCalendarDate={TimeUtil.calendarDateOf(services.now().getTime())} />
+      </DetailRoutingContext>
+    );
   };
 
   return (

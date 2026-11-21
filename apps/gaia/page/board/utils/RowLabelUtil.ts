@@ -5,7 +5,7 @@ const TICKETLESS_ROW_LABEL = 'TASK';
 const LEADING_TICKET_NUMBER_PATTERN = /^#(\d+)\s+/;
 
 /** A row's own ticket, else the ticket it reviews; the row's own id never shows. */
-function rowLabelOf(row: { readonly ticket?: string | null; readonly reviewOf?: string }): string {
+function rowLabelOf(row: { readonly ticket?: string | null; readonly reviewOf?: string | null }): string {
   const ticket = row.ticket ?? row.reviewOf ?? null;
   return ticket === null ? TICKETLESS_ROW_LABEL : `#${ticket}`;
 }
