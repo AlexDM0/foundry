@@ -5,8 +5,9 @@ The orchestrator's memory of the run (see `orchestrator.md`). Integration branch
 
 ## Where the run stands
 
-**Stopped at gate G7 on 2026-11-21. Every stage, 0 to 9, is built, checked and landed on `hephaestus-talos`, whose tip is
-`bec16dce` plus this file's record.** `main` is untouched at `e9b5d057`; nothing was pushed. At the tip `bun run verify`
+**Gate G7 decided on 2026-11-21: the owner had local `main` fast-forwarded to `hephaestus-talos`. Every stage, 0 to 9,
+is built, checked and landed; stage 9 is `bec16dce`.** Nothing was pushed, and the installed clone and the live
+trackers are untouched. At the tip `bun run verify`
 is 18 of 18 tasks green, forge's `bun run verify:integration` is 872 pass, 1 skip (the outage session of gate G1), 0
 fail, and no real `claude` session was started anywhere in the run.
 
@@ -17,7 +18,7 @@ What the owner does now, in this order:
    and add the login items again. The program's verbs are top-level now (`start`, `stop`, `restart`, `pause`,
    `unpause`, `status`, `crash-log`); `oversee` is gone, `setup`'s flag is `--login-item`, and the login item's label
    is `com.forge.hephaestus`. Forge and Gaia are system version 3.0.
-2. **Gate G7.** Decide whether and how `hephaestus-talos` reaches `main`.
+2. **Push `main`** when the installed clone should be able to pull it; the fast-forward is local only.
 3. Work through "For tomorrow, with real sessions" below, then "Assumptions to confirm" and "Worth a look".
 
 Noticed and left alone: the main checkout is on branch `context-pipeline`, not `main` (not this run's doing), and pid
@@ -517,7 +518,7 @@ worktree, one commit each (WP2.32 with WP2.17).
 | G4 | passed | 2026-11-18, the owner: "you can run all evaluations to ensure this feature is delivered correctly". `bun run verify:integration` may run at the end of WP2.13, for WP3.14, WP5.10 and WP5.15, and wherever it helps prove a package. It does not allow a real `claude` session: the fake agent's outage recording stays the owner's. Ran at the end of WP2.13 (`fdf751b4`): 913 pass, 0 fail. |
 | G5 | removed | No rule file waits on an approval (`owner-answers.md`, ground rules) |
 | G6 | first half confirmed 2026-11-21; second half the owner's | Before stage 9, read on the machine: no `com.forge.overseer` LaunchAgent in `~/Library/LaunchAgents` or `launchctl list`, and no `forge-program` process (the only match is pid 55155, a spec Overseer of worktree `entities-b7` under `/private/tmp/agent-progress-tests`, started Tuesday 17 Nov, left alone). After stage 9: the owner's machine steps only |
-| G7 | the owner's, reached 2026-11-21 | End of the run: the owner decides whether and how `hephaestus-talos` reaches `main` |
+| G7 | passed 2026-11-21 | The owner chose "G7 only: merge to main": local `main` fast-forwarded from `e9b5d057` to `hephaestus-talos`, verify 18/18 at that commit. No push; gate G6's second half stays the owner's |
 
 ## Packages
 
