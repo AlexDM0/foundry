@@ -3,8 +3,9 @@
  * the next numbered chat; the n-th `result` closes chat n and its open incidents default after the hold's moves were applied; the open
  * turn's call budget defaults them too; past the context-token count its input closes; one that went down ends, never resumes, and what it
  * was delivered goes to the fresh one, but for one a network outage or a lease end interrupted, which waits for User's resume as any job; a
- * boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which the turn a reader shows agrees with; and
- * every move outside its incidents is refused at the Hatch.
+ * boot past the failed-boot bound waits for a sweep; User's message waits for an idle point, which the turn a reader shows agrees with; a
+ * wind-down once asked completes, the switch on again or not, and one that went down while winding down ends `closed`; and every move
+ * outside its incidents is refused at the Hatch.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -119,8 +120,10 @@ function advance(board: Board, readings: readonly AssistantReading[], overrides:
 
 const scratch = createScratchDirectory('assistant-session');
 
+/** As a pass does after the lifecycle: the input of an idle Assistant that is due closes, then an idle one takes the open incidents. */
 function deliverWhenIdle(board: Board, readings: readonly AssistantReading[]): void {
-  AssistantSession.deliverIncidentsWhenIdle(board, readings, scratch, FIXTURE_AT);
+  AssistantSession.closeInputWhenIdle(board, readings, scratch, FIXTURE_AT);
+  AssistantSession.deliverIncidentsWhenIdle(board, readings, scratch);
 }
 
 describe('delivery only when idle (A2)', () => {
@@ -230,6 +233,83 @@ describe('the board\'s switch turned off (decision 24)', () => {
     advance(board, []);
 
     expect(board.jobs().map((job) => job.kind)).toEqual(['assistant']);
+  });
+});
+
+describe('a wind-down once asked completes', () => {
+  test('the switch on again leaves the wind-down standing: no incident goes to that Assistant, its input closes once idle, and a fresh one boots when it has ended', () => {
+    const { board, records } = assistantBoard();
+    board.setAssistant(false, FIXTURE_AT);
+    board.windDownAssistants(FIXTURE_AT);
+    board.setAssistant(true, FIXTURE_AT);
+    board.openIncident(BLOCKED, FIXTURE_AT);
+
+    AssistantSession.windDownWhileOff(board, FIXTURE_AT);
+    advance(board, [readingOf(0)]);
+    deliverWhenIdle(board, [readingOf(0)]);
+    expect(board.jobs().map((job) => [job.id, job.state, job.stopRequest])).toEqual([[ASSISTANT_ID, 'running', 'wind-down']]);
+
+    advance(board, [readingOf(1)]);
+    deliverWhenIdle(board, [readingOf(1)]);
+    expect(board.jobs().map((job) => [job.id, job.state])).toEqual([[ASSISTANT_ID, 'stopping']]);
+    expect(board.incidents().map((open) => open.deliveredInTurn)).toEqual([null]);
+
+    board.endJob(ASSISTANT_ID, { outcome: 'closed' }, FIXTURE_AT);
+    advance(board, []);
+    expect(board.jobs().map((job) => [job.kind, job.state, job.stopRequest])).toEqual([['assistant', 'launching', undefined]]);
+    expect(records.filter((record) => record.kind === 'incident-defaulted')).toEqual([]);
+  });
+
+  test('the assistant key gone from the pipeline with no wind-down asked: the pass asks the live Assistant, once', () => {
+    const { board, records } = assistantBoard();
+    board.setAssistant(false, FIXTURE_AT);
+
+    AssistantSession.windDownWhileOff(board, FIXTURE_AT);
+    AssistantSession.windDownWhileOff(board, FIXTURE_AT);
+
+    expect(board.jobById(ASSISTANT_ID)?.stopRequest).toBe('wind-down');
+    expect(records.filter((record) => record.kind === 'job-stop-requested')).toMatchObject([{ jobId: ASSISTANT_ID, fields: { mode: 'wind-down' } }]);
+  });
+
+  test('with the switch on the pass asks no Assistant to wind down', () => {
+    const { board, records } = assistantBoard();
+
+    AssistantSession.windDownWhileOff(board, FIXTURE_AT);
+
+    expect(board.jobById(ASSISTANT_ID)?.stopRequest).toBeUndefined();
+    expect(records.filter((record) => record.kind === 'job-stop-requested')).toEqual([]);
+  });
+
+  const closedWhenInterrupted = 'one winding down that is interrupted %s has no turn left to finish: it ends closed, no failed boot, and never waits for User';
+
+  test.each(['agent-crashed', 'network-outage', 'lease-ended'] as const)(closedWhenInterrupted, (cause) => {
+    const { board, records } = assistantBoard();
+    board.setAssistant(false, FIXTURE_AT);
+    board.windDownAssistants(FIXTURE_AT);
+    board.interruptJob(ASSISTANT_ID, cause, FIXTURE_AT);
+
+    const down = AssistantSession.endDownAssistants(board, [readingOf(0)], [], FIXTURE_AT);
+
+    expect(down.bootFailed).toBe(false);
+    expect(down.endedJobs.map((job) => job.id)).toEqual([ASSISTANT_ID]);
+    expect(records.find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: ASSISTANT_ID, fields: { outcome: 'closed' } });
+    expect(board.jobs()).toEqual([]);
+  });
+
+  test('one winding down whose turn stays quiet ends closed, no failed boot, and its delivered incident defaults assistant-off', () => {
+    const { board, records } = assistantBoard();
+    const { incident } = board.openIncident(BLOCKED, FIXTURE_AT);
+    board.markIncidentDelivered(incident?.id ?? '', { jobId: ASSISTANT_ID, chatSequence: 1 });
+    board.setAssistant(false, FIXTURE_AT);
+    board.windDownAssistants(FIXTURE_AT);
+
+    const down = AssistantSession.endDownAssistants(board, [readingOf(0)], [ASSISTANT_ID], FIXTURE_AT);
+    advance(board, []);
+
+    expect(down.bootFailed).toBe(false);
+    expect(records.find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: ASSISTANT_ID, fields: { outcome: 'closed' } });
+    expect(records.filter((record) => record.kind === 'incident-defaulted')).toMatchObject([{ incidentId: incident?.id, fields: { cause: 'assistant-off' } }]);
+    expect(board.jobs()).toEqual([]);
   });
 });
 

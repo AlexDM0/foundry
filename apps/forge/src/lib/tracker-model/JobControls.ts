@@ -30,6 +30,7 @@ const STOPPABLE_BY_ALL_KINDS: readonly Job['kind'][] = ['build', 'review', 'prod
 const PRODUCT_OWNER_KIND = 'product-owner';
 
 const PIPELINE_AGENT_KIND = 'pipeline-agent';
+const ASSISTANT_KIND = 'assistant';
 
 /** Sessions that a stop closes and that User's next message opens again, with their conversation. */
 const REOPENABLE_SESSION_KINDS: readonly Job['kind'][] = [PRODUCT_OWNER_KIND, PIPELINE_AGENT_KIND];
@@ -74,6 +75,15 @@ export class JobControls {
     }
     if (job.state !== 'stopping') logged.push(...this.jobRules.moveJob(jobId, 'stopping', at).logged);
     return { job, logged };
+  }
+
+  /**
+   * Every Assistant on the board not yet asked to stop is asked to wind down: it finishes its turn and ends, whether the switch went off
+   * by its command or the `assistant` key left the pipeline another way. One already asked, or stopping, is left as it is.
+   */
+  windDownAssistants(at: string): Logged {
+    const unasked = this.jobRules.jobs().filter((job) => job.kind === ASSISTANT_KIND && job.stopRequest === undefined && job.state !== 'stopping');
+    return { logged: unasked.flatMap((job) => this.requestJobStop(job.id, 'wind-down', at).logged) };
   }
 
   /** `oversee pause` plus a stop or wind-down of every live build, review and product-owner job. */

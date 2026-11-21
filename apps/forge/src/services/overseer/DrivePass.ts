@@ -1457,6 +1457,7 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         request.afterHoldPhase?.('child-events', change.board);
         IncidentRouter.openQuietJobIncidents(change.board, quietJobIdsDue.splice(0), QUIET_JOB_SWEEPS, change.at);
         const { assistantReadings } = observation;
+        AssistantSession.windDownWhileOff(change.board, change.at);
         const downAssistants = AssistantSession.endDownAssistants(change.board, assistantReadings, quietAssistantIdsDue.splice(0), change.at);
         const assistantBootRetryDue = assistantBootRetryRequested && !downAssistants.bootFailed;
         assistantBootRetryRequested = false;
@@ -1499,9 +1500,8 @@ export function createDrivePass(request: DrivePassRequest): DrivePass {
         agentSlots.assignReservations(observation.trackerId, slotJobIdsAfter.filter((jobId) => !slotJobIdsBefore.includes(jobId)));
         agentSlots.keepOnly(observation.trackerId, slotJobIdsAfter);
         AssistantBoot.deliverOpenIncidentsAtBoot(change.board, jobIdsBeforeTheLifecycle);
-        if (usageResetsAt === null) {
-          AssistantSession.deliverIncidentsWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory, change.at);
-        }
+        AssistantSession.closeInputWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory, change.at);
+        if (usageResetsAt === null) AssistantSession.deliverIncidentsWhenIdle(change.board, assistantReadings, request.workspace.trackerDirectory);
         request.afterHoldPhase?.('lifecycle', change.board);
         const recordedReviewPipelineOf = (record: Parameters<typeof ReviewOutcome.recordedReviewPipelineOf>[1]): ReturnType<typeof ReviewOutcome.recordedReviewPipelineOf> => {
           return ReviewOutcome.recordedReviewPipelineOf(change.board, record);

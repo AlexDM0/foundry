@@ -378,6 +378,11 @@ export class Board {
     return this.jobControls.requestJobStop(jobId, mode, at);
   }
 
+  /** Asks every Assistant not yet asked to stop to wind down, as the switch going off does. */
+  windDownAssistants(at: string): Logged {
+    return this.jobControls.windDownAssistants(at);
+  }
+
   /** Pauses the board, then stops or winds down every live build, review and product-owner job. */
   stopAllJobs(mode: Exclude<JobStopMode, 'fresh'>, at: string): Logged {
     const pause = (): readonly LogRecord[] => (this.overseerState() === 'paused' ? [] : this.setOverseerState('paused', at).logged);

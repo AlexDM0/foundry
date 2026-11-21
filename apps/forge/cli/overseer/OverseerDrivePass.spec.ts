@@ -10,7 +10,9 @@
  * once, so its runtime state and notices never disagree; a launched job's Hatch folder watch closes once the job has left the board; and a
  * job the pass hold ends has its session's tokens on its ticket's row by the end of that hold. At a start after a reboot, a stop or a crash,
  * a job whose child is gone with no end of its own takes the start's cause and waits for User's resume, a child that ended keeps the cause
- * of its end, and new work still launches.
+ * of its end, and new work still launches. An Assistant switched off and on again while live ends `closed`, also when its turn never ends,
+ * and a fresh one boots; one switched off ends `closed` also while a usage limit holds; the `assistant` key taken out of the pipeline by
+ * hand winds a live one down; an install change after that holds the board.
  * Beside the Overseer, `ticket deliver --by-hand` is refused while a job of the ticket is live. `cli/overseer/OverseerDrivePass.integration.spec.ts`
  * holds the real-system claims.
  */
@@ -49,7 +51,7 @@ import { HatchInbox }                                           from '../../src/
 import { jobFolderIn }                                          from '../../src/services/overseer/OverseerFiles.ts';
 import { localStoreLayoutOf }                                   from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace, workspacePathsFor }                  from '../../src/services/tracker/Workspace.ts';
-import { SESSION_STOP_GRACE_MILLISECONDS }                      from '../../src/shared/constants/OverseerLimits.ts';
+import { QUIET_JOB_SWEEPS, SESSION_STOP_GRACE_MILLISECONDS }    from '../../src/shared/constants/OverseerLimits.ts';
 import { createScratchDrivePass, type ScratchDrivePassRequest } from '../../src/testing/DrivePassHarness.ts';
 import {
   type FakeAgentStep,
@@ -945,5 +947,139 @@ describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the reconcile at start', () =
 
     expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-resumed","jobId":"${jobId}","fields":{"childInstance":2,"cause":"forge-crashed","instructed":true}`);
     expect(world.launchOf(jobFolder(jobId), 2)).toMatchObject({ childFolder: `jobs/${jobId}`, instance: 2, kind: 'agent' });
+  });
+});
+
+describeWhenRecorded(EVERY_RECORDING_REQUIREMENT, 'the Assistant\'s switch while one is live', () => {
+  /** A session that answers the Overseer's first message with a result and then waits, idle, until its input closes. */
+  const ANSWERING_SESSION = fakeAgentAdapter([
+    { kind: 'print', line: fakeStartedLine('fake-session') },
+    { kind: 'await-line' },
+    { kind: 'print', line: fakeResultLine({ outcome: 'built' }) },
+    { kind: 'await-line' },
+  ]);
+
+  function assistantJobs(): readonly Job[] {
+    return (storedProgressOf(repositoryDirectory).jobs ?? []).filter((job) => job.kind === 'assistant');
+  }
+
+  function endingsOf(jobId: string): unknown[] {
+    return storedLogTextOf(repositoryDirectory).split('\n').filter((line) => line !== '')
+      .map((line) => JSON.parse(line) as { kind: string; jobId?: string; fields: { outcome?: unknown } })
+      .filter((entry) => entry.kind === 'job-ended' && entry.jobId === jobId).map((entry) => entry.fields.outcome);
+  }
+
+  /** Paused, so the pass launches no build beside the Assistant; forced passes until the one Assistant's session printed `printedLines` lines. */
+  async function assistantOnceItsSessionPrinted(drivePass: DrivePass, printedLines: number): Promise<Job> {
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      const [assistant] = assistantJobs();
+      if (assistant === undefined || assistant.state !== 'running') return false;
+      const entries = childReadings().eventsAfter(jobFolder(assistant.id), assistant.childInstance, 0);
+      return entries !== 'malformed' && entries.filter((entry) => entry.origin === 'agent').length >= printedLines;
+    }, () => `the Assistant's session printing ${printedLines} lines: ${overseerLog.join('\n')}\n${JSON.stringify(assistantJobs())}`);
+    await passOnce(drivePass);
+    const [assistant] = assistantJobs();
+    if (assistant === undefined) throw new Error('the Assistant left the board');
+    return assistant;
+  }
+
+  async function passUntilAFreshAssistantReplaced(drivePass: DrivePass, earlierJobId: string): Promise<void> {
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      return assistantJobs().some((job) => job.id !== earlierJobId) && !assistantJobs().some((job) => job.id === earlierJobId);
+    }, () => `a fresh Assistant replacing ${earlierJobId}: ${overseerLog.join('\n')}\n${JSON.stringify(assistantJobs())}`);
+  }
+
+  test('switched off and on again while an idle Assistant is live: that one ends closed and a fresh one boots', async () => {
+    await run(['oversee', 'pause']);
+    const drivePass = await drivePassWith(ANSWERING_SESSION);
+    const idleAssistant = await assistantOnceItsSessionPrinted(drivePass, 2);
+
+    await run(['gate', 'assistant', 'off']);
+    await run(['gate', 'assistant', 'on']);
+    await passUntilAFreshAssistantReplaced(drivePass, idleAssistant.id);
+
+    expect(endingsOf(idleAssistant.id)).toEqual(['closed']);
+    expect(assistantJobs()).toMatchObject([{ state: expect.stringMatching(/^(launching|running)$/) }]);
+    expect(assistantJobs()[0]?.stopRequest).toBeUndefined();
+  });
+
+  test('switched off while a usage limit holds: the idle Assistant still has its input closed and ends closed', async () => {
+    await run(['oversee', 'pause']);
+    const drivePass = await drivePassWith(ANSWERING_SESSION);
+    const idleAssistant = await assistantOnceItsSessionPrinted(drivePass, 2);
+    UsageMarkerFile.write(monitorFolder, {
+      vendor: 'fake-agent', window: 'five_hour', resetsAt: USAGE_RESET_STAMP, seenBy: { trackerId: 'example', jobId: idleAssistant.id }
+    });
+
+    await run(['gate', 'assistant', 'off']);
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      return assistantJobs().length === 0;
+    }, () => `the Assistant leaving the board: ${overseerLog.join('\n')}\n${JSON.stringify(assistantJobs())}`);
+
+    expect(endingsOf(idleAssistant.id)).toEqual(['closed']);
+    expect(UsageMarkerFile.read(monitorFolder)).toMatchObject({ verdict: 'read', marker: { resetsAt: USAGE_RESET_STAMP } });
+  });
+
+  test('switched off and on again while the Assistant never ends its turn: once it is quiet it ends closed, no failed boot, and a fresh one boots', async () => {
+    await run(['oversee', 'pause']);
+    const drivePass = await drivePassWith(WAITING_SESSION);
+    const busyAssistant = await assistantOnceItsSessionPrinted(drivePass, 1);
+
+    await run(['gate', 'assistant', 'off']);
+    await run(['gate', 'assistant', 'on']);
+    await passOnce(drivePass);
+    expect(assistantJobs()).toMatchObject([{ id: busyAssistant.id, state: 'running', stopRequest: 'wind-down' }]);
+    for (let sweeps = 0; sweeps <= QUIET_JOB_SWEEPS; sweeps += 1) {
+      drivePass.sweep();
+      await drivePass.idle();
+    }
+    await passUntilAFreshAssistantReplaced(drivePass, busyAssistant.id);
+
+    expect(endingsOf(busyAssistant.id)).toEqual(['closed']);
+  });
+
+  test('an install change after the switch went off and on holds the board at the pass the quiet Assistant\'s ending runs, and no fresh one boots in the hold', async () => {
+    await run(['oversee', 'pause']);
+    let installVersionChanged = false;
+    const drivePass = await drivePassWith(WAITING_SESSION, undefined, undefined, { installVersionChanged: () => installVersionChanged });
+    const busyAssistant = await assistantOnceItsSessionPrinted(drivePass, 1);
+    await run(['gate', 'assistant', 'off']);
+    await run(['gate', 'assistant', 'on']);
+    await passOnce(drivePass);
+
+    installVersionChanged = true;
+    for (let sweeps = 0; sweeps <= QUIET_JOB_SWEEPS; sweeps += 1) {
+      drivePass.sweep();
+      await drivePass.idle();
+    }
+
+    expect(drivePass.state().runtimeState).toBe('held-by-install-change');
+    expect(endingsOf(busyAssistant.id)).toEqual(['closed']);
+    expect(assistantJobs()).toEqual([]);
+
+    installVersionChanged = false;
+    await passUntilAFreshAssistantReplaced(drivePass, busyAssistant.id);
+    expect(drivePass.state().runtimeState).toBe('serving');
+  });
+
+  test('the assistant key taken out of pipeline.json by hand while an Assistant is live: the next pass asks it to wind down, and it ends closed with none booted', async () => {
+    await run(['oversee', 'pause']);
+    const drivePass = await drivePassWith(ANSWERING_SESSION);
+    const idleAssistant = await assistantOnceItsSessionPrinted(drivePass, 2);
+    const { pipelineRecordPath } = localStoreLayoutOf(workspacePathsFor(repositoryDirectory));
+    const { assistant: _switchedOn, ...pipelineWithTheSwitchOff } = JSON.parse(readFileSync(pipelineRecordPath, 'utf8')) as Record<string, unknown>;
+    writeFileSync(pipelineRecordPath, `${JSON.stringify(pipelineWithTheSwitchOff, null, 2)}\n`);
+
+    await passOnce(drivePass);
+    expect(storedLogTextOf(repositoryDirectory)).toContain(`"kind":"job-stop-requested","jobId":"${idleAssistant.id}","fields":{"mode":"wind-down"}`);
+    await waitUntil(async () => {
+      await passOnce(drivePass);
+      return assistantJobs().length === 0;
+    }, () => `the Assistant leaving the board: ${overseerLog.join('\n')}\n${JSON.stringify(assistantJobs())}`);
+
+    expect(endingsOf(idleAssistant.id)).toEqual(['closed']);
   });
 });

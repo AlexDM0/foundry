@@ -2,6 +2,7 @@
  * The Assistant's turns, design section 8.3: every chat to it is numbered, the first message being chat 1, and the n-th `result` of its
  * session closes chat n's turn. Incidents and User's messages go out only when it is idle; a turn's open incidents default when it closes
  * or spends its call budget; past a context-token count its input closes after the turn; and one that went down is ended, never resumed.
+ * One asked to wind down, by the board's switch going off, has its input closed once idle and ends `closed`, also when it went down first.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -121,23 +122,39 @@ function assistantIsIdle(trackerDirectory: string, board: Pick<Board, 'incidents
   return isIdle(job, reading, newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id));
 }
 
+function isWindingDown(job: Readonly<Job>): boolean {
+  return job.stopRequest === WIND_DOWN_REQUEST;
+}
+
+/**
+ * Run in the hold before `endDownAssistants`. While the board's switch is off, every Assistant not yet asked is asked to wind down, also
+ * when the `assistant` key left the pipeline by another way than its command; a wind-down once asked stands when the switch goes on
+ * again, so that Assistant ends and the board boots a fresh one.
+ */
+function windDownWhileOff(board: Board, at: string): void {
+  if (!board.assistantIsOn()) board.windDownAssistants(at);
+}
+
 /**
  * Run in the hold before the lifecycle: an Assistant interrupted (its child lost, its session crashed, a reboot, a clean quit, a usage
  * limit) or quiet mid-turn is ended, `failed` before its first `result` and `replaced` after, and what it was delivered goes out again to
- * the fresh one. One whose own outage or lease end waits for User's resume is left until it came. Returns whether a boot failed, so no
- * retry boots in the same pass.
+ * the fresh one. One whose own outage or lease end waits for User's resume is left until it came. One asked to wind down has no turn left
+ * to finish once it is down, whatever interrupted it: it ends `closed`, no failed boot. Returns whether a boot failed, so no retry boots
+ * in the same pass.
  */
 function endDownAssistants(board: Board, readings: readonly AssistantReading[], quietJobIds: readonly string[], at: string): { bootFailed: boolean; endedJobs: Readonly<Job>[] } {
   let bootFailed = false;
   const endedJobs: Readonly<Job>[] = [];
   const logRecords = board.logRecordsSoFar();
   for (const job of liveAssistantsOf(board)) {
-    const down = (job.state === 'interrupted' && !Playbook.assistantWaitsForInstruction(job, logRecords)) || (job.state === 'running' && quietJobIds.includes(job.id));
+    const waitsForInstruction = !isWindingDown(job) && Playbook.assistantWaitsForInstruction(job, logRecords);
+    const down = (job.state === 'interrupted' && !waitsForInstruction) || (job.state === 'running' && quietJobIds.includes(job.id));
     if (!down) continue;
     for (const incident of board.incidents().filter((delivered) => delivered.deliveredInTurn?.jobId === job.id)) board.withdrawIncidentDelivery(incident.id);
     const answered = (readings.find((reading) => reading.jobId === job.id)?.results ?? 0) > 0;
-    board.endJob(job.id, { outcome: answered ? 'replaced' : 'failed', cause: DOWN_CAUSE }, at);
-    bootFailed ||= !answered;
+    if (isWindingDown(job)) board.endJob(job.id, { outcome: 'closed' }, at);
+    else board.endJob(job.id, { outcome: answered ? 'replaced' : 'failed', cause: DOWN_CAUSE }, at);
+    bootFailed ||= !answered && !isWindingDown(job);
     endedJobs.push(job);
   }
   return { bootFailed, endedJobs };
@@ -159,19 +176,23 @@ function turnObservationsOf(board: Pick<Board, 'jobs' | 'incidents'>, readings: 
 }
 
 /**
- * Run in the hold after the lifecycle. An idle Assistant that was asked to wind down, or is past the context-token count, has its input
- * closed, and the next delivery goes to a fresh one if the board boots one; otherwise every undelivered incident goes out as its next
- * numbered chat.
+ * Run in the hold after the lifecycle, in every pass, a usage limit holding or not: an idle Assistant that was asked to wind down, or is
+ * past the context-token count, has its input closed, and the next delivery goes to a fresh one if the board boots one.
  */
-function deliverIncidentsWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string, at: string): void {
+function closeInputWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string, at: string): void {
+  for (const job of liveAssistantsOf(board)) {
+    const reading = readings.find((candidate) => candidate.jobId === job.id);
+    if (!isIdle(job, reading, newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id))) continue;
+    if (isWindingDown(job) || (reading?.lastContextTokens ?? 0) >= ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH) board.moveJob(job.id, 'stopping', at);
+  }
+}
+
+/** Run in the hold after `closeInputWhenIdle`: every undelivered incident goes out to an idle Assistant as its next numbered chat. */
+function deliverIncidentsWhenIdle(board: Board, readings: readonly AssistantReading[], trackerDirectory: string): void {
   for (const job of liveAssistantsOf(board)) {
     const reading = readings.find((candidate) => candidate.jobId === job.id);
     const newestChat = newestChatOf(board, chatsOf(trackerDirectory, job.id), job.id);
     if (!isIdle(job, reading, newestChat)) continue;
-    if (job.stopRequest === WIND_DOWN_REQUEST || (reading?.lastContextTokens ?? 0) >= ASSISTANT_CONTEXT_TOKENS_BEFORE_FRESH) {
-      board.moveJob(job.id, 'stopping', at);
-      continue;
-    }
     for (const incident of board.incidents().filter((open) => open.deliveredInTurn === null)) {
       board.markIncidentDelivered(incident.id, { jobId: job.id, chatSequence: newestChat + 1 });
     }
@@ -274,8 +295,10 @@ export const AssistantSession = Object.freeze({
   readingsOf,
   assistantIsIdle,
   unsentMessageCountOf,
+  windDownWhileOff,
   endDownAssistants,
   turnObservationsOf,
+  closeInputWhenIdle,
   deliverIncidentsWhenIdle,
   chatsToWriteOf,
   deliverChats,

@@ -33,9 +33,7 @@ function inReadablePipeline<Result>(change: BoardTransaction, apply: () => Resul
 function setAssistant(command: CommandOf<'pipeline-assistant-set'>, change: BoardTransaction): ReturnType<BoardTransaction['board']['setAssistant']> {
   const changed = change.board.setAssistant(command.on, change.at);
   if (command.on) return changed;
-  const liveAssistants = change.board.jobs().filter((job) => job.kind === 'assistant' && job.stopRequest === undefined && job.state !== 'stopping');
-  const windDowns      = liveAssistants.flatMap((job) => change.board.requestJobStop(job.id, 'wind-down', change.at).logged);
-  return { ...changed, logged: [...changed.logged, ...windDowns] };
+  return { ...changed, logged: [...changed.logged, ...change.board.windDownAssistants(change.at).logged] };
 }
 
 export const SETTING_CONTROLS = {
