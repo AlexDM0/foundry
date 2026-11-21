@@ -1,0 +1,335 @@
+/* The Progress tab: the chart, its range control and the finished-work card under it. */
+/* --------------------------------------------------------------- progress -- */
+/* The panel takes every pixel the forge frame leaves under the tab bar, Gaia's frame holding the board shell to the window's height, so the
+   rows scroll inside the chart card; it never gets shorter than the view's own rows over a few finished-work lines, and a shorter window
+   scrolls the view instead. */
+.board-panel[data-tab="progress"] { --row-h: 36px; flex: 1; min-height: auto; display: flex; flex-direction: column; }
+
+/* Registered, so the Wide titles toggle eases the name column instead of jumping. */
+@property --col-name { syntax: "<length>"; inherits: true; initial-value: 432px; }
+.board-progress-view {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 14px;
+  transition: --col-name var(--motion-base) var(--ease-out);
+}
+.board-progress-view[data-name-column="wide"] { --col-name: var(--col-name-wide); }
+/* Under the chart card: the range shown saved as the board's, and Clear… with its confirmation. */
+.board-progress-board-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-3); padding-top: var(--sp-3); }
+
+.board-progress-chart {
+  flex: 1; min-height: 320px;
+  overflow: auto;
+  overscroll-behavior-x: contain;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+}
+.board-progress-row {
+  display: grid;
+  grid-template-columns: var(--col-name) minmax(var(--progress-timeline-min-width), 1fr);
+  align-items: center;
+  width: fit-content; min-width: 100%;
+  min-height: var(--row-h);
+}
+.board-progress-rows { position: relative; width: fit-content; min-width: 100%; }
+.board-progress-rows > .board-progress-row { border-bottom: 1px solid var(--line); }
+.board-progress-rows > .board-progress-row:last-child { border-bottom: 0; }
+
+/* The chart's one pinned column carries its own right rule. */
+.board-progress-name {
+  position: sticky; left: 0; z-index: 2;
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0;
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--line);
+}
+.board-progress-track { position: relative; height: var(--row-h); }
+
+/* The chart's one header row: the range button and the row options in the pinned cell, the ticks on the track. */
+.board-progress-chart-head {
+  position: sticky; top: 0; z-index: 3;
+  height: 40px; min-height: 40px;
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink-muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line-strong);
+}
+.board-progress-chart-head > .board-progress-name { z-index: 4; height: 100%; gap: 10px; padding-right: 6px; font-weight: 600; color: var(--ink-4); }
+/* The column names line up with a row's id, title and state chip. */
+.board-progress-column-name[data-column="id"] { flex: 0 0 34px; }
+.board-progress-column-name[data-column="task"] { flex: 1; min-width: 0; }
+.board-progress-column-name[data-column="state"] { flex: 0 0 156px; margin-left: 6px; }
+.board-progress-chart-head > .board-progress-track { height: 100%; }
+
+/* A chart row is one line: the id, the title ellipsised, and the state chip 6px from the column's rule. */
+.board-progress-rows > .board-progress-row > .board-progress-name { align-self: stretch; gap: 10px; padding-right: 6px; }
+/* A review pass sits one level in, directly above its ticket's row: its number lines up with the ticket row's name. */
+.board-progress-rows > .board-progress-row[data-review-of] > .board-progress-name { padding-left: calc(var(--sp-4) + 44px); }
+
+.board-progress-number {
+  flex: 0 0 34px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-micro);
+  color: var(--ink-muted);
+}
+a.board-progress-number:hover { color: var(--ink); }
+.board-progress-row-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Every state badge starts in the same column, so badges line up down the chart and a state change never shifts the title. */
+.board-progress-chip { flex: none; display: flex; width: 156px; min-width: 0; margin-left: 6px; }
+.board-progress-row[data-state="abandoned"] .board-progress-row-name { text-decoration: line-through; color: var(--ink-muted); }
+.board-progress-row[data-state="abandoned"] { opacity: 0.72; }
+
+/* The rows under their epics' head rows. The caret hangs in the name cell's padding, so a member row's label keeps its width. */
+.board-progress-rows > .board-progress-epic-head { background: var(--surface-2); }
+.board-progress-rows > .board-progress-epic-head > .board-progress-name {
+  gap: 4px; padding-left: var(--sp-1); font-weight: 600;
+  background: linear-gradient(var(--surface-2), var(--surface-2)) var(--surface);
+}
+.board-progress-epic-caret {
+  flex: none; width: 12px; height: 12px;
+  fill: none; stroke: var(--ink-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+.board-progress-epic-head[data-collapsed] .board-progress-epic-caret { transform: rotate(-90deg); }
+/* The head's epic chip is the epic's full name, ellipsised only where the done count starts. */
+.board-progress-epic-head .board-epic-chips { flex: 0 1 auto; flex-wrap: nowrap; }
+.board-progress-epic-head .board-epic-chip {
+  flex: 0 1 auto; min-width: 0; max-width: none; padding: 0 4px;
+  font: inherit; font-size: var(--fs-body);
+  background: var(--see-through); border-color: var(--see-through);
+}
+.board-progress-epic-head .board-epic-chip:hover { border-color: var(--line-strong); }
+.board-progress-epic-done { flex: none; margin-left: auto; font: 500 var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); white-space: nowrap; }
+.board-progress-epic-count { flex: none; font: 400 var(--fs-micro)/1 var(--font-mono); color: var(--ink-muted); }
+.board-progress-epic-span {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  transition: left var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out);
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--epic-tint);
+  box-shadow: inset 0 0 0 1.5px var(--epic-fill);
+}
+.board-progress-epic-span[data-open]::after {
+  content: ""; position: absolute; top: -3px; right: -1px; bottom: -3px;
+  width: 2px; border-radius: 1px; background: var(--epic-fill);
+}
+
+/* One click, Enter or Space on a row opens its detail in place; the open one carries data-selected. Rows never move, so the pinned
+   column stays put. */
+.board-progress-rows > .board-progress-row { position: relative; cursor: pointer; }
+.board-progress-rows > .board-progress-row,
+.board-progress-rows > .board-progress-row > .board-progress-name { transition: background-color var(--motion-fast) var(--ease-out); }
+/* The pinned name cell lays a row's wash over its own opaque ground, so bars scrolled sideways never show through it. */
+.board-progress-rows > .board-progress-row:hover { background: var(--surface-2); }
+.board-progress-rows > .board-progress-row:hover > .board-progress-name { background: linear-gradient(var(--surface-2), var(--surface-2)) var(--surface); }
+.board-progress-rows > .board-progress-row[data-selected] { background: var(--surface-selected); }
+.board-progress-rows > .board-progress-row[data-selected] > .board-progress-name {
+  background: linear-gradient(var(--surface-selected), var(--surface-selected)) var(--surface);
+  box-shadow: inset 3px 0 0 var(--signal), 1px 0 0 var(--line);
+}
+.board-progress-rows > .board-progress-row:focus { outline: none; }
+/* Drawn above the sticky name cell, which would cover an outline on the row itself. */
+.board-progress-rows > .board-progress-row:focus-visible::after {
+  content: ""; position: absolute; inset: 0; z-index: 2;
+  border: 2px solid var(--link); border-radius: var(--r-1);
+  pointer-events: none;
+}
+
+/* A bar takes its state's shape: Building hatched in its own colour, a review pass hatched in its fill, a paused stretch striped from its
+   fill, a waiting state outlined (dashed while it waits), and every other state solid. Hatches run at 35deg, 6px apart, 2px wide. */
+.board-progress-bar {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  box-sizing: border-box;
+  height: 12px; min-width: 3px;
+  border-radius: var(--r-1);
+  background: var(--s-fill);
+  transition: left var(--motion-slow) var(--ease-out), width var(--motion-slow) var(--ease-out);
+}
+.board-progress-bar:is([data-state="reviewing"], [data-state="re-review"]) {
+  background-image: repeating-linear-gradient(125deg, var(--hatch-live) 0 2px, var(--see-through) 2px 6px);
+}
+.board-progress-bar[data-state="in-progress"] {
+  background-color: var(--bar-building);
+  background-image: repeating-linear-gradient(125deg, var(--hatch-building) 0 2px, var(--see-through) 2px 6px);
+}
+.board-progress-bar[data-state="paused"] {
+  background: repeating-linear-gradient(135deg, var(--s-fill) 0 3px, var(--s-paused-stripe) 3px 8px);
+}
+.board-progress-bar:is([data-state="draft"], [data-state="ready-for-review"], [data-state="committed"], [data-state="in-review"]) {
+  background: var(--see-through); border: 1px dashed var(--s-edge);
+}
+.board-progress-bar[data-state="abandoned"] { background: var(--see-through); border: 1px solid var(--s-edge); }
+/* A review pass on its ticket's row takes its own round's fill, with a gap where it meets the build bar. */
+.board-progress-bar[data-bar-kind="review"] { box-shadow: 0 0 0 1.5px var(--surface); }
+/* A row's phases join into one bar: square joints with a hairline of the surface between them, rounded only at the bar's two ends. The
+   track's first child is the left clip mark, a span, so the first bar is the first div. */
+.board-progress-bar[data-bar-kind="segment"] { border-radius: 0; box-shadow: inset 1px 0 0 var(--surface); }
+.board-progress-track > .board-progress-bar[data-bar-kind="segment"]:first-of-type { border-radius: var(--r-1) 0 0 var(--r-1); box-shadow: none; }
+.board-progress-bar[data-bar-kind="segment"]:last-of-type,
+.board-progress-bar[data-bar-kind="segment"]:not(:has(+ .board-progress-bar[data-bar-kind="segment"])) {
+  border-top-right-radius: var(--r-1); border-bottom-right-radius: var(--r-1);
+}
+.board-progress-clip {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0;
+  border-block: 5px solid var(--see-through);
+}
+.board-progress-clip[data-side="left"] { left: 1px; border-right: 6px solid var(--now); }
+.board-progress-clip[data-side="right"] { right: 1px; border-left: 6px solid var(--now); }
+.board-progress-clip[hidden] { display: none; }
+
+/* While the detail panel is open the chart ends at its left edge: the width it covers plus a gutter becomes trailing scroll room, with the
+   timeline's width frozen so no bar moves underneath. */
+.board-progress-chart[data-panel-room] { padding-inline-end: var(--panel-room); }
+.board-progress-chart[data-panel-room] .board-progress-row {
+  grid-template-columns: var(--col-name) var(--frozen-timeline-w);
+}
+
+/* What changed since the previous board washes in its state's tint once; reduced motion holds a still outline for as long instead. */
+@media (prefers-reduced-motion: no-preference) {
+  .board-progress-rows > .board-progress-row[data-changed],
+  .board-progress-rows > .board-progress-row[data-changed] > .board-progress-name { animation: board-changed 1200ms var(--ease-out); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .board-progress-rows > .board-progress-row[data-changed] { animation: board-changed-outline 1200ms; }
+}
+
+/* The tick layer lives in the header row; the grid lines and the now marker live in the overlay, so they cross every row. */
+.board-progress-tick { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+.board-progress-tick-label {
+  position: absolute; top: 50%; left: 5px; transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--fs-micro);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+.board-progress-tick-label[data-label-side="left"] { right: 5px; left: auto; }
+.board-progress-tick[data-covered] > .board-progress-tick-label { visibility: hidden; }
+.board-progress-overlay {
+  position: absolute; top: 0; right: 0; bottom: 0; left: var(--col-name); z-index: 1;
+  pointer-events: none;
+}
+.board-progress-grid-line { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--line); opacity: 0.6; }
+.board-progress-now { position: absolute; top: 0; bottom: 0; border-left: 2px solid var(--now); }
+.board-progress-now-label {
+  position: absolute; top: 4px; left: 4px;
+  padding: 1px 5px;
+  font: 700 var(--fs-micro)/14px var(--font-mono);
+  white-space: nowrap;
+  color: var(--link);
+  background: var(--link-tint);
+  border-radius: var(--r-pill);
+}
+/* Near the right edge the marker keeps its line inside the axis and carries its label on its left, so neither widens the scroller. */
+.board-progress-now[data-label-side="left"] { transform: translateX(-100%); }
+.board-progress-now[data-label-side="left"] .board-progress-now-label { right: 4px; left: auto; }
+.board-progress-empty { margin: 0; padding: var(--sp-5) var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* A row an agent works on pulses while the stream is live: its bar flares and a sheen crosses it, and its state badge flares. */
+@media (prefers-reduced-motion: no-preference) {
+  :root:has(.board-status-pill[data-running]) .board-progress-row[data-live] :is(.board-progress-bar[data-live], .board-progress-chip) {
+    animation: board-progress-flare var(--pulse-card) ease-in-out infinite;
+  }
+  :root:has(.board-status-pill[data-running]) .board-progress-row[data-live] .board-progress-bar[data-live]::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(100deg, var(--see-through) 30%, var(--s-sheen) 50%, var(--see-through) 70%) 117% 0 / 250% 100% no-repeat;
+    animation: board-progress-sheen var(--pulse-card) ease-in-out infinite;
+  }
+}
+/* Every keyframe names the same light halo colour, transparent at rest: from `filter: none` the halo would fade in from the text colour. */
+@keyframes board-progress-flare {
+  0%, 30%, 100% { filter: brightness(1) drop-shadow(0 0 3px var(--s-flare-rest)); }
+  12% { filter: brightness(1.18) drop-shadow(0 0 3px var(--s-flare)); }
+}
+@keyframes board-progress-sheen { 0%, 7% { background-position: 117% 0; } 67%, 100% { background-position: -17% 0; } }
+
+/* ----------------------------------------------------------- range control -- */
+/* Above the chart: the presets and Custom… in one segmented control, the range they draw, and the row options at the far end. */
+.board-progress-range { position: relative; display: flex; align-items: center; gap: 12px; min-width: 0; height: 36px; }
+.board-progress-range-ends {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: var(--fs-small)/1 var(--font-mono); font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+.board-progress-range-ends[data-held] { color: var(--warn-ink); }
+.board-progress-range-changed { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: var(--signal); }
+
+/* The custom range hangs under the range control. */
+.board-range-popover {
+  position: absolute; top: calc(100% + 4px); left: 0; z-index: 10;
+  width: min(340px, calc(100% - var(--sp-4)));
+  padding: var(--sp-4);
+  font-weight: 400;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-3);
+  box-shadow: 0 10px 28px var(--shadow-popover);
+}
+.board-range-popover-title { margin: 0 0 var(--sp-3); font-size: var(--fs-small); font-weight: 600; }
+.board-range-field { display: grid; grid-template-columns: 40px 1fr; align-items: baseline; column-gap: var(--sp-2); row-gap: 2px; margin-bottom: var(--sp-3); }
+.board-range-field input {
+  width: 100%;
+  padding: 4px 2px;
+  font: var(--fs-small)/1.4 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  background: var(--see-through);
+  border: 0; border-bottom: 1px solid var(--line-strong); border-radius: 0;
+}
+.board-range-field input::placeholder { color: var(--ink-muted); opacity: 0.7; }
+.board-range-field input:focus { outline: 0; border-bottom-color: var(--ink); box-shadow: 0 1px 0 var(--ink); }
+.board-range-field input[aria-invalid="true"] { border-bottom-color: var(--err-edge); box-shadow: 0 1px 0 var(--err-edge); }
+.board-range-resolved { grid-column: 2; font: var(--fs-micro)/1.5 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-muted); }
+.board-range-resolved[data-invalid] { font-family: var(--font-ui); font-weight: 500; color: var(--err-ink); }
+.board-range-hint { margin: 0 0 var(--sp-3); font-size: var(--fs-micro); line-height: 1.5; color: var(--ink-muted); }
+.board-range-hint code { font-family: var(--font-mono); color: var(--ink); }
+.board-range-ticks { display: flex; align-items: center; gap: var(--sp-2); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.board-range-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); margin-top: var(--sp-4); }
+
+/* ---------------------------------------------------------- finished work -- */
+/* The Bridge's own list of closed tickets under the chart: a card like the chart's, its lines drawn as chart rows. */
+/* Capped at a third of the panel and never shorter than its head and two lines; the list scrolls inside it. */
+.board-panel[data-tab="progress"] > .board-finished { flex: 0 1 auto; min-height: 120px; max-height: 35%; margin-top: var(--sp-4); }
+.board-finished {
+  display: flex; flex-direction: column;
+  min-height: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-3);
+}
+.board-finished-head {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.board-finished-title { font-size: var(--fs-micro); line-height: 16px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink-4); }
+.board-finished-note { margin-left: auto; font-size: var(--fs-small); color: var(--ink-muted); }
+.board-finished-empty { margin: 0; padding: var(--sp-5) var(--sp-4); font-size: var(--fs-small); color: var(--ink-muted); }
+.board-finished-list { margin: 0; padding: 0; overflow: auto; list-style: none; }
+.board-finished-ticket { border-bottom: 1px solid var(--line); transition: background-color var(--motion-fast) var(--ease-out); }
+.board-finished-ticket:last-child { border-bottom: 0; }
+.board-finished-ticket:hover { background: var(--wash); }
+.board-finished-ticket[data-selected] { background: var(--surface-selected); box-shadow: inset 3px 0 0 var(--signal); }
+.board-finished-link {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--row-h);
+  padding: 0 var(--sp-4);
+  color: var(--ink);
+}
+.board-finished-link:hover { color: var(--ink); text-decoration: none; }
+.board-finished-link:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; border-radius: var(--r-1); }
+.board-finished-id { display: flex; flex: 0 0 34px; }
+.board-finished-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-finished-ticket[data-state="abandoned"] .board-finished-name { text-decoration: line-through; color: var(--ink-muted); }

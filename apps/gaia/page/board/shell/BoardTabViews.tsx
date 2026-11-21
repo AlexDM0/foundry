@@ -12,6 +12,7 @@ import { AgentsView }                from '../views/agents/AgentsView.tsx';
 import { AssistantView }             from '../views/assistant/AssistantView.tsx';
 import { IntakeView }                from '../views/intake/IntakeView.tsx';
 import { KanbanTabView }             from '../views/kanban/KanbanTabView.tsx';
+import { ProgressTabView }           from '../views/progress/ProgressTabView.tsx';
 import { QuestionsTabView }          from '../views/questions/QuestionsView.tsx';
 import { TicketsView }               from '../views/tickets/TicketsView.tsx';
 import type { BoardRoute, BoardTab } from './BoardRouter.ts';
@@ -35,6 +36,7 @@ function IntakeTabView({ board, route, services }: BoardTabViewProps) {
 
 export const BOARD_TAB_VIEWS: BoardTabViewTable = {
   kanban:    KanbanTabView,
+  progress:  ProgressTabView,
   tickets:   ({ board, boardStore }) => <TicketsView board={board} boardStore={boardStore} />,
   questions: QuestionsTabView,
   agents:    ({ board, route, services }) => (

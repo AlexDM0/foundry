@@ -738,6 +738,7 @@ const BOARD_STYLESHEETS: readonly string[] = [
   'kanban.css',
   'merge-queue.css',
   'pipeline.css',
+  'progress.css',
   'questions.css',
   'sandboxed-html.css',
   'shell.css',

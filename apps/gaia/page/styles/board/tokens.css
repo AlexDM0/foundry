@@ -11,6 +11,11 @@
   --pulse-activity: 1.4s;
   --pulse-card:     3.2s;
 
+  /* The Progress chart's row height and name column, the column under Wide titles. */
+  --row-h:         30px;
+  --col-name:      432px;
+  --col-name-wide: 780px;
+
   /* A figure or a state word swapping in; a list item fading out where it stood (`LEAVING_MILLISECONDS`). */
   --motion-tick:  260ms;
   --motion-leave: 220ms;
@@ -76,11 +81,15 @@
   --hatch-gap:               transparent;
 }
 
-/* The board's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
+@media (max-width: 1180px) {
+  :root { --col-name: 360px; }
+}
+
 @media (max-width: 720px) {
   :root { --page-gutter: 16px; }
 }
 
+/* The board's motion tokens follow the design system's: 0ms under reduced motion and until the first board has painted. */
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-tick: 0ms; --motion-leave: 0ms; }
 }
@@ -109,16 +118,24 @@
 [data-epic-slot="5"] { --epic-fill: var(--epic-5-fill); --epic-tint: var(--epic-5-tint); --epic-ink: var(--epic-5-ink); }
 [data-epic-slot="6"] { --epic-fill: var(--epic-6-fill); --epic-tint: var(--epic-6-tint); --epic-ink: var(--epic-6-ink); }
 
+/* The Progress chart's widths its script sets on the chart, at rest: no extra room, and a timeline as wide as its ticks need. */
+.board-progress-chart {
+  --progress-timeline-min-width: 0px;
+  --panel-room:                  0px;
+  --frozen-timeline-w:           minmax(var(--progress-timeline-min-width), 1fr);
+}
+
+/* A live bar's or Kanban card's flare and sheen, and a paused bar's stripe, mixed from the theme's and the state's own colours. */
+:is([data-state], [data-state-tone]) {
+  --s-flare:         color-mix(in oklch, var(--s-fill) 45%, var(--flare-light));
+  --s-flare-rest:    color-mix(in oklch, var(--s-flare) 0%, var(--see-through));
+  --s-sheen:         color-mix(in oklch, var(--s-fill) 16%, var(--see-through));
+  --s-paused-stripe: color-mix(in oklch, var(--s-fill) 35%, var(--see-through));
+}
+
 /* The names for colours another token already holds: one line follows both themes. */
 :root {
   --new-text-tint: var(--pass-tint);
-}
-
-/* A live Kanban card's flare and sheen, mixed from the theme's and the state's own colours. */
-:is([data-state], [data-state-tone]) {
-  --s-flare:      color-mix(in oklch, var(--s-fill) 45%, var(--flare-light));
-  --s-flare-rest: color-mix(in oklch, var(--s-flare) 0%, transparent);
-  --s-sheen:      color-mix(in oklch, var(--s-fill) 16%, transparent);
 }
 
 /* The Kanban's Ready lane by wave: a one-ticket wave's band, a wash of the link colour. */
