@@ -103,13 +103,20 @@ done: WP2.18 retook them all, unchanged but start stamps.
 - WP5.13: on a scratch forge, retitle a ticket and check its file keeps its name; check that a real session reads the
   new session instructions and uses `ticket edit` instead of editing ticket files.
 
-- WP5.14 and WP5.16: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this
-  checkout's `version`, no model call) to replace the hand-edited recording (install version 42 now; WP5.17 too); commit it.
+- WP5.14 to WP7.2: in `apps/forge`, `bun run record src/services/overseer/InstallChangeWatch.ts` (it runs this
+  checkout's `version`, no model call) to be sure the recording (install version 43) is a real take; commit it if it
+  changes.
 
 - WP5.15: on a scratch forge, kill a live Overseer while it holds the store's lock; the next CLI write takes it over.
 
 - WP5.16: on a scratch forge, hand-edit a committed ticket's file; `ticket show` and the next build launch carry the
   kept content, and the next write restores the file.
+
+- WP7.2: run a live `pipeline setup`; check the session loads `/forge-pipeline` from the snapshot worktree and follows
+  its research step, and that the text after the skill line still reaches it.
+
+- WP6.4 (owner step): add `/packages/flint` to Gaia's tracker reach in `apps/gaia/.forge`'s pipeline; the root
+  CLAUDE.md already says so, and Customs refuses a Gaia ticket that changes Flint until then.
 
 ### Assumptions to confirm
 
@@ -221,6 +228,9 @@ done: WP2.18 retook them all, unchanged but start stamps.
 
 - WP5.16: the board's own ticket edits are named `writtenBy: 'board'` (`TicketEdits.ts:23`), since a `'forge'` literal
   fails `ProductNameLiterals.spec`. Accept the name, or ask for `'forge'` with allowlist entries.
+
+- WP6.4: a board reduced-motion stop counts only with the same selector or `*` (`reducedMotionGapSentencesOf`), simpler
+  than the Bridge's specificity rule. Confirm once WP6.6 onward move the real board stylesheets.
 
 ### Blocked
 
@@ -436,9 +446,10 @@ worktree, one commit each (WP2.32 with WP2.17).
 | 5-L | WP5.17 | landed | 0ccbc01f | First round. `Board.unreadyTicket`: committed back to draft, `contentHash` and row removed, `ticket-unreadied` logged, settings kept; refusals `unready-of-a-ticket-not-committed` and `unready-of-a-ticket-with-a-job` (any live job whose `ticketIds` name it). `ticket-unready` is a by-hand kind (applier in `TicketByHandControls.ts`); the contract and Gaia unchanged. Verb `ticket unready <id> [--at] [--json]`; `INSTALL_VERSION` 41 to 42 (the recording's stamp hand-edited, its stdout still says 41) |
 | 5-V | Stage 5 verification | passed | (no commit) | Run by a checker in a fresh worktree at `d0e7db1f`: install and verify (29/29), the 19 named spec runs, `verify:integration` 874 pass, 1 skip (the G1 outage row), 0 fail, and scratch-board steps 1-8 with the fake agent and the claude trap (never called): a build job on `#001` through the pass's transaction and the command face, the by-hand delivery refused under a live Overseer, the endpoint 200/200/400, the committed ticket's hash, restore and unready. Seven of eight greps empty; the eighth matched only helper names local to three specs, so the stage file's grep now leaves `*.spec.ts` out |
 | 6-A | WP6.1 | landed | 3ce4ba57 | First round. Forge 1.22, forge-contracts 1.2.0. `CompatibilityRegistryUtil.endpointEntryForPath`/`endpointPathOf` (templates); five entries added in 1.22 (`events`, `jobs/{jobId}/stream`, `profiles/{profileRunId}/stream`, `pictures`, `pictures/{pictureId}`); the three streams open with `handshakeEventText(systemVersion)`. `FORGE_CONTROL_COMMAND_KINDS`: 44 kinds (10 control, 34 board), no by-hand kind; the ingestion half of the parity check is in `cli/overseer/routes/CommandRoute.clientKinds.spec.ts` (src/shared may not import cli); `BoardCommandMappingUtil.mapperOfKind` exported. `verify:integration` 874 pass, 1 skip, 0 fail; the OverseerServer recording re-taken byte-identical |
-| 6-B | WP6.2 | running | | |
-| 6-B | WP6.4 | running | | |
-| 6-B | WP7.2 | running | | |
+| 6-B | WP6.2 | running | | Failed two checks: the board recording shows no applied pipeline, and forge serves `applyRefusal` null (a forge defect: `BoardStateReader` builds its board without the setup reading). WP4.10b fixes forge first; then WP6.2's one targeted round |
+| 4-X | WP4.10b | running | | Fix package from WP6.2's check: serve `pipelineSetup.applyRefusal` from the open setup |
+| 6-B | WP6.4 | landed | 5b19778a | Second round (first: the board's reduced-motion guard flagged no-preference animations, hover rules used Gaia's feedback list, the import guard missed relative imports outside the tsconfig list). `PageContractVersions.ts` holds the page keys (later board keys go there); the page reads forge's control and embed versions from `page/shared/constants/KnownForgeContractVersions.ts`, held equal to `CONTRACT_VERSIONS` by a spec. Board style guards: themed tokens read from the board tokens file, `BOARD_SAME_IN_BOTH_THEMES_TOKENS` must name literal colours (34 on the Bridge's tokens.css). Gaia's `test:dom`/`RunDomSpecs` do not exist yet |
+| 6-B | WP7.2 | landed | 8bc867c6 | Second round (first: `forge help` and the glossary still said two skills). `skills/agent-pipeline/SKILL.md`, `PIPELINE_SETUP_SKILL` (`forge-pipeline`); the pipeline agent's profile now `skills: true` and its first line is the adapter's `instructionBundleLineOf`; `INSTALL_VERSION` 43; the `InstallChangeWatch` recording reads 43 throughout |
 | 6-C | WP6.24 | waiting | | |
 | 6-D | WP6.25 | waiting | | |
 | 6-E | WP6.3 | waiting | | |
