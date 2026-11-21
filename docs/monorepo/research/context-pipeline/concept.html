@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Context pipeline: steps, context and artifacts</title>
+<title>Phases and hooks: a pipeline a board can extend</title>
 <style>
   :root {
     --ground: #f6f6f6; --card: #fefefe; --sunken: #ededed; --ink: #181818; --ink-soft: #555555; --ink-faint: #6e6e6e;
@@ -222,116 +222,154 @@
     .difficulty summary { grid-template-columns: 24px minmax(0, 1fr) 14px; }
     .difficulty summary .pill { grid-column: 2; justify-self: start; }
   }
+
+  .step-node.handover { flex: 0 0 112px; min-width: 112px; }
+  .step-node.handover .step-button { border-style: dashed; background: var(--ground); }
+  .step-node.handover .step-button[aria-pressed="true"] { border-style: solid; background: var(--tint); }
+  .hook-list { padding: 0 20px 16px; }
+  .hook-list .table-wrap { margin: 0; }
+  .hook-list table { font-size: 14px; }
+  .hook-list td.term { white-space: normal; }
+  .empty-handover { padding: 0 20px 18px; color: var(--ink-soft); font-size: 14.5px; }
+  .argument ul { font-size: 14.5px; color: var(--ink-soft); padding-left: 18px; margin: 0; max-width: none; }
+  .argument ul li { margin: 6px 0; }
+  .anatomy.hook { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .anatomy.hook .slot:nth-child(3n) { border-right: 1px solid var(--line); }
+  .anatomy.hook .slot:nth-child(2n) { border-right: none; }
+  .anatomy.hook .slot.wide { grid-column: span 2; }
+  @media (max-width: 920px) {
+    .anatomy.hook { grid-template-columns: minmax(0, 1fr); }
+    .anatomy.hook .slot, .anatomy.hook .slot:nth-child(3n) { border-right: none; }
+    .anatomy.hook .slot.wide { grid-column: auto; }
+  }
 </style>
 </head>
 <body>
 <div class="layout">
   <nav class="sidebar" aria-label="Sections">
     <div class="brand"><span class="mark"></span>forge</div>
-    <div class="brand-subtitle">Context pipeline<br>Design brainstorm · 21 Nov 2026</div>
+    <div class="brand-subtitle">Phases and hooks<br>Pipeline design · 21 Nov 2026</div>
     <div class="links">
       <a href="#concept"><span class="number">1</span>The concept</a>
-      <a href="#explorer"><span class="number">2</span>Two pipelines, step by step</a>
+      <a href="#explorer"><span class="number">2</span>A board, step by step</a>
       <a href="#baseline"><span class="number">3</span>The baseline</a>
-      <a href="#difficulties"><span class="number">4</span>Difficulties</a>
-      <a href="#impact"><span class="number">5</span>Impact</a>
-      <a href="#steelman"><span class="number">6</span>Steelman</a>
-      <a href="#strawman"><span class="number">7</span>Strawman</a>
-      <a href="#position"><span class="number">8</span>Where this lands</a>
-      <a href="#questions"><span class="number">9</span>Questions that decide it</a>
-      <a href="#sources"><span class="number">10</span>Sources</a>
+      <a href="#rules"><span class="number">4</span>The rules</a>
+      <a href="#difficulties"><span class="number">5</span>Difficulties</a>
+      <a href="#impact"><span class="number">6</span>Impact</a>
+      <a href="#steelman"><span class="number">7</span>Steelman</a>
+      <a href="#strawman"><span class="number">8</span>Strawman</a>
+      <a href="#sources"><span class="number">9</span>Sources</a>
     </div>
     <button class="theme-toggle" id="theme-toggle" type="button">Switch theme</button>
   </nav>
 
   <main>
-    <div class="eyebrow">Design brainstorm · nothing here is built</div>
-    <h1>A pipeline of steps over one context</h1>
-    <p class="lede">The proposal: a pipeline starts at a trigger, and every step after it reads from a shared context and
-    adds a named artifact to it. Forge after the rework is one hard-wired instance of exactly this, which is the best
-    argument for the idea and the sharpest test of it.</p>
+    <div class="eyebrow">Pipeline design · nothing here is built</div>
+    <h1>A fixed pipeline a board can extend</h1>
+    <p class="lede">Forge's phases stay forge's. A board switches on a plan, and fills the hook points between the
+    phases with hooks: a command, an agent or a person, each doing whatever that board needs at that point.</p>
 
     <div class="verdict-strip">
-      <div><div class="label">What the idea gets right</div><p>What a step is. Forge already keeps an ordered list of what each agent reads, for seven fixed roles.<sup><a href="#source-6">[6]</a></sup> The idea removes the word "fixed".</p></div>
-      <div><div class="label">What the brief leaves out</div><p>What accepts a step's output, and where the work goes when it is refused. Forge's guarantees live in those two slots.</p></div>
-      <div><div class="label">Where it lands</div><p>Make steps data. Keep verification, bounded ways back and the landing as code. Choose step kinds from a closed catalogue, as the brief already does for triggers.</p></div>
+      <div><div class="label">Phases are fixed</div><p>Intake, plan, build, review, merge, in that order. Each delivers an artifact. Only build and review change code.</p></div>
+      <div><div class="label">Hooks are the board's</div><p>At six hook points, an ordered list. Forge knows three things about a hook: what it reads, whether it can stop the flow, what it produces.</p></div>
+      <div><div class="label">A board that adds nothing</div><p>behaves as forge does today. Gates, ticket review and merge approval are untouched.</p></div>
     </div>
 
     <h2 id="concept"><span class="number">01</span>The concept</h2>
-    <p class="section-lede">Five words from the brief<sup><a href="#source-1">[1]</a></sup>, each with the sharpening it needs
-    before it can carry forge.</p>
+    <p class="section-lede">Six words carry the design.<sup><a href="#source-18">[18]</a></sup></p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Word</th><th>In the brief</th><th>Sharpened</th></tr></thead>
+        <thead><tr><th>Word</th><th>Meaning</th><th>In forge today</th></tr></thead>
         <tbody>
-          <tr><td class="term">Trigger</td><td>A ticket creation event, or a ticket input that became available from an outside source. Triggers are preconfigured and selectable.</td><td>A member of a closed catalogue, built in code. It ends by putting <code>ARTIFACT_TICKET</code> into the context.</td></tr>
-          <tr><td class="term">Context</td><td>What a step takes in: the constitution, the repo as a whole, any doc, any external reference, an agent description, an instruction, or an artifact.</td><td>Per ticket, the set of items that exist so far. A step declares which of them it reads. Items differ in how they are referenced (see below).</td></tr>
-          <tr><td class="term">Artifact</td><td>The named output of a step: <code>ARTIFACT_TICKET</code>, <code>ARTIFACT_SPEC</code>, <code>ARTIFACT_PLAN</code>.</td><td>A document with a type, a version and a record of the versions it was made from. A repo ref is not an artifact: it moves.</td></tr>
-          <tr><td class="term">Step</td><td>Takes context, runs an agent with an instruction, may need a chat interface, may be picked up by people with given roles, emits an artifact.</td><td>Seven slots, drawn below. The brief fills five.</td></tr>
-          <tr><td class="term">Sign-off</td><td>A request to a team member at the end of a step.</td><td>One kind of acceptance. For a document it is the only check there is, so it is part of the step and not an extra.</td></tr>
+          <tr><td class="term">Phase</td><td>A stretch of work that delivers an artifact. Forge ships the phases and their order.</td><td>Intake, build, review and the merge exist. Plan is new.</td></tr>
+          <tr><td class="term">Artifact</td><td>A named document that forge keeps, with versions and the approvals given on it.</td><td>The ticket; the Handoff and each Review, which code writes from verified reports.<sup><a href="#source-2">[2]</a></sup></td></tr>
+          <tr><td class="term">Hook point</td><td>The place after a phase where a board's hooks run, before the next phase may start.</td><td>Does not exist: passed gates start the review in the same transaction.<sup><a href="#source-2">[2]</a></sup></td></tr>
+          <tr><td class="term">Hook</td><td>One entry in a hook point's list. Run by a command, an agent or a person.</td><td>Nothing a board can add.</td></tr>
+          <tr><td class="term">Gate</td><td>A command that judges the tree, inside a phase. Unchanged.</td><td>Gates in the phases build, review and merge.<sup><a href="#source-5">[5]</a></sup></td></tr>
+          <tr><td class="term">Context</td><td>What a phase or a hook is given: the artifacts it names, and nothing else.</td><td>The ticket's body, put into an agent's first message.<sup><a href="#source-19">[19]</a></sup></td></tr>
         </tbody>
       </table>
     </div>
 
-    <h3>The anatomy of a step</h3>
-    <div class="anatomy" role="img" aria-label="A step has seven slots: reads, runs, who, works in, emits, accepted by and way back. The brief fills the first five.">
-      <div class="slot"><div class="slot-name">Reads</div><div class="chips"><span class="chip">constitution</span><span class="chip">plan-agent.md</span><span class="chip">instructions.md</span><span class="chip">ARTIFACT_SPEC</span><span class="chip">repo@feature-branch</span></div></div>
-      <div class="slot"><div class="slot-name">Runs</div><p>An agent, described by the agent description and started with the instruction. Either a chat with a person or a session that works alone. Some steps run no agent at all.</p></div>
-      <div class="slot"><div class="slot-name">Emits</div><div class="chips"><span class="chip">ARTIFACT_PLAN</span><span class="chip">sign-off request</span></div></div>
-      <div class="slot"><div class="slot-name">Who</div><p>The team roles that may pick the step up: B, C, D. Nobody, when the step runs by itself.</p></div>
-      <div class="slot"><div class="slot-name">Works in</div><p>Where the session stands: a worktree at a ref, a folder of its own, or nowhere in the repo.</p></div>
-      <div class="slot"><div class="slot-name">Ends when</div><p>The person closes the chat, or the session reports that it is done.</p></div>
+    <h3>The anatomy of a hook</h3>
+    <div class="anatomy hook" role="img" aria-label="A hook declares who runs it, what it reads, whether it blocks and what a no does, and what it produces.">
+      <div class="slot"><div class="slot-name">Runs by</div><p>A command, an agent with a brief and a model, or a person with a role.</p></div>
+      <div class="slot"><div class="slot-name">Reads</div><div class="chips"><span class="chip">ticket</span><span class="chip">plan</span><span class="chip">an earlier hook's artifact</span><span class="chip">a snapshot of the code</span></div></div>
+      <div class="slot"><div class="slot-name">Blocks</div><p>Whether its "no" stops the flow. If it does, the hook says what the no does: return the work to the phase before it, or halt for a person.</p></div>
+      <div class="slot"><div class="slot-name">Produces</div><p>Named artifacts, each with the headings it must have. A later phase or hook names them to get them.</p></div>
       <div class="slot wide">
-        <div><div class="slot-name">Accepted by <span class="pill orange">not in the brief</span></div><p>What turns the output from a claim into a fact: a shape check, gates, a check against git, a person's sign-off.</p></div>
-        <div><div class="slot-name">Way back <span class="pill orange">not in the brief</span></div><p>Where the work goes when acceptance fails, whether the same session resumes, and after how many tries the ticket stops and waits for a person.</p></div>
+        <div><div class="slot-name">A hook never</div><p>works in the ticket's worktree. One that reads code gets a snapshot of the commit handed over, to use and throw away.</p></div>
+        <div><div class="slot-name">A hook never</div><p>is a phase's conversation. A person's hook is a halt that ends on accept.</p></div>
       </div>
     </div>
-    <p class="caption">The plan step of the brief, laid out by slot. The two slots at the bottom are the ones forge's own rules
-    demand of every step it runs today.</p>
+    <p class="caption">Everything else about a hook is its own business: a check, an analysis, a report to another system,
+    a statistics run.</p>
 
-    <h3>A context item is referenced in one of three ways</h3>
-    <p>"The repo as a whole" and "ARTIFACT_SPEC" are both context, and they behave differently. Forge already treats them
-    differently, without naming the difference.</p>
+    <h3>What forge does with a hook</h3>
+    <p>Forge waits for every hook, in the order the board lists them. A hook ends in a yes, a no, or it could not run.
+    The declarations decide what each does.</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Reference</th><th>Meaning</th><th>What forge does today</th></tr></thead>
+        <thead><tr><th>Blocks</th><th>Produces</th><th>A "no"</th><th>Could not run</th><th>Example</th></tr></thead>
         <tbody>
-          <tr><td class="term">Pinned</td><td>This exact version of a document.</td><td>A builder's ticket body must be unchanged since its launch, or Customs refuses the run.<sup><a href="#source-3">[3]</a></sup></td></tr>
-          <tr><td class="term">Tracking</td><td>Whatever the main line holds at the moment the session starts.</td><td>The constitution and every tracked instruction file are read from the main line at each launch and each resume, never from the ticket's branch.<sup><a href="#source-8">[8]</a></sup></td></tr>
-          <tr><td class="term">Working copy</td><td>A place to stand and change, not a text to read.</td><td>A worktree on the ticket's branch, cut from the target's tip.<sup><a href="#source-3">[3]</a></sup></td></tr>
+          <tr><td>No</td><td>Nothing</td><td>Has no meaning</td><td>Recorded and shown; the flow continues</td><td>A notifier, a statistics tracker</td></tr>
+          <tr><td>No</td><td>Artifacts</td><td>Has no meaning</td><td>The ticket waits for a person</td><td>Test criteria that the reviewer reads</td></tr>
+          <tr><td>Yes</td><td>Nothing</td><td>Returns the work, or halts for a person</td><td>The ticket waits for a person</td><td>A check on the plan</td></tr>
+          <tr><td>Yes</td><td>Artifacts</td><td>The same, with the artifacts as findings</td><td>The ticket waits for a person</td><td>An architecture verification with its report</td></tr>
+          <tr><td>A person</td><td>Nothing</td><td>None: it halts until accept</td><td>Does not apply</td><td>An approval</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>A command says no through its exit status, as a gate does. An agent says no through a verdict in its report, as a
+    reviewer does.<sup><a href="#source-11">[11]</a></sup> A person never says no: the hook halts until accept, and what
+    the person does before that (reads, edits the artifact, sends findings to the builder, nothing) is outside the flow
+    and on record.</p>
+
+    <h3>How context reaches an agent</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>What</th><th>How it arrives</th><th>In forge today</th></tr></thead>
+        <tbody>
+          <tr><td class="term">Instructions</td><td>From the main line, whatever it holds when the session starts. Nothing a ticket or a branch contains can change them.</td><td>The constitution and every tracked instruction file are read from the main line at each launch and each resume, never from the ticket's branch.<sup><a href="#source-7">[7]</a></sup></td></tr>
+          <tr><td class="term">Artifacts</td><td>As labelled data in the first message, at one exact version. Never as an instruction.</td><td>A committed ticket is kept by content hash, and agents build from that.<sup><a href="#source-4">[4]</a></sup></td></tr>
+          <tr><td class="term">Code</td><td>A phase stands in the ticket's worktree. A hook gets a snapshot of one commit.</td><td>A worktree on the ticket's branch, cut from the target's tip; the pipeline agent already works on a snapshot.<sup><a href="#source-2">[2]</a><a href="#source-20">[20]</a></sup></td></tr>
         </tbody>
       </table>
     </div>
 
-    <h3>What a definition could say</h3>
-    <pre><span class="key">trigger</span>  jira-ticket  state X, assigned to Y     <span class="key">emits</span> ARTIFACT_TICKET
+    <h3>What a board could say</h3>
+    <pre><span class="key">plan</span>  on, made by a planner alone
 
-<span class="key">step</span> spec
-  <span class="key">reads</span>     constitution, po-agent.md, instructions.md,
-            ARTIFACT_TICKET, repo@main
-  <span class="key">runs</span>      chat
-  <span class="key">who</span>       roles A, B, C
-  <span class="key">emits</span>     ARTIFACT_SPEC, repo@feature-branch
-  <span class="key">accepted</span>  sign-off by a team member
-  <span class="key">back</span>      <span class="open">open</span>
+<span class="key">after the ticket</span>
+  ticket-check       <span class="key">agent</span>     reads ticket                   on red: back to draft
 
-<span class="key">step</span> plan
-  <span class="key">reads</span>     constitution, plan-agent.md, instructions.md,
-            ARTIFACT_SPEC, repo@feature-branch
-  <span class="key">runs</span>      chat, in a worktree
-  <span class="key">who</span>       roles B, C, D
-  <span class="key">emits</span>     ARTIFACT_PLAN
-  <span class="key">accepted</span>  sign-off by a team member
-  <span class="key">back</span>      <span class="open">open</span></pre>
-    <p class="caption">A sketch to make the words concrete. It is not a proposed file format.</p>
+<span class="key">after the plan</span>
+  test-criteria      <span class="key">agent</span>     reads ticket, plan, code       produces test-criteria
+  approve-criteria   <span class="key">person</span>    role B, reads test-criteria    halts until accept
 
-    <h2 id="explorer"><span class="number">02</span>Two pipelines, step by step</h2>
-    <p class="section-lede">The same seven slots for two pipelines: the example of the brief, and forge as it runs after the
-    rework. Pick a step to see what it reads and what the context holds once it ends.</p>
+<span class="key">after the build</span>
+  architecture       <span class="key">agent</span>     reads plan, code               on red: halt for role C
+                                                              produces architecture-report
+<span class="key">after the review</span>
+  security-read      <span class="key">agent</span>     reads code                     on red: return the work
+
+<span class="key">after the human review</span>
+  release-note       <span class="key">agent</span>     reads ticket, Review           produces release-note
+
+<span class="key">after the merge</span>
+  notify             <span class="key">command</span>   reads ticket, release-note     never blocks
+
+<span class="key">review</span>  also gets test-criteria</pre>
+    <p class="caption">A sketch to make the words concrete. It is not a file format.</p>
+
+    <h2 id="explorer"><span class="number">02</span>A board, step by step</h2>
+    <p class="section-lede">Two boards on the same fixed phases: one as every board starts, one with a plan, merge approval
+    and the hooks of the sketch above. Pick a phase or a hook point to see what it reads and what the context holds once
+    it ends.</p>
 
     <div class="explorer">
-      <div class="segmented" id="pipeline-switch" role="group" aria-label="Pipeline"></div>
+      <div class="segmented" id="pipeline-switch" role="group" aria-label="Board"></div>
       <div class="panel">
         <div class="track" id="track" style="padding: 16px 18px 14px;"></div>
         <div id="step-detail"></div>
@@ -340,417 +378,387 @@
       <p class="caption" id="explorer-caption"></p>
     </div>
 
-    <h2 id="baseline"><span class="number">03</span>The baseline: forge today in these words</h2>
-    <p class="section-lede">The requirement is that everything forge does after the rework fits the model. This is the
-    inventory, each row marked by how it fits. Hephaestus is the Overseer of today's code, Talos replaces the Watchers and
-    Gaia shows the board; the pipeline's shape is the same before and after.<sup><a href="#source-5">[5]</a></sup></p>
+    <h2 id="baseline"><span class="number">03</span>The baseline: what happens to forge as it is</h2>
+    <p class="section-lede">Everything forge does after its rework, and where it goes in this design. Hephaestus drives
+    the pipeline, Talos runs every child process and Gaia shows the board.<sup><a href="#source-4">[4]</a></sup></p>
 
     <div class="filters" id="baseline-filters"></div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>In forge today</th><th>In the model</th><th>Fit</th></tr></thead>
+        <thead><tr><th>In forge today</th><th>In this design</th><th>Change</th></tr></thead>
         <tbody id="baseline-rows"></tbody>
       </table>
     </div>
 
-    <h2 id="difficulties"><span class="number">04</span>Difficulties</h2>
-    <p class="section-lede">Ordered by how much of the design each one decides. Each opens to what forge does today, why
-    it bites, and what the model needs to carry it.</p>
+    <h2 id="rules"><span class="number">04</span>The rules</h2>
+    <p class="section-lede">The whole design as rules, grouped by what they govern.<sup><a href="#source-18">[18]</a></sup></p>
+    <div class="columns" id="rule-groups"></div>
+
+    <h3>Left out on purpose</h3>
+    <ul>
+      <li>A phase that a board defines, and any other order of phases.</li>
+      <li>A hook that is a conversation, and a hook that changes code. So a hook cannot commit a design record or a changelog, and a separate agent cannot write tests before the build.</li>
+      <li>A hook on the merged tree. Only the merge gates see it.</li>
+      <li>A hook that runs once for a release instead of once for a ticket.</li>
+      <li>Two hooks of one hook point at the same time.</li>
+      <li>A short lane that lets a small ticket skip a phase or a hook.</li>
+      <li>A trigger outside forge. A hook after the merge can already report to another system.</li>
+      <li>Identity, permissions and roles that are enforced.</li>
+    </ul>
+
+    <h2 id="difficulties"><span class="number">05</span>Difficulties</h2>
+    <p class="section-lede">Ordered by how much each one can hurt. Each opens to what forge does today, why it bites,
+    and what the design does about it.</p>
 
     <div class="filters" id="difficulty-filters"></div>
     <div id="difficulty-list"></div>
 
-    <h2 id="impact"><span class="number">05</span>Impact</h2>
-    <p class="section-lede">What changes, part by part. Sizes are this page's estimate, on the scale the rework plan
-    uses.<sup><a href="#source-5">[5]</a></sup></p>
+    <h2 id="impact"><span class="number">06</span>Impact</h2>
+    <p class="section-lede">What changes, part by part. Sizes are estimates, on the scale the rework plan
+    uses.<sup><a href="#source-4">[4]</a></sup></p>
 
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Part</th><th>Today</th><th>With a context pipeline</th><th>Size</th></tr></thead>
+        <thead><tr><th>Part</th><th>Today</th><th>With phases and hooks</th><th>Size</th></tr></thead>
         <tbody id="impact-rows"></tbody>
       </table>
     </div>
 
-    <h3>Written rules and decisions it touches</h3>
+    <h3>The order of building</h3>
+    <p>Each stage ends with a forge that works end to end, and brings its own part of Gaia.</p>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Rule or decision</th><th>What the concept does to it</th></tr></thead>
-        <tbody>
-          <tr><td>"The forge follows a fixed, programmed workflow, and the user is a step in it." Decision 11 of the rework.<sup><a href="#source-5">[5]</a></sup></td><td><strong>Changes the first half.</strong> The workflow stays programmed and is never improvised, but it is fixed per board by its definition, not once for every forge. A numbered decision, so it needs the owner's word.</td></tr>
-          <tr><td>"The forge cannot ask the user anything by itself." The same decision.<sup><a href="#source-5">[5]</a></sup></td><td><strong>Holds, if</strong> a chat step starts when a person picks it up, and a sign-off request is a recorded wait, as a question is today.</td></tr>
-          <tr><td>A committed ticket's content is fixed and kept by content hash. Decision 48.<sup><a href="#source-5">[5]</a></sup></td><td><strong>Becomes the general rule.</strong> Accepted means fixed; a change means back to draft and accepted again.</td></tr>
-          <tr><td>The constitution commit is the one tracked write of forge to a main line outside a ticket's landing.<sup><a href="#source-21">[21]</a></sup></td><td><strong>Holds, if</strong> an artifact is either a record of the forge or a file on the ticket's branch that lands with it. A spec written to the main line before its ticket lands would break it.</td></tr>
-          <tr><td>A tracker with no entities asks git exactly what it asked before, held against a frozen table.<sup><a href="#source-21">[21]</a></sup></td><td><strong>Holds, and gets harder.</strong> The baseline definition has to reproduce today's calls one for one.</td></tr>
-          <tr><td>Internal values are string-literal unions, never display text.<sup><a href="#source-21">[21]</a></sup></td><td><strong>Bends.</strong> A step's name is a board's own text. The state of a step can stay a fixed union.</td></tr>
-          <tr><td>Identity and permissions are left out on purpose.<sup><a href="#source-5">[5]</a></sup></td><td><strong>Holds, if</strong> roles are labels that route work and nothing more.</td></tr>
-        </tbody>
+        <thead><tr><th>Stage</th><th>What it delivers</th><th>What a person notices</th></tr></thead>
+        <tbody id="stage-rows"></tbody>
       </table>
     </div>
 
     <h3>What it makes possible</h3>
     <ul>
-      <li><strong>Thinking before building.</strong> A spec and a plan, each accepted, before a builder spends a token. Today the only document before the build is the ticket, and the first judgement of the work comes after it is built.<sup><a href="#source-3">[3]</a></sup></li>
-      <li><strong>Steps forge does not have:</strong> a design step, a security review, a test plan, release notes. Each is a definition, not a release of forge.</li>
-      <li><strong>Different paths for different work.</strong> A typo and a new subsystem need not pass the same steps.</li>
-      <li><strong>Work that starts outside forge.</strong> A ticket that begins in another system and still passes the same checks.</li>
-      <li><strong>A unit to hand to a person.</strong> "This step, for someone with role B" is something a team can allocate. A whole ticket is too coarse.</li>
-      <li><strong>Replay.</strong> A step with declared inputs at known versions can be run again under another configuration and priced, which the compounding research asks for.<sup><a href="#source-20">[20]</a></sup></li>
+      <li><strong>Thinking before building.</strong> A plan, checked and approved if the board wants that, before a builder spends a token. Today the only document before the build is the ticket.<sup><a href="#source-2">[2]</a></sup></li>
+      <li><strong>Checks forge never designed:</strong> an architecture verification, a test evaluation, a security read, each a hook with its own brief.</li>
+      <li><strong>Deliverables of a board's own.</strong> A hook produces an artifact, a person approves it, a later phase reads it.</li>
+      <li><strong>Soft gates.</strong> A check that continues when green and asks a person when red.</li>
+      <li><strong>Forge reporting outward:</strong> a notifier at any hook point, a release note after the merge.</li>
+      <li><strong>Replay and pricing.</strong> Every phase and hook has declared inputs at known versions, which is the record the compounding research asks for.<sup><a href="#source-14">[14]</a></sup></li>
     </ul>
 
-    <h2 id="steelman"><span class="number">06</span>Steelman</h2>
-    <p class="section-lede">The idea in its strongest form, argued as well as it can be.</p>
+    <h2 id="steelman"><span class="number">07</span>Steelman</h2>
+    <p class="section-lede">The design in its strongest form, argued as well as it can be.</p>
     <div class="columns" id="steelman-list"></div>
 
-    <h2 id="strawman"><span class="number">07</span>Strawman</h2>
-    <p class="section-lede">Two things under one name. First the version of this idea that is easy to build and fails.
-    Then the easy objections to the idea, each with a ruling on whether it survives.</p>
+    <h2 id="strawman"><span class="number">08</span>Strawman</h2>
+    <p class="section-lede">Two things under one name. First the version of this design that is easy to build and
+    fails. Then the easy objections, each with a ruling on whether it survives.</p>
 
-    <h3>The version that fails: a workflow engine with agents in it</h3>
-    <p>Any step, in any order, emitting any file, every step a chat, roles as free text, all of it in one configuration
-    file. It demos well in a week.</p>
+    <h3>The version that fails: hooks as a plugin system</h3>
+    <p>A hook may do anything, anywhere, at any time: write code, hold a conversation, run beside the flow, stand in for
+    a gate. It demos well in a week.</p>
     <div class="columns" id="strawman-build"></div>
 
     <h3>The easy objections</h3>
     <div class="columns" id="strawman-objections"></div>
 
-    <h2 id="position"><span class="number">08</span>Where this lands</h2>
-    <p class="section-lede">The steelman survives only in a narrow form, and the narrow form is worth building.</p>
-
-    <div class="layers">
-      <div>
-        <div class="kind">Code · never configured</div>
-        <h4>The kernel</h4>
-        <ul>
-          <li>One driver moves work</li>
-          <li>An output is a claim until checked</li>
-          <li>Ways back are bounded, counted from the log</li>
-          <li>Landing is a compare-and-swap</li>
-          <li>Slots, budgets, write scope</li>
-        </ul>
-      </div>
-      <div>
-        <div class="kind">Code · selectable</div>
-        <h4>The catalogue</h4>
-        <ul>
-          <li>Trigger kinds</li>
-          <li>Step kinds: conversation, agent work, sign-off, code</li>
-          <li>Artifact types, each with a shape</li>
-          <li>Kinds of acceptance</li>
-          <li>Kinds of way back</li>
-        </ul>
-      </div>
-      <div>
-        <div class="kind">Data · per board or entity</div>
-        <h4>The definition</h4>
-        <ul>
-          <li>Which steps, in which order</li>
-          <li>What each reads: its context</li>
-          <li>Agent description and instruction</li>
-          <li>Who may pick it up, who signs</li>
-          <li>Which steps a ticket may skip</li>
-        </ul>
-      </div>
-    </div>
-
-    <p>The brief already takes this position for triggers: they are "preconfigured as selectable".<sup><a href="#source-1">[1]</a></sup>
-    The same rule for step kinds, acceptance and ways back is what separates the steelman from the strawman. A board
-    composes from parts that forge knows how to verify; it does not invent parts.</p>
-
-    <div class="callout">
-      <p><strong>The baseline requirement becomes a test.</strong> The default definition is today's forge: intake, ticket
-      review, build, review, merge approval, landing. A forge running that definition behaves exactly as forge does now.
-      Forge already holds one behaviour this way: a tracker with no entities must ask git exactly what it asked before
-      entities existed, checked against a frozen table.<sup><a href="#source-21">[21]</a></sup></p>
-    </div>
-
-    <h3>The order that costs least</h3>
-    <ol>
-      <li><strong>Name what exists.</strong> The ticket, the Handoff and each Review become typed artifacts with a version. The per-role instruction list becomes the step's context. Nothing behaves differently.</li>
-      <li><strong>Add document steps before a ticket is committed.</strong> Spec and plan sit where intake sits: before the stretch that runs without people. They reuse the conversation forge has for intake and the sign-off it has as ticket review. The path from build to landing is not touched.</li>
-      <li><strong>Make the path from build to landing a definition,</strong> behind the frozen baseline.</li>
-      <li><strong>Add outside triggers,</strong> one source at a time.</li>
-      <li><strong>Enforce roles</strong> when people have an identity, which is its own project.</li>
-    </ol>
-
-    <h2 id="questions"><span class="number">09</span>Questions that decide it</h2>
-    <p class="section-lede">Each is about how the system behaves, and each changes the design.</p>
-    <div class="panel" id="question-list"></div>
-
-    <h2 id="sources"><span class="number">10</span>Sources</h2>
-    <p class="section-lede">Paths are from the root of the forge repository. Code and documents were read on the main line at
-    <code>e9b5d057</code>; the rework branch is <code>hephaestus-talos</code>.</p>
+    <h2 id="sources"><span class="number">09</span>Sources</h2>
+    <p class="section-lede">Paths are from the root of the forge repository. Code and documents were read on the main line
+    at <code>e9b5d057</code>; the rework branch is <code>hephaestus-talos</code>.</p>
     <ol class="sources" id="source-list"></ol>
   </main>
 </div>
 
 <script>
 const SOURCES = [
-  'The brief for this page: the owner\'s description of triggers, context, steps, artifacts and sign-off, 21 November 2026.',
   '`apps/forge/docs/concepts/overview.md`: the six ideas, the cast, trouble three ways.',
   '`apps/forge/docs/concepts/ticket-lifecycle.md`: one ticket from draft to merged, the ways back, the variants.',
-  '`apps/forge/docs/cli.md`: the command and file-format reference, `pipeline.json` among it.',
-  '`docs/monorepo/hephaestus-talos.md` and `docs/monorepo/hephaestus-talos-implementation/`: the rework, its stages and its decisions, 1 to 34 on the main line and 35 to 52 on the rework branch.',
-  '`apps/forge/src/lib/tracker-model/@types/Pipeline.ts`: the pipeline\'s keys, roles, instruction lists and entities.',
+  '`apps/forge/docs/cli.md`: the command and file-format reference, `pipeline.json` and merge approval among it.',
+  '`docs/monorepo/hephaestus-talos.md`: the rework and its decisions, 1 to 34 on the main line and 35 to 52 on the rework branch.',
+  '`apps/forge/src/lib/tracker-model/@types/Pipeline.ts`: the pipeline\'s keys, gates, roles, instruction lists and entities.',
   '`apps/forge/src/lib/tracker-model/constants/PipelineDefaults.ts`: the default instruction list of each role.',
   '`apps/forge/src/services/overseer/InstructionFiles.ts`: where a launch reads its instruction files, and their hashes.',
-  '`apps/forge/src/lib/tracker-model/@types/Job.ts`: job kinds, roles and interruption causes.',
   '`apps/forge/src/lib/tracker-model/constants/Statuses.ts`, on the main line and on the rework branch.',
-  '`apps/forge/src/lib/tracker-model/constants/TicketStages.ts`: the stages of a ticket of an entity.',
-  '`apps/forge/src/lib/tracker-model/Playbook.ts` and `@types/PlaybookStep.ts`: what launches next.',
-  '`apps/forge/src/shared/constants/LifecycleLimits.ts`: the bounds that park a ticket.',
+  '`apps/forge/src/lib/tracker-model/constants/TicketStages.ts` and `docs/monorepo/research/monorepo-entities/strategy.md`: entities and the stages of a crossing ticket.',
+  '`apps/forge/src/shared/constants/LifecycleLimits.ts` and `apps/forge/src/lib/tracker-model/Playbook.ts`: the bounds that park a ticket, and what they count.',
   '`apps/forge/src/adapters/reports/ReportSchemas.ts`: the report a builder and a reviewer must leave.',
   '`apps/forge/src/lib/tracker-model/@types/Decision.ts`: the kinds of decision that wait for User.',
-  '`apps/forge/resources/prompts/`: `BuildPrompt.md`, `ReviewPrompt.md`, `ProductOwnerPrompt.md`, `PipelineAgentPrompt.md` and the messages beside them.',
-  '`apps/forge/src/services/overseer/`: `SessionPlace.ts`, `IntakeSessions.ts`, `PipelineAgentSessions.ts`, `WorkerProfiles.ts`, `LaunchSettings.ts`.',
-  '`apps/forge/src/lib/tracker-model/constants/PipelineSetupVocabulary.ts`: the steps of a pipeline setup.',
   '`apps/forge/docs/research/remote-state/findings.md`: remote state, login and cloud workers.',
-  '`apps/forge/docs/research/compounding/data-and-improvements.md`: what forge must record to price a period, grade a delivered feature and replay it under another configuration.',
+  '`apps/forge/docs/research/compounding/data-and-improvements.md`: what forge must record to price a period and replay a delivered feature.',
   '`apps/forge/CLAUDE.md`: forge\'s rule book.',
-  '`apps/forge/src/lib/tracker-model/@types/TicketForecast.ts` and `@types/GatePhase.ts`: the fixed forecast steps and gate phases.',
-  '`docs/monorepo/research/monorepo-entities/strategy.md`: entities, crossing tickets and their stages.',
-  '`apps/forge/src/services/control/Bouncer.ts`: what each role may ask of the board.',
+  '`apps/forge/src/lib/agent-launch/AgentLaunchRequest.ts`: the environment a child process gets.',
+  '`apps/forge/src/lib/tracker-model/constants/PipelineSetupVocabulary.ts`: the steps of a pipeline setup.',
+  '`docs/monorepo/context-pipeline.md`: this design, with its numbered decisions and its stages.',
+  '`apps/forge/resources/prompts/BuildPrompt.md`: the builder\'s first message and what is put into it.',
+  '`apps/forge/src/services/overseer/PipelineAgentSessions.ts`: the snapshot a pipeline agent works on.',
+  '`apps/forge/src/lib/gate-confinement/DarwinSeatbelt.ts`: what a confined gate line may write and reach.',
 ];
 
 const MODE_LABELS = {
-  trigger: 'Trigger',
-  chat: 'Chat with a person',
+  chat: 'A person with an agent',
   agent: 'Agent works alone',
-  person: 'A person signs',
+  person: 'A person decides',
   code: 'Code, no agent',
 };
 
-const ORIGIN_LABELS = {
-  brief: 'from the brief',
-  extended: 'extended here',
-  today: '',
-  optional: 'optional',
+const RUNNER_LABELS = { command: 'A command', agent: 'An agent', person: 'A person' };
+
+const ITEMS = {
+  'constitution': { label: 'CONSTITUTION.md', standing: true },
+  'briefs': { label: 'the briefs of each role', standing: true },
+  'repo-target': { label: 'repo@target', standing: true },
+  'repo-ticket': { label: 'repo@ticket-<id>' },
+  'ticket': { label: 'ticket' },
+  'ticket-review': { label: 'approval: ticket review' },
+  'plan': { label: 'plan' },
+  'test-criteria': { label: 'test-criteria' },
+  'approve-criteria': { label: 'approval: test criteria' },
+  'handoff': { label: 'Handoff' },
+  'architecture-report': { label: 'architecture-report' },
+  'review': { label: 'Review' },
+  'merge-accept': { label: 'approval: merge' },
+  'release-note': { label: 'release-note' },
 };
 
-const PIPELINES = {
-  proposed: {
-    label: 'The example of the brief',
-    caption: 'The trigger and the first two steps are the brief\'s own. Build, review and landing are extended here from what forge does, so the example reaches the main line. Two slots stay open on the brief\'s steps: nothing says what a refused sign-off does.',
-    groups: [
-      { name: 'Standing', itemIds: ['constitution', 'po-agent', 'plan-agent', 'build-agent', 'review-agent', 'instructions'] },
-      { name: 'Repo', itemIds: ['repo-main', 'repo-feature'] },
-      { name: 'Artifacts', itemIds: ['artifact-ticket', 'artifact-spec', 'signoff-spec', 'artifact-plan', 'signoff-plan', 'artifact-handoff', 'artifact-review'] },
-    ],
-    items: {
-      'constitution': { label: 'constitution', standing: true },
-      'po-agent': { label: 'po-agent.md', standing: true },
-      'plan-agent': { label: 'plan-agent.md', standing: true },
-      'build-agent': { label: 'build-agent.md', standing: true },
-      'review-agent': { label: 'review-agent.md', standing: true },
-      'instructions': { label: 'instructions.md', standing: true },
-      'repo-main': { label: 'repo@main', standing: true },
-      'repo-feature': { label: 'repo@feature-branch' },
-      'artifact-ticket': { label: 'ARTIFACT_TICKET' },
-      'artifact-spec': { label: 'ARTIFACT_SPEC' },
-      'signoff-spec': { label: 'sign-off: spec' },
-      'artifact-plan': { label: 'ARTIFACT_PLAN' },
-      'signoff-plan': { label: 'sign-off: plan' },
-      'artifact-handoff': { label: 'ARTIFACT_HANDOFF' },
-      'artifact-review': { label: 'ARTIFACT_REVIEW' },
-    },
-    steps: [
-      {
-        name: 'Trigger', mode: 'trigger', origin: 'brief', reads: [], emits: ['artifact-ticket'],
-        note: 'A Jira ticket in state X assigned to Y, or a request to make a new ticket. Triggers are preconfigured and selectable.',
-        runs: 'No agent. The trigger turns what arrived into `ARTIFACT_TICKET`.',
-        who: 'Whoever or whatever fired it.',
-        worksIn: 'Outside the repo.',
-        acceptedBy: null,
-        wayBack: null,
-        sources: [1],
-      },
-      {
-        name: 'Spec', mode: 'chat', origin: 'brief', reads: ['constitution', 'po-agent', 'instructions', 'artifact-ticket', 'repo-main'], emits: ['artifact-spec', 'repo-feature', 'signoff-spec'],
-        note: 'The ticket creation step of the brief. A person and the product owner agent turn the ticket into a spec.',
-        runs: 'The agent of `po-agent.md` with `instructions.md`, in a chat.',
-        who: 'Roles A, B and C.',
-        worksIn: 'Reads `repo@main`, and leaves `repo@feature-branch` behind.',
-        acceptedBy: 'A sign-off by a team member.',
-        wayBack: null,
-        sources: [1],
-      },
-      {
-        name: 'Plan', mode: 'chat', origin: 'brief', reads: ['constitution', 'plan-agent', 'instructions', 'artifact-spec', 'repo-feature'], emits: ['artifact-plan', 'signoff-plan'],
-        note: 'The chat starts loaded with its context, in a worktree.',
-        runs: 'The agent of `plan-agent.md` with `instructions.md`, in a chat.',
-        who: 'Roles B, C and D.',
-        worksIn: 'A worktree on `repo@feature-branch`.',
-        acceptedBy: 'A sign-off by a team member.',
-        wayBack: null,
-        sources: [1],
-      },
-      {
-        name: 'Build', mode: 'agent', origin: 'extended', reads: ['constitution', 'build-agent', 'instructions', 'artifact-spec', 'artifact-plan', 'repo-feature'], emits: ['repo-feature', 'artifact-handoff'],
-        note: 'Not in the brief. Forge\'s build job in the model\'s words, now reading a spec and a plan where it reads a ticket today.',
-        runs: 'A builder that works alone and ends with a report.',
-        who: 'Nobody. It launches when its inputs are accepted and a slot is free.',
-        worksIn: 'The worktree on `repo@feature-branch`.',
-        acceptedBy: 'Customs checks the report against git, then the build gates run.',
-        wayBack: 'A red gate resumes the same session, a bounded number of times, then the ticket waits for a person.',
-        sources: [3],
-      },
-      {
-        name: 'Review', mode: 'agent', origin: 'extended', reads: ['constitution', 'review-agent', 'instructions', 'artifact-spec', 'artifact-plan', 'artifact-handoff', 'repo-feature'], emits: ['repo-feature', 'artifact-review'],
-        note: 'Not in the brief. A reviewer now has a spec and a plan to judge the code against.',
-        runs: 'A reviewer that works alone, may commit fixes and ends with a report.',
-        who: 'Nobody.',
-        worksIn: 'The same worktree, at the commit the gates passed.',
-        acceptedBy: 'Customs, then the review gates when the reviewer changed the tree.',
-        wayBack: 'An unmet item sends the work back to the builder\'s session, on the same bound.',
-        sources: [3],
-      },
-      {
-        name: 'Land', mode: 'code', origin: 'extended', reads: ['repo-feature', 'repo-main'], emits: ['repo-main'],
-        note: 'Not in the brief. Every pipeline that changes code must end here.',
-        runs: 'The Airlock: merge the target in, gate the merged tree, fast-forward.',
-        who: 'Nobody.',
-        worksIn: 'The feature branch, then the target.',
-        acceptedBy: 'The target has not moved since the merge.',
-        wayBack: 'A moved target merges again, a bounded number of times.',
-        sources: [2],
-      },
+const PHASES = {
+  intake: {
+    kind: 'phase', name: 'Intake', mode: 'chat', reads: ['briefs'], emits: ['ticket'],
+    note: 'The product owner turns what User reports into a ticket an agent can build without asking. Unchanged.',
+    madeBy: 'User with the product owner, in a conversation that User closes. A ticket can also be filed directly, or by a builder or reviewer as a finding.',
+    worksIn: 'A session folder of its own.',
+    checkedBy: 'A shape check: a numbered Acceptance and a Brief with a non-blank line.',
+    wayBack: 'An incomplete draft stays a draft.',
+    sources: [2, 3],
+  },
+  ticketReview: {
+    kind: 'phase', name: 'Ticket review', mode: 'person', reads: ['ticket'], emits: ['ticket-review'],
+    note: 'Forge\'s own, on by default, and no hook. Only User readies a ticket; no agent may relay that move. From here the ticket is committed and its content is fixed.',
+    madeBy: 'User.',
+    worksIn: 'Nowhere.',
+    checkedBy: 'User\'s own move, after the board\'s hooks have passed.',
+    wayBack: 'The ticket stays in review, or User abandons it.',
+    sources: [3, 4],
+  },
+  plan: {
+    kind: 'phase', name: 'Plan', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'repo-target'], emits: ['plan'],
+    note: 'New. A board switches it on and chooses how the plan is made: by a planner alone, or by a person with the planner in a conversation.',
+    madeBy: 'A planner that works alone, on this board.',
+    worksIn: 'A snapshot of the target. The plan is a record of forge, not a file in the repo, and names the commit it was made against.',
+    checkedBy: 'The plan exists and has the headings the board requires. A phase that ends without one is a failed pass.',
+    wayBack: 'A hook after the plan that returns the work resumes the planner with the findings.',
+    sources: [18],
+  },
+  buildPlain: {
+    kind: 'phase', name: 'Build', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'repo-target'], emits: ['repo-ticket', 'handoff'],
+    note: 'The builder commits on the ticket\'s branch and ends with a report. Code writes the Handoff from the verified report. Unchanged.',
+    madeBy: 'A builder that works alone.',
+    worksIn: 'A worktree on the ticket\'s branch, cut from the target\'s tip.',
+    checkedBy: 'The commit checks against git, then the build gates, run by Hephaestus itself.',
+    wayBack: 'A red gate resumes the same session, twice, then the ticket is parked.',
+    sources: [2, 10],
+  },
+  buildPlanned: {
+    kind: 'phase', name: 'Build', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'plan', 'repo-target'], emits: ['repo-ticket', 'handoff'],
+    note: 'As today, and the builder now gets the plan beside the ticket, as labelled data in its first message.',
+    madeBy: 'A builder that works alone.',
+    worksIn: 'A worktree on the ticket\'s branch, cut from the target\'s tip.',
+    checkedBy: 'The commit checks against git, then the build gates, run by Hephaestus itself.',
+    wayBack: 'A red gate resumes the same session, twice, then the ticket is parked. Work that a hook returns has a count of its own.',
+    sources: [2, 10, 18],
+  },
+  reviewPlain: {
+    kind: 'phase', name: 'Review', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'handoff', 'repo-ticket'], emits: ['repo-ticket', 'review'],
+    note: 'The reviewer judges each Acceptance item and may commit fixes. Code writes the Review from its report. Unchanged.',
+    madeBy: 'A reviewer that works alone.',
+    worksIn: 'The same worktree, at the builder\'s gated commit.',
+    checkedBy: 'The commit checks, and the review gates when the reviewer changed the tree.',
+    wayBack: 'An unmet Acceptance item resumes the builder with the findings, on the count it shares with red gates.',
+    sources: [2],
+  },
+  reviewPlanned: {
+    kind: 'phase', name: 'Review', mode: 'agent', reads: ['constitution', 'briefs', 'ticket', 'plan', 'test-criteria', 'handoff', 'repo-ticket'], emits: ['repo-ticket', 'review'],
+    note: 'As today. This board\'s reviewer also names the plan and the approved test criteria, so it gets both.',
+    madeBy: 'A reviewer that works alone.',
+    worksIn: 'The same worktree, at the builder\'s gated commit.',
+    checkedBy: 'The commit checks, and the review gates when the reviewer changed the tree.',
+    wayBack: 'An unmet Acceptance item resumes the builder with the findings, on the count it shares with red gates.',
+    sources: [2, 18],
+  },
+  humanReview: {
+    kind: 'phase', name: 'Human review', mode: 'person', reads: ['handoff', 'review', 'repo-ticket'], emits: ['merge-accept'],
+    note: 'Merge approval, switched on on this board. Forge\'s own, and no hook: the ticket waits in the merge queue until User accepts.',
+    madeBy: 'User.',
+    worksIn: 'Nowhere.',
+    checkedBy: 'An accept counts only while git predicts a clean merge into the target\'s tip.',
+    wayBack: 'The ticket waits. The order of accepting is the order of merging.',
+    sources: [3],
+  },
+  merge: {
+    kind: 'phase', name: 'Merge', mode: 'code', reads: ['repo-ticket', 'repo-target'], emits: ['repo-target'],
+    note: 'One Airlock per target merges the target in, gates the merged tree and fast-forwards only if the target has not moved. Unchanged.',
+    madeBy: 'Code. A conflict brings back the ticket\'s last worker.',
+    worksIn: 'The ticket\'s branch, then the target.',
+    checkedBy: 'The merge gates on the merged tree, and the target\'s tip still being the one that was merged.',
+    wayBack: 'A moved target merges again; two moves in a row park the ticket.',
+    sources: [1, 2],
+  },
+};
+
+const BOARDS = {
+  fresh: {
+    label: 'A new board',
+    caption: 'How every board starts: plan off, ticket review on, merge approval off, no hook. It behaves as forge does today.',
+    nodes: [
+      PHASES.intake,
+      { kind: 'handover', name: 'After the ticket', note: 'Runs when a ticket is submitted, whoever filed it, and before ticket review.', hooks: [] },
+      PHASES.ticketReview,
+      PHASES.buildPlain,
+      { kind: 'handover', name: 'After the build', note: 'Runs after the commit checks and the build gates have passed.', hooks: [] },
+      PHASES.reviewPlain,
+      { kind: 'handover', name: 'After the review', note: 'Runs after the review\'s own checks, before the merge queue.', hooks: [] },
+      PHASES.merge,
+      { kind: 'handover', name: 'After the merge', note: 'Runs when the ticket is delivered. Nothing here can block.', hooks: [] },
     ],
   },
-  today: {
-    label: 'Forge today, in the same words',
-    caption: 'Forge after the rework, described by slot. Every slot is filled, the two the brief leaves open among them. Three steps involve a person, and two of those three can be switched off.',
-    groups: [
-      { name: 'Standing', itemIds: ['constitution', 'po-brief', 'builder-brief', 'reviewer-brief'] },
-      { name: 'Repo', itemIds: ['repo-target', 'repo-ticket'] },
-      { name: 'Artifacts', itemIds: ['intake-text', 'filing-draft', 'ticket', 'ticket-review', 'handoff', 'review', 'merge-approval'] },
-    ],
-    items: {
-      'constitution': { label: 'CONSTITUTION.md', standing: true },
-      'po-brief': { label: 'product owner brief and skill', standing: true },
-      'builder-brief': { label: 'builder brief', standing: true },
-      'reviewer-brief': { label: 'reviewer brief', standing: true },
-      'repo-target': { label: 'repo@target', standing: true },
-      'repo-ticket': { label: 'repo@ticket-<id>' },
-      'intake-text': { label: 'intake text' },
-      'filing-draft': { label: 'filing draft D<n>' },
-      'ticket': { label: 'ticket: Report, Wanted, Acceptance, Brief' },
-      'ticket-review': { label: 'sign-off: ticket review' },
-      'handoff': { label: '## Handoff' },
-      'review': { label: '## Review <n>' },
-      'merge-approval': { label: 'sign-off: merge approval' },
-    },
-    steps: [
+  extended: {
+    label: 'An extended board',
+    caption: 'The same phases with a plan and merge approval switched on, and eight hooks. Three hooks produce artifacts that later phases or hooks read. One always waits for a person, and one waits only when its check is red.',
+    nodes: [
+      PHASES.intake,
       {
-        name: 'Trigger', mode: 'trigger', origin: 'today', reads: [], emits: ['intake-text'],
-        note: 'Every trigger is inside forge. User asks for an intake, or files a draft directly, which skips the next step. A builder or reviewer files a finding, an entity\'s build declares a need, or User\'s answer to a broken dependent files a fix ticket.',
-        runs: 'No agent.',
-        who: 'User, or a job already running.',
-        worksIn: 'Outside the repo.',
-        acceptedBy: 'Nothing yet: what arrives is a draft, and nothing builds a draft.',
-        wayBack: 'None.',
-        sources: [3, 4],
+        kind: 'handover', name: 'After the ticket', note: 'Runs when a ticket is submitted, whoever filed it, and before ticket review. A no returns the ticket to draft, for User.',
+        hooks: [
+          { name: 'ticket-check', runner: 'agent', reads: ['ticket'], blocks: 'On red, returns the ticket to draft', produces: [], emits: [] },
+        ],
       },
+      PHASES.ticketReview,
+      PHASES.plan,
       {
-        name: 'Intake', mode: 'chat', origin: 'today', reads: ['po-brief', 'intake-text'], emits: ['filing-draft', 'ticket'],
-        note: 'The product owner turns what User reports into tickets an agent can build without asking. The same skill runs hosted by forge or in User\'s own agent.',
-        runs: 'The product owner, a conversation over several turns. It reads no constitution by default.',
-        who: 'User.',
-        worksIn: 'A session folder of its own, not a ticket\'s worktree.',
-        acceptedBy: 'A shape check: a ticket needs a numbered Acceptance and a Brief with a non-blank line. The product owner\'s instructions say to file nothing while a question of the draft is open.',
-        wayBack: 'An incomplete draft stays a draft.',
-        sources: [3, 4, 7, 17],
+        kind: 'handover', name: 'After the plan', note: 'An agent derives test criteria from the plan and the test patterns in the code. A person approves them, and may edit them first; the edit pins the artifact.',
+        hooks: [
+          { name: 'test-criteria', runner: 'agent', reads: ['ticket', 'plan', 'repo-target'], blocks: 'Never', produces: ['test-criteria'], emits: ['test-criteria'] },
+          { name: 'approve-criteria', runner: 'person', reads: ['test-criteria'], blocks: 'Halts until role B accepts', produces: [], emits: ['approve-criteria'] },
+        ],
       },
+      PHASES.buildPlanned,
       {
-        name: 'Ticket review', mode: 'person', origin: 'optional', reads: ['ticket'], emits: ['ticket-review'],
-        note: 'On by default. Only User can ready a ticket; no agent role may relay that move. From here on the ticket is committed: its content is fixed and kept by content hash.',
-        runs: 'No agent.',
-        who: 'User.',
-        worksIn: 'Nowhere.',
-        acceptedBy: 'User\'s own move, after the same shape check.',
-        wayBack: 'The ticket stays in review, or User abandons it. A committed ticket that no agent has picked up can be put back into draft, edited there, and reviewed again.',
-        sources: [4, 5, 10],
+        kind: 'handover', name: 'After the build', note: 'A soft gate: green continues by itself, red shows a person the report and waits. An accept on a red needs a reason and is recorded.',
+        hooks: [
+          { name: 'architecture', runner: 'agent', reads: ['plan', 'repo-ticket'], blocks: 'On red, halts for role C', produces: ['architecture-report'], emits: ['architecture-report'] },
+        ],
       },
+      PHASES.reviewPlanned,
       {
-        name: 'Build', mode: 'agent', origin: 'today', reads: ['constitution', 'builder-brief', 'ticket', 'repo-target'], emits: ['repo-ticket', 'handoff'],
-        note: 'The builder gets the whole ticket body, the gate list and the target in its first message. It commits and ends with a report; code writes the Handoff from the verified report.',
-        runs: 'A builder that works alone. It may ask a question: one for User becomes a decision, and one the system can answer goes to the Assistant.',
-        who: 'Nobody. It launches when dependencies are settled, nothing holds the ticket and a slot is free.',
-        worksIn: 'A worktree on `ticket-<id>`, cut from the target\'s tip.',
-        acceptedBy: 'Customs, which checks among other things that the ticket body is unchanged, the worktree clean and every Acceptance item accounted for. Then Hephaestus runs the build gates itself.',
-        wayBack: 'A red gate resumes the same session, twice, then the ticket is parked. A session that ends with no valid report is a failed pass: a fresh session starts, and two of them park the ticket.',
-        sources: [3, 7, 13, 14, 16],
+        kind: 'handover', name: 'After the review', note: 'Runs before the merge queue. Work that this hook returns goes to the builder, and the review runs again.',
+        hooks: [
+          { name: 'security-read', runner: 'agent', reads: ['repo-ticket'], blocks: 'On red, returns the work', produces: [], emits: [] },
+        ],
       },
+      PHASES.humanReview,
       {
-        name: 'Review', mode: 'agent', origin: 'optional', reads: ['constitution', 'reviewer-brief', 'ticket', 'handoff', 'repo-ticket'], emits: ['repo-ticket', 'review'],
-        note: 'Exists only when the pipeline has a review key. The reviewer judges each Acceptance item and may commit fixes; code appends the Review from its report.',
-        runs: 'A reviewer that works alone.',
-        who: 'Nobody.',
-        worksIn: 'The same worktree, at the builder\'s gated commit.',
-        acceptedBy: 'Customs, and the review gates when the reviewer changed the tree.',
-        wayBack: 'An unmet Acceptance item resumes the builder\'s session with the findings, on the count it shares with red gates. A review may also grant another round or propose a waiver for User.',
-        sources: [3, 14],
+        kind: 'handover', name: 'After the human review', note: 'Runs after User\'s accept and before an Airlock takes the ticket.',
+        hooks: [
+          { name: 'release-note', runner: 'agent', reads: ['ticket', 'review'], blocks: 'Never', produces: ['release-note'], emits: ['release-note'] },
+        ],
       },
+      PHASES.merge,
       {
-        name: 'Merge approval', mode: 'person', origin: 'optional', reads: ['handoff', 'review', 'repo-ticket'], emits: ['merge-approval'],
-        note: 'Off by default. Shown as human code review. The ticket waits in the merge queue until User accepts, and the order of acceptance is the order of landing.',
-        runs: 'No agent.',
-        who: 'User.',
-        worksIn: 'Nowhere.',
-        acceptedBy: 'User\'s own move.',
-        wayBack: 'The ticket waits.',
-        sources: [4],
-      },
-      {
-        name: 'Land', mode: 'code', origin: 'today', reads: ['repo-ticket', 'repo-target'], emits: ['repo-target'],
-        note: 'One Airlock per target. Done means merged: this is the only route to delivered on the normal path.',
-        runs: 'Code. A conflict brings back the ticket\'s last worker to resolve it.',
-        who: 'Nobody.',
-        worksIn: 'The ticket\'s branch, then the target.',
-        acceptedBy: 'The merged tree passes the merge gates, the review settled Acceptance, and the target\'s tip is still the one that was merged.',
-        wayBack: 'A moved target merges again; two moves in a row park the ticket.',
-        sources: [2, 3],
+        kind: 'handover', name: 'After the merge', note: 'Nothing here can block: the change is on the main line. Both hooks are script calls, bounded at one minute.',
+        hooks: [
+          { name: 'notify', runner: 'command', reads: ['ticket', 'release-note'], blocks: 'Never', produces: [], emits: [] },
+          { name: 'cycle-statistics', runner: 'command', reads: ['ticket', 'review'], blocks: 'Never', produces: [], emits: [] },
+        ],
       },
     ],
   },
 };
+
+const LEDGER_GROUPS = [
+  { name: 'Standing', itemIds: ['constitution', 'briefs'] },
+  { name: 'Repo', itemIds: ['repo-target', 'repo-ticket'] },
+  { name: 'Artifacts', itemIds: ['ticket', 'ticket-review', 'plan', 'test-criteria', 'approve-criteria', 'handoff', 'architecture-report', 'review', 'merge-accept', 'release-note'] },
+];
 
 const FIT_LABELS = {
-  fits: { label: 'Fits', pill: 'green' },
-  addition: { label: 'Needs an addition', pill: 'orange' },
-  kernel: { label: 'Stays code', pill: 'neutral' },
-  open: { label: 'Open', pill: 'crimson' },
+  same: { label: 'Unchanged', pill: 'neutral' },
+  grows: { label: 'Grows', pill: 'teal' },
+  added: { label: 'New', pill: 'green' },
 };
 
 const BASELINE = [
-  { today: 'The ways a ticket starts: `ticket add`, an intake, a worker\'s finding, an entity\'s declared need, a fix ticket from User\'s answer.', model: 'Triggers. All five are inside forge; none listens to an outside system.', fit: 'fits', sources: [4] },
-  { today: 'A draft ticket with its Report, Wanted, numbered Acceptance and Brief.', model: '`ARTIFACT_TICKET`, with a shape check that already exists.', fit: 'fits', sources: [3] },
-  { today: 'The product owner session and its filing draft.', model: 'A chat step, and the working record of that chat.', fit: 'fits', sources: [4, 5] },
-  { today: 'Ticket review: only User readies a ticket. On by default.', model: 'A sign-off step with one role.', fit: 'fits', sources: [4] },
-  { today: 'Merge approval, shown as human code review. Off by default.', model: 'A sign-off step with one role.', fit: 'fits', sources: [4] },
-  { today: 'The instruction list of a role: an ordered list of the constitution, a default brief or a named file, with a model and an effort.', model: 'The `reads` and `runs` slots of a step. It exists for seven fixed roles.', fit: 'fits', sources: [6, 7] },
-  { today: 'Instruction files are read from the main line at every launch and resume, and the hash of each is recorded.', model: 'A tracking reference, with the version that was read on record.', fit: 'fits', sources: [8] },
-  { today: 'A worktree on the ticket\'s branch, cut from the target\'s tip.', model: '`repo@ref` as a working copy.', fit: 'fits', sources: [3] },
-  { today: 'The pipeline setup: billing, research, entities, constitution, design, apply, walked with the pipeline agent.', model: 'A second pipeline with its own trigger. Its artifacts are the constitution and the pipeline definition.', fit: 'fits', sources: [18] },
-  { today: 'A report is a claim. Customs checks it against git, and code writes the Handoff and each Review from it.', model: 'An artifact is written by code from a verified claim. The step needs an `accepted by` slot.', fit: 'addition', sources: [2, 3, 14] },
-  { today: 'Gates in three fixed phases: build, review, merge.', model: 'Acceptance by command, attached to a step. The phase names become step names.', fit: 'addition', sources: [22] },
-  { today: 'Three ways back and the failed pass, each with a bound counted from the log.', model: 'A `way back` slot: the step to return to, the same session or a fresh one, the bound.', fit: 'addition', sources: [3, 13] },
-  { today: 'A waiver: a reviewer proposes dropping an Acceptance item, User grants or refuses, and a grant is written into the ticket.', model: 'A sign-off that changes an artifact, so the artifact gets a new version.', fit: 'addition', sources: [3] },
-  { today: 'The pipeline changes with tickets in flight. A ticket\'s green stays current while the gates of its phase hash the same.', model: 'The same rule per step: an acceptance holds while the definition of its step is unchanged.', fit: 'addition', sources: [4] },
-  { today: 'A builder\'s or reviewer\'s question to User becomes a decision, and the session waits.', model: 'A step that asks. Every step kind needs a rule for questions.', fit: 'addition', sources: [3, 15] },
-  { today: 'Write limits: a tracker\'s reach, an entity\'s homes, the stage edit guard, the network guard, confinement.', model: 'A write scope and a network scope per step.', fit: 'addition', sources: [21] },
-  { today: 'Entities: each with its own constitution, gates, agents and review.', model: 'A definition per entity, combined with the forge\'s own settings.', fit: 'addition', sources: [6] },
-  { today: 'A crossing ticket: five stages across entities, chosen by what the first build touched, with sealed package changes.', model: 'A path that depends on a step\'s output. A fixed chain cannot say it.', fit: 'open', sources: [11, 23] },
-  { today: 'Eight ticket statuses, nine job kinds, seven roles, fixed forecast steps.', model: 'A ticket\'s position in its definition. Every reader of a status changes.', fit: 'open', sources: [9, 10, 22] },
-  { today: 'The Airlock: merge the target in, gate the merged tree, fast-forward only if the target has not moved.', model: 'The last step of every pipeline that changes code. Its insides are not configurable.', fit: 'kernel', sources: [2] },
-  { today: 'One driver, one transaction for the board and the log, counts read from the log.', model: 'The machine that runs any definition.', fit: 'kernel', sources: [2] },
-  { today: 'Incidents and the Assistant, notices, the outage pause.', model: 'Trouble with the run, not with the work. No step.', fit: 'kernel', sources: [2] },
-  { today: 'Launch slots, the machine agent limit, the usage limit, the budget.', model: 'Capacity, applied to whatever step wants to start.', fit: 'kernel', sources: [5] },
-  { today: 'A group: its tickets land on a group branch, and the release ticket delivers the whole bundle in one landing.', model: 'A step over several tickets at once. The model\'s context belongs to one ticket.', fit: 'open', sources: [3] },
-  { today: 'Dependencies between tickets, and epics.', model: 'Data of the board. They order tickets, not steps.', fit: 'kernel', sources: [4] },
-  { today: 'Talos: starts each child from the launch plan it is given, and knows no vendor.', model: 'Unchanged. A step reaches Talos as a launch plan, like a job today.', fit: 'kernel', sources: [5] },
+  { today: 'Ticket review: only User readies a ticket, and no agent may relay that move. On by default.', model: 'Untouched. A board\'s hooks after the ticket run before it.', fit: 'same', sources: [3] },
+  { today: 'Merge approval, shown as human code review. Off by default. The ticket waits in the merge queue, and the order of accepting is the order of merging.', model: 'Untouched: a merge is approved by User or by the Airlock. One hook point sits before the merge queue, one after User\'s accept.', fit: 'same', sources: [3] },
+  { today: 'Gates: commands in the phases build, review and merge, with an optional `fix` line.', model: 'Untouched. A blocking hook is an addition at a hook point and replaces no gate.', fit: 'same', sources: [5] },
+  { today: 'Intake with the product owner, the filing draft, and the ways a ticket starts.', model: 'Untouched. A ticket that a builder, a reviewer or forge itself files passes the hooks after the ticket too.', fit: 'grows', sources: [2, 3] },
+  { today: 'Build: commits, a report, the commit checks, a Handoff written by code.', model: 'Untouched, and the builder also gets the plan and any artifact the board names for it.', fit: 'grows', sources: [2, 11] },
+  { today: 'Review: a verdict per Acceptance item, rounds, waivers, a Review written by code.', model: 'Untouched, and the reviewer also gets the plan and any artifact the board names for it.', fit: 'grows', sources: [2, 11] },
+  { today: 'The ticket\'s body is put into an agent\'s first message. Instructions (the constitution, a brief, a file) come from the main line.', model: 'An artifact arrives as the ticket does, as labelled data. Instructions still come from the main line only.', fit: 'grows', sources: [6, 7, 19] },
+  { today: 'The transaction that records passed gates also starts the review or queues the merge.', model: 'A ticket at a hook point is in a state of its own, which every path that starts a phase or queues a merge checks.', fit: 'grows', sources: [2] },
+  { today: 'A red gate resumes the same session twice, then the ticket is parked. The count reads red-gate resumes and failed reviews from the log.', model: 'Untouched. Each hook point has a count of its own for work its hooks return, read from the log too.', fit: 'grows', sources: [2, 10] },
+  { today: 'The Airlock: merge the target in, gate the merged tree, land by compare-and-swap.', model: 'Untouched. A hook point follows the merge.', fit: 'same', sources: [1] },
+  { today: 'Eight ticket statuses.', model: 'One more, for a ticket in the plan phase.', fit: 'grows', sources: [8] },
+  { today: 'The ticket file, with sections that code writes: Handoff, Review 1, Review 2.', model: 'The ticket, the plan, the Handoff, each Review and what hooks produce are records with versions and approvals.', fit: 'grows', sources: [2] },
+  { today: 'The log, from which every count is read.', model: 'Also the audit trail: each hook run, approval, edit, reopening and move by hand, with the version it concerns.', fit: 'grows', sources: [1] },
+  { today: 'Decisions that wait for User, 24 kinds, answered from anywhere.', model: 'Untouched. A halted hook is one more thing that waits for a person.', fit: 'same', sources: [12] },
+  { today: 'A child process gets an allowlisted environment and inherits nothing else.', model: 'A command hook that reads no code may also get the secrets a board names. An agent hook never gets one.', fit: 'grows', sources: [16] },
+  { today: 'The pipeline agent works on a snapshot of the main line and may write only its own request folder.', model: 'Every hook that reads code gets a snapshot of the commit handed over, never the ticket\'s worktree.', fit: 'grows', sources: [20] },
+  { today: 'Entities: each with its own constitution, gates, agents and review.', model: 'Each also has its own hooks and its own plan setting.', fit: 'grows', sources: [5, 9] },
+  { today: 'A crossing ticket: five fixed stages across entities.', model: 'The stages stay. A package that a ticket crosses runs its own hooks after its build and after its review.', fit: 'grows', sources: [9] },
+  { today: 'Pipeline setup: six steps walked with the pipeline agent.', model: 'The agent also proposes a plan phase and hooks, and User edits the lists.', fit: 'grows', sources: [17] },
+  { today: 'One User, with no login and no roles.', model: 'A hook names a role as a label. One person may hold every role.', fit: 'grows', sources: [13] },
+  { today: 'Talos starts each child from the launch plan it is given.', model: 'Untouched. A hook reaches it as a launch plan, as a gate line does.', fit: 'same', sources: [4] },
+  { today: 'Groups, release tickets, dependencies and epics; incidents; launch slots and budgets.', model: 'Untouched. For a ticket of a group, the hooks after the merge run when its release lands.', fit: 'same', sources: [1, 3] },
+  { today: 'No plan: the only document before the build is the ticket.', model: 'A plan phase that a board switches on.', fit: 'added', sources: [18] },
+  { today: 'No place between phases that a board can reach.', model: 'Six hook points: after the ticket, the plan, the build, the review, the human review and the merge.', fit: 'added', sources: [18] },
+];
+
+const RULE_GROUPS = [
+  { title: 'Phases', rules: [
+    'The phases and their order are forge\'s: intake, plan, build, review, merge.',
+    'A board switches plan on and chooses how it is made: a planner alone, or a person with the planner.',
+    'Gates, ticket review and merge approval stay as they are. A merge is approved by User or by the Airlock.',
+    'One thing happens to a ticket at a time. A phase\'s agent may start subagents; forge sees one session and records their tokens and time.',
+    'No ticket skips a phase or a hook.',
+  ] },
+  { title: 'Hook points', rules: [
+    'There are six: after the ticket, the plan, the build, the review, the human review and the merge.',
+    'Forge waits for every hook. The hooks of a hook point run in the order the board lists them.',
+    'A ticket at a hook point is in a state of its own. Nothing starts the next phase or queues a merge past it.',
+    'Nothing blocks after the merge.',
+    'A hook point whose phase is off is dormant, and its hooks are kept.',
+  ] },
+  { title: 'Hooks', rules: [
+    'A hook is run by a command, an agent or a person, and declares what it reads, whether it blocks, and what it produces.',
+    'A hook never works in the ticket\'s worktree. One that reads code gets a snapshot of the commit handed over.',
+    'A hook is never a phase\'s conversation.',
+    'A command hook\'s program comes from the main line or the machine, never from the ticket\'s branch.',
+    'A hook that gets a secret reads artifacts only. An agent hook never gets a secret.',
+    'A hook runs once for each version of what it reads.',
+  ] },
+  { title: 'Outcomes', rules: [
+    'A hook ends in a yes, a no, or it could not run: no verdict, stopped by its bound, or an artifact missing or without its headings.',
+    'Could not run never sends work back, and nothing runs the hook again by itself. For a hook that neither blocks nor produces, the flow continues; otherwise the ticket waits for a person.',
+    'A blocking hook says what its no does. Return the work: it goes to the phase before that hook point and passes everything after it again. Or halt for a person.',
+    'Each hook point counts the work its hooks returned: two unless the board sets another number, then the ticket is parked.',
+    'A command or agent hook has the bound of a gate line, and one minute if it neither blocks nor produces. A person\'s hook has none.',
+  ] },
+  { title: 'People', rules: [
+    'A person\'s hook halts the ticket until accept. What the person does in the meantime is outside the flow, and on record.',
+    'While halted on a document, the person may edit it, alone or with an agent\'s help. While halted on code, the person may send findings to the builder.',
+    'An accept on a red hook continues the flow, needs a reason, and is recorded.',
+    'A person is asked again only when what they approved has changed.',
+    'No agent passes a person\'s hook. A person can push a ticket past a hook by hand, on record.',
+    'A role is a label. A ticket that waits for a person holds no agent slot.',
+  ] },
+  { title: 'Artifacts and change', rules: [
+    'Forge keeps every artifact as a record with versions. Where they are stored stays replaceable.',
+    'An artifact reaches an agent as labelled data, never as an instruction. A phase or a hook gets what it names and nothing else.',
+    'A person\'s edit pins an artifact: the hook that produced it does not overwrite it.',
+    'An accepted artifact can be reopened until its ticket enters the merge queue. Later phases update in order; they never restart.',
+    'A build that is running stops at the end of its turn, and User chooses: resume with the change, or start fresh.',
+    'A board with plan off and no hook behaves exactly as forge does today.',
+  ] },
 ];
 
 const SEVERITY_LABELS = {
-  hard: { label: 'Decides the design', pill: 'crimson' },
+  hard: { label: 'Can hurt badly', pill: 'crimson' },
   moderate: { label: 'Real work', pill: 'orange' },
   cheap: { label: 'Cheap once named', pill: 'green' },
 };
@@ -758,189 +766,195 @@ const SEVERITY_LABELS = {
 const DIFFICULTIES = [
   {
     severity: 'hard',
-    title: 'A step\'s output is a claim, not a fact',
-    line: 'The brief says a step outputs an artifact. Forge\'s first rule says an agent\'s output proves nothing.',
-    today: 'A builder\'s report is checked by Customs against git and the ticket. Hephaestus runs the gates itself, so a report that claims a green gate counts for nothing. Code, not the agent, writes the Handoff and each Review into the ticket.',
-    bites: 'For code there is something to check against. For a spec or a plan there is not: no gate can say that a spec is right. A shape check and a person are the only verifiers a document has. A document step with neither is an unverified step, and every later step builds on it.',
-    needs: 'Every artifact type has a shape. Every step names what accepts its output. A definition with an unaccepted artifact is refused when it is stored, not discovered when it runs.',
-    sources: [2, 3, 14],
+    title: 'Nothing holds a ticket between phases today',
+    line: 'The moment a hook point needs does not exist in the code.',
+    today: 'When a build\'s gates pass, the same transaction ends the job and moves the ticket on, and the Playbook picks the review in that same hold. With no review phase, the ticket is queued for merge there. A regated stale green and a granted waiver queue a ticket too.',
+    bites: 'Each of those paths would carry a ticket straight past a hook list. A hook point is not one new place in the code: it is a state that every path which starts a phase or queues a merge has to respect.',
+    needs: 'A named state for a ticket at a hook point, checked on every such path, and built first with empty lists so that nothing changes. It is the largest single change.',
+    sources: [2, 10],
   },
   {
     severity: 'hard',
-    title: 'Pipelines go backwards',
-    line: 'The brief is a chain that only moves forward. Most of forge\'s lifecycle code is about going back.',
-    today: 'A red gate resumes the same session. A review that finds an Acceptance item unmet resumes the builder\'s session with the findings. A moved target merges again. Each has a bound of two, counted from the log so a restart cannot reset it, and past the bound the ticket is parked for User.',
-    bites: 'A refused sign-off needs the same answers. Does the same chat reopen with the reason, or does a fresh one start? Does a refused plan return to the plan step or to the spec? Without a bound, two agents or an agent and a tired person can pass work back and forth without end.',
-    needs: 'A way back on every step: where to, same session or fresh, the bound, and which artifact carries the reason. The kinds of way back are few and can be a closed list.',
-    sources: [3, 13],
+    title: 'What a hook produces is read by the next agent',
+    line: 'An agent writes test criteria, and a reviewer judges the code against them.',
+    today: 'Nothing an agent says is taken as true: commit checks compare a report with git, and code writes the Handoff and each Review. Instructions come from the main line only, so a ticket cannot rewrite the instructions of its own agents.',
+    bites: 'A hook\'s artifact has nothing to be verified against. And it can carry text from a ticket or a code comment that was written to steer an agent. Placed among the instructions, that text would speak with the authority of the constitution.',
+    needs: 'An artifact reaches an agent as labelled data in its message, as the ticket\'s body does, never as an instruction. Forge checks that it exists and has its headings. An approval hook behind an artifact that matters is the board\'s choice.',
+    sources: [1, 7],
   },
   {
     severity: 'hard',
-    title: 'Artifacts go stale',
-    line: 'A plan is signed, then the spec it was made from changes.',
-    today: 'Forge answers it for one artifact. After the rework a committed ticket\'s content is fixed and kept by content hash, and agents build from that. To change it, a ticket no agent has picked up goes back to draft and is reviewed again; a started one has its work stopped first. Code still adds to a started ticket: the Handoff, each Review, a waived item. Forge\'s rule for staleness is a version or a set difference, never a clock.',
-    bites: 'One document with one reader can afford that rule. More documents, more people and an outside source make change after sign-off normal. An imported ticket is edited at its source. A reviewer finds the spec was wrong. If everything downstream is void, people sign the same things twice; if nothing is, the build follows a plan for a spec that no longer exists.',
-    needs: 'An artifact has a version, records the versions it was made from, and a sign-off names the version it signed. What a new version does to everything made from the old one is a decision about behaviour, listed under the questions.',
-    sources: [3, 5, 21],
+    title: 'A hook runs beside code an agent wrote',
+    line: 'A check that reads the branch also executes what is on it.',
+    today: 'A confined gate line may write the whole worktree; there is no read-only mode. Its network is on or off as a whole. A file a gate leaves behind makes the worktree dirty, which the next job\'s commit check refuses.',
+    bites: 'A hook in the ticket\'s worktree could change code after review, or leave files that get a builder blamed. A hook with a token that runs the branch\'s scripts hands that token to whoever shaped the branch.',
+    needs: 'A hook gets a snapshot of one commit and never the worktree. A command hook\'s program comes from the main line or the machine. A hook that gets a secret reads artifacts only.',
+    sources: [16, 21],
   },
   {
     severity: 'hard',
-    title: 'A repo ref is not a document',
-    line: 'A plan stands still. A branch moves, and so does the line it will land on.',
-    today: 'A ticket\'s branch is cut from the target\'s tip. The target keeps moving, and forge deals with that at one point only: the Airlock merges the target in, gates the merged tree and lands by compare-and-swap. Instruction files do not come from the branch at all: they are read from the main line, so a ticket cannot rewrite the instructions of its own agents.',
-    bites: 'The brief lists "repo@feature-branch" beside "ARTIFACT_SPEC" as if both were inputs of one kind. A plan written against the branch on Monday describes code that the main line may have changed by Thursday. And "constitution" in a step\'s context silently means "the main line\'s, now", not "the branch\'s".',
-    needs: 'The three references of section 1, stated per context item: pinned, tracking or working copy. And one rule that no definition can remove: code reaches a target only through the Airlock.',
-    sources: [2, 3, 8],
+    title: 'Hooks and gates can be confused',
+    line: 'A command hook that blocks after the build looks exactly like a build gate.',
+    today: 'A gate belongs to a phase. Its green stays current while the gates of that phase hash the same, and the merge gates run again on the merged tree in the Airlock.',
+    bites: 'A check of the tree that a board lists as a hook runs once per version at a hook point, and never on the merged tree. It can be green on the branch and wrong on the main line.',
+    needs: 'One sentence a board can follow: gates judge the tree, hooks judge what is handed over. Setup warns when a command hook reads only code.',
+    sources: [1, 3],
   },
   {
     severity: 'hard',
-    title: 'People have no identity yet',
-    line: 'Roles A, B and C need someone to hold them.',
-    today: 'A board has one person, User, with no login and no name. Forge knows two kinds of actor: an agent role, whose requests the Bouncer judges, and User, whose own moves no agent may relay. A decision is answered from anywhere and the first answer wins. The rework states that a shared setup for a team is not built and leaves identity and permissions out on purpose; the remote-state research sketches a login but leaves open who forge is for.',
-    bites: '"Roles B, C and D may pick this up" and "a sign-off by a team member" presuppose that forge knows who is acting. On one machine every role is the same person, and a sign-off by someone other than the author cannot be enforced.',
-    needs: 'Roles as labels from the first day: they route work and filter what waits on whom, and one person may hold all of them. Enforcement arrives with identity, which belongs to the team design, not to this one.',
-    sources: [5, 15, 19, 24],
+    title: 'Versions ripple',
+    line: 'A plan is approved, then the ticket it was made from is reopened.',
+    today: 'A committed ticket is fixed and kept by content hash. Code still adds to a started ticket: the Handoff, each Review, a waived item.',
+    bites: 'One reopening touches the plan, what hooks produced from it, and each approval. If code-written sections counted as a new version of the ticket, every hook that reads the ticket would run again near the merge.',
+    needs: 'A ticket\'s version covers what a person wrote. A hook runs again, and a person is asked again, only where what they read changed. A person\'s edit pins an artifact against the hook that produced it. Reopening ends when the ticket enters the merge queue.',
+    sources: [4, 18],
   },
   {
     severity: 'moderate',
-    title: 'A chat step is a new kind of session',
-    line: 'Forge has three conversations today, and none of them stands in a ticket\'s worktree.',
-    today: 'Every session is started without a terminal. The product owner, the pipeline agent and the Assistant take several turns, and User writes to them through one message command. The product owner works in a folder of its own; the pipeline agent on a snapshot of the main line where it may write only its request folder. A builder or reviewer is not a conversation: it can ask a question, and User can send it a one-way message. The rework adds that the forge asks the user nothing by itself.',
-    bites: 'A plan chat in a worktree is a conversation that can change code. Who may write to it, whether it may commit, what it holds while the person is at lunch or on holiday, whether a second person may join, and what ends it are all undecided. The rework gives one good answer already: a session that waits for a person is parked and frees its slot.',
-    needs: 'A conversation step kind with a write scope, a closing move like the intake\'s close, and a rule that it holds no slot between turns.',
-    sources: [4, 5, 17],
+    title: 'An accept on red lets refused work through',
+    line: 'A soft gate is only as strict as the person it asks.',
+    today: 'The nearest thing is a waiver: a reviewer proposes dropping an Acceptance item, User grants or refuses, and a grant is written into the ticket.',
+    bites: 'Nothing bounds how often a board accepts a red. A check that is red most of the time trains people to press accept, and then it checks nothing.',
+    needs: 'An accept on a red needs a reason and is recorded with who accepted which red. The board sees how often each hook is overruled.',
+    sources: [2],
   },
   {
     severity: 'moderate',
-    title: 'Nothing outside forge can start a ticket',
-    line: 'There is no outside source today, and forge only listens on the loopback address.',
-    today: 'No code reads Jira, an issue tracker or a webhook. Hephaestus serves its API on the loopback address, so nothing outside the machine can call it. The rework names three ports: the operating system, the agent and the store.',
-    bites: 'An outside trigger needs a fourth port, a place for credentials that no agent can read, and polling, since nothing can call in. It needs an identity for each outside ticket so it arrives once. And it raises a question of ownership: after import, is the outside ticket or the artifact the truth, and does forge report progress back?',
-    needs: 'A source port with one adapter per system, each trigger a catalogue entry. Whether a source stays in step after import is a behaviour question.',
-    sources: [5, 19],
+    title: 'A judging agent is still an agent',
+    line: 'Several judging hooks are several opinions that can each send work back.',
+    today: 'One reviewer judges, in bounded rounds. Its findings resume the builder on a count of two that it shares with red gates.',
+    bites: 'Four judges that are each wrong one time in ten send about a third of all tickets back for nothing. And a judge that reads the Handoff reads text the builder wrote for it.',
+    needs: 'Returned work has a count per hook point, apart from the gates\' count. A noisy judge belongs on "halt for a person", where a red costs a look and not a rework round. A judge\'s brief points it at the code and the plan.',
+    sources: [2, 10],
   },
   {
     severity: 'moderate',
-    title: 'The fixed words are everywhere',
-    line: 'Statuses, job kinds, roles, phases and stages are literals in code, and everything that shows a board reads them.',
-    today: 'Eight ticket statuses, nine job kinds, seven roles, three gate phases and five entity stages are fixed lists. The Playbook launches a build or a review and nothing else. The Bouncer grants rights by role. The forecast has six fixed step kinds. Gaia\'s views, moved over in the rework, read these words.',
-    bites: 'With steps as data, "in review" stops being a word forge knows. A ticket is at a step, in a state. Lanes, the forecast, the role table and the runbook\'s table of why a ticket is not moving all become functions of a definition. A step\'s name is text a board chose, where forge\'s rule is that stored values are fixed literals.',
-    needs: 'A small fixed vocabulary for the state of a step (waiting, running, waiting for a person, accepted, refused) under free step names, so views, launch slots and the Bouncer\'s rights key on the fixed part and on the step kind.',
-    sources: [9, 10, 12, 22, 24],
+    title: 'Agent hooks cost what a review costs',
+    line: 'And they run once per version, one after the other.',
+    today: 'A ticket pays for one build and one review per round.',
+    bites: 'Three agent hooks that read code and two rework rounds are nine more sessions for one ticket, in series. The stretch from build to merge gets longer with every hook.',
+    needs: 'Once per version keeps unchanged inputs free. Forge shows the tokens and time of each hook beside those of the phases, so a board sees what a hook costs before it adds a second.',
+    sources: [2, 14],
   },
   {
     severity: 'moderate',
-    title: 'Entities already bend the pipeline',
-    line: 'A crossing ticket takes a path that depends on what its first build touched.',
-    today: 'A ticket of an entity builds in stage 1. If that build changed a package its entity whitelists, the ticket crosses: a package build, a package review, an adapt stage and a final review follow, package by package in dependency order, and each accepted package change is sealed by a hash.',
-    bites: 'That is a branch decided by a step\'s output, which a declared chain cannot express. Per-entity definitions also multiply the configuration: every app and package could have a different path.',
-    needs: 'Either crossing stays a built-in sub-flow that a definition switches on, or the model gains conditional steps. The first is far cheaper and keeps the seal out of configuration.',
-    sources: [6, 11, 23],
-  },
-  {
-    severity: 'moderate',
-    title: 'A release is a step over several tickets',
-    line: 'The model gives every ticket a context. Some of forge\'s work belongs to a bundle.',
-    today: 'A ticket in a group lands on its group branch and rests there. The group\'s release ticket, once the rest of its bundle has integrated, lands on the main line and delivers every ticket of the bundle in one transaction. Each target, the main line and each group branch, has an Airlock of its own.',
-    bites: 'A release acts on many contexts at once, and what accepts it, the gated tree of the whole bundle, belongs to no single ticket. A sign-off "for the release" has no one artifact to sign.',
-    needs: 'Either groups stay data of the board outside the definition, as they are today, or a context may belong to a group. The first costs nothing.',
+    title: 'A person is asked often',
+    line: 'Every approval hook is one more request per ticket.',
+    today: 'Two approvals exist, each asked once per ticket, and one of them is off by default.',
+    bites: 'Fifteen tickets under way and three approval hooks are forty-five requests before any rework. People who are asked often stop reading.',
+    needs: 'An approval shows what changed since the version that person accepted, what it was made from, why a hook was red and how long the ticket has waited. A soft gate takes the person out of every green.',
     sources: [3],
   },
   {
     severity: 'moderate',
-    title: 'Someone has to design the graph, and prove it sound',
-    line: 'A free graph can be wrong in ways two booleans cannot.',
-    today: 'The pipeline agent proposes changes to a closed list of fields, and User applies them. The file is strict: one unknown key makes it malformed. Gates may change with tickets in flight, because each ticket records the hash of the phase it was gated in and is gated again only when that hash moves. A change of the pipeline\'s shape is another matter: the rework drops every in-flight ticket.',
-    bites: 'A definition can read an artifact nothing emits, leave a path that never lands, loop without a bound, or let two steps write the same branch at once. An agent designing an open graph will produce plausible definitions with exactly these faults. And a hash per phase does not say what happens to a ticket standing on a step that was just removed.',
-    needs: 'A check at the moment a definition is stored: every read is emitted earlier, every path reaches the landing, every way back is bounded, every artifact is accepted. An acceptance holds while its step\'s definition hashes the same, as a green does today. A ticket on a removed step needs a rule.',
-    sources: [4, 5, 18],
+    title: 'A halted ticket ages',
+    line: 'While a person is away, the main line moves on.',
+    today: 'Between a committed ticket and a merged one, nobody has to act on the normal path. The Airlock merges the target in and gates the merged tree at the end.',
+    bites: 'A ticket halted after the plan or after the build holds no agent slot, but its plan and its branch grow stale. The conflict shows up at the merge, long after the person approved.',
+    needs: 'One view of what waits on which role, and for how long. The plan names the commit it was made against. Nothing else: the Airlock already protects the main line.',
+    sources: [1, 2],
   },
   {
     severity: 'moderate',
-    title: 'Write scope has to follow the step',
-    line: 'A spec step that can edit code is a build step nobody reviews.',
-    today: 'What a session may touch is enforced several times over: a tracker\'s reach, an entity\'s homes, a stage edit guard, a network guard on Bash, confinement, and Customs refusing commits outside the lines. No session writes into the data folder.',
-    bites: 'Each new step kind needs its own lines. May the spec chat commit? Only under a specs folder? If artifacts live in the store and not in the repo, a document step needs no write access to the repo at all, which is the simplest scope there is.',
-    needs: 'A declared write scope and network scope per step, enforced by the guards that exist.',
-    sources: [21],
+    title: 'Tickets that nobody typed',
+    line: 'A builder files a finding; an entity\'s build declares a need.',
+    today: 'A finding, a declared need and a fix ticket are submitted by code, in the transaction that files them. User\'s own readying of a draft skips the review queue.',
+    bites: 'A hook after the ticket that says no has nobody to hand such a ticket back to. A need that sits in draft blocks the ticket that declared it.',
+    needs: 'The hooks after the ticket run for every ticket, whoever filed it. A no returns it to draft for User, and the board shows which ticket waits on it.',
+    sources: [3],
   },
   {
     severity: 'moderate',
-    title: 'Every sign-off is a queue',
-    line: 'Forge\'s value is the stretch that needs nobody.',
-    today: 'Between a committed ticket and a merged one, nobody has to act on the normal path. The two human steps are switches, and one is off by default.',
-    bites: 'Four people-steps per ticket and ten tickets in flight is forty waits. Work piles up in front of the slowest role, and agents idle behind it. A pipeline that asks for a plan on a one-line fix teaches people to sign without reading.',
-    needs: 'People-steps before the autonomous stretch, not inside it. Steps a ticket may skip. One view of what waits on whom, which is what Gaia is for.',
-    sources: [3, 4],
+    title: 'A token and the code never meet',
+    line: 'The rule that protects a secret also rules out a real use.',
+    today: 'The environment of every child is an allowlist. Nothing else is passed on.',
+    bites: 'A check that needs both, such as trying a migration against a staging system, cannot be a hook: it would run the branch\'s code with the staging credential.',
+    needs: 'Nothing in this design. Such a check stays outside forge, or waits for confinement that can hold a process to named hosts.',
+    sources: [16],
+  },
+  {
+    severity: 'moderate',
+    title: 'Roles without identity',
+    line: '"Role B approves" cannot be enforced on a board with one User.',
+    today: 'A board has one person, with no login and no name. The rework leaves identity and permissions out on purpose.',
+    bites: 'An approval by someone other than the author is the point of most sign-offs. Here the same person can hold every role and accept their own work.',
+    needs: 'Roles as labels that route and filter, which already helps one person with several hats. Enforcement arrives with identity, which is a project of its own.',
+    sources: [4, 13],
   },
   {
     severity: 'cheap',
-    title: 'Context arrives in three ways',
-    line: '"Takes in the repo as a whole" does not mean the repo goes into the prompt.',
-    today: 'The instruction list becomes the session\'s first message. The whole ticket body is pasted into it. The repo is the folder the session stands in. An outside reference is a domain the network guard lets through.',
-    bites: 'Only as a naming matter: a context item needs to say whether it is put in front of the agent, placed on disk, or made reachable. The first costs tokens on every turn.',
-    needs: 'A delivery per context item. Once declared it can be measured, since forge already records the hash of every instruction file a launch read.',
-    sources: [8, 16, 17],
+    title: 'Waiting for a notifier',
+    line: 'A notifier is a script call, and done in seconds.',
+    today: 'A gate line is stopped after 15 minutes.',
+    bites: 'Only when the service it calls hangs: the ticket then waits for the hook\'s bound.',
+    needs: 'A bound of one minute for a hook that neither blocks nor produces. Its failure is recorded and shown, and never sends work back. Each run has an identity, so a hook that is run again can report once.',
+    sources: [4],
+  },
+  {
+    severity: 'cheap',
+    title: 'Nothing can block after the merge',
+    line: 'The change is on the main line; a hook there can only report.',
+    today: 'A merge moves the ticket to delivered in the same transaction as the fast-forward. A ticket of a group is delivered when its release lands.',
+    bites: 'Only if a board expects otherwise: a release note that fails leaves a delivered ticket with a missing note.',
+    needs: 'Forge refuses a blocking hook at this hook point, and shows a failed one on the ticket.',
+    sources: [2],
   },
 ];
 
 const IMPACT = [
-  { part: 'The pipeline definition', today: 'Fixed keys: gates, three phases, a review switch, seven roles, two approvals.', after: 'Triggers, steps and artifact types, each from the catalogue. A new stored format; the rework already decided that boards are set up anew.', size: 'L', sources: [5, 6] },
-  { part: 'The Playbook', today: 'Pure policy that launches a build or a review, chosen from status or stage.', after: 'Still pure, now reading a definition: given where a ticket is and what is accepted, what may start. The largest single change.', size: 'XL', sources: [12] },
-  { part: 'Customs', today: 'One set of checks for a builder, one for a reviewer, one more for entities.', after: 'Checks chosen by step kind, plus the declared write scope and the artifact\'s shape.', size: 'L', sources: [2] },
-  { part: 'The ticket record', today: 'One file with code-written sections: Handoff, Review 1, Review 2.', after: 'A ticket and a set of artifacts, each with versions, sources and sign-offs.', size: 'L', sources: [3] },
-  { part: 'Statuses and served documents', today: 'A fixed list of statuses that every view and the forecast read.', after: 'A position in a definition. A major change of the system version between forge and Gaia.', size: 'XL', sources: [5, 10] },
-  { part: 'Commands', today: 'One service applies 76 command kinds, and the contract package that Gaia imports holds 9 of them.', after: 'A few new kinds: pick up a step, sign, refuse. Readying a ticket and accepting a merge become instances of signing.', size: 'M', sources: [5] },
-  { part: 'Prompts and briefs', today: '33 prompt files and 8 templates, written for fixed roles, with placeholders such as the ticket body.', after: 'Agent descriptions and instructions that refer to artifacts by name.', size: 'M', sources: [16] },
-  { part: 'Pipeline setup and its agent', today: 'Six steps; the agent proposes edits to a closed list of fields.', after: 'The agent composes steps from the catalogue, and the check of section 4 guards what it proposes.', size: 'L', sources: [18] },
-  { part: 'Gaia', today: 'Board views with fixed lanes, three conversations, a questions inbox.', after: 'Lanes from the definition, a conversation per chat step, an inbox by role, an editor for the definition.', size: 'XL', sources: [5] },
-  { part: 'Entities', today: 'A pipeline per entity and five hardcoded crossing stages.', after: 'A definition per entity. Crossing stays a built-in sub-flow.', size: 'L', sources: [11] },
-  { part: 'Outside triggers', today: 'None.', after: 'A source port and one adapter per system.', size: 'M each', sources: [19] },
-  { part: 'People', today: 'One User.', after: 'Roles as labels: small. Identity and enforcement: a project of its own.', size: 'S, then XL', sources: [19] },
-  { part: 'Specs and guards', today: 'Frozen tables, a crash matrix, guards over literals.', after: 'The baseline definition as a frozen table. New specs per step kind, not per definition.', size: 'L', sources: [21] },
-  { part: 'Talos, the Airlock, the store port', today: 'Start children from a launch plan; land by compare-and-swap; one port over the store.', after: 'Unchanged.', size: 'None', sources: [5] },
+  { part: 'The stored pipeline', today: 'Gates, three phases, a review switch, seven roles, two approvals.', after: 'A plan setting, and a list of hooks per hook point with its count.', size: 'M', sources: [5] },
+  { part: 'The Playbook and the lifecycle', today: 'Passed gates start the next thing in the same transaction.', after: 'A state for a ticket at a hook point, checked by every path that starts a phase or queues a merge; returned work and its counts, read from the log.', size: 'XL', sources: [10] },
+  { part: 'The plan phase', today: 'None.', after: 'A job kind, a role, its rights and checks, a forecast step, a status, and the plan in the messages that start and resume a builder and a reviewer.', size: 'L', sources: [18] },
+  { part: 'Running a hook', today: 'Gate lines, confined on macOS and Linux, and bounded.', after: 'Commands and agents under Talos, each on a snapshot, with a bound, a run identity, a verdict and produced artifacts.', size: 'L', sources: [4, 15] },
+  { part: 'Artifacts', today: 'One ticket file with sections that code writes.', after: 'The ticket, the plan, the Handoff, each Review and what hooks produce, as records with versions, pins and approvals.', size: 'L', sources: [2] },
+  { part: 'Commands', today: 'Ready a ticket, accept a merge.', after: 'Accept, accept a red with a reason, edit an artifact, send findings, run a hook again, reopen, choose resume or fresh.', size: 'M', sources: [3] },
+  { part: 'The edit session', today: 'Intake is the one hosted conversation about a document.', after: 'A hosted session in which a person edits an artifact with an agent\'s help.', size: 'M', sources: [4] },
+  { part: 'Pipeline setup', today: 'Six steps; the agent proposes edits to a closed list of fields.', after: 'The agent also proposes the plan phase and hooks; forge refuses an unsound list; User edits the lists.', size: 'M', sources: [17] },
+  { part: 'Gaia', today: 'Board views on fixed statuses.', after: 'A plan lane, the hooks of each hook point with their outcome, what an approver has to see, what waits on which role.', size: 'L', sources: [4] },
+  { part: 'Entities', today: 'Gates, agents and review per entity.', after: 'Hooks and the plan setting per entity; a crossed package\'s hooks in its stages.', size: 'M', sources: [9] },
+  { part: 'Gates, ticket review, merge approval, the Airlock, Talos', today: 'As they are.', after: 'Unchanged.', size: 'None', sources: [8] },
+];
+
+const STAGES = [
+  { stage: '1. Artifacts', delivers: 'The ticket, the Handoff and each Review as versioned records; the audit trail\'s new records.', notices: 'Nothing.' },
+  { stage: '2. Hook points', delivers: 'The state of a ticket at a hook point, on every path, with empty lists.', notices: 'Nothing, and that is the test.' },
+  { stage: '3. Hooks by command and agent', delivers: 'Snapshots, blocking and producing hooks, once per version, the counts, the bounds, could not run.', notices: 'A board can add a check or a notifier.' },
+  { stage: '4. Hooks by a person', delivers: 'Approval hooks, red that asks a person, the edit session, what an approver sees.', notices: 'A board can add an approval at any hook point.' },
+  { stage: '5. The plan', delivers: 'The plan phase, alone and as a conversation; the plan in the builder\'s and the reviewer\'s messages.', notices: 'A board can switch a plan on.' },
+  { stage: '6. Reopening', delivers: 'Reopen, the update that runs through, pins, the halted build and its choice.', notices: 'An accepted plan can change without starting over.' },
+  { stage: '7. Setup', delivers: 'The pipeline agent proposes hooks and a plan; the lists in Gaia.', notices: 'A board is extended without editing a file.' },
+  { stage: '8. Entities', delivers: 'Hooks and plan per entity, and in a crossing.', notices: 'Each app and package has its own.' },
 ];
 
 const STEELMAN = [
-  { title: 'Forge is already one instance of it', text: 'Each of the seven roles has an ordered list of what its session reads: the constitution, a default brief, a named file. The list is read at every launch, and the hash of each file is recorded. That is a context declaration. The idea adds no concept to forge; it lifts a limit of seven.', sources: [6, 7, 8] },
-  { title: 'Every recent feature was a special-cased step', text: 'Ticket review, merge approval, the re-review threshold, the product owner, the five stages of a crossing ticket: each arrived as its own key, status or stage number with its own code path, and the pipeline file is on its third readable version. One general step turns the next such feature into configuration.', sources: [6, 11, 21] },
-  { title: 'Artifacts already carry the trust model', text: 'The Handoff and the Review are written by code from verified reports, which is why a later reader can trust them, and a committed ticket is kept by content hash. Naming them as artifacts moves the audit to the hand-over between steps, where mistakes pass from one agent to the next.', sources: [2, 3, 5] },
-  { title: 'The person is already a step', text: 'The rework says it outright: the user is a step in the workflow, and a committed ticket "has passed the human review where the pipeline definition requires one". Readying a ticket, accepting a merge and granting a waiver are sign-offs under other names. One concept replaces them and gives every future human step a place.', sources: [5] },
-  { title: 'Declared context can be measured and replayed', text: 'The compounding research asks what forge must record to say where tokens and time went, and to replay a delivered feature under another configuration. Its first gap is that nothing stores the configuration a job ran under. A step with declared inputs at known versions is that record, and the unit that can be priced and run again.', sources: [20] },
-  { title: 'It is the unit a team needs', text: 'The rework reserves a name for a future allocator of tickets across a team\'s forges. An allocator needs something to allocate. "This step, for someone with role B" is that unit, and it exists only if steps and roles do.', sources: [5] },
-  { title: 'The thinking moves in front of the spending', text: 'Today the first judgement of the work comes after it is built. A signed spec and plan catch the wrong work while it costs a conversation, not a build, a review and a rework round.', sources: [3] },
-  { title: 'The rework makes this the cheap moment', text: 'Talos starts children from a launch plan and knows no vendor, so steps do not reach it. The store sits behind a port. Commands and documents are a versioned contract. And the rework decided that nothing existing has to be kept.', sources: [5] },
+  { title: 'Forge already has every kind of hook', text: 'A gate is a command that can stop the flow. A reviewer is an agent whose verdict sends work back. Ticket review is a person the flow waits for. The design lets a board add those three at each hook point; it invents no fourth thing.', sources: [2, 3] },
+  { title: 'The guarantees are not in reach of a hook', text: 'Only build and review change code, and a hook never stands in the ticket\'s worktree. The commit checks, the gates and the Airlock still see everything that can reach the main line, so a board can add a bad hook and not break what forge promises.', sources: [1] },
+  { title: 'A team adds a step without forge designing it', text: 'A test evaluation, an architecture verification, a threat model and a notifier need no feature of their own. Each is a brief or a command plus three declarations.', sources: [18] },
+  { title: 'The baseline is free', text: 'A board with plan off and empty lists is today\'s forge. Gates, ticket review, merge approval and the order of phases are untouched, so the test of the whole design is that nothing changes when nothing is added.', sources: [8] },
+  { title: 'The thinking moves in front of the spending', text: 'Today the first judgement of the work comes after it is built. A plan, with a check and an approval where a board wants them, catches the wrong work while it costs a planner\'s session and not a build, a review and a rework round.', sources: [2] },
+  { title: 'A soft gate fits judgement checks', text: 'An agent that judges architecture is right often and wrong sometimes. Sending every red back to the builder turns its mistakes into rework; asking a person on red costs a look.', sources: [18] },
+  { title: 'Approvals need no redesign', text: 'The rework already calls the user a step in the workflow. A board adds an approval as one line at any hook point, and the two approvals forge has stay exactly as they are.', sources: [4] },
+  { title: 'Declared context can be priced and replayed', text: 'The compounding research asks what forge must record to say where tokens went and to replay a feature under another configuration. A phase or hook with declared inputs at known versions is that record.', sources: [14] },
 ];
 
 const STRAWMAN_BUILD = [
-  { title: 'It gives up "code decides"', text: 'A step defined in configuration ends when its agent says so. The one thing forge has that a script around an agent does not is that nobody takes the agent\'s word.' },
-  { title: 'Its loops have no bounds', text: 'Review sends back to build, build sends on to review. Forge counts every way back from the log and parks the ticket at two. A free graph has no such count unless every author remembers one.' },
-  { title: 'Nobody can read its boards', text: 'No two forges have the same lanes or the same words. The runbook cannot say why a ticket is not moving. Gaia cannot be one design over every forge on the machine.' },
-  { title: 'The designer has no guard rails', text: 'A pipeline agent facing an open design space proposes definitions that look reasonable and are wrong in ways only a running ticket reveals.' },
-  { title: 'The person becomes the bottleneck', text: 'Every step a chat and every step a sign-off turns a factory into a queue of approvals. Throughput becomes the rhythm of the slowest role.' },
-  { title: 'It rebuilds something that exists', text: 'A generic step runner is what build servers and workflow engines already are. The parts of forge that are not generic, verification and the Airlock, are exactly the parts this version leaves out.' },
+  { title: 'A hook that writes code', text: 'An auto-fixer after the review puts commits on the main line that no reviewer saw and no gate judged. Every hook then needs a write scope and commit checks of its own, and is a phase in all but name.' },
+  { title: 'A hook in the ticket\'s worktree', text: 'It leaves a file behind, the next job\'s commit check refuses the dirty tree, and the builder is sent back for something it did not do.' },
+  { title: 'An artifact as an instruction', text: 'A hook\'s output joins the agent\'s instructions. A sentence planted in a ticket now reaches the builder with the authority of the constitution.' },
+  { title: 'A token beside the branch\'s code', text: 'A deploy hook runs the branch\'s scripts with a staging credential. Whoever shaped the branch has the credential.' },
+  { title: 'A hook that talks', text: 'A conversation at every hook point makes each one a meeting. The flow has five phases on paper and fifteen in practice.' },
+  { title: 'Hooks that run beside the flow', text: 'A producer that has not finished when the next phase starts hands it half a context. Order is the one thing that makes a list of hooks understandable.' },
+  { title: 'Hooks instead of gates', text: 'Tree checks moved into hooks lose the hash that keeps a green current and the run on the merged tree. The branch is green and the main line is not.' },
+  { title: 'A verdict from anything', text: 'If a hook that crashed counts as a no, a broken script sends work back to an agent that did nothing wrong, and spends its tries.' },
 ];
 
 const STRAWMAN_OBJECTIONS = [
-  { title: '"It is only renaming"', text: 'A ticket becomes an artifact, a brief becomes an agent description, and nothing changes.', ruling: 'Half holds. Most of the vocabulary maps onto what exists, which is a warning not to pay a large price for words. What is new is real: steps before the build, artifact versions, and who.' },
-  { title: '"Build and review is all anyone needs"', text: 'A fixed pipeline is a feature. Configuration is how products rot.', ruling: 'Does not hold. Forge itself added ticket review, merge approval and five entity stages. The pipeline was never fixed; it was changed in code.' },
-  { title: '"Configuration cannot express loops"', text: 'So the lifecycle has to stay in code.', ruling: 'Does not hold. Forge has three ways back and one failed pass. A closed list of four kinds is configuration, not programming.' },
-  { title: '"Chat steps kill autonomy"', text: 'Forge works because nobody is needed between ready and merged.', ruling: 'Holds only if the steps are mandatory or sit inside the autonomous stretch. Both human steps today are switches. Spec and plan sit before the commit.' },
-  { title: '"The views were just rebuilt for fixed statuses"', text: 'The rework moved every board view into Gaia, reading the fixed words.', ruling: 'Holds. This is the real cost of timing, and the reason to do the document steps first: they add steps before the commit and leave the statuses after it alone.' },
-  { title: '"Roles without identity are theatre"', text: 'On one machine every role is the same person.', ruling: 'Holds for enforcement, not for routing. A label that says who is expected to act is useful to one person with several hats, and it is the seam a team needs later.' },
-];
-
-const QUESTIONS = [
-  { question: 'Is an artifact a file in the repo or a record of the forge?', why: 'In the repo it travels with the branch, is reviewed like code and lands on the main line. As a record it never reaches the main line, can be read without a checkout, and a document step needs no write access. The brief has the spec step emit both an artifact and a branch, which hints at the repo.' },
-  { question: 'What happens when a sign-off is refused?', why: 'The same conversation reopens with the reason, or a fresh one starts, or the work returns to an earlier step. And after how many refusals does the ticket stop and wait?' },
-  { question: 'When an accepted artifact changes, what happens to everything made from it?', why: 'All later sign-offs become void, or only those a person marks, or an accepted artifact can never change and a change is a new ticket.' },
-  { question: 'May a ticket skip a step, and who decides?', why: 'The trigger by the kind of ticket, the person at intake, or nobody. A one-line fix and a new subsystem either share a path or they do not.' },
-  { question: 'Does one board have one pipeline, or one per kind of work?', why: 'One per kind lets a bug skip the plan, and multiplies what the pipeline agent must design and what a reader must learn.' },
-  { question: 'What does a chat step do while nobody is talking?', why: 'It may stay open for days. Whether it expires, who may take it over, and whether two people may be in it at once.' },
-  { question: 'Is "may pick this up" a claim?', why: 'First to open it owns it until done, or anyone with the role may continue it. And whether the person who ran a step may sign it off.' },
-  { question: 'After import, which is the truth: the outside ticket or the artifact?', why: 'Whether later edits at the source flow in, and whether forge reports progress back to it.' },
-  { question: 'May two steps run at the same time on one ticket?', why: 'A security review beside a code review, for example. It decides whether a definition is a line or a graph, and with it most of the cost.' },
-  { question: 'Can a step that works alone hand its question to a role?', why: 'Today a builder\'s question goes to User. With roles, it goes to someone, and the step says to whom.' },
+  { title: '"A board should define its own phases"', text: 'A design phase, a QA phase, a different order per team.', ruling: 'Half holds. A producing hook with an approval behind it gives a board its own deliverable at any hook point. It does not give a board anything that must change code or hold a conversation: tests written first by another agent, a committed design record. Plan is the one such phase forge adds.' },
+  { title: '"A hook is just a gate"', text: 'Forge has gates. This is the same thing with a new name.', ruling: 'Half holds. A blocking command hook is close to a gate. An agent hook, a person\'s hook, a producer and a notifier are not, and a gate has no place before the build.' },
+  { title: '"An accept on red makes the check meaningless"', text: 'If a person can wave it through, why run it.', ruling: 'Holds only for a check nobody believes. A soft gate removes the person from every green, which is most of them, and puts each red on record with a reason.' },
+  { title: '"Agent judges are unreliable"', text: 'An agent\'s opinion should not stop a build.', ruling: 'Forge already lets one do exactly that: the reviewer. The design adds the choice forge lacks today, of sending a red to a person instead of to the builder.' },
+  { title: '"Waiting for a notifier is silly"', text: 'A message to a chat should not hold up a merge.', ruling: 'Does not hold. A notifier is a script call that ends in seconds and is bounded at a minute, and in exchange a hook point has one simple rule: each hook finishes before the next thing starts.' },
+  { title: '"Roles without identity are theatre"', text: 'On one machine every role is the same person.', ruling: 'Holds for enforcement, not for routing. A label that says who is expected to act helps one person with several hats, and it is the seam a team needs later.' },
 ];
 
 const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -950,95 +964,124 @@ const citationMarks = (sourceNumbers) => (sourceNumbers || [])
   .map((sourceNumber) => `<sup><a href="#source-${sourceNumber}">[${sourceNumber}]</a></sup>`)
   .join('');
 const elementById = (identifier) => document.getElementById(identifier);
+const uniqueOf = (values) => Array.from(new Set(values));
+const readsOf = (node) => node.kind === 'phase' ? node.reads : uniqueOf(node.hooks.flatMap((hook) => hook.reads));
+const emitsOf = (node) => node.kind === 'phase' ? node.emits : uniqueOf(node.hooks.flatMap((hook) => hook.emits));
+const chipsHtml = (itemIds) => itemIds.length === 0
+  ? '<p>Nothing.</p>'
+  : `<div class="chips">${itemIds.map((itemId) => `<span class="chip">${escapeHtml(ITEMS[itemId].label)}</span>`).join('')}</div>`;
 
-const explorerState = { pipelineKey: 'proposed', stepIndex: 1 };
+const explorerState = { boardKey: 'extended', nodeIndex: 4 };
 
-function renderPipelineSwitch() {
-  elementById('pipeline-switch').innerHTML = Object.keys(PIPELINES).map((pipelineKey) => `
-    <button type="button" data-pipeline="${pipelineKey}" aria-pressed="${pipelineKey === explorerState.pipelineKey}">${escapeHtml(PIPELINES[pipelineKey].label)}</button>
+function renderBoardSwitch() {
+  elementById('pipeline-switch').innerHTML = Object.keys(BOARDS).map((boardKey) => `
+    <button type="button" data-board="${boardKey}" aria-pressed="${boardKey === explorerState.boardKey}">${escapeHtml(BOARDS[boardKey].label)}</button>
   `).join('');
 }
 
+function nodeSummaryOf(node) {
+  if (node.kind === 'phase') return `<span class="mode"><span class="dot ${node.mode}"></span>${escapeHtml(MODE_LABELS[node.mode])}</span>`;
+  const hookCount = node.hooks.length;
+  return `<span class="mode">${hookCount === 0 ? 'No hooks' : hookCount === 1 ? '1 hook' : hookCount + ' hooks'}</span>`;
+}
+
 function renderTrack() {
-  const pipeline = PIPELINES[explorerState.pipelineKey];
-  elementById('track').innerHTML = pipeline.steps.map((step, i) => `
-    <div class="step-node">
-      <button type="button" class="step-button" data-step="${i}" aria-pressed="${i === explorerState.stepIndex}">
-        <span class="index">${i === 0 ? 'START' : 'STEP ' + i}</span>
-        <span class="name">${escapeHtml(step.name)}</span>
-        <span class="mode"><span class="dot ${step.mode}"></span>${escapeHtml(MODE_LABELS[step.mode])}</span>
-        <span class="origin">${escapeHtml(ORIGIN_LABELS[step.origin])}</span>
+  const board = BOARDS[explorerState.boardKey];
+  elementById('track').innerHTML = board.nodes.map((node, i) => `
+    <div class="step-node ${node.kind}">
+      <button type="button" class="step-button" data-node="${i}" aria-pressed="${i === explorerState.nodeIndex}">
+        <span class="index">${node.kind === 'phase' ? (node.mode === 'person' ? 'APPROVAL' : 'PHASE') : 'HOOK POINT'}</span>
+        <span class="name">${escapeHtml(node.name)}</span>
+        ${nodeSummaryOf(node)}
       </button>
     </div>
   `).join('');
 }
 
-function slotCell(slotName, text, isAddedSlot) {
-  const content = text === null
-    ? '<p class="unstated">Not stated in the brief.</p>'
-    : `<p>${richText(text)}</p>`;
-  return `<div class="cell${isAddedSlot ? ' added' : ''}"><div class="slot-name">${escapeHtml(slotName)}</div>${content}</div>`;
+function slotCell(slotName, text, isHighlighted) {
+  return `<div class="cell${isHighlighted ? ' added' : ''}"><div class="slot-name">${escapeHtml(slotName)}</div><p>${richText(text)}</p></div>`;
 }
 
-function renderStepDetail() {
-  const pipeline = PIPELINES[explorerState.pipelineKey];
-  const step = pipeline.steps[explorerState.stepIndex];
-  const labelsOf = (itemIds) => itemIds.length === 0
-    ? '<p>Nothing.</p>'
-    : `<div class="chips">${itemIds.map((itemId) => `<span class="chip">${escapeHtml(pipeline.items[itemId].label)}</span>`).join('')}</div>`;
-  elementById('step-detail').innerHTML = `
-    <div class="detail-head">
-      <h3>${escapeHtml(step.name)}</h3>
-      <span class="pill neutral">${escapeHtml(MODE_LABELS[step.mode])}</span>
-      ${step.origin === 'optional' ? '<span class="pill teal">optional</span>' : ''}
-      ${step.origin === 'extended' ? '<span class="pill orange">extended here</span>' : ''}
-    </div>
-    <div class="detail-note">${richText(step.note)}${citationMarks(step.sources)}</div>
+function phaseDetailHtml(phase) {
+  return `
+    <div class="detail-head"><h3>${escapeHtml(phase.name)}</h3><span class="pill neutral">${escapeHtml(MODE_LABELS[phase.mode])}</span></div>
+    <div class="detail-note">${richText(phase.note)}${citationMarks(phase.sources)}</div>
     <div class="detail">
-      <div class="cell"><div class="slot-name">Reads</div>${labelsOf(step.reads)}</div>
-      <div class="cell"><div class="slot-name">Emits</div>${labelsOf(step.emits)}</div>
-      ${slotCell('Runs', step.runs, false)}
-      ${slotCell('Who', step.who, false)}
-      ${slotCell('Works in', step.worksIn, false).replace('class="cell"', 'class="cell full"')}
-      ${slotCell('Accepted by', step.acceptedBy, true)}
-      ${slotCell('Way back', step.wayBack, true)}
+      <div class="cell"><div class="slot-name">Reads</div>${chipsHtml(phase.reads)}</div>
+      <div class="cell"><div class="slot-name">Delivers</div>${chipsHtml(phase.emits)}</div>
+      ${slotCell('Made by', phase.madeBy, false)}
+      ${slotCell('Works in', phase.worksIn, false)}
+      ${slotCell('Checked by', phase.checkedBy, true)}
+      ${slotCell('Way back', phase.wayBack, true)}
     </div>
   `;
 }
 
+function handoverDetailHtml(handover) {
+  const head = `
+    <div class="detail-head"><h3>${escapeHtml(handover.name)}</h3><span class="pill neutral">Hook point</span></div>
+    <div class="detail-note">${richText(handover.note)}<sup><a href="#source-18">[18]</a></sup></div>
+  `;
+  if (handover.hooks.length === 0) return `${head}<div class="empty-handover">This board lists no hook here, so the flow moves on at once.</div>`;
+  const rows = handover.hooks.map((hook) => `
+    <tr>
+      <td class="term">${escapeHtml(hook.name)}</td>
+      <td>${escapeHtml(RUNNER_LABELS[hook.runner])}</td>
+      <td>${hook.reads.map((itemId) => escapeHtml(ITEMS[itemId].label)).join(', ')}</td>
+      <td>${escapeHtml(hook.blocks)}</td>
+      <td>${hook.produces.length === 0 ? 'Nothing' : hook.produces.map((itemId) => `<code>${escapeHtml(ITEMS[itemId].label)}</code>`).join(', ')}</td>
+    </tr>
+  `).join('');
+  return `${head}
+    <div class="hook-list"><div class="table-wrap"><table>
+      <thead><tr><th>Hook</th><th>Runs by</th><th>Reads</th><th>Blocks</th><th>Produces</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
+}
+
+function renderNodeDetail() {
+  const node = BOARDS[explorerState.boardKey].nodes[explorerState.nodeIndex];
+  elementById('step-detail').innerHTML = node.kind === 'phase' ? phaseDetailHtml(node) : handoverDetailHtml(node);
+}
+
 function renderLedger() {
-  const pipeline = PIPELINES[explorerState.pipelineKey];
-  const step = pipeline.steps[explorerState.stepIndex];
-  const emittedBefore = new Set(pipeline.steps.slice(0, explorerState.stepIndex).flatMap((earlierStep) => earlierStep.emits));
+  const board = BOARDS[explorerState.boardKey];
+  const node = board.nodes[explorerState.nodeIndex];
+  const everEmitted = new Set(board.nodes.flatMap(emitsOf));
+  const emittedBefore = new Set(board.nodes.slice(0, explorerState.nodeIndex).flatMap(emitsOf));
+  const emittedNow = emitsOf(node);
+  const readNow = readsOf(node);
   const chipStateOf = (itemId) => {
-    if (step.emits.includes(itemId)) return 'emitted';
-    if (step.reads.includes(itemId)) return 'read';
-    if (pipeline.items[itemId].standing || emittedBefore.has(itemId)) return 'present';
+    if (emittedNow.includes(itemId)) return 'emitted';
+    if (readNow.includes(itemId)) return 'read';
+    if (ITEMS[itemId].standing || emittedBefore.has(itemId)) return 'present';
     return 'absent';
   };
-  const groupsHtml = pipeline.groups.map((group) => `
-    <div class="ledger-group">
-      <div class="group-name">${escapeHtml(group.name)}</div>
-      <div class="chips">${group.itemIds.map((itemId) => `<span class="chip ${chipStateOf(itemId)}">${escapeHtml(pipeline.items[itemId].label)}</span>`).join('')}</div>
-    </div>
-  `).join('');
+  const groupsHtml = LEDGER_GROUPS.map((group) => {
+    const visibleItemIds = group.itemIds.filter((itemId) => ITEMS[itemId].standing || everEmitted.has(itemId));
+    return `
+      <div class="ledger-group">
+        <div class="group-name">${escapeHtml(group.name)}</div>
+        <div class="chips">${visibleItemIds.map((itemId) => `<span class="chip ${chipStateOf(itemId)}">${escapeHtml(ITEMS[itemId].label)}</span>`).join('')}</div>
+      </div>`;
+  }).join('');
   elementById('ledger').innerHTML = `
-    <div class="ledger-title">The context once this step ends</div>
+    <div class="ledger-title">The context once this ends</div>
     ${groupsHtml}
     <div class="legend">
-      <span><span class="chip read">read</span> by this step</span>
-      <span><span class="chip emitted">emitted</span> or moved by this step</span>
+      <span><span class="chip read">read</span> here</span>
+      <span><span class="chip emitted">delivered</span> or moved here</span>
       <span><span class="chip present">present</span> from before</span>
       <span><span class="chip absent">not yet</span></span>
     </div>
   `;
-  elementById('explorer-caption').textContent = pipeline.caption;
+  elementById('explorer-caption').textContent = board.caption;
 }
 
 function renderExplorer() {
-  renderPipelineSwitch();
+  renderBoardSwitch();
   renderTrack();
-  renderStepDetail();
+  renderNodeDetail();
   renderLedger();
 }
 
@@ -1071,6 +1114,15 @@ function renderBaseline() {
     `).join('');
 }
 
+function renderRules() {
+  elementById('rule-groups').innerHTML = RULE_GROUPS.map((group) => `
+    <div class="argument">
+      <h4>${escapeHtml(group.title)}</h4>
+      <ul>${group.rules.map((rule) => `<li>${richText(rule)}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+}
+
 const difficultyState = { severity: 'all', allOpen: false };
 
 function renderDifficulties() {
@@ -1090,7 +1142,7 @@ function renderDifficulties() {
         <div class="body">
           <div><div class="slot-name">Forge today</div><p>${richText(entry.difficulty.today)}${citationMarks(entry.difficulty.sources)}</p></div>
           <div><div class="slot-name">Why it bites</div><p>${richText(entry.difficulty.bites)}</p></div>
-          <div><div class="slot-name">What the model needs</div><p>${richText(entry.difficulty.needs)}</p></div>
+          <div><div class="slot-name">What the design does</div><p>${richText(entry.difficulty.needs)}</p></div>
         </div>
       </details>
     `).join('');
@@ -1102,8 +1154,11 @@ function renderImpact() {
       <td class="term">${escapeHtml(row.part)}</td>
       <td>${richText(row.today)}${citationMarks(row.sources)}</td>
       <td>${richText(row.after)}</td>
-      <td><span class="pill ${row.size === 'None' ? 'green' : row.size.includes('XL') ? 'crimson' : 'neutral'}">${escapeHtml(row.size)}</span></td>
+      <td><span class="pill ${row.size === 'None' ? 'green' : row.size === 'XL' ? 'crimson' : 'neutral'}">${escapeHtml(row.size)}</span></td>
     </tr>
+  `).join('');
+  elementById('stage-rows').innerHTML = STAGES.map((row) => `
+    <tr><td class="term">${escapeHtml(row.stage)}</td><td>${richText(row.delivers)}</td><td>${richText(row.notices)}</td></tr>
   `).join('');
 }
 
@@ -1123,15 +1178,6 @@ function renderArguments() {
   elementById('strawman-objections').innerHTML = argumentCardsHtml(STRAWMAN_OBJECTIONS);
 }
 
-function renderQuestions() {
-  elementById('question-list').innerHTML = QUESTIONS.map((record, i) => `
-    <div class="question">
-      <span class="index">${String(i + 1).padStart(2, '0')}</span>
-      <div><p><strong>${escapeHtml(record.question)}</strong></p><p class="why">${escapeHtml(record.why)}</p></div>
-    </div>
-  `).join('');
-}
-
 function renderSources() {
   elementById('source-list').innerHTML = SOURCES.map((source, i) => `<li id="source-${i + 1}">${richText(source)}</li>`).join('');
 }
@@ -1141,19 +1187,19 @@ function closestWithData(target, attributeName) {
 }
 
 elementById('pipeline-switch').addEventListener('click', (event) => {
-  const button = closestWithData(event.target, 'data-pipeline');
+  const button = closestWithData(event.target, 'data-board');
   if (!button) return;
-  explorerState.pipelineKey = button.getAttribute('data-pipeline');
-  explorerState.stepIndex = 1;
+  explorerState.boardKey = button.getAttribute('data-board');
+  explorerState.nodeIndex = 1;
   renderExplorer();
 });
 
 elementById('track').addEventListener('click', (event) => {
-  const button = closestWithData(event.target, 'data-step');
+  const button = closestWithData(event.target, 'data-node');
   if (!button) return;
-  explorerState.stepIndex = Number(button.getAttribute('data-step'));
+  explorerState.nodeIndex = Number(button.getAttribute('data-node'));
   renderTrack();
-  renderStepDetail();
+  renderNodeDetail();
   renderLedger();
 });
 
@@ -1198,10 +1244,10 @@ function watchCurrentSection() {
 
 renderExplorer();
 renderBaseline();
+renderRules();
 renderDifficulties();
 renderImpact();
 renderArguments();
-renderQuestions();
 renderSources();
 watchCurrentSection();
 </script>

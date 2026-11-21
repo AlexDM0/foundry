@@ -1,270 +1,321 @@
-# The context pipeline: steps a board defines, over one context
+# Phases and hooks: a pipeline a board can extend
 
 Nothing here is built. Statements about today's code come from forge at `e9b5d057` on the main line, and statements
-about the rework from the branch `hephaestus-talos` at `76c56515`, where stage 8 of that run had just started. The
-brainstorm this design came from is [`research/context-pipeline/concept.html`](research/context-pipeline/concept.html);
-where the two differ, this document is right.
+about the rework from the branch `hephaestus-talos` at `76c56515`, where stage 8 of that run had just started.
+
+The page [`research/context-pipeline/concept.html`](research/context-pipeline/concept.html) presents this design with
+its difficulties, its impact and the arguments for and against it. Where the two differ, this document is right.
 
 ## 1. The shape
 
-Today forge runs one pipeline, written in code: intake, ticket review, build, review, merge approval, landing. A board
-switches parts of it on or off and sets the gates, the briefs and the models. This design makes the pipeline a
-definition that a board owns.
+- **The phases that deliver an artifact are forge's, in a fixed order.** Intake delivers the ticket, plan delivers
+  the plan, build delivers the commits and the Handoff, review delivers the Review, and the merge delivers the change
+  on the main line.
+- **Plan is a new phase.** A board switches it on and configures it.
+- **The gates, ticket review and merge approval stay as they are.** A merge is approved by User or by the Airlock.
+- **A hook point follows each phase and the human review.** A board fills it with an ordered list of hooks. A hook is
+  run by a command, by an agent or by a person, and forge knows three things about it: what it reads, whether it can
+  block the flow, and which artifacts it produces.
 
-- A pipeline starts at a **trigger**, which puts the ticket into the **context** of that ticket.
-- A **step** declares what it reads from the context, runs an agent or waits for a person, and adds named
-  **artifacts** to the context.
-- Forge ships the **kinds** of step, of acceptance and of way back. A board chooses, orders and configures steps of
-  those kinds, and may add steps forge never heard of: a plan, a test evaluation, an architecture verification.
-- Two things stay code in every pipeline: what a session committed is checked against git, and code reaches a main
-  line only through the Airlock.
+```
+intake ─▶ [hooks] ─▶ plan ─▶ [hooks] ─▶ build ─▶ [hooks] ─▶ review ─▶ [hooks] ─▶ merge approval ─▶ [hooks] ─▶ merge ─▶ [hooks]
+ ticket               plan              commits,             Review               by User, if on                 on the
+                                        Handoff                                                                  main line
+```
 
-Forge after the rework is the default definition. A board that changes nothing behaves as forge does now.
+A board that adds no hook and leaves plan off behaves as forge does now. The workflow stays fixed and programmed, so
+decision 11 of the rework stands as written.
 
 ## 2. Decisions
 
-Decisions 1 to 18 are the owner's answers of 21 November 2026. Decisions 19 to 28 were put to the owner as
-recommendations and not answered before the owner ended the questions; they stand as recommended until the owner
-changes one. Decisions 29 to 31 are the run's own, on how to get there.
+Decisions 1 to 16 are the owner's own. Decisions 17 to 44 were recommended; the owner accepted them as a set on 21
+November 2026, after an adversarial review of the design, and answered none of them one by one. Decisions 45 to 47
+are the run's own.
 
-### Answered by the owner
+### The owner's
 
-1. The first version is for one person who holds several roles, shaped so that a team fits later. Every step names
-   the roles that may pick it up. A role is a label that routes and filters work. Nothing enforces it, and no login
-   is part of this design. So nobody owns a step, one signature is enough for a sign-off, and an agent's question
-   goes to User, as today.
-2. A board composes its pipeline from the step kinds that forge ships. The kinds are fixed; the steps are free. A
-   board adds a step of its own, with its own brief and its own artifacts, and forge does not have to design that
-   scenario first.
-3. The workflow is fixed per board by its definition, and no longer once for every forge. This changes the first half
-   of decision 11 of the rework ("The forge follows a fixed, programmed workflow, and the user is a step in it"). The
-   second half stands, and so does the rest of that decision: the forge decides no question of the user's.
-4. Forge keeps each artifact as a record of its own, as it keeps a ticket. Where artifacts are stored stays
+1. The pipeline keeps its fixed phases, and the deterministic gates stay.
+2. Plan is a phase of its own that a board configures.
+3. Between the phases that deliver artifacts there are hook points. A board adds a list of hooks to each.
+4. A hook can be anything: a gate, a producer of an artifact that a later phase gets as context, a statistics
+   tracker, a script that notifies another system with no verdict and no output. What forge needs to know is whether
+   the hook can block the flow and which artifacts, if any, it produces. A hook that acts as a gate can also be set
+   so that green continues and red halts for a person's review.
+5. A hook can be a person's approval. It halts the ticket until the person presses accept. What the person does in
+   the meantime is not the flow's concern. An example: an agent hook analyses patterns for test criteria and produces
+   an artifact, a person approves it, and a later phase or hook gets that artifact as context.
+6. Forge waits for each phase to finish, and for each hook. Nothing at a hook point runs beside the flow.
+7. A merge is approved by User or by the Airlock, as today, and that approval is no hook. The hook points are: after
+   the ticket, after the build, after the review, after the human review and after the merge. This design adds one
+   after the plan, where a board has a plan.
+8. The first version is for one person who holds several roles, shaped so that a team fits later. A role is a label
+   that routes and filters work. Nothing enforces it, and no login is part of this design. One signature is enough
+   for an approval.
+9. Forge keeps each artifact as a record of its own, as it keeps a ticket. Where artifacts are stored stays
    replaceable, so that an artifact can later live in a system outside forge.
-5. A ticket stands on one step at a time. Inside a step, the agent may start subagents with tasks and deliverables of
-   their own, as that step's brief defines.
-6. Forge sees one step and one session, whatever the session starts. It does not start, track or accept a subagent
-   by itself, but it records each subagent's tokens and time as it does for its own agents. A step may emit several
-   named artifacts, and they are accepted or refused together.
-7. No ticket skips a step in the first version: every ticket takes every step of its definition. A short lane for
-   small work is a later improvement. When it comes, a code review that is switched on is never skipped.
-8. A human step may sit anywhere in a definition. A pipeline may also have none after the ticket is made and run by
-   itself from there. Where a human step is defined, it is always followed. A ticket that waits at a human step holds
-   no agent slot: it is a branch that waits to be picked up, however long that takes.
-9. No agent ever passes a human step. A person keeps a move by hand that pushes a ticket past one. That move is
-   recorded with who made it and why, and the ticket shows it.
-10. The triggers are the ones forge has today: a request to make a ticket, a draft filed directly, a finding that a
-    builder or reviewer files, a need that a build of an entity declares, and the fix ticket that an answer to a
-    broken dependent files. A source outside forge comes later, as one more kind of trigger.
-11. A refused sign-off opens an edit. The artifact opens in a conversation that the person leads and the agent
-    assists. Closing the edit gives a new version, which needs the sign-off again, and the person who edited may sign
-    it. The ticket is held from the refusal until that version is signed. No count bounds this.
-12. An accepted artifact can be reopened. The reopening is recorded in the audit trail, and the new version needs a
-    new sign-off where the pipeline requires one.
-13. A change in one step makes every later step that already finished evaluate its work again, in order. This is an
-    update and never a restart. Each sign-off that the pipeline requires is asked again.
-14. When a spec or a plan is reopened while a build runs, the build stops at the end of the agent's turn and forge
-    asks User to choose. Re-evaluate: the same builder resumes with the change in front of it, keeps its commits and
-    decides what to redo. Rebuild: the work on the branch is discarded and a fresh builder starts from the target's
-    tip. An artifact can be reopened until its ticket enters the merge queue; after that, a change is a new ticket.
-15. A step names what accepts its output: a person's sign-off, commands that pass, the verdict of a judging agent, or
-    nothing, in which case the ticket moves on when the step ends.
-16. A judging step ends in a verdict: it passes, or it has findings. The definition says which earlier step the
-    findings send the work back to.
-17. A step gets what it declares and the repo it stands in, and nothing else. What was said in an earlier
-    conversation reaches a later step only when it is in an artifact.
-18. A step declares where it works: outside the repo, in a worktree it may only read, or in a worktree it may change.
-    This holds for every kind of step, so a judging step that may commit fixes, as the reviewer does today, is one
-    that declares a worktree it may change.
+10. One thing happens to a ticket at a time. Inside a phase, the agent may start subagents with tasks and
+    deliverables of their own, as its brief defines. Forge sees one session, and records each subagent's tokens and
+    time as it does for its own agents.
+11. No ticket skips a phase or a hook in the first version. A short lane for small work is a later improvement.
+12. Where a person's hook is defined, it is always followed, and no agent ever passes it. A person keeps a move by
+    hand that pushes a ticket past one; it is recorded with who made it and why, and the ticket shows it. A ticket
+    that waits for a person holds no agent slot: it is a branch that waits to be picked up.
+13. The triggers are the ones forge has today. A source outside forge comes later.
+14. A person who does not accept a document edits it, alone or in a conversation that the person leads and the agent
+    assists. The result is a new version, and the person who edited may accept it. The ticket is held until someone
+    accepts, and no count bounds it.
+15. An accepted artifact can be reopened. The reopening is recorded in the audit trail. Every later phase that
+    already finished evaluates its work again, in order, as an update and never a restart. When a build is running,
+    it stops at the end of the agent's turn and User chooses: the same builder resumes with the change and keeps its
+    commits, or the branch's work is discarded and a fresh builder starts from the target's tip.
+16. A phase and a hook get what they declare and nothing else. What was said in a conversation reaches a later phase
+    only when it is in an artifact.
 
-### Recommended, and not answered
+### Accepted as a set
 
-19. A step with no acceptance is still checked for its output: forge moves the ticket on only when the step left
-    every artifact it declared. A missing artifact is a failed pass. A fresh session tries again, and after two the
-    ticket is held.
-20. Two things are the same in every pipeline and no definition switches them off. A step that leaves commits is
-    checked against git: a clean worktree, only paths inside the scope it declared, nothing in forge's own data. And
-    code reaches a main line only through the Airlock, with the merged tree gated.
-21. Every way back is bounded. The definition sets how many times a judging step may send work back, two when it
-    says nothing, and forge refuses a definition that sets no limit. A judging step may send work back to any earlier
-    step, a human step among them; the ticket then waits for that person as at any human step.
-22. When a step that was a conversation has to update after an earlier change, its agent updates the artifact by
-    itself and shows what changed. The person's part is the sign-off, which shows only the difference from the
-    version signed before. A person who disagrees refuses, which opens the edit of decision 11.
-23. An update runs through the agent steps by itself, one after the other, and stops only at a human step. A person's
-    reopening gives every step its tries back, so no count that was used up before the change parks the ticket.
-24. A definition may list the headings an artifact must have, as a ticket today needs a numbered Acceptance and a
-    Brief. An artifact with no such list is free-form.
-25. In a forge with entities, the forge has one definition for everything up to the moment a ticket has its entity,
-    and each entity has a definition of its own for what follows. A crossing between entities stays the flow forge
-    has today. In a package that a ticket crosses, only the package's build and its judging steps run, never its
-    document steps or its human steps.
-26. Every step belongs to one of four fixed phases, whatever the board calls the step: before the build, build,
-    check, land. A ticket at a step is in one of four fixed states: waiting, running, waiting for a person, held. The
-    board shows one lane for each step, and the phases let Gaia line up forges and entities whose steps differ.
-27. A new board gets today's pipeline. During setup the pipeline agent offers more steps, a spec, a plan or a
-    judging step among them, and User adds what the board needs.
-28. A change of the steps of a definition, one added, removed or moved, applies to the tickets that are committed
-    after it. A ticket under way finishes on the steps it started with. A change inside a step, its brief, its model
-    or its commands, applies at that step's next launch, as it does today.
+*What a hook is*
+
+17. A hook declares what it reads: artifacts, and where it needs code, the code. A hook never works in the ticket's
+    worktree. One that reads code gets a snapshot of the commit that was handed over, to use and throw away, as the
+    pipeline agent gets a snapshot of the main line today. So no hook can change the repository, and none can leave
+    files behind that the next job is blamed for.
+18. A hook is never a phase's conversation. A person's hook is a halt with one event the flow knows, accept.
+    Conversations that deliver an artifact belong to intake and plan; changing code belongs to build and review, and
+    to a gate's `fix` line.
+19. An artifact reaches an agent as labelled data in its first message, as the ticket's body does today, and in the
+    message that resumes it when the artifact changed. It never joins the agent's instructions. Those keep coming
+    from the main line only, so nothing a ticket or a branch contains can rewrite them.
+20. A phase names the artifacts it gets, beside its instructions. The builder and the reviewer get the plan where a
+    board has one.
+21. A command hook's program comes from the main line or from the machine, never from the ticket's branch. A command
+    hook may get secrets the board names. A hook that gets a secret reads artifacts only, never code. An agent hook
+    never gets a secret.
+22. Today's gates, ticket review and merge approval stay mechanisms of their own. A hook is an addition at a hook
+    point and replaces none of them.
+23. Forge refuses a list of hooks, when it is stored, that holds any of these: a hook that reads something no earlier
+    phase or hook delivers; a hook with a secret that reads code; a blocking hook after the merge; a hook set to
+    return the work that reads nothing its phase delivered, since the phase could never change its verdict.
+
+*Versions and order*
+
+24. A hook runs once for each version of what it reads, and a person is asked again only when what they approved
+    changed. The version of an artifact is the hash of its content. The version of a ticket covers what a person
+    wrote, not the sections code adds. The version of code is the commit handed over. A hook that reads nothing runs
+    once for each pass through its hook point.
+25. The hooks of a hook point run in the order the board lists them, each after the one before it passed.
+26. A ticket at a hook point is in a state of its own, which every path that starts a phase or queues a merge checks.
+    Today nothing holds a ticket between phases: the transaction that records passed gates also starts the review or
+    queues the merge.
+27. A person's edit pins an artifact a hook produced: the hook does not overwrite it. When the hook's inputs change,
+    the person is asked again and may let the hook produce it anew.
+
+*Outcomes*
+
+28. A hook ends in one of three ways: yes, no, or could not run. An agent that ends without a verdict, a command that
+    its bound stopped, and a declared artifact that is missing or lacks its headings all count as could not run.
+29. Could not run is trouble with the run and never sends work back. Nothing runs the hook again by itself. A hook
+    that neither blocks nor produces is recorded and the flow continues. For any other hook the ticket waits, with
+    the failure shown, until a person runs the hook again or pushes the ticket past it by hand.
+30. A blocking hook says what its no does: it returns the work, or it halts for a person. Returned work goes to the
+    phase of that hook point and then passes every later phase and hook point again; a no after the review returns
+    to the builder, and the review runs again. A no after the ticket returns the ticket to draft for User, whoever
+    filed it.
+31. Each hook point counts how often its hooks returned work. The board sets the count, two when it says nothing, and
+    forge refuses none. Past the count the ticket is parked. The count is the hook point's own, apart from the count
+    of red gates, and it is read from the log. A person's findings do not count and give the tries back.
+32. A no that halts for a person shows that person the hook's output and waits for accept. Accepting continues the
+    flow although the hook was red, needs a reason, and is recorded with who accepted which red. If the person
+    changes the work first, the hook runs again on the new version.
+33. Everything a person does to a halted ticket is recorded: an accept, an edit, findings sent to the builder. An
+    approval shows what changed since the version that person accepted, what it was made from, why a hook was red,
+    and how long the ticket has waited.
+34. A command or agent hook has a bound: the bound of a gate line, and one minute for a hook that neither blocks nor
+    produces unless the board sets more. A person's hook has none. Every run carries an identity of its own, which a
+    hook that reports to another system can use to report once.
+
+*The hook points*
+
+35. The hooks after the ticket run when a ticket is submitted, whoever filed it, and before ticket review. The ticket
+    is committed once they and the review have passed.
+36. The hooks after the human review run after User accepted a merge and before an Airlock takes the ticket. An
+    Airlock takes the earliest accepted ticket whose hooks have passed. Work returned from there leaves the merge
+    queue, and its acceptance with it.
+37. The hooks after the merge run when a ticket is delivered: for a ticket of a group, when its release lands. They
+    hold no Airlock, and nothing there blocks.
+38. A hook point whose phase is off is dormant, and its hooks are kept.
+
+*The plan, people, change*
+
+39. A board chooses how the plan is made: by a planner that works alone, or in a conversation between a person and
+    the planner. The planner reads the committed ticket and a snapshot of the target, and delivers the plan as a
+    record of forge, with the commit it was made against. An approval of the plan is a person's hook after it.
+40. The edit of decision 14 is a session forge hosts when a person asks for help with an artifact, as it hosts an
+    intake. It is neither a hook nor a phase, and it holds a slot only while a turn runs.
+41. An artifact can be reopened until its ticket enters the merge queue; after that, a change is a new ticket.
+    Reopening stops the work under way first, and the session that resumes takes the new version as its start.
+42. A new board gets today's pipeline: plan off, ticket review on, merge approval off, no hook. During setup the
+    pipeline agent proposes a plan phase and hooks, and User adds what the board needs.
+43. A ticket keeps the list of hooks it entered a hook point with. A change of a board's hooks applies from a
+    ticket's next hook point; switching plan on or off applies to tickets committed afterwards.
+44. In a forge with entities, each entity has its own hooks and its own plan setting, as it has its own gates. A
+    package that a ticket crosses runs its own hooks after its build and after its review.
 
 ### The run's own
 
-29. This work starts from the result of the rework, after its last stage, the rename, has landed. The rework run
-    is live on `hephaestus-talos` and may change any file of this repository, so no code of this
-    design is written before it ends.
-30. Nothing that exists has to be kept, as in the rework. The stored pipeline, the ticket record and the served
-    documents change outright, and boards are set up anew.
-31. The default definition is held against a frozen table of what forge does today, taken before stage 2 changes
-    anything: the git calls, the status of a ticket at each point and the records of the log. The rule that a tracker
-    with no entities asks git exactly what it asked before stays in force through every stage.
+45. This work starts from the result of the rework, after its last stage, the rename, has landed. The rework run is
+    live on `hephaestus-talos` and may change any file of this repository, so no code of this design is written
+    before it ends.
+46. Nothing that exists has to be kept, as in the rework: stored formats change outright and boards are set up anew.
+47. A board with plan off and no hook is held against a frozen table of what forge does today: the git calls and a
+    ticket's status at each point. Its log gains records and loses or changes none.
 
-## 3. The model
+## 3. A hook
 
-### 3.1 Context
-
-The context of a ticket is everything that exists for it so far. A step declares the items it reads. Three kinds of
-reference exist, and forge already uses all three without naming them:
-
-| Reference | Meaning | Today |
-| --- | --- | --- |
-| Pinned | This exact version of a document | A committed ticket is kept by content hash, and agents build from that |
-| Tracking | What the main line holds when the session starts | The constitution and every tracked instruction file, read from the main line at each launch and resume, never from the ticket's branch |
-| Working copy | A place to stand, read and perhaps change | A worktree on the ticket's branch, cut from the target's tip |
-
-A context item also says how it reaches the agent: put into its first message, placed on disk, or made reachable
-through the network line of the step. Forge records the hash of everything a launch read, as it does today for
-instruction files.
-
-### 3.2 Artifact
-
-An artifact is a document with a name the board chose, a version, the versions of the artifacts it was made from and
-its sign-offs. Forge writes an artifact from what a step left, never the agent directly into the record, which is how
-the Handoff and each Review are written today. The ticket, the Handoff and each Review become artifacts. A repo ref
-is not an artifact: it moves, and only the Airlock moves a target.
-
-### 3.3 Step
-
-A step has these parts. The brief gave the first five; decisions 15 to 18 add the rest.
-
-| Part | What it says |
+| It declares | Meaning |
 | --- | --- |
-| Reads | The context items the step gets (decision 17) |
-| Runs | The agent's description and instruction, its model and effort, and whether it is a conversation with a person or a session that works alone |
-| Who | The roles that may pick the step up or sign it, as labels (decision 1) |
-| Works in | Outside the repo, a worktree to read, or a worktree to change, with the paths and the network it may reach (decision 18) |
-| Emits | One or more named artifacts, with the headings each must have (decisions 6 and 24) |
-| Accepted by | A sign-off, commands that pass, a judging verdict, or nothing (decisions 15 and 19) |
-| Way back | For a judging step, the earlier step its findings return to and how often (decisions 16 and 21) |
-| Phase | Before the build, build, check or land (decision 26) |
+| Runs by | A command, an agent with a brief and a model, or a person with a role |
+| Reads | The artifacts it gets, and whether it gets a snapshot of the code |
+| Blocks | Whether its "no" stops the flow, and if so what the no does: returns the work, or halts for a person with a role. A person's hook always halts, until accept |
+| Produces | The named artifacts it leaves, each with the headings it must have |
+| Network, secrets | Whether it reaches the network; for a command that reads no code, the secrets it gets |
 
-### 3.4 The catalogue
+Forge waits for every hook. The declarations decide what an outcome does:
 
-| Kind of step | What it is | Today's instances |
-| --- | --- | --- |
-| Conversation | A person and an agent, over several turns, until the person closes it. Holds no agent slot between turns | Intake |
-| Agent work | A session that works alone and ends with a report | Build |
-| Judging | A session that works alone and ends with a verdict | Review |
-| Sign-off | No agent. A person accepts or refuses | Ticket review, merge approval |
-| Landing | No agent on the normal path. The Airlock | Landing |
+| Blocks | Produces | A "no" | Could not run | Example |
+| --- | --- | --- | --- | --- |
+| No | Nothing | Has no meaning | Recorded and shown; the flow continues | A notifier, a statistics tracker |
+| No | Artifacts | Has no meaning | The ticket waits for a person | Test criteria the reviewer reads |
+| Yes | Nothing | Returns the work, or halts for a person | The ticket waits for a person | A check on the plan |
+| Yes | Artifacts | The same, with the artifacts as findings | The ticket waits for a person | An architecture verification with its report |
+| A person | Nothing | None: it halts until accept | Does not apply | An approval |
 
-A board defines as many steps of the first four kinds as it wants. A pipeline whose steps change code ends in exactly
-one landing.
+A command says no through its exit status, as a gate does. An agent says no through a verdict in its report, as a
+reviewer does. A person never says no: the hook halts until accept, and what the person does before that (reads,
+edits the artifact, sends findings to the builder, nothing) is outside the flow and on record.
 
-## 4. What forge checks when a definition is stored
+The owner's example, as a board would list it after the plan:
 
-A definition that fails one of these is refused when it is stored, with the reason, and never found out by a running
-ticket.
+| Hook | Runs by | Reads | Blocks | Produces |
+| --- | --- | --- | --- | --- |
+| Test criteria | An agent | The ticket, the plan, the code | No | `test-criteria` |
+| Approve test criteria | A person, role B | `test-criteria` | Halts | Nothing |
 
-- Every item a step reads is emitted by an earlier step or by the trigger, or is a standing item of the board.
-- Every judging step names an earlier step for its findings and a finite count (decision 21).
-- A step that works in a worktree it may change is followed, somewhere, by the landing (decision 20).
-- Every step has a phase, and the phases do not run backwards along the line.
-- Step names are unique in a definition.
+The review phase then names `test-criteria`, and its reviewer gets the accepted version in its first message.
 
-A definition is strict, as `pipeline.json` is today: an unknown key makes it malformed.
+## 4. The hook points
 
-## 5. When things change
+| Hook point | What is handed over | When its hooks run | A "no" returns the work to |
+| --- | --- | --- | --- |
+| After the ticket | The ticket | When the ticket is submitted, before ticket review | Draft, for User |
+| After the plan | The plan | When the plan phase ends | The planner, or the plan's conversation |
+| After the build | The commits and the Handoff | After the commit checks and the build gates passed | The builder |
+| After the review | The Review | After the review's own checks, before the merge queue | The builder; the review runs again |
+| After the human review | The accepted change | After User's accept, before an Airlock takes the ticket | The builder; the ticket leaves the queue |
+| After the merge | The landed change | When the ticket is delivered | Nothing: no hook blocks here |
+
+## 5. The plan
+
+- **Reads:** the committed ticket, the constitution, the planner's brief, a snapshot of the target.
+- **Delivers:** the plan, a record of forge with versions, and the commit it was made against. A plan phase that ends
+  without one is a failed pass.
+- **Made by:** a planner alone, or a person with the planner in a conversation that the person closes, as an intake.
+- **Read by:** the builder and the reviewer, beside the ticket. A reviewer judges Acceptance, as today; the plan is
+  context, not a second list to judge.
+- **Needs in forge:** a job kind and a role, their rights and checks, a step in the forecast, one more status, and
+  the plan in the messages that start and resume a builder and a reviewer.
+
+## 6. When things change
 
 | What happens | What forge does | Decision |
 | --- | --- | --- |
-| A person refuses a sign-off | Holds the ticket and opens the artifact for an edit, led by the person. The new version is signed again | 11 |
-| A person reopens an accepted artifact | Records it in the audit trail. Every later finished step updates, in order; agent steps by themselves, human steps waiting for their person | 12, 13, 22, 23 |
-| An artifact is reopened while a build runs | Stops the build at the end of the turn and asks User: re-evaluate or rebuild | 14 |
-| A judging step has findings | Resumes the session of the step the definition names, with the findings; past the count, holds the ticket | 16, 21 |
-| A step with no acceptance leaves an artifact out | Counts a failed pass and starts a fresh session; two hold the ticket | 19 |
-| A person pushes a ticket past a human step by hand | Records who and why, and shows it on the ticket | 9 |
-| The steps of the definition change | Applies them to tickets committed afterwards | 28 |
+| A hook says no, set to return the work | Returns it to the phase of that hook point; past the hook point's count, parks the ticket | 30, 31 |
+| A hook says no, set to halt for a person | Shows the person the hook's output and waits; an accept on a red needs a reason and is recorded | 32 |
+| A hook could not run | Sends nothing back. The ticket waits for a person, unless the hook neither blocks nor produces | 29 |
+| A person edits an artifact while a ticket is halted | Makes a new version and pins it; the hooks that read it run again, then the approval waits again | 14, 24, 27 |
+| A person sends findings to the builder while a ticket is halted | Resumes the builder; the new commits pass the gates, the review and the hooks again | 30, 31 |
+| A person reopens an artifact | Records it. Later finished phases update in order; hooks and approvals run again only where what they read changed | 15, 24, 41 |
+| An artifact is reopened while a build runs | Stops the build at the end of the turn and asks User: resume with the change, or start fresh | 15 |
+| A person pushes a ticket past a hook by hand | Records who and why, and shows it on the ticket | 12, 29 |
 
-The audit trail is forge's log. It gains a record for each sign-off, refusal, reopening, update and move by hand, and
-each names the version of the artifact it concerns.
+The audit trail is forge's log. It gains a record for each hook run and its outcome, each approval, edit, reopening
+and move by hand, and each names the version it concerns.
 
-## 6. What stays as it is
+## 7. What stays as it is
 
-- **Talos** starts children from the launch plan it is given. A step reaches it as a launch plan, as a job does now.
-- **The Airlock** and the landing by compare-and-swap, one per target.
-- **Groups, release tickets, dependencies and epics** stay data of the board. A release still lands a bundle of
-  tickets in one landing, outside any definition.
-- **Incidents, the Assistant's switch, notices and the outage pause.** They concern the run, not the work.
-- **Launch slots, the machine's agent limit, the usage limit and the budget.** They apply to whatever step wants to
-  start.
-- **The store port and the contract with Gaia,** in their shape. Their documents and command kinds grow.
-- **The crossing of entities,** as a built-in flow (decision 25).
+- **Gates,** their phases and their hashes, and the run on the merged tree.
+- **Ticket review and merge approval,** the merge queue and the order of accepting as the order of landing.
+- **The Airlock** and the landing by compare-and-swap.
+- **Talos.** A hook reaches it as a launch plan, as a gate line or a job does now.
+- **Groups, release tickets, dependencies and epics,** the five stages of a crossing, incidents, slots and budgets.
+- **Where instructions come from:** the main line, read at every launch and resume.
+- **Decision 11 of the rework:** the workflow is fixed and programmed.
 
-## 7. What changes, part by part
+## 8. What changes, part by part
 
 Sizes are estimates, on the rework's scale.
 
 | Part | Change | Size |
 | --- | --- | --- |
-| The stored pipeline | Triggers, steps and artifacts in place of fixed phases, roles and approvals | L |
-| The Playbook | Still pure. It reads where a ticket stands in its definition and what is accepted, and says what may start | XL |
-| Customs | Checks chosen by the kind of step, the scope the step declared and the headings of its artifacts | L |
-| The ticket record | A ticket with a set of artifacts, each with versions, sources and sign-offs | L |
-| Statuses and served documents | A ticket's step and state in place of a fixed status. A major change of the system version | XL |
-| Commands | Pick up a step, sign, refuse, reopen, choose re-evaluate or rebuild, move by hand | M |
-| Prompts and briefs | Agent descriptions and instructions that name artifacts, in place of prompts written for seven fixed roles | M |
-| Pipeline setup and its agent | The agent composes steps from the catalogue; the check of section 4 guards what it proposes | L |
-| Gaia | A lane for each step, a conversation for each conversation step, what waits on which role, an editor for the definition | XL |
-| Entities | A definition for each entity after the forge's own | L |
+| The stored pipeline | A plan setting, and a list of hooks per hook point with its count | M |
+| The Playbook and the lifecycle | A state for a ticket at a hook point, checked by every path that starts a phase or queues a merge; returns and their counts from the log | XL |
+| The plan phase | A job kind, a role, its rights and checks, a forecast step, a status, the messages that carry the plan | L |
+| Running a hook | Commands and agents under Talos, each on a snapshot, confined, with a bound, a run identity, a verdict and produced artifacts | L |
+| Artifacts | The ticket, the plan, the Handoff, each Review and what hooks produce, as records with versions, pins and approvals | L |
+| Commands | Accept, accept a red with a reason, edit an artifact, send findings, run a hook again, reopen, choose resume or fresh | M |
+| The edit session | A hosted session for editing an artifact with an agent's help | M |
+| Pipeline setup and its agent | Proposes the plan phase and hooks; refuses the lists of decision 23; User edits them | M |
+| Gaia | A plan lane, the hooks of each hook point with their outcome, what an approver has to see, what waits on which role | L |
+| Entities | Hooks and the plan setting per entity; a crossed package's hooks in its stages | M |
+| Versions | A major change of the system version; a new install version for the planner's brief | S |
 
-## 8. Stages
+## 9. Stages
 
-Each stage ends with the root's `bun run verify` green and a forge that works end to end on a scratch board. Each
-stage brings its own part of Gaia, so no stage leaves behaviour that cannot be seen. The work packages of a stage are
-cut when its base is fixed, since the rework still moves the files they would name.
+Each stage ends with the root's `bun run verify` green and a forge that works end to end on a scratch board, and each
+brings its own part of Gaia. Work packages are cut when the base is fixed, since the rework still moves the files
+they would name.
 
 | Stage | What it delivers | Behaviour a person notices |
 | --- | --- | --- |
-| 0. Base and baseline | The rework landed. The frozen table of today's default path (decision 31) | None |
-| 1. Artifacts | The ticket, the Handoff and each Review as versioned artifacts with sign-offs on record; the audit trail's new records | None |
-| 2. The definition | The stored definition, its check, and the default definition. The Playbook reads it. The frozen table holds | None, and that is the test |
-| 3. Steps before the build | Conversation and agent steps before the build, with sign-off, refusal as an edit, and the artifact's headings | A board can add a spec and a plan |
-| 4. Steps after the build | Judging steps with their way back; human steps anywhere; the waiting state | A board can add a test evaluation or an architecture verification |
-| 5. Reopening | Reopen, the update that runs through, the halted build and its choice | An accepted spec can change without starting over |
-| 6. Setup | The pipeline agent offers steps; the definition's editor in Gaia | A board is set up without writing a definition by hand |
-| 7. Entities | A definition for each entity | Each app and package has its own steps |
+| 0. Base and baseline | The rework landed; the frozen table of decision 47 | None |
+| 1. Artifacts | The ticket, the Handoff and each Review as versioned records; the audit trail's new records | None |
+| 2. Hook points | The state of a ticket at a hook point, on every path, with empty lists | None, and that is the test |
+| 3. Hooks by command and agent | Snapshots, blocking and producing hooks, once per version, the counts, the bounds, could not run | A board can add a check or a notifier |
+| 4. Hooks by a person | Approval hooks, red that asks a person, the edit session, what an approver sees | A board can add an approval at any hook point |
+| 5. The plan | The plan phase, alone and as a conversation; the plan in the builder's and reviewer's messages | A board can switch a plan on |
+| 6. Reopening | Reopen, the update that runs through, pins, the halted build and its choice | An accepted plan can change without starting over |
+| 7. Setup | The pipeline agent proposes hooks and a plan; the lists in Gaia | A board is extended without editing a file |
+| 8. Entities | Hooks and plan per entity, and in a crossing | Each app and package has its own |
 
-## 9. Left out on purpose
+## 10. Left out on purpose
 
-- A short lane for small tickets (decision 7).
-- A trigger outside forge, and with it the question of which is the truth after an import (decision 10).
-- Identity, permissions and roles that are enforced (decision 1).
-- Two steps of one ticket at the same time (decision 5).
-- A step over several tickets, such as a sign-off on a release.
-- An artifact kept as a file in the repository, or in a system outside forge (decision 4 keeps it possible).
+- A phase that a board defines, and any other order of phases.
+- A hook that is a conversation, and a hook that changes code. So a hook cannot commit a design record or a
+  changelog, and a separate agent cannot write tests before the build.
+- A hook on the merged tree. Only the merge gates see it.
+- A hook that runs once for a release instead of once for a ticket.
+- Two hooks of one hook point at the same time.
+- A short lane for small tickets.
+- A trigger outside forge. A hook after the merge can already report to another system.
+- Identity, permissions and roles that are enforced.
 
-## 10. Risks
+## 11. Risks
 
-1. **A step that nothing accepts** (decision 15) hands whatever it produced to every later step. Decisions 19 and 24
-   check that the output exists and has its headings, and nothing checks that it is right.
-2. **An update that runs through** (decisions 13 and 23) can spend a build, a review and their gates again for a
-   one-word change of a spec. Forge shows what an update will run before a person reopens.
-3. **A ticket that waits in mid-pipeline** (decision 8) ages while its target moves. The Airlock still catches a
-   conflict at the landing, later than a person would like.
-4. **The baseline is the test of stage 2,** and it is only as good as the frozen table. A path the table misses can
-   change without a spec going red.
-5. **The views were built for fixed statuses** during the rework. Stage 2 changes what they read.
-6. **A definition for each entity** multiplies what the pipeline agent designs and what a reader has to learn.
-7. **Ten decisions are recommendations** the owner has not answered (19 to 28). Decisions 20, 25 and 28 shape the
-   most code.
+1. **What a producing hook leaves is unchecked** beyond its headings. It reaches an agent as data and not as
+   instruction (decision 19), and an agent may still believe it.
+2. **A builder can write for the judge.** A judging hook that reads the Handoff reads text the builder addressed to
+   it. A judge's brief should make it look at the code and the plan.
+3. **Judges multiply false reds.** Four judging hooks that are each wrong one time in ten send about a third of all
+   tickets back for nothing. A noisy judge belongs on "halt for a person".
+4. **An accept on a red lets work through that a check refused.** It needs a reason and is on record (decision 32),
+   and nothing bounds how often a board does it.
+5. **Each agent hook that reads code costs about as much as a review,** and it runs once per version, one after the
+   other.
+6. **Waiting for every hook** puts each one in the path of every ticket, up to its bound.
+7. **A person is asked often.** Every approval hook is one more request per ticket, and one more for each version
+   that changed what it covers.
+8. **A halted ticket ages** while its target moves. The Airlock still catches a conflict at the merge.
+9. **The state at a hook point touches every path** that moves a ticket today (decision 26). It is the largest and
+   riskiest single change.
+10. **A hook with a secret cannot look at code** (decision 21), which rules out a check that needs both, such as a
+    migration tried against a staging system.
+11. **Twenty-eight decisions were accepted as a set** (17 to 44). Decisions 26, 30 and 36 shape the most code.
