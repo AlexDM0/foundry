@@ -3,9 +3,14 @@
  * whitelists and depends on ui, which has a review step; admin depends on ui; ui depends on config; docs is a package with no build.
  * The board is the monorepo design board moved back to the entities step, with this draft and no edit yet. Test-only.
  */
-import type { BoardDocument }                                                                          from '../../@types/board/BoardDocument.ts';
-import type { BoardPipelineDefinitionDocument, BoardPipelineEntityDocument, BoardSetupRecordDocument } from '../../@types/board/BoardPipelineDocuments.ts';
-import { pipelineBoardStateOf }                                                                        from './PipelineFixture.ts';
+import type { BoardDocument } from '../../@types/board/BoardDocument.ts';
+import type {
+  BoardPipelineDefinitionDocument,
+  BoardPipelineEntityDocument,
+  BoardPipelineSetupDocument,
+  BoardSetupRecordDocument
+} from '../../@types/board/BoardPipelineDocuments.ts';
+import { pipelineBoardStateOf, servedDraftEntitiesOf } from './PipelineFixture.ts';
 
 function entityOf(kind: BoardPipelineEntityDocument['kind'], home: string[], changes: Partial<BoardPipelineEntityDocument> = {}): BoardPipelineEntityDocument {
   return {
@@ -54,8 +59,11 @@ export function entitiesStepDraftOf(entities: Readonly<Record<string, BoardPipel
   };
 }
 
-/** The setup board at the entities step; `changes` replace keys of its record, such as the edits or the draft. */
-export function entitiesStepBoardOf(changes: Partial<BoardSetupRecordDocument> = {}): BoardDocument {
+/**
+ * The setup board at the entities step; `changes` replace keys of its record, such as the edits or the draft, and `setupChanges` the facts
+ * the forge serves beside it, such as the entity refusals. The draft's entities are served with their pipelines and dependents.
+ */
+export function entitiesStepBoardOf(changes: Partial<BoardSetupRecordDocument> = {}, setupChanges: Partial<BoardPipelineSetupDocument> = {}): BoardDocument {
   const board = pipelineBoardStateOf('mono-design');
   const { setup } = board.pipeline;
   if (setup === null) throw new Error('the fixture mono-design holds a setup');
@@ -77,7 +85,14 @@ export function entitiesStepBoardOf(changes: Partial<BoardSetupRecordDocument> =
     pipeline: {
       ...board.pipeline,
       setup: {
-        ...setup, record, entities: null, openQuestionCount: 0
+        ...setup,
+        record,
+        entities:          null,
+        openQuestionCount: 0,
+        draftEntities:     record.draft === null ? {} : servedDraftEntitiesOf(record.draft),
+        entityRefusals:    [],
+        applyRefusal:      null,
+        ...setupChanges,
       },
       flow: null
     },

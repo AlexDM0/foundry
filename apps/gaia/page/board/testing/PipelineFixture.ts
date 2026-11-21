@@ -2,7 +2,7 @@
  * Synthetic pipeline facts in the page's board contract, one whole board per designed state, by name, so a spec reads
  * `pipelineBoardStateOf('A2-question-open')` and no view keeps fixtures of its own. Every value is example data on the Example Agency board;
  * each state is built when it is asked for. The `mono-` states are a forge over entities: the facts of each entity beside the forge's.
- * The states the shell's and the pipeline models' specs read are here; a package that moves a pipeline view adds the states it draws.
+ * Every state the Bridge's pipeline specs drew is here, in the page's contract.
  * Test-only.
  */
 import type { BoardDocument, BoardUsageWindowDocument } from '../../@types/board/BoardDocument.ts';
@@ -10,7 +10,9 @@ import type { BoardJobDocument }                        from '../../@types/board
 import type {
   BoardAgentPairDocument,
   BoardAppliedPipelineDocument,
+  BoardApplyStateDocument,
   BoardConstitutionDraftDocument,
+  BoardDraftEntityFactsDocument,
   BoardEntityFlowDocument,
   BoardFlowEdgeDocument,
   BoardFlowNodeDocument,
@@ -41,8 +43,12 @@ import type {
   BoardMergePlacement,
   BoardNodeDialogTarget,
   BoardPipelineAgentRole,
-  BoardPipelineNodeMark
+  BoardPipelineNodeMark,
+  BoardProfileRunState
 } from '../../@types/board/BoardVocabulary.ts';
+import { BOARD_FORGE_LEVEL_AGENT_ROLES }               from '../../@types/board/BoardVocabulary.ts';
+import type { ProfileLogFollower, TranscriptFollower } from '../@types/BoardServices.ts';
+import type { BoardClock }                             from '../shell/BoardClock.ts';
 import {
   boardStateFixture,
   exampleAgentJob,
@@ -53,20 +59,44 @@ import {
 export type PipelineFixtureName =
   | 'A0'
   | 'A0-unreadable'
+  | 'A0b-running'
+  | 'A0b-at-billing'
+  | 'A0b-stopped'
+  | 'A0b-main-moved'
   | 'A0b-recheck'
+  | 'A0b-apply-pending'
   | 'A1'
+  | 'A3b'
+  | 'A3b-anchored-line-edited'
   | 'A2'
   | 'A2-question-open'
+  | 'A2-designing'
+  | 'A3-constitution-removed'
+  | 'A3-fable-xhigh'
+  | 'A4'
+  | 'A4-committing'
+  | 'A4-held'
+  | 'A4-refused-unsigned'
   | 'A5'
   | 'A6'
   | 'A6-drawn-changes'
+  | 'A6-re-review-removed'
+  | 'A6b'
   | 'A7'
+  | 'A7-insert-menu-open'
   | 'A7-human-code-review-without-review'
   | 'flow-merge-before-review'
   | 'flow-human-code-review-proposal'
+  | 'flow-human-code-review-live'
+  | 'flow-re-review-off'
+  | 'profile-running'
+  | 'profile-timed-out'
+  | 'profile-stopped'
+  | 'profile-passed'
   | 'header-both-usage-windows'
   | 'header-no-usage-windows'
   | 'mono-design'
+  | 'mono-editing'
   | 'mono-live';
 
 export const PIPELINE_FIXTURE_SETUP_ID = 'S1';
@@ -77,6 +107,19 @@ export const PIPELINE_FIXTURE_AGENT_JOB_ID = 'J4';
 export const PIPELINE_FIXTURE_NOW = new Date('2026-11-12T09:30:00Z');
 
 const PIPELINE_AGENT_LAUNCHED_AT = '2026-11-12T09:27:20Z';
+
+/** What the Pipeline view takes beside its facts and route: followers that stream nothing, and a clock that stands still. */
+export function pipelineViewServicesOf(followTranscript: TranscriptFollower = () => ({ close: () => undefined })): {
+  readonly followTranscript: TranscriptFollower;
+  readonly followProfileLog: ProfileLogFollower;
+  readonly clock:            BoardClock;
+} {
+  return {
+    followTranscript,
+    followProfileLog: () => () => undefined,
+    clock:            { now: () => PIPELINE_FIXTURE_NOW, everySecond: () => () => undefined, after: () => () => undefined },
+  };
+}
 
 export const PIPELINE_CHOICES_FIXTURE: BoardPipelineChoicesDocument = {
   models:  ['haiku', 'sonnet', 'opus', 'fable'],
@@ -121,14 +164,14 @@ const CONSTITUTION_MARKDOWN = [
 
 const NO_PHASES = { build: [], review: [], merge: [] } as const;
 
-function exampleGate(name: string, run: string, changes: Partial<BoardPipelineGateDocument> = {}): BoardPipelineGateDocument {
+export function exampleGate(name: string, run: string, changes: Partial<BoardPipelineGateDocument> = {}): BoardPipelineGateDocument {
   return {
     name, run, fix: null, runsIn: null, network: [], writes: [], ...changes,
   };
 }
 
 /** A pipeline as the forge holds it, everything it leaves out absent, unless the changes say otherwise. */
-function examplePipeline(changes: Partial<BoardPipelineDefinitionDocument> = {}): BoardPipelineDefinitionDocument {
+export function examplePipeline(changes: Partial<BoardPipelineDefinitionDocument> = {}): BoardPipelineDefinitionDocument {
   return {
     version:          3,
     prepare:          [],
@@ -448,12 +491,14 @@ function minimalFlow(changes: Partial<BoardPipelineFlowDocument> = {}): BoardPip
   };
 }
 
-function constitutionDraft(): BoardConstitutionDraftDocument {
+const ANCHORED_LINE = '- Use TypeScript in strict mode.';
+
+function constitutionDraft(changes: Partial<BoardConstitutionDraftDocument> = {}): BoardConstitutionDraftDocument {
   return {
     markdown:    CONSTITUTION_MARKDOWN,
     annotations: [
       {
-        lineText: '- Use TypeScript in strict mode.', occurrence: 1, kind: 'research', path: 'tsconfig.json',
+        lineText: ANCHORED_LINE, occurrence: 1, kind: 'research', path: 'tsconfig.json',
       },
       {
         lineText: '- Put each spec beside its module.', occurrence: 1, kind: 'contributing', path: 'CONTRIBUTING.md',
@@ -464,6 +509,7 @@ function constitutionDraft(): BoardConstitutionDraftDocument {
     ],
     draftedFrom: { contributing: true, research: true, installedDefault: false },
     revision:    3,
+    ...changes,
   };
 }
 
@@ -539,6 +585,28 @@ function setupRecord(changes: Partial<BoardSetupRecordDocument> = {}): BoardSetu
       },
       {
         findingId: 'F2', topic: 'conventions', label: 'Specs', value: 'beside their module', sourcePaths: ['CONTRIBUTING.md'], script: null, needsRecheck: false,
+      },
+      {
+        findingId:   'F3',
+        topic:       'scripts',
+        label:       'typecheck',
+        value:       null,
+        sourcePaths: ['package.json'],
+        script:      {
+          name: 'typecheck', run: 'bun run typecheck', meaning: 'Checks the example types.', gateCandidate: 'gate', needs: [],
+        },
+        needsRecheck: false,
+      },
+      {
+        findingId:   'F4',
+        topic:       'scripts',
+        label:       'browser-tests',
+        value:       null,
+        sourcePaths: ['package.json'],
+        script:      {
+          name: 'browser-tests', run: 'bun run test:browser', meaning: 'Runs the example browser tests.', gateCandidate: 'unsure', needs: ['network'],
+        },
+        needsRecheck: false,
       },
     ],
     questions:                  [ANSWERED_RESEARCH_QUESTION],
@@ -639,6 +707,22 @@ function setupState(
   changes: Partial<BoardDocument> = {},
 ): BoardDocument {
   return pipelineBoardState({ setup: setupFacts(record, factChanges), ...pipelineChanges }, changes);
+}
+
+function applyState(changes: Partial<BoardApplyStateDocument> & Pick<BoardApplyStateDocument, 'state'>): BoardApplyStateDocument {
+  return {
+    draftRevision: 7, resumesBoard: true, reason: null, blockingFiles: [], ticketIdHoldingMain: null, ...changes,
+  };
+}
+
+function profileRun(state: BoardProfileRunState, elapsedMilliseconds: number | null): BoardGateProfileRunDocument {
+  return {
+    profileRunId: 'P1', entity: null, gateName: 'browser-tests', phase: 'merge', state, elapsedMilliseconds, cacheReport: null,
+  };
+}
+
+function profileState(state: BoardProfileRunState, elapsedMilliseconds: number | null): BoardDocument {
+  return setupState(setupRecord(), {}, { flow: proposalFlow(), profileRuns: [profileRun(state, elapsedMilliseconds)] });
 }
 
 const LIVE_OCCUPANTS: readonly BoardFlowOccupantDocument[] = [
@@ -752,6 +836,23 @@ function drawnChangesState(): BoardDocument {
   });
 }
 
+/** The merge train's re-review removed: its node is not drawn, its + comes back, and the Changes tab lists it. */
+function reReviewRemovedState(): BoardDocument {
+  const draft = examplePipeline({ ...PROPOSED_PIPELINE, airlock: { reReview: null } });
+  const edits: BoardSetupEditDocument[] = [{
+    editId: 'E14', by: 'user', field: 'airlock', summary: 'Example: the merge train runs no re-review.', undone: false, batch: null,
+  }];
+  return setupState(updateRecord({ draft, edits }), { agentJobState: null }, {
+    applied: APPLIED_PIPELINE,
+    flow:    flowOf({
+      pipeline: draft, stage: 'editing', mark: 'unchanged', humanCodeReview: false, applied: true,
+    }, {
+      changeList:  [{ field: 'airlock', changeKind: 'removed', editId: 'E14' }],
+      insertSlots: [{ slotId: 'airlock', after: 'merge-in-airlock', offeredSteps: ['merge-gates', 'airlock-re-review'] }],
+    }),
+  });
+}
+
 function minimalState(): BoardDocument {
   return setupState(updateRecord({ draft: MINIMAL_PIPELINE }), { agentJobState: null }, {
     applied: APPLIED_PIPELINE,
@@ -763,7 +864,7 @@ function usageState(windows: readonly BoardUsageWindowDocument[]): BoardDocument
   return pipelineBoardState({ applied: APPLIED_PIPELINE, flow: liveFlow() }, { usage: { resetsAt: null, window: null, windows } });
 }
 
-function exampleEntity(kind: BoardPipelineEntityDocument['kind'], home: string[], changes: Partial<BoardPipelineEntityDocument> = {}): BoardPipelineEntityDocument {
+export function exampleEntity(kind: BoardPipelineEntityDocument['kind'], home: string[], changes: Partial<BoardPipelineEntityDocument> = {}): BoardPipelineEntityDocument {
   return {
     kind,
     home,
@@ -836,6 +937,55 @@ function entityFlowsOf(stage: BoardFlowStage, mark: BoardPipelineNodeMark, appli
 }
 
 /** The forge's flow, which holds no gate, with each entity's flow beside it. */
+/**
+ * The entity's pipeline as the forge serves it: the entity's own steps, review, constitution, reach and agents, with the forge's merge
+ * train, approvals, billing and forge-level agents.
+ */
+function servedEntityPipelineOf(pipeline: BoardPipelineDefinitionDocument, entity: BoardPipelineEntityDocument): BoardPipelineDefinitionDocument {
+  const forgeLevelAgents = Object.fromEntries(Object.entries(pipeline.agents).filter(([role]) => (BOARD_FORGE_LEVEL_AGENT_ROLES as readonly string[]).includes(role)));
+  return examplePipeline({
+    prepare:          entity.prepare,
+    gates:            entity.gates,
+    phases:           entity.phases,
+    review:           entity.review,
+    airlock:          pipeline.airlock,
+    constitutionPath: entity.constitutionPath,
+    agents:           { ...forgeLevelAgents, ...entity.agents },
+    approvals:        pipeline.approvals,
+    billing:          pipeline.billing,
+    reach:            entity.reach,
+  });
+}
+
+function servedEntityPipelinesOf(pipeline: BoardPipelineDefinitionDocument): Record<string, BoardPipelineDefinitionDocument> {
+  return Object.fromEntries(Object.entries(pipeline.entities ?? {}).map(([entityKey, entity]) => [entityKey, servedEntityPipelineOf(pipeline, entity)]));
+}
+
+/** The entities that depend on one, directly or through another, as the forge serves them. */
+function servedDependentKeysOf(entities: Readonly<Record<string, BoardPipelineEntityDocument>>, entityKey: string): string[] {
+  const reachedKeys = new Set([entityKey]);
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const [candidateKey, candidate] of Object.entries(entities)) {
+      if (!reachedKeys.has(candidateKey) && candidate.dependsOn.some((dependencyKey) => reachedKeys.has(dependencyKey))) {
+        reachedKeys.add(candidateKey);
+        grew = true;
+      }
+    }
+  }
+  return Object.keys(entities).filter((candidateKey) => candidateKey !== entityKey && reachedKeys.has(candidateKey));
+}
+
+/** Each entity of a draft as the forge serves it: its pipeline as it would run, and every entity that consumes it. */
+export function servedDraftEntitiesOf(draft: BoardPipelineDefinitionDocument): Record<string, BoardDraftEntityFactsDocument> {
+  const entities = draft.entities ?? {};
+  return Object.fromEntries(Object.entries(entities).map(([entityKey, entity]) => [entityKey, {
+    effectivePipeline:   servedEntityPipelineOf(draft, entity),
+    dependentEntityKeys: servedDependentKeysOf(entities, entityKey),
+  }]));
+}
+
 function monorepoFlowOf(stage: BoardFlowStage, mark: BoardPipelineNodeMark, applied: boolean, changes: Partial<BoardPipelineFlowDocument> = {}): BoardPipelineFlowDocument {
   return flowOf({
     pipeline: MONOREPO_PIPELINE, stage, mark, humanCodeReview: false, applied,
@@ -848,7 +998,7 @@ const MONOREPO_APPLIED_PIPELINE: BoardAppliedPipelineDocument = {
   contentHash:     'example-content-hash-0004',
   fileText:        `${JSON.stringify({ ...MONOREPO_PIPELINE, version: 4 }, null, 2)}\n`,
   application:     { appliedRevision: 1, appliedAt: '2026-11-12T10:30:00', constitutionCommit: '4444444444444444444444444444444444444444' },
-  entityPipelines: {},
+  entityPipelines: servedEntityPipelinesOf(MONOREPO_PIPELINE),
 };
 
 /** A profile of the web entity's typecheck while the design system's typecheck of the same phase keeps its own newest run. */
@@ -922,7 +1072,7 @@ function monorepoDesignState(): BoardDocument {
     web: { ...webFlow, nodes: webFlow.nodes.map((node) => (node.nodeId === 'gates-build' ? { ...node, questionIds: ['Q4'] } : node)) },
   };
   const entities = { 'web': webFacts, 'design-system': designSystemFacts, 'root': setupEntityFacts() };
-  return setupState(record, { entities }, { flow: { ...flow, entityFlows } });
+  return setupState(record, { entities, draftEntities: servedDraftEntitiesOf(MONOREPO_PIPELINE) }, { flow: { ...flow, entityFlows } });
 }
 
 /** The product owner's draft, a builder in web and one in the design system, web's ticket in the Airlock, and a ticket queued with no job. */
@@ -1016,9 +1166,12 @@ function withMonorepoTickets(board: BoardDocument): BoardDocument {
 }
 
 /** Web holds at most one job at once, so its committed ticket waits for a slot while its build runs. */
+const MONOREPO_LIVE_DEFINITION = examplePipeline({ ...MONOREPO_PIPELINE, entities: { ...MONOREPO_PIPELINE.entities, web: { ...WEB_ENTITY, concurrency: 1 } } });
+
 const MONOREPO_LIVE_PIPELINE: BoardAppliedPipelineDocument = {
   ...MONOREPO_APPLIED_PIPELINE,
-  pipeline: { ...MONOREPO_PIPELINE, entities: { ...MONOREPO_PIPELINE.entities, web: { ...WEB_ENTITY, concurrency: 1 } } },
+  pipeline:        MONOREPO_LIVE_DEFINITION,
+  entityPipelines: servedEntityPipelinesOf(MONOREPO_LIVE_DEFINITION),
 };
 
 function monorepoLiveState(): BoardDocument {
@@ -1034,10 +1187,73 @@ function monorepoLiveState(): BoardDocument {
   }));
 }
 
+/** The edits of an update over entities: merge approval at the forge, web's typecheck, and a copy of web's unit tests to the design system. */
+const MONOREPO_EDITS: readonly BoardSetupEditDocument[] = [
+  {
+    editId: 'E1', by: 'user', field: 'approval:merge', summary: '', undone: false, batch: null,
+  },
+  {
+    editId: 'E2', by: 'user', field: 'entity:web/gate:typecheck', summary: 'Example: typecheck runs incrementally.', undone: false, batch: null,
+  },
+  {
+    editId: 'E3', by: 'user', field: 'entity:design-system/gate:unit-tests', summary: 'Copied gates from web', undone: false, batch: 'E3',
+  },
+  {
+    editId: 'E4', by: 'user', field: 'entity:design-system/phase-order:build', summary: 'Copied gates from web', undone: false, batch: 'E3',
+  },
+];
+
+const MONOREPO_EDITED_DRAFT = examplePipeline({
+  ...MONOREPO_PIPELINE,
+  approvals: { tickets: true, merge: true },
+  entities:  {
+    'web':           { ...WEB_ENTITY, gates: [exampleGate('typecheck', 'bun run typecheck --incremental'), exampleGate('unit-tests', 'bun test')] },
+    'design-system': {
+      ...DESIGN_SYSTEM_ENTITY,
+      gates:  [...DESIGN_SYSTEM_ENTITY.gates, exampleGate('unit-tests', 'bun test')],
+      phases: { ...DESIGN_SYSTEM_ENTITY.phases, build: ['typecheck', 'unit-tests'] },
+    },
+    'root': ROOT_ENTITY,
+  },
+});
+
+/** An update of the pipeline over entities: four changes in three levels, two of them one copy, and two tickets in flight. */
+function monorepoEditingState(): BoardDocument {
+  const record = updateRecord({ draft: MONOREPO_EDITED_DRAFT, draftRevision: 4, edits: [...MONOREPO_EDITS] });
+  const changeList: BoardPipelineChangeDocument[] = [
+    { field: 'approval:merge', changeKind: 'changed', editId: 'E1' },
+    { field: 'entity:web/gate:typecheck', changeKind: 'changed', editId: 'E2' },
+    { field: 'entity:design-system/gate:unit-tests', changeKind: 'new', editId: 'E3' },
+    { field: 'entity:design-system/phase-order:build', changeKind: 'changed', editId: 'E4' },
+  ];
+  const entities = { 'web': setupEntityFacts(), 'design-system': setupEntityFacts(), 'root': setupEntityFacts() };
+  return withMonorepoTickets(setupState(record, { agentJobState: null, entities, draftEntities: servedDraftEntitiesOf(MONOREPO_EDITED_DRAFT) }, {
+    applied: MONOREPO_APPLIED_PIPELINE,
+    flow:    monorepoFlowOf('editing', 'unchanged', true, { changeList, ticketIdsInFlight: ['21', '22'] }),
+  }));
+}
+
 const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument>> = {
-  'A0':            () => pipelineBoardState({}),
-  'A0-unreadable': () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 3 }\n' } }),
-  'A0b-recheck':   () => setupState(setupRecord({
+  'A0':             () => pipelineBoardState({}),
+  'A0-unreadable':  () => pipelineBoardState({ applied: { readingVerdict: 'malformed', reason: 'gates[1] has no run line', fileText: '{ "version": 3 }\n' } }),
+  'A0b-running':    () => setupState(setupRecord()),
+  'A0b-at-billing': () => setupState(setupRecord({
+    stepStates: {
+      billing: 'in-progress', research: 'not-started', entities: null, constitution: 'not-started', design: 'not-started', apply: 'not-started',
+    },
+    currentStep:     'billing',
+    findings:        [],
+    constitution:    null,
+    draft:           null,
+    draftRevision:   0,
+    edits:           [],
+    readyToContinue: [],
+    questions:       [],
+  })),
+  'A0b-stopped':       () => setupState(setupRecord(), { agentJobState: null }),
+  'A0b-main-moved':    () => setupState(setupRecord(), { mainMovedByCommits: 3 }),
+  'A0b-apply-pending': () => setupState(setupRecord(), { applyState: applyState({ state: 'committing' }) }),
+  'A0b-recheck':       () => setupState(setupRecord({
     stepStates: {
       billing: 'done', research: 'in-progress', entities: null, constitution: 'needs-recheck', design: 'needs-recheck', apply: 'not-started',
     },
@@ -1055,11 +1271,54 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
     readyToContinue: ['research'],
     questions:       [setupQuestion({ questionId: 'Q1', step: 'research', subject: { kind: 'finding', reference: 'F4' } })],
   }), {}, {}, { jobs: [...boardStateFixture().jobs, PIPELINE_AGENT_JOB] }),
+  'A3b': () => setupState(setupRecord({
+    stepStates: {
+      billing: 'done', research: 'done', entities: null, constitution: 'in-progress', design: 'not-started', apply: 'not-started',
+    },
+    currentStep: 'constitution',
+    draft:       null,
+  })),
+  'A3b-anchored-line-edited': () => {
+    const editedMarkdown = CONSTITUTION_MARKDOWN.replace(ANCHORED_LINE, '- Use TypeScript in its strictest mode.');
+    const keptAnnotations = constitutionDraft().annotations.filter((annotation) => annotation.lineText !== ANCHORED_LINE);
+    return setupState(setupRecord({
+      stepStates: {
+        billing: 'done', research: 'done', entities: null, constitution: 'in-progress', design: 'not-started', apply: 'not-started',
+      },
+      currentStep:  'constitution',
+      draft:        null,
+      constitution: constitutionDraft({ markdown: editedMarkdown, annotations: keptAnnotations, revision: 4 }),
+    }));
+  },
   'A2':               () => setupState(setupRecord(), {}, { flow: proposalFlow({ changeList: [...PROPOSAL_CHANGES] }) }),
   'A2-question-open': () => {
     const record = setupRecord({ questions: [ANSWERED_RESEARCH_QUESTION, OPEN_DESIGN_QUESTION] });
     return setupState(record, {}, { flow: withNodeChanged(proposalFlow({ changeList: [...PROPOSAL_CHANGES] }), 'gates-merge', { questionIds: ['Q3'] }) });
   },
+  'A2-designing':            () => setupState(setupRecord({ draft: null, edits: [] }), {}, { flow: minimalFlow({ toolbarStage: 'proposal' }) }),
+  'A3-constitution-removed': () => {
+    const builder = { ...WORKER_PAIR, instructions: [{ kind: 'default-brief', role: 'builder' } as const] };
+    const draft = examplePipeline({ ...PROPOSED_PIPELINE, agents: { ...PROPOSED_PIPELINE.agents, builder } });
+    const flow = withNodeChanged(proposalFlow(), 'builder', { instructionEntries: [defaultBriefEntry('builder', ['builder'])] });
+    return setupState(setupRecord({ draft }), { readByRoles: ['reviewer', 'reReviewer', 'conflictReReviewer'] }, { flow });
+  },
+  'A3-fable-xhigh': () => {
+    const fablePair: BoardAgentPairDocument = { model: 'fable', effort: 'xhigh' };
+    const draft = examplePipeline({ ...PROPOSED_PIPELINE, agents: { ...PROPOSED_PIPELINE.agents, builder: { ...fablePair, instructions: null } } });
+    return setupState(setupRecord({ draft }), {}, { flow: withNodeChanged(proposalFlow(), 'builder', { settings: fablePair }) });
+  },
+  'A4':            () => setupState(setupRecord(), {}, { flow: proposalFlow() }),
+  'A4-committing': () => setupState(setupRecord(), { applyState: applyState({ state: 'committing', ticketIdHoldingMain: '14' }) }, { flow: proposalFlow() }),
+  'A4-held':       () => setupState(
+    setupRecord(),
+    { applyState: applyState({ state: 'held', reason: 'dirty-checkout', blockingFiles: ['CONSTITUTION.md'] }) },
+    { flow: proposalFlow() },
+  ),
+  'A4-refused-unsigned': () => setupState(
+    setupRecord(),
+    { applyState: applyState({ state: 'refused', reason: 'constitution-commit-unsigned' }) },
+    { flow: proposalFlow() },
+  ),
   'A5': () => pipelineBoardState({
     applied: APPLIED_PIPELINE,
     flow:    liveFlow({ occupants: [...LIVE_OCCUPANTS], ticketIdsInFlight: ['14', '15', '12'] }),
@@ -1075,7 +1334,10 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
   }),
   'A6':                                  () => editingState(EDITING_CHANGES),
   'A6-drawn-changes':                    () => drawnChangesState(),
+  'A6-re-review-removed':                () => reReviewRemovedState(),
+  'A6b':                                 () => editingState([...EDITING_CHANGES, { field: 'constitution', changeKind: 'changed', editId: 'E8' }]),
   'A7':                                  () => minimalState(),
+  'A7-insert-menu-open':                 () => minimalState(),
   'A7-human-code-review-without-review': () => {
     const draft = examplePipeline({ approvals: { merge: true } });
     return setupState(updateRecord({ draft }), { agentJobState: null }, {
@@ -1097,6 +1359,27 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
       }),
     });
   },
+  'flow-human-code-review-live': () => {
+    const pipeline = examplePipeline({ ...PROPOSED_PIPELINE, approvals: { tickets: true, merge: true } });
+    return pipelineBoardState({
+      applied: { ...APPLIED_PIPELINE, pipeline },
+      flow:    flowOf({
+        pipeline, stage: 'live', mark: 'unchanged', humanCodeReview: true, applied: true,
+      }, { occupants: [...LIVE_OCCUPANTS] }),
+    });
+  },
+  'flow-re-review-off': () => {
+    const draft = examplePipeline({ ...PROPOSED_PIPELINE, review: { name: 'review', reReview: null }, airlock: { reReview: null } });
+    return setupState(setupRecord({ draft }), {}, {
+      flow: flowOf({
+        pipeline: draft, stage: 'proposal', mark: 'proposed', humanCodeReview: false, applied: false,
+      }),
+    });
+  },
+  'profile-running':           () => profileState('running', 41_000),
+  'profile-timed-out':         () => profileState('timed-out', 600_000),
+  'profile-stopped':           () => profileState('stopped', 12_000),
+  'profile-passed':            () => profileState('passed', 94_000),
   'header-both-usage-windows': () => usageState([
     {
       window: 'five_hour', lengthHours: 5, utilization: 14, resetsAt: '2026-11-12T15:00:00'
@@ -1107,6 +1390,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
   ]),
   'header-no-usage-windows': () => usageState([]),
   'mono-design':             () => monorepoDesignState(),
+  'mono-editing':            () => monorepoEditingState(),
   'mono-live':               () => monorepoLiveState(),
 };
 

@@ -801,6 +801,8 @@ const BOARD_SAME_IN_BOTH_THEMES_TOKENS: readonly string[] = [
   '--flint-bulb-contact',
   '--flint-husk',
   '--flint-ribbon',
+  // What lets the surface under it show, as the Bridge's styles wrote it.
+  '--see-through',
 ];
 /** The board's text pairs, each at 4.5:1 in both themes; the package that moves a board view in names its pairs here. */
 const BOARD_TEXT_PAIRS: readonly TextPair[] = [

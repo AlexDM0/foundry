@@ -5,6 +5,7 @@
  */
 import { PAGE_CONTRACT_VERSIONS }    from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument } from '../../../../@types/board/BoardCommandDocument.ts';
+import type { BoardDocument }        from '../../../../@types/board/BoardDocument.ts';
 import type {
   BoardDraftEditDocument,
   BoardFlowNodeDocument,
@@ -431,7 +432,13 @@ function removedStepsTextOf(changeList: readonly BoardPipelineChangeDocument[]):
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
+/** A node's wording on a board: the efforts its choices offer, and the rework threshold its limits serve. */
+function flowWordingOf(facts: Pick<BoardDocument, 'pipeline' | 'limits'>): FlowWording {
+  return { efforts: facts.pipeline.choices.efforts, reworkThresholdLines: facts.limits.reworkRoundThresholdLines };
+}
+
 export const PipelineFlowModel = Object.freeze({
+  flowWordingOf,
   changeOfMark,
   draftEditCommandOf,
   nodeAsksQuestion,

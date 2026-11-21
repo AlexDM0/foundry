@@ -73,3 +73,1131 @@
     animation: board-pulse var(--pulse-status) ease-in-out infinite;
   }
 }
+
+/* The pipeline view's screens: setup, entities, the flow and its phases, the gates, the dialogs, Apply, editing and the live pipeline. */
+
+/* --------------------------------------------------------------- pipeline -- */
+.board-pipeline-unreadable-notice { margin-bottom: var(--sp-4); }
+
+/* The Pipeline view: the screen's title over the screen. */
+.board-pipeline { display: flex; flex-direction: column; gap: var(--sp-4); }
+
+.board-pipeline-title { margin: 0; font: 600 var(--fs-page)/1.2 var(--font-ui); color: var(--ink); }
+
+/* The setup pages (A0Setup, A0bResume), as FlowSetup and FlowResume draw them. The billing step's cards sit on the surface with the
+   board's strong line and the section radius: the Billing step card, its head over a hairline with the signal dot of the current step,
+   the two billing cards in the question colours, and the four phases of "What the pipeline decides" as step cards. The pipeline agent's
+   panel lists what Flint does, numbered, over the quiet note. The resume summary is one centred 760 px column. */
+.board-pipeline-setup-card {
+  display: flex; flex-direction: column; flex-shrink: 0;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-setup-card-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: var(--sp-4); padding: 16px 22px 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.board-pipeline-setup-step-dot { flex: none; width: 8px; height: 8px; border-radius: var(--r-pill); background: var(--signal); }
+
+.board-pipeline-billing-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); padding: 16px 22px 18px; }
+
+.board-pipeline-billing-cap { display: flex; align-items: center; gap: 10px; padding-top: 6px; font-size: var(--fs-body); color: var(--ink-muted); }
+
+.board-pipeline-billing-cap-field {
+  display: inline-flex; align-items: center; gap: 4px; height: 32px; box-sizing: border-box; padding: 0 10px;
+  color: var(--ink-4); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+
+.board-pipeline-billing-cap-input { width: 72px; padding: 0; font: inherit; font-size: var(--fs-lead); color: var(--ink); background: var(--see-through); border: 0; }
+
+.board-pipeline-billing-cap-input::placeholder { color: var(--ink-4); }
+
+.board-pipeline-billing-cap-input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-setup-phases { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px 22px 18px; }
+
+.board-pipeline-setup-agent-steps { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-setup-agent-step { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+
+.board-pipeline-setup-agent-step:last-child { border-bottom: 1px solid var(--line); }
+
+.board-pipeline-setup-agent-step-number { display: flex; flex: none; width: 14px; }
+
+.board-pipeline-setup-agent-note {
+  display: flex; flex-direction: column; gap: 6px; margin-top: auto; padding: 12px 14px; background: var(--wash); border-radius: var(--r-2);
+}
+
+.board-pipeline-resume { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; min-height: 0; }
+
+.board-pipeline-resume-column {
+  display: flex; flex: 1 1 auto; flex-direction: column; gap: 20px; width: 100%; max-width: 760px; margin: 0 auto; padding: 40px 0 20px;
+}
+
+.board-pipeline-resume-recheck { margin-right: 6px; font-weight: 600; color: var(--link); }
+
+@media (max-width: 900px) {
+  .board-pipeline-billing-cards,
+.board-pipeline-setup-phases { grid-template-columns: minmax(0, 1fr); }
+
+  .board-pipeline-setup-card-head { flex-direction: column; align-items: flex-start; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-pipeline-setup-card,
+.board-pipeline-resume-steps {
+    animation: board-rise var(--motion-rise) var(--ease-out) both;
+  }
+}
+
+/* The Focus layout of every stage that draws the flow: the main column (the title row, the phase stepper, the open phase) beside the
+   stage's 388 px panel column, over the stage's full-width footer. The column holds the panel slot, a wrapper of the board's own sized
+   to its contents; an empty slot takes no room. */
+.board-pipeline-focus { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; min-height: 0; }
+
+.board-pipeline-focus-body { display: flex; flex: 1 1 auto; align-items: stretch; gap: var(--sp-5); min-height: 0; }
+
+/* The main column scrolls inside the page; its 4 px side padding keeps a focus ring inside the scroll box. */
+.board-pipeline-focus-main {
+  display: flex; flex: 1 1 0; flex-direction: column; gap: var(--sp-4); min-width: 0; min-height: 0;
+  margin: 0 -4px; padding: var(--sp-2) 4px 20px; overflow-y: auto;
+}
+
+.board-pipeline-focus-aside { display: flex; flex: 0 0 388px; flex-direction: column; min-width: 0; min-height: 0; margin: var(--sp-2) 0 20px; }
+
+.board-pipeline-focus-aside:has(> .board-pipeline-focus-panel:empty) { display: none; }
+
+.board-pipeline-focus-panel { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-4); min-width: 0; min-height: 0; }
+
+.board-pipeline-focus-panel > .board-pipeline-panel { flex: 1 1 auto; min-height: 0; }
+
+/* A page's lead under its title keeps a readable measure, as the Flow boards wrap it. */
+.board-pipeline-focus-main h2 + p { max-width: 800px; }
+
+/* The footer bar runs edge to edge, as the Flow boards draw it; its own padding keeps the page gutter. */
+.board-pipeline-focus-footer,
+.board-pipeline-resume-footer { flex: none; margin: 0 calc(-1 * var(--page-gutter)); }
+
+/* Every pipeline page is one viewport tall, as the Flow boards draw it: the main column and the panel's body scroll inside it and the
+   footer bar stays at the bottom; a viewport shorter than the floor scrolls the page instead. Flint's home corner stands above the
+   footer, so it never covers the footer's actions. */
+body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) { height: 100dvh; }
+
+body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) #board-root { height: 100%; }
+
+body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-shell { display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) .board-flint-home { bottom: 72px; }
+
+.board-panel[data-tab="pipeline"]:has(:is(.board-pipeline-focus, .board-pipeline-resume)) {
+  display: flex; flex: 1 1 auto; flex-direction: column; min-height: 560px; padding-bottom: 0;
+}
+
+.board-pipeline:has(:is(.board-pipeline-focus, .board-pipeline-resume)),
+.board-pipeline > :is(.board-pipeline-research, .board-entities-step, .board-pipeline-constitution, .board-pipeline-design) { flex: 1 1 auto; min-height: 0; }
+
+.board-pipeline-glyph {
+  flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.board-pipeline-glyph:is([data-glyph="agent"], [data-glyph="gates"], [data-glyph="check"]) { color: var(--tone-success); }
+
+.board-pipeline-glyph:is([data-glyph="plus"], [data-glyph="check"]) { width: 12px; height: 12px; stroke-width: 1.5; }
+
+.board-pipeline-glyph:is([data-glyph="chevron"], [data-glyph="arrow"]) { align-self: center; height: 12px; color: var(--line-strong); }
+
+.board-pipeline-glyph[data-glyph="chevron"] { width: 18px; stroke-width: 1.5; }
+
+.board-pipeline-glyph[data-glyph="arrow"] { width: 22px; stroke-width: 1.4; }
+
+/* The phase stepper: four equal tabs with chevrons between them; the open phase takes the orange tint and edge. A phase dot is its
+   phase's colour, a ring when no step of the phase runs. */
+.board-pipeline-phase-stepper { display: flex; align-items: stretch; }
+
+.board-pipeline-phase-tab {
+  display: flex; flex: 1 1 0; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; min-height: 58px;
+  box-sizing: border-box; margin: 0; padding: 6px 14px;
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-3);
+  transition: var(--feedback-transition);
+}
+
+.board-pipeline-phase-tab:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+
+.board-pipeline-phase-tab:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-phase-tab[aria-pressed="true"] { background: var(--link-tint); border-color: var(--accent-edge); }
+
+.board-pipeline-phase-tab-head { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+
+.board-pipeline-phase-tab-sub { padding-left: var(--sp-4); }
+
+.board-pipeline-phase-dot {
+  flex: none; width: 8px; height: 8px; box-sizing: border-box; border-radius: var(--r-pill); background: var(--signal);
+  transition: background-color var(--motion-base) var(--ease-out), border-color var(--motion-base) var(--ease-out);
+}
+
+.board-pipeline-phase-dot[data-phase="ticket"] { background: var(--phase-ticket); }
+
+.board-pipeline-phase-dot[data-phase="review"] { background: var(--tone-info); }
+
+.board-pipeline-phase-dot[data-phase="merge"] { background: var(--tone-success); }
+
+.board-pipeline-phase-dot[data-ring] { background: var(--see-through); border: 1.5px solid var(--signal); }
+
+.board-pipeline-phase-dot[data-ring][data-phase="ticket"] { border-color: var(--phase-ticket); }
+
+.board-pipeline-phase-dot[data-ring][data-phase="review"] { border-color: var(--tone-info); }
+
+.board-pipeline-phase-dot[data-ring][data-phase="merge"] { border-color: var(--tone-success); }
+
+/* The open phase: an 8 px section whose head says what the phase is for, then its steps from left to right, then its gates table or the
+   Ticket phase's readiness lines, each ruled above. Merge's head ends in the passed "Done on main" pill. */
+.board-pipeline-phase {
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-phase > .board-refusal { padding: 0 22px 10px; }
+
+.board-pipeline-phase-head { display: flex; align-items: flex-end; gap: var(--sp-4); padding: var(--sp-4) 22px 14px; }
+
+.board-pipeline-phase-head-text {
+  display: flex; flex: 1 1 0; flex-direction: column; gap: 2px; min-width: 0;
+  animation: board-rise var(--motion-rise) var(--ease-out) both;
+}
+
+.board-pipeline-phase-head-end { display: flex; flex: none; flex-direction: column; align-items: flex-end; gap: var(--sp-2); }
+
+.board-pipeline-phase-done {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 var(--sp-2);
+  color: var(--pass-ink); font: 500 var(--fs-pill)/1 var(--font-ui); white-space: nowrap;
+  background: var(--pass-tint); border-radius: var(--r-pill);
+  animation: board-pop var(--motion-pop) var(--ease-out) both;
+}
+
+.board-pipeline-phase-steps {
+  display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px 0; padding: var(--sp-4) 22px; border-top: 1px solid var(--line);
+}
+
+/* A step card is the 212 px step ground; it takes the focus itself, and Human code review while on carries the orange tint of what
+   waits on User. An add card is 300 px and dashed on the surface, its choices quiet buttons on the page ground. */
+.board-pipeline-step {
+  display: flex; flex: 0 0 212px; min-width: 0; border-radius: var(--r-2); outline: none;
+  animation: board-rise var(--motion-rise) var(--ease-out) both;
+}
+
+.board-pipeline-step:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-add-step { display: flex; flex: 0 0 300px; min-width: 0; animation: board-rise var(--motion-rise) var(--ease-out) both; }
+
+.board-pipeline-add-step-choice {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; box-sizing: border-box; padding: 7px 9px;
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-2);
+  transition: filter var(--motion-fast) var(--ease-out);
+}
+
+.board-pipeline-add-step-choice:hover:not(:disabled) { filter: brightness(0.94); }
+
+.board-pipeline-add-step-choice:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-add-step-choice:disabled { color: var(--ink-disabled); cursor: not-allowed; }
+
+.board-pipeline-add-step-choice-name { display: flex; align-items: center; gap: 6px; }
+
+.board-pipeline-readiness { display: flex; flex-direction: column; padding: 14px 22px 12px; border-top: 1px solid var(--line); }
+
+.board-pipeline-readiness-lines { display: flex; flex-direction: column; margin: var(--sp-2) 0 0; padding: 0; list-style: none; }
+
+.board-pipeline-readiness-line { display: flex; align-items: center; gap: 10px; min-height: 36px; border-top: 1px solid var(--line); }
+
+@media (max-width: 1100px) {
+  body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) { height: auto; }
+
+  body:has(:is(.board-pipeline-focus, .board-pipeline-resume)) :is(#board-root, .board-shell) { height: auto; }
+
+  .board-pipeline-focus-body { flex-direction: column; align-items: stretch; }
+
+  .board-pipeline-focus-main { flex-basis: auto; overflow-y: visible; }
+
+  .board-pipeline-focus-aside { flex-basis: auto; }
+}
+
+/* An opened phase's step and add cards rise one --rise-step after another, as the Flow boards stagger them (an arrow sits between two
+   cards), and the Merge head's "Done on main" pill pops in. */
+.board-pipeline-phase-steps > :nth-child(n+3) { animation-delay: var(--rise-step); }
+
+.board-pipeline-phase-steps > :nth-child(n+5) { animation-delay: calc(var(--rise-step) * 2); }
+
+.board-pipeline-phase-steps > :nth-child(n+7) { animation-delay: calc(var(--rise-step) * 3); }
+
+.board-pipeline-phase-steps > :nth-child(n+9) { animation-delay: calc(var(--rise-step) * 4); }
+
+@media (prefers-reduced-motion: reduce) {
+  .board-pipeline-phase-head-text,
+.board-pipeline-phase-done,
+.board-pipeline-step,
+.board-pipeline-add-step { animation: none; }
+}
+
+/* A phase's gates table: its head (title, count, line, add buttons), then the rows on the board's grid of columns, which the column
+   heads share past the grip's 14 px; a live table's head names its tickets in place of the add buttons. A removed row stays drawn,
+   struck and faded; a selected row is the wash with the signal edge. The time chip is passed, failed or waiting. */
+.board-pipeline-gates { display: flex; flex-direction: column; min-width: 0; border-top: 1px solid var(--line); }
+
+.board-pipeline-gates-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 22px var(--sp-1);
+}
+
+.board-pipeline-gates[data-empty] .board-pipeline-gates-head { padding: 14px 22px; }
+
+.board-pipeline-gates-rows { display: flex; flex-direction: column; padding: 0 22px var(--sp-2); }
+
+.board-pipeline-gates-columns {
+  display: grid; grid-template-columns: 14px 176px minmax(0, 1fr) 110px 176px 110px; gap: var(--sp-4); align-items: center;
+  height: 28px; color: var(--ink-4); font-size: var(--fs-small);
+}
+
+.board-pipeline-gate-row {
+  display: grid; grid-template-columns: 176px minmax(0, 1fr) 110px 176px 110px; gap: var(--sp-4); align-items: center;
+  min-height: 36px; border-radius: var(--r-1); outline: none;
+}
+
+.board-pipeline-gate-row:focus-visible { box-shadow: 0 0 0 2px var(--link); }
+
+.board-pipeline-gate-row[data-selected] { background: var(--surface-selected); box-shadow: inset 3px 0 0 var(--signal); }
+
+.board-pipeline-gate-name { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
+
+.board-pipeline-gate-name-text { overflow: hidden; color: var(--ink); font-weight: 500; white-space: nowrap; text-overflow: ellipsis; }
+
+.board-pipeline-gate-command {
+  overflow: hidden; color: var(--ink-muted); font: var(--fs-small)/1.3 var(--font-mono); white-space: nowrap; text-overflow: ellipsis;
+}
+
+.board-pipeline-gate-row[data-change="removed"] :is(.board-pipeline-gate-name-text, .board-pipeline-gate-command) { color: var(--ink-4); text-decoration: line-through; }
+
+.board-pipeline-gate-profile { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+.board-pipeline-gate-time {
+  display: inline-flex; align-items: center; height: 22px; box-sizing: border-box; padding: 0 7px;
+  color: var(--ink-muted); font: 500 var(--fs-small)/1 var(--font-ui); white-space: nowrap;
+  background: var(--wash); border: 0; border-radius: var(--r-1);
+}
+
+button.board-pipeline-gate-time { cursor: pointer; transition: filter var(--motion-fast) var(--ease-out); }
+
+button.board-pipeline-gate-time:hover { filter: brightness(0.94); }
+
+.board-pipeline-gate-time:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-gate-time[data-tone="pass"] { color: var(--pass-ink); background: var(--pass-tint); }
+
+.board-pipeline-gate-time[data-tone="fail"] { color: var(--err-ink); background: var(--err-tint); }
+
+/* The smallest pipeline's About tab: the warning as a bordered note on the page ground while no phase has a gate, and where an add
+   card adds a step, each line after its plus. */
+.board-pipeline-minimal-note-warning {
+  display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 14px;
+  background: var(--bg); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+
+.board-pipeline-minimal-note-warning-mark {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; box-sizing: border-box; width: 18px; height: 18px;
+  font-size: var(--fs-micro); font-weight: 700; color: var(--ink); border: 1.5px solid var(--ink); border-radius: var(--r-pill);
+}
+
+.board-pipeline-minimal-note-steps { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.board-pipeline-minimal-note-step-list { display: flex; flex-direction: column; gap: var(--sp-2); margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-minimal-note-step { display: flex; align-items: flex-start; gap: 10px; }
+
+.board-pipeline-minimal-note-step > .board-pipeline-glyph { margin-top: 4px; color: var(--ink); }
+
+/* The research step (A1Reading), as FlowResearch draws it: the status line over the title row, the finding cards two by two and the
+   scripts table on the surface with the board's strong line, each card's head after a green check. Hover changes only the shadow. */
+.board-pipeline-research { display: flex; flex-direction: column; min-width: 0; }
+
+.board-pipeline-research-status {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding-bottom: 4px; font-size: var(--fs-tab); color: var(--ink-muted);
+}
+
+.board-pipeline-research-status-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--line-strong); }
+
+.board-pipeline-research-status:not([data-state="stopped"]) .board-pipeline-research-status-dot { background: var(--signal); }
+
+.board-pipeline-research-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+
+.board-pipeline-research-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 18px 16px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-research-card:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+
+.board-pipeline-research-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin: 0; font: 600 14px/20px var(--font-ui); color: var(--ink); }
+
+.board-pipeline-research-check { display: inline-flex; flex: none; color: var(--tone-success); }
+
+.board-pipeline-research-card-title { flex: none; }
+
+.board-pipeline-research-count { font-size: var(--fs-tab); font-weight: 400; color: var(--ink-4); }
+
+.board-pipeline-research-source { min-width: 0; margin-left: auto; font: 400 11.5px/1.4 var(--font-mono); color: var(--ink-4); }
+
+.board-pipeline-research-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0 0 0 20px; list-style: none; }
+
+.board-pipeline-research-chip { display: inline-flex; align-items: center; gap: 4px; }
+
+.board-pipeline-research-lines { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-research-line {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; min-height: 28px; padding: 4px 0 4px 20px; box-sizing: border-box;
+  border-top: 1px solid var(--line);
+}
+
+.board-pipeline-research-label { font-weight: 500; color: var(--ink); }
+
+.board-pipeline-research-value { color: var(--ink-muted); }
+
+.board-pipeline-research-paths { font: var(--fs-small)/1.4 var(--font-mono); color: var(--ink-4); }
+
+.board-pipeline-scripts { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-script {
+  display: grid; grid-template-columns: 120px 200px minmax(0, 1fr) auto; gap: var(--sp-4); align-items: center;
+  min-height: 36px; border-top: 1px solid var(--line);
+}
+
+.board-pipeline-script[data-head] { min-height: 28px; font-size: var(--fs-small); color: var(--ink-4); border-top: 0; }
+
+.board-pipeline-script-name { min-width: 0; overflow-wrap: anywhere; font-weight: 500; color: var(--ink); }
+
+.board-pipeline-script-run {
+  min-width: 0; overflow: hidden; font: var(--fs-small)/1.4 var(--font-mono); color: var(--ink-muted); white-space: nowrap; text-overflow: ellipsis;
+}
+
+.board-pipeline-script-meaning { color: var(--ink-muted); }
+
+.board-pipeline-script-meaning[data-not-a-gate] { color: var(--ink-4); }
+
+.board-pipeline-script-needs { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--link); }
+
+.board-pipeline-script-needs-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--signal); }
+
+.board-pipeline-research-footer-status { font-weight: 500; color: var(--ink); }
+
+@media (max-width: 900px) {
+  .board-pipeline-research-cards { grid-template-columns: minmax(0, 1fr); }
+
+  .board-pipeline-script { grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 6px 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-pipeline-research-status:not([data-state="stopped"]) .board-pipeline-research-status-dot {
+    animation: board-pulse var(--pulse-status) ease-in-out infinite;
+  }
+
+  .board-pipeline-research-card { animation: board-rise var(--motion-rise) var(--ease-out) both; }
+}
+
+/* Research per entity (MonoResearch): the layout card over the sessions list and the findings of the session shown, side by side. A
+   session row has the boards' selection look, a filled neutral ground and a 1 px border, never an orange edge; its Stop sits beside it. */
+.board-pipeline-research-layout {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 18px 16px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-research-layout-items { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0 0 0 20px; list-style: none; }
+
+.board-pipeline-research-layout-item { display: inline-flex; align-items: baseline; gap: 6px; }
+
+.board-research-columns { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+
+.board-research-sessions {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 14px 12px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-research-session-list { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+
+.board-research-session-group { padding: 8px 10px 2px; }
+
+.board-research-session { display: flex; align-items: center; gap: 4px; }
+
+.board-research-session-row {
+  display: flex; flex: 1 1 0; align-items: center; gap: var(--sp-2); box-sizing: border-box; min-width: 0; min-height: 44px; padding: 5px 10px;
+  border: 1px solid var(--see-through); border-radius: var(--r-2); background: var(--see-through); color: var(--ink); font: inherit; text-align: left;
+  cursor: pointer;
+}
+
+.board-research-session-row:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+
+.board-research-session-row:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-research-session-row[data-selected] { border-color: var(--line-strong); background: var(--surface-selected); }
+
+.board-research-session-text { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; }
+
+.board-research-session-end { display: inline-flex; flex: none; align-items: center; gap: 6px; }
+
+.board-research-session-findings { display: flex; flex-direction: column; gap: var(--sp-4); min-width: 0; }
+
+.board-research-session-findings-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+
+@media (max-width: 900px) {
+  .board-research-columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The entities step (MonoEntities): the entities card's table on the board's grid, a row per entity with its expanded panel, the root's
+   row with its two choices, the add form and the refusal alert in the error colours; the chips, the compact select, and the fold and
+   crossing dialogs' parts. A package's crossing stage is told apart by its dashed edge as well as its tint. */
+.board-entities-step { display: flex; flex-direction: column; min-width: 0; }
+
+.board-entities-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+
+.board-entities-table { display: flex; flex-direction: column; min-width: 0; }
+
+.board-entities-table-head,
+.board-entity-row-line {
+  display: grid; grid-template-columns: 16px 116px 92px 196px minmax(0, 1fr) 104px 92px 84px; gap: 10px; align-items: center;
+}
+
+.board-entities-table-head { padding: 0 0 6px; font-size: var(--fs-small); color: var(--ink-4); border-bottom: 1px solid var(--line); }
+
+.board-entities-rows { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+
+.board-entity-row { display: flex; flex-direction: column; border-bottom: 1px solid var(--line); }
+
+.board-entity-row-line { min-height: 44px; padding: 6px 0; }
+
+.board-entity-row-toggle {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; padding: 0; border: 0;
+  background: var(--see-through); color: var(--ink-muted); cursor: pointer; transform: rotate(-90deg);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.board-entity-row-toggle[aria-expanded="true"] { transform: none; }
+
+.board-entity-row-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-entity-row-key {
+  box-sizing: border-box; width: 100%; min-width: 0; height: 30px; padding: 0 8px; font: 600 var(--fs-small)/1 var(--font-mono);
+  color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+
+.board-entity-row-key:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-entity-row-homes { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+
+.board-entity-row-summary { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+.board-entity-row-refusal { font-size: var(--fs-small); font-weight: 600; color: var(--err-ink); }
+
+.board-entity-row-constitution { min-width: 0; }
+
+.board-entity-row-actions { display: inline-flex; justify-content: flex-end; align-items: center; gap: 4px; }
+
+.board-entity-row-panel { display: flex; flex-direction: column; gap: 12px; margin: 0 0 12px 26px; padding: 12px 14px; background: var(--bg); border-radius: var(--r-3); }
+
+.board-entity-row-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+
+.board-entity-row-reach { display: flex; flex-direction: column; gap: 8px; }
+
+.board-whitelist-editor { display: flex; flex-direction: column; gap: 8px; }
+
+.board-whitelist-editor-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+
+.board-whitelist-editor-crossing { margin-left: auto; }
+
+.board-whitelist-editor-entries { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+.board-removable-chip {
+  display: inline-flex; align-items: center; gap: 4px; box-sizing: border-box; height: 26px; padding: 0 2px 0 8px;
+  font: var(--fs-small)/1 var(--font-mono); color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
+}
+
+.board-removable-chip[data-refused] { color: var(--err-ink); background: var(--err-tint); border-color: var(--err-edge); }
+
+.board-removable-chip-text { white-space: nowrap; }
+
+/* The remove button sits inside the chip, borderless, as the boards draw "apps/web ×". */
+.board-removable-chip-remove {
+  display: inline-flex; flex: none; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0;
+  font: 500 var(--fs-tab)/1 var(--font-ui); color: var(--ink-4); background: var(--see-through); border: 0; border-radius: var(--r-1); cursor: pointer;
+}
+
+.board-removable-chip-remove:not(:disabled):hover { color: var(--ink); }
+
+.board-removable-chip-remove:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+
+.board-removable-chip-remove:disabled { color: var(--ink-disabled); cursor: not-allowed; }
+
+.board-removable-chip-refusal { font-family: var(--font-ui); font-weight: 600; white-space: nowrap; }
+
+.board-compact-select { position: relative; display: inline-flex; min-width: 0; }
+
+.board-compact-select > select {
+  box-sizing: border-box; min-width: 0; height: 30px; padding: 0 28px 0 9px; font: inherit; font-size: var(--fs-small); color: var(--ink);
+  appearance: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); cursor: pointer;
+}
+
+.board-compact-select > select:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-compact-select-chevron {
+  position: absolute; top: 50%; right: 9px; width: 12px; height: 12px; margin-top: -6px; pointer-events: none;
+  fill: none; stroke: var(--ink-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.board-root-entity { display: flex; flex-direction: column; gap: 8px; padding: 10px 0 4px; }
+
+.board-root-entity-line { display: grid; grid-template-columns: 142px 92px minmax(0, 1fr) 104px; gap: 10px; align-items: center; padding-left: 26px; }
+
+.board-root-entity-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-left: 26px; }
+
+.board-entities-add { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
+
+.board-entity-refusals {
+  display: flex; flex-direction: column; gap: 6px; padding: 9px 12px 9px 14px; color: var(--err-ink);
+  background: var(--err-tint); border: 1px solid var(--err-edge); border-radius: var(--r-3);
+}
+
+.board-entity-refusals-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+
+.board-entity-refusals-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-entity-refusals-item { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+
+.board-entity-refusals-actions { display: inline-flex; gap: 6px; margin-left: auto; }
+
+.board-fold-target { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+
+.board-fold-before-after { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+
+.board-fold-folders { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-fold-folder {
+  display: inline-flex; align-items: center; height: 24px; padding: 0 8px; font: var(--fs-small)/1 var(--font-mono); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+
+.board-crossing-stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+.board-crossing-stage { display: flex; min-width: 0; }
+
+.board-crossing-stage-head { display: flex; align-items: center; gap: 8px; }
+
+.board-crossing-stage-number {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 20px; height: 20px; font: 600 var(--fs-micro)/1 var(--font-mono);
+  color: var(--ink-muted); border: 1px solid var(--line-strong); border-radius: var(--r-pill);
+}
+
+.board-crossing-stage-entity { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+
+.board-crossing-stage-facts { display: flex; flex-direction: column; gap: 2px; padding-top: 6px; border-top: 1px solid var(--line); }
+
+@media (max-width: 900px) {
+  .board-crossing-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.board-pipeline-agent-strip { display: flex; flex: none; align-items: center; gap: var(--sp-3); box-sizing: border-box; padding: 10px 18px; }
+
+.board-pipeline-agent-question { display: flex; flex-direction: column; gap: 6px; }
+
+.board-pipeline-agent-question-context { margin: 0; font-size: var(--fs-small); color: var(--ink-4); }
+
+/* The constitution step (A3bConstitution), as FlowConstitution draws it: the status line over the title row with Edit or Preview, the
+   document in a card on the surface with the board's strong line and its 40 px head; in the panel, who reads it as quiet pills and the
+   sources as outlined checkbox rows. The editor's textarea and mirror share one font, line height and padding, so the mirror's lines
+   stand under the textarea's; the textarea's own text is var(--see-through) and its caret stays visible. */
+.board-pipeline-constitution { display: flex; flex-direction: column; min-width: 0; }
+
+/* Edit or Preview sits at the foot of the title row, level with the lead, at its own height. */
+.board-pipeline-constitution-view-switch { display: flex; flex: none; align-self: flex-end; padding-bottom: 2px; }
+
+.board-pipeline-constitution-status {
+  display: inline-flex; align-items: center; gap: var(--sp-2); padding-bottom: 4px; font-size: var(--fs-tab); color: var(--ink-muted);
+}
+
+.board-pipeline-constitution-status-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--line-strong); }
+
+.board-pipeline-constitution-status-dot[data-state="drafting"] { background: var(--signal); }
+
+.board-pipeline-constitution-status-dot[data-state="ready"] { background: var(--tone-success); }
+
+.board-pipeline-constitution-article {
+  display: flex; flex: 1 1 auto; flex-direction: column; min-height: 420px; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-constitution-article-head {
+  display: flex; flex: none; align-items: center; justify-content: space-between; gap: 10px; height: 40px; padding: 0 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.board-pipeline-constitution-article[data-view="preview"] { overflow: auto; }
+
+.board-pipeline-constitution-article[data-view="preview"] > :not(.board-pipeline-constitution-article-head) { margin: 18px 22px; }
+
+.board-pipeline-constitution-editor { position: relative; display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+
+.board-pipeline-constitution-mirror,
+.board-pipeline-constitution-input {
+  box-sizing: border-box; margin: 0; padding: 18px 22px;
+  font: 12.5px/22px var(--font-mono); letter-spacing: normal; tab-size: 2; white-space: pre;
+}
+
+.board-pipeline-constitution-mirror { position: absolute; inset: 0; overflow: hidden; color: var(--ink); pointer-events: none; }
+
+.board-pipeline-constitution-mirror-line { display: flex; align-items: center; gap: 10px; min-height: 22px; width: max-content; }
+
+.board-pipeline-constitution-mirror-line[data-heading] { font-weight: 600; }
+
+.board-pipeline-constitution-mirror-text { white-space: pre; }
+
+.board-pipeline-constitution-caret { display: inline-block; width: 7px; height: 15px; align-self: center; background: var(--signal); }
+
+.board-pipeline-constitution-input {
+  position: relative; flex: 1 1 auto; width: 100%; min-height: 420px; resize: none; overflow: auto;
+  color: var(--see-through); caret-color: var(--ink); background: var(--see-through); border: 0; outline: none;
+}
+
+.board-pipeline-constitution-input::selection { color: var(--see-through); background: var(--accent-ring); }
+
+.board-pipeline-constitution-input:focus-visible { box-shadow: inset 0 0 0 2px var(--link); }
+
+.board-pipeline-constitution-sources-list { margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-constitution-refusal {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); padding: var(--sp-2) 22px; border-top: 1px solid var(--line);
+}
+
+.board-pipeline-constitution-readers,
+.board-pipeline-constitution-sources { display: flex; flex-direction: column; gap: 6px; }
+
+.board-pipeline-constitution-reader-list,
+.board-pipeline-constitution-source-list { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-constitution-reader-list { flex-wrap: wrap; }
+
+.board-pipeline-constitution-source-list { flex-direction: column; gap: 6px; }
+
+.board-pipeline-constitution-reader {
+  display: inline-flex; align-items: center; height: 20px; box-sizing: border-box; padding: 0 8px;
+  font-size: var(--fs-pill); font-weight: 500; color: var(--ink); background: var(--wash); border-radius: var(--r-pill);
+}
+
+.board-pipeline-constitution-source-note { flex: none; margin-left: auto; font-size: var(--fs-small); color: var(--ink-4); }
+
+.board-pipeline-constitution-note { margin: 18px 22px; }
+
+.board-pipeline-constitution-entities {
+  display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-3);
+}
+
+.board-pipeline-constitution-entity { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+
+.board-pipeline-constitution-entity + .board-pipeline-constitution-entity { border-top: 1px solid var(--line); }
+
+.board-pipeline-constitution-entity > :last-child { margin-left: auto; }
+
+.board-pipeline-constitution-entity-link { display: inline-flex; color: var(--link); }
+
+.board-pipeline-constitution-entity-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-constitution-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0; }
+
+.board-pipeline-constitution-legend-item { display: inline-flex; align-items: center; gap: 8px; }
+
+.board-pipeline-constitution-legend-item > dd { margin: 0; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-pipeline-constitution-status-dot[data-state="drafting"] { animation: board-pulse var(--pulse-status) ease-in-out infinite; }
+
+  .board-pipeline-constitution-article { animation: board-rise var(--motion-rise) var(--ease-out) both; }
+
+  .board-pipeline-constitution-caret { animation: board-caret 1s steps(1) infinite; }
+
+  .board-pipeline-constitution-mirror-line[data-changed] {
+    background-image: linear-gradient(var(--new-text-tint), var(--new-text-tint)); background-repeat: no-repeat;
+    animation: board-mark 700ms var(--ease-out) 400ms both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-pipeline-constitution-mirror-line[data-changed] { background: var(--new-text-tint); }
+}
+
+/* The step and gate dialogs, as the Flow*Editor boards draw them: the model select beside the effort choices (each a bordered 36px
+ * button, the chosen one in the orange tint; 32px in the re-review), the brief as one ruled box of 40px rows, the gate form's fields and
+ * phases, and the gate's profile box on the page ground; the foot puts the dialog's own actions on the start side, Cancel and Save on
+ * the end. */
+.board-pipeline-dialog-settings { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: var(--sp-4); }
+
+.board-pipeline-dialog-field { display: flex; flex: 1 1 0; flex-direction: column; gap: 6px; min-width: 0; }
+
+.board-pipeline-dialog-label { padding: 0; font-size: var(--fs-small); font-weight: 500; color: var(--ink-muted); }
+
+.board-pipeline-dialog-label-aside { font-weight: 400; color: var(--ink-4); }
+
+.board-pipeline-dialog-select { position: relative; display: flex; }
+
+.board-pipeline-dialog-select > select {
+  flex: 1 1 0; min-width: 0; box-sizing: border-box; height: 36px; padding: 0 32px 0 11px;
+  font: inherit; font-size: var(--fs-lead); color: var(--ink); appearance: none;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); cursor: pointer;
+}
+
+.board-pipeline-dialog-settings[data-size="compact"] .board-pipeline-dialog-select > select { height: 32px; font-size: var(--fs-body); }
+
+.board-pipeline-dialog-select-chevron {
+  position: absolute; top: 50%; right: 11px; width: 12px; height: 12px; margin-top: -6px; pointer-events: none;
+  fill: none; stroke: var(--ink-muted); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.board-pipeline-dialog-instructions { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+.board-pipeline-dialog-brief { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line-strong); border-radius: var(--r-3); }
+
+.board-pipeline-dialog-brief-row {
+  display: flex; align-items: center; gap: 10px; box-sizing: border-box; min-height: 40px; padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.board-pipeline-dialog-brief-row[data-quiet] { background: var(--bg); }
+
+.board-pipeline-dialog-brief-row[data-foot] { flex-wrap: wrap; padding: 4px; border-bottom: 0; }
+
+.board-pipeline-dialog-brief-add { display: flex; align-items: center; gap: 6px; padding: 0 var(--sp-2); color: var(--link); }
+
+.board-pipeline-dialog-brief-row-text { flex: 1 1 auto; min-width: 0; }
+
+.board-pipeline-dialog-add-file { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: var(--sp-2); padding: 4px var(--sp-2); }
+
+.board-pipeline-dialog-add-file > .board-pipeline-dialog-input { flex: 1 1 240px; height: 30px; }
+
+.board-pipeline-dialog-input {
+  box-sizing: border-box; height: 36px; padding: 0 11px; font: inherit; font-size: var(--fs-lead); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+}
+
+.board-pipeline-dialog-input[data-mono] { font-family: var(--font-mono); font-size: var(--fs-tab); }
+
+.board-pipeline-dialog-input::placeholder { color: var(--ink-4); }
+
+.board-pipeline-dialog-input:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-dialog-file-text {
+  max-height: 420px; margin: 0; padding: var(--sp-3); overflow: auto; font: var(--fs-small)/1.5 var(--font-mono); white-space: pre-wrap;
+  color: var(--ink-muted); background: var(--lane-bg); border-radius: var(--r-2);
+}
+
+.board-pipeline-dialog-switch { display: inline-flex; flex: none; }
+
+.board-pipeline-dialog-switch-line { display: flex; align-items: center; gap: 10px; height: 36px; }
+
+.board-pipeline-dialog-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
+
+.board-pipeline-dialog-phases { display: flex; flex-direction: column; min-width: 0; margin: 0; padding: 0; border: 0; }
+
+.board-pipeline-dialog-phases > .board-pipeline-dialog-label { padding-bottom: 6px; }
+
+.board-pipeline-dialog-checks { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; height: 36px; font-size: var(--fs-lead); }
+
+.board-pipeline-dialog-check { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); cursor: pointer; }
+
+.board-pipeline-dialog-check > input { margin: 0; accent-color: var(--link); }
+
+.board-pipeline-dialog-foot { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--sp-2); min-width: 0; }
+
+.board-pipeline-dialog-foot-row { display: flex; flex: 1 1 auto; flex-wrap: wrap; align-items: center; gap: var(--sp-2); min-width: 0; }
+
+.board-pipeline-dialog-foot-gap { flex: 1 1 auto; }
+
+.board-pipeline-profile {
+  display: flex; flex-direction: column; gap: 12px; padding: 14px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-3);
+}
+
+.board-pipeline-profile-status { display: flex; align-items: center; gap: var(--sp-2); font-weight: 500; }
+
+.board-pipeline-profile-result {
+  display: inline-flex; align-self: flex-start; align-items: center; gap: 6px; box-sizing: border-box; height: 20px; padding: 0 var(--sp-2);
+  font-size: var(--fs-pill); font-weight: 500; white-space: nowrap; color: var(--ink-muted); background: var(--wash); border-radius: var(--r-pill);
+}
+
+.board-pipeline-profile-result[data-tone="passed"] { color: var(--pass-ink); background: var(--pass-tint); }
+
+.board-pipeline-profile-result[data-tone="timed-out"],
+.board-pipeline-profile-result[data-tone="red"] { color: var(--err-ink); background: var(--err-tint); }
+
+.board-pipeline-profile-result-dot { flex: none; width: 6px; height: 6px; border-radius: var(--r-pill); background: currentColor; }
+
+/* The design step (A2Proposal), as ForgeLight draws it: the agent's newest change under its chat with its two links, the change list's
+ * cards, and the footer's hint that Apply waits on a question (in the link colour after a pulsing signal dot) or that all are answered
+ * (in the passed ink after a check, popping in). */
+.board-pipeline-design { display: flex; flex-direction: column; width: 100%; min-width: 0; }
+
+.board-pipeline-design-latest-change { display: flex; flex-direction: column; gap: 6px; }
+
+.board-pipeline-design-latest-change-text { margin: 0; font-size: var(--fs-lead); line-height: 21px; color: var(--ink); }
+
+.board-pipeline-design-latest-change-links { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: var(--fs-body); font-weight: 500; }
+
+.board-pipeline-design-hint { display: inline-flex; align-items: center; gap: 7px; font-weight: 500; }
+
+.board-pipeline-design-hint[data-tone="question-open"] { color: var(--link); }
+
+.board-pipeline-design-hint[data-tone="answered"] { color: var(--pass-ink); }
+
+.board-pipeline-design-hint-dot { flex: none; width: 7px; height: 7px; border-radius: var(--r-pill); background: var(--signal); }
+
+.board-pipeline-design-apply { display: inline-flex; }
+
+.board-pipeline-change-list { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-change-list-item { display: block; animation: board-rise var(--motion-rise) var(--ease-out) both; }
+
+.board-pipeline-change-list-empty { margin: 0; color: var(--ink-muted); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .board-pipeline-design-hint-dot { animation: board-pulse var(--pulse-status) ease-in-out infinite; }
+
+  .board-pipeline-design-hint[data-tone="answered"],
+.board-pipeline-design-latest-change { animation: board-pop var(--motion-pop) var(--ease-out) both; }
+}
+
+/* Monorepo mode's level rail, as the Mono boards draw the left column: 232 px of the forge row and the entity groups, the selected row
+ * filled with the neutral selection ground and a 1 px border, never an orange edge. */
+.board-pipeline-focus-rail { display: flex; flex: 0 0 232px; flex-direction: column; min-width: 0; min-height: 0; margin: var(--sp-2) 0 20px; }
+
+.board-pipeline-level-rail-checked { display: inline-flex; align-items: center; gap: 6px; }
+
+/* The level over a monorepo page's title: "Pipeline", a link to the forge level, then the level itself. */
+.board-entity-breadcrumb { display: flex; align-items: center; gap: 6px; padding-bottom: 4px; font-size: var(--fs-tab); color: var(--ink-muted); }
+
+.board-entity-breadcrumb-link { color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px; }
+
+.board-entity-breadcrumb-link:hover { color: var(--ink); }
+
+.board-entity-breadcrumb-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-entity-breadcrumb-separator { color: var(--ink-muted); }
+
+.board-entity-breadcrumb-current { display: inline-flex; color: var(--ink); }
+
+/* One level's part of the Changes list: a head that folds it, its change cards, and a copy's batch card with its own list of edits. */
+.board-change-group { display: flex; flex-direction: column; gap: 6px; }
+
+.board-change-group-head,
+.board-change-group-disclosure {
+  display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; padding: 0 2px; margin: 0; border: 0; background: var(--see-through);
+  font: inherit; text-align: left; cursor: pointer;
+}
+
+.board-change-group-head { height: 26px; color: var(--ink); }
+
+.board-change-group-disclosure { height: 24px; color: var(--link); font-size: var(--fs-tab); font-weight: 500; }
+
+.board-change-group-head:focus-visible,
+.board-change-group-disclosure:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-change-group-chevron { display: inline-flex; flex: none; width: 12px; height: 12px; transition: transform var(--motion-fast) var(--ease-out); }
+
+.board-change-group-head[aria-expanded="false"] .board-change-group-chevron,
+.board-change-group-disclosure[aria-expanded="false"] .board-change-group-chevron { transform: rotate(-90deg); }
+
+.board-change-group-items,
+.board-change-group-batch-edits { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-change-group-item { display: block; }
+
+.board-change-group-batch {
+  display: flex; flex-direction: column; gap: 8px; padding: 9px 12px 10px; border: 1px solid var(--line); border-radius: var(--r-2);
+  background: var(--surface-page);
+}
+
+.board-change-group-batch-head { display: flex; align-items: center; gap: var(--sp-2); }
+
+.board-change-group-batch-title { display: flex; flex: 1 1 0; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+
+/* The line over a level's chat that links the open questions of the other levels. */
+.board-other-level-questions {
+  display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 18px; border-bottom: 1px solid var(--line);
+  background: var(--wash);
+}
+
+.board-other-level-questions-links { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+
+.board-other-level-questions-link { color: var(--link); font-size: var(--fs-small); font-weight: 500; }
+
+.board-other-level-questions-link:hover { color: var(--ink); }
+
+.board-other-level-questions-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-other-level-questions-note { margin-left: auto; }
+
+/* The live flow's panel (A5Live): the "Now" rows and the "Earlier" records with their clocks; the toast after an Apply, laid over the
+ * flow without moving it. The Now rows, like the Changes tab's cards, rise one --rise-step after another, as FlowLive and FlowEditing
+ * stagger them. */
+.board-pipeline-activity-rows,
+.board-pipeline-activity-history { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-activity-rows > li { animation: board-rise var(--motion-rise) var(--ease-out) both; }
+
+.board-pipeline-activity-history-line { display: flex; gap: 10px; color: var(--ink-muted); }
+
+.board-pipeline-activity-history-clock { flex: none; width: 40px; font: var(--fs-small)/19px var(--font-mono); color: var(--ink-4); }
+
+:is(.board-pipeline-activity-rows, .board-pipeline-change-list) > :nth-child(n+2) { animation-delay: var(--rise-step); }
+
+:is(.board-pipeline-activity-rows, .board-pipeline-change-list) > :nth-child(n+3) { animation-delay: calc(var(--rise-step) * 2); }
+
+:is(.board-pipeline-activity-rows, .board-pipeline-change-list) > :nth-child(n+4) { animation-delay: calc(var(--rise-step) * 3); }
+
+:is(.board-pipeline-activity-rows, .board-pipeline-change-list) > :nth-child(n+5) { animation-delay: calc(var(--rise-step) * 4); }
+
+@media (prefers-reduced-motion: reduce) {
+  .board-pipeline-change-list-item,
+.board-pipeline-activity-rows > li { animation: none; }
+}
+
+.board-pipeline-toast {
+  position: fixed; top: 152px; left: 0; right: 0; z-index: 30;
+  display: flex; justify-content: center; padding: 0 var(--sp-4); pointer-events: none;
+}
+
+/* The apply dialogs (A4Confirm, A6bApplyChanges), as FlowApply and FlowApplyChanges draw them: the "Resume the board" checkbox as an
+ * outlined row, the change rows (a removed one struck through), the in-flight note's live dot and ticket chips, and the pending Apply's
+ * state, in the orange tint while held and the error tint once refused. */
+.board-pipeline-apply-resume {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r-2); cursor: pointer;
+  transition: var(--feedback-transition);
+}
+
+.board-pipeline-apply-resume:hover { box-shadow: 0 0 0 2px var(--shadow-card-lift); }
+
+.board-pipeline-apply-resume > input { margin: 3px 0 0; accent-color: var(--link); }
+
+.board-pipeline-apply-changes-rows { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-apply-changes-row { display: block; }
+
+.board-pipeline-apply-changes-level { display: flex; flex-direction: column; gap: 6px; }
+
+.board-pipeline-apply-changes-level-head { display: flex; align-items: center; gap: var(--sp-2); height: 24px; color: var(--ink); }
+
+.board-pipeline-apply-changes-batch {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: var(--r-2);
+}
+
+.board-pipeline-in-flight-dot { flex: none; width: 7px; height: 7px; margin-top: 6px; background: var(--signal); border-radius: var(--r-pill); }
+
+.board-pipeline-in-flight-tickets { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-in-flight-ticket { display: inline-flex; align-items: center; gap: 6px; }
+
+.board-pipeline-in-flight-groups { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-in-flight-group { display: flex; flex-direction: column; gap: 4px; }
+
+.board-pipeline-in-flight-group-head { display: inline-flex; align-items: center; gap: 8px; }
+
+.board-pipeline-in-flight-crossing { font-size: var(--fs-small); color: var(--ink-muted); }
+
+.board-pipeline-apply-pending {
+  display: flex; flex-direction: column; gap: var(--sp-2); padding: 9px 14px; font-size: var(--fs-tab); line-height: 19px;
+  color: var(--ink); background: var(--wash); border: 1px solid var(--line-strong); border-left-width: 4px; border-radius: var(--r-2);
+}
+
+.board-pipeline-apply-pending[data-state="held"] { color: var(--link); background: var(--link-tint); border-color: var(--accent-edge); }
+
+.board-pipeline-apply-pending[data-state="refused"] { color: var(--err-ink); background: var(--err-tint); border-color: var(--err-edge); }
+
+.board-pipeline-apply-pending-line { display: flex; align-items: center; gap: 10px; margin: 0; }
+
+.board-pipeline-apply-pending-text { font-weight: 600; }
+
+.board-pipeline-apply-pending-next { margin: 0; }
+
+.board-pipeline-apply-pending-actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* The first Apply over entities (MonoApply): what is stored per level, the constitutions in the one commit, the entities worth a look,
+ * and the links to the tickets that refuse Apply. */
+.board-pipeline-apply-levels,
+.board-pipeline-apply-constitutions,
+.board-pipeline-apply-worth-a-look { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-apply-level {
+  display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: var(--sp-2); align-items: baseline; padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.board-pipeline-apply-constitution { display: flex; align-items: center; gap: var(--sp-2); }
+
+.board-pipeline-apply-worth-a-look-item { display: block; }
+
+.board-pipeline-apply-ticket-links { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* The forge level of a monorepo's design, in place of the phases: what every entity shares, then the table of the entities. */
+.board-forge-level { display: flex; flex-direction: column; gap: var(--sp-3); padding-bottom: var(--sp-3); }
+
+.board-forge-level-section {
+  display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-3);
+  background: var(--surface);
+}
+
+/* The Ticket phase and the merge train side by side, as MonoDesignForge draws them; one above the other in a narrow column. */
+.board-forge-level-phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-items: start; gap: var(--sp-3); }
+
+.board-forge-level-step { display: flex; max-width: 360px; }
+
+.board-forge-level-no-gates {
+  display: flex; flex-direction: column; gap: 4px; padding: 12px 16px; border: 1px dashed var(--line-strong); border-radius: var(--r-2);
+}
+
+.board-entity-overview-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+
+.board-entity-overview-link { display: inline-flex; color: var(--link); }
+
+.board-entity-overview-link:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+.board-pipeline-design-copy { display: flex; justify-content: flex-end; }
+
+.board-pipeline-crossing-now {
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: var(--r-3);
+  background: var(--surface);
+}
+
+.board-pipeline-crossing-now-rows { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+
+.board-pipeline-crossing-now-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+
+.board-pipeline-design-level-no-change { margin: 0; font-size: var(--fs-small); color: var(--ink-muted); }
+
+/* The copy of an entity's settings to other entities: the gates head's popover, and the dialog with its preview. */
+.board-pipeline-copy-menu { position: relative; display: inline-flex; align-items: center; gap: var(--sp-2); }
+
+.board-pipeline-copy-menu-done { display: inline-flex; }
+
+.board-pipeline-copy-menu-actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+
+.board-pipeline-copy-dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--sp-2); }
+
+.board-pipeline-copy-dialog-preview {
+  display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-2);
+  background: var(--wash);
+}
+
+.board-pipeline-copy-dialog-preview-line { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; }
+
+@keyframes board-caret { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+@keyframes board-mark { from { background-size: 0 100%; } to { background-size: 100% 100%; } }

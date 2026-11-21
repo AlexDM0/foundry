@@ -14,6 +14,12 @@
   --motion-tick:  260ms;
   --motion-leave: 220ms;
 
+  /* A fill or a line that lets what is under it show, the same in both themes: the constitution editor's text over its mirror. */
+  --see-through: transparent;
+
+  /* The pipeline flow's ticket phase dot. */
+  --phase-ticket: #fb9d59;
+
   /* Six epic colours, given out in the order epics are added: Cobalt, Violet, Plum, Ochre, Steel and Umber. */
   --epic-1-fill: #3a66d0; --epic-1-tint: #e8eefb; --epic-1-ink: #2a4fa8;
   --epic-2-fill: #7651c8; --epic-2-tint: #f0ebfa; --epic-2-ink: #5b3aa6;
@@ -80,6 +86,8 @@
 :root:not([data-motion="ready"]) { --motion-tick: 0ms; --motion-leave: 0ms; }
 
 :root[data-theme="dark"] {
+  --phase-ticket: #feb073;
+
   --epic-1-fill: #6e95f2; --epic-1-tint: #1c2742; --epic-1-ink: #b9cdfb;
   --epic-2-fill: #a183f0; --epic-2-tint: #28213f; --epic-2-ink: #d2c3fa;
   --epic-3-fill: #e277bd; --epic-3-tint: #3a1c31; --epic-3-ink: #f5c2e2;
@@ -99,3 +107,8 @@
 [data-epic-slot="4"] { --epic-fill: var(--epic-4-fill); --epic-tint: var(--epic-4-tint); --epic-ink: var(--epic-4-ink); }
 [data-epic-slot="5"] { --epic-fill: var(--epic-5-fill); --epic-tint: var(--epic-5-tint); --epic-ink: var(--epic-5-ink); }
 [data-epic-slot="6"] { --epic-fill: var(--epic-6-fill); --epic-tint: var(--epic-6-tint); --epic-ink: var(--epic-6-ink); }
+
+/* The names for colours another token already holds: one line follows both themes. */
+:root {
+  --new-text-tint: var(--pass-tint);
+}

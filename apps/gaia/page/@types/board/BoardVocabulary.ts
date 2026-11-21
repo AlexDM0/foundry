@@ -61,6 +61,9 @@ export type BoardForgeLevelAgentRole = (typeof BOARD_FORGE_LEVEL_AGENT_ROLES)[nu
 
 export type BoardEntityAgentRole = Exclude<BoardPipelineAgentRole, BoardForgeLevelAgentRole>;
 
+/** The roles each entity runs for itself, in the order a view lists them. */
+export const BOARD_ENTITY_AGENT_ROLES = ['builder', 'reviewer', 'reReviewer', 'conflictReReviewer'] as const satisfies readonly BoardEntityAgentRole[];
+
 export type BoardEntityKind = 'app' | 'package' | 'root';
 
 /** From the least effort to the most. */
