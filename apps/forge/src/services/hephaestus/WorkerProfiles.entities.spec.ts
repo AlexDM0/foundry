@@ -61,7 +61,7 @@ const PIPELINE: Pipeline = {
       prepare: [{ name: 'install', run: 'bun install' }],
       gates:   [
         {
-          name: 'verify', run: 'bun run gate:gaia', network: ['registry.example.org'], writes: ['~/.cache/example-bun']
+          name: 'verify', run: 'bun run verify:gaia', network: ['registry.example.org'], writes: ['~/.cache/example-bun']
         },
         { name: 'deploy-check', run: 'terraform plan', forgeOnly: true },
       ],

@@ -1,8 +1,8 @@
 # Forge requirements: system versions, the compatibility registry, and a forge that knows no client
 
-What Gaia needs from forge for the version model of 2026-11-15, written as tickets for forge's own board. Gaia sits on top of forge, and
+What Gaia needs from forge for the version model of 2026-11-15, written as requirements for forge. Gaia sits on top of forge, and
 forge never knows about it: each requirement below speaks of a client or a host, and none asks forge to name one. Forge owns
-`packages/forge-contracts`, where most of what these tickets describe is already prepared, and decides every version in it.
+`packages/forge-contracts`, where most of what these requirements describe is already prepared, and decides every version in it.
 
 ## Status
 
@@ -127,6 +127,6 @@ and a forge that serves no V1 to V3, as every forge from before system versions,
 | V9 | Nothing at runtime. |
 | V10 | Nothing different: Gaia reads the board document anew on each `board` event. |
 
-## 4. Order for the forge's board
+## 4. Order for forge
 
 V1 to V5 and V9 shipped together as forge 1.0, with V6 and V8, which forge 2.0 retired with its page.

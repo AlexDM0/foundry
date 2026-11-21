@@ -276,10 +276,6 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
   of one area, and its `paths` list names the folders where it applies, from the repository root. A rule is in one
   file only. These files hold only rules, boundaries and decisions; a change that invalidates a rule updates it in the
   same change.
-- Changes to the files in the root's `.claude/rules/` are the owner's. The agent of a ticket cannot make them: the
-  folder is outside forge's project folder and its reach, and Customs protects `.claude/` at any depth for a tracker
-  in a folder. When a ticket makes a rule there wrong, its handoff names the rule, and the owner changes the file
-  outside a ticket. `CLAUDE.md` is not protected: a ticket changes it in the same change.
 - forge's instructions are not in these files: they are `.forge/session-instructions.md`, installed from
   `resources/templates/SessionInstructions.md` and printed by the agent's session-start entry.
 - `docs/backlog.md` is agreed and not started, with why it waits. `docs/cli.md` is the one reference for commands,
@@ -353,15 +349,14 @@ packages/forge-contracts/  →  src/adapters/board-document/ (the board document
 
 ### Command surface
 
-- This checkout's tracker is live, the board this repository's work runs on. Exercise the CLI under development only
-  in a scratch repository: nobody runs the checkout's source here, and only the owner runs `init`, `update` or
-  `clear`.
+- No forge tracks this repository. Exercise the CLI under development only in a scratch repository: nobody runs the
+  checkout's source here, and nobody runs `init`, `update` or `clear` here.
 - The network guard (`hook bash-domains`) starts only from a program outside the tracked folder.
   `src/services/hephaestus/GuardCommand.ts` refuses a runtime or an entry script inside it, and the job's shell commands
   and web fetches are then denied. The stage edit guard (`hook stage-edits`) of a job of an entity starts from the same
   program; when it cannot, the job's file edits are denied. The owner keeps this
   guard as it is. Thus the installed forge
-  that runs this repository's trackers is a second clone outside this repository, updated by pulling.
+  is a second clone outside this repository, updated by pulling.
 - Help is one screen, no per-command help; to stdout when asked, to stderr after an unknown command.
 - Every command but `init`, `update`, `help`, `status` and `version` checks the install version first
   (`cli/Main.spec.ts`); `hook session-start`, `hook bash-domains` and `hook stage-edits` skip it; `stop`

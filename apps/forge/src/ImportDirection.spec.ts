@@ -714,16 +714,10 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'system-versions/PlantedValue.ts': importing('../../apps/gaia/page/Main.tsx') })).toEqual([
       `import-leaves-the-program — system-versions/PlantedValue.ts:1 imports ../gaia/page/Main.tsx: ${leavesReason}`,
     ]);
-    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('../../../../scripts/CacheAudit.ts') })).toEqual([
-      `import-leaves-the-program — cli/hephaestus/PlantedPart.ts:1 imports ../../scripts/CacheAudit.ts: ${leavesReason}`,
-    ]);
     expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('../../../../packages/design-system/atoms/Button.tsx') })).toEqual([
       `import-leaves-the-program — cli/hephaestus/PlantedPart.ts:1 imports ../../packages/design-system/atoms/Button.tsx: ${leavesReason}`,
     ]);
     const undeclaredReason = 'it names a member of the workspace that package.json does not declare as a workspace:^ dependency';
-    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('monorepo-scripts/CacheAudit') })).toEqual([
-      `workspace-package-not-declared — cli/hephaestus/PlantedPart.ts:1 imports monorepo-scripts/CacheAudit: ${undeclaredReason}`,
-    ]);
     expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('gaia/page/Main.tsx') })).toEqual([
       `workspace-package-not-declared — cli/hephaestus/PlantedPart.ts:1 imports gaia/page/Main.tsx: ${undeclaredReason}`,
     ]);

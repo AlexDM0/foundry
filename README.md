@@ -19,7 +19,6 @@
     <td align="center"><sub>SHARED PACKAGES</sub><br><b>5</b><br><sub>Flint among them</sub></td>
     <td align="center"><sub>RUNTIME</sub><br><b>Bun 1.4.2</b><br><sub>+ TypeScript, React 19</sub></td>
     <td align="center"><sub>BUILD</sub><br><b>Turborepo</b><br><sub>one cache</sub></td>
-    <td align="center"><sub>BUILT BY</sub><br><b>forge</b><br><sub>one board per app</sub></td>
   </tr>
 </table>
 </div>
@@ -122,7 +121,7 @@ Gaia shows it and makes no model call.
 
 | Folder | What it is |
 | --- | --- |
-| [`apps/forge/`](apps/forge/) | forge: the tracker, Hephaestus, the Bridge and the CLI |
+| [`apps/forge/`](apps/forge/) | forge: the tracker, Hephaestus and the CLI |
 | [`apps/gaia/`](apps/gaia/) | Gaia: one window over every forge on the machine |
 | [`apps/gaia/page/lib/design-system/`](apps/gaia/page/lib/design-system/) | a library of Gaia's page: React components with their own light and dark theme |
 | [`apps/gaia/page/lib/flint/`](apps/gaia/page/lib/flint/) | a library of Gaia's page: Flint, the orange diamond that acts out what the agents do, drawn over its host page |
@@ -130,10 +129,9 @@ Gaia shows it and makes no model call.
 | [`packages/forge-contracts/`](packages/forge-contracts/) | what a forge serves and reads, as TypeScript types, with its system versions |
 | [`packages/system-versions/`](packages/system-versions/) | the version model a server and its clients share, and its compatibility logic |
 | [`docs/monorepo/`](docs/monorepo/) | the monorepo's design and the migration checklist |
-| [`scripts/`](scripts/) | the root's own scripts (`gate:<app>`, `cache:audit`), a workspace member so turbo checks them |
 
-Each app is built on its own forge board, one tracker in `apps/forge/` and one in `apps/gaia/`. Each app's `CLAUDE.md` holds its rules,
-and the root [`CLAUDE.md`](CLAUDE.md) names each tracker's reach and gate and whose rules each package follows.
+Each app's `CLAUDE.md` holds its rules, and the root [`CLAUDE.md`](CLAUDE.md) names whose rules each package follows. No forge tracks
+this repository.
 
 ## Get started
 
@@ -187,8 +185,6 @@ workspace's test preload applies only in its own folder.
 | Script | Runs |
 | --- | --- |
 | `lint:fix` | every workspace's `lint:fix`: eslint with its fixes applied, never cached; the pre-commit hook names it when `lint` fails |
-| `gate:forge`, `gate:gaia` | a tracker's gate: every workspace's `typecheck`, `lint`, `test` and `test:dom`, then that app's `check` alone; where forge hands a path in `FORGE_GATE_REPORT`, it writes the gate's cache report there: `hit` when turbo replayed every task with a script, `partial` some, `miss` none |
-| `cache:audit [<target reference>]` | the merge gate's audit: re-runs past the cache the tasks of what changed since the target, `main` when none is named (forge hands a gate none), and removes a failing task's entry; it writes a `miss` report, as it runs past the cache |
 
 ## Privacy
 
@@ -235,4 +231,4 @@ workspace's test preload applies only in its own folder.
 - **[forge's documentation index](apps/forge/docs/README.md)**: the overview, getting started, the glossary and the CLI reference.
 - **[Gaia's architecture](apps/gaia/docs/architecture.md)** and **[contracts](apps/gaia/docs/contracts.md)**: how the launcher, the
   server, the page and the forges fit together, and every versioned contract between them.
-- **[The monorepo's design](docs/monorepo/design.md)**: the two trackers, their gates and the one turbo cache.
+- **[The monorepo's design](docs/monorepo/design.md)**: the workspace, its verification and the one turbo cache.

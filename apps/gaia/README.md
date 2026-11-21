@@ -44,6 +44,6 @@ its pixel size: `icon_16x16.png`, `icon_16x16@2x.png` and `icon_32x32.png` (16 a
 - `CLAUDE.md`: the rules for working on Gaia, its map and its boundaries.
 - `docs/architecture.md`: how the launcher, the server, the page and the forges fit together at run time.
 - `docs/contracts.md`: every versioned contract Gaia reads, writes, sends or serves, with its version.
-- `docs/forge-requirements.md`: what Gaia needs from forge, written as tickets for forge's board.
+- `docs/forge-requirements.md`: what Gaia needs from forge, written as requirements for forge.
 - `docs/backlog.md`: what is agreed and not started, with the reason it waits.
 - `docs/spikes.md`: what was seen on a real Mac before the frame, the notifications and the launcher were written.

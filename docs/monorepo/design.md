@@ -2,7 +2,9 @@
 
 Status: design of 2026-11-13, revised on 2026-11-15 against forge `db64ed0a` and Gaia `1418f76` and to the owner's decisions of that
 day. Parts A and B are built on `monorepo/integration` and land in the migration's P7. The steps, their owners and their status are
-the migration checklist, `docs/monorepo/migration.md`; where the two differ, the checklist holds.
+the migration checklist, `docs/monorepo/migration.md`; where the two differ, the checklist holds. Revised on 2026-11-21 to the owner's
+decision of that day: no forge tracks this repository, so the trackers of `apps/forge` and `apps/gaia`, their reach, their gate
+scripts and the `scripts/` workspace are gone. Part B stays as what forge can do in any repository.
 
 Decisions taken by the owner on 2026-11-13:
 
@@ -15,7 +17,8 @@ Decisions taken on 2026-11-14 and 2026-11-15:
 4. Gaia uses forge's design-system package. Gaia's contributions, its fourteen patches and its requirements list merge into that
    package.
 5. Turborepo runs the repository's tasks and caches them, tests included, in one cache folder for the whole repository.
-6. Two trackers run in the repository: forge's at `apps/forge`, Gaia's at `apps/gaia`. So Part B is required.
+6. No forge tracker runs in this repository (the owner on 2026-11-21, in place of the decision of 2026-11-15 for a tracker in each
+   app). Part B is forge's own feature, for the repositories forge tracks.
 7. The installed forge runs from a second clone outside the monorepo, updated by pulling. Forge's network guard is unchanged.
 8. Forge and Gaia are released apart and meet only through system versions (below).
 9. Monorepo concerns are monorepo infrastructure. A forge change leaves forge's behaviour in every other project unchanged (a tracker
@@ -27,10 +30,10 @@ Decisions taken on 2026-11-14 and 2026-11-15:
 
 ```
 <forge repository, git root>
-  package.json            workspaces apps/*, packages/*, scripts;
-                          scripts typecheck, lint, verify, verify:<app>, gate:<app>, cache:audit, each through turbo
+  package.json            workspaces apps/*, packages/*;
+                          scripts typecheck, lint, verify, verify:<app>, each through turbo
   turbo.json              the tasks typecheck, lint, test, test:dom (cached) and check (uncached)
-  bun.lock  .bun-version  bunfig.toml  .githooks/  .gitattributes  scripts/CacheAudit.ts
+  bun.lock  .bun-version  bunfig.toml  .githooks/  .gitattributes
   CLAUDE.md  README.md    which rules govern what; how to set up and verify
   docs/monorepo/          this design and the migration checklist
   apps/forge/             forge's former root, moved as is (cli, src, bridge, skills, resources, setup.*, launcher.ts,
@@ -58,24 +61,14 @@ TypeScript source directly.
   scratch, the leak check). The root never runs `bun test`; root `verify` is `turbo run typecheck lint test test:dom check`.
 - `Bun.build` on an HTML entrypoint inlines a stylesheet from a workspace package, so forge's Bridge bundle and Gaia's page build keep
   working.
-- **One cache folder,** turbo's default `.turbo/cache` in the main checkout. Every linked worktree, a person's
-  `.claude/worktrees/<name>` and a tracker's ticket worktree alike, finds it through git's common directory. No `cacheDir`,
+- **One cache folder,** turbo's default `.turbo/cache` in the main checkout. Every linked worktree finds it through git's common directory. No `cacheDir`,
   `--cache-dir` or `TURBO_CACHE_DIR`, any of which turns that off. A task's key is its inputs' content, so a change to `apps/gaia` leaves
   forge's entries valid and the reverse: the isolation per project is in the hashes, not in folders. Strict environment mode hashes
   `BUN_RUNTIME_VERSION`; files a task reads outside its package are declared as `$TURBO_ROOT$` inputs.
-- **The cache is monorepo infrastructure only; it changes no forge or Gaia code.** Each tracker's gate is configuration with forge's
-  existing flags: `gate add verify --in / --writes <repository>/.turbo/cache --defined-by /turbo.json --defined-by /package.json
-  --defined-by /bun.lock -- bun run gate:<app>`. Every gate and prepare line of a project tracker takes `--in /`: by default it runs in
-  the project's folder, where the root script is not found. `gate:<app>` runs every workspace's `typecheck lint test test:dom`, then `check` for that app only,
-  so one app's stale recording stamp never turns the other tracker's gate red. Forge copies a gate's `--writes` into its agents'
-  sandboxes, which is the intended shared read-write cache.
-- **Trust:** agents can write the cache, so a planted pass is possible. An Overseer-only merge gate audits it:
-  `gate add cache-audit --in / --forge-only --phases merge --writes <repository>/.turbo/cache -- bun run cache:audit`. `cache:audit` re-runs,
-  past the cache, the tasks of every package changed since the target and of their dependents; on red it removes those tasks' entries
-  and exits non-zero, so forge refuses the landing.
-- A cached indicator for gate runs is a forge feature, stack-neutral and opt-in: forge hands every gate run a report path, a gate may
-  write whether its run was a cache hit, partial or a miss, and the Bridge's pipeline view marks it. The `gate:*` and `cache:audit`
-  scripts write it from turbo's run summary.
+- **The cache is monorepo infrastructure only; it changes no forge or Gaia code.** No forge gate runs in this repository, so only
+  `verify`, `verify:<app>`, `typecheck` and `lint` read and write it.
+- A cached indicator for gate runs is a forge feature, stack-neutral and opt-in: forge hands every gate run a report path, and a gate
+  may write whether its run was a cache hit, partial or a miss. Nothing in this repository writes one.
 
 ### What changes in forge because it is no longer at the git root
 
@@ -84,8 +77,8 @@ TypeScript source directly.
   stores the repository path. So no program a job can write guards it, and the network guard stays as it is.
 - **Hooks:** setup's `HooksPathStep` needs no change: it writes the relative `.githooks`, which git resolves from each worktree's root.
   `.githooks/pre-commit` runs the root's `bun run lint` and `typecheck`. Agents' forced hooks path is another matter (Part B rule 10).
-- **`CodeVersion`** hashes the program folders, each workspace package forge depends on, and the root `bun.lock`. A landing into a
-  shared package therefore shows both trackers' Overseers newer code on disk; the restart notice says so.
+- **`CodeVersion`** hashes the program folders, each workspace package forge depends on, and the root `bun.lock`. A change to a
+  shared package therefore shows a running forge newer code on disk; the restart notice says so.
 - **Guards:** those that read the program root keep working because their files moved along (`ProseWrap`, `DocumentSpecCitations`,
   `ProductNames`). `BunVersionPin`, `LineEndingPolicy` and the `.claude/rules/` readers read the workspace root. The guards that walk the
   program root also walk each workspace package forge declares, each asserting it found files. The source walk skips `.forge/` and
@@ -217,8 +210,8 @@ today's behaviour.
    `"reach": ["/packages/design-system", "/bun.lock", "/package.json", "/turbo.json"]`. Customs rejects a change outside home plus
    reach. The sandbox cannot enforce this (installs write `node_modules` across the workspace), so Customs is the enforcement point and
    rule 4's denies are the early guard.
-6. Every tracker's gate is a whole-repository gate (`bun run gate:<app>`, at `in: /`), so a forge ticket cannot turn Gaia red through a
-   shared package, and Turborepo makes the untouched workspaces a cache replay. No separate repository gate is needed.
+6. A tracker in a folder can gate the whole repository with a gate at `in: /`, so a ticket of one project cannot turn another red
+   through a shared package. No separate repository gate is needed.
 7. Git runs at a toplevel only: `repositoryRoot` for the main checkout, `worktreeRoot` for a job. The project prefix is applied to
    paths, never to the directory git runs in, which also keeps cwd-relative forms (`git checkout -- .`, `git ls-files`) honest. Path
    mapping lives in one place: `toRepositoryPath(projectPath)`, `toProjectPath(repositoryPath)`. Everything git hands back is mapped
@@ -261,8 +254,8 @@ is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:84-93
   keeps its slot and lands on a later sweep. A tracker at the root takes no lock and writes no journal, as before.
 - **Held targets:** a held target clears when the paths the fast-forward changes are clean in the main checkout, judged at
   `repositoryRoot` (`Airlocks.ts:799-805`), not when the whole checkout is clean.
-- **`init`** refuses a tracker above (today) and below a new one. Forge's tracker therefore leaves the git root for `apps/forge/.forge`
-  before Gaia's tracker exists. For "below", `init` keeps a tracker list beside the journal, `<common>/forge/trackers.json` (tracker id,
+- **`init`** refuses a tracker above (today) and below a new one. For "below", `init` keeps a tracker list beside the journal,
+  `<common>/forge/trackers.json` (tracker id,
   prefix, namespace), which also gives namespace uniqueness without the machine registry.
 - **Identity:** `trackerId` is random; the port and login-item label derive from it. The registry entry and the monitor snapshot keep
   `root` as the project directory and gain `repositoryRoot` and `projectPrefix`. The keys only add, so they ship as a forge system minor
@@ -277,8 +270,6 @@ is `target-moved`, a decision per tip, parked after two moves (`Landing.ts:84-93
 - All worktrees in one folder at the repository root: possible once rule 2 exists, but a tracker owning its own folder needs no
   coordination between trackers.
 - `git filter-repo` for the Gaia import: rewrites commits, dropping their signatures.
-- A turbo cache folder per tracker: the same correctness, but each tracker would re-run the other app's tasks once after each change
-  to it, and people's own runs would share with neither.
 
 ### Specs
 
@@ -303,13 +294,12 @@ network guard spec of the first plan was dropped: the guard stays as it is (Deci
 ### Decided
 
 1. The installed forge runs from a second clone outside the monorepo, and the network guard is unchanged (decision 7).
-2. Gaia gets its own tracker at `apps/gaia` (decision 6).
+2. No forge tracks this repository (decision 6).
 3. A gate always re-runs after a sibling's landing; Turborepo makes an unrelated landing a cache replay.
 
 Found in the rehearsal: a gate's Seatbelt profile cannot start a setuid program, so `/bin/ps` fails with `EPERM` under any profile, and
 both apps' default suites list processes with it (forge's spec helpers that look for processes, Gaia's leak check). No test suite of either
-app passes in a gate until they list processes another way (`pgrep` runs under the profile), so `gate:<app>` cannot run the `test`
-tasks yet.
+app passes in a forge gate until they list processes another way (`pgrep` runs under the profile).
 
 Not yet probed: whether a path-scoped `.claude/rules` file loads once a subfolder session reads a file under its path, and whether
 `sandbox.network.allowLocalBinding` lets a sandboxed Bash reach `127.0.0.1`. Both need a logged-in model turn.

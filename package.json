@@ -4,17 +4,14 @@
   "type": "module",
   "packageManager": "bun@1.4.2",
   "engines": { "bun": "1.4.2" },
-  "workspaces": ["apps/*", "packages/*", "scripts"],
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "typecheck": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck",
     "lint": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run lint",
     "lint:fix": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run lint:fix",
     "verify": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --continue=dependencies-successful --output-logs=errors-only --log-order=grouped",
     "verify:forge": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --filter=forge... --output-logs=errors-only --log-order=grouped",
-    "verify:gaia": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --filter=gaia... --output-logs=errors-only --log-order=grouped",
-    "gate:forge": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) bun scripts/TurboGate.ts forge",
-    "gate:gaia": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) bun scripts/TurboGate.ts gaia",
-    "cache:audit": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) bun scripts/CacheAudit.ts"
+    "verify:gaia": "TURBO_TELEMETRY_DISABLED=1 BUN_RUNTIME_VERSION=$(bun --version) turbo run typecheck lint test test:dom check --filter=gaia... --output-logs=errors-only --log-order=grouped"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "21.0.4",
