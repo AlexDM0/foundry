@@ -2,10 +2,10 @@
  * The port a board's Overseer prefers and the Overseer API's guards and streams, over planted routes. What matters: the preferred port is a
  * pure function of the tracker id inside `OVERSEER_PORT_FIRST` and its count, so a board keeps it across restarts; a port in use moves the
  * bind upward while a given port is refused; the identity answers only once the start is done; a foreign Host, a foreign Origin, an
- * agent-dashboard frame Origin and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
- * routed; the data routes answer only the bearer token or the HttpOnly session cookie a one-time code buys, never headers a local
- * program can forge, and the code is spent by one exchange; every answer carries the page CSP but a served job file, which is sandboxed
- * plain text and only `report.json` or `gate.log`; each of the three streams opens with the handshake, which carries no id; the event
+ * Origin of another local page and any preflight get 403 with no CORS header, while a server's Origin-less write with the token is
+ * routed; the data routes answer only the bearer token, never a cookie or headers a local program can forge, and the routes that once
+ * gave a browser a session are a 404; every answer carries the API's CSP, which lets nothing frame it, but a served job file, which is
+ * sandboxed plain text and only `report.json` or `gate.log`; each of the three streams opens with the handshake, which carries no id; the event
  * stream replays after a `Last-Event-ID` of its generation and pings; a job stream sends its history then each new entry; a gate profile
  * stream sends each output line after the cursor, then each appended line, while the board event stream carries none, and an unknown run
  * is a 404; a picture upload needs the token and a body, and a served picture is never sniffed, never cached and sandboxed.
@@ -19,12 +19,12 @@ import {
 } from 'bun:test';
 import { FORGE_SYSTEM_VERSIONS } from 'forge-contracts/ForgeSystemVersions';
 
-import { TALOS_PROTOCOL_VERSION }                             from '../../lib/talos/constants/TalosProtocol.ts';
-import type { TranscriptEntry }                               from '../../shared/@types/TranscriptEntry.ts';
-import { OperationRefusal }                                   from '../../shared/OperationRefusal.ts';
-import { OVERSEER_PORT_COUNT, SESSION_CODE_LIFETIME_SECONDS } from '../../shared/constants/OverseerLimits.ts';
-import { PRODUCT_NAMES }                                      from '../../shared/constants/ProductNames.ts';
-import { recordAnswer }                                       from '../../testing/RecordedAnswers.ts';
+import { TALOS_PROTOCOL_VERSION } from '../../lib/talos/constants/TalosProtocol.ts';
+import type { TranscriptEntry }   from '../../shared/@types/TranscriptEntry.ts';
+import { OperationRefusal }       from '../../shared/OperationRefusal.ts';
+import { OVERSEER_PORT_COUNT }    from '../../shared/constants/OverseerLimits.ts';
+import { PRODUCT_NAMES }          from '../../shared/constants/ProductNames.ts';
+import { recordAnswer }           from '../../testing/RecordedAnswers.ts';
 import {
   OVERSEER_CALL_SHAPES,
   OVERSEER_PLACEHOLDERS,
@@ -39,10 +39,10 @@ import { OverseerServer, type OverseerRoutes } from './OverseerServer.ts';
 
 const EXAMPLE_TRACKER_ID = 'example-tracker-id';
 const TOKEN              = 'example-token';
-const DASHBOARD_ORIGIN   = 'http://127.0.0.1:4800';
+const OTHER_LOCAL_ORIGIN = 'http://127.0.0.1:4800';
 const TOKEN_HEADERS      = { authorization: `Bearer ${TOKEN}` };
-/** The routes that answer board data, each of which takes the session cookie or the bearer token. */
-const DATA_ROUTE_PATHS   = ['api/session-token', 'api/state', 'api/board', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json', 'api/profiles/P1/stream'];
+/** The routes that answer board data, each of which takes the bearer token alone. */
+const DATA_ROUTE_PATHS   = ['api/state', 'api/board', 'api/events', 'api/jobs/J1/stream', 'api/jobs/J1/files/report.json', 'api/profiles/P1/stream'];
 
 const SHORT_HEARTBEAT_MILLISECONDS = 20;
 
@@ -77,7 +77,6 @@ function exampleState(ticketCount: number): BoardState {
 
 function startExampleServer(
   overrides: Partial<OverseerRoutes> = {},
-  now: () => Date = () => new Date('2026-10-29T20:00:00Z'),
   processId = process.pid,
   heartbeatMilliseconds = SHORT_HEARTBEAT_MILLISECONDS,
 ) {
@@ -111,8 +110,7 @@ function startExampleServer(
       pictureUploads.push(upload.bytes);
       return { status: 200, body: { pictureId: EXAMPLE_PICTURE_ID, bytes: upload.bytes.length, mediaType: 'image/png' } };
     },
-    picture:      (pictureId) => (pictureId === EXAMPLE_PICTURE_ID ? { mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES } : null),
-    frameOrigins: () => [DASHBOARD_ORIGIN],
+    picture: (pictureId) => (pictureId === EXAMPLE_PICTURE_ID ? { mediaType: 'image/png', bytes: EXAMPLE_PICTURE_BYTES } : null),
     ...overrides,
   };
   const server = OverseerServer.start({
@@ -121,7 +119,6 @@ function startExampleServer(
       trackerId: EXAMPLE_TRACKER_ID, project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId
     },
     routes,
-    now,
     heartbeatMilliseconds,
   });
   stoppers.push(() => server.stop());
@@ -147,16 +144,6 @@ async function streamTextUntil(response: Response, isComplete: (text: string) =>
   }
   await reader.cancel();
   return text;
-}
-
-async function issuedSessionCodeOf(serverUrl: string): Promise<string> {
-  const answer = await fetch(new URL('api/session-codes', serverUrl), { method: 'POST', headers: TOKEN_HEADERS });
-  const { code } = await answer.json() as { code: string };
-  return code;
-}
-
-function exchangeCode(serverUrl: string, code: string): Promise<Response> {
-  return fetch(new URL('api/session', serverUrl), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ code }) });
 }
 
 function hasNoCorsHeader(response: Response): boolean {
@@ -233,17 +220,16 @@ describe('OverseerServer guards', () => {
     expect(commands).toEqual([{ kind: 'overseer-pause' }, { kind: 'overseer-pause' }, { kind: 'overseer-pause' }]);
   });
 
-  test('a foreign Origin, an agent-dashboard frame Origin and a preflight get 403 with no CORS header, so the token never reaches their page', async () => {
+  test('a foreign Origin, the Origin of another local page and a preflight get 403 with no CORS header, so the token never reaches their page', async () => {
     const { server, commands } = startExampleServer();
     const commandsUrl = new URL('api/commands', server.url);
     const refusals = [
       await fetch(commandsUrl, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, origin: 'https://example.com' }, body: '{}' }),
-      await fetch(commandsUrl, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, origin: DASHBOARD_ORIGIN }, body: '{}' }),
+      await fetch(commandsUrl, { method: 'POST', headers: { authorization: `Bearer ${TOKEN}`, origin: OTHER_LOCAL_ORIGIN }, body: '{}' }),
       await fetch(commandsUrl, { method: 'OPTIONS', headers: { 'access-control-request-method': 'POST' } }),
-      await fetch(new URL('api/session-token', server.url), { headers: { origin: DASHBOARD_ORIGIN, 'sec-fetch-site': 'same-origin' } }),
-      await fetch(new URL('api/session-codes', server.url), { method: 'POST', headers: { ...TOKEN_HEADERS, origin: DASHBOARD_ORIGIN } }),
+      await fetch(new URL('api/state', server.url), { headers: { ...TOKEN_HEADERS, origin: OTHER_LOCAL_ORIGIN, 'sec-fetch-site': 'same-origin' } }),
     ];
-    expect(refusals.map((response) => response.status)).toEqual([403, 403, 403, 403, 403]);
+    expect(refusals.map((response) => response.status)).toEqual([403, 403, 403, 403]);
     expect(refusals.every(hasNoCorsHeader)).toBe(true);
     expect(commands).toEqual([]);
   });
@@ -266,67 +252,50 @@ describe('OverseerServer guards', () => {
     }
   });
 
-  test('A2: a code from POST /api/session-codes, which needs the token, buys one HttpOnly SameSite=Strict cookie once; a second exchange is 401', async () => {
+  test('the routes that gave a browser a session are each a 404 that sets no cookie, with the token and without', async () => {
     const { server } = startExampleServer();
-    expect((await fetch(new URL('api/session-codes', server.url), { method: 'POST' })).status).toBe(401);
-    const code = await issuedSessionCodeOf(server.url);
-    const exchanged = await exchangeCode(server.url, code);
-    expect(exchanged.status).toBe(200);
-    const cookie = exchanged.headers.get('set-cookie') ?? '';
-    expect(cookie).toStartWith(`${PRODUCT_NAMES.PROGRAM}-session-${server.port}=`);
-    expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('SameSite=Strict');
-    expect(cookie).toContain('Path=/');
-    expect(cookie).not.toContain(code);
-    expect(hasNoCorsHeader(exchanged)).toBe(true);
-    expect((await exchangeCode(server.url, code)).status).toBe(401);
-    expect((await exchangeCode(server.url, 'another-code')).status).toBe(401);
-    expect((await fetch(new URL('api/session', server.url), { method: 'POST', body: '{' })).status).toBe(401);
+    const calls: { path: string; init: RequestInit }[] = [
+      { path: 'api/session-codes', init: { method: 'POST' } },
+      { path: 'api/v1/session-codes', init: { method: 'POST' } },
+      { path: 'api/session', init: { method: 'POST', body: JSON.stringify({ code: 'example-code' }) } },
+      { path: 'api/session-token', init: {} },
+    ];
+    for (const { path, init } of calls) {
+      for (const headers of [TOKEN_HEADERS, {}]) {
+        const answered = await fetch(new URL(path, server.url), { ...init, headers });
+        expect([answered.status, await answered.json()], path).toEqual([404, { refusal: 'not-found' }]);
+        expect(answered.headers.get('set-cookie'), path).toBeNull();
+      }
+    }
   });
 
-  test('a code exchanged past SESSION_CODE_LIFETIME_SECONDS is 401 and sets no cookie', async () => {
-    let epochMilliseconds = Date.parse('2026-10-29T20:00:00Z');
-    const { server } = startExampleServer({}, () => new Date(epochMilliseconds));
-    const code = await issuedSessionCodeOf(server.url);
-    epochMilliseconds += (SESSION_CODE_LIFETIME_SECONDS + 1) * 1000;
-    const exchanged = await exchangeCode(server.url, code);
-    expect(exchanged.status).toBe(401);
-    expect(exchanged.headers.get('set-cookie')).toBeNull();
-  });
-
-  test('the session cookie opens every data route, the session token included; a forged cookie opens none', async () => {
+  test('every data route answers 401 unauthorized to a cookie with no token, and its document to the token', async () => {
     const { server } = startExampleServer();
-    const sessionCookie = (await exchangeCode(server.url, await issuedSessionCodeOf(server.url))).headers.get('set-cookie')?.split(';')[0] ?? '';
-    const tokenAnswer = await fetch(new URL('api/session-token', server.url), { headers: { cookie: sessionCookie } });
-    expect(await tokenAnswer.json()).toEqual({ token: TOKEN });
-    expect(hasNoCorsHeader(tokenAnswer)).toBe(true);
+    const cookie = `${PRODUCT_NAMES.PROGRAM}-session-${server.port}=example-secret`;
     for (const path of DATA_ROUTE_PATHS) {
-      const answered = await fetch(new URL(path, server.url), { headers: { cookie: `other=1; ${sessionCookie}` } });
-      expect(answered.status).toBe(200);
-      await answered.body?.cancel();
+      const byCookie = await fetch(new URL(path, server.url), { headers: { cookie } });
+      expect([byCookie.status, await byCookie.json()], path).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
+      const byToken = await fetch(new URL(path, server.url), { headers: { ...TOKEN_HEADERS, cookie } });
+      expect(byToken.status, path).toBe(200);
+      await byToken.body?.cancel();
     }
-    const [cookieName] = sessionCookie.split('=');
-    expect((await fetch(new URL('api/state', server.url), { headers: { cookie: `${cookieName}=forged` } })).status).toBe(401);
-    const foreignHost = await fetch(new URL('api/session-token', server.url), { headers: { cookie: sessionCookie, host: `example.com:${server.port}` } });
-    expect(foreignHost.status).toBe(403);
   });
 
-  test('A5: the exchange reads the code only from its JSON body: a code in the query string is refused and stays unspent', async () => {
+  test('every answer carries the API\'s CSP, which lets nothing frame it; a refusal and a 404 too', async () => {
     const { server } = startExampleServer();
-    const code = await issuedSessionCodeOf(server.url);
-    expect((await fetch(new URL(`api/session?code=${code}`, server.url), { method: 'POST' })).status).toBe(401);
-    expect((await exchangeCode(server.url, code)).status).toBe(200);
-  });
-
-  test('every answer carries the page CSP, framed only by agent-dashboard\'s origin; a refusal too', async () => {
-    const { server } = startExampleServer();
-    for (const path of ['api/identity', 'api/state', 'api/missing']) {
-      const policy = (await fetch(new URL(path, server.url), { headers: TOKEN_HEADERS })).headers.get('content-security-policy') ?? '';
-      expect(policy).toContain('default-src \'self\'');
-      expect(policy).toContain(`frame-ancestors ${DASHBOARD_ORIGIN}`);
+    const answers = [
+      await fetch(new URL('api/identity', server.url)),
+      await fetch(new URL('api/state', server.url), { headers: TOKEN_HEADERS }),
+      await fetch(new URL('api/missing', server.url), { headers: TOKEN_HEADERS }),
+      await fetch(new URL('api/state', server.url)),
+      await fetch(new URL('api/state', server.url), { headers: { origin: 'https://example.com' } }),
+    ];
+    expect(answers.map((answer) => answer.status)).toEqual([200, 200, 404, 401, 403]);
+    for (const answer of answers) {
+      const policy = answer.headers.get('content-security-policy') ?? '';
+      expect(policy).toBe(OverseerServer.API_CONTENT_SECURITY_POLICY);
+      expect(/frame-ancestors ([^;]*)/.exec(policy)?.[1]).toBe('\'none\'');
     }
-    const refused = await fetch(new URL('api/state', server.url), { headers: { origin: 'https://example.com' } });
-    expect(refused.headers.get('content-security-policy')).toContain('frame-ancestors');
   });
 
   test('a job serves only report.json and gate.log, as plain text under a sandbox CSP', async () => {
@@ -341,12 +310,12 @@ describe('OverseerServer guards', () => {
     expect((await fetch(new URL('api/jobs/J1/files/..%2Fprogress.json', server.url), { headers: TOKEN_HEADERS })).status).toBe(404);
   });
 
-  test('a job path holding a malformed escape is a 404 under the page CSP, never a thrown 500', async () => {
+  test('a job path holding a malformed escape is a 404 under the API\'s CSP, never a thrown 500', async () => {
     const { server } = startExampleServer();
     for (const path of ['api/jobs/%E0/files/report.json', 'api/jobs/J1/files/%E0', 'api/jobs/%E0/stream']) {
       const response = await fetch(new URL(path, server.url));
       expect(response.status).toBe(404);
-      expect(response.headers.get('content-security-policy')).toContain('default-src \'self\'');
+      expect(response.headers.get('content-security-policy')).toBe(OverseerServer.API_CONTENT_SECURITY_POLICY);
     }
   });
 
@@ -388,7 +357,7 @@ describe('OverseerServer pictures', () => {
     expect(pictureUploads.map((bytes) => [...bytes])).toEqual([[...EXAMPLE_PICTURE_BYTES]]);
   });
 
-  test('a served picture carries its stored type, nosniff, a sandbox CSP and no-store; it needs the token or the cookie', async () => {
+  test('a served picture carries its stored type, nosniff, a sandbox CSP and no-store; it needs the token', async () => {
     const { server } = startExampleServer();
     const at = new URL(`api/pictures/${EXAMPLE_PICTURE_ID}`, server.url);
     expect((await fetch(at)).status).toBe(401);
@@ -523,7 +492,7 @@ describe('the answers the Overseer clients read', () => {
         controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: INSTALL_HELD_TEXT
       }
     };
-    const { server } = startExampleServer({ command: async () => installHeldAnswer }, undefined, RECORDED_PROCESS_ID);
+    const { server } = startExampleServer({ command: async () => installHeldAnswer }, RECORDED_PROCESS_ID);
     const replacements: [string, string][] = [[String(server.port), OVERSEER_PLACEHOLDERS.PORT], [TOKEN, OVERSEER_PLACEHOLDERS.TOKEN]];
     const recordedAs = async (callShape: string, response: Promise<Response>, expectedStatus: number): Promise<Response> => {
       const answered = await response;
@@ -534,22 +503,8 @@ describe('the answers the Overseer clients read', () => {
     const at = (path: string) => new URL(path, server.url);
 
     await recordedAs(OVERSEER_CALL_SHAPES.IDENTITY, fetch(at('api/identity')), 200);
-    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_TOKEN_NO_SESSION, fetch(at('api/session-token')), 401);
-    await recordedAs(OVERSEER_CALL_SHAPES.STATE_NO_SESSION, fetch(at('api/state')), 401);
+    await recordedAs(OVERSEER_CALL_SHAPES.STATE_NO_TOKEN, fetch(at('api/state')), 401);
     await recordedAs(OVERSEER_CALL_SHAPES.STATE, fetch(at('api/state'), { headers: TOKEN_HEADERS }), 200);
-    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_CODE_NO_TOKEN, fetch(at('api/session-codes'), { method: 'POST' }), 401);
-
-    const codeAnswer = await fetch(at('api/session-codes'), { method: 'POST', headers: TOKEN_HEADERS });
-    const { code } = await codeAnswer.clone().json() as { code: string };
-    replacements.push([code, OVERSEER_PLACEHOLDERS.SESSION_CODE]);
-    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_CODE, Promise.resolve(codeAnswer), 200);
-
-    const exchanged = await exchangeCode(server.url, code);
-    const cookie = (exchanged.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-    replacements.push([cookie.slice(cookie.indexOf('=') + 1), OVERSEER_PLACEHOLDERS.SESSION_SECRET]);
-    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_EXCHANGE, Promise.resolve(exchanged), 200);
-    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_EXCHANGE_SPENT, exchangeCode(server.url, code), 401);
-    await recordedAs(OVERSEER_CALL_SHAPES.SESSION_TOKEN, fetch(at('api/session-token'), { headers: { cookie } }), 200);
 
     const command = (authorization: string) => fetch(at('api/commands'), { method: 'POST', headers: { authorization }, body: JSON.stringify({ kind: 'overseer-pause' }) });
     await recordedAs(OVERSEER_CALL_SHAPES.COMMAND_WITH_ANOTHER_TOKEN, command('Bearer another-token'), 401);
@@ -569,7 +524,6 @@ describe('the answers the Overseer clients read', () => {
         },
         // The bind fails before any route is asked.
         routes: { token: () => TOKEN } as unknown as OverseerRoutes,
-        now:    () => new Date('2026-10-29T20:00:00Z'),
       });
     } catch (error) {
       portRefusal = error;

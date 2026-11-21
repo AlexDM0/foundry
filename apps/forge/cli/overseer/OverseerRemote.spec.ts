@@ -76,7 +76,7 @@ describe('OverseerRemote over the recorded API', () => {
     const recordedState = (recordedOverseerAnswerOf(OVERSEER_CALL_SHAPES.STATE) as RecordedHttpResponse).body;
     expect(await OverseerRemote.stateOf(batonRecordWithToken('example-token'))).toEqual(recordedState);
     expect(await OverseerRemote.stateOf(batonRecordWithToken('another-token'))).toBeNull();
-    expect(overseer.requests.map((request) => request.callShape)).toEqual([OVERSEER_CALL_SHAPES.STATE, OVERSEER_CALL_SHAPES.STATE_NO_SESSION]);
+    expect(overseer.requests.map((request) => request.callShape)).toEqual([OVERSEER_CALL_SHAPES.STATE, OVERSEER_CALL_SHAPES.STATE_NO_TOKEN]);
     removeScratchDirectory(scratchDirectory);
     scratchDirectory = createScratchDirectory('overseer-remote');
     expect(await OverseerRemote.stateOf(batonRecordWithToken(null))).toBeNull();

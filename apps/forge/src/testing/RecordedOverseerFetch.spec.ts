@@ -1,7 +1,7 @@
 /**
  * The recorded Overseer `fetch` against this OS's recording. What matters: it answers only with a recorded response, its run values filled
- * in; a request with no recorded answer fails; and it refuses what the real server refuses, a data route with no session cookie above all,
- * then a foreign Host, a foreign Origin, a spent code, another token, a taken port, and any request once nothing listens. A picture upload
+ * in; a request with no recorded answer fails; and it refuses what the real server refuses, a data route with no token above all,
+ * then a foreign Host, a foreign Origin, another token, a taken port, and any request once nothing listens. A picture upload
  * answers the verdict the spec chose with the token, as a command does.
  */
 import { describe, expect, test } from 'bun:test';
@@ -16,29 +16,13 @@ function recordedOverseer(options: Parameters<typeof createRecordedOverseerFetch
 }
 
 describe('the recorded Overseer fetch', () => {
-  test('a data route with no session cookie and no token is refused 401, as the real server refuses it', async () => {
+  test('a data route with no token is refused 401, as the real server refuses it, and answers the token its document', async () => {
     const overseer = recordedOverseer();
-    for (const path of ['/api/session-token', '/api/state']) {
-      const response = await overseer.fetch(path, { credentials: 'same-origin' });
-      expect(response.status).toBe(401);
-      expect(await response.json()).toMatchObject({ refusal: 'unauthorized', text: expect.any(String) });
-    }
-    expect(overseer.requests.map((request) => request.callShape)).toEqual([
-      OVERSEER_CALL_SHAPES.SESSION_TOKEN_NO_SESSION, OVERSEER_CALL_SHAPES.STATE_NO_SESSION,
-    ]);
-  });
-
-  test('a code it issued buys the session cookie once; the page then reads its token, and a second exchange is refused', async () => {
-    const overseer = recordedOverseer();
-    const codeResponse = await overseer.fetch(new URL('api/session-codes', overseer.url), { method: 'POST', headers: TOKEN_HEADERS });
-    const { code } = await codeResponse.json() as { code: string };
-    const exchange = () => overseer.fetch('/api/session', { method: 'POST', body: JSON.stringify({ code }) });
-    const exchanged = await exchange();
-    expect(exchanged.status).toBe(200);
-    expect(exchanged.headers.get('set-cookie')).toContain(`-session-${overseer.port}=`);
-    expect((await exchange()).status).toBe(401);
-    expect(await (await overseer.fetch('/api/session-token', { credentials: 'same-origin' })).json()).toEqual({ token: 'example-token' });
-    expect((await overseer.fetch('/api/session-token', { credentials: 'omit' })).status).toBe(401);
+    const refused = await overseer.fetch('/api/state', { headers: { cookie: `forge-session-${overseer.port}=example-secret` } });
+    expect(refused.status).toBe(401);
+    expect(await refused.json()).toMatchObject({ refusal: 'unauthorized', text: expect.any(String) });
+    expect((await overseer.fetch('/api/state', { headers: TOKEN_HEADERS })).status).toBe(200);
+    expect(overseer.requests.map((request) => request.callShape)).toEqual([OVERSEER_CALL_SHAPES.STATE_NO_TOKEN, OVERSEER_CALL_SHAPES.STATE]);
   });
 
   test('a command answers as the spec chose with the token, and 401 with another one', async () => {

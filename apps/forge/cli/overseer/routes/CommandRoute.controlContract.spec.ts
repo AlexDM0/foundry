@@ -53,7 +53,6 @@ type ContractKind = (typeof CONTROL_CONTRACT_KINDS)[number];
 /** A body of the kind as the package and as forge both spell it, so a change to either side's shape fails the typecheck. */
 type ContractBody<Kind extends ContractKind> = Extract<ForgeControlCommand, { kind: Kind }> & OverseerApiCommandOf<Kind>;
 
-const API_CALLER = { carriesBridgeSession: false };
 
 /** Each kind of the control contract, its body as a monitor sends it, and the outcomes its answer may carry. */
 const CONTRACT_BODIES: { readonly [Kind in ForgeControlCommand['kind']]: { body: ContractBody<Kind>; outcomes: readonly string[] } } = {
@@ -162,7 +161,7 @@ describeWhenGitIsRecorded('the control contract', () => {
 
   for (const [kind, { body, outcomes }] of Object.entries(CONTRACT_BODIES)) {
     test(`${kind} answers 200 with control version 1 and an outcome of the contract`, async () => {
-      const answer = await answerControlCommand(body, routeRequest(), API_CALLER);
+      const answer = await answerControlCommand(body, routeRequest());
       // `result` is the applier's own record, outside the contract.
       expect(answer).toEqual({ status: 200, body: { controlVersion: 1, outcome: expect.any(String), result: expect.anything() } });
       expect(outcomes).toContain(String((answer.body as Record<string, unknown>)['outcome']));
@@ -178,7 +177,7 @@ describeWhenGitIsRecorded('the control contract', () => {
           controlVersion: 1, refusal: 'malformed-body', fields: {}, text: expect.any(String)
         }
       };
-      expect(await answerControlCommand(body, routeRequest(), API_CALLER), JSON.stringify(body)).toEqual(malformedAnswer);
+      expect(await answerControlCommand(body, routeRequest()), JSON.stringify(body)).toEqual(malformedAnswer);
     }
     expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
@@ -203,7 +202,7 @@ describeWhenGitIsRecorded('the control contract', () => {
       { kind: 'epic-remove', key: 'example-checkout' },
     ];
     expect(BY_HAND_COMMAND_KINDS.filter((kind) => COMMAND_ROUTE_KINDS.includes(kind))).toEqual([]);
-    for (const body of byHandBodies) expect(await answerControlCommand(body, routeRequest(), API_CALLER), body.kind).toEqual(malformedAnswer);
+    for (const body of byHandBodies) expect(await answerControlCommand(body, routeRequest()), body.kind).toEqual(malformedAnswer);
     expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
 
@@ -214,14 +213,14 @@ describeWhenGitIsRecorded('the control contract', () => {
       const refusedBody = {
         controlVersion: 1, refusal: detail.kind, fields: { limit, ceiling: CONCURRENCY_LIMIT_CEILING_AGENTS }, text: commandLineSentenceOf(detail),
       };
-      expect(await answerControlCommand({ kind: 'concurrency-set', limit }, routeRequest(), API_CALLER)).toEqual({ status: 409, body: refusedBody });
+      expect(await answerControlCommand({ kind: 'concurrency-set', limit }, routeRequest())).toEqual({ status: 409, body: refusedBody });
     }
     expect(readFileSync(progressRecordPath(), 'utf8')).toBe(progressBefore);
   });
 
   test('a machine agent limit above the CPU count answers 409 with its code and sentence, and writes nothing', async () => {
     const request = routeRequest();
-    const answer = await answerControlCommand({ kind: 'machine-agent-limit-set', limit: MACHINE_AGENT_CEILING + 1 }, request, API_CALLER);
+    const answer = await answerControlCommand({ kind: 'machine-agent-limit-set', limit: MACHINE_AGENT_CEILING + 1 }, request);
     const limit = MACHINE_AGENT_CEILING + 1;
     const detail: OperationRefusalDetail = { kind: 'machine-agent-limit-above-cpus', limit, ceiling: MACHINE_AGENT_CEILING };
     const refusedBody = {
@@ -236,12 +235,12 @@ describeWhenGitIsRecorded('the control contract', () => {
     const heldAnswer = {
       controlVersion: 1, refusal: 'launches-held-by-install-change', fields: {}, text: expect.stringContaining('update')
     };
-    expect(await answerControlCommand({ kind: 'concurrency-set', limit: 3 }, routeRequest(true), API_CALLER)).toEqual({ status: 423, body: heldAnswer });
+    expect(await answerControlCommand({ kind: 'concurrency-set', limit: 3 }, routeRequest(true))).toEqual({ status: 423, body: heldAnswer });
   });
 
   test('a resume of work that is not interrupted answers 409 with the refusal\'s code and sentence, and writes nothing', async () => {
     const progressBefore = readFileSync(progressRecordPath(), 'utf8');
-    const answer = await answerControlCommand({ kind: 'interrupted-work-resume', target: { jobId: 'J9' } }, routeRequest(), API_CALLER);
+    const answer = await answerControlCommand({ kind: 'interrupted-work-resume', target: { jobId: 'J9' } }, routeRequest());
     const detail: OperationRefusalDetail = { kind: 'board-refusal', boardRefusal: { reason: 'unknown-job', jobId: 'J9' } };
     expect(answer).toEqual({
       status: 409,
@@ -253,7 +252,7 @@ describeWhenGitIsRecorded('the control contract', () => {
   });
 
   test('a refused command answers the command line\'s sentence where the API\'s sentence differs', async () => {
-    const answer = await answerControlCommand({ kind: 'interrupted-work-resume', target: { ticketReference: '999' } }, routeRequest(), API_CALLER);
+    const answer = await answerControlCommand({ kind: 'interrupted-work-resume', target: { ticketReference: '999' } }, routeRequest());
     const refusal = new OperationRefusal('refused', { kind: 'no-readable-ticket', reference: '999' });
     expect(OperationRefusalWordingUtil.messageOf(refusal)).not.toBe(OperationRefusalWordingUtil.apiMessageOf(refusal));
     const refusedBody = {
@@ -270,7 +269,7 @@ describeWhenGitIsRecorded('the control contract', () => {
       const refusedBody = {
         controlVersion: 1, refusal: code, fields, text: FlintBrainWordingUtil.refusalSentenceOf(refusal),
       };
-      expect(await answerControlCommand({ kind }, routeRequest(false, scripted.brain), API_CALLER), refusal.code).toEqual({ status: 409, body: refusedBody });
+      expect(await answerControlCommand({ kind }, routeRequest(false, scripted.brain)), refusal.code).toEqual({ status: 409, body: refusedBody });
     }
   });
 });

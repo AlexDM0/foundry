@@ -2,7 +2,7 @@
  * The Overseer HTTP API of a default spec: `createRecordedOverseerFetch` gives a `fetch` that answers only with what the real
  * `OverseerServer` answered, which its real-system specs record under `bun run record src/services/overseer/OverseerServer.ts`. A request
  * with no recorded answer fails the case. It refuses what the real server refuses: a Host that is not loopback, an Origin that is not its
- * own, a data route with no session cookie and no token, a spent session code, another token, and a request when nothing listens.
+ * own, a data route with no token, another token, and a request when nothing listens.
  * `src/testing/RecordedOverseerAnswers.ts` reads the recording.
  */
 export const OVERSEER_BOUNDARY = 'src/services/overseer/OverseerServer.ts';
@@ -10,14 +10,8 @@ export const OVERSEER_BOUNDARY = 'src/services/overseer/OverseerServer.ts';
 /** The call shapes the real-system specs record, each named for the request and the state it was sent in. */
 export const OVERSEER_CALL_SHAPES = {
   IDENTITY:                   'GET api/identity',
-  SESSION_TOKEN:              'GET api/session-token, with the session cookie',
-  SESSION_TOKEN_NO_SESSION:   'GET api/session-token, with no session cookie and no token',
   STATE:                      'GET api/state, with the token',
-  STATE_NO_SESSION:           'GET api/state, with no session cookie and no token',
-  SESSION_CODE:               'POST api/session-codes, with the token',
-  SESSION_CODE_NO_TOKEN:      'POST api/session-codes, with no token',
-  SESSION_EXCHANGE:           'POST api/session, a code not spent',
-  SESSION_EXCHANGE_SPENT:     'POST api/session, a code already spent',
+  STATE_NO_TOKEN:             'GET api/state, with no token',
   COMMAND_APPLIED:            'POST api/commands, with the token, the command applied',
   COMMAND_REFUSED:            'POST api/commands, with the token, the command refused',
   COMMAND_INSTALL_HELD:       'POST api/commands, with the token, the route answering 423 for an install change',
@@ -37,15 +31,13 @@ export type OverseerCallShape = typeof OVERSEER_CALL_SHAPES[keyof typeof OVERSEE
 
 /** The places a recorded answer holds for a value of the run it was recorded in, which the mock fills with its own. */
 export const OVERSEER_PLACEHOLDERS = {
-  PORT:           '<port>',
-  TOKEN:          '<token>',
-  SESSION_CODE:   '<session code>',
-  SESSION_SECRET: '<session secret>',
-  STAMP:          '<stamp>',
+  PORT:  '<port>',
+  TOKEN: '<token>',
+  STAMP: '<stamp>',
 } as const;
 
 /** The headers a client reads of an answer. */
-export const RECORDED_RESPONSE_HEADERS = ['content-type', 'set-cookie'] as const;
+export const RECORDED_RESPONSE_HEADERS = ['content-type'] as const;
 
 export interface RecordedHttpResponse {
   readonly status:  number;
@@ -88,7 +80,7 @@ export interface RecordedOverseerRequest {
 
 export interface RecordedOverseer {
   readonly fetch:               (input: string | URL, init?: RequestInit) => Promise<Response>;
-  /** The base URL the mock listens on, `http://127.0.0.1:<port>/`; a relative path is a request of the page it serves. */
+  /** The base URL the mock listens on, `http://127.0.0.1:<port>/`. */
   readonly url:                 string;
   readonly port:                number;
   readonly requests:            readonly RecordedOverseerRequest[];
@@ -97,11 +89,6 @@ export interface RecordedOverseer {
   readonly answerCommandsWith:  (verdict: CommandVerdict) => void;
   /** The real route decides from the bytes; the mock answers the verdict it was told, `uploaded` until then. */
   readonly answerPicturesWith:  (verdict: PictureUploadVerdict) => void;
-  /** The page's cookie jar: true once a code was exchanged, or when the spec starts with a session. */
-  readonly holdsSessionCookie:  () => boolean;
-  readonly forgetSessionCookie: () => void;
-  /** A code `POST api/session-codes` would give; it buys one session cookie, once. */
-  readonly issueSessionCode:    () => string;
   /** From now on nothing listens on the port. */
   readonly stop:                () => void;
   /** Throws the recorded refusal when `port` is the mock's own, as the real server refuses a taken port. */
@@ -111,20 +98,16 @@ export interface RecordedOverseer {
 }
 
 export interface RecordedOverseerOptions {
-  readonly token?:              string;
-  readonly holdsSessionCookie?: boolean;
-  readonly port?:               number;
+  readonly token?: string;
+  readonly port?:  number;
 }
 
 const RECORD_COMMAND = `bun run record ${OVERSEER_BOUNDARY}`;
 const EXAMPLE_PORT = 4801;
 const EXAMPLE_TOKEN = 'example-token';
-const EXAMPLE_SESSION_SECRET = 'example-session-secret';
 const EXAMPLE_STAMP = '2026-01-01T00:00:00+00:00';
 const LOOPBACK_NAMES = ['127.0.0.1', 'localhost'];
 const BEARER_PREFIX = 'Bearer ';
-const SESSION_CODE_RADIX = 16;
-const SESSION_CODE_FIRST = 0xa0b1c2d3;
 
 const PICTURE_SHAPE_OF_VERDICT: Readonly<Record<PictureUploadVerdict, OverseerCallShape>> = {
   'uploaded':         OVERSEER_CALL_SHAPES.PICTURE_UPLOADED,
@@ -162,14 +145,10 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
   const ownOrigins = LOOPBACK_NAMES.map((name) => `http://${name}:${port}`);
   const requests: RecordedOverseerRequest[] = [];
   const unansweredCalls: string[] = [];
-  const unspentCodes = new Set<string>();
   let token = options.token ?? EXAMPLE_TOKEN;
-  let sessionCookieHeld = options.holdsSessionCookie ?? false;
   let commandVerdict: CommandVerdict = 'applied';
   let pictureVerdict: PictureUploadVerdict = 'uploaded';
   let listening = true;
-  let issuedCodeCount = 0;
-  let lastIssuedCode = '';
 
   const answerOf = <Answer>(callShape: string): Answer => {
     const answer = answers.get(callShape);
@@ -181,18 +160,9 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
     return answer as Answer;
   };
 
-  const issueSessionCode = (): string => {
-    lastIssuedCode = (SESSION_CODE_FIRST + issuedCodeCount).toString(SESSION_CODE_RADIX);
-    issuedCodeCount += 1;
-    unspentCodes.add(lastIssuedCode);
-    return lastIssuedCode;
-  };
-
   const filled = (text: string): string => text
     .replaceAll(OVERSEER_PLACEHOLDERS.PORT, String(port))
     .replaceAll(OVERSEER_PLACEHOLDERS.TOKEN, token)
-    .replaceAll(OVERSEER_PLACEHOLDERS.SESSION_CODE, lastIssuedCode)
-    .replaceAll(OVERSEER_PLACEHOLDERS.SESSION_SECRET, EXAMPLE_SESSION_SECRET)
     .replaceAll(OVERSEER_PLACEHOLDERS.STAMP, EXAMPLE_STAMP);
 
   const responseOf = (callShape: OverseerCallShape): Response => {
@@ -205,35 +175,10 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
 
   const bearerMatches = (headers: Headers): boolean => headers.get('authorization') === `${BEARER_PREFIX}${token}`;
 
-  /** A page request, a relative path, carries the jar's cookie unless told to omit it; a process's own `fetch` keeps no jar. */
-  const sendsSessionCookie = (input: string | URL, init: RequestInit | undefined): boolean =>
-    sessionCookieHeld && typeof input === 'string' && input.startsWith('/') && init?.credentials !== 'omit';
-
-  const codeIn = (body: RequestInit['body']): unknown => {
-    try {
-      return (JSON.parse(typeof body === 'string' ? body : '') as { code?: unknown }).code;
-    } catch {
-      return undefined;
-    }
-  };
-
-  const routedShapeOf = (input: string | URL, init: RequestInit | undefined, method: string, pathname: string, headers: Headers): OverseerCallShape | null => {
-    const readerIsAuthorized = sendsSessionCookie(input, init) || bearerMatches(headers);
+  const routedShapeOf = (method: string, pathname: string, headers: Headers): OverseerCallShape | null => {
     if (method === 'GET' && pathname === '/api/identity') return OVERSEER_CALL_SHAPES.IDENTITY;
-    if (method === 'GET' && pathname === '/api/session-token') return readerIsAuthorized ? OVERSEER_CALL_SHAPES.SESSION_TOKEN : OVERSEER_CALL_SHAPES.SESSION_TOKEN_NO_SESSION;
-    if (method === 'GET' && pathname === '/api/state') return readerIsAuthorized ? OVERSEER_CALL_SHAPES.STATE : OVERSEER_CALL_SHAPES.STATE_NO_SESSION;
+    if (method === 'GET' && pathname === '/api/state') return bearerMatches(headers) ? OVERSEER_CALL_SHAPES.STATE : OVERSEER_CALL_SHAPES.STATE_NO_TOKEN;
     if (method === 'POST' && pathname === '/api/nudge') return OVERSEER_CALL_SHAPES.NUDGE;
-    if (method === 'POST' && pathname === '/api/session-codes') {
-      if (!bearerMatches(headers)) return OVERSEER_CALL_SHAPES.SESSION_CODE_NO_TOKEN;
-      issueSessionCode();
-      return OVERSEER_CALL_SHAPES.SESSION_CODE;
-    }
-    if (method === 'POST' && pathname === '/api/session') {
-      const code = codeIn(init?.body);
-      if (typeof code !== 'string' || !unspentCodes.delete(code)) return OVERSEER_CALL_SHAPES.SESSION_EXCHANGE_SPENT;
-      sessionCookieHeld = true;
-      return OVERSEER_CALL_SHAPES.SESSION_EXCHANGE;
-    }
     if (method === 'POST' && pathname === '/api/commands') {
       return bearerMatches(headers) ? COMMAND_SHAPE_OF_VERDICT[commandVerdict] : OVERSEER_CALL_SHAPES.COMMAND_WITH_ANOTHER_TOKEN;
     }
@@ -264,7 +209,7 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
       let callShape: OverseerCallShape | null;
       if (host !== null && !LOOPBACK_NAMES.some((name) => host === `${name}:${port}`)) callShape = OVERSEER_CALL_SHAPES.FOREIGN_HOST;
       else if ((origin !== null && !ownOrigins.includes(origin)) || method === 'OPTIONS') callShape = OVERSEER_CALL_SHAPES.FOREIGN_ORIGIN;
-      else callShape = routedShapeOf(input, init, method, target.pathname, headers);
+      else callShape = routedShapeOf(method, target.pathname, headers);
       requests.push({ ...request, callShape });
       if (callShape === null) {
         const unanswered = `${method} ${target.pathname} has no recorded answer: run \`${RECORD_COMMAND}\``;
@@ -291,11 +236,6 @@ export function createRecordedOverseerFetch(answers: ReadonlyMap<string, unknown
     answerPicturesWith: (verdict) => {
       pictureVerdict = verdict;
     },
-    holdsSessionCookie:  () => sessionCookieHeld,
-    forgetSessionCookie: () => {
-      sessionCookieHeld = false;
-    },
-    issueSessionCode,
     stop: () => {
       listening = false;
     },

@@ -31,9 +31,9 @@ Request guards stop a browser page of another origin. They are not what holds an
 Every route passes the shared [request guards](#request-guards), so every route can also answer 403
 `{refusal: 'forbidden', text}`. **Own guard** is what a route asks beyond them, and **Other statuses** lists only what
 the route adds. An answer is JSON unless the row says otherwise. A refusal is `{refusal: <text>}`, a fixed word. A
-401, a 403 and the 500s `read-failed` and `page-build-failed` are `{refusal, text}`: the fixed word, and beside it the
+401, a 403 and the 500 `read-failed` are `{refusal, text}`: the fixed word, and beside it the
 sentence a client shows unedited, worded in `cli/overseer/routes/OverseerRoutes.ts`; such a sentence names no command
-line or flag: it names what is wrong and the Bridge control or a neutral action, such as "open the board again". From
+line or flag, no page and no session: it names what is wrong. From
 forge 1.21 a refusal of a command or a picture is forge's refusal document, `ForgeRefusalDocument` in
 `packages/forge-contracts`: `{refusal: <code>, fields, text}`, the reason code, the facts the refusal names, and the
 sentence the command line prints, which may name a command. A bare verb such as `oversee status` is
@@ -43,28 +43,24 @@ sentence the command line prints, which may name a command. A bare verb such as 
 | --- | --- | --- | --- | --- |
 | `GET /api/versions` | none | `{current, minimumSupported}`, see [System versions](#system-versions); never versioned and never removed | none, also while the Overseer starts | every client, first |
 | `GET /api/identity` | none | `OverseerIdentity`: `identityVersion`, `application`, `trackerId`, `project`, `codeVersion`, `installVersion`, `talosProtocolVersion`, `processId`, `contracts`, see [Contracts](#contracts) | 503 `starting` until the folder watch has started | Bridge, `oversee --detach`, `oversee status`, a monitor |
-| `POST /api/session-codes` | bearer token | `{code}`: a fresh one-time [session code](#browser-sessions) | 401 `unauthorized` | `open` |
-| `POST /api/session` | the code in the JSON body `{code}`, never the URL | `{outcome: 'done'}` and `Set-Cookie: forge-session-<port>=<secret>; Path=/; HttpOnly; SameSite=Strict` | 401 `unauthorized` for a code never issued, already spent, or not in the body | Bridge |
-| `GET /api/session-token` | session cookie or bearer token | `{token}` | 401 `unauthorized`, also before a token exists | Bridge |
-| `GET /api/state` | session cookie or bearer token | `BoardState`, read fresh for this request; internal, at no versioned path | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
-| `GET /api/board` | session cookie or bearer token | `ForgeBoardDocument`, read fresh for this request, see [The board document](#the-board-document) | 401 `unauthorized`; 500 `read-failed` when the read throws | a monitor |
+| `GET /api/state` | bearer token | `BoardState`, read fresh for this request; internal, at no versioned path | 401 `unauthorized`; 500 `read-failed` when the read throws | `oversee status`; never the Bridge |
+| `GET /api/board` | bearer token | `ForgeBoardDocument`, read fresh for this request, see [The board document](#the-board-document) | 401 `unauthorized`; 500 `read-failed` when the read throws | a monitor |
 | `GET /api/summary` | none | `BoardSummary`, see [The summary contract](#the-summary-contract) | 500 `read-failed` when the read throws | a monitor; never the Bridge |
-| `GET /api/monitor` | session cookie or bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor |
-| `GET /api/presence` | session cookie or bearer token | `ForgePresenceDocument`, read fresh for this request, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` until this generation's presence record holds its start's classification | a monitor |
-| `GET /api/crash-log?number=<n>` | session cookie or bearer token | `ForgeCrashLogDocument` of crash log `<n>`, the newest without the query, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 404 `{refusal: 'no-crash-log', fields: {number}, text}`, the refusal's code, its fields and the command line's sentence, for a number with no log, a query that is no whole number from 1, or no log at all; 500 `read-failed` for a log that cannot be read | a monitor |
-| `GET /api/monitor/events` | session cookie or bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
-| `GET /api/events` | session cookie or bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
+| `GET /api/monitor` | bearer token | `MonitorSnapshot`, read fresh for this request, see [The monitor contract](#the-monitor-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` before the Overseer took its generation | a monitor |
+| `GET /api/presence` | bearer token | `ForgePresenceDocument`, read fresh for this request, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 500 `read-failed` when the read throws; 503 `starting` until this generation's presence record holds its start's classification | a monitor |
+| `GET /api/crash-log?number=<n>` | bearer token | `ForgeCrashLogDocument` of crash log `<n>`, the newest without the query, see [The presence contract](#the-presence-contract) | 401 `unauthorized`; 404 `{refusal: 'no-crash-log', fields: {number}, text}`, the refusal's code, its fields and the command line's sentence, for a number with no log, a query that is no whole number from 1, or no log at all; 500 `read-failed` for a log that cannot be read | a monitor |
+| `GET /api/monitor/events` | bearer token | Server-sent events, a `handshake` and then one `monitor` event per changed snapshot, see [The monitor stream](#the-monitor-stream) | 401 `unauthorized`; 404 `not-ready` until the first snapshot was published | a monitor |
+| `GET /api/events` | bearer token | Server-sent events, see [The event stream](#the-event-stream) | 401 `unauthorized`; 404 `not-ready` until the [event broker](#the-event-stream) exists | Bridge, `cli/testing/CutoverSmoke.ts` |
 | `POST /api/commands` | bearer token | `{controlVersion, outcome, result}`, see [Commands](#commands) | 400, 401, 409, 423, 500 | Bridge, `oversee stop`, `oversee restart`, `update` |
-| `POST /api/flint-brain/ask` | session cookie or bearer token; a JSON body of at most `FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES` (32 KiB) | `{kind: 'answered', intent, emote}`, or `{kind: 'not-asked', reason}` when the rule director moves, see [Flint's brain](#flint-brain) | 400 `{refusal: 'malformed-body', text}` for no JSON or a digest of the wrong shape; 401 `unauthorized`; 413 `{refusal: 'too-large'}`, refused unread on a `Content-Length` over the limit | Bridge only; unversioned and in no registry entry |
+| `POST /api/flint-brain/ask` | bearer token; a JSON body of at most `FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES` (32 KiB) | `{kind: 'answered', intent, emote}`, or `{kind: 'not-asked', reason}` when the rule director moves, see [Flint's brain](#flint-brain) | 400 `{refusal: 'malformed-body', text}` for no JSON or a digest of the wrong shape; 401 `unauthorized`; 413 `{refusal: 'too-large'}`, refused unread on a `Content-Length` over the limit | Bridge only; unversioned and in no registry entry |
 | `POST /api/pictures` | bearer token; a raw body, the picture's bytes | `{pictureId, bytes, mediaType}`: the picture stored owner-only as `<data>/pictures/<pictureId>.<extension>`, its id the sha256 of its bytes and its type read from its first bytes, never from `Content-Type` | 400 `malformed-body` for an empty body; 401 `unauthorized`; 413 `{refusal: 'picture-too-large', fields, text}` over `PICTURE_SIZE_LIMIT_BYTES`, the largest picture whose base64 fits the vendor's `PICTURE_ENCODED_SIZE_LIMIT_BYTES`, refused unread on a `Content-Length` over it and read no further than past it otherwise; 415 `{refusal: 'picture-type-unsupported', fields, text}` for a type outside `ACCEPTED_PICTURE_MEDIA_TYPES` | Bridge (`PictureUploadClient`) |
-| `GET /api/pictures/<id>` | session cookie or bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
+| `GET /api/pictures/<id>` | bearer token; `<id>` 64 hex digits | The picture's bytes with its stored type, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: sandbox` and `Cache-Control: no-store` | 401 `unauthorized`; 404 `not-found` | Bridge, as an image |
 | `POST /api/nudge` | none | `{outcome: 'done'}`; schedules a [Pass](../glossary.md#pass), any body ignored | none | every CLI verb that wrote the tracker |
-| `GET /api/jobs/<J>/stream` | session cookie or bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
-| `GET /api/profiles/<P>/stream` | session cookie or bearer token | Server-sent events, see [The gate profile stream](#the-gate-profile-stream) | 401 `unauthorized`; 404 `not-found` for a run `gate-profiles.json` does not hold, or a cursor that is no line number | `bridge/api/ProfileStreamClient.ts`, for the gate dialog's profile log |
-| `GET /api/jobs/<J>/files/<name>` | session cookie or bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
+| `GET /api/jobs/<J>/stream` | bearer token | Server-sent events, see [The transcript stream](#the-transcript-stream) | 401 `unauthorized`; 404 `not-found` | Bridge |
+| `GET /api/profiles/<P>/stream` | bearer token | Server-sent events, see [The gate profile stream](#the-gate-profile-stream) | 401 `unauthorized`; 404 `not-found` for a run `gate-profiles.json` does not hold, or a cursor that is no line number | `bridge/api/ProfileStreamClient.ts`, for the gate dialog's profile log |
+| `GET /api/jobs/<J>/files/<name>` | bearer token; `<name>` in `SERVED_JOB_FILE_NAMES` | The file as `text/plain; charset=utf-8` under `Content-Security-Policy: sandbox` | 401 `unauthorized`; 404 `not-found` | no caller in this repository |
 | `/api/v<n>/<endpoint>` | the unversioned route's | The unversioned route's answer, for each endpoint the registry serves at `v<n>`, see [Versioned paths](#versioned-paths) | 404 `not-found` for a version or an endpoint the registry does not serve | a monitor |
-| Any other `GET` outside `/api/` | none | A built Bridge file, `/` being the page | 404 `not-found`, 500 `page-build-failed` | browsers |
-| Anything else | none | 404 `not-found` | | |
+| Anything else, every path outside `/api/` included | none | 404 `not-found` | | |
 
 `SERVED_JOB_FILE_NAMES` is exactly `report.json` and `gate.log`, so a [child record](../glossary.md#child-record) or an
 event log, which [Talos](../glossary.md#talos) writes, is never served as a file. The file route answers 404 for any
@@ -81,7 +77,7 @@ a percent escape matches no route and gets 404, because neither job ids nor serv
 ## Request guards
 
 Three guards run before routing, in this order: Host, Origin and no preflight. The first failure answers 403
-`{refusal: 'forbidden'}`. Two more sit inside their routes: the reader check and the bearer token. Two CSPs mark the
+`{refusal: 'forbidden'}`. One more sits inside its routes: the bearer token, the only credential. Two CSPs mark the
 answers, and the bind is set at the socket. No route trusts a request header a local program can forge, such as
 `Sec-Fetch-Site`, as proof of who is asking.
 
@@ -95,77 +91,27 @@ answers, and the bind is set at the socket. No route trusts a request header a l
 | Host | Before routing | Exactly `127.0.0.1:<port>` or `localhost:<port>` | 403 `forbidden` | DNS rebinding: a foreign name resolved to loopback carries its own name as Host |
 | Origin | Before routing | Absent, or `http://127.0.0.1:<port>`, or `http://localhost:<port>`. The text `null` is refused. | 403 `forbidden` | A page elsewhere reading or writing the API, a monitor's page included |
 | No preflight | Before routing | `OPTIONS` is always refused | 403 `forbidden` | A cross-origin write that needs permission. No answer anywhere carries a CORS header, so permission cannot be given. |
-| Reader | In the nine data routes: session token, state, events, monitor, monitor events, job stream, job files, pictures, profile stream | The session cookie names a live [browser session](#browser-sessions), or the bearer token matches | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board or the token over the shared loopback port |
-| Bearer token | In `/api/commands`, `/api/pictures` and `/api/session-codes` | Compared with `timingSafeEqual`, lengths first | 401 `unauthorized` | A write with no token, and guessing a token by timing |
-| Page CSP | On the answer | Every answer that sets no CSP of its own, a guard's 403 included | None, it is a header | Injected script reaching out; a foreign page framing the Bridge's controls |
+| Bearer token | In every route but `/api/versions`, `/api/identity`, `/api/summary` and `/api/nudge` | Compared with `timingSafeEqual`, lengths first; a cookie counts for nothing | 401 `unauthorized` | Another user of the machine, or an unconfined process, reading the board over the shared loopback port; a write with no token; guessing a token by timing |
+| API CSP | On the answer | `API_CONTENT_SECURITY_POLICY`, `default-src 'none'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'`, on every answer that sets no CSP of its own, a guard's 403 included | None, it is a header | An answer opened in a browser loading or posting anything; any page framing an answer |
 | File CSP | On the answer | `sandbox` on a served job file and a served picture, which is also `nosniff` | None, it is a header | Agent text or a picture opened in a browser running as the API's origin |
 
 ![Rows are callers, columns are the read routes, the session token and commands. The Bridge page gets all three, and a process of the same user gets all three by forging the header and reading the token. A monitor's server gets the reads only. A foreign page gets 403 Origin everywhere, a DNS-rebound page 403 Host everywhere, and a foreign no-cors GET reaches a read route but cannot read the answer. A confined session is held by its confinement.](../figures/overseer-api/caller-reach-matrix.png)
 
 *Notice the gray cell: a foreign no-cors `GET` is answered, and the browser keeps the answer from the page.*
 
-The loopback port is shared by every user of the machine, so the data routes ask who reads: the Bridge shows its
-session cookie, and a CLI reader such as `oversee status` the bearer token from the file the Baton names.
+The loopback port is shared by every user of the machine, so the data routes ask who reads: a reader shows the bearer
+token from the file the Baton names, as `oversee status` and a monitor's server do.
 `GET /api/versions`, `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay open: the versions, identity and
 the summary carry no ticket text, a monitor's server reads them with no token, and a nudge carries no data and only
 schedules a Pass.
 
-The token never reaches another origin's page: the only route that hands it out needs a session cookie, which only a
-one-time code buys, and no answer is readable across origins. Every Overseer start writes a fresh token to the file the
-[Baton](../glossary.md#baton) names.
+No route hands out the token, and no answer is readable across origins, so the token never reaches a page. Every
+Overseer start writes a fresh token to the file the [Baton](../glossary.md#baton) names, so a client that reads 401
+reads the file again.
 
-### Browser sessions
-
-`open` asks the live Overseer for a one-time code with the token (`POST /api/session-codes`) and opens, and prints, the
-Overseer's URL with `#session=<code>` as its fragment. A browser never sends a fragment to a server, so the code
-reaches no request line, query string or log. The browser opener gets only the path of an owner-only HTML file in the
-token's folder that redirects to that URL, since any local user can read a process's arguments; `open` stays until the
-code's 30-second life ends, or a stop signal comes, and then removes the file. Before anything else loads, the Bridge
-clears the fragment from the address bar and its history, then posts the code in a JSON body to `POST /api/session`.
-The Overseer spends the code and answers a session cookie: `HttpOnly`, so no script reads it, and `SameSite=Strict`, so
-no other site's page sends it. Its name carries the port, because a cookie on `127.0.0.1` reaches every port. A second
-exchange of the same code answers 401.
-
-Codes and sessions live in the Overseer's memory, as digests. An Overseer start, a Baton pass included, forgets them,
-so a Bridge open across a restart reads 401 until `open` is run again. A Bridge opened from the stub `progress.html`,
-or by its plain URL, holds no cookie and reads nothing; `open` prints the URL with its code for a browser opened by
-hand.
-
-![Each Overseer start writes a fresh token to its owner-only file. A CLI verb reads the file for each request and posts with it. The Bridge gets the token from the same-origin route. A session's profile denies the file. After a restart the Bridge's old token answers 401, so it fetches another and posts once more.](../figures/overseer-api/token-roads.png)
-
-*Notice that a stale token costs the Bridge one 401 and nothing else.*
-
-> **Careful.** A process of the same user can read the token file, and so can ask for a code. A session cannot, because
-> its profile denies the file and limits its network. The figures
-> above still show the older `Sec-Fetch-Site` guard on `/api/session-token` and token-free read routes.
-
-## Serving the page
-
-`GET /` is built on the first page request, not at start. `pageFilesOf` calls `Bun.build` on the Bridge's HTML import
-once and remembers the promise, so later requests share one build. A failed build answers 500 and clears the memory, so
-the next request tries again. The outputs stay in memory as blobs keyed by path, `index.html` at `/` and each chunk at
-its own name.
-
-> **Why.** Bun's own HTML route takes no headers. Every file of the page must carry `frame-ancestors`, which no meta tag
-> can state, so the server builds the bundle itself and answers through `fetch`.
-
-The page CSP is one policy with a dynamic end:
-
-```text
-default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none';
-base-uri 'none'; form-action 'none'; frame-ancestors <origins, or 'none'>
-```
-
-`FrameOrigins.frameOriginsOf` reads the framing hosts' records for every response, each giving its `origin`
-([The embed contract](#the-embed-contract)). A record that is absent or unreadable adds no origin; with no origin the
-policy says `'none'`. `bridge/index.html` repeats the policy as
-a meta tag, without `frame-ancestors`.
-
-Changed Bridge code reaches the browser only through an Overseer on that code, since the memory lives as long as the
-server.
-
-> **As built.** A [Baton pass](../glossary.md#baton-pass) does not build the page, so a broken Bridge passes it and
-> fails only on the next `GET /`.
+> **Careful.** A process of the same user can read the token file. A session cannot, because its profile denies the
+> file and limits its network. The figures above still show browser sessions, a page and a `Sec-Fetch-Site` guard,
+> which the API no longer has.
 
 ## Commands
 
@@ -296,8 +242,8 @@ in the Overseer's memory, so a stop or a Baton pass ends a running brain `stoppe
 
 `flint-brain-start` and `flint-brain-stop` carry no field. They go to the brain, held or not, and answer 200
 `{controlVersion: 1, outcome: 'done', result: {kind}}` once the brain took them: a start has launched its session. A
-start names who started it, `startedBy` in the monitor: `bridge` when the request carries a Bridge session cookie the
-Overseer holds, beside the token every command needs, and `api` for the token alone. No key of the body names a caller.
+start names who started it, `startedBy` in the monitor: always `api`, since the token is the only credential. No key of
+the body names a caller.
 
 | Refusal (409) | Of | When |
 | --- | --- | --- |
@@ -760,7 +706,7 @@ Every endpoint of `FORGE_COMPATIBILITY_REGISTRY` (`packages/forge-contracts`) an
 version an entry serves to a client the server still supports. An endpoint segment `{<name>}` is a template: it matches
 one non-empty path segment of `[A-Za-z0-9_.-]`, so `jobs/{jobId}/stream` serves `/api/v1/jobs/J12/stream`, and a
 percent escape, an empty segment or an extra one matches nothing. The server turns the path into the unversioned one and
-answers it through that route, so the token, the session cookie, the CSP, a stream's held connection and the route's own
+answers it through that route, so the token, the CSP, a stream's held connection and the route's own
 id check are the same. An answer carries no endpoint version. A version or an endpoint no entry serves is 404
 `not-found`, `/api/v1/versions` and `/api/v1/jobs/<J>/files/<name>` among them.
 
@@ -771,7 +717,6 @@ id check are the same. An answer carries no endpoint version. A version or an en
 | monitor | `GET /api/v2/monitor` |
 | monitor events | `GET /api/v2/monitor/events` |
 | commands | `POST /api/v1/commands` |
-| session codes | `POST /api/v1/session-codes` |
 | presence | `GET /api/v1/presence`, from 1.20 |
 | crash log | `GET /api/v1/crash-log?number=<n>`, from 1.20 |
 | board | `GET /api/v1/board`, from 1.21 |
@@ -965,10 +910,8 @@ the shape. A monitor's server calls it, since a page of another origin gets 403 
 A host is a separate program that frames the Bridge of one board. Forge names no host: the query, the record and the
 messages below speak of a host only.
 
-**Framing.** Each host writes its own record to `<monitor>/frame-hosts/<name>.json`, `{version, minor, origin}`, and
-`frame-ancestors` adds the `origin` of each record. The Overseer reads the records for every response. A record that is
-absent, unreadable, or of a `version` other than 1 adds no origin. An `origin` that is no URL, or that is opaque
-(`null`, as for a `file:` URL), adds no origin.
+**Framing.** No origin may frame an answer: every answer says `frame-ancestors 'none'`, and the Overseer reads no
+record of a host.
 
 **Embedded mode.** Only the parameter of `EMBED_MODE_QUERY` (`packages/forge-contracts`), `?embedded=frame`, marks the
 document embedded. The root then has `data-embedded="frame"`. The Bridge hides its title row (project name, status
@@ -1001,7 +944,7 @@ and `session-lost`, and follows `navigate`.
 
 1. Every answer from a route that returns carries a CSP.
 2. No answer carries a CORS header, and no preflight is answered.
-3. Only `/api/session-token` hands out the token, and only to a live session cookie or the token itself; no route trusts
+3. No route hands out the token, the bearer token is the only credential, and no route trusts a cookie or
    `Sec-Fetch-Site`.
 4. Within a publish, `board` is the last event, and every publish that sends anything sends one.
 5. A record that left a list has no slice event.
@@ -1021,7 +964,7 @@ and `session-lost`, and follows `navigate`.
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Guards, routes, CSP, page build | `src/services/overseer/OverseerServer.ts` | `OverseerServer.start`, `OverseerServer.requestHandlerOf`, `routeOf`, `contentSecurityPolicyOf`, `pageFilesOf` | `src/services/overseer/OverseerServer.integration.spec.ts`, `src/services/overseer/OverseerServer.monitor.spec.ts` |
+| Guards, routes, CSP | `src/services/overseer/OverseerServer.ts` | `OverseerServer.start`, `OverseerServer.requestHandlerOf`, `routeOf`, `API_CONTENT_SECURITY_POLICY` | `src/services/overseer/OverseerServer.integration.spec.ts`, `src/services/overseer/OverseerServer.monitor.spec.ts` |
 | Contract versions | `src/shared/constants/OverseerApiContracts.ts`, `packages/forge-contracts/constants/OverseerContractVersions.ts` | `IDENTITY_VERSION`, `SERVED_CONTRACT_VERSIONS`, `OVERSEER_CONTRACT_VERSIONS` | `src/services/overseer/OverseerServer.monitor.spec.ts`, `packages/forge-contracts/constants/OverseerContractVersions.spec.ts` |
 | System versions, versioned paths | `src/services/overseer/OverseerServer.ts`, `packages/forge-contracts/constants/ForgeSystemVersions.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.ts`, `packages/system-versions/utils/CompatibilityRegistryUtil.ts` | `requestAtUnversionedPath`, `FORGE_SYSTEM_VERSIONS`, `FORGE_COMPATIBILITY_REGISTRY`, `CompatibilityRegistryUtil.endpointEntryForPath` | `src/services/overseer/OverseerServer.spec.ts`, `packages/forge-contracts/constants/ForgeCompatibilityRegistry.spec.ts` |
 | The versions test setting | `src/shared/Environment.ts` | `versionsAnswerOverride` | `src/shared/Environment.integration.spec.ts` |
@@ -1029,7 +972,6 @@ and `session-lost`, and follows `navigate`.
 | Monitor stream | `src/services/overseer/MonitorStream.ts` | `MonitorStream.createMonitorStream` | `src/services/overseer/MonitorStream.spec.ts` |
 | Waiting on User, notices, today | `src/shared/monitor/` | `attentionEntriesOf`, `NoticeWordingUtil`, `todayFiguresOf` | the `.spec.ts` beside each |
 | Route wiring, refusal sentences | `cli/overseer/routes/OverseerRoutes.ts` | `overseerRoutesOf`, `SERVER_REFUSAL_TEXT` | `cli/overseer/OverseerApi.integration.spec.ts` |
-| Frame origins | `cli/overseer/routes/FrameOrigins.ts` | `FrameOrigins.frameOriginsOf` | `cli/overseer/routes/FrameOrigins.spec.ts` |
 | The embed channel | `bridge/shell/VersionedEmbedChannel.ts` | `VersionedEmbedChannel` | `bridge/shell/VersionedEmbedChannel.dom.tsx`, `bridge/shell/BridgeApp.dom.tsx` |
 | Commands | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
 | Events and replay | `src/services/overseer/EventBroker.ts` | `EventBroker.createEventBroker`, `REPLAY_BUFFER_EVENTS` | `src/services/overseer/EventBroker.spec.ts` |

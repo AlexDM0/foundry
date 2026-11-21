@@ -1358,13 +1358,13 @@ this repository's path resolves to.
 [The Overseer API](reference/overseer-api.md) holds the routes, guards and event stream.
 
 The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
-than the API's own, and every preflight. Behind those guards, `POST /api/commands`, `POST /api/pictures` and
-`POST /api/session-codes` need the bearer token from the file the Baton names. The nine data routes
-(`GET /api/session-token`, `/api/state`, `/api/events`, `/api/monitor`, `/api/monitor/events`, `/api/jobs/<J>/stream`,
-`/api/jobs/<J>/files/<name>`, `/api/pictures/<id>`, `/api/profiles/<P>/stream`) need that token or the HttpOnly,
-SameSite=Strict session cookie that one session code buys once at `POST /api/session`, and answer 401 otherwise; no
-request header a local program can forge counts. `GET /api/identity`, `GET /api/summary` and `POST /api/nudge` stay
-open. A 401, a 403 and a read that fails answer `{refusal, text}`: a fixed word, and the sentence a client shows.
+than the API's own, and every preflight. Behind those guards, the bearer token from the file the Baton names is the
+only credential: `POST /api/commands`, `POST /api/pictures` and every data route (`GET /api/state`, `/api/board`,
+`/api/events`, `/api/monitor`, `/api/monitor/events`, `/api/presence`, `/api/crash-log`, `/api/jobs/<J>/stream`,
+`/api/jobs/<J>/files/<name>`, `/api/pictures/<id>`, `/api/profiles/<P>/stream`) need it and answer 401 otherwise; no
+cookie and no request header a local program can forge counts. `GET /api/versions`, `GET /api/identity`,
+`GET /api/summary` and `POST /api/nudge` stay open. A 401, a 403 and a read that fails answer `{refusal, text}`: a
+fixed word, and the sentence a client shows.
 
 | command | what it does |
 |---|---|

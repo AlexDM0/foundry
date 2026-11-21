@@ -42,7 +42,7 @@ describe('forge\'s shipped sources and docs name no client', () => {
   test('the scan reads the program\'s sources, its docs and its manifest, and no spec', () => {
     const scannedPaths = SHIPPED_FILES.map(({ path }) => path);
     expect(scannedPaths.length).toBeGreaterThan(SMALLEST_SHIPPED_FILE_COUNT);
-    expect(scannedPaths).toEqual(expect.arrayContaining(['package.json', 'README.md', 'docs/reference/overseer-api.md', 'cli/overseer/routes/FrameOrigins.ts']));
+    expect(scannedPaths).toEqual(expect.arrayContaining(['package.json', 'README.md', 'docs/reference/overseer-api.md']));
     expect(scannedPaths.filter((path) => !isShipped(path))).toEqual([]);
     expect(['src/ClientNames.spec.ts', 'cli/Planted.dom.tsx', 'src/testing/ImportGraph.ts'].filter(isShipped)).toEqual([]);
   });

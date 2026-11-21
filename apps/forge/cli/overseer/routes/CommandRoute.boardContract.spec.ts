@@ -31,7 +31,6 @@ import { COMMAND_ROUTE_KINDS, answerControlCommand, type CommandRouteRequest } f
 
 const FROZEN_NOW = new Date('2026-11-19T10:00:00+01:00');
 
-const API_CALLER = { carriesBridgeSession: false };
 
 type BoardCommandKind = ForgeBoardCommand['kind'];
 
@@ -120,7 +119,7 @@ function storedSetup(): PipelineSetup {
 }
 
 async function answerOf(body: unknown): Promise<{ status: number; body: unknown }> {
-  return await answerControlCommand(body, routeRequest(), API_CALLER);
+  return await answerControlCommand(body, routeRequest());
 }
 
 describeWhenGitIsRecorded('the board commands of the contract', () => {

@@ -32,7 +32,6 @@ import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES }              f
 import { JOB_ID_PATTERN }                                                      from '../../constants/RecordIdPatterns.ts';
 import { readBoardState, type BoardStateSource }                               from './BoardStateReader.ts';
 import { MALFORMED_BODY_TEXT, answerControlCommand, type CommandRouteRequest } from './CommandRoute.ts';
-import { FrameOrigins }                                                        from './FrameOrigins.ts';
 import { PresenceReader }                                                      from './PresenceReader.ts';
 
 export interface OverseerRouteRequest extends Omit<BoardStateSource, 'boardReads'>, Omit<CommandRouteRequest, 'context' | 'flintBrain'> {
@@ -46,8 +45,8 @@ export interface OverseerRouteRequest extends Omit<BoardStateSource, 'boardReads
 }
 
 const SERVER_REFUSAL_TEXT: Readonly<Record<ServerRefusal, string>> = {
-  'unauthorized':   'This needs the Overseer\'s token or a Bridge session. The Overseer may have restarted: open the board again.',
-  'forbidden':      'The Overseer answers only its own page and programs on this machine that name it by 127.0.0.1 or localhost.',
+  'unauthorized':   'This needs the Overseer\'s token. The Overseer may have restarted, and a restart makes a new token.',
+  'forbidden':      'The Overseer answers only programs on this machine that name it by 127.0.0.1 or localhost.',
   'read-failed':    'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
   'malformed-body': MALFORMED_BODY_TEXT,
 };
@@ -117,7 +116,7 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
   return {
     token:         request.token,
     started:       request.started,
-    command:       (body, caller) => answerControlCommand(body, { ...request, context }, caller),
+    command:       (body) => answerControlCommand(body, { ...request, context }),
     askFlintBrain: async (body) => {
       const digest = FlintBrainDigestUtil.digestOf(body);
       if (digest === null) return { status: FLINT_BRAIN_ASK_STATUS.MALFORMED, body: { refusal: 'malformed-body', text: SERVER_REFUSAL_TEXT['malformed-body'] } };
@@ -173,7 +172,6 @@ export function overseerRoutesOf(request: OverseerRouteRequest): OverseerRoutes 
     storePicture: (upload) => pictureUploadAnswerOf(upload.verdict === 'over-limit'
       ? { verdict: 'too-large', bytes: upload.bytes }
       : PictureStore.storePicture(context.platformPorts.ownerOnlyFiles, workspace.trackerDirectory, upload.bytes)),
-    picture:      (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
-    frameOrigins: () => FrameOrigins.frameOriginsOf(context.platformPorts.dataFolders.monitorFolderOf(context.homeDirectory)),
+    picture: (pictureId) => PictureStore.storedPictureOf(workspace.trackerDirectory, pictureId),
   };
 }

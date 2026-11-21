@@ -2,7 +2,7 @@
  * Forge's compatibility registry against forge's versions. What matters: the guard holds today, with nothing kept below the minimum and no
  * entry contradicting itself; raising the minimum to 1.0 makes exactly what forge keeps for clients built before system versions
  * removable and keeps every current endpoint; once that raise is made, the guard fails, naming each of those entries, until it is removed;
- * a client built for the current forge calls each endpoint 1.0 served at the version a 1.0 client calls it, as later minors only add;
+ * a client built for the current forge calls each endpoint kept from 1.0 at the version a 1.0 client calls it, as later minors only add;
  * presence and the crash log are dated 1.20, so a client built for 1.19 calls neither; the board document is dated 1.21, so a client built
  * for 1.20 is served no board endpoint and one built for 1.21 calls it at v1; the board event stream, a job's and a gate profile's stream
  * and the pictures are dated 1.22, so a client built for 1.21 calls none of them and one of the current forge calls each at v1; and every
@@ -29,7 +29,6 @@ const CURRENT_ENDPOINTS = [
   'endpoint monitor at v2',
   'endpoint monitor/events at v2',
   'endpoint commands at v1',
-  'endpoint session-codes at v1',
   'endpoint presence at v1',
   'endpoint crash-log at v1',
   'endpoint board at v1',
@@ -66,10 +65,10 @@ describe('forge\'s compatibility registry', () => {
     expect(CompatibilityRegistryUtil.inconsistenciesOf(cleared, raised)).toEqual([]);
   });
 
-  test('a client built for the current forge calls each endpoint 1.0 served at the version a 1.0 client calls it, since later minors only add', () => {
-    const endpoints = ['identity', 'summary', 'monitor', 'monitor/events', 'commands', 'session-codes'];
+  test('a client built for the current forge calls each endpoint kept from 1.0 at the version a 1.0 client calls it, since later minors only add', () => {
+    const endpoints = ['identity', 'summary', 'monitor', 'monitor/events', 'commands'];
     expect(endpoints.map((endpoint) => CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, FORGE_SYSTEM_VERSIONS.current)))
-      .toEqual([1, 1, 2, 2, 1, 1]);
+      .toEqual([1, 1, 2, 2, 1]);
   });
 
   test('presence and the crash log are served at v1 from forge 1.20, and a client built for 1.19 calls neither', () => {

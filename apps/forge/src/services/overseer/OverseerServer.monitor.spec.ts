@@ -50,7 +50,6 @@ function handlerOf(
     monitor,
     monitorStream: () => monitorStream,
     refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
-    frameOrigins:  () => [],
   } as Partial<OverseerRoutes> as OverseerRoutes;
   const handler = OverseerServer.requestHandlerOf({
     portChoice: { kind: 'given', port: PORT },
@@ -58,7 +57,6 @@ function handlerOf(
       trackerId: 'tracker-example', project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: 4242
     },
     routes,
-    now:                   () => new Date('2026-11-12T12:00:00Z'),
     heartbeatMilliseconds: QUIET_HEARTBEAT_MILLISECONDS,
     ...(versions === undefined ? {} : { versions }),
   } as Parameters<typeof OverseerServer.requestHandlerOf>[0]);

@@ -2,11 +2,10 @@
  * The Overseer's HTTP and SSE API on 127.0.0.1, design section 9.3. Every request needs a loopback Host, against DNS rebinding; one whose
  * Origin is not the API's own, a preflight above all, gets 403 and no route sends CORS headers, so the token never reaches another
  * origin's page. `GET /api/versions` answers at every moment, and each endpoint the compatibility registry serves also answers at its
- * `/api/v<n>/<endpoint>`, through its unversioned route. `POST /api/commands`, `POST /api/pictures` and `POST /api/session-codes` need the
- * bearer token; the data routes and the Bridge's own `POST /api/flint-brain/ask` the token or the session cookie a one-time code buys at
- * `POST /api/session`; and every answer carries the
- * Bridge's CSP, a served file a sandbox of its own. A 401, a 403 and a read route's 500 answer `{refusal, text}`. What a
- * command does, and how a refusal is worded, is the command surface's.
+ * `/api/v<n>/<endpoint>`, through its unversioned route. The versions, the identity, the summary and the nudge are open; every other
+ * route needs the bearer token, the only credential there is. Every answer carries `API_CONTENT_SECURITY_POLICY`, a served file and a
+ * picture a sandbox of their own. A 401, a 403 and a read route's 500 answer `{refusal, text}`. What a command does, and how a refusal
+ * is worded, is the command surface's.
  */
 import { timingSafeEqual } from 'node:crypto';
 
@@ -31,7 +30,6 @@ import {
 } from '../../shared/constants/OverseerLimits.ts';
 import { PRODUCT_NAMES }                         from '../../shared/constants/ProductNames.ts';
 import type { MonitorSnapshot }                  from '../../shared/monitor/@types/MonitorSnapshot.ts';
-import { BrowserSessions }                       from './BrowserSessions.ts';
 import type { EventBroker, OverseerEvent }       from './EventBroker.ts';
 import type { GateProfileOutputFollower }        from './GateProfiling.ts';
 import type { MonitorStream }                    from './MonitorStream.ts';
@@ -69,12 +67,6 @@ export type BoundedBody =
 /** A `POST /api/pictures` body, bounded by the picture size limit. */
 export type PictureUpload = BoundedBody;
 
-/** What a `POST /api/commands` request itself proves of who sent it, beside the token every command needs. */
-export interface CommandCaller {
-  /** The request carries a Bridge session cookie this server holds. */
-  carriesBridgeSession: boolean;
-}
-
 /** A job's transcript after a cursor, re-read on each call. */
 export type TranscriptFollower = () => TranscriptEntry[];
 
@@ -84,12 +76,12 @@ export interface OverseerRoutes {
   /** Read at each request: until it is true, `GET /api/identity` answers 503 `starting`, so a client waiting for the identity waits for the start. */
   started:         () => boolean;
   /** A parsed `ControlCommand` body behind a valid token: 200, 409 worded, 400 or 423. */
-  command:         (body: unknown, caller: CommandCaller) => Promise<RouteAnswer>;
-  /** The Bridge's parsed digest for Flint's brain behind a reader's session or token: the brain's move, or why the rule director moves. */
+  command:         (body: unknown) => Promise<RouteAnswer>;
+  /** A parsed digest for Flint's brain behind the token: the brain's move, or why the rule director moves. */
   askFlintBrain:   (body: unknown) => Promise<RouteAnswer>;
   /** A verb's body-less `POST /api/nudge` after its write: it only schedules a pass, so it needs no token. */
   onNudge:         () => void;
-  /** `GET /api/state`: the Bridge's and the command line's own reading, served at no versioned path. */
+  /** `GET /api/state`: the command line's own reading, served at no versioned path. */
   state:           () => unknown;
   /** `GET /api/board`: the contract's `ForgeBoardDocument`, built from the same reading as `state`. */
   board:           () => unknown;
@@ -116,16 +108,12 @@ export interface OverseerRoutes {
   storePicture:    (upload: PictureUpload) => RouteAnswer;
   /** A stored picture's bytes and type, `null` when no picture has the id. */
   picture:         (pictureId: string) => { mediaType: string; bytes: Uint8Array } | null;
-  /** The origins of the hosts allowed to frame the Bridge, read per response. */
-  frameOrigins:    () => readonly string[];
 }
 
 export interface OverseerServerRequest {
   portChoice:             OverseerPortChoice;
   identity:               Omit<OverseerIdentity, 'identityVersion' | 'application' | 'talosProtocolVersion' | 'contracts'>;
   routes:                 OverseerRoutes;
-  /** The clock a session code's life is measured on. */
-  now:                    () => Date;
   /** Overridden by specs, which cannot wait out the production heartbeat. */
   heartbeatMilliseconds?: number;
   /** Overridden by specs, like the heartbeat. */
@@ -144,17 +132,6 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 const LOOPBACK_NAMES   = [LOOPBACK_ADDRESS, 'localhost'];
 
 const BEARER_PREFIX = 'Bearer ';
-// Cookies ignore the port, so each Overseer on the loopback address names its own.
-const SESSION_COOKIE_INFIX = '-session-';
-const COOKIE_PAIR_SEPARATOR = ';';
-
-/** What decides who may read: the routes' token, this server's browser sessions and the cookie that names one. */
-interface RouteAccess {
-  routes:            OverseerRoutes;
-  sessions:          BrowserSessions;
-  sessionCookieName: string;
-}
-
 const HTTP_STATUS = {
   OK:           200,
   BAD_REQUEST:  400,
@@ -182,14 +159,11 @@ const BOARD_PATH          = '/api/board';
 const CRASH_LOG_PATH      = '/api/crash-log';
 const CRASH_LOG_NUMBER_PARAMETER = 'number';
 const MONITOR_EVENTS_PATH = '/api/monitor/events';
-// The Bridge's own, unversioned and in no registry entry: only the page this Overseer serves calls it.
+// Unversioned and in no registry entry.
 const FLINT_BRAIN_ASK_PATH = '/api/flint-brain/ask';
 
-function contentSecurityPolicyOf(frameOrigins: readonly string[]): string {
-  const frameAncestors = frameOrigins.length === 0 ? '\'none\'' : frameOrigins.join(' ');
-  return 'default-src \'self\'; script-src \'self\'; style-src \'self\'; connect-src \'self\'; img-src \'self\' data:; object-src \'none\'; '
-    + `base-uri 'none'; form-action 'none'; frame-ancestors ${frameAncestors}`;
-}
+/** The API serves no page: an answer may load nothing, post nowhere and sit in no frame. */
+const API_CONTENT_SECURITY_POLICY = 'default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'none\'';
 
 function jsonResponse(answer: RouteAnswer): Response {
   return Response.json(answer.body, { status: answer.status });
@@ -238,8 +212,7 @@ function bearerTokenMatches(request: Request, expectedToken: string | null): boo
   return offered.length === expected.length && timingSafeEqual(offered, expected);
 }
 
-async function answerCommand(request: Request, access: RouteAccess): Promise<Response> {
-  const { routes } = access;
+async function answerCommand(request: Request, routes: OverseerRoutes): Promise<Response> {
   if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
   let body: unknown;
   try {
@@ -252,7 +225,7 @@ async function answerCommand(request: Request, access: RouteAccess): Promise<Res
       },
     });
   }
-  return jsonResponse(await routes.command(body, { carriesBridgeSession: sessionIsHeld(request, access) }));
+  return jsonResponse(await routes.command(body));
 }
 
 /** A declared length over the limit is not read at all, and a body that runs past it stops being read there, so no memory goes to it. */
@@ -299,33 +272,9 @@ function pictureResponse(routes: OverseerRoutes, pictureId: string): Response {
   });
 }
 
-function sessionCookieNameOf(port: number): string {
-  return `${PRODUCT_NAMES.PROGRAM}${SESSION_COOKIE_INFIX}${port}`;
-}
-
-function sessionSecretIn(request: Request, cookieName: string): string | null {
-  const cookieHeader = request.headers.get('cookie') ?? '';
-  for (const pair of cookieHeader.split(COOKIE_PAIR_SEPARATOR)) {
-    const separator = pair.indexOf('=');
-    if (separator > 0 && pair.slice(0, separator).trim() === cookieName) return pair.slice(separator + 1).trim();
-  }
-  return null;
-}
-
-function sessionIsHeld(request: Request, access: RouteAccess): boolean {
-  const sessionSecret = sessionSecretIn(request, access.sessionCookieName);
-  return sessionSecret !== null && access.sessions.holdsSession(sessionSecret);
-}
-
-/** The Bridge's session cookie, or the bearer token a CLI reader holds. Request headers a browser alone would send prove nothing. */
-function readerIsAuthorized(request: Request, access: RouteAccess): boolean {
-  return sessionIsHeld(request, access) || bearerTokenMatches(request, access.routes.token());
-}
-
 /** The digest is read no further than its size limit; past it, or as no JSON, nothing reaches the brain. */
-async function answerFlintBrainAsk(request: Request, access: RouteAccess): Promise<Response> {
-  const { routes } = access;
-  if (!readerIsAuthorized(request, access)) return unauthorizedResponse(routes);
+async function answerFlintBrainAsk(request: Request, routes: OverseerRoutes): Promise<Response> {
+  if (!bearerTokenMatches(request, routes.token())) return unauthorizedResponse(routes);
   const body = await boundedBodyOf(request, FLINT_BRAIN_DIGEST_SIZE_LIMIT_BYTES);
   if (body.verdict === 'over-limit') return jsonResponse({ status: HTTP_STATUS.TOO_LARGE, body: { refusal: 'too-large' } });
   let digest: unknown;
@@ -335,31 +284,6 @@ async function answerFlintBrainAsk(request: Request, access: RouteAccess): Promi
     return refusalResponse(routes, 'malformed-body');
   }
   return jsonResponse(await routes.askFlintBrain(digest));
-}
-
-function sessionTokenResponse(routes: OverseerRoutes): Response {
-  const token = routes.token();
-  return token === null ? unauthorizedResponse(routes) : jsonResponse({ status: HTTP_STATUS.OK, body: { token } });
-}
-
-function sessionCodeResponse(request: Request, access: RouteAccess): Response {
-  if (!bearerTokenMatches(request, access.routes.token())) return unauthorizedResponse(access.routes);
-  return jsonResponse({ status: HTTP_STATUS.OK, body: { code: access.sessions.issueCode() } });
-}
-
-/** The code comes from the JSON body alone, never the URL, so it reaches no address bar, history or request log. */
-async function sessionExchangeResponse(request: Request, access: RouteAccess): Promise<Response> {
-  let code: unknown;
-  try {
-    ({ code } = await request.json() as { code?: unknown });
-  } catch {
-    return unauthorizedResponse(access.routes);
-  }
-  const sessionSecret = typeof code === 'string' ? access.sessions.exchangeCode(code) : null;
-  if (sessionSecret === null) return unauthorizedResponse(access.routes);
-  const response = jsonResponse({ status: HTTP_STATUS.OK, body: { outcome: 'done' } });
-  response.headers.set('set-cookie', `${access.sessionCookieName}=${sessionSecret}; Path=/; HttpOnly; SameSite=Strict`);
-  return response;
 }
 
 export interface EventStreams {
@@ -502,12 +426,11 @@ function notFoundResponse(): Response {
   return jsonResponse({ status: HTTP_STATUS.NOT_FOUND, body: { refusal: 'not-found' } });
 }
 
-/** The routes that answer board data, each behind `readerIsAuthorized`; `null` for any other request. */
+/** The routes that answer board data, each behind the bearer token; `null` for any other request. */
 function dataRouteOf(request: Request, routes: OverseerRoutes, eventStreams: EventStreams, systemVersion: SystemVersion): (() => Response) | null {
   const { pathname, searchParams } = new URL(request.url);
   if (request.method !== 'GET') return null;
   const streamContext: StreamContext = { routes, eventStreams, systemVersion };
-  if (pathname === '/api/session-token') return () => sessionTokenResponse(routes);
   if (pathname === '/api/state') return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.state() });
   if (pathname === BOARD_PATH) return () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.board() });
   if (pathname === EVENTS_PATH) return () => eventsResponse(request, routes, eventStreams, systemVersion);
@@ -532,24 +455,21 @@ interface OpenDocuments {
   versions: VersionsDocument;
 }
 
-function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments, eventStreams: EventStreams): Response | Promise<Response> {
-  const { routes } = access;
+function routeOf(request: Request, routes: OverseerRoutes, documents: OpenDocuments, eventStreams: EventStreams): Response | Promise<Response> {
   const { pathname } = new URL(request.url);
   const { method } = request;
   // Before the identity's 503: a client of any version asks this first, also while the Overseer starts.
   if (method === 'GET' && pathname === VERSIONS_PATH) return jsonResponse({ status: HTTP_STATUS.OK, body: documents.versions });
   const dataRoute = dataRouteOf(request, routes, eventStreams, documents.versions.current);
-  if (dataRoute !== null) return readerIsAuthorized(request, access) ? readAnswerOf(routes, dataRoute) : unauthorizedResponse(routes);
+  if (dataRoute !== null) return bearerTokenMatches(request, routes.token()) ? readAnswerOf(routes, dataRoute) : unauthorizedResponse(routes);
   if (method === 'GET' && pathname === '/api/identity') {
     return routes.started()
       ? jsonResponse({ status: HTTP_STATUS.OK, body: documents.identity })
       : jsonResponse({ status: HTTP_STATUS.UNAVAILABLE, body: { refusal: 'starting' } });
   }
   if (method === 'GET' && pathname === '/api/summary') return readAnswerOf(routes, () => jsonResponse({ status: HTTP_STATUS.OK, body: routes.summary() }));
-  if (method === 'POST' && pathname === '/api/session-codes') return sessionCodeResponse(request, access);
-  if (method === 'POST' && pathname === '/api/session') return sessionExchangeResponse(request, access);
-  if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, access);
-  if (method === 'POST' && pathname === FLINT_BRAIN_ASK_PATH) return answerFlintBrainAsk(request, access);
+  if (method === 'POST' && pathname === '/api/commands') return answerCommand(request, routes);
+  if (method === 'POST' && pathname === FLINT_BRAIN_ASK_PATH) return answerFlintBrainAsk(request, routes);
   if (method === 'POST' && pathname === '/api/pictures') return answerPictureUpload(request, routes);
   if (method === 'POST' && pathname === '/api/nudge') {
     routes.onNudge();
@@ -558,13 +478,13 @@ function routeOf(request: Request, access: RouteAccess, documents: OpenDocuments
   return notFoundResponse();
 }
 
-/** A served job file's and a picture's own sandbox policy stands; every other answer carries the page's. */
-function withPagePolicy(response: Response, frameOrigins: readonly string[]): Response {
-  if (!response.headers.has('content-security-policy')) response.headers.set('content-security-policy', contentSecurityPolicyOf(frameOrigins));
+/** A served job file's and a picture's own sandbox policy stands; every other answer carries the API's. */
+function withApiPolicy(response: Response): Response {
+  if (!response.headers.has('content-security-policy')) response.headers.set('content-security-policy', API_CONTENT_SECURITY_POLICY);
   return response;
 }
 
-/** What answers a request: the server's routes, sessions, identity and open streams, kept apart from the socket. */
+/** What answers a request: the server's routes, identity and open streams, kept apart from the socket. */
 export interface OverseerRequestHandler {
   /** Answers one request as the server bound at `boundPort` does; `holdOpen` turns the idle timeout off for a stream that is quiet by design. */
   answer:           (request: Request, boundPort: number, holdOpen?: () => void) => Promise<Response>;
@@ -579,7 +499,7 @@ function servedEndpointsOf(versions: VersionsDocument): readonly EndpointEntry[]
 
 /**
  * The request at its unversioned path, which every route answers: a `/api/v<n>/<path>` a served endpoint names, by its template, becomes
- * `/api/<path>`, keeping its method, headers and body, so the token, session, CSP and stream rules are the unversioned route's. `null`
+ * `/api/<path>`, keeping its method, headers and body, so the token, CSP and stream rules are the unversioned route's. `null`
  * for a version or a path not served.
  */
 function requestAtUnversionedPath(request: Request, servedEndpoints: readonly EndpointEntry[]): Request | null {
@@ -599,7 +519,6 @@ function pathIsStream(pathname: string): boolean {
 function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequestHandler {
   const { routes } = serverRequest;
   const eventStreams = eventStreamsOf(serverRequest);
-  const sessions = BrowserSessions.createBrowserSessions(serverRequest.now);
   const versions = serverRequest.versions ?? FORGE_SYSTEM_VERSIONS;
   const servedEndpoints = servedEndpointsOf(versions);
   const identity: OverseerIdentity = {
@@ -611,16 +530,14 @@ function requestHandlerOf(serverRequest: OverseerServerRequest): OverseerRequest
   };
   return {
     answer: async (request, boundPort, holdOpen) => {
-      const frameOrigins = routes.frameOrigins();
       // A preflight is refused like a foreign Origin: no route answers one, so no browser of another origin may send a write.
       if (!hostIsLoopback(request, boundPort) || !originIsOwn(request, boundPort) || request.method === 'OPTIONS') {
-        return withPagePolicy(refusalResponse(routes, 'forbidden'), frameOrigins);
+        return withApiPolicy(refusalResponse(routes, 'forbidden'));
       }
       const routedRequest = requestAtUnversionedPath(request, servedEndpoints);
-      if (routedRequest === null) return withPagePolicy(notFoundResponse(), frameOrigins);
+      if (routedRequest === null) return withApiPolicy(notFoundResponse());
       if (pathIsStream(new URL(routedRequest.url).pathname)) holdOpen?.();
-      const access: RouteAccess = { routes, sessions, sessionCookieName: sessionCookieNameOf(boundPort) };
-      return withPagePolicy(await routeOf(routedRequest, access, { identity, versions }, eventStreams), frameOrigins);
+      return withApiPolicy(await routeOf(routedRequest, routes, { identity, versions }, eventStreams));
     },
     closeEveryStream: () => {
       for (const close of [...eventStreams.open]) close();
@@ -651,5 +568,5 @@ function start(serverRequest: OverseerServerRequest): OverseerServer {
 }
 
 export const OverseerServer = Object.freeze({
-  start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
+  API_CONTENT_SECURITY_POLICY, start, requestHandlerOf, boundedBodyOf, dataRouteOf, eventStreamsOf, pathIsStream
 });

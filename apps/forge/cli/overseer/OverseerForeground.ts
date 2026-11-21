@@ -665,7 +665,6 @@ async function serveInTheForeground(request: ForegroundRunRequest, crashPathReac
     const server = OverseerServer.start({
       portChoice,
       ...(versionsAnswer === undefined ? {} : { versions: versionsAnswer }),
-      now:      context.now,
       identity: {
         trackerId: progress.trackerId, project: progress.project, codeVersion, installVersion: INSTALL_VERSION, processId: process.pid,
       },

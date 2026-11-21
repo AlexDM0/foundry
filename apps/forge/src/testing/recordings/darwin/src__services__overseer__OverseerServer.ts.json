@@ -66,32 +66,7 @@
       }
     },
     {
-      "callShape": "GET api/session-token, with no session cookie and no token",
-      "answer": {
-        "status": 401,
-        "headers": {
-          "content-type": "application/json;charset=utf-8"
-        },
-        "body": {
-          "refusal": "unauthorized",
-          "text": "Example sentence for unauthorized"
-        }
-      }
-    },
-    {
-      "callShape": "GET api/session-token, with the session cookie",
-      "answer": {
-        "status": 200,
-        "headers": {
-          "content-type": "application/json;charset=utf-8"
-        },
-        "body": {
-          "token": "<token>"
-        }
-      }
-    },
-    {
-      "callShape": "GET api/state, with no session cookie and no token",
+      "callShape": "GET api/state, with no token",
       "answer": {
         "status": 401,
         "headers": {
@@ -263,57 +238,6 @@
             ]
           },
           "text": "By its first bytes the picture is none of image/png, image/jpeg, image/webp, image/gif, so it was not stored."
-        }
-      }
-    },
-    {
-      "callShape": "POST api/session-codes, with no token",
-      "answer": {
-        "status": 401,
-        "headers": {
-          "content-type": "application/json;charset=utf-8"
-        },
-        "body": {
-          "refusal": "unauthorized",
-          "text": "Example sentence for unauthorized"
-        }
-      }
-    },
-    {
-      "callShape": "POST api/session-codes, with the token",
-      "answer": {
-        "status": 200,
-        "headers": {
-          "content-type": "application/json;charset=utf-8"
-        },
-        "body": {
-          "code": "<session code>"
-        }
-      }
-    },
-    {
-      "callShape": "POST api/session, a code already spent",
-      "answer": {
-        "status": 401,
-        "headers": {
-          "content-type": "application/json;charset=utf-8"
-        },
-        "body": {
-          "refusal": "unauthorized",
-          "text": "Example sentence for unauthorized"
-        }
-      }
-    },
-    {
-      "callShape": "POST api/session, a code not spent",
-      "answer": {
-        "status": 200,
-        "headers": {
-          "content-type": "application/json;charset=utf-8",
-          "set-cookie": "forge-session-<port>=<session secret>; Path=/; HttpOnly; SameSite=Strict"
-        },
-        "body": {
-          "outcome": "done"
         }
       }
     },

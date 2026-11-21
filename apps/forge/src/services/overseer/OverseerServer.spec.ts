@@ -11,7 +11,9 @@
  * internal state answers as before at no versioned path. A templated endpoint, a job's or a profile's stream or a picture, answers at the
  * concrete path its template matches, and a path one segment longer is a 404. Each of the three board streams opens with the handshake,
  * which carries no id, so a reconnect at the versioned path replays from its `Last-Event-ID` as at the unversioned one. The Overseer
- * serves no page: `GET /` and every other path outside `/api/` is a 404.
+ * serves no page: `GET /` and every other path outside `/api/` is a 404. The bearer token is the only credential: the routes that once
+ * gave a browser a session are a 404, and a data route answers a cookie with no token 401. Every answer carries the API's policy, which
+ * lets nothing frame it, and a picture and a job file their sandbox.
  */
 import {
   afterEach,
@@ -132,7 +134,6 @@ function streamRoutesOf(broker: EventBroker, profileOutputOf: OverseerRoutes['pr
     jobFileText:   () => null,
     storePicture:  neverCalled,
     picture:       () => null,
-    frameOrigins:  () => [],
   };
 }
 
@@ -229,7 +230,6 @@ const VERSIONED_ENDPOINTS = [
   'monitor',
   'monitor/events',
   'commands',
-  'session-codes',
   'presence',
   'crash-log',
   'board',
@@ -270,7 +270,7 @@ function versionedRoutesOf(started: () => boolean): OverseerRoutes {
     board:         () => BoardDocumentAssembly.boardDocumentOf(BOARD_DOCUMENT_SOURCE),
     monitorStream: () => monitorStream,
     refusalTextOf: (refusal) => `Example sentence for ${refusal}`,
-    frameOrigins:  () => [],
+    jobFileText:   (jobId, fileName) => (jobId === 'J1' && fileName === 'report.json' ? 'example report' : null),
     events:        () => broker,
     transcriptOf:  (jobId, after) => (jobId === 'J1' ? () => [{
       cursor: '1.1', role: 'assistant', text: `after ${after ?? 'nothing'}`, entryKey: '1.1.0', at: null
@@ -288,7 +288,6 @@ function versionedHandlerOf({ started = () => true, versions }: { started?: () =
       trackerId: 'tracker-example', project: 'Example Agency', codeVersion: 'code-example', installVersion: 17, processId: 4242
     },
     routes:                versionedRoutesOf(started),
-    now:                   () => new Date('2026-11-16T12:00:00Z'),
     heartbeatMilliseconds: QUIET_HEARTBEAT_MILLISECONDS,
     ...(versions === undefined ? {} : { versions }),
   });
@@ -378,18 +377,10 @@ describe('the versioned paths', () => {
     }
   });
 
-  test('a session code is issued at its versioned path behind the token, as at its unversioned one', async () => {
-    const handler = versionedHandlerOf();
-    const issued = await handler.answer(requestTo(servedPathOf('session-codes'), { method: 'POST' }), PORT);
-    expect([issued.status, Object.keys(await issued.json() as object)]).toEqual([200, ['code']]);
-    const refused = await handler.answer(requestTo(servedPathOf('session-codes'), { method: 'POST', headers: HOST_HEADERS }), PORT);
-    expect(refused.status).toBe(401);
-  });
-
-  test('keeps the unversioned route\'s guards: no token is a 401, and every answer carries the page policy', async () => {
+  test('keeps the unversioned route\'s guards: no token is a 401, and every answer carries the API\'s policy', async () => {
     const refused = await versionedHandlerOf().answer(requestTo(servedPathOf('monitor'), { headers: HOST_HEADERS }), PORT);
     expect([refused.status, await refused.json()]).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
-    expect(refused.headers.get('content-security-policy')).toContain('frame-ancestors \'none\'');
+    expect(refused.headers.get('content-security-policy')).toBe(OverseerServer.API_CONTENT_SECURITY_POLICY);
   });
 
   test('no path outside the API answers a page: the root, an index file and a chunk are each a 404 not-found', async () => {
@@ -507,5 +498,79 @@ describe('the board streams at their versioned paths', () => {
     };
     expect(await replayedAt('/api/v1/events')).toEqual(['id: 1-2']);
     expect(await replayedAt('/api/v1/events')).toEqual(await replayedAt('/api/events'));
+  });
+});
+
+const DATA_ROUTE_PATHS = [
+  '/api/state',
+  '/api/board',
+  '/api/events',
+  '/api/monitor',
+  '/api/monitor/events',
+  '/api/presence',
+  '/api/crash-log',
+  '/api/jobs/J1/stream',
+  '/api/jobs/J1/files/report.json',
+  '/api/profiles/P1/stream',
+  `/api/pictures/${EXAMPLE_PICTURE_ID}`,
+];
+/** A cookie named as a browser session of this server once was. */
+const COOKIE_HEADERS = { ...HOST_HEADERS, cookie: `forge-session-${PORT}=example-secret` };
+
+describe('the bearer token is the only credential', () => {
+  test('the routes that gave a browser a session are each a 404, with the token and without', async () => {
+    const handler = versionedHandlerOf();
+    const calls: { path: string; method: string; body?: unknown }[] = [
+      { path: '/api/session-codes', method: 'POST' },
+      { path: '/api/v1/session-codes', method: 'POST' },
+      { path: '/api/session', method: 'POST', body: { code: 'example-code' } },
+      { path: '/api/session-token', method: 'GET' },
+    ];
+    for (const { path, method, body } of calls) {
+      for (const headers of [TOKEN_HEADERS, HOST_HEADERS]) {
+        const answer = await handler.answer(requestTo(path, { method, headers, ...(body === undefined ? {} : { body }) }), PORT);
+        expect([answer.status, await answer.json()], `${method} ${path}`).toEqual([404, { refusal: 'not-found' }]);
+        expect(answer.headers.get('set-cookie'), `${method} ${path}`).toBeNull();
+      }
+    }
+  });
+
+  test('every data route answers a cookie with no token 401 unauthorized, and its document to the token', async () => {
+    for (const path of DATA_ROUTE_PATHS) {
+      const byCookie = await versionedHandlerOf().answer(requestTo(path, { headers: COOKIE_HEADERS }), PORT);
+      expect([byCookie.status, await byCookie.json()], path).toEqual([401, { refusal: 'unauthorized', text: 'Example sentence for unauthorized' }]);
+      const byToken = await versionedHandlerOf().answer(requestTo(path), PORT);
+      expect(byToken.status, path).toBe(200);
+    }
+  });
+});
+
+describe('the content security policy', () => {
+  test('a JSON answer, a stream, a refusal and a 404 each carry the API\'s policy, whose only frame-ancestors source is \'none\'', async () => {
+    expect(OverseerServer.API_CONTENT_SECURITY_POLICY).toBe('default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'none\'');
+    const handler = versionedHandlerOf();
+    const answers = [
+      await handler.answer(requestTo('/api/versions', { headers: HOST_HEADERS }), PORT),
+      await handler.answer(requestTo('/api/board'), PORT),
+      await handler.answer(requestTo('/api/events'), PORT),
+      await handler.answer(requestTo('/api/board', { headers: HOST_HEADERS }), PORT),
+      await handler.answer(requestTo('/api/board', { headers: { host: `example.com:${PORT}` } }), PORT),
+      await handler.answer(requestTo('/'), PORT),
+      await handler.answer(requestTo('/api/v99/board'), PORT),
+    ];
+    expect(answers.map((answer) => answer.status)).toEqual([200, 200, 200, 401, 403, 404, 404]);
+    for (const answer of answers) {
+      const policy = answer.headers.get('content-security-policy') ?? '';
+      expect(policy).toBe(OverseerServer.API_CONTENT_SECURITY_POLICY);
+      expect(/frame-ancestors ([^;]*)/.exec(policy)?.[1]).toBe('\'none\'');
+    }
+  });
+
+  test('a picture and a job file keep their sandbox', async () => {
+    const handler = versionedHandlerOf();
+    for (const path of [`/api/pictures/${EXAMPLE_PICTURE_ID}`, '/api/jobs/J1/files/report.json']) {
+      const answer = await handler.answer(requestTo(path), PORT);
+      expect([answer.status, answer.headers.get('content-security-policy')], path).toEqual([200, 'sandbox']);
+    }
   });
 });

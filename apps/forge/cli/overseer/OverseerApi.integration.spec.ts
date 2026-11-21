@@ -3,8 +3,8 @@
  * Baton names the token file and never holds the token, and that file's token is the one `POST /api/commands` accepts from an Origin-less
  * server request; a command answers 200, 409 worded or 400; `/api/state` carries the status document beside the page, jobs with live facts
  * and the Overseer; `/api/summary` and `/api/monitor` have their fixtures' shapes, the monitor's only with the token and its stream starting
- * with the whole snapshot; `GET /` and every other path outside the API is a 404, and an answer carries the
- * frame-ancestors of agent-dashboard's origins; an event-stream client sees a `board` event for a ticket move and a `job`
+ * with the whole snapshot; `GET /` and every other path outside the API is a 404, and an answer lets no origin
+ * frame it, whatever frame-ancestor record a monitor folder still holds; an event-stream client sees a `board` event for a ticket move and a `job`
  * event for each state the build job passes through, launching to running; and a picture uploaded with the token is stored owner-only by
  * the hash of its bytes, served back, refused worded at 413 or 415, and a command naming one the store lacks is refused `picture-unknown`; a
  * gate profile the board holds streams its output lines after the cursor, while a run it does not hold and a cursor that is no line number
@@ -318,15 +318,14 @@ describe('the Overseer API on a scratch board', () => {
     }
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('an answer carries the page CSP, framed only by the origins the frame-ancestor records name', async () => {
+  test('an answer carries the API\'s CSP and lets no origin frame it, also where the monitor folder still holds a frame-ancestor record', async () => {
     const frameAncestorsDirectory = join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER, 'frame-ancestors');
     mkdirSync(frameAncestorsDirectory, { recursive: true });
     writeFileSync(join(frameAncestorsDirectory, 'first-host.json'), JSON.stringify({ version: 1, minor: 0, origin: 'http://127.0.0.1:4411' }));
-    writeFileSync(join(frameAncestorsDirectory, 'second-host.json'), JSON.stringify({ version: 1, minor: 0, origin: 'http://localhost:4412' }));
     const overseer = await startOverseer();
     const url = await overseer.firstOutputLine ?? '';
     const policy = (await fetch(new URL('api/versions', url))).headers.get('content-security-policy') ?? '';
-    expect(/frame-ancestors ([^;]*)$/.exec(policy)?.[1]).toBe('http://127.0.0.1:4411 http://localhost:4412');
+    expect(policy).toBe('default-src \'none\'; frame-ancestors \'none\'; base-uri \'none\'; form-action \'none\'');
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
   test('an event-stream client sees a board event for a ticket move and a job event for each state the build job is published in', async () => {

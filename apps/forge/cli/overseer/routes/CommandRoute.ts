@@ -15,7 +15,7 @@ import { RefusalDocumentUtil }                                      from '../../
 import { CONTROL_COMMAND_KINDS, FLINT_BRAIN_COMMAND_KINDS }         from '../../../src/services/control/ControlService.ts';
 import type { FlintBrain }                                          from '../../../src/services/overseer/FlintBrain.ts';
 import { MachineAgentLimit }                                        from '../../../src/services/overseer/MachineAgentLimit.ts';
-import type { CommandCaller, RouteAnswer }                          from '../../../src/services/overseer/OverseerServer.ts';
+import type { RouteAnswer }                                         from '../../../src/services/overseer/OverseerServer.ts';
 import type { BoardStore }                                          from '../../../src/services/store/BoardStore.ts';
 import type { Workspace }                                           from '../../../src/services/tracker/Workspace.ts';
 import type { ControlCommand, ControlCommandOf, FlintBrainCommand } from '../../../src/shared/@types/ControlCommand.ts';
@@ -140,9 +140,9 @@ function machineAgentLimitAnswerOf(body: Record<string, unknown>, request: Comma
   }
 }
 
-async function flintBrainAnswerOf(kind: FlintBrainCommand['kind'], request: CommandRouteRequest, caller: CommandCaller): Promise<RouteAnswer> {
+async function flintBrainAnswerOf(kind: FlintBrainCommand['kind'], request: CommandRouteRequest): Promise<RouteAnswer> {
   const verdict = kind === 'flint-brain-start'
-    ? await request.flintBrain.start(caller.carriesBridgeSession ? 'bridge' : 'api')
+    ? await request.flintBrain.start('api')
     : await request.flintBrain.stop();
   if (verdict.verdict === 'refused') {
     const { refusal, sentence } = verdict;
@@ -167,11 +167,10 @@ function runtimeCommandOf(kind: RuntimeOverseerCommand['kind'], body: Record<str
   return { kind, now: now === true };
 }
 
-/** `caller` is what the request itself proves, never what its body says. */
-export async function answerControlCommand(body: unknown, request: CommandRouteRequest, caller: CommandCaller): Promise<RouteAnswer> {
+export async function answerControlCommand(body: unknown, request: CommandRouteRequest): Promise<RouteAnswer> {
   if (!isRecord(body) || typeof body['kind'] !== 'string' || !COMMAND_ROUTE_KINDS.includes(body['kind'])) return MALFORMED;
   const { kind } = body;
-  if (isFlintBrainKind(kind)) return await flintBrainAnswerOf(kind, request, caller);
+  if (isFlintBrainKind(kind)) return await flintBrainAnswerOf(kind, request);
   if (isRuntimeKind(kind)) {
     const runtimeCommand = runtimeCommandOf(kind, body);
     if (runtimeCommand === null) return MALFORMED;

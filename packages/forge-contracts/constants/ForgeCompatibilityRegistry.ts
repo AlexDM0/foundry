@@ -52,7 +52,6 @@ export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = 
   currentEndpointOf('monitor', 2),
   currentEndpointOf('monitor/events', 2),
   currentEndpointOf('commands', 1),
-  currentEndpointOf('session-codes', 1),
   endpointAddedIn('presence', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('crash-log', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('board', 1, BOARD_DOCUMENT_ADDED_IN),
