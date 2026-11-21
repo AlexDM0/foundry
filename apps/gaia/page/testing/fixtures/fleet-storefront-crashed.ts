@@ -1,6 +1,6 @@
 /**
  * The example data of a crashed forge in place, which no artboard draws (owner answer 5): the five forges' fleet with Example Storefront
- * off after its Overseer crashed, as the registry's crash summary tells it, and then started again, listing the crash log it wrote, which
+ * off after its Hephaestus crashed, as the registry's crash summary tells it, and then started again, listing the crash log it wrote, which
  * Gaia reads once User opens it. Test-only.
  */
 import type { CrashLogDocument }                  from '../../@types/CrashLogDocument.ts';
@@ -23,7 +23,7 @@ export const STOREFRONT_CRASH_LOG: CrashLogDocument = {
     origin:  'uncaught-exception',
     name:    'TypeError',
     message: 'Cannot read properties of undefined (reading \'ticketIds\')',
-    stack:   'TypeError: Cannot read properties of undefined (reading \'ticketIds\')\n    at examplePass (src/services/overseer/ExamplePass.ts:42:17)',
+    stack:   'TypeError: Cannot read properties of undefined (reading \'ticketIds\')\n    at examplePass (src/services/hephaestus/ExamplePass.ts:42:17)',
   },
   activeJobs: [
     {
@@ -36,7 +36,7 @@ export const STOREFRONT_CRASH_LOG: CrashLogDocument = {
   logTail: [
     '2026-11-12T13:17:40Z Job J3 asked E2: How long should a password reset link stay valid?',
     '2026-11-12T13:17:41Z Pass 412 started.',
-    '2026-11-12T13:17:42Z Overseer crashed in pass 412: TypeError.',
+    '2026-11-12T13:17:42Z Hephaestus crashed in pass 412: TypeError.',
   ],
 };
 
@@ -48,7 +48,7 @@ function fleetWithStorefront(storefrontChanges: Partial<FleetDocumentForge>, kee
   };
 }
 
-/** Off after the crash: no Overseer answers, so Gaia shows the registry's crash summary, and nothing runs until User starts it. */
+/** Off after the crash: no Hephaestus answers, so Gaia shows the registry's crash summary, and nothing runs until User starts it. */
 export const FLEET_STOREFRONT_CRASHED: FleetDocument = fleetWithStorefront({
   fidelity:     'unreachable',
   condition:    'unreachable',
@@ -57,15 +57,15 @@ export const FLEET_STOREFRONT_CRASHED: FleetDocument = fleetWithStorefront({
   agents:       [],
   presence:     { state: 'crashed', generation: 1, at: CRASHED_AT },
   crashSummary: {
-    component: 'overseer', suspected: false, errorName: 'TypeError', errorMessage: STOREFRONT_CRASH_LOG.error?.message ?? null,
+    component: 'hephaestus', suspected: false, errorName: 'TypeError', errorMessage: STOREFRONT_CRASH_LOG.error?.message ?? null,
   },
 }, false);
 
 /** Started again by User: it serves, lists the crash log it wrote, and its jobs the crash stopped resume by themselves. */
 export const FLEET_STOREFRONT_STARTED_AFTER_A_CRASH: FleetDocument = fleetWithStorefront({
-  overseerStartedAt: FLEET_FIXTURES_READ_AT,
-  presence:          { state: 'serving', generation: 2, at: FLEET_FIXTURES_READ_AT },
-  crashLogs:         [{
+  hephaestusStartedAt: FLEET_FIXTURES_READ_AT,
+  presence:            { state: 'serving', generation: 2, at: FLEET_FIXTURES_READ_AT },
+  crashLogs:           [{
     number:     STOREFRONT_CRASH_LOG.number,
     generation: STOREFRONT_CRASH_LOG.generation,
     component:  STOREFRONT_CRASH_LOG.component,

@@ -1,5 +1,5 @@
 /**
- * Every command kind a client may send to `POST /api/v2/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
+ * Every command kind a client may send to `POST /api/v3/commands`: the control kinds of `ForgeControlCommand`, then the board kinds of
  * `ForgeBoardCommand`, each in its contract's order. A kind the forge takes only from its own command line is in neither.
  */
 import type { ForgeBoardCommand }   from '../@types/BoardCommand.ts';
@@ -8,11 +8,11 @@ import type { ForgeControlCommand } from '../@types/ForgeControlCommand.ts';
 export type ForgeClientCommandKind = (ForgeControlCommand | ForgeBoardCommand)['kind'];
 
 export const FORGE_CONTROL_COMMAND_KINDS: readonly ForgeClientCommandKind[] = Object.freeze([
-  'overseer-pause',
-  'overseer-resume',
+  'hephaestus-pause',
+  'hephaestus-unpause',
   'interrupted-work-resume',
-  'overseer-stop',
-  'overseer-restart',
+  'hephaestus-stop',
+  'hephaestus-restart',
   'talos-restart',
   'concurrency-set',
   'job-stop-all',

@@ -160,7 +160,7 @@ describe('the title row', () => {
       'Running', true, false,
     ]);
     cleanup();
-    renderedHeader(servingBoard({ overseer: { state: 'serving', paused: true, codeVersion: 'code-1' } }));
+    renderedHeader(servingBoard({ hephaestus: { state: 'serving', paused: true, codeVersion: 'code-1' } }));
     const pausedPill = document.querySelector('.board-status-pill');
     expect([pausedPill?.textContent, pausedPill?.hasAttribute('data-running'), pausedPill?.querySelector('.board-status-dot')]).toEqual(['Paused', false, null]);
   });
@@ -173,14 +173,14 @@ describe('the forge\'s controls and the status details', () => {
         kind: 'new-code', facts: {}, text: 'Example: new code is on disk', causeText: null
       }]
     }));
-    expect(['Pause', 'Resume', 'Restart', 'Stop Overseer'].map((name) => screen.queryByRole('button', { name }))).toEqual([null, null, null, null]);
-    expect(screen.queryByRole('group', { name: 'Overseer controls' })).toBeNull();
+    expect(['Pause', 'Resume', 'Restart', 'Stop Hephaestus'].map((name) => screen.queryByRole('button', { name }))).toEqual([null, null, null, null]);
+    expect(screen.queryByRole('group', { name: 'Hephaestus controls' })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Theme/u })).toBeNull();
     expect(document.querySelector('.board-status-notice')?.textContent).toBe('Example: new code is on disk');
   });
 
   test('during a Baton pass the status reads Handing over', () => {
-    renderedHeader(servingBoard({ overseer: { state: 'passing-baton', paused: false, codeVersion: 'code-1' } }));
+    renderedHeader(servingBoard({ hephaestus: { state: 'passing-baton', paused: false, codeVersion: 'code-1' } }));
     expect(screen.getByText('Handing over')).toBeDefined();
   });
 
@@ -289,21 +289,21 @@ describe('the activity strip', () => {
     expect(head?.nextElementSibling?.getAttribute('aria-label')).toBe('Worker jobs');
   });
 
-  test('tickets in progress with no Overseer job show as one flag linking to the Agents tab, and no flag shows without them', () => {
+  test('tickets in progress with no Hephaestus job show as one flag linking to the Agents tab, and no flag shows without them', () => {
     renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12'], ['3', '4']));
-    const flag = within(strip()).getByRole('link', { name: '2 in progress with no Overseer job' });
+    const flag = within(strip()).getByRole('link', { name: '2 in progress with no Hephaestus job' });
     expect([flag.getAttribute('href'), flag.getAttribute('data-tone'), flag.getAttribute('title')]).toEqual([
-      boardHrefOf('agents'), 'warn', '2 tickets are in progress on the board with no Overseer job behind them',
+      boardHrefOf('agents'), 'warn', '2 tickets are in progress on the board with no Hephaestus job behind them',
     ]);
     cleanup();
     renderedHeader(stripBoard([FIXTURE_BUILDER_JOB], ['J12']));
-    expect(within(strip()).queryByRole('link', { name: /no Overseer job/u })).toBeNull();
+    expect(within(strip()).queryByRole('link', { name: /no Hephaestus job/u })).toBeNull();
   });
 
   test('with no slot job it says no agent is working, and still flags tickets with no job', () => {
     renderedHeader(stripBoard([FIXTURE_ASSISTANT_JOB], [], ['3']));
-    expect(strip().textContent).toBe('Agents at work0 of 4 launch slots in use1 in progress with no Overseer jobNo agent is working right now.');
-    expect(strip().querySelector('.design-system-tag')?.getAttribute('title')).toBe('1 ticket is in progress on the board with no Overseer job behind it');
+    expect(strip().textContent).toBe('Agents at work0 of 4 launch slots in use1 in progress with no Hephaestus jobNo agent is working right now.');
+    expect(strip().querySelector('.design-system-tag')?.getAttribute('title')).toBe('1 ticket is in progress on the board with no Hephaestus job behind it');
   });
 
   test('on the Kanban tab the strip opens with Flint\'s hidden 100px slot on the strip ground', () => {
@@ -517,7 +517,7 @@ describe('the header in setup', () => {
     expect(screen.queryByLabelText('Statistics')).toBeNull();
     expect(document.querySelector('.board-attention')).toBeNull();
     expect(document.querySelector('.board-activity')).toBeNull();
-    expect(screen.queryByRole('group', { name: 'Overseer controls' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Hephaestus controls' })).toBeNull();
     const pill = document.querySelector('.board-status-pill');
     expect([pill?.textContent, pill?.querySelector('.board-status-dot')]).toEqual(['Setting up', null]);
   });

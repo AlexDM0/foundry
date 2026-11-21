@@ -149,7 +149,7 @@ function disclosureLabelOf(batch: ChangeBatchView, isOpen: boolean): string {
 }
 
 /**
- * The set's one Undo, named by the set's first edit at this level: the Overseer undoes every edit of the copy at that level that still
+ * The set's one Undo, named by the set's first edit at this level: Hephaestus undoes every edit of the copy at that level that still
  * stands, at one revision, so a copy to several entities is undone one entity at a time.
  */
 function batchUndoCommandOf(setupId: string, batch: ChangeBatchView): BoardCommandDocument {

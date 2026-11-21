@@ -16,7 +16,7 @@ describe('eventOf', () => {
   });
 
   test('names the part each part event changed', () => {
-    for (const part of ['job', 'decision', 'incident', 'overseer', 'usage', 'profile', 'pipeline'] as const) {
+    for (const part of ['job', 'decision', 'incident', 'hephaestus', 'usage', 'profile', 'pipeline'] as const) {
       expect(INGESTION.eventOf(part)).toEqual({ kind: 'part-changed', part });
     }
   });

@@ -1,7 +1,7 @@
 /**
  * The board's merge queue against the contract's merge queue document. What matters: each target maps field by field with its holder, its
  * order, the tickets waiting for the user's accept, its conflicting pairs and its decisions; a failed prediction keeps `null` files; and
- * the slots the Overseer keeps beside the targets, each a target's holder already, stay out.
+ * the slots Hephaestus keeps beside the targets, each a target's holder already, stay out.
  */
 import { describe, expect, test } from 'bun:test';
 

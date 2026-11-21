@@ -49,7 +49,7 @@ describe('the entries', () => {
       ['12:40', 'Example Mobile App', 'Forge', 'Launches held: the install version changed'],
       ['12:38', 'Example Mobile App', 'Agent', 'J7 reviewer started on #020 Push permission prompt'],
       ['12:31', 'Invoice Service', 'Landed', '#030 Reminder emails landed on main'],
-      ['12:20', 'Design System', 'Forge', 'Overseer stopped'],
+      ['12:20', 'Design System', 'Forge', 'Hephaestus stopped'],
       ['12:02', 'Example Storefront', 'Landed', '#009 Guest checkout landed on main'],
       ['11:48', 'Invoice Service', 'Landed', '#029 Payment terms on quotes landed on main'],
       ['11:15', 'Example Storefront', 'Needs you', '#015 Search suggestions was filed as a draft'],
@@ -70,7 +70,7 @@ describe('the entries', () => {
     expect(rows[2]?.href).toBe(`#forge/${TRACKER_IDS.invoiceService}/tickets/ticket-row/031`);
     expect(rows.filter((row) => row.href === null).map((row) => row.text)).toEqual([
       'Launches held: the install version changed',
-      'Overseer stopped',
+      'Hephaestus stopped',
     ]);
   });
 

@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Playbook": one Pass of the Overseer. Flint looks behind and ahead, opens a small book, points down
+ * Implements `06-more-animations.md`, "Playbook": one Pass of Hephaestus. Flint looks behind and ahead, opens a small book, points down
  * its four lines, closes it with a hop, acts with the hand of Point, and lets the hand go.
  */
 import type { HandPose, PosePart }         from '../../SpritePose.ts';

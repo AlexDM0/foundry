@@ -1,6 +1,6 @@
 /**
- * The gate profile runs' moves: User's press queues one gate in one phase, the Overseer marks it running and records how it ended, and
- * User's Stop ends a queued run at once or asks the Overseer to end a running one. A second press while the gate and phase have a run
+ * The gate profile runs' moves: User's press queues one gate in one phase, Hephaestus marks it running and records how it ended, and
+ * User's Stop ends a queued run at once or asks Hephaestus to end a running one. A second press while the gate and phase have a run
  * queued or running refuses. Only the newest run of a gate and phase is kept; on a forge over entities, of an entity's gate and phase.
  */
 import type { GateProfileChanged }     from './@types/BoardChanges.ts';
@@ -65,7 +65,7 @@ export class GateProfiles {
     return { logged: [this.records.logger.log({ kind: 'gate-profile-requested', profileRunId: run.profileRunId, fields }, at)], run };
   }
 
-  /** The Overseer took a gate run slot for a queued run; a run stopped or gone since is left as it is, and reports no change. */
+  /** Hephaestus took a gate run slot for a queued run; a run stopped or gone since is left as it is, and reports no change. */
   markGateProfileRunning(profileRunId: string): GateProfileChanged & { changed?: false } {
     const run = this.requireRun(profileRunId);
     if (run.state !== 'queued') return { logged: [], run, changed: false };
@@ -89,7 +89,7 @@ export class GateProfiles {
     return { logged: [this.records.logger.log({ kind: 'gate-profiled', profileRunId, fields }, at)], run };
   }
 
-  /** User's Stop: a queued run is stopped now; a running one is marked for the Overseer to end its process tree; an ended one is left. */
+  /** User's Stop: a queued run is stopped now; a running one is marked for Hephaestus to end its process tree; an ended one is left. */
   stopGateProfile(profileRunId: string, at: string): GateProfileChanged & { changed?: false } {
     const run = this.requireRun(profileRunId);
     if (run.state === 'queued') return this.stopped(run, at);
@@ -99,7 +99,7 @@ export class GateProfiles {
     return { logged: [], run };
   }
 
-  /** The Overseer's start: a run left `running` by an earlier Overseer has no process any more, so it reads `stopped` and never runs again. */
+  /** Hephaestus's start: a run left `running` by an earlier Hephaestus has no process any more, so it reads `stopped` and never runs again. */
   stopRunsLeftRunning(at: string): GateProfileChanged[] {
     const reading = this.records.gateProfilesReading;
     if (reading.verdict !== 'readable') return [];

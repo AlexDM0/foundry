@@ -18,7 +18,7 @@ import {
 } from 'bun:test';
 
 import { environmentCopy, GATE_REPORT_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
-import { LINE_TIME_BOUND_MILLISECONDS }                           from '../../shared/constants/OverseerLimits.ts';
+import { LINE_TIME_BOUND_MILLISECONDS }                           from '../../shared/constants/HephaestusLimits.ts';
 import { runsAsGiven }                                            from '../../testing/FakeGateConfinement.ts';
 import { nativePlatformPorts }                                    from '../../testing/NativePlatformPorts.ts';
 import { RECORDED_GATE_LINES, useRecordedGateLines }              from '../../testing/RecordedGateLines.ts';

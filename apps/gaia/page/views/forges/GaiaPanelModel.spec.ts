@@ -117,7 +117,7 @@ describe('the facts', () => {
   test('name no package version and no contract Gaia reads', () => {
     const panel = panelOf(FLEET_FIVE_FORGES);
     const printed = [...panel.facts, ...panel.thisGaiaFacts].flatMap((fact) => [fact.label, fact.value]).join(' ');
-    expect([printed.includes(FLEET_FIVE_FORGES.gaia.gaiaVersion), printed.includes('monitor 4'), printed.includes('Gaia reads')]).toEqual([false, false, false]);
+    expect([printed.includes(FLEET_FIVE_FORGES.gaia.gaiaVersion), printed.includes('monitor 5'), printed.includes('Gaia reads')]).toEqual([false, false, false]);
   });
 
   test('say in words that no forge program was found, and print a path outside the home folder whole', () => {

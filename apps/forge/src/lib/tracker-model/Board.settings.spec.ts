@@ -1,13 +1,13 @@
 /**
- * Each setting hands back the value it replaced and logs exactly one record, and a board that never set the Overseer state reads the
+ * Each setting hands back the value it replaced and logs exactly one record, and a board that never set the Hephaestus state reads the
  * default, which starts nothing before the user's go.
  */
 import { expect, test } from 'bun:test';
 
-import { boardFixture }           from '../../testing/BoardFixtures.ts';
-import type { ViewRange }         from './@types/TrackerProgress.ts';
-import { DEFAULT_OVERSEER_STATE } from './constants/OverseerStates.ts';
-import { jobFixture }             from './testing/LifecycleFixtures.ts';
+import { boardFixture }             from '../../testing/BoardFixtures.ts';
+import type { ViewRange }           from './@types/TrackerProgress.ts';
+import { DEFAULT_HEPHAESTUS_STATE } from './constants/HephaestusStates.ts';
+import { jobFixture }               from './testing/LifecycleFixtures.ts';
 
 const CHANGED_AT = '2026-09-18T20:40:00+02:00';
 
@@ -18,19 +18,19 @@ const EXAMPLE_VIEW: ViewRange = {
   tickMinutes: 15,
 };
 
-test('a tracker that never set an Overseer state reads the default one', () => {
+test('a tracker that never set a Hephaestus state reads the default one', () => {
   const { board, progress } = boardFixture();
-  expect(progress.overseerState).toBeUndefined();
-  expect(board.overseerState()).toBe(DEFAULT_OVERSEER_STATE);
+  expect(progress.hephaestusState).toBeUndefined();
+  expect(board.hephaestusState()).toBe(DEFAULT_HEPHAESTUS_STATE);
 });
 
-test('setting the Overseer state hands back the state before and logs one overseer-set record', () => {
+test('setting the Hephaestus state hands back the state before and logs one hephaestus-set record', () => {
   const { board, progress, records } = boardFixture();
-  const changed                      = board.setOverseerState('running', CHANGED_AT);
+  const changed                      = board.setHephaestusState('running', CHANGED_AT);
 
-  expect(changed.previousState).toBe(DEFAULT_OVERSEER_STATE);
-  expect(progress.overseerState).toBe('running');
-  expect(records).toEqual([{ at: CHANGED_AT, kind: 'overseer-set', fields: { state: 'running' } }]);
+  expect(changed.previousState).toBe(DEFAULT_HEPHAESTUS_STATE);
+  expect(progress.hephaestusState).toBe('running');
+  expect(records).toEqual([{ at: CHANGED_AT, kind: 'hephaestus-set', fields: { state: 'running' } }]);
   expect(changed.logged).toEqual(records);
 });
 

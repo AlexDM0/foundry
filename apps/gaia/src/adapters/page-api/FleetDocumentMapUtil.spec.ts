@@ -53,9 +53,14 @@ describe('the fleet document mapper', () => {
       { ...entryFields, target: { subject: 'ticket', id: '001' } } as MonitorAttentionEntryDocument,
       { ...entryFields, key: 'decision:E2', target: { subject: 'decision', id: 'E2' } } as MonitorAttentionEntryDocument,
     ];
-    const recordedSnapshot = await recordedDocumentOf('serving-every-contract', 'monitor', storefrontFacts.overseerUrl) as MonitorSnapshotDocument;
+    const recordedSnapshot = await recordedDocumentOf('serving-every-contract', 'monitor', storefrontFacts.hephaestusUrl) as MonitorSnapshotDocument;
     const storefrontIdentity: ForgeIdentity = {
-      trackerId: storefront.trackerId, project: storefront.project, codeVersion: 'example-code', installVersion: 42, processId: storefrontFacts.overseerProcessId, contracts: null,
+      trackerId:      storefront.trackerId,
+      project:        storefront.project,
+      codeVersion:    'example-code',
+      installVersion: 42,
+      processId:      storefrontFacts.hephaestusProcessId,
+      contracts:      null,
     };
     const reading = ForgeReadingMapUtil.fullReadingOf({ ...recordedSnapshot, attention: monitorEntries }, storefrontFacts, storefrontIdentity, EXAMPLE_READ_STAMP);
     const fleetDocument = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [servingFleetForgeOf(reading)] });
@@ -64,7 +69,7 @@ describe('the fleet document mapper', () => {
 
   test('stamps the fleet contract version it was built for', () => {
     expect(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY).fleetVersion).toBe(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument);
-    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(10);
+    expect(PAGE_CONTRACT_VERSIONS.gaiaFleetDocument).toBe(11);
   });
 
   test('leaves out a key of the internal model that the contract does not name', () => {
@@ -106,14 +111,14 @@ describe('the fleet document mapper', () => {
   test('words a notice or a warning whose sentence names a command in Gaia\'s words, and passes the others through', () => {
     const [storefront] = FLEET_SNAPSHOT_FIVE_FORGES.forges;
     if (storefront === undefined) throw new Error('The five-forges model holds no forge.');
-    const watcherNotice = { kind: 'watcher-endpoint-does-not-fit', text: 'job J1 is not launched: this platform cannot bind the Watcher endpoint' };
+    const talosNotice = { kind: 'talos-endpoint-does-not-fit', text: 'job J1 is not launched: this platform cannot bind the Talos endpoint' };
     const forge = {
       ...storefront,
-      notices:  [{ kind: 'new-code', text: 'new code: run `forge update`' }, watcherNotice],
-      warnings: [{ kind: 'forge-warning', text: 'The Baton pass failed: run `forge oversee restart`.' }],
+      notices:  [{ kind: 'new-code', text: 'new code: run `forge update`' }, talosNotice],
+      warnings: [{ kind: 'forge-warning', text: 'The Baton pass failed: run `forge restart`.' }],
     };
     const [document] = FleetDocumentMapUtil.fleetDocumentOf({ ...FLEET_SNAPSHOT_FIVE_FORGES, forges: [forge] }).forges;
-    expect(document?.notices).toEqual([{ kind: 'new-code', text: 'New code is on disk. The Overseer runs the code it started with until it restarts.' }, watcherNotice]);
+    expect(document?.notices).toEqual([{ kind: 'new-code', text: 'New code is on disk. Hephaestus runs the code it started with until it restarts.' }, talosNotice]);
     expect(document?.warnings).toEqual([{ kind: 'forge-warning', text: 'This forge reports a warning that Gaia does not word yet.' }]);
   });
 
@@ -143,7 +148,7 @@ describe('the fleet document mapper', () => {
     const entryOf = (text: string) => ({
       logPosition: 461, at: '2026-11-12T13:19:00.000Z', category: 'forge', text, boardRoute: null,
     } as const);
-    const forge = { ...storefront, activity: [entryOf('The Baton pass failed: run `forge oversee restart`.')] };
+    const forge = { ...storefront, activity: [entryOf('The Baton pass failed: run `forge restart`.')] };
     const document = FleetDocumentMapUtil.fleetDocumentOf({
       ...FLEET_SNAPSHOT_FIVE_FORGES,
       forges:   [forge],

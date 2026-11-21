@@ -3,7 +3,7 @@ import { basename }   from 'node:path';
 
 import { ensureIgnored }                                  from '../../../src/lib/git/GitIgnore.ts';
 import { LocalTimeUtil }                                  from '../../../src/lib/local-time/LocalTimeUtil.ts';
-import { CONSTITUTION_FILE_PATH }                         from '../../../src/services/overseer/InstructionFiles.ts';
+import { CONSTITUTION_FILE_PATH }                         from '../../../src/services/hephaestus/InstructionFiles.ts';
 import { lockTakerOf }                                    from '../../../src/services/tracker/LockHolders.ts';
 import { listTracker }                                    from '../../../src/services/tracker/RepositoryTrackerList.ts';
 import { findWorkspace, workspacePathsFor }               from '../../../src/services/tracker/Workspace.ts';
@@ -43,13 +43,13 @@ function nextStepLinesOf(agentDisplayName: string): readonly string[] {
   return [
     '',
     'Next steps:',
-    `  1. Run \`${PROGRAM} start\`. It starts the Overseer in the background.`,
-    '     The Overseer keeps running after the terminal closes; its agents run on even when it stops.',
+    `  1. Run \`${PROGRAM} start\`. It starts Hephaestus in the background.`,
+    '     Hephaestus keeps running after the terminal closes; its agents run on even when it stops.',
     `  2. Ask an agent session (${agentDisplayName}) in this repository to file a ticket. It loads the ${PRODUCT_OWNER_SKILL} skill,`,
     '     files the ticket as a draft and readies it on your yes.',
     '  3. The board starts on Pipeline setup. Choose who pays, then let the pipeline agent read the repository.',
     `     Apply commits ${CONSTITUTION_FILE_PATH} to main; with Resume it starts the board.`,
-    `  Stop the Overseer with \`${PROGRAM} oversee stop\`; \`${PROGRAM} help\` lists every command.`,
+    `  Stop Hephaestus with \`${PROGRAM} stop\`; \`${PROGRAM} help\` lists every command.`,
   ];
 }
 

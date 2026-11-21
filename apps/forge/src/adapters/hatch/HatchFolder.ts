@@ -1,4 +1,4 @@
-/** A job's Hatch folder: `requests/<requestId>.json` its session writes, `replies/<requestId>.json` the Overseer answers with. */
+/** A job's Hatch folder: `requests/<requestId>.json` its session writes, `replies/<requestId>.json` Hephaestus answers with. */
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join }                                from 'node:path';
 
@@ -20,7 +20,7 @@ export function hatchReplyFilePathOf(hatchDirectory: string, requestId: string):
   return join(hatchDirectory, REPLIES_FOLDER_NAME, `${requestId}${HATCH_FILE_EXTENSION}`);
 }
 
-/** Atomic, so the Overseer listing the folder never reads half a request. */
+/** Atomic, so Hephaestus listing the folder never reads half a request. */
 export function writeHatchRequest(hatchDirectory: string, request: HatchRequest): string {
   const filePath = hatchRequestFilePathOf(hatchDirectory, request.requestId);
   mkdirSync(join(hatchDirectory, REQUESTS_FOLDER_NAME), { recursive: true });

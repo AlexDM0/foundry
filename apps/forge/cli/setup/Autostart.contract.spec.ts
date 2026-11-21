@@ -63,13 +63,13 @@ runPortContract<AutostartSubject>('Autostart', SUBJECTS, [
   {
     claim: 'no repository reads back under a label nothing was written under',
     check: ({ autostart }) => {
-      expect(autostart.registeredRepositoryOf('com.example-agency.overseer')).toBeNull();
+      expect(autostart.registeredRepositoryOf('com.example-agency.hephaestus')).toBeNull();
     },
   },
   {
-    claim: 'a written item reads back its repository under its label, and its command starts the Overseer as the login item',
+    claim: 'a written item reads back its repository under its label, and its command starts Hephaestus as the login item',
     check: ({ autostart, itemFor }) => {
-      const item = itemFor('com.example-agency.overseer', 'example storefront');
+      const item = itemFor('com.example-agency.hephaestus', 'example storefront');
       expect(autostart.write(item)).toEqual({ verdict: 'written' });
       expect(autostart.registeredRepositoryOf(item.label)).toBe(item.repository);
       const command = autostart.commandOf(item);
@@ -81,7 +81,7 @@ runPortContract<AutostartSubject>('Autostart', SUBJECTS, [
   {
     claim: 'an item under a second label leaves the first one reading back its own repository',
     check: ({ autostart, itemFor }) => {
-      const first = itemFor('com.example-agency.overseer', 'example-storefront');
+      const first = itemFor('com.example-agency.hephaestus', 'example-storefront');
       const second = itemFor('com.example-agency.second', 'example-warehouse');
       autostart.write(first);
       autostart.write(second);
@@ -92,7 +92,7 @@ runPortContract<AutostartSubject>('Autostart', SUBJECTS, [
   {
     claim: 'a removed item reads back no repository, and a second removal finds it absent',
     check: ({ autostart, itemFor }) => {
-      const item = itemFor('com.example-agency.overseer', 'example-storefront');
+      const item = itemFor('com.example-agency.hephaestus', 'example-storefront');
       autostart.write(item);
       expect(autostart.remove(item.label)).toEqual({ verdict: 'removed' });
       expect(autostart.registeredRepositoryOf(item.label)).toBeNull();
@@ -102,8 +102,8 @@ runPortContract<AutostartSubject>('Autostart', SUBJECTS, [
   {
     claim: 'a rewrite of the same label reads back the newer repository',
     check: ({ autostart, itemFor }) => {
-      autostart.write(itemFor('com.example-agency.overseer', 'example-storefront'));
-      const rewritten = itemFor('com.example-agency.overseer', 'example-warehouse');
+      autostart.write(itemFor('com.example-agency.hephaestus', 'example-storefront'));
+      const rewritten = itemFor('com.example-agency.hephaestus', 'example-warehouse');
       autostart.write(rewritten);
       expect(autostart.registeredRepositoryOf(rewritten.label)).toBe(rewritten.repository);
     },

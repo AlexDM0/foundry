@@ -1,5 +1,5 @@
 /**
- * The Overseer's jobs on the Board. What matters: a job's ids are never reused or gap-filled, since a log line and a child folder name it for
+ * Hephaestus's jobs on the Board. What matters: a job's ids are never reused or gap-filled, since a log line and a child folder name it for
  * good; the record holds what a restart needs and no process identity; every move goes through the one legality table, an illegal one
  * refused `job-move-illegal` from every state; a job is finished only by `job-ended`, after which every move is refused `job-finished`;
  * only the launch, an interruption, a resume and the end are logged; and the merge-queue mark lives on in-review rows only. A product owner's
@@ -74,7 +74,7 @@ function boardWithTicket(): ReturnType<typeof boardFixture> {
 }
 
 function stepJob(board: Board, jobId: string, target: JobMoveTarget): void {
-  if (target === 'interrupted') board.interruptJob(jobId, 'watcher-lost', AT);
+  if (target === 'interrupted') board.interruptJob(jobId, 'talos-lost', AT);
   else if (target === 'ended') board.endJob(jobId, { outcome: 'failed' }, AT);
   else board.moveJob(jobId, target, AT);
 }
@@ -443,12 +443,12 @@ describe('the merge-queue mark', () => {
   });
 });
 
-describe('the Overseer state', () => {
+describe('the Hephaestus state', () => {
   test('the stored state is the one the Board and its dispatch capacity read', () => {
     const { board, progress } = boardFixture();
-    progress.overseerState      = 'running';
-    expect(board.overseerState()).toBe('running');
-    expect(board.dispatchCapacity().overseerState).toBe('running');
+    progress.hephaestusState      = 'running';
+    expect(board.hephaestusState()).toBe('running');
+    expect(board.dispatchCapacity().hephaestusState).toBe('running');
   });
 });
 

@@ -39,7 +39,7 @@ interface HeldEdits {
 
 /**
  * `target` is the open record the edits go to; `null` on a live board, where the first gesture opens one. `onEditsApplied` is called once
- * the Overseer applied a gesture's edits, so a dialog can close.
+ * Hephaestus applied a gesture's edits, so a dialog can close.
  */
 export function usePipelineFlowEditSender(target: DraftEditTarget | null, onEditsApplied?: () => void): PipelineFlowEditSender {
   const [heldEdits, setHeldEdits] = useState<HeldEdits | null>(null);

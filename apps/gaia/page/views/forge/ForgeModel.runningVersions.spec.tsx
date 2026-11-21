@@ -1,7 +1,7 @@
 /**
- * The bar's second line (decision 31): the running and the newest Overseer and Talos, and a clean restart of each. What matters: a forge that
- * runs the installed code shows each running version and marks nothing; a newer installed Overseer, or a Talos whose protocol or code is
- * not the installed program's, marks that pair and restarts nothing; a forge with no Talos says so; Restart Overseer sends `forge-restart`
+ * The bar's second line (decision 31): the running and the newest Hephaestus and Talos, and a clean restart of each. What matters: a forge that
+ * runs the installed code shows each running version and marks nothing; a newer installed Hephaestus, or a Talos whose protocol or code is
+ * not the installed program's, marks that pair and restarts nothing; a forge with no Talos says so; Restart Hephaestus sends `forge-restart`
  * and Restart Talos `forge-talos-restart`, both enabled while the forge answers and waiting while a command to it is on its way; a forge
  * not answering shows no pair and both restarts disabled; and a forge Gaia cannot talk to has no such line.
  */
@@ -23,10 +23,10 @@ const RUNNING_CODE = '3f9a2c1';
 const INSTALLED_CODE = '7d4e1b0';
 
 const RUNS_THE_INSTALLED_CODE: FleetDocumentRunningVersions = {
-  overseerRunning: RUNNING_CODE,
-  overseerNewest:  RUNNING_CODE,
-  talosRunning:    { protocolVersion: 2, codeVersion: RUNNING_CODE },
-  talosNewest:     2,
+  hephaestusRunning: RUNNING_CODE,
+  hephaestusNewest:  RUNNING_CODE,
+  talosRunning:      { protocolVersion: 2, codeVersion: RUNNING_CODE },
+  talosNewest:       2,
 };
 
 function storefrontWith(runningVersions: FleetDocumentRunningVersions | null): FleetDocumentForge {
@@ -46,28 +46,28 @@ function lineTextOf(versions: BarVersions): string[] {
 describe('the running and the newest versions', () => {
   test('a forge on the installed code shows each running version and marks neither pair', () => {
     const versions = versionsOf(storefrontWith(RUNS_THE_INSTALLED_CODE));
-    expect(lineTextOf(versions)).toEqual([`Overseer ${RUNNING_CODE}`, `Talos protocol 2 · ${RUNNING_CODE}`]);
+    expect(lineTextOf(versions)).toEqual([`Hephaestus ${RUNNING_CODE}`, `Talos protocol 2 · ${RUNNING_CODE}`]);
     expect(versions.pairs.map((pair) => pair.newerIsInstalled)).toEqual([false, false]);
   });
 
-  test('a newer installed program marks the Overseer and the Talos that started from the older code, and names the newest', () => {
-    const versions = versionsOf(storefrontWith({ ...RUNS_THE_INSTALLED_CODE, overseerNewest: INSTALLED_CODE }));
+  test('a newer installed program marks Hephaestus and the Talos that started from the older code, and names the newest', () => {
+    const versions = versionsOf(storefrontWith({ ...RUNS_THE_INSTALLED_CODE, hephaestusNewest: INSTALLED_CODE }));
     expect(lineTextOf(versions)).toEqual([
-      `Overseer ${RUNNING_CODE} · newer installed ${INSTALLED_CODE}`,
+      `Hephaestus ${RUNNING_CODE} · newer installed ${INSTALLED_CODE}`,
       `Talos protocol 2 · ${RUNNING_CODE} · newer installed protocol 2`,
     ]);
     expect(versions.pairs.map((pair) => pair.newerIsInstalled)).toEqual([true, true]);
-    expect(versions.pairs[0]?.title).toContain('Restart Overseer');
+    expect(versions.pairs[0]?.title).toContain('Restart Hephaestus');
   });
 
-  test('a Talos of another protocol than the installed program starts is marked though the Overseer runs the installed code', () => {
+  test('a Talos of another protocol than the installed program starts is marked though Hephaestus runs the installed code', () => {
     const versions = versionsOf(storefrontWith({ ...RUNS_THE_INSTALLED_CODE, talosNewest: 3 }));
-    expect(versions.pairs.map((pair) => [pair.component, pair.newerIsInstalled])).toEqual([['Overseer', false], ['Talos', true]]);
+    expect(versions.pairs.map((pair) => [pair.component, pair.newerIsInstalled])).toEqual([['Hephaestus', false], ['Talos', true]]);
     expect(lineTextOf(versions)[1]).toBe(`Talos protocol 2 · ${RUNNING_CODE} · newer installed protocol 3`);
   });
 
   test('an installed program not read yet marks nothing', () => {
-    const versions = versionsOf(storefrontWith({ ...RUNS_THE_INSTALLED_CODE, overseerNewest: null, talosNewest: null }));
+    const versions = versionsOf(storefrontWith({ ...RUNS_THE_INSTALLED_CODE, hephaestusNewest: null, talosNewest: null }));
     expect(versions.pairs.map((pair) => pair.newerIsInstalled)).toEqual([false, false]);
   });
 
@@ -91,9 +91,9 @@ describe('the restarts', () => {
     return { buttons: PackageButtons.buttonsIn(unfolded), sent };
   }
 
-  test('Restart Overseer sends a Baton pass and Restart Talos the clean quit, each for this forge, while the forge answers', () => {
+  test('Restart Hephaestus sends a Baton pass and Restart Talos the clean quit, each for this forge, while the forge answers', () => {
     const { buttons, sent } = lineOf(versionsOf(storefrontWith(RUNS_THE_INSTALLED_CODE)));
-    expect(buttons.map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([['Restart Overseer', false], ['Restart Talos', false]]);
+    expect(buttons.map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([['Restart Hephaestus', false], ['Restart Talos', false]]);
     for (const button of buttons) PackageButtons.press(button);
     const { trackerId } = FLEET_FIVE_FORGES_READINGS.exampleStorefront;
     expect(sent).toEqual([{ kind: 'forge-restart', trackerId }, { kind: 'forge-talos-restart', trackerId }]);

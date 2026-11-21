@@ -125,14 +125,14 @@ export type BoardViewRangeDocument =
   | { readonly kind: 'relative'; readonly from: string; readonly to: string; readonly tickMinutes: number | null };
 
 /** Where the user left the board: `paused` starts no new job until the user's go. */
-export type BoardOverseerSetting = 'running' | 'paused';
+export type BoardHephaestusSetting = 'running' | 'paused';
 
 export interface BoardProgressDocument {
-  readonly startedAt:     string;
-  readonly view:          BoardViewRangeDocument;
-  readonly overseerState: BoardOverseerSetting;
-  readonly tasks:         readonly BoardTaskDocument[];
-  readonly log:           readonly BoardLogEntryDocument[];
+  readonly startedAt:       string;
+  readonly view:            BoardViewRangeDocument;
+  readonly hephaestusState: BoardHephaestusSetting;
+  readonly tasks:           readonly BoardTaskDocument[];
+  readonly log:             readonly BoardLogEntryDocument[];
 }
 
 /** One per row of `progress.tasks`, at the same index. */

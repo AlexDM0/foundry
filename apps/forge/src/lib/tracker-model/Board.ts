@@ -46,7 +46,7 @@ import type {
   TicketsReleased,
   TokenCredit,
   TrackerCleared,
-  OverseerStateSet
+  HephaestusStateSet
 }                                                           from './@types/BoardChanges.ts';
 import type { Concurrency, DispatchCapacity }                 from './@types/Concurrency.ts';
 import type { Decision, DecisionAnswerForm, DecisionOpening } from './@types/Decision.ts';
@@ -89,7 +89,7 @@ import type {
   JobStopMode,
   LostLineKind,
   Airlock,
-  OverseerStopReason,
+  HephaestusStopReason,
   PictureReference,
   PipelineStepRun
 }                                              from './@types/Job.ts';
@@ -156,9 +156,9 @@ import type {
   TicketSize,
   TicketStatus
 }                                                         from './@types/Ticket.ts';
-import type { TicketForecast }                            from './@types/TicketForecast.ts';
-import type { OverseerState, TrackerProgress, ViewRange } from './@types/TrackerProgress.ts';
-import { AgentQuestions }                                 from './AgentQuestions.ts';
+import type { TicketForecast }                              from './@types/TicketForecast.ts';
+import type { HephaestusState, TrackerProgress, ViewRange } from './@types/TrackerProgress.ts';
+import { AgentQuestions }                                   from './AgentQuestions.ts';
 import {
   type MergeCandidate,
   type MergeLanding,
@@ -385,7 +385,7 @@ export class Board {
 
   /** Pauses the board, then stops or winds down every live build, review and product-owner job. */
   stopAllJobs(mode: Exclude<JobStopMode, 'fresh'>, at: string): Logged {
-    const pause = (): readonly LogRecord[] => (this.overseerState() === 'paused' ? [] : this.setOverseerState('paused', at).logged);
+    const pause = (): readonly LogRecord[] => (this.hephaestusState() === 'paused' ? [] : this.setHephaestusState('paused', at).logged);
     return this.jobControls.stopAllJobs(mode, pause, at);
   }
 
@@ -393,9 +393,9 @@ export class Board {
     return this.jobControls.messageJob(jobId, { text, pictures, sender: 'user' }, at);
   }
 
-  /** The Overseer's wording of User's setup move for the pipeline agent: delivered like User's message, never read as User's words. */
-  messageJobAsOverseer(jobId: string, text: string, at: string): JobChanged {
-    return this.jobControls.messageJob(jobId, { text, pictures: [], sender: 'overseer' }, at);
+  /** Hephaestus's wording of User's setup move for the pipeline agent: delivered like User's message, never read as User's words. */
+  messageJobAsHephaestus(jobId: string, text: string, at: string): JobChanged {
+    return this.jobControls.messageJob(jobId, { text, pictures: [], sender: 'hephaestus' }, at);
   }
 
   startIntake(text: string, pictures: readonly PictureReference[], at: string): JobChanged {
@@ -432,7 +432,7 @@ export class Board {
   }
 
   /**
-   * A build job's need for another entity, kept for the Overseer to file as that entity's ticket. `readinessGapsOf` reads the body as
+   * A build job's need for another entity, kept for Hephaestus to file as that entity's ticket. `readinessGapsOf` reads the body as
    * `ticket ready` does.
    */
   declareNeed(jobId: string, declaration: NeedDeclaration, readinessGapsOf: (body: string) => readonly ReadinessGap[]): NeedDeclared {
@@ -444,7 +444,7 @@ export class Board {
     return this.needRules.needs();
   }
 
-  /** The job's needs, taken off the board for the Overseer to file. */
+  /** The job's needs, taken off the board for Hephaestus to file. */
   takeNeedsOf(jobId: string): DeclaredNeed[] {
     return this.needRules.takeNeedsOf(jobId);
   }
@@ -463,7 +463,7 @@ export class Board {
       && filingJobIds.includes(frontmatter.filedByJob));
   }
 
-  /** The Overseer's end of a closed intake: the job ends `closed`. */
+  /** Hephaestus's end of a closed intake: the job ends `closed`. */
   endIntakeJob(jobId: string, at: string): Logged {
     return { logged: this.endJob(jobId, { outcome: 'closed' }, at).logged };
   }
@@ -502,12 +502,12 @@ export class Board {
     return this.jobRules.setJobSlot(jobId, slot);
   }
 
-  recordOverseerStarted(versions: { codeVersion: string; installVersion: number }, at: string): Logged {
-    return this.jobRules.recordOverseerStarted(versions, at);
+  recordHephaestusStarted(versions: { codeVersion: string; installVersion: number }, at: string): Logged {
+    return this.jobRules.recordHephaestusStarted(versions, at);
   }
 
-  recordOverseerStopped(reason: OverseerStopReason, at: string): Logged {
-    return this.jobRules.recordOverseerStopped(reason, at);
+  recordHephaestusStopped(reason: HephaestusStopReason, at: string): Logged {
+    return this.jobRules.recordHephaestusStopped(reason, at);
   }
 
   recordStartClassified(start: LogRecordFieldsOf<'start-classified'>, at: string): Logged {
@@ -614,7 +614,7 @@ export class Board {
     if (this.decisions().some((decision) => decision.kind === draft.kind && decision.ticketIds.includes(ticketId))) return { logged: [] };
     return {
       logged: this.openDecision({
-        ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft), context: packageEntity
+        ...draft, askedBy: 'hephaestus', requestId: null, ...decisionWordingOf(draft), context: packageEntity
       }, at).logged
     };
   }
@@ -789,7 +789,7 @@ export class Board {
     return this.incidentRules.escalateIncident(incidentId, escalation, at);
   }
 
-  /** The Overseer's first start puts the v16 low `committed` tickets in `ready-for-review`, whatever the ticket review switch says. */
+  /** Hephaestus's first start puts the v16 low `committed` tickets in `ready-for-review`, whatever the ticket review switch says. */
   submitFirstRunLeftovers(at: string): Logged {
     return this.findings.submitFirstRunLeftovers(at);
   }
@@ -863,7 +863,7 @@ export class Board {
       logRecords:                  [...this.records.storedLogRecords, ...this.records.loggedRecords],
       readinessPositionByTicketId: this.dispatchQueries.readinessPositionByTicketId(),
       concurrencyLimit:            this.concurrency().limit,
-      overseerState:               this.overseerState(),
+      hephaestusState:             this.hephaestusState(),
       pipelineIsSet:               this.records.pipeline !== null,
       assistantIsOn:               this.assistantIsOn(),
       reviewIsSet:                 this.records.pipeline?.review !== undefined,
@@ -893,7 +893,7 @@ export class Board {
 
   private applyPlaybookStep(step: PlaybookStep, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): readonly LogRecord[] {
     const openDecision = (draft: DecisionDraft): readonly LogRecord[] => this.openDecision({
-      ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft)
+      ...draft, askedBy: 'hephaestus', requestId: null, ...decisionWordingOf(draft)
     }, at).logged;
     switch (step.kind) {
       case 'launch-build':
@@ -941,11 +941,11 @@ export class Board {
         return this.openIncident(step.incident, at).logged;
       case 'default-incident':
         return this.incidentMoves.defaultIncident(step.incidentId, step.cause, decisionWordingOf, at);
-      case 'pause-overseer':
-        return this.setOverseerState('paused', at).logged;
+      case 'pause-hephaestus':
+        return this.setHephaestusState('paused', at).logged;
       case 'await-machine-slot':
         return [];
-      // The Overseer acts on it in the same hold: the stored proposals and the worktree's tree are outside the board.
+      // Hephaestus acts on it in the same hold: the stored proposals and the worktree's tree are outside the board.
       case 'act-on-waiver-answer':
         return [];
     }
@@ -963,8 +963,8 @@ export class Board {
     return this.trackerChanges.setConcurrencyLimit(limit, at);
   }
 
-  setOverseerState(state: OverseerState, at: string): OverseerStateSet {
-    return this.trackerChanges.setOverseerState(state, at);
+  setHephaestusState(state: HephaestusState, at: string): HephaestusStateSet {
+    return this.trackerChanges.setHephaestusState(state, at);
   }
 
   setBranchNamespace(branchNamespace: string, at: string): Logged {
@@ -1246,7 +1246,7 @@ export class Board {
     return this.pipelineSetups.startOverSetup(setupId, at);
   }
 
-  /** Refuses `no-gate-to-check` and `pipeline-check-running`; the Overseer runs the check, one per entity the draft touched. */
+  /** Refuses `no-gate-to-check` and `pipeline-check-running`; Hephaestus runs the check, one per entity the draft touched. */
   requestPipelineCheck(setupId: string, at: string): PipelineSetupChanged {
     return this.pipelineSetups.requestCheck(setupId, at);
   }
@@ -1318,7 +1318,7 @@ export class Board {
     return this.withTheAppliedSetupAgentStopped(this.pipelineSetups.finishApply(setupId, finishing, at), finishing, at);
   }
 
-  /** At the Overseer's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
+  /** At Hephaestus's start: an open record whose draft is already the stored pipeline finishes its Apply; `null` when there is none. */
   finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
     const finished = this.pipelineSetups.finishHalfAppliedSetup(reading, at);
     return finished === null ? null : this.withTheAppliedSetupAgentStopped(finished, reading, at);
@@ -1326,7 +1326,7 @@ export class Board {
 
   /**
    * An applied record leaves its pipeline agents nothing to serve: each live one, the forge's and every entity's, is stopped, as a start
-   * over stops them, and the Overseer removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
+   * over stops them, and Hephaestus removes the snapshot once no pipeline agent is left. Stage 1 that only waits for the commit stops
    * nothing. The first Apply over entities starts the product owner that gives the committed tickets without an entity one, in the same hold.
    */
   private withTheAppliedSetupAgentStopped(changed: PipelineApplyChanged, reading: ApplyMainReading, at: string): PipelineApplyChanged {
@@ -1583,8 +1583,8 @@ export class Board {
     return this.dispatchQueries.launchSlots();
   }
 
-  overseerState(): OverseerState {
-    return this.dispatchQueries.overseerState();
+  hephaestusState(): HephaestusState {
+    return this.dispatchQueries.hephaestusState();
   }
 
   /** `null` on a board whose branches have bare names. */

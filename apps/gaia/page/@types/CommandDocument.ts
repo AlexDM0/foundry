@@ -50,7 +50,7 @@ export type FleetCommandKind = FleetCommandBody['kind'];
 
 export type CommandDocument = CommandBody & { commandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaCommand };
 
-/** `restart-pending`: a `forge-update` was done, and the forge's Overseer runs the old code until it restarts. */
+/** `restart-pending`: a `forge-update` was done, and the forge's Hephaestus runs the old code until it restarts. */
 export type CommandOutcome = 'done' | 'nothing-to-do' | 'restart-pending' | 'refused' | 'unreachable' | 'not-supported';
 
 /** How one forge took `fleet-outage-resume`: it resumed its jobs a network outage stopped, held none, refused, or was not reached. */

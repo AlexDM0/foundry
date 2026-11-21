@@ -1,5 +1,5 @@
 /**
- * The overseer-fetch mock must answer exactly what was recorded for a situation, and fail the spec on everything it cannot
+ * The hephaestus-fetch mock must answer exactly what was recorded for a situation, and fail the spec on everything it cannot
  * answer from a recording: a call with no answer, an address the real boundary throws on, a bound of zero, an answer set with two answers
  * or a misfitting answer for one call shape, and an OS with no recording. A recorded stream is replayed chunk by chunk, and a stream left
  * open is counted until it is closed or read to its end, as the real connection stays open. Every forge situation is a forge at a system
@@ -9,33 +9,33 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { OverseerRequest, OverseerStreamRequest } from '../lib/forge-client/OverseerFetch.ts';
+import type { HephaestusRequest, HephaestusStreamRequest } from '../lib/forge-client/HephaestusFetch.ts';
 
 import { CONTRACT_VERSIONS } from '../shared/constants/ContractVersions.ts';
 
 import {
   BOARD_SITUATIONS,
   PRESENCE_SITUATIONS,
-  everyRecordedOverseerAnswerOf,
+  everyRecordedHephaestusAnswerOf,
   everyRecordedVersionsAnswerOf,
-  OVERSEER_SITUATIONS,
-  recordedOverseerAnswersOf,
+  HEPHAESTUS_SITUATIONS,
+  recordedHephaestusAnswersOf,
   recordedVersionsAnswersOf,
-  recordedOverseerFetch,
+  recordedHephaestusFetch,
   requestCallShapeOf,
   situationCallShapeOf,
   streamCallShapeOf,
   VERSIONS_SITUATIONS,
-  type RecordedOverseerAnswer,
+  type RecordedHephaestusAnswer,
 } from './RecordedAnswers.ts';
 
-const OVERSEER_URL = 'http://127.0.0.1:4951/';
+const HEPHAESTUS_URL = 'http://127.0.0.1:4951/';
 const SHORT_BOUND_MILLISECONDS = 200;
 const EXAMPLE_TOKEN = 'example-token';
 
-function identityRequest(): OverseerRequest {
+function identityRequest(): HephaestusRequest {
   return {
-    overseerUrl:         OVERSEER_URL,
+    hephaestusUrl:       HEPHAESTUS_URL,
     method:              'GET',
     path:                '/api/v1/identity',
     bearerToken:         null,
@@ -46,15 +46,15 @@ function identityRequest(): OverseerRequest {
   };
 }
 
-function monitorStreamRequest(): OverseerStreamRequest {
+function monitorStreamRequest(): HephaestusStreamRequest {
   return {
-    overseerUrl: OVERSEER_URL, path: '/api/v3/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
+    hephaestusUrl: HEPHAESTUS_URL, path: '/api/v4/monitor/events', bearerToken: EXAMPLE_TOKEN, lastEventId: null, timeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
   };
 }
 
-const MONITOR_STREAM_CALL_SHAPE = 'STREAM /api/v3/monitor/events with bearer';
+const MONITOR_STREAM_CALL_SHAPE = 'STREAM /api/v4/monitor/events with bearer';
 
-function streamAnswers(chunks: readonly string[], ending: 'closed' | 'broken' | 'stays-open'): RecordedOverseerAnswer[] {
+function streamAnswers(chunks: readonly string[], ending: 'closed' | 'broken' | 'stays-open'): RecordedHephaestusAnswer[] {
   return [{ callShape: MONITOR_STREAM_CALL_SHAPE, answer: { verdict: 'streaming', chunks, ending } }];
 }
 
@@ -67,21 +67,21 @@ describe('the call shapes', () => {
   });
 });
 
-describe('the recorded overseer answers', () => {
+describe('the recorded hephaestus answers', () => {
   test('lead every call shape with a known situation, once over every recording', () => {
-    const callShapes = everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape);
-    const situations = [...OVERSEER_SITUATIONS, ...BOARD_SITUATIONS, ...PRESENCE_SITUATIONS];
+    const callShapes = everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape);
+    const situations = [...HEPHAESTUS_SITUATIONS, ...BOARD_SITUATIONS, ...PRESENCE_SITUATIONS];
     for (const callShape of callShapes) expect([callShape, situations.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))]).toEqual([callShape, true]);
     expect(new Set(callShapes).size).toBe(callShapes.length);
   });
 
   test('call every endpoint at its versioned path, and only /api/versions unversioned', () => {
-    const paths = new Set(everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape.split(' ')[2]));
+    const paths = new Set(everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape.split(' ')[2]));
     expect([...paths].filter((path) => path !== '/api/versions' && !/^\/api\/v[1-9]\d*\//.test(path ?? ''))).toEqual([]);
   });
 
   test('answer the versions in every situation whose identity is recorded, since a watch asks them first', () => {
-    const callShapes = new Set(everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape));
+    const callShapes = new Set(everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape));
     for (const identityShape of [...callShapes].filter((callShape) => callShape.endsWith(': GET /api/v1/identity'))) {
       const versionsShape = identityShape.replace(': GET /api/v1/identity', ': GET /api/versions');
       expect([versionsShape, callShapes.has(versionsShape)]).toEqual([versionsShape, true]);
@@ -89,16 +89,16 @@ describe('the recorded overseer answers', () => {
   });
 
   test('hold an answer of each situation', () => {
-    for (const situation of OVERSEER_SITUATIONS) expect(recordedOverseerAnswersOf(situation).length).toBeGreaterThan(0);
+    for (const situation of HEPHAESTUS_SITUATIONS) expect(recordedHephaestusAnswersOf(situation).length).toBeGreaterThan(0);
   });
 
   test('fail the spec for an OS with no recording, naming the command that takes it', () => {
-    expect(() => recordedOverseerAnswersOf('serving', 'example-os')).toThrow('overseer-fetch-supported-forge has no recording for example-os');
-    expect(() => recordedOverseerAnswersOf('serving', 'example-os')).toThrow('`bun run record overseer-fetch-supported-forge`');
+    expect(() => recordedHephaestusAnswersOf('serving', 'example-os')).toThrow('hephaestus-fetch-supported-forge has no recording for example-os');
+    expect(() => recordedHephaestusAnswersOf('serving', 'example-os')).toThrow('`bun run record hephaestus-fetch-supported-forge`');
   });
 });
 
-function documentsAnsweredIn(answers: readonly RecordedOverseerAnswer[]): readonly Record<string, unknown>[] {
+function documentsAnsweredIn(answers: readonly RecordedHephaestusAnswer[]): readonly Record<string, unknown>[] {
   return answers.flatMap(({ answer }) => {
     const bodyTexts = answer.verdict === 'answered' ? [answer.bodyText] : [];
     const streamLines = answer.verdict === 'streaming' ? answer.chunks.join('').split('\n') : [];
@@ -117,7 +117,7 @@ function documentsAnsweredIn(answers: readonly RecordedOverseerAnswer[]): readon
 describe('the recorded forge contracts', () => {
   const programsThatAreNoForge = ['port-held-by-another-program', 'snapshot-unreadable', 'stream-cut-inside-event'] as const;
   const everyDocument = (): readonly Record<string, unknown>[] => documentsAnsweredIn(
-    [...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()]
+    [...everyRecordedHephaestusAnswerOf(), ...everyRecordedVersionsAnswerOf()]
       .filter(({ callShape }) => !programsThatAreNoForge.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')))),
   );
 
@@ -146,10 +146,10 @@ describe('the recorded versions of forges', () => {
   test('hold, for a forge ahead that Gaia talks to, each endpoint at its versioned path, and only the versions for a forge it cannot talk to', () => {
     expect(recordedVersionsAnswersOf('versions-ahead').map(({ callShape }) => callShape).sort()).toEqual([
       'GET /api/v1/identity',
-      'GET /api/v3/monitor with bearer',
+      'GET /api/v4/monitor with bearer',
       'GET /api/versions',
-      'POST /api/v2/commands with bearer',
-      'STREAM /api/v3/monitor/events with bearer',
+      'POST /api/v3/commands with bearer',
+      'STREAM /api/v4/monitor/events with bearer',
     ]);
     for (const situation of ['versions-newer', 'versions-older', 'versions-absent'] as const) {
       expect([situation, recordedVersionsAnswersOf(situation).map(({ callShape }) => callShape)]).toEqual([situation, ['GET /api/versions']]);
@@ -161,41 +161,41 @@ describe('the recorded versions of forges', () => {
   });
 });
 
-describe('the recorded overseer fetch', () => {
+describe('the recorded hephaestus fetch', () => {
   test('answers the identity of a forge that serves with the answer recorded for it', async () => {
-    const overseerFetch = recordedOverseerFetch(recordedOverseerAnswersOf('serving'));
-    const answer        = await overseerFetch.request(identityRequest());
+    const hephaestusFetch = recordedHephaestusFetch(recordedHephaestusAnswersOf('serving'));
+    const answer        = await hephaestusFetch.request(identityRequest());
     expect(answer).toMatchObject({ verdict: 'answered', status: 200 });
     expect(answer.verdict === 'answered' ? JSON.parse(answer.bodyText) as unknown : null).toMatchObject({ application: 'forge' });
   });
 
   test('answers unreachable for a forge that has stopped', async () => {
-    const overseerFetch = recordedOverseerFetch(recordedOverseerAnswersOf('stopped'));
-    expect(await overseerFetch.request(identityRequest())).toEqual({ verdict: 'unreachable' });
-    expect(await overseerFetch.openStream(monitorStreamRequest())).toEqual({ verdict: 'unreachable' });
+    const hephaestusFetch = recordedHephaestusFetch(recordedHephaestusAnswersOf('stopped'));
+    expect(await hephaestusFetch.request(identityRequest())).toEqual({ verdict: 'unreachable' });
+    expect(await hephaestusFetch.openStream(monitorStreamRequest())).toEqual({ verdict: 'unreachable' });
   });
 
   test('fails a call with no answer in its situation and names its call shape', async () => {
-    const overseerFetch = recordedOverseerFetch(recordedOverseerAnswersOf('starting'));
-    await expect(overseerFetch.openStream(monitorStreamRequest())).rejects.toThrow(`No recorded answer for ${MONITOR_STREAM_CALL_SHAPE}`);
+    const hephaestusFetch = recordedHephaestusFetch(recordedHephaestusAnswersOf('starting'));
+    await expect(hephaestusFetch.openStream(monitorStreamRequest())).rejects.toThrow(`No recorded answer for ${MONITOR_STREAM_CALL_SHAPE}`);
   });
 
   test('fails a call to an address the real boundary cannot parse, and one with a bound of zero', async () => {
-    const overseerFetch = recordedOverseerFetch(recordedOverseerAnswersOf('serving'));
-    await expect(overseerFetch.request({ ...identityRequest(), overseerUrl: 'no address' })).rejects.toThrow('which is no address');
-    await expect(overseerFetch.request({ ...identityRequest(), timeoutMilliseconds: 0 })).rejects.toThrow('the real boundary times out at once');
+    const hephaestusFetch = recordedHephaestusFetch(recordedHephaestusAnswersOf('serving'));
+    await expect(hephaestusFetch.request({ ...identityRequest(), hephaestusUrl: 'no address' })).rejects.toThrow('which is no address');
+    await expect(hephaestusFetch.request({ ...identityRequest(), timeoutMilliseconds: 0 })).rejects.toThrow('the real boundary times out at once');
   });
 
   test('lists the calls it answered, in order, with the token and the body each carried', async () => {
-    const overseerFetch  = recordedOverseerFetch(recordedOverseerAnswersOf('token-rejected'));
-    const commandRequest: OverseerRequest = {
-      ...identityRequest(), method: 'POST', path: '/api/v2/commands', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}',
+    const hephaestusFetch  = recordedHephaestusFetch(recordedHephaestusAnswersOf('token-rejected'));
+    const commandRequest: HephaestusRequest = {
+      ...identityRequest(), method: 'POST', path: '/api/v3/commands', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"hephaestus-pause"}',
     };
-    await overseerFetch.request(commandRequest);
-    await overseerFetch.openStream(monitorStreamRequest());
-    expect(overseerFetch.callsAnswered()).toEqual([
+    await hephaestusFetch.request(commandRequest);
+    await hephaestusFetch.openStream(monitorStreamRequest());
+    expect(hephaestusFetch.callsAnswered()).toEqual([
       {
-        callShape: 'POST /api/v2/commands with bearer', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"overseer-pause"}', byteBody: null, answerAs: 'text', lastEventId: null,
+        callShape: 'POST /api/v3/commands with bearer', bearerToken: EXAMPLE_TOKEN, jsonBody: '{"kind":"hephaestus-pause"}', byteBody: null, answerAs: 'text', lastEventId: null,
       },
       {
         callShape: MONITOR_STREAM_CALL_SHAPE, bearerToken: EXAMPLE_TOKEN, jsonBody: null, byteBody: null, answerAs: null, lastEventId: null,
@@ -204,21 +204,21 @@ describe('the recorded overseer fetch', () => {
   });
 
   test('refuses an answer set with two answers for one call shape', () => {
-    const unreachableIdentity: RecordedOverseerAnswer = { callShape: 'GET /api/identity', answer: { verdict: 'unreachable' } };
+    const unreachableIdentity: RecordedHephaestusAnswer = { callShape: 'GET /api/identity', answer: { verdict: 'unreachable' } };
     const answers = [unreachableIdentity, unreachableIdentity];
-    expect(() => recordedOverseerFetch(answers)).toThrow('Two recorded answers for GET /api/identity');
+    expect(() => recordedHephaestusFetch(answers)).toThrow('Two recorded answers for GET /api/identity');
   });
 
   test('refuses a stream answer recorded for a request', () => {
-    expect(() => recordedOverseerFetch([{ callShape: 'GET /api/identity', answer: { verdict: 'streaming', chunks: [], ending: 'closed' } }]))
-      .toThrow('The answer recorded for GET /api/identity is no overseer-fetch answer for that call');
+    expect(() => recordedHephaestusFetch([{ callShape: 'GET /api/identity', answer: { verdict: 'streaming', chunks: [], ending: 'closed' } }]))
+      .toThrow('The answer recorded for GET /api/identity is no hephaestus-fetch answer for that call');
   });
 });
 
 describe('a recorded stream', () => {
   test('hands on its chunks in order, then its ending, and the ending again after it', async () => {
-    const overseerFetch = recordedOverseerFetch(streamAnswers([': ping\n\n', 'data: one\n\n'], 'broken'));
-    const answer        = await overseerFetch.openStream(monitorStreamRequest());
+    const hephaestusFetch = recordedHephaestusFetch(streamAnswers([': ping\n\n', 'data: one\n\n'], 'broken'));
+    const answer        = await hephaestusFetch.openStream(monitorStreamRequest());
     if (answer.verdict !== 'streaming') throw new Error(`The stream answered ${JSON.stringify(answer)}`);
     expect(await answer.stream.nextChunk()).toEqual({ kind: 'text', text: ': ping\n\n' });
     expect(await answer.stream.nextChunk()).toEqual({ kind: 'text', text: 'data: one\n\n' });
@@ -227,27 +227,27 @@ describe('a recorded stream', () => {
   });
 
   test('that stays open ends closed only when it is closed, and counts as left open until then', async () => {
-    const overseerFetch = recordedOverseerFetch(streamAnswers([': ping\n\n'], 'stays-open'));
-    const answer        = await overseerFetch.openStream(monitorStreamRequest());
+    const hephaestusFetch = recordedHephaestusFetch(streamAnswers([': ping\n\n'], 'stays-open'));
+    const answer        = await hephaestusFetch.openStream(monitorStreamRequest());
     if (answer.verdict !== 'streaming') throw new Error(`The stream answered ${JSON.stringify(answer)}`);
     expect(await answer.stream.nextChunk()).toEqual({ kind: 'text', text: ': ping\n\n' });
     const pendingChunk = answer.stream.nextChunk();
-    expect(overseerFetch.streamsLeftOpen()).toBe(1);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(1);
     answer.stream.close();
     expect(await pendingChunk).toEqual({ kind: 'ended', ending: 'closed' });
-    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(0);
   });
 
   test('counts a stream read to its end as no longer open, and one closed before its end ends closed', async () => {
-    const overseerFetch = recordedOverseerFetch(streamAnswers(['data: one\n\n'], 'closed'));
-    const readToItsEnd  = await overseerFetch.openStream(monitorStreamRequest());
-    const closedEarly   = await overseerFetch.openStream(monitorStreamRequest());
+    const hephaestusFetch = recordedHephaestusFetch(streamAnswers(['data: one\n\n'], 'closed'));
+    const readToItsEnd  = await hephaestusFetch.openStream(monitorStreamRequest());
+    const closedEarly   = await hephaestusFetch.openStream(monitorStreamRequest());
     if (readToItsEnd.verdict !== 'streaming' || closedEarly.verdict !== 'streaming') throw new Error('A recorded stream did not open');
     await readToItsEnd.stream.nextChunk();
-    expect(overseerFetch.streamsLeftOpen()).toBe(2);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(2);
     await readToItsEnd.stream.nextChunk();
     closedEarly.stream.close();
     expect(await closedEarly.stream.nextChunk()).toEqual({ kind: 'ended', ending: 'closed' });
-    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(0);
   });
 });

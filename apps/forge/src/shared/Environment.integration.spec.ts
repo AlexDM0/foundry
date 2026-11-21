@@ -12,7 +12,7 @@ import { jsonPrintedByAChildProcess }              from '../testing/JsonPrintedB
 import {
   agentProgressRootOverride,
   EVERY_TOOL_REQUIRED_VARIABLE,
-  OVERSEER_POLL_INTERVAL_VARIABLE,
+  HEPHAESTUS_POLL_INTERVAL_VARIABLE,
   VERSIONS_ANSWER_VARIABLE,
 } from './Environment.ts';
 import { PRODUCT_NAMES }          from './constants/ProductNames.ts';
@@ -68,25 +68,25 @@ test('an agent variable is read verbatim by the name it is given, and is unset w
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-function overseerPollIntervalSeenByAChildProcess(childEnvironment: Record<string, string>): number | string | null {
+function hephaestusPollIntervalSeenByAChildProcess(childEnvironment: Record<string, string>): number | string | null {
   const source = [
     `const loaded = await import(${JSON.stringify(ENVIRONMENT_MODULE_PATH)});`,
-    'try { console.log(JSON.stringify(loaded.overseerPollIntervalOverride() ?? null)); }',
+    'try { console.log(JSON.stringify(loaded.hephaestusPollIntervalOverride() ?? null)); }',
     'catch (error) { console.log(JSON.stringify(error.name)); }',
   ].join('\n');
   return jsonPrintedByAChildProcess(childEnvironment, source) as number | string | null;
 }
 
-test('the Overseer poll interval is a positive whole number of milliseconds, unset or blank is none, and any other value is refused', () => {
-  expect(OVERSEER_POLL_INTERVAL_VARIABLE).toBe(`${PRODUCT_NAMES.ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`);
-  expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: '25' })).toBe(25);
-  expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: ' 1 ' })).toBe(1);
-  expect(overseerPollIntervalSeenByAChildProcess({})).toBeNull();
+test('the Hephaestus poll interval is a positive whole number of milliseconds, unset or blank is none, and any other value is refused', () => {
+  expect(HEPHAESTUS_POLL_INTERVAL_VARIABLE).toBe(`${PRODUCT_NAMES.ENVIRONMENT_PREFIX}HEPHAESTUS_POLL_INTERVAL_MILLISECONDS`);
+  expect(hephaestusPollIntervalSeenByAChildProcess({ [HEPHAESTUS_POLL_INTERVAL_VARIABLE]: '25' })).toBe(25);
+  expect(hephaestusPollIntervalSeenByAChildProcess({ [HEPHAESTUS_POLL_INTERVAL_VARIABLE]: ' 1 ' })).toBe(1);
+  expect(hephaestusPollIntervalSeenByAChildProcess({})).toBeNull();
   for (const clearedValue of ['', '  ']) {
-    expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
+    expect(hephaestusPollIntervalSeenByAChildProcess({ [HEPHAESTUS_POLL_INTERVAL_VARIABLE]: clearedValue }), JSON.stringify(clearedValue)).toBeNull();
   }
   for (const refusedValue of ['0', '-5', '2.5', '1e3', '25ms', '025', 'fast']) {
-    expect(overseerPollIntervalSeenByAChildProcess({ [OVERSEER_POLL_INTERVAL_VARIABLE]: refusedValue }), refusedValue).toBe('OperationRefusal');
+    expect(hephaestusPollIntervalSeenByAChildProcess({ [HEPHAESTUS_POLL_INTERVAL_VARIABLE]: refusedValue }), refusedValue).toBe('OperationRefusal');
   }
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

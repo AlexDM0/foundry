@@ -9,7 +9,7 @@
  * refused; a ready step is a suggestion only; and only the first proposal reads the snapshot's tree from git's index, each finding a note.
  * The forge session's second layout finding starts a first setup's `entities` step in a tracker at its repository's root only: a tracker
  * in a folder holds no entities, so its record keeps today's steps. The agent asks and suggests a Continue at the `entities` step.
- * Every refusal leaves the record and the log untouched: a relayed command shares the Overseer's hold, which a refusal does not undo.
+ * Every refusal leaves the record and the log untouched: a relayed command shares Hephaestus's hold, which a refusal does not undo.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -63,7 +63,7 @@ function apply(fixture: BoardFixture, command: ControlCommand): unknown {
   return ControlService.apply(command, changeOf(fixture), ECHOED_CONTROL_CONTEXT).result;
 }
 
-/** A relayed refusal is caught inside the Overseer's hold, which goes on to write: the Board must be as it was. */
+/** A relayed refusal is caught inside Hephaestus's hold, which goes on to write: the Board must be as it was. */
 function expectUntouched(fixture: BoardFixture): void {
   expect(fixture.records).toEqual([]);
   expect(fixture.board.pipelineSetupWrite()).toEqual({ write: 'unchanged' });

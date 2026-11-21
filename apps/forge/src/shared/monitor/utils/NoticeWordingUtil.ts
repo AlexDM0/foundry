@@ -1,17 +1,17 @@
 /**
- * The sentences of the Overseer's open notices and of the header's warnings (owner answer Q34): a failed Baton pass with its step and error,
+ * The sentences of Hephaestus's open notices and of the header's warnings (owner answer Q34): a failed Baton pass with its step and error,
  * and an Assistant that cannot come up. The board document and the monitor snapshot carry them, so both read the same words, which
  * name a neutral action and never a command line: User runs no command.
  */
 import type { MonitorWarning } from '../@types/MonitorSnapshot.ts';
 
-/** A notice the Overseer derives each pass: its `kind` and the facts that kind carries. */
+/** A notice Hephaestus derives each pass: its `kind` and the facts that kind carries. */
 export interface NoticeFacts {
   readonly kind:           string;
   readonly [fact: string]: unknown;
 }
 
-/** The last Baton pass that failed while this Overseer kept driving. */
+/** The last Baton pass that failed while this Hephaestus kept driving. */
 export interface BatonPassWarningFacts {
   readonly successorCodeVersion: string;
   readonly step:                 string;
@@ -62,7 +62,7 @@ function noticeTextOf(notice: NoticeFacts): string {
     case 'install-version-changed':
       return 'the install version changed, so launches are held until the board is updated';
     case 'new-code':
-      return 'new code is on disk: restart the Overseer to run it';
+      return 'new code is on disk: restart Hephaestus to run it';
     case 'attribution-found':
       return `ticket #${factOf(notice, 'ticketId')} carries an AI attribution`;
     case 'rounds-not-converging':
@@ -81,7 +81,7 @@ function noticeTextOf(notice: NoticeFacts): string {
       return `job ${factOf(notice, 'jobId')} is not launched: ${factOf(notice, 'reason')}${repairClauseOf(notice)}`;
     case 'passes-abandoned':
       return `${factOf(notice, 'inARow')} drive passes in a row were abandoned, the last as ${abandonedPassReasonTextOf(factOf(notice, 'reason'))}; `
-        + 'the Overseer keeps running and tries again at each wake-up';
+        + 'Hephaestus keeps running and tries again at each wake-up';
     default:
       return notice.kind;
   }
@@ -104,7 +104,7 @@ export interface WordedWarning {
   readonly text:  string;
 }
 
-/** Derived from the notices and the Overseer's facts, never stored. */
+/** Derived from the notices and Hephaestus's facts, never stored. */
 function wordedWarningsOf(notices: readonly NoticeFacts[], batonPassWarning: BatonPassWarningFacts | null): WordedWarning[] {
   const defaulted = notices.filter((notice) => notice.kind === INCIDENT_DEFAULTED);
   const batonPassFailed: WordedWarning[] = batonPassWarning === null ? [] : [{
@@ -127,7 +127,7 @@ function noticeFactsIn(notices: readonly unknown[]): NoticeFacts[] {
   return notices.filter((notice): notice is NoticeFacts => typeof notice === 'object' && notice !== null && typeof (notice as { kind?: unknown }).kind === 'string');
 }
 
-/** The Overseer keeps the warning as it was written; one that does not read as a warning is none. */
+/** Hephaestus keeps the warning as it was written; one that does not read as a warning is none. */
 function batonPassWarningIn(warning: unknown): BatonPassWarningFacts | null {
   if (typeof warning !== 'object' || warning === null) return null;
   const { successorCodeVersion, step, error } = warning as Partial<Record<keyof BatonPassWarningFacts, unknown>>;

@@ -11,8 +11,8 @@ import type {
   BoardSessionLastLineDocument,
   BoardSubagentDocument,
 } from 'forge-contracts/BoardJobDocuments';
-import type { BoardMergePrediction } from 'forge-contracts/BoardMergeQueueDocument';
-import type { BoardOverseerSetting } from 'forge-contracts/BoardPageDocuments';
+import type { BoardMergePrediction }   from 'forge-contracts/BoardMergeQueueDocument';
+import type { BoardHephaestusSetting } from 'forge-contracts/BoardPageDocuments';
 import type {
   ApplyRequestReason,
   ApplyRequestState,
@@ -74,7 +74,7 @@ import type {
   TicketStatus,
   TicketType,
 } from 'forge-contracts/BoardVocabulary';
-import type { OverseerRuntimeState }     from 'forge-contracts/ForgeBoardDocument';
+import type { HephaestusRuntimeState }   from 'forge-contracts/ForgeBoardDocument';
 import type { ForgeJobStopMode }         from 'forge-contracts/ForgeControlCommand';
 import type { ForgeInterruptedWorkWait } from 'forge-contracts/ForgePresenceDocument';
 
@@ -196,14 +196,14 @@ const AGENT_MODEL = {
   fable:  'fable',
 } as const satisfies Record<AgentModel, Gaia.BoardAgentModel>;
 
-const OVERSEER_STATE = {
+const HEPHAESTUS_STATE = {
   'serving':                'serving',
   'held-by-install-change': 'held-by-install-change',
   'passing-baton':          'passing-baton',
   'down':                   'down',
-} as const satisfies Record<OverseerRuntimeState, Gaia.BoardOverseerState>;
+} as const satisfies Record<HephaestusRuntimeState, Gaia.BoardHephaestusState>;
 
-const OVERSEER_SETTING = { running: 'running', paused: 'paused' } as const satisfies Record<BoardOverseerSetting, Gaia.BoardOverseerSetting>;
+const HEPHAESTUS_SETTING = { running: 'running', paused: 'paused' } as const satisfies Record<BoardHephaestusSetting, Gaia.BoardHephaestusSetting>;
 
 const ATTENTION_KIND = {
   'escalated-question': 'escalated-question',
@@ -525,7 +525,7 @@ const PIPELINE_HISTORY_KIND = {
   'pipeline-setup-opened':     'pipeline-setup-opened',
   'pipeline-draft-discarded':  'pipeline-draft-discarded',
   'pipeline-setup-discarded':  'pipeline-setup-discarded',
-  'overseer-set':              'overseer-set',
+  'hephaestus-set':            'hephaestus-set',
 } as const satisfies Record<BoardPipelineHistoryEntryDocument['kind'], Gaia.BoardPipelineHistoryKind>;
 
 /** Every value list of the board Gaia reads, each by the name of its union. */
@@ -546,8 +546,8 @@ const BOARD_VOCABULARIES = {
   entityKind:               ENTITY_KIND,
   agentEffort:              AGENT_EFFORT,
   agentModel:               AGENT_MODEL,
-  overseerState:            OVERSEER_STATE,
-  overseerSetting:          OVERSEER_SETTING,
+  hephaestusState:          HEPHAESTUS_STATE,
+  hephaestusSetting:        HEPHAESTUS_SETTING,
   attentionKind:            ATTENTION_KIND,
   attentionStampWord:       ATTENTION_STAMP_WORD,
   attentionActionLabel:     ATTENTION_ACTION_LABEL,

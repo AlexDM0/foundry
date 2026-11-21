@@ -1,7 +1,7 @@
 /**
  * The pipeline facts of the board state (PLAN 9.1): the stored pipeline, the open setup record, the flow the Pipeline view draws with its
  * occupants, the gate profiles, the pipeline history and the choices. It runs no git and reads no file: the main line's texts arrive as a
- * parameter, read by the Overseer, since the render service cannot reach the overseer service.
+ * parameter, read by Hephaestus, since the render service cannot reach the hephaestus service.
  */
 import type { PipelineReading }      from '../../adapters/pipeline/PipelineFile.ts';
 import type { GatePhase }            from '../../lib/tracker-model/@types/GatePhase.ts';
@@ -80,10 +80,10 @@ const PIPELINE_HISTORY_KINDS: ReadonlySet<LogRecord['kind']> = new Set<LogRecord
   'pipeline-apply-refused',
   'pipeline-apply-cancelled',
   'pipeline-applied',
-  'overseer-set',
+  'hephaestus-set',
 ]);
 
-/** What the Overseer read on the main line for one state read; every git answer the facts carry comes through here. */
+/** What Hephaestus read on the main line for one state read; every git answer the facts carry comes through here. */
 export interface MainLineTexts {
   /** A file's text on main, a data-folder file's from disk; null when it is not there or no main line is known. */
   textOf:               (path: string) => string | null;

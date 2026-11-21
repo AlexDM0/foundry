@@ -1,5 +1,5 @@
 /**
- * Talos and the Overseer find each other's files only by these paths, so each is held to the name the files table gives it: Talos's own
+ * Talos and Hephaestus find each other's files only by these paths, so each is held to the name the files table gives it: Talos's own
  * files in the board's `talos` folder by start number, a child's beside its `/`-separated folder by instance, the secret owner-only.
  */
 import { join } from 'node:path';

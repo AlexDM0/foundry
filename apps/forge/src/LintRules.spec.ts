@@ -55,7 +55,7 @@ const MODE_CHANGE_IMPORT = 'import { chmodSync } from \'node:fs\';\n\nexport con
 
 const PLANTED_VIOLATIONS: readonly PlantedViolation[] = [
   { path: 'cli/Planted.ts', text: 'export const home = process.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
-  { path: 'src/services/overseer/Planted.ts', text: 'export const home = Bun.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
+  { path: 'src/services/hephaestus/Planted.ts', text: 'export const home = Bun.env[\'HOME\'];\n', ruleId: 'no-restricted-properties' },
   { path: 'src/lib/git/Planted.ts', text: 'export const environment = { ...Bun.env };\n', ruleId: 'no-restricted-properties' },
   { path: 'cli/Planted.ts', text: 'export const value = \'text\';\r\n', ruleId: LINEBREAK_RULE_ID },
   { path: 'cli/Planted.ts', text: 'process.exit(1);\n', ruleId: 'no-restricted-properties' },
@@ -96,7 +96,7 @@ const PLANTED_EXCEPTIONS: readonly (readonly [string, string, string])[] = [
   ['the Talos binary reading the platform', 'talos.ts', PLATFORM_READ],
   ['the file-replace selector reading the platform', 'src/lib/atomic-file/FileReplaceFor.ts', PLATFORM_READ],
   ['the machine setup reading the platform', 'setup.ts', PLATFORM_READ],
-  ['the held-slot selector reading the platform', 'src/services/overseer/HeldSlotCreateFor.ts', PLATFORM_READ],
+  ['the held-slot selector reading the platform', 'src/services/hephaestus/HeldSlotCreateFor.ts', PLATFORM_READ],
   ['a spec reading the platform', 'cli/Planted.spec.ts', PLATFORM_READ],
   ['a testing folder reading the platform', 'src/testing/Planted.ts', PLATFORM_READ],
   ['the POSIX owner-only adapter changing a mode', 'src/lib/owner-only-files/PosixOwnerOnlyFiles.ts', MODE_CHANGE_IMPORT],

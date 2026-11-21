@@ -28,7 +28,7 @@ export type QueuedDecision = OpenDecision;
 export const QUESTION_PANEL_STEPS_SHOWN = 6;
 
 /** Who asks a decision code opened, which has no job. */
-const OVERSEER_ASKER_TEXT = 'Overseer';
+const HEPHAESTUS_ASKER_TEXT = 'Hephaestus';
 
 const WANTED_HEADING = 'Wanted';
 
@@ -64,7 +64,7 @@ type QuestionPanelTicket = QuestionPanelBoard['page']['tickets'][number];
 type DecisionDocument = QuestionPanelBoard['decisions'][number];
 
 export interface QuestionPanelHead {
-  /** `J4`, or `Overseer` for a decision code opened. */
+  /** `J4`, or `Hephaestus` for a decision code opened. */
   readonly askerText:     string;
   /** The asking agent's role, `builder`; `null` for a decision code opened. */
   readonly askerRoleText: string | null;
@@ -158,7 +158,7 @@ export interface QuestionPanelFormat {
 }
 
 function askerTextOf(decision: DecisionDocument): string {
-  return decision.jobId ?? OVERSEER_ASKER_TEXT;
+  return decision.jobId ?? HEPHAESTUS_ASKER_TEXT;
 }
 
 /** The pointed decision while it is open, else the first one opened since User last folded the panel, else the first; `null` with none. */
@@ -175,7 +175,7 @@ const CHECKS_NOT_SET_KIND = 'checks-not-set';
 
 /**
  * The decisions that never open the panel by themselves: the board's "no pipeline" question while the board has no readable pipeline,
- * since the Pipeline view then shows the setup, which answers it. User still opens it from the Questions tab. An Overseer that serves no
+ * since the Pipeline view then shows the setup, which answers it. User still opens it from the Questions tab. A Hephaestus that serves no
  * pipeline facts quiets nothing.
  */
 function decisionIdsTheSetupAnswersOf(queue: readonly QueuedDecision[], pipelineReadingVerdict: string | null): string[] {
@@ -339,7 +339,7 @@ function lastStepsOf(entries: readonly BoardTranscriptEntryDocument[], limit: nu
 
 /** The asking job's thread as the chat parts show it, every agent turn under its job id. */
 function conversationTurnsOf(items: readonly ChatThreadItem[], jobId: string, todayCalendarDate: string): ChatTurn[] {
-  const bootLineText = `Overseer started ${jobId}`;
+  const bootLineText = `Hephaestus started ${jobId}`;
   return items.map((item): ChatTurn => {
     const stamp = ChatTurnWordingUtil.stampOf(item.at, todayCalendarDate);
     switch (item.kind) {

@@ -16,24 +16,24 @@ import { OperationRefusalWordingUtil } from './OperationRefusalWordingUtil.ts';
 test('a refusal built from words is printed with those words, unchanged', () => {
   const refusal = new OperationRefusal('refused', 'No tracker here. Run `agent-progress init` in /example/repository.');
   const unreadableIdentity = (identitySources: readonly string[]): string => OperationRefusalWordingUtil.messageOf(
-    new OperationRefusal('unrepaired', { kind: 'overseer-identity-unreadable', processId: 4242, identitySources })
+    new OperationRefusal('unrepaired', { kind: 'hephaestus-identity-unreadable', processId: 4242, identitySources })
   );
   expect(unreadableIdentity(['/proc/4242/stat', '/proc/sys/kernel/random/boot_id'])).toContain('cannot be read from /proc/4242/stat and /proc/sys/kernel/random/boot_id,');
   expect(unreadableIdentity([])).toContain('cannot be read on this platform,');
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe('No tracker here. Run `agent-progress init` in /example/repository.');
 });
 
-test('a malformed Overseer poll interval names the variable, the value and what the user can do', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'malformed-overseer-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: '25ms' });
+test('a malformed Hephaestus poll interval names the variable, the value and what the user can do', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'malformed-hephaestus-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: '25ms' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
     'EXAMPLE_POLL_INTERVAL must be a positive whole number of milliseconds, not "25ms". Unset it or correct it.'
   );
 });
 
 test('a Baton that cannot be created whole names the file, the failure and what the user can do', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'baton-not-created-whole', batonFilePath: '/example/overseer/baton-1.json', reason: 'Error: EPERM' });
+  const refusal = new OperationRefusal('refused', { kind: 'baton-not-created-whole', batonFilePath: '/example/hephaestus/baton-1.json', reason: 'Error: EPERM' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    'The Baton /example/overseer/baton-1.json cannot be created whole (Error: EPERM), so the Overseer did not start. Its claim needs a hard link: '
+    'The Baton /example/hephaestus/baton-1.json cannot be created whole (Error: EPERM), so Hephaestus did not start. Its claim needs a hard link: '
     + 'move the data folder to a filesystem that allows one.'
   );
 });
@@ -126,10 +126,10 @@ test('a journal that stayed is worded naming it, what kept it and that the next 
   );
 });
 
-test('a board no Overseer serves after start started one is worded naming the Baton folder and the command that starts one', () => {
-  const refusal = new OperationRefusal('refused', { kind: 'overseer-down', overseerDirectory: '/example/repository/.agent-progress/overseer' });
+test('a board no Hephaestus serves after start started one is worded naming the Baton folder and the command that starts one', () => {
+  const refusal = new OperationRefusal('refused', { kind: 'hephaestus-down', hephaestusDirectory: '/example/repository/.agent-progress/hephaestus' });
   expect(OperationRefusalWordingUtil.messageOf(refusal)).toBe(
-    'No Overseer serves this board (/example/repository/.agent-progress/overseer holds no live Baton). '
+    'No Hephaestus serves this board (/example/repository/.agent-progress/hephaestus holds no live Baton). '
     + `Run \`${PRODUCT_NAMES.PROGRAM} start\` again to start one.`,
   );
 });

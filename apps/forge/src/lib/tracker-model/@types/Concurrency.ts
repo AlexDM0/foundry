@@ -1,4 +1,4 @@
-import type { OverseerState } from './TrackerProgress.ts';
+import type { HephaestusState } from './TrackerProgress.ts';
 
 export interface Concurrency {
   limit:          number;
@@ -9,7 +9,7 @@ export interface Concurrency {
 }
 
 export interface DispatchCapacity extends Concurrency {
-  readyTicketIds: string[];
-  overseerState:  OverseerState;
-  heldTicketIds:  string[];
+  readyTicketIds:  string[];
+  hephaestusState: HephaestusState;
+  heldTicketIds:   string[];
 }

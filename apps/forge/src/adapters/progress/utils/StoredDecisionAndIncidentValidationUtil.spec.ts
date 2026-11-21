@@ -50,7 +50,7 @@ test('a well-formed decision and incident have no problem, a code-opened decisio
     }],
   }, 0)).toBeNull();
   expect(decisionProblem({
-    ...WELL_FORMED_DECISION, kind: 'outage', jobId: null, askedBy: 'overseer', requestId: null,
+    ...WELL_FORMED_DECISION, kind: 'outage', jobId: null, askedBy: 'hephaestus', requestId: null,
   }, 0)).toBeNull();
   expect(incidentProblem(WELL_FORMED_INCIDENT, 0)).toBeNull();
   expect(incidentProblem({ ...WELL_FORMED_INCIDENT, deliveredInTurn: { jobId: 'J4', chatSequence: 1 } }, 0)).toBeNull();

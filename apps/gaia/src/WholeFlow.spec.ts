@@ -33,7 +33,7 @@ import { createForgeControl }                                                   
 import { startPageServer, type PageServer }                                                          from './features/page-server/PageServer.ts';
 import { eventStreamParserOf, type ServerSentEvent }                                                 from './lib/event-stream/EventStreamParser.ts';
 import { forgeClientOf }                                                                             from './lib/forge-client/ForgeClient.ts';
-import type { OverseerFetch }                                                                        from './lib/forge-client/OverseerFetch.ts';
+import type { HephaestusFetch }                                                                      from './lib/forge-client/HephaestusFetch.ts';
 import { SUPPORTED_FORGE_VERSION }                                                                   from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import type { ProcessRun }                                                                           from './lib/process-run/ProcessRun.ts';
 import { createFleetStore }                                                                          from './services/FleetStore.ts';
@@ -43,11 +43,11 @@ import { CONTRACT_VERSIONS }                                                    
 import { GAIA_SYSTEM_VERSION }                                                                       from './shared/constants/GaiaSystemVersions.ts';
 import { manualTimers, type ManualTimers }                                                           from './testing/ManualTimers.ts';
 import {
-  recordedOverseerAnswersOf,
-  recordedOverseerFetch,
-  type OverseerSituation,
-  type RecordedOverseerAnswer,
-  type RecordedOverseerFetch,
+  recordedHephaestusAnswersOf,
+  recordedHephaestusFetch,
+  type HephaestusSituation,
+  type RecordedHephaestusAnswer,
+  type RecordedHephaestusFetch,
 } from './testing/RecordedAnswers.ts';
 import { recordedProcessRun, recordedRunsOf, type RecordedProcessRun } from './testing/RecordedRuns.ts';
 import { createScratchDirectory, removeScratchPath }                   from './testing/ScratchRoot.ts';
@@ -73,21 +73,21 @@ const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
  * before F1 was recorded as; the other three answer nothing or are never asked.
  */
 const FORGES = {
-  exampleStorefront: { trackerId: 'example-storefront-7c41', project: 'Example Storefront', overseerOrigin: 'http://127.0.0.1:4951' },
-  exampleProject:    { trackerId: '712f8bdb-e7cf-48bc-86a5-2616d2cf935f', project: 'Example Project', overseerOrigin: 'http://127.0.0.1:54795' },
-  invoiceService:    { trackerId: 'invoice-service-2b9e', project: 'Invoice Service', overseerOrigin: 'http://127.0.0.1:4957' },
-  designSystem:      { trackerId: 'design-system-91c2', project: 'Design System', overseerOrigin: null },
-  legacyImporter:    { trackerId: 'legacy-importer-0e7d', project: 'Legacy Importer', overseerOrigin: null },
+  exampleStorefront: { trackerId: 'example-storefront-7c41', project: 'Example Storefront', hephaestusOrigin: 'http://127.0.0.1:4951' },
+  exampleProject:    { trackerId: '712f8bdb-e7cf-48bc-86a5-2616d2cf935f', project: 'Example Project', hephaestusOrigin: 'http://127.0.0.1:54795' },
+  invoiceService:    { trackerId: 'invoice-service-2b9e', project: 'Invoice Service', hephaestusOrigin: 'http://127.0.0.1:4957' },
+  designSystem:      { trackerId: 'design-system-91c2', project: 'Design System', hephaestusOrigin: null },
+  legacyImporter:    { trackerId: 'legacy-importer-0e7d', project: 'Legacy Importer', hephaestusOrigin: null },
 } as const;
 
 type FlowForge = keyof typeof FORGES;
 
-function answersOf(situation: OverseerSituation, callShape: string | null = null): readonly RecordedOverseerAnswer[] {
-  return recordedOverseerAnswersOf(situation).filter((answer) => callShape === null || answer.callShape === callShape);
+function answersOf(situation: HephaestusSituation, callShape: string | null = null): readonly RecordedHephaestusAnswer[] {
+  return recordedHephaestusAnswersOf(situation).filter((answer) => callShape === null || answer.callShape === callShape);
 }
 
 /** What a watch asks a forge before anything else: its versions, then its identity. */
-function identityAnswersOf(situation: OverseerSituation): readonly RecordedOverseerAnswer[] {
+function identityAnswersOf(situation: HephaestusSituation): readonly RecordedHephaestusAnswer[] {
   return [...answersOf(situation, 'GET /api/versions'), ...answersOf(situation, 'GET /api/v1/identity')];
 }
 
@@ -97,7 +97,7 @@ const STOREFRONT_STAGES = {
   live:     [
     ...identityAnswersOf('serving-every-contract'),
     ...answersOf('connection-broken'),
-    ...answersOf('serving-every-contract', 'POST /api/v2/commands with bearer'),
+    ...answersOf('serving-every-contract', 'POST /api/v3/commands with bearer'),
   ],
   limitLowered: [
     ...identityAnswersOf('serving-every-contract'),
@@ -106,34 +106,34 @@ const STOREFRONT_STAGES = {
 } as const;
 
 /** One recorded answer set per stage of a forge; a stage's streams stay counted after the next stage begins. */
-interface StagedOverseerFetch extends OverseerFetch {
-  readonly enter:           (answers: readonly RecordedOverseerAnswer[]) => void;
+interface StagedHephaestusFetch extends HephaestusFetch {
+  readonly enter:           (answers: readonly RecordedHephaestusAnswer[]) => void;
   readonly jsonBodiesSent:  () => readonly (string | null)[];
   readonly streamsLeftOpen: () => number;
 }
 
-function stagedOverseerFetch(firstAnswers: readonly RecordedOverseerAnswer[]): StagedOverseerFetch {
-  const stages: RecordedOverseerFetch[] = [recordedOverseerFetch(firstAnswers)];
-  const currentStage = (): RecordedOverseerFetch => stages[stages.length - 1] ?? recordedOverseerFetch([]);
+function stagedHephaestusFetch(firstAnswers: readonly RecordedHephaestusAnswer[]): StagedHephaestusFetch {
+  const stages: RecordedHephaestusFetch[] = [recordedHephaestusFetch(firstAnswers)];
+  const currentStage = (): RecordedHephaestusFetch => stages[stages.length - 1] ?? recordedHephaestusFetch([]);
   return {
-    request:         (overseerRequest) => currentStage().request(overseerRequest),
+    request:         (hephaestusRequest) => currentStage().request(hephaestusRequest),
     openStream:      (streamRequest) => currentStage().openStream(streamRequest),
-    enter:           (answers) => stages.push(recordedOverseerFetch(answers)),
+    enter:           (answers) => stages.push(recordedHephaestusFetch(answers)),
     jsonBodiesSent:  () => stages.flatMap((stage) => stage.callsAnswered().map((call) => call.jsonBody)),
     streamsLeftOpen: () => stages.reduce((total, stage) => total + stage.streamsLeftOpen(), 0),
   };
 }
 
-/** Each forge's Overseer answers at its own address; a call to an address no forge of the flow holds fails the spec. */
-function overseerFetchByAddress(forgeFetches: ReadonlyMap<string, StagedOverseerFetch>): OverseerFetch {
-  function forgeFetchAt(overseerUrl: string): StagedOverseerFetch {
-    const forgeFetch = forgeFetches.get(new URL(overseerUrl).origin);
-    if (forgeFetch === undefined) throw new Error(`No forge of the flow answers at ${overseerUrl}.`);
+/** Each forge's Hephaestus answers at its own address; a call to an address no forge of the flow holds fails the spec. */
+function hephaestusFetchByAddress(forgeFetches: ReadonlyMap<string, StagedHephaestusFetch>): HephaestusFetch {
+  function forgeFetchAt(hephaestusUrl: string): StagedHephaestusFetch {
+    const forgeFetch = forgeFetches.get(new URL(hephaestusUrl).origin);
+    if (forgeFetch === undefined) throw new Error(`No forge of the flow answers at ${hephaestusUrl}.`);
     return forgeFetch;
   }
   return {
-    request:    (overseerRequest) => forgeFetchAt(overseerRequest.overseerUrl).request(overseerRequest),
-    openStream: (streamRequest) => forgeFetchAt(streamRequest.overseerUrl).openStream(streamRequest),
+    request:    (hephaestusRequest) => forgeFetchAt(hephaestusRequest.hephaestusUrl).request(hephaestusRequest),
+    openStream: (streamRequest) => forgeFetchAt(streamRequest.hephaestusUrl).openStream(streamRequest),
   };
 }
 
@@ -189,18 +189,18 @@ function tokenPathOf(forge: FlowForge): string {
 }
 
 /**
- * What `forge init` and `forge start` write for a forge; an Overseer the registry names is one that runs or ran. Example Project's entry
+ * What `forge init` and `forge start` write for a forge; a Hephaestus the registry names is one that runs or ran. Example Project's entry
  * names no token file, so Gaia reads it through its open summary.
  */
-function registryEntryOf(forge: FlowForge, overseerIsNamed: boolean): Record<string, unknown> {
-  const { project, overseerOrigin } = FORGES[forge];
-  const overseer = overseerIsNamed && overseerOrigin !== null
+function registryEntryOf(forge: FlowForge, hephaestusIsNamed: boolean): Record<string, unknown> {
+  const { project, hephaestusOrigin } = FORGES[forge];
+  const hephaestus = hephaestusIsNamed && hephaestusOrigin !== null
     ? {
-      url: `${overseerOrigin}/`, processId: 48_107, startedAt: '2026-11-12T09:12:00.000Z', tokenPath: forge === 'exampleProject' ? null : tokenPathOf(forge)
+      url: `${hephaestusOrigin}/`, processId: 48_107, startedAt: '2026-11-12T09:12:00.000Z', tokenPath: forge === 'exampleProject' ? null : tokenPathOf(forge)
     }
     : null;
   return {
-    project, root: repositoryRootOf(forge), program: EXAMPLE_FORGE_PROGRAM_PATH, overseer
+    project, root: repositoryRootOf(forge), program: EXAMPLE_FORGE_PROGRAM_PATH, hephaestus
   };
 }
 
@@ -212,10 +212,10 @@ function writeRegistry(storefrontIsStarted: boolean): void {
     [FORGES.designSystem.trackerId]:      registryEntryOf('designSystem', false),
     [FORGES.legacyImporter.trackerId]:    registryEntryOf('legacyImporter', false),
   };
-  writeFileSync(registryFilePathIn(home), JSON.stringify({ version: 1, projects }));
+  writeFileSync(registryFilePathIn(home), JSON.stringify({ version: 2, projects }));
 }
 
-/** Every repository is there but Legacy Importer's, and each forge that runs an Overseer has its token file. */
+/** Every repository is there but Legacy Importer's, and each forge that runs a Hephaestus has its token file. */
 function writeTheMachine(): void {
   for (const forge of ['exampleStorefront', 'exampleProject', 'invoiceService', 'designSystem'] as const) mkdirSync(repositoryRootOf(forge), { recursive: true });
   for (const forge of ['exampleStorefront', 'invoiceService'] as const) {
@@ -227,8 +227,8 @@ function writeTheMachine(): void {
 
 interface RunningGaia {
   readonly pageServer:      PageServer;
-  readonly storefrontFetch: StagedOverseerFetch;
-  readonly forgeFetches:    readonly StagedOverseerFetch[];
+  readonly storefrontFetch: StagedHephaestusFetch;
+  readonly forgeFetches:    readonly StagedHephaestusFetch[];
   readonly forgeProgramRun: StagedProcessRun;
 }
 
@@ -237,14 +237,14 @@ async function startGaia(): Promise<RunningGaia> {
   const registryPath = registryFilePathIn(home);
   const settingsStore = createSettingsStore({ settingsFile: new SettingsFile(home), settingsWriter: createSettingsWriter(home) });
   await settingsStore.load();
-  const storefrontFetch = stagedOverseerFetch([]);
-  const forgeFetches = new Map<string, StagedOverseerFetch>([
-    [FORGES.exampleStorefront.overseerOrigin, storefrontFetch],
-    [FORGES.exampleProject.overseerOrigin, stagedOverseerFetch(answersOf('serving'))],
-    [FORGES.invoiceService.overseerOrigin, stagedOverseerFetch(answersOf('not-answering'))],
+  const storefrontFetch = stagedHephaestusFetch([]);
+  const forgeFetches = new Map<string, StagedHephaestusFetch>([
+    [FORGES.exampleStorefront.hephaestusOrigin, storefrontFetch],
+    [FORGES.exampleProject.hephaestusOrigin, stagedHephaestusFetch(answersOf('serving'))],
+    [FORGES.invoiceService.hephaestusOrigin, stagedHephaestusFetch(answersOf('not-answering'))],
   ]);
   const forgeClient = forgeClientOf({
-    overseerFetch:                 overseerFetchByAddress(forgeFetches),
+    hephaestusFetch:               hephaestusFetchByAddress(forgeFetches),
     requestTimeoutMilliseconds:    SHORT_BOUND_MILLISECONDS,
     streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS,
   });
@@ -341,7 +341,7 @@ interface FleetFollow {
 /** The page's `GET /api/events`: every `fleet` event the page would hear, in order. */
 async function followFleet(server: PageServer, cookie: string): Promise<FleetFollow> {
   eventStreamAbort = new AbortController();
-  const response = await fetch(new URL('/api/v10/events', server.url), { headers: { cookie }, signal: eventStreamAbort.signal });
+  const response = await fetch(new URL('/api/v11/events', server.url), { headers: { cookie }, signal: eventStreamAbort.signal });
   const reader = response.body?.getReader();
   if (reader === undefined) throw new Error('The event stream has no body.');
   const decoder = new TextDecoder();
@@ -392,7 +392,7 @@ describe('Gaia from the registry to the page', () => {
     const fleet = await followFleet(gaia.pageServer, cookie);
 
     const fiveForges = await fleet.untilFleet((fleetDocument) => fleetDocument.forges.length === 5);
-    // Example Project, whose entry names no token file, is read through its summary only, and its Overseer reports itself paused.
+    // Example Project, whose entry names no token file, is read through its summary only, and its Hephaestus reports itself paused.
     expect(conditionsOf(fiveForges)).toEqual([
       ['Example Storefront', 'dormant', 'dormant'],
       ['Example Project', 'paused', 'counts-only'],
@@ -407,7 +407,7 @@ describe('Gaia from the registry to the page', () => {
       answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
     });
     expect(gaia.forgeProgramRun.callShapesAnswered()).toEqual([`run ${JSON.stringify([EXAMPLE_FORGE_PROGRAM_PATH, 'start', '--json'])}`]);
-    // The started forge names its Overseer in the registry, and answers that it is starting until its API is up.
+    // The started forge names its Hephaestus in the registry, and answers that it is starting until its API is up.
     writeRegistry(true);
     gaia.storefrontFetch.enter(STOREFRONT_STAGES.starting);
     await timers.untilPending(INTERVALS.registryCheckIntervalMilliseconds);
@@ -417,7 +417,7 @@ describe('Gaia from the registry to the page', () => {
     await timers.untilPending(INTERVALS.streamReconnectIntervalMilliseconds);
     timers.fire(INTERVALS.streamReconnectIntervalMilliseconds);
     const started = await fleet.untilFleet((fleetDocument) => conditionOf(fleetDocument, 'exampleStorefront') === 'live');
-    expect(started.forges[0]).toMatchObject({ fidelity: 'full', url: `${FORGES.exampleStorefront.overseerOrigin}/` });
+    expect(started.forges[0]).toMatchObject({ fidelity: 'full', url: `${FORGES.exampleStorefront.hephaestusOrigin}/` });
     expect(started.figures.machineLimit).toBe(CPU_COUNT);
 
     gaia.forgeProgramRun.enter('every-verb-refused');
@@ -425,8 +425,8 @@ describe('Gaia from the registry to the page', () => {
     expect(stopAnswer).toEqual({
       answerVersion: 3,
       outcome:       'refused',
-      refusal:       'overseer-still-live',
-      text:          'The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
+      refusal:       'hephaestus-still-live',
+      text:          'Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.',
       forges:        [],
     });
 

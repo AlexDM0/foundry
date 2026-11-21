@@ -1,5 +1,5 @@
 /**
- * What runs next, derived from the board and the Overseer's observations alone: which jobs launch, resume or are replaced, which tickets park,
+ * What runs next, derived from the board and Hephaestus's observations alone: which jobs launch, resume or are replaced, which tickets park,
  * which decisions and incidents open and which incidents take their default. Pure: it reads no clock, file or process, and every count it
  * acts on is read from the log, so a restart derives the same steps.
  */
@@ -17,7 +17,7 @@ import type { EntityKey }                                                       
 import type { PlaybookObservations, PlaybookStep }                                               from './@types/PlaybookStep.ts';
 import type { TicketStage, TicketStageName }                                                     from './@types/Task.ts';
 import type { TicketPriority, TicketStatus }                                                     from './@types/Ticket.ts';
-import type { OverseerState }                                                                    from './@types/TrackerProgress.ts';
+import type { HephaestusState }                                                                  from './@types/TrackerProgress.ts';
 import { CRASH_INTERRUPTION_CAUSES, FORCED_STOP_REFUSED_INTERRUPTION, HANDOFF_RED_INTERRUPTION } from './constants/JobStates.ts';
 import { RESUME_POLICY_OF_CAUSE, type ResumePolicy }                                             from './constants/ResumePolicy.ts';
 import { TICKET_STATUSES_THAT_CLOSE_A_TICKET }                                                   from './constants/Statuses.ts';
@@ -65,7 +65,7 @@ export interface PlaybookFacts {
   logRecords:                  readonly LogRecord[];
   readinessPositionByTicketId: ReadonlyMap<string, number>;
   concurrencyLimit:            number;
-  overseerState:               OverseerState;
+  hephaestusState:             HephaestusState;
   pipelineIsSet:               boolean;
   /** The board's switch: off boots no Assistant, and every incident no open turn holds takes its default. */
   assistantIsOn:               boolean;
@@ -96,7 +96,7 @@ const REPLACED_SESSION_JOB_KINDS: readonly JobKind[] = ['assistant'];
 const FORGE_ENDING_INTERRUPTION_CAUSES: readonly InterruptionCause[] = ['reboot', 'forge-stopped', 'forge-crashed'];
 
 /** The cause a resume reads for an interrupted job that recorded none, as `Jobs.moveJob` counts it. */
-const UNRECORDED_INTERRUPTION_CAUSE: InterruptionCause = 'watcher-lost';
+const UNRECORDED_INTERRUPTION_CAUSE: InterruptionCause = 'talos-lost';
 
 /** A job ended with a report code verified, which breaks a run of crashes across tickets. */
 const VERIFIED_OUTCOMES: readonly JobOutcome[] = ['built', 'reviewed', 'round-granted', 'does-not-hold', 'resolved', 'landed', 'integrated', 'refreshed'];
@@ -203,7 +203,7 @@ function outageIsDue(facts: PlaybookFacts, limits: LifecycleLimits): boolean {
 function outageIsDueWith(logRecords: readonly LogRecord[], launches: JobLaunchesByJobId, limits: LifecycleLimits): boolean {
   let crashedTicketKeys: string[] = [];
   for (const record of logRecords) {
-    if (record.kind === 'overseer-set' && record.fields.state === 'running') crashedTicketKeys = [];
+    if (record.kind === 'hephaestus-set' && record.fields.state === 'running') crashedTicketKeys = [];
     if (record.kind === 'decision-opened' && record.fields.kind === 'outage') crashedTicketKeys = [];
     if (record.kind === 'job-ended' && VERIFIED_OUTCOMES.includes(record.fields.outcome)) crashedTicketKeys = [];
     if (record.kind !== 'job-interrupted' || !isCrash(record.fields.cause)) continue;
@@ -226,12 +226,12 @@ function replacedInARowOf(ticketId: string, facts: IndexedPlaybookFacts): number
   return replacedInARow;
 }
 
-/** Back-to-back failed Assistant jobs since the Overseer last started. */
+/** Back-to-back failed Assistant jobs since Hephaestus last started. */
 function failedAssistantBootsOf(facts: IndexedPlaybookFacts): number {
   const launches = facts.launchesByJobId;
   let failedBoots = 0;
   for (const record of facts.logRecords) {
-    if (record.kind === 'overseer-started') failedBoots = 0;
+    if (record.kind === 'hephaestus-started') failedBoots = 0;
     if (record.kind !== 'job-ended' || launches.get(record.jobId)?.kind !== 'assistant') continue;
     failedBoots = record.fields.outcome === 'failed' ? failedBoots + 1 : 0;
   }
@@ -850,7 +850,7 @@ function ticketIdsOfStep(step: PlaybookStep): readonly string[] {
 
 function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): PlaybookStep[] {
   const facts                   = indexedFactsOf(playbookFacts);
-  const outageNow               = facts.overseerState !== 'paused' && outageIsDueWith(facts.logRecords, facts.launchesByJobId, limits);
+  const outageNow               = facts.hephaestusState !== 'paused' && outageIsDueWith(facts.logRecords, facts.launchesByJobId, limits);
   const versionOrUsageHolds     = usageLimitHolds(limits) || facts.observations.installVersionChanged;
   // A refused API key refuses every session alike, so nothing starts until User answers the decision naming it.
   const authenticationHolds     = openDecisionOfKind(facts, 'api-authentication-failed');
@@ -858,14 +858,14 @@ function nextStepsOf(playbookFacts: PlaybookFacts, limits: LifecycleLimits): Pla
   const assistantBudgetHolds    = facts.decisions.some((decision) => decision.kind === 'budget-reached' && decision.ticketIds.length === 0);
   const outageHolds             = outageNow || openDecisionOfKind(facts, 'outage') || authenticationHolds;
   const resumesAreHeld          = versionOrUsageHolds || !facts.pipelineIsSet || outageHolds;
-  const newWorkIsHeld           = resumesAreHeld || facts.overseerState === 'paused';
+  const newWorkIsHeld           = resumesAreHeld || facts.hephaestusState === 'paused';
   const bootsKeepFailing        = failedAssistantBootsOf(facts) >= limits.FAILED_ASSISTANT_BOOTS_BEFORE_DEFAULTING;
   const noAssistantCanComeUp = usageLimitHolds(limits) || authenticationHolds || assistantBudgetHolds || (bootsKeepFailing && !facts.observations.assistantHasAnswered);
   const assistantMayBoot     = !usageLimitHolds(limits) && !authenticationHolds && !assistantBudgetHolds && (!bootsKeepFailing || facts.observations.assistantBootRetryDue);
   const assistantIsLive      = facts.jobs.some((job) => job.kind === 'assistant');
 
   const steps: PlaybookStep[] = [];
-  if (outageNow) steps.push({ kind: 'pause-overseer', cause: 'outage' }, boardDecisionStepOf('outage'));
+  if (outageNow) steps.push({ kind: 'pause-hephaestus', cause: 'outage' }, boardDecisionStepOf('outage'));
   if (!facts.pipelineIsSet && !openDecisionOfKind(facts, 'checks-not-set')) steps.push(boardDecisionStepOf('checks-not-set'));
   steps.push(...retiredDecisionStepsOf(facts));
   // The pipeline agent sets the pipeline up, so neither the missing pipeline nor the pause holds its resume.

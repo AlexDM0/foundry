@@ -1,4 +1,4 @@
-/** What `status` prints for a person: the counts, the rows table and the recent log. */
+/** What `status` prints for a person of the board: the counts, the rows table and the recent log. */
 import type { OwnerTokenTotals }                                 from '../../../src/adapters/@types/StatusDocument.ts';
 import { TokenCountUtil }                                        from '../../../src/lib/token-count/TokenCountUtil.ts';
 import type { Task, TaskStatus }                                 from '../../../src/lib/tracker-model/@types/Task.ts';

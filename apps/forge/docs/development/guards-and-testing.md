@@ -4,7 +4,7 @@
 > **Time:** 20 minutes; the catalogue is lookup.
 > **Read first:** [CLAUDE.md](../../CLAUDE.md) for the rules themselves.
 > **Next:** [Changing the code](contributing.md),
-> [Overseer and Claude probe](overseer-claude-probe.md).
+> [Hephaestus and Claude probe](hephaestus-claude-probe.md).
 
 ## In one screen
 
@@ -80,7 +80,7 @@ root override variable, which names the repository to use; [cli.md](../cli.md) h
 | `src/LintRules.spec.ts` | Each mechanised `eslint.config.js` rule reports each planted form, and each exact exception passes. | A rule stopped firing or an exception widened: restore it, or change the plant with the rule. |
 | `src/CommentRuns.spec.ts` | No inline comment outside a docblock runs past `LONGEST_INLINE_COMMENT_LINES`. | Rename until the comment goes, or make it the docblock of a declaration or a `test`, `describe` or `it` call. |
 | `src/UtilShape.spec.ts` | An exported `*Util` has at least `MINIMUM_UTIL_MEMBER_COUNT` members; an initializer it cannot count fails. | Make it a plain function beside its consumer, or group a second member in. |
-| `src/TestFileConventions.spec.ts` | No `.test.ts`, `.spec.tsx` or `.dom.tsx`, no test code names `createProcessContext`, no spec starts an [Overseer](../glossary.md#overseer) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
+| `src/TestFileConventions.spec.ts` | No `.test.ts`, `.spec.tsx` or `.dom.tsx`, no test code names `createProcessContext`, no spec starts a [Hephaestus](../glossary.md#hephaestus) without `--port 0`. | Rename the file, use `createCapturedCommandContext` or `runAgentProgress`, add `--port 0`. |
 | `src/RealSystemSpecs.spec.ts` | No default spec makes a real process, git or socket call; the allowlist and `BOUNDARY_SPECS` are exact; see [The two suites](#the-two-suites). | Rename the spec to `*.integration.spec.ts` and list it under its boundary. |
 | `src/SpecSleeps.spec.ts` | No spec or test helper sleeps a fixed time or counts tries before an assertion, beyond an exact allowlist, each entry with its reason. | Wait on the state through `src/testing/WaitUntil.ts`, or inject the clock or the event. See the [timing audit](#timing-audit). |
 | `src/ProseWrap.spec.ts` | Wrapped files stay wrapped; see [What specs require of docs](#what-specs-require-of-docs). | Rewrap the line it names. |
@@ -112,7 +112,7 @@ These specs hold what the CLI prints and accepts.
 | `cli/OlderTrackerRefusal.spec.ts` | A file in an older format is refused and left byte for byte. | Add the refusal with `OLDER_FORMAT_ADVICE`; never add a migration. |
 | `cli/RetiredVerbs.spec.ts` | Each retired verb is unknown at exit 1 and writes nothing. | Remove the verb from `COMMAND_TABLE`. |
 | `cli/ReferenceCopies.spec.ts` | `resources/templates/Reference.md` holds three `docs/cli.md` sections; see [What specs require of docs](#what-specs-require-of-docs). | Make the same edit on both sides. |
-| `cli/SetupScript.integration.spec.ts` | `setup.ts --instruct-only` changes nothing; `--login-overseer` writes one login item per label. `cli/setup/Setup.spec.ts` holds the four steps; `cli/setup/BootstrapScripts.spec.ts` holds that the bootstraps `setup.sh` (macOS, Linux) and `setup.ps1` (Windows) only find Bun and start `setup.ts`. | Fix the step in `cli/setup/`; the spec uses a fake `bun` and a scratch `HOME`. |
+| `cli/SetupScript.integration.spec.ts` | `setup.ts --instruct-only` changes nothing; `--login-item` writes one login item per label. `cli/setup/Setup.spec.ts` holds the four steps; `cli/setup/BootstrapScripts.spec.ts` holds that the bootstraps `setup.sh` (macOS, Linux) and `setup.ps1` (Windows) only find Bun and start `setup.ts`. | Fix the step in `cli/setup/`; the spec uses a fake `bun` and a scratch `HOME`. |
 | `cli/MonitorRegistryIsolation.integration.spec.ts` | No spec reaches the real home's [`<monitor>`](../glossary.md#reading-names) folder; no test code calls `homedir`. | Take the home from the context or `CliProcess`. |
 | `cli/ProductNameIsolation.integration.spec.ts` | Each program ignores the other's root override variable and leaves its files byte for byte, proved under each program's names. | Derive the name from `PRODUCT_NAMES`. |
 | `cli/UnreadableTrackerWording.spec.ts` | The exact bytes printed for an unreadable tracker. | Update the expected bytes in the spec together with the wording. |
@@ -134,14 +134,14 @@ These sit next to the code they guard.
 
 | spec | holds | how to fix a failure |
 | --- | --- | --- |
-| `cli/overseer/OverseerBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/overseer/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
+| `cli/hephaestus/HephaestusBuildJob.spec.ts` (the root tracker's git) | A tracker at its repository's root, with no gate and with one gate in every phase, asks git from the launch to the landing exactly the distinct calls of `cli/hephaestus/FrozenRootTrackerGitCalls.json`, taken from forge before a tracker could sit in a folder. | Make the root tracker's calls what they were. Retake the table only from the commit before a change meant to move them; see the test's docblock. |
 | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` | A Claude `init` and the `update` after it write exactly the files and report lines of `cli/adoption/FrozenClaudeInstall.json`, per opt-out flag. | Retake only in a commit meant to change an installed text; see its header. Otherwise restore the text. |
 | `src/lib/talos/TalosClosure.spec.ts` | `talos.ts`'s import closure, its synchronous-calls thread's included, stays in its package and declared packages, with no product or vendor name. | Remove the import or the name. |
-| `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](overseer-claude-probe.md). |
+| `src/lib/claude-code/ClaudeStreamFixtures.spec.ts` | Each recorded stream fixture still shows what it was recorded to show. | Re-record per [the probe](hephaestus-claude-probe.md). |
 | `src/lib/tracker-model/Playbook.spec.ts` | Every [Playbook](../glossary.md#playbook) rule holds as written and fails under the mutant of its line. | Fix the rule, or update the claim's mutant text. |
 | `src/lib/tracker-model/Playbook.interleavings.spec.ts` | No seeded order of events breaks a lifecycle invariant. | The failure lists each `{ seed, violations }`. Reproduce with `new LifecycleWorld(seed + 1).run(TURNS_PER_SEED)`. |
 | `src/testing/TrackerIsolation.integration.spec.ts` | Every way out of the scratch root is refused. | Restore the refusal in `trackerIsolationVerdictFor`. A spec tripping that check needs a directory from `src/testing/ScratchWorkspace.ts`. |
-| `src/services/overseer/CrashMatrix.spec.ts`, `src/services/overseer/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. |
+| `src/services/hephaestus/CrashMatrix.spec.ts`, `src/services/hephaestus/CrashMatrix.integration.spec.ts` | The crash, reboot and update matrix, one row per scenario: the rows that need no process, and the rows on real processes. | Fix the mechanism the failing row names. |
 
 </details>
 
@@ -266,9 +266,9 @@ The guard reads what a spec names, not where its calls end up. A command run in-
 call inside the code under test is not a call in the spec.
 
 A default spec of the DrivePass stands on `useRecordedTalosStages` (`src/testing/RecordedTalosStages.ts`), reached
-through `src/testing/DrivePassHarness.ts`. It replaces the process starts in `src/services/overseer/ProcessStarts.ts`,
+through `src/testing/DrivePassHarness.ts`. It replaces the process starts in `src/services/hephaestus/ProcessStarts.ts`,
 and the process and socket ports with the recorded process table and local endpoint. A session and a gate line are played
-in the spec's own process, and each frame of the Overseer's connection leaves what the real Talos left in that stage of a
+in the spec's own process, and each frame of Hephaestus's connection leaves what the real Talos left in that stage of a
 child. `src/lib/talos/Talos.stages.integration.spec.ts` walks the real Talos through the stages and records them under
 `bun run record src/lib/talos/Talos.ts`; a stage with no recorded answer fails the case.
 
@@ -298,7 +298,7 @@ carries the most tests, and few claims need a real process.
 | Mutants and seeds | 118 | `SourceMutant`, `LifecycleWorld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Scratch disk | 768 | Real directories and real git under the scratch root | `src/lib/git/Worktrees.integration.spec.ts` |
 | In-process commands | 551 | `runCommandLine` with `createCapturedCommandContext` | `cli/tickets/TicketCommand.spec.ts` |
-| Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/overseer/CrashMatrix.integration.spec.ts` |
+| Spawned processes | 255 | `CliProcess`, the Talos binary, the fake agent | `src/services/hephaestus/CrashMatrix.integration.spec.ts` |
 | Manual smoke | none | A script with real sessions | `cli/testing/CutoverSmoke.ts` |
 
 `bun test` at that commit, on Bun 1.4.2: 3,875 tests, 13,570 `expect()` calls, no failure and no skip, about 15 minutes
@@ -309,7 +309,7 @@ All process reach goes through one seam, `CommandContext`, which is why the in-p
 whole command against a frozen clock and reads back its output, with no process to spawn.
 
 Specs spawn the CLI through `cli/testing/CliProcess.ts`, with one exception:
-`src/services/overseer/InstallChangeWatch.spec.ts` runs `version --json` through the shipping `versionsFromTheBinary`,
+`src/services/hephaestus/InstallChangeWatch.spec.ts` runs `version --json` through the shipping `versionsFromTheBinary`,
 under the spawn wrap only. [The two routes](#the-fake-agent-and-real-sessions) show when to spawn.
 
 ## Named techniques
@@ -345,7 +345,7 @@ two git operations on a [worktree](../glossary.md#worktree). The generator is Mu
 A last test proves the turns do real work.
 
 **`TupleCoversTheUnion`.** `src/lib/tracker-model/testing/TupleCoversTheUnion.ts` is a type: annotating `true` with it
-fails the type check when a constant tuple misses a union member. The `JobStates`, `OverseerStates`, `Statuses` and
+fails the type check when a constant tuple misses a union member. The `JobStates`, `HephaestusStates`, `Statuses` and
 `TicketFields` specs in `src/lib/tracker-model/constants/` use it, because a stored value the tuple lacks makes a file
 unreadable.
 
@@ -354,7 +354,7 @@ unreadable.
 lines of a Claude install; the header of `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` says how to retake it.
 
 **Recorded fixtures.** `src/lib/claude-code/testing/fixtures/` holds real Claude Code stream recordings, data only and
-outside the import graph. `src/services/overseer/testing/fixtures/` holds the frozen monitor and summary documents.
+outside the import graph. `src/services/hephaestus/testing/fixtures/` holds the frozen monitor and summary documents.
 
 ## Timing audit
 
@@ -374,16 +374,16 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `cli/ProductNameIsolation.integration.spec.ts` | 43 | private deadline | Redesigned: the shared deadline. |
 | `cli/HoldJournalCrash.integration.spec.ts` | 47 | process signalled and awaited | Kept: the crash is the subject; the child kills itself at the injected write, and the spec awaits its exit. |
 | `cli/Main.spec.ts` | 343 | module mock outliving a case | Kept: a `beforeAll` installs it and its `afterAll` mocks the real exports back, so no case outside that `describe` sees it. |
-| `cli/overseer/OverseerApi.integration.spec.ts` | 165 | try-count loop | Redesigned: `waitUntil`, and the shared deadline. |
-| `cli/overseer/OverseerBuildJob.integration.spec.ts`, `cli/overseer/OverseerBuildJob.spec.ts` | 161 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
-| `cli/overseer/OverseerBuildJob.integration.spec.ts` | 261 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
-| `cli/overseer/OverseerCommand.integration.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Overseer may have moved on. |
-| `cli/overseer/OverseerCommand.integration.spec.ts` | 498 | try-count loop on a file that may never exist | Redesigned: `waitUntil` on the board's Talos record serving under a held lease; `src/testing/ScratchTalos.ts` gives the monitor folder a short scratch name, so Talos's endpoint stays inside the bytes macOS allows. |
-| `cli/overseer/OverseerDrivePass.spec.ts` | 464 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
-| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 203 | teardown wait for every wake | Kept: cleanup, no verdict; it then stops the board's Talos and every child it ran by what reaches into the repository. |
-| `cli/overseer/OverseerDrivePass.integration.spec.ts`, `cli/overseer/OverseerDrivePass.spec.ts` | 124 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
-| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 166 | wait for a child of Talos ending | Kept: `waitUntil` on the child's liveness as `src/testing/TalosChildReadings.ts` reads it, awaited by state. |
-| `cli/overseer/OverseerDrivePass.integration.spec.ts` | 477 | port served | Kept: port 0, assigned by the kernel, reachable by this case alone. |
+| `cli/hephaestus/HephaestusApi.integration.spec.ts` | 165 | try-count loop | Redesigned: `waitUntil`, and the shared deadline. |
+| `cli/hephaestus/HephaestusBuildJob.integration.spec.ts`, `cli/hephaestus/HephaestusBuildJob.spec.ts` | 161 | try-count loops | Redesigned: `waitUntil` over passes, and the shared deadline. |
+| `cli/hephaestus/HephaestusBuildJob.integration.spec.ts` | 261 | process signalled | Kept: the kill is the case's injected crash, awaited by state. |
+| `cli/hephaestus/StartCommand.integration.spec.ts` | 224 | try-count loops, one assertion re-reading a passing state | Redesigned: `waitUntil` ends on the state; `ready` is no longer read a second time after the old Hephaestus may have moved on. |
+| `cli/hephaestus/StartCommand.integration.spec.ts` | 498 | try-count loop on a file that may never exist | Redesigned: `waitUntil` on the board's Talos record serving under a held lease; `src/testing/ScratchTalos.ts` gives the monitor folder a short scratch name, so Talos's endpoint stays inside the bytes macOS allows. |
+| `cli/hephaestus/HephaestusDrivePass.spec.ts` | 464 | try-count loop on text that never appears | Redesigned: `waitUntil` on the second line's window; the event log stores a line JSON-escaped, so the quoted word never matched. |
+| `cli/hephaestus/HephaestusDrivePass.integration.spec.ts` | 203 | teardown wait for every wake | Kept: cleanup, no verdict; it then stops the board's Talos and every child it ran by what reaches into the repository. |
+| `cli/hephaestus/HephaestusDrivePass.integration.spec.ts`, `cli/hephaestus/HephaestusDrivePass.spec.ts` | 124 | try-count loops, an unbounded loop in teardown | Redesigned: `waitUntil` over passes, and the shared deadline. |
+| `cli/hephaestus/HephaestusDrivePass.integration.spec.ts` | 166 | wait for a child of Talos ending | Kept: `waitUntil` on the child's liveness as `src/testing/TalosChildReadings.ts` reads it, awaited by state. |
+| `cli/hephaestus/HephaestusDrivePass.integration.spec.ts` | 477 | port served | Kept: port 0, assigned by the kernel, reachable by this case alone. |
 | `cli/testing/CutoverSmoke.ts` | 68 | sleeps, deadlines, signals, the clock | Kept: the owner's live smoke run, which no `bun test` runs; its deadlines and stamps are its report. |
 | `cli/tickets/TicketCommand.review.spec.ts` | 88 | fixed hold while commands queue | Redesigned: the lock is held until both commands parked a retry. |
 | `cli/tickets/TicketCommand.spec.ts` | 166 | fixed hold while adds queue | Redesigned: the lock is held until both adds parked a retry. |
@@ -391,19 +391,19 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 73 | clock read against a tolerance | Redesigned: the start lies between the clock read either side of the spawn. |
 | `src/lib/process-identity/ProcessIdentity.integration.spec.ts` | 81 | processes signalled | Kept: real process groups are the subject; each is awaited or waited on by state. |
 | `src/services/lifecycle/GateRun.integration.spec.ts` | 189 | process signalled | Kept: the gate signals itself, and its run is awaited. |
-| `src/services/overseer/BatonPass.integration.spec.ts` | 134 | timer killing a process while tries run out | Redesigned: the kill lands at the rebind's first wait, an injected event. |
-| `src/services/overseer/BatonPass.integration.spec.ts` | 120 | port re-bound after its holder exits | Kept: the real port held and freed is the subject; the kernel's rotation makes a rival in that gap negligible. |
-| `src/services/overseer/BatonPass.spec.ts` | 234 | fixed sleep before the event | Redesigned: the predecessor reads gone on its fourth liveness read. |
-| `src/services/overseer/BatonPass.spec.ts` | 37 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
-| `src/services/overseer/CrashMatrix.integration.spec.ts`, `src/services/overseer/CrashMatrix.spec.ts` | 256 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
-| `src/services/overseer/CrashMatrix.integration.spec.ts` | 282 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
-| `src/services/overseer/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; the recursive watch plays the folder watch recording (`src/testing/RecordedFolderWatch.ts`), which `src/lib/quiet-watch/QuietWatch.integration.spec.ts` records. `platformWatch` is the injected seam in `src/services/overseer/DataFolderWatch.ts`. |
-| `src/services/overseer/GateRunSlots.integration.spec.ts` | 59 | fixed sleep before a negative | Redesigned: the assertion follows three counted retries against the full slots. |
-| `src/services/overseer/GateRunSlots.integration.spec.ts` | 119 | process signalled | Kept: a sleeper standing in for a holder, awaited. |
-| `src/services/overseer/OverseerServer.integration.spec.ts` | 241 | fixed sleep assumed to let a client subscribe | Redesigned: the publish follows the stream's first chunk. |
-| `src/services/overseer/OverseerServer.integration.spec.ts` | 268 | real heartbeat interval, private deadline | Kept: the five-second heartbeat runs in the server under test; the verdict is the `: ping` read, and only the deadline became the shared one. |
-| `src/services/overseer/Regrouping.integration.spec.ts` | 70 | try-count loop | Redesigned: `waitUntil`. |
-| `src/services/overseer/Regrouping.integration.spec.ts` | 28 | processes signalled | Kept: real process groups are the subject. |
+| `src/services/hephaestus/BatonPass.integration.spec.ts` | 134 | timer killing a process while tries run out | Redesigned: the kill lands at the rebind's first wait, an injected event. |
+| `src/services/hephaestus/BatonPass.integration.spec.ts` | 120 | port re-bound after its holder exits | Kept: the real port held and freed is the subject; the kernel's rotation makes a rival in that gap negligible. |
+| `src/services/hephaestus/BatonPass.spec.ts` | 234 | fixed sleep before the event | Redesigned: the predecessor reads gone on its fourth liveness read. |
+| `src/services/hephaestus/BatonPass.spec.ts` | 37 | try budgets | Kept: `tries` is the contract under test; both sides run on one event loop, so sleeps keep their order. |
+| `src/services/hephaestus/CrashMatrix.integration.spec.ts`, `src/services/hephaestus/CrashMatrix.spec.ts` | 256 | try-count loops, a blocking one | Redesigned: `waitUntil` and `blockUntil`, and the shared deadline. |
+| `src/services/hephaestus/CrashMatrix.integration.spec.ts` | 282 | processes signalled | Kept: the crashes are the subject, and each is observed by state. |
+| `src/services/hephaestus/DataFolderWatch.spec.ts` | 125 | settle sleeps around a platform watch | Redesigned: fake watches and fake timers for the debounce, the sweep and the stop; the recursive watch plays the folder watch recording (`src/testing/RecordedFolderWatch.ts`), which `src/lib/quiet-watch/QuietWatch.integration.spec.ts` records. `platformWatch` is the injected seam in `src/services/hephaestus/DataFolderWatch.ts`. |
+| `src/services/hephaestus/GateRunSlots.integration.spec.ts` | 59 | fixed sleep before a negative | Redesigned: the assertion follows three counted retries against the full slots. |
+| `src/services/hephaestus/GateRunSlots.integration.spec.ts` | 119 | process signalled | Kept: a sleeper standing in for a holder, awaited. |
+| `src/services/hephaestus/HephaestusServer.integration.spec.ts` | 241 | fixed sleep assumed to let a client subscribe | Redesigned: the publish follows the stream's first chunk. |
+| `src/services/hephaestus/HephaestusServer.integration.spec.ts` | 268 | real heartbeat interval, private deadline | Kept: the five-second heartbeat runs in the server under test; the verdict is the `: ping` read, and only the deadline became the shared one. |
+| `src/services/hephaestus/Regrouping.integration.spec.ts` | 70 | try-count loop | Redesigned: `waitUntil`. |
+| `src/services/hephaestus/Regrouping.integration.spec.ts` | 28 | processes signalled | Kept: real process groups are the subject. |
 | `src/services/store/LocalFilesBoardStore.integration.spec.ts` | 46 | clock read | Kept: a clock an hour ahead shows that a record's age frees nothing; no verdict reads the time. |
 | `src/services/store/LocalFilesBoardStore.integration.spec.ts` | 109 | process signalled | Kept: a holder killed inside its hold is the subject, and its exit is awaited. |
 | `src/services/store/LocalFilesBoardStore.integration.spec.ts` | 74 | blocking wait in a child's script | Kept: the holder must stay inside its hold until the case kills it; the case waits on the line it prints. |
@@ -418,9 +418,9 @@ state. `src/SpecSleeps.spec.ts` refuses a new fixed wait. Lines are those of the
 | `src/testing/SharedCaseDeadlinePreload.integration.spec.ts` | 10 | fixed sleep inside a case | Kept: outliving the default deadline is the claim, and Bun exposes no reading of it. |
 | `src/testing/WaitUntil.ts` | 36 | fixed poll interval | Kept: the shared wait's own poll; a slow machine only polls longer. |
 | `src/testing/WaitUntil.ts` | 23 | clock read | Kept: the wait budget ends only a wait that already failed; a passing verdict never reads it. |
-| `src/services/overseer/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
-| `src/services/overseer/OverseerServer.integration.spec.ts` | 74 | port served | Kept: port 0, assigned by the kernel. |
-| `src/lib/process-identity/ProcessIdentity.integration.spec.ts`, `src/services/overseer/Regrouping.integration.spec.ts`, `src/services/overseer/BatonPass.integration.spec.ts` | 47, 49, 113 | one read assumed to hold a whole line | Kept: a single short write to a pipe is atomic. |
+| `src/services/hephaestus/Baton.spec.ts` | 29 | fixed port | Kept: a value in a stored record, never bound; likewise `port: 1` in the DrivePass, build job, command and crash matrix fixtures. |
+| `src/services/hephaestus/HephaestusServer.integration.spec.ts` | 74 | port served | Kept: port 0, assigned by the kernel. |
+| `src/lib/process-identity/ProcessIdentity.integration.spec.ts`, `src/services/hephaestus/Regrouping.integration.spec.ts`, `src/services/hephaestus/BatonPass.integration.spec.ts` | 47, 49, 113 | one read assumed to hold a whole line | Kept: a single short write to a pipe is atomic. |
 | every other spawning spec | - | deadline | Redesigned: the shared deadline, by the preload. |
 
 ## Scratch isolation
@@ -438,7 +438,7 @@ becomes an exit code a spec cannot tell from the command's own.
 | --- | --- | --- | --- |
 | Changing directory | forbidden | `process.chdir` is allowed nowhere | `src/LintRules.spec.ts` |
 | The real process context | forbidden | Test code never names `createProcessContext` | `src/TestFileConventions.spec.ts` |
-| A board's real port | forbidden | A spec starting an Overseer passes `--port 0` | `src/TestFileConventions.spec.ts` |
+| A board's real port | forbidden | A spec starting a Hephaestus passes `--port 0` | `src/TestFileConventions.spec.ts` |
 | The root override, set in-process | forbidden | No spec sets it in-process (`CONFINED_REACHES`) | `src/LintRules.spec.ts` |
 | A command's directory | refused | `requireTrackerIsolation` in `createCapturedCommandContext`, `runAgentProgress` and `startAgentProgress`; also the `cwd` of a piped hook input | `cli/testing/CapturedCommandContext.spec.ts`, `cli/testing/CliProcess.integration.spec.ts` |
 | Discovery walking up, or the git common directory | refused | `trackerIsolationVerdictFor` runs `findWorkspace` and checks what it resolves | `src/testing/TrackerIsolation.integration.spec.ts` |
@@ -541,7 +541,7 @@ Two harnesses cover what a plain spec cannot: a scripted agent and real sessions
 *Spawn only for what the bottom line names; everything else is cheaper in-process, with the same fake agent.*
 
 The child plays a scenario file of `FakeAgentStep` values: `print` a Claude-shaped stream-json line, run a `shell`
-command, `await-line` on stdin, `exit`, or `crash` by SIGKILL. Overseer, Talos and crash specs drive real processes
+command, `await-line` on stdin, `exit`, or `crash` by SIGKILL. Hephaestus, Talos and crash specs drive real processes
 this way with no vendor involved. The switch is `FAKE_AGENT_VARIABLE`.
 
 > **Careful.** This test helper is part of the shipped program, so it must not pull in the Claude Code adapter.
@@ -574,7 +574,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 | `src/lib/tracker-model/testing/` | `src/lib/tracker-model/` | `LifecycleFixtures`, `LifecycleWorld`, `TupleCoversTheUnion` |
 | `src/adapters/progress/testing/` | `src/adapters/` | `ProgressFileFixtures` |
 | `src/services/tracker/testing/` | `src/services/tracker/` | `ThrownFailure` |
-| `src/services/overseer/testing/` | `src/services/overseer/` | `AirlocksHarness`, `LiveJobFixture`, the frozen monitor and summary documents |
+| `src/services/hephaestus/testing/` | `src/services/hephaestus/` | `AirlocksHarness`, `LiveJobFixture`, the frozen monitor and summary documents |
 | `cli/testing/` | `cli/` | `CliProcess`, `CapturedCommandContext`, `InitializedScratchRepository`, `OtherProductNamesPreload`, `CutoverSmoke`, stored-file readers |
 
 </details>
@@ -586,7 +586,7 @@ of its own; every other testing folder keeps the layer of its parent.*
 1. A guard's green result counts only after its floor holds and each form it claims has been watched failing.
 2. An allowlist in a spec is exact both ways. ESLint's are not, as the [As built note](#what-eslint-holds) says.
 3. A command run through `createCapturedCommandContext`, `runAgentProgress` or `startAgentProgress` starts in a scratch
-   directory with a scratch home, and a spec starting an Overseer passes `--port 0`.
+   directory with a scratch home, and a spec starting a Hephaestus passes `--port 0`.
 4. A bare `claude` or `gpgconf` on a `PATH` the traps lead never reaches the real program; a spec that executes one
    fails, and only the `gpg` boundary's real-system spec takes the `gpgconf` trap off, for its own file.
 5. Every binary spawned through `CliProcess` runs with the fake-agent switches on and the trap first on `PATH`,

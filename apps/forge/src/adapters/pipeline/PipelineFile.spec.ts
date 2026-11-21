@@ -79,7 +79,7 @@ function minimalWith(fields: Record<string, unknown>): Record<string, unknown> {
 const TEST_GATE = { name: 'test', run: 'bun test' };
 
 /** The gate key's name before `forgeOnly`, joined from its parts so no tracked line holds the retired name. */
-const RETIRED_FORGE_ONLY_KEY = ['overseer', 'Only'].join('');
+const RETIRED_FORGE_ONLY_KEY = ['over', 'seerOnly'].join('');
 
 function withTestGateAnd(fields: Record<string, unknown>): Record<string, unknown> {
   return minimalWith({ gates: [TEST_GATE], phases: { build: ['test'], review: ['test'], merge: ['test'] }, ...fields });

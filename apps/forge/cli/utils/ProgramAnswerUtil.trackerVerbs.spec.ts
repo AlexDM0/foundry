@@ -1,7 +1,7 @@
 /**
  * The versioned JSON answers of `init`, `update` and `stop` on a tracker, over recorded git: a success and one refusal each. What matters: the
  * answer carries `answerVersion: 2` and only the keys the command's reference names, a refusal under `--json` is the refusal document, and
- * a Baton pass the live Overseer did not take is `failed` at its step.
+ * a Baton pass the live Hephaestus did not take is `failed` at its step.
  */
 import { realpathSync } from 'node:fs';
 import { join }         from 'node:path';
@@ -9,8 +9,8 @@ import { join }         from 'node:path';
 import { afterEach, expect, test } from 'bun:test';
 
 import type { PlatformPorts }                                                  from '../../src/lib/platform-ports/PlatformPortsFor.ts';
-import { Baton }                                                               from '../../src/services/overseer/Baton.ts';
-import { overseerFilesIn }                                                     from '../../src/services/overseer/OverseerFiles.ts';
+import { Baton }                                                               from '../../src/services/hephaestus/Baton.ts';
+import { hephaestusFilesIn }                                                   from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { requireWorkspace }                                                    from '../../src/services/tracker/Workspace.ts';
 import { nativePlatformPorts }                                                 from '../../src/testing/NativePlatformPorts.ts';
 import { useRecordedGit }                                                      from '../../src/testing/RecordedGit.ts';
@@ -79,25 +79,25 @@ describeWhenGitIsRecorded('the answers of the verbs on a tracker', () => {
     expect(await answerIn(directory, ['update', '--root', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
   });
 
-  test('stop answers nothing to do with no Overseer live, and an extra argument as a refusal', async () => {
+  test('stop answers nothing to do with no Hephaestus live, and an extra argument as a refusal', async () => {
     const directory = await trackedDirectory();
     expect(await answerIn(directory, ['stop', '--json'])).toEqual({ exitCode: 0, answer: { answerVersion: 2, outcome: 'nothing-to-do' } });
     expect(await answerIn(directory, ['stop', 'extra', '--json'])).toEqual({ exitCode: 1, answer: REFUSAL_OF_ARGUMENTS });
   });
 });
 
-describeWhenRecorded(['git-recording', 'process-table-recording'], 'the answer of update over a live Overseer', () => {
-  test('update answers a Baton pass the live Overseer did not take as failed at its step, at exit 0', async () => {
+describeWhenRecorded(['git-recording', 'process-table-recording'], 'the answer of update over a live Hephaestus', () => {
+  test('update answers a Baton pass the live Hephaestus did not take as failed at its step, at exit 0', async () => {
     const directory = await trackedDirectory();
-    const { overseerDirectory } = overseerFilesIn(requireWorkspace(directory).trackerDirectory);
-    const liveOverseer = processTable.bornProcess();
-    const acquisition = Baton.acquire(processTable.ports, overseerDirectory, {
-      processId:            liveOverseer.processId,
-      processStartStamp:    liveOverseer.startStamp,
-      bootIdentity:         liveOverseer.bootIdentity,
+    const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(directory).trackerDirectory);
+    const liveHephaestus = processTable.bornProcess();
+    const acquisition = Baton.acquire(processTable.ports, hephaestusDirectory, {
+      processId:            liveHephaestus.processId,
+      processStartStamp:    liveHephaestus.startStamp,
+      bootIdentity:         liveHephaestus.bootIdentity,
       port:                 1,
       url:                  UNANSWERING_URL,
-      tokenFile:            join(overseerDirectory, 'token'),
+      tokenFile:            join(hephaestusDirectory, 'token'),
       codeVersion:          'code-example',
       installVersion:       INSTALL_VERSION,
       talosProtocolVersion: 1,

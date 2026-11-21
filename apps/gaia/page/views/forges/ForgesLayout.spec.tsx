@@ -55,8 +55,8 @@ const IDLE_STATES: CommandStates = senderOver([]).states();
 const STOP_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'overseer-still-live',
-  text:          'The Overseer did not stop within its tries.',
+  refusal:       'hephaestus-still-live',
+  text:          'Hephaestus did not stop within its tries.',
   forges:        [],
 };
 
@@ -156,7 +156,7 @@ describe('the table (A4)', () => {
     const { unfolded } = layoutOf(FLEET_FIVE_FORGES);
     const columns = tree.onlyOfComponent(unfolded, DataTable).props['columns'] as readonly { readonly label: string }[];
     expect(columns.map((column) => column.label)).toEqual([
-      'Forge', 'Overseer', 'Agents', 'Waiting', 'Code', 'Controls',
+      'Forge', 'Hephaestus', 'Agents', 'Waiting', 'Code', 'Controls',
     ]);
     const forgeCells = rowsIn(unfolded).map((row) => tree.onlyWithClass([row], 'gaia-forges-forge'));
     const textOfClass = (cell: HostElement, className: string) => tree.textOf([tree.onlyWithClass([cell], className)]);
@@ -234,14 +234,14 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' } });
     const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => tree.withComponent(ConfirmStrip)(element) && element.props['label'] === 'Stop Example Storefront');
     expect(['question', 'tone', 'cancelLabel'].map((propName) => dialog.props[propName])).toEqual([
-      'Stop the Overseer of Example Storefront? 4 agents are running.',
+      'Stop Hephaestus of Example Storefront? 4 agents are running.',
       'neutral',
       'Cancel',
     ]);
     const choices = tree.hostElementsIn([dialog], tree.withTag('ChoiceOption')).map((choice) => choice.props as unknown as ChoiceOptionProps);
     expect(choices.map((choice) => [choice.label, choice.chosen, choice.input?.props.type, choice.input?.props.checked, choice.input?.props.name])).toEqual([
-      ['Stop the Overseer only', true, 'radio', true, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
-      ['Stop the agents, then the Overseer', false, 'radio', false, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
+      ['Stop Hephaestus only', true, 'radio', true, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
+      ['Stop the agents, then Hephaestus', false, 'radio', false, `gaia-forges-stop-${TRACKER_IDS.exampleStorefront}`],
     ]);
     choices.find((choice) => !choice.chosen)?.input?.props.onChange();
     tree.dispatch(dialog, 'onCancel');
@@ -251,7 +251,7 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     expect(handled.stopsConfirmed).toEqual([{ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' }]);
   });
 
-  test('with "Stop the agents, then the Overseer" chosen, its Stop sends stop-first', () => {
+  test('with "Stop the agents, then Hephaestus" chosen, its Stop sends stop-first', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } });
     const dialog = tree.onlyHostElementIn(rowsIn(unfolded), (element) => tree.withComponent(ConfirmStrip)(element) && element.props['label'] === 'Stop Example Storefront');
     press(tree.onlyHostElementIn([dialog], (element) => PackageButtons.isButton(element) && PackageButtons.emphasisOf(element) === 'primary'));
@@ -266,7 +266,7 @@ describe('a refusal on a row (B2 acceptance 3)', () => {
     await sender.send(stop);
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states(), lastSent: new Map([[TRACKER_IDS.exampleMobileApp, stop]]) });
     const refusal = FailedActions.onlyFailedActionIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)]);
-    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Stop: ', 'overseer-still-live', 'The Overseer did not stop within its tries.']);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Stop: ', 'hephaestus-still-live', 'Hephaestus did not stop within its tries.']);
     expect([refusal.props['retryLabel'], refusal.props['dismissLabel']]).toEqual(['Try again', 'Dismiss this refusal']);
     tree.dispatch(refusal, 'onRetry');
     tree.dispatch(refusal, 'onDismiss');
@@ -314,7 +314,7 @@ describe('an update that left a restart pending', () => {
     const { unfolded, handled } = layoutOf(FLEET_FIVE_FORGES, { commandStates: sender.states() });
     const group = tree.onlyWithClass(unfolded, 'gaia-forges-held-group');
     const pendingStep = tree.onlyOfComponent([group], PendingStep);
-    expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
+    expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Hephaestus runs the old code until it restarts.']);
     expect(tree.hostElementsIn([rowOf(unfolded, TRACKER_IDS.exampleMobileApp)], tree.withComponent(PendingStep))).toEqual([]);
     press(controlNamed([pendingStep], 'Restart'));
     expect(pendingStep.props['dismissLabel']).toBe('Dismiss the pending restart');

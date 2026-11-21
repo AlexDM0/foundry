@@ -1,6 +1,6 @@
 /**
  * The texts `init` and `update` install, computed before anything is written. The cases that matter: the product's names are filled and
- * only the instruction defaults keep placeholders, the ones the Overseer fills at each launch; the session instructions and the Assistant
+ * only the instruction defaults keep placeholders, the ones Hephaestus fills at each launch; the session instructions and the Assistant
  * brief name no retired verb, hook or file; the brief whose presence marks the install is the session instructions; neither skill
  * names a Claude-only tool; and a bundle's invocation is the adapter's line, which with Claude Code's gives the frozen install's texts.
  */
@@ -23,7 +23,7 @@ const CLAUDE_ONLY_TOOL_NAMES = ['Workflow(', 'AskUserQuestion', 'Monitor', 'suba
 /** What install version 17 retired, which no text it installs may send a session to. */
 const RETIRED_NAMES = ['dispatcher', 'agent-brief.md', 'builder-brief.md', 'review-brief.md', 'subagent-stop', 'post-tool-use', 'ticket claim', '--tokens'];
 
-const PLACEHOLDERS_THE_OVERSEER_FILLS = ['{{assistantNetwork}}', '{{callBudget}}', '{{jobId}}'];
+const PLACEHOLDERS_HEPHAESTUS_FILLS = ['{{assistantNetwork}}', '{{callBudget}}', '{{jobId}}'];
 
 /** Taken from the implementation before a bundle's invocation was the adapter's; `TrackerRefresh.claudeInstall.spec.ts` says how to retake it. */
 const FROZEN_INSTALL_TABLE_PATH = join(import.meta.dir, 'FrozenClaudeInstall.json');
@@ -59,7 +59,7 @@ describe('the installed texts', () => {
     expect(TEXTS.conflictReReviewerDefault).not.toContain('{{');
     expect([...(TEXTS.reReviewerDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder)).toEqual(['{{round}}']);
     expect([...(TEXTS.assistantDefault ?? '').matchAll(/\{\{\w+\}\}/g)].map(([placeholder]) => placeholder).sort())
-      .toEqual(PLACEHOLDERS_THE_OVERSEER_FILLS);
+      .toEqual(PLACEHOLDERS_HEPHAESTUS_FILLS);
     expect(TEXTS.builderDefault).toContain('{{ticketBody}}');
     expect(TEXTS.builderDefault).not.toContain('{{program}}');
     expect(TEXTS.sessionInstructions).toContain(`\`${PRODUCT_NAMES.PROGRAM} status --json\``);

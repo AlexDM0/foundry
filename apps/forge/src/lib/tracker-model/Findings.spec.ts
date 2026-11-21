@@ -2,7 +2,7 @@
  * A worker's finding past its filing, on the Board. What matters: with ticket review off a complete finding is `committed` at once, yet the
  * Playbook launches no build for it until its finder is `reviewed`; with review on it waits in `ready-for-review`; an abandoned finder
  * leaves no finding waiting on it, each unstarted one moved to `ready-for-review` in the same hold, a started one keeping its status and
- * another job's ticket left alone; and only a board's first Overseer start puts the v16 low leftovers in `ready-for-review`, whatever the switch says.
+ * another job's ticket left alone; and only a board's first Hephaestus start puts the v16 low leftovers in `ready-for-review`, whatever the switch says.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -33,7 +33,7 @@ const wordingOf = (draft: DecisionDraft) => ({
   context: ''
 });
 
-/** A running Overseer's board with its Assistant up and gates set: ticket 001 in review by its builder J1, and the finding J1 filed. */
+/** A running Hephaestus's board with its Assistant up and gates set: ticket 001 in review by its builder J1, and the finding J1 filed. */
 function boardWithFinding(ticketReviewIsOn: boolean, findingOverrides: Partial<TicketFrontmatter> = {}) {
   const board = new Board({
     progress: {
@@ -43,7 +43,7 @@ function boardWithFinding(ticketReviewIsOn: boolean, findingOverrides: Partial<T
       view:             { kind: 'auto' },
       nextTaskId:       2,
       concurrencyLimit: CONCURRENCY_LIMIT,
-      overseerState:    'running',
+      hephaestusState:  'running',
       nextJobId:        1,
       jobs:             [{ ...LIVE_ASSISTANT, id: 'J900' }],
       tasks:            [],
@@ -130,7 +130,7 @@ describe('an abandoned finder', () => {
   });
 });
 
-describe('the Overseer\'s first start', () => {
+describe('Hephaestus\'s first start', () => {
   function boardOfV16Tickets(): ReturnType<typeof boardFixture> {
     const fixture = boardFixture({
       tickets: [
@@ -162,9 +162,9 @@ describe('the Overseer\'s first start', () => {
     expect(board.decisions()).toEqual([]);
   });
 
-  test('a board whose log holds overseer-started moves nothing, and neither does a fresh board', () => {
+  test('a board whose log holds hephaestus-started moves nothing, and neither does a fresh board', () => {
     const started = boardOfV16Tickets();
-    started.board.recordOverseerStarted({ codeVersion: 'example', installVersion: 17 }, AT);
+    started.board.recordHephaestusStarted({ codeVersion: 'example', installVersion: 17 }, AT);
     expect(started.board.submitFirstRunLeftovers(AT).logged).toEqual([]);
     expect(boardFixture().board.submitFirstRunLeftovers(AT).logged).toEqual([]);
   });
@@ -172,7 +172,7 @@ describe('the Overseer\'s first start', () => {
   test('a start after clear threw the log away moves nothing: the first start is kept in progress.json', () => {
     const { board, progress, tickets } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'committed', priority: 'normal' })] });
     board.submitFirstRunLeftovers(AT);
-    board.recordOverseerStarted({ codeVersion: 'example', installVersion: 17 }, AT);
+    board.recordHephaestusStarted({ codeVersion: 'example', installVersion: 17 }, AT);
     board.clearTracker({ ticketsSurvive: true }, AT);
 
     const ticketsAfterClear = [...tickets, ticketFixture({ id: '002', status: 'committed', priority: 'low' })];

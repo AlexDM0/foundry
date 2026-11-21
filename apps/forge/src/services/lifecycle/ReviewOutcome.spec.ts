@@ -38,7 +38,7 @@ let recordedCommitReads: RecordedGitCall[] = [];
 
 function newBoard(): Board {
   const progress: TrackerProgress = {
-    trackerId: 'example-review', project: 'Example Agency', startedAt: AT, view: { kind: 'auto' }, nextTaskId: 1, concurrencyLimit: 2, overseerState: 'running', tasks: [],
+    trackerId: 'example-review', project: 'Example Agency', startedAt: AT, view: { kind: 'auto' }, nextTaskId: 1, concurrencyLimit: 2, hephaestusState: 'running', tasks: [],
   };
   const ticket: Ticket = {
     frontmatter: {

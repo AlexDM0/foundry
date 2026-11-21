@@ -18,9 +18,9 @@ const COMMANDS_GAIA_CARRIES_ITSELF: ReadonlySet<CommandKind> = new Set<CommandKi
 const OUTCOME_SENTENCES: Readonly<Record<CommandOutcome, string>> = {
   'done':            'The command was carried out.',
   'nothing-to-do':   'There was nothing to do.',
-  'restart-pending': 'The forge was updated, and its Overseer runs the old code until it restarts.',
+  'restart-pending': 'The forge was updated, and its Hephaestus runs the old code until it restarts.',
   'refused':         'The command was refused.',
-  'unreachable':     'The forge\'s Overseer did not answer.',
+  'unreachable':     'The forge\'s Hephaestus did not answer.',
   'not-supported':   'This forge does not take this command from Gaia.',
 };
 

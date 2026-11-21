@@ -1,4 +1,4 @@
-/** An Overseer's open `GET /api/identity`: the keys a reader checks. */
+/** A Hephaestus's open `GET /api/identity`: the keys a reader checks. */
 
 /** The contracts an identity names beside its own. */
 export type ServedContractName = 'summary' | 'monitor' | 'control';

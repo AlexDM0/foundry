@@ -1,5 +1,5 @@
 /**
- * A scratch board folder and monitor folder for specs that spawn the Talos binary as the Overseer does: the start file and its secret, the
+ * A scratch board folder and monitor folder for specs that spawn the Talos binary as Hephaestus does: the start file and its secret, the
  * spawn, a client attached with the secret, and readings of Talos's and each child's files. The monitor folder has a short scratch name of
  * its own, so an endpoint under a long temporary folder stays inside the bytes macOS allows. Test-only.
  */

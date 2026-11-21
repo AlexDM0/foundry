@@ -20,7 +20,7 @@ export interface ForgeTranscriptEntryDocument {
   readonly model?:           string;
   readonly tokens?:          number;
   readonly clientAct?:       'chat' | 'answer' | 'interrupt' | 'close-input' | 'stop';
-  readonly sentBy?:          'user' | 'overseer' | 'assistant';
+  readonly sentBy?:          'user' | 'hephaestus' | 'assistant';
   readonly chatSequence?:    number;
   readonly incidentIds?:     readonly string[];
   readonly pictures?:        readonly ForgeTranscriptPictureDocument[];

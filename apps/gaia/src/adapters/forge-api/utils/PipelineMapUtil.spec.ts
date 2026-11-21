@@ -131,7 +131,7 @@ describe('pipelineFactsOf', () => {
         kind: 'pipeline-draft-discarded', at, setupId: 'S1', fields: { revision: 3 }
       },
       { kind: 'pipeline-setup-discarded', at, setupId: 'S1' },
-      { kind: 'overseer-set', at, fields: { state: 'paused' } },
+      { kind: 'hephaestus-set', at, fields: { state: 'paused' } },
     ] as const;
     expect(PipelineMapUtil.pipelineFactsOf({ ...document, pipelineHistory: history }).history).toEqual([
       {
@@ -156,7 +156,7 @@ describe('pipelineFactsOf', () => {
         kind: 'pipeline-draft-discarded', at, setupId: 'S1', revision: 3
       },
       { kind: 'pipeline-setup-discarded', at, setupId: 'S1' },
-      { kind: 'overseer-set', at, state: 'paused' },
+      { kind: 'hephaestus-set', at, state: 'paused' },
     ]);
   });
 

@@ -91,20 +91,20 @@ export interface LaunchSnapshot {
   hooksFolderDigest: string | null;
 }
 
-/** V14's exemptions: refs only the Overseer or another job moves. */
+/** V14's exemptions: refs only Hephaestus or another job moves. */
 export interface RefMovesAllowed {
   ownBranch:            string;
   /** The branches of the other jobs on the board, each moved by its own session. */
   otherJobBranches:     readonly string[];
   /** The ticket branches of the jobs that ended after this job launched, which their sessions moved before ending: exempt only while they exist. */
   loggedJobBranches:    readonly string[];
-  /** Each landing the Overseer recorded, as the ref it moved and the commit it moved it to. */
+  /** Each landing Hephaestus recorded, as the ref it moved and the commit it moved it to. */
   recordedLandings:     readonly { ref: string; commit: string }[];
-  /** The branches the Overseer deletes after a landing, a released group's and each landed ticket's: exempt only once gone. */
+  /** The branches Hephaestus deletes after a landing, a released group's and each landed ticket's: exempt only once gone. */
   removedAfterLandings: readonly string[];
   /**
    * The detached HEADs of the Airlock's refresh worktrees and constitution commit worktrees, keyed `HEAD:<path>`: added, moved and removed
-   * by the Overseer alone.
+   * by Hephaestus alone.
    */
   airlockWorktreeHeads: readonly string[];
   /** Absent: every ref is watched, as for a tracker whose branches keep their bare names. */
@@ -210,8 +210,8 @@ export interface ProjectScope {
   constitutions?:   ConstitutionOwnership;
 }
 
-/** How the Overseer names the refs around its landings, which the log records only by ticket and target. */
-export interface OverseerRefNaming {
+/** How Hephaestus names the refs around its landings, which the log records only by ticket and target. */
+export interface HephaestusRefNaming {
   /** The job being verified: only the jobs ending after its launch moved a ticket branch past its launch snapshot. */
   ownJobId:                     string;
   ownBranch:                    string;
@@ -1087,7 +1087,7 @@ export function sharedRepositoryRefsOf(landingFiles: RepositoryLandingFiles | nu
  */
 export function refMovesAllowedOf(
   logRecords: readonly LogRecord[],
-  naming: OverseerRefNaming,
+  naming: HephaestusRefNaming,
   sharedRepository: SharedRepositoryRefs = ALONE_IN_ITS_REPOSITORY
 ): RefMovesAllowed {
   const launchById = new Map<string, { target: string | null; ticketIds: readonly string[] }>();
@@ -1185,7 +1185,7 @@ export function agentConfigTouchedBeforeLaunch(
   return touched.length === 0 ? PASSED : refused('branch-touches-agent-config', touched);
 }
 
-/** The first check of the role's column that refuses, so the Overseer acts on one reason. */
+/** The first check of the role's column that refuses, so Hephaestus acts on one reason. */
 export function clearCustoms(subject: CustomsSubject): CustomsVerdict {
   for (const check of CHECKS_OF_ROLE[subject.role]) {
     const verdict = CUSTOMS_CHECKS[check](subject);

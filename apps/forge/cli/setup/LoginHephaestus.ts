@@ -1,0 +1,92 @@
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from 'node:fs';
+import { delimiter, dirname, join } from 'node:path';
+
+import { ToolRuntimeUtil }                          from '../../src/shared/ToolRuntimeUtil.ts';
+import { type AutostartPrimitives, type LoginItem } from './Autostart.ts';
+import { autostartFor }                             from './AutostartFor.ts';
+import { bunBinFolderOf, physicalPathOf }           from './InstallStep.ts';
+import { type SetupHost }                           from './SetupHost.ts';
+import { type SetupReport }                         from './SetupReport.ts';
+
+export interface LoginHephaestusRequest {
+  readonly repository:   string;
+  readonly label:        string;
+  readonly instructOnly: boolean;
+}
+
+export function autostartPrimitivesOf(host: SetupHost): AutostartPrimitives {
+  return {
+    homeDirectory: host.homeDirectory,
+    readText:      (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null),
+    writeText:     (path, text) => {
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, text);
+    },
+    removeFile:          (path) => rmSync(path, { force: true }),
+    run:                 host.run,
+    programOnSearchPath: host.programOnSearchPath,
+    systemFolder:        host.systemFolder,
+  };
+}
+
+/** The item that starts Hephaestus of `repository` at login, run by this checkout under the Bun setup found. */
+export function loginItemOf(host: SetupHost, repository: string, label: string): LoginItem {
+  const checkout = host.checkoutDirectory;
+  return {
+    label,
+    repository,
+    bunProgram:         physicalPathOf(host.bunProgram),
+    isolatingArguments: ToolRuntimeUtil.isolatingArgumentsFor(checkout),
+    entryPoint:         join(checkout, 'agent-progress.ts'),
+    searchPath:         [bunBinFolderOf(host), ...host.searchPath].join(delimiter),
+  };
+}
+
+/**
+ * Hephaestus restarts after a reboot only through the user, the dashboard or this optional item; runtime code never installs it. A
+ * platform with no adapter, or a host where the item would never run, is refused before anything is written.
+ */
+export function writeLoginHephaestus(host: SetupHost, report: SetupReport, request: LoginHephaestusRequest): number {
+  const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));
+  if (autostart === null) {
+    report.failure('No login item is known for this operating system: start Hephaestus yourself after a reboot');
+    return 1;
+  }
+  const unavailableReason = autostart.unavailableReason();
+  if (unavailableReason !== null) {
+    report.failure(`No ${autostart.mechanism} written: ${unavailableReason}`);
+    return 1;
+  }
+  if (!existsSync(request.repository) || !statSync(request.repository).isDirectory()) {
+    report.failure(`${request.repository} is not a folder`);
+    return 1;
+  }
+  const repository = realpathSync(request.repository);
+  const location = autostart.locationOf(request.label);
+  const registeredRepository = autostart.registeredRepositoryOf(request.label);
+  if (registeredRepository !== null && registeredRepository !== repository) {
+    report.failure(`${location} already starts Hephaestus of another repository; pass --label <label> for ${repository}`);
+    return 1;
+  }
+  const item = loginItemOf(host, repository, request.label);
+  if (request.instructOnly) {
+    report.notice(`Would write the ${autostart.mechanism} ${location}, running ${autostart.commandOf(item).join(' ')} for ${repository} at login`);
+    return 0;
+  }
+  const written = autostart.write(item);
+  if (written.verdict === 'refused') {
+    report.failure(`The ${autostart.mechanism} ${location} will not start Hephaestus: ${written.reason}`);
+    return 1;
+  }
+  report.done(`Wrote the ${autostart.mechanism} ${location}: Hephaestus of ${repository} starts at login`);
+  for (const advice of autostart.adviceAfterWriting(item)) report.notice(advice);
+  return 0;
+}

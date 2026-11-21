@@ -207,7 +207,7 @@ export interface ApplyRequest {
   reason:        ApplyRequestReason | null;
 }
 
-/** A check User asked for: waiting for a slot, running, judged, unable to judge anything, or ended by an Overseer stop with no result. */
+/** A check User asked for: waiting for a slot, running, judged, unable to judge anything, or ended by a Hephaestus stop with no result. */
 export type PipelineCheckState = 'queued' | 'running' | 'checked' | 'cannot-run' | 'stopped';
 
 /** What a touched gate did in the two runs: `disagreeing` when the two runs differ. */

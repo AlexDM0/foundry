@@ -1,31 +1,31 @@
 /** A verb's one control command, applied through the store's command face: the `--at` stamp and the skipped-file report are the command line's. */
-import type { ControlResultOf }                from '../src/services/control/ControlService.ts';
-import { Baton }                               from '../src/services/overseer/Baton.ts';
-import { overseerFilesIn }                     from '../src/services/overseer/OverseerFiles.ts';
-import type { CommandWritten }                 from '../src/services/store/BoardStore.ts';
-import type { ControlCommand }                 from '../src/shared/@types/ControlCommand.ts';
-import { OperationRefusal }                    from '../src/shared/OperationRefusal.ts';
-import { OVERSEER_NUDGE_TIMEOUT_MILLISECONDS } from '../src/shared/constants/OverseerLimits.ts';
-import { boardStoreOf }                        from './BoardStoreOf.ts';
-import type { CommandContext }                 from './CommandContext.ts';
-import { commandControlContextOf }             from './CommandControlContext.ts';
-import { registerWrittenTracker }              from './RegisterWrittenTracker.ts';
-import type { ArgumentParser }                 from './arguments/ArgumentParser.ts';
-import { NextLineUtil }                        from './utils/NextLineUtil.ts';
-import { OptionValueUtil }                     from './utils/OptionValueUtil.ts';
-import { OutputUtil }                          from './utils/OutputUtil.ts';
+import type { ControlResultOf }                  from '../src/services/control/ControlService.ts';
+import { Baton }                                 from '../src/services/hephaestus/Baton.ts';
+import { hephaestusFilesIn }                     from '../src/services/hephaestus/HephaestusFiles.ts';
+import type { CommandWritten }                   from '../src/services/store/BoardStore.ts';
+import type { ControlCommand }                   from '../src/shared/@types/ControlCommand.ts';
+import { OperationRefusal }                      from '../src/shared/OperationRefusal.ts';
+import { HEPHAESTUS_NUDGE_TIMEOUT_MILLISECONDS } from '../src/shared/constants/HephaestusLimits.ts';
+import { boardStoreOf }                          from './BoardStoreOf.ts';
+import type { CommandContext }                   from './CommandContext.ts';
+import { commandControlContextOf }               from './CommandControlContext.ts';
+import { registerWrittenTracker }                from './RegisterWrittenTracker.ts';
+import type { ArgumentParser }                   from './arguments/ArgumentParser.ts';
+import { NextLineUtil }                          from './utils/NextLineUtil.ts';
+import { OptionValueUtil }                       from './utils/OptionValueUtil.ts';
+import { OutputUtil }                            from './utils/OutputUtil.ts';
 
 /**
  * After the lock is released, so the pass it wakes can take it: a body-less `POST /api/nudge` to the live Baton's URL. Silent whatever
- * happens, since the Overseer's watch of the data folder notices the write anyway; the verb itself only recorded.
+ * happens, since Hephaestus's watch of the data folder notices the write anyway; the verb itself only recorded.
  */
-async function nudgeTheOverseer(context: CommandContext, trackerDirectory: string): Promise<void> {
-  const newest = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(trackerDirectory).overseerDirectory);
+async function nudgeHephaestus(context: CommandContext, trackerDirectory: string): Promise<void> {
+  const newest = Baton.newestBatonOf(context.platformPorts, hephaestusFilesIn(trackerDirectory).hephaestusDirectory);
   if (newest.verdict !== 'live') return;
   try {
-    await fetch(new URL('api/nudge', newest.record.url), { method: 'POST', signal: AbortSignal.timeout(OVERSEER_NUDGE_TIMEOUT_MILLISECONDS) });
+    await fetch(new URL('api/nudge', newest.record.url), { method: 'POST', signal: AbortSignal.timeout(HEPHAESTUS_NUDGE_TIMEOUT_MILLISECONDS) });
   } catch {
-    // Best effort: an Overseer busy, stopping or gone is woken by its watch or its sweep.
+    // Best effort: a Hephaestus busy, stopping or gone is woken by its watch or its sweep.
   }
 }
 
@@ -45,7 +45,7 @@ export async function applyCommandOfVerb<Command extends ControlCommand>(
   OutputUtil.reportIgnoredTicketFiles(context, written.unreadableRecords.tickets);
   OutputUtil.reportIgnoredEpicFiles(context, written.unreadableRecords.epics);
   await registerWrittenTracker(context, workspace);
-  await nudgeTheOverseer(context, workspace.trackerDirectory);
+  await nudgeHephaestus(context, workspace.trackerDirectory);
   return written;
 }
 

@@ -1339,7 +1339,7 @@ const FIXTURE_BUILDERS: Readonly<Record<PipelineFixtureName, () => BoardDocument
     applied: APPLIED_PIPELINE,
     flow:    liveFlow({ occupants: [...LIVE_OCCUPANTS], ticketIdsInFlight: ['14', '15', '12'] }),
     history: [
-      { kind: 'overseer-set', state: 'running', at: '2026-11-12T10:31:00' },
+      { kind: 'hephaestus-set', state: 'running', at: '2026-11-12T10:31:00' },
       {
         kind: 'pipeline-gate-added', name: 'browser-tests', run: 'bun run test:browser', at: '2026-11-12T10:29:00'
       },

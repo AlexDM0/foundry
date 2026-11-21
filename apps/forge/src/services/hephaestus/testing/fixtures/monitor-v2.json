@@ -1,0 +1,353 @@
+{
+  "monitorVersion": 2,
+  "trackerId": "tracker-example",
+  "project": "Example Agency",
+  "root": "/example/repository",
+  "hephaestus": {
+    "state": "serving",
+    "paused": false,
+    "url": "http://127.0.0.1:4100/",
+    "processId": 4242,
+    "startedAt": "2026-11-12T08:00:00+01:00",
+    "generation": 3,
+    "codeVersion": "code-example",
+    "codeVersionOnDisk": "code-newer",
+    "installVersion": 17
+  },
+  "concurrency": {
+    "limit": 3,
+    "agentsInFlight": 2,
+    "machineLimit": 4,
+    "machineAgentsInFlight": 3,
+    "ticketsWaitingForMachineSlot": 1
+  },
+  "ticketCountByStatus": {
+    "draft": 1,
+    "ready-for-review": 1,
+    "pending": 2,
+    "in-progress": 1,
+    "in-review": 0,
+    "reviewed": 1,
+    "delivered": 1,
+    "abandoned": 0
+  },
+  "readyTicketIds": [
+    "003",
+    "004"
+  ],
+  "openIncidents": 1,
+  "attention": [
+    {
+      "key": "decision:E1",
+      "kind": "escalated-question",
+      "idText": "E1",
+      "ticketIds": [
+        "001"
+      ],
+      "subject": "Example: per customer or per address?",
+      "jobId": "J1",
+      "askedBy": "builder",
+      "decisionKind": null,
+      "escalatedFromIncidentId": "I2",
+      "metaText": null,
+      "stamp": "2026-11-12T11:50:00+01:00",
+      "stampWord": "opened",
+      "actionLabel": "Answer",
+      "route": "#questions/E1"
+    },
+    {
+      "ticketIds": [],
+      "jobId": null,
+      "askedBy": null,
+      "decisionKind": null,
+      "escalatedFromIncidentId": null,
+      "metaText": "reviewed, waits for User's accept on main",
+      "key": "merge-accept:005",
+      "kind": "merge-accept",
+      "idText": "#005",
+      "subject": "Example reviewed change",
+      "stamp": "2026-11-12T08:30:00+01:00",
+      "stampWord": "reviewed",
+      "actionLabel": "Accept",
+      "route": "#kanban/ticket/005"
+    },
+    {
+      "ticketIds": [],
+      "jobId": null,
+      "askedBy": null,
+      "decisionKind": null,
+      "escalatedFromIncidentId": null,
+      "metaText": "draft ticket, no row yet",
+      "key": "ticket:009",
+      "kind": "draft-ticket",
+      "idText": "#009",
+      "subject": "Example draft ticket",
+      "stamp": "2026-11-12T09:00:00+01:00",
+      "stampWord": "filed",
+      "actionLabel": "Ready",
+      "route": "#kanban/ticket/009"
+    },
+    {
+      "key": "decision:E2",
+      "kind": "question",
+      "idText": "E2",
+      "ticketIds": [
+        "005"
+      ],
+      "subject": "Example: main moved under ticket 005",
+      "jobId": null,
+      "askedBy": "hephaestus",
+      "decisionKind": "target-moved",
+      "escalatedFromIncidentId": null,
+      "metaText": null,
+      "stamp": "2026-11-12T09:15:00+01:00",
+      "stampWord": "opened",
+      "actionLabel": "Answer",
+      "route": "#questions/E2"
+    },
+    {
+      "ticketIds": [],
+      "jobId": null,
+      "askedBy": null,
+      "decisionKind": null,
+      "escalatedFromIncidentId": null,
+      "metaText": "ready for User's review",
+      "key": "ticket:006",
+      "kind": "review",
+      "idText": "#006",
+      "subject": "Example review",
+      "stamp": "2026-11-12T10:30:00+01:00",
+      "stampWord": "ready since",
+      "actionLabel": "Review",
+      "route": "#kanban/ticket/006"
+    },
+    {
+      "ticketIds": [],
+      "jobId": null,
+      "askedBy": null,
+      "decisionKind": null,
+      "escalatedFromIncidentId": null,
+      "metaText": "Waiting on you · 2 open questions",
+      "key": "draft:D2",
+      "kind": "filing-draft",
+      "idText": "D2",
+      "subject": "Example filing draft",
+      "stamp": "2026-11-12T10:45:00+01:00",
+      "stampWord": "opened",
+      "actionLabel": "Answer",
+      "route": "#kanban/draft/D2"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "J1",
+      "kind": "build",
+      "role": "builder",
+      "state": "waiting-for-answer",
+      "ticketIds": [
+        "001"
+      ],
+      "ticketTitle": "Example build",
+      "attempt": 1,
+      "startedAt": "2026-11-12T11:00:00+01:00",
+      "calls": 12,
+      "callBudget": 200,
+      "tokens": 48000,
+      "toolCalls": 30,
+      "lastToolCall": "Edit",
+      "runningSubagents": 1,
+      "silentSweeps": 0,
+      "quiet": false,
+      "turn": "mid-turn",
+      "messagesWaiting": 0,
+      "lastLine": null,
+      "waitingOnDecisionId": "E1",
+      "route": "#agents/J1"
+    },
+    {
+      "id": "J2",
+      "kind": "review",
+      "role": "reviewer",
+      "state": "running",
+      "ticketIds": [
+        "006"
+      ],
+      "ticketTitle": "Example review",
+      "attempt": 2,
+      "startedAt": "2026-11-12T11:30:00+01:00",
+      "calls": 0,
+      "callBudget": null,
+      "tokens": 0,
+      "toolCalls": 0,
+      "lastToolCall": null,
+      "runningSubagents": 0,
+      "silentSweeps": 4,
+      "quiet": true,
+      "turn": "between-turns",
+      "messagesWaiting": 0,
+      "lastLine": null,
+      "waitingOnDecisionId": null,
+      "route": "#agents/J2"
+    },
+    {
+      "id": "J3",
+      "kind": "assistant",
+      "role": "assistant",
+      "state": "running",
+      "ticketIds": [],
+      "ticketTitle": null,
+      "attempt": 1,
+      "startedAt": "",
+      "calls": 0,
+      "callBudget": null,
+      "tokens": 0,
+      "toolCalls": 0,
+      "lastToolCall": null,
+      "runningSubagents": 0,
+      "silentSweeps": 0,
+      "quiet": false,
+      "turn": null,
+      "messagesWaiting": 1,
+      "lastLine": "Example Assistant line",
+      "waitingOnDecisionId": null,
+      "route": "#agents/J3"
+    },
+    {
+      "id": "J4",
+      "kind": "product-owner",
+      "role": "product-owner",
+      "state": "running",
+      "ticketIds": [],
+      "ticketTitle": null,
+      "attempt": 1,
+      "startedAt": "2026-11-12T10:00:00+01:00",
+      "calls": 0,
+      "callBudget": null,
+      "tokens": 0,
+      "toolCalls": 0,
+      "lastToolCall": null,
+      "runningSubagents": 0,
+      "silentSweeps": 0,
+      "quiet": false,
+      "turn": null,
+      "messagesWaiting": 0,
+      "lastLine": "Example request",
+      "waitingOnDecisionId": null,
+      "route": "#agents/J4"
+    },
+    {
+      "id": "J5",
+      "kind": "pipeline-agent",
+      "role": "pipeline-agent",
+      "state": "running",
+      "ticketIds": [],
+      "ticketTitle": null,
+      "attempt": 1,
+      "startedAt": "2026-11-12T10:05:00+01:00",
+      "calls": 0,
+      "callBudget": null,
+      "tokens": 0,
+      "toolCalls": 0,
+      "lastToolCall": null,
+      "runningSubagents": 0,
+      "silentSweeps": 0,
+      "quiet": false,
+      "turn": null,
+      "messagesWaiting": 0,
+      "lastLine": null,
+      "waitingOnDecisionId": null,
+      "route": "#agents/J5"
+    },
+    {
+      "id": "J6",
+      "kind": "merge",
+      "role": null,
+      "state": "merging",
+      "ticketIds": [
+        "007"
+      ],
+      "ticketTitle": null,
+      "attempt": 1,
+      "startedAt": "2026-11-12T11:45:00+01:00",
+      "calls": 0,
+      "callBudget": null,
+      "tokens": 0,
+      "toolCalls": 0,
+      "lastToolCall": null,
+      "runningSubagents": 0,
+      "silentSweeps": 0,
+      "quiet": false,
+      "turn": null,
+      "messagesWaiting": 0,
+      "lastLine": null,
+      "waitingOnDecisionId": null,
+      "route": "#agents/J6"
+    }
+  ],
+  "notices": [
+    {
+      "kind": "new-code",
+      "text": "new code: run `forge update`"
+    },
+    {
+      "kind": "incident-defaulted",
+      "text": "incident I1 took its default, job-fresh: no Assistant was up"
+    }
+  ],
+  "warnings": [
+    "the Baton pass to code code-newer failed at take-baton: Example error",
+    "no Assistant can come up: open incidents take their defaults"
+  ],
+  "today": {
+    "deliveredTickets": 1,
+    "tokens": 50000
+  },
+  "usage": {
+    "resetsAt": null,
+    "window": null
+  },
+  "activity": [
+    {
+      "logPosition": 0,
+      "at": "2026-11-12T08:00:00+01:00",
+      "category": "forge",
+      "text": "Hephaestus started on code code-example, install version 17",
+      "route": null
+    },
+    {
+      "logPosition": 1,
+      "at": "2026-11-12T09:00:00+01:00",
+      "category": "needs-user",
+      "text": "Ticket #009 filed: Example draft ticket",
+      "route": "#kanban/ticket/009"
+    },
+    {
+      "logPosition": 3,
+      "at": "2026-11-12T09:30:00+01:00",
+      "category": "landed",
+      "text": "Ticket #002 delivered",
+      "route": "#kanban/ticket/002"
+    },
+    {
+      "logPosition": 4,
+      "at": "2026-11-12T11:00:00+01:00",
+      "category": "agent",
+      "text": "Job J1 launched: build (builder) for #001 onto main, attempt 1",
+      "route": "#agents/J1"
+    },
+    {
+      "logPosition": 5,
+      "at": "2026-11-12T11:50:00+01:00",
+      "category": "needs-user",
+      "text": "Decision E1 opened: agent-question for #001",
+      "route": "#questions/E1"
+    },
+    {
+      "logPosition": 6,
+      "at": "2026-11-12T11:55:00+01:00",
+      "category": "forge",
+      "text": "Example milestone",
+      "route": null
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 /**
- * The foot every step and gate dialog ends with: its own actions on the start side, then Cancel and the primary Save, and under them the
- * Overseer's refusal of the last Save, verbatim.
+ * The foot every step and gate dialog ends with: its own actions on the start side, then Cancel and the primary Save, and under them
+ * Hephaestus's refusal of the last Save, verbatim.
  */
 import type { ReactNode } from 'react';
 import { Button }         from '../../../../lib/design-system/DesignSystemInterface.ts';

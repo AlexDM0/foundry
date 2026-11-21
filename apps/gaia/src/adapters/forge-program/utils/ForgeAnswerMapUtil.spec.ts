@@ -63,8 +63,8 @@ describe('an answer Gaia does not understand', () => {
 
 describe('a refusal', () => {
   test('at exit 1 answers refused with the forge\'s code and sentence unchanged', () => {
-    const text = '  The Overseer at http://127.0.0.1:47213 is still live; nothing more was done.  ';
-    expect(stopVerdictOf(finishedRun(1, { answerVersion: 2, refusal: 'overseer-still-live', text }))).toEqual({ verdict: 'refused', refusal: 'overseer-still-live', text });
+    const text = '  Hephaestus at http://127.0.0.1:47213 is still live; nothing more was done.  ';
+    expect(stopVerdictOf(finishedRun(1, { answerVersion: 2, refusal: 'hephaestus-still-live', text }))).toEqual({ verdict: 'refused', refusal: 'hephaestus-still-live', text });
   });
 
   test('at another exit but 0 answers refused too', () => {
@@ -83,7 +83,7 @@ describe('the done answers of each verb', () => {
       trackerId:      'example-tracker',
       codeVersion:    '3a6e9e6043da',
       installVersion: 27,
-      contracts:      { summary: 1, monitor: 1 },
+      contracts:      { summary: 2, monitor: 1 },
     };
     expect(ForgeAnswerMapUtil.startAnswerOf(startDocument)).toEqual({
       started:        false,
@@ -92,9 +92,9 @@ describe('the done answers of each verb', () => {
       trackerId:      'example-tracker',
       codeVersion:    '3a6e9e6043da',
       installVersion: 27,
-      contracts:      { summary: 1, monitor: 1, control: null },
+      contracts:      { summary: 2, monitor: 1, control: null },
     });
-    expect(ForgeAnswerMapUtil.startAnswerOf({ ...startDocument, contracts: { summary: 1, monitor: '1' } })).toBeNull();
+    expect(ForgeAnswerMapUtil.startAnswerOf({ ...startDocument, contracts: { summary: 2, monitor: '1' } })).toBeNull();
     expect(ForgeAnswerMapUtil.startAnswerOf({ ...startDocument, contracts: undefined })).toBeNull();
   });
 
@@ -126,14 +126,14 @@ describe('the done answers of each verb', () => {
       answerVersion:        2,
       codeVersion:          '3a6e9e6043da',
       installVersion:       43,
-      contracts:            { summary: 1, monitor: 4, control: 2 },
+      contracts:            { summary: 2, monitor: 5, control: 3 },
       talosProtocolVersion: 2,
       monitorFolder:        '/Users/example/.forge-monitor',
     };
     expect(ForgeAnswerMapUtil.versionAnswerOf(versionDocument)).toEqual({
       codeVersion:          '3a6e9e6043da',
       installVersion:       43,
-      contracts:            { summary: 1, monitor: 4, control: 2 },
+      contracts:            { summary: 2, monitor: 5, control: 3 },
       talosProtocolVersion: 2,
       monitorFolder:        '/Users/example/.forge-monitor',
     });
@@ -142,7 +142,7 @@ describe('the done answers of each verb', () => {
 
   test('the login item reads its state after the step, and the machine limit the limit it stored', () => {
     expect(ForgeAnswerMapUtil.loginItemAnswerOf({
-      answerVersion: 2, outcome: null, state: 'absent', label: 'com.forge.overseer.example-tracker', location: '/Users/example/Library/LaunchAgents', repository: '/Users/example'
+      answerVersion: 2, outcome: null, state: 'absent', label: 'com.forge.hephaestus.example-tracker', location: '/Users/example/Library/LaunchAgents', repository: '/Users/example'
     })).toEqual({ loginItem: 'absent' });
     expect(ForgeAnswerMapUtil.machineLimitAnswerOf({
       answerVersion: 2, outcome: 'nothing-to-do', limit: 4, ceiling: 10

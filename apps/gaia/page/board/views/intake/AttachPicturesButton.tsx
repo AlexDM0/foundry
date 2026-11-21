@@ -1,4 +1,4 @@
-/** Attach pictures: a button-styled label over a hidden file field of the media types the Overseer takes, and the words after it. */
+/** Attach pictures: a button-styled label over a hidden file field of the media types Hephaestus takes, and the words after it. */
 export interface AttachPicturesButtonProps {
   readonly mediaTypes: readonly string[];
   /** "PNG, JPEG, WebP or GIF · 1 of 4". */

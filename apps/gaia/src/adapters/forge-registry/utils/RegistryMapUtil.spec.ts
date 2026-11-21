@@ -1,6 +1,6 @@
 /**
  * The registry entry mapper against its own contract: an entry without a whole project and root is left out, every optional key (the F4
- * and F9 keys, the overseer, the last command and its stamp) reads as `null` when it is absent or breaks its rule and never leaves a forge
+ * and F9 keys, the `hephaestus` entry, the last command and its stamp) reads as `null` when it is absent or breaks its rule and never leaves a forge
  * out, and keys are read as the entry's own, never through a prototype. A presence maps in each state the forge writes, a crash with its
  * summary; a state Gaia does not know is no presence, and a crash whose summary is not whole stays a crash.
  */
@@ -16,8 +16,8 @@ function wholeEntry(): Record<string, unknown> {
     root:          '/Users/alex.example/development/example-agency',
     program:       '/Users/alex.example/development/forge/bin/forge',
     lastChangedAt: '2026-10-21T10:05:01+02:00',
-    lastCommand:   'oversee',
-    overseer:      {
+    lastCommand:   'start',
+    hephaestus:    {
       url:       'http://127.0.0.1:4987/',
       processId: 4242,
       startedAt: '2026-10-21T10:05:00+02:00',
@@ -33,17 +33,17 @@ function forgesOf(entry: unknown): readonly unknown[] {
 describe('registeredForgesOf', () => {
   test('maps a whole entry with its tracker id', () => {
     expect(RegistryMapUtil.registeredForgesOf({ [TRACKER_ID]: wholeEntry() })).toEqual([{
-      trackerId: TRACKER_ID,
-      project:   'Example Agency',
-      root:      '/Users/alex.example/development/example-agency',
-      program:   '/Users/alex.example/development/forge/bin/forge',
-      overseer:  {
+      trackerId:  TRACKER_ID,
+      project:    'Example Agency',
+      root:       '/Users/alex.example/development/example-agency',
+      program:    '/Users/alex.example/development/forge/bin/forge',
+      hephaestus: {
         url:       'http://127.0.0.1:4987/',
         processId: 4242,
         startedAt: '2026-10-21T10:05:00+02:00',
         tokenPath: '/Users/alex.example/.forge-monitor/private/example/token',
       },
-      lastCommand:   'oversee',
+      lastCommand:   'start',
       lastChangedAt: '2026-10-21T10:05:01+02:00',
       presence:      null,
     }]);
@@ -51,15 +51,15 @@ describe('registeredForgesOf', () => {
 
   test('reads an absent or null program and token path as null', () => {
     for (const absentValue of [undefined, null]) {
-      const entry    = { ...wholeEntry(), program: absentValue, overseer: { ...wholeEntry()['overseer'] as object, tokenPath: absentValue } };
+      const entry    = { ...wholeEntry(), program: absentValue, hephaestus: { ...wholeEntry()['hephaestus'] as object, tokenPath: absentValue } };
       const [forge]  = RegistryMapUtil.registeredForgesOf({ [TRACKER_ID]: JSON.parse(JSON.stringify(entry)) as unknown });
       expect(forge?.program).toBeNull();
-      expect(forge?.overseer?.tokenPath).toBeNull();
+      expect(forge?.hephaestus?.tokenPath).toBeNull();
     }
   });
 
   test('reads a last command or change stamp that is absent, null or no text as null, and keeps the forge', () => {
-    for (const unshownValue of [undefined, null, '', 42, ['oversee']]) {
+    for (const unshownValue of [undefined, null, '', 42, ['start']]) {
       const entry   = JSON.parse(JSON.stringify({ ...wholeEntry(), lastCommand: unshownValue, lastChangedAt: unshownValue })) as unknown;
       const forges  = RegistryMapUtil.registeredForgesOf({ [TRACKER_ID]: entry });
       expect(forges).toHaveLength(1);
@@ -67,10 +67,10 @@ describe('registeredForgesOf', () => {
     }
   });
 
-  test('reads an absent or null overseer as a forge with no live Overseer', () => {
+  test('reads an absent or null hephaestus as a forge with no live Hephaestus', () => {
     for (const absentValue of [undefined, null]) {
-      const entry = JSON.parse(JSON.stringify({ ...wholeEntry(), overseer: absentValue })) as unknown;
-      expect(RegistryMapUtil.registeredForgesOf({ [TRACKER_ID]: entry })[0]?.overseer).toBeNull();
+      const entry = JSON.parse(JSON.stringify({ ...wholeEntry(), hephaestus: absentValue })) as unknown;
+      expect(RegistryMapUtil.registeredForgesOf({ [TRACKER_ID]: entry })[0]?.hephaestus).toBeNull();
     }
   });
 
@@ -92,21 +92,21 @@ describe('registeredForgesOf', () => {
   });
 
   test('reads an optional key that breaks its rule as null and keeps the forge', () => {
-    const entry = { ...wholeEntry(), program: 42, overseer: { ...wholeEntry()['overseer'] as object, tokenPath: 'token' } };
-    expect(forgesOf(entry)).toEqual([expect.objectContaining({ program: null, overseer: expect.objectContaining({ tokenPath: null }) as unknown })]);
+    const entry = { ...wholeEntry(), program: 42, hephaestus: { ...wholeEntry()['hephaestus'] as object, tokenPath: 'token' } };
+    expect(forgesOf(entry)).toEqual([expect.objectContaining({ program: null, hephaestus: expect.objectContaining({ tokenPath: null }) as unknown })]);
   });
 
-  test('reads an overseer that is not whole, or not an object, as no live Overseer and keeps the forge', () => {
-    const overseer = wholeEntry()['overseer'] as Record<string, unknown>;
-    const brokenOverseers = [
-      { ...overseer, url: 'file:///etc/passwd' },
-      { ...overseer, processId: 0 },
-      { ...overseer, startedAt: undefined },
+  test('reads a `hephaestus` entry that is not whole, or not an object, as no live Hephaestus and keeps the forge', () => {
+    const hephaestus = wholeEntry()['hephaestus'] as Record<string, unknown>;
+    const brokenHephaestusProcesses = [
+      { ...hephaestus, url: 'file:///etc/passwd' },
+      { ...hephaestus, processId: 0 },
+      { ...hephaestus, startedAt: undefined },
       'http://127.0.0.1:4987/',
     ];
-    for (const brokenOverseer of brokenOverseers) {
-      const forges = forgesOf(JSON.parse(JSON.stringify({ ...wholeEntry(), overseer: brokenOverseer })) as unknown);
-      expect(forges).toEqual([expect.objectContaining({ trackerId: TRACKER_ID, overseer: null })]);
+    for (const brokenHephaestus of brokenHephaestusProcesses) {
+      const forges = forgesOf(JSON.parse(JSON.stringify({ ...wholeEntry(), hephaestus: brokenHephaestus })) as unknown);
+      expect(forges).toEqual([expect.objectContaining({ trackerId: TRACKER_ID, hephaestus: null })]);
     }
   });
 
@@ -165,7 +165,7 @@ describe('the presence the forge last wrote', () => {
 
   test('keeps a crash whose summary is not whole a crash with no summary', () => {
     expect(presenceOf({
-      state: 'crashed', generation: 2, at: '2026-11-21T06:32:52+01:00', crash: { component: 'hephaestus', suspected: false }
+      state: 'crashed', generation: 2, at: '2026-11-21T06:32:52+01:00', crash: { component: 'example-component', suspected: false }
     }))
       .toEqual({
         state: 'crashed', generation: 2, at: '2026-11-21T06:32:52+01:00', crash: null

@@ -134,12 +134,12 @@ describe('the Assistant view', () => {
     const { transcripts } = renderedWithBoard(BOARD);
     expect(transcripts.followedJobs()).toEqual(['J9']);
     transcripts.feed('J9', [
-      transcriptEntryOf('1.1', 'overseer', 'You are the Assistant.', { clientAct: 'chat', sentBy: 'overseer', chatSequence: 1 }),
+      transcriptEntryOf('1.1', 'hephaestus', 'You are the Assistant.', { clientAct: 'chat', sentBy: 'hephaestus', chatSequence: 1 }),
       transcriptEntryOf('1.2', 'assistant', `Reading the incidents ${PLANTED}`),
       transcriptEntryOf('1.3', 'turn-end', ''),
       transcriptEntryOf('1.4', 'user', `Why? ${PLANTED}`, { clientAct: 'chat', sentBy: 'user' }),
     ]);
-    expect(within(thread()).getByText('Overseer booted J9 with its prompt · chat 1')).toBeDefined();
+    expect(within(thread()).getByText('Hephaestus booted J9 with its prompt · chat 1')).toBeDefined();
     expect(within(thread()).getByText(`Reading the incidents ${PLANTED}`).className).toBe('board-chat-prose');
     expect(within(thread()).getByText(`Why? ${PLANTED}`).className).toBe('board-chat-bubble');
     expect(document.querySelector('img, script')).toBeNull();
@@ -221,7 +221,7 @@ describe('the title row and the chat head', () => {
   test('the view opens with its title, and the chat head holds the one Flint slot and no asks while none waits', () => {
     renderedWithBoard(BOARD);
     expect(screen.getByRole('heading', { level: 2, name: 'Assistant' }).dataset['typeRole']).toBe('display');
-    expect(screen.getByText('The Overseer\'s Assistant. Talk to it here; its incidents are on the right.')).toBeDefined();
+    expect(screen.getByText('Hephaestus\'s Assistant. Talk to it here; its incidents are on the right.')).toBeDefined();
     const flint = screen.getByRole('img', { name: 'Flint, the Assistant' });
     expect([flint.dataset['size'], flint.dataset['ground']]).toEqual(['100', 'lane']);
     expect(document.querySelectorAll('.design-system-flint-slot')).toHaveLength(1);

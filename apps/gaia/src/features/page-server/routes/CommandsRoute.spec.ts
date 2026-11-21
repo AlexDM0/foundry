@@ -45,7 +45,7 @@ describe('a command Gaia can read', () => {
   });
 
   test('to one forge reaches the command port with its tracker id, and a refusal is answered with the forge\'s code and sentence', async () => {
-    const text = 'The Overseer cannot restart while the usage limit holds. It resets at 14:00.';
+    const text = 'Hephaestus cannot restart while the usage limit holds. It resets at 14:00.';
     const carrier = carrierAnswering({
       verdict: 'refused', refusedBy: 'forge', refusal: 'usage-limit-holds', text,
     });
@@ -68,7 +68,7 @@ describe('a command Gaia can read', () => {
       { verdict: 'nothing-to-do' },
       { verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' },
       {
-        verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
+        verdict: 'refused', refusedBy: 'forge', refusal: 'hephaestus-held', text: 'Hephaestus is held by an install change.'
       },
       { verdict: 'unreachable' },
       { verdict: 'not-supported' },

@@ -1,7 +1,7 @@
 /**
  * What the control service takes from its caller besides the command and the hold: the wording of the messages a User setup move sends to
  * the pipeline agent, since no `src/` layer words a message and the words live in `cli/`, the reading of main's `CONSTITUTION.md`,
- * which the Overseer's instruction files own, and the live Overseer of a board, which only the caller's process can judge.
+ * which Hephaestus's instruction files own, and the live Hephaestus of a board, which only the caller's process can judge.
  */
 import type {
   ConstitutionSources,
@@ -53,11 +53,11 @@ export type SetupMessage =
   | { kind: 'draft-discarded'; setupId: string; draftRevision: number; changes: readonly DraftFieldValue[] }
   | { kind: 'setup-resumed'; setupId: string; mainMovedByCommits: number; changedPaths: readonly string[] }
   | { kind: 'check-requested'; setupId: string; draftRevision: number; gateNames: readonly string[] }
-  /** The Overseer's, once the check ended `checked` or `cannot-run`. */
+  /** Hephaestus's, once the check ended `checked` or `cannot-run`. */
   | { kind: 'check-ended'; setupId: string; check: Readonly<PipelineCheck> };
 
-/** The live Overseer a by-hand delivery is refused for: where it serves, and the Baton that names it. */
-export interface LiveOverseer {
+/** The live Hephaestus a by-hand delivery is refused for: where it serves, and the Baton that names it. */
+export interface LiveHephaestus {
   url:           string;
   batonFilePath: string;
 }
@@ -70,8 +70,8 @@ export interface ControlContext {
    */
   mainConstitutionOf:    (rootDirectory: string, constitutionPath?: string) => MainConstitutionReading;
   /**
-   * The live Overseer that owns the lifecycle of the board in this data folder; `null` where the applier runs inside it, which applies its
+   * The live Hephaestus that owns the lifecycle of the board in this data folder; `null` where the applier runs inside it, which applies its
    * own commands in its own hold.
    */
-  liveOverseerOf:        (dataFolder: string) => LiveOverseer | null;
+  liveHephaestusOf:      (dataFolder: string) => LiveHephaestus | null;
 }

@@ -24,7 +24,7 @@ export function fakeAgentVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, '
 export const FAKE_AGENT_VARIABLE = fakeAgentVariableOf(PRODUCT_NAMES);
 
 /**
- * Launches every session the Overseer starts as the scripted fake agent rather than a vendor's CLI, so a spec-spawned binary spends no
+ * Launches every session Hephaestus starts as the scripted fake agent rather than a vendor's CLI, so a spec-spawned binary spends no
  * subscription; `cli/testing/CliProcess.ts` sets it on every child. Read like the every-tool switch.
  */
 export function fakeAgentIsOn(): boolean {
@@ -52,23 +52,23 @@ export function fakeAgentEndsOnNetworkOutage(): boolean {
   return switchIsOn(FAKE_AGENT_NETWORK_OUTAGE_VARIABLE);
 }
 
-export function overseerPollIntervalVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
-  return `${ENVIRONMENT_PREFIX}OVERSEER_POLL_INTERVAL_MILLISECONDS`;
+export function hephaestusPollIntervalVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 'ENVIRONMENT_PREFIX'>): string {
+  return `${ENVIRONMENT_PREFIX}HEPHAESTUS_POLL_INTERVAL_MILLISECONDS`;
 }
 
-export const OVERSEER_POLL_INTERVAL_VARIABLE = overseerPollIntervalVariableOf(PRODUCT_NAMES);
+export const HEPHAESTUS_POLL_INTERVAL_VARIABLE = hephaestusPollIntervalVariableOf(PRODUCT_NAMES);
 
 const WHOLE_MILLISECONDS = /^[1-9]\d*$/u;
 
 /**
- * A test setting: the milliseconds between the Overseer's ready, Baton pass and stop polls, in place of the limits in
- * `src/shared/constants/OverseerLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number is refused.
+ * A test setting: the milliseconds between Hephaestus's ready, Baton pass and stop polls, in place of the limits in
+ * `src/shared/constants/HephaestusLimits.ts`. Empty or whitespace reads as unset; any value but a positive whole number is refused.
  */
-export function overseerPollIntervalOverride(): number | undefined {
-  const value = nonBlankValueOf(OVERSEER_POLL_INTERVAL_VARIABLE)?.trim();
+export function hephaestusPollIntervalOverride(): number | undefined {
+  const value = nonBlankValueOf(HEPHAESTUS_POLL_INTERVAL_VARIABLE)?.trim();
   if (value === undefined) return undefined;
   if (!WHOLE_MILLISECONDS.test(value)) {
-    throw new OperationRefusal('refused', { kind: 'malformed-overseer-poll-interval', variable: OVERSEER_POLL_INTERVAL_VARIABLE, value });
+    throw new OperationRefusal('refused', { kind: 'malformed-hephaestus-poll-interval', variable: HEPHAESTUS_POLL_INTERVAL_VARIABLE, value });
   }
   return Number(value);
 }
@@ -132,7 +132,7 @@ export function environmentCopy(): Record<string, string> {
 
 export const NO_ORPHANS_VARIABLE = 'BUN_FEATURE_FLAG_NO_ORPHANS';
 
-/** The whole environment less Bun's flag that ends a process with its parent, for Talos or an Overseer, which must outlive theirs. */
+/** The whole environment less Bun's flag that ends a process with its parent, for Talos or a Hephaestus, which must outlive theirs. */
 export function outlivingProgramEnvironment(): Record<string, string> {
   return Object.fromEntries(Object.entries(environmentCopy()).filter(([name]) => name !== NO_ORPHANS_VARIABLE));
 }
@@ -178,15 +178,15 @@ export function gateReportVariableOf({ ENVIRONMENT_PREFIX }: Pick<ProductNames, 
   return `${ENVIRONMENT_PREFIX}GATE_REPORT`;
 }
 
-/** Set on every gate line the Overseer runs, never read here: the path where the gate may write its report (`GateReportFile.ts`). */
+/** Set on every gate line Hephaestus runs, never read here: the path where the gate may write its report (`GateReportFile.ts`). */
 export const GATE_REPORT_VARIABLE = gateReportVariableOf(PRODUCT_NAMES);
 
 export const JOB_ID_VARIABLE = jobIdVariableOf(PRODUCT_NAMES);
 
 export const HATCH_DIRECTORY_VARIABLE = hatchDirectoryVariableOf(PRODUCT_NAMES);
 
-/** The Overseer's job this process runs under, set on every session it launches; empty or whitespace-only reads as unset. */
-export function overseerJobId(): string | undefined {
+/** Hephaestus's job this process runs under, set on every session it launches; empty or whitespace-only reads as unset. */
+export function hephaestusJobId(): string | undefined {
   return nonBlankValueOf(JOB_ID_VARIABLE);
 }
 
@@ -202,7 +202,7 @@ export function agentVariableOf(name: string): string | undefined {
 
 /**
  * Whether the agent's variable, by the name the agent adapter gives, holds a value; empty or whitespace-only reads as unset. Only presence
- * is answered: an API key goes to a session through Talos's own environment, never through the Overseer's code or files.
+ * is answered: an API key goes to a session through Talos's own environment, never through Hephaestus's code or files.
  */
 export function agentVariableIsSet(name: string): boolean {
   return nonBlankValueOf(name) !== undefined;

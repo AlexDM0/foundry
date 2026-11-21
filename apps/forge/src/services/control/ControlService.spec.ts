@@ -108,11 +108,11 @@ const EXAMPLE_OF_KIND: { readonly [Kind in ControlCommandKind]: ControlCommandOf
   'question-options': {
     kind: 'question-options', jobId: 'J3', question: 'Which basket?', options: [{ label: 'Wicker', tradeOff: 'Lighter, less sturdy.' }]
   },
-  'overseer-pause':            { kind: 'overseer-pause' },
-  'overseer-resume':           { kind: 'overseer-resume' },
+  'hephaestus-pause':          { kind: 'hephaestus-pause' },
+  'hephaestus-unpause':        { kind: 'hephaestus-unpause' },
   'interrupted-work-resume':   { kind: 'interrupted-work-resume', target: 'all' },
-  'overseer-stop':             { kind: 'overseer-stop', now: true },
-  'overseer-restart':          { kind: 'overseer-restart', now: false },
+  'hephaestus-stop':           { kind: 'hephaestus-stop', now: true },
+  'hephaestus-restart':        { kind: 'hephaestus-restart', now: false },
   'talos-restart':             { kind: 'talos-restart' },
   'concurrency-set':           { kind: 'concurrency-set', limit: 3 },
   'machine-agent-limit-set':   { kind: 'machine-agent-limit-set', limit: 2 },

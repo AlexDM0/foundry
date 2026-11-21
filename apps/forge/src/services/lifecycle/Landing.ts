@@ -1,7 +1,7 @@
 /**
  * Landing a gated commit on its target, inside the caller's `writeTracker` hold: the target's tip is read and compared with the tip the
  * merge was made against before anything moves, then main is fast-forwarded in the main checkout, or a group branch by `merge --ff-only`
- * in its worktree. Every refusal is a wordless verdict naming the outcome the Overseer acts on, so a refused landing never loops. A tracker
+ * in its worktree. Every refusal is a wordless verdict naming the outcome Hephaestus acts on, so a refused landing never loops. A tracker
  * in a project folder of its repository lands under the repository's landing lock and journals each landing for its siblings.
  */
 import { TicketAcceptanceUtil }                            from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
@@ -77,7 +77,7 @@ export type LandingVerdict =
   | { verdict: 'already-landed'; commit: string; targetTip: string }
   | { verdict: 'refused'; reason: LandingRefusalReason; facts: LandingRefusalFacts };
 
-/** What the Overseer does with each refusal: a target-level one stops new slots on the target, a ticket-level one holds the ticket. */
+/** What Hephaestus does with each refusal: a target-level one stops new slots on the target, a ticket-level one holds the ticket. */
 export const LANDING_OUTCOME_OF_REFUSAL: Readonly<Record<LandingRefusalReason, LandingOutcome>> = {
   'landing-lock-held':                  'wait-for-the-landing-lock',
   'target-moved-by-a-recorded-landing': 'requeue-from-branch-tip',

@@ -279,13 +279,13 @@ export function boardStateFixture(changes: Partial<BoardDocument> = {}): BoardDo
     boardVersion: 1,
     trackerId:    FIXTURE_TRACKER_ID,
     project:      'Example Agency',
-    overseer:     { state: 'serving', paused: false, codeVersion: 'code-1' },
+    hephaestus:   { state: 'serving', paused: false, codeVersion: 'code-1' },
     concurrency:  { limit: 4, agentsInFlight: 1 },
     launchSlots:  { limit: 4, slotJobIds: ['J12'], inProgressTicketIdsWithoutJob: [] },
     usage:        { resetsAt: null, window: null, windows: [] },
     page:         {
       progress: {
-        startedAt: '2026-10-20T08:00:00', view: { kind: 'auto' }, overseerSetting: 'running', tasks: FIXTURE_TASKS, log: []
+        startedAt: '2026-10-20T08:00:00', view: { kind: 'auto' }, hephaestusSetting: 'running', tasks: FIXTURE_TASKS, log: []
       },
       epicDescriptions: [{ key: 'checkout', descriptionHtml: PLANTED_DESCRIPTION_HTML }, { key: 'archive', descriptionHtml: '' }],
       draftRequests:    [],

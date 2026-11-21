@@ -1,11 +1,11 @@
 /**
- * `namespace [<name>]` prints the board's branch namespace, or sets it while the board is idle: no Overseer serving it, no job that works
+ * `namespace [<name>]` prints the board's branch namespace, or sets it while the board is idle: no Hephaestus serving it, no job that works
  * on a branch on it and no branch left under its current names, since every one of those would go on under the old names. A namespace
  * another tracker of the repository lists is refused, and the board's own entry in that list follows the name it takes.
  */
 import { readingBoardOf }                                           from '../../../src/lib/tracker-model/ReadingBoard.ts';
-import { Baton }                                                    from '../../../src/services/overseer/Baton.ts';
-import { overseerFilesIn }                                          from '../../../src/services/overseer/OverseerFiles.ts';
+import { Baton }                                                    from '../../../src/services/hephaestus/Baton.ts';
+import { hephaestusFilesIn }                                        from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import { lockTakerOf }                                              from '../../../src/services/tracker/LockHolders.ts';
 import { projectLocationOf }                                        from '../../../src/services/tracker/ProjectLocation.ts';
 import { listTracker, readListedTrackers, repositoryTrackerListOf } from '../../../src/services/tracker/RepositoryTrackerList.ts';
@@ -42,12 +42,12 @@ function printCurrentNamespace(commandArguments: ArgumentParser, context: Comman
   OutputUtil.printEntity(commandArguments, context, { branchNamespace }, namespaceTextOf(branchNamespace));
 }
 
-function refuseWhileAnOverseerServes(context: CommandContext): void {
-  const { overseerDirectory } = overseerFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
-  const newest = Baton.newestBatonOf(context.platformPorts, overseerDirectory);
+function refuseWhileAnHephaestusServes(context: CommandContext): void {
+  const { hephaestusDirectory } = hephaestusFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
+  const newest = Baton.newestBatonOf(context.platformPorts, hephaestusDirectory);
   if (newest.verdict !== 'live') return;
-  const batonFilePath = Baton.batonFilePathFor(overseerDirectory, newest.generation);
-  throw new OperationRefusal('refused', { kind: 'overseer-already-running', url: newest.record.url, batonFilePath });
+  const batonFilePath = Baton.batonFilePathFor(hephaestusDirectory, newest.generation);
+  throw new OperationRefusal('refused', { kind: 'hephaestus-already-running', url: newest.record.url, batonFilePath });
 }
 
 function refuseANamespaceAnotherTrackerLists(context: CommandContext, wantedNamespace: string): void {
@@ -93,7 +93,7 @@ export const namespaceCommand: CommandHandler = async (commandArguments, context
       `"${wantedNamespace}" is not a namespace. Write lower-case letters and digits, with dashes only between them, at most 40 characters.\n  Usage: ${USAGE}`,
     );
   }
-  refuseWhileAnOverseerServes(context);
+  refuseWhileAnHephaestusServes(context);
   refuseANamespaceAnotherTrackerLists(context, wantedNamespace);
   const command: ControlCommandOf<'namespace-set'> = { kind: 'namespace-set', namespace: wantedNamespace };
   const { logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;

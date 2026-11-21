@@ -265,7 +265,7 @@ describe('the rendered settings', () => {
     expect(sandbox.network).toMatchObject({ allowedDomains: ['registry.example.com'], strictAllowlist: true });
   });
 
-  // allowLocalBinding also opens outbound loopback to every local port, the Overseer's API among them: `docs/development/platform-status.md`.
+  // allowLocalBinding also opens outbound loopback to every local port, Hephaestus's API among them: `docs/development/platform-status.md`.
   test.each([...ROLES])('%s: the sandbox network opens no local port, so no session reaches loopback', (role) => {
     expect(Object.keys(settingsOf(CLAUDE_CODE_ADAPTER.planOf(requestOf(role))).sandbox.network)).not.toContain('allowLocalBinding');
   });
@@ -392,7 +392,7 @@ describe('the child environment', () => {
     });
   });
 
-  /** Each row is one variable the Overseer's own environment holds, and whether the launched session gets it. */
+  /** Each row is one variable Hephaestus's own environment holds, and whether the launched session gets it. */
   const FORWARDING_TABLE: readonly (readonly [string, 'passes' | 'dropped'])[] = [
     ['ANTHROPIC_API_KEY', 'dropped'],
     ['ANTHROPIC_AUTH_TOKEN', 'dropped'],
@@ -430,20 +430,20 @@ describe('the child environment', () => {
   }
 
   describe('billing', () => {
-    const PLANTED_KEY = 'sk-ant-example-planted-overseer-key';
-    const overseerEnvironment = {
+    const PLANTED_KEY = 'sk-ant-example-planted-hephaestus-key';
+    const hephaestusEnvironment = {
       HOME:                    '/Users/example',
       ANTHROPIC_API_KEY:       PLANTED_KEY,
       ANTHROPIC_AUTH_TOKEN:    'example-planted-auth-token',
       CLAUDE_CODE_OAUTH_TOKEN: 'example-oauth-token',
     };
     const billedPlanOf = (billing: AgentLaunchRequest['billing']): AgentLaunchPlan => {
-      const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(overseerEnvironment, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
+      const environment = POSIX_LAUNCH_ENVIRONMENT.launchEnvironmentOf(hephaestusEnvironment, {}, CLAUDE_CODE_ADAPTER.inheritedVariableNames);
       return CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment, ...(billing === undefined ? {} : { billing }) }));
     };
 
     test.each([['absent', undefined], ['subscription', { mode: 'subscription' } as const]])(
-      'with billing %s, the child holds neither API variable of the Overseer, copies nothing from Talos and keeps the OAuth token',
+      'with billing %s, the child holds neither API variable of Hephaestus, copies nothing from Talos and keeps the OAuth token',
       (_description, billing) => {
         const plan = billedPlanOf(billing);
         expect(plan.environment['ANTHROPIC_API_KEY']).toBeUndefined();
@@ -454,7 +454,7 @@ describe('the child environment', () => {
     );
 
     test('an environment handed in with both API variables still launches a child with neither', () => {
-      const plan = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment: overseerEnvironment }));
+      const plan = CLAUDE_CODE_ADAPTER.planOf(requestOf('builder', { environment: hephaestusEnvironment }));
       expect(Object.keys(plan.environment)).not.toContain('ANTHROPIC_API_KEY');
       expect(Object.keys(plan.environment)).not.toContain('ANTHROPIC_AUTH_TOKEN');
     });
@@ -561,7 +561,7 @@ describe('the session endings, for every session kind', () => {
     expect({ closingLine: plan.closingLine, endingPatterns: plan.endingPatterns, quitAtTurnEnd: plan.quitAtTurnEnd }).toEqual(EXPECTED_ENDINGS);
   });
 
-  test('names every ending by a name the Overseer maps to a cause', () => {
+  test('names every ending by a name Hephaestus maps to a cause', () => {
     for (const pattern of CLAUDE_CODE_ADAPTER.planOf(requestOf('builder')).endingPatterns) expect<readonly string[]>(AGENT_ENDING_NAMES).toContain(pattern.name);
   });
 

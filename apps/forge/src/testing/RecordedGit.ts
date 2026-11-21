@@ -26,7 +26,7 @@ import {
 
 import { writeFileAtomically }              from '../lib/atomic-file/AtomicFile.ts';
 import { GitProcess, type GitRun }          from '../lib/git/GitProcess.ts';
-import { GpgDirectories }                   from '../services/overseer/GpgDirectories.ts';
+import { GpgDirectories }                   from '../services/hephaestus/GpgDirectories.ts';
 import type { BoundaryRecording }           from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf } from './BoundaryRecordings.ts';
 import {
@@ -568,7 +568,7 @@ export function sharedFlowAnswerOf(directory: string, gitArguments: readonly str
 }
 
 /**
- * Called by the preload a long-running binary gets, such as an Overseer, whose timing decides how often it asks git: each call is answered
+ * Called by the preload a long-running binary gets, such as a Hephaestus, whose timing decides how often it asks git: each call is answered
  * by the step of `answerSet` with its arguments, in any order and any number of times. Each call no step names is a line of `reportPath`.
  */
 export function answerRecordedGitInThisProcess(answerSet: RecordedGitStage, reportPath: string): void {

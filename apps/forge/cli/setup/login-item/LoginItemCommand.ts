@@ -1,6 +1,6 @@
 /**
- * `login-item add|remove|status [--repository <path>] [--json]`: the item that starts this board's Overseer when User logs in, the one setup's
- * `--login-overseer` writes, under a label of the board's own so every board has one. It writes no repository file.
+ * `login-item add|remove|status [--repository <path>] [--json]`: the item that starts this board's Hephaestus when User logs in, the one setup's
+ * `--login-item` writes, under a label of the board's own so every board has one. It writes no repository file.
  */
 import { join, resolve } from 'node:path';
 
@@ -11,7 +11,7 @@ import { boardStoreIn }                       from '../../BoardStoreOf.ts';
 import type { CommandHandler }                from '../../CommandHandler.ts';
 import { ProgramAnswerUtil }                  from '../../utils/ProgramAnswerUtil.ts';
 import { autostartFor }                       from '../AutostartFor.ts';
-import { autostartPrimitivesOf, loginItemOf } from '../LoginOverseer.ts';
+import { autostartPrimitivesOf, loginItemOf } from '../LoginHephaestus.ts';
 import { processSetupHostOf }                 from '../ProcessSetupHost.ts';
 import type { SetupHost }                     from '../SetupHost.ts';
 
@@ -67,10 +67,10 @@ function actionOf(written: string | undefined): LoginItemAction {
 
 function humanLineOf(action: LoginItemAction, answer: LoginItemAnswer): string {
   if (action === 'status') {
-    return answer.state === 'present' ? `${answer.location} starts the Overseer of ${answer.repository} at login.` : 'No login item starts this board\'s Overseer.';
+    return answer.state === 'present' ? `${answer.location} starts Hephaestus of ${answer.repository} at login.` : 'No login item starts this board\'s Hephaestus.';
   }
-  if (action === 'remove') return answer.outcome === 'done' ? `Removed ${answer.location}; the Overseer no longer starts at login.` : 'No login item was there to remove.';
-  return `Wrote ${answer.location}: the Overseer of ${answer.repository} starts at login.`;
+  if (action === 'remove') return answer.outcome === 'done' ? `Removed ${answer.location}; Hephaestus no longer starts at login.` : 'No login item was there to remove.';
+  return `Wrote ${answer.location}: Hephaestus of ${answer.repository} starts at login.`;
 }
 
 /** This module's checkout, three folders up from `cli/setup/login-item/`: the one whose `agent-progress.ts` the item runs. */

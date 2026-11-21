@@ -591,7 +591,7 @@ function historyEntryOut(entry: BoardPipelineHistoryEntry): BoardPipelineHistory
       };
     case 'pipeline-setup-discarded':
       return { kind: entry.kind, at: entry.at, setupId: entry.setupId };
-    case 'overseer-set':
+    case 'hephaestus-set':
       return { kind: entry.kind, at: entry.at, state: entry.state };
   }
 }

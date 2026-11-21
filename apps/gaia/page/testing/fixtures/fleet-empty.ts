@@ -5,7 +5,7 @@
 import type { FleetDocument } from '../../@types/FleetDocument.ts';
 
 export const FLEET_EMPTY: FleetDocument = {
-  fleetVersion: 10,
+  fleetVersion: 11,
   forges:       [],
   attention:    [],
   needsALook:   [],
@@ -48,9 +48,9 @@ export const FLEET_EMPTY: FleetDocument = {
     forgeProgramInUse: null,
     settingsFile:      'absent',
     knownContracts:    {
-      summary: 1,
-      monitor: 4,
-      control: 2,
+      summary: 2,
+      monitor: 5,
+      control: 3,
     },
     versions: {
       systemVersion:         { major: 1, minor: 0 },

@@ -34,7 +34,7 @@ export interface ReviewPassRequest {
   reviewStartCommit: string;
   /** The worktree HEAD's tree the gates just passed: the ticket is queued only while its row's green is current on it. */
   headTree:          string;
-  /** The overseer-written folder of the job, where its waiver proposals wait for User's answer. */
+  /** The hephaestus-written folder of the job, where its waiver proposals wait for User's answer. */
   jobFolder:         string;
   /** The fallback thresholds: the board's pipeline sets the rework threshold (`RoundVerdictUtil.roundLimitsOf`). */
   limits:            RoundLimits;
@@ -327,7 +327,7 @@ function bodyWithWaivedItems(body: string, proposals: readonly WaiverProposal[])
 }
 
 /**
- * Acts on User's recorded answer to the review job's `waiver` decision, in the Overseer's hold after the answer: granted, each proposed
+ * Acts on User's recorded answer to the review job's `waiver` decision, in Hephaestus's hold after the answer: granted, each proposed
  * item is written waived and the ticket queued to merge while its green is current on `headTree`, its worktree HEAD's tree (else it waits
  * unqueued for a fresh review, which gates it); refused, the review ends as a failed pass and the ticket goes back to a fixer. A grant
  * whose stored proposals cannot be read waives nothing it cannot name, so it fails closed as that same failed pass.

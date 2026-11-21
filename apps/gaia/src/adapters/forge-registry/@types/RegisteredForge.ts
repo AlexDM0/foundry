@@ -1,12 +1,12 @@
 /** One forge as the machine's registry `projects.json` names it, mapped in. */
 import type { ForgeRegistryPresence } from '../../../shared/@types/ForgePresence.ts';
 
-/** The live Overseer the registry names; the forge removes the key at its stop. */
-export interface RegisteredOverseer {
+/** The live Hephaestus the registry names; the forge removes the key at its stop. */
+export interface RegisteredHephaestus {
   readonly url:       string;
   readonly processId: number;
   readonly startedAt: string;
-  /** The Overseer's token file (F4); `null` from a forge that does not write it yet. */
+  /** Hephaestus's token file (F4); `null` from a forge that does not write it yet. */
   readonly tokenPath: string | null;
 }
 
@@ -16,8 +16,8 @@ export interface RegisteredForge {
   readonly root:          string;
   /** The forge program that last wrote the entry (F9); `null` from a forge that does not write it yet. */
   readonly program:       string | null;
-  readonly overseer:      RegisteredOverseer | null;
-  /** The forge verb that last wrote the entry, as the forge words it: its command word and subcommand, such as `oversee stop`. */
+  readonly hephaestus:    RegisteredHephaestus | null;
+  /** The forge verb that last wrote the entry, as the forge words it: its command word and subcommand, such as `stop`. */
   readonly lastCommand:   string | null;
   /** When the forge last wrote the entry, as the forge stamped it: shown, never compared. */
   readonly lastChangedAt: string | null;

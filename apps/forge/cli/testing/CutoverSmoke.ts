@@ -214,7 +214,7 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
     })().catch(() => undefined);
   };
 
-  const liveUrl = async (): Promise<string | null> => (await quietJson<{ url?: string | null }>(['oversee', 'status']))?.url ?? null;
+  const liveUrl = async (): Promise<string | null> => (await quietJson<{ hephaestus?: { url?: string | null } }>(['status']))?.hephaestus?.url ?? null;
 
   const liveJobs = async (): Promise<LiveJob[]> => (await quietJson<{ jobs: LiveJob[] }>(['jobs']))?.jobs ?? [];
 
@@ -222,11 +222,11 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
     .filter((line) => line.trim() !== '').map((line) => JSON.parse(line) as SmokeLogRecord);
 
   const newestBaton = (): { processId: number; tokenFile: string } | null => {
-    const overseerFolder = join(trackerDirectory, 'overseer');
-    const batonFiles = readdirSync(overseerFolder).filter((fileName) => /^baton-\d+\.json$/.test(fileName))
+    const hephaestusFolder = join(trackerDirectory, 'hephaestus');
+    const batonFiles = readdirSync(hephaestusFolder).filter((fileName) => /^baton-\d+\.json$/.test(fileName))
       .sort((a, b) => Number(/\d+/.exec(a)?.[0]) - Number(/\d+/.exec(b)?.[0]));
     const newest = batonFiles.at(-1);
-    return newest === undefined ? null : JSON.parse(readFileSync(join(overseerFolder, newest), 'utf8')) as { processId: number; tokenFile: string };
+    return newest === undefined ? null : JSON.parse(readFileSync(join(hephaestusFolder, newest), 'utf8')) as { processId: number; tokenFile: string };
   };
 
   const childProcessIdOf = (jobId: string, instance: number): number | null => {
@@ -273,11 +273,11 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       const pipeline = JSON.parse(readFileSync(pipelinePath, 'utf8')) as Record<string, unknown>;
       writeFileSync(pipelinePath, `${JSON.stringify({ ...pipeline, review: { name: 'review' } }, null, 2)}\n`);
       await program(['concurrency', '2']);
-      await program(['oversee', 'pause']);
+      await program(['pause']);
     },
 
-    async startOverseer(): Promise<void> {
-      const started = await programJson<{ url: string }>(['oversee', '--detach', '--port', '0']);
+    async startHephaestus(): Promise<void> {
+      const started = await programJson<{ url: string }>(['start', '--port', '0']);
       openStream(started.url);
     },
 
@@ -289,11 +289,11 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
         ticketIds.push(filed.id);
       }
       await programJson(['ticket', 'ready', ...ticketIds]);
-      await programJson(['oversee', 'resume']);
+      await programJson(['unpause']);
       return ticketIds;
     },
 
-    /** Kills the Overseer once a build runs, starts a new one, then hands it over; answers what the agent's child did meanwhile. */
+    /** Kills Hephaestus once a build runs, starts a new one, then hands it over; answers what the agent's child did meanwhile. */
     async regroupAroundRunningBuild(job: LiveJob): Promise<RegroupingObservation> {
       const ticketId = job.ticketIds[0] ?? '';
       let childProcessId = childProcessIdOf(job.id, job.childInstance);
@@ -304,11 +304,11 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       const buildLaunchesBefore = buildLaunchesOf(ticketId);
       const baton = newestBaton();
       if (baton === null || childProcessId === null) throw new Error('no Baton or child record to regroup around');
-      log(`kill -9 of the Overseer (process ${baton.processId}) while job ${job.id} (#${ticketId}) runs on child instance ${job.childInstance}, process ${childProcessId}`);
+      log(`kill -9 of Hephaestus (process ${baton.processId}) while job ${job.id} (#${ticketId}) runs on child instance ${job.childInstance}, process ${childProcessId}`);
       const killedAt = new Date().toISOString();
       process.kill(baton.processId, 'SIGKILL');
       while (processIsAlive(baton.processId)) await sleep(POLL_INTERVAL_MILLISECONDS / 10);
-      const regrouped = await programJson<{ url: string }>(['oversee', '--detach', '--port', '0']);
+      const regrouped = await programJson<{ url: string }>(['start', '--port', '0']);
       openStream(regrouped.url);
       streamGaps.push({ from: killedAt, to: new Date().toISOString() });
       await sleep(SETTLE_AFTER_REGROUPING_MILLISECONDS);
@@ -319,7 +319,7 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       const instanceAfterRegrouping = newestInstance();
       const keptRunningAfterRegrouping = agentKeptRunning();
       const restartedAt = new Date().toISOString();
-      const restart = await program(['oversee', 'restart', '--json']);
+      const restart = await program(['restart', '--json']);
       const restartedUrl = await liveUrl();
       if (restartedUrl !== null) openStream(restartedUrl);
       streamGaps.push({ from: restartedAt, to: new Date().toISOString() });
@@ -382,18 +382,18 @@ function createSmoke(options: CutoverSmokeOptions, logPath: string) {
       ];
     },
 
-    /** Stops every job and waits, bounded, for the stopped ones to end before stopping the Overseer. */
+    /** Stops every job and waits, bounded, for the stopped ones to end before stopping Hephaestus. */
     async stopEverything(): Promise<void> {
       streamController?.abort();
       await program(['job', 'stop', '--all']);
       for (let attempt = 0; attempt < STOPPING_JOB_TRIES && (await liveJobs()).some((liveJob) => liveJob.state === 'stopping'); attempt++) {
         await sleep(STOPPING_JOB_INTERVAL_MILLISECONDS);
       }
-      await program(['oversee', 'stop', '--now']);
+      await program(['stop', '--now']);
     },
 
     keepBoardLog(evidenceBase: string): void {
-      for (const fileName of ['log.jsonl', 'overseer.log']) {
+      for (const fileName of ['log.jsonl', 'hephaestus.log']) {
         const source = join(trackerDirectory, fileName);
         if (existsSync(source)) copyFileSync(source, `${evidenceBase}-${fileName}`);
       }
@@ -424,7 +424,7 @@ export async function runCutoverSmoke(commandLineArguments: readonly string[]): 
   let ticketIds: string[] = [];
   try {
     await smoke.prepare();
-    await smoke.startOverseer();
+    await smoke.startHephaestus();
     ticketIds = await smoke.fileAndReadyTickets();
     const regrouping = await smoke.driveToDelivery(ticketIds);
     verdicts = smoke.verdictsOf(ticketIds, regrouping);

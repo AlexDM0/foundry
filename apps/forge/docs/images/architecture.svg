@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="686" viewBox="0 0 680 686" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
-  <title>One Overseer drives; agents run outside it</title>
-  <desc>User works through a client of the API, which sends commands to the one Overseer and shows its live state, and through terminal verbs, typed or run by an orchestrator session, which record a fact in the data folder. The Overseer reads and writes that folder, hands each ticket to the Airlock that lands it on main, and sends frames to the board's one detached Talos. Talos runs each child, an agent session or a gate, and reports each through an event log in the data folder. Talos and its children outlive the Overseer.</desc>
+  <title>One Hephaestus drives; agents run outside it</title>
+  <desc>User works through a client of the API, which sends commands to the one Hephaestus and shows its live state, and through terminal verbs, typed or run by an orchestrator session, which record a fact in the data folder. Hephaestus reads and writes that folder, hands each ticket to the Airlock that lands it on main, and sends frames to the board's one detached Talos. Talos runs each child, an agent session or a gate, and reports each through an event log in the data folder. Talos and its children outlive Hephaestus.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -9,11 +9,11 @@
 
   <rect x="1" y="1" width="678" height="684" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
 
-  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">One Overseer drives; agents run outside it</text>
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">One Hephaestus drives; agents run outside it</text>
   <text x="40" y="68" font-size="13" fill="#73726c">Solid arrows act. Dashed arrows only report.</text>
 
   <rect x="40" y="462" width="600" height="206" rx="12" fill="none" stroke="#bfbdb0" stroke-width="1.2" stroke-dasharray="5 4"/>
-  <text x="56" y="482" font-size="12" font-weight="500" fill="#5F5E5A">Outlives the Overseer</text>
+  <text x="56" y="482" font-size="12" font-weight="500" fill="#5F5E5A">Outlives Hephaestus</text>
 
   <g fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)">
     <path d="M300,132 L300,150 L170,150 L170,165"/>
@@ -51,7 +51,7 @@
   <text x="550" y="211" font-size="12" fill="#185FA5" text-anchor="middle">User or orchestrator session</text>
 
   <rect x="40" y="272" width="360" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
-  <text x="220" y="297" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer</text>
+  <text x="220" y="297" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Hephaestus</text>
   <text x="220" y="315" font-size="12" fill="#185FA5" text-anchor="middle">the one driver: launches, verifies, parks, merges</text>
   <rect x="460" y="272" width="180" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
   <text x="550" y="297" font-size="14" font-weight="500" fill="#444441" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">.forge/</text>

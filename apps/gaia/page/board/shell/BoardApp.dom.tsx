@@ -54,7 +54,7 @@ const AGENTS_MOVED: BoardTabViewTable = stubTabViewsWith({
   agents: ({ route }) => (
     <section aria-label={MOVED_VIEW_TEXT}>
       <span>{`${MOVED_VIEW_TEXT} at ${route.item ?? 'no item'}`}</span>
-      <CommandButton label="Pause" command={{ boardCommandVersion: 1, kind: 'overseer-pause' }} />
+      <CommandButton label="Pause" command={{ boardCommandVersion: 1, kind: 'hephaestus-pause' }} />
     </section>
   ),
 });
@@ -246,7 +246,7 @@ describe('the connection', () => {
     expect(pause().disabled).toBe(false);
     act(() => fake.stream().onConnection('down'));
     expect(pause().disabled).toBe(true);
-    expect(screen.getByRole('alert').textContent).toContain('Overseer unreachable.');
+    expect(screen.getByRole('alert').textContent).toContain('Hephaestus unreachable.');
     act(() => fake.stream().onConnection('live'));
     expect(pause().disabled).toBe(false);
   });

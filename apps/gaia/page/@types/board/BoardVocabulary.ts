@@ -73,10 +73,10 @@ export type BoardAgentEffort = (typeof BOARD_AGENT_EFFORTS)[number];
 
 export type BoardAgentModel = 'haiku' | 'sonnet' | 'opus' | 'fable';
 
-export type BoardOverseerState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
+export type BoardHephaestusState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
 
 /** Where the user left the board: `paused` starts no new job until the user's go. */
-export type BoardOverseerSetting = 'running' | 'paused';
+export type BoardHephaestusSetting = 'running' | 'paused';
 
 export type BoardAttentionKind = 'escalated-question' | 'question' | 'draft-ticket' | 'filing-draft' | 'review' | 'merge-accept';
 
@@ -272,4 +272,4 @@ export type BoardPipelineHistoryKind =
   | 'pipeline-setup-opened'
   | 'pipeline-draft-discarded'
   | 'pipeline-setup-discarded'
-  | 'overseer-set';
+  | 'hephaestus-set';

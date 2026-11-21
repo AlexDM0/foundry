@@ -11,40 +11,40 @@ export type ViewRange =
   | { kind: 'relative'; from: string; to: string; tickMinutes: number | null };
 
 /** `paused`, never resumed or paused by the user, starts no new job until the user's go. */
-export type OverseerState = 'running' | 'paused';
+export type HephaestusState = 'running' | 'paused';
 
 export interface TrackerProgress {
-  trackerId:               string;
-  project:                 string;
-  startedAt:               string;
-  view:                    ViewRange;
+  trackerId:                 string;
+  project:                   string;
+  startedAt:                 string;
+  view:                      ViewRange;
   /** Never wound back, not by a row removal and not by a clearing, so an id is never handed out twice. */
-  nextTaskId:              number;
+  nextTaskId:                number;
   /** How many agents may be in flight at once; absent on a tracker that never set one, which reads as the default. */
-  concurrencyLimit?:       number;
-  /** Where the user left the Overseer; absent on a tracker that never set one, which reads as `paused`. */
-  overseerState?:          OverseerState;
+  concurrencyLimit?:         number;
+  /** Where the user left Hephaestus; absent on a tracker that never set one, which reads as `paused`. */
+  hephaestusState?:          HephaestusState;
   /** The number the next draft takes, never wound back; absent on a tracker that never opened a draft. */
-  nextDraftId?:            number;
+  nextDraftId?:              number;
   /** The number the next pipeline setup record takes, never wound back; absent on a tracker that never opened one. */
-  nextSetupId?:            number;
+  nextSetupId?:              number;
   /** The number the next job takes, never wound back; absent on a tracker that never launched a job. */
-  nextJobId?:              number;
+  nextJobId?:                number;
   /** The unsettled jobs, in launch order; an ended job leaves in the hold that ended it. Absent on a tracker that never launched one. */
-  jobs?:                   Job[];
+  jobs?:                     Job[];
   /** The number the next decision takes, never wound back; absent on a tracker that never opened one. */
-  nextDecisionId?:         number;
+  nextDecisionId?:           number;
   /** The open decisions for the user, in opening order; an answered or withdrawn one leaves. Absent on a tracker that never opened one. */
-  decisions?:              Decision[];
+  decisions?:                Decision[];
   /** The number the next incident takes, never wound back; absent on a tracker that never opened one. */
-  nextIncidentId?:         number;
+  nextIncidentId?:           number;
   /** The open incidents for the Assistant, in opening order; a closed one leaves. Absent on a tracker that never opened one. */
-  incidents?:              Incident[];
-  /** When the Overseer first started on this board, written once and kept by `clear`; absent on a board it never started on. */
-  overseerFirstStartedAt?: string;
+  incidents?:                Incident[];
+  /** When Hephaestus first started on this board, written once and kept by `clear`; absent on a board it never started on. */
+  hephaestusFirstStartedAt?: string;
   /** The namespace the board's branches are named under; absent on a board that never set one, whose branches have bare names. */
-  branchNamespace?:        string;
-  tasks:                   Task[];
+  branchNamespace?:          string;
+  tasks:                     Task[];
   /** The needs build jobs declared for other entities, in declaring order; absent on a board where no job declared one. */
-  needs?:                  DeclaredNeed[];
+  needs?:                    DeclaredNeed[];
 }

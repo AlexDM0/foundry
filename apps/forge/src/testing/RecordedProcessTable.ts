@@ -131,7 +131,7 @@ export interface RecordedProcessTable {
   readonly bornProcess:       () => ProcessIdentity;
   /** A process in the spec's own group: a stop of its tree does not reach it. */
   readonly memberOfOwnGroup:  () => ProcessIdentity;
-  /** The spec's own process, under its own id: a member of its own group, as the Overseer is. */
+  /** The spec's own process, under its own id: a member of its own group, as Hephaestus is. */
   readonly callerProcess:     () => ProcessIdentity;
   /** It ends by itself, as a process that exits; nothing makes it live again. */
   readonly endProcess:        (identity: ProcessIdentity) => void;

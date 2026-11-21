@@ -19,7 +19,7 @@ import type {
   IncompleteTicket,
   Ticket
 } from './Ticket.ts';
-import type { OverseerState } from './TrackerProgress.ts';
+import type { HephaestusState } from './TrackerProgress.ts';
 
 export interface AgentChoice {
   model?:  AgentModel;
@@ -95,7 +95,7 @@ export interface TicketMoveRequest {
   commit?:        string;
   reason?:        string;
   tokens?:        number;
-  /** Logged on a delivery recorded by hand, work the Overseer never merged or landed. */
+  /** Logged on a delivery recorded by hand, work Hephaestus never merged or landed. */
   byHand?:        boolean;
 }
 
@@ -225,8 +225,8 @@ export interface ConcurrencyLimitSet extends Logged {
   concurrency:   Concurrency;
 }
 
-export interface OverseerStateSet extends Logged {
-  previousState: OverseerState;
+export interface HephaestusStateSet extends Logged {
+  previousState: HephaestusState;
 }
 
 export interface PipelineChanged extends Logged {

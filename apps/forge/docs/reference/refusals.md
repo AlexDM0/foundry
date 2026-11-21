@@ -56,7 +56,7 @@ status through the reply, so a session exits as a direct run would.
 | --- | --- | --- | --- |
 | 409 | The sentence, beside the client's control | Any refusal in this page, `refused` or `unrepaired`. | As the row says. |
 | 423 | `The install version changed, so launches are held until the board is updated.` in a banner | Launches are held for an install change. | Update the board: run `update`. |
-| 400 | `The command body is not a control command this Overseer knows` | The body is not a known control command, or a field of a [control contract](overseer-api.md#control-contract-2) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Overseer API](overseer-api.md). |
+| 400 | `The command body is not a control command this Hephaestus knows` | The body is not a known control command, or a field of a [control contract](hephaestus-api.md#control-contract-3) kind, `chart-range-set`, `tracker-clear` or `ticket-deliver-by-hand` has the wrong type. Its code is `malformed-body`. | A client defect. Other route tokens are in [the Hephaestus API](hephaestus-api.md). |
 
 ## When something was written
 
@@ -66,8 +66,8 @@ the tickets as they were. Taking the lock still writes its own files under
 
 | Case | What stands | Why |
 | --- | --- | --- |
-| A relayed command is refused | One `hatch-applied` log record, always. Anything the command changed before it refused stays too. | The [Overseer](../glossary.md#overseer) commits the whole [lock hold](../glossary.md#lock-hold), even when one request in it was refused. |
-| `baton-pass-failed` from `update` or `oversee restart` | The Overseer's `baton-pass-failed` log record, a second one if it loses its port, plus everything `update` installed. | The install finished, and the Overseer records the failed [Baton pass](../glossary.md#baton-pass) before anything reads it. |
+| A relayed command is refused | One `hatch-applied` log record, always. Anything the command changed before it refused stays too. | [Hephaestus](../glossary.md#hephaestus) commits the whole [lock hold](../glossary.md#lock-hold), even when one request in it was refused. |
+| `baton-pass-failed` from `update` or `restart` | Hephaestus's `baton-pass-failed` log record, a second one if it loses its port, plus everything `update` installed. | The install finished, and Hephaestus records the failed [Baton pass](../glossary.md#baton-pass) before anything reads it. |
 | `lock-taken-over` | Whatever the [hold journal](../glossary.md#hold-journal) had committed. | The next command finishes it. |
 | `worktree-repair-failed`, `worktree-has-uncommitted-work` | The tracker is unchanged, though the sentence reads "Nothing was written". A `recreate` may have saved its patch, and git may have done part of the step. | The git step runs inside the [lock hold](../glossary.md#lock-hold), before the board is written. |
 | `malformed-hatch-reply` | Unknown. | The reply that would say is unreadable. |
@@ -78,9 +78,9 @@ These lines come from a session's relayed command or from a hook, and each exits
 
 | Printed line | Exit | Meaning |
 | --- | --- | --- |
-| `queued <request>` | 0 | The Overseer did not answer in time, and the request still waits in the Hatch. |
-| `nothing-to-do <request>` | 0 | The Overseer read the request, and the change was already made. |
-| `done <request>` | 0 | The Overseer applied the request. |
+| `queued <request>` | 0 | Hephaestus did not answer in time, and the request still waits in the Hatch. |
+| `nothing-to-do <request>` | 0 | Hephaestus read the request, and the change was already made. |
+| `done <request>` | 0 | Hephaestus applied the request. |
 | A deny in the JSON of `hook bash-domains` | 0 | The guard on a ticket's `network` line denied a tool call. A hook that errored would let the call through, so every failure answers deny. |
 | A deny in the JSON of `hook stage-edits` | 0 | The guard on the folders of a stage of a job of an entity denied an `Edit` or `Write`. A hook that errored would let the call through, so every failure answers deny. |
 
@@ -94,7 +94,7 @@ These lines come from a session's relayed command or from a hook, and each exits
 - [Gates and pipeline](#gates-and-pipeline) (7)
 - [Pipeline setup](#pipeline-setup) (40)
 - [Airlocks and landing](#airlocks-and-landing) (12)
-- [Overseer and Baton](#overseer-and-baton) (17)
+- [Hephaestus and Baton](#hephaestus-and-baton) (17)
 - [Hatch and roles](#hatch-and-roles) (11)
 - [Install and version](#install-and-version) (6)
 - [Tracker, lock and journal](#tracker-lock-and-journal) (11)
@@ -139,8 +139,8 @@ Words here: [ticket](../glossary.md#ticket), [task](../glossary.md#task), [row](
 | `was not moved: abandon needs --reason` | `abandon-without-reason` | `ticket abandon` had no reason, or a blank one. | Pass `--reason`. | |
 | `has no row, so --tokens has nowhere to be recorded` | `tokens-without-a-row` | `--tokens` on a move of a ticket with no row, as a draft ticket being abandoned. | Drop `--tokens`. | |
 | `and another review pass needs a ticket that is in-review` | `rereview-outside-review` | `ticket rereview` outside `in-review`. | Follow the sentence when it offers `ticket status`, otherwise leave it. | |
-| `has no in-progress review bar, so there is no review pass` | `review-record-without-a-review-bar` | Never printed: only the Overseer records a review, after opening the bar itself. | Nothing to do. | |
-| `stores no round, so the pass cannot be recorded` | `review-bar-without-a-round` | Never printed: only the Overseer records a review, after opening the bar itself. | Nothing to do. | |
+| `has no in-progress review bar, so there is no review pass` | `review-record-without-a-review-bar` | Never printed: only Hephaestus records a review, after opening the bar itself. | Nothing to do. | |
+| `stores no round, so the pass cannot be recorded` | `review-bar-without-a-round` | Never printed: only Hephaestus records a review, after opening the bar itself. | Nothing to do. | |
 | `is not an in-progress review bar, so the review of ticket` | `review-record-on-a-row-that-is-not-a-review-bar` | Never printed: no caller names a bundle bar. | Nothing to do. | |
 | `which was not claimed with ticket #<ticket>` | `review-record-on-a-bar-outside-the-bundle` | Never printed: no caller names a bundle bar. | Nothing to do. | |
 | `and a claim takes a ticket that is` | `unclaimable-status` | Never printed: `Board.claimTickets` has no caller. | Nothing to do. | |
@@ -211,23 +211,23 @@ Words here: [job](../glossary.md#job), [worktree](../glossary.md#worktree),
 | `so it has no intake to close or title` | `job-not-intake` | `intake close` or `intake title` named a job of another kind. | Name the product-owner job. | |
 | `is blank: write a short title after --` | `intake-title-empty` | `intake title` with a title of only spaces, sent through the API or a Hatch. The terminal refuses earlier with a usage line. | Send a title. | [cli.md](../cli.md#intake-title) |
 | `The option notes for job … are malformed` | `question-options-malformed` | `question options` notes that are not well formed: an unknown key, a blank text, an empty list or a label that repeats. The message names the field, such as `options[1].touches`. The terminal reads the notes as the Board does, so it refuses before it relays. | Fix the named field. | [cli.md](../cli.md#question-options) |
-| `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside the Overseer or by a control command. | A defect in forge: file a bug with the printed line. `job stop` is the way out. | |
+| `so it cannot move to <state>` | `job-move-illegal` | A job move outside the table, raised inside Hephaestus or by a control command. | A defect in forge: file a bug with the printed line. `job stop` is the way out. | |
 | `waits on a question for the user; a chat turn would answer it` | `job-awaits-user-answer` | `job message --incident` while the job or its ticket waits on an `agent-question`. | Answer the decision. | |
 | `is the user's product-owner session; only the user chats with it` | `job-is-product-owner` | `job message --incident` at a product-owner job. | Send it without `--incident`, as User. | |
 | `Name the product-owner job whose intake to close` | `intake-close-without-job` | A control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | |
 | `Name the product-owner job whose intake to title` | `intake-title-without-job` | An `intake-title` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#intake-title) |
 | `Name the build job that declares the need` | `need-declare-without-job` | A `need-declare` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#need-declare) |
 | `Name the job whose question the option notes are for` | `question-options-without-job` | A `question-options` control command with no `jobId`. The terminal refuses earlier with a usage line, so an API caller sees this. | Send `jobId`. | [cli.md](../cli.md#question-options) |
-| `The intake request is blank and carries no picture` | `intake-empty` | An `intake-start` control command whose text is only spaces and that names no picture, sent through the API. The terminal refuses earlier with a usage line. | Write the request, or attach a picture. | [overseer-api.md](overseer-api.md#commands) |
-| `and only a product-owner intake takes pictures` | `pictures-not-taken` | A `job-message` naming pictures to a job that is not a product owner, the Assistant included. | Send the message as text. | [overseer-api.md](overseer-api.md#commands) |
-| `is stored on this board: upload it again before you send it` | `picture-unknown` | A `job-message` or `intake-start` names a picture `<data>/pictures/` does not hold: never uploaded, or swept at an Overseer start before its command came. | Upload the picture again. | [overseer-api.md](overseer-api.md#commands) |
-| `pictures, and one message carries at most` | `too-many-pictures` | A `job-message` or `intake-start` names more than `PICTURES_PER_MESSAGE_LIMIT` pictures. | Send them over more messages. | [overseer-api.md](overseer-api.md#commands) |
-| `bytes, so it was not stored` | `picture-too-large` | `POST /api/pictures` with more than `PICTURE_SIZE_LIMIT_BYTES`, answered 413. | Send a smaller picture. | [overseer-api.md](overseer-api.md#routes) |
-| `By its first bytes the picture is none of` | `picture-type-unsupported` | `POST /api/pictures` with bytes that are no PNG, JPEG, WebP or GIF, whatever its name or `Content-Type`, answered 415. | Send a picture of one of those types. | [overseer-api.md](overseer-api.md#routes) |
+| `The intake request is blank and carries no picture` | `intake-empty` | An `intake-start` control command whose text is only spaces and that names no picture, sent through the API. The terminal refuses earlier with a usage line. | Write the request, or attach a picture. | [hephaestus-api.md](hephaestus-api.md#commands) |
+| `and only a product-owner intake takes pictures` | `pictures-not-taken` | A `job-message` naming pictures to a job that is not a product owner, the Assistant included. | Send the message as text. | [hephaestus-api.md](hephaestus-api.md#commands) |
+| `is stored on this board: upload it again before you send it` | `picture-unknown` | A `job-message` or `intake-start` names a picture `<data>/pictures/` does not hold: never uploaded, or swept at a Hephaestus start before its command came. | Upload the picture again. | [hephaestus-api.md](hephaestus-api.md#commands) |
+| `pictures, and one message carries at most` | `too-many-pictures` | A `job-message` or `intake-start` names more than `PICTURES_PER_MESSAGE_LIMIT` pictures. | Send them over more messages. | [hephaestus-api.md](hephaestus-api.md#commands) |
+| `bytes, so it was not stored` | `picture-too-large` | `POST /api/pictures` with more than `PICTURE_SIZE_LIMIT_BYTES`, answered 413. | Send a smaller picture. | [hephaestus-api.md](hephaestus-api.md#routes) |
+| `By its first bytes the picture is none of` | `picture-type-unsupported` | `POST /api/pictures` with bytes that are no PNG, JPEG, WebP or GIF, whatever its name or `Content-Type`, answered 415. | Send a picture of one of those types. | [hephaestus-api.md](hephaestus-api.md#routes) |
 | `so it cannot be recorded delivered by hand` | `ticket-has-live-job` | `ticket deliver --by-hand` while a job works the ticket. | Run `job stop` first. | [cli.md](../cli.md) |
 | `could not be read as a time, so it is not a range bound` | `chart-range-bound-unreadable` | `range`, or the `chart-range-set` command, with a bound that is no time. | Write an ISO 8601 timestamp, `start`, `now` or a signed offset. | [cli.md](../cli.md#the-boards-lifetime) |
 | `is not before --to` | `chart-range-backwards` | Two timestamps, or two bounds relative to now, out of order. | Swap them, or widen the window. | [cli.md](../cli.md#the-boards-lifetime) |
-| `is not a whole number of minutes above zero` | `chart-range-tick-unreadable` | A `chart-range-set` whose `tickMinutes` is not a whole number above zero. | Send a whole number of minutes, or `null`. | [overseer-api.md](overseer-api.md#commands) |
+| `is not a whole number of minutes above zero` | `chart-range-tick-unreadable` | A `chart-range-set` whose `tickMinutes` is not a whole number above zero. | Send a whole number of minutes, or `null`. | [hephaestus-api.md](hephaestus-api.md#commands) |
 | `so the board cannot be cleared under them` | `tracker-has-live-jobs` | `clear`, or the `tracker-clear` command, while a job other than the Assistant is live. | Stop the jobs, or wait until they end. | [cli.md](../cli.md#clear) |
 | `still runs on the worktree of #<ticket>; stop it first` | `worktree-in-use` | `worktree repair` `recreate` or `unlock` with a job on the ticket. | Run `job stop`, then repair. | |
 | `holds uncommitted work that could not be saved to a patch` | `worktree-has-uncommitted-work` | `recreate` found changes it could not read or save, or no job ever ran on the ticket, so there is no job folder to name for the patch. | Save the work by hand, then repair. | [runbook](../operations/runbook.md) |
@@ -289,7 +289,7 @@ Words here: [decision](../glossary.md#decision), [incident](../glossary.md#incid
 | `A decision asks at least one question` | `decision-without-questions` | A decision would open with none, as an escalated incident that carries no question. | Answer the incident instead. | |
 | `so no two of its questions may read` | `decision-questions-repeat` | Two questions share their text, and answers key on it. | Reword one. | |
 | `so it takes one choice of letters for each` | `decision-has-several-questions` | Free text on a decision of several questions. | Use letters, or answer each question through the API. | |
-| `does not name them by letter` | `decision-option-unknown` | A letter outside the options, or a repeated one. Most Overseer decisions have no options, so any letter prints this. | Use the option letters, or answer with `decide <E> -- <text>`. | |
+| `does not name them by letter` | `decision-option-unknown` | A letter outside the options, or a repeated one. Most Hephaestus decisions have no options, so any letter prints this. | Use the option letters, or answer with `decide <E> -- <text>`. | |
 | `takes one option, not` | `decision-single-choice` | Several letters on a single-select question. | Give one letter. | |
 | `There is no incident <incident>` | `unknown-incident` | The id names no incident. | Run `incidents`. | |
 | `is already closed` | `incident-closed` | Someone settled it. | Nothing. | |
@@ -390,8 +390,8 @@ Words here: [Airlock](../glossary.md#airlock), [Pass](../glossary.md#pass), [swe
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
-| `so it was not queued to merge` | `merge-queue-of-a-ticket-not-in-review` | Never printed: only an Overseer step queues a ticket, right after a passing review. | Nothing to do. | |
-| `was not queued to merge: the Overseer's last green gate run was not on its HEAD tree` | `merge-queue-without-a-current-green` | Never printed: only an Overseer step queues a ticket, and each one checks first that the ticket's green is current on its tree and phase. | Nothing to do. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
+| `so it was not queued to merge` | `merge-queue-of-a-ticket-not-in-review` | Never printed: only a Hephaestus step queues a ticket, right after a passing review. | Nothing to do. | |
+| `was not queued to merge: Hephaestus's last green gate run was not on its HEAD tree` | `merge-queue-without-a-current-green` | Never printed: only a Hephaestus step queues a ticket, and each one checks first that the ticket's green is current on its tree and phase. | Nothing to do. | [Concurrency and gates](../cli.md#concurrency-and-gates) |
 | `Merge approval is off, so ticket #<ticket> needs no accept` | `merge-approval-off` | `merge accept` or `merge update` with merge approval off. | Switch it on with `gate approval merge on`, or let the ticket land. | [Merge approval](../cli.md#merge-approval) |
 | `and does not wait for merge: only a ticket in review whose review passed on a green tree, with no job on it, does` | `merge-accept-of-a-ticket-not-waiting` | `merge accept` named a ticket that does not wait for merge. | Run `merges` and accept a waiting ticket. | [Merge approval](../cli.md#merge-approval) |
 | `was not accepted: its branch conflicts with <target> in <files>` | `merge-accept-would-conflict` | `merge accept` on a ticket whose branch git predicts to conflict with its target. | Run `merge update <ticket>` first. | [Merge approval](../cli.md#merge-approval) |
@@ -405,45 +405,45 @@ Words here: [Airlock](../glossary.md#airlock), [Pass](../glossary.md#pass), [swe
 
 </details>
 
-### Overseer and Baton
+### Hephaestus and Baton
 
-Words here: [Overseer](../glossary.md#overseer), [Baton](../glossary.md#baton), [Baton pass](../glossary.md#baton-pass),
-[Talos](../glossary.md#talos). Recipe:
-[Starting the Overseer is refused](../operations/runbook.md#starting-the-overseer-is-refused).
+Words here: [Hephaestus](../glossary.md#hephaestus), [Baton](../glossary.md#baton),
+[Baton pass](../glossary.md#baton-pass), [Talos](../glossary.md#talos). Recipe:
+[Starting Hephaestus is refused](../operations/runbook.md#starting-hephaestus-is-refused).
 
 <details open>
 <summary>22 sentences</summary>
 
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
-| `is live, but its API did not answer, so nothing was started beside it` | `overseer-not-answering` | `start` found a live Overseer, or started one, whose API did not answer within the start's tries. | Run `stop`, then `start` again. | [cli.md](../cli.md#the-overseer) |
-| `must be a positive whole number of milliseconds` | `malformed-overseer-poll-interval` | The test setting `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` holds another value. | Unset it or correct it. | |
+| `is live, but its API did not answer, so nothing was started beside it` | `hephaestus-not-answering` | `start` found a live Hephaestus, or started one, whose API did not answer within the start's tries. | Run `stop`, then `start` again. | [cli.md](../cli.md#hephaestus) |
+| `must be a positive whole number of milliseconds` | `malformed-hephaestus-poll-interval` | The test setting `FORGE_HEPHAESTUS_POLL_INTERVAL_MILLISECONDS` holds another value. | Unset it or correct it. | |
 | `must be two versions, the current and the minimum supported` | `malformed-versions-answer` | The test setting `FORGE_VERSIONS_ANSWER` holds another value. | Unset it or correct it. | [cli.md](../cli.md) |
-| `Gates and install lines cannot run confined here, so the Overseer did not start` | `gate-confinement-unavailable` | `oversee` or `start` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | |
-| `needs git <version> or newer` | `git-below-floor` | `init`, `oversee` or `start` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
+| `Gates and install lines cannot run confined here, so Hephaestus did not start` | `gate-confinement-unavailable` | `start` where the gate sandbox cannot start; the tail is the reason. | Install or enable the sandbox the reason names, then run it again. | |
+| `needs git <version> or newer` | `git-below-floor` | `init` or `start` found a git below 2.38, or none on the `PATH`, before writing anything. | Install git 2.38 or newer. | [Adopting a repository](../cli.md#adopting-a-repository) |
 | `cannot be created whole` | `baton-not-created-whole` | The Baton claim needs a hard link, and the filesystem refused it. | Move the data folder to a filesystem that allows hard links. | |
-| `An Overseer already serves this board` | `overseer-already-running` | A live Baton names another Overseer. | Use it, or run `oversee stop`. | |
-| `No Overseer serves this board` | `overseer-down` | The Overseer that `start` started was gone again before `start` read its Baton. | Run `start` again, or read `overseer.log`. | |
-| `at the same moment and holds the newer Baton` | `overseer-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
-| `took this board over from the Baton` | `baton-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Overseer drives. | |
-| `is in use, so the Overseer did not start` | `overseer-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | |
-| `so it cannot hold an Overseer Baton` | `overseer-identity-unreadable` | The start and boot of the process cannot be read. **Exit 2.** | A defect in forge: file a bug with the printed line. | |
-| `before it answered` | `overseer-did-not-start` | The `--detach` child exited or never answered. The log may not hold why. | Read the log it names, or run `oversee` in the foreground. | |
-| `is still live after being asked to stop` | `overseer-still-live` | The Baton stayed live through `OVERSEER_STOP_TRIES` tries. | Run `oversee status`, then stop it again. | |
-| `The Baton pass to code <code version> failed at <step>` | `baton-pass-failed` | `update` or `oversee restart` read a failed Baton pass, or read no outcome within `BATON_PASS_OUTCOME_TRIES` tries. The Overseer prints it too if it loses its port. The old Overseer keeps driving unless that happens. See [Sentences that mislead](#sentences-that-mislead). | Run `oversee status` and read the Overseer log. If nobody drives, run `oversee --detach`. What `update` installed stands. | |
-| `is sent to the live Overseer, never applied to the board` | `overseer-control-is-runtime-only` | Never printed: the API route, `oversee stop` and the Bouncer each stop `overseer-stop` and `overseer-restart` earlier, and the API route and the command line `talos-restart`. | Nothing to do. | |
-| `so only it delivers tickets` | `overseer-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Overseer. | Send `ticket-deliver-by-hand` through the API, as a client's control does, or run `oversee stop` first. | [cli.md](../cli.md) |
-| `speaks protocol version <answered>, and this Overseer speaks <required>` | `talos-protocol-differs` | The Talos the Overseer started from the program on disk answered another protocol version, so no Talos starts again while this Overseer lives. **Exit 2.** | Update the program checkout, then start the Overseer again. | |
-| `so the Overseer did not start and no agent runs` | `talos-unavailable` | The Talos the Overseer started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start the Overseer again. | |
-| `and stays off; its crash log` | `forge-crashed` | The serving Overseer crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
-| `is off after a crash of` | `forge-off-after-crash` | A start by the login item, or a successor whose predecessor died during the Baton pass, found a crash of the generation before it (`of a Baton nothing names` when its presence record is unreadable and no Baton is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Baton, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#the-overseer) |
-| `This board has no crash log` | `no-crash-log` | `crash-log` found no crash log on the board, or none of the number it was given (` <n>; ` and the advice to ask for the newest). It wrote nothing. | Run `crash-log` with no number for the newest, or `oversee status` to see whether the forge is off after a crash. | [cli.md](../cli.md#after-a-crash) |
+| `A Hephaestus already serves this board` | `hephaestus-already-running` | A live Baton names another Hephaestus. | Use it, or run `stop`. | |
+| `No Hephaestus serves this board` | `hephaestus-down` | The Hephaestus that `start` started was gone again before `start` read its Baton. | Run `start` again, or read `hephaestus.log`. | |
+| `at the same moment and holds the newer Baton` | `hephaestus-contended` | Two starts raced and this one lost. | Nothing. The other one serves. | |
+| `took this board over from the Baton` | `baton-taken` | A newer generation took over. **Exit 2.** | Nothing. The newer Hephaestus drives. | |
+| `is in use, so Hephaestus did not start` | `hephaestus-port-in-use` | The candidate ports are taken. The range form reads `Every port from`. | Pass a free `--port`. | |
+| `so it cannot hold a Hephaestus Baton` | `hephaestus-identity-unreadable` | The start and boot of the process cannot be read. **Exit 2.** | A defect in forge: file a bug with the printed line. | |
+| `before it answered` | `hephaestus-did-not-start` | The detached child exited or never answered. The log may not hold why. | Read the log it names, or run `start --foreground`. | |
+| `is still live after being asked to stop` | `hephaestus-still-live` | The Baton stayed live through `HEPHAESTUS_STOP_TRIES` tries. | Run `status`, then stop it again. | |
+| `The Baton pass to code <code version> failed at <step>` | `baton-pass-failed` | `update` or `restart` read a failed Baton pass, or read no outcome within `BATON_PASS_OUTCOME_TRIES` tries. Hephaestus prints it too if it loses its port. The old Hephaestus keeps driving unless that happens. See [Sentences that mislead](#sentences-that-mislead). | Run `status` and read the Hephaestus log. If nobody drives, run `start`. What `update` installed stands. | |
+| `is sent to the live Hephaestus, never applied to the board` | `hephaestus-control-is-runtime-only` | Never printed: the API route, `stop` and the Bouncer each stop `hephaestus-stop` and `hephaestus-restart` earlier, and the API route and the command line `talos-restart`. | Nothing to do. | |
+| `so only it delivers tickets` | `hephaestus-owns-the-lifecycle` | `ticket deliver --by-hand` with a live Hephaestus. | Send `ticket-deliver-by-hand` through the API, as a client's control does, or run `stop` first. | [cli.md](../cli.md) |
+| `speaks protocol version <answered>, and this Hephaestus speaks <required>` | `talos-protocol-differs` | The Talos Hephaestus started from the program on disk answered another protocol version, so no Talos starts again while this Hephaestus lives. **Exit 2.** | Update the program checkout, then start Hephaestus again. | |
+| `so Hephaestus did not start and no agent runs` | `talos-unavailable` | The Talos Hephaestus started never served: its endpoint does not fit this platform, it refused its start, or it did not serve within its start wait. **Exit 2.** | For the endpoint, move the home folder to a shorter path; otherwise read the board's Talos log, then start Hephaestus again. | |
+| `and stays off; its crash log` | `forge-crashed` | The serving Hephaestus crashed: an uncaught error, or its Talos lost while the machine stayed up. It wrote the crash log it names (or says it could not) and its presence ending `crashed`, stopped renewing Talos's lease so the agents wait, and kept its Baton and registry entry. **Exit 2.** | Read the crash log, then start the forge yourself. | |
+| `is off after a crash of` | `forge-off-after-crash` | A start by the login item, or a successor whose predecessor died during the Baton pass, found a crash of the generation before it (`of a Baton nothing names` when its presence record is unreadable and no Baton is left), or a crash suspected before the machine restarted (`, suspected before the machine restarted`). It wrote the crash log once, wrote the registry's presence `crashed`, and took no Baton, bound no port and started no Talos. | Read the crash log with `crash-log`, then run `start` yourself. | [cli.md](../cli.md#hephaestus) |
+| `This board has no crash log` | `no-crash-log` | `crash-log` found no crash log on the board, or none of the number it was given (` <n>; ` and the advice to ask for the newest). It wrote nothing. | Run `crash-log` with no number for the newest, or `status` to see whether the forge is off after a crash. | [cli.md](../cli.md#after-a-crash) |
 
 </details>
 
 ### Machine limit and login item
 
-Words here: [Overseer](../glossary.md#overseer), [job](../glossary.md#job).
+Words here: [Hephaestus](../glossary.md#hephaestus), [job](../glossary.md#job).
 
 <details open>
 <summary>6 sentences</summary>
@@ -451,11 +451,11 @@ Words here: [Overseer](../glossary.md#overseer), [job](../glossary.md#job).
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `CPUs this machine has, so nothing was written` | `machine-agent-limit-above-cpus` | `machine limit <n>` or `machine-agent-limit-set` with a limit above the CPU count the runtime reports. | Set a limit from 1 to the CPU count. | [cli.md](../cli.md#concurrency-and-gates) |
-| `is not a whole number of at least 1, so nothing was written` | `machine-agent-limit-not-whole` | `machine-agent-limit-set` with a limit that is not a whole number of at least 1. | Send a whole number. | [overseer-api.md](overseer-api.md#commands) |
+| `is not a whole number of at least 1, so nothing was written` | `machine-agent-limit-not-whole` | `machine-agent-limit-set` with a limit that is not a whole number of at least 1. | Send a whole number. | [hephaestus-api.md](hephaestus-api.md#commands) |
 | `newer than this program knows, so it was not written over` | `machine-limits-newer-version` | `<monitor>/machine-limits.json` holds a newer version. | Update this program. | [cli.md](../cli.md#concurrency-and-gates) |
-| `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [overseer-api.md](overseer-api.md#control-contract-2) |
-| `No login item can start the Overseer on this machine` | `login-item-unavailable` | `login-item` on a platform with no login item, or where the item would never run. | Start the Overseer another way, such as `start`. | [cli.md](../cli.md#the-overseer) |
-| `was not changed:` | `login-item-not-changed` | The system refused to write or remove the login item; the reason ends the line. | Read the reason, repair it, and run `login-item` again. | [cli.md](../cli.md#the-overseer) |
+| `is not a whole number of agents from 1 to` | `concurrency-limit-out-of-range` | `concurrency-set` posted to the API, or relayed, with a limit outside 1 to 10. The `concurrency` verb refuses the same value with its own words. | Send a whole number from 1 to 10. | [hephaestus-api.md](hephaestus-api.md#control-contract-3) |
+| `No login item can start Hephaestus on this machine` | `login-item-unavailable` | `login-item` on a platform with no login item, or where the item would never run. | Start Hephaestus another way, such as `start`. | [cli.md](../cli.md#hephaestus) |
+| `was not changed:` | `login-item-not-changed` | The system refused to write or remove the login item; the reason ends the line. | Read the reason, repair it, and run `login-item` again. | [cli.md](../cli.md#hephaestus) |
 
 </details>
 
@@ -472,7 +472,7 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | Printed words | Code | Cause | What to do | Home |
 | --- | --- | --- | --- | --- |
 | `this job's role may not run it` | `command-not-allowed-for-role` | The Bouncer has no row for this command and role. | An agent stops and reports it. User runs it from a terminal. | |
-| `a worker files only a low finding` | `worker-filing-flag` | A worker's filing with flags a finding may not take. | A worker files with `--priority low` and the allowed flags; the Overseer adds the finder dependency and group. | |
+| `a worker files only a low finding` | `worker-filing-flag` | A worker's filing with flags a finding may not take. | A worker files with `--priority low` and the allowed flags; Hephaestus adds the finder dependency and group. | |
 | `this job has already filed as many findings as one job may` | `worker-filing-limit` | `WORKER_FILINGS_PER_JOB` (10) reached. | Put the rest in the Handoff. | |
 | `it changes only a draft ticket this job filed` | `not-own-draft` | A product owner reached for a ticket it did not file, or one past `draft`. | Touch only its own draft tickets. | |
 | `it sets the entity only of a draft ticket this job filed, or of a ticket ready for review or committed` | `not-own-draft-or-unclaimed-ticket` | A product owner's `ticket entity` named another job's draft, or a ticket past `committed`. | Assign only its own draft tickets and tickets ready for review or committed. | |
@@ -481,10 +481,10 @@ Words here: [Hatch](../glossary.md#hatch), [Bouncer](../glossary.md#bouncer), [r
 | `the change of this ticket in that package is sealed` | `need-for-sealed-package` | The builder of a crossing ticket's stage relayed a need for a package whose change for the ticket a package review sealed (E42). | The adapt builder ends with the outcome `package-return` and writes the change in `packageReturnReason`. | [cli.md](../cli.md#need-declare) |
 | `this job is the agent of no open pipeline setup record` | `job-serves-no-setup` | A pipeline agent relayed a setup move while no open record names its job as the agent. | Nothing to do from the job: the record was started over or applied. | |
 | `it is legal only as a move the named delivered incident allows` | `incident-move-not-allowed` | The incident was not delivered to this Assistant, or does not allow the move. A terminal move under `--incident` prints it too, and so do `incident answer`, `incident note` and `incident escalate` on a kind that does not list them, with no `--incident` flag involved. Some listed moves cannot succeed. | Use a move the incident allows. | |
-| `a request may not name a job, a role or an admission` | `hatch-identity-mismatch` | A pipeline agent's request names a `setupId`; the Overseer stamps the record the agent serves. A `jobId`, `role` or `admission` never gets here: the Hatch format check below catches these fields first. | Send the verb with no setup id under the job. | |
+| `a request may not name a job, a role or an admission` | `hatch-identity-mismatch` | A pipeline agent's request names a `setupId`; Hephaestus stamps the record the agent serves. A `jobId`, `role` or `admission` never gets here: the Hatch format check below catches these fields first. | Send the verb with no setup id under the job. | |
 | `names a job or role of its own` | `hatch-identity-mismatch` | A request carries `jobId`, `role` or `admission`, or a body id unlike its file name. The Assistant's job-targeting moves fall here. | The verb cannot be sent from a session. An Assistant settles the incident by another allowed move such as `ticket park <id> --incident <I> -- <reason>`, or leaves it for its default move; User can run the job move at a terminal with `--incident <I>`. A builder or reviewer reports it in the Handoff. | |
 | `cannot run under job <job>: it is neither read-only nor` | `verb-not-relayable` | The verb has no control command and is not read-only. | Do it outside the job, or leave it for User. | |
-| `The relayed request <request> is not a request the Overseer reads` | `malformed-hatch-request` | The request file does not parse, or lacks a numeric format version, a request id or a command kind, or its body field is unusable. A request naming another numeric version is not refused: it waits for an Overseer that reads it, and the verb prints `queued`. | Send it through the verb, never by hand. | |
+| `The relayed request <request> is not a request Hephaestus reads` | `malformed-hatch-request` | The request file does not parse, or lacks a numeric format version, a request id or a command kind, or its body field is unusable. A request naming another numeric version is not refused: it waits for a Hephaestus that reads it, and the verb prints `queued`. | Send it through the verb, never by hand. | |
 | `cannot be read, so whether the request was applied is unknown` | `malformed-hatch-reply` | The reply file is broken. **Exit 2.** The request may have been applied. | Run `status`, then decide. | |
 
 </details>
@@ -570,9 +570,9 @@ These sentences come from `cli/` as text and carry no code.
 | Refused by | Where |
 | --- | --- |
 | [Customs](../glossary.md#customs): a report refused, routed to a resume or an incident | `src/services/lifecycle/Customs.ts` |
-| Landing: `target-moved`, `dirty-checkout`, `acceptance-waived` and the rest, with the action each leads to | `src/services/overseer/Airlocks.ts` |
+| Landing: `target-moved`, `dirty-checkout`, `acceptance-waived` and the rest, with the action each leads to | `src/services/hephaestus/Airlocks.ts` |
 | The Hatch ladder: which check refuses a relayed command, in order | `src/services/control/Bouncer.ts` |
-| HTTP guards: `forbidden`, `unauthorized`, `not-ready`, `not-found` | [Overseer API](overseer-api.md) |
+| HTTP guards: `forbidden`, `unauthorized`, `not-ready`, `not-found` | [Hephaestus API](hephaestus-api.md) |
 | Argument errors: a missing id, an unknown option, an unknown command | `cli/`. Each prints its own remedy, most with a `Usage:` line, at exit 1. |
 
 ## Sentences that mislead
@@ -584,10 +584,10 @@ These rows print as listed above, and the sentence is not the whole truth.
 | `tokens-without-a-row`, `lowering-a-ticket-that-is-not-committed` | A low ticket has no row until it is started. | `ticket ready` gives a row at any priority. |
 | `worktree-repair-failed`, `worktree-has-uncommitted-work` | Nothing was written at all. | Only the tracker is untouched. See [When something was written](#when-something-was-written). |
 | `job-finished` from `intake close` or `job message` | The job has ended. | It is `stopping`: it is ending, and takes no close or message. |
-| `baton-pass-failed` from `update` or `oversee restart` after the old Overseer let go | The old Overseer keeps driving. | Both commands print before the old Overseer has taken its port back. If that fails, it exits and nobody drives. Only `oversee status` shows the end state. |
-| `baton-pass-failed` with `could not be bound again`, at step `bind-port`, printed by the Overseer as it exits | The old Overseer keeps driving. | Nobody drives. Run `oversee --detach`. A successor's own `bind-port` failure, without these words, is taken back. |
-| `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | The Baton pass failed. | No outcome was read in time. The pass may still end either way, or the Overseer may have exited. |
-| `incident-move-not-allowed`, `worker-filing-flag` from a terminal or the API | A relay through the Overseer. | The same rule ran directly in this command, and no Overseer was involved. |
+| `baton-pass-failed` from `update` or `restart` after the old Hephaestus let go | The old Hephaestus keeps driving. | Both commands print before the old Hephaestus has taken its port back. If that fails, it exits and nobody drives. Only `status` shows the end state. |
+| `baton-pass-failed` with `could not be bound again`, at step `bind-port`, printed by Hephaestus as it exits | The old Hephaestus keeps driving. | Nobody drives. Run `start`. A successor's own `bind-port` failure, without these words, is taken back. |
+| `baton-pass-failed` with `no outcome within`, at step `serve` of code `unknown` | The Baton pass failed. | No outcome was read in time. The pass may still end either way, or Hephaestus may have exited. |
+| `incident-move-not-allowed`, `worker-filing-flag` from a terminal or the API | A relay through Hephaestus. | The same rule ran directly in this command, and no Hephaestus was involved. |
 | `hatch-identity-mismatch` on an Assistant's `job message` or `job fresh` | The session forged an identity. | The Assistant used a move its incident allows; the format check refuses any `jobId`. |
 
 ## Coverage
@@ -618,7 +618,7 @@ row per reason.
 | All wording | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `messageOf`, `boardRefusalMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.spec.ts` |
 | The API sentence | `src/adapters/utils/OperationRefusalWordingUtil.ts` | `apiMessageOf` | `src/adapters/utils/OperationRefusalWordingUtil.apiChannel.spec.ts` |
 | Exit codes | `cli/Main.ts` | `runCommandLine` | `cli/Main.spec.ts` |
-| The API's answer | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/routes/CommandRoute.spec.ts` |
-| A relayed refusal | `src/services/overseer/HatchInbox.ts`, `cli/HatchUnderJob.ts` | `replyOf`, `hatchWhenUnderJob` | `cli/HatchUnderJob.spec.ts` |
+| The API's answer | `cli/hephaestus/routes/CommandRoute.ts` | `answerControlCommand` | `cli/hephaestus/routes/CommandRoute.spec.ts` |
+| A relayed refusal | `src/services/hephaestus/HatchInbox.ts`, `cli/HatchUnderJob.ts` | `replyOf`, `hatchWhenUnderJob` | `cli/HatchUnderJob.spec.ts` |
 | Role reasons | `src/shared/@types/RoleCommandRefusalReason.ts`, `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
 | Older files | `src/adapters/constants/OlderFormatAdvice.ts` | `OLDER_FORMAT_ADVICE` | `cli/OlderTrackerRefusal.spec.ts` |

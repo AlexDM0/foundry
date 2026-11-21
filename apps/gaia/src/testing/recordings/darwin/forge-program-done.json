@@ -6,7 +6,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 44, code 7be0e9b545ff"
+    "systemVersion": "install version 45, code 5c7c0f3669b1"
   },
   "answers": [
     {
@@ -23,7 +23,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"present\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"present\",\n  \"label\": \"com.forge.hephaestus.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.hephaestus.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -32,7 +32,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"absent\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"state\": \"absent\",\n  \"label\": \"com.forge.hephaestus.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.hephaestus.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -41,7 +41,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": null,\n  \"state\": \"present\",\n  \"label\": \"com.forge.overseer.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.overseer.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": null,\n  \"state\": \"present\",\n  \"label\": \"com.forge.hephaestus.example-tracker\",\n  \"location\": \"/Users/example/Library/LaunchAgents/com.forge.hephaestus.example-tracker.plist\",\n  \"repository\": \"/Users/example/development/example-project\"\n}\n",
         "standardError": ""
       }
     },
@@ -59,7 +59,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"7be0e9b545ff\",\n  \"installVersion\": 44,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 4,\n    \"control\": 2\n  }\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"started\": true,\n  \"url\": \"http://127.0.0.1:47213/\",\n  \"generation\": 1,\n  \"trackerId\": \"example-tracker\",\n  \"codeVersion\": \"5c7c0f3669b1\",\n  \"installVersion\": 45,\n  \"contracts\": {\n    \"summary\": 2,\n    \"monitor\": 5,\n    \"control\": 3\n  }\n}\n",
         "standardError": ""
       }
     },
@@ -77,7 +77,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"installVersion\": 44,\n  \"batonPass\": \"not-needed\",\n  \"batonPassStep\": null\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"outcome\": \"done\",\n  \"installVersion\": 45,\n  \"batonPass\": \"not-needed\",\n  \"batonPassStep\": null\n}\n",
         "standardError": ""
       }
     },
@@ -86,7 +86,7 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 0,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"7be0e9b545ff\",\n  \"installVersion\": 44,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 4,\n    \"control\": 2\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"5c7c0f3669b1\",\n  \"installVersion\": 45,\n  \"contracts\": {\n    \"summary\": 2,\n    \"monitor\": 5,\n    \"control\": 3\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"/Users/example/.forge-monitor\"\n}\n",
         "standardError": ""
       }
     }

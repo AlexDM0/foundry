@@ -1,5 +1,5 @@
 /**
- * The Overseer's jobs on the board: their launch, their moves through the one legality table, their interruptions, resumes, end and
+ * Hephaestus's jobs on the board: their launch, their moves through the one legality table, their interruptions, resumes, end and
  * reopening, and the cursor, answered requests, option notes and Airlock each carries. Only a launch, an interruption, a lost line, User's
  * resume instruction, a resume, an end, a reopening, a stop request, a message and an intake title are logged.
  */
@@ -17,7 +17,7 @@ import type {
   JobStopMode,
   LostLineKind,
   Airlock,
-  OverseerStopReason,
+  HephaestusStopReason,
   PictureReference
 }                                   from './@types/Job.ts';
 import type { HatchAppliedRecord, LogRecord, LogRecordFieldsOf }    from './@types/LogRecord.ts';
@@ -57,8 +57,8 @@ export interface JobMessage {
   sender:   JobMessageSender;
 }
 
-/** Who wrote a message's text: User, or the Overseer wording User's setup move for the pipeline agent. */
-export type JobMessageSender = 'user' | 'overseer';
+/** Who wrote a message's text: User, or Hephaestus wording User's setup move for the pipeline agent. */
+export type JobMessageSender = 'user' | 'hephaestus';
 
 /** The message that reopens a closed session, with the pictures it carries, and the tickets its intake filed before. */
 export interface JobReopening {
@@ -69,9 +69,9 @@ export interface JobReopening {
   intake?:          JobIntake;
 }
 
-/** Set only for the Overseer, so User's message logs as it always did. */
-function senderFieldOf(sender: JobMessageSender): { byOverseer?: true } {
-  return sender === 'overseer' ? { byOverseer: true } : {};
+/** Set only for Hephaestus, so User's message logs as it always did. */
+function senderFieldOf(sender: JobMessageSender): { byHephaestus?: true } {
+  return sender === 'hephaestus' ? { byHephaestus: true } : {};
 }
 
 function picturesCopyOf(pictures: readonly PictureReference[]): PictureReference[] {
@@ -153,7 +153,7 @@ export class Jobs {
     job.state     = targetState;
     if (!resumes) return { job, logged: [] };
 
-    const cause      = job.interruption ?? 'watcher-lost';
+    const cause      = job.interruption ?? 'talos-lost';
     const instructed = options.instructed === true;
     job.childInstance += 1;
     if (instructed) job.crashResumes = 0;
@@ -207,7 +207,7 @@ export class Jobs {
     return job;
   }
 
-  /** Kept on the job so the Overseer sends its frames from the board; a later request replaces an earlier one. */
+  /** Kept on the job so Hephaestus sends its frames from the board; a later request replaces an earlier one. */
   recordStopRequest(jobId: string, mode: JobStopMode, at: string): JobChanged {
     const job       = this.requireLiveJob(jobId);
     job.stopRequest = mode;
@@ -225,7 +225,7 @@ export class Jobs {
   }
 
   /**
-   * Puts an ended job back on the board from its log records, `running` in its next child instance, so the Overseer launches it resuming the
+   * Puts an ended job back on the board from its log records, `running` in its next child instance, so Hephaestus launches it resuming the
    * same session; the caller decides which ended jobs may come back.
    */
   reopenEndedJob(jobId: string, reopening: JobReopening, at: string): JobChanged {
@@ -336,13 +336,13 @@ export class Jobs {
     return job;
   }
 
-  recordOverseerStarted(versions: { codeVersion: string; installVersion: number }, at: string): Logged {
-    this.records.progress.overseerFirstStartedAt ??= at;
-    return { logged: [this.records.logger.log({ kind: 'overseer-started', fields: { codeVersion: versions.codeVersion, installVersion: versions.installVersion } }, at)] };
+  recordHephaestusStarted(versions: { codeVersion: string; installVersion: number }, at: string): Logged {
+    this.records.progress.hephaestusFirstStartedAt ??= at;
+    return { logged: [this.records.logger.log({ kind: 'hephaestus-started', fields: { codeVersion: versions.codeVersion, installVersion: versions.installVersion } }, at)] };
   }
 
-  recordOverseerStopped(reason: OverseerStopReason, at: string): Logged {
-    return { logged: [this.records.logger.log({ kind: 'overseer-stopped', fields: { reason } }, at)] };
+  recordHephaestusStopped(reason: HephaestusStopReason, at: string): Logged {
+    return { logged: [this.records.logger.log({ kind: 'hephaestus-stopped', fields: { reason } }, at)] };
   }
 
   recordStartClassified(start: LogRecordFieldsOf<'start-classified'>, at: string): Logged {

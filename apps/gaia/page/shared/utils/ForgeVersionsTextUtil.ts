@@ -92,9 +92,9 @@ const UPDATE_FORGE_TEXT = {
   pending:             'Updating the forge…',
   pendingInCallout:    'Updating the forge… its agents keep running',
   pendingButton:       'Updating',
-  doneStandingAlone:   'Its Overseer runs the old code, and this Gaia reads none of it, until it restarts.',
+  doneStandingAlone:   'Its Hephaestus runs the old code, and this Gaia reads none of it, until it restarts.',
   doneUnderAControl:   'Gaia reads it after the restart.',
-  doneCalloutSentence: 'This forge stays older than the forge this Gaia is built for until its Overseer restarts.',
+  doneCalloutSentence: 'This forge stays older than the forge this Gaia is built for until its Hephaestus restarts.',
 } as const;
 
 function versionTextOf({ major, minor }: FleetDocumentSystemVersion): string {

@@ -11,53 +11,53 @@ import { describe, expect, test } from 'bun:test';
 import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 import {
   BOARD_SITUATIONS,
-  everyRecordedOverseerAnswerOf,
-  OVERSEER_SITUATIONS,
+  everyRecordedHephaestusAnswerOf,
+  HEPHAESTUS_SITUATIONS,
   recordedBoardAnswersOf,
-  recordedOverseerAnswersOf,
-  recordedOverseerFetch,
+  recordedHephaestusAnswersOf,
+  recordedHephaestusFetch,
   situationCallShapeOf,
   recordedVersionsAnswersOf,
   type BoardSituation,
-  type OverseerSituation,
-  type RecordedOverseerFetch,
+  type HephaestusSituation,
+  type RecordedHephaestusFetch,
 } from '../../testing/RecordedAnswers.ts';
 
-import type { ForgeStreamEvent, OverseerAccess, OverseerAddress }           from './@types/ForgeClientAnswer.ts';
-import { forgeClientOf, forgeEndpointVersionOf, type OverseerEndpointName } from './ForgeClient.ts';
-import { SUPPORTED_FORGE_VERSION }                                          from './constants/SupportedForgeVersions.ts';
+import type { ForgeStreamEvent, HephaestusAccess, HephaestusAddress }         from './@types/ForgeClientAnswer.ts';
+import { forgeClientOf, forgeEndpointVersionOf, type HephaestusEndpointName } from './ForgeClient.ts';
+import { SUPPORTED_FORGE_VERSION }                                            from './constants/SupportedForgeVersions.ts';
 
-const OVERSEER_URL = 'http://127.0.0.1:4951/';
+const HEPHAESTUS_URL = 'http://127.0.0.1:4951/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
-const ADDRESS: OverseerAddress = { overseerUrl: OVERSEER_URL };
-const ACCESS: OverseerAccess = { ...ADDRESS, bearerToken: EXAMPLE_TOKEN };
+const ADDRESS: HephaestusAddress = { hephaestusUrl: HEPHAESTUS_URL };
+const ACCESS: HephaestusAccess = { ...ADDRESS, bearerToken: EXAMPLE_TOKEN };
 const SHORT_BOUND_MILLISECONDS = 200;
 
-function overseerFetchOf(situation: OverseerSituation): RecordedOverseerFetch {
-  return recordedOverseerFetch(recordedOverseerAnswersOf(situation));
+function hephaestusFetchOf(situation: HephaestusSituation): RecordedHephaestusFetch {
+  return recordedHephaestusFetch(recordedHephaestusAnswersOf(situation));
 }
 
-function clientOf(overseerFetch: RecordedOverseerFetch) {
-  return forgeClientOf({ overseerFetch, requestTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS, streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS });
+function clientOf(hephaestusFetch: RecordedHephaestusFetch) {
+  return forgeClientOf({ hephaestusFetch, requestTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS, streamOpenTimeoutMilliseconds: SHORT_BOUND_MILLISECONDS });
 }
 
-async function followedSnapshotsOf(overseerFetch: RecordedOverseerFetch, stopAfterSnapshots: number | null = null) {
+async function followedSnapshotsOf(hephaestusFetch: RecordedHephaestusFetch, stopAfterSnapshots: number | null = null) {
   const snapshots: unknown[] = [];
-  const follow = clientOf(overseerFetch).followMonitor(ACCESS, (document) => {
+  const follow = clientOf(hephaestusFetch).followMonitor(ACCESS, (document) => {
     snapshots.push(document);
     if (snapshots.length === stopAfterSnapshots) follow.stop();
   });
   const end = await follow.ended;
-  return { end, snapshots, overseerFetch };
+  return { end, snapshots, hephaestusFetch };
 }
 
-const PAUSE_COMMAND: ForgeControlCommand = { kind: 'overseer-pause' };
+const PAUSE_COMMAND: ForgeControlCommand = { kind: 'hephaestus-pause' };
 
 /** The forge's refusal while it cannot read its board's files, as recorded. */
 const READ_FAILED = {
   verdict: 'refused',
   refusal: 'read-failed',
-  text:    'The Overseer could not read the board\'s files: one of them is missing or cannot be read.',
+  text:    'Hephaestus could not read the board\'s files: one of them is missing or cannot be read.',
 } as const;
 
 /** The machine limit the recorded forge was lowered to, and its CPU count. */
@@ -66,9 +66,9 @@ const RECORDED_CPU_COUNT = 10;
 
 interface OutcomeCase {
   readonly call:      string;
-  readonly situation: OverseerSituation;
+  readonly situation: HephaestusSituation;
   readonly callShape: string;
-  readonly answerOf:  (overseerFetch: RecordedOverseerFetch) => Promise<unknown>;
+  readonly answerOf:  (hephaestusFetch: RecordedHephaestusFetch) => Promise<unknown>;
   readonly expected:  unknown;
 }
 
@@ -83,40 +83,40 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     call:      'versionsOf',
     situation,
     callShape: 'GET /api/versions',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).versionsOf(OVERSEER_URL),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).versionsOf(HEPHAESTUS_URL),
     expected:  { verdict: 'answered', document: SUPPORTED_FORGE_VERSIONS },
   })),
   ...(['stopped', 'not-answering'] as const).map((situation): OutcomeCase => ({
     call:      'versionsOf',
     situation,
     callShape: 'GET /api/versions',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).versionsOf(OVERSEER_URL),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).versionsOf(HEPHAESTUS_URL),
     expected:  { verdict: 'unreachable' },
   })),
   {
     call:      'versionsOf',
     situation: 'port-held-by-another-program',
     callShape: 'GET /api/versions',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).versionsOf(OVERSEER_URL),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).versionsOf(HEPHAESTUS_URL),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'identityOf',
     situation: 'serving',
     callShape: 'GET /api/v1/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).identityOf(ADDRESS),
     expected:  { verdict: 'answered', document: expect.objectContaining({ application: 'forge', project: 'Example Project' }) },
   },
   {
     call:      'identityOf',
     situation: 'serving-every-contract',
     callShape: 'GET /api/v1/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).identityOf(ADDRESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({
         identityVersion: 1,
-        contracts:       { summary: 1, monitor: 4, control: 2 }
+        contracts:       { summary: 2, monitor: 5, control: 3 }
       })
     },
   },
@@ -124,112 +124,112 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
     call:      'identityOf',
     situation: 'stopped',
     callShape: 'GET /api/v1/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).identityOf(ADDRESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'identityOf',
     situation: 'not-answering',
     callShape: 'GET /api/v1/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).identityOf(ADDRESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'identityOf',
     situation: 'starting',
     callShape: 'GET /api/v1/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).identityOf(ADDRESS),
     expected:  { verdict: 'refused', refusal: 'starting', text: null },
   },
   {
     call:      'identityOf',
     situation: 'port-held-by-another-program',
     callShape: 'GET /api/v1/identity',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).identityOf(ADDRESS),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).identityOf(ADDRESS),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'summaryOf',
     situation: 'serving',
-    callShape: 'GET /api/v1/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
-    expected:  { verdict: 'answered', document: expect.objectContaining({ summaryVersion: 1, project: 'Example Project' }) },
+    callShape: 'GET /api/v2/summary',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).summaryOf(ADDRESS),
+    expected:  { verdict: 'answered', document: expect.objectContaining({ summaryVersion: 2, project: 'Example Project' }) },
   },
   {
     call:      'summaryOf',
     situation: 'stopped',
-    callShape: 'GET /api/v1/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
+    callShape: 'GET /api/v2/summary',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).summaryOf(ADDRESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'summaryOf',
     situation: 'board-unreadable',
-    callShape: 'GET /api/v1/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
+    callShape: 'GET /api/v2/summary',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).summaryOf(ADDRESS),
     expected:  READ_FAILED,
   },
   {
     call:      'summaryOf',
     situation: 'port-held-by-another-program',
-    callShape: 'GET /api/v1/summary',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).summaryOf(ADDRESS),
+    callShape: 'GET /api/v2/summary',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).summaryOf(ADDRESS),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'monitorOf',
     situation: 'serving-every-contract',
-    callShape: 'GET /api/v3/monitor with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
-    expected:  { verdict: 'answered', document: expect.objectContaining({ monitorVersion: 4, trackerId: 'example-storefront-7c41' }) },
+    callShape: 'GET /api/v4/monitor with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).monitorOf(ACCESS),
+    expected:  { verdict: 'answered', document: expect.objectContaining({ monitorVersion: 5, trackerId: 'example-storefront-7c41' }) },
   },
   {
     call:      'monitorOf',
     situation: 'stopped',
-    callShape: 'GET /api/v3/monitor with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
+    callShape: 'GET /api/v4/monitor with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).monitorOf(ACCESS),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'monitorOf',
     situation: 'token-rejected',
-    callShape: 'GET /api/v3/monitor with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
+    callShape: 'GET /api/v4/monitor with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).monitorOf(ACCESS),
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'monitorOf',
     situation: 'board-unreadable',
-    callShape: 'GET /api/v3/monitor with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
+    callShape: 'GET /api/v4/monitor with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).monitorOf(ACCESS),
     expected:  READ_FAILED,
   },
   {
     call:      'monitorOf',
     situation: 'port-held-by-another-program',
-    callShape: 'GET /api/v3/monitor with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).monitorOf(ACCESS),
+    callShape: 'GET /api/v4/monitor with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).monitorOf(ACCESS),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'send',
     situation: 'serving-every-contract',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'answered', outcome: 'done' },
   },
   {
     call:      'send',
     situation: 'nothing-to-change',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'answered', outcome: 'nothing-to-do' },
   },
   {
     call:      'send',
     situation: 'command-refused',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, { kind: 'machine-agent-limit-set', limit: 64 }),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).send(ACCESS, { kind: 'machine-agent-limit-set', limit: 64 }),
     expected:  {
       verdict: 'refused',
       refusal: 'machine-agent-limit-above-cpus',
@@ -239,99 +239,99 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
   {
     call:      'send',
     situation: 'token-rejected',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'send',
     situation: 'stopped',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'send',
     situation: 'port-held-by-another-program',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).send(ACCESS, PAUSE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).send(ACCESS, PAUSE_COMMAND),
     expected:  { verdict: 'malformed' },
   },
   {
     call:      'followMonitor',
     situation: 'serving-every-contract',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 2)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch, 2)).end,
     expected:  { verdict: 'ended', ending: 'stopped' },
   },
   {
     call:      'followMonitor',
     situation: 'baton-pass',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'ended', ending: 'closed' },
   },
   {
     call:      'followMonitor',
     situation: 'snapshot-unreadable',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'ended', ending: 'closed' },
   },
   {
     call:      'followMonitor',
     situation: 'stream-cut-inside-event',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'ended', ending: 'closed' },
   },
   {
     call:      'followMonitor',
     situation: 'connection-broken',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'ended', ending: 'broken' },
   },
   {
     call:      'followMonitor',
     situation: 'machine-limit-lowered',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch, 1)).snapshots,
     expected:  [expect.objectContaining({ concurrency: expect.objectContaining({ machineLimit: LOWERED_MACHINE_LIMIT, machineAgentsInFlight: 0 }) })],
   },
   {
     call:      'followMonitor',
     situation: 'token-rejected',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'followMonitor',
     situation: 'stopped',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'followMonitor',
     situation: 'not-answering',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'unreachable' },
   },
   {
     call:      'followMonitor',
     situation: 'board-unreadable',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch, 1)).snapshots,
-    expected:  [expect.objectContaining({ monitorVersion: 4, trackerId: 'example-storefront-7c41' })],
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch, 1)).snapshots,
+    expected:  [expect.objectContaining({ monitorVersion: 5, trackerId: 'example-storefront-7c41' })],
   },
   {
     call:      'followMonitor',
     situation: 'port-held-by-another-program',
-    callShape: 'STREAM /api/v3/monitor/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedSnapshotsOf(overseerFetch)).end,
+    callShape: 'STREAM /api/v4/monitor/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedSnapshotsOf(hephaestusFetch)).end,
     expected:  { verdict: 'malformed' },
   },
 ];
@@ -339,77 +339,77 @@ const OUTCOME_CASES: readonly OutcomeCase[] = [
 describe('each outcome of each call', () => {
   for (const outcomeCase of OUTCOME_CASES) {
     test(`${outcomeCase.call} answers ${JSON.stringify(outcomeCase.expected)} where the forge is ${outcomeCase.situation}`, async () => {
-      expect(await outcomeCase.answerOf(overseerFetchOf(outcomeCase.situation))).toEqual(outcomeCase.expected);
+      expect(await outcomeCase.answerOf(hephaestusFetchOf(outcomeCase.situation))).toEqual(outcomeCase.expected);
     });
   }
 
   test('is proven by exactly the recorded answers of the forge\'s situations, each used once', () => {
     const provenCallShapes   = OUTCOME_CASES.map(({ situation, callShape }) => situationCallShapeOf(situation, callShape));
-    const recordedCallShapes = everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape)
-      .filter((callShape) => OVERSEER_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, ''))));
+    const recordedCallShapes = everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape)
+      .filter((callShape) => HEPHAESTUS_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, ''))));
     expect([...provenCallShapes].sort()).toEqual([...recordedCallShapes].sort());
   });
 });
 
 describe('following a monitor stream', () => {
   test('hands on each whole snapshot in order, passing over the heartbeat, and closes the stream when stopped', async () => {
-    const { snapshots, overseerFetch } = await followedSnapshotsOf(overseerFetchOf('serving-every-contract'), 2);
+    const { snapshots, hephaestusFetch } = await followedSnapshotsOf(hephaestusFetchOf('serving-every-contract'), 2);
     expect(snapshots).toEqual([
-      expect.objectContaining({ monitorVersion: 4, concurrency: expect.objectContaining({ limit: 2 }) }),
-      expect.objectContaining({ monitorVersion: 4, concurrency: expect.objectContaining({ limit: 3 }) }),
+      expect.objectContaining({ monitorVersion: 5, concurrency: expect.objectContaining({ limit: 2 }) }),
+      expect.objectContaining({ monitorVersion: 5, concurrency: expect.objectContaining({ limit: 3 }) }),
     ]);
-    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(0);
   });
 
   test('hands on no half snapshot when the stream ends inside an event', async () => {
-    const { end, snapshots } = await followedSnapshotsOf(overseerFetchOf('stream-cut-inside-event'));
+    const { end, snapshots } = await followedSnapshotsOf(hephaestusFetchOf('stream-cut-inside-event'));
     expect(snapshots).toEqual([expect.objectContaining({ monitorVersion: 1, trackerId: 'example-storefront-7c41' })]);
     expect(end).toEqual({ verdict: 'ended', ending: 'closed' });
   });
 
   test('passes over an event whose snapshot cannot be read and hands on the next whole one', async () => {
-    const { snapshots } = await followedSnapshotsOf(overseerFetchOf('snapshot-unreadable'));
+    const { snapshots } = await followedSnapshotsOf(hephaestusFetchOf('snapshot-unreadable'));
     expect(snapshots).toEqual([expect.objectContaining({ monitorVersion: 1, trackerId: 'example-storefront-7c41' })]);
   });
 
   test('hands on the snapshots it read before the connection broke', async () => {
-    const { snapshots, overseerFetch } = await followedSnapshotsOf(overseerFetchOf('connection-broken'));
+    const { snapshots, hephaestusFetch } = await followedSnapshotsOf(hephaestusFetchOf('connection-broken'));
     expect(snapshots).toHaveLength(1);
-    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(0);
   });
 
   test('ends stopped with no snapshot when stopped before the stream opens, and leaves no stream open', async () => {
-    const overseerFetch = overseerFetchOf('serving-every-contract');
+    const hephaestusFetch = hephaestusFetchOf('serving-every-contract');
     const snapshots: unknown[] = [];
-    const follow = clientOf(overseerFetch).followMonitor(ACCESS, (document) => snapshots.push(document));
+    const follow = clientOf(hephaestusFetch).followMonitor(ACCESS, (document) => snapshots.push(document));
     follow.stop();
     expect(await follow.ended).toEqual({ verdict: 'ended', ending: 'stopped' });
     expect(snapshots).toEqual([]);
-    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(0);
   });
 
   test('closes the stream and rejects with the handler\'s throw when the snapshot handler throws', async () => {
-    const overseerFetch = overseerFetchOf('serving-every-contract');
+    const hephaestusFetch = hephaestusFetchOf('serving-every-contract');
     const handlerFailure = new Error('The snapshot handler failed.');
-    const follow = clientOf(overseerFetch).followMonitor(ACCESS, () => {
+    const follow = clientOf(hephaestusFetch).followMonitor(ACCESS, () => {
       throw handlerFailure;
     });
     await expect(follow.ended).rejects.toBe(handlerFailure);
-    expect(overseerFetch.streamsLeftOpen()).toBe(0);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(0);
   });
 
   test('ends stopped when stopped while the stream cannot be opened', async () => {
-    const follow = clientOf(overseerFetchOf('stopped')).followMonitor(ACCESS, () => undefined);
+    const follow = clientOf(hephaestusFetchOf('stopped')).followMonitor(ACCESS, () => undefined);
     follow.stop();
     expect(await follow.ended).toEqual({ verdict: 'ended', ending: 'stopped' });
   });
 });
 
-describe('the paths an Overseer is called at', () => {
+describe('the paths a Hephaestus is called at', () => {
   test('are /api/versions for its versions, and each endpoint at the version this client knows, for a forge ahead of it too', async () => {
-    const versionedFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead'));
+    const versionedFetch = recordedHephaestusFetch(recordedVersionsAnswersOf('versions-ahead'));
     const client = clientOf(versionedFetch);
-    expect(await client.versionsOf(OVERSEER_URL)).toEqual({ verdict: 'answered', document: { current: ONE_MINOR_AHEAD, minimumSupported: FIRST_OF_THE_SUPPORTED_MAJOR } });
+    expect(await client.versionsOf(HEPHAESTUS_URL)).toEqual({ verdict: 'answered', document: { current: ONE_MINOR_AHEAD, minimumSupported: FIRST_OF_THE_SUPPORTED_MAJOR } });
     await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
     await client.send(ACCESS, PAUSE_COMMAND);
@@ -419,14 +419,14 @@ describe('the paths an Overseer is called at', () => {
     expect(versionedFetch.callsAnswered().map(({ callShape }) => callShape)).toEqual([
       'GET /api/versions',
       'GET /api/v1/identity',
-      'GET /api/v3/monitor with bearer',
-      'POST /api/v2/commands with bearer',
-      'STREAM /api/v3/monitor/events with bearer',
+      'GET /api/v4/monitor with bearer',
+      'POST /api/v3/commands with bearer',
+      'STREAM /api/v4/monitor/events with bearer',
     ]);
   });
 
   test('take each endpoint\'s version from forge\'s compatibility registry at the forge version this client supports, which serves every one', () => {
-    const endpointNames: readonly OverseerEndpointName[] = [
+    const endpointNames: readonly HephaestusEndpointName[] = [
       'identity',
       'summary',
       'monitor',
@@ -440,34 +440,34 @@ describe('the paths an Overseer is called at', () => {
       'pictures',
       'picture',
     ];
-    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 1, 3, 3, 2, 2, 1, 2, 1, 1, 1, 1]);
+    expect(endpointNames.map((endpointName) => forgeEndpointVersionOf(endpointName))).toEqual([1, 2, 4, 4, 3, 3, 1, 3, 1, 1, 1, 1]);
   });
 
   test('answer the refusal a forge from before system versions gives its versions, as it gives any unknown path', async () => {
-    const releasedForgeFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-absent'));
-    expect(await clientOf(releasedForgeFetch).versionsOf(OVERSEER_URL)).toEqual({ verdict: 'refused', refusal: 'not-found', text: null });
+    const releasedForgeFetch = recordedHephaestusFetch(recordedVersionsAnswersOf('versions-absent'));
+    expect(await clientOf(releasedForgeFetch).versionsOf(HEPHAESTUS_URL)).toEqual({ verdict: 'refused', refusal: 'not-found', text: null });
   });
 });
 
 describe('the token', () => {
   test('travels as a bearer on every guarded route and on no open one', async () => {
-    const servingFetch = overseerFetchOf('serving-every-contract');
+    const servingFetch = hephaestusFetchOf('serving-every-contract');
     const client       = clientOf(servingFetch);
     await client.identityOf(ADDRESS);
     await client.monitorOf(ACCESS);
     await client.send(ACCESS, PAUSE_COMMAND);
-    const todaysFetch = overseerFetchOf('serving');
+    const todaysFetch = hephaestusFetchOf('serving');
     await clientOf(todaysFetch).summaryOf(ADDRESS);
     expect([...servingFetch.callsAnswered(), ...todaysFetch.callsAnswered()].map(({ callShape, bearerToken }) => [callShape, bearerToken])).toEqual([
       ['GET /api/v1/identity', null],
-      ['GET /api/v3/monitor with bearer', EXAMPLE_TOKEN],
-      ['POST /api/v2/commands with bearer', EXAMPLE_TOKEN],
-      ['GET /api/v1/summary', null],
+      ['GET /api/v4/monitor with bearer', EXAMPLE_TOKEN],
+      ['POST /api/v3/commands with bearer', EXAMPLE_TOKEN],
+      ['GET /api/v2/summary', null],
     ]);
   });
 
   test('is carried by no answer of any outcome', async () => {
-    const answers = await Promise.all(OUTCOME_CASES.map(async (outcomeCase) => outcomeCase.answerOf(overseerFetchOf(outcomeCase.situation))));
+    const answers = await Promise.all(OUTCOME_CASES.map(async (outcomeCase) => outcomeCase.answerOf(hephaestusFetchOf(outcomeCase.situation))));
     expect(JSON.stringify(answers)).not.toContain(EXAMPLE_TOKEN);
   });
 });
@@ -475,21 +475,21 @@ describe('the token', () => {
 describe('a command', () => {
   test('is sent as the forge spells each kind of the control contract', async () => {
     const commands: readonly ForgeControlCommand[] = [
-      { kind: 'overseer-pause' },
-      { kind: 'overseer-resume' },
-      { kind: 'overseer-stop', now: false },
-      { kind: 'overseer-restart', now: true },
+      { kind: 'hephaestus-pause' },
+      { kind: 'hephaestus-unpause' },
+      { kind: 'hephaestus-stop', now: false },
+      { kind: 'hephaestus-restart', now: true },
       { kind: 'concurrency-set', limit: 4 },
       { kind: 'job-stop-all', mode: 'wind-down' },
       { kind: 'machine-agent-limit-set', limit: 8 },
     ];
-    const overseerFetch = overseerFetchOf('serving-every-contract');
-    for (const command of commands) await clientOf(overseerFetch).send(ACCESS, command);
-    expect(overseerFetch.callsAnswered().map(({ jsonBody }) => jsonBody)).toEqual([
-      '{"kind":"overseer-pause"}',
-      '{"kind":"overseer-resume"}',
-      '{"kind":"overseer-stop","now":false}',
-      '{"kind":"overseer-restart","now":true}',
+    const hephaestusFetch = hephaestusFetchOf('serving-every-contract');
+    for (const command of commands) await clientOf(hephaestusFetch).send(ACCESS, command);
+    expect(hephaestusFetch.callsAnswered().map(({ jsonBody }) => jsonBody)).toEqual([
+      '{"kind":"hephaestus-pause"}',
+      '{"kind":"hephaestus-unpause"}',
+      '{"kind":"hephaestus-stop","now":false}',
+      '{"kind":"hephaestus-restart","now":true}',
       '{"kind":"concurrency-set","limit":4}',
       '{"kind":"job-stop-all","mode":"wind-down"}',
       '{"kind":"machine-agent-limit-set","limit":8}',
@@ -513,8 +513,8 @@ const RECORDED_PICTURE_ID = recordedPathSegmentOf('picture-accepted', /\/picture
 const RECORDED_PICTURE = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'));
 const EXAMPLE_COMMAND = { kind: 'ticket-hold', ticketReference: '002', reason: 'Waits for the example design' } as const;
 
-function boardFetchOf(situation: BoardSituation): RecordedOverseerFetch {
-  return recordedOverseerFetch(recordedBoardAnswersOf(situation));
+function boardFetchOf(situation: BoardSituation): RecordedHephaestusFetch {
+  return recordedHephaestusFetch(recordedBoardAnswersOf(situation));
 }
 
 /** Follows a stream until it answers `eventsWanted` events, then stops it; answers the events and how the follow ended. */
@@ -534,7 +534,7 @@ interface BoardOutcomeCase {
   readonly call:      string;
   readonly situation: BoardSituation;
   readonly callShape: string;
-  readonly answerOf:  (overseerFetch: RecordedOverseerFetch) => Promise<unknown>;
+  readonly answerOf:  (hephaestusFetch: RecordedHephaestusFetch) => Promise<unknown>;
   readonly expected:  unknown;
 }
 
@@ -554,8 +554,8 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'boardOf',
     situation: 'board-at-work',
-    callShape: 'GET /api/v2/board with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    callShape: 'GET /api/v3/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({
@@ -576,28 +576,28 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'boardOf',
     situation: 'board-token-rejected',
-    callShape: 'GET /api/v2/board with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    callShape: 'GET /api/v3/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'boardOf',
     situation: 'board-install-held',
-    callShape: 'GET /api/v2/board with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    callShape: 'GET /api/v3/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({
-        overseer: expect.objectContaining({ state: 'held-by-install-change' }),
-        notices:  [expect.objectContaining({ kind: 'install-version-changed', sentence: expect.any(String) }), expect.objectContaining({ kind: 'incident-defaulted' })],
+        hephaestus: expect.objectContaining({ state: 'held-by-install-change' }),
+        notices:    [expect.objectContaining({ kind: 'install-version-changed', sentence: expect.any(String) }), expect.objectContaining({ kind: 'incident-defaulted' })],
       }),
     },
   },
   {
     call:      'boardOf',
     situation: 'assistant-switched-off',
-    callShape: 'GET /api/v2/board with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    callShape: 'GET /api/v3/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({ pipeline: expect.objectContaining({ pipeline: expect.not.objectContaining({ assistant: expect.anything() }) }) }),
@@ -606,8 +606,8 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'boardOf',
     situation: 'assistant-switched-on',
-    callShape: 'GET /api/v2/board with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).boardOf(ACCESS),
+    callShape: 'GET /api/v3/board with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).boardOf(ACCESS),
     expected:  {
       verdict:  'answered',
       document: expect.objectContaining({ pipeline: expect.objectContaining({ pipeline: expect.objectContaining({ assistant: true }) }) }),
@@ -616,8 +616,8 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'assistant-switched-off',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'pipeline-assistant-set', on: false }),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, { kind: 'pipeline-assistant-set', on: false }),
     expected:  {
       verdict: 'answered',
       status:  200,
@@ -630,8 +630,8 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'assistant-switched-on',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'pipeline-assistant-set', on: true }),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, { kind: 'pipeline-assistant-set', on: true }),
     expected:  {
       verdict: 'answered',
       status:  200,
@@ -644,9 +644,9 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'followEvents',
     situation: 'board-at-work',
-    callShape: 'STREAM /api/v2/events with bearer',
-    answerOf:  async (overseerFetch) => {
-      const { events, end } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, null, onEvent), 2);
+    callShape: 'STREAM /api/v3/events with bearer',
+    answerOf:  async (hephaestusFetch) => {
+      const { events, end } = await followedEventsOf((onEvent) => clientOf(hephaestusFetch).followEvents(ACCESS, null, onEvent), 2);
       return [events.map(({ id, eventName }) => [id === null, eventName]), end];
     },
     expected: [[[true, 'handshake'], [false, 'board']], { verdict: 'ended', ending: 'stopped' }],
@@ -654,37 +654,37 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'followEvents',
     situation: 'board-at-work',
-    callShape: 'STREAM /api/v2/events with bearer from a last event id',
-    answerOf:  async (overseerFetch) => {
-      const { events } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, '1-35', onEvent), 2);
-      return [events[0], overseerFetch.callsAnswered().map(({ lastEventId }) => lastEventId)];
+    callShape: 'STREAM /api/v3/events with bearer from a last event id',
+    answerOf:  async (hephaestusFetch) => {
+      const { events } = await followedEventsOf((onEvent) => clientOf(hephaestusFetch).followEvents(ACCESS, '1-35', onEvent), 2);
+      return [events[0], hephaestusFetch.callsAnswered().map(({ lastEventId }) => lastEventId)];
     },
     expected: [BOARD_STREAM_EVENT_OF_THE_HANDSHAKE, ['1-35']],
   },
   {
     call:      'followEvents',
     situation: 'board-token-rejected',
-    callShape: 'STREAM /api/v2/events with bearer',
-    answerOf:  async (overseerFetch) => (await followedEventsOf((onEvent) => clientOf(overseerFetch).followEvents(ACCESS, null, onEvent), 1)).end,
+    callShape: 'STREAM /api/v3/events with bearer',
+    answerOf:  async (hephaestusFetch) => (await followedEventsOf((onEvent) => clientOf(hephaestusFetch).followEvents(ACCESS, null, onEvent), 1)).end,
     expected:  { verdict: 'unauthorized' },
   },
   {
     call:      'sendBoardCommand',
     situation: 'board-command-applied',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
-    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 2, outcome: 'done' }) },
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ controlVersion: 3, outcome: 'done' }) },
   },
   {
     call:      'sendBoardCommand',
     situation: 'board-command-refused',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
     expected:  {
       verdict: 'answered',
       status:  409,
       body:    {
-        controlVersion: 2,
+        controlVersion: 3,
         refusal:        'no-readable-ticket',
         fields:         { reference: '999' },
         text:           expect.stringContaining('There is no readable ticket 999.'),
@@ -694,29 +694,29 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'board-command-unknown-kind',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'example-unknown-kind' }),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, { kind: 'example-unknown-kind' }),
     expected:  { verdict: 'answered', status: 400, body: expect.objectContaining({ refusal: 'malformed-body', fields: {} }) },
   },
   {
     call:      'sendBoardCommand',
     situation: 'board-install-held',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
     expected:  { verdict: 'answered', status: 423, body: expect.objectContaining({ refusal: 'launches-held-by-install-change', fields: {} }) },
   },
   {
     call:      'uploadPicture',
     situation: 'picture-accepted',
     callShape: 'POST /api/v1/pictures with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
     expected:  { verdict: 'answered', status: 200, body: { pictureId: RECORDED_PICTURE_ID, bytes: RECORDED_PICTURE.length, mediaType: 'image/png' } },
   },
   {
     call:      'pictureOf',
     situation: 'picture-accepted',
     callShape: `GET /api/v1/pictures/${RECORDED_PICTURE_ID} with bearer`,
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).pictureOf(ACCESS, RECORDED_PICTURE_ID),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).pictureOf(ACCESS, RECORDED_PICTURE_ID),
     expected:  {
       verdict: 'answered', status: 200, contentType: 'image/png', bytes: RECORDED_PICTURE,
     },
@@ -725,36 +725,36 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
     call:      'uploadPicture',
     situation: 'picture-too-large',
     callShape: 'POST /api/v1/pictures with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
     expected:  { verdict: 'answered', status: 413, body: expect.objectContaining({ refusal: 'picture-too-large', fields: { bytes: 3_932_161, sizeLimitBytes: 3_932_160 } }) },
   },
   {
     call:      'uploadPicture',
     situation: 'picture-not-a-picture',
     callShape: 'POST /api/v1/pictures with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'text/plain'),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'text/plain'),
     expected:  { verdict: 'answered', status: 415, body: expect.objectContaining({ refusal: 'picture-type-unsupported' }) },
   },
   {
     call:      'uploadPicture',
     situation: 'intake-conversation',
     callShape: 'POST /api/v1/pictures with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).uploadPicture(ACCESS, RECORDED_PICTURE, 'image/png'),
     expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ pictureId: RECORDED_PICTURE_ID }) },
   },
   {
     call:      'sendBoardCommand',
     situation: 'intake-conversation',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, { kind: 'intake-start', text: 'Example: suggest searches.' }),
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, { kind: 'intake-start', text: 'Example: suggest searches.' }),
     expected:  { verdict: 'answered', status: 200, body: expect.objectContaining({ outcome: 'done' }) },
   },
   {
     call:      'followJobStream',
     situation: 'intake-conversation',
     callShape: `STREAM /api/v1/jobs/${RECORDED_JOB_ID}/stream with bearer`,
-    answerOf:  async (overseerFetch) => {
-      const follow = (onEvent: (event: ForgeStreamEvent) => void) => clientOf(overseerFetch).followJobStream(ACCESS, RECORDED_JOB_ID, null, null, onEvent);
+    answerOf:  async (hephaestusFetch) => {
+      const follow = (onEvent: (event: ForgeStreamEvent) => void) => clientOf(hephaestusFetch).followJobStream(ACCESS, RECORDED_JOB_ID, null, null, onEvent);
       return (await followedEventsOf(follow, 2)).events.map(({ eventName }) => eventName);
     },
     expected: ['handshake', 'history'],
@@ -762,8 +762,8 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
   {
     call:      'sendBoardCommand',
     situation: 'gate-profile-run',
-    callShape: 'POST /api/v2/commands with bearer',
-    answerOf:  (overseerFetch) => clientOf(overseerFetch).sendBoardCommand(ACCESS, {
+    callShape: 'POST /api/v3/commands with bearer',
+    answerOf:  (hephaestusFetch) => clientOf(hephaestusFetch).sendBoardCommand(ACCESS, {
       kind: 'gate-profile-start', setupId: 'S1', gateName: 'unit', phase: 'build'
     }),
     expected: { verdict: 'answered', status: 200, body: expect.objectContaining({ outcome: 'done' }) },
@@ -772,8 +772,8 @@ const BOARD_OUTCOME_CASES: readonly BoardOutcomeCase[] = [
     call:      'followProfileStream',
     situation: 'gate-profile-run',
     callShape: `STREAM /api/v1/profiles/${RECORDED_PROFILE_RUN_ID}/stream with bearer`,
-    answerOf:  async (overseerFetch) => {
-      const follow = (onEvent: (event: ForgeStreamEvent) => void) => clientOf(overseerFetch).followProfileStream(ACCESS, RECORDED_PROFILE_RUN_ID, null, null, onEvent);
+    answerOf:  async (hephaestusFetch) => {
+      const follow = (onEvent: (event: ForgeStreamEvent) => void) => clientOf(hephaestusFetch).followProfileStream(ACCESS, RECORDED_PROFILE_RUN_ID, null, null, onEvent);
       return (await followedEventsOf(follow, 2)).events;
     },
     expected: [BOARD_STREAM_EVENT_OF_THE_HANDSHAKE, { id: '1', eventName: 'line', data: JSON.stringify({ text: 'Example gate passed\n' }) }],
@@ -789,29 +789,29 @@ describe('each outcome of each board call', () => {
 
   test('is proven by exactly the recorded answers of the board\'s situations, each used once', () => {
     const provenCallShapes   = BOARD_OUTCOME_CASES.map(({ situation, callShape }) => situationCallShapeOf(situation, callShape));
-    const recordedCallShapes = everyRecordedOverseerAnswerOf().map(({ callShape }) => callShape)
+    const recordedCallShapes = everyRecordedHephaestusAnswerOf().map(({ callShape }) => callShape)
       .filter((callShape) => BOARD_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, ''))));
     expect([...provenCallShapes].sort()).toEqual([...recordedCallShapes].sort());
   });
 
-  test('keep a refused token, an Overseer that is down and an answer that is no JSON as the verdicts a document call gives', async () => {
+  test('keep a refused token, a Hephaestus that is down and an answer that is no JSON as the verdicts a document call gives', async () => {
     const outcomes = await Promise.all((['token-rejected', 'stopped', 'port-held-by-another-program'] as const).map(async (situation) => [
-      await clientOf(overseerFetchOf(situation)).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
+      await clientOf(hephaestusFetchOf(situation)).sendBoardCommand(ACCESS, EXAMPLE_COMMAND),
     ]));
     expect(outcomes).toEqual([[{ verdict: 'unauthorized' }], [{ verdict: 'unreachable' }], [{ verdict: 'malformed' }]]);
   });
 
   test('fail on a call with no recorded answer, such as a board read where only a picture was recorded', async () => {
-    await expect(clientOf(boardFetchOf('picture-too-large')).boardOf(ACCESS)).rejects.toThrow('No recorded answer for GET /api/v2/board with bearer');
+    await expect(clientOf(boardFetchOf('picture-too-large')).boardOf(ACCESS)).rejects.toThrow('No recorded answer for GET /api/v3/board with bearer');
   });
 });
 
 describe('following a board stream', () => {
   test('hands on each whole event with its id, the handshake with none, and never one the stream left unfinished', async () => {
     // The program that is no forge answers every path alike, so its stream cut inside an event stands for the board's stream too.
-    const cutStream = recordedOverseerAnswersOf('stream-cut-inside-event').map(({ answer }) => ({ callShape: 'STREAM /api/v2/events with bearer', answer }));
+    const cutStream = recordedHephaestusAnswersOf('stream-cut-inside-event').map(({ answer }) => ({ callShape: 'STREAM /api/v3/events with bearer', answer }));
     const events: ForgeStreamEvent[] = [];
-    const end = await clientOf(recordedOverseerFetch(cutStream)).followEvents(ACCESS, null, (event) => events.push(event)).ended;
+    const end = await clientOf(recordedHephaestusFetch(cutStream)).followEvents(ACCESS, null, (event) => events.push(event)).ended;
     expect([events.map(({ id, eventName }) => [id, eventName]), end]).toEqual([[[null, 'monitor']], { verdict: 'ended', ending: 'closed' }]);
     const { events: boardEvents } = await followedEventsOf((onEvent) => clientOf(boardFetchOf('board-at-work')).followEvents(ACCESS, null, onEvent), 2);
     const boardEventData = boardEvents.map((event) => JSON.parse(event.data) as unknown);
@@ -819,24 +819,24 @@ describe('following a board stream', () => {
   });
 
   test('sends the cursor as after= in the query and the last event id as its header', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
-    const follow = clientOf(overseerFetch).followJobStream(ACCESS, RECORDED_JOB_ID, '7', '7', () => undefined);
+    const hephaestusFetch = recordedHephaestusFetch([]);
+    const follow = clientOf(hephaestusFetch).followJobStream(ACCESS, RECORDED_JOB_ID, '7', '7', () => undefined);
     await expect(follow.ended).rejects.toThrow(`No recorded answer for STREAM /api/v1/jobs/${RECORDED_JOB_ID}/stream?after=7 with bearer from a last event id`);
   });
 
   test('ends stopped and leaves no stream open when stopped', async () => {
-    const overseerFetch = boardFetchOf('gate-profile-run');
-    const { end } = await followedEventsOf((onEvent) => clientOf(overseerFetch).followProfileStream(ACCESS, RECORDED_PROFILE_RUN_ID, null, null, onEvent), 1);
-    expect([end, overseerFetch.streamsLeftOpen()]).toEqual([{ verdict: 'ended', ending: 'stopped' }, 0]);
+    const hephaestusFetch = boardFetchOf('gate-profile-run');
+    const { end } = await followedEventsOf((onEvent) => clientOf(hephaestusFetch).followProfileStream(ACCESS, RECORDED_PROFILE_RUN_ID, null, null, onEvent), 1);
+    expect([end, hephaestusFetch.streamsLeftOpen()]).toEqual([{ verdict: 'ended', ending: 'stopped' }, 0]);
   });
 });
 
 describe('the token on the board\'s calls', () => {
   test('travels as the bearer of every board request and stream', async () => {
     const answered = await Promise.all(BOARD_OUTCOME_CASES.map(async (outcomeCase) => {
-      const overseerFetch = boardFetchOf(outcomeCase.situation);
-      await outcomeCase.answerOf(overseerFetch);
-      return overseerFetch.callsAnswered().map(({ bearerToken }) => bearerToken);
+      const hephaestusFetch = boardFetchOf(outcomeCase.situation);
+      await outcomeCase.answerOf(hephaestusFetch);
+      return hephaestusFetch.callsAnswered().map(({ bearerToken }) => bearerToken);
     }));
     expect(new Set(answered.flat())).toEqual(new Set([EXAMPLE_TOKEN]));
   });

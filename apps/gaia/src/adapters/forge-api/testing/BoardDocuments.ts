@@ -1,21 +1,21 @@
 /**
  * The board documents, stream events and command answers the board's ingestion specs read, taken through the forge client from the
- * `overseer-fetch-board` recording of a scratch forge at the supported forge version. Test-only.
+ * `hephaestus-fetch-board` recording of a scratch forge at the supported forge version. Test-only.
  */
-import type { ForgeStreamEvent, ForgeStreamFollow, OverseerAccess }           from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
-import { forgeClientOf, type ForgeClient }                                    from '../../../lib/forge-client/ForgeClient.ts';
-import { recordedBoardAnswersOf, recordedOverseerFetch, type BoardSituation } from '../../../testing/RecordedAnswers.ts';
+import type { ForgeStreamEvent, ForgeStreamFollow, HephaestusAccess }           from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import { forgeClientOf, type ForgeClient }                                      from '../../../lib/forge-client/ForgeClient.ts';
+import { recordedBoardAnswersOf, recordedHephaestusFetch, type BoardSituation } from '../../../testing/RecordedAnswers.ts';
 
 /** The tracker id the recording's scratch forge was drawn with, as the registry names it. */
 export const RECORDED_TRACKER_ID = 'example-storefront-7c41';
 
-const EXAMPLE_ACCESS: OverseerAccess = { overseerUrl: 'http://127.0.0.1:47100', bearerToken: 'example-token-0123456789abcdef' };
+const EXAMPLE_ACCESS: HephaestusAccess = { hephaestusUrl: 'http://127.0.0.1:47100', bearerToken: 'example-token-0123456789abcdef' };
 
 /** Each recorded stream sends its handshake and one event of what it carries, then stays open until it is stopped. */
 const RECORDED_EVENTS_PER_STREAM = 2;
 
 function clientOf(situation: BoardSituation): ForgeClient {
-  return forgeClientOf({ overseerFetch: recordedOverseerFetch(recordedBoardAnswersOf(situation)) });
+  return forgeClientOf({ hephaestusFetch: recordedHephaestusFetch(recordedBoardAnswersOf(situation)) });
 }
 
 type BoardDocumentSituation = Extract<BoardSituation, 'board-at-work' | 'board-install-held' | 'assistant-switched-off' | 'assistant-switched-on'>;

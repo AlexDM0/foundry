@@ -1,10 +1,10 @@
 /**
- * forge-control over recorded Overseer answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
+ * forge-control over recorded Hephaestus answers, forge program runs and chooser runs, and the real settings store under a scratch home: one
  * spec per kind and the carrier PLAN 8.2 gives it. What matters: the command each kind sends and to whom, a refusal's code and sentence
  * passed on unchanged from the API and the program, the contract check that sends nothing to a forge whose control contract Gaia does not
  * know, every command sent at the versioned path of the commands, also
  * to a forge ahead of the one Gaia supports, a stop and a machine limit that fall back to the program, or the next live forge,
- * when no Overseer answers or no token can be read, a command sent only to the Overseer at the address the watch read, a registry Gaia
+ * when no Hephaestus answers or no token can be read, a command sent only to Hephaestus at the address the watch read, a registry Gaia
  * cannot read refused with its reason, an add that runs `init`, then `start`, and stops at the first refusal, settings changed one key at
  * a time, "Start at login" written as each forge's login item before the setting is kept and turned back when a forge or the settings
  * write refuses, a cancelled chooser that answers nothing-to-do, and the in-flight rule, which holds one forge, one repository, the machine
@@ -29,7 +29,7 @@ import { createSettingsWriter }                                                 
 import { createPathChooser }                                                                            from '../../adapters/path-chooser/PathChooser.ts';
 import { RECORDED_CHOSEN_FOLDER, recordedPathChooserRun }                                               from '../../adapters/path-chooser/testing/RecordedPathChooser.ts';
 import { forgeClientOf }                                                                                from '../../lib/forge-client/ForgeClient.ts';
-import type { OverseerAnswer, OverseerFetch }                                                           from '../../lib/forge-client/OverseerFetch.ts';
+import type { HephaestusAnswer, HephaestusFetch }                                                       from '../../lib/forge-client/HephaestusFetch.ts';
 import type { ProcessRun, ProgramRunRequest }                                                           from '../../lib/process-run/ProcessRun.ts';
 import { createSettingsStore, type SettingsStore }                                                      from '../../services/SettingsStore.ts';
 import { WatchReadingUtil }                                                                             from '../../services/utils/WatchReadingUtil.ts';
@@ -39,11 +39,11 @@ import type { GaiaCommand }                                                     
 import { CONTRACT_VERSIONS }                                                                            from '../../shared/constants/ContractVersions.ts';
 import { GAIA_SETTINGS_DEFAULTS }                                                                       from '../../shared/constants/GaiaSettingsDefaults.ts';
 import {
-  recordedOverseerAnswersOf,
-  recordedOverseerFetch,
+  recordedHephaestusAnswersOf,
+  recordedHephaestusFetch,
   recordedVersionsAnswersOf,
-  type OverseerSituation,
-  type RecordedOverseerFetch,
+  type HephaestusSituation,
+  type RecordedHephaestusFetch,
 } from '../../testing/RecordedAnswers.ts';
 import {
   recordedProcessRun,
@@ -61,7 +61,7 @@ const WIKI_TRACKER_ID = 'research-wiki-2b90';
 const STOREFRONT_URL = 'http://127.0.0.1:4951/';
 const WIKI_URL = 'http://127.0.0.1:4952/';
 const EXAMPLE_TOKEN = 'example-token-0123456789abcdef';
-const COMMANDS_CALL_SHAPE = 'POST /api/v2/commands with bearer';
+const COMMANDS_CALL_SHAPE = 'POST /api/v3/commands with bearer';
 
 type ForgeState = 'full' | 'counts-only' | 'newer-contract' | 'unreachable' | 'dormant' | 'repository-missing';
 
@@ -71,12 +71,12 @@ interface ReadFacts {
   readonly control:   number | null;
 }
 
-/** What the forge watch reads of an Overseer in each state; an unreachable forge keeps the contracts of its last whole reading. */
+/** What the forge watch reads of a Hephaestus in each state; an unreachable forge keeps the contracts of its last whole reading. */
 const READ_FACTS_BY_STATE: Readonly<Record<Exclude<ForgeState, 'dormant' | 'repository-missing'>, ReadFacts>> = {
-  'full':           { condition: 'live', monitor: 4, control: 2 },
+  'full':           { condition: 'live', monitor: 5, control: 3 },
   'counts-only':    { condition: 'live', monitor: null, control: null },
-  'newer-contract': { condition: 'unreadable', monitor: 5, control: 3 },
-  'unreachable':    { condition: 'unreachable', monitor: 4, control: 2 },
+  'newer-contract': { condition: 'unreadable', monitor: 6, control: 4 },
+  'unreachable':    { condition: 'unreachable', monitor: 5, control: 3 },
 };
 
 let scratchFolder = '';
@@ -116,13 +116,13 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
   const trackerId  = forgeOptions.trackerId ?? STOREFRONT_TRACKER_ID;
   const isWiki     = trackerId === WIKI_TRACKER_ID;
   const state      = forgeOptions.state ?? 'full';
-  const hasOverseer = state !== 'dormant' && state !== 'repository-missing';
+  const hasHephaestus = state !== 'dormant' && state !== 'repository-missing';
   const entry: RegisteredForge = {
     trackerId,
-    project:  isWiki ? 'Research Wiki' : 'Example Storefront',
-    root:     forgeOptions.root ?? (isWiki ? wikiRoot : storefrontRoot),
-    program:  forgeOptions.program === undefined ? EXAMPLE_FORGE_PROGRAM_PATH : forgeOptions.program,
-    overseer: hasOverseer ? {
+    project:    isWiki ? 'Research Wiki' : 'Example Storefront',
+    root:       forgeOptions.root ?? (isWiki ? wikiRoot : storefrontRoot),
+    program:    forgeOptions.program === undefined ? EXAMPLE_FORGE_PROGRAM_PATH : forgeOptions.program,
+    hephaestus: hasHephaestus ? {
       url:       isWiki ? WIKI_URL : STOREFRONT_URL,
       processId: 48_107,
       startedAt: '2026-11-12T09:12:00.000Z',
@@ -140,8 +140,8 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
     ...dormantReading,
     fidelity:  state,
     condition,
-    url:       entry.overseer?.url ?? null,
-    contracts: { summary: 1, monitor, control, },
+    url:       entry.hephaestus?.url ?? null,
+    contracts: { summary: 2, monitor, control, },
   };
   return { entry, reading };
 }
@@ -149,7 +149,7 @@ function exampleForgeOf(forgeOptions: ForgeOptions = {}): ExampleForge {
 interface ControlOptions {
   readonly forges?:          readonly ExampleForge[];
   readonly registry?:        RegistryReading;
-  readonly overseerFetch?:   OverseerFetch;
+  readonly hephaestusFetch?: HephaestusFetch;
   readonly processRun?:      ProcessRun;
   readonly pathChooserRun?:  ProcessRun;
   readonly settingsStore?:   SettingsStore;
@@ -175,7 +175,7 @@ function controlOver(controlOptions: ControlOptions): ForgeControl {
   return createForgeControl({
     readRegistry: async () => registry,
     readings:     () => forges.map((forge) => forge.reading),
-    forgeClient:  forgeClientOf({ overseerFetch: controlOptions.overseerFetch ?? recordedOverseerFetch([]) }),
+    forgeClient:  forgeClientOf({ hephaestusFetch: controlOptions.hephaestusFetch ?? recordedHephaestusFetch([]) }),
     forgeProgram: createForgeProgram({
       processRun:          controlOptions.processRun ?? recordedProcessRun([]),
       settingsProgramPath: () => settingsStore.settings().forgeProgramPath,
@@ -226,30 +226,30 @@ function holdingFirstRun(recorded: RecordedProcessRun): { readonly processRun: P
   return { processRun, letThrough };
 }
 
-function overseerAnswering(situation: OverseerSituation): RecordedOverseerFetch {
-  return recordedOverseerFetch(recordedOverseerAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
+function hephaestusAnswering(situation: HephaestusSituation): RecordedHephaestusFetch {
+  return recordedHephaestusFetch(recordedHephaestusAnswersOf(situation).filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
 }
 
 /** A live forge whose identity names this control contract. */
 function liveForgeAtControl(controlVersion: number): ExampleForge {
   const forge = exampleForgeOf();
-  return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 4, control: controlVersion } } };
+  return { ...forge, reading: { ...forge.reading, contracts: { ...forge.reading.contracts, monitor: 5, control: controlVersion } } };
 }
 
-/** The forge as the watch last read it, while the registry already names its Overseer at another address. */
+/** The forge as the watch last read it, while the registry already names its Hephaestus at another address. */
 function forgeMovedSinceTheWatchRead(): ExampleForge {
   const forge = exampleForgeOf();
-  const overseer = forge.entry.overseer === null ? null : { ...forge.entry.overseer, url: 'http://127.0.0.1:4961/' };
-  return { ...forge, entry: { ...forge.entry, overseer } };
+  const hephaestus = forge.entry.hephaestus === null ? null : { ...forge.entry.hephaestus, url: 'http://127.0.0.1:4961/' };
+  return { ...forge, entry: { ...forge.entry, hephaestus } };
 }
 
-function sentBodiesOf(overseerFetch: RecordedOverseerFetch): readonly unknown[] {
-  return overseerFetch.callsAnswered().map((call) => (call.jsonBody === null ? null : JSON.parse(call.jsonBody) as unknown));
+function sentBodiesOf(hephaestusFetch: RecordedHephaestusFetch): readonly unknown[] {
+  return hephaestusFetch.callsAnswered().map((call) => (call.jsonBody === null ? null : JSON.parse(call.jsonBody) as unknown));
 }
 
-/** The forge's refusal the recorded Overseer answer holds, read from the recording itself. */
+/** The forge's refusal the recorded Hephaestus answer holds, read from the recording itself. */
 function recordedApiRefusal(): { readonly refusal: string; readonly text: string } {
-  const [recorded] = recordedOverseerAnswersOf('command-refused').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE);
+  const [recorded] = recordedHephaestusAnswersOf('command-refused').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE);
   if (recorded?.answer.verdict !== 'answered') throw new Error('The command-refused situation holds no answered command.');
   const { refusal, text } = JSON.parse(recorded.answer.bodyText) as { refusal: string; text: string };
   return { refusal, text };
@@ -271,7 +271,7 @@ const STOP_KEEPING_AGENTS: GaiaCommand = { kind: 'forge-stop', trackerId: STOREF
 const STOP_AGENTS_FIRST: GaiaCommand = { kind: 'forge-stop', trackerId: STOREFRONT_TRACKER_ID, agents: 'stop-first' };
 
 describe('forge-start, carried by the forge program', () => {
-  test('runs `forge start --json` in the forge root and answers done when an Overseer was started', async () => {
+  test('runs `forge start --json` in the forge root and answers done when a Hephaestus was started', async () => {
     const processRun = recordedForgeProgramRunOf('every-verb-done');
     const verdict = await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })], processRun }).carry(START);
     expect(verdict).toEqual({ verdict: 'done' });
@@ -289,35 +289,35 @@ describe('forge-start, carried by the forge program', () => {
   });
 });
 
-describe('forge-stop, carried by the API while the Overseer answers, else by the forge program', () => {
-  test('keeping the agents, sends only `overseer-stop` to the Overseer', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    const verdict = await controlOver({ overseerFetch }).carry(STOP_KEEPING_AGENTS);
+describe('forge-stop, carried by the API while Hephaestus answers, else by the forge program', () => {
+  test('keeping the agents, sends only `hephaestus-stop` to Hephaestus', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    const verdict = await controlOver({ hephaestusFetch }).carry(STOP_KEEPING_AGENTS);
     expect(verdict).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-stop', now: false }]);
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'hephaestus-stop', now: false }]);
   });
 
-  test('stopping the agents first, sends `job-stop-all`, then `overseer-stop`, with the token as the bearer', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    const verdict = await controlOver({ overseerFetch }).carry(STOP_AGENTS_FIRST);
+  test('stopping the agents first, sends `job-stop-all`, then `hephaestus-stop`, with the token as the bearer', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    const verdict = await controlOver({ hephaestusFetch }).carry(STOP_AGENTS_FIRST);
     expect(verdict).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'job-stop-all', mode: 'stop' }, { kind: 'overseer-stop', now: false }]);
-    expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN, EXAMPLE_TOKEN]);
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'job-stop-all', mode: 'stop' }, { kind: 'hephaestus-stop', now: false }]);
+    expect(hephaestusFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN, EXAMPLE_TOKEN]);
   });
 
-  test('stops at a refused `job-stop-all` and leaves the Overseer running', async () => {
-    const overseerFetch = overseerAnswering('command-refused');
-    const verdict = await controlOver({ overseerFetch }).carry(STOP_AGENTS_FIRST);
+  test('stops at a refused `job-stop-all` and leaves Hephaestus running', async () => {
+    const hephaestusFetch = hephaestusAnswering('command-refused');
+    const verdict = await controlOver({ hephaestusFetch }).carry(STOP_AGENTS_FIRST);
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'job-stop-all', mode: 'stop' }]);
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'job-stop-all', mode: 'stop' }]);
   });
 
-  test('runs `forge stop --json` when the Overseer gives no answer to the stop', async () => {
-    const overseerFetch = overseerAnswering('stopped');
+  test('runs `forge stop --json` when Hephaestus gives no answer to the stop', async () => {
+    const hephaestusFetch = hephaestusAnswering('stopped');
     const processRun = recordedForgeProgramRunOf('every-verb-done');
-    const verdict = await controlOver({ overseerFetch, processRun }).carry(STOP_KEEPING_AGENTS);
+    const verdict = await controlOver({ hephaestusFetch, processRun }).carry(STOP_KEEPING_AGENTS);
     expect(verdict).toEqual({ verdict: 'done' });
-    expect(overseerFetch.callsAnswered()).toHaveLength(1);
+    expect(hephaestusFetch.callsAnswered()).toHaveLength(1);
     expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json'])]);
   });
 
@@ -336,21 +336,21 @@ describe('forge-stop, carried by the API while the Overseer answers, else by the
 
   test('runs `forge stop --json` for a live forge whose token file cannot be read, or whose registry entry names none', async () => {
     for (const forgeTokenPath of [join(scratchFolder, 'absent-token'), null]) {
-      const overseerFetch = overseerAnswering('serving-every-contract');
+      const hephaestusFetch = hephaestusAnswering('serving-every-contract');
       const processRun = recordedForgeProgramRunOf('every-verb-done');
-      const verdict = await controlOver({ forges: [exampleForgeOf({ tokenPath: forgeTokenPath })], overseerFetch, processRun }).carry(STOP_KEEPING_AGENTS);
+      const verdict = await controlOver({ forges: [exampleForgeOf({ tokenPath: forgeTokenPath })], hephaestusFetch, processRun }).carry(STOP_KEEPING_AGENTS);
       expect(verdict).toEqual({ verdict: 'done' });
-      expect(overseerFetch.callsAnswered()).toEqual([]);
+      expect(hephaestusFetch.callsAnswered()).toEqual([]);
       expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json'])]);
     }
   });
 
-  test('runs `forge stop --json`, and sends the API nothing, when the registry names the Overseer at another address than the watch read', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
+  test('runs `forge stop --json`, and sends the API nothing, when the registry names Hephaestus at another address than the watch read', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
     const processRun = recordedForgeProgramRunOf('every-verb-done');
-    const verdict = await controlOver({ forges: [forgeMovedSinceTheWatchRead()], overseerFetch, processRun }).carry(STOP_KEEPING_AGENTS);
+    const verdict = await controlOver({ forges: [forgeMovedSinceTheWatchRead()], hephaestusFetch, processRun }).carry(STOP_KEEPING_AGENTS);
     expect(verdict).toEqual({ verdict: 'done' });
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
     expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['stop', '--json'])]);
   });
 
@@ -362,19 +362,19 @@ describe('forge-stop, carried by the API while the Overseer answers, else by the
 
 describe('forge-interrupted-work-resume, carried by the API', () => {
   test('sends `interrupted-work-resume` with the job, the ticket or every job it names', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    const control = controlOver({ overseerFetch });
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    const control = controlOver({ hephaestusFetch });
     for (const target of [{ jobId: 'J4' }, { ticketReference: '004' }, 'all'] as const) {
       expect(await control.carry({ kind: 'forge-interrupted-work-resume', trackerId: STOREFRONT_TRACKER_ID, target })).toEqual({ verdict: 'done' });
     }
-    expect(sentBodiesOf(overseerFetch)).toEqual([
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([
       { kind: 'interrupted-work-resume', target: { jobId: 'J4' } },
       { kind: 'interrupted-work-resume', target: { ticketReference: '004' } },
       { kind: 'interrupted-work-resume', target: 'all' },
     ]);
   });
 
-  test('reaches no forge whose Overseer is not answering, and runs nothing in its place', async () => {
+  test('reaches no forge whose Hephaestus is not answering, and runs nothing in its place', async () => {
     const command = { kind: 'forge-interrupted-work-resume', trackerId: STOREFRONT_TRACKER_ID, target: 'all' } as const;
     for (const state of ['unreachable', 'dormant'] as const) {
       expect(await controlOver({ forges: [exampleForgeOf({ state })] }).carry(command)).toEqual({ verdict: 'unreachable' });
@@ -386,10 +386,10 @@ describe('fleet-outage-resume, carried by each forge\'s API', () => {
   const OUTAGE_RESUME = { kind: 'fleet-outage-resume' } as const;
 
   test('sends each answering forge the resume with the outage target, and answers per forge with the count Gaia last read', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
     const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID, state: 'unreachable' })];
     const outageEndings: Readonly<Record<string, number>> = { [STOREFRONT_TRACKER_ID]: 2, [WIKI_TRACKER_ID]: 1 };
-    const control = controlOver({ forges, overseerFetch, outageEndingsOf: (trackerId) => outageEndings[trackerId] ?? 0 });
+    const control = controlOver({ forges, hephaestusFetch, outageEndingsOf: (trackerId) => outageEndings[trackerId] ?? 0 });
     expect(await control.carry(OUTAGE_RESUME)).toEqual({
       verdict: 'outage-resume-answered',
       forges:  [
@@ -401,12 +401,12 @@ describe('fleet-outage-resume, carried by each forge\'s API', () => {
         },
       ],
     });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'interrupted-work-resume', target: 'network-outage' }]);
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'interrupted-work-resume', target: 'network-outage' }]);
   });
 
   test('keeps a forge\'s refusal sentence in that forge\'s answer', async () => {
     const { text } = recordedApiRefusal();
-    const answer = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(OUTAGE_RESUME);
+    const answer = await controlOver({ hephaestusFetch: hephaestusAnswering('command-refused') }).carry(OUTAGE_RESUME);
     expect(answer).toEqual({
       verdict: 'outage-resume-answered',
       forges:  [{
@@ -415,7 +415,7 @@ describe('fleet-outage-resume, carried by each forge\'s API', () => {
     });
   });
 
-  test('reaches no forge whose Overseer is not answering, runs no forge verb in its place, and is carried again when sent again', async () => {
+  test('reaches no forge whose Hephaestus is not answering, runs no forge verb in its place, and is carried again when sent again', async () => {
     const control = controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] });
     const notReached = {
       verdict: 'outage-resume-answered',
@@ -428,8 +428,8 @@ describe('fleet-outage-resume, carried by each forge\'s API', () => {
   });
 
   test('passes over a forge with a command already on its way, so no forge is sent two at once', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    const control = controlOver({ overseerFetch });
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    const control = controlOver({ hephaestusFetch });
     const [pause, resume] = await Promise.all([control.carry(PAUSE), control.carry(OUTAGE_RESUME)]);
     expect(pause).toEqual({ verdict: 'done' });
     expect(resume).toEqual({
@@ -438,64 +438,64 @@ describe('fleet-outage-resume, carried by each forge\'s API', () => {
         trackerId: STOREFRONT_TRACKER_ID, outcome: 'not-reached', resumedCount: 0, refusalText: null
       }],
     });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-pause' }]);
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'hephaestus-pause' }]);
   });
 });
 
 describe('forge-pause, forge-unpause, forge-restart and forge-talos-restart, carried by the API', () => {
-  test('pause sends `overseer-pause`', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-pause' }]);
+  test('pause sends `hephaestus-pause`', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    expect(await controlOver({ hephaestusFetch }).carry(PAUSE)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'hephaestus-pause' }]);
   });
 
-  test('unpause sends the forge\'s undo of a pause, `overseer-resume`', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-resume' }]);
+  test('unpause sends the forge\'s undo of a pause, `hephaestus-unpause`', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    expect(await controlOver({ hephaestusFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'hephaestus-unpause' }]);
   });
 
   test('a resume to a forge ahead of the one Gaia supports goes to the versioned path of the commands Gaia knows', async () => {
-    const overseerFetch = recordedOverseerFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
+    const hephaestusFetch = recordedHephaestusFetch(recordedVersionsAnswersOf('versions-ahead').filter((answer) => answer.callShape === COMMANDS_CALL_SHAPE));
     const forge = liveForgeAtControl(CONTRACT_VERSIONS.forgeControl);
     const versions = { verdict: 'ahead', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } } as const;
     const forges = [{ ...forge, reading: { ...forge.reading, versions } }];
-    expect(await controlOver({ forges, overseerFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
-    expect([overseerFetch.callsAnswered().map((call) => call.callShape), sentBodiesOf(overseerFetch)]).toEqual([[COMMANDS_CALL_SHAPE], [{ kind: 'overseer-resume' }]]);
+    expect(await controlOver({ forges, hephaestusFetch }).carry({ kind: 'forge-unpause', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect([hephaestusFetch.callsAnswered().map((call) => call.callShape), sentBodiesOf(hephaestusFetch)]).toEqual([[COMMANDS_CALL_SHAPE], [{ kind: 'hephaestus-unpause' }]]);
   });
 
-  test('restart sends `overseer-restart` without `now`', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'overseer-restart', now: false }]);
+  test('restart sends `hephaestus-restart` without `now`', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    expect(await controlOver({ hephaestusFetch }).carry({ kind: 'forge-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'hephaestus-restart', now: false }]);
   });
 
   test('a restart of Talos sends the forge\'s `talos-restart`, which carries no field', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ overseerFetch }).carry({ kind: 'forge-talos-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'talos-restart' }]);
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    expect(await controlOver({ hephaestusFetch }).carry({ kind: 'forge-talos-restart', trackerId: STOREFRONT_TRACKER_ID })).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'talos-restart' }]);
   });
 
-  test('passes the Overseer\'s refusal code and sentence on unchanged', async () => {
-    const verdict = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(PAUSE);
+  test('passes Hephaestus\'s refusal code and sentence on unchanged', async () => {
+    const verdict = await controlOver({ hephaestusFetch: hephaestusAnswering('command-refused') }).carry(PAUSE);
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
   });
 
-  test('answers nothing-to-do when the Overseer changed nothing', async () => {
-    expect(await controlOver({ overseerFetch: overseerAnswering('nothing-to-change') }).carry(PAUSE)).toEqual({ verdict: 'nothing-to-do' });
+  test('answers nothing-to-do when Hephaestus changed nothing', async () => {
+    expect(await controlOver({ hephaestusFetch: hephaestusAnswering('nothing-to-change') }).carry(PAUSE)).toEqual({ verdict: 'nothing-to-do' });
   });
 
-  test('answers unreachable when the Overseer gives no answer', async () => {
-    expect(await controlOver({ overseerFetch: overseerAnswering('stopped') }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
+  test('answers unreachable when Hephaestus gives no answer', async () => {
+    expect(await controlOver({ hephaestusFetch: hephaestusAnswering('stopped') }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
   });
 
-  test('refuses with token-rejected when the Overseer refuses the token', async () => {
-    const verdict = await controlOver({ overseerFetch: overseerAnswering('token-rejected') }).carry(PAUSE);
+  test('refuses with token-rejected when Hephaestus refuses the token', async () => {
+    const verdict = await controlOver({ hephaestusFetch: hephaestusAnswering('token-rejected') }).carry(PAUSE);
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'token-rejected' });
   });
 
   test('answers not-supported for an answer that is no command answer', async () => {
-    expect(await controlOver({ overseerFetch: overseerAnswering('port-held-by-another-program') }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
+    expect(await controlOver({ hephaestusFetch: hephaestusAnswering('port-held-by-another-program') }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
   });
 
   test('refuses with token-unreadable and sends nothing when the token file cannot be read', async () => {
@@ -515,20 +515,20 @@ describe('forge-pause, forge-unpause, forge-restart and forge-talos-restart, car
     expect(await controlOver({ forges: [exampleForgeOf({ state: 'dormant' })] }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
   });
 
-  test('answers unreachable and sends nothing when the registry names the Overseer at another address than the watch read', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ forges: [forgeMovedSinceTheWatchRead()], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+  test('answers unreachable and sends nothing when the registry names Hephaestus at another address than the watch read', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    expect(await controlOver({ forges: [forgeMovedSinceTheWatchRead()], hephaestusFetch }).carry(PAUSE)).toEqual({ verdict: 'unreachable' });
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 });
 
 describe('a live forge whose control contract Gaia does not know', () => {
   test('is sent nothing, and its command answers not-supported', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
+    const hephaestusFetch = recordedHephaestusFetch([]);
     for (const controlVersion of [CONTRACT_VERSIONS.forgeControl - 1, CONTRACT_VERSIONS.forgeControl + 1]) {
-      expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], overseerFetch }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
+      expect(await controlOver({ forges: [liveForgeAtControl(controlVersion)], hephaestusFetch }).carry(PAUSE)).toEqual({ verdict: 'not-supported' });
     }
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 });
 
@@ -607,27 +607,27 @@ describe('a registry Gaia cannot read', () => {
 });
 
 describe('one command per forge on its way', () => {
-  /** Holds every request to the storefront's Overseer until the spec lets it through; the wiki's pass at once. */
-  function overseerHoldingStorefront(): { readonly overseerFetch: OverseerFetch; readonly letThrough: () => void } {
-    const recorded = overseerAnswering('serving-every-contract');
+  /** Holds every request to the storefront's Hephaestus until the spec lets it through; the wiki's pass at once. */
+  function hephaestusHoldingStorefront(): { readonly hephaestusFetch: HephaestusFetch; readonly letThrough: () => void } {
+    const recorded = hephaestusAnswering('serving-every-contract');
     let letThrough: () => void = () => undefined;
     const heldUntilLetThrough = new Promise<void>((resolve) => {
       letThrough = resolve;
     });
-    const overseerFetch: OverseerFetch = {
-      request: async (overseerRequest): Promise<OverseerAnswer> => {
-        if (overseerRequest.overseerUrl === STOREFRONT_URL) await heldUntilLetThrough;
-        return recorded.request(overseerRequest);
+    const hephaestusFetch: HephaestusFetch = {
+      request: async (hephaestusRequest): Promise<HephaestusAnswer> => {
+        if (hephaestusRequest.hephaestusUrl === STOREFRONT_URL) await heldUntilLetThrough;
+        return recorded.request(hephaestusRequest);
       },
       openStream: (streamRequest) => recorded.openStream(streamRequest),
     };
-    return { overseerFetch, letThrough };
+    return { hephaestusFetch, letThrough };
   }
 
   test('refuses a second command to the same forge while the first runs, carries one to another forge, and frees the forge after', async () => {
-    const { overseerFetch, letThrough } = overseerHoldingStorefront();
+    const { hephaestusFetch, letThrough } = hephaestusHoldingStorefront();
     const forges = [exampleForgeOf(), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
-    const control = controlOver({ forges, overseerFetch });
+    const control = controlOver({ forges, hephaestusFetch });
 
     const firstPause: Promise<CommandVerdict> = control.carry(PAUSE);
     expect(await control.carry(STOP_KEEPING_AGENTS)).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });
@@ -639,7 +639,7 @@ describe('one command per forge on its way', () => {
   });
 
   test('frees the forge after a command that was refused', async () => {
-    const control = controlOver({ overseerFetch: overseerAnswering('command-refused') });
+    const control = controlOver({ hephaestusFetch: hephaestusAnswering('command-refused') });
     expect((await control.carry(PAUSE)).verdict).toBe('refused');
     expect(await control.carry(PAUSE)).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
   });
@@ -648,14 +648,14 @@ describe('one command per forge on its way', () => {
 describe('forge-concurrency-set, carried by the API', () => {
   const SET_CONCURRENCY: GaiaCommand = { kind: 'forge-concurrency-set', trackerId: STOREFRONT_TRACKER_ID, limit: 3 };
 
-  test('sends `concurrency-set` with the limit to the forge\'s Overseer', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
-    expect(await controlOver({ overseerFetch }).carry(SET_CONCURRENCY)).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'concurrency-set', limit: 3 }]);
+  test('sends `concurrency-set` with the limit to the forge\'s Hephaestus', async () => {
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
+    expect(await controlOver({ hephaestusFetch }).carry(SET_CONCURRENCY)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'concurrency-set', limit: 3 }]);
   });
 
-  test('passes the Overseer\'s refusal code and sentence on unchanged', async () => {
-    const verdict = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(SET_CONCURRENCY);
+  test('passes Hephaestus\'s refusal code and sentence on unchanged', async () => {
+    const verdict = await controlOver({ hephaestusFetch: hephaestusAnswering('command-refused') }).carry(SET_CONCURRENCY);
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
   });
 
@@ -672,15 +672,15 @@ describe('machine-agent-limit-set, carried by a live forge\'s API, else by the f
   const SET_MACHINE_LIMIT: GaiaCommand = { kind: 'machine-agent-limit-set', limit: 4 };
 
   test('sends `machine-agent-limit-set` to the live forge and runs no program', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
     const forges = [exampleForgeOf({ state: 'dormant' }), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
-    expect(await controlOver({ forges, overseerFetch }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'machine-agent-limit-set', limit: 4 }]);
-    expect(overseerFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
+    expect(await controlOver({ forges, hephaestusFetch }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'machine-agent-limit-set', limit: 4 }]);
+    expect(hephaestusFetch.callsAnswered().map((call) => call.bearerToken)).toEqual([EXAMPLE_TOKEN]);
   });
 
-  test('passes the Overseer\'s refusal code and sentence on unchanged', async () => {
-    const verdict = await controlOver({ overseerFetch: overseerAnswering('command-refused') }).carry(SET_MACHINE_LIMIT);
+  test('passes Hephaestus\'s refusal code and sentence on unchanged', async () => {
+    const verdict = await controlOver({ hephaestusFetch: hephaestusAnswering('command-refused') }).carry(SET_MACHINE_LIMIT);
     expect(verdict).toEqual({ verdict: 'refused', refusedBy: 'forge', ...recordedApiRefusal() });
   });
 
@@ -692,18 +692,18 @@ describe('machine-agent-limit-set, carried by a live forge\'s API, else by the f
   });
 
   test('runs the program when the live forge gives no answer', async () => {
-    const overseerFetch = overseerAnswering('stopped');
+    const hephaestusFetch = hephaestusAnswering('stopped');
     const processRun = recordedForgeProgramRunOf('every-verb-done');
-    expect(await controlOver({ overseerFetch, processRun }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
-    expect(overseerFetch.callsAnswered()).toHaveLength(1);
+    expect(await controlOver({ hephaestusFetch, processRun }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(hephaestusFetch.callsAnswered()).toHaveLength(1);
     expect(processRun.callShapesAnswered()).toEqual([runCallShapeOf(EXAMPLE_FORGE_PROGRAM_PATH, ['machine', 'limit', '4', '--json'])]);
   });
 
   test('asks the next live forge when the first one\'s token file cannot be read', async () => {
-    const overseerFetch = overseerAnswering('serving-every-contract');
+    const hephaestusFetch = hephaestusAnswering('serving-every-contract');
     const forges = [exampleForgeOf({ tokenPath: join(scratchFolder, 'absent-token') }), exampleForgeOf({ trackerId: WIKI_TRACKER_ID })];
-    expect(await controlOver({ forges, overseerFetch }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
-    expect(sentBodiesOf(overseerFetch)).toEqual([{ kind: 'machine-agent-limit-set', limit: 4 }]);
+    expect(await controlOver({ forges, hephaestusFetch }).carry(SET_MACHINE_LIMIT)).toEqual({ verdict: 'done' });
+    expect(sentBodiesOf(hephaestusFetch)).toEqual([{ kind: 'machine-agent-limit-set', limit: 4 }]);
   });
 
   test('runs the program when the one live forge\'s registry entry names no token file', async () => {
@@ -1058,7 +1058,7 @@ describe('one command per repository being added, per machine limit and per choo
 
   test('refuses a second chooser while one is open, and leaves a forge command free', async () => {
     const { processRun, letThrough } = holdingFirstRun(recordedPathChooserRun());
-    const control = controlOver({ pathChooserRun: processRun, overseerFetch: overseerAnswering('serving-every-contract') });
+    const control = controlOver({ pathChooserRun: processRun, hephaestusFetch: hephaestusAnswering('serving-every-contract') });
 
     const firstChoice = control.carry({ kind: 'path-choose', what: 'folder' });
     expect(await control.carry({ kind: 'path-choose', what: 'file' })).toEqual({ verdict: 'refused', refusedBy: 'gaia', refusal: 'command-in-flight' });

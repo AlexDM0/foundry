@@ -23,7 +23,7 @@ function progressRegistrationReadingOf(reads: StoreReadFace): ProgressRegistrati
   }
 }
 
-/** Everything the registry is told of a board but the Overseer and its presence, read through the store. */
+/** Everything the registry is told of a board but Hephaestus and its presence, read through the store. */
 export function monitorRegistrationRequestOf(context: CommandContext, workspace: Workspace): MonitorRegistrationRequest {
   return {
     rootDirectory:        workspace.rootDirectory,

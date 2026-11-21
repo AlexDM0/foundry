@@ -15,8 +15,8 @@ import { useRecordedGit }                         from '../src/testing/RecordedG
 import { removeScratchDirectory }                 from '../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from './testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from './testing/OverseerTicketMoves.ts';
 import { fileReadyTicket }                        from './testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-09-23T10:00:00Z');
@@ -29,7 +29,7 @@ interface NextLineCase {
 
 /**
  * Each case starts from three committed tickets (rows #1 to #3) and a free-standing row #4 under the default
- * limit of 2, with the Overseer running. No case launches a job, and only a build or review job takes a launch slot, so every
+ * limit of 2, with Hephaestus running. No case launches a job, and only a build or review job takes a launch slot, so every
  * line has both slots free. The expected line is written out from that state by hand, never taken from a run.
  */
 const NEXT_LINE_CASES: NextLineCase[] = [
@@ -83,7 +83,7 @@ let repositoryDirectory = '';
 
 async function run(commandLineArguments: readonly string[]): Promise<ReturnType<typeof createCapturedCommandContext>> {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
   return context;
 }
@@ -100,8 +100,8 @@ beforeEach(async () => {
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
   await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the roles']);
   await run(['task', 'add', 'Review pass']);
-  // A running Overseer adds no advice, so these lines pin slots and queue alone.
-  await run(['oversee', 'resume']);
+  // A running Hephaestus adds no advice, so these lines pin slots and queue alone.
+  await run(['unpause']);
 });
 
 afterEach(() => {
@@ -137,14 +137,14 @@ describeWhenGitIsRecorded('a held ticket on the line', () => {
     expect(await nextLineAfter(['ticket', 'unhold', '2'])).toBe('Next: 2 of 2 slots free; ready: #001, #002, #003');
   });
 
-  // A paused Overseer resumed onto held work would start nothing, so the line must not advise it.
+  // A paused Hephaestus resumed onto held work would start nothing, so the line must not advise it.
   test('a paused board whose only ready ticket is held advises no launch', async () => {
     await run(['ticket', 'abandon', '1', '--reason', 'superseded by #3']);
     await run(['ticket', 'abandon', '3', '--reason', 'superseded by #2']);
-    await run(['oversee', 'pause']);
+    await run(['pause']);
 
-    expect(await nextLineAfter(['ticket', 'hold', '2'])).toBe('Next: 2 of 2 slots free; nothing ready; held: #002; Overseer paused: wait for the user\'s go');
-    expect(await nextLineAfter(['status'])).toBe('Next: 2 of 2 slots free; nothing ready; held: #002; Overseer paused: wait for the user\'s go');
+    expect(await nextLineAfter(['ticket', 'hold', '2'])).toBe('Next: 2 of 2 slots free; nothing ready; held: #002; Hephaestus paused: wait for the user\'s go');
+    expect(await nextLineAfter(['status'])).toBe('Next: 2 of 2 slots free; nothing ready; held: #002; Hephaestus paused: wait for the user\'s go');
   });
 });
 

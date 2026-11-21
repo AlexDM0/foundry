@@ -1,7 +1,7 @@
 /**
  * The ticket form's Overview, as a model: the state card (what works on the ticket now, or why nothing does), the newest open incident
  * naming the ticket, the one likely action, the live job's own controls (a message, and Wind down, Stop and Fresh agent, each worded with
- * what it ends and the hold it leaves), Next (the Overseer's forecast of the steps to the landing), the other moves with their effects, and
+ * what it ends and the hold it leaves), Next (Hephaestus's forecast of the steps to the landing), the other moves with their effects, and
  * the facts. The live job is joined here by its `ticketIds`; nothing here decides a step: the forecast, the offered moves and controls and
  * the hold a stop leaves are the forge's, as it serves them.
  */
@@ -100,7 +100,7 @@ export interface NowCardModel {
   readonly flintCue:   FlintSlotCue;
 }
 
-/** A move the panel offers; `opens` a field to fill before the move is sent, `sendable` false where the Overseer would refuse it. */
+/** A move the panel offers; `opens` a field to fill before the move is sent, `sendable` false where Hephaestus would refuse it. */
 export interface MoveModel {
   readonly move:        TicketMove;
   readonly label:       string;
@@ -164,7 +164,7 @@ export interface TicketOverviewModel {
   readonly jobControls:     TicketJobControlsModel | null;
   /** The conflicted files under the lead while the ticket waits for merge; empty otherwise. */
   readonly conflictedFiles: readonly string[];
-  /** `null` when the board carries no forecast for the ticket: an older Overseer, a closed ticket or a draft. */
+  /** `null` when the board carries no forecast for the ticket: an older Hephaestus, a closed ticket or a draft. */
   readonly nextSteps:       readonly NextStepModel[] | null;
   readonly otherMoves:      readonly MoveModel[];
   readonly facts:           readonly DetailFactModel[];
@@ -316,7 +316,7 @@ function parkMoveOf(ticketId: string, liveJob: BoardJobDocument | null): MoveMod
   };
 }
 
-/** Work User landed outside the Overseer; the forge offers it only while no job of the ticket is live. */
+/** Work User landed outside Hephaestus; the forge offers it only while no job of the ticket is live. */
 function deliverByHandMoveOf(ticketId: string): MoveModel {
   return {
     move:   'deliver-by-hand',
@@ -324,7 +324,7 @@ function deliverByHandMoveOf(ticketId: string): MoveModel {
     effect: [
       textOf('Records '),
       emphasisOf(idTextOf(ticketId)),
-      textOf(' delivered: work User landed outside the Overseer. Nothing merges, lands or launches.'),
+      textOf(' delivered: work User landed outside Hephaestus. Nothing merges, lands or launches.'),
     ],
     opens:    'by-hand',
     sendable: true,
@@ -349,7 +349,7 @@ function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: Board
     moves.push({
       move:     'unhold',
       label:    'Unhold',
-      effect:   [textOf('Lifts the hold on '), emphasisOf(id), textOf('; the step it held starts at the Overseer\'s next Pass.')],
+      effect:   [textOf('Lifts the hold on '), emphasisOf(id), textOf('; the step it held starts at Hephaestus\'s next Pass.')],
       opens:    null,
       sendable: true,
     });
@@ -358,7 +358,7 @@ function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: Board
     moves.push({
       move:     'merge-update',
       label:    'Update branch',
-      effect:   [textOf('Merges '), figureOf(controls.mergeWait.target), textOf(' into the branch of '), emphasisOf(id), textOf('; the Overseer gates it again on its next Pass.')],
+      effect:   [textOf('Merges '), figureOf(controls.mergeWait.target), textOf(' into the branch of '), emphasisOf(id), textOf('; Hephaestus gates it again on its next Pass.')],
       opens:    null,
       sendable: controls.mergeWait.updates,
     });
@@ -367,7 +367,7 @@ function movesOf(controls: DetailControlsModel, ticketId: string, liveJob: Board
     moves.push({
       move:     'hold',
       label:    'Hold…',
-      effect:   [textOf('Holds '), emphasisOf(id), textOf(': the Overseer launches no builder or reviewer for it until it is unheld.')],
+      effect:   [textOf('Holds '), emphasisOf(id), textOf(': Hephaestus launches no builder or reviewer for it until it is unheld.')],
       opens:    'reason',
       sendable: true,
     });

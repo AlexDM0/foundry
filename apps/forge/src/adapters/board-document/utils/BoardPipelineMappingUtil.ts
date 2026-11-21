@@ -582,7 +582,7 @@ function pipelineHistoryEntriesOf(record: LogRecord): BoardPipelineHistoryEntryD
       }];
     case 'pipeline-setup-discarded':
       return [{ kind: record.kind, at: record.at, setupId: record.setupId }];
-    case 'overseer-set':
+    case 'hephaestus-set':
       return [{ kind: record.kind, at: record.at, fields: { state: record.fields.state } }];
     default:
       return [];

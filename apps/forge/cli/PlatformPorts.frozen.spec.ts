@@ -11,7 +11,7 @@ import { createDarwinSeatbelt, seatbeltProfileTextOf } from '../src/lib/gate-con
 import type { ConfinementPlan }                        from '../src/lib/gate-confinement/GateConfinement.ts';
 import { platformPortsFor }                            from '../src/lib/platform-ports/PlatformPortsFor.ts';
 import { createPosixShellLine }                        from '../src/lib/shell-line/PosixShellLine.ts';
-import { LineSandbox, type ProcessSandboxRequest }     from '../src/services/overseer/LineSandbox.ts';
+import { LineSandbox, type ProcessSandboxRequest }     from '../src/services/hephaestus/LineSandbox.ts';
 import { settingsTextBeforePowerShell }                from '../src/testing/SettingsBeforePowerShell.ts';
 import { agentAdapterOfThisProcess }                   from './CommandContext.ts';
 import frozenTable                                     from './FrozenPlatformPorts.json';

@@ -1,7 +1,7 @@
 /**
  * Talos, the one commander of a board's children: started as `<board folder> <start number>`, it claims its record, serves its endpoint
- * and runs every child the Overseer launches, keeping its main loop free by sending every synchronous call to its thread. A failed call
- * ends it with its records left as they are, so the Overseer reads it as lost.
+ * and runs every child Hephaestus launches, keeping its main loop free by sending every synchronous call to its thread. A failed call
+ * ends it with its records left as they are, so Hephaestus reads it as lost.
  * It depends on `src/lib/atomic-file`, `src/lib/json-record`, `src/lib/owner-only-files` and `src/lib/process-identity`.
  */
 import { appendFileSync } from 'node:fs';
@@ -191,7 +191,7 @@ export async function runTalosOnPorts(talosArguments: readonly string[], clock: 
       // The disk that failed Talos may refuse this line too; Talos ends without its cause.
     }
     settled = true;
-    // Nothing here writes a record: the Overseer reads Talos as lost from the records as the failure left them.
+    // Nothing here writes a record: Hephaestus reads Talos as lost from the records as the failure left them.
     if (tickTimer !== null) clearInterval(tickTimer);
     server?.close();
     worker.terminate();

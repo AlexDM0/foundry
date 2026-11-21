@@ -8,7 +8,7 @@
 ## In one screen
 
 Bun runs the TypeScript directly, so an edit reaches the next CLI command. A running
-[Overseer](../glossary.md#overseer) keeps the code it started with until you restart it.
+[Hephaestus](../glossary.md#hephaestus) keeps the code it started with until you restart it.
 
 `apps/forge/setup.sh` installs the dependencies, links `forge` and turns on the commit hook. After that, four things
 matter:
@@ -109,35 +109,35 @@ bun agent-progress.ts ticket add "Double-click a role to edit it" --type ticket
 bun agent-progress.ts log "Scratch board started"
 bun agent-progress.ts status
 
-bun agent-progress.ts oversee --port 0 --detach
-bun agent-progress.ts oversee status
+bun agent-progress.ts start --port 0
+bun agent-progress.ts status
 ```
 
-![Ten steps along a time axis, from mktemp to rm -rf. The scratch folder's bar spans all ten. The HOME export and the other exports sit inside it. The Overseer runs from oversee to stop --now, and agent sessions run on to pkill, both ending before rm -rf. Skipping stop --now leaves the Overseer running; skipping pkill leaves the agents running.](../figures/contributing/scratch-board-spans.png)
+![Ten steps along a time axis, from mktemp to rm -rf. The scratch folder's bar spans all ten. The HOME export and the other exports sit inside it. Hephaestus runs from start to stop --now, and agent sessions run on to pkill, both ending before rm -rf. Skipping stop --now leaves Hephaestus running; skipping pkill leaves the agents running.](../figures/contributing/scratch-board-spans.png)
 
-*Notice that the Overseer and the agents end in separate steps, and both end before the folder does.*
+*Notice that Hephaestus and the agents end in separate steps, and both end before the folder does.*
 
 Six lines are easy to get wrong:
 
 | Line | Why |
 | --- | --- |
-| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the board's [Talos](../glossary.md#talos) socket, and a socket path stays under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and the Overseer refuses to start, as its Talos cannot bind its socket. |
+| `mktemp -d /tmp/ap-scratch.XXXXXX` | The scratch `HOME` holds the board's [Talos](../glossary.md#talos) socket, and a socket path stays under `MACOS_SOCKET_PATH_LIMIT_BYTES` (104). On macOS a bare `mktemp -d` lands too deep, and Hephaestus refuses to start, as its Talos cannot bind its socket. |
 | `init --root "$REPOSITORY"` | `init` does not choose its directory by the override. It takes the current directory or `--root`, and [refuses](../glossary.md#refusal) when the override names another directory. |
 | `FORGE_ROOT` | The line that matters most: every later command acts on this tracker, with no walk. [Only this name works](#why-only-the-forge_-variables-work). |
-| `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) the Overseer launches is the scripted fake agent, so nothing spends a subscription. |
+| `FORGE_FAKE_AGENT` | Every [session](../glossary.md#session) Hephaestus launches is the scripted fake agent, so nothing spends a subscription. |
 | `FORGE_FAKE_AGENT_KEEPS_WORKING` | Each fake session works until its stdin closes. Sessions that end unreported count as crashes, and crashes on `CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING` (2) different tickets back to back open an outage that pauses the board. Keep it set once tickets run. |
-| `oversee --port 0 --detach` | Port 0 asks for any free port instead of the one derived from the tracker id. |
+| `start --port 0` | Port 0 asks for any free port instead of the one derived from the tracker id. |
 
-The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `oversee status` prints two
+The full table of variables is in the [CLI reference](../cli.md). On a healthy start, `status` prints two
 matching hashes on a paused board:
 
 ```text
-overseer: serving at http://127.0.0.1:<port>/, process <id>, Baton 1; paused
+hephaestus: serving at http://127.0.0.1:<port>/, process <id>, Baton 1; paused
 code on disk: <hash>; in memory: <hash>
 ```
 
-A fresh board starts paused, and its Overseer launches the [Assistant](../glossary.md#assistant). New work waits until
-the board has gates: `oversee resume` alone launches the [pipeline agent](../glossary.md#pipeline-agent) and no ticket. To get a
+A fresh board starts paused, and its Hephaestus launches the [Assistant](../glossary.md#assistant). New work waits until
+the board has gates: `unpause` alone launches the [pipeline agent](../glossary.md#pipeline-agent) and no ticket. To get a
 ticket running, declare no gates, give the ticket a [Brief](../glossary.md#brief), ready it and resume. In the same
 shell, run:
 
@@ -147,7 +147,7 @@ bun agent-progress.ts ticket edit 001 --append --body "## Brief
 
 Try a change on this ticket."
 bun agent-progress.ts ticket ready 001
-bun agent-progress.ts oversee resume
+bun agent-progress.ts unpause
 bun agent-progress.ts jobs
 ```
 
@@ -156,7 +156,7 @@ there yet. A client of the API shows the same job. The fake agent never reports,
 the job runs until you end the board. [Getting started](../operations/getting-started.md) settles real gates, and the
 [Runbook](../operations/runbook.md) has a scratch board where the job fails instead.
 
-To run a ticket on to its landing, also `export FORGE_FAKE_AGENT_REPORTS=1` before `oversee`: each fake builder then
+To run a ticket on to its landing, also `export FORGE_FAKE_AGENT_REPORTS=1` before `start`: each fake builder then
 commits a line in each folder its stage may change and reports, and each fake reviewer reports every Acceptance item as
 holding. When the ticket's Brief has a `Work belongs in:` line, the builder writes only in the folders it names, so a
 ticket of an app crosses only into the packages it names. It claims no gate, so give the board only gates with
@@ -165,7 +165,7 @@ ticket of an app crosses only into the packages it names. It claims no gate, so 
 **End the scratch board:**
 
 ```sh
-bun agent-progress.ts oversee stop --now
+bun agent-progress.ts stop --now
 pkill -f "$REPOSITORY/.forge"
 unset FORGE_ROOT FORGE_FAKE_AGENT FORGE_FAKE_AGENT_KEEPS_WORKING
 export HOME="$USER_HOME"
@@ -252,22 +252,22 @@ tracked file.
 | Add a package dependency inside `src/lib/` | The "depends on" sentence in the main module's header | The import | `src/ImportDirection.spec.ts` |
 | Rename a component | Every tracked file | The old name in `RETIRED_NAMES` | `src/ComponentNames.spec.ts` |
 
-## Seeing a change in a running Overseer
+## Seeing a change in a running Hephaestus
 
-**A running Overseer keeps the code it started with: restart it to see an edit.**
+**A running Hephaestus keeps the code it started with: restart it to see an edit.**
 
-The CLI runs your edit from its next command. The Overseer holds the code it started with across the edit, until
-`oversee stop --now`, and runs your edit after the next `oversee --detach`. Between the edit and the stop the Overseer
-lags your checkout, and `oversee status` shows it as two hashes.
+The CLI runs your edit from its next command. Hephaestus holds the code it started with across the edit, until
+`stop --now`, and runs your edit after the next `start`. Between the edit and the stop Hephaestus
+lags your checkout, and `status` shows it as two hashes.
 
-The Overseer watches no files. Stop and start it in the scratch shell:
+Hephaestus watches no files. Stop and start it in the scratch shell:
 
 ```sh
-bun agent-progress.ts oversee stop --now
-bun agent-progress.ts oversee --port 0 --detach
+bun agent-progress.ts stop --now
+bun agent-progress.ts start --port 0
 ```
 
-`oversee status` prints the hash of the code on disk and of the code in memory. Two different hashes mean the Overseer
+`status` prints the hash of the code on disk and of the code in memory. Two different hashes mean Hephaestus
 runs older code than your checkout: restart it. See [code version](../glossary.md#code-version).
 
 ## Changing the documentation
@@ -328,10 +328,10 @@ bun test src/ComponentNames.spec.ts
 | Test preloads | `bunfig.toml` | `preload` | None; `src/testing/ProgramTrapGuard.ts`, `src/testing/TestRunReport.ts` and `src/testing/SharedCaseDeadlinePreload.ts` are the preloads |
 | Commit hook | `.githooks/pre-commit` | None | `cli/setup/Setup.spec.ts` for `core.hooksPath` |
 | Edit hook | `.claude/hooks/fix-lint-on-edit.sh` | None | None |
-| Hook policy of the Overseer's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
+| Hook policy of Hephaestus's git | `src/lib/git/GitProcess.ts` | `HOOKS_OFF_OVERRIDES`, `GitHookPolicy` | `src/lib/git/GitProcess.integration.spec.ts` |
 | A session's hooks | `src/lib/claude-code/ClaudeCodeAdapter.ts` | `gitConfigurationOf` | `src/lib/claude-code/ClaudeCodeAdapter.spec.ts` |
 | Scratch path bound | `src/lib/talos/PosixSocketEndpoint.ts` | `MACOS_SOCKET_PATH_LIMIT_BYTES` | `src/lib/talos/PosixSocketEndpoint.spec.ts` |
 | Outage from crashes | `src/lib/tracker-model/Playbook.ts` | `outageIsDue` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Reading the variables | `src/shared/Environment.ts` | `ROOT_OVERRIDE_VARIABLE`, `FAKE_AGENT_VARIABLE`, `FAKE_AGENT_KEEPS_WORKING_VARIABLE` | `cli/ProductNameIsolation.integration.spec.ts` |
 | Finding a tracker | `src/services/tracker/Workspace.ts` | `findWorkspace`, `requireWorkspace` | `src/services/tracker/Workspace.integration.spec.ts` |
-| Code on disk | `src/services/overseer/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/overseer/CodeVersion.spec.ts` |
+| Code on disk | `src/services/hephaestus/CodeVersion.ts` | `CodeVersion.onDisk` | `src/services/hephaestus/CodeVersion.spec.ts` |

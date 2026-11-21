@@ -20,7 +20,7 @@ export interface DetailControlsModel {
   readonly network:         readonly string[];
   /** The priorities `ticket-priority` may move the ticket to, highest first, never the one it runs at; empty while it is not offered. */
   readonly priorityChoices: readonly BoardTicketPriority[];
-  /** `ticket-deliver-by-hand` is offered, for work User landed outside the Overseer. */
+  /** `ticket-deliver-by-hand` is offered, for work User landed outside Hephaestus. */
   readonly deliversByHand:  boolean;
   /** Written only while the ticket waits for merge: `merge-accept` and `merge-update`. */
   readonly mergeWait?:      MergeWaitModel;

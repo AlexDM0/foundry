@@ -646,7 +646,7 @@ export class PipelineSetups {
     return { logged: [this.records.logger.log({ kind: 'pipeline-draft-discarded', setupId, fields: { revision: setup.draftRevision } }, at)], setup };
   }
 
-  /** Removes the record; the agent's end and the snapshot's removal are the Overseer's, after the hold. */
+  /** Removes the record; the agent's end and the snapshot's removal are Hephaestus's, after the hold. */
   startOverSetup(setupId: string, at: string): PipelineSetupChanged {
     const setup = this.requireMovableSetup(setupId);
     this.records.pipelineSetupReading = { verdict: 'absent' };
@@ -655,7 +655,7 @@ export class PipelineSetups {
   }
 
   /**
-   * User's check of the gates the draft changes or adds against the base pipeline, which the Overseer runs. On a draft over entities, each
+   * User's check of the gates the draft changes or adds against the base pipeline, which Hephaestus runs. On a draft over entities, each
    * entity whose gates the draft touched gets a check of its own, of those gates. Refuses `no-gate-to-check` when the draft touches no
    * gate, and `pipeline-check-running` while an earlier check waits or runs.
    */
@@ -680,7 +680,7 @@ export class PipelineSetups {
     return { logged, setup };
   }
 
-  /** The levels of the open record whose check waits for the Overseer: `null` for the forge's own, else the entity's key. */
+  /** The levels of the open record whose check waits for Hephaestus: `null` for the forge's own, else the entity's key. */
   queuedCheckLevels(): (EntityKey | null)[] {
     const setup = this.openSetupRecord();
     if (setup === null) return [];
@@ -688,7 +688,7 @@ export class PipelineSetups {
   }
 
   /**
-   * The Overseer's start of the record's queued check, of the forge or of one entity, in the hold: the prepare steps and the touched gates
+   * Hephaestus's start of the record's queued check, of the forge or of one entity, in the hold: the prepare steps and the touched gates
    * of the draft as it is now, which the check then names; an entity's come with its first home. `null` when the record is gone, is
    * another one, or has no queued check there.
    */
@@ -725,7 +725,7 @@ export class PipelineSetups {
     return { logged: [], setup };
   }
 
-  /** At an Overseer's start, or as it stops: each running check reads `stopped`, with no result, and runs again only on User's press. */
+  /** At a Hephaestus's start, or as it stops: each running check reads `stopped`, with no result, and runs again only on User's press. */
   stopRunningCheck(): PipelineSetupChanged | null {
     const setup = this.openSetupRecord();
     if (setup === null) return null;
@@ -809,7 +809,7 @@ export class PipelineSetups {
     if (!draftHasEntities(setup)) this.storeConstitutionSources(setup, finishing.mainConstitution);
     const logged = this.decisionRules.decisions().filter((decision) => decision.kind === 'checks-not-set')
       .flatMap((decision) => this.decisionRules.withdrawDecision(decision.id, PIPELINE_APPLIED_DECISION_REASON, at).logged);
-    if (finishing.resumesBoard) logged.push(...this.trackerChanges.setOverseerState('running', at).logged);
+    if (finishing.resumesBoard) logged.push(...this.trackerChanges.setHephaestusState('running', at).logged);
     if (!this.revisionWasApplied(setupId, setup.draftRevision)) {
       logged.push(this.records.logger.log({
         kind:   'pipeline-applied',
@@ -833,7 +833,7 @@ export class PipelineSetups {
 
   /**
    * An open record whose draft, as applied, is already the stored pipeline while the record's base is not: an Apply stored it and was cut
-   * short before its close. The Overseer's start finishes it, resuming the board only as a stored request asked.
+   * short before its close. Hephaestus's start finishes it, resuming the board only as a stored request asked.
    */
   finishHalfAppliedSetup(reading: ApplyMainReading, at: string): PipelineApplyChanged | null {
     const setup  = this.openSetupRecord();

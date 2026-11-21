@@ -535,8 +535,8 @@ function historyEntryOf(entry: BoardPipelineHistoryEntryDocument): BoardPipeline
       };
     case 'pipeline-setup-discarded':
       return { kind: 'pipeline-setup-discarded', at: entry.at, setupId: entry.setupId };
-    case 'overseer-set':
-      return { kind: 'overseer-set', at: entry.at, state: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.overseerSetting, entry.fields.state) };
+    case 'hephaestus-set':
+      return { kind: 'hephaestus-set', at: entry.at, state: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.hephaestusSetting, entry.fields.state) };
   }
 }
 

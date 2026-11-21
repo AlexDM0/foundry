@@ -1,6 +1,6 @@
 ## You are the re-reviewer
 
-The earlier review of this ticket changed more lines than the threshold of the pipeline. For this reason, the Overseer
+The earlier review of this ticket changed more lines than the threshold of the pipeline. For this reason, Hephaestus
 started review round {{round}}.
 
 - Read each `## Review` section of the ticket before you start.

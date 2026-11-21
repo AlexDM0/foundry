@@ -1,5 +1,5 @@
 /**
- * The reading mapper against its own contract, on documents its ingestions have checked: the Overseer's state and pause to a condition,
+ * The reading mapper against its own contract, on documents its ingestions have checked: Hephaestus's state and pause to a condition,
  * a held launch outranking a pause; a contract an identity leaves out to `null`; the contract just read at the number its document carries;
  * a warning that an Assistant cannot come up read as a notice after the forge's own notices, every other warning kept with its kind; a summary's
  * usage with no current window; a monitor job's interruption cause on its row, `null` from a summary; a monitor's typed target
@@ -9,21 +9,21 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { BoardTarget }                                           from 'forge-contracts/BoardReadingDocuments';
-import type { BoardSummaryDocument, SummaryOverseerState }            from 'forge-contracts/BoardSummaryDocument';
+import type { BoardSummaryDocument, SummaryHephaestusState }          from 'forge-contracts/BoardSummaryDocument';
 import type { MonitorActivityEntryDocument, MonitorSnapshotDocument } from 'forge-contracts/MonitorSnapshotDocument';
 import { FORGE_NOTICE_KINDS }                                         from '../../../shared/constants/ForgeNoticeKinds.ts';
 import type { ForgeIdentity, ForgeRegistryFacts }                     from '../@types/ForgeDocumentReading.ts';
 import { ForgeReadingMapUtil }                                        from './ForgeReadingMapUtil.ts';
 
 const REGISTRY_FACTS: ForgeRegistryFacts = {
-  trackerId:         'example-agency-1a2b',
-  project:           'Example Agency',
-  root:              '/Users/alexexample/development/example-agency',
-  overseerUrl:       'http://127.0.0.1:4987/',
-  overseerProcessId: 4242,
-  program:           '/Users/alexexample/.bun/bin/forge',
-  lastCommand:       'ticket ready',
-  lastChangedAt:     '2026-11-12T08:00:00.000Z',
+  trackerId:           'example-agency-1a2b',
+  project:             'Example Agency',
+  root:                '/Users/alexexample/development/example-agency',
+  hephaestusUrl:       'http://127.0.0.1:4987/',
+  hephaestusProcessId: 4242,
+  program:             '/Users/alexexample/.bun/bin/forge',
+  lastCommand:         'ticket ready',
+  lastChangedAt:       '2026-11-12T08:00:00.000Z',
 };
 
 const IDENTITY: ForgeIdentity = {
@@ -35,11 +35,11 @@ const IDENTITY: ForgeIdentity = {
   contracts:      null,
 };
 
-function summaryAt(state: SummaryOverseerState, paused: boolean): BoardSummaryDocument {
+function summaryAt(state: SummaryHephaestusState, paused: boolean): BoardSummaryDocument {
   return {
-    summaryVersion: 1,
+    summaryVersion: 2,
     project:        'Example Agency',
-    overseer:       { state, paused, url: null },
+    hephaestus:     { state, paused, url: null },
     readyTicketIds: [],
     jobs:           [],
     openDecisions:  0,
@@ -49,7 +49,7 @@ function summaryAt(state: SummaryOverseerState, paused: boolean): BoardSummaryDo
 }
 
 describe('the condition of a forge', () => {
-  test('follows the Overseer\'s state, a held launch outranking a pause and a serving Overseer paused or live', () => {
+  test('follows Hephaestus\'s state, a held launch outranking a pause and a serving Hephaestus paused or live', () => {
     const conditions = ([
       ['serving', false],
       ['serving', true],
@@ -63,14 +63,14 @@ describe('the condition of a forge', () => {
 
 function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapshotDocument {
   return {
-    monitorVersion: 4,
+    monitorVersion: 5,
     trackerId:      REGISTRY_FACTS.trackerId,
     project:        'Example Agency',
     root:           REGISTRY_FACTS.root,
-    overseer:       {
+    hephaestus:     {
       state:       'serving',
       paused:      false,
-      url:         REGISTRY_FACTS.overseerUrl,
+      url:         REGISTRY_FACTS.hephaestusUrl,
       processId:   4242,
       startedAt:   '2026-11-12T08:00:00.000Z',
       codeVersion: '3f9a2c1',
@@ -102,7 +102,7 @@ function snapshotWith(changes: Partial<MonitorSnapshotDocument>): MonitorSnapsho
 
 describe('the warnings and notices of a snapshot read in full', () => {
   test('read a warning that an Assistant cannot come up as a notice, after the forge\'s own, and keep every other warning with its kind', () => {
-    const newCode = { kind: 'new-code', text: 'new code is on disk: restart the Overseer to run it' };
+    const newCode = { kind: 'new-code', text: 'new code is on disk: restart Hephaestus to run it' };
     const assistantDown = { kind: FORGE_NOTICE_KINDS.assistantDown, text: 'no Assistant can come up: open incidents take their defaults' };
     const batonPassFailed = { kind: 'baton-pass-failed', text: 'the Baton pass to code example-code failed at take-baton: Example error' };
     const reading = ForgeReadingMapUtil.fullReadingOf(snapshotWith({ notices: [newCode], warnings: [assistantDown, batonPassFailed] }), REGISTRY_FACTS, IDENTITY, 'stamp');
@@ -204,8 +204,8 @@ describe('identityOf', () => {
       installVersion:  27,
       processId:       4242,
     } as const;
-    expect(ForgeReadingMapUtil.identityOf({ ...document, contracts: { summary: 1, monitor: 1 } }).contracts).toEqual({
-      summary: 1,
+    expect(ForgeReadingMapUtil.identityOf({ ...document, contracts: { summary: 2, monitor: 1 } }).contracts).toEqual({
+      summary: 2,
       monitor: 1,
       control: null,
     });
@@ -217,18 +217,18 @@ describe('contractsWith', () => {
     const identity = {
       ...IDENTITY,
       contracts: {
-        summary: 1,
+        summary: 2,
         monitor: 1,
         control: 1,
       },
     };
     expect(ForgeReadingMapUtil.contractsWith(identity, { monitor: 3 })).toEqual({
-      summary: 1,
+      summary: 2,
       monitor: 3,
       control: 1,
     });
-    expect(ForgeReadingMapUtil.contractsWith(null, { summary: 1 })).toEqual({
-      summary: 1,
+    expect(ForgeReadingMapUtil.contractsWith(null, { summary: 2 })).toEqual({
+      summary: 2,
       monitor: null,
       control: null,
     });

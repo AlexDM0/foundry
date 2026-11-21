@@ -3,7 +3,7 @@
  * a run queued or running refuses `gate-profile-running`; a run keeps each prepare step's folder, so it prepares where the pipeline does;
  * only the newest run of a gate and phase is kept, of an entity's gate and phase on a forge over entities, and run ids are never reused; a
  * run ends with its duration and what its gate reported of its cache, except one User asked to stop, which ends `stopped` with neither; a
- * Stop ends a queued run at once and only marks a running one; an Overseer start stops a run left running and leaves a queued one queued;
+ * Stop ends a queued run at once and only marks a running one; a Hephaestus start stops a run left running and leaves a queued one queued;
  * and a malformed file refuses every move and is never written over.
  */
 import { describe, expect, test } from 'bun:test';
@@ -163,7 +163,7 @@ describe('a Stop', () => {
   });
 });
 
-test('an Overseer start stops a run left running, never to run again, and leaves a queued one queued', () => {
+test('a Hephaestus start stops a run left running, never to run again, and leaves a queued one queued', () => {
   const { board } = boardFixture();
   board.queueGateProfile(request(), AT);
   board.queueGateProfile(request({ phase: 'merge' }), AT);

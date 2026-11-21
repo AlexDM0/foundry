@@ -18,7 +18,7 @@ const SPECS_AND_TESTING_FOLDERS = ['**/*.spec.ts', '**/testing/**/*.ts'];
 const CONFINED_REACHES = [
   {
     shippingOnly: true,
-    allowedIn:    ['cli/CommandContext.ts', 'talos.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts', 'src/services/overseer/HeldSlotCreateFor.ts'],
+    allowedIn:    ['cli/CommandContext.ts', 'talos.ts', 'setup.ts', 'src/lib/atomic-file/FileReplaceFor.ts', 'src/services/hephaestus/HeldSlotCreateFor.ts'],
     property:     { object: 'process', property: 'platform', message: 'Take the platform as a parameter; only the selectors decide on it.' },
   },
   {
@@ -68,7 +68,7 @@ const CLOCK_MESSAGE = 'Take the clock from the CommandContext.';
 
 export default [
   ...base,
-  // The worktrees an Overseer makes inside a checkout hold copies of this repository, linted in their own checkout.
+  // The worktrees a Hephaestus makes inside a checkout hold copies of this repository, linted in their own checkout.
   { ignores: ['**/*.js', 'node_modules/**', '.claude/**', '.forge-worktrees/**', '.agent-progress-worktrees/**'] },
   {
     // Test-only helpers may import devDependencies; nothing that ships may import these folders.

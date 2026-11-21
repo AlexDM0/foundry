@@ -23,7 +23,7 @@ export interface SmokeStreamedEvent {
   data:       Record<string, unknown>;
 }
 
-/** A span with no Overseer serving the SSE client: from the kill or the restart to the client's reconnection. */
+/** A span with no Hephaestus serving the SSE client: from the kill or the restart to the client's reconnection. */
 export interface StreamGap {
   from: string;
   to:   string;
@@ -35,7 +35,7 @@ export interface SmokeItemVerdict {
   detail: string;
 }
 
-/** What the driver saw around the Overseer's `kill -9`, its second `oversee` and its `oversee restart`. */
+/** What the driver saw around Hephaestus's `kill -9`, its second `start` and its `restart`. */
 export interface RegroupingObservation {
   jobId:                            string;
   childInstanceBeforeKill:          number;
@@ -160,15 +160,15 @@ export const CutoverSmokeUtil = Object.freeze({
     };
   },
 
-  /** Item 2: the agent outlived the Overseer's kill and its restart, and no second child or build started on its ticket. */
+  /** Item 2: the agent outlived Hephaestus's kill and its restart, and no second child or build started on its ticket. */
   regroupingVerdictOf(observation: RegroupingObservation): SmokeItemVerdict {
     const problems = [
-      ...(observation.childProcessAliveAfterRegrouping ? [] : ['the agent child died with the Overseer']),
+      ...(observation.childProcessAliveAfterRegrouping ? [] : ['the agent child died with Hephaestus']),
       ...(observation.childInstanceAfterRegrouping === observation.childInstanceBeforeKill ? [] : [
         `the regrouped job moved to child instance ${observation.childInstanceAfterRegrouping}`,
       ]),
       ...(observation.buildJobsOnTheTicketAfterKill === 0 ? [] : [`${observation.buildJobsOnTheTicketAfterKill} more build jobs launched on the ticket`]),
-      ...(observation.restartExitCode === 0 ? [] : [`oversee restart exited ${observation.restartExitCode}`]),
+      ...(observation.restartExitCode === 0 ? [] : [`restart exited ${observation.restartExitCode}`]),
       ...(observation.childProcessAliveAfterRestart ? [] : ['the agent child died in the Baton pass']),
       ...(observation.childInstanceAfterRestart === observation.childInstanceBeforeKill ? [] : [
         `the job moved to child instance ${observation.childInstanceAfterRestart} in the baton-pass`,
@@ -178,7 +178,7 @@ export const CutoverSmokeUtil = Object.freeze({
       item:   2,
       passed: problems.length === 0,
       detail: problems.length === 0
-        ? `job ${observation.jobId} kept child instance ${observation.childInstanceBeforeKill} alive through kill -9, a new run and oversee restart`
+        ? `job ${observation.jobId} kept child instance ${observation.childInstanceBeforeKill} alive through kill -9, a new run and restart`
         : problems.join('; '),
     };
   },
@@ -228,7 +228,7 @@ export const CutoverSmokeUtil = Object.freeze({
   /**
    * Item 5: every ticket move logged while the stream was connected shows in a `board` event as the status it moved to, and every job
    * launched then was published in at least one `job` event. A move a later move of the same ticket in the same stamp overtook is never
-   * published, since an event carries the state a whole pass left; a record logged while no Overseer served the stream is not asked of it.
+   * published, since an event carries the state a whole pass left; a record logged while no Hephaestus served the stream is not asked of it.
    */
   eventVerdictOf(records: readonly SmokeLogRecord[], events: readonly SmokeStreamedEvent[], streamOpenedAt: string, gaps: readonly StreamGap[] = []): SmokeItemVerdict {
     const inAGap = (record: SmokeLogRecord): boolean => gaps.some((gap) => epochMillisecondsOf(record.at) >= epochMillisecondsOf(gap.from) - 1000

@@ -3,7 +3,7 @@
  * event is a change signal: `board-changed` asks for the board document anew (`ForgeClient.boardOf`), and a part event names the part
  * that changed, which a `board-changed` of the same pass always follows.
  */
-export type BoardPartName = 'job' | 'decision' | 'incident' | 'overseer' | 'usage' | 'profile' | 'pipeline';
+export type BoardPartName = 'job' | 'decision' | 'incident' | 'hephaestus' | 'usage' | 'profile' | 'pipeline';
 
 export type BoardEvent =
   | { readonly kind: 'board-changed' }

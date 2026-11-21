@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="680" height="842" viewBox="0 0 680 842" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
   <title>Agents report, code moves the ticket to merged</title>
-  <desc>User describes the work, a product owner files a draft ticket, and once User readies it the Overseer starts a builder on the ticket's worktree. Customs and the gates verify the builder's report on its final commit. A fresh reviewer follows when the pipeline sets a review; when it does not, the ticket goes straight to the Airlock. A red result or a review that does not hold sends the ticket back to the same builder. A reviewer's large rework can earn another review round. From the merge queue the Airlock merges one ticket at a time, gated, and the ticket is done only once merged. Findings outside scope become low-priority draft tickets.</desc>
+  <desc>User describes the work, a product owner files a draft ticket, and once User readies it Hephaestus starts a builder on the ticket's worktree. Customs and the gates verify the builder's report on its final commit. A fresh reviewer follows when the pipeline sets a review; when it does not, the ticket goes straight to the Airlock. A red result or a review that does not hold sends the ticket back to the same builder. A reviewer's large rework can earn another review round. From the merge queue the Airlock merges one ticket at a time, gated, and the ticket is done only once merged. Findings outside scope become low-priority draft tickets.</desc>
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
       <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
@@ -45,7 +45,7 @@
   <text x="280" y="199" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Product owner files it</text>
   <text x="280" y="217" font-size="12" fill="#993C1D" text-anchor="middle">a draft ticket, numbered Acceptance</text>
   <rect x="170" y="260" width="220" height="52" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
-  <text x="280" y="283" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Overseer starts a builder</text>
+  <text x="280" y="283" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Hephaestus starts a builder</text>
   <text x="280" y="301" font-size="12" fill="#185FA5" text-anchor="middle">one per free launch slot</text>
   <rect x="170" y="344" width="220" height="52" rx="8" fill="#FAECE7" stroke="#F3D2C5"/>
   <text x="280" y="367" font-size="14" font-weight="500" fill="#712B13" text-anchor="middle">Builder works in a worktree</text>

@@ -21,7 +21,7 @@ import { environmentCopy }                           from './services/Environmen
 import { createFleetStore }                          from './services/FleetStore.ts';
 import { PAGE_CONTRACT_VERSIONS }                    from './shared/constants/PageContractVersions.ts';
 import { manualTimers }                              from './testing/ManualTimers.ts';
-import { recordedOverseerFetch }                     from './testing/RecordedAnswers.ts';
+import { recordedHephaestusFetch }                   from './testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath } from './testing/ScratchRoot.ts';
 
 const PAGE_POLICY = pageContentSecurityPolicyFor();
@@ -99,7 +99,7 @@ describe('gaia serve', () => {
     const { code } = await codeAnswer.json() as { readonly code: string };
     const session = await answerOf(address, '/api/v1/session', { method: 'POST', body: JSON.stringify({ code }) });
     const cookie = (session.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
-    const fleet = await answerOf(address, '/api/v10/fleet', { headers: { cookie } });
+    const fleet = await answerOf(address, '/api/v11/fleet', { headers: { cookie } });
     expect(await fleet.json()).toMatchObject({
       fleetVersion: PAGE_CONTRACT_VERSIONS.gaiaFleetDocument,
       forges:       [],
@@ -136,7 +136,7 @@ describe('gaia serve', () => {
         readRegistry:            () => Promise.resolve({ verdict: 'absent' }),
         readings:                () => [],
         presenceReadingAfterNow: () => Promise.resolve(null),
-        forgeClient:             forgeClientOf({ overseerFetch: recordedOverseerFetch([]) }),
+        forgeClient:             forgeClientOf({ hephaestusFetch: recordedHephaestusFetch([]) }),
       },
       logBoardRelay: () => undefined,
       timers:        manualTimers(),

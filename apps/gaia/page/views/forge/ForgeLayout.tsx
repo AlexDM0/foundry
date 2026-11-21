@@ -2,7 +2,7 @@
  * A forge in place laid out (SCREENS B1): the bar, with the forge's mark and name, its condition and line, and its controls with Stop's
  * question as a popover under its button and Open in new tab, or, for a forge Gaia cannot talk to, the
  * controls it cannot send disabled and an older forge's Update forge step by step; the bar's second line, the running and the newest
- * Overseer and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
+ * Hephaestus and Talos with a restart of each; a refusal under the bar; and, where no board shows, the versions notice of a forge Gaia cannot
  * talk to or why its board cannot be shown. It takes no hooks: the states and the handlers come in as props, so a spec unfolds it whole.
  */
 import type { ReactNode, RefObject } from 'react';
@@ -212,18 +212,18 @@ export interface RunningVersionsLineProps {
   readonly onCommand:         (command: ForgeCommandBody) => void;
 }
 
-/** The bar's second line: the running and the newest Overseer and Talos, a pair a newer installed version marks, and a restart of each. */
+/** The bar's second line: the running and the newest Hephaestus and Talos, a pair a newer installed version marks, and a restart of each. */
 export function RunningVersionsLine({ versions, commandIsOnItsWay, onCommand }: RunningVersionsLineProps) {
   const restartsMayAct = versions.restartsMayAct && !commandIsOnItsWay;
-  const { restartOverseer, restartTalos } = versions;
+  const { restartHephaestus, restartTalos } = versions;
   return (
-    <div className="gaia-forge-frame-running" role="group" aria-label="The running and the newest Overseer and Talos">
+    <div className="gaia-forge-frame-running" role="group" aria-label="The running and the newest Hephaestus and Talos">
       {versions.pairs.map((pair) => (
         <span key={pair.component} className="gaia-forge-frame-running-pair" title={pair.title} data-newer={pair.newerIsInstalled ? '' : undefined}>
           <BarLine line={pair.line} />
         </span>
       ))}
-      <Button label={restartOverseer.label} emphasis={restartOverseer.emphasis} compact disabled={!restartsMayAct} onPress={() => onCommand(restartOverseer.command)} />
+      <Button label={restartHephaestus.label} emphasis={restartHephaestus.emphasis} compact disabled={!restartsMayAct} onPress={() => onCommand(restartHephaestus.command)} />
       <Button label={restartTalos.label} emphasis={restartTalos.emphasis} compact disabled={!restartsMayAct} onPress={() => onCommand(restartTalos.command)} />
     </div>
   );

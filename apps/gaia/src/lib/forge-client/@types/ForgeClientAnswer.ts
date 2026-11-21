@@ -63,12 +63,12 @@ export interface MonitorFollow {
   readonly stop:  () => void;
 }
 
-/** Where one Overseer's open routes are reached. */
-export interface OverseerAddress {
-  readonly overseerUrl: string;
+/** Where one Hephaestus's open routes are reached. */
+export interface HephaestusAddress {
+  readonly hephaestusUrl: string;
 }
 
-/** What a call needs to reach one Overseer's guarded routes; the token travels as a bearer and nowhere else. */
-export interface OverseerAccess extends OverseerAddress {
+/** What a call needs to reach one Hephaestus's guarded routes; the token travels as a bearer and nowhere else. */
+export interface HephaestusAccess extends HephaestusAddress {
   readonly bearerToken: string;
 }

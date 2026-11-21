@@ -18,16 +18,16 @@ import type {
   MonitorJobTurn as MonitorJobTurnDocument,
   MonitorNoticeDocument,
   MonitorOpenTicketDocument,
-  MonitorOverseerState as MonitorOverseerStateDocument,
+  MonitorHephaestusState as MonitorHephaestusStateDocument,
   MonitorSnapshotDocument,
   MonitorSnapshotEntityKeys,
   MonitorTicketStageName,
   MonitorUsageDocument
 } from 'forge-contracts/MonitorSnapshotDocument';
 
-import type { SERVED_CONTRACT_VERSIONS } from '../../constants/OverseerApiContracts.ts';
+import type { SERVED_CONTRACT_VERSIONS } from '../../constants/HephaestusApiContracts.ts';
 
-export type MonitorOverseerState = MonitorOverseerStateDocument;
+export type MonitorHephaestusState = MonitorHephaestusStateDocument;
 
 export type AttentionKind = MonitorAttentionKind;
 
@@ -52,7 +52,7 @@ export interface MonitorAttentionEntry extends MonitorAttentionEntryDocument {
   readonly subject:                 string;
   readonly jobId:                   string | null;
   readonly askedBy:                 string | null;
-  /** Set only for a decision Overseer code opened, whose kind the entry names. */
+  /** Set only for a decision Hephaestus code opened, whose kind the entry names. */
   readonly decisionKind:            string | null;
   readonly escalatedFromIncidentId: string | null;
   /** The fixed words of a ticket's or a draft's entry. */
@@ -137,8 +137,8 @@ export interface MonitorSnapshot extends MonitorSnapshotDocument, MonitorSnapsho
   readonly trackerId:      string;
   readonly project:        string;
   readonly root:           string;
-  readonly overseer:            {
-    readonly state:             MonitorOverseerState;
+  readonly hephaestus:            {
+    readonly state:             MonitorHephaestusState;
     readonly paused:            boolean;
     readonly url:               string;
     readonly processId:         number;

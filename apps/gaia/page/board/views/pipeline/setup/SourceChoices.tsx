@@ -1,6 +1,6 @@
 /**
  * The SOURCES block of the constitution step: what User asks the agent to draft the next constitution from. A tick sends the choices
- * with that one flipped; the box shows the facts, so it turns once the Overseer applied it. They steer the agent; they are not the tags.
+ * with that one flipped; the box shows the facts, so it turns once Hephaestus applied it. They steer the agent; they are not the tags.
  * At an entity they name its own CONTRIBUTING.md and research, and each tick names the entity.
  */
 import type { BoardPipelineSetupDocument }                          from '../../../../@types/board/BoardPipelineDocuments.ts';

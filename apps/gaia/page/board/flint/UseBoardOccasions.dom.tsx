@@ -39,7 +39,7 @@ function recordingHandle(livesIn: string | null = null): { readonly handle: Flin
 
 function board(changes: { readonly paused?: boolean; readonly agentsInFlight?: number; readonly incidentIds?: readonly string[] } = {}): OccasionBoard {
   return {
-    overseer:    { state: 'serving', paused: changes.paused ?? false, generation: 1 },
+    hephaestus:  { state: 'serving', paused: changes.paused ?? false, generation: 1 },
     usage:       { resetsAt: null, window: null },
     jobs:        [],
     incidents:   (changes.incidentIds ?? []).map((id) => ({ id })),

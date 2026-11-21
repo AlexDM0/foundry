@@ -22,23 +22,23 @@ describe('ChatTurnWordingUtil.stampOf', () => {
 
 describe('ChatTurnWordingUtil.systemLineTextOf', () => {
   test('the boot line is the view\'s own with its chat number, and the other lines read the same everywhere', () => {
-    const boot = 'Overseer started J7';
+    const boot = 'Hephaestus started J7';
     expect([
       ChatTurnWordingUtil.systemLineTextOf({ form: 'boot', chatSequence: null }, boot),
       ChatTurnWordingUtil.systemLineTextOf({ form: 'boot', chatSequence: 1 }, boot),
       ChatTurnWordingUtil.systemLineTextOf({ form: 'incident-delivery', chatSequence: 3, incidentIds: ['I2', 'I4'] }, boot),
-      ChatTurnWordingUtil.systemLineTextOf({ form: 'overseer-chat' }, boot),
+      ChatTurnWordingUtil.systemLineTextOf({ form: 'hephaestus-chat' }, boot),
       ChatTurnWordingUtil.systemLineTextOf({ form: 'standing-reply' }, boot),
       ChatTurnWordingUtil.systemLineTextOf({ form: 'client-act', act: 'answer', sender: 'assistant' }, boot),
-      ChatTurnWordingUtil.systemLineTextOf({ form: 'client-act', act: 'stop', sender: 'overseer' }, boot),
+      ChatTurnWordingUtil.systemLineTextOf({ form: 'client-act', act: 'stop', sender: 'hephaestus' }, boot),
     ]).toEqual([
-      'Overseer started J7',
-      'Overseer started J7 · chat 1',
-      'Overseer delivered I2, I4 · chat 3',
-      'Overseer sent a message',
+      'Hephaestus started J7',
+      'Hephaestus started J7 · chat 1',
+      'Hephaestus delivered I2, I4 · chat 3',
+      'Hephaestus sent a message',
       'Talos sent a standing reply',
       'The Assistant answered a question',
-      'Overseer stopped the session',
+      'Hephaestus stopped the session',
     ]);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * The merge-queue mark on a ticket's row: set once its review passed on a tree the Overseer gated green under the current pipeline, while it
+ * The merge-queue mark on a ticket's row: set once its review passed on a tree Hephaestus gated green under the current pipeline, while it
  * waits in review to land. Leaving in-review clears it.
  */
 import type { Logged }              from './@types/BoardChanges.ts';
@@ -72,7 +72,7 @@ export class MergeQueueMarks {
     return { logged: [this.records.logger.log({ kind: 'merge-acceptance-set', ticketId, fields: { state: 'accepted' } }, at)] };
   }
 
-  /** `merge update` ran: a merged target leaves the queue mark for the Overseer's gate run, a conflicted one takes the ticket out of the queue. */
+  /** `merge update` ran: a merged target leaves the queue mark for Hephaestus's gate run, a conflicted one takes the ticket out of the queue. */
   recordMergeUpdated(ticketId: string, target: string, outcome: 'merged' | 'conflicted', at: string): Logged {
     if (outcome === 'conflicted') this.setTicketMergeQueued(ticketId, false, at);
     return { logged: [this.records.logger.log({ kind: 'merge-updated', ticketId, fields: { target, outcome } }, at)] };
@@ -89,7 +89,7 @@ export class MergeQueueMarks {
   }
 
   /**
-   * The row's `greenTree` is `headTree` and its `pipelineHash` the stored pipeline's hash of `phase`: the Overseer gated exactly this tree
+   * The row's `greenTree` is `headTree` and its `pipelineHash` the stored pipeline's hash of `phase`: Hephaestus gated exactly this tree
    * under the gates `phase` runs now, in whichever phase that run was. On a pipeline with entities, the row's `pipelineHashes` also holds
    * each entity it names at that entity's hash of `phase` now, and names each of `entitiesItMustName`. A row without `greenPhase`, or a
    * `null` phase, is never current.

@@ -4,7 +4,7 @@
  * appeared; and the cues of a change between two payloads. A launch has one answer, the `strike-spark` of the copy: a job that appears
  * launching is not greeted, and the rise of the slots while a job launches is that launch, so it is not cued.
  */
-import type { BoardOverseerDocument }   from '../../../@types/board/BoardDocument.ts';
+import type { BoardHephaestusDocument } from '../../../@types/board/BoardDocument.ts';
 import type { SpriteCue, SpriteIntent } from '../../../lib/flint/FlintInterface.ts';
 
 import type { CueOccasion }                             from '../../flint/UseCueOnChange.ts';
@@ -140,10 +140,10 @@ function copyStepOf(jobs: readonly PanelJob[], selectedJobId: string | null, sho
 }
 
 /** Some agent has work to copy; else all are idle, which is a happening only while the forge serves and is not paused. */
-function activityOccasionOf(jobs: readonly PanelJob[], overseer: Pick<BoardOverseerDocument, 'state' | 'paused'>): CueOccasion | null {
+function activityOccasionOf(jobs: readonly PanelJob[], hephaestus: Pick<BoardHephaestusDocument, 'state' | 'paused'>): CueOccasion | null {
   const someAgentWorks = jobs.some((job) => copyIntentOf(job, NO_ONE_ACTION_SHOWN) !== null);
   if (someAgentWorks) return { cueName: AGENT_PANEL_CUES.AGENT_WORKS, occasionKey: AGENT_PANEL_CUES.AGENT_WORKS };
-  if (overseer.state !== 'serving' || overseer.paused) return null;
+  if (hephaestus.state !== 'serving' || hephaestus.paused) return null;
   return { cueName: AGENT_PANEL_CUES.ALL_AGENTS_IDLE, occasionKey: AGENT_PANEL_CUES.ALL_AGENTS_IDLE };
 }
 

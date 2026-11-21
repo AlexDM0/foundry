@@ -56,7 +56,7 @@ describe('held and refused', () => {
   test('a commit a start found cut short waits for a resume, not for main', () => {
     expect(ApplyPendingStateModel.pendingViewOf(applyState({ state: 'held', reason: 'interrupted' }))).toEqual({
       state:                  'held',
-      text:                   'The commit was cut short when the machine or the Overseer went down, so it waits for a resume.',
+      text:                   'The commit was cut short when the machine or Hephaestus went down, so it waits for a resume.',
       nextStep:               'Resume all interrupted work to commit again. Cancel apply to change the draft.',
       offersConstitutionText: false,
       offersApplyAgain:       false,

@@ -192,7 +192,7 @@
       }
     },
     {
-      "callShape": "talos stage \"a line stopped by the Overseer\"",
+      "callShape": "talos stage \"a line stopped by Hephaestus\"",
       "answer": {
         "record": {
           "formatVersion": 1,
@@ -547,7 +547,7 @@
       }
     },
     {
-      "callShape": "talos stage \"an agent stopped by the Overseer\"",
+      "callShape": "talos stage \"an agent stopped by Hephaestus\"",
       "answer": {
         "record": {
           "formatVersion": 1,

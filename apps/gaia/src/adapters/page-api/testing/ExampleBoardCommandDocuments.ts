@@ -44,10 +44,10 @@ export const EXAMPLE_DRAFT_EDITS: readonly BoardDraftEditDocument[] = [
 ];
 
 export const EXAMPLE_BOARD_COMMAND_DOCUMENTS: ExampleBodies = {
-  'overseer-pause':          { ...VERSION, kind: 'overseer-pause' },
-  'overseer-resume':         { ...VERSION, kind: 'overseer-resume' },
-  'overseer-stop':           { ...VERSION, kind: 'overseer-stop', now: false },
-  'overseer-restart':        { ...VERSION, kind: 'overseer-restart', now: true },
+  'hephaestus-pause':        { ...VERSION, kind: 'hephaestus-pause' },
+  'hephaestus-unpause':      { ...VERSION, kind: 'hephaestus-unpause' },
+  'hephaestus-stop':         { ...VERSION, kind: 'hephaestus-stop', now: false },
+  'hephaestus-restart':      { ...VERSION, kind: 'hephaestus-restart', now: true },
   'concurrency-set':         { ...VERSION, kind: 'concurrency-set', limit: 3 },
   'interrupted-work-resume': { ...VERSION, kind: 'interrupted-work-resume', target: { ticketReference: '002' } },
   'chart-range-set':         {

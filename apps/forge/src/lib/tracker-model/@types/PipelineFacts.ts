@@ -1,5 +1,5 @@
 /**
- * The pipeline facts the Overseer serves on its board state for a client's pipeline view: values only, never words, so the view models
+ * The pipeline facts Hephaestus serves on its board state for a client's pipeline view: values only, never words, so the view models
  * word every kind, role and label, and a client keeps no copy of the rules that decide which nodes, slots and marks exist.
  */
 import type { BoardRefusalDetail } from '../BoardRefusal.ts';

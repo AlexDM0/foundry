@@ -24,7 +24,7 @@ Look a command up by its first word, or a stored file by its name.
 | `pipeline` | [Pipeline setup](#pipeline-setup) |
 | `review-stats` | [Review statistics](#review-statistics) |
 | `hook`, `usage` | [Hooks and usage](#hooks-and-usage) |
-| `oversee`, `start`, `stop`, `version`, `login-item`, `crash-log` | [The Overseer](#the-overseer) |
+| `start`, `stop`, `restart`, `talos-restart`, `pause`, `unpause`, `version`, `login-item`, `crash-log` | [Hephaestus](#hephaestus) |
 | `merges`, `merge`, `worktree repair` | [Merges and worktrees](#merges-and-worktrees) |
 | `decisions`, `decide`, `question`, `incidents`, `incident`, `await` | [Decisions and incidents](#decisions-and-incidents) |
 | `jobs`, `job`, `intake`, `advise` | [Jobs and sessions](#jobs-and-sessions) |
@@ -91,7 +91,7 @@ on this repository is in [Contributing](development/contributing.md).
 | `<decision>` | A [decision](glossary.md#decision) id, such as `E7`. |
 | `<hatch>` | The job's [Hatch](glossary.md#hatch) folder. |
 | `-` | As the path of `--body-file`, `--request-file` or `--file`, reads standard input to its end. In a terminal, with nothing piped in, it is refused at exit 1 with nothing written, since it would read as empty text; an empty file or an empty pipe supplies empty text. |
-| `--json` | Accepted by every command but `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry `answerVersion` `2`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `oversee pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
+| `--json` | Accepted by every command but `hook` and `help`, and prints one JSON document on standard output in place of the human output. The answers of `start`, `stop`, `init`, `update`, `version`, `machine` and `login-item` carry `answerVersion` `2`, and under `--json` their refusal is the document `{ answerVersion, refusal, text }` at exit 1: the refusal's code and the sentence printed on standard error. A reading command prints the document its row describes. A command that writes prints what it wrote: the row for a `task` verb, the ticket for a `ticket` verb or setting (a list for several ids), the epic for `epic add` and `epic edit` (`{ key, removed: true, filePath }` for `epic remove`), the log entry for `log`, the stored axis for `range`, the new state for `concurrency <n>` and `pause\|resume`, and the counts for `clear`. Nothing follows the document on standard output, no Next line or resume line, while a warning still goes to standard error. |
 | `<data>`, `<worktrees>`, `<monitor>` | The board's data folder, its worktrees folder and the machine's monitor folder: `.forge/` and `.forge-worktrees/` in the repository root, and `~/.forge-monitor/`. [Reading names](glossary.md#reading-names) defines them. |
 | product names | Every name the build goes by is `PRODUCT_NAMES` in `src/shared/constants/ProductNames.ts`. |
 
@@ -138,7 +138,7 @@ when it logged something, then `pipeline-setup.json` when a setup move changed o
 therefore never ahead of the progress file, a log line never describes a change that was not stored, and an Apply
 closes its setup record after everything it stored. A file whose bytes on disk already are its new contents is left in
 place, judged inside the hold from the bytes alone, so a hold that changes nothing writes no tracker file and no
-journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the board's documents from the store.
+journal. Nothing renders: [Hephaestus](glossary.md#hephaestus) serves the board's documents from the store.
 
 | takes the lock | takes no lock |
 |---|---|
@@ -152,7 +152,7 @@ journal. Nothing renders: the [Overseer](glossary.md#overseer) serves the board'
 | `merge`, `worktree repair` | `merges` |
 | `decide`, `incident` | `decisions`, `incidents`, `await` |
 | `job message`, `job fresh`, `job wind-down`, `job stop`, `resume`, `intake`, `advise` | `jobs`, `job show`, `job attach` |
-| `oversee pause\|resume` | `oversee status`, `version` |
+| `pause`, `unpause` | `version` |
 
 Each file a lockless command reads is written atomically, so it is whole, but one such read can meet `progress.json`
 ahead of the tickets and the log while a hold writes. `update`, and `init` on an existing tracker, never touch the
@@ -178,9 +178,9 @@ Next: 2 of 2 slots free; nothing ready
 ```
 
 At most five ready ids are named, then `and N more`; a held ready ticket is left out and named apart (`; held: #002`).
-While the Overseer is paused, as a board that never set its Overseer state is, the line ends with
-`; Overseer paused: wait for the user's go`. `--json` output never carries the line. The free count is the one the
-Overseer launches by ([launch slots](#launch-slots)).
+While Hephaestus is paused, as a board that never set its Hephaestus state is, the line ends with
+`; Hephaestus paused: wait for the user's go`. `--json` output never carries the line. The free count is the one
+Hephaestus launches by ([launch slots](#launch-slots)).
 
 ## Environment variables
 
@@ -192,16 +192,16 @@ released program's, so an `AGENT_PROGRESS_ROOT` in the environment does nothing 
 |---|---|---|---|---|
 | `FORGE_ROOT` | Yes, for a command run from outside the repository or on a scratch board | Empty or whitespace reads as unset | User | Names the repository to use instead of walking up from the current directory. |
 | `FORGE_REQUIRE_EVERY_TOOL` | Yes, on a test run only | On for any value but empty, whitespace or `0` | User, for a test run | Turns every spec `src/testing/ToolGuard.ts` would skip for a missing tool into a failure, for a machine that must prove every claim. |
-| `FORGE_FAKE_AGENT` | Only on a scratch board, where the sessions do no real work | On for any value but empty, whitespace or `0` | Specs, the demo script, or User | Launches every session the Overseer starts as the scripted fake agent rather than the vendor's CLI. |
+| `FORGE_FAKE_AGENT` | Only on a scratch board, where the sessions do no real work | On for any value but empty, whitespace or `0` | Specs, the demo script, or User | Launches every session Hephaestus starts as the scripted fake agent rather than the vendor's CLI. |
 | `FORGE_FAKE_AGENT_KEEPS_WORKING` | Only to stage a running board | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, keeps every fake session working until its standard input closes. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_FAKE_AGENT_REPORTS` | Only to run a scratch ticket to its landing | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake builder appends a line to `fake-agent-work.md` in each folder its stage may change that the ticket's `Work belongs in:` line names (in each such folder when the line names none), commits it and reports `built`, and each fake reviewer reports every Acceptance item as holding, by the report schema of the stage, a crossing ticket's package and adapt stages included. It claims no gate, so only a gate with `forgeOnly: true` passes. Every other session plays as without it. Read only while `FORGE_FAKE_AGENT` is on. |
 | `FORGE_FAKE_AGENT_NETWORK_OUTAGE` | Only to see a session end on a network outage | On for any value but empty, whitespace or `0` | User, on a scratch board | Under the fake-agent switch, each fake session starts, prints the retry lines of a request that keeps failing and ends its turn on the error result Claude Code printed when its retries ran out on a network outage, then waits until its standard input closes. Its retry lines need the fake agent's recorded `network-outage` session. Read only while `FORGE_FAKE_AGENT` is on. |
-| `FORGE_OVERSEER_POLL_INTERVAL_MILLISECONDS` | No, a test setting | Empty or whitespace reads as unset; any value but a positive whole number is refused, `malformed-overseer-poll-interval`, at exit 1 | `cli/testing/CliProcess.ts`, on every child a spec spawns | Replaces the 250 ms between the polls of `oversee --detach`, `oversee restart`, `oversee stop` and a Baton pass; the polls grow in number to keep each whole wait. |
-| `FORGE_VERSIONS_ANSWER` | No, a test setting | Empty or whitespace reads as unset; any value but two `major.minor` versions, `<current>/<minimum supported>` with the minimum not newer, is refused, `malformed-versions-answer`, when the Overseer starts | A client's recording of a scratch forge | Replaces what `GET /api/versions` answers and the system version the monitor stream names, such as `1.3/1.0`, so a client can record a forge ahead of it or of another major ([The Overseer API](reference/overseer-api.md#system-versions)). |
+| `FORGE_HEPHAESTUS_POLL_INTERVAL_MILLISECONDS` | No, a test setting | Empty or whitespace reads as unset; any value but a positive whole number is refused, `malformed-hephaestus-poll-interval`, at exit 1 | `cli/testing/CliProcess.ts`, on every child a spec spawns | Replaces the 250 ms between the polls of `start`, `restart`, `stop` and a Baton pass; the polls grow in number to keep each whole wait. |
+| `FORGE_VERSIONS_ANSWER` | No, a test setting | Empty or whitespace reads as unset; any value but two `major.minor` versions, `<current>/<minimum supported>` with the minimum not newer, is refused, `malformed-versions-answer`, when Hephaestus starts | A client's recording of a scratch forge | Replaces what `GET /api/versions` answers and the system version the monitor stream names, such as `1.3/1.0`, so a client can record a forge ahead of it or of another major ([The Hephaestus API](reference/hephaestus-api.md#system-versions)). |
 | `FORGE_HATCH_REPLY_INTERVAL_MILLISECONDS` | No, a test setting | Empty, whitespace or any value but a positive whole number reads as unset | `cli/Main.integration.spec.ts`, where nothing answers the Hatch | Replaces the 250 ms between a relayed verb's 20 looks for its Hatch reply, so a spec sees `queued` without waiting out the 5 s. |
-| `FORGE_JOB_ID` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job this process runs under. |
-| `FORGE_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | The Overseer, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
-| `FORGE_GATE_REPORT` | No | Never read by the program | The Overseer, on every gate line it runs, Talos's included | A path in the temporary folder where the gate may write its [report](#gate-reports). |
+| `FORGE_JOB_ID` | No | Empty or whitespace reads as unset | Hephaestus, on every session it launches | The job this process runs under. |
+| `FORGE_HATCH_DIRECTORY` | No | Empty or whitespace reads as unset | Hephaestus, on every session it launches | The job's Hatch folder, the one place outside its working directory the session may write. |
+| `FORGE_GATE_REPORT` | No | Never read by the program | Hephaestus, on every gate line it runs, Talos's included | A path in the temporary folder where the gate may write its [report](#gate-reports). |
 | `SHELL` | Not for this program | Empty or whitespace reads as unset, and the line runs in `/bin/sh` | The login environment | The shell that runs each prepare step and gate line. |
 | `ComSpec` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, the cmd.exe that runs each prepare step and gate line, taken only as an absolute path with a drive letter. |
 | `SystemRoot` | Not for this program | Empty or whitespace reads as unset | Windows | On Windows, whose `System32\cmd.exe` runs the lines when `ComSpec` is no absolute path; with neither, no line runs. |
@@ -232,7 +232,7 @@ until [`pipeline setup`](#pipeline-setup) designs one with the pipeline agent an
 `pipeline.json`, committing the constitution to the main line as the tracked `CONSTITUTION.md` first.
 
 Git 2.38 or newer is required: merge forecasts and merge verification use `git merge-tree --write-tree`, which came in
-2.38. `init` and `oversee` read `git version` first and refuse with exit 1 below it, or when no git answers, before
+2.38. `init` and `start` read `git version` first and refuse with exit 1 below it, or when no git answers, before
 writing anything. Every git the tool starts, and every git a worker or gate starts, runs with `core.longpaths=true`, so
 a worktree path past 260 characters still checks out on Windows; no repository's own git config is written.
 
@@ -255,14 +255,14 @@ creates the store with an exclusive create, under the lock.
 
 ### The login item
 
-`setup.sh --login-overseer <repository> [--label <label>]` (`setup.ps1` on Windows) writes an optional login item that
-starts that repository's Overseer when the user logs in, and nothing else. The label defaults to `LOGIN_ITEM_LABEL`, and
-a label that already starts another repository's Overseer is refused unless `--label` names another.
+`setup.sh --login-item <repository> [--label <label>]` (`setup.ps1` on Windows) writes an optional login item that
+starts that repository's Hephaestus when the user logs in, and nothing else. The label defaults to `LOGIN_ITEM_LABEL`,
+and a label that already starts another repository's Hephaestus is refused unless `--label` names another.
 
 | OS | item | runs |
 |---|---|---|
 | macOS | the LaunchAgent `~/Library/LaunchAgents/<label>.plist`, `RunAtLoad`; setup prints the `launchctl bootstrap` line | `start --started-by login-item` in the repository |
-| Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `oversee --started-by login-item` in the foreground, in the repository |
+| Linux | the systemd user unit `~/.config/systemd/user/<label>.service`, `Type=simple`, `KillMode=process`, `Restart=on-failure`, enabled with `systemctl --user enable`; setup prints the `loginctl enable-linger` hint | `start --foreground --started-by login-item`, in the repository |
 | Windows | the value `<label>` under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written through `reg.exe` by absolute path, no admin; a command line over 260 characters is refused | `start --started-by login-item --repository <repository>`, as a Run value has no working directory |
 
 The login item starts the forge as `login-item`: after a crash, or a crash suspected before the machine restarted, that
@@ -280,7 +280,7 @@ start stays off and is refused `forge-off-after-crash` (see [The start gate](#th
 
 The session instructions' `updated` adds "re-read it before your next brief", so a session that read them at its start
 learns its copy is stale. A first `init` prints the session instructions' path instead, and ends with three next steps:
-run `forge start`, which starts the Overseer in the background; ask an agent session (Claude Code) in this repository
+run `forge start`, which starts Hephaestus in the background; ask an agent session (Claude Code) in this repository
 to file a ticket; and set the pipeline up, as the board starts on Pipeline setup: choose who pays, let the pipeline
 agent read the repository, and Apply, which commits `CONSTITUTION.md` to the main line and, with Resume, starts the
 board.
@@ -304,7 +304,7 @@ worktrees folder's before any worktree can exist, and `update` adds it to a repo
 - `reference.md` is a ticket's fields, the ticket moves and the exit codes copied from this file, which a session
   reads on demand.
 - `briefs/defaults/` holds the instruction file each role reads when the pipeline names none (see [Files on
-  disk](#files-on-disk)), which the Overseer fills with the job's values at each launch.
+  disk](#files-on-disk)), which Hephaestus fills with the job's values at each launch.
 
 These are guidance shipped with the tool rather than files a project edits, so every `init` and `update` rewrites them
 all; a project adds its own tracked files through the pipeline instead. Item 3's report line names the session
@@ -376,10 +376,10 @@ These commands do not take the refusal above:
 | `help`, `version` | They run; neither checks. |
 | `status` | It never refuses and says nothing about a mismatch, because its output is what scripts read. The refusal first shows at the next command. |
 | `hook session-start`, `hook bash-domains`, `hook stage-edits` | They skip the check, so a mismatch changes nothing: each answers at exit 0. |
-| `oversee status`, `oversee stop`, `stop` | They run, so an Overseer whose install changed can still be inspected and stopped. |
+| `stop`, `talos-restart` | They run, so a Hephaestus whose install changed can still be stopped and told to restart its Talos; `status` inspects it. |
 | `machine`, `login-item` | They run: neither writes a file of the repository's install. |
 | `start` | It checks the repository it starts, which `--repository` may name, not the working directory. |
-| `oversee --successor-of` | It skips this check and compares the manifest as a step of the [Baton pass](glossary.md#baton-pass), so a mismatch is reported as that Baton pass's failure. |
+| `start --successor-of` | It skips this check and compares the manifest as a step of the [Baton pass](glossary.md#baton-pass), so a mismatch is reported as that Baton pass's failure. |
 | a verb relayed [under a job](#under-a-job-the-hatch) | It relays before any check. |
 
 ## The three skills
@@ -392,9 +392,9 @@ verbs, which help does not print.
 
 | installed skill | source folder | loads |
 |---|---|---|
-| `forge-po` | `skills/agent-po/` | by itself in any session asked to file, report or track a ticket, bug or research question, or with `/forge-po`; by the [orchestrator](glossary.md#orchestrator) wrapper session for its intake; and as the first line of an Overseer's product-owner job |
+| `forge-po` | `skills/agent-po/` | by itself in any session asked to file, report or track a ticket, bug or research question, or with `/forge-po`; by the [orchestrator](glossary.md#orchestrator) wrapper session for its intake; and as the first line of a Hephaestus's product-owner job |
 | `forge-orchestrate` | `skills/agent-progress-orchestrate/` | only with `/forge-orchestrate` or when asked to run the board |
-| `forge-pipeline` | `skills/agent-pipeline/` | by itself in any session asked to set up the pipeline, change the gates or review the pipeline, or with `/forge-pipeline`; and as the first line of an Overseer's pipeline agent job, whose step messages name its steps |
+| `forge-pipeline` | `skills/agent-pipeline/` | by itself in any session asked to set up the pipeline, change the gates or review the pipeline, or with `/forge-pipeline`; and as the first line of a Hephaestus's pipeline agent job, whose step messages name its steps |
 
 ## Commands
 
@@ -406,7 +406,7 @@ Options in `[brackets]` are optional; `a|b` is a choice of one. Everything after
 | command | what it does |
 |---|---|
 | `init [--project <name>] [--root <path>] [--namespace <name>] [--no-hooks] [--json]` | Create the tracker here and write the six items in [Adopting a repository](#adopting-a-repository), with no pipeline: [`pipeline setup`](#pipeline-setup) designs one. `--project` names the project the board carries (default: the root directory's name); `--root` tracks that directory instead of the discovered root of the repository's main checkout, and run from another folder without it `init` says which root it chose. `--namespace` sets the branch namespace as [`namespace`](#the-boards-lifetime) does; a tracker in a folder of its repository needs one. Refused at exit 1 with nothing written when a tracker the repository's tracker list (`<git common dir>/forge/trackers.json`) names sits above or below the directory, or holds the namespace, or a branch leaves the namespace no room. A tracker in a folder, or with a namespace, is written into that list; a bare tracker at the root is not. `--json` prints `{ answerVersion, outcome, trackerId, project, root }`, `outcome` `created`, or `refreshed` for a tracker that was there. |
-| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the agent's session-start entry, the three skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Overseer did not take the Baton pass, at exit 0 with the old Overseer still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
+| `update [--no-hooks] [--json]` | Refresh what the tool wrote into a repository it already tracks: the files beside the tracker, the agent's session-start entry, the three skills and the worktrees folder's `.gitignore` entry, undoing a hand edit to any of them; then `version.json`. The tracker's own files are left alone, and the first line says so. `--json` prints `{ answerVersion, outcome, installVersion, batonPass, batonPassStep }`, `batonPass` `done`, `not-needed` or `failed`. `batonPassStep` is `null`, or `restart-not-taken` when the live Hephaestus did not take the Baton pass, at exit 0 with the old Hephaestus still driving. A Baton pass that failed after it was taken is the refusal `baton-pass-failed`, whose answer adds `batonPass: failed` and its `batonPassStep`. |
 | `help` | The command reference. |
 
 #### `init` and `update` refusals
@@ -429,18 +429,18 @@ A re-run of `init` refreshes only what `update` refreshes and leaves the tracker
 `forge init`. A tracker in a format this one no longer reads is refused at exit 2 by every command that
 reads it, the reason ending in `OLDER_FORMAT_ADVICE`.
 
-#### What `update` does to a live Overseer
+#### What `update` does to a live Hephaestus
 
-Last, when the board's Overseer is live and its [Baton](glossary.md#baton) names a code or install version other than
-the one on disk, `update` sends `overseer-restart` and prints the checked [Baton pass](glossary.md#baton-pass)'s outcome
-(see `oversee restart`). It exits 1 `baton-pass-failed` with the old Overseer still driving and what it installed
-standing. With no live Overseer it does nothing more.
+Last, when the board's Hephaestus is live and its [Baton](glossary.md#baton) names a code or install version other than
+the one on disk, `update` sends `hephaestus-restart` and prints the checked [Baton pass](glossary.md#baton-pass)'s
+outcome (see `restart`). It exits 1 `baton-pass-failed` with the old Hephaestus still driving and what it installed
+standing. With no live Hephaestus it does nothing more.
 
 ### Reading the board
 
 | command | what it does |
 |---|---|
-| `status [--json] [--full] [--tickets-only]` | The project, the counts, the rows that are not delivered or abandoned, and the last five log entries newest first, then the Next line. With the forge [off after a crash](#after-a-crash), one line on standard error says so ("The forge is off after a crash: run `forge crash-log` to read why, `forge start` to start it again."); standard output is unchanged. [The flags](#status-flags) and [the `--json` documents](#what-status---json-holds) are below. |
+| `status [--json] [--full] [--tickets-only]` | The project, the counts, the rows that are not delivered or abandoned, and the last five log entries newest first, then the Next line. Above the board it prints Hephaestus's process facts: the newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Hephaestus's, Hephaestus's notices, the warning of a failed Baton pass, and the forge's presence: down, whether it is [off after a crash](#after-a-crash) and its crash log's path; live, its last start, heartbeat, supervision and abandoned passes. `--json` carries them under `hephaestus`. Read-only, no lock, no install-version check. [The states and JSON](#the-hephaestusProcesses-facts-in-status) are below. [The flags](#status-flags) and [the `--json` documents](#what-status---json-holds) are below. |
 | `ticket list [--status <s>] [--priority <p>] [--json]` | The tickets with their status, priority, type and row id, the model and effort after the title where the ticket names them, and "waiting on #003" where a dependency is unsettled. `--status` and `--priority` narrow the listing. `--json` carries no bodies. |
 | `ticket show <id> [--json]` | One ticket: its frontmatter, its priority, its model and effort where it names them, and its body; never where it is kept, since a ticket changes only through its verbs (`ticket edit` for its title and body). From `committed` onward the title and body shown are the ones kept by the ticket's `contentHash`. |
 
@@ -459,7 +459,7 @@ carry no owner on a `no owner` line of their own.
 
 #### What `status --json` holds
 
-Both documents carry these keys in this order, except `omitted`, which only the working view has. The Overseer decides
+Both documents carry these keys in this order, except `omitted`, which only the working view has. Hephaestus decides
 from the Board, not from these lists. Every list is in file order, each id once, with a ticket's model, effort and
 priority resolved to their defaults.
 
@@ -475,12 +475,12 @@ priority resolved to their defaults.
 | `tickets` | The tickets: the unsettled ones, or every one under `--full`. Each carries `epics`, its list in order, empty when it has none. |
 | `epics` | Every epic with its roll-up (see [Epics](#epics)). |
 | `drafts` | Every open filing draft (see [Drafts](#drafts)). |
-| `concurrency` | `limit`, `agentsInFlight`, `freeSlots`, `readyTicketIds`, `overseerState`, `heldTicketIds`, then `inProgressTicketIds` and `inProgressReviewOfIds`. |
+| `concurrency` | `limit`, `agentsInFlight`, `freeSlots`, `readyTicketIds`, `hephaestusState`, `heldTicketIds`, then `inProgressTicketIds` and `inProgressReviewOfIds`. |
 | `concurrency.inProgressTicketIds` | The `ticket` of every `in-progress` row that has one. |
 | `concurrency.inProgressReviewOfIds` | The `reviewOf` of every `in-progress` row that stores one, on any row, a ticket's own row included. |
 | `readyTickets` | See [Ready tickets](#ready-tickets). |
 | `confinement` | The confinement in force for gate and install lines: `confined`, `unavailable` or `unconfined-by-design`, the word the board state carries. |
-| `confinementSource` | Whose probe gave `confinement`: `overseer` when a live Overseer answered its `/api/state` with the Baton's token, so a sandboxed caller prints the Overseer's word; `this-process` when none answered and this process probed itself. |
+| `confinementSource` | Whose probe gave `confinement`: `hephaestus` when a live Hephaestus answered its `/api/state` with the Baton's token, so a sandboxed caller prints Hephaestus's word; `this-process` when none answered and this process probed itself. |
 | `pipelineIsSet` | `true` when `<data>/pipeline.json` reads as a pipeline; `false` when none is stored, or it is older or malformed. Only Apply or a `gate` verb writes it. |
 | `omitted` | Working view only: `settledTasks`, `settledTickets`, `olderLogEntries`, and `freeStandingTasks` under `--tickets-only`. |
 | `reviewWaitingTickets` | `{ id, model, effort }` for every `in-review` ticket whose id is not in `inProgressReviewOfIds`, a held one included; `heldTicketIds` says which are held. A group awaiting its release is left out. |
@@ -512,7 +512,7 @@ derives none of them itself.
 
 While a [group](glossary.md#group) has a release ticket (see `ticket release-of`) that is neither delivered nor
 abandoned, every ticket of that group is left out of `readyTicketIds`, `readyTickets`, `reviewWaitingTickets` and
-`pausedBuilds`, though the Overseer still builds them. Once the release ticket is delivered or abandoned, the group has
+`pausedBuilds`, though Hephaestus still builds them. Once the release ticket is delivered or abandoned, the group has
 no release ticket, so its remaining open tickets list as any other. A group with no release ticket lists as ungrouped
 tickets do.
 
@@ -562,7 +562,7 @@ model and effort are stored and shown, and no launch reads them.
 | `ticket edit <id> [--title "<title>"] [--append] [--body <markdown>] [--body-file <path\|->] [--at <when>] [--json]` | Rename a ticket with `--title`, replace its body with `--body` or `--body-file` (`-` reads standard input), or with `--append` add to its end. Only a draft or a ticket in `ready-for-review` is edited: a committed ticket's content is fixed; [the rules](#ticket-edit) are below. |
 | `ticket ready <id> [<id>...] [--at <when>] [--json]` | Ready draft tickets, or tickets in `ready-for-review`, to build, all or nothing in one lock hold: each becomes `committed` with a `committed` row at any priority, and one `ticket-committed` line is logged per ticket. [Its refusals](#ticket-ready) are below. |
 | `ticket unready <id> [--at <when>] [--json]` | Put a committed ticket no job has taken back into `draft` in one lock hold, to edit it there: its row and its kept content go, everything else stays, and one `ticket-unreadied` line is logged. [Its refusals](#ticket-unready) are below. |
-| `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `committed` with its row (`ticket-committed`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`), and so, with ticket review off in a forge with entities, is a complete draft with no `entity` (`ticket-without-entity`). No role an agent runs under may relay it; a product owner under the Overseer closes with `intake close`. |
+| `ticket submit <id> [<id>...] [--at <when>] [--json]` | The filer's close of its draft tickets, in one lock hold. With ticket review off (`gate approval tickets off`) each complete draft becomes `committed` with its row (`ticket-committed`); with it on, the default, each becomes `ready-for-review` with no row (`ticket-submitted-for-review`) and waits for User's `ticket ready`. An incomplete draft stays a draft, named with its gaps; `--json` prints `{ tickets, incompleteTickets }`. A ticket that is not a draft is refused at exit 1 with nothing written (`ready-of-a-ticket-not-in-draft`), and so, with ticket review off in a forge with entities, is a complete draft with no `entity` (`ticket-without-entity`). No role an agent runs under may relay it; a product owner under Hephaestus closes with `intake close`. |
 | `ticket park <id> [--incident <I>] -- <reason> [--at <when>] [--json]` | Hold the ticket `parked:<incident kind>` (`parked:user` with no incident, replacing any hold) and open a `parked` decision to User, the reason its question. Under an incident whose job waits on a question, the job ends `stopped` (cause `parked`) in the same hold and the decision carries the agent's questions, the reason as its context. |
 | `ticket agent <id> [--model <m>] [--effort <e>] [--at <when>]` | Change the model or effort stored on a ticket, or both, with one log line such as `Ticket #003 agents opus/medium → sonnet/medium`. No launch reads them (see above). Refused at exit 1, writing nothing, on a delivered or abandoned ticket, with neither option, with a value outside the lists, and when the resolved pair would not change. |
 | `ticket priority <id> low\|normal\|high [--at <when>]` | Change a ticket's priority, with one log line. Lowering to low is refused unless the ticket is a draft ticket or committed, and keeps its row: priority only orders the ready tickets. A draft ticket has none at any priority; raising a low ticket that has no row gives it one at once. A low ticket with no row gets its row when it starts, and keeps it; abandoning a low ticket that has none creates none. |
@@ -570,16 +570,16 @@ model and effort are stored and shown, and no launch reads them.
 | `ticket network <id> <domain>... \| --clear [--at <when>] [--json]` | Set the public domains the ticket's agents may reach, comma- or space-separated, stored lower case and once each as the frontmatter key `network`; `--clear` removes the key. One `ticket-network-set` log line, `updated` not stamped; [its refusals](#ticket-network) are below. |
 | `ticket entity <id> <key> --reason <text> [--at <when>] [--json]` | In a forge with entities, name the entity whose pipeline builds the ticket, stored as the frontmatter key `entity`, and say why. One `entity-assigned` log line holds the reason and who assigned it; `updated` is not stamped. [Who runs it and its refusals](#ticket-entity) are below. |
 | `ticket group <id> <name> [--at <when>] [--json]` | Put a ticket that has no group into one, a started ticket too, stored as the frontmatter key `group`: its next landing goes to `group-<name>`, and the group's release takes it to the main line. One `ticket-grouped` log line; `updated` is not stamped. Refused at exit 1, writing nothing, on a ticket already in a group (`ticket-already-in-a-group`), on a delivered or abandoned ticket (`group-of-a-settled-ticket`), and on a name `ticket add --group` refuses (`malformed-group-name`, `group-name-case-twin`). `--json` prints the ticket. No role an agent runs under may relay it. |
-| `ticket hold <id> [--reason <text>] [--at <when>]` | Pause a ticket between build and review, or between review rounds, without pausing the Overseer. While the frontmatter's `hold` key is set (to the reason, empty without one) the Overseer launches no builder or reviewer for it, and `status --json` lists it in `concurrency.heldTicketIds` and marks its `readyTickets` entry `held: true`. An agent already running is never interrupted. One log line; refused at exit 1 on a delivered or abandoned ticket and on one already held. |
-| `ticket unhold <id> [--at <when>]` | Lift the hold, with one log line; the step it held starts at the Overseer's next [Pass](glossary.md#pass). On a ticket in progress whose row is paused, a last line says to resume it with `task start <row>`, since the Overseer never takes a paused row over. Refused at exit 1 on a delivered or abandoned ticket and on one not held. |
+| `ticket hold <id> [--reason <text>] [--at <when>]` | Pause a ticket between build and review, or between review rounds, without pausing Hephaestus. While the frontmatter's `hold` key is set (to the reason, empty without one) Hephaestus launches no builder or reviewer for it, and `status --json` lists it in `concurrency.heldTicketIds` and marks its `readyTickets` entry `held: true`. An agent already running is never interrupted. One log line; refused at exit 1 on a delivered or abandoned ticket and on one already held. |
+| `ticket unhold <id> [--at <when>]` | Lift the hold, with one log line; the step it held starts at Hephaestus's next [Pass](glossary.md#pass). On a ticket in progress whose row is paused, a last line says to resume it with `task start <row>`, since Hephaestus never takes a paused row over. Refused at exit 1 on a delivered or abandoned ticket and on one not held. |
 | `ticket release-of <id> [--clear] [--at <when>] [--json]` | Mark a ticket as its group's release ticket, the one whose release takes the group's work to the main line, or with `--clear` remove the mark. [The rules](#ticket-release-of) are below. |
 | `ticket epic <id> [<key>...] \| --add <keys> \| --remove <keys> [--at <when>] [--json]` | Set the epics a ticket belongs to, in order: the first is its primary epic. Bare keys replace its list and no keys clears it; `--add` appends (a key already there keeps its place), `--remove` takes keys out. Either beside bare keys, or the two together, is refused as ambiguous at exit 1, and a key naming no epic is refused at exit 1 with nothing written. One log line, `Ticket #003 belongs to epics checkout-redesign, search`; `updated` is not stamped. `--json` prints the ticket with `added` and `dropped`. Epics never affect launching, concurrency or release: that is `group`. |
 | `ticket introduced-by <id> [<cause id>] [--at <when>] [--json]` | Name the delivered ticket whose change introduced a bug, stored as its `introducedBy`; no cause, or an empty one, removes the key. Refused at exit 1 with nothing written when the ticket is not a bug, or the cause does not exist, is the ticket itself or is not delivered. One log line, `Ticket #007 introduced by #005`; `updated` is not stamped, and every other line of the file is kept. `--json` prints the ticket. |
 | `ticket depends <id> [<id>...] \| --add <ids> \| --remove <ids> [--json]` | Set the tickets this one waits on: bare ids replace its list, no ids clears it, `--add 3,4` appends and `--remove 3,4` takes ids out. [The output and refusals](#ticket-depends) are below. |
 | `ticket link <ticketId> <taskId> [--force]` | Point a ticket at an existing row instead of the one it filed. Refused when that row already belongs to another ticket, unless `--force`, which unlinks it there first. |
-| `ticket abandon\|reopen <id> [--branch <b>] [--commit <sha>] [--reason <text>] [--tokens <n>] [--at <when>]` | Move a ticket and its row together, stamping both; the Overseer makes every other lifecycle move. `abandon` requires `--reason`; `reopen` clears the stamps and returns the row to committed. [The rules](#ticket-abandonreopen) are below. |
+| `ticket abandon\|reopen <id> [--branch <b>] [--commit <sha>] [--reason <text>] [--tokens <n>] [--at <when>]` | Move a ticket and its row together, stamping both; Hephaestus makes every other lifecycle move. `abandon` requires `--reason`; `reopen` clears the stamps and returns the row to committed. [The rules](#ticket-abandonreopen) are below. |
 | `ticket status <id> <status> [...same options]` | The same move as `ticket abandon\|reopen`, naming the target status directly (committed, in-progress, in-review, reviewed, delivered or abandoned) with the same options. The documented way to make a move the verbs refuse: it skips the matrix, but never moves a ticket into `draft` (`move-to-draft`) or a draft ticket anywhere but `abandoned` (`move-of-a-draft`). |
-| `ticket deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>] [--json]` | The one record-only lifecycle verb: records as delivered a ticket User finished and landed outside the Overseer, from any status but draft, in one hold, merging, landing and spawning nothing; it logs `ticket-delivered` with `byHand: true`. Refused at exit 1, writing nothing, while an Overseer's Baton is live (`overseer-owns-the-lifecycle`, naming its URL) and while a job of the ticket is live (`ticket-has-live-job`), both judged inside the hold. Never relayed. On a live board a client sends the control command `ticket-deliver-by-hand`, which the Overseer applies in its own hold, refused `ticket-has-live-job` the same way. |
+| `ticket deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>] [--json]` | The one record-only lifecycle verb: records as delivered a ticket User finished and landed outside Hephaestus, from any status but draft, in one hold, merging, landing and spawning nothing; it logs `ticket-delivered` with `byHand: true`. Refused at exit 1, writing nothing, while a Hephaestus's Baton is live (`hephaestus-owns-the-lifecycle`, naming its URL) and while a job of the ticket is live (`ticket-has-live-job`), both judged inside the hold. Never relayed. On a live board a client sends the control command `ticket-deliver-by-hand`, which Hephaestus applies in its own hold, refused `ticket-has-live-job` the same way. |
 | `ticket rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]` | The next review round and the reviewer's in-progress bar (`Review <N> #<id> — <title>`, its `reviewOf` the ticket, N the bare `## Review` headings plus one, stored on the bar as `reviewBarRound`) in one lock hold, closing any bar of the round before. `--owner` and `--note` name the bar, and are refused without the flag. |
 | `ticket rereview <id> [--at <when>]` | Send a ticket already in review round again, for a fresh reviewer: the ticket stays in-review and only its `updated` moves, while its row goes one review round up, from 2, and the log says which round. The one verb legal on the status the ticket already has, and refused from every other. It takes no `--tokens`: the row's figure is the builder's, and a review round has its own row. |
 
@@ -653,7 +653,7 @@ In a forge with entities, a draft whose `## Brief` names work outside its entity
 written (`work-outside-entity`, naming each such ticket and path). The work is each path with a folder on the Brief's
 `Work belongs in:` line and the lines that continue it. A path is inside when the entity owns it, a package that the
 entity whitelists owns it, or it is in the entity's `reach`. `ticket submit`, `intake close` and a worker's finding
-refuse it too, with ticket review on or off. A need's ticket, which the Overseer files for the entity the need names, is
+refuse it too, with ticket review on or off. A need's ticket, which Hephaestus files for the entity the need names, is
 not read.
 
 Only `ticket unready` returns a ticket to `draft`, and a draft ticket moves on only through `ticket ready`,
@@ -694,7 +694,7 @@ nothing written:
 #### `ticket entity`
 
 The product owner runs it: under its job on its own draft ticket at intake, or on any ticket ready for review or
-committed, its job stamped by the Overseer; any other role is refused, and a request naming a job is refused
+committed, its job stamped by Hephaestus; any other role is refused, and a request naming a job is refused
 `hatch-identity-mismatch`. Outside a job, User's own command line runs it. No client's command sends it. The log line
 reads `Ticket #003 belongs to entity web: <reason>`, its record `{entity, reason, by}` with `by` `product-owner` or
 `user`. Refused at exit 1 with nothing written:
@@ -828,7 +828,7 @@ Both `status --json` documents carry `drafts` after `epics`:
 
 ### Concurrency and gates
 
-The Overseer gates a tree by running the prepare steps, then each [gate](glossary.md#gate) of one phase in that
+Hephaestus gates a tree by running the prepare steps, then each [gate](glossary.md#gate) of one phase in that
 phase's run order, the first red gate stopping the rest. Each place a tree is gated runs one phase:
 
 | where | phase |
@@ -843,7 +843,7 @@ phase's run order, the first red gate stopping the rest. Each place a tree is ga
 A phase with no gates passes at once and runs no prepare step. A gate passes only when it exits 0 and leaves every
 tracked file as it was. Exit 126 or 127, or a signal, is `gate-cannot-run`. A prepare step fails when it does not
 exit 0, or when it exits 0 but changes a tracked file; its output is then the diff of that change. A failed prepare
-step is a setup failure, never a red gate, so no gate is blamed for it. The Overseer never runs a gate's `fix`. Customs
+step is a setup failure, never a red gate, so no gate is blamed for it. Hephaestus never runs a gate's `fix`. Customs
 and a worker's sandbox read every gate, whatever phases run it.
 
 A job's gate run starts by writing its manifest, `<data>/jobs/<J>/gate-run.json`, atomically: `{ phase, phaseHash,
@@ -878,10 +878,10 @@ before the first listing is out of reach, as it is on POSIX.
 | command | what it does |
 |---|---|
 | `concurrency [<n>] [--json]` | Print how many agents may be in flight at once, or store a new limit for every worktree: a whole number from 1 to 10. A higher one is refused at exit 1 with nothing written, and one an older tracker stored above 10 reads as 10. A tracker that never set one reads 2. A limit below the agents already in flight is accepted and leaves no free launch slot. A launch slot is a build or review job; [below](#launch-slots) says what counts. `--json` prints `{ limit, agentsInFlight, freeSlots }`, after a change as well. |
-| `machine limit [<n>] [--json]` | Print the machine agent limit: how many build and review jobs may run at once across every board of this user on this machine, at most the number of CPUs the runtime reports, which it is when none was set. With `<n>`, store a new one in `<monitor>/machine-limits.json`, `{ version: 1, agentLimit }`, which every Overseer reads at its next launch; a value above the CPU count is refused `machine-agent-limit-above-cpus` at exit 1 with nothing written, and a stored value above it reads as the CPU count. Lowering it stops no job in flight. Every Overseer claims a slot file in `<monitor>/agent-slots/` before it launches a build or review job, and a ticket that finds none stays ready and is tried again at the Overseer's next sweep; a slot whose Overseer is gone is taken over by the next claim, and a job that outlived its Overseer's restart keeps its slot under the new Overseer. `--json` prints `{ answerVersion, limit, ceiling, agentsInFlight }`, after a set `{ answerVersion, outcome, limit, ceiling }`. A live Overseer takes the same change as the control command `machine-agent-limit-set`. |
+| `machine limit [<n>] [--json]` | Print the machine agent limit: how many build and review jobs may run at once across every board of this user on this machine, at most the number of CPUs the runtime reports, which it is when none was set. With `<n>`, store a new one in `<monitor>/machine-limits.json`, `{ version: 1, agentLimit }`, which every Hephaestus reads at its next launch; a value above the CPU count is refused `machine-agent-limit-above-cpus` at exit 1 with nothing written, and a stored value above it reads as the CPU count. Lowering it stops no job in flight. Every Hephaestus claims a slot file in `<monitor>/agent-slots/` before it launches a build or review job, and a ticket that finds none stays ready and is tried again at Hephaestus's next sweep; a slot whose Hephaestus is gone is taken over by the next claim, and a job that outlived its Hephaestus's restart keeps its slot under the new Hephaestus. `--json` prints `{ answerVersion, limit, ceiling, agentsInFlight }`, after a set `{ answerVersion, outcome, limit, ceiling }`. A live Hephaestus takes the same change as the control command `machine-agent-limit-set`. |
 | `gate list [--json]` | Print the board's gate pipeline, stored in `<data>/pipeline.json` beside `progress.json`, never tracked and never inside a branch. Read-only, no lock. The text names the phases of a gate that runs in only some (`lint (runs in merge): bun run lint`); a gate with none runs in every phase. `--json` prints `{ pipelineIsSet, contentHash, phaseHashes, version, prepare, gates, phases }`, with `review`, `airlock`, `constitution` (`{ path }`), `agents` (settings per role) and `approvals` when stored; with no pipeline `pipelineIsSet` is `false`, `contentHash` and `phaseHashes` `null`, both lists empty, and `version` and `phases` absent. [The hashes](#the-pipeline-hashes) are below. A malformed file is refused at exit 1 with its reason, and an older one (`older-pipeline`) with the advice to set the pipeline up again. |
 | `gate prepare <name> [--in <folder>] [--json] -- <command>` | Set the prepare step `<name>`, which prepares a fresh worktree before a gate, with one log line (`Prepare step <name> set to <command>`, kind `pipeline-prepare-step-set`); a step of the same name is replaced where it stands. `--in` names the folder it runs in, as a gate's `--in` does. The steps run in order, with the network, before the gates. On a board with no `pipeline.json` this also stores an empty gate list, so tickets land ungated until a gate is added. |
-| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--forge-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (the Overseer's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
+| `gate add <name> [--fix "<command>"] [--in <folder>] [--defined-by <pattern>]… [--network <domain>]… [--writes <path>]… [--forge-only] [--phases <phase>,…] [--json] -- <command>` | Add the gate `<name>`, run after the others in every phase, or replace a gate of the same name where it stands, keeping its phases, with one log line (`Gate <name> set to <command>`, kind `pipeline-gate-added`). `--phases`, a comma-separated list of `build`, `review` and `merge`, each once, sets the phases the gate runs in instead: it keeps its place in a phase it already ran in, runs last in a phase it joins and leaves the others. An unknown or repeated phase is refused at exit 1 with nothing written. The gates run in order through this machine's shell (Hephaestus's `SHELL`, or cmd.exe on Windows) in the worktree, `--in` a folder of it, each sandboxed with its own `--writes` folders and the network on when it names a `--network` domain, off otherwise; [the options](#gate-add) are below. |
 | `gate order build\|review\|merge <name>… [--json]` | Set the run order of the gates a phase runs, with one log line (`Gates of the merge phase ordered: <names>`, kind `pipeline-gates-ordered`). Name each gate the phase runs once and no other: a gate joins or leaves a phase only through `gate add --phases`, so no gate is left in no phase. An unknown gate (`unknown-gate`) or any other list (`phase-order-not-a-reorder`) is refused at exit 1 with nothing written. |
 | `gate none [--json]` | Store an empty gate list and empty phases on purpose, with one log line (`No gates, on purpose`, kind `pipeline-gates-none`). Unlike no `pipeline.json` at all, which opens the `checks-not-set` decision and holds new work, it counts as set, and a landing runs no gate. |
 | `gate remove <name> [--json]` | Remove the gate `<name>` from the gates and from every phase, with one log line (`Gate <name> removed`, kind `pipeline-gate-removed`); an unknown name is refused at exit 1 with nothing written (`unknown-gate`). |
@@ -913,8 +913,8 @@ FNV-1a hash over a canonical form, so key order and a gate list option written o
 
 A row's `pipelineHash` is the phase hash of its `greenPhase`, taken at its last gate run. A green is current in a phase
 while the row has a `greenPhase` and its `pipelineHash` equals that phase's hash now: an edit outside a phase's prepare
-steps and gates never makes a green stale. A row with a `pipelineHash` and no `greenPhase` has no current green, so the
-Overseer gates its ticket again.
+steps and gates never makes a green stale. A row with a `pipelineHash` and no `greenPhase` has no current green, so
+Hephaestus gates its ticket again.
 
 On a forge with entities the row also holds `pipelineHashes`: the phase hash of each entity whose gates the run ran, by
 entity key, as that entity's own pipeline hashes it. `pipelineHash` stays the forge's own phase hash. A green is current
@@ -927,7 +927,7 @@ landing's gate set. A forge without entities never writes `pipelineHashes`.
 
 #### `gate add`
 
-`--defined-by` names the files that define the gate, as git pathspec-style globs. The Overseer's check V11 refuses a job
+`--defined-by` names the files that define the gate, as git pathspec-style globs. Hephaestus's check V11 refuses a job
 (`checks-definition-changed`) when a commit in its range changes a matching path its ticket body does not name. A merge
 of the job's target brings the target's commits into that range, so a definition file another ticket landed fails each
 live job that merges the target after it; a fresh attempt started after the merge passes. An instruction file counts
@@ -952,7 +952,7 @@ it, and means a different thing on each OS:
 `--writes` names a folder a gate and a prepare step may write besides the worktree, its git admin folder and temp,
 absolute on any OS (`/`, a drive or a share) or home-relative (`~/` or `~\`).
 
-- A relative one, or one that is, sits in or holds a folder of executables or a folder on the Overseer's `PATH`, is
+- A relative one, or one that is, sits in or holds a folder of executables or a folder on Hephaestus's `PATH`, is
   refused at exit 1 with nothing written. A folder of executables is a `bin`, on Windows also a `Scripts` or a folder
   holding a `.exe`, `.cmd`, `.bat` or `.ps1` file; names compare without case on macOS and Windows.
 - One that became so after it was stored, or one absolute only on another OS, is left out of the gate's and the
@@ -967,7 +967,7 @@ What a session receives:
   commits with. On macOS and Linux a line splits outside quotes on `&&`, `||`, `;`, `|`, `&`, a newline and
   parentheses, past a leading `NAME=value`; on Windows outside double quotes on `&&`, `||`, `&`, `|`, a newline and a
   group's parentheses, a `^` escaping the next character. An `&` inside a redirection such as `2>&1` splits nothing.
-- A `--forge-only` gate gives it none of these, since only the Overseer runs it.
+- A `--forge-only` gate gives it none of these, since only Hephaestus runs it.
 - On Linux a worker's ref protection is `packed-refs` and the loose refs present at launch of the targets and of the
   ticket branches a worktree holds, with check V14 for any other ref; a Linux worker commits unsigned.
 - Every session, whatever its role, may not read `~/.ssh`, `~/.aws`, `~/.netrc`, `~/.git-credentials`, Claude Code's
@@ -975,7 +975,7 @@ What a session receives:
 - A worker signs its commits through the gpg-agent and keyboxd sockets `gpgconf --list-dirs` names, with GnuPG's home
   readable and its `private-keys-v1.d` denied. With no gpgconf, or no agent socket, it commits unsigned and GnuPG's
   home is denied whole; a repository that sets `commit.gpgsign` then gets one log line per launch saying so.
-- `--fix` is named in the builder's first message, to run before fixing by hand; the Overseer never runs it.
+- `--fix` is named in the builder's first message, to run before fixing by hand; Hephaestus never runs it.
 
 Which guarantees hold for a session, per OS. Windows has no native sandbox, so every session there, whatever its role,
 runs unconfined by design in its working directory, the same answer `GateConfinement` gives its gates:
@@ -995,7 +995,7 @@ runs unconfined by design in its working directory, the same answer `GateConfine
 
 #### Launch slots
 
-`status`, the Next line, `concurrency`, the served board state and the Overseer's launch gate read one count: the live
+`status`, the Next line, `concurrency`, the served board state and Hephaestus's launch gate read one count: the live
 `build` and `review` jobs (`LaunchSlotUtil`). A job keeps its launch slot in every state, waiting for an answer and
 interrupted included. Merge, merge-agent, refresh, Assistant, product-owner and pipeline agent jobs take none, and the
 kind decides, never the role: a merge agent runs as its ticket's last worker or as a conflict re-reviewer and still
@@ -1010,7 +1010,7 @@ board's limit alone.
 ### Pipeline setup
 
 The `pipeline` verbs are User's moves on the [pipeline setup record](#datapipeline-setupjson). Each one is one control
-command, applied in a hold, with the Overseer up or down; a client's setup controls send the same commands. Every verb
+command, applied in a hold, with Hephaestus up or down; a client's setup controls send the same commands. Every verb
 takes `--json`, which prints `{ setup, logged }`: the record as the move left it and the log records it wrote. A setup,
 question and edit id is read in either case (`s1`, `S1`).
 
@@ -1022,32 +1022,32 @@ question and edit id is read in either case (`s1`, `S1`).
 | `pipeline continue <S> <step> [--json]` | User's Continue (`pipeline-setup-step`): the current step is done and the next opens, logged `pipeline-setup-step-moved`. On a step that needs a recheck it is the only way out. A first setup opens past billing, so `billing` is current only in a record a reopen left there. Another step than the current one is refused `setup-step-not-current`, and `apply` as `setup-step-not-continued`. While the draft's entities hold a refusal of the entity validator, every Continue is refused `entity-refusals-stand`, naming the reasons. |
 | `pipeline answer <S> <Q> <letters>... \| -- <text> [--json]` | Answer a setup question (`pipeline-setup-answer`) with option letters (`a`, or `a c` on a question that takes several) or free text, logged `pipeline-question-answered`; answering again replaces the answer. |
 | `pipeline constitution <S> --revision <n> [--file <path>\|-] [--sources <source>,…\|none] [--json]` | Store User's constitution (`pipeline-constitution-edit`), logged `pipeline-constitution-set`: the whole text from the file, or from standard input with `--file -`, byte for byte (an empty file clears it), and the SOURCES ticks, the sources named on (`contributing`, `research`, `installed-default`) and the others off. Give the text, the sources or both. `--revision` is the constitution revision User read; another is refused `constitution-draft-stale`. |
-| `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. Each field and value are read into the typed edit the command carries (`target` and its keys, as [the Overseer API](reference/overseer-api.md#board-commands) names them); a value of the wrong shape is refused `malformed-setup-command`, naming the field, before anything is written. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. Entities the validator refuses together, such as two on one home, are kept: the draft holds them until User resolves them, and Continue and Apply wait (`entity-refusals-stand`). |
+| `pipeline edit <S> --revision <n> --set <field>=<JSON value>... [--json]` | Set fields of the draft pipeline in one move (`pipeline-draft-edit`), logged `pipeline-draft-edited`, each a User edit with its own id. The field is one of those [the record names](#datapipeline-setupjson); the value is JSON as `pipeline.json` holds it, and `null` removes a gate, prepare step, review or merge train, or writes a default back. Each field and value are read into the typed edit the command carries (`target` and its keys, as [the Hephaestus API](reference/hephaestus-api.md#board-commands) names them); a value of the wrong shape is refused `malformed-setup-command`, naming the field, before anything is written. `--revision` is the draft revision User read (`pipeline-draft-stale`). A draft that `pipeline.json`'s validator would refuse, such as a gate in no phase, is refused `pipeline-draft-invalid` with its reason: send a gate and its phase order in one move. Entities the validator refuses together, such as two on one home, are kept: the draft holds them until User resolves them, and Continue and Apply wait (`entity-refusals-stand`). |
 | `pipeline undo <S> <E> [--json]` | Write the base pipeline's value of that edit's field back (`pipeline-draft-undo`), logged `pipeline-draft-undone`; the edit stays, marked undone. An Undo that would leave a draft the validator refuses is refused `pipeline-draft-invalid`, but for the entities' refusals, which are kept as an edit keeps them. |
 | `pipeline discard <S> [--json]` | Drop every proposed change (`pipeline-draft-discard`), logged `pipeline-draft-discarded`: the draft is the base pipeline again and every edit is undone. |
-| `pipeline check <S> [--json]` | Ask the Overseer to [check](#pipeline-checks) the gates the draft changes or adds (`pipeline-check`), logged `pipeline-check-requested`: the record's `check` is `queued` with those gate names and the draft revision. A draft that changes or adds no gate is refused `no-gate-to-check`, and a second press while the check is `queued` or `running` `pipeline-check-running`. |
+| `pipeline check <S> [--json]` | Ask Hephaestus to [check](#pipeline-checks) the gates the draft changes or adds (`pipeline-check`), logged `pipeline-check-requested`: the record's `check` is `queued` with those gate names and the draft revision. A draft that changes or adds no gate is refused `no-gate-to-check`, and a second press while the check is `queued` or `running` `pipeline-check-running`. |
 | `pipeline start-over <S> [--json]` | Remove the record (`pipeline-setup-start-over`), logged `pipeline-setup-discarded`, and stop its live agent in the same hold. The setup id is not used again. |
 | `pipeline profile <gate> build\|review\|merge [<S>] [--json]` | Queue a [gate profile](#gate-profiles) (`gate-profile-start`), logged `gate-profile-requested`: that one gate in that one phase, once, as setup `<S>`'s draft defines it, or with no `<S>` as the stored pipeline does. `--json` prints `{ run, logged }`. A gate the source does not define is refused `unknown-gate`, a setup that is not the open one `no-setup-open`, and a second press while that gate and phase have a run `queued` or `running` `gate-profile-running`. |
-| `pipeline profile-stop <P> [--json]` | Stop a gate profile (`gate-profile-stop`): a queued run is `stopped` at once, logged `gate-profile-stopped`; a running one is marked, and the Overseer ends its process tree and records it `stopped`, with no duration. An ended run is left as it is. An unknown id is refused `unknown-profile-run`. |
+| `pipeline profile-stop <P> [--json]` | Stop a gate profile (`gate-profile-stop`): a queued run is `stopped` at once, logged `gate-profile-stopped`; a running one is marked, and Hephaestus ends its process tree and records it `stopped`, with no duration. An ended run is left as it is. An unknown id is refused `unknown-profile-run`. |
 | `pipeline apply <S> --revision <n> [--resume] [--json]` | Apply the draft at revision `n` (`pipeline-apply`) in [two stages](#apply). With `--resume` the board resumes once the pipeline is stored. `--json` prints `{ outcome, setup, logged }`: `outcome` is `committing` while the request waits for the constitution commit, `applied` once the pipeline is stored and the record closed, or `already-applied` for a revision an earlier Apply of the record already stored. |
 | `pipeline apply-cancel <S> [--json]` | Clear the record's Apply request (`pipeline-apply-cancel`), committing, held or refused, logged `pipeline-apply-cancelled`: the record is back at the design step, `in-progress` and editable, the apply step is `not-started` again, and the stored pipeline stays as it was. With no request it is refused `no-apply-pending`. |
-| `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and the Overseer checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
+| `pipeline resume <S> [--json]` | Open the record's pipeline agent again (`pipeline-setup-resume`). When main moved past the record's `snapshotCommit`, the record first takes main's tip and the paths that changed, logged `pipeline-setup-resumed`; a done research step and every finding that names a changed path need a recheck, and Hephaestus checks the snapshot out at the new commit before the agent's next launch. The message names how many commits main moved and the paths. A record with no agent, or one whose agent ended other than by a stop, gets a new agent, which starts from the record. Refused `pipeline-apply-pending` while an Apply waits. |
 
 An answer, a constitution edit, a draft edit, an Undo, a discard, a check and a Continue also message the record's
-pipeline agent in the same hold, logged `job-messaged` with `byOverseer`, when its job is live and not stopping, so its
-next turn starts from User's move; an agent a stop closed is opened again with the message, logged `job-reopened` with
-`byOverseer`. Its transcript reads the message as the Overseer's chat, never as User's words. The agent cannot read
+pipeline agent in the same hold, logged `job-messaged` with `byHephaestus`, when its job is live and not stopping, so
+its next turn starts from User's move; an agent a stop closed is opened again with the message, logged `job-reopened`
+with `byHephaestus`. Its transcript reads the message as Hephaestus's chat, never as User's words. The agent cannot read
 the record, so the message carries what the move changed: a constitution edit the whole new text and the new SOURCES
 ticks, each when it changed; a draft edit, an Undo and a discard each draft field the move changed, with the value the
-draft holds there now (`null` for none). A record with no
-agent, or with one that ended otherwise, gets no message: the record is what a later agent starts from. A body sent to
-`POST /api/commands` that lacks a field or holds one of the wrong shape is refused `malformed-setup-command`, naming the
-field (`edits[0].value`); [Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
+draft holds there now (`null` for none). A record with no agent, or with one that ended otherwise, gets no message: the
+record is what a later agent starts from. A body sent to `POST /api/commands` that lacks a field or holds one of the
+wrong shape is refused `malformed-setup-command`, naming the field (`edits[0].value`);
+[Refusals](reference/refusals.md#pipeline-setup) words every setup refusal.
 
 On a forge over entities, each entity has a pipeline-agent session of its own beside the forge's: the Continue of the
 `entities` step launches one for each entity of the draft that has none, stamped with its entity (the job's `entity`)
 and named in that entity's part of the record (`entities.<key>.agentJobId`). Every session reads the record's one
-snapshot. The Overseer stamps a session's entity on each move it relays, so its findings, questions and constitution go
+snapshot. Hephaestus stamps a session's entity on each move it relays, so its findings, questions and constitution go
 to its entity's part. `pipeline-agent-advise` and `pipeline-update-start` take an optional `entity`, the level they open
 at, which the record names as `openedAtEntity` (absent at the forge): an advise at an entity launches that entity's
 session alone, and an update at an entity holds that entity's part, whose session a resume opens without one at the
@@ -1060,27 +1060,27 @@ check or an edit made. A start over and an Apply stop every session. A check cov
 touched: that entity's part holds its own `check` of its own gates, run from its first home, and only its session hears
 the end.
 
-The Overseer's board state carries the record as `pipelineSetup` (the [Overseer
-API](reference/overseer-api.md#boardstate)). Its `mainMovedByCommits` (main's commits past `snapshotCommit`) is read
-from git and never stored; the Overseer keeps the count by (`snapshotCommit`, main's tip), so a state read asks git
+Hephaestus's board state carries the record as `pipelineSetup` (the [Hephaestus
+API](reference/hephaestus-api.md#boardstate)). Its `mainMovedByCommits` (main's commits past `snapshotCommit`) is read
+from git and never stored; Hephaestus keeps the count by (`snapshotCommit`, main's tip), so a state read asks git
 again only when one of them changed.
 
 #### Gate profiles
 
 A gate profile is informational: it says how long one gate takes in one phase, and how it ended. Only User's press
 starts one: `pipeline profile`, the time chip of a gate row, Profile again in the Gate dialog or "Benchmark in the
-merge phase" on a new gate's change card. A proposal, an Apply, a draft edit and an Overseer start queue none, there is
+merge phase" on a new gate's change card. A proposal, an Apply, a draft edit and a Hephaestus start queue none, there is
 no "profile all", and the pipeline agent may not relay `gate-profile-start`.
 
-The Overseer takes the queued runs in order. A run takes one of the machine's gate run slots, and only when no gate run
-of a job or an Airlock of this Overseer waits for one: a running profile is not cut short, but when it ends, a waiting
+Hephaestus takes the queued runs in order. A run takes one of the machine's gate run slots, and only when no gate run
+of a job or an Airlock of this Hephaestus waits for one: a running profile is not cut short, but when it ends, a waiting
 real gate takes the slot first. The run gets a fresh detached worktree of main at `<worktrees>/gate-profiles/<P>`, which
-needs no setup record, and runs the phase's prepare steps and then the gate in it, once, under the confinement of the
-Overseer's own gate runs. A profile may write only inside its worktree and the temporary folder: the gate's `writes`
-folders are not granted, so a gate that needs one ends `red` or `cannot-run`. The process runs outside the hold; the
-Overseer takes the hold only to record `running` and the end (`passed`, `red`, `cannot-run`), with the duration, which
+needs no setup record, and runs the phase's prepare steps and then the gate in it, once, under the confinement of
+Hephaestus's own gate runs. A profile may write only inside its worktree and the temporary folder: the gate's `writes`
+folders are not granted, so a gate that needs one ends `red` or `cannot-run`. The process runs outside the hold;
+Hephaestus takes the hold only to record `running` and the end (`passed`, `red`, `cannot-run`), with the duration, which
 is only recorded and shown. Its output is appended, as it arrives, to `<data>/gate-profile-runs/<P>.ndjson`, one
-`{"text": …}` line per piece, and the Overseer API streams it at `GET /api/profiles/<P>/stream`; the board's event
+`{"text": …}` line per piece, and the Hephaestus API streams it at `GET /api/profiles/<P>/stream`; the board's event
 stream carries no output line. A profile never records a green or a `gate-ran` record, and Apply never waits on one.
 When a run of the open setup ends, the caching checks run over the times its profiles recorded so far, and each new
 suggestion becomes a finding of topic `note` (its `label` the suggestion's kind). The pipeline agent's first proposal
@@ -1094,10 +1094,10 @@ read only that entity's times and gates, and its notes go to the entity's part o
 #### Gate reports
 
 A gate may say what its own tooling replayed from its cache. Every gate line is handed a path in the temporary folder
-in `FORGE_GATE_REPORT`: a fresh one for a line the Overseer runs itself (a merge gate, a gate profile and a pipeline
+in `FORGE_GATE_REPORT`: a fresh one for a line Hephaestus runs itself (a merge gate, a gate profile and a pipeline
 check), and one named for the step's folder for a line Talos runs (a job's build or review gate), so the next pass
 reads it. A prepare step is handed none. A gate that writes `{"version": 1, "cache": "hit" | "partial" | "miss"}`
-there says that every task, some of them or none replayed from its cache. The Overseer reads the file after the line
+there says that every task, some of them or none replayed from its cache. Hephaestus reads the file after the line
 exits and removes it; a file left at a Talos line's path before its line starts is removed first. Anything else, such as
 no file, a file over 4096 bytes, a link, text that is no JSON object, another version or another word, is no report.
 A key that version 1 does not name is passed over. forge knows no caching tool: a gate writes a report only when its
@@ -1113,10 +1113,10 @@ that gate in that phase, a job's or a profile's, in log order). A miss or no rep
 nothing: no gate passes, fails or is skipped by it. The report reaches the board state and the board document, and
 no document of a monitor.
 
-An Overseer that stops ends the process tree of each running run and records it `stopped`, with no result. A run that
-is still `running` when its Overseer ended, as after a crash, is never run again: the next Overseer start records it
+A Hephaestus that stops ends the process tree of each running run and records it `stopped`, with no result. A run that
+is still `running` when its Hephaestus ended, as after a crash, is never run again: the next Hephaestus start records it
 `stopped`, logged `gate-profile-stopped`, and removes every worktree under `<worktrees>/gate-profiles/`. The folder is
-the Overseer's own, so the regrouping never names it as a leftover.
+Hephaestus's own, so the regrouping never names it as a leftover.
 
 #### Pipeline checks
 
@@ -1124,21 +1124,21 @@ A check tells the pipeline agent how the gates the draft changes or adds behave,
 one: `pipeline check`, or "Ask the pipeline agent to check" under the editing screen's Changes tab. The pipeline agent
 may not relay `pipeline-check`. One check of a record runs at a time.
 
-The Overseer takes the record's queued check when one of the machine's gate run slots is free and no gate run of a job
-or an Airlock of this Overseer waits for one, as a [gate profile](#gate-profiles) does. In the hold that marks the
+Hephaestus takes the record's queued check when one of the machine's gate run slots is free and no gate run of a job
+or an Airlock of this Hephaestus waits for one, as a [gate profile](#gate-profiles) does. In the hold that marks the
 check `running`, it reads the gates the draft changes or adds again, as the draft is then, with the draft's prepare
 steps, and the check names that revision and those gates; when none is left, the check ends `cannot-run` with the
-reason `no-touched-gate`. Outside the hold, the Overseer adds a fresh detached worktree of main's tip at
+reason `no-touched-gate`. Outside the hold, Hephaestus adds a fresh detached worktree of main's tip at
 `<worktrees>/pipeline-checks/<S>` and runs the prepare steps and each of those gates in it two times, each gate on its
-own, under the confinement of the Overseer's own gate runs and with no `writes` folder granted. A gate that both runs
+own, under the confinement of Hephaestus's own gate runs and with no `writes` folder granted. A gate that both runs
 passed is `green`, one both runs failed `red`, one that could not run `cannot-run`, and one whose two runs differ
 `disagreeing`. The hold that ends the check stores the result in the record (`checked`) or the reason nothing ran
 (`cannot-run`: a line the confinement refused, or a worktree git could not add), and messages the record's pipeline
 agent with it in the same hold, as a User move does. The worktree is removed when the check ends. A check never records
 a green or a `gate-ran` record, and Apply never waits on one.
 
-An Overseer that stops ends the running check's process tree and records it `stopped`, with no result and no message.
-A check still `running` when its Overseer ended is never run again: the next Overseer start records it `stopped` and
+A Hephaestus that stops ends the running check's process tree and records it `stopped`, with no result and no message.
+A check still `running` when its Hephaestus ended is never run again: the next Hephaestus start records it `stopped` and
 removes every worktree under `<worktrees>/pipeline-checks/`, a folder the regrouping never names as a leftover. User
 presses again.
 
@@ -1174,13 +1174,13 @@ this draft's as applied (`pipeline-moved`). Then:
 Stage 2 runs in the stage 1 hold, in the hold that records the constitution commit's landing, or in the sweep hold that
 finds main already holding the draft's text. It writes, in the hold's order: `progress.json` (the commit job ended when
 a commit landed, an open `checks-not-set` decision withdrawn, logged `decision-withdrawn`, and the board resumed with
-`--resume`, logged `overseer-set`); `pipeline.json`, the whole draft with `constitution.path` set to `CONSTITUTION.md`
+`--resume`, logged `hephaestus-set`); `pipeline.json`, the whole draft with `constitution.path` set to `CONSTITUTION.md`
 when the draft holds a constitution; `constitution-sources.json`, the agent's sources keyed by the blob id of the text
 main holds; `log.jsonl` (the commit job's `merge-landed` and `job-ended` when a commit landed, then `pipeline-applied`
 with the changed, new and removed field names and the constitution commit, or `null`); and last the removal of
 `pipeline-setup.json`. The same hold asks each live pipeline agent of the record, the forge's and every entity's, to
-stop, logged `job-stop-requested` (one with no session ends `closed` at once), and once no pipeline agent is left the
-Overseer removes the snapshot under `<worktrees>/pipeline-agent/`. Nothing is written under `<data>/briefs/defaults/`,
+stop, logged `job-stop-requested` (one with no session ends `closed` at once), and once no pipeline agent is left
+Hephaestus removes the snapshot under `<worktrees>/pipeline-agent/`. Nothing is written under `<data>/briefs/defaults/`,
 and nothing but the commit's fast-forward writes `CONSTITUTION.md` in the main checkout. Nothing stops a ticket from
 starting, or from taking an entity, while the request waits, so stage 2 refuses `entity-named-by-tickets` and
 `entities-while-tickets-in-flight` again; the Airlock checks both before the commit lands and refuses the request with
@@ -1207,7 +1207,7 @@ Apply is idempotent by setup and revision. A pipeline this draft already stored 
 Apply finishes what is missing and never refuses `pipeline-moved`; the same revision while its request waits answers
 with that request; and a revision the log already holds as applied answers `already-applied`. Every hold commits
 through the [hold journal](#datahold-journaljson), so an Apply cut short is finished by the next holder. At its start
-the Overseer also finishes an open record whose draft is already the stored pipeline, resuming the board only as its
+Hephaestus also finishes an open record whose draft is already the stored pipeline, resuming the board only as its
 stored request asked.
 
 #### The pipeline agent's verbs
@@ -1219,8 +1219,8 @@ job is, refuses a request that names a `setupId` (`hatch-identity-mismatch`) and
 agent of no open record (`job-serves-no-setup`). Outside a job User names the record first (`pipeline finding S1 --
 <json>`), which applies the same move as the agent's. The payload is JSON after `--`, or in a file or on standard
 input with `--file <path>|-`; it is read through a closed schema, so a missing, misshapen or unknown field is refused
-`malformed-setup-command`, naming it, before anything is relayed. A verb the Overseer refuses changes nothing: the
-record and the log stay as they were, although the Overseer applies it in a hold it goes on to write. The pipeline
+`malformed-setup-command`, naming it, before anything is relayed. A verb Hephaestus refuses changes nothing: the
+record and the log stay as they were, although Hephaestus applies it in a hold it goes on to write. The pipeline
 agent may relay only these and `question options`; every ticket verb and every other kind is refused
 `command-not-allowed-for-role`.
 
@@ -1288,8 +1288,8 @@ Each table prints these figures per group. "Review passes" is the printed label 
 | command | what it does |
 |---|---|
 | `hook session-start` | Print `session-instructions.md` for the session the agent is starting. `init` and `update` wire it as the agent's session-start entry, which the agent adapter writes (for Claude Code the `SessionStart` hook in `.claude/settings.local.json`, which a job's `--setting-sources project` never loads). It prints nothing under a job, skips the install version check, and exits 0 whatever happens, printing nothing on failure. |
-| `hook bash-domains --allow <domains>` | Keep a job's network inside its ticket's `network` line: the network guard an Overseer renders into a job's launch for a role with a `network` line, run before each shell command and web fetch, since auto mode's classifier may grant a domain the session asks for. [What it denies](#hook-bash-domains) is below. |
-| `hook stage-edits --allow <folder>…` | Keep the file edits of a job of an entity inside its stage's folders: the edit guard an Overseer renders into the launch of such a job, since its deny rules name only the paths that existed at launch. [What it denies](#hook-stage-edits) is below. |
+| `hook bash-domains --allow <domains>` | Keep a job's network inside its ticket's `network` line: the network guard a Hephaestus renders into a job's launch for a role with a `network` line, run before each shell command and web fetch, since auto mode's classifier may grant a domain the session asks for. [What it denies](#hook-bash-domains) is below. |
+| `hook stage-edits --allow <folder>…` | Keep the file edits of a job of an entity inside its stage's folders: the edit guard a Hephaestus renders into the launch of such a job, since its deny rules name only the paths that existed at launch. [What it denies](#hook-stage-edits) is below. |
 | `usage [--since <when>] [--transcripts <folder>] [--json]` | What this repository's subagents cost, read out of the subagent transcripts the agent keeps for this repository: one row per agent, oldest first, then the cohort summary. It writes nothing and takes no lock; a repository with no transcripts is one sentence at exit 0. [The columns and flags](#usage) are below. |
 
 #### `hook bash-domains`
@@ -1304,8 +1304,8 @@ It reads no tracker, skips the install-version check, runs directly under a job,
 answers deny on any failure: no input, input the adapter cannot read, a URL naming no host, requested domains that are
 no list of domains, an unknown option.
 
-The Overseer renders it in exec form, before every shell command and web fetch: the program's absolute path, resolved
-from the Overseer's `PATH` at launch, with its arguments and no shell, so a program missing from the session's `PATH`
+Hephaestus renders it in exec form, before every shell command and web fetch: the program's absolute path, resolved
+from Hephaestus's `PATH` at launch, with its arguments and no shell, so a program missing from the session's `PATH`
 cannot let a call through. When the program does not resolve at launch, the job's launch denies shell commands and web
 fetches outright instead. What it enforces per OS:
 
@@ -1330,7 +1330,7 @@ may write a proposal, a package whose build refused the ticket's change left out
 
 It reads no tracker, skips the install-version check, runs directly under a job, and exits 0 whatever happens. It
 answers deny on any failure: no input, input the adapter cannot read, no path, a relative path with no absolute working
-directory, no `--allow`, a folder that is not an absolute path, an unknown option. The Overseer renders it in exec
+directory, no `--allow`, a folder that is not an absolute path, an unknown option. Hephaestus renders it in exec
 form, before every file edit, as it renders `hook bash-domains`; when the program does not resolve at launch, the job's
 launch denies file edits outright instead.
 
@@ -1352,9 +1352,9 @@ this repository's path resolves to.
 
 > **As built.** No job session appears here.
 
-### The Overseer
+### Hephaestus
 
-[The Overseer API](reference/overseer-api.md) holds the routes, guards and event stream.
+[The Hephaestus API](reference/hephaestus-api.md) holds the routes, guards and event stream.
 
 The API binds `127.0.0.1` and refuses, 403, a Host other than `127.0.0.1:<port>` or `localhost:<port>`, an Origin other
 than the API's own, and every preflight. Behind those guards, the bearer token from the file the Baton names is the
@@ -1367,48 +1367,47 @@ fixed word, and the sentence a client shows.
 
 | command | what it does |
 |---|---|
-| `oversee [--started-by user\|login-item] [--port <n>] [--detach] [--repository <path>] [--json]` | Start the board's one Overseer in the foreground, logging to standard error and `<data>/overseer.log`, and print its URL (`--json`: `{url, generation}`). `--started-by` names who started it, `user` when absent; it passes [the start gate](#the-start-gate) first. `--port` binds the one given, `0` any free one, and none keeps the board's derived port; `--detach` starts the same command detached, with the same origin, after the start gate; `--repository` starts the Overseer of the repository at that path, relative to the working directory, in place of the working directory's. |
-| `oversee --successor-of <generation> [--port <n>]` | The successor's side of `oversee restart`'s Baton pass, which only the live Overseer starts; see `oversee restart`. Its start origin is `successor`, so `--started-by` beside it is refused at exit 1. |
-| `oversee stop [--now] [--json]` | Stop the live Overseer through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `overseer-still-live` at exit 1. A Baton left naming a dead process means the Overseer never finished its own stop: once that process is gone the command records `overseer-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. The board's [Talos](glossary.md#talos) is left running, and stops the agents at the end of their turn once the lease the stopped Overseer no longer renews ends; `--now` also has Talos stop every install, prepare, gate and merge line, through the API only. With no live Overseer it has nothing to do (exit 0). It checks no install version. |
-| `oversee restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Overseer handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#oversee-restart) is below. |
-| `oversee talos-restart [--json]` | Ask the live Overseer, through its API, for a clean restart of the board's Talos, the control command `talos-restart`: Talos asks each agent to stop at the end of its turn, for at most 10 seconds, and quits; the Overseer's next pass starts the right Talos, and each agent Talos recorded as paused resumes by itself, never counted as a crash. `--json` prints `{ outcome }`: `done` when Talos took the quit, `nothing-to-do` when no Talos took it (none runs, or it is quitting already), `not-taken` when no live Overseer took the command; each exits 0. A session under a job is refused it before it runs. |
-| `oversee pause\|resume [--json]` | Store `overseerState` `paused` or `running` through the write pipeline, logged as an `overseer-set` record, with the Overseer up or down: a paused Overseer starts no new job. `--json` prints `{overseerState, previousState}`. |
-| `oversee status [--json]` | The newest Baton, the URL, the runtime state, whether the board is paused, the code version on disk against the live Overseer's, the Overseer's notices, the warning of a failed Baton pass, and the forge's presence: down, whether it is off after a crash and its crash log; live, its last start, heartbeat, supervision and abandoned passes. Read-only, no lock, no install-version check. [The states and JSON](#oversee-status) are below. |
-| `crash-log [<number>] [--json]` | Print the crash log `<data>/overseer/crash-logs/crash-<number>.json`, the newest when no number is given: its heading (number, path, when and by whom it was recorded), the component and the crashed Baton generation, the classification and its evidence, the error and its stack, the jobs as the crash found them, then the tail of `overseer.log`. `--json` prints the stored log with `number` and `path` added. It reads files only, takes no lock and writes nothing, so it works with the forge up or down. With no log, or none of that number, it is refused `no-crash-log` at exit 1. [After a crash](#after-a-crash) has the whole path. |
-| `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, talosProtocolVersion, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Overseer API contracts this program serves as `GET /api/identity` names them, the protocol version of the Talos this program starts, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
-| `start [--started-by user\|login-item] [--repository <path>] [--port <n>] [--json]` | Start the board's Overseer detached, as `oversee --detach` does, with the same checks and refusals. `--started-by` names who started it, `user` when absent, and is passed to the detached Overseer; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With an Overseer live it starts nothing. It returns only once the Overseer's API answers; a live Overseer whose API does not answer within the start's tries is refused `overseer-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Overseer's identity names them. `--repository` starts the Overseer of that repository, and `--port` binds the port given, `0` any free one, as `oversee` does. A second `start` answers `started: false` at exit 0. |
-| `stop [--now] [--json]` | `oversee stop` under the short name, with the same behaviour; `--json` prints `{ answerVersion, outcome }`, with `ending` as `oversee stop` adds it. |
-| `login-item add\|remove\|status [--repository <path>] [--json]` | The item that starts this board's Overseer when the user logs in, as `setup --login-overseer` writes it (a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows), under the label `com.forge.overseer.<trackerId>`, so every board has its own. `add` writes it, `remove` removes it, `status` reads it. `--json` prints `{ answerVersion, outcome, state, label, location, repository }`: `state` `present` or `absent` after the step, `outcome` `done`, `nothing-to-do`, or `null` for `status`. Refused `login-item-unavailable` where no item could run, and `login-item-not-changed` where the system refused the change, at exit 1. It writes no repository file. |
+| `start [--repository <path>] [--port <n>] [--started-by user\|login-item] [--json]` | Start the board's one Hephaestus detached. `--started-by` names who started it, `user` when absent, and is passed to the detached Hephaestus; [the start gate](#the-start-gate) runs before the spawn, so a start that stays off is refused `forge-off-after-crash` at exit 1 and spawns nothing. With a Hephaestus live it starts nothing. It returns only once Hephaestus's API answers; a live Hephaestus whose API does not answer within the start's tries is refused `hephaestus-not-answering` at exit 1. `--json` prints `{ answerVersion, started, url, generation, trackerId, codeVersion, installVersion, contracts }`, `contracts` as that Hephaestus's identity names them. `--repository` starts Hephaestus of the repository at that path, relative to the working directory, in place of the working directory's. `--port` binds the one given, `0` any free one, and none keeps the board's derived port. A second `start` answers `started: false` at exit 0. |
+| `start --foreground [--repository <path>] [--port <n>] [--started-by user\|login-item]` | The serving process itself, which the detached `start` and the Linux login item run: it serves in the foreground, logging to standard error and `<data>/hephaestus.log`, and prints its URL. It passes [the start gate](#the-start-gate) first, and a live Hephaestus refuses it `hephaestus-already-running` at exit 1. `--repository`, `--port` and `--started-by` are those of `start`. |
+| `start --successor-of <generation> [--port <n>]` | The successor's side of `restart`'s Baton pass, which only the live Hephaestus starts; see `restart`. It serves in the foreground. Its start origin is `successor`, so `--started-by` beside it is refused at exit 1. |
+| `stop [--now] [--json]` | Stop the live Hephaestus through its API with the token from the file the Baton names, else ends the process its Baton names, its identity checked first: SIGTERM where a process can be asked from outside, by force on Windows. It waits a bounded number of tries for the Baton to be gone or to name a dead process, else refuses `hephaestus-still-live` at exit 1. A Baton left naming a dead process means Hephaestus never finished its own stop: once that process is gone the command records `hephaestus-stopped`, removes the registry entry, writes the page stub as down and releases the Baton, says so in place of a clean stop, and `--json` adds `ending` (`forced` or `unfinished`) beside `outcome: done`; `--json` prints `{ answerVersion, outcome }`. A newest Baton that already names a dead process, such as one a refused close left, gets the same close and reports `ending: unfinished`, so the next stop repairs what an earlier one could not write. The board's [Talos](glossary.md#talos) is left running, and stops the agents at the end of their turn once the lease the stopped Hephaestus no longer renews ends; `--now` also has Talos stop every install, prepare, gate and merge line, through the API only. With no live Hephaestus it has nothing to do (exit 0). It checks no install version. |
+| `restart [--now] [--json]` | The checked Baton pass to the code on disk, after an install-version check. On success it prints `Hephaestus handed over to code <codeVersion> at <url>` (`--json`: `{outcome: done, url, codeVersion}`); [the rest](#restart) is below. |
+| `talos-restart [--json]` | Ask the live Hephaestus, through its API, for a clean restart of the board's Talos, the control command `talos-restart`: Talos asks each agent to stop at the end of its turn, for at most 10 seconds, and quits; Hephaestus's next pass starts the right Talos, and each agent Talos recorded as paused resumes by itself, never counted as a crash. `--json` prints `{ outcome }`: `done` when Talos took the quit, `nothing-to-do` when no Talos took it (none runs, or it is quitting already), `not-taken` when no live Hephaestus took the command; each exits 0. A session under a job is refused it before it runs. |
+| `pause [--json]` | Store `hephaestusState` `paused` through the write pipeline, logged as a `hephaestus-set` record, with Hephaestus up or down: a paused Hephaestus starts no new job. `--json` prints `{hephaestusState, previousState}`. |
+| `unpause [--json]` | Undo a pause: store `hephaestusState` `running` the same way. `--json` prints `{hephaestusState, previousState}`. `resume` is another verb, which restarts interrupted work. |
+| `crash-log [<number>] [--json]` | Print the crash log `<data>/hephaestus/crash-logs/crash-<number>.json`, the newest when no number is given: its heading (number, path, when and by whom it was recorded), the component and the crashed Baton generation, the classification and its evidence, the error and its stack, the jobs as the crash found them, then the tail of `hephaestus.log`. `--json` prints the stored log with `number` and `path` added. It reads files only, takes no lock and writes nothing, so it works with the forge up or down. With no log, or none of that number, it is refused `no-crash-log` at exit 1. [After a crash](#after-a-crash) has the whole path. |
+| `version [--json]` | Print `{ answerVersion, codeVersion, installVersion, contracts, talosProtocolVersion, monitorFolder }`: a content hash of the program's shipping files on disk, the install version this program writes, the Hephaestus API contracts this program serves as `GET /api/identity` names them, the protocol version of the Talos this program starts, and the monitor folder. Read-only; it needs no tracker and checks no install version. |
+| `login-item add\|remove\|status [--repository <path>] [--json]` | The item that starts this board's Hephaestus when the user logs in, as `setup --login-item` writes it (a LaunchAgent on macOS, a systemd user unit on Linux, a Run entry on Windows), under the label `com.forge.hephaestus.<trackerId>`, so every board has its own. `add` writes it, `remove` removes it, `status` reads it. `--json` prints `{ answerVersion, outcome, state, label, location, repository }`: `state` `present` or `absent` after the step, `outcome` `done`, `nothing-to-do`, or `null` for `status`. Refused `login-item-unavailable` where no item could run, and `login-item-not-changed` where the system refused the change, at exit 1. It writes no repository file. |
 
 #### The start gate
 
-Every start of the forge (`start`, `oversee`, the login item and a successor) classifies itself before it
-takes a Baton, from what the generation before it left: `<data>/overseer/presence.json`,
-`<data>/overseer/heartbeat.json`, the newest Baton and Talos's newest record, and the current boot. The kinds are
+Every start of the forge (`start`, the login item and a successor) classifies itself before it
+takes a Baton, from what the generation before it left: `<data>/hephaestus/presence.json`,
+`<data>/hephaestus/heartbeat.json`, the newest Baton and Talos's newest record, and the current boot. The kinds are
 `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` (with `crashSuspected` when the last beat was older
-than four lease renewal intervals at the boot) and `crashed` (the Overseer or Talos). After `crashed`, or
+than four lease renewal intervals at the boot) and `crashed` (Hephaestus or Talos). After `crashed`, or
 `machine-went-down` with a suspected crash, the start writes the crash log
-`<data>/overseer/crash-logs/crash-<number>.json` once; a log already there, from the crash itself or an earlier
+`<data>/hephaestus/crash-logs/crash-<number>.json` once; a log already there, from the crash itself or an earlier
 start, stays. A crash log's number is its own, one above the highest log on disk (1 again once the folder is
 emptied), never the Baton generation, which starts again at 1 after a stop; the crashed generation is a field inside
 the log. Only a start by `user` then serves. A start by `login-item`, or a successor whose predecessor died during
-the Baton pass, stays off: it writes the registry's `presence` as `crashed`, logs one line to `overseer.log`, takes no
+the Baton pass, stays off: it writes the registry's `presence` as `crashed`, logs one line to `hephaestus.log`, takes no
 Baton, binds no port, contacts no Talos, and is refused `forge-off-after-crash` at exit 1 ("The forge is off after a
 crash of Baton <n>; read why with `forge crash-log`, and start it yourself with `forge start`."). A start that serves
 records its kind in `presence.json` (`startClassification`, `startOrigin`) and in the board log (`start-classified`,
-right after `overseer-started`).
+right after `hephaestus-started`).
 
 `presence.json` is the newest generation's start, abandoned passes and ending (`stopped`, `handed-over` or `crashed`),
-written whole by the Overseer; `heartbeat.json` is its newest beat, rewritten at each lease renewal Talos confirmed.
+written whole by Hephaestus; `heartbeat.json` is its newest beat, rewritten at each lease renewal Talos confirmed.
 
 #### After a crash
 
-A serving forge that crashes (an uncaught error in the Overseer, or its Talos lost while the machine stayed up) writes
+A serving forge that crashes (an uncaught error in Hephaestus, or its Talos lost while the machine stayed up) writes
 its crash log, writes its presence ending `crashed`, stops renewing Talos's lease, so its agents end `lease-ended` and
 wait, and exits 2, refused `forge-crashed`. It stays off until the user starts it. The command line alone carries the
 whole path:
 
-1. `oversee status` says the forge is off after a crash of Baton `<n>`, with the crash log's number and path, and
+1. `status` says the forge is off after a crash of Baton `<n>`, with the crash log's number and path, and
    `--json` carries `presence.state` `off-after-crash`. It classifies as a start by the user would, and writes nothing:
    before any start or the crash itself wrote a crash log, it says the next start writes one. `status` prints one
    line on standard error.
@@ -1423,26 +1422,26 @@ whole path:
 
 #### Talos
 
-Each board's children run under one Talos (`talos.ts`): a detached process with a protocol version of its own, which the
-Overseer starts once per board and which outlives the Overseer. It runs every agent session and every install, prepare,
-gate and merge line, the gates the Overseer runs itself included. Its files are in `<data>/talos/`: the start file
-`start-<n>.json` the Overseer writes, with the lease and the bounds; its record `talos-<n>.json`, with its start number,
+Each board's children run under one Talos (`talos.ts`): a detached process with a protocol version of its own, which
+Hephaestus starts once per board and which outlives Hephaestus. It runs every agent session and every install, prepare,
+gate and merge line, the gates Hephaestus runs itself included. Its files are in `<data>/talos/`: the start file
+`start-<n>.json` Hephaestus writes, with the lease and the bounds; its record `talos-<n>.json`, with its start number,
 protocol version and state; its log `talos-<n>.log`, which names a child by its label and id only; and
 `launches-<n>.ndjson`. The identity document names its protocol (`talosProtocolVersion`). A Talos of another protocol
-answers the Overseer's first frame with `version-mismatch` and quits cleanly; one the Overseer has just started that
-still does not fit refuses the Overseer's start.
+answers Hephaestus's first frame with `version-mismatch` and quits cleanly; one Hephaestus has just started that
+still does not fit refuses Hephaestus's start.
 
 - **The child record.** Each child has a folder of its own: a job's sessions in the job folder, each line in its step's
   folder. `child-<n>.json` records who runs it, its state, the endings it recognised and its end (`exited`, `signalled`,
   `spawn-failed`, `paused`, `lease-ended` or `time-bound`) with its run time; `events-<n>.ndjson` is its event log,
   appended in place; `child-<n>.log` is its standard error. No launch is written to a file, so no file holds a session's
   environment.
-- **The lease.** Talos supervises its agents on a lease of one minute (`SUPERVISION_LEASE_MILLISECONDS`). The Overseer
+- **The lease.** Talos supervises its agents on a lease of one minute (`SUPERVISION_LEASE_MILLISECONDS`). Hephaestus
   renews it every 15 seconds from its main loop, and only while its passes make progress: the same pass in flight at two
-  renewal ticks in a row withholds the renewal, so a hung Overseer loses the lease within a minute. When the lease ends,
-  Talos asks every agent to quit at the end of its turn, and its job is interrupted `lease-ended`; lines run on. After a
-  gap in Talos's own ticks, such as a sleep, the lease ends no sooner than one renewal interval later (two below 5
-  seconds), so a machine that wakes keeps its agents while its Overseer renews again.
+  renewal ticks in a row withholds the renewal, so a hung Hephaestus loses the lease within a minute. When the lease
+  ends, Talos asks every agent to quit at the end of its turn, and its job is interrupted `lease-ended`; lines run on.
+  After a gap in Talos's own ticks, such as a sleep, the lease ends no sooner than one renewal interval later (two below
+  5 seconds), so a machine that wakes keeps its agents while its Hephaestus renews again.
 - **The clean quit.** On a `quit` frame Talos refuses new launches, stops every line at once, asks every agent to quit
   at the end of its turn, stops what still runs after 10 seconds (`CLEAN_QUIT_TURN_END_WAIT_MILLISECONDS`), records
   every end and exits. An agent ends `paused` and its job is interrupted `talos-paused`, which the next pass resumes; a
@@ -1467,23 +1466,24 @@ session's read deny covers `<monitor>/private`.
 | macOS, Linux | The folder is mode 0700 and each file mode 0600, the temporary file of a write included. |
 | Windows | Nothing writes an ACL: the profile's inherited ACL is the guarantee. Each folder and file is read back with `icacls.exe`, and one holding a trustee beyond SYSTEM, Administrators and the user, or one it cannot read, is refused. English trustee names only, so another display language refuses too. |
 
-#### `oversee restart`
+#### `restart`
 
-The live Overseer starts a successor, which proves it can take over before the old Overseer lets go; Talos is sent
-nothing, and the successor connects to the same Talos. The Overseer never restarts itself.
+The live Hephaestus starts a successor, which proves it can take over before the old Hephaestus lets go; Talos is sent
+nothing, and the successor connects to the same Talos. Hephaestus never restarts itself.
 
-- On a failure an Overseer of the old code keeps or takes back the board, `oversee status` shows the warning until a
+- On a failure a Hephaestus of the old code keeps or takes back the board, `status` shows the warning until a
   Baton pass succeeds, and `restart` refuses `baton-pass-failed` at exit 1.
-- An Overseer whose API does not take the command is stopped and started again detached on its port. With none live, one
-  is started, on the port of an Overseer found dead, whose stop is recorded in its place.
+- A Hephaestus whose API does not take the command is stopped and started again detached on its port. With none live,
+  one is started, on the port of a Hephaestus found dead, whose stop is recorded in its place.
 
 > **As built.** `--now` counts only on that fallback. The successor proves that it reads the board, the jobs and every
 > child record, not that its API answers.
 
-#### `oversee status`
+#### Hephaestus's facts in `status`
 
-The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-by-install-change`, `passing-baton`;
-`starting` while the API does not answer yet, or `down`. `--json` prints
+`status` prints Hephaestus's process facts above the board, and `status --json` carries them under `hephaestus`. The
+runtime state comes from Hephaestus's `GET /api/state`: `serving`, `held-by-install-change`, `passing-baton`;
+`starting` while the API does not answer yet, or `down`. `hephaestus` is
 `{state, paused, url, baton, codeVersionOnDisk, codeVersionInMemory, notices, batonPassWarning, presence}`.
 
 `presence` is `{state, lastStart, crashLog, heartbeat, supervision, abandonedPasses}`:
@@ -1499,10 +1499,10 @@ The runtime state comes from the Overseer's `GET /api/state`: `serving`, `held-b
   when no Talos runs, from Talos's newest record.
 - `abandonedPasses`: `{inARow, last}` from `presence.json`, `null` when it records no such generation.
 
-An install version that differs from the Overseer's holds launches, the stored `overseerState` untouched, with the
+An install version that differs from Hephaestus's holds launches, the stored `hephaestusState` untouched, with the
 notice `install-version-changed`. Code that differs alone shows the notice `new-code`. Here both say to run
-`forge update`; the API words them with no command: the board is to be updated, or, for new code, the
-Overseer restarted.
+`forge update`; the API words them with no command: the board is to be updated, or, for new code,
+Hephaestus restarted.
 
 ### Merges and worktrees
 
@@ -1510,7 +1510,7 @@ Overseer restarted.
 |---|---|
 | `merges [--json]` | The merge queue, read as `status` reads the tracker (no lock, nothing written): each held Airlock slot `{target, jobId, ticketIds, phase, targetTip, branchTip}`, then each queued ticket `{ticketId, target, priority, queuedAt}` by target, priority, then queue order (the Airlock's own pick also weighs predicted conflicts), `queuedAt` its `merge-queued` record's place in the log. With merge approval on, the queue follows User's press order, as the Airlock does: by target, the accepted tickets by their newest accept, earliest first, then the tickets waiting for an accept in queue order. `--json` prints `{slots, queue}`. |
 | `merge accept <id> [--json]` | With merge approval on, User's accept of a ticket waiting for merge: sets the row's `mergeAccepted` and logs `merge-acceptance-set {state: accepted}`, so the ticket's Airlock may land it. In the hold, `git merge-tree` predicts the merge of `ticket-<id>` into its target's current tip; anything but clean is refused at exit 1 with nothing written: `merge-accept-would-conflict` (with the files) or `merge-accept-prediction-failed`. Also refused: `merge-approval-off`, and `merge-accept-of-a-ticket-not-waiting` for a ticket not in review done, held, on a job, or whose branch moved past its green. An accepted ticket answers `nothing-to-do`. |
-| `merge update <id> [--json]` | With merge approval on, the target merged into the ticket's worktree in the hold, with no Airlock held (`merge-updated {target, outcome}`). Merged, the branch's green is stale, so the Overseer gates it on its next pass: green sets review done again, red clears it and the ticket's next reviewer takes the red handoff. A conflict is aborted, the worktree left at its tip, and review done and the accept are cleared, so the ticket's next reviewer merges the target. Refused at exit 1: `merge-approval-off`, `merge-update-of-a-ticket-not-waiting` (not in review done, or a job holds it) and `merge-update-failed` (git could not merge). A branch that already holds the target answers `nothing-to-do`. |
+| `merge update <id> [--json]` | With merge approval on, the target merged into the ticket's worktree in the hold, with no Airlock held (`merge-updated {target, outcome}`). Merged, the branch's green is stale, so Hephaestus gates it on its next pass: green sets review done again, red clears it and the ticket's next reviewer takes the red handoff. A conflict is aborted, the worktree left at its tip, and review done and the accept are cleared, so the ticket's next reviewer merges the target. Refused at exit 1: `merge-approval-off`, `merge-update-of-a-ticket-not-waiting` (not in review done, or a job holds it) and `merge-update-failed` (git could not merge). A branch that already holds the target answers `nothing-to-do`. |
 | `worktree repair <id> --step prune\|reinstall\|recreate\|unlock [--incident <I>] [--json]` | A code-implemented repair of the ticket's worktree `<worktrees>/ticket-<id>/`, run inside the hold that records it (`worktree-repaired {step, patchPath}`). [Each step](#worktree-repair) is below. |
 
 
@@ -1532,9 +1532,9 @@ refused `worktree-repair-failed`. Without `--incident` it takes the ticket's one
 | command | what it does |
 |---|---|
 | `decisions [--json]` | The open decisions for User, read from `progress.json` (no lock, nothing written), in opening order, each question's options lettered `a`, `b`, `c` as `decide` takes them. `--json` prints `{decisions}`, each `{id, kind, ticketIds, jobId, askedBy, requestId, questions, context, openedAt}`. |
-| `decide <decision> <letters>... \| -- <text> [--json]` | Answer an open decision through the write pipeline, with the Overseer up or down: one choice of option letters per question (`decide E7 b`; `decide E7 b ac` when the second question is multi-select, its labels joined by `, `), or free text after `--` for a decision asking one question. The first answer wins; [the refusals and delivery](#decide) are below. |
-| `question options <J> -- <json> [--json]` | Keep a builder's, reviewer's or product owner's notes for the options of the question it asks next on its job as `pendingOptionNotes`, through the write pipeline and logged nothing, with the Overseer up or down. Refused `question-options-malformed` for notes that are not well formed, naming the field. Under the asking job it names no job: the Overseer stamps its own. [What the notes hold and where they go](#question-options) is below. |
-| `need declare <J> "<title>" --entity <key> --body <text> \| --body-file <path> [--json]` | Keep a build job's need for another entity in `progress.json`'s `needs`, through the write pipeline and logged nothing, with the Overseer up or down; the Overseer files it as that entity's ticket. Under the declaring job it names no job: the Overseer stamps its own. [What a need holds and its refusals](#need-declare) are below. |
+| `decide <decision> <letters>... \| -- <text> [--json]` | Answer an open decision through the write pipeline, with Hephaestus up or down: one choice of option letters per question (`decide E7 b`; `decide E7 b ac` when the second question is multi-select, its labels joined by `, `), or free text after `--` for a decision asking one question. The first answer wins; [the refusals and delivery](#decide) are below. |
+| `question options <J> -- <json> [--json]` | Keep a builder's, reviewer's or product owner's notes for the options of the question it asks next on its job as `pendingOptionNotes`, through the write pipeline and logged nothing, with Hephaestus up or down. Refused `question-options-malformed` for notes that are not well formed, naming the field. Under the asking job it names no job: Hephaestus stamps its own. [What the notes hold and where they go](#question-options) is below. |
+| `need declare <J> "<title>" --entity <key> --body <text> \| --body-file <path> [--json]` | Keep a build job's need for another entity in `progress.json`'s `needs`, through the write pipeline and logged nothing, with Hephaestus up or down; Hephaestus files it as that entity's ticket. Under the declaring job it names no job: Hephaestus stamps its own. [What a need holds and its refusals](#need-declare) are below. |
 | `await [--json] [--after <n>]` | Wait until the log holds a `decision-opened` or `incident-escalated` record past position `<n>` (the log's length at the start when absent; positions count from 1), then print them and stop. `--json` prints `{after, position, records}`, each record with its `position`; the next wait is `await --after <position>`. A stop signal ends the wait with nothing printed. Read-only, no lock. |
 | `incidents [--json]` | The open incidents for the [Assistant](glossary.md#assistant), read from `progress.json` (no lock, nothing written), in opening order, each with its facts, the moves its kind allows and its default. `--json` prints `{incidents}` as `progress.json` stores them. |
 | `incident answer <I> -- <text> [--json]` | Answer a `system-question` or `malformed-ticket` (`incident-not-a-question` for another kind): logged `incident-handled` and `incident-answered` with the question's request, which joins the waiting job's `answeredRequestIds`, and the job moves to `running` once nothing else it asked is open. The answer does not reach the session. A `malformed-ticket`'s answer, or one no job waits on, is also written under the ticket's `## Questions`. |
@@ -1554,7 +1554,7 @@ Refused:
 The answer is stored as `{question: answer}` and logged `decision-answered` with the question request it answers. The
 request id joins the asking job's `answeredRequestIds`, and a job waiting on that answer alone moves back to `running`.
 
-The Overseer then delivers it. A live session still holding the request gets the answer line the agent adapter writes,
+Hephaestus then delivers it. A live session still holding the request gets the answer line the agent adapter writes,
 through Talos, when the agent takes live answers (Claude Code's `control_response` allow with `updatedInput.answers`); a
 resumed session takes it as its first user line. A question whose ticket job ended `replaced` or `stopped` was held on
 its ticket `awaiting answer (E<n>)`: the answer goes under the ticket's `## Questions` and lifts the hold. `--json`
@@ -1605,7 +1605,7 @@ forge need declare "Export the basket total" --entity shared --body-file need.md
 - The declaration is only recorded: no ticket is filed and nothing is logged.
 
 When the builder then reports `needs-declared`, its job ends with that outcome, and its branch and commits stay. In the
-same hold the Overseer files each need it kept, in declaring order, and takes it off `needs`:
+same hold Hephaestus files each need it kept, in declaring order, and takes it off `needs`:
 
 - The need becomes a ticket of its entity, with its title and body, stamped `filedByJob` with the declaring job, and is
   submitted at once: `committed` with ticket review off, `ready-for-review` with it on, where it waits for User like any
@@ -1637,8 +1637,8 @@ nothing in its own entity's folders, Customs refuses it `changed-only-outside-ho
 `work-in-other-entity` opens. A build that was never sent back for V17 gets its one V17 resume first. A V17 whose git
 failed (`git-failed`) is an ordinary red handoff and spends no V17 resume.
 
-`work-in-other-entity` offers `Move to <entity>` for each entity that owns the changed files, and `Abandon`. The
-Overseer acts on the answer at its next pass, with the Overseer down at the answer too (E15). A move sets the ticket's
+`work-in-other-entity` offers `Move to <entity>` for each entity that owns the changed files, and `Abandon`.
+Hephaestus acts on the answer at its next pass, with Hephaestus down at the answer too (E15). A move sets the ticket's
 `entity`, logged `entity-assigned` with `by` `user` and the reason `work-in-other-entity <decision id>`, also past
 `committed`, and clears its row's `stage` and `seals`. The ticket stays `in-progress`, never back through ticket review,
 and its next build is a fresh attempt of stage 1 of the new entity: before its worktree is made, that build removes the
@@ -1650,20 +1650,20 @@ nothing, so the ticket runs again as it stood.
 
 | command | what it does |
 |---|---|
-| `jobs [--json]` | The live jobs, one line each (id, kind and role, state, tickets, attempt, child instance, a stop asked), then the Overseer (`live` with its URL, or `down`), paused or not, agents against the limit, the open decisions and incidents, and a warning line per incident that took its default since the Overseer last started. Read-only, no lock. `--json` prints `{jobs, overseer, paused, agentsInFlight, limit, openDecisions, openIncidents, defaultedIncidents}`, each defaulted one `{incidentId, move, cause, at}`. |
+| `jobs [--json]` | The live jobs, one line each (id, kind and role, state, tickets, attempt, child instance, a stop asked), then Hephaestus (`live` with its URL, or `down`), paused or not, agents against the limit, the open decisions and incidents, and a warning line per incident that took its default since Hephaestus last started. Read-only, no lock. `--json` prints `{jobs, hephaestus, paused, agentsInFlight, limit, openDecisions, openIncidents, defaultedIncidents}`, each defaulted one `{incidentId, move, cause, at}`. |
 | `job show <J> [--json]` | The job's record from `progress.json`, or for a finished job what its `job-launched` and `job-ended` records hold, and its job folder; an unknown job is refused. Read-only, no lock. `--json` prints `{job, jobFolder}`. |
 | `job attach <J> [--json]` | Every child instance's event log in instance order through the adapter's mapper, then the newest followed while the job is on the board; it never connects to Talos. Read-only, no lock. `--json` prints `{jobId, lines}` of the replay and follows nothing. |
-| `job message <J> [--incident <I>] -- <text> [--json]` | Record a chat turn in a hold, logged `job-messaged`, with the Overseer up or down; the Overseer writes it to the live session in log order, once; to the Assistant only at its next idle point (see [The Assistant](#the-assistant)). [Reopening and refusals](#job-message) are below. |
+| `job message <J> [--incident <I>] -- <text> [--json]` | Record a chat turn in a hold, logged `job-messaged`, with Hephaestus up or down; Hephaestus writes it to the live session in log order, once; to the Assistant only at its next idle point (see [The Assistant](#the-assistant)). [Reopening and refusals](#job-message) are below. |
 | `job fresh <J> [--incident <I>] [--json]` | End the job `replaced`, holding nothing, so the next attempt starts on its worktree with the earlier-session note. `--incident` names the incident it handles; a job with no ticket is refused `job-has-no-ticket`. |
-| `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with the Overseer up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and the Overseer has Talos stop its child, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
-| `job stop --all [--wind-down] [--json]` | `oversee pause`, then a stop (or wind-down) of every build, review and product-owner job, in one hold. |
-| `resume <J>\|<T> [--json]` | Resume interrupted work: record User's instruction for the job (`job-resume-instructed`), or for the ticket's interrupted job and its `interrupted:` hold, with the Overseer up or down. [What it records and refuses](#resume) is below. |
+| `job wind-down\|stop <J> [--json]` | Logged `job-stop-requested` with its mode and kept as the job's `stopRequest`, with Hephaestus up or down. `wind-down` sends the wind-down turn; `stop` moves the job to `stopping` and Hephaestus has Talos stop its child, the job ending `stopped`. [What each holds](#job-wind-downstop) is below. |
+| `job stop --all [--wind-down] [--json]` | `pause`, then a stop (or wind-down) of every build, review and product-owner job, in one hold. |
+| `resume <J>\|<T> [--json]` | Resume interrupted work: record User's instruction for the job (`job-resume-instructed`), or for the ticket's interrupted job and its `interrupted:` hold, with Hephaestus up or down. [What it records and refuses](#resume) is below. |
 | `resume --all [--json]` | Resume every job that waits for an instruction and lift every `interrupted:` hold, in one hold; nothing waiting is nothing to do, exit 0. |
 | `resume --network-outage [--json]` | Resume every job that ended on a network outage, in one hold; nothing waiting is nothing to do, exit 0. |
-| `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with the Overseer up or down; several may run at once. The Overseer launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
-| `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with the Overseer up or down; its mode is `setup` with no pipeline and `advise` with one. Besides `pipeline setup`, it is the only thing that starts one. [Where it runs and what it writes](#advise) is below. |
-| `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: the Overseer stamps its own. [What follows](#intake-close) is below. |
-| `intake title <J> -- <title> [--json]` | Give the intake a short title, kept on the job as `intake.title` and logged `intake-titled`, with the Overseer up or down; a later title replaces it. Refused `job-not-intake` for another kind of job and `intake-title-empty` for a blank title. Under the product owner's own job it names no job: the Overseer stamps its own. [Who runs it](#intake-title) is below. |
+| `intake -- <text> [--json]` | Record a `product-owner` job with no ticket and no launch slot, `launching`, with Hephaestus up or down; several may run at once. Hephaestus launches it in `<worktrees>/sessions/<J>/`, its first line `/<agent-po skill> <text>`, skills on, WebFetch and WebSearch allowed and Bash `allowedDomains: []`; it files draft tickets through its Hatch folder and never readies one. Follow-ups are `job message` turns. |
+| `advise [--json]` | Record a [pipeline agent](glossary.md#pipeline-agent) job with no ticket, no target and no launch slot, `launching`, with Hephaestus up or down; its mode is `setup` with no pipeline and `advise` with one. Besides `pipeline setup`, it is the only thing that starts one. [Where it runs and what it writes](#advise) is below. |
+| `intake close <J> [--set <id,id>]... [--json]` | Close the [product owner](glossary.md#product-owner)'s input (`job-not-intake` for another kind of job, `job-finished` once closed). Under the product owner's own job it names no job: Hephaestus stamps its own. [What follows](#intake-close) is below. |
+| `intake title <J> -- <title> [--json]` | Give the intake a short title, kept on the job as `intake.title` and logged `intake-titled`, with Hephaestus up or down; a later title replaces it. Refused `job-not-intake` for another kind of job and `intake-title-empty` for a blank title. Under the product owner's own job it names no job: Hephaestus stamps its own. [Who runs it](#intake-title) is below. |
 
 #### `job message`
 
@@ -1674,7 +1674,7 @@ resumes its session by id in the same folder with the text as its first line.
 - Any other finished job, or a session asked to quit at the end of its turn, is refused `job-finished`.
 - The verb takes no picture. A `job-message` control command from a client may name pictures uploaded to
   `POST /api/pictures`, only to a product owner (`pictures-not-taken` for any other job); see
-  [Commands](reference/overseer-api.md#commands).
+  [Commands](reference/hephaestus-api.md#commands).
 - Under an incident it is refused `job-awaits-user-answer` for a job in `waiting-for-answer` or whose ticket has an open
   `agent-question`, and `job-is-product-owner` for User's product-owner session.
 
@@ -1698,7 +1698,7 @@ argument that starts with `J` is a job, any other a ticket. Under a job the Boun
   `--network-outage` instructs every job that ended on a network outage. With nothing waiting either prints
   `Nothing interrupted waits for a resume.` and exits 0. A job that ends on an outage again waits again.
 
-`oversee resume` is another command: it undoes a pause.
+`unpause` is another command: it undoes a pause.
 
 #### `job wind-down|stop`
 
@@ -1723,14 +1723,14 @@ jobId, logged }`. The agent is a session, like the
 product owner: a turn's `result` never ends it, `job stop` closes it, and a message opens it again with its
 conversation. A crashed one resumes, also while no pipeline is stored.
 
-The Overseer launches it in a detached snapshot of the main line, writing only its Hatch folder, with no network. Its
+Hephaestus launches it in a detached snapshot of the main line, writing only its Hatch folder, with no network. Its
 first message starts with the line that runs the `forge-pipeline` skill, which holds the setup procedure; the
 message then gives the record's facts and the current step, and each step message names the step of the skill. The
 snapshot belongs to the [setup record](#datapipeline-setupjson), not to the job:
 `<worktrees>/pipeline-agent/<S>/`, at the record's `snapshotCommit` (main's tip when the agent first launched), kept
 across the record's jobs and checked out at a new `snapshotCommit` after `pipeline resume` moved it. An agent no record
 names has its own, `<worktrees>/pipeline-agent/<J>/`. Once no open record and no live pipeline agent holds a snapshot,
-the Overseer removes it, and names one the removal leaves in `overseer.log`. A `<worktrees>/onboard/` folder an earlier
+Hephaestus removes it, and names one the removal leaves in `hephaestus.log`. A `<worktrees>/onboard/` folder an earlier
 release left is a leftover worktree.
 
 At each turn end Customs checks the snapshot: V16 (HEAD unmoved), V4 (clean), V5 (data folder untouched), V13 (agent
@@ -1753,7 +1753,7 @@ In the same hold it submits every draft ticket it (and any session it took over 
 with ticket review off each complete one becomes `committed` with its row, with it on each becomes `ready-for-review`
 for User's `ticket ready`, and an incomplete one stays a draft. With ticket review off in a forge with entities, a
 complete draft with no `entity` refuses the close with nothing written (`ticket-without-entity`). `--set` is stored on
-the job and decides nothing. Once no child of it is live the Overseer ends it `closed`.
+the job and decides nothing. Once no child of it is live Hephaestus ends it `closed`.
 
 A product owner interrupted by a reboot waits for User's resume, and an answer to its question counts as one: it then
 resumes by id. One past the crash bound with no question open waits for User's resume in the same way; with a question
@@ -1779,7 +1779,7 @@ session of the intake, a fresh one after a replacement included.
 |---|---|
 | `range --from <when> --to <when> [--tick <15m\|1h\|1d>]` | Store the default axis of the chart, with one log line. `--tick` takes any positive whole number of minutes, hours or days (`15m`, `2h`, `1d`), or a bare number of minutes. Besides a `<when>`, a bound may be `start`, the earliest visible row. A relative bound is stored as written, so `--from -2h` keeps meaning "the last two hours" on every refresh. A pair that is not in order is refused at exit 1 when both are timestamps or both are relative to now; a pair naming `start` or mixing the two is not judged. A client may override it for its own view, and sends a range as the control command `chart-range-set`, Fit as the automatic span. |
 | `range --auto` | Reset the axis to the automatic span. It takes no `--from`, `--to` or `--tick`; any of them beside it is refused at exit 1. |
-| `namespace [<name>] [--json]` | Print the board's branch namespace, or store `<name>` as `branchNamespace` in `progress.json`, with one log line (`Branch namespace set to <name>`, kind `branch-namespace-set`). A board with a namespace names its ticket branches `<program>/<name>/ticket-<id>` and its group branches `<program>/<name>/group-<group>`; one without keeps the bare `ticket-<id>` and `group-<group>`. A name is lower-case letters and digits, with dashes only between them, at most 40 characters. Refused at exit 1 with nothing written while an Overseer serves the board, while a job that works on a branch is on it (the Assistant and the product owner work on none, and an Overseer's stop leaves its Assistant on the board), while a branch is left under its current names, while a branch named as the program or as `<program>/<name>` blocks the new names, while the namespace already holds branches, and while another tracker of the repository's tracker list holds it; the board's entry in that list follows the name. `--json` prints `{ branchNamespace }`, `null` for bare names. |
+| `namespace [<name>] [--json]` | Print the board's branch namespace, or store `<name>` as `branchNamespace` in `progress.json`, with one log line (`Branch namespace set to <name>`, kind `branch-namespace-set`). A board with a namespace names its ticket branches `<program>/<name>/ticket-<id>` and its group branches `<program>/<name>/group-<group>`; one without keeps the bare `ticket-<id>` and `group-<group>`. A name is lower-case letters and digits, with dashes only between them, at most 40 characters. Refused at exit 1 with nothing written while a Hephaestus serves the board, while a job that works on a branch is on it (the Assistant and the product owner work on none, and a Hephaestus's stop leaves its Assistant on the board), while a branch is left under its current names, while a branch named as the program or as `<program>/<name>` blocks the new names, while the namespace already holds branches, and while another tracker of the repository's tracker list holds it; the board's entry in that list follows the name. `--json` prints `{ branchNamespace }`, `null` for bare names. |
 | `clear [--all] [--yes]` | Throw away every task row and the log, restart the clock and reset the stored axis to automatic, leaving one `Tracker cleared` log line, and keep the tickets. `--all` deletes the tickets, every epic and `<data>/pictures/` too. `--yes` skips the confirmation, and is required when standard input is not a terminal. Refused at exit 1, writing nothing, while a job other than the Assistant is live (`tracker-has-live-jobs`). The Progress tab's Clear… asks first, then sends the control command `tracker-clear` with `scope` `tasks-and-log` or `everything` (`--all`); [what survives](#clear) is below. |
 
 #### `clear`
@@ -1787,7 +1787,7 @@ session of the intake, a fresh one after a replacement included.
 - Each surviving ticket is given a fresh row seeded from its own frontmatter, with a fresh id, except a rowless ticket
   that stays off the chart.
 - Row ids are not reused, and every epic file is kept untouched.
-- Plain `clear` keeps `<data>/pictures/`; the next Overseer start removes every picture no log record and no live job
+- Plain `clear` keeps `<data>/pictures/`; the next Hephaestus start removes every picture no log record and no live job
   names, as it does on any start. `--all` removes the folder after it deletes the ticket files.
 - `--all` restarts the ticket ids at 001.
 - `--json` prints `removedTaskCount`, `removedLogCount`, `deletedTicketCount`, `deletedEpicCount` and
@@ -1802,17 +1802,17 @@ the [Assistant](glossary.md#assistant) has.
 
 A job that ends in a hold while its session runs, such as a build that Customs ends, has its session asked to quit at
 the end of its turn after that hold, and again each Pass until Talos takes the frame or the session ends, so the session
-exits; Talos applies the agent's own quit act, and stops an agent that has none. That retry lives only in the Overseer's
-memory: a session whose quit was not taken when the Overseer stopped runs on after the restart.
+exits; Talos applies the agent's own quit act, and stops an agent that has none. That retry lives only in Hephaestus's
+memory: a session whose quit was not taken when Hephaestus stopped runs on after the restart.
 
 ### A build job
 
 A readied ticket's [build job](glossary.md#build-job) moves through `launching`, `preparing`, `running`, `in-customs`
-and `gating`, one state to a [Pass](glossary.md#pass). The Overseer adds `<worktrees>/ticket-<id>/` on branch
+and `gating`, one state to a [Pass](glossary.md#pass). Hephaestus adds `<worktrees>/ticket-<id>/` on branch
 `ticket-<id>`, runs the install line, and launches the [builder](glossary.md#builder) with the ticket and every gate it
 must pass. A builder ends by reporting; it never edits its ticket file.
 
-[Customs](glossary.md#customs) verifies the report, the gates run, and when they pass the Overseer replaces the ticket's
+[Customs](glossary.md#customs) verifies the report, the gates run, and when they pass Hephaestus replaces the ticket's
 `## Handoff` with the report's handoff and Acceptance evidence and moves the ticket `in-review`.
 
 On a forge with entities, Customs protects `.claude/`, `.mcp.json` and `<data>/` at the repository root and in every
@@ -1846,7 +1846,7 @@ from `adapt` or the home `review` back to a `package-build` is a package return,
 (`seal-lifted`), counts in the row's `packageReturns` and logs `package-return`.
 
 A crossing ticket's red handoffs, failed passes and review rounds are counted per stage, by the entity and stage number
-its `job-launched` records name, from the log alone: no row key holds them, so they survive a restart of the Overseer
+its `job-launched` records name, from the log alone: no row key holds them, so they survive a restart of Hephaestus
 and read the same once the board is read again from disk (E74). Red handoffs and failed passes start again when the
 ticket starts a stage again; review rounds are kept when the ticket returns to a stage.
 
@@ -1859,8 +1859,8 @@ ticket starts a stage again; review rounds are kept when the ticket returns to a
   red one is the package builder's red handoff. A consumer that a ticket of the crossing ticket's group belongs to, one
   not abandoned, is left out too: the group's release gates it (E26). A consumer's gate still red once the red
   handoff's resumes are spent opens `dependent-broken`, which names the gate and holds the ticket; the job ends
-  `failed` with cause `gate-failed`. The decision offers `File a fix ticket for <entity>` and `Abandon`, which the
-  Overseer acts on at its next pass. A fix puts the ticket into the group `ticket-<id>` when it has none, logging
+  `failed` with cause `gate-failed`. The decision offers `File a fix ticket for <entity>` and `Abandon`, which
+  Hephaestus acts on at its next pass. A fix puts the ticket into the group `ticket-<id>` when it has none, logging
   `ticket-grouped`, and files a ticket of that consumer in the group that waits on the crossing ticket, submitted at
   once, logging `dependent-fix-filed`. The fix ticket becomes the group's release ticket when the group has none open,
   and takes the mark from a crossing ticket that carries it; any other release ticket waits on it. A consumer with a
@@ -1870,7 +1870,7 @@ ticket starts a stage again; review rounds are kept when the ticket returns to a
   change reports `refused` with its `refusedReason` (E22): the job ends `refused`, its branch and commits kept, and the
   `package-refused` decision opens with the reason as its context and holds the ticket. The reason also waits in its
   job folder's `stage-statement.json`. Only a package build may report `refused`. The decision offers
-  `Drop the package change`, `Turn it into a need` and `Abandon`, which the Overseer acts on at its next pass. A drop
+  `Drop the package change`, `Turn it into a need` and `Abandon`, which Hephaestus acts on at its next pass. A drop
   moves the row back to the home's `build`: stage 1 is told the reason, and the package is no longer among its proposal
   homes for this ticket, so V17 sends back a stage 1 that still changes it, and its branch no longer crosses into it. A
   stage 1 whose branch then stays in its entity settles as any build, and the row's `stage` is cleared. A need does the
@@ -1957,13 +1957,13 @@ line.
 
 A ticket an open incident names launches no new job until the incident is settled.
 
-On macOS and Linux a line never runs unconfined: `oversee` refuses at exit 1 where confinement is `unavailable`, naming
+On macOS and Linux a line never runs unconfined: `start` refuses at exit 1 where confinement is `unavailable`, naming
 what is missing, and each gate path refuses again. On Windows the answer is `unconfined-by-design` and a line runs
 unwrapped in its job worktree.
 
 ### The Airlocks
 
-After each Pass the Overseer sweeps one [Airlock](glossary.md#airlock) per target: the main line and each `group-<name>`
+After each Pass Hephaestus sweeps one [Airlock](glossary.md#airlock) per target: the main line and each `group-<name>`
 with an open ticket. A queued ticket merges in a `merge` job, whose record carries
 `airlock: {target, targetTip, branchTip, phase}`. An Apply waiting for its commit goes before every ticket of the main
 line, in a `constitution-commit` job ([The constitution commit](#the-constitution-commit)).
@@ -1972,11 +1972,11 @@ The merged tree is gated with the merge phase's gates, unless it is the branch's
 row's green is current in the merge phase; a pass on the branch's own tree records the row's green in the merge phase.
 It is then landed by a compare-and-swap fast-forward, logging `merge-landed`. A group ticket lands on `group-<name>` of
 kind `integrated` and moves to `reviewed`; the group's release ticket lands its whole bundle on the main line.
-The gate runs beside the Overseer's pass, so no pass waits for its lines: the job stays in phase `gating`, and the first
+The gate runs beside Hephaestus's pass, so no pass waits for its lines: the job stays in phase `gating`, and the first
 sweep after the run ended settles the job from the outcome the run kept in `<data>/merge-gates/<hash>/outcome.json`
 (`{formatVersion: 1, gate}`), written once at its end. The folder's hash covers the worktree, the tree, the phase, the
 gated entities and the phase hashes of the pipeline the run read, so a changed pipeline is another run, and an ask while
-a run is in flight starts none. The folder goes once its outcome settled the job. A run that the Overseer's stop ended
+a run is in flight starts none. The folder goes once its outcome settled the job. A run that Hephaestus's stop ended
 keeps no outcome, and the next start removes its folder and runs it again.
 
 The ticket's last worker is its newest ended build or review job, read from the log whatever the pipeline says now, with
@@ -2024,7 +2024,7 @@ land.
 - **Commit.** In a detached worktree of the slot's `targetTip` at `<worktrees>/constitution-commits/<J>/`, which the
   job owns: main's blob of `CONSTITUTION.md` at that tip must be the record's `baseBlob`; the draft's text is written
   byte for byte, staged with `git add -- CONSTITUTION.md` and committed with
-  `git commit --no-verify -q -m <subject>`, hooks off, in the Overseer's own process and with the repository's own
+  `git commit --no-verify -q -m <subject>`, hooks off, in Hephaestus's own process and with the repository's own
   configuration. The subject is `Add the repository constitution` when main had no such file, else
   `Update the repository constitution`, with no body. No call overrides `commit.gpgsign`. The commit may change only
   the paths it lists against the tip; a forge without entities lists `CONSTITUTION.md` alone, so its commit changes
@@ -2035,10 +2035,10 @@ land.
   check. The landing's hold runs Apply's stage 2. The worktree is removed after the hold, and after every end of the
   job.
 
-| what happens | what the Overseer does | moves for User |
+| what happens | what Hephaestus does | moves for User |
 | --- | --- | --- |
 | main's `CONSTITUTION.md` changed since the record opened | the job ends `failed`; the request is `refused`, `constitution-moved` | start the update again |
-| git cannot make the commit where the repository sets `commit.gpgsign` (no agent, or a pinentry the detached Overseer cannot answer) | the job ends `failed`; the request is `refused`, `constitution-commit-unsigned`, with git's text in `pipeline-apply-refused`; no commit exists | commit the text as `CONSTITUTION.md` by hand, signed, then Apply again |
+| git cannot make the commit where the repository sets `commit.gpgsign` (no agent, or a pinentry the detached Hephaestus cannot answer) | the job ends `failed`; the request is `refused`, `constitution-commit-unsigned`, with git's text in `pipeline-apply-refused`; no commit exists | commit the text as `CONSTITUTION.md` by hand, signed, then Apply again |
 | git cannot make the commit otherwise | the same, `git-failed` | Apply again |
 | the commit changes any other path | the job ends `failed` before landing; the request is `refused`, `constitution-commit-unexpected-paths` | Apply again |
 | the stored pipeline changed by hand while the commit waited | the job ends `failed` before landing; the request is `refused`, `pipeline-moved` | start the update again |
@@ -2056,13 +2056,13 @@ detached HEAD and the landing of a job ended `committed`.
 #### Merge approval
 
 With `approvals.merge` on (`gate approval merge on`), a green review does not queue at once. The review job moves
-to `merging-main`: the Overseer brings the ticket's worktree up to the target's tip before User reviews the code. With
+to `merging-main`: Hephaestus brings the ticket's worktree up to the target's tip before User reviews the code. With
 no review phase, a green build does the same, before its Handoff is written and its ticket moves `in-review`. Each
 round of `merging-main` is one child instance of the job, and keeps its files in the job folder suffixed like a gate
 folder (`-<instance>` past the first). The reviewer prompt still tells the reviewer to merge the target into the branch
 as the last step of its review, so `merging-main` finds the branch up to date unless the target moved since.
 
-| the round | what the Overseer does |
+| the round | what Hephaestus does |
 | --- | --- |
 | the worktree holds the target's tip and its green is current in the job's phase | the job ends (`reviewed`, or `built` with its Handoff), the ticket is marked `mergeQueued` and waits for User's Merge |
 | the worktree lacks the tip | it records both tips (`main-merge.json`) and merges the tip in with every hook off, in a line Talos runs in a child folder of its own (`main-merge`), as the merge before review does |
@@ -2081,7 +2081,7 @@ which sets the row's `mergeAccepted` only while `git merge-tree` predicts a clea
 Each Pass, the board state serves every waiting ticket under its target as `mergeQueue.targets[].waitingForMerge`,
 `{ticketId, priority, againstTarget, conflictedFiles}`, `againstTarget` one of `clean`, `conflicting` (with its files)
 or `prediction-failed`, in the order the tickets were queued. `merge update` merges the target into a waiting ticket's
-worktree with no Airlock held; the Overseer never runs it by itself. Clearing `mergeQueued`, or leaving in-review,
+worktree with no Airlock held; Hephaestus never runs it by itself. Clearing `mergeQueued`, or leaving in-review,
 clears `mergeAccepted` too.
 
 User's press order sets the train: an accepted ticket's readiness is the place of its newest `merge-acceptance-set`
@@ -2103,17 +2103,17 @@ A ticket `in-review` gets a [review round](glossary.md#review-round) when the pi
 a gated build queues to merge at once and lands on its gates alone.
 
 A review job starts a [review bar](glossary.md#review-bar), reuses the ticket's worktree, and moves through the same
-states as a build job. Once verified and gated, the Overseer counts the rework, commits
+states as a build job. Once verified and gated, Hephaestus counts the rework, commits
 `Review round <n> of #<id>: no changes` when the reviewer committed nothing, appends `## Review <n>` and takes the
 [round verdict](glossary.md#round-verdict).
 
-Before the reviewer starts, the review job brings the branch up to its target. Once the install line passed, the
-Overseer reads the target's tip and checks that the branch holds it. A branch that holds it starts its reviewer with no
-merge and no gate run. Otherwise the Overseer records both tips in the job folder and merges the target's tip into the
-ticket's worktree (`git merge --no-ff --no-edit`), in a line Talos runs in its own child folder, `target-merge`, with
-every hook off. That merge is the Overseer's own git, so it runs outside the gate sandbox.
+Before the reviewer starts, the review job brings the branch up to its target. Once the install line passed, Hephaestus
+reads the target's tip and checks that the branch holds it. A branch that holds it starts its reviewer with no merge and
+no gate run. Otherwise Hephaestus records both tips in the job folder and merges the target's tip into the ticket's
+worktree (`git merge --no-ff --no-edit`), in a line Talos runs in its own child folder, `target-merge`, with every hook
+off. That merge is Hephaestus's own git, so it runs outside the gate sandbox.
 
-| the merge | what the Overseer does |
+| the merge | what Hephaestus does |
 | --- | --- |
 | is clean | it gates the merged tree with the build phase's gates, each step in a `target-` child folder; the reviewer starts only when every gate is green, at once when the build phase has none |
 | is clean, but a gate is red | the job ends `does-not-hold` (cause `target-gate-red`) and the ticket goes `in-progress`; the builder's session resumes with the red handoff, its Baton pass in the review's job folder |
@@ -2130,23 +2130,23 @@ own entity's, or for a stage of a crossing ticket the reviewing entity's, never 
 `pipeline.json`, the threshold is `REWORK_ROUND_THRESHOLD_LINES` (750). Round 2 needs only the rework over the
 threshold; from round 3 on, the findings must also converge.
 
-| the review | what the Overseer does |
+| the review | what Hephaestus does |
 | --- | --- |
 | claims an item `does-not-hold` | the job ends `does-not-hold` and the ticket goes `in-progress`: a resume of the builder when its build was `built`, counted with its red handoffs, otherwise a failed pass |
 | reworked over the threshold and the round verdict grants another round | the job ends `round-granted`, and a fresh reviewer runs one round on as a `re-reviewer` |
 | reworked over the threshold and was refused another round | it passes on; the ticket shows the `rounds-not-converging` notice |
-| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with the Overseer down too; the Overseer's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` that cannot be read waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`) |
+| claims an item `waiver-proposed` | the `waiver` decision opens, the job waits `awaiting-answer`, and the ticket leaves the merge queue, held. The answer is only recorded, so it is taken with Hephaestus down too; Hephaestus's next pass acts on it. An answer that starts with `refuse` ends the job `does-not-hold` (cause `waiver-refused`) and the ticket goes `in-progress`, as for a claim that does not hold. Any other answer writes each proposed item `A<n>. Waived: <reason>` in the ticket's Acceptance, ends the job `reviewed` and marks the ticket `mergeQueued` while its green is current on the worktree's HEAD tree, else it waits unqueued for a fresh review. Proposals stored in `<data>/jobs/<J>/waiver-proposals.json` that cannot be read waive nothing: the job ends `does-not-hold` (cause `waiver-proposals-unreadable`) |
 | otherwise | the job ends `reviewed`, the ticket is marked `mergeQueued` and `merge-queued` is logged with its target; with merge approval on, the job first moves to `merging-main` and ends there ([Merge approval](#merge-approval)) |
 
-Review done is `mergeQueued`. The Overseer sets it only when the last job's report cleared Customs and the row's
+Review done is `mergeQueued`. Hephaestus sets it only when the last job's report cleared Customs and the row's
 `greenTree` is the tree of the branch HEAD and its `pipelineHash` the current hash of its `greenPhase` ([the pipeline
 hashes](#the-pipeline-hashes)); with no review phase the same rule applies to the builder's report. A reviewer that left
 the tree as it was skips its gate run only while that green is current for the review phase's gates; under changed gates
 its gates run first. The Airlock admits a queued ticket only while its `greenTree` is its branch HEAD's tree and its
 `pipelineHash` the current hash of its `greenPhase`, and lands a merged tree ungated only when it is that green tree and
 that green is current in the merge phase. Before each allocation the Airlocks gate a stale green (the tree or the
-pipeline changed) in the ticket's worktree with no slot held, in the phase of its green. The gate runs beside the
-Overseer's pass, as the merged tree's does; a stale green is no candidate, so the ticket keeps `mergeQueued` until a
+pipeline changed) in the ticket's worktree with no slot held, in the phase of its green. The gate runs beside
+Hephaestus's pass, as the merged tree's does; a stale green is no candidate, so the ticket keeps `mergeQueued` until a
 later sweep reads the outcome, and then loses it: green records the tree and queues the ticket again; red leaves it
 unqueued with no `greenTree`, writes the red handoff in the `stale-green` folder of the job folder of the last session
 that passed (its reviewer, or with no review phase its builder, whose ticket goes `in-progress`), and the next session
@@ -2156,7 +2156,7 @@ is current.
 
 ### The Assistant
 
-While the board's switch is on (`gate assistant on`; a new board has it off), the Overseer has one `assistant` job, the
+While the board's switch is on (`gate assistant on`; a new board has it off), Hephaestus has one `assistant` job, the
 [Assistant](glossary.md#assistant): no ticket, no launch slot, never resumed. It receives open
 [incidents](glossary.md#incident) in numbered chats and settles them through its Hatch. An incident it leaves takes its
 default when its chat turn closes.
@@ -2171,22 +2171,22 @@ written at its next idle point.
 
 ### Under a job: the Hatch
 
-A session the Overseer launched cannot write the data folder; its Hatch folder is its one way to change the board. It
+A session Hephaestus launched cannot write the data folder; its Hatch folder is its one way to change the board. It
 counts as under a job with both `FORGE_JOB_ID` and `FORGE_HATCH_DIRECTORY` set ([Environment
 variables](#environment-variables)).
 
 - **Direct:** `help`, `status`, `usage`, `review-stats`, `ticket show|list`, `epic show|list`, `draft show|list`,
-  `hook bash-domains`, `hook session-start`, `hook stage-edits`, `version`, `oversee status`, `decisions`, `incidents`,
+  `hook bash-domains`, `hook session-start`, `hook stage-edits`, `version`, `status`, `decisions`, `incidents`,
   `merges`, `jobs`, `job show|attach`, `gate list` and `concurrency` with no argument, which only reads, run as usual.
 - **Relayed:** a verb of a control command parses its arguments as usual, then, before any install-version check, writes
   `<hatch>/requests/<requestId>.json` atomically, `{hatchFormatVersion: 1, requestId, command, bodyText?}`, and waits
   for `<hatch>/replies/<requestId>.json`, up to `HATCH_REPLY_TRIES` times `HATCH_REPLY_INTERVAL_MILLISECONDS` apart. It
   prints `done <requestId>` or `nothing-to-do <requestId>` with the tickets it touched at exit 0, or the refusal worded
-  as a direct run words it. With no reply it prints `queued <requestId>` at exit 0. A request the Overseer applied but
+  as a direct run words it. With no reply it prints `queued <requestId>` at exit 0. A request Hephaestus applied but
   whose reply it did not write (a crash or a Baton takeover after the hold committed) is not applied again: a later pass
   writes the same reply from its `hatch-applied` record.
 - **Refused:** every other verb, at exit 1 (`verb-not-relayable`).
-- **Identity:** a request names no job and no role. The Overseer takes both from the Hatch folder's job record and
+- **Identity:** a request names no job and no role. Hephaestus takes both from the Hatch folder's job record and
   refuses a request carrying either `hatch-identity-mismatch`.
 - **Filing:** an admitted filing is stamped `filedByJob`, in the ticket file's format.
 - **Needs:** an admitted `need declare` is stamped with the declaring job; only a builder of an entity's stage relays
@@ -2195,11 +2195,11 @@ variables](#environment-variables)).
 > **As built.** A refused relayed command keeps what it changed before the refusal, so "nothing written" holds only at a
 > terminal.
 
-**Findings.** A builder's, reviewer's or merge-gate fixer's finding is that relayed low ticket. The Overseer puts the
+**Findings.** A builder's, reviewer's or merge-gate fixer's finding is that relayed low ticket. Hephaestus puts the
 tickets of the filing job (the finders) in its `dependsOn` and, when a finder has a group, the finding in that group;
 the worker cannot set either. The filing is then submitted as `ticket submit` does: with ticket review off a complete
 finding is `committed` and builds only once its finders are `reviewed` or `delivered`; with it on it is
-`ready-for-review`. A worker names no entity: in a forge with entities the Overseer files its finding for the entity
+`ready-for-review`. A worker names no entity: in a forge with entities Hephaestus files its finding for the entity
 that owns every path its Brief's `Work belongs in:` line names, so a builder's or a reviewer's finding about a package's
 file is that package's (E83, E53). A line that names no path, or paths of several entities, leaves the finding in the
 entity of the job that filed it, and paths outside that entity are then refused `work-outside-entity`. A finding that
@@ -2220,28 +2220,28 @@ describes what the code does, proved over fakes on that Mac, never on the OS its
 | Needs | Bun at `.bun-version`, git, a logged-in `claude` | the same, and `bwrap` with user namespaces it may create | the same, and an absolute `SystemRoot`; `setup.ps1` needs PowerShell |
 | Gates | confined by Seatbelt, `/usr/bin/sandbox-exec` | confined by bubblewrap | unconfined by design |
 | Sessions | in Claude Code's sandbox, which must start | in Claude Code's sandbox, which must start | unconfined by design |
-| `oversee` where confinement is unavailable | refuses at exit 1 | refuses at exit 1 | never: nothing is confined |
+| `start` where confinement is unavailable | refuses at exit 1 | refuses at exit 1 | never: nothing is confined |
 | Stop of a process | SIGTERM, then by force | SIGTERM, then by force | by force: `taskkill` of the whole tree |
 | Talos endpoint | a Unix socket, path at most 103 bytes | a Unix socket, path at most 107 bytes | a named pipe with a random name |
 | Owner-only files | mode 0700 and 0600 | mode 0700 and 0600 | the profile's inherited ACL, read back with `icacls.exe` |
 | Temp folders a tracker may not live in | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()`, `/tmp`, `/var/tmp` | `os.tmpdir()` |
 | Login item | a LaunchAgent | a systemd user unit | a `Run` registry value |
 
-Talos outlives its Overseer only where nothing kills the Overseer's whole process group, cgroup or job:
+Talos outlives its Hephaestus only where nothing kills Hephaestus's whole process group, cgroup or job:
 
 - On Linux, a logout ends a Talos started from that login session when logind sets `KillUserProcesses=yes`. The login
   item's unit sets `KillMode=process`, so a stop or restart of the unit leaves its Talos and its children running.
 - In a container, run with `--init` (as `docker run --init`), so a process reaps an ended Talos and its ended children;
   without it an ended one stays a zombie, which still reads as a live process.
-- On Windows, a detached child stays in its parent's job object, as Bun has no option to break away from it. When the
-  Overseer starts inside a job that ends its members on close, as some terminals and CI runners do, closing it ends
-  the board's Talos and its children. Start the Overseer from a plain console or the login item.
+- On Windows, a detached child stays in its parent's job object, as Bun has no option to break away from it. When
+  Hephaestus starts inside a job that ends its members on close, as some terminals and CI runners do, closing it ends
+  the board's Talos and its children. Start Hephaestus from a plain console or the login item.
 
 In the Git Bash terminal (mintty), standard input is a pipe and not a console, so no command sees a terminal: `clear`
 refuses without `--yes`, and must be given it there.
 
-What native Windows loses with no confinement: a worker's or a gate's shell can read the Overseer's token and the
-launch data, and so drive the Overseer's API with no role check; it can write another job's Hatch folder, and the
+What native Windows loses with no confinement: a worker's or a gate's shell can read Hephaestus's token and the
+launch data, and so drive Hephaestus's API with no role check; it can write another job's Hatch folder, and the
 Bouncer then takes that write as the other job's; it can forge a gate-ran record, move any ref, and reach any network.
 Customs and V14 find a moved ref only afterward. Run on Windows only what you would run unconfined on your own
 account.
@@ -2253,27 +2253,27 @@ the owner's macOS and Linux machines only; it is no part of the product.
 
 | code | meaning | examples |
 |---|---|---|
-| **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `oversee stop` with no live Overseer, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
-| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
-| **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, an Overseer whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
+| **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `stop` with no live Hephaestus, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
+| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while a Hephaestus is live (`hephaestus-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that Hephaestus refused, a second Hephaestus (`hephaestus-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `talos-restart`, `machine` and `login-item`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
+| **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, a Hephaestus whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
 
 Check the code rather than the wording.
 
 ## The Handoff and the token column
 
-A ticket's body ends with a [Handoff](glossary.md#handoff) section. Under the Overseer it is code's: written from the
+A ticket's body ends with a [Handoff](glossary.md#handoff) section. Under Hephaestus it is code's: written from the
 builder's verified report once its gate passes. The review round and whoever picks the work up next read it instead of
 re-deriving it from the diff.
 
-Every row carries a token count, shown beside the bar. The Overseer credits a job's tokens to its tickets' rows when it
+Every row carries a token count, shown beside the bar. Hephaestus credits a job's tokens to its tickets' rows when it
 ends, logging one `agent-stopped` record; `GET /api/state` carries a running job's figure. `--tokens` on a task or
 ticket move replaces the figure. A row without a figure (`null`) is not a row that cost nothing; it is a row nobody
 measured.
 
 ## The dashboard
 
-No forge command opens a page, and forge writes no pointer to one. The live Overseer serves the board over its API
-([the Overseer's API](reference/overseer-api.md)), and a client shows it.
+No forge command opens a page, and forge writes no pointer to one. The live Hephaestus serves the board over its API
+([Hephaestus's API](reference/hephaestus-api.md)), and a client shows it.
 
 ## Files on disk
 
@@ -2298,7 +2298,7 @@ The board's state. The example shows the shape; the tables below give each key's
   "view": { "kind": "auto" },
   "nextTaskId": 19,
   "concurrencyLimit": 2,
-  "overseerState": "running",
+  "hephaestusState": "running",
   "nextDraftId": 3,
   "nextJobId": 5,
   "jobs": [
@@ -2349,7 +2349,7 @@ The board's state. The example shows the shape; the tables below give each key's
       "openedAt": "2026-09-18T21:41:00+02:00"
     }
   ],
-  "overseerFirstStartedAt": "2026-09-18T21:00:00+02:00",
+  "hephaestusFirstStartedAt": "2026-09-18T21:00:00+02:00",
   "tasks": [
     {
       "id": 17,
@@ -2399,7 +2399,7 @@ The board's state. The example shows the shape; the tables below give each key's
 | `view` | no | `{ "kind": "auto" }`, or kind `absolute` or `relative` with `from`, `to` and `tickMinutes` (a number or null). |
 | `nextTaskId` | no | The number the next row takes, never wound back, so an id is never reused. |
 | `concurrencyLimit` | yes | Absent reads 2, above 10 reads 10. |
-| `overseerState` | yes | `running` or `paused`; absent reads paused. |
+| `hephaestusState` | yes | `running` or `paused`; absent reads paused. |
 | `nextDraftId` | yes | The number the next filing draft takes, written by the first `draft open`, never wound back. |
 | `nextSetupId` | yes | The number the next pipeline setup record takes (`S2`), written by the first opening, never wound back. |
 | `nextJobId` | yes | The number the next job takes (`J5`), written by the first launch, never wound back. |
@@ -2408,10 +2408,10 @@ The board's state. The example shows the shape; the tables below give each key's
 | `decisions` | yes | The open decisions for User in opening order, written by the first opening. |
 | `nextIncidentId` | yes | The number the next incident takes (`I2`), written by the first opening, never wound back. |
 | `incidents` | yes | The open incidents for the Assistant in opening order. |
-| `overseerFirstStartedAt` | yes | The Overseer's first start on this board, kept by `clear`. |
+| `hephaestusFirstStartedAt` | yes | Hephaestus's first start on this board, kept by `clear`. |
 | `branchNamespace` | yes | The namespace the board's branches are named under, written by `namespace`; absent, the branches have bare names. |
 | `tasks` | no | The rows. |
-| `needs` | yes | The needs build jobs declared with `need declare`, in declaring order, each `{jobId, ticketIds, entity, title, body}`: the declaring job, its tickets, which wait for the need, the entity the need is for, and the title and body of the ticket it becomes. Written only by a declaration, so a forge without entities never writes it. The Overseer takes a job's needs off as it files them, a job that ends any other way drops its needs unfiled, and the key goes with the last one. |
+| `needs` | yes | The needs build jobs declared with `need declare`, in declaring order, each `{jobId, ticketIds, entity, title, body}`: the declaring job, its tickets, which wait for the need, the entity the need is for, and the title and body of the ticket it becomes. Written only by a declaration, so a forge without entities never writes it. Hephaestus takes a job's needs off as it files them, a job that ends any other way drops its needs unfiled, and the key goes with the last one. |
 
 <details>
 <summary>A job's keys</summary>
@@ -2426,16 +2426,16 @@ The board's state. The example shows the shape; the tables below give each key's
 | `attempt` | no | From 1. |
 | `target` | no | The main line or `group-<name>`, or null for a session. |
 | `state` | no | `launching`, `preparing`, `running`, `waiting-for-answer`, `interrupted`, `awaiting-answer`, `in-customs`, `gating`, `merging-main`, `merging`, `landing` or `stopping`. |
-| `interruption` | yes | Why it was last interrupted: `watcher-lost` (its child was lost: no end was recorded for it, as when its Talos died; a Talos that failed, such as on a full disk, first writes `talos failed: <cause>` to its `talos-<n>.log`; the value keeps its old name until the rename), `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost child's tree refused the forced stop: never resumed, the stop tried again each sweep), `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered), `talos-paused` (a clean quit of Talos ended the session at its turn end: resumed by itself, as after a reboot), `lease-ended` (Talos stopped the agent at its turn end because the Overseer stopped renewing its lease), `network-outage` (the agent ended on a network outage or a provider overload its retries did not outlast), `forge-stopped` (the agent ended with a stop of the forge on purpose, found gone at the next start) or `forge-crashed` (the agent was gone with a crash of the forge, the Overseer or Talos, found gone at the next start). `lease-ended`, `network-outage`, `forge-stopped` and `forge-crashed` wait for User's resume: nothing resumes or replaces the job by itself, and none counts as a crash. The resume policy of every cause is `RESUME_POLICY_OF_CAUSE` (`src/lib/tracker-model/constants/ResumePolicy.ts`). |
+| `interruption` | yes | Why it was last interrupted: `talos-lost` (its child was lost: no end was recorded for it, as when its Talos died; a Talos that failed, such as on a full disk, first writes `talos failed: <cause>` to its `talos-<n>.log`), `agent-crashed`, `reboot`, `answer-delivery`, `usage-limit`, `handoff-red`, `forced-stop-refused` (its lost child's tree refused the forced stop: never resumed, the stop tried again each sweep), `authentication-failed` (the API refused the key under API billing: resumed once the `api-authentication-failed` decision is answered), `talos-paused` (a clean quit of Talos ended the session at its turn end: resumed by itself, as after a reboot), `lease-ended` (Talos stopped the agent at its turn end because Hephaestus stopped renewing its lease), `network-outage` (the agent ended on a network outage or a provider overload its retries did not outlast), `forge-stopped` (the agent ended with a stop of the forge on purpose, found gone at the next start) or `forge-crashed` (the agent was gone with a crash of the forge, Hephaestus or Talos, found gone at the next start). `lease-ended`, `network-outage`, `forge-stopped` and `forge-crashed` wait for User's resume: nothing resumes or replaces the job by itself, and none counts as a crash. The resume policy of every cause is `RESUME_POLICY_OF_CAUSE` (`src/lib/tracker-model/constants/ResumePolicy.ts`). |
 | `childInstance` | no | The newest child instance launched or to launch, from 1. |
 | `eventCursor` | no | `{ instance, sequence }`, the last event of the job's child applied. |
 | `answeredRequestIds` | no | The question requests already answered. |
-| `crashResumes` | no | Resumes after `watcher-lost` or `agent-crashed` since User last instructed a resume: an instructed resume sets it to 0 and adds nothing. |
+| `crashResumes` | no | Resumes after `talos-lost` or `agent-crashed` since User last instructed a resume: an instructed resume sets it to 0 and adds nothing. |
 | `airlock` | yes | While it holds its target's Airlock slot: `{ target, targetTip, branchTip, phase }`, phase `merge-in`, `resolving`, `re-reviewing`, `gating`, `fixing`, `committing` (a constitution commit job only, whose `branchTip` is the `targetTip` it commits on) or `landing`. |
 | `stopRequest` | yes | `stop`, `wind-down` or `fresh`, written once User asked it. |
 | `intake` | yes | On a product-owner job: `{text}`, `pictures` (`[{pictureId, name}]`) only when the request came with some, then `title` once the product owner ran `intake title`, `proposedDraftSets` once its intake closed and `carriedAnswers` on a fresh session that took over a replaced one. |
 | `pendingOptionNotes` | yes | Written only while `question options` notes wait for their question: `[{question, options: [{label, touches?, tradeOff?, acceptanceEffect?}]}]`, at most eight. |
-| `entity` | yes | The entity whose stage the job runs, written by the Overseer at launch only on a forge with entities. |
+| `entity` | yes | The entity whose stage the job runs, written by Hephaestus at launch only on a forge with entities. |
 | `stage` | yes | The ticket's stage the job runs, from 1, written with `entity`. |
 
 </details>
@@ -2446,15 +2446,15 @@ The board's state. The example shows the shape; the tables below give each key's
 | key | on | value |
 |---|---|---|
 | `id` | both | `E<n>` or `I<n>`. |
-| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets), `need-for-root` (a declared need is for the `root` entity and `root` has no gates; the owner makes the change or declines), `need-closes-circle` (a declared need would close a circle in `dependsOn`; it is refused), `need-abandoned` (the ticket filed for a need was abandoned; the waiting ticket continues without it or is abandoned), `work-in-other-entity` (all the work of a ticket belongs to another entity; the ticket moves there or is abandoned), `whitelist-removed-mid-crossing` (a package left the whitelist while a ticket crossed into it; the ticket finishes under the old whitelist or the package change becomes a need), `package-refused` (a package build refused the package change its constitution forbids; its `context` holds the reason; the package change is dropped, becomes a need, or the ticket is abandoned), `second-return` (a crossing ticket would return to a package build a second time; the owner agreed to one way back, so the ticket stays at its stage; its `context` names the package) or `dependent-broken` (a dependent entity's gate is still red in a package build once the red handoff's resumes are spent, so the package change breaks that dependent; the job ends `failed` with cause `gate-failed`, its `context` names the gate, and the ticket of the dependent is filed in the ticket's group, or the ticket is abandoned). `package-refused`, `second-return`, `dependent-broken` and `whitelist-removed-mid-crossing` hold the tickets they name. Each offers its choices as options; the Overseer acts on the answer to `work-in-other-entity`, `package-refused`, `whitelist-removed-mid-crossing` and `dependent-broken` (see [`need declare`](#need-declare) and the stages of a crossing ticket), and the others release the ticket. |
+| `kind` | decision | `agent-question`, `parked`, `waiver`, `landing-refused`, `merge-refused`, `checks-not-set`, `target-moved`, `branch-touches-agent-config`, `outage`, `quiet-job`, `leftover-worktree`, `forced-stop-refused` (a job ended `blocked` after its child tree refused the forced stop three times; its `context` holds the tree's process ids, and it holds the job's tickets), `pipeline-proposal` (retired: a stored open one is withdrawn at the next pass), `api-key-not-set`, `api-authentication-failed` (the API refused a session's key; no agent starts while it is open) `budget-reached` (a session stopped at `maxBudgetUsd` and its job ended `blocked`; it holds the job's tickets), `need-for-root` (a declared need is for the `root` entity and `root` has no gates; the owner makes the change or declines), `need-closes-circle` (a declared need would close a circle in `dependsOn`; it is refused), `need-abandoned` (the ticket filed for a need was abandoned; the waiting ticket continues without it or is abandoned), `work-in-other-entity` (all the work of a ticket belongs to another entity; the ticket moves there or is abandoned), `whitelist-removed-mid-crossing` (a package left the whitelist while a ticket crossed into it; the ticket finishes under the old whitelist or the package change becomes a need), `package-refused` (a package build refused the package change its constitution forbids; its `context` holds the reason; the package change is dropped, becomes a need, or the ticket is abandoned), `second-return` (a crossing ticket would return to a package build a second time; the owner agreed to one way back, so the ticket stays at its stage; its `context` names the package) or `dependent-broken` (a dependent entity's gate is still red in a package build once the red handoff's resumes are spent, so the package change breaks that dependent; the job ends `failed` with cause `gate-failed`, its `context` names the gate, and the ticket of the dependent is filed in the ticket's group, or the ticket is abandoned). `package-refused`, `second-return`, `dependent-broken` and `whitelist-removed-mid-crossing` hold the tickets they name. Each offers its choices as options; Hephaestus acts on the answer to `work-in-other-entity`, `package-refused`, `whitelist-removed-mid-crossing` and `dependent-broken` (see [`need declare`](#need-declare) and the stages of a crossing ticket), and the others release the ticket. |
 | `kind` | incident | `system-question`, `malformed-ticket`, `setup-failed`, `out-of-calls`, `blocked`, `job-lost`, `resume-failed`, `gate-cannot-run`, `sandbox-unavailable`, `quiet-job` or `setup-snapshot-touched`. |
 | `ticketIds` | both | The tickets it names. |
 | `jobId` | both | The job, or null. |
-| `askedBy` | decision | A job role, `overseer` or `assistant`. |
+| `askedBy` | decision | A job role, `hephaestus` or `assistant`. |
 | `requestId` | decision | The question request it was opened for, or null for one code opened. |
 | `questions` | decision | AskUserQuestion's own shape. An option also carries `touches`, `tradeOff` and `acceptanceEffect`, each written only once its asker noted it with `question options`. |
 | `context` | decision | Text shown with the questions. |
-| `facts` | incident | Text the Overseer names; `requestId` when a question opened it. |
+| `facts` | incident | Text Hephaestus names; `requestId` when a question opened it. |
 | `defaultMove` | incident | The move it takes when its delivery turn closes unhandled. |
 | `deliveredInTurn` | incident | Null, or `{ jobId, chatSequence }`, the Assistant's chat turn it went out in. |
 | `openedAt` | both | When it opened. |
@@ -2482,8 +2482,8 @@ The board's state. The example shows the shape; the tables below give each key's
 | `pipelineHash` | yes | The phase hash of the gates the row's ticket was last gated by, in `greenPhase` ([the pipeline hashes](#the-pipeline-hashes)). |
 | `pipelineHashes` | yes | On a forge with entities: the phase hash of each entity whose gates that run ran, by entity key ([the pipeline hashes](#the-pipeline-hashes)). Written with `pipelineHash` by a run of entities' gates, removed by any other; a forge without entities never writes it. |
 | `greenPhase` | yes | `build`, `review` or `merge`: the phase of that gate run, written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green and is gated again; a read adds none. |
-| `greenTree` | yes | The tree OID the Overseer's last gate run on the row's ticket passed, under `pipelineHash` in `greenPhase`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
-| `stage` | yes | On a forge with entities, once the ticket crosses into a whitelisted package: `{ name, entity }`, the stage it is in (`build`, `package-build`, `package-review`, `adapt` or `review`) and the key of the entity whose agent runs it; the Overseer launches the ticket's next job from it. On a review bar of a forge with entities: the stage its reviewer runs. A ticket that stays in one entity, and every row of a forge without entities, has none. |
+| `greenTree` | yes | The tree OID Hephaestus's last gate run on the row's ticket passed, under `pipelineHash` in `greenPhase`. Written by a green run, removed by any other; a row that never passed has none, and a read adds none. |
+| `stage` | yes | On a forge with entities, once the ticket crosses into a whitelisted package: `{ name, entity }`, the stage it is in (`build`, `package-build`, `package-review`, `adapt` or `review`) and the key of the entity whose agent runs it; Hephaestus launches the ticket's next job from it. On a review bar of a forge with entities: the stage its reviewer runs. A ticket that stays in one entity, and every row of a forge without entities, has none. |
 | `seals` | yes | The seal of each crossed package that a package review sealed, by package entity key: a hash of the ticket's own change to that package. |
 | `packageReturns` | yes | How many times the ticket went back from `adapt` or `review` to a package build, from 1; written at the first return. |
 
@@ -2496,14 +2496,14 @@ Each of these reads as exit 2:
 - a version 2 file holding `log`, or a version other than 2. A file at version 1, which holds its own log, is not read:
   its reason ends in `OLDER_FORMAT_ADVICE`;
 - a present `concurrencyLimit` that is not a whole number of at least 1;
-- an `overseerState` outside the two;
+- a `hephaestusState` outside the two;
 - a `nextDraftId`, `nextSetupId` or `nextJobId` that is not a whole number of at least 1, or a `nextDecisionId` or
   `nextIncidentId` below 1;
 - a present optional row key of the wrong shape: `reviewRound` below 2, `reviewBarRound` below 1, a row `pipelineHash`
   or `greenTree` that is not text, a `greenPhase` other than `build`, `review` or `merge`, a `history` that is not a
   list of known statuses with their stamps, or a `mergeQueued` or `mergeAccepted` that is not `true`;
 - a job, decision or incident whose field is missing, outside its vocabulary or of the wrong shape;
-- an `overseerFirstStartedAt` that is not text;
+- a `hephaestusFirstStartedAt` that is not text;
 - a `branchNamespace` that is not lower-case letters and digits with dashes only between them, at most 40 characters;
 - a row or history phase in a status the file format does not know, the retired `running` or `finished` included, with
   the same advice.
@@ -2523,7 +2523,7 @@ lives in [`pipeline.json`](#datapipelinejson).
 - `jobs`, `nextJobId`, a row's `mergeQueued` and `mergeAccepted`, `decisions`, `nextDecisionId`, `incidents` and
   `nextIncidentId` are each written only once set, so a file without them stays byte-identical.
 - A stored `dispatcherState` or `dispatcherRunId` is an unknown key: kept byte for byte and never read, so such a board
-  reads as paused until `oversee resume`.
+  reads as paused until `unpause`.
 
 #### Ids and lifetimes
 
@@ -2538,8 +2538,8 @@ lives in [`pipeline.json`](#datapipelinejson).
   incidents and its job's `answeredRequestIds`, which an answer joins, so a replayed request opens nothing twice. An
   answer gives one text per question, kept by question text; [Refusals](reference/refusals.md) lists what a wrong answer
   prints.
-- `overseerFirstStartedAt` is written once, by the Overseer's first `overseer-started` on the board, and never
-  rewritten. Only a start on a board with neither it nor an `overseer-started` log record moves every unheld low
+- `hephaestusFirstStartedAt` is written once, by Hephaestus's first `hephaestus-started` on the board, and never
+  rewritten. Only a start on a board with neither it nor a `hephaestus-started` log record moves every unheld low
   `committed` ticket to `ready-for-review`, whatever the ticket review switch says, so a start after `clear` moves
   nothing.
 
@@ -2582,7 +2582,7 @@ is refused at exit 1 with nothing written, and a stored one reads as malformed, 
 | `constitution` | no | `{ path }`, a path inside the repository, in place of `<data>/briefs/defaults/constitution.md`. An [Apply](#apply) sets it to `CONSTITUTION.md` when its draft holds a constitution |
 | `agents` | no | settings per role: `productOwner`, `builder`, `reviewer`, `reReviewer`, `conflictReReviewer`, `pipelineAgent`, `assistant`. Each holds an optional `model` (`haiku`, `sonnet`, `opus`, `fable`), `effort` (`low`, `medium`, `high`, `xhigh`, `max`) and `instructions`, a list read top to bottom of `{ "kind": "constitution" }`, `{ "kind": "default-brief", "role": <role> }` (`<data>/briefs/defaults/<role>.md`) and `{ "kind": "file", "path": <path> }` (a path inside the repository; one under `<data>/` is read from disk, any other from the main line). Absent `instructions` is the role's default list: the constitution then the role's default brief for `builder` and `reviewer`; the constitution, the reviewer's default brief, then the role's own for `reReviewer` and `conflictReReviewer`; the role's default brief alone for the others. An empty list reads the role's built-in brief, a short brief the program carries and never installs, so the agent still knows its job. Each entry is listed at most once. A role's `model` and `effort` apply at each session's first launch; one it does not name is its default: `opus` and `medium`, `sonnet` and `medium` for `assistant`, `opus` and `high` for `pipelineAgent`. A review past its first round runs as `reReviewer` and reads its list. An Airlock agent reads the list of the role whose session it carries on, and takes the pair of the build or review job whose session it carries on. A ticket's `model` and `effort` are not applied |
 | `approvals` | no | `tickets`: `true` or `false`, the ticket review switch `gate approval` writes; absent reads as `true`. `merge`: `true` or `false`, the merge approval switch; absent reads as `false`. Any other key or value makes the file malformed. It is not part of `pipelineHash`. |
-| `billing` | no | How every agent the Overseer starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the subscription of the agent's own login (for Claude Code, the Claude login). `{ "mode": "api", "maxBudgetUsd": <number> }` bills the account of the API key in the variable the agent adapter names (for Claude Code, the Claude Console account of `ANTHROPIC_API_KEY`; [API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that the agent adapter gives each launch of a session as its budget (for Claude Code, `--max-budget-usd`). It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
+| `billing` | no | How every agent Hephaestus starts is billed, the Assistant and the product owner included. Absent, or `{ "mode": "subscription" }`, is the default: the subscription of the agent's own login (for Claude Code, the Claude login). `{ "mode": "api", "maxBudgetUsd": <number> }` bills the account of the API key in the variable the agent adapter names (for Claude Code, the Claude Console account of `ANTHROPIC_API_KEY`; [API billing set-up](#api-billing-set-up)); `maxBudgetUsd` is optional, a positive number that the agent adapter gives each launch of a session as its budget (for Claude Code, `--max-budget-usd`). It holds no key and no command: any other key or mode, or `maxBudgetUsd` with `subscription`, makes the file malformed. It is not part of `pipelineHash`. |
 | `assistant` | no | `true` while the board's Assistant is on, as `gate assistant on` writes it; absent is off, and any other value makes the file malformed. It is not part of `pipelineHash`. |
 | `reach` | no | the repository paths besides the project that a ticket may change, each starting with `/` and named once, never `/` alone, as `gate reach` writes them; absent reaches none. It is not part of `pipelineHash`. |
 | `entities` | no | each entity by its key, with `kind` (`app`, `package` or `root`, at most one `root`), `home` (repository folders, each starting with `/`; `/` alone only for the root entity), its own `prepare`, `gates` and `phases`, and optional `summary`, `constitution`, `review`, `agents` (`builder`, `reviewer`, `reReviewer`, `conflictReReviewer`), `whitelist`, `reach`, `dependsOn` and `concurrency`. Beside it the pipeline's own `prepare`, `gates`, `constitution` and `reach` stay empty. Two equal homes, a `whitelist` or `dependsOn` naming no entity, a whitelisted entity that is not a `package` with a `review`, or a circle in `dependsOn` makes the file malformed. A ticket of an entity that whitelists a package can cross into it by stages. |
@@ -2602,18 +2602,18 @@ instance's or another job's that carries it on, runs on the recorded pair, whate
 
 The agent adapter names the variable that holds the key (`AgentCredentials.billingKeyVariableName`). For Claude Code,
 the one adapter, it is `ANTHROPIC_API_KEY`, and this section names Claude Code's variables. With `billing` mode `api`,
-each session gets the key from that variable in the Overseer's environment, and from nowhere else. The key must never
-go in a committed file, nor in `pipeline.json`, a ticket or any other file: set it at OS level, where the Overseer
+each session gets the key from that variable in Hephaestus's environment, and from nowhere else. The key must never
+go in a committed file, nor in `pipeline.json`, a ticket or any other file: set it at OS level, where Hephaestus
 starts.
 
-- In every mode the Overseer never passes its own `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` on to a session; in
+- In every mode Hephaestus never passes its own `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` on to a session; in
   mode `api` it passes only `ANTHROPIC_API_KEY`, which Talos copies from its own environment as it starts the
   session, so no file, job record, log or decision holds the key. `CLAUDE_CODE_OAUTH_TOKEN` and the
   cloud-provider variables pass in both modes. A session can read the key from its own environment.
-- In mode `api` with `ANTHROPIC_API_KEY` unset, empty or blank, the Overseer starts no agent and opens one
+- In mode `api` with `ANTHROPIC_API_KEY` unset, empty or blank, Hephaestus starts no agent and opens one
   `api-key-not-set` decision naming the variable and this section.
-- The Overseer reads its environment when it starts: after you set or change the key, run `oversee stop` and start
-  the Overseer again from where the variable is set.
+- Hephaestus reads its environment when it starts: after you set or change the key, run `stop` and start
+  Hephaestus again from where the variable is set.
 - In mode `api`, a session result with `api_error_status` 429 interrupts the job as a usage limit (`usage-limit-hit`,
   window `api-rate-limit`), never Customs: nothing launches or resumes for `API_RATE_LIMIT_BACKOFF_SECONDS` (60), and
   then the job resumes.
@@ -2626,7 +2626,7 @@ starts.
   without tickets, an Assistant's, holds Assistant boots.
 - These mappings are built from the probes and planted lines, not yet from a recorded run of each answer.
 
-| OS | an Overseer started from a terminal | the login item that `setup.sh --login-overseer` writes |
+| OS | a Hephaestus started from a terminal | the login item that `setup.sh --login-item` writes |
 |---|---|---|
 | macOS | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.zprofile` or `~/.zshrc`) | `launchctl setenv ANTHROPIC_API_KEY <key>` before the login item starts; it holds until logout, so repeat it at each login or from a login script of your own |
 | Linux | `export ANTHROPIC_API_KEY=<key>` in the shell profile (`~/.profile` or `~/.bashrc`) | `systemctl --user set-environment ANTHROPIC_API_KEY=<key>`, then restart the unit |
@@ -2748,7 +2748,7 @@ On a forge over entities the record also holds, each written only once set:
 ### `<data>/gate-profiles.json`
 
 The [gate profiles](#gate-profiles) User started, beside `progress.json`, absent until the first `gate-profile-start`.
-Every write is made in the hold: `queued` by the command, `running` and the end by the Overseer. Only the newest run of
+Every write is made in the hold: `queued` by the command, `running` and the end by Hephaestus. Only the newest run of
 each gate and phase is kept, of each entity on a forge over entities: a new press drops an ended one. This is format
 version 1.
 
@@ -2767,7 +2767,7 @@ version 1.
       "prepare": [{ "name": "install", "run": "bun install --frozen-lockfile", "in": "/" }],  // in when set
       // with an entity, each in (the gate's and the steps') is from the repository's root
       "state": "passed",                 // queued | running | passed | red | cannot-run | timed-out | stopped
-      "stopRequested": false,            // User's Stop of a running run, until the Overseer records it stopped
+      "stopRequested": false,            // User's Stop of a running run, until Hephaestus records it stopped
       "elapsedMilliseconds": 41200,      // recorded and shown only; null until the run ended by itself
       "cacheReport": "hit"               // hit | partial | miss: the gate's report; written only when it reported one
     }
@@ -2777,7 +2777,7 @@ version 1.
 
 - `<data>/gate-profile-runs/<P>.ndjson` holds a run's output, appended in place outside the hold, one JSON line per
   piece, as a child's event log is; a reader ignores an unterminated last line.
-- `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Overseer start.
+- `<worktrees>/gate-profiles/<P>` is a run's worktree, removed when the run ends and at every Hephaestus start.
 - No state is written as `timed-out` yet; the read accepts it.
 - A run without `entity` is written without the key, so a file of a forge without entities stays byte for byte. A
   release before entities refuses a file with the key as malformed.
@@ -2817,7 +2817,7 @@ One record per line, each a JSON object ending in a newline: `at`, `kind`, then 
 
 The kinds fall into families: [board](#board-records), [ticket](#ticket-records), [epic](#epic-records), [filing
 draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate profile](#gate-profile-records),
-[review](#review-records), [pipeline and gate](#pipeline-and-gate-records), [Overseer](#overseer-records),
+[review](#review-records), [pipeline and gate](#pipeline-and-gate-records), [Hephaestus](#hephaestus-records),
 [job](#job-records), [merge](#merge-records), [decision](#decision-records) and [incident](#incident-records).
 
 #### Board records
@@ -2855,7 +2855,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `seal-lifted` | `ticketId` | `entity`: the package whose seal a package return lifted |
 | `package-return` | `ticketId` | `entity`: the package the ticket returned to; `fromStage`: `adapt` or `review`; `returns`: the row's `packageReturns` after it |
 | `ticket-release-marked` | `ticketId` | `group` |
-| `ticket-grouped` | `ticketId` | `group`: the group `ticket group`, or the Overseer's act on `dependent-broken`, put the ticket into |
+| `ticket-grouped` | `ticketId` | `group`: the group `ticket group`, or Hephaestus's act on `dependent-broken`, put the ticket into |
 | `dependent-fix-filed` | `ticketId` | `entity`: the dependent the crossing ticket's package change breaks; `fixTicketIds`: the tickets filed in its group to fix it |
 | `ticket-check-command-restamped` | `ticketId` | `command` (the line stamped on its row, or `null`); retired: still read, never logged |
 
@@ -2911,7 +2911,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 |---|---|---|
 | `gate-profile-requested` | `profileRunId` | `gateName`, `phase`, `setupId` (`null` for a gate of the stored pipeline) |
 | `gate-profiled` | `profileRunId` | `gateName`, `phase`, `state` (`passed`, `red`, `cannot-run` or `timed-out`), `elapsedMilliseconds` |
-| `gate-profile-stopped` | `profileRunId` | `gateName`, `phase`: User's Stop, or an Overseer start that found the run left running; no result |
+| `gate-profile-stopped` | `profileRunId` | `gateName`, `phase`: User's Stop, or a Hephaestus start that found the run left running; no result |
 
 #### Review records
 
@@ -2940,13 +2940,13 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `gate-ran` | none | `tree` (the gated tree's object id), `outcome` (`passed`, `failed`, `cannot-run`), `cached` (false, since no gate result is kept; true only in older logs), and `cacheReports` only once a gate reported: `{phase, gates}`, each gate run `{gateName, cacheReport}` (`hit`, `partial`, `miss` or `null`), in run order |
 | `pipeline-step-ran` | none | One step line that ran, recorded and shown only: `stepKind` (`prepare` or `gate`), `stepName`, `phase` (the gate run's phase; absent for a job's install step), `entity` (absent on a forge without entities), `runMilliseconds` (awake time, a sleep not counted), `ending` (`passed`, `failed` or `time-bound`). Written in the hold that consumes the step: a job's install as it leaves `preparing`, a gate run of a job or a merged tree at its settlement, a gate profile's gate at its end; a pipeline check writes none |
 
-#### Overseer records
+#### Hephaestus records
 
 | kind | ids | fields |
 |---|---|---|
-| `overseer-set` | none | `state` (`running` or `paused`) |
-| `overseer-started` | none | `codeVersion`, `installVersion` |
-| `overseer-stopped` | none | `reason`: `stopped` or `baton-passed` |
+| `hephaestus-set` | none | `state` (`running` or `paused`) |
+| `hephaestus-started` | none | `codeVersion`, `installVersion` |
+| `hephaestus-stopped` | none | `reason`: `stopped` or `baton-passed` |
 | `start-classified` | none | `kind`: what the start found before it, `first-start`, `handover`, `stopped-on-purpose`, `machine-went-down` or `crashed`; `startOrigin`: `user`, `login-item` or `successor`; `previousGeneration`: the Baton generation before it, only when there is one; `crashSuspected` (`true`) only when a crash is suspected before the machine went down; `crashLogNumber`: the number of the crash log, only when a crash log exists for this start |
 | `baton-pass-failed` | none | `successorCodeVersion`, `step`, `error` |
 | `dispatcher-set` | none | `state` (`running`, `finished` or `stopped`), `runId` (a run id or `null`); retired: still read, never logged |
@@ -2963,11 +2963,11 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `usage-limit-hit` | `jobId` | `window` (as the vendor names it, such as `five_hour`), `resetsAt` (ISO): the vendor refused the job's requests, and nothing launches or resumes before `resetsAt` |
 | `job-ended` | `jobId` | `outcome`, `cause` and `commit` each only when named, `deniedPermissions` |
 | `job-stop-requested` | `jobId` | `mode`: `stop`, `wind-down` or `fresh`, User's `job stop`, `job wind-down` or `job fresh` |
-| `job-messaged` | `jobId` | `text`: a chat turn the Overseer writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some; `byOverseer` (`true`) only when the text is the Overseer's wording of User's setup move |
-| `job-reopened` | `jobId` | `childInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byOverseer` as on `job-messaged` |
+| `job-messaged` | `jobId` | `text`: a chat turn Hephaestus writes to the session in log order; `pictures` (`[{pictureId, name}]`) only when User sent some; `byHephaestus` (`true`) only when the text is Hephaestus's wording of User's setup move |
+| `job-reopened` | `jobId` | `childInstance`: the instance that resumes the closed product owner or pipeline agent, `text`: the message, its first line, `offeredTicketIds`: the tickets its intake filed before the reopening, recorded only; `pictures` only when the message carried some; `byHephaestus` as on `job-messaged` |
 | `intake-titled` | `jobId` | `title`: the product owner's short title for its intake; a later record replaces an earlier one |
 | `agent-stopped` | none | below |
-| `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`), then the reply's `ticketIds`, or its `status` and `detail` when refused: a relayed request the Overseer answered, never applied again; a reply lost after the hold committed is written again from this record |
+| `hatch-applied` | `jobId` | `requestId`, `commandKind`, `outcome` (`done`, `nothing-to-do` or `refused`), then the reply's `ticketIds`, or its `status` and `detail` when refused: a relayed request Hephaestus answered, never applied again; a reply lost after the hold committed is written again from this record |
 
 #### Merge records
 
@@ -2977,7 +2977,7 @@ draft](#filing-draft-records), [pipeline setup](#pipeline-setup-records), [gate 
 | `merge-acceptance-set` | `ticketId` | `state`: `accepted` by `merge accept`, or `cleared` when the ticket's queue mark went |
 | `merge-updated` | `ticketId` | `target`, `outcome`: `merged` or `conflicted`, from `merge update` |
 | `merge-started` | `jobId` | `target`, `targetTip`, `branchTip`, `predictedConflictFiles` (empty for a clean prediction): the merge job took the target's Airlock slot |
-| `merge-landed` | `jobId` | `target`, `commit`, `kind` (`landed` on the main line, a constitution commit's included, `integrated` on a group branch): the Overseer's list of tips it landed |
+| `merge-landed` | `jobId` | `target`, `commit`, `kind` (`landed` on the main line, a constitution commit's included, `integrated` on a group branch): Hephaestus's list of tips it landed |
 | `worktree-repaired` | `ticketId` | `step`, `patchPath`: where `recreate` saved the changes, or `null` |
 
 #### Decision records
@@ -3018,7 +3018,7 @@ cache figures), `cacheReadInputTokens` and `outputTokens`.
 
 An agent a workflow run spawned, whose transcript sits at `…/subagents/workflows/<runId>/agent-<id>.jsonl`, also carries
 `workflowRunId`, that `<runId>`, and `agentLabel`, the `description` of the `agent-<id>.meta.json` beside the transcript
-when it has one. Each is written only when known, so a plain subagent's record holds neither. A job the Overseer ran
+when it has one. Each is written only when known, so a plain subagent's record holds neither. A job Hephaestus ran
 also carries `costUsd` when a `result` of its sessions named `total_cost_usd`: each child instance's newest cost,
 summed. It is recorded only; no view shows it. The record is one line in the file, spread over several here:
 
@@ -3045,7 +3045,7 @@ summed. It is recorded only; no view shows it. The record is one line in the fil
 The pictures User sent through the API, one owner-only file each, named `<pictureId>.<extension>`: `pictureId` is the
 sha256 of the bytes as 64 hex digits, and the extension (`png`, `jpg`, `webp`, `gif`) is the type the first bytes tell,
 never a name. The folder exists only once a picture was uploaded through `POST /api/pictures`. The same bytes are one
-file. At each Overseer start, in the hold that records `overseer-started`, every picture that no `job-launched`,
+file. At each Hephaestus start, in the hold that records `hephaestus-started`, every picture that no `job-launched`,
 `job-messaged` or `job-reopened` record and no live job's `intake.pictures` names is removed: a set difference, never an
 age. `clear` keeps the folder and `clear --all` removes it.
 
@@ -3131,7 +3131,7 @@ A file recording another version, holding anything else or unreadable is a misma
       "registeredAt": "2026-10-21T10:00:00+02:00",
       "lastChangedAt": "2026-10-21T11:30:00+02:00",
       "lastCommand": "ticket ready",
-      "overseer": {
+      "hephaestus": {
         "url": "http://127.0.0.1:4987/",
         "processId": 4242,
         "startedAt": "2026-10-21T10:05:00+02:00",
@@ -3147,7 +3147,7 @@ to find each project; a board's records are reached through its forge, never by 
 can keep its own files beside it.
 
 A project registers, its entry added or updated, exactly when the call wrote its tracker: every mutating command,
-`init`, and the Overseer at its start. `update` never writes the tracker, so it never registers; neither does a
+`init`, and Hephaestus at its start. `update` never writes the tracker, so it never registers; neither does a
 read-only call.
 
 A tracker whose root lies under a temp folder is never registered: the system temp folder (`os.tmpdir()`, on macOS
@@ -3159,9 +3159,9 @@ An entry is keyed by the tracker's `trackerId`, so a moved or renamed folder upd
 `project` name, the `root` folder, `gitOrigin` (the `origin`
 remote's URL, or `null`), `program` (the absolute path of the program that last wrote the entry: the compiled launcher
 when one started it, else the entry point), `registeredAt` (the first registration, kept), `lastChangedAt` (this write)
-and `lastCommand` (the verb that wrote, the command word and its subcommand), and, while an Overseer serves the board,
-`overseer` (`{url, processId, startedAt, tokenPath}`, written at its start and removed by a stop). `tokenPath` is the
-absolute path of that Overseer's owner-only token file, which a monitor reads its bearer token from.
+and `lastCommand` (the verb that wrote, the command word and its subcommand), and, while a Hephaestus serves the board,
+`hephaestus` (`{url, processId, startedAt, tokenPath}`, written at its start and removed by a stop). `tokenPath` is the
+absolute path of that Hephaestus's owner-only token file, which a monitor reads its bearer token from.
 
 `presence` says whether the forge serves: `{state: serving, generation, at, process: {processId, startStamp,
 bootIdentity}}` at a start, `{state: stopped|handed-over, generation, at}` at a stop or a Baton pass, and `{state:
@@ -3169,7 +3169,7 @@ crashed, generation, at, crash: {component, suspected, errorName, errorMessage, 
 start that stays off. A kill from outside writes nothing, so a `serving` whose process answers nothing stands until the
 next start classifies it; a write that names no presence keeps the stored one.
 
-`program`, `overseer.tokenPath` and `presence` are keys added to version 1: an optional key added to a stored format
+`program`, `hephaestus.tokenPath` and `presence` are keys added to version 1: an optional key added to a stored format
 keeps its version, since every reader keeps a key it does not know. An entry an older program wrote has none of them
 until its next write.
 
@@ -3195,7 +3195,7 @@ warning on standard error: the command keeps its exit code, 0 when it succeeded.
 
 The newest observation of each usage window of the vendor's plan, machine-wide, beside the usage marker
 `<monitor>/usage-limit.json`. Every `rate_limit_event` of a job's session reports each window of its `unifiedWindows`
-(Claude Code names them `five_hour` and `seven_day`); the Overseer's pass writes them after its lock hold, the later
+(Claude Code names them `five_hour` and `seven_day`); Hephaestus's pass writes them after its lock hold, the later
 observation of a window replacing its `lengthHours` (the window's length as the agent adapter knows it, `null` for a
 window it does not know), `utilization` (the share used, 0 to 1, as the vendor reports it) and `resetsAt` (ISO) in
 place. A window seen first is added last. Only the top-level refusal of the window `rateLimitType` names interrupts a
@@ -3208,7 +3208,7 @@ first observation.
 The file is written atomically, indented two spaces and ending in a newline, and only when a value changes, so an
 unchanged file stays byte-identical. Unknown keys, at the top level and on a window, are kept in order. A file that is
 not JSON, has no `windows` object, or holds a window without a number or null `lengthHours`, a number `utilization` or a
-stamp `resetsAt` is malformed: it shows no window, never stops the Overseer, and the next observation replaces it.
+stamp `resetsAt` is malformed: it shows no window, never stops Hephaestus, and the next observation replaces it.
 
 ### `{{dataFolder}}/tickets/003-double-click-a-role-to-edit-it.md`
 
@@ -3274,7 +3274,7 @@ task: 17
 | `crosses` | only once set | the keys of the whitelisted packages intake expects the ticket to cross into, written `"design-system, contracts"` and read like `epics`: a forecast for the board, never what decides the stages. No verb sets it. |
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
-| `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
+| `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by Hephaestus from the Hatch folder's job, never from the request |
 | `contentHash` | once the ticket was committed | the hash (64-bit FNV-1a, 16 hex digits) of the title and body kept when the ticket became committed, and moved by forge's own records in the body (the Handoff, a review, waived items, an answer); absent on a draft and on a ticket ready for review. The title and body read are always the kept ones, so a change of the file's text is undone at the next write. Any other value makes the file malformed. |
 | `task` | always | the row's id as an unquoted integer, or `null` for a draft, and for a low ticket filed before install version 17 and never started; a quoted `task` makes the file malformed |
 
@@ -3393,7 +3393,7 @@ draft has no `filing-cabinet/` folder and no `nextDraftId`.
 
 ## Ticket moves and their rows
 
-The **from** column is the matrix the named verbs enforce and the Overseer's moves keep; `ticket status <id> <status>`
+The **from** column is the matrix the named verbs enforce and Hephaestus's moves keep; `ticket status <id> <status>`
 skips it. **its row** is the status stored; **pill** is what that row then reads on the chart.
 
 | move | from | ticket status | its row | pill | stamps written | log line |
@@ -3407,7 +3407,7 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |
 | a group ticket's merge lands on its group branch | in-review | reviewed | `reviewed`, its `reviewed` stamp set if unset | `Awaiting merge` | `finished` if null | `Ticket #003 reviewed` |
 | a merge lands on the main line | in-review; reviewed for a release bundle's ticket landed with its group's release ticket | reviewed (unless already), then delivered | `delivered`; in-progress review rows delivered | `Done` | `finished` and `delivered` if null; `branch`, `commit` | the reviewed and delivered lines, and one per review row closed |
-| `ticket deliver --by-hand` | anything but draft, while no Overseer is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
+| `ticket deliver --by-hand` | anything but draft, while no Hephaestus is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
 | `ticket abandon` | anything but delivered, abandoned | abandoned | `abandoned`; none created for a ticket without one | `Abandoned` | `abandonedAt`, always; the row's end if it had started | `Ticket #003 abandoned: <reason>` |
 | `ticket reopen` | anything but draft and committed; a group's release ticket only while no other release ticket of its group is open | committed | `committed`, its start, end, `reviewed` and `reviewRound` cleared | `To do` | all four cleared; `reason` dropped | `Ticket #003 reopened` |
 | `ticket unready` | committed, while no job of the ticket is on the board | draft | removed | `Draft` | — | `Ticket #003 unreadied` |

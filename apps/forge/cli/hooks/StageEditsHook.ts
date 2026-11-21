@@ -1,5 +1,5 @@
 /**
- * `hook stage-edits --allow <folder>…`, the edit guard an Overseer renders into the launch of a job of an entity (E18). The deny rules
+ * `hook stage-edits --allow <folder>…`, the edit guard a Hephaestus renders into the launch of a job of an entity (E18). The deny rules
  * name the worktree's paths outside the stage as they stood at launch, so a name made later in a folder on the way to a stage folder
  * (the worktree root, `/apps`) would reach Customs; this denies a file change of it at once. It exits 0 whatever happens and answers deny
  * on any failure, since a guard that errors would let the call through.

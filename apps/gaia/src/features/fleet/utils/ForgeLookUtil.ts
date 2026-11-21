@@ -5,7 +5,7 @@ import type { ForgeReading }             from '../../../shared/@types/ForgeReadi
 /** The kind of the forge's warning that a Baton pass failed: PLAN 7.2's row 3. */
 export const BATON_PASS_FAILED_WARNING_KIND = 'baton-pass-failed';
 
-/** The Overseer's notice that the code on disk is newer than the code it runs. */
+/** Hephaestus's notice that the code on disk is newer than the code it runs. */
 export const NEW_CODE_NOTICE_KIND = 'new-code';
 
 /** Warnings, notices, a held state and machine slots come from the current monitor snapshot, which only a forge read in full has. */
@@ -17,7 +17,7 @@ function batonPassFailed(reading: ForgeReading): boolean {
   return forgeIsReadInFull(reading) && reading.warnings.some((warning) => warning.kind === BATON_PASS_FAILED_WARNING_KIND);
 }
 
-/** The monitor ingestion reads `overseer.state` `held-by-install-change` as the condition `held`. */
+/** The monitor ingestion reads `hephaestus.state` `held-by-install-change` as the condition `held`. */
 function launchesAreHeld(reading: ForgeReading): boolean {
   return forgeIsReadInFull(reading) && reading.condition === 'held';
 }

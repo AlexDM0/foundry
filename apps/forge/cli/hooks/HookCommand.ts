@@ -1,6 +1,6 @@
 /**
  * The `hook` verb. `session-start` prints the session instructions `init` and `update` wire it to; `bash-domains` is the network guard and
- * `stage-edits` the stage's edit guard an Overseer renders into a job's launch.
+ * `stage-edits` the stage's edit guard a Hephaestus renders into a job's launch.
  */
 import { OperationRefusal }            from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }               from '../../src/shared/constants/ProductNames.ts';

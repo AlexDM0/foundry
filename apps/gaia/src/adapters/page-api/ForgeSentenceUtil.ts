@@ -11,16 +11,16 @@ const BACKTICKED_SPAN = /`[^`]+`/;
 /** The forge program's verbs, as its command table lists them, as a sentence names them after the program's own name. */
 const FORGE_VERB_NAMED = new RegExp(
   '\\bforge (?:init|update|status|task|log|hook|usage|review-stats|ticket|epic|draft|concurrency|merges|merge|worktree|gate|decisions|decide'
-  + '|question|incidents|incident|jobs|job|intake|advise|await|range|open|clear|oversee|version|start|stop|machine|login-item|help)\\b',
+  + '|question|incidents|incident|jobs|job|intake|advise|await|range|open|clear|version|start|stop|restart|pause|unpause|talos-restart|machine|login-item|help)\\b',
   'i',
 );
 
 /**
- * The Overseer's notice kinds Gaia words itself: those whose sentence names a command in monitor contract 1, and `assistant-down`, the
+ * Hephaestus's notice kinds Gaia words itself: those whose sentence names a command in the monitor contract, and `assistant-down`, the
  * forge's warning that Gaia shows as a notice.
  */
 const NOTICE_SENTENCES: Readonly<Record<string, string>> = {
-  'new-code':                         'New code is on disk. The Overseer runs the code it started with until it restarts.',
+  'new-code':                         'New code is on disk. Hephaestus runs the code it started with until it restarts.',
   'install-version-changed':          'The install version changed. Nothing launches until this forge is updated.',
   [FORGE_NOTICE_KINDS.assistantDown]: 'This forge\'s Assistant cannot come up, so its open incidents take their defaults.',
 };
@@ -30,12 +30,10 @@ const NOTICE_SENTENCES: Readonly<Record<string, string>> = {
  * verb is the forge's own business, and the page shows no last command for it.
  */
 const LAST_COMMAND_NAMES: Readonly<Record<string, string>> = {
-  'init':         'Add a repository',
-  'update':       'Update forge',
-  'start':        'Start forge',
-  'oversee':      'Start forge',
-  'stop':         'Stop forge',
-  'oversee stop': 'Stop forge',
+  'init':   'Add a repository',
+  'update': 'Update forge',
+  'start':  'Start forge',
+  'stop':   'Stop forge',
 };
 
 const NEUTRAL_NOTICE_SENTENCE = 'This forge raised a notice that Gaia does not word yet.';

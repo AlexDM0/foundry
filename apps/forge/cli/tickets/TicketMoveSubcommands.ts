@@ -42,9 +42,9 @@ function requireTicketReference(commandArguments: ArgumentParser, subcommand: st
 }
 
 /**
- * The one record-only lifecycle verb: a ticket User finished and landed outside the Overseer is recorded delivered in one hold, merging,
- * landing and spawning nothing. A live Overseer refuses it, judged inside the hold by the applier, so an Overseer starting meanwhile reads
- * the ticket delivered or not at all; on a live board a client sends the same command to the Overseer, which records it in its own hold.
+ * The one record-only lifecycle verb: a ticket User finished and landed outside Hephaestus is recorded delivered in one hold, merging,
+ * landing and spawning nothing. A live Hephaestus refuses it, judged inside the hold by the applier, so a Hephaestus starting meanwhile reads
+ * the ticket delivered or not at all; on a live board a client sends the same command to Hephaestus, which records it in its own hold.
  */
 async function deliverByHand(commandArguments: ArgumentParser, context: CommandContext): Promise<void> {
   commandArguments.rejectUnknownOptions(BY_HAND_OPTION_NAMES, TICKET_USAGE);

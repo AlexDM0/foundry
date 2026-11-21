@@ -1,4 +1,4 @@
-/** `pipeline profile-stop <P>`: a queued profile stops at once; a running one has its process tree ended by the Overseer, with no result. */
+/** `pipeline profile-stop <P>`: a queued profile stops at once; a running one has its process tree ended by Hephaestus, with no result. */
 import type { CommandContext } from '../CommandContext.ts';
 import { refuseUsage }         from '../RecordedIncidentMove.ts';
 import type { ArgumentParser } from '../arguments/ArgumentParser.ts';

@@ -65,7 +65,7 @@ describe('the setup landing', () => {
     }]);
   });
 
-  test('a refused start shows the Overseer\'s words and stays on the landing', async () => {
+  test('a refused start shows Hephaestus\'s words and stays on the landing', async () => {
     const controls = fakeControls();
     controls.answerNextWith({ verdict: 'refused', refusal: 'The cap per launch must be a positive number.' });
     controls.render(onBoard(<PipelineView facts={pipelineBoardStateOf('A0')} route={LANDING_ROUTE} {...pipelineViewServicesOf()} />));

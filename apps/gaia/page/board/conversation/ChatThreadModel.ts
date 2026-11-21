@@ -1,17 +1,17 @@
 /**
- * A session's transcript read as a chat: the Overseer's and Talos's lines as system lines, User's messages as bubbles, and the
+ * A session's transcript read as a chat: Hephaestus's and Talos's lines as system lines, User's messages as bubbles, and the
  * session's own entries as agent turns, each with its prose and its top-level tool calls. A turn ends at its `turn-end`; a call is paired
  * with its result by `toolUseId`; a subagent's entries stay out, since the Agents view shows them. Text is carried as text, never parsed.
  */
 import type { BoardTranscriptEntryDocument } from '../../@types/board/ConversationDocument.ts';
 
-/** What a system line says, worded by its view: a chat the Overseer wrote, a Talos standing reply, or what a client line did. */
+/** What a system line says, worded by its view: a chat Hephaestus wrote, a Talos standing reply, or what a client line did. */
 export type SystemLineFacts =
   | { readonly form: 'boot'; readonly chatSequence: number | null }
   | { readonly form: 'incident-delivery'; readonly chatSequence: number | null; readonly incidentIds: readonly string[] }
-  | { readonly form: 'overseer-chat' }
+  | { readonly form: 'hephaestus-chat' }
   | { readonly form: 'standing-reply' }
-  | { readonly form: 'client-act'; readonly act: SystemClientAct; readonly sender: 'overseer' | 'assistant' };
+  | { readonly form: 'client-act'; readonly act: SystemClientAct; readonly sender: 'hephaestus' | 'assistant' };
 
 export type SystemClientAct = 'answer' | 'interrupt' | 'close-input' | 'stop';
 
@@ -43,7 +43,7 @@ export interface SystemThreadItem {
   readonly key:        string;
   readonly at:         string | null;
   readonly facts:      SystemLineFacts;
-  /** The text a chat from the Overseer said, shown on User's ask; `null` for a line with nothing to show. */
+  /** The text a chat from Hephaestus said, shown on User's ask; `null` for a line with nothing to show. */
   readonly revealText: string | null;
 }
 
@@ -126,18 +126,18 @@ function toolFoldOf(segment: readonly (readonly [BoardTranscriptEntryDocument, n
   return { calls, toolCounts: toolCountsOf(calls), errorCount: calls.filter((call) => call.state === 'error' || call.state === 'unanswered').length };
 }
 
-function systemItemOf(entry: BoardTranscriptEntryDocument, isFirstOverseerChat: boolean): SystemThreadItem {
+function systemItemOf(entry: BoardTranscriptEntryDocument, isFirstHephaestusChat: boolean): SystemThreadItem {
   const base = { kind: 'system', key: entry.entryKey, at: entry.at } as const;
   if (entry.role === 'talos') return { ...base, facts: { form: 'standing-reply' }, revealText: null };
   if (isClientAct(entry.clientAct)) {
-    return { ...base, facts: { form: 'client-act', act: entry.clientAct, sender: entry.sentBy === 'assistant' ? 'assistant' : 'overseer' }, revealText: null };
+    return { ...base, facts: { form: 'client-act', act: entry.clientAct, sender: entry.sentBy === 'assistant' ? 'assistant' : 'hephaestus' }, revealText: null };
   }
   const revealText = entry.text === '' ? null : entry.text;
   const { chatSequence } = entry;
-  if (isFirstOverseerChat) return { ...base, facts: { form: 'boot', chatSequence }, revealText };
+  if (isFirstHephaestusChat) return { ...base, facts: { form: 'boot', chatSequence }, revealText };
   const { incidentIds } = entry;
   if (incidentIds.length > 0) return { ...base, facts: { form: 'incident-delivery', chatSequence, incidentIds }, revealText };
-  return { ...base, facts: { form: 'overseer-chat' }, revealText };
+  return { ...base, facts: { form: 'hephaestus-chat' }, revealText };
 }
 
 /**
@@ -154,7 +154,7 @@ function threadItemsOf(entries: readonly BoardTranscriptEntryDocument[], queuedM
   const items: ChatThreadItem[] = [];
   let segment: (readonly [BoardTranscriptEntryDocument, number])[] = [];
   const agentTurnPlaces: { readonly itemPosition: number; readonly startPosition: number }[] = [];
-  let overseerChatSeen = false;
+  let hephaestusChatSeen = false;
 
   const closeSegment = (turnEnd: BoardTranscriptEntryDocument | null): void => {
     const closed = segment;
@@ -188,10 +188,10 @@ function threadItemsOf(entries: readonly BoardTranscriptEntryDocument[], queuedM
       });
       return;
     }
-    if (entry.role !== 'overseer' && entry.role !== 'talos') return;
-    const isChat = entry.role === 'overseer' && !isClientAct(entry.clientAct);
-    items.push(systemItemOf(entry, isChat && !overseerChatSeen));
-    overseerChatSeen ||= isChat;
+    if (entry.role !== 'hephaestus' && entry.role !== 'talos') return;
+    const isChat = entry.role === 'hephaestus' && !isClientAct(entry.clientAct);
+    items.push(systemItemOf(entry, isChat && !hephaestusChatSeen));
+    hephaestusChatSeen ||= isChat;
   });
   closeSegment(null);
 

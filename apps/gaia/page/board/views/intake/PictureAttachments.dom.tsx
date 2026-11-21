@@ -97,7 +97,7 @@ describe('adding pictures', () => {
 });
 
 describe('refused pictures', () => {
-  test('a type the Overseer does not take, a file over the size bound and one past the per-message bound never upload', async () => {
+  test('a type Hephaestus does not take, a file over the size bound and one past the per-message bound never upload', async () => {
     const controls = fakeControls();
     controls.render(intakeViewOf(BOARD, 'J7'));
     attach([pictureFile('scan.bmp', 'image/bmp'), pictureFile('huge.png', 'image/png', 8192), pictureFile('one.png'), pictureFile('two.png'), pictureFile('three.png')]);
@@ -108,7 +108,7 @@ describe('refused pictures', () => {
     await trayHasSettled();
   });
 
-  test('a picture the Overseer refuses shows its refusal verbatim and is not sent', async () => {
+  test('a picture Hephaestus refuses shows its refusal verbatim and is not sent', async () => {
     const controls = fakeControls();
     controls.answerNextUploadWith({ verdict: 'refused', refusal: 'The picture is no PNG, JPEG, WebP or GIF by its bytes.' });
     controls.render(intakeViewOf(BOARD, 'J7'));

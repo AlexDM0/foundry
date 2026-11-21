@@ -6,9 +6,9 @@ How Gaia's parts fit together at run time. The rules and the folder map are in `
 ```
 Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 127.0.0.1)
                        │                        ├─ reads    ~/.forge-monitor/projects.json
-                       │                        ├─ reads    each Overseer: identity, monitor stream or summary
-                       └─opens─► browser app    ├─ sends    each Overseer: control and board commands
-                                 window         ├─ runs     the forge program, for what no Overseer API can do
+                       │                        ├─ reads    each Hephaestus: identity, monitor stream or summary
+                       └─opens─► browser app    ├─ sends    each Hephaestus: control and board commands
+                                 window         ├─ runs     the forge program, for what no Hephaestus API can do
                                     │           └─ writes   ~/.gaia/settings.json, ~/.gaia/token
                                     ▼                │
                                  the page ◄──SSE─────┘   (each forge's board relayed too)
@@ -32,7 +32,7 @@ Gaia.app ──runs──► gaia launch ──starts──► gaia serve (Bun, 
 
 1. `services/ForgeWatch.ts` reads the registry through `adapters/forge-registry/`, and again when its content hash changes. A hidden forge
    is left out.
-2. A registry entry that names no Overseer is dormant, or missing when its folder is gone. For the others it asks the Overseer's
+2. A registry entry that names no Hephaestus is dormant, or missing when its folder is gone. For the others it asks Hephaestus's
    `/api/versions` through `lib/forge-client/`, and its verdict against the one forge version Gaia supports decides whether Gaia talks to
    it at all (`docs/contracts.md`): a newer or an older forge, one that serves no versions included, is asked nothing more. Of the others
    it asks the identity at its versioned path; no answer, or an answer as another forge, is unreachable. The identity's `contracts`
@@ -52,7 +52,7 @@ A forge that is down is an ordinary reading, never a throw. A reading that stops
 1. The page sends one command per request to `POST /api/commands` (`page/api/CommandSender.ts`).
 2. `features/page-server/routes/CommandsRoute.ts` reads it in through `adapters/page-api/GaiaCommandIngestion.ts` and hands it to the
    command port that `src/Main.ts` wires to `features/forge-control/ForgeControl.ts`.
-3. `ForgeControl` picks the carrier: the Overseer's control API while it answers and its control contract is known; the forge program
+3. `ForgeControl` picks the carrier: Hephaestus's control API while it answers and its control contract is known; the forge program
    (`adapters/forge-program/`, through `lib/process-run/`) for what no API can do, such as start, update and add; Gaia's own settings for
    hiding a forge or a setting. One command per forge is on its way at a time.
 4. It answers a verdict. A forge's refusal passes through unchanged, its sentence the one the forge's command line prints (decision 45);
@@ -83,7 +83,7 @@ the other way: the page's body is read into Gaia's `BoardCommand` (`adapters/pag
 command of the same kind (`adapters/forge-api/utils/BoardCommandMapUtil.ts`).
 
 The page reaches a forge's board only through Gaia's server, which keeps the token (`features/page-server/`): `ForgeAccess.ts` turns a
-tracker id into the Overseer's address and token, or a refusal; the board route reads the document afresh, sharing one read per forge
+tracker id into Hephaestus's address and token, or a refusal; the board route reads the document afresh, sharing one read per forge
 among the requests that come while it is on its way; `BoardStreams.ts` holds every relayed stream, one forge stream per page stream,
 opened with Gaia's handshake, each event mapped once per forge and closed together at the server's stop; the picture and command routes
 read their body to their own bound and forward it. The page reads change signals from the stream and the board afresh from the route.

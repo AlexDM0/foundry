@@ -143,13 +143,15 @@ function abandonTicket(command: CommandOf<'ticket-abandon'>, change: BoardTransa
 }
 
 /**
- * A ticket User finished and landed outside the Overseer, recorded delivered in the hold, merging, landing and spawning nothing. A live
- * Overseer the context names and a live job of the ticket refuse it, both judged inside the hold, so an Overseer starting meanwhile reads the
- * ticket delivered or not at all, and on a live board only the Overseer's own hold records it.
+ * A ticket User finished and landed outside Hephaestus, recorded delivered in the hold, merging, landing and spawning nothing. A live
+ * Hephaestus the context names and a live job of the ticket refuse it, both judged inside the hold, so a Hephaestus starting meanwhile reads the
+ * ticket delivered or not at all, and on a live board only Hephaestus's own hold records it.
  */
 function deliverTicketByHand(command: CommandOf<'ticket-deliver-by-hand'>, change: BoardTransaction, context: ControlContext) {
-  const liveOverseer = context.liveOverseerOf(change.workspace.trackerDirectory);
-  if (liveOverseer !== null) throw new OperationRefusal('refused', { kind: 'overseer-owns-the-lifecycle', url: liveOverseer.url, batonFilePath: liveOverseer.batonFilePath });
+  const liveHephaestus = context.liveHephaestusOf(change.workspace.trackerDirectory);
+  if (liveHephaestus !== null) {
+    throw new OperationRefusal('refused', { kind: 'hephaestus-owns-the-lifecycle', url: liveHephaestus.url, batonFilePath: liveHephaestus.batonFilePath });
+  }
   const ticketId = ticketIdOfReference(change, command.ticketReference);
   const liveJob  = change.board.liveJobOfTicket(ticketId);
   if (liveJob !== undefined) throw new OperationRefusal('refused', {

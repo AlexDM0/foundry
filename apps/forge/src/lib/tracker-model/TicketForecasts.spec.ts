@@ -1,5 +1,5 @@
 /**
- * The ticket forecast the Overseer serves. What matters: only a committed, in-progress or in-review ticket has one, and none while no pipeline
+ * The ticket forecast Hephaestus serves. What matters: only a committed, in-progress or in-review ticket has one, and none while no pipeline
  * is set, since nothing launches then; the steps start at the step under way, named by its live job and marked current, or at the next one
  * with nothing current; Customs and its gates name the build phase's gates; a review phase that is not set adds no review step, and merge
  * approval adds a step only until User accepted; a group's ticket integrates into its group's branch while its release ticket lands; the

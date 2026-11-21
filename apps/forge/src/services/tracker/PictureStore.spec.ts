@@ -3,7 +3,7 @@
  * and text named `.png` is refused; a picture over the size limit is refused before anything is written, the limit bounding the base64
  * data a session is sent, since the vendor measures that; the same bytes twice are one file
  * named by their sha256; the folder and each file are made owner-only through the port; and the sweep keeps every picture a log record or
- * a live job names and removes the rest, by a set difference. The sweep runs in the Overseer's start hold, so an entry it cannot remove
+ * a live job names and removes the rest, by a set difference. The sweep runs in Hephaestus's start hold, so an entry it cannot remove
  * stays for the next sweep instead of failing the start.
  */
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
@@ -20,7 +20,7 @@ import type { FileReplace }                                           from '../.
 import type { OwnerOnlyFiles }                                        from '../../lib/owner-only-files/OwnerOnlyFiles.ts';
 import type { Job }                                                   from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                             from '../../lib/tracker-model/@types/LogRecord.ts';
-import { PICTURE_ENCODED_SIZE_LIMIT_BYTES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/OverseerLimits.ts';
+import { PICTURE_ENCODED_SIZE_LIMIT_BYTES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/HephaestusLimits.ts';
 import { createScratchDirectory, removeScratchDirectory }             from '../../testing/ScratchWorkspace.ts';
 import { PictureStore }                                               from './PictureStore.ts';
 

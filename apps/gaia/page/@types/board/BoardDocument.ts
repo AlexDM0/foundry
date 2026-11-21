@@ -20,10 +20,10 @@ import type {
 } from './BoardJobDocuments.ts';
 import type { BoardPipelineFactsDocument } from './BoardPipelineDocuments.ts';
 import type { BoardPageDocument }          from './BoardTicketDocuments.ts';
-import type { BoardOverseerState }         from './BoardVocabulary.ts';
+import type { BoardHephaestusState }       from './BoardVocabulary.ts';
 
-export interface BoardOverseerDocument {
-  readonly state:       BoardOverseerState;
+export interface BoardHephaestusDocument {
+  readonly state:       BoardHephaestusState;
   readonly paused:      boolean;
   readonly codeVersion: string;
 }
@@ -58,7 +58,7 @@ export interface BoardDocument {
   readonly boardVersion:         typeof PAGE_CONTRACT_VERSIONS.gaiaBoard;
   readonly trackerId:            string;
   readonly project:              string;
-  readonly overseer:             BoardOverseerDocument;
+  readonly hephaestus:           BoardHephaestusDocument;
   readonly concurrency:          BoardConcurrencyDocument;
   readonly launchSlots:          BoardLaunchSlotsDocument;
   readonly usage:                BoardUsageDocument;

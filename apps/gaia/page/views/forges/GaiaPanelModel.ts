@@ -73,12 +73,12 @@ const NOTIFY_LABEL = 'Notify me while Gaia is open';
 /** C2's seven kinds, in its order, each named and explained as the artboard does. */
 const NOTIFICATION_KINDS: readonly { readonly kind: FleetDocumentNotificationKind; readonly label: string; readonly explanation: string }[] = [
   { kind: 'escalated-questions', label: 'Escalated questions', explanation: 'An incident the Assistant could not settle.' },
-  { kind: 'questions', label: 'Questions', explanation: 'An agent or the Overseer asks, and work waits on the answer.' },
+  { kind: 'questions', label: 'Questions', explanation: 'An agent or Hephaestus asks, and work waits on the answer.' },
   { kind: 'reviews-and-merge-accepts', label: 'Reviews and merge accepts', explanation: 'A ticket is ready for review, or reviewed and waiting to be accepted.' },
   {
     kind:        'forges-held-or-unreachable',
     label:       'A forge holds its launches or stops answering',
-    explanation: 'Install version changed, a failed Baton pass, or an unreachable Overseer.',
+    explanation: 'Install version changed, a failed Baton pass, or an unreachable Hephaestus.',
   },
   { kind: 'quiet-agents', label: 'A quiet agent', explanation: 'An agent whose log stood still for the forge\'s own number of sweeps.' },
   { kind: 'machine-at-agent-limit', label: 'The machine is at its agent limit', explanation: 'Ready tickets wait for a machine slot.' },

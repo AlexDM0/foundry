@@ -14,7 +14,7 @@ import {
   type RefObject
 } from 'react';
 
-import type { BoardOverseerDocument }                  from '../../../@types/board/BoardDocument.ts';
+import type { BoardHephaestusDocument }                from '../../../@types/board/BoardDocument.ts';
 import { type SpriteCopyTarget, useFlintHabitat }      from '../../../lib/flint/FlintInterface.ts';
 import { useCueOnChange }                              from '../../flint/UseCueOnChange.ts';
 import type { EndedAgentJobDocument }                  from './AgentJobDocument.ts';
@@ -38,7 +38,7 @@ export interface AgentPanelBoardFacts {
   readonly jobs:        readonly PanelJob[];
   readonly endedJobs:   readonly Pick<EndedAgentJobDocument, 'id' | 'outcome'>[];
   readonly concurrency: PanelConcurrency;
-  readonly overseer:    Pick<BoardOverseerDocument, 'state' | 'paused'>;
+  readonly hephaestus:  Pick<BoardHephaestusDocument, 'state' | 'paused'>;
 }
 
 interface CopyTargetSource {
@@ -66,7 +66,7 @@ function createCopyTargetSource(): CopyTargetSource {
 
 export function useAgentPanelHabitat(viewElement: RefObject<HTMLElement | null>, board: AgentPanelBoardFacts, selectedJobId: string | null): void {
   const {
-    jobs, endedJobs, concurrency, overseer
+    jobs, endedJobs, concurrency, hephaestus
   } = board;
   const [copyTargetSource] = useState(createCopyTargetSource);
   const habitat = useMemo(() => agentPanelSpriteHabitatOf(copyTargetSource.copyTargetFor), [copyTargetSource]);
@@ -80,7 +80,7 @@ export function useAgentPanelHabitat(viewElement: RefObject<HTMLElement | null>,
     if (greetedJobIds.length > 0) sendCue(AGENT_PANEL_CUES.AGENT_APPEARS);
   }, [jobs, sendCue]);
   // After the appearance, so the newest cue, which the director answers, is that the agent works.
-  useCueOnChange(sendCue, AgentPanelSpriteModel.activityOccasionOf(jobs, overseer));
+  useCueOnChange(sendCue, AgentPanelSpriteModel.activityOccasionOf(jobs, hephaestus));
 
   const shownOneActions = useRef<ShownOneActions>(AgentPanelSpriteModel.oneActionsOf(jobs));
   useEffect(() => {

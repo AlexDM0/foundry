@@ -127,7 +127,7 @@ export class TicketMoves {
    * forge with entities, every ticket without one, then every ticket the reading finds gaps in, all named at once. Every way to `committed`
    * passes here, so a ticket is never built without its entity. Only User's own `ticket ready` passes `ready-for-review` as readiable. A
    * filer's move passes `workFilesOf`, so a ticket whose Brief names work outside its entity is refused (E85); a need's ticket, filed by
-   * the Overseer for the entity the need names, passes none.
+   * Hephaestus for the entity the need names, passes none.
    */
   readyDraftTickets(
     ticketIds: readonly string[],

@@ -156,7 +156,7 @@ describe('the selected chat', () => {
     controls.render(intakeViewOf(BOARD, 'J7', transcripts.follow));
     transcripts.feed('J7', [
       exampleTranscriptEntry({
-        cursor: '1.1', role: 'overseer', text: 'You are the product owner.', sentBy: 'overseer', clientAct: 'chat'
+        cursor: '1.1', role: 'hephaestus', text: 'You are the product owner.', sentBy: 'hephaestus', clientAct: 'chat'
       }),
       exampleTranscriptEntry({
         cursor: '1.2', role: 'tool-call', text: 'src/export.ts', toolName: 'Read', toolUseId: 't1'
@@ -168,7 +168,7 @@ describe('the selected chat', () => {
       exampleTranscriptEntry({ cursor: '1.5', role: 'turn-end', text: '' }),
     ]);
     const thread = screen.getByRole('list', { name: 'Conversation of J7' });
-    expect(within(thread).getByText('Overseer started J7 from User\'s first message · product-owner')).toBeDefined();
+    expect(within(thread).getByText('Hephaestus started J7 from User\'s first message · product-owner')).toBeDefined();
     expect(within(thread).getByText('Add an export').className).toBe('board-chat-bubble');
     expect(within(thread).getByText('Used 1 tool')).toBeDefined();
     expect(within(thread).getByText('Which format do you need?')).toBeDefined();

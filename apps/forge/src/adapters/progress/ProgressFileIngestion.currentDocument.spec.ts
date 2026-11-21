@@ -47,7 +47,7 @@ function currentDocumentText(): string {
   }));
   const nextId = statusRows.length + 1;
   return JSON.stringify({
-    version:       2,
+    version:       3,
     trackerId:     'example-tracker-id',
     unknownTopKey: 'kept',
     project:       'Example Agency',
@@ -123,7 +123,7 @@ test('a malformed current document is refused with the current validator\'s reas
 test('a version 1 document, and a row in a retired status word, are refused saying to run update with a release that still reads them', () => {
   const currentDocument = JsonRecordUtil.recordOf(JSON.parse(currentDocumentText()));
   const olderDocuments: Array<[document: unknown, reasonStart: string]> = [
-    [{ ...currentDocument, version: 1, log: [{ at: FILED_AT, text: 'Example note' }] }, `version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 2; `],
+    [{ ...currentDocument, version: 1, log: [{ at: FILED_AT, text: 'Example note' }] }, `version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 3; `],
     [{ ...currentDocument, tasks: [storedRow(1, { status: 'running' })] }, 'tasks[0].status is "running", which is not one of '],
   ];
   for (const [document, reasonStart] of olderDocuments) {

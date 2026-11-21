@@ -1,5 +1,5 @@
 /**
- * The stream fixtures under `testing/fixtures/` are recorded Claude Code sessions (`docs/development/overseer-claude-probe.md`), of 2.1.311
+ * The stream fixtures under `testing/fixtures/` are recorded Claude Code sessions (`docs/development/hephaestus-claude-probe.md`), of 2.1.311
  * unless a claim names another, kept for the stream mapper, the question delivery and the usage-limit marker that build on them. These
  * claims hold what each fixture was recorded to show, so a re-recorded or hand-trimmed fixture that no longer shows it fails here rather
  * than in the code that relies on it.

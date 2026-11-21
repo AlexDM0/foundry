@@ -1,5 +1,5 @@
 /**
- * What the writer puts on disk: a version 2 document with no log that reads back as it was written, indented and newline-terminated for the
+ * What the writer puts on disk: a version 3 document with no log that reads back as it was written, indented and newline-terminated for the
  * people who repair it, and `create` never replacing a file that is already there.
  */
 import { readFileSync }           from 'node:fs';
@@ -39,7 +39,7 @@ test('the file on disk is indented and ends with a newline, because people repai
   createProgressFileWriter(progressRecordPath).write(emptyProgress());
   const onDisk = readFileSync(progressRecordPath, 'utf8');
   expect(onDisk.endsWith('\n')).toBe(true);
-  expect(onDisk.startsWith('{\n  "version": 2,\n')).toBe(true);
+  expect(onDisk.startsWith('{\n  "version": 3,\n')).toBe(true);
   expect(onDisk).not.toContain('"log"');
 });
 

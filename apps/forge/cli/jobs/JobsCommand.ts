@@ -1,8 +1,8 @@
-/** One screen of the board's live jobs, one line each, then a footer of the Overseer and what is open for User. Read-only, no lock. */
+/** One screen of the board's live jobs, one line each, then a footer of Hephaestus and what is open for User. Read-only, no lock. */
 import { readingBoardOf }      from '../../src/lib/tracker-model/ReadingBoard.ts';
-import { Baton }               from '../../src/services/overseer/Baton.ts';
-import { IncidentRouter }      from '../../src/services/overseer/IncidentRouter.ts';
-import { overseerFilesIn }     from '../../src/services/overseer/OverseerFiles.ts';
+import { Baton }               from '../../src/services/hephaestus/Baton.ts';
+import { hephaestusFilesIn }   from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { IncidentRouter }      from '../../src/services/hephaestus/IncidentRouter.ts';
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
 import { boardStoreOf }        from '../BoardStoreOf.ts';
 import type { CommandHandler } from '../CommandHandler.ts';
@@ -21,11 +21,11 @@ export const jobsCommand: CommandHandler = (commandArguments, context) => {
   const progress  = store.reads.requireProgress();
   const board     = readingBoardOf(progress, [], []);
   const jobs      = progress.jobs ?? [];
-  const baton     = Baton.newestBatonOf(context.platformPorts, overseerFilesIn(workspace.trackerDirectory).overseerDirectory);
+  const baton     = Baton.newestBatonOf(context.platformPorts, hephaestusFilesIn(workspace.trackerDirectory).hephaestusDirectory);
   const concurrency = board.concurrency();
   const footer = {
-    overseer:           baton.verdict === 'live' ? { state: 'live', url: baton.record.url } : { state: 'down' },
-    paused:             board.overseerState() === 'paused',
+    hephaestus:         baton.verdict === 'live' ? { state: 'live', url: baton.record.url } : { state: 'down' },
+    paused:             board.hephaestusState() === 'paused',
     agentsInFlight:     concurrency.agentsInFlight,
     limit:              concurrency.limit,
     openDecisions:      (progress.decisions ?? []).length,
@@ -44,8 +44,8 @@ export const jobsCommand: CommandHandler = (commandArguments, context) => {
     `child ${job.childInstance}`,
     ...(job.stopRequest === undefined ? [] : [`(${job.stopRequest} asked)`]),
   ].join('  '));
-  const overseerText = footer.overseer.state === 'live' ? `overseer: live at ${baton.verdict === 'live' ? baton.record.url : ''}` : 'overseer: down';
-  const footerText = `${overseerText}; ${footer.paused ? 'paused' : 'not paused'}; agents ${footer.agentsInFlight}/${footer.limit}; `
+  const hephaestusText = footer.hephaestus.state === 'live' ? `hephaestus: live at ${baton.verdict === 'live' ? baton.record.url : ''}` : 'hephaestus: down';
+  const footerText = `${hephaestusText}; ${footer.paused ? 'paused' : 'not paused'}; agents ${footer.agentsInFlight}/${footer.limit}; `
     + `open decisions ${footer.openDecisions}; open incidents ${footer.openIncidents}`;
   const text = [...(jobLines.length === 0 ? ['No job is live.'] : jobLines), footerText, ...warningLines].join('\n');
   OutputUtil.printEntity(commandArguments, context, { jobs, ...footer }, text);

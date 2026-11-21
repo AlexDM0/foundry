@@ -1,7 +1,7 @@
 /**
  * `merge accept` and `merge update`. What matters: an accept is refused with merge approval off, for a ticket not waiting for merge, and
  * whenever git does not predict a clean merge into the target's current tip, and only a clean prediction sets `mergeAccepted`; an update
- * merges the target into the ticket's worktree with no Airlock held, leaving the queue mark for the Overseer's gate run, while a conflict is
+ * merges the target into the ticket's worktree with no Airlock held, leaving the queue mark for Hephaestus's gate run, while a conflict is
  * aborted, the worktree put back at its tip, and the ticket loses its review done and its accept. A merge git refuses to start resets
  * nothing, so an uncommitted edit in its way stays.
  * The folders are real; git plays the recorded answers of `src/testing/RecordedGit.ts`, so each case names the git calls its command makes.
@@ -126,7 +126,7 @@ testWhenGitIsRecorded('merge accept: a ticket whose branch moved past its green 
     .toMatchObject({ reason: 'merge-accept-of-a-ticket-not-waiting' });
 });
 
-testWhenGitIsRecorded('merge update: merges the target into the worktree with no job launched, keeping the queue mark for the Overseer\'s gate run', async () => {
+testWhenGitIsRecorded('merge update: merges the target into the worktree with no job launched, keeping the queue mark for Hephaestus\'s gate run', async () => {
   const { board, apply } = scenario();
   const update = await apply(UPDATE, [...MERGE_IN_START, mergedIn(MAIN_TIP), commitResolved('HEAD', plantedCommitOf('merged'))]);
   expect(update).toMatchObject({ logged: [{ kind: 'merge-updated', ticketId: '001', fields: { target: 'main', outcome: 'merged' } }] });

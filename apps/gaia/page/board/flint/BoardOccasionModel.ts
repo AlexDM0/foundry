@@ -2,7 +2,7 @@
  * The board occasions of Flint: the changes of the whole board, wherever Flint is, from the last reading of the board to the next one, in
  * the order of the table "Board occasions" of Flint's board wiring design, with a settled incident and an applied pipeline after its
  * incident row and a connection that comes back last; the host performs the first. Also the count of `watcher-spark` for a board. A
- * reading holds the board, the event stream's connection and how many commands the Overseer refused so far. An incident that opens or
+ * reading holds the board, the event stream's connection and how many commands Hephaestus refused so far. An incident that opens or
  * settles has one answer: while Flint lives in the questions habitat, that habitat answers it, so the board does not.
  */
 import type { SpriteAttendant, SpriteIntent }         from '../../lib/flint/FlintInterface.ts';
@@ -17,11 +17,11 @@ export interface OccasionAppliedPipeline {
 }
 
 /**
- * The fields of the board the occasions read; Gaia's `BoardDocument` satisfies them unchanged. Gaia's board serves no Overseer
+ * The fields of the board the occasions read; Gaia's `BoardDocument` satisfies them unchanged. Gaia's board serves no Hephaestus
  * `generation`, so until it does a baton pass shows only on a `passing-baton` board and no regroup follows a generation's rise.
  */
 export interface OccasionBoard {
-  readonly overseer:         { readonly state: string; readonly paused: boolean; readonly generation?: number | null };
+  readonly hephaestus:       { readonly state: string; readonly paused: boolean; readonly generation?: number | null };
   readonly usage:            unknown;
   readonly jobs:             readonly unknown[];
   readonly incidents:        readonly { readonly id: string }[];
@@ -34,7 +34,7 @@ export interface BoardReading {
   /** `null` until the first board arrives. */
   readonly board:               OccasionBoard | null;
   readonly connection:          ConnectionState;
-  /** Counts up with each command the Overseer refuses. */
+  /** Counts up with each command Hephaestus refuses. */
   readonly refusedCommandCount: number;
 }
 
@@ -53,7 +53,7 @@ const ABSENT_PIPELINE_VERDICT = 'absent';
 
 const READABLE_PIPELINE_VERDICT = 'readable';
 
-/** The stream between two settled states: it reopens through it every few seconds while the Overseer stays unreachable. */
+/** The stream between two settled states: it reopens through it every few seconds while Hephaestus stays unreachable. */
 const CONNECTING_STATE = 'connecting';
 
 function resetsAtOf(usage: unknown): string | null {
@@ -80,8 +80,8 @@ function pipelineWasApplied(previous: OccasionBoard, next: OccasionBoard): boole
 }
 
 function generationRose(previous: OccasionBoard, next: OccasionBoard): boolean {
-  const { generation: previousGeneration } = previous.overseer;
-  const { generation: nextGeneration } = next.overseer;
+  const { generation: previousGeneration } = previous.hephaestus;
+  const { generation: nextGeneration } = next.hephaestus;
   return typeof previousGeneration === 'number' && typeof nextGeneration === 'number' && nextGeneration > previousGeneration;
 }
 
@@ -89,17 +89,17 @@ function generationRose(previous: OccasionBoard, next: OccasionBoard): boolean {
 function boardOccasionsOf(previous: OccasionBoard, next: OccasionBoard, flintLivesIn: string | null): SpriteIntent[] {
   const previousIncidentIds = new Set(previous.incidents.map((incident) => incident.id));
   const generationIsNew = generationRose(previous, next);
-  const batonPassWasShown = previous.overseer.state === PASSING_BATON_STATE;
+  const batonPassWasShown = previous.hephaestus.state === PASSING_BATON_STATE;
   const questionsHabitatAnswers = flintLivesIn === QUESTIONS_SPRITE_HABITAT.kind;
   const incidentSettled = QuestionsSpriteModel.incidentSettled(previous.questionHistory ?? [], next.questionHistory ?? []);
   const rows: readonly (readonly [boolean, SpriteIntent])[] = [
-    [previous.overseer.state !== DOWN_STATE && next.overseer.state === DOWN_STATE, 'bank-fire'],
+    [previous.hephaestus.state !== DOWN_STATE && next.hephaestus.state === DOWN_STATE, 'bank-fire'],
     // A rise after a passing-baton board is the pass already shown; only a pass the page missed shows on the rise.
-    [!batonPassWasShown && (next.overseer.state === PASSING_BATON_STATE || generationIsNew), 'baton-pass'],
+    [!batonPassWasShown && (next.hephaestus.state === PASSING_BATON_STATE || generationIsNew), 'baton-pass'],
     [generationIsNew && next.jobs.length > 0, 'regroup'],
     [resetsAtOf(previous.usage) === null && resetsAtOf(next.usage) !== null, 'out-of-fuel'],
     [resetsAtOf(previous.usage) !== null && resetsAtOf(next.usage) === null, 'refuel'],
-    [!previous.overseer.paused && next.overseer.paused, 'hold'],
+    [!previous.hephaestus.paused && next.hephaestus.paused, 'hold'],
     [!questionsHabitatAnswers && next.incidents.some((incident) => !previousIncidentIds.has(incident.id)), 'intercept'],
     [!questionsHabitatAnswers && incidentSettled, 'happy'],
     [pipelineWasApplied(previous, next), 'happy'],

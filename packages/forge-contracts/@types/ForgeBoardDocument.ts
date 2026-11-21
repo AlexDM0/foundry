@@ -27,7 +27,7 @@ import type {
 import type { BoardAttentionEntryDocument, BoardNoticeDocument, BoardTodayDocument } from './BoardReadingDocuments.ts';
 
 
-export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
+export type HephaestusRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
 
 /** The last Baton pass that failed while this forge kept driving. */
 export interface BoardBatonPassWarningDocument {
@@ -36,8 +36,8 @@ export interface BoardBatonPassWarningDocument {
   readonly error:                string;
 }
 
-export interface BoardOverseerDocument {
-  readonly state:            OverseerRuntimeState;
+export interface BoardHephaestusDocument {
+  readonly state:            HephaestusRuntimeState;
   readonly paused:           boolean;
   readonly codeVersion:      string;
   /** `null` when no Baton pass failed. */
@@ -81,7 +81,7 @@ export interface BoardUsageDocument {
 
 export interface ForgeBoardDocument {
   readonly project:               string;
-  readonly overseer:              BoardOverseerDocument;
+  readonly hephaestus:            BoardHephaestusDocument;
   readonly concurrency:           BoardConcurrencyDocument;
   readonly launchSlots:           BoardLaunchSlotsDocument;
   readonly confinement:           BoardConfinement;

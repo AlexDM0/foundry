@@ -41,7 +41,7 @@ const HOST_WORDS: readonly string[] = [
   'tickets',
   'epic',
   'epics',
-  'overseer',
+  'hephaestus',
   'in-review',
   're-review',
   'ready-for-review',
@@ -182,7 +182,7 @@ describe('the guard still names each form, planted in memory', () => {
       { path: 'styles/planted.css', text: ':root { --phase-merge: #000000; --detail-w: 480px; --detail-width: 480px; --pipeline-ink: var(--ink); }\n' },
       { path: 'atoms/Planted.dom.tsx', text: 'render(<Toast title="Pipelines applied" href="#pipeline/setup" />);\n// the bridge-draft-mark of the board\n' },
       { path: 'atoms/Planted.stories.tsx', text: 'const views = [\'list\', \'boards\'];\n' },
-      { path: 'README.md', text: 'The Overseer starts it, and Forge ships it. A ticketing desk, a keyboard, a dashboard, a forged and an epically re-reviewed page pass.\n' },
+      { path: 'README.md', text: 'Hephaestus starts it, and Forge ships it. A ticketing desk, a keyboard, a dashboard, a forged and an epically re-reviewed page pass.\n' },
       { path: 'CONSTITUTION.md', text: 'Portable out of the Bridge.\n' },
       { path: THIS_SPEC_PATH, text: 'ticket forge\n' },
     ])).toEqual([
@@ -199,7 +199,7 @@ describe('the guard still names each form, planted in memory', () => {
       'atoms/Planted.dom.tsx names the host word bridge',
       'atoms/Planted.dom.tsx names the host word board',
       'atoms/Planted.stories.tsx names the host word boards',
-      'README.md names the host word Overseer',
+      'README.md names the host word Hephaestus',
       'README.md names the host word Forge',
       'CONSTITUTION.md names the host word Bridge',
     ]);

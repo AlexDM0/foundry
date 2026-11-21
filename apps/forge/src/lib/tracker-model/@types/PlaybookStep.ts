@@ -1,5 +1,5 @@
 /**
- * What the Playbook derives from the board and the Overseer's observations: each step a change `Board.followPlaybook` applies in
+ * What the Playbook derives from the board and Hephaestus's observations: each step a change `Board.followPlaybook` applies in
  * the hold, so a step lost to a crash is derived again on the next pass.
  */
 import type { DecisionKind, DecisionQuestion }                              from './Decision.ts';
@@ -8,7 +8,7 @@ import type { IncidentDefaultCause, IncidentDeliveryTurn, IncidentOpening } from
 export type ParkCause = 'failed-passes' | 'red-resumes-spent';
 
 /** A decision code opens from the facts; its questions are worded by the caller, never by the policy. */
-/** What a decision the Overseer opens about entities is about, which its wording names and its options offer. */
+/** What a decision Hephaestus opens about entities is about, which its wording names and its options offer. */
 export interface DecisionDraftSubject {
   /** The entities that own the paths a ticket's build changed outside its own entity: the answer may move the ticket to one (E15). */
   owningEntities?:  readonly string[];
@@ -51,7 +51,7 @@ export type PlaybookStep =
   | { kind: 'await-answer'; jobId: string }
   // A product owner past the bound whose questions are answered: a fresh session takes its drafts and the answers, never a resume.
   | { kind: 'refresh-intake'; jobId: string }
-  // A review waiting `awaiting-answer` whose `waiver` decision User answered: the Overseer acts on the answers, as it needs the job folder.
+  // A review waiting `awaiting-answer` whose `waiver` decision User answered: Hephaestus acts on the answers, as it needs the job folder.
   | { kind: 'act-on-waiver-answer'; jobId: string; answers: readonly string[] }
   | { kind: 'boot-assistant' }
   // An open decision of a kind that retired: the one-shot pipeline proposal.
@@ -63,11 +63,11 @@ export type PlaybookStep =
   | { kind: 'open-decision'; decision: DecisionDraft }
   | { kind: 'open-incident'; incident: IncidentOpening }
   | { kind: 'default-incident'; incidentId: string; cause: IncidentDefaultCause }
-  | { kind: 'pause-overseer'; cause: 'outage' }
+  | { kind: 'pause-hephaestus'; cause: 'outage' }
   // A ticket a board slot would launch now, which waits because no machine-wide agent slot is free; it changes nothing.
   | { kind: 'await-machine-slot'; ticketId: string };
 
-/** What the Overseer saw outside the board, passed in as values so the policy reaches no git, process or file. */
+/** What Hephaestus saw outside the board, passed in as values so the policy reaches no git, process or file. */
 export interface PlaybookObservations {
   mainLine:                     string;
   /** A group ticket's work goes to this prefix followed by its group's name. */
@@ -83,6 +83,6 @@ export interface PlaybookObservations {
   assistantHasAnswered:         boolean;
   /** A sweep asks for one more boot past the failed-boot bound; never set in the pass a boot failed. */
   assistantBootRetryDue:        boolean;
-  /** The machine-wide agent slots this Overseer reserved for the pass; absent where no machine limit applies. */
+  /** The machine-wide agent slots this Hephaestus reserved for the pass; absent where no machine limit applies. */
   machineAgentSlotsFree?:       number;
 }

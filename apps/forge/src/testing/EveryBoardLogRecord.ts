@@ -229,7 +229,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     tickMinutes: 15,
   }, at);
   board.setConcurrencyLimit(3, at);
-  board.setOverseerState('running', at);
+  board.setHephaestusState('running', at);
   board.setBranchNamespace('web', at);
   board.recordAgentStop({
     agentId:              'example-agent',
@@ -240,7 +240,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
     cacheReadInputTokens: 250_000,
     outputTokens:         9_000,
   }, [], at);
-  board.recordOverseerStarted({ codeVersion: 'a1b2c3d', installVersion: 17 }, at);
+  board.recordHephaestusStarted({ codeVersion: 'a1b2c3d', installVersion: 17 }, at);
   board.recordStartClassified({
     kind: 'machine-went-down', startOrigin: 'login-item', previousGeneration: 3, crashSuspected: true, crashLogNumber: 3
   }, at);
@@ -276,7 +276,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   }, at);
   board.answerDecision('E1', ['CSV'], at);
   board.openDecision({
-    kind: 'outage', ticketIds: [], jobId: null, askedBy: 'overseer', requestId: null, questions: [question], context: 'Two crashed jobs',
+    kind: 'outage', ticketIds: [], jobId: null, askedBy: 'hephaestus', requestId: null, questions: [question], context: 'Two crashed jobs',
   }, at);
   board.withdrawDecision('E2', 'job stopped', at);
   const incidentOpening = {
@@ -289,7 +289,7 @@ export function everyRecordKindTheBoardLogs(at: string): LogRecord[] {
   board.defaultIncident('I2', 'turn-closed', at);
   board.openIncident({ ...incidentOpening, facts: { requestId: 'request-4' } }, at);
   board.escalateIncident('I3', { askedBy: 'builder', questions: [question], context: 'Example cart' }, at);
-  board.recordOverseerStopped('stopped', at);
+  board.recordHephaestusStopped('stopped', at);
   // No Board change logs this kind any more; a stored log may still hold it, so it is built as it was stored.
   records.push({
     at,

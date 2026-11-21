@@ -1,5 +1,5 @@
 /**
- * The supervision lease: when Talos stops its agents because no Overseer renewed it, and the wake rule that grants a grace after a gap in
+ * The supervision lease: when Talos stops its agents because no Hephaestus renewed it, and the wake rule that grants a grace after a gap in
  * Talos's own ticks. It runs on the wall clock on purpose, so a sleep counts against the lease; the caller hands in every instant.
  */
 import { WAKE_GRACE_DOUBLING_BELOW_MILLISECONDS } from './constants/TalosProtocol.ts';

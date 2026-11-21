@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="500" viewBox="0 0 1000 500" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Choose by what must end and what must stay held</title>
+  <desc>Six controls by what ends, what happens to the ticket and what brings it back, least to undo first. job fresh ends one session now, holds nothing and needs nothing. pause ends nothing and stops new work until unpause. stop ends only Hephaestus while sessions run on, until start. job wind-down ends one session after it reports and holds the ticket until ticket unhold. job stop ends one session now and holds the ticket until ticket unhold. job stop --all ends every build, review and intake session, pauses the board and holds each ticket, until unpause and ticket unhold on each.</desc>
+
+  <rect x="1" y="1" width="998" height="498" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Choose by what must end and what must stay held</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">read down: the further down, the more you have to undo</text>
+
+  <g font-size="13" font-weight="500" fill="#73726c">
+    <text x="40" y="96">Control</text>
+    <text x="252" y="96">What ends</text>
+    <text x="534" y="96">The ticket</text>
+    <text x="762" y="96">What brings it back</text>
+  </g>
+
+  <g fill="#FAEEDA" stroke="#F2DDB0">
+    <rect x="40" y="110" width="200" height="54" rx="8"/>
+    <rect x="40" y="172" width="200" height="54" rx="8"/>
+    <rect x="40" y="234" width="200" height="54" rx="8"/>
+    <rect x="40" y="296" width="200" height="54" rx="8"/>
+    <rect x="40" y="358" width="200" height="54" rx="8"/>
+    <rect x="40" y="420" width="200" height="54" rx="8"/>
+  </g>
+  <g font-size="14" font-weight="500" fill="#633806" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">
+    <text x="140" y="142">job fresh &lt;J&gt;</text>
+    <text x="140" y="204">pause</text>
+    <text x="140" y="266">stop</text>
+    <text x="140" y="328">job wind-down &lt;J&gt;</text>
+    <text x="140" y="390">job stop &lt;J&gt;</text>
+    <text x="140" y="452">job stop --all</text>
+  </g>
+
+  <g fill="#FAECE7" stroke="#F3D2C5">
+    <rect x="252" y="110" width="270" height="54" rx="8"/>
+    <rect x="252" y="296" width="270" height="54" rx="8"/>
+    <rect x="252" y="358" width="270" height="54" rx="8"/>
+    <rect x="252" y="420" width="270" height="54" rx="8"/>
+  </g>
+  <rect x="252" y="172" width="270" height="54" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <rect x="252" y="234" width="270" height="54" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <g text-anchor="middle">
+    <text x="387" y="134" font-size="14" font-weight="500" fill="#712B13">One session</text>
+    <text x="387" y="151" font-size="12" fill="#993C1D">now: job ends replaced</text>
+    <text x="387" y="196" font-size="14" font-weight="500" fill="#444441">Nothing</text>
+    <text x="387" y="213" font-size="12" fill="#5F5E5A">running jobs go on; no new work</text>
+    <text x="387" y="258" font-size="14" font-weight="500" fill="#0C447C">Hephaestus</text>
+    <text x="387" y="275" font-size="12" fill="#185FA5">sessions run on, undriven</text>
+    <text x="387" y="320" font-size="14" font-weight="500" fill="#712B13">One session</text>
+    <text x="387" y="337" font-size="12" fill="#993C1D">when it has reported</text>
+    <text x="387" y="382" font-size="14" font-weight="500" fill="#712B13">One session</text>
+    <text x="387" y="399" font-size="12" fill="#993C1D">now: input closed, then signals</text>
+    <text x="387" y="444" font-size="14" font-weight="500" fill="#712B13">Every build, review, intake</text>
+    <text x="387" y="461" font-size="12" fill="#993C1D">board paused as well</text>
+  </g>
+
+  <g fill="#F1EFE8" stroke="#E1DDD0">
+    <rect x="534" y="110" width="216" height="54" rx="8"/>
+    <rect x="534" y="172" width="216" height="54" rx="8"/>
+    <rect x="534" y="234" width="216" height="54" rx="8"/>
+  </g>
+  <g fill="#FAEEDA" stroke="#F2DDB0">
+    <rect x="534" y="296" width="216" height="54" rx="8"/>
+    <rect x="534" y="358" width="216" height="54" rx="8"/>
+    <rect x="534" y="420" width="216" height="54" rx="8"/>
+  </g>
+  <g text-anchor="middle">
+    <text x="642" y="142" font-size="14" font-weight="500" fill="#444441">Not held</text>
+    <text x="642" y="204" font-size="14" font-weight="500" fill="#444441">Not held</text>
+    <text x="642" y="266" font-size="14" font-weight="500" fill="#444441">Not held</text>
+    <text x="642" y="320" font-size="14" font-weight="500" fill="#633806">Held</text>
+    <text x="642" y="337" font-size="12" fill="#854F0B">wound down by User (J&lt;n&gt;)</text>
+    <text x="642" y="382" font-size="14" font-weight="500" fill="#633806">Held</text>
+    <text x="642" y="399" font-size="12" fill="#854F0B">stopped by User (J&lt;n&gt;)</text>
+    <text x="642" y="444" font-size="14" font-weight="500" fill="#633806">Each held</text>
+    <text x="642" y="461" font-size="12" fill="#854F0B">stopped by User (J&lt;n&gt;)</text>
+  </g>
+
+  <g font-size="13" fill="#3d3d3a">
+    <text x="762" y="142">Nothing: next attempt launches</text>
+    <text x="762" y="204">unpause</text>
+    <text x="762" y="266">start</text>
+    <text x="762" y="328">ticket unhold</text>
+    <text x="762" y="380">ticket unhold;</text>
+    <text x="762" y="398">next attempt, same worktree</text>
+    <text x="762" y="452">unpause, ticket unhold each</text>
+  </g>
+</svg>

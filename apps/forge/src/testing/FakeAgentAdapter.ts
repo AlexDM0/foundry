@@ -1,7 +1,7 @@
 /**
  * The fake agent, an adapter of the agent port as the Claude Code adapter is: its session is the fake child
  * `src/testing/fake-agent/FakeAgentChild.ts`, which plays a scripted list of steps, printing recorded `claude` stream-json lines
- * (`src/testing/fake-agent/RecordedClaudeLines.ts`), waiting for stdin lines, exiting or crashing, so Overseer, Talos and crash specs drive
+ * (`src/testing/fake-agent/RecordedClaudeLines.ts`), waiting for stdin lines, exiting or crashing, so Hephaestus, Talos and crash specs drive
  * a session without a vendor. It replays that adapter's recorded wire, so it keeps its line mapping, capabilities and plan values.
  */
 import { join } from 'node:path';
@@ -88,7 +88,7 @@ export function fakeAssistantTurnLine(messageId: string): string {
 export const FAKE_AGENT_VENDOR = 'fake-agent';
 
 /**
- * What a session the Overseer launches under the fake-agent switch plays: it starts, reports nothing and exits. Its line stays a
+ * What a session Hephaestus launches under the fake-agent switch plays: it starts, reports nothing and exits. Its line stays a
  * selector, which the child fills from the recording, so loading this file reads no recording.
  */
 export const DEFAULT_FAKE_AGENT_STEPS: readonly FakeAgentStep[] = Object.freeze([

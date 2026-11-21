@@ -7,32 +7,32 @@
 
 ## In one screen
 
-forge serves no page. The [Overseer](../glossary.md#overseer) serves a [board](../glossary.md#board) through an API
+forge serves no page. [Hephaestus](../glossary.md#hephaestus) serves a [board](../glossary.md#board) through an API
 on 127.0.0.1, and a client of that API shows it as the board view this document walks through. `forge start` starts
-the Overseer when none runs. Close the view and the board carries on: the view stores no work, and you lose only
+Hephaestus when none runs. Close the view and the board carries on: the view stores no work, and you lose only
 half-typed text and view filters.
 
 You do four things here. You file work on Intake, ready it on Kanban, answer [decisions](../glossary.md#decision) on
-Questions, and watch the header. The Overseer does the rest: it launches AI [agent](../glossary.md#agent)
+Questions, and watch the header. Hephaestus does the rest: it launches AI [agent](../glossary.md#agent)
 [sessions](../glossary.md#session) that build and review each [ticket](../glossary.md#ticket), then merges the result,
 without being asked.
 
-![You file work on Intake and ready it on Kanban. The Overseer then launches AI agents that build and review the ticket, merges the result without being asked, and the ticket reaches Done. A dashed path drops to Questions only when an answer is needed, and the answer resumes the work. The header runs along the top as the thing you watch throughout.](../figures/running-a-board/your-day-on-the-board.png)
+![You file work on Intake and ready it on Kanban. Hephaestus then launches AI agents that build and review the ticket, merges the result without being asked, and the ticket reaches Done. A dashed path drops to Questions only when an answer is needed, and the answer resumes the work. The header runs along the top as the thing you watch throughout.](../figures/running-a-board/your-day-on-the-board.png)
 
 *Notice the blue middle: once a ticket is Ready, you act only if a question appears.*
 
-Nearly every control records a request, and the Overseer acts on it or refuses it.
+Nearly every control records a request, and Hephaestus acts on it or refuses it.
 
 ## The tabs
 
 The board view has up to ten tabs: Kanban, Waves, Progress, Epics and Tickets, then Agents, Questions, Assistant, Intake
 and Pipeline. Waves shows only when a ticket depends on another, and Epics only on a board
-with epics. Pipeline shows once the Overseer reports a readable `pipeline.json`. A board with no readable
+with epics. Pipeline shows once Hephaestus reports a readable `pipeline.json`. A board with no readable
 `pipeline.json` shows Pipeline alone, whatever tab you last chose, and the header is in setup: the board name, an amber
 `setup` chip, the theme switch and the five setup steps (Billing, Research, Constitution, Pipeline design, Apply). A
 finished step, or one that needs a recheck, links back to its page. Each tab has its own URL, so you can link to it, and
-the link survives an Overseer restart. A fragment that names no tab opens the tab you last chose, or else the first tab
-shown. Until the first board update arrives the panel says it is waiting for the Overseer.
+the link survives a Hephaestus restart. A fragment that names no tab opens the tab you last chose, or else the first tab
+shown. Until the first board update arrives the panel says it is waiting for Hephaestus.
 
 With no setup open, Pipeline opens on the setup landing: it counts the committed tickets that wait for a pipeline, asks who
 pays for the agents (the subscription, or the API key with an optional cap per launch) and shows the pipeline agent's
@@ -176,7 +176,7 @@ Ready starts with the Board's ready list: unblocked tickets by priority, then re
 Tickets waiting on a dependency follow. Merge queue lists its tickets by priority, then id, and the merge queue view
 gives the order they land in. Done and Abandoned run newest first.
 
-> **As built.** The ready list can omit a group ticket the Overseer launches.
+> **As built.** The ready list can omit a group ticket Hephaestus launches.
 
 **The merge queue view.** The details link in the Merge queue lane's head opens `#kanban/merge-queue`. It answers what lands next
 on each [target](../glossary.md#target), and why a [landing](../glossary.md#landing) waits. It has no controls: a
@@ -257,7 +257,7 @@ A table line opens the **detail panel** at the right edge, `#tickets/ticket-row/
 the row's Task facts, the Phases its row went through, the Ticket with its facts and description, and the Log lines
 claimed for either. A Kanban card opens the tabbed ticket form instead. Its Overview leads with a state card (the job at
 work, its calls and last tool call, or why nothing works on the ticket) and the one likely action: Watch the job's
-transcript on Agents, or Ready, Accept or Unhold. Next lists the steps the Overseer forecasts up to the landing, and
+transcript on Agents, or Ready, Accept or Unhold. Next lists the steps Hephaestus forecasts up to the landing, and
 which tickets the landing lets start; Other moves lists the rest of the controls, each with its effect; Facts closes it.
 The Timeline tab holds the mini Gantt of its build and reviews, Activity the log lines about the ticket or its row, and
 Description the ticket's text. A stamp from today shows only its clock, an older one gains its date, and hover gives it
@@ -283,7 +283,7 @@ While a job works on the ticket, the ticket form also holds that job's controls 
 tab offers: a message box with Send message, and More, a menu of Wind down, Stop and Fresh agent. No item there acts on
 one click. Each opens a confirmation in its place that says what it ends, that the branch and its worktree stay, and
 which hold it leaves on the ticket (`stopped by User (J4)`, `wound down by User (J4)`, or none for Fresh agent); only the
-confirm sends it, and Cancel puts the item back. A job the Overseer only watches offers Stop alone, and a job that is
+confirm sends it, and Cancel puts the item back. A job Hephaestus only watches offers Stop alone, and a job that is
 stopping shows `Stopping.`. A line under the state card names the newest open incident on the ticket and its default.
 
 Use Hold to keep a ticket from its next launch. Use [Park](../glossary.md#park) when you want the question on your
@@ -331,7 +331,7 @@ A job that ended leaves its card, and its `#agents/<job>` link then shows no pan
 
 *Three sections; only Open questions needs you.*
 
-Questions holds what waits on you. Agent questions come first, then the decisions the Overseer opened. An escalated one
+Questions holds what waits on you. Agent questions come first, then the decisions Hephaestus opened. An escalated one
 says so. The Questions tab's count and the header's Waiting on User pill show the same open decisions.
 
 - **Open questions.** Pick options, or type free text on a one-question decision, then press Answer.
@@ -353,7 +353,7 @@ the browser tab's title on every tab of the board view.
 #### The question panel
 
 When a decision opens, the question panel slides in at the right edge of every tab, so you can answer it where you are.
-Its head names who asks (`J4 asks User`, or the Overseer for a decision it opened), the decision id, the ticket and how
+Its head names who asks (`J4 asks User`, or Hephaestus for a decision it opened), the decision id, the ticket and how
 long it has been open. The left column holds the question, its options as cards with what each one touches, trades off
 and does to the ticket's Acceptance when the agent noted it, a box for your own words on a one-question decision, and
 Answer, which posts the same `decision-answer` as the inbox card. The right column has reading tabs: Background (why the
@@ -373,7 +373,7 @@ ticket), the whole ticket, and the agent's conversation. The foot shows how many
 
 Assistant shows the live [Assistant](../glossary.md#assistant) session as a chat, with a rail of its incidents beside it
 (under it on a narrow window). The head names the session's state, its turns and its calls; the Assistant has no call
-budget. In the thread, the Overseer's chats are system lines between two rules: the boot line, a delivery naming the
+budget. In the thread, Hephaestus's chats are system lines between two rules: the boot line, a delivery naming the
 incidents it carried, and any other chat, each with Show prompt for the text it sent. A standing reply Talos sent is a
 system line too. Each Assistant turn folds its tool calls into one line, which names the tools and how many failed; the
 turn under way keeps its fold open, a running call ticking, and says `working` until the turn ends. Your messages are
@@ -408,23 +408,23 @@ or failed stays in the list with that outcome as its state: its chat is read onl
 fresh session.
 
 New chat opens an empty composer (`#intake/new`). Its first message starts the session, and the tab moves to the new
-session once the Overseer has started it, or shows it read only with its outcome if it ended before it ever ran.
+session once Hephaestus has started it, or shows it read only with its outcome if it ended before it ever ran.
 
 To send pictures with a request or a message, choose Attach pictures, paste them into the text box, or drop them on the
-chat. The view takes the types and sizes the Overseer serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
-per message and 3,932,160 bytes each, since the vendor's 5 MB limit counts the base64 a session is sent); it refuses any other picture before it uploads it, and shows the Overseer's own refusal on a picture the Overseer turns down. Each picture uploads at
+chat. The view takes the types and sizes Hephaestus serves as its limits (by default PNG, JPEG, WebP or GIF, at most four
+per message and 3,932,160 bytes each, since the vendor's 5 MB limit counts the base64 a session is sent); it refuses any other picture before it uploads it, and shows Hephaestus's own refusal on a picture Hephaestus turns down. Each picture uploads at
 once, and Send waits until every upload has finished. A picture alone is a message. Only the Intake tab takes pictures:
 the Assistant's composer and the `intake` and `job message` commands do not. With an agent that cannot take pictures, no
 Attach pictures shows.
 
 ## The header
 
-A missing control does not apply in the Overseer's current state. A greyed control cannot be sent at this moment, for
-one of the [four causes](#what-a-disabled-control-means). A live control sends a request the Overseer may still refuse.
+A missing control does not apply in Hephaestus's current state. A greyed control cannot be sent at this moment, for
+one of the [four causes](#what-a-disabled-control-means). A live control sends a request Hephaestus may still refuse.
 
-![The board's header unfolded, with thirteen numbered callouts. Above it sit the banners, one banner per warning or notice, and the incident line. The title row holds the state with usage and the new-code line over the board name, Pause or Resume, Restart and Stop Overseer, then the statistics and the Waiting on User pill. Below it come the activity strip, one chip per job in a launch slot, and the tabs with their counts and the theme. Pause, Resume and Stop are offered unless the Overseer is handing over or down, Restart only with the new-code line.](../figures/running-a-board/header-tour.png)
+![The board's header unfolded, with thirteen numbered callouts. Above it sit the banners, one banner per warning or notice, and the incident line. The title row holds the state with usage and the new-code line over the board name, Pause or Resume, Restart and Stop Hephaestus, then the statistics and the Waiting on User pill. Below it come the activity strip, one chip per job in a launch slot, and the tabs with their counts and the theme. Pause, Resume and Stop are offered unless Hephaestus is handing over or down, Restart only with the new-code line.](../figures/running-a-board/header-tour.png)
 
-*Dashed items come and go. Read a missing control as a statement about the Overseer's state.*
+*Dashed items come and go. Read a missing control as a statement about Hephaestus's state.*
 
 | Figure | Item | Reads or does |
 | --- | --- | --- |
@@ -433,31 +433,31 @@ one of the [four causes](#what-a-disabled-control-means). A live control sends a
 | 3 | Incident line | the incident defaults applied and the incidents open; see [Banners, warnings and notices](#banners-warnings-and-notices) |
 | 4 | State | above the board name: `Live`, `Paused`, `Held` for an install change, `Handing over`, `Connecting` or `Down` |
 | 5 | Usage | each usage window observed, such as `5-hour window 14%` or `week 18%`, then the window and reset time after a limit was hit; nothing before the first observation |
-| 6 | `new code is on disk: restart the Overseer to run it` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
+| 6 | `new code is on disk: restart Hephaestus to run it` | the `new-code` notice, shown in the state line; see [Banners, warnings and notices](#banners-warnings-and-notices). Press Restart, or run `forge update`, whose last step makes the same hand-over |
 | 7 | Pause, Resume | stores the pause; [Pause safely](#pause-safely) says what it stops |
 | 8 | Restart | a [Baton pass](../glossary.md#baton-pass) to the code on disk; offered only with the `new-code` line |
-| 9 | Stop Overseer | after a confirmation, stops the Overseer; see [Stop for the day](#stop-for-the-day) |
+| 9 | Stop Hephaestus | after a confirmation, stops Hephaestus; see [Stop for the day](#stop-for-the-day) |
 | 10 | agents working | build and review jobs holding a [launch slot](../glossary.md#launch-slot) against the limit; the Assistant and product-owner jobs do not count, as its hover text says. The [concurrency limit](../glossary.md#concurrency-limit) itself is set on the Agents tab, see [Adjust concurrency](#adjust-concurrency) |
 | 10 | done today, tokens today | tickets delivered today, and tokens of rows running or ended today, by your browser's date |
 | 10 | waiting in queue | every `committed` ticket, held and blocked ones included |
 | 10 | open incidents | incidents the Assistant has not settled |
 | 11 | Waiting on User | a pill counting everything that waits on you: open decisions (escalated ones apart), draft tickets, filing drafts waiting on an answer, tickets ready for review and tickets waiting for your merge accept. Rose while anything waits, neutral `· 0` when nothing does, with a red dot while a decision is escalated. A click opens its inbox: the escalated items first, then the rest oldest first, each with its age and one action (Answer, Ready, Review or Accept) that opens its place; the foot links to Questions and to the drafts on the Kanban. The browser tab's title still counts the open decisions alone |
-| 12 | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Overseer job, which opens the Agents tab |
+| 12 | Activity strip | one line under the title row: building and reviewing counts, one chip per job holding a launch slot (job id, role, ticket title, time since it launched) that opens the job on the Agents tab, and at its end a warning flag counting the tickets in progress with no Hephaestus job, which opens the Agents tab |
 | 13 | Tabs, theme | the tabs, then the theme switch (auto, light or dark, kept in the browser) at the tab bar's right, before the filter line. A tab counts what waits there: Questions its open decisions, red with a dot while one is escalated, else rose; Kanban its draft tickets, waiting filing drafts and tickets for review or merge accept, rose; Assistant its open incidents, grey. A tab with nothing to count shows no badge, and Intake never does |
 
 The title row holds the state and the board name, the five figures and the Waiting on User pill on one line, and Pause
-or Resume, Restart and Stop Overseer at its right end. "agents working" counts the live build and review jobs, the count the Overseer launches by;
+or Resume, Restart and Stop Hephaestus at its right end. "agents working" counts the live build and review jobs, the count Hephaestus launches by;
 a session, a merge and a row with no job count nothing. The activity strip shows the same jobs, one chip each, so the
 figure and the chips agree; when more run than the line holds, the chips shrink and the line clips.
 
 ### Banners, warnings and notices
 
-Banners sit above the header. A red one says the Overseer is unreachable and how old the board is. Another says the
-[install version](../glossary.md#install-version) changed: the installed files no longer match the program, so the
-Overseer holds launches until `update` runs. The `new-code` line is the milder case: the code changed, the installed
+Banners sit above the header. A red one says Hephaestus is unreachable and how old the board is. Another says the
+[install version](../glossary.md#install-version) changed: the installed files no longer match the program, so
+Hephaestus holds launches until `update` runs. The `new-code` line is the milder case: the code changed, the installed
 files still match, nothing is held. It cannot appear while launches are held for an install change.
 
-Under those banners one red line counts the [incident](../glossary.md#incident) defaults applied since the Overseer
+Under those banners one red line counts the [incident](../glossary.md#incident) defaults applied since Hephaestus
 started, and the incidents open, and names the newest default: its incident, its move, its ticket and when. However many
 defaults there are, it stays one line. Show incidents opens the incident drawer over the header: the open incidents,
 then the defaults applied, newest first, each row unfolding its trail (opened, delivered, notes, the default applied).
@@ -473,12 +473,12 @@ A greyed control has one of four causes.
 
 | Cause | What you see | What to do |
 | --- | --- | --- |
-| Event stream down | red banner; every control disabled, the board stays | wait, or start the Overseer; the page reconnects |
-| Launches held for an [install change](#banners-warnings-and-notices) | banner; every control disabled but Stop Overseer and the job controls Stop and Wind down; no Restart is offered | run `forge update`: its last step hands the Overseer to the code on disk, which lifts the hold. If it reports otherwise, follow Updating in the [Runbook](runbook.md) |
+| Event stream down | red banner; every control disabled, the board stays | wait, or start Hephaestus; the page reconnects |
+| Launches held for an [install change](#banners-warnings-and-notices) | banner; every control disabled but Stop Hephaestus and the job controls Stop and Wind down; no Restart is offered | run `forge update`: its last step hands Hephaestus to the code on disk, which lifts the hold. If it reports otherwise, follow Updating in the [Runbook](runbook.md) |
 | A send in flight | that one control | wait |
 | A form not complete | that one control | finish the choice or the text |
 
-A command that cannot reach the Overseer shows nothing, and the button comes back. Check the banner.
+A command that cannot reach Hephaestus shows nothing, and the button comes back. Check the banner.
 
 > **As built.** The job controls Stop and Wind down, on the Agents tab and in the ticket form's More menu, stay enabled
 > while launches are held for an install change, and a click only raises the banner again. Controls can flicker on
@@ -486,11 +486,11 @@ A command that cannot reach the Overseer shows nothing, and the button comes bac
 
 ### A refusal is an answer
 
-Rules live in the Overseer, so a button can offer what the Overseer then declines.
+Rules live in Hephaestus, so a button can offer what Hephaestus then declines.
 
-User clicks a control in the board view and the Overseer checks the command under the tracker lock. A refusal returns to
+User clicks a control in the board view and Hephaestus checks the command under the tracker lock. A refusal returns to
 the control word for word with nothing written. An applied request stores its fact, a Pass wakes and acts, and the view
-changes when the next board update arrives. Stop Overseer and Restart skip this path and record nothing. So there are
+changes when the next board update arrives. Stop Hephaestus and Restart skip this path and record nothing. So there are
 two returns: a refusal comes straight back, and success arrives later, as a board update.
 
 The refusal appears beside the control, word for word, for example `Ticket #003 is already held. Nothing was written.`
@@ -554,7 +554,7 @@ A normal day is a loop: file and ready work, answer Questions, glance at notices
 
 Three doors lead to the same draft ticket, and nothing builds until you ready it.
 
-![Intake, a Claude Code session and ticket add all end at a draft ticket, which a filer's submit puts in the Ready for review group. You press Ready on its form, and the Overseer checks for a numbered Acceptance and a Brief. A ticket that passes reaches the Ready lane. One that fails is refused, and the refusal says what is missing.](../figures/running-a-board/three-doors.png)
+![Intake, a Claude Code session and ticket add all end at a draft ticket, which a filer's submit puts in the Ready for review group. You press Ready on its form, and Hephaestus checks for a numbered Acceptance and a Brief. A ticket that passes reaches the Ready lane. One that fails is refused, and the refusal says what is missing.](../figures/running-a-board/three-doors.png)
 
 *The gate is the check, not the button: Ready can come back refused.*
 
@@ -610,25 +610,25 @@ each ticket to continue it.
 
 ### Stop for the day
 
-To end a day, Pause, then Stop Overseer: agents finish their work and no ticket starts at the next start until you
-Resume. An unpaused board launches on the next Overseer's first Pass. To have no ticket agent running overnight, run
-`forge job stop --all --wind-down` and wait until Agents shows them gone before Stop Overseer. The
+To end a day, Pause, then Stop Hephaestus: agents finish their work and no ticket starts at the next start until you
+Resume. An unpaused board launches on the next Hephaestus's first Pass. To have no ticket agent running overnight, run
+`forge job stop --all --wind-down` and wait until Agents shows them gone before Stop Hephaestus. The
 Assistant session stays up.
 
 | You run | Launches | Running agents | The API and the board view |
 | --- | --- | --- | --- |
-| Pause, or `forge oversee pause` | no new ticket work | keep running | up |
+| Pause, or `forge pause` | no new ticket work | keep running | up |
 | `forge job stop --all --wind-down` | no new ticket work | wrap up and end; tickets held | up |
-| Stop Overseer, or `forge oversee stop` | none, no [Pass](../glossary.md#pass) runs | keep running under Talos, until its lease ends a minute later; then they stop at the end of their turn and wait for your resume | gone |
-| `forge oversee stop --now` | none, no Pass runs | as for `oversee stop`; Talos also stops every install, [gate](../glossary.md#gate) and merge line | gone |
+| Stop Hephaestus, or `forge stop` | none, no [Pass](../glossary.md#pass) runs | keep running under Talos, until its lease ends a minute later; then they stop at the end of their turn and wait for your resume | gone |
+| `forge stop --now` | none, no Pass runs | as for `stop`; Talos also stops every install, [gate](../glossary.md#gate) and merge line | gone |
 
 Use `--now` when a running install or gate process must end too, such as one that hangs. The board view has no `--now`.
 
-![A strip over one night. The Overseer drives the board until oversee stop. In a shaded span nobody drives, while an agent keeps running under Talos and ends. oversee --detach starts the next Overseer, which settles what ended. Then the stored state decides: paused starts no ticket, running launches at the first Pass.](../figures/running-a-board/overnight.png)
+![A strip over one night. Hephaestus drives the board until stop. In a shaded span nobody drives, while an agent keeps running under Talos and ends. start starts the next Hephaestus, which settles what ended. Then the stored state decides: paused starts no ticket, running launches at the first Pass.](../figures/running-a-board/overnight.png)
 
 *The fork at the bottom is the choice you make the evening before.*
 
-Start the Overseer again with `forge oversee --detach`. It settles jobs that ended while it was down.
+Start Hephaestus again with `forge start`. It settles jobs that ended while it was down.
 
 ## Groups and release tickets
 
@@ -656,11 +656,11 @@ A `cleanup-declined` notice means git kept the group's worktree or branch after 
 ## The same from a terminal
 
 Most views have a verb. Each is `forge <verb>`, and [the CLI reference](../cli.md) has the flags. Reads and
-recorded moves also work with the Overseer down; a recorded move takes effect at the next start.
+recorded moves also work with Hephaestus down; a recorded move takes effect at the next start.
 
 | In the board view | In a terminal |
 | --- | --- |
-| Header and Kanban | `status`, `oversee status`, `oversee pause`, `oversee resume`, `concurrency <n>` |
+| Header and Kanban | `status`, `pause`, `unpause`, `concurrency <n>` |
 | Progress | `status` for the open rows, `range` for the chart's default span |
 | Tickets | `ticket list`, `ticket show <id>` |
 | Card and detail panel controls | `ticket ready <id>`, `ticket hold <id>`, `ticket unhold <id>`, `ticket park <id> -- <reason>`, `ticket priority <id> <level>`, `ticket network <id> <domain>` |
@@ -678,7 +678,7 @@ one is rare.
 ### The optional wrapper session
 
 Run a Claude Code session with the `forge-orchestrate` skill when you prefer talking to clicking. It reads
-the board's state, starts the Overseer on your go, turns what you say into verbs, files through `forge-po`, and puts
+the board's state, starts Hephaestus on your go, turns what you say into verbs, files through `forge-po`, and puts
 each open question to you. It never drives a ticket, moves an incident or writes code. Close it any time: the board does
 not depend on it.
 
@@ -695,31 +695,31 @@ Agents tab.
 | Chart range, folds, row options, finished-work span | Agents' open transcripts, replayed from history when reopened |
 | Tickets grouping | |
 
-A page reload loses everything in the Lost column too, and so does a reconnect to an Overseer on
+A page reload loses everything in the Lost column too, and so does a reconnect to a Hephaestus on
 other code. Send a long answer before you wander off.
 
 ## Several repositories
 
-Each repository has its own [tracker](../glossary.md#tracker), Overseer and port, and preferences are kept
+Each repository has its own [tracker](../glossary.md#tracker), Hephaestus and port, and preferences are kept
 per board. Three things are shared across the machine.
 
-Two boards have each their own data folder and their own Overseer, URL and Talos. Both Overseers reach into the one
-monitor folder: `gate-slots` bounds gate runs across the machine, `usage-limit.json` holds launches on every board,
-`usage-windows.json` keeps the plan's usage windows and `projects.json` lists every board for a monitor to read. So one
-busy board can make another's gates wait, and one usage limit stops launches on all of them.
+Two boards have each their own data folder and their own Hephaestus, URL and Talos. Both Hephaestus processes reach into
+the one monitor folder: `gate-slots` bounds gate runs across the machine, `usage-limit.json` holds launches on every
+board, `usage-windows.json` keeps the plan's usage windows and `projects.json` lists every board for a monitor to read.
+So one busy board can make another's gates wait, and one usage limit stops launches on all of them.
 
 All boards on a machine share one gate limit: `GATE_RUNS_AT_ONCE` (2) gate runs at a time, each holding a
 [gate slot](../glossary.md#gate-slot) recorded in the shared [`<monitor>`](../glossary.md#reading-names) folder. Its
 [usage marker](../glossary.md#usage-marker) allows no launch or resume on any board before its reset.
 
 A monitor is a separate tool that shows several boards together. It finds them in `projects.json`, the monitor
-registry, and reads each through its Overseer's API ([the Overseer API](../reference/overseer-api.md)).
+registry, and reads each through its Hephaestus's API ([the Hephaestus API](../reference/hephaestus-api.md)).
 
 ## Several boards in one repository
 
 A repository may hold several trackers, each in a project folder of its own, such as `apps/web` and `apps/api` of a
 monorepo ([Trackers in a repository](../cli.md#trackers-in-a-repository)). Each is a board as above, with its own
-Overseer and port, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
+Hephaestus and port, and its own branch namespace, so its ticket branches read `forge/<namespace>/ticket-<id>`.
 Its agents start at the root of their worktree, so that they can commit, and are told the project's folder; they may
 change that folder and the paths its pipeline's reach names; Customs refuses any other path.
 
@@ -736,18 +736,18 @@ the untouched apps.
 
 1. The board view stores no board state. Closing or reloading it loses only what
    [What is lost on a tab change](#what-is-lost-on-a-tab-change) lists.
-2. Every control that changes the board posts a control command, and the Overseer alone applies or refuses it;
-   Stop Overseer and Restart go to the running Overseer and record nothing.
+2. Every control that changes the board posts a control command, and Hephaestus alone applies or refuses it;
+   Stop Hephaestus and Restart go to the running Hephaestus and record nothing.
 3. A refusal is shown word for word, and nothing was written.
 4. A ticket's lane is computed from its stored status and merge-queue mark on every board update.
 5. The detail panel opens in place over Kanban, Waves, Progress, Epics and Tickets, and never changes the tab.
-6. Stopping an Overseer never stops an agent session.
+6. Stopping a Hephaestus never stops an agent session.
 
 ## In the code
 
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
 | Display state | `src/lib/tracker-model/DisplayQueries.ts` | `ticketDisplayStateOf` | `src/lib/tracker-model/Board.displayQueries.spec.ts` |
-| Command route | `cli/overseer/routes/CommandRoute.ts` | `answerControlCommand` | `cli/overseer/OverseerApi.integration.spec.ts` |
-| Stop with agents running | `cli/overseer/OverseerForeground.ts` | `BoardChildren.stopLiveLines` | `cli/overseer/OverseerCommand.integration.spec.ts` |
+| Command route | `cli/hephaestus/routes/CommandRoute.ts` | `answerControlCommand` | `cli/hephaestus/HephaestusApi.integration.spec.ts` |
+| Stop with agents running | `cli/hephaestus/HephaestusForeground.ts` | `BoardChildren.stopLiveLines` | `cli/hephaestus/StartCommand.integration.spec.ts` |
 | Terminal views | `cli/jobs/JobsCommand.ts`, `cli/jobs/JobCommand.ts` | `jobsCommand` | `cli/jobs/JobCommand.spec.ts` |

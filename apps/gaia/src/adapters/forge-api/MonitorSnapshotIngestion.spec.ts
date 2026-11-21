@@ -22,7 +22,7 @@ import { EXAMPLE_READ_STAMP, recordedDocumentOf, registryFactsOf } from './testi
 const STOREFRONT = FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleStorefront;
 
 /** The forge the Storefront at work was recorded from, as the recording's stamp and the identity Gaia reads beside its snapshot name it. */
-const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('overseer-fetch-supported-forge');
+const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('hephaestus-fetch-supported-forge');
 const RECORDED_CODE_VERSION = RECORDED_FORGE_VERSIONS.codeVersion;
 const STOREFRONT_FACTS = registryFactsOf(STOREFRONT);
 const BATON_PASS_SENTENCE = 'the Baton pass to code example-code failed at take-baton: Example error';
@@ -36,9 +36,9 @@ function storefrontIdentityOf(codeVersion: string): ForgeIdentity {
     installVersion: RECORDED_FORGE_VERSIONS.installVersion,
     processId:      48_107,
     contracts:      {
-      summary: 1,
-      monitor: 4,
-      control: 2,
+      summary: 2,
+      monitor: 5,
+      control: 3,
     },
   };
 }
@@ -48,16 +48,16 @@ function ingestion(): MonitorSnapshotIngestion {
 }
 
 async function storefrontSnapshot(): Promise<Record<string, unknown>> {
-  return await recordedDocumentOf('serving-every-contract', 'monitor', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
+  return await recordedDocumentOf('serving-every-contract', 'monitor', STOREFRONT_FACTS.hephaestusUrl) as Record<string, unknown>;
 }
 
 /** What the recording of the Storefront at work drew afresh: its stamps, and its activity in the order the forge logged it. */
 interface RecordedStorefrontFacts {
-  readonly overseerStartedAt:  string;
-  readonly draftTicketFiledAt: string;
-  readonly questionOpenedAt:   string;
-  readonly jobStartedAt:       string;
-  readonly activity:           readonly { readonly logPosition: number; readonly at: string; readonly text: string }[];
+  readonly hephaestusStartedAt: string;
+  readonly draftTicketFiledAt:  string;
+  readonly questionOpenedAt:    string;
+  readonly jobStartedAt:        string;
+  readonly activity:            readonly { readonly logPosition: number; readonly at: string; readonly text: string }[];
 }
 
 function attentionStampOf(snapshot: Record<string, unknown>, key: string): string {
@@ -67,15 +67,15 @@ function attentionStampOf(snapshot: Record<string, unknown>, key: string): strin
 }
 
 function recordedFactsOf(snapshot: Record<string, unknown>): RecordedStorefrontFacts {
-  const overseer = snapshot['overseer'] as { startedAt: string };
+  const hephaestus = snapshot['hephaestus'] as { startedAt: string };
   const [recordedJob] = snapshot['jobs'] as { startedAt: string }[];
   if (recordedJob === undefined) throw new Error('The Storefront at work was recorded with no job.');
   return {
-    overseerStartedAt:  overseer.startedAt,
-    draftTicketFiledAt: attentionStampOf(snapshot, 'ticket:001'),
-    questionOpenedAt:   attentionStampOf(snapshot, 'decision:E1'),
-    jobStartedAt:       recordedJob.startedAt,
-    activity:           snapshot['activity'] as RecordedStorefrontFacts['activity'],
+    hephaestusStartedAt: hephaestus.startedAt,
+    draftTicketFiledAt:  attentionStampOf(snapshot, 'ticket:001'),
+    questionOpenedAt:    attentionStampOf(snapshot, 'decision:E1'),
+    jobStartedAt:        recordedJob.startedAt,
+    activity:            snapshot['activity'] as RecordedStorefrontFacts['activity'],
   };
 }
 
@@ -89,7 +89,7 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     },
   ],
   [
-    `Overseer started on code ${RECORDED_CODE_VERSION}, install version ${RECORDED_FORGE_VERSIONS.installVersion}`,
+    `Hephaestus started on code ${RECORDED_CODE_VERSION}, install version ${RECORDED_FORGE_VERSIONS.installVersion}`,
     {
       category:   'forge',
       boardRoute: null,
@@ -117,7 +117,7 @@ const MAPPED_ACTIVITY_BY_TEXT = new Map<string, Omit<ForgeReading['activity'][nu
     },
   ],
   [
-    'Overseer set to running',
+    'Hephaestus set to running',
     {
       category:   'forge',
       boardRoute: null,
@@ -145,17 +145,17 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
     url:       'http://127.0.0.1:4951/',
     processId: 48_107,
     contracts: {
-      summary: 1,
-      monitor: 4,
-      control: 2,
+      summary: 2,
+      monitor: 5,
+      control: 3,
     },
-    codeVersion:       RECORDED_CODE_VERSION,
-    lastReportedAt:    EXAMPLE_READ_STAMP,
-    overseerStartedAt: recorded.overseerStartedAt,
-    program:           STOREFRONT.program,
-    lastCommand:       STOREFRONT.lastCommand,
-    lastChangedAt:     STOREFRONT.lastChangedAt,
-    concurrency:       {
+    codeVersion:         RECORDED_CODE_VERSION,
+    lastReportedAt:      EXAMPLE_READ_STAMP,
+    hephaestusStartedAt: recorded.hephaestusStartedAt,
+    program:             STOREFRONT.program,
+    lastCommand:         STOREFRONT.lastCommand,
+    lastChangedAt:       STOREFRONT.lastChangedAt,
+    concurrency:         {
       limit:                        2,
       agentsInFlight:               0,
       machineLimit:                 10,
@@ -188,7 +188,7 @@ function recordedReadingOf(recorded: RecordedStorefrontFacts): ForgeReading {
         ticketIds:               [],
         subject:                 'No pipeline is set, so no ticket builds. Set up the pipeline on the Pipeline page, then press Apply.',
         jobId:                   null,
-        askedBy:                 'overseer',
+        askedBy:                 'hephaestus',
         decisionKind:            'checks-not-set',
         escalatedFromIncidentId: null,
         metaText:                null,
@@ -324,7 +324,7 @@ describe('the snapshot of Example Storefront at work', () => {
       ['J4', null],
       ['J5', null],
     ]);
-    expect(ingestion().readingOf({ ...snapshot, jobs: [{ ...recordedJob, interruption: 'watcher-lost' }] }, EXAMPLE_READ_STAMP))
+    expect(ingestion().readingOf({ ...snapshot, jobs: [{ ...recordedJob, interruption: 'talos-lost' }] }, EXAMPLE_READ_STAMP))
       .toEqual({ verdict: 'malformed', invalidKeys: ['jobs[0].interruption'] });
   });
 
@@ -365,31 +365,31 @@ describe('a snapshot at a version this Gaia does not know', () => {
       url:       STOREFRONT.url,
       processId: 48_107,
       contracts: {
-        summary: 1,
+        summary: 2,
         monitor: NEWER_MONITOR_VERSION,
         control: CONTRACT_VERSIONS.forgeControl,
       },
-      codeVersion:       RECORDED_CODE_VERSION,
-      lastReportedAt:    null,
-      overseerStartedAt: null,
-      program:           STOREFRONT.program,
-      lastCommand:       STOREFRONT.lastCommand,
-      lastChangedAt:     STOREFRONT.lastChangedAt,
-      concurrency:       null,
-      readyTicketCount:  null,
-      openIncidents:     null,
-      attention:         [],
-      attentionCount:    null,
-      agents:            [],
-      notices:           [],
-      warnings:          [],
-      activity:          [],
-      today:             null,
-      usage:             null,
-      versions:          null,
-      registryPresence:  null,
-      presenceReport:    null,
-      newestVersions:    null,
+      codeVersion:         RECORDED_CODE_VERSION,
+      lastReportedAt:      null,
+      hephaestusStartedAt: null,
+      program:             STOREFRONT.program,
+      lastCommand:         STOREFRONT.lastCommand,
+      lastChangedAt:       STOREFRONT.lastChangedAt,
+      concurrency:         null,
+      readyTicketCount:    null,
+      openIncidents:       null,
+      attention:           [],
+      attentionCount:      null,
+      agents:              [],
+      notices:             [],
+      warnings:            [],
+      activity:            [],
+      today:               null,
+      usage:               null,
+      versions:            null,
+      registryPresence:    null,
+      presenceReport:      null,
+      newestVersions:      null,
     });
   });
 
@@ -415,15 +415,15 @@ describe('a snapshot that cannot be read', () => {
     const [firstEntry, ...otherEntries] = snapshot['attention'] as Record<string, unknown>[];
     const broken = {
       ...snapshot,
-      overseer:  { ...snapshot['overseer'] as object, state: 'resting' },
-      jobs:      [{ ...firstJob, tokens: -1 }, ...otherJobs],
-      attention: [{ ...firstEntry, kind: 'chat' }, ...otherEntries],
-      today:     null,
+      hephaestus: { ...snapshot['hephaestus'] as object, state: 'resting' },
+      jobs:       [{ ...firstJob, tokens: -1 }, ...otherJobs],
+      attention:  [{ ...firstEntry, kind: 'chat' }, ...otherEntries],
+      today:      null,
     };
     delete (broken as Record<string, unknown>)['root'];
     expect(ingestion().readingOf(broken, EXAMPLE_READ_STAMP)).toEqual({
       verdict:     'malformed',
-      invalidKeys: ['root', 'overseer.state', 'attention[0].kind', 'jobs[0].tokens', 'today'],
+      invalidKeys: ['root', 'hephaestus.state', 'attention[0].kind', 'jobs[0].tokens', 'today'],
     });
   });
 

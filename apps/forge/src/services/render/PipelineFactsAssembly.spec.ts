@@ -726,7 +726,7 @@ describe('the choices, profile runs and history', () => {
   });
 
   test('the newest pipeline records first, without a setup\'s own steps, and no more than the list shows', () => {
-    const resumed: LogRecord = { kind: 'overseer-set', at: AT, fields: { state: 'running' } };
+    const resumed: LogRecord = { kind: 'hephaestus-set', at: AT, fields: { state: 'running' } };
     const finding: LogRecord = {
       kind: 'pipeline-finding-recorded', at: AT, setupId: 'S1', fields: { findingId: 'F1', topic: 'stack' }
     };

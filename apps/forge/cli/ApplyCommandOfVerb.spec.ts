@@ -1,9 +1,9 @@
 /**
- * A verb's command applied through the store's command face, the nudge against the recorded Overseer API in place of the global `fetch`.
+ * A verb's command applied through the store's command face, the nudge against the recorded Hephaestus API in place of the global `fetch`.
  * What matters: under a job the verb is refused `verb-not-relayable` before the store is reached; an unreadable ticket file is named on
  * standard error after the write, at exit 0; after the write, a live Baton gets one body-less `POST api/nudge` with no token, sent once the
- * lock is released; no live Baton gets no request; and an Overseer gone leaves the write done and the command at exit 0, since the
- * Overseer's watch notices the write anyway.
+ * lock is released; no live Baton gets no request; and a Hephaestus gone leaves the write done and the command at exit 0, since
+ * Hephaestus's watch notices the write anyway.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -15,34 +15,34 @@ import {
   test
 } from 'bun:test';
 
-import { LocalTimeUtil }                               from '../src/lib/local-time/LocalTimeUtil.ts';
-import type { PlatformPorts }                          from '../src/lib/platform-ports/PlatformPortsFor.ts';
-import type { BatonRecord }                            from '../src/services/overseer/Baton.ts';
-import { localStoreLayoutOf }                          from '../src/services/tracker/LocalStoreLayout.ts';
-import { requireWorkspace }                            from '../src/services/tracker/Workspace.ts';
-import { refusalIsOperationRefusal }                   from '../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                               from '../src/shared/constants/ProductNames.ts';
-import { nativePlatformPorts }                         from '../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                              from '../src/testing/RecordedGit.ts';
-import { useRecordedOverseerFetch }                    from '../src/testing/RecordedOverseerAnswers.ts';
-import { OVERSEER_CALL_SHAPES, type RecordedOverseer } from '../src/testing/RecordedOverseerFetch.ts';
-import { removeScratchDirectory }                      from '../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded }                   from '../src/testing/ToolGuard.ts';
-import { applyCommandOfVerb }                          from './ApplyCommandOfVerb.ts';
-import { boardStoreOf }                                from './BoardStoreOf.ts';
-import { runCommandLine }                              from './Main.ts';
-import { createArgumentParser }                        from './arguments/ArgumentParser.ts';
-import { createCapturedCommandContext }                from './testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }      from './testing/InitializedScratchRepository.ts';
+import { LocalTimeUtil }                                   from '../src/lib/local-time/LocalTimeUtil.ts';
+import type { PlatformPorts }                              from '../src/lib/platform-ports/PlatformPortsFor.ts';
+import type { BatonRecord }                                from '../src/services/hephaestus/Baton.ts';
+import { localStoreLayoutOf }                              from '../src/services/tracker/LocalStoreLayout.ts';
+import { requireWorkspace }                                from '../src/services/tracker/Workspace.ts';
+import { refusalIsOperationRefusal }                       from '../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                                   from '../src/shared/constants/ProductNames.ts';
+import { nativePlatformPorts }                             from '../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                                  from '../src/testing/RecordedGit.ts';
+import { useRecordedHephaestusFetch }                      from '../src/testing/RecordedHephaestusAnswers.ts';
+import { HEPHAESTUS_CALL_SHAPES, type RecordedHephaestus } from '../src/testing/RecordedHephaestusFetch.ts';
+import { removeScratchDirectory }                          from '../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }                       from '../src/testing/ToolGuard.ts';
+import { applyCommandOfVerb }                              from './ApplyCommandOfVerb.ts';
+import { boardStoreOf }                                    from './BoardStoreOf.ts';
+import { runCommandLine }                                  from './Main.ts';
+import { createArgumentParser }                            from './arguments/ArgumentParser.ts';
+import { createCapturedCommandContext }                    from './testing/CapturedCommandContext.ts';
+import { createInitializedRecordedGitRepository }          from './testing/InitializedScratchRepository.ts';
 
 const FROZEN_NOW = new Date('2026-09-23T10:00:00Z');
 const BATON_PROCESS = { processId: 4242, startStamp: '1767225600', bootIdentity: 'example-boot' };
 
 const recordedGit = useRecordedGit();
-const recordedOverseer = useRecordedOverseerFetch();
+const recordedHephaestus = useRecordedHephaestusFetch();
 
 let repositoryDirectory = '';
-let overseer: RecordedOverseer;
+let hephaestus: RecordedHephaestus;
 let globalFetch: ReturnType<typeof spyOn> | null = null;
 
 /** The Baton's process reads as alive, so no process table is asked. */
@@ -59,20 +59,20 @@ function portsWithTheBatonProcessAlive(): PlatformPorts {
 }
 
 function writeLiveBaton(): void {
-  const overseerDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'overseer');
-  mkdirSync(overseerDirectory, { recursive: true });
+  const hephaestusDirectory = join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'hephaestus');
+  mkdirSync(hephaestusDirectory, { recursive: true });
   const record: BatonRecord = {
     processId:            BATON_PROCESS.processId,
     processStartStamp:    BATON_PROCESS.startStamp,
     bootIdentity:         BATON_PROCESS.bootIdentity,
-    port:                 overseer.port,
-    url:                  overseer.url,
-    tokenFile:            join(overseerDirectory, 'token'),
+    port:                 hephaestus.port,
+    url:                  hephaestus.url,
+    tokenFile:            join(hephaestusDirectory, 'token'),
     codeVersion:          'code-example',
     installVersion:       17,
     talosProtocolVersion: 2,
   };
-  writeFileSync(join(overseerDirectory, 'baton-1.json'), JSON.stringify(record));
+  writeFileSync(join(hephaestusDirectory, 'baton-1.json'), JSON.stringify(record));
 }
 
 async function addTask(): Promise<{ exitCode: number; errorText: string }> {
@@ -83,8 +83,8 @@ async function addTask(): Promise<{ exitCode: number; errorText: string }> {
 
 beforeEach(async () => {
   repositoryDirectory = await createInitializedRecordedGitRepository('apply-command-of-verb', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
-  overseer = recordedOverseer();
-  globalFetch = spyOn(globalThis, 'fetch').mockImplementation(((input: string | URL, init?: RequestInit) => overseer.fetch(input, init)) as typeof fetch);
+  hephaestus = recordedHephaestus();
+  globalFetch = spyOn(globalThis, 'fetch').mockImplementation(((input: string | URL, init?: RequestInit) => hephaestus.fetch(input, init)) as typeof fetch);
 });
 
 afterEach(() => {
@@ -96,23 +96,23 @@ describeWhenGitIsRecorded('the nudge after a write', () => {
   test('a live Baton gets one body-less POST api/nudge with no token', async () => {
     writeLiveBaton();
     expect(await addTask()).toEqual({ exitCode: 0, errorText: '' });
-    expect(overseer.requests.map(({
+    expect(hephaestus.requests.map(({
       method, callShape, authorization, init
     }) => [method, callShape, authorization, init?.body])).toEqual([
-      ['POST', OVERSEER_CALL_SHAPES.NUDGE, null, undefined],
+      ['POST', HEPHAESTUS_CALL_SHAPES.NUDGE, null, undefined],
     ]);
   });
 
   test('with no Baton no request goes out', async () => {
     expect((await addTask()).exitCode).toBe(0);
-    expect(overseer.requests).toEqual([]);
+    expect(hephaestus.requests).toEqual([]);
   });
 
-  test('an Overseer gone leaves the write done at exit 0', async () => {
+  test('a Hephaestus gone leaves the write done at exit 0', async () => {
     writeLiveBaton();
-    overseer.stop();
+    hephaestus.stop();
     expect((await addTask()).exitCode).toBe(0);
-    expect(overseer.requests.map((request) => request.callShape)).toEqual([OVERSEER_CALL_SHAPES.NOTHING_LISTENS]);
+    expect(hephaestus.requests.map((request) => request.callShape)).toEqual([HEPHAESTUS_CALL_SHAPES.NOTHING_LISTENS]);
   });
 });
 
@@ -147,7 +147,7 @@ describeWhenGitIsRecorded('the command face', () => {
       const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
       const written = await boardStoreOf(context).store.transactions.transact({ at: LocalTimeUtil.formatLocalIso(FROZEN_NOW), mutate: () => 'written during the nudge' });
       writesDuringTheNudge.push(written.result);
-      return overseer.fetch(input, init);
+      return hephaestus.fetch(input, init);
     }) as typeof fetch);
     expect(await addTask()).toEqual({ exitCode: 0, errorText: '' });
     expect(writesDuringTheNudge).toEqual(['written during the nudge']);

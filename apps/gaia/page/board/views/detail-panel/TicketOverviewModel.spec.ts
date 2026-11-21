@@ -318,7 +318,7 @@ describe('the other moves', () => {
       return otherMoves.find((move) => move.move === 'deliver-by-hand');
     };
     expect(byHandOf([])).toMatchObject({ opens: 'by-hand', sendable: true });
-    expect(wordsOf(byHandOf([])?.effect ?? [])).toBe('Records #004 delivered: work User landed outside the Overseer. Nothing merges, lands or launches.');
+    expect(wordsOf(byHandOf([])?.effect ?? [])).toBe('Records #004 delivered: work User landed outside Hephaestus. Nothing merges, lands or launches.');
     expect(byHandOf([exampleDetailJob('J4', '004')])).toBeUndefined();
   });
 

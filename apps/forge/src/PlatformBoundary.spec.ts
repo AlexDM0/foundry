@@ -75,7 +75,7 @@ const ADAPTER_FILES_OUTSIDE_LIB: readonly string[] = [
   'cli/setup/PosixSetupPlatform.ts',
   'cli/setup/WindowsSetupPlatform.ts',
   'cli/setup/AutostartFor.ts',
-  'src/services/overseer/HeldSlotCreateFor.ts',
+  'src/services/hephaestus/HeldSlotCreateFor.ts',
 ];
 
 /** `<path>: <form>: <trimmed line>`, each with the reason it stays. */
@@ -96,11 +96,11 @@ const ALLOWED_PLATFORM_LINES: Readonly<Record<string, string>> = {
     'Machine setup runs before any CommandContext exists; its entry is its composition root.',
   'cli/setup/Setup.ts: platform-property: host, platform: setupPlatformFor(host.platform), report, instructOnly':
     'Hands the host\'s platform straight to the selector and decides nothing on it.',
-  'cli/setup/LoginOverseer.ts: platform-property: const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));':
+  'cli/setup/LoginHephaestus.ts: platform-property: const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));':
     'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
   'src/lib/atomic-file/FileReplaceFor.ts: process-platform: return fileReplaceFor(process.platform);':
     'Lib writes have no context, so this selector reads the platform at call time.',
-  'src/services/overseer/HeldSlotCreateFor.ts: process-platform: return heldSlotCreateMeansTakenFor(process.platform);':
+  'src/services/hephaestus/HeldSlotCreateFor.ts: process-platform: return heldSlotCreateMeansTakenFor(process.platform);':
     'The gate slots have no context, as the FileReplace port they create through, so this selector reads the platform at call time.',
   'cli/setup/login-item/LoginItemCommand.ts: platform-property: const autostart = autostartFor(host.platform, autostartPrimitivesOf(host));':
     'Hands the host\'s platform straight to the Autostart selector and decides nothing on it.',
@@ -230,8 +230,8 @@ describe('the scan saw the tree', () => {
   test('the spawn scan finds every production spawn site, the port\'s and the plain windowsHide ones', () => {
     const spawnSites = SOURCES.filter((source) => isShippingCode(source.path) && spawnCallsIn(source.text).length > 0).map((source) => source.path);
     expect([...spawnSites].sort()).toEqual([
-      'cli/overseer/OverseerForeground.ts',
-      'cli/overseer/OverseerRemote.ts',
+      'cli/hephaestus/HephaestusForeground.ts',
+      'cli/hephaestus/HephaestusRemote.ts',
       'cli/setup/ProcessSetupHost.ts',
       'launcher.ts',
       'src/lib/gate-confinement/GateConfinementFor.ts',
@@ -239,9 +239,9 @@ describe('the scan saw the tree', () => {
       'src/lib/owner-only-files/WindowsOwnerOnlyFiles.ts',
       'src/lib/process-identity/ProcessSupervisionFor.ts',
       'src/lib/talos/Talos.ts',
-      'src/services/overseer/GpgDirectories.ts',
-      'src/services/overseer/InstallChangeWatch.ts',
-      'src/services/overseer/TalosStart.ts',
+      'src/services/hephaestus/GpgDirectories.ts',
+      'src/services/hephaestus/InstallChangeWatch.ts',
+      'src/services/hephaestus/TalosStart.ts',
     ]);
   });
 });
@@ -275,7 +275,7 @@ describe('the allowlist is exact both ways', () => {
 });
 
 describe('the guard names each form, planted in memory', () => {
-  const plantedPath = 'src/services/overseer/Planted.ts';
+  const plantedPath = 'src/services/hephaestus/Planted.ts';
 
   const plantedForms: readonly (readonly [string, string, readonly PlatformForm[]])[] = [
     ['process.platform', 'const platform = process.platform;', ['process-platform']],
@@ -326,7 +326,7 @@ describe('the guard names each form, planted in memory', () => {
 });
 
 describe('the spawn scan reads a whole call', () => {
-  const plantedPath = 'src/services/overseer/Planted.ts';
+  const plantedPath = 'src/services/hephaestus/Planted.ts';
 
   test('a call over several lines counts, named by its first line', () => {
     const plantedCall = 'const child = Bun.spawn({\n  cmd: [\'git\'],\n  stdout: \'pipe\',\n});';
@@ -436,7 +436,7 @@ describe('what the boundary exempts is exact', () => {
   });
 
   test('a core file in an adapter\'s folder, or an adapter name outside src/lib, is judged like any other', () => {
-    for (const path of ['src/lib/talos/TalosHelper.ts', 'src/services/overseer/PosixHelper.ts', 'src/services/overseer/HelperFor.ts', 'cli/WindowsOpener.ts']) {
+    for (const path of ['src/lib/talos/TalosHelper.ts', 'src/services/hephaestus/PosixHelper.ts', 'src/services/hephaestus/HelperFor.ts', 'cli/WindowsOpener.ts']) {
       expect(violationsOfPlanted(path, pipeLine)).toEqual([`${path}: pipe-name: ${pipeLine}`]);
     }
   });

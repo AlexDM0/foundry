@@ -1,6 +1,6 @@
 /**
  * `usage-windows.json` in the monitor folder, beside the usage marker: the newest observation of each usage window of the vendor's plan, which
- * every Overseer shows in its header. Read, validate and map; written through the atomic-file package, unknown keys kept in order.
+ * every Hephaestus shows in its header. Read, validate and map; written through the atomic-file package, unknown keys kept in order.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';

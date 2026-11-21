@@ -1,5 +1,5 @@
 /**
- * The Talos of a default spec: `useRecordedTalosStages` starts no Talos, and answers each frame of the Overseer's connection by leaving
+ * The Talos of a default spec: `useRecordedTalosStages` starts no Talos, and answers each frame of Hephaestus's connection by leaving
  * what the real Talos left in that stage of a child, which `src/lib/talos/Talos.stages.integration.spec.ts` records under
  * `bun run record src/lib/talos/Talos.ts`: the child record, the origin of each event-log line, whether the child still runs, and Talos's
  * own record. A stage with no recorded answer fails the case. Talos's and its children's processes are in the recorded process table.
@@ -23,8 +23,8 @@ import { createEventLogWriter, type EventLogWriter, type EventOrigin }     from 
 import { type ChildFiles, childFilesOf, talosRecordPathOf }                from '../lib/talos/TalosFiles.ts';
 import { clientEntryLineOf, quitActInputOf }                               from '../lib/talos/TalosFrames.ts';
 import { type TalosRecord, talosRecordTextOf }                             from '../lib/talos/TalosRecord.ts';
-import type { ProcessStarts }                                              from '../services/overseer/ProcessStarts.ts';
-import type { TalosConnection, TalosFrameRequest }                         from '../services/overseer/TalosConnection.ts';
+import type { ProcessStarts }                                              from '../services/hephaestus/ProcessStarts.ts';
+import type { TalosConnection, TalosFrameRequest }                         from '../services/hephaestus/TalosConnection.ts';
 import type { BoundaryRecording }                                          from './BoundaryRecordings.ts';
 import { recordCommandOf, recordingPathOf }                                from './BoundaryRecordings.ts';
 import { FAKE_HEAD_PLACEHOLDER, type FakeAgentStep }                       from './FakeAgentAdapter.ts';
@@ -48,14 +48,14 @@ export const TALOS_STAGES = {
   AGENT_LINE:              'an agent taking a line and replying',
   AGENT_INPUT_CLOSED:      'an agent whose input closed',
   AGENT_CRASH:             'an agent that crashed',
-  AGENT_STOPPED:           'an agent stopped by the Overseer',
+  AGENT_STOPPED:           'an agent stopped by Hephaestus',
   AGENT_PAUSED:            'an agent ended by a clean quit',
   AGENT_LEASE_ENDED:       'an agent ended by a lease end',
   AGENT_ENDING_RECOGNISED: 'an agent whose closing line Talos recognised',
   LINE_LAUNCHED:           'a line launched',
   LINE_GREEN:              'a line that ends green',
   LINE_RED:                'a line that ends red',
-  LINE_STOPPED:            'a line stopped by the Overseer',
+  LINE_STOPPED:            'a line stopped by Hephaestus',
   LINE_PAUSED:             'a line ended by a clean quit',
   LINE_TIME_BOUND:         'a line past its time bound',
   TALOS_CRASH_AGENT:       'an agent of a Talos that crashed',
@@ -251,7 +251,7 @@ export interface RecordedTalosStages {
   readonly recogniseEndingOfTheLastLine: (childFolder: string, instance: number, endingName: string) => void;
   /** The child refuses each forced stop from now on, as a process of another user does, and lives on. */
   readonly refuseForcedStopsOfChild:     (childFolder: string, instance: number) => void;
-  /** The next Talos of the board, once the one before it quit or was lost, as the Overseer's `ensureTalos` starts it. */
+  /** The next Talos of the board, once the one before it quit or was lost, as Hephaestus's `ensureTalos` starts it. */
   readonly startTalosAgain:              (boardFolder: string) => void;
   /** Talos and every child are gone with the machine, and nothing writes a record; the spec writes the records of another boot. */
   readonly rebootMachine:                (boardFolder: string) => void;

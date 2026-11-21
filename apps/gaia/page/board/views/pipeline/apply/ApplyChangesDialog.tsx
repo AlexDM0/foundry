@@ -29,7 +29,7 @@ export interface ApplyChangesDialogProps {
   readonly flow:         BoardPipelineFlowDocument;
   readonly pipeline:     BoardAppliedPipelineDocument | undefined;
   readonly onClose:      () => void;
-  /** Called once the Overseer took the Apply, which never resumes the board. */
+  /** Called once Hephaestus took the Apply, which never resumes the board. */
   readonly onApplySent?: () => void;
   /** Over entities, every ticket's entity and stage, which group the tickets in flight; absent keeps them one list. */
   readonly tickets?:     readonly EntityWorkTicket[];

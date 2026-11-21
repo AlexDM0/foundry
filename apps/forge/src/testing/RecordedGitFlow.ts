@@ -1,5 +1,5 @@
 /**
- * The stages of a ticket's flow through git, each one answer set: the calls the Overseer makes while the repository stands in that stage,
+ * The stages of a ticket's flow through git, each one answer set: the calls Hephaestus makes while the repository stands in that stage,
  * with the place each is asked in. `src/lib/git/RecordedGitAnswers.integration.spec.ts` walks a real repository through the stages and
  * records every answer; `src/testing/RecordedGit.ts` answers a default spec's calls from the stage it is in, in any order and as often as asked.
  * A recorded answer holds placeholders for the repository folder and the commit and tree ids, which a replay fills with fixed example ids.
@@ -356,7 +356,7 @@ const BUILDER_FILE_SHOWN = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [['show',
 const MAIN_LINE_STANDING = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_MISSING];
 const WORKTREE_STANDING = [...MAIN_CHECKOUT_READS, ...SESSION_FOLDER_READS, ...TICKET_BRANCH_PRESENT, ...TICKET_WORKTREE_READS];
 
-/** The branch exists, so the Overseer adds the worktree on it, which git refuses while another worktree holds the branch. */
+/** The branch exists, so Hephaestus adds the worktree on it, which git refuses while another worktree holds the branch. */
 const WORKTREE_ADD_REFUSED = callsIn(RECORDED_FLOW_PLACES.MAIN_CHECKOUT, [{
   gitArguments: ['worktree', 'add', TICKET_WORKTREE_FOLDER, RECORDED_FLOW_TICKET_BRANCH],
   exitCode:     FATAL,

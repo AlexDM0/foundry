@@ -6,7 +6,7 @@
     "operatingSystem": "darwin",
     "system": "forge",
     "source": "recorded",
-    "systemVersion": "install version 44, code 7be0e9b545ff"
+    "systemVersion": "install version 45, code 5c7c0f3669b1"
   },
   "answers": [
     {
@@ -41,8 +41,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 45, from a newer forge than this one (install version 44), so nothing was done. Update forge itself, then update the board.\"\n}\n",
-        "standardError": "The files forge installed in /Users/example/development/example-project are install version 45, from a newer forge than this one (install version 44), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then update the board.\"\n}\n",
+        "standardError": "The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
       }
     },
     {
@@ -50,8 +50,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"overseer-still-live\",\n  \"text\": \"The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\"\n}\n",
-        "standardError": "The Overseer at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\n"
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"hephaestus-still-live\",\n  \"text\": \"Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\"\n}\n",
+        "standardError": "Hephaestus at http://127.0.0.1:47213/ (process 48107) is still live after being asked to stop; its Baton was left as it is.\n"
       }
     },
     {
@@ -59,8 +59,8 @@
       "answer": {
         "verdict": "finished",
         "exitCode": 1,
-        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 45, from a newer forge than this one (install version 44), so nothing was done. Update forge itself, then update the board.\"\n}\n",
-        "standardError": "The files forge installed in /Users/example/development/example-project are install version 45, from a newer forge than this one (install version 44), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
+        "standardOutput": "{\n  \"answerVersion\": 2,\n  \"refusal\": \"install-version-mismatch\",\n  \"text\": \"The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then update the board.\"\n}\n",
+        "standardError": "The files forge installed in /Users/example/development/example-project are install version 46, from a newer forge than this one (install version 45), so nothing was done. Update forge itself, then run `forge update` in /Users/example/development/example-project.\n"
       }
     }
   ]

@@ -20,7 +20,7 @@ const AT = '2026-09-26T10:15:00+02:00';
 function storedTextWithDecisionsAndIncidents(): string {
   const progress = emptyProgress();
   const document = {
-    version:        2,
+    version:        3,
     trackerId:      progress.trackerId,
     project:        progress.project,
     startedAt:      progress.startedAt,

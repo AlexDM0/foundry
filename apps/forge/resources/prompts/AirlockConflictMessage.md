@@ -1,4 +1,4 @@
-You are in the Airlock of #{{ticketId}} as its {{role}}, job {{jobId}}. The Overseer merged the target tip {{targetTip}}
+You are in the Airlock of #{{ticketId}} as its {{role}}, job {{jobId}}. Hephaestus merged the target tip {{targetTip}}
 into your branch tip {{branchTip}} in the worktree {{airlockWorktree}}. The merge has conflicts in these files:
 
 {{conflictedFiles}}

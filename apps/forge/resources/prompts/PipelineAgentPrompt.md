@@ -7,7 +7,7 @@ Your working directory is the project's folder in a detached snapshot of the mai
 one folder of the repository this board governs, whose files above it (the package manifest, the lockfile, the build
 configuration) govern it too. Read the files. Do not run a script. Do not change a file. {{pipelineAgentLimits}}
 
-Your commands go through your Hatch folder, and the Overseer writes the result into the setup record that this job
+Your commands go through your Hatch folder, and Hephaestus writes the result into the setup record that this job
 serves.
 
 Write each prepare and gate line in the grammar it runs in on this machine: {{lineGrammar}}.

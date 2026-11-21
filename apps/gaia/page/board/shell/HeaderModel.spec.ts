@@ -47,7 +47,7 @@ describe('the forge state', () => {
   });
 
   test('paused reads Paused on the quiet pill', () => {
-    const model = headerModelOf(servingBoard({ overseer: { state: 'serving', paused: true, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
+    const model = headerModelOf(servingBoard({ hephaestus: { state: 'serving', paused: true, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
     expect([model.statusLabel, model.isRunning]).toEqual(['Paused', false]);
   });
 
@@ -58,7 +58,7 @@ describe('the forge state', () => {
   });
 
   test('during a Baton pass the state reads handing over', () => {
-    const model = headerModelOf(servingBoard({ overseer: { state: 'passing-baton', paused: false, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
+    const model = headerModelOf(servingBoard({ hephaestus: { state: 'passing-baton', paused: false, codeVersion: 'code-1' } }), FIXTURE_NOW, 'live');
     expect([model.statusToken, model.statusLabel]).toEqual(['passing-baton', 'Handing over']);
   });
 
@@ -68,7 +68,7 @@ describe('the forge state', () => {
   });
 
   test('a held forge reads Held, and a stream that is down or lost its session reads Down whatever the last board said', () => {
-    const held = servingBoard({ overseer: { state: 'held-by-install-change', paused: false, codeVersion: 'code-1' } });
+    const held = servingBoard({ hephaestus: { state: 'held-by-install-change', paused: false, codeVersion: 'code-1' } });
     expect(headerModelOf(held, FIXTURE_NOW, 'live').statusLabel).toBe('Held');
     expect(headerModelOf(servingBoard(), FIXTURE_NOW, 'down').statusLabel).toBe('Down');
     expect(headerModelOf(servingBoard(), FIXTURE_NOW, 'no-session').statusToken).toBe('down');

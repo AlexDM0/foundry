@@ -1,6 +1,6 @@
 /**
- * The banners the board shows above its header: the Overseer unreachable while the event stream is down, in the error
- * colours (a lost session is Gaia's own page banner); launches held for an install change in the held orange; and the Overseer's warnings
+ * The banners the board shows above its header: Hephaestus unreachable while the event stream is down, in the error
+ * colours (a lost session is Gaia's own page banner); launches held for an install change in the held orange; and Hephaestus's warnings
  * (in the error colours) and notices.
  */
 import { Banner } from '../../lib/design-system/DesignSystemInterface.ts';
@@ -9,7 +9,7 @@ export interface ConnectionBannersProps {
   readonly streamIsDown:       boolean;
   /** When the last whole board arrived, as the browser's local time; `null` before the first. */
   readonly boardShownAsOf:     string | null;
-  /** The Overseer's own 423 sentence when a command brought it, otherwise `null` while held by the board's word, `undefined` when not held. */
+  /** Hephaestus's own 423 sentence when a command brought it, otherwise `null` while held by the board's word, `undefined` when not held. */
   readonly installHeldRefusal: string | null | undefined;
   readonly warnings:           readonly string[];
   readonly notices:            readonly string[];
@@ -26,7 +26,7 @@ export function ConnectionBanners({
             <Banner
               tone="error"
               role="alert"
-              lead="Overseer unreachable."
+              lead="Hephaestus unreachable."
               text={`Reconnecting; ${boardShownAsOf === null ? 'no board received yet' : `showing the board as of ${boardShownAsOf}`}.`}
             />
           </div>

@@ -21,7 +21,7 @@ import { FIXTURE_AT, FIXTURE_LIMITS, FIXTURE_OBSERVATIONS } from './LifecycleFix
 
 const WORLD_CONCURRENCY_LIMIT = 2;
 
-const INTERRUPTION_CAUSES: readonly InterruptionCause[] = ['watcher-lost', 'agent-crashed', 'reboot', 'usage-limit'];
+const INTERRUPTION_CAUSES: readonly InterruptionCause[] = ['talos-lost', 'agent-crashed', 'reboot', 'usage-limit'];
 
 const ENDINGS_BY_KIND: Readonly<Record<'build' | 'review' | 'assistant', readonly JobOutcome[]>> = {
   build:     ['built', 'built', 'failed'],
@@ -32,13 +32,13 @@ const ENDINGS_BY_KIND: Readonly<Record<'build' | 'review' | 'assistant', readonl
 /** The states in which a job's child runs its session, so the world keeps a child instance live for it. */
 const CHILD_RUNNING_STATES: readonly JobState[] = ['running', 'waiting-for-answer'];
 
-/** The states in which a worktree job's session or the Overseer acts on its worktree with git. */
+/** The states in which a worktree job's session or Hephaestus acts on its worktree with git. */
 export const GIT_OPERATING_STATES: readonly JobState[] = ['preparing', 'running', 'waiting-for-answer', 'in-customs', 'gating', 'merging-main', 'merging', 'landing'];
 
 /** The other states: nothing acts on the worktree with git, so a state the lifecycle adds is classed in one list or the other. */
 export const GIT_IDLE_STATES: readonly JobState[] = ['launching', 'interrupted', 'awaiting-answer', 'stopping'];
 
-const CRASH_CAUSES: readonly string[] = ['watcher-lost', 'agent-crashed'];
+const CRASH_CAUSES: readonly string[] = ['talos-lost', 'agent-crashed'];
 
 const WORLD_TARGETS: readonly string[] = ['main', 'group-example'];
 
@@ -127,7 +127,7 @@ export class LifecycleWorld {
     view:             { kind: 'auto' },
     nextTaskId:       1,
     concurrencyLimit: WORLD_CONCURRENCY_LIMIT,
-    overseerState:    'running',
+    hephaestusState:  'running',
     tasks:            [],
   };
 
@@ -306,7 +306,7 @@ export class LifecycleWorld {
     if (decision === undefined) return;
     this.board.answerDecision(decisionId, ['Yes'], FIXTURE_AT);
     if (decision.kind === 'parked') decision.ticketIds.forEach((ticketId) => this.board.unholdTicket(ticketId, FIXTURE_AT));
-    if (decision.kind === 'outage') this.board.setOverseerState('running', FIXTURE_AT);
+    if (decision.kind === 'outage') this.board.setHephaestusState('running', FIXTURE_AT);
     if (decision.jobId !== null && this.board.jobById(decision.jobId)?.state === 'waiting-for-answer') this.board.moveJob(decision.jobId, 'running', FIXTURE_AT);
     try {
       this.board.answerDecision(decisionId, ['No'], FIXTURE_AT);
@@ -316,13 +316,13 @@ export class LifecycleWorld {
     }
   }
 
-  /** An Overseer's allocation at a random moment: the claim itself must refuse whatever would break a slot invariant. */
+  /** A Hephaestus's allocation at a random moment: the claim itself must refuse whatever would break a slot invariant. */
   private claimASlot(): void {
     const target = this.pick(WORLD_TARGETS) ?? 'main';
     const tip = `tip-${this.logRecords.length}`;
     try {
       const candidate = this.pick(this.board.mergeCandidatesOf(target, worldMergeTargetOf, worldBranchTreeOf));
-      // With nothing queued on the group, the Overseer's refresh may be due.
+      // With nothing queued on the group, Hephaestus's refresh may be due.
       if (candidate === undefined && target !== 'main' && this.random() < WORLD_REFRESH_CHANCE) {
         this.board.claimRefreshSlot({
           group: 'example', target, targetTip: tip, mainTip: `main-${tip}`
@@ -389,7 +389,7 @@ export class LifecycleWorld {
     }
     if (roll < 0.35) {
       this.killChild(job.id);
-      this.board.interruptJob(job.id, this.pick(INTERRUPTION_CAUSES) ?? 'watcher-lost', FIXTURE_AT);
+      this.board.interruptJob(job.id, this.pick(INTERRUPTION_CAUSES) ?? 'talos-lost', FIXTURE_AT);
       return;
     }
     this.end(job);

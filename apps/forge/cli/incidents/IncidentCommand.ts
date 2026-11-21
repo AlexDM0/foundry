@@ -1,6 +1,6 @@
 /**
  * `incident answer|note <I> -- <text>` and `incident escalate <I>`: the moves on an incident itself, each one control command recorded in a
- * hold with the Overseer up or down. An answer and an escalation close the incident; a note leaves it open.
+ * hold with Hephaestus up or down. An answer and an escalation close the incident; a note leaves it open.
  */
 import type { ControlCommandOf }     from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }             from '../../src/shared/constants/ProductNames.ts';

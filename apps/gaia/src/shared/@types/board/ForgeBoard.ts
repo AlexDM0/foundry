@@ -17,12 +17,12 @@ import type {
   BoardMergeQueue,
   BoardTicketForecast
 } from './BoardJob.ts';
-import type { BoardPipelineFacts } from './BoardPipeline.ts';
-import type { BoardPage }          from './BoardTicket.ts';
-import type { BoardOverseerState } from './BoardVocabulary.ts';
+import type { BoardPipelineFacts }   from './BoardPipeline.ts';
+import type { BoardPage }            from './BoardTicket.ts';
+import type { BoardHephaestusState } from './BoardVocabulary.ts';
 
-export interface BoardOverseer {
-  readonly state:       BoardOverseerState;
+export interface BoardHephaestus {
+  readonly state:       BoardHephaestusState;
   readonly paused:      boolean;
   readonly codeVersion: string;
 }
@@ -56,7 +56,7 @@ export interface BoardUsage {
 export interface ForgeBoard {
   readonly trackerId:            string;
   readonly project:              string;
-  readonly overseer:             BoardOverseer;
+  readonly hephaestus:           BoardHephaestus;
   readonly concurrency:          BoardConcurrency;
   readonly launchSlots:          BoardLaunchSlots;
   readonly usage:                BoardUsage;

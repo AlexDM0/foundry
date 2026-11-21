@@ -33,7 +33,7 @@ import type {
   BoardMergePlacement,
   BoardNodeDialogTarget,
   BoardOccupantKind,
-  BoardOverseerSetting,
+  BoardHephaestusSetting,
   BoardPipelineAgentRole,
   BoardPipelineApproval,
   BoardPipelineNodeKind,
@@ -517,7 +517,7 @@ export type BoardPipelineHistoryEntryDocument =
   }
   | { readonly kind: 'pipeline-draft-discarded'; readonly at: string; readonly setupId: string; readonly revision: number }
   | { readonly kind: 'pipeline-setup-discarded'; readonly at: string; readonly setupId: string }
-  | { readonly kind: 'overseer-set'; readonly at: string; readonly state: BoardOverseerSetting };
+  | { readonly kind: 'hephaestus-set'; readonly at: string; readonly state: BoardHephaestusSetting };
 
 export interface BoardPipelineChoicesDocument {
   readonly models:  readonly BoardAgentModel[];

@@ -1,5 +1,5 @@
-Before the review of #{{ticketId}}, the Overseer merged the target's tip {{targetTip}} into your branch. The merge had
-conflicts in these files, so the Overseer stopped the merge and put the worktree back at your branch tip:
+Before the review of #{{ticketId}}, Hephaestus merged the target's tip {{targetTip}} into your branch. The merge had
+conflicts in these files, so Hephaestus stopped the merge and put the worktree back at your branch tip:
 
 {{conflictedFiles}}
 

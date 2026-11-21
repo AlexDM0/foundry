@@ -47,8 +47,8 @@ export interface DecisionQuestion {
   options:     DecisionQuestionOption[];
 }
 
-/** An agent's role for its own question; `overseer` for a decision code opens from the facts, `assistant` for its `ticket park`. */
-export type DecisionAsker = JobRole | 'overseer' | 'assistant';
+/** An agent's role for its own question; `hephaestus` for a decision code opens from the facts, `assistant` for its `ticket park`. */
+export type DecisionAsker = JobRole | 'hephaestus' | 'assistant';
 
 export interface Decision {
   id:        string;

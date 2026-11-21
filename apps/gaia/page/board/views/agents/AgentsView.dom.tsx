@@ -505,7 +505,7 @@ describe('the foot and the project row', () => {
     renderAgents([BUILD_JOB, REVIEW_JOB]);
     const foot = card('Agents').querySelector<HTMLElement>('.agents-reconciliation');
     if (foot === null) throw new Error('no foot');
-    expect(foot.textContent).toBe('2 / 5 workers counts builder and reviewer jobs (J12, J14).·2 tickets in progress have no Overseer job: #010 #002·'
+    expect(foot.textContent).toBe('2 / 5 workers counts builder and reviewer jobs (J12, J14).·2 tickets in progress have no Hephaestus job: #010 #002·'
       + 'Subagents, intake and the Assistant never take a place.');
     expect(within(foot).getByRole('link', { name: 'J14' }).getAttribute('href')).toBe(boardHrefOf('agents/J14'));
     expect(within(foot).getByRole('link', { name: '#010' }).getAttribute('href')).toBe(boardHrefOf('tickets/ticket-row/010'));

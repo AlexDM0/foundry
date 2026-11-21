@@ -148,7 +148,7 @@ export interface FleetDocumentActivityEntry {
 
 /**
  * How a forge is present, told from what it serves: `crashed` the registry says so; `stopped` and `handed-over` the registry says so and no
- * Overseer answers; `down` the registry says serving and no Overseer answers, gone or hung; `hung` its API answers and Talos stopped
+ * Hephaestus answers; `down` the registry says serving and no Hephaestus answers, gone or hung; `hung` its API answers and Talos stopped
  * supervising its agents; `unknown` the registry holds no presence of a forge that does not answer.
  */
 export type FleetDocumentPresenceState = 'serving' | 'hung' | 'stopped' | 'handed-over' | 'crashed' | 'down' | 'unknown';
@@ -162,7 +162,7 @@ export interface FleetDocumentPresence {
 
 /** The registry's summary of a crash; `suspected` for a crash suspected before a reboot. */
 export interface FleetDocumentCrashSummary {
-  component:    'overseer' | 'talos';
+  component:    'hephaestus' | 'talos';
   suspected:    boolean;
   errorName:    string | null;
   errorMessage: string | null;
@@ -211,51 +211,51 @@ export interface FleetDocumentRunningTalos {
 }
 
 export interface FleetDocumentRunningVersions {
-  overseerRunning: string;
-  overseerNewest:  string | null;
-  talosRunning:    FleetDocumentRunningTalos | null;
-  talosNewest:     number | null;
+  hephaestusRunning: string;
+  hephaestusNewest:  string | null;
+  talosRunning:      FleetDocumentRunningTalos | null;
+  talosNewest:       number | null;
 }
 
 export interface FleetDocumentForge {
-  trackerId:         string;
-  project:           string;
-  root:              string;
-  fidelity:          FleetDocumentFidelity;
-  condition:         FleetDocumentCondition;
-  url:               string | null;
-  processId:         number | null;
-  contracts:         FleetDocumentContracts;
-  codeVersion:       string | null;
-  lastReportedAt:    string | null;
-  overseerStartedAt: string | null;
+  trackerId:           string;
+  project:             string;
+  root:                string;
+  fidelity:            FleetDocumentFidelity;
+  condition:           FleetDocumentCondition;
+  url:                 string | null;
+  processId:           number | null;
+  contracts:           FleetDocumentContracts;
+  codeVersion:         string | null;
+  lastReportedAt:      string | null;
+  hephaestusStartedAt: string | null;
   /** The forge program the registry names for this forge; `null` when it names none, and Gaia then starts it with the one in its settings. */
-  program:           string | null;
-  lastCommand:       string | null;
-  lastChangedAt:     string | null;
-  concurrency:       FleetDocumentConcurrency | null;
-  readyTicketCount:  number | null;
-  openIncidents:     number | null;
-  attention:         FleetDocumentAttentionItem[];
-  attentionCount:    number | null;
-  agents:            FleetDocumentAgentRow[];
-  notices:           FleetDocumentNotice[];
-  warnings:          FleetDocumentNotice[];
-  activity:          FleetDocumentActivityEntry[];
-  today:             FleetDocumentToday | null;
-  usage:             FleetDocumentUsage | null;
+  program:             string | null;
+  lastCommand:         string | null;
+  lastChangedAt:       string | null;
+  concurrency:         FleetDocumentConcurrency | null;
+  readyTicketCount:    number | null;
+  openIncidents:       number | null;
+  attention:           FleetDocumentAttentionItem[];
+  attentionCount:      number | null;
+  agents:              FleetDocumentAgentRow[];
+  notices:             FleetDocumentNotice[];
+  warnings:            FleetDocumentNotice[];
+  activity:            FleetDocumentActivityEntry[];
+  today:               FleetDocumentToday | null;
+  usage:               FleetDocumentUsage | null;
   /** `null` for a forge read without its versions, such as a dormant or an unreachable one. */
-  versions:          FleetDocumentForgeVersions | null;
-  presence:          FleetDocumentPresence;
+  versions:            FleetDocumentForgeVersions | null;
+  presence:            FleetDocumentPresence;
   /** The registry's, only for a crashed forge. */
-  crashSummary:      FleetDocumentCrashSummary | null;
+  crashSummary:        FleetDocumentCrashSummary | null;
   /** Listed by the presence of a live forge; each log is read on request at `/api/v1/forges/<trackerId>/crash-logs/<number>`. */
-  crashLogs:         FleetDocumentCrashLogEntry[];
+  crashLogs:           FleetDocumentCrashLogEntry[];
   /** Empty for a forge not answering. */
-  waitingWork:       FleetDocumentWaitingJob[];
+  waitingWork:         FleetDocumentWaitingJob[];
   /** Its jobs a network outage stopped, which wait for User's resume; none for a forge not answering. */
-  outageEndings:     number;
-  runningVersions:   FleetDocumentRunningVersions | null;
+  outageEndings:       number;
+  runningVersions:     FleetDocumentRunningVersions | null;
 }
 
 /** `trackerId` is `null` only for `agents-ended-on-outage`, the fleet's alert, which names the forges whose `outageEndings` it sums. */

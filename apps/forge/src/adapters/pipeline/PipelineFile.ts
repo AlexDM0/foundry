@@ -205,7 +205,7 @@ function gateOf(value: unknown, path: string): Mapped<PipelineGate> {
     if ('problem' in texts) return texts;
     if (texts.value !== undefined) gate[key] = texts.value;
   }
-  // A relative folder would resolve against wherever the Overseer runs.
+  // A relative folder would resolve against wherever Hephaestus runs.
   if (gate.writes !== undefined && !gate.writes.every(PathNestingUtil.wirePathIsWellFormed)) return problemOf(`${path}.writes holds a folder that is not absolute or ~/`);
   if (forgeOnly === true) gate.forgeOnly = true;
   return { value: gate };

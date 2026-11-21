@@ -7,13 +7,13 @@
 
 ## In one screen
 
-![A swimlane of one ticket from ticket ready to merge-landed: User readies it, setting pending, and the Overseer then moves it to in-progress after the build job launches, to in-review after Customs and the gates pass and code writes the Handoff, and through reviewed to delivered in the lock hold where the Airlock fast-forwards main. Builder and reviewer only commit and report, and their lines end at their reports, so no agent exists during the merge. The merge-queue mark changes no status.](../figures/ticket-lifecycle/happy-path.png)
+![A swimlane of one ticket from ticket ready to merge-landed: User readies it, setting pending, and Hephaestus then moves it to in-progress after the build job launches, to in-review after Customs and the gates pass and code writes the Handoff, and through reviewed to delivered in the lock hold where the Airlock fast-forwards main. Builder and reviewer only commit and report, and their lines end at their reports, so no agent exists during the merge. The merge-queue mark changes no status.](../figures/ticket-lifecycle/happy-path.png)
 
 *Follow the dots: every filled dot is a status write, and none sits on an agent's lane.*
 
 A [ticket](../glossary.md#ticket) on the [board](../glossary.md#board) starts as a [draft
 ticket](../glossary.md#draft-ticket). User, the person running the board, readies it, and from that point the
-[Overseer](../glossary.md#overseer) carries it through a [build job](../glossary.md#build-job),
+[Hephaestus](../glossary.md#hephaestus) carries it through a [build job](../glossary.md#build-job),
 [Customs](../glossary.md#customs), the [gates](../glossary.md#gate), an optional [review
 round](../glossary.md#review-round), the [merge queue](../glossary.md#merge-queue) and an
 [Airlock](../glossary.md#airlock) that lands it.
@@ -21,7 +21,7 @@ round](../glossary.md#review-round), the [merge queue](../glossary.md#merge-queu
 Three things make the board readable:
 
 - **Agents report; code moves.** A [builder](../glossary.md#builder) or [reviewer](../glossary.md#reviewer) has no route
-  to a status or to its ticket's body. The Overseer writes both from verified reports.
+  to a status or to its ticket's body. Hephaestus writes both from verified reports.
 - **Four things move separately.** Status, [hold](../glossary.md#hold), the [row](../glossary.md#row)'s `mergeQueued`
   mark and [jobs](../glossary.md#job) are independent. No status says merging: a queued ticket stays `in-review`.
 - **Red is not failure.** [Acceptance](../glossary.md#acceptance) is the ticket's numbered list of what must hold. A
@@ -45,8 +45,8 @@ refuses a ticket without a numbered `## Acceptance` and a [`## Brief`](../glossa
 because those two sections are what the builder is held to.
 
 **Build job.** The [Playbook](../glossary.md#playbook) picks #003 for a build job once its dependencies are settled, it
-is not held and a [launch slot](../glossary.md#launch-slot) is free, and the Overseer launches it. On the next
-[Pass](../glossary.md#pass) the ticket goes `in-progress`. The Overseer then adds a [worktree](../glossary.md#worktree)
+is not held and a [launch slot](../glossary.md#launch-slot) is free, and Hephaestus launches it. On the next
+[Pass](../glossary.md#pass) the ticket goes `in-progress`. Hephaestus then adds a [worktree](../glossary.md#worktree)
 on branch `ticket-003` from the target's tip, and [Talos](../glossary.md#talos) runs the builder's
 [session](../glossary.md#session) there. The builder commits on its branch and ends with a
 [report](../glossary.md#report).
@@ -56,7 +56,7 @@ the worktree clean, the report must account for every Acceptance item with evide
 [waiver](../glossary.md#waiver) proposal, and it must claim each agent-run gate on HEAD.
 
 **Gates.** Each gate of the [pipeline](../glossary.md#pipeline) runs in order under Talos, on the builder's commit.
-The Overseer runs the gates of the job's phase itself, so the report's claim that a gate passed counts for nothing here.
+Hephaestus runs the gates of the job's phase itself, so the report's claim that a gate passed counts for nothing here.
 
 **[Handoff](../glossary.md#handoff).** When the gates pass, code writes the ticket's `## Handoff` from the verified
 report, ends the job `built` and moves the ticket `in-review`, all in one [lock hold](../glossary.md#lock-hold): one
@@ -65,18 +65,18 @@ run under the board's lock, so the change lands whole. A lock hold is not a [tic
 free, the Playbook picks the review job in that same lock hold.
 
 **Review.** A review job reuses the worktree and goes through Customs and the gates too; when the reviewer leaves the
-tree as it was, the Overseer runs no gate. The reviewer judges each Acceptance item, and code appends `## Review 1` to
+tree as it was, Hephaestus runs no gate. The reviewer judges each Acceptance item, and code appends `## Review 1` to
 the ticket from the report. A review ends in one of four moves: the ticket is queued, another round is granted, a waiver
 is proposed, or the reviewer finds an Acceptance item unmet.
 
-User's answer to a waiver is recorded, with the Overseer down too, and the next Pass acts on it: a refusal sends the
+User's answer to a waiver is recorded, with Hephaestus down too, and the next Pass acts on it: a refusal sends the
 ticket back to its builder, and a grant writes each proposed item `Waived:` and queues the ticket.
 
 **Merge queue.** A passed review sets `mergeQueued` on the row and adds `merge-queued` to the
 [log](../glossary.md#log). The status does not change, and no job exists until an Airlock claims the ticket.
 
 **Airlock.** Each target has one Airlock slot. The Airlock [sweep](../glossary.md#sweep) inside the Pass claims it for
-the next queued ticket and launches a merge job, which is Overseer code with no agent. The merge job works in order:
+the next queued ticket and launches a merge job, which is Hephaestus code with no agent. The merge job works in order:
 
 1. It merges the target into `ticket-003`. A conflict brings back the ticket's reviewer.
 2. It gates the merged tree, skipping this when the merge changed nothing and that tree already passed.
@@ -91,9 +91,9 @@ line](../glossary.md#main-line) `reviewed` is never a resting place.
 
 ## Who moves a ticket
 
-**After `ticket ready`, the Overseer's code writes every status on the normal path. No agent does.**
+**After `ticket ready`, Hephaestus's code writes every status on the normal path. No agent does.**
 
-![Every write to a ticket comes from code or User, or passes the Bouncer. Overseer code writes every status on the normal path, User runs its verbs, and a product owner or the Assistant may ask through the Hatch, where the Bouncer admits the request and the Overseer applies it. Builder and reviewer sessions, in the Airlock too, stop at confinement and Customs with no route to an existing ticket, and may only file a new low finding through the Hatch.](../figures/ticket-lifecycle/who-moves.png)
+![Every write to a ticket comes from code or User, or passes the Bouncer. Hephaestus code writes every status on the normal path, User runs its verbs, and a product owner or the Assistant may ask through the Hatch, where the Bouncer admits the request and Hephaestus applies it. Builder and reviewer sessions, in the Airlock too, stop at confinement and Customs with no route to an existing ticket, and may only file a new low finding through the Hatch.](../figures/ticket-lifecycle/who-moves.png)
 
 *Agents working a ticket have no route to an existing ticket, at most a new low finding. The product owner and the
 Assistant ask, and only for the move shown.*
@@ -101,10 +101,10 @@ Assistant ask, and only for the move shown.*
 No session writes files in [`<data>`](../glossary.md#reading-names): confinement
 denies it, and Customs refuses a run whose commits touch that folder or during which the ticket's content hash moved.
 
-That is why the Handoff is the code's. The builder writes a `handoff` field in its report, and the Overseer copies it
+That is why the Handoff is the code's. The builder writes a `handoff` field in its report, and Hephaestus copies it
 into the ticket once it has verified the rest.
 
-`ticket deliver --by-hand` is for work landed outside the Overseer. A request through the Hatch applies only after the
+`ticket deliver --by-hand` is for work landed outside Hephaestus. A request through the Hatch applies only after the
 [Bouncer](../glossary.md#bouncer) admits it. A hold is not a status, so it is not on this list.
 
 ## Four things to read separately
@@ -119,8 +119,8 @@ naming job J2. Lifting the hold lets the Playbook pick another review. The statu
 
 | Track | Stored in | It answers | It changes when |
 | --- | --- | --- | --- |
-| Status | the ticket's `status` | How far has the work come? | the Overseer or a User verb moves the ticket |
-| Hold | the ticket's `hold`, whose presence is the hold | Is something keeping it from the next step? | User or the Overseer sets it; `ticket unhold` lifts any form, and an answer lifts some |
+| Status | the ticket's `status` | How far has the work come? | Hephaestus or a User verb moves the ticket |
+| Hold | the ticket's `hold`, whose presence is the hold | Is something keeping it from the next step? | User or Hephaestus sets it; `ticket unhold` lifts any form, and an answer lifts some |
 | Row mark | the row's `mergeQueued` | Is it waiting to land? | usually a passed review, or passed gates with no review phase, sets it; a refused or aborted merge drops it |
 | Jobs | `jobs` in `progress.json`, while live | Is anything working on it? | a launch or a job's ending |
 
@@ -156,7 +156,7 @@ The commits stay on the branch.
 
 | Way back | What happens | Status | What ends it |
 | --- | --- | --- | --- |
-| Red gate | The job stops `interrupted`, the Overseer writes the [red-handoff note](../glossary.md#red-handoff) and resumes the same session. | unchanged | `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) resumes, then parked |
+| Red gate | The job stops `interrupted`, Hephaestus writes the [red-handoff note](../glossary.md#red-handoff) and resumes the same session. | unchanged | `RED_HANDOFF_RESUMES_BEFORE_PARKING` (2) resumes, then parked |
 | Review finds an Acceptance item unmet | The review job ends, and another build job resumes the builder's session with the findings. | `in-review` to `in-progress` | the same count, one [handoff cycle](../glossary.md#handoff-cycle) shared with red gates |
 | Target moved | The merge job ends, the Airlock slot frees and the ticket stays queued. The next claim merges again. | unchanged | `TARGET_MOVED_MERGES_BEFORE_PARKING` (2) moves in a row, then parked |
 
@@ -195,7 +195,7 @@ It is a candidate only once the rest of its [release bundle](../glossary.md#rele
 moves it and every `reviewed` ticket of the bundle to `delivered` in one lock hold, and the group's worktree and branch
 are removed after that.
 
-**A question to User.** A builder or reviewer may ask, and the Overseer
+**A question to User.** A builder or reviewer may ask, and Hephaestus
 opens an `agent-question` decision. The answer returns the job to `running`. A question that outlives its job holds the
 ticket until answered, and a question the system can answer goes to the Assistant.
 
@@ -207,9 +207,9 @@ These belong to this story.
 2. No agent working a ticket, whether builder or reviewer, in the Airlock or not, changes an existing ticket's status or
    body. Code writes `## Handoff` and `## Review <n>` from verified reports, and any other session's change passes the
    Bouncer first.
-3. On the Overseer's path, a ticket on the main line passes `reviewed` and reaches `delivered` in the lock hold that
+3. On Hephaestus's path, a ticket on the main line passes `reviewed` and reaches `delivered` in the lock hold that
    lands it; only a group ticket rests on `reviewed`.
-4. The Overseer moves a target only by a fast-forward from the tip it merged.
+4. Hephaestus moves a target only by a fast-forward from the tip it merged.
 5. Every count that parks a ticket is read from the log, so a restart derives the same answer.
 
 ## In the code
@@ -220,9 +220,9 @@ These belong to this story.
 | What launches next, and held | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf`, `candidateOf`, `ticketIsHeld` | `src/lib/tracker-model/Playbook.spec.ts` |
 | Counts toward parking | `src/lib/tracker-model/Playbook.ts` | `handoffCycleResumesOf`, `redHandoffStepsOf` | `src/lib/tracker-model/Playbook.redHandoff.spec.ts` |
 | Failed passes | `src/lib/tracker-model/utils/FailedPassUtil.ts` | `failedPassesOf` | `src/lib/tracker-model/utils/FailedPassUtil.spec.ts` |
-| A build job, Handoff included | `src/services/overseer/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/overseer/JobLaunch.buildJobFrames.spec.ts` |
+| A build job, Handoff included | `src/services/hephaestus/JobLaunch.ts` | `applyObservation`, `verifyAndRoute`, `settleGate` | `src/services/hephaestus/JobLaunch.buildJobFrames.spec.ts` |
 | What a review leads to | `src/services/lifecycle/ReviewOutcome.ts` | `settleReviewPass` | `src/services/lifecycle/ReviewOutcome.spec.ts` |
-| The queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/overseer/BoardState.mergeQueue.spec.ts` |
-| Landing | `src/services/lifecycle/Landing.ts`, `src/services/overseer/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/overseer/Airlocks.spec.ts` |
+| The queue mark | `src/lib/tracker-model/MergeQueueMarks.ts` | `queueTicketForMerge` | `src/services/hephaestus/BoardState.mergeQueue.spec.ts` |
+| Landing | `src/services/lifecycle/Landing.ts`, `src/services/hephaestus/Airlocks.ts` | `landOnTarget`, `landOnTheBoard`, `settleMovedTarget` | `src/services/lifecycle/Landing.spec.ts`, `src/services/hephaestus/Airlocks.spec.ts` |
 | Who may relay what | `src/services/control/Bouncer.ts` | `verdictOf` | `src/services/control/Bouncer.spec.ts` |
-| Questions | `src/services/overseer/QuestionRouting.ts`, `src/lib/tracker-model/AgentQuestions.ts` | `routeOf`, `afterAnswer` | `src/services/overseer/QuestionRouting.spec.ts` |
+| Questions | `src/services/hephaestus/QuestionRouting.ts`, `src/lib/tracker-model/AgentQuestions.ts` | `routeOf`, `afterAnswer` | `src/services/hephaestus/QuestionRouting.spec.ts` |

@@ -1,21 +1,21 @@
-import { TicketPhraseUtil }   from '../../src/adapters/utils/TicketPhraseUtil.ts';
-import type { OverseerState } from '../../src/lib/tracker-model/@types/TrackerProgress.ts';
-import type { Board }         from '../../src/lib/tracker-model/Board.ts';
+import { TicketPhraseUtil }     from '../../src/adapters/utils/TicketPhraseUtil.ts';
+import type { HephaestusState } from '../../src/lib/tracker-model/@types/TrackerProgress.ts';
+import type { Board }           from '../../src/lib/tracker-model/Board.ts';
 
 const READY_TICKETS_LISTED_AT_MOST = 5;
 
 interface BoardCapacity {
-  limit:          number;
-  agentsInFlight: number;
-  freeSlots:      number;
-  readyTicketIds: readonly string[];
-  heldTicketIds:  readonly string[];
-  overseerState:  OverseerState;
+  limit:           number;
+  agentsInFlight:  number;
+  freeSlots:       number;
+  readyTicketIds:  readonly string[];
+  heldTicketIds:   readonly string[];
+  hephaestusState: HephaestusState;
 }
 
-/** A running Overseer needs no advice; only a pause, which starts no new job, does. */
-function overseerAdviceOf(capacity: BoardCapacity): string {
-  return capacity.overseerState === 'paused' ? '; Overseer paused: wait for the user\'s go' : '';
+/** A running Hephaestus needs no advice; only a pause, which starts no new job, does. */
+function hephaestusAdviceOf(capacity: BoardCapacity): string {
+  return capacity.hephaestusState === 'paused' ? '; Hephaestus paused: wait for the user\'s go' : '';
 }
 
 function slotsTextOf(capacity: BoardCapacity): string {
@@ -43,7 +43,7 @@ function heldTextOf(heldReadyTicketIds: readonly string[]): string {
 function composeNextLine(capacity: BoardCapacity): string {
   const startableTicketIds = capacity.readyTicketIds.filter((ticketId) => !capacity.heldTicketIds.includes(ticketId));
   const heldReadyTicketIds = capacity.readyTicketIds.filter((ticketId) => capacity.heldTicketIds.includes(ticketId));
-  return `Next: ${slotsTextOf(capacity)}; ${readyTextOf(startableTicketIds)}${heldTextOf(heldReadyTicketIds)}${overseerAdviceOf(capacity)}`;
+  return `Next: ${slotsTextOf(capacity)}; ${readyTextOf(startableTicketIds)}${heldTextOf(heldReadyTicketIds)}${hephaestusAdviceOf(capacity)}`;
 }
 
 /** Read from the Board's own dispatch capacity and ready entries, so the line and `status --json` cannot disagree on a slot or a ticket. */

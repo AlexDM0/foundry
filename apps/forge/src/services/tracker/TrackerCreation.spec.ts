@@ -1,5 +1,5 @@
 /**
- * Creating a tracker on real files: a fresh workspace gets its tickets directory, a version 2 progress file holding what the caller handed
+ * Creating a tracker on real files: a fresh workspace gets its tickets directory, a version 3 progress file holding what the caller handed
  * in and an empty log.jsonl; an existing progress file is never replaced, and then nothing else
  * is written.
  */
@@ -28,7 +28,7 @@ const NEW_TRACKER: NewTracker = {
   trackerId: 'example-tracker-id',
 };
 
-const EXISTING_PROGRESS_TEXT = '{"version":2,"project":"Kept by hand"}\n';
+const EXISTING_PROGRESS_TEXT = '{"version":3,"project":"Kept by hand"}\n';
 
 const EXISTING_LOG_TEXT = '{"at":"2026-09-18T20:05:00+02:00","kind":"note","fields":{"text":"Kept by hand"}}\n';
 
@@ -44,12 +44,12 @@ afterEach(() => {
   removeScratchDirectory(workspace.rootDirectory);
 });
 
-test('a fresh workspace gets its tickets directory, a version 2 progress file and an empty log, renders no page, and answers created', async () => {
+test('a fresh workspace gets its tickets directory, a version 3 progress file and an empty log, renders no page, and answers created', async () => {
   const creation = await createTracker(workspace, NEW_TRACKER, now, LIVE_HOLDERS_LOCK_TAKER);
 
   expect(creation).toEqual({ verdict: 'created' });
   expect(statSync(localStoreLayoutOf(workspace).ticketRecordsFolder).isDirectory()).toBe(true);
-  expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ version: 2, ...NEW_TRACKER, tasks: [] });
+  expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ version: 3, ...NEW_TRACKER, tasks: [] });
   expect(readFileSync(localStoreLayoutOf(workspace).logRecordPath, 'utf8')).toBe('');
 });
 

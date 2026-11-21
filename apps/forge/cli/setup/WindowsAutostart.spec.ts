@@ -8,7 +8,7 @@ import { expect, test } from 'bun:test';
 import { FakeAutostartHost }                                     from '../testing/FakeAutostartHost.ts';
 import { RUN_COMMAND_LINE_CHARACTERS_MAX, windowsAutostartOver } from './WindowsAutostart.ts';
 
-const LABEL = 'com.example-agency.overseer';
+const LABEL = 'com.example-agency.hephaestus';
 const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
 
 test('the Run value is added through the absolute reg.exe, quoted so a path with spaces and a quote reads back whole', () => {

@@ -1,18 +1,18 @@
 /**
- * Carries out one command (PLAN 8.2) and answers a verdict, never a throw. The forge's API carries what an Overseer does while it answers
+ * Carries out one command (PLAN 8.2) and answers a verdict, never a throw. The forge's API carries what a Hephaestus does while it answers
  * and its control contract is known; the forge program carries the rest; Gaia's settings carry what is Gaia's own, and each forge's program
  * its login item when "Start at login" changes. One command per forge, per repository being added, for the machine limit, for the chooser
  * and for the login items is on its way at a time.
  */
 import type { ForgeControlCommand } from 'forge-contracts/ForgeControlCommand';
 
-import { OverseerTokenFile }                                         from '../../adapters/forge-api/OverseerTokenFile.ts';
+import { HephaestusTokenFile }                                       from '../../adapters/forge-api/HephaestusTokenFile.ts';
 import type { ForgeProgram, ForgeProgramTarget }                     from '../../adapters/forge-program/ForgeProgram.ts';
-import type { RegisteredForge, RegisteredOverseer }                  from '../../adapters/forge-registry/@types/RegisteredForge.ts';
+import type { RegisteredForge, RegisteredHephaestus }                from '../../adapters/forge-registry/@types/RegisteredForge.ts';
 import { registeredForgesOf, type RegistryReading }                  from '../../adapters/forge-registry/RegistryFile.ts';
 import type { PathChoiceVerdict }                                    from '../../adapters/path-chooser/@types/PathChoiceVerdict.ts';
 import type { PathChooser }                                          from '../../adapters/path-chooser/PathChooser.ts';
-import type { ForgeCommandAnswer, OverseerAccess }                   from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import type { ForgeCommandAnswer, HephaestusAccess }                 from '../../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                                          from '../../lib/forge-client/ForgeClient.ts';
 import type { SettingsStore, SettingsUpdate, SettingsUpdateVerdict } from '../../services/SettingsStore.ts';
 import type { CommandVerdict, GaiaRefusal, RegistryRefusal }         from '../../shared/@types/CommandVerdict.ts';
@@ -23,17 +23,17 @@ import type {
   GaiaCommand,
   SettingsChange,
 } from '../../shared/@types/GaiaCommand.ts';
-import type { GaiaSettings }            from '../../shared/@types/GaiaSettings.ts';
-import { CONTRACT_VERSIONS }            from '../../shared/constants/ContractVersions.ts';
-import { OVERSEER_ANSWERED_FIDELITIES } from '../../shared/constants/ForgeFidelities.ts';
+import type { GaiaSettings }              from '../../shared/@types/GaiaSettings.ts';
+import { CONTRACT_VERSIONS }              from '../../shared/constants/ContractVersions.ts';
+import { HEPHAESTUS_ANSWERED_FIDELITIES } from '../../shared/constants/ForgeFidelities.ts';
 
 import { OutageResume, type OutageResumeForge } from './OutageResume.ts';
 import { ProgramVerdictUtil }                   from './utils/ProgramVerdictUtil.ts';
 
 export interface ForgeControlOptions {
-  /** Read at each command, so the program and the Overseer's token file are the ones the registry names now. */
+  /** Read at each command, so the program and Hephaestus's token file are the ones the registry names now. */
   readonly readRegistry:    () => Promise<RegistryReading>;
-  /** The forge watch's latest readings: whether an Overseer answers and which control contract it speaks. */
+  /** The forge watch's latest readings: whether a Hephaestus answers and which control contract it speaks. */
   readonly readings:        () => readonly ForgeReading[];
   readonly forgeClient:     ForgeClient;
   readonly forgeProgram:    ForgeProgram;
@@ -55,21 +55,21 @@ const PATH_CHOOSER_SUBJECT = 'path-chooser';
 const LOGIN_ITEMS_SUBJECT = 'login-items';
 const OUTAGE_RESUME_SUBJECT = 'outage-resume';
 
-/** The forges that get a login item when "Start at login" is switched on: their Overseer answered, in a contract Gaia reads. */
+/** The forges that get a login item when "Start at login" is switched on: their Hephaestus answered, in a contract Gaia reads. */
 const RUNNING_FOR_LOGIN_ITEMS_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only']);
 
 /** The forges whose login item goes when it is switched off: every one Gaia read whose repository is there and whose contract it reads. */
 const LOGIN_ITEM_REMOVED_AT: ReadonlySet<ForgeFidelity> = new Set<ForgeFidelity>(['full', 'counts-only', 'unreachable', 'dormant']);
 
 /**
- * `api`: the Overseer answers and speaks the control contract Gaia sends, at any minor. `control-unknown`: it answers in another contract
- * or names none. `no-overseer`: no Overseer answered the last read, or the registry now names another address than the
- * one the watch read, so the contract read is not that Overseer's.
+ * `api`: Hephaestus answers and speaks the control contract Gaia sends, at any minor. `control-unknown`: it answers in another contract
+ * or names none. `no-hephaestus`: no Hephaestus answered the last read, or the registry now names another address than the
+ * one the watch read, so the contract read is not that Hephaestus's.
  */
 type ApiReach =
-  | { readonly reach: 'api'; readonly overseer: RegisteredOverseer }
+  | { readonly reach: 'api'; readonly hephaestus: RegisteredHephaestus }
   | { readonly reach: 'control-unknown' }
-  | { readonly reach: 'no-overseer' };
+  | { readonly reach: 'no-hephaestus' };
 
 type ApiReachOverApi = Extract<ApiReach, { readonly reach: 'api' }>;
 
@@ -78,10 +78,10 @@ function gaiaRefusalOf(refusal: GaiaRefusal): CommandVerdict {
 }
 
 function apiReachOf(forge: RegisteredForge, reading: ForgeReading | null): ApiReach {
-  const { overseer } = forge;
-  if (overseer === null || reading === null || reading.url !== overseer.url || !OVERSEER_ANSWERED_FIDELITIES.has(reading.fidelity)) return { reach: 'no-overseer' };
+  const { hephaestus } = forge;
+  if (hephaestus === null || reading === null || reading.url !== hephaestus.url || !HEPHAESTUS_ANSWERED_FIDELITIES.has(reading.fidelity)) return { reach: 'no-hephaestus' };
   if (reading.contracts.control !== CONTRACT_VERSIONS.forgeControl) return { reach: 'control-unknown' };
-  return { reach: 'api', overseer };
+  return { reach: 'api', hephaestus };
 }
 
 function programTargetOf(forge: RegisteredForge): ForgeProgramTarget {
@@ -194,10 +194,10 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
 
   /** Sends the commands in order and stops at the first that is not taken; done when any of them changed something. */
   async function sendOverApi(apiReach: ApiReachOverApi, controlCommands: readonly ForgeControlCommand[]): Promise<CommandVerdict> {
-    const { overseer } = apiReach;
-    const bearerToken = overseer.tokenPath === null ? null : await new OverseerTokenFile(overseer.tokenPath).read();
+    const { hephaestus } = apiReach;
+    const bearerToken = hephaestus.tokenPath === null ? null : await new HephaestusTokenFile(hephaestus.tokenPath).read();
     if (bearerToken === null) return gaiaRefusalOf('token-unreadable');
-    const access: OverseerAccess = { overseerUrl: overseer.url, bearerToken };
+    const access: HephaestusAccess = { hephaestusUrl: hephaestus.url, bearerToken };
     let anyCommandChangedSomething = false;
     for (const controlCommand of controlCommands) {
       const answer = await forgeClient.send(access, controlCommand);
@@ -207,24 +207,24 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
     return { verdict: anyCommandChangedSomething ? 'done' : 'nothing-to-do' };
   }
 
-  /** A command only a running Overseer can carry out. */
+  /** A command only a running Hephaestus can carry out. */
   async function carryOverApi(forge: RegisteredForge, reading: ForgeReading | null, controlCommand: ForgeControlCommand): Promise<CommandVerdict> {
     const apiReach = apiReachOf(forge, reading);
     if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
-    if (apiReach.reach === 'no-overseer') return { verdict: 'unreachable' };
+    if (apiReach.reach === 'no-hephaestus') return { verdict: 'unreachable' };
     return sendOverApi(apiReach, [controlCommand]);
   }
 
   /**
-   * The contract check comes before the carrier: an Overseer that answers in a control contract Gaia does not know is sent nothing and
-   * left running. With no Overseer answering, none answering the stop, or no token to send it with, the forge program stops the forge.
+   * The contract check comes before the carrier: a Hephaestus that answers in a control contract Gaia does not know is sent nothing and
+   * left running. With no Hephaestus answering, none answering the stop, or no token to send it with, the forge program stops the forge.
    */
   async function stop(forge: RegisteredForge, reading: ForgeReading | null, agents: ForgeStopAgents): Promise<CommandVerdict> {
     const apiReach = apiReachOf(forge, reading);
     if (apiReach.reach === 'control-unknown') return { verdict: 'not-supported' };
     if (apiReach.reach === 'api') {
-      const overseerStop: ForgeControlCommand = { kind: 'overseer-stop', now: false };
-      const controlCommands: readonly ForgeControlCommand[] = agents === 'stop-first' ? [{ kind: 'job-stop-all', mode: 'stop' }, overseerStop] : [overseerStop];
+      const hephaestusStop: ForgeControlCommand = { kind: 'hephaestus-stop', now: false };
+      const controlCommands: readonly ForgeControlCommand[] = agents === 'stop-first' ? [{ kind: 'job-stop-all', mode: 'stop' }, hephaestusStop] : [hephaestusStop];
       const apiVerdict = await sendOverApi(apiReach, controlCommands);
       if (!apiLeftTheCommandUncarried(apiVerdict)) return apiVerdict;
     }
@@ -307,14 +307,13 @@ export function createForgeControl(options: ForgeControlOptions): ForgeControl {
       case 'forge-stop':
         return stop(forge, reading, command.agents);
       case 'forge-pause':
-        return carryOverApi(forge, reading, { kind: 'overseer-pause' });
+        return carryOverApi(forge, reading, { kind: 'hephaestus-pause' });
       case 'forge-unpause':
-        // The forge's own kind for the undo of a pause keeps its old name until the forge renames it.
-        return carryOverApi(forge, reading, { kind: 'overseer-resume' });
+        return carryOverApi(forge, reading, { kind: 'hephaestus-unpause' });
       case 'forge-interrupted-work-resume':
         return carryOverApi(forge, reading, { kind: 'interrupted-work-resume', target: command.target });
       case 'forge-restart':
-        return carryOverApi(forge, reading, { kind: 'overseer-restart', now: false });
+        return carryOverApi(forge, reading, { kind: 'hephaestus-restart', now: false });
       case 'forge-talos-restart':
         return carryOverApi(forge, reading, { kind: 'talos-restart' });
       case 'forge-concurrency-set':

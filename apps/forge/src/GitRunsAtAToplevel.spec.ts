@@ -5,7 +5,7 @@
  * but those listed with their reason, a list exact both ways. Each form is planted and watched failing. A session in a job's worktree
  * starts at its toplevel too, where Claude Code's sandbox lets it commit: only the listed sources name the project folder in a checkout, by
  * its name or joined from the project's prefix, and `SessionPlace.ts` only in its snapshot's session, so a job session started there is
- * named. `src/services/overseer/SessionPlace.spec.ts` holds each place and the resumed start, and
+ * named. `src/services/hephaestus/SessionPlace.spec.ts` holds each place and the resumed start, and
  * `src/services/lifecycle/GateRun.projectFolder.spec.ts` that a gate and a prepare step start in the project folder.
  */
 import { join } from 'node:path';
@@ -29,7 +29,7 @@ const TRACKER_FOLDER_GIT_FORMS: readonly RegExp[] = [
 const TRACKER_FOLDER_GIT_CALLERS: Readonly<Record<string, string>> = {
   'src/lib/git/GitIgnore.ts':                    'check-ignore is cwd-relative on purpose: it asks the project\'s own ignore lines',
   'src/services/tracker/MonitorRegistration.ts': 'the origin it reads is the same from every folder of a checkout, under no ceiling',
-  'src/services/overseer/BoardState.ts':         'reads the main line\'s tip under no ceiling; not yet moved to the repository root',
+  'src/services/hephaestus/BoardState.ts':       'reads the main line\'s tip under no ceiling; not yet moved to the repository root',
   'src/services/control/AirlockControls.ts':     'reads a target\'s tip under no ceiling; not yet moved to the repository root',
   'src/services/control/ByHandBoardControls.ts': 'lists branches under no ceiling; not yet moved to the repository root',
 };
@@ -90,10 +90,10 @@ interface ProjectFolderNamer {
 
 /** The sources that name the project folder in a checkout, each with why it may. */
 const PROJECT_FOLDER_IN_CHECKOUT_NAMERS: Readonly<Record<string, ProjectFolderNamer>> = {
-  'src/services/tracker/ProjectLocation.ts': { reason: 'defines it' },
-  'src/services/lifecycle/GateRun.ts':       { reason: 'a gate and a prepare step start in the project folder of their checkout' },
-  'src/services/overseer/WorkerProfiles.ts': { reason: 'the project folder\'s `.claude` in a worktree is protected from writes' },
-  'src/services/overseer/SessionPlace.ts':   {
+  'src/services/tracker/ProjectLocation.ts':   { reason: 'defines it' },
+  'src/services/lifecycle/GateRun.ts':         { reason: 'a gate and a prepare step start in the project folder of their checkout' },
+  'src/services/hephaestus/WorkerProfiles.ts': { reason: 'the project folder\'s `.claude` in a worktree is protected from writes' },
+  'src/services/hephaestus/SessionPlace.ts':   {
     reason:         'a pipeline agent\'s snapshot, which it only reads, starts its session there; a job\'s session does not',
     onlyInFunction: 'snapshotSessionPlaceOf',
   },
@@ -132,7 +132,7 @@ function sourceTextOf(sources: readonly RepositorySource[], sourcePath: string):
 
 describe('a job\'s session starts at its worktree\'s toplevel', () => {
   const sources = repositoryTypeScriptSources(PROGRAM_ROOT);
-  const sessionPlacePath = 'src/services/overseer/SessionPlace.ts';
+  const sessionPlacePath = 'src/services/hephaestus/SessionPlace.ts';
   const sessionPlaceText = sourceTextOf(sources, sessionPlacePath);
 
   test('only the listed sources name the project folder in a checkout outside their allowed function, and each of them still does', () => {

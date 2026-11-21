@@ -1,4 +1,4 @@
-/** The git floor `init` and `oversee` hold before they write anything: below it, merge forecasts and merge verification would fail later. */
+/** The git floor `init` and `start` hold before they write anything: below it, merge forecasts and merge verification would fail later. */
 import { gitVersionVerdictIn } from '../src/lib/git/GitVersion.ts';
 import { OperationRefusal }    from '../src/shared/OperationRefusal.ts';
 

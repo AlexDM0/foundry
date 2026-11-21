@@ -66,7 +66,7 @@ export interface ApplyFootProps {
   readonly onClose:        () => void;
   readonly applyLabel:     string;
   readonly applyCommand:   BoardCommandDocument;
-  /** Called once the Overseer took the Apply: it may still commit `CONSTITUTION.md` before the pipeline lands. */
+  /** Called once Hephaestus took the Apply: it may still commit `CONSTITUTION.md` before the pipeline lands. */
   readonly onApplySent?:   () => void;
   /** Why Apply cannot be sent yet, shown on hover over the disabled Apply; absent while it can. */
   readonly applyWaitsFor?: string;

@@ -1,0 +1,10 @@
+{
+  "retake": "Read from the five spawn sites at e121f6b8, before spawnOptionsFor took the gate and the successor: `descriptor` is a file descriptor, each row the options the site passed spread with the POSIX port answer. Never retaken from the code it holds; a change here is a change of POSIX behaviour.",
+  "children": {
+    "gate":          { "detached": true, "stdin": "ignore", "stdout": "pipe",       "stderr": "pipe" },
+    "agent-child":   { "detached": true, "stdin": "pipe",   "stdout": "pipe",       "stderr": "descriptor" },
+    "process-child": { "detached": true, "stdin": "ignore", "stdout": "pipe",       "stderr": "descriptor" },
+    "hephaestus":      { "detached": true, "stdin": "ignore", "stdout": "ignore",     "stderr": "ignore" },
+    "successor":     { "detached": true, "stdin": "ignore", "stdout": "ignore",     "stderr": "descriptor" }
+  }
+}

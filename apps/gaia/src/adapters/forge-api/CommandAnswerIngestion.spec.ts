@@ -58,17 +58,17 @@ describe('answerOf, on the recorded answers', () => {
 
 describe('answerOf, on a body that is no answer', () => {
   test('reads a body at another control version, or with none, as unreadable', () => {
-    expect(INGESTION.answerOf(200, { controlVersion: 3, outcome: 'done' })).toEqual({ outcome: 'unreadable', status: 200, invalidKeys: ['controlVersion'] });
+    expect(INGESTION.answerOf(200, { controlVersion: 4, outcome: 'done' })).toEqual({ outcome: 'unreadable', status: 200, invalidKeys: ['controlVersion'] });
     expect(INGESTION.answerOf(409, { refusal: 'example', fields: {}, text: 'Example.' })).toEqual({ outcome: 'unreadable', status: 409, invalidKeys: ['controlVersion'] });
   });
 
   test('names the keys of an applied answer or a refusal that is malformed', () => {
-    expect(INGESTION.answerOf(200, { controlVersion: 2, outcome: 'example-outcome' })).toEqual({ outcome: 'unreadable', status: 200, invalidKeys: ['outcome'] });
-    expect(INGESTION.answerOf(409, { controlVersion: 2, refusal: 'example', text: 'Example.' })).toEqual({ outcome: 'unreadable', status: 409, invalidKeys: ['fields'] });
+    expect(INGESTION.answerOf(200, { controlVersion: 3, outcome: 'example-outcome' })).toEqual({ outcome: 'unreadable', status: 200, invalidKeys: ['outcome'] });
+    expect(INGESTION.answerOf(409, { controlVersion: 3, refusal: 'example', text: 'Example.' })).toEqual({ outcome: 'unreadable', status: 409, invalidKeys: ['fields'] });
   });
 
   test('reads no job from a result that names none as a string', () => {
-    const answer = INGESTION.answerOf(200, { controlVersion: 2, outcome: 'nothing-to-do', result: { job: { id: 4 } } });
+    const answer = INGESTION.answerOf(200, { controlVersion: 3, outcome: 'nothing-to-do', result: { job: { id: 4 } } });
     expect(answer).toEqual({ outcome: 'applied', applied: 'nothing-to-do', startedJobId: null });
   });
 });

@@ -20,7 +20,7 @@ function storedTextWithJobs(): string {
   fileRow(progress, { name: 'Example build', status: 'in-review', ticket: '001' });
   const [row] = progress.tasks;
   const document = {
-    version:    2,
+    version:    3,
     trackerId:  progress.trackerId,
     project:    progress.project,
     startedAt:  progress.startedAt,
@@ -54,7 +54,7 @@ function storedTextWithJobs(): string {
 function storedTextWithIntake(intake: Readonly<Record<string, string>>): string {
   const progress = emptyProgress();
   return JsonTextUtil.storedFileTextOf({
-    version:    2,
+    version:    3,
     trackerId:  progress.trackerId,
     project:    progress.project,
     startedAt:  progress.startedAt,
@@ -139,7 +139,7 @@ test('an intake with a title and one without it are each written back byte for b
 test('a job with option notes is written back byte for byte, and one whose notes were taken stores no notes key', () => {
   const progress = emptyProgress();
   const text     = JsonTextUtil.storedFileTextOf({
-    version:    2,
+    version:    3,
     trackerId:  progress.trackerId,
     project:    progress.project,
     startedAt:  progress.startedAt,
@@ -176,7 +176,7 @@ test('a job with option notes is written back byte for byte, and one whose notes
 function storedTextWithBuildJob(entityAndStage: Readonly<Record<string, unknown>>): string {
   const progress = emptyProgress();
   return JsonTextUtil.storedFileTextOf({
-    version:    2,
+    version:    3,
     trackerId:  progress.trackerId,
     project:    progress.project,
     startedAt:  progress.startedAt,

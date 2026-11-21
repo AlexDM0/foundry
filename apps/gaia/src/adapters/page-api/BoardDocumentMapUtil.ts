@@ -377,11 +377,11 @@ function viewRangeOut(view: BoardViewRange): BoardViewRangeDocument {
 
 function progressOut(progress: BoardProgress): BoardProgressDocument {
   return {
-    startedAt:       progress.startedAt,
-    view:            viewRangeOut(progress.view),
-    overseerSetting: progress.overseerSetting,
-    tasks:           progress.tasks.map(taskOut),
-    log:             progress.log.map((entry) => ({
+    startedAt:         progress.startedAt,
+    view:              viewRangeOut(progress.view),
+    hephaestusSetting: progress.hephaestusSetting,
+    tasks:             progress.tasks.map(taskOut),
+    log:               progress.log.map((entry) => ({
       at:        entry.at,
       text:      entry.text,
       taskIds:   entry.taskIds,
@@ -475,7 +475,7 @@ function boardDocumentOf(board: ForgeBoard, renderMarkdown: MarkdownRendering): 
     ...BOARD_VERSION,
     trackerId:   board.trackerId,
     project:     board.project,
-    overseer:    { state: board.overseer.state, paused: board.overseer.paused, codeVersion: board.overseer.codeVersion },
+    hephaestus:  { state: board.hephaestus.state, paused: board.hephaestus.paused, codeVersion: board.hephaestus.codeVersion },
     concurrency: { limit: board.concurrency.limit, agentsInFlight: board.concurrency.agentsInFlight },
     launchSlots: {
       limit:                         board.launchSlots.limit,

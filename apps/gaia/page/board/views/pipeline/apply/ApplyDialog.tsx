@@ -28,7 +28,7 @@ export interface ApplyDialogProps {
   /** Null when the facts carry no concurrency. */
   readonly concurrencyLimit:                 number | null;
   readonly onClose:                          () => void;
-  /** Called with the board's resume choice once the Overseer took the Apply. */
+  /** Called with the board's resume choice once Hephaestus took the Apply. */
   readonly onApplySent?:                     (resumesBoard: boolean) => void;
   /** The stored pipeline, which says over entities whether Apply turns it into entities. */
   readonly storedPipeline?:                  BoardAppliedPipelineDocument;

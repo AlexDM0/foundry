@@ -231,10 +231,10 @@ const CHART_RANGE_RULE: FieldRule = {
 const PICTURES_RULE: FieldRule = { listOf: { pictureId: 'text', name: 'text' } as const satisfies ShapeOf<BoardPictureReferenceDocument> };
 
 const COMMAND_SHAPES = {
-  'overseer-pause':          { ...PASSED_OVER_HEAD },
-  'overseer-resume':         { ...PASSED_OVER_HEAD },
-  'overseer-stop':           { ...PASSED_OVER_HEAD, now: 'boolean' },
-  'overseer-restart':        { ...PASSED_OVER_HEAD, now: 'boolean' },
+  'hephaestus-pause':        { ...PASSED_OVER_HEAD },
+  'hephaestus-unpause':      { ...PASSED_OVER_HEAD },
+  'hephaestus-stop':         { ...PASSED_OVER_HEAD, now: 'boolean' },
+  'hephaestus-restart':      { ...PASSED_OVER_HEAD, now: 'boolean' },
   'concurrency-set':         { ...PASSED_OVER_HEAD, limit: 'whole-number' },
   'interrupted-work-resume': { ...PASSED_OVER_HEAD, target: 'json' },
   'chart-range-set':         { ...PASSED_OVER_HEAD, range: CHART_RANGE_RULE },
@@ -462,11 +462,11 @@ function draftEditIn(edit: BoardDraftEditDocument): BoardDraftEdit {
 /** The body, already checked against its kind's shape, mapped key by key. */
 function commandIn(document: Exclude<BoardCommandDocument, { readonly kind: 'interrupted-work-resume' }>): BoardCommand {
   switch (document.kind) {
-    case 'overseer-pause':
-    case 'overseer-resume':
+    case 'hephaestus-pause':
+    case 'hephaestus-unpause':
       return { kind: document.kind };
-    case 'overseer-stop':
-    case 'overseer-restart':
+    case 'hephaestus-stop':
+    case 'hephaestus-restart':
       return { kind: document.kind, now: document.now };
     case 'concurrency-set':
       return { kind: document.kind, limit: document.limit };

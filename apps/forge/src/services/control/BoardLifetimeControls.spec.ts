@@ -3,7 +3,7 @@
  * as `range` stores it, relative bounds as written and timestamps normalised, read against the hold's own time; an unreadable bound, a
  * backwards pair and a tick that is no whole number of minutes are refused with a wordless detail and leave the axis alone; and a clear is
  * refused while any job but the Assistant is live, since a job would run on against rows, a log and tickets that are gone, and a live
- * Overseer always has an Assistant, so it alone must not hold the clear back; otherwise the clear keeps the tickets.
+ * Hephaestus always has an Assistant, so it alone must not hold the clear back; otherwise the clear keeps the tickets.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -124,7 +124,7 @@ describe('tracker-clear', () => {
     expect(board.tickets().map((ticket) => ticket.frontmatter.id)).toEqual(['001']);
   });
 
-  test('a live Assistant, which a live Overseer always has, neither refuses the clear nor is named beside a job that does', () => {
+  test('a live Assistant, which a live Hephaestus always has, neither refuses the clear nor is named beside a job that does', () => {
     const { board } = boardFixture({ tickets: [ticketFixture({ id: '001', status: 'in-progress' })] });
     board.launchJob({
       kind: 'assistant', role: 'assistant', ticketIds: [], parentJobId: null, attempt: 1, target: null

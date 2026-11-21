@@ -33,7 +33,7 @@ import {
   type SentCommands
 } from './ControlCommandSender.ts';
 
-const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 1, kind: 'overseer-pause' };
+const PAUSE_COMMAND: BoardCommandDocument = { boardCommandVersion: 1, kind: 'hephaestus-pause' };
 const NOTHING_STARTED: BoardCommandResult = { startedJobId: null };
 const APPLIED: CommandOutcome = { verdict: 'applied', outcome: 'done', result: NOTHING_STARTED };
 /** A forge's sentence as its command line prints it, naming a command, shown as it is. */
@@ -184,7 +184,7 @@ describe('when the sender is enabled', () => {
     renderedProbe({ command: PAUSE_COMMAND }, { availability: 'install-held' });
     expect(sendButton().disabled).toBe(true);
     cleanup();
-    renderedProbe({ command: { boardCommandVersion: 1, kind: 'overseer-restart', now: false }, answeredWhileInstallHeld: true }, { availability: 'install-held' });
+    renderedProbe({ command: { boardCommandVersion: 1, kind: 'hephaestus-restart', now: false }, answeredWhileInstallHeld: true }, { availability: 'install-held' });
     expect(sendButton().disabled).toBe(false);
   });
 

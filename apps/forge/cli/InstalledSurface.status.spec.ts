@@ -1,7 +1,7 @@
 /**
- * The `status --json` and Overseer state fields of the installed surface, which `cli/InstalledSurface.spec.ts` cannot read from the help
+ * The `status --json` and Hephaestus state fields of the installed surface, which `cli/InstalledSurface.spec.ts` cannot read from the help
  * screen: the CLI's side is the keys of both `status --json` documents over a real tracker holding every kind of entry, with the top-level
- * keys of the Overseer's state document built on them. The frozen surface is compared whole here, so after an `INSTALL_VERSION` bump the
+ * keys of Hephaestus's state document built on them. The frozen surface is compared whole here, so after an `INSTALL_VERSION` bump the
  * failure prints every kind to freeze.
  */
 import {
@@ -20,8 +20,9 @@ import { describeWhenGitIsRecorded }              from '../src/testing/ToolGuard
 import { boardStoreIn }                           from './BoardStoreOf.ts';
 import { helpText }                               from './HelpText.ts';
 import { INSTALL_VERSION }                        from './constants/InstallVersion.ts';
-import { readBoardState }                         from './overseer/routes/BoardStateReader.ts';
+import { readBoardState }                         from './hephaestus/routes/BoardStateReader.ts';
 import { createCapturedCommandContext }           from './testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from './testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from './testing/InitializedScratchRepository.ts';
 import type { CliSurface }                        from './testing/InstalledSurfaceScan.ts';
 import {
@@ -32,8 +33,7 @@ import {
   SURFACE_KINDS,
   surfaceSentencesOf
 }                                                                             from './testing/InstalledSurfaceScan.ts';
-import { runCommandLineWithOverseerMoves } from './testing/OverseerTicketMoves.ts';
-import { fileReadyTicketThrough }          from './testing/ReadyTicketFiling.ts';
+import { fileReadyTicketThrough } from './testing/ReadyTicketFiling.ts';
 
 function keysOf(value: unknown): readonly string[] {
   if (Array.isArray(value)) return value.flatMap(keysOf);
@@ -41,11 +41,11 @@ function keysOf(value: unknown): readonly string[] {
   return Object.entries(value).flatMap(([key, child]) => [key, ...keysOf(child)]);
 }
 
-/** Every kind of entry both documents can hold: ready, grouped, held, in progress, paused, waiting on review, under one, settled, a running Overseer. */
+/** Every kind of entry both documents can hold: ready, grouped, held, in progress, paused, waiting on review, under one, settled, a running Hephaestus. */
 async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Promise<ReadonlySet<string>> {
   const run = async (commandLineArguments: readonly string[]): Promise<string> => {
     const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory });
-    const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+    const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
     if (exitCode !== 0) throw new Error(`\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`);
     return context.outputText();
   };
@@ -67,20 +67,20 @@ async function statusDocumentKeysOfAFullBoard(repositoryDirectory: string): Prom
   await run(['ticket', 'finish', '7']);
   await run(['ticket', 'approve', '7']);
   await run(['ticket', 'deliver', '7']);
-  await run(['oversee', 'resume']);
+  await run(['unpause']);
   await run(['log', 'Example milestone']);
   const documents = [await run(['status', '--json']), await run(['status', '--json', '--full'])].map((text) => JSON.parse(text) as unknown);
-  const overseerState = readBoardState({
+  const hephaestusState = readBoardState({
     context:       createCapturedCommandContext({ currentDirectory: repositoryDirectory }),
     workspace:     requireWorkspace(repositoryDirectory),
     boardReads:    boardStoreIn(createCapturedCommandContext({ currentDirectory: repositoryDirectory }), requireWorkspace(repositoryDirectory)).reads,
     boardChildren: talosChildReadingsWith(nativePlatformPorts(), requireWorkspace(repositoryDirectory).trackerDirectory),
     notices:       () => [],
-    overseer:      () => ({
+    hephaestus:    () => ({
       state: 'down', url: null, generation: null, codeVersion: 'example', installVersion: INSTALL_VERSION, batonPassWarning: null
     }),
   }).state;
-  return new Set([...documents.flatMap(keysOf), ...Object.keys(overseerState)]);
+  return new Set([...documents.flatMap(keysOf), ...Object.keys(hephaestusState)]);
 }
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
@@ -112,8 +112,8 @@ describeWhenGitIsRecorded('the status fields', () => {
   /** A floor well under today's count, to fail a scan that read the wrong files or a board that held too little. */
   test('the scan finds status fields in the installed files and in both documents of the CLI', () => {
     expect(namedSurfaceOf(INSTALLED_TEXTS, cliSurface).statusJsonFields.length, 'status fields named').toBeGreaterThanOrEqual(10);
-    expect(cliSurface.statusJsonFields).toContain('overseerState');
-    expect(cliSurface.statusJsonFields, 'a top-level key of the Overseer\'s state document').toContain('mergeQueue');
+    expect(cliSurface.statusJsonFields).toContain('hephaestusState');
+    expect(cliSurface.statusJsonFields, 'a top-level key of Hephaestus\'s state document').toContain('mergeQueue');
   });
 
   test(`the frozen surface holds for INSTALL_VERSION ${INSTALL_VERSION}: the CLI still has every name frozen, and every name installed is frozen`, () => {

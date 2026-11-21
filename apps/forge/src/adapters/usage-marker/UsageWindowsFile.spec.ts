@@ -1,8 +1,8 @@
 /**
  * The machine-wide usage windows both ways. What matters: recorded observations read back, into a monitor folder that does not exist yet;
  * a later observation replaces its window's values in place and keeps every key the program does not know, in order, so a file written
- * by another version round-trips byte for byte; an observation that changes nothing writes nothing; and a file any Overseer could misread
- * is `malformed`, never a throw, so a hand-edited file cannot take the Overseer down.
+ * by another version round-trips byte for byte; an observation that changes nothing writes nothing; and a file any Hephaestus could misread
+ * is `malformed`, never a throw, so a hand-edited file cannot take Hephaestus down.
  */
 import {
   mkdirSync,

@@ -143,7 +143,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
 ];
 
 /**
- * D4: Example Mobile App, held since its install version changed, after an Update forge whose Baton pass its live Overseer did not take.
+ * D4: Example Mobile App, held since its install version changed, after an Update forge whose Baton pass its live Hephaestus did not take.
  * Each screen is its artboard's, with the pending restart under the control that sent the update.
  */
 export const RESTART_PENDING_SCREENS: readonly ArtboardScreen[] = [
@@ -408,8 +408,8 @@ function exampleBillingUpdateStatesOf(updateStep: Exclude<ForgeUpdateStep, 'idle
 export const B2_STOP_REFUSAL: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'overseer-still-live',
-  text:          'The Overseer did not stop within its tries.',
+  refusal:       'hephaestus-still-live',
+  text:          'Hephaestus did not stop within its tries.',
   forges:        [],
 };
 

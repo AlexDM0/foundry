@@ -14,7 +14,7 @@
 
 forge runs Claude Code [agents](docs/glossary.md#agent) through a [ticket](docs/glossary.md#ticket) board in one
 repository. Agents do the work and report it, and the program, not an agent, checks each report and moves each
-ticket. forge has no page of its own: the [Overseer](docs/glossary.md#overseer) serves the whole
+ticket. forge has no page of its own: [Hephaestus](docs/glossary.md#hephaestus) serves the whole
 [board](docs/glossary.md#board) through an API on `127.0.0.1`, and a client of that API shows it and takes the moves of
 User, the person running the board.
 
@@ -27,23 +27,23 @@ The promise, in three lines:
   [gates](docs/glossary.md#gate) have checked it.
 - **Done means merged.** A ticket is finished when the [Airlock](docs/glossary.md#airlock) has landed it, not when an
   agent says so.
-- **An [Overseer](docs/glossary.md#overseer) can die or be updated while agents keep running.** Each agent session
-  lives under the board's detached [Talos](docs/glossary.md#talos), not under the Overseer.
+- **A [Hephaestus](docs/glossary.md#hephaestus) can die or be updated while agents keep running.** Each agent session
+  lives under the board's detached [Talos](docs/glossary.md#talos), not under Hephaestus.
   [Two lifetimes](docs/concepts/overview.md#two-lifetimes) shows it over time.
 
-![One Overseer drives the board. User reaches it through a client of its API, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. The Overseer reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive the Overseer.](docs/images/architecture.png)
+![One Hephaestus drives the board. User reaches it through a client of its API, and terminal verbs, typed by User or run by an orchestrator session, record a fact in the data folder. Hephaestus reads and writes that folder, lands tickets on main through the Airlock, and sends frames to the board's one detached Talos. Talos runs every agent session and gate and reports each through an event log. Talos and its children outlive Hephaestus.](docs/images/architecture.png)
 
-*Notice that nothing inside the dashed box is a child of the Overseer, and that agents touch neither the board nor
+*Notice that nothing inside the dashed box is a child of Hephaestus, and that agents touch neither the board nor
 main.*
 
 ## One ticket, start to merge
 
-User describes the work and readies the [draft ticket](docs/glossary.md#draft-ticket) a product owner files. The
-Overseer drives every step after that. User steps in only for what code cannot answer, which reaches the Questions
+User describes the work and readies the [draft ticket](docs/glossary.md#draft-ticket) a product owner files.
+Hephaestus drives every step after that. User steps in only for what code cannot answer, which reaches the Questions
 view as a [decision](docs/glossary.md#decision).
 
 <p align="center">
-  <img src="docs/images/lifecycle.png" width="680" alt="One ticket from report to merged: User describes the work, a product owner files a draft ticket, and once User readies it the Overseer starts a builder in a worktree. Customs and the gates verify its report on the final commit. A fresh reviewer follows when the pipeline sets a review, otherwise the ticket goes straight to the Airlock. A red result or a review that does not hold sends it back to the same builder. A reviewer's large rework can earn another review round. The Airlock merges from the merge queue, one ticket at a time, and done means merged. Findings outside scope become low-priority draft tickets.">
+  <img src="docs/images/lifecycle.png" width="680" alt="One ticket from report to merged: User describes the work, a product owner files a draft ticket, and once User readies it Hephaestus starts a builder in a worktree. Customs and the gates verify its report on the final commit. A fresh reviewer follows when the pipeline sets a review, otherwise the ticket goes straight to the Airlock. A red result or a review that does not hold sends it back to the same builder. A reviewer's large rework can earn another review round. The Airlock merges from the merge queue, one ticket at a time, and done means merged. Findings outside scope become low-priority draft tickets.">
 </p>
 
 *Notice that review is optional, set by the board's [pipeline](docs/glossary.md#pipeline).*
@@ -52,7 +52,7 @@ view as a [decision](docs/glossary.md#decision).
 
 ## What it does to a repository
 
-`forge init` only adds the files below. Once running, the Overseer creates ticket branches and lands
+`forge init` only adds the files below. Once running, Hephaestus creates ticket branches and lands
 finished tickets on the [main line](docs/glossary.md#main-line).
 
 | What | Where | In git |
@@ -115,19 +115,19 @@ Then, in the repository to adopt:
 ```sh
 cd ~/code/example-storefront
 forge init --project "Example Storefront"
-forge oversee --detach
-forge oversee resume
+forge start
+forge unpause
 ```
 
-`oversee --detach` starts the Overseer in the background and prints its URL. No forge command opens the board: a client
-of the Overseer's API shows it.
+`start` starts Hephaestus in the background and prints its URL. No forge command opens the board: a client
+of Hephaestus's API shows it.
 Commit the `.gitignore` change `init` made.
 
 <p align="center">
-  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, gitignore entry, hook, skills and worktrees folder, then oversee --detach printing the Overseer's local URL and oversee resume setting it to running.">
+  <img src="docs/images/terminal-init.png" width="720" alt="Terminal output of forge init for Example Storefront, listing the tracker, session instructions, gitignore entry, hook, skills and worktrees folder, then start printing Hephaestus's local URL and unpause setting it to running.">
 </p>
 
-*Notice `oversee resume`: a new board starts paused, and no ticket builds and no pipeline agent starts until it runs.*
+*Notice `unpause`: a new board starts paused, and no ticket builds and no pipeline agent starts until it runs.*
 
 The Questions view asks for the repository's gates. A [pipeline agent](docs/glossary.md#pipeline-agent) proposes them, and
 User accepts the proposal there. Then describe the work in the Intake view and ready the draft tickets the product
@@ -160,6 +160,6 @@ The program is TypeScript on Bun, with no runtime dependency outside this worksp
 | Concept | Path | Symbol | Held by |
 | --- | --- | --- | --- |
 | The names on this build | `src/shared/constants/ProductNames.ts` | `PRODUCT_NAMES` | `src/ProductNames.spec.ts` |
-| A new board starts paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
+| A new board starts paused | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
 | The machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | The images on this page | `.readme-graphics/render-diagrams.py` | `DIAGRAMS` | read by hand |

@@ -141,7 +141,7 @@ function askOf(decisions: readonly AskingDecisionDocument[], jobId: string, slic
   };
 }
 
-/** One group per project (one Overseer serves one board): the jobs that ask User lead, the rest keep board order; none without jobs. */
+/** One group per project (one Hephaestus serves one board): the jobs that ask User lead, the rest keep board order; none without jobs. */
 function projectGroupsOf(jobs: readonly AgentJobDocument[], decisions: readonly JobDecisionDocument[], project: string): ProjectGroup[] {
   if (jobs.length === 0) return [];
   const asking = jobs.filter((job) => openDecisionOf(decisions, job.id) !== null);

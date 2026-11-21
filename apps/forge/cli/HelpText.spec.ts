@@ -64,7 +64,7 @@ describe('the command reference', () => {
   test('it names the install version refusal, the commands it spares and the command that lifts it', () => {
     const flattenedHelp = HELP_TEXT.replaceAll(/\s+/g, ' ');
     expect(flattenedHelp).toContain(
-      'Every command but init, update, help, status, version, stop, machine, login-item, oversee status and oversee stop refuses, with exit 1, '
+      'Every command but init, update, help, status, version, stop, talos-restart, machine and login-item refuses, with exit 1, '
         + 'while the files installed here '
         + 'are of another install version',
     );
@@ -190,7 +190,7 @@ describe('the two skills stay split by audience', () => {
     expect(FILING_SKILL_TEXT).not.toContain('dispatcher running');
   });
 
-  /** The Overseer credits every job's tokens and the brief carrying the Orchestrator checklist is no longer installed. */
+  /** Hephaestus credits every job's tokens and the brief carrying the Orchestrator checklist is no longer installed. */
   test('neither skill tells its reader to record what an agent cost or reads the retired agent brief', () => {
     for (const text of [FILING_SKILL_TEXT, ORCHESTRATE_TEXT]) {
       expect(text).not.toContain('--tokens');
@@ -209,10 +209,10 @@ describe('the two skills stay split by audience', () => {
     for (const retired of ['--hold', 'build-when-filed', 'starts now or is queued']) expect(FILING_SKILL_TEXT, retired).not.toContain(retired);
   });
 
-  test('the orchestrator skill wraps a running Overseer: it reads its state, starts it on the go and never drives it', () => {
-    expect(ORCHESTRATE_TEXT).toContain('`{{program}} oversee status --json`');
+  test('the orchestrator skill wraps a running Hephaestus: it reads its state, starts it on the go and never drives it', () => {
     expect(ORCHESTRATE_TEXT).toContain('`{{program}} status --json`');
-    expect(ORCHESTRATE_TEXT).toContain('`{{program}} oversee --detach`');
+    expect(ORCHESTRATE_TEXT).toContain('`{{program}} status --json`');
+    expect(ORCHESTRATE_TEXT).toContain('`{{program}} start`');
     expect(ORCHESTRATE_TEXT).toContain('`{{program}} await --json`');
     expect(ORCHESTRATE_TEXT).toContain('You never drive the lifecycle yourself and never handle an incident');
     for (const retired of ['dispatcher', 'Workflow', '`ask`', 'Watcher mechanics']) expect(ORCHESTRATE_TEXT, retired).not.toContain(retired);
@@ -221,7 +221,7 @@ describe('the two skills stay split by audience', () => {
 
 const SESSION_INSTRUCTIONS_TEXT = readFileSync(join(import.meta.dir, '..', 'resources', 'templates', 'SessionInstructions.md'), 'utf8');
 
-/** The Overseer owns the lifecycle, so the guidance a session reads names only `ticket deliver --by-hand` for work done outside it. */
+/** Hephaestus owns the lifecycle, so the guidance a session reads names only `ticket deliver --by-hand` for work done outside it. */
 const BY_HAND_LIFECYCLE_VERB_PATTERNS = [
   /`release[ `]/,
   /\brelease <id>/,

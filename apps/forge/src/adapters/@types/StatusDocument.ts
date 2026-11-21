@@ -25,8 +25,8 @@ export interface OwnerTokenTotals {
   withoutTokens: { rows: number };
 }
 
-/** Whose probe gave the confinement word: the live Overseer's, or this process's own when none answers. */
-export type ConfinementSource = 'overseer' | 'this-process';
+/** Whose probe gave the confinement word: the live Hephaestus's, or this process's own when none answers. */
+export type ConfinementSource = 'hephaestus' | 'this-process';
 
 /** The dispatch capacity with the ids in flight ending the block. */
 export type StatusConcurrency = DispatchCapacity & InProgressIds;

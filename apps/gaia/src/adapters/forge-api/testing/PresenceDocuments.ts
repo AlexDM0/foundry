@@ -1,5 +1,5 @@
 /**
- * The presence documents and the crash log the `overseer-fetch-presence` recording holds, read from its answers: Example Storefront serving,
+ * The presence documents and the crash log the `hephaestus-fetch-presence` recording holds, read from its answers: Example Storefront serving,
  * and after User started it again after a crash. Test-only.
  */
 import { recordedPresenceAnswersOf, type PresenceSituation } from '../../../testing/RecordedAnswers.ts';

@@ -1,7 +1,7 @@
 /**
  * The Questions inbox against fake controls. What matters: each decision shows its questions and options exactly as asked, an escalated
  * report as the agent wrote it, and the answer posts `decision-answer` with the chosen letters or free text; the first answer wins and a
- * later one shows the Overseer's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
+ * later one shows Hephaestus's refusal verbatim; the open-question count leads the tab title and a new decision raises one notification;
  * a finding is no question; the view opens with its title row; planted markup in a question reaches the DOM only as text; an option shows
  * the consequences its agent noted; each open card opens the question panel at itself beside the board, and while the panel shows a
  * decision the view says so, so a wide window keeps the list clear of the panel.

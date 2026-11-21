@@ -49,14 +49,14 @@ The pipeline setup plan meant to close this gap; its items did not change this c
 ## Out of the code-owned lifecycle epic
 
 The `code-lifecycle` epic, built on the branch `group-code-lifecycle`, moved a ticket's lifecycle into code, the
-[Overseer](glossary.md#overseer). It deliberately leaves out two things. Neither is deferred work waiting its turn
+[Hephaestus](glossary.md#hephaestus). It deliberately leaves out two things. Neither is deferred work waiting its turn
 here: each returns only as a new decision of the owner's.
 
 - **The Copilot worker adapter**, with an `forge workers --vendor` command and a `workerVendor` board key; neither
-  exists. The Overseer launches Claude Code and nothing else: `AgentAdapter` in `src/lib/agent-launch/AgentAdapter.ts`
+  exists. Hephaestus launches Claude Code and nothing else: `AgentAdapter` in `src/lib/agent-launch/AgentAdapter.ts`
   is the launcher port, and `CLAUDE_CODE_ADAPTER` in `src/lib/claude-code/ClaudeCodeAdapter.ts` is its one production
   adapter. Launching and [session](glossary.md#session) streams sit behind that port, so a second vendor adds an adapter
   there.
-- **A cross-project overview.** Each repository's Overseer serves only its own board. The view across boards stays
+- **A cross-project overview.** Each repository's Hephaestus serves only its own board. The view across boards stays
   a monitor's, a separate program; its contract with this build is under [The monitor
-  contract](reference/overseer-api.md#the-monitor-contract). agent-progress keeps no machine-wide process.
+  contract](reference/hephaestus-api.md#the-monitor-contract). agent-progress keeps no machine-wide process.

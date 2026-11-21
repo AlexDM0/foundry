@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="326" viewBox="0 0 720 326" role="img">
   <title>forge init in a terminal</title>
-  <desc>A macOS terminal running forge init in an example repository, listing the tracker, session instructions, gitignore entry, SessionStart hook, skills and worktrees folder it sets up, then forge oversee --detach printing the Overseer's local URL and forge oversee resume taking the new board out of its paused state.</desc>
+  <desc>A macOS terminal running forge init in an example repository, listing the tracker, session instructions, gitignore entry, SessionStart hook, skills and worktrees folder it sets up, then forge start printing Hephaestus's local URL and forge unpause taking the new board out of its paused state.</desc>
 
   <rect x="0.5" y="0.5" width="719" height="325" rx="12" fill="#1C1C1E" stroke="#3A3A3C"/>
   <path d="M0.5,28.5 V12.5 A12,12 0 0 1 12.5,0.5 H707.5 A12,12 0 0 1 719.5,12.5 V28.5 Z" fill="#2A2A2C" stroke="#3A3A3C"/>
@@ -21,10 +21,10 @@
     <text x="30.4" y="182" fill="#8E8E93">skills:</text><text x="124" y="182"><tspan fill="#32D74B">updated</tspan> (.claude/skills/forge-po, .gitignore entry <tspan fill="#32D74B">added</tspan>);</text>
     <text x="124" y="200"><tspan fill="#32D74B">updated</tspan> (.claude/skills/forge-orchestrate, .gitignore entry <tspan fill="#32D74B">added</tspan>)</text>
     <text x="30.4" y="218" fill="#8E8E93">worktrees:</text><text x="124" y="218">.forge-worktrees already ignored, so nothing was added</text>
-    <text x="16" y="236" fill="#8E8E93">$</text><text x="30.4" y="236">forge oversee --detach</text>
+    <text x="16" y="236" fill="#8E8E93">$</text><text x="30.4" y="236">forge start</text>
     <text x="16" y="254">http://127.0.0.1:4943/</text>
-    <text x="16" y="272" fill="#8E8E93">$</text><text x="30.4" y="272">forge oversee resume</text>
-    <text x="16" y="290">Overseer set to running (was paused).</text>
+    <text x="16" y="272" fill="#8E8E93">$</text><text x="30.4" y="272">forge unpause</text>
+    <text x="16" y="290">Hephaestus set to running (was paused).</text>
     <text x="16" y="308" fill="#8E8E93">$</text><rect x="30.4" y="297" width="7" height="14" fill="#E6E6E6" opacity="0.75"/>
   </g>
 </svg>

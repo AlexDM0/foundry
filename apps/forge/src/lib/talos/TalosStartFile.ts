@@ -1,5 +1,5 @@
 /**
- * `start-<startNumber>.json`: what the Overseer hands a Talos it starts, its endpoint, its secret's file and every bound, so a spec can pass
+ * `start-<startNumber>.json`: what Hephaestus hands a Talos it starts, its endpoint, its secret's file and every bound, so a spec can pass
  * short ones. A reader gets a verdict, never a throw.
  */
 import { isAbsolute } from 'node:path';
@@ -14,7 +14,7 @@ export interface TalosStartFile {
   boardFolder:                 string;
   endpoint:                    string;
   secretFilePath:              string;
-  /** The code version of the Overseer that started it, recorded and reported, never compared. */
+  /** The code version of the Hephaestus that started it, recorded and reported, never compared. */
   codeVersion:                 string;
   leaseMilliseconds:           number;
   renewalIntervalMilliseconds: number;

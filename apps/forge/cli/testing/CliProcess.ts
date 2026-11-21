@@ -2,18 +2,18 @@
  * Spawns the real binary for the one claim an in-process `runCommandLine` cannot make: that `agent-progress.ts` itself works, shebang, executable
  * bit and exit code included, for a spec that must set the child's environment, which no spec may set in-process, and for one whose
  * command must run in its own process beside another. `src/testing/BoundarySpecs.ts` lists its callers, and
- * `cli/overseer/OverseerCommand.integration.spec.ts` starts Overseers through it that run until stopped.
+ * `cli/hephaestus/StartCommand.integration.spec.ts` starts Hephaestus processes through it that run until stopped.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { delimiter, dirname, join }                from 'node:path';
 
-import { environmentCopy, fakeAgentVariableOf, overseerPollIntervalVariableOf } from '../../src/shared/Environment.ts';
-import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                   from '../../src/shared/constants/ProductNames.ts';
-import { rootOverrideVariableOf }                                               from '../../src/shared/constants/RootOverrideVariable.ts';
-import { programTrapFolders }                                                   from '../../src/testing/ProgramTraps.ts';
-import type { RecordedGit, RecordedGitStage }                                   from '../../src/testing/RecordedGit.ts';
-import { createScratchDirectory, removeScratchDirectory }                       from '../../src/testing/ScratchWorkspace.ts';
-import { requireTrackerIsolation }                                              from '../../src/testing/TrackerIsolation.ts';
+import { environmentCopy, fakeAgentVariableOf, hephaestusPollIntervalVariableOf } from '../../src/shared/Environment.ts';
+import { ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES }                     from '../../src/shared/constants/ProductNames.ts';
+import { rootOverrideVariableOf }                                                 from '../../src/shared/constants/RootOverrideVariable.ts';
+import { programTrapFolders }                                                     from '../../src/testing/ProgramTraps.ts';
+import type { RecordedGit, RecordedGitStage }                                     from '../../src/testing/RecordedGit.ts';
+import { createScratchDirectory, removeScratchDirectory }                         from '../../src/testing/ScratchWorkspace.ts';
+import { requireTrackerIsolation }                                                from '../../src/testing/TrackerIsolation.ts';
 
 export interface AgentProgressResult {
   exitCode:       number;
@@ -32,14 +32,14 @@ export interface RunAgentProgressOptions {
   runsAsTheOtherProgram?:    boolean;
   /** The child starts no git: it answers this stage from the recorded git answers, and a call it could not answer fails the run. */
   recordedGitStage?:         RecordedGitStage;
-  /** The child starts no git: a long-running child, such as an Overseer, answers each call from this set, in any order and as often as it asks. */
+  /** The child starts no git: a long-running child, such as a Hephaestus, answers each call from this set, in any order and as often as it asks. */
   recordedGitAnswerSet?:     RecordedGitStage;
-  /** The child and every Bun process it starts, such as a detached Overseer or its successor, answer git from this one set. */
+  /** The child and every Bun process it starts, such as a detached Hephaestus or its successor, answer git from this one set. */
   sharedRecordedGitAnswers?: SharedRecordedGitAnswers;
 }
 
 /**
- * One answer set a spec case shares with every binary it spawns and their descendants, through `BUN_OPTIONS`, since a detached Overseer
+ * One answer set a spec case shares with every binary it spawns and their descendants, through `BUN_OPTIONS`, since a detached Hephaestus
  * outlives the command that started it. The case removes it once every process it started has ended.
  */
 export interface SharedRecordedGitAnswers {
@@ -112,11 +112,11 @@ const ROOT_OVERRIDE_VARIABLES = [ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NA
 /** On under either program's names, so no spawned binary launches a vendor's agent; applied last, so no spec's environment turns it off. */
 const FAKE_AGENT_SWITCHES = Object.fromEntries([ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES].map((productNames) => [fakeAgentVariableOf(productNames), '1']));
 
-const SHORT_OVERSEER_POLL_INTERVAL_MILLISECONDS = '25';
+const SHORT_HEPHAESTUS_POLL_INTERVAL_MILLISECONDS = '25';
 
-/** Under either program's names, so a spawned Overseer and its `oversee` callers poll fast; a spec's environment may set its own. */
-const SHORT_OVERSEER_POLL_INTERVALS = Object.fromEntries(
-  [ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES].map((productNames) => [overseerPollIntervalVariableOf(productNames), SHORT_OVERSEER_POLL_INTERVAL_MILLISECONDS]),
+/** Under either program's names, so a spawned Hephaestus and its `start` callers poll fast; a spec's environment may set its own. */
+const SHORT_HEPHAESTUS_POLL_INTERVALS = Object.fromEntries(
+  [ORIGINAL_PRODUCT_NAMES, SIDE_BY_SIDE_PRODUCT_NAMES].map((productNames) => [hephaestusPollIntervalVariableOf(productNames), SHORT_HEPHAESTUS_POLL_INTERVAL_MILLISECONDS]),
 );
 
 function bunAndGitSearchPath(): string {
@@ -132,7 +132,7 @@ function bunAndGitSearchPath(): string {
 export function childEnvironmentOf(environment: Record<string, string> | undefined, homeDirectory: string): Record<string, string> {
   const inheritedOrBuilt = environment === undefined ? environmentCopy() : { PATH: bunAndGitSearchPath(), ...environment };
   return {
-    ...SHORT_OVERSEER_POLL_INTERVALS,
+    ...SHORT_HEPHAESTUS_POLL_INTERVALS,
     ...inheritedOrBuilt,
     ...FAKE_AGENT_SWITCHES,
     PATH: [...programTrapFolders(), inheritedOrBuilt['PATH'] ?? ''].join(delimiter),
@@ -174,7 +174,7 @@ async function firstLineAndRestOf(stream: ReadableStream<Uint8Array>, onFirstLin
 }
 
 /**
- * A long-running command, such as a foreground Overseer, in its own process beside the spec: the spec reads its first output line while
+ * A long-running command, such as a foreground Hephaestus, in its own process beside the spec: the spec reads its first output line while
  * it runs and its result once something stops it. Its `HOME` is the one the options name, never removed here, since the child outlives
  * this call.
  */
@@ -233,7 +233,7 @@ export async function runAgentProgressBesideRecordedGit(
 }
 
 /**
- * A command line the Overseer renders to start the binary, such as the network guard hook, run as written: its first part is the program,
+ * A command line Hephaestus renders to start the binary, such as the network guard hook, run as written: its first part is the program,
  * spawned by its path with the same isolation and environment as `runAgentProgress`.
  */
 export async function runRenderedCommandLine(renderedCommandLine: readonly string[], options: RunAgentProgressOptions): Promise<AgentProgressResult> {

@@ -211,7 +211,7 @@ describe('BoardPipelineMappingUtil.pipelineSetupOf', () => {
 describe('BoardPipelineMappingUtil.pipelineHistoryOf', () => {
   test('maps each record the contract declares to its entry and drops a record of any other kind', () => {
     const records: LogRecord[] = [
-      { kind: 'overseer-set', at: AT, fields: { state: 'running' } },
+      { kind: 'hephaestus-set', at: AT, fields: { state: 'running' } },
       {
         kind: 'pipeline-apply-cancelled', at: AT, setupId: 'S1', fields: { revision: 2, state: 'held' }
       },
@@ -222,7 +222,7 @@ describe('BoardPipelineMappingUtil.pipelineHistoryOf', () => {
       },
     ];
     expect(BoardPipelineMappingUtil.pipelineHistoryOf(records)).toEqual([
-      { kind: 'overseer-set', at: AT, fields: { state: 'running' } },
+      { kind: 'hephaestus-set', at: AT, fields: { state: 'running' } },
       { kind: 'pipeline-gates-none', at: AT },
       { kind: 'pipeline-gates-ordered', at: AT, fields: { phase: 'review', names: ['test'] } },
       { kind: 'pipeline-setup-discarded', at: AT, setupId: 'S1' },

@@ -256,7 +256,7 @@ describe('claiming the main line\'s Airlock', () => {
       kind:      'landing-refused',
       ticketIds: ['002'],
       jobId:     null,
-      askedBy:   'overseer',
+      askedBy:   'hephaestus',
       requestId: null,
       questions: [{
         question: 'Example?', header: 'Example', multiSelect: false, options: []

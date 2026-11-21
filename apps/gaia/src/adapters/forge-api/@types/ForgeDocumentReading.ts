@@ -3,19 +3,19 @@
  */
 import type { ForgeContracts, ForgeReading } from '../../../shared/@types/ForgeReading.ts';
 
-/** What the registry holds of a forge with a live Overseer that a reading carries and no forge document repeats. */
+/** What the registry holds of a forge with a live Hephaestus that a reading carries and no forge document repeats. */
 export interface ForgeRegistryFacts {
-  readonly trackerId:         string;
-  readonly project:           string;
-  readonly root:              string;
-  readonly overseerUrl:       string;
-  readonly overseerProcessId: number;
-  readonly program:           string | null;
-  readonly lastCommand:       string | null;
-  readonly lastChangedAt:     string | null;
+  readonly trackerId:           string;
+  readonly project:             string;
+  readonly root:                string;
+  readonly hephaestusUrl:       string;
+  readonly hephaestusProcessId: number;
+  readonly program:             string | null;
+  readonly lastCommand:         string | null;
+  readonly lastChangedAt:       string | null;
 }
 
-/** An Overseer's identity mapped in. `contracts` is `null` from a forge before F1, which names none. */
+/** A Hephaestus's identity mapped in. `contracts` is `null` from a forge before F1, which names none. */
 export interface ForgeIdentity {
   readonly trackerId:      string;
   readonly project:        string;

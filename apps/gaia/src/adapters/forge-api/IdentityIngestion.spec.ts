@@ -20,29 +20,29 @@ const STOREFRONT_FACTS = registryFactsOf(FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exa
 
 /** The forge the identity of the `serving` situation was taken from, in a scratch repository. */
 const RECORDED_FORGE_FACTS: ForgeRegistryFacts = {
-  trackerId:         '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
-  project:           'Example Project',
-  root:              '/Users/alexexample/development/example-project',
-  overseerUrl:       'http://127.0.0.1:54795/',
-  overseerProcessId: 21_008,
-  program:           null,
-  lastCommand:       'open',
-  lastChangedAt:     '2026-11-12T09:00:00.000Z',
+  trackerId:           '712f8bdb-e7cf-48bc-86a5-2616d2cf935f',
+  project:             'Example Project',
+  root:                '/Users/alexexample/development/example-project',
+  hephaestusUrl:       'http://127.0.0.1:54795/',
+  hephaestusProcessId: 21_008,
+  program:             null,
+  lastCommand:         'open',
+  lastChangedAt:       '2026-11-12T09:00:00.000Z',
 };
 
 /** The forge both identities were recorded from, as the recording's stamp names it. */
-const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('overseer-fetch-supported-forge');
+const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf('hephaestus-fetch-supported-forge');
 
 const CURRENT_CONTRACTS = {
-  summary: 1,
-  monitor: 4,
-  control: 2,
+  summary: 2,
+  monitor: 5,
+  control: 3,
 };
 
 const ANALYTICS_SANDBOX = FLEET_SNAPSHOT_DEGRADED.forges.find((reading) => reading.fidelity === 'newer-contract');
 
 async function storefrontIdentity(): Promise<Record<string, unknown>> {
-  return await recordedDocumentOf('serving-every-contract', 'identity', STOREFRONT_FACTS.overseerUrl) as Record<string, unknown>;
+  return await recordedDocumentOf('serving-every-contract', 'identity', STOREFRONT_FACTS.hephaestusUrl) as Record<string, unknown>;
 }
 
 describe('the identity of a forge at the version Gaia supports', () => {
@@ -60,7 +60,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
   });
 
   test('reads the identity of the second forge, Example Project, alike', async () => {
-    const document = await recordedDocumentOf('serving', 'identity', RECORDED_FORGE_FACTS.overseerUrl);
+    const document = await recordedDocumentOf('serving', 'identity', RECORDED_FORGE_FACTS.hephaestusUrl);
     expect(new IdentityIngestion(RECORDED_FORGE_FACTS).readingOf(document)).toEqual({
       verdict:  'readable',
       identity: {
@@ -77,7 +77,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
     const ingestion = new IdentityIngestion(STOREFRONT_FACTS);
     expect(ingestion.readingOf({ ...await storefrontIdentity(), contracts: { ...CURRENT_CONTRACTS, monitor: 2 } }))
       .toEqual({ verdict: 'older-contract', contract: 'monitor', version: 2 });
-    expect(ingestion.readingOf({ ...await storefrontIdentity(), contracts: { summary: 1, control: 1 } }))
+    expect(ingestion.readingOf({ ...await storefrontIdentity(), contracts: { summary: 2, control: 1 } }))
       .toEqual({ verdict: 'older-contract', contract: 'monitor', version: null });
   });
 
@@ -97,7 +97,7 @@ describe('the identity of a forge at the version Gaia supports', () => {
       codeVersion: '9c04e5b',
       processId:   49_012,
       contracts:   {
-        summary: 1,
+        summary: 2,
         monitor: CONTRACT_VERSIONS.forgeMonitor + 1,
         control: ANALYTICS_SANDBOX.contracts.control,
       },
@@ -124,7 +124,7 @@ describe('an identity at a version this Gaia does not know', () => {
     if (reading.verdict !== 'newer-contract') return;
     expect([reading.contract, reading.version, reading.reading.fidelity]).toEqual(['identity', 2, 'newer-contract']);
     expect([reading.reading.processId, reading.reading.codeVersion, reading.reading.contracts]).toEqual([
-      STOREFRONT_FACTS.overseerProcessId,
+      STOREFRONT_FACTS.hephaestusProcessId,
       null,
       {
         summary: null,

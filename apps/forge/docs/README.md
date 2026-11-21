@@ -42,7 +42,7 @@ If something is wrong right now, start here.
 | Document | Its question |
 | --- | --- |
 | [Command and file-format reference](cli.md) | What exactly does this command accept, and what exactly is in this file? |
-| [The Overseer API](reference/overseer-api.md) | What does the Overseer serve, to whom, and how does a client stay in step? |
+| [The Hephaestus API](reference/hephaestus-api.md) | What does Hephaestus serve, to whom, and how does a client stay in step? |
 | [Refusals](reference/refusals.md) | This was refused: what does it mean, was anything written, and what do I do? |
 | [Backlog](backlog.md) | What is agreed and not started, and why does it wait? |
 
@@ -52,7 +52,7 @@ If something is wrong right now, start here.
 | --- | --- |
 | [Changing the code](development/contributing.md) | How do I get this running, try a change safely and get it past every check? |
 | [Guards and testing](development/guards-and-testing.md) | Which spec holds which rule, and how is this codebase tested without ever touching live data? |
-| [The Claude Code contract](development/overseer-claude-probe.md) | What does this system depend on from Claude Code, and what was observed to justify each choice? |
+| [The Claude Code contract](development/hephaestus-claude-probe.md) | What does this system depend on from Claude Code, and what was observed to justify each choice? |
 | [Platform status](development/platform-status.md) | Which behaviour has never run on which OS, per port? |
 
 ### Research

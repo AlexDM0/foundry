@@ -1,14 +1,14 @@
 /**
  * `GET /api/v1/forges/<trackerId>/crash-logs/<number>`: one crash log of a forge that serves again, read through its API when User opens it,
  * ingested and mapped to the page's `CrashLogDocument`. A log is written once and never changes, so each is read once per start of the forge's
- * Overseer and kept for the next ask; a forge that does not answer, the one off after a crash included, is refused.
+ * Hephaestus and kept for the next ask; a forge that does not answer, the one off after a crash included, is refused.
  */
-import { CrashLogIngestion }                                                   from '../../../adapters/forge-api/CrashLogIngestion.ts';
-import { CrashLogDocumentMapUtil }                                             from '../../../adapters/page-api/CrashLogDocumentMapUtil.ts';
-import type { BoardRelayRefusal }                                              from '../../../shared/@types/board/BoardRelayVerdict.ts';
-import type { BoardRelayLog }                                                  from '../@types/BoardRelayLogEntry.ts';
-import { BoardRelayAnswers }                                                   from '../BoardRelayAnswers.ts';
-import { accessVerdictOf, watchedOverseerVerdictFor, type ForgeAccessSources } from '../ForgeAccess.ts';
+import { CrashLogIngestion }                                                     from '../../../adapters/forge-api/CrashLogIngestion.ts';
+import { CrashLogDocumentMapUtil }                                               from '../../../adapters/page-api/CrashLogDocumentMapUtil.ts';
+import type { BoardRelayRefusal }                                                from '../../../shared/@types/board/BoardRelayVerdict.ts';
+import type { BoardRelayLog }                                                    from '../@types/BoardRelayLogEntry.ts';
+import { BoardRelayAnswers }                                                     from '../BoardRelayAnswers.ts';
+import { accessVerdictOf, watchedHephaestusVerdictFor, type ForgeAccessSources } from '../ForgeAccess.ts';
 
 export interface ForgeCrashLogRoute {
   readonly answerFor: (trackerId: string, writtenNumber: string) => Promise<Response>;
@@ -29,12 +29,12 @@ export function createForgeCrashLogRoute(sources: ForgeAccessSources, log: Board
   const readsByKey = new Map<string, Promise<CrashLogRead>>();
 
   async function crashLogReadOf(trackerId: string, crashLogNumber: number): Promise<CrashLogRead> {
-    const watched = await watchedOverseerVerdictFor(trackerId, sources);
+    const watched = await watchedHephaestusVerdictFor(trackerId, sources);
     if (watched.verdict === 'refused') return { verdict: 'refused', refusal: BoardRelayAnswers.relayRefusalOfAccess(watched.refusal) };
-    const key = `${trackerId} ${watched.overseer.url} ${watched.overseer.startedAt} ${crashLogNumber}`;
+    const key = `${trackerId} ${watched.hephaestus.url} ${watched.hephaestus.startedAt} ${crashLogNumber}`;
     const keptRead = readsByKey.get(key);
     if (keptRead !== undefined) return keptRead;
-    const read = crashLogReadAfresh(trackerId, crashLogNumber, watched.overseer, watched.forgeSystemVersion);
+    const read = crashLogReadAfresh(trackerId, crashLogNumber, watched.hephaestus, watched.forgeSystemVersion);
     readsByKey.set(key, read);
     // Only a log that was read is kept: a refusal may be gone by the next ask.
     void read.then((outcome) => {

@@ -104,7 +104,7 @@ describe('a red handoff whose session could not be resumed', () => {
   });
 
   test('keeps the attempt only after a red handoff: a session replaced after a crash takes the next attempt', () => {
-    const replacedAfterCrash = [launchedRecord('J1', 'build', ['001']), interruptedRecord('J1', 'watcher-lost'), endedRecord('J1', 'replaced')];
+    const replacedAfterCrash = [launchedRecord('J1', 'build', ['001']), interruptedRecord('J1', 'talos-lost'), endedRecord('J1', 'replaced')];
     const steps = Playbook.nextStepsOf(factsWith({ tickets: [ticketOf('001', 'in-progress')], logRecords: replacedAfterCrash }), FIXTURE_LIMITS);
 
     expect(steps).toEqual([{

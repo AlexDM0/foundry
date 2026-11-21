@@ -17,7 +17,7 @@ import type { ForgeStreamEvent, ForgeStreamFollow, MonitorFollowEnd }     from '
 import { forgeClientOf }                                                  from '../../lib/forge-client/ForgeClient.ts';
 import { SUPPORTED_FORGE_VERSION }                                        from '../../lib/forge-client/constants/SupportedForgeVersions.ts';
 import { manualTimers, type ManualTimers }                                from '../../testing/ManualTimers.ts';
-import type { RecordedOverseerFetch }                                     from '../../testing/RecordedAnswers.ts';
+import type { RecordedHephaestusFetch }                                   from '../../testing/RecordedAnswers.ts';
 import { createBoardStreams, type BoardStreams, type RelayStreamRequest } from './BoardStreams.ts';
 import {
   STOREFRONT_TRACKER_ID,
@@ -28,16 +28,16 @@ import {
 import { relayEventReaderOf } from './testing/RelayEventReader.ts';
 
 const HEARTBEAT_MILLISECONDS = 1_000;
-const EXAMPLE_ACCESS = { overseerUrl: STOREFRONT_URL, bearerToken: 'example-forge-token-0123456789abcdef' };
+const EXAMPLE_ACCESS = { hephaestusUrl: STOREFRONT_URL, bearerToken: 'example-forge-token-0123456789abcdef' };
 
 let timers: ManualTimers;
 let boardStreams: BoardStreams;
-let overseerFetch: RecordedOverseerFetch;
+let hephaestusFetch: RecordedHephaestusFetch;
 
 beforeEach(() => {
   timers        = manualTimers();
   boardStreams  = createBoardStreams({ timers, log: () => undefined, heartbeatIntervalMilliseconds: HEARTBEAT_MILLISECONDS });
-  overseerFetch = boardAnswering('board-at-work');
+  hephaestusFetch = boardAnswering('board-at-work');
 });
 
 afterEach(() => {
@@ -45,11 +45,11 @@ afterEach(() => {
 });
 
 function boardEventsRequest(mapEvent: RelayStreamRequest['mapEvent'] = (event) => ({ verdict: 'relayed', event: { eventName: event.eventName, data: '{}' } })): RelayStreamRequest {
-  const forgeClient = forgeClientOf({ overseerFetch });
+  const forgeClient = forgeClientOf({ hephaestusFetch });
   return {
     trackerId:          STOREFRONT_TRACKER_ID,
     forgeSystemVersion: SUPPORTED_FORGE_VERSION,
-    forgeStreamPath:    '/api/v2/events',
+    forgeStreamPath:    '/api/v3/events',
     follow:             (onEvent) => forgeClient.followEvents(EXAMPLE_ACCESS, null, onEvent),
     mapEvent,
   };
@@ -78,11 +78,11 @@ describe('the heartbeat', () => {
 describe('a stop', () => {
   test('closes every page stream and the forge stream each follows, and opens none after it', async () => {
     const responses = [await openedResponse(), await openedResponse()];
-    expect(overseerFetch.streamsLeftOpen()).toBe(2);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(2);
     boardStreams.stop();
     const endings = await Promise.all(responses.map((response) => relayEventReaderOf(response).untilEnd()));
     expect(endings.map((events) => events.map((event) => event.eventName))).toEqual([['handshake', 'board'], ['handshake', 'board']]);
-    expect([overseerFetch.streamsLeftOpen(), boardStreams.openStreamCount(), timers.pendingDelays()]).toEqual([0, 0, []]);
+    expect([hephaestusFetch.streamsLeftOpen(), boardStreams.openStreamCount(), timers.pendingDelays()]).toEqual([0, 0, []]);
     expect(await boardStreams.openStream(boardEventsRequest())).toEqual({ verdict: 'refused', refusal: 'forge-unreachable' });
   });
 });
@@ -104,7 +104,7 @@ describe('an event mapped for several page streams', () => {
   });
 });
 
-/** The forge's job stream as `overseer-fetch-board`'s `intake-conversation` sent it: its handshake, then `history` under the last cursor. */
+/** The forge's job stream as `hephaestus-fetch-board`'s `intake-conversation` sent it: its handshake, then `history` under the last cursor. */
 function jobStreamFollowSending(historyData: string): RelayStreamRequest['follow'] {
   return (onEvent) => {
     let endFollow: (end: MonitorFollowEnd) => void = () => undefined;
@@ -122,7 +122,7 @@ function jobStreamFollowSending(historyData: string): RelayStreamRequest['follow
 
 describe('a job\'s history under one cursor', () => {
   test('reaches a page stream resumed from that cursor with no entries, though a page stream from the start heard them first', async () => {
-    const historyFromStart = JSON.stringify([{ cursor: '1.2', role: 'overseer', text: 'Example: suggest searches as the shopper types.' }]);
+    const historyFromStart = JSON.stringify([{ cursor: '1.2', role: 'hephaestus', text: 'Example: suggest searches as the shopper types.' }]);
     const jobStreamRequest = (historyData: string): RelayStreamRequest => ({
       trackerId:          STOREFRONT_TRACKER_ID,
       forgeSystemVersion: SUPPORTED_FORGE_VERSION,

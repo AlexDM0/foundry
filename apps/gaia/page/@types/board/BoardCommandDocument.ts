@@ -33,10 +33,10 @@ export type BoardResumeTargetDocument = { readonly jobId: string } | { readonly 
 export type BoardTrackerClearScope = 'tasks-and-log' | 'everything';
 
 export type BoardCommandDocument = { readonly boardCommandVersion: typeof PAGE_CONTRACT_VERSIONS.gaiaBoardCommand } & (
-  | { readonly kind: 'overseer-pause' }
-  | { readonly kind: 'overseer-resume' }
-  | { readonly kind: 'overseer-stop'; readonly now: boolean }
-  | { readonly kind: 'overseer-restart'; readonly now: boolean }
+  | { readonly kind: 'hephaestus-pause' }
+  | { readonly kind: 'hephaestus-unpause' }
+  | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
+  | { readonly kind: 'hephaestus-restart'; readonly now: boolean }
   | { readonly kind: 'concurrency-set'; readonly limit: number }
   | { readonly kind: 'interrupted-work-resume'; readonly target: BoardResumeTargetDocument }
   | { readonly kind: 'chart-range-set'; readonly range: BoardChartRangeDocument }

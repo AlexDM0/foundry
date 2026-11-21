@@ -1,7 +1,8 @@
 # README graphics
 
 What renders the diagrams in `docs/images/`. This folder owns `docs/images/` and nothing else. `docs/figures/` holds
-only the PNGs the remaining documents use, with no SVG source kept, and no script here touches them.
+the PNGs the remaining documents use, and no script here touches them. A figure that was drawn again keeps its SVG
+source beside its PNG; it is rendered with the same renderer and the same card mask as the diagrams here.
 
 ## Requirements
 

@@ -438,7 +438,7 @@ function entityForgeCommitsOf(scenario: EntityForgeScenario): Record<string, str
   return Object.fromEntries(ENTITY_FORGE_SCENARIO_COMMITS[scenario].map((placeholder, i) => [placeholder, `${i + 1}`.repeat(40)]));
 }
 
-/** What a job of `entityKey` may change on the fixture's pipeline, as the Overseer gives it; `proposalHomes` only in stage 1. */
+/** What a job of `entityKey` may change on the fixture's pipeline, as Hephaestus gives it; `proposalHomes` only in stage 1. */
 function entityForgeWritableFoldersOf(pipeline: Pipeline, entityKey: string, proposalHomes: readonly string[] = []): WritableFolders {
   const entities = pipeline.entities ?? {};
   return {
@@ -472,7 +472,7 @@ interface EntityForgeJob {
   judgedAgainst: 'the main line' | 'its own range';
 }
 
-/** A job of the shop's ticket in its worktree, in `scenario`, judged as the Overseer judges a job of an entity. */
+/** A job of the shop's ticket in its worktree, in `scenario`, judged as Hephaestus judges a job of an entity. */
 function entityForgeJobIn(scenario: EntityForgeScenario, job: EntityForgeJob): CustomsSubject {
   const commits = entityForgeCommitsOf(scenario);
   enterScenario(scenario, { repositoryDirectory, commits });

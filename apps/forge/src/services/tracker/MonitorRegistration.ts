@@ -37,28 +37,28 @@ export interface MonitorRegistrationRequest {
   temporaryDirectories: readonly string[];
   /** The verb that wrote the board, such as `ticket hold`. */
   command:              string;
-  /** The absolute path of the program that writes the entry, which a monitor starts this board's Overseer with. */
+  /** The absolute path of the program that writes the entry, which a monitor starts this board's Hephaestus with. */
   program:              string;
   now:                  () => Date;
-  /** The live Overseer, written at its start; `removed` at its stop; absent, a stored Overseer key is kept as it was. */
-  overseer?:            OverseerRegistration | 'removed';
-  /** Whether the forge serves, stopped, handed over or crashed, written beside `overseer`; absent, a stored presence key is kept as it was. */
+  /** The live Hephaestus, written at its start; `removed` at its stop; absent, a stored Hephaestus key is kept as it was. */
+  hephaestus?:          HephaestusRegistration | 'removed';
+  /** Whether the forge serves, stopped, handed over or crashed, written beside `hephaestus`; absent, a stored presence key is kept as it was. */
   presence?:            PresenceRegistration;
   /** This process as the registry lock's taker, and how it judges a holder it finds. */
   lockTaker:            LockTaker;
 }
 
-export interface OverseerRegistration {
+export interface HephaestusRegistration {
   url:       string;
   processId: number;
   startedAt: string;
-  /** The absolute path of the Overseer's token file, which a monitor reads its bearer token from. */
+  /** The absolute path of Hephaestus's token file, which a monitor reads its bearer token from. */
   tokenPath: string;
 }
 
 /** `crashLogPath` is `null` only when the crash path could not write its crash log. */
 export interface RegisteredCrash {
-  component:    'overseer' | 'talos';
+  component:    'hephaestus' | 'talos';
   suspected:    boolean;
   errorName:    string | null;
   errorMessage: string | null;
@@ -85,7 +85,7 @@ export type MonitorRegistrationOutcome =
 const REGISTRY_SHAPE: RegistryShape = { supportedVersion: MONITOR_REGISTRY_FILES.SUPPORTED_VERSION, entriesKey: MONITOR_REGISTRY_FILES.ENTRIES_KEY };
 
 const REGISTERED_AT_KEY = 'registeredAt';
-const OVERSEER_KEY        = 'overseer';
+const HEPHAESTUS_KEY        = 'hephaestus';
 const PRESENCE_KEY        = 'presence';
 
 /** A path that does not exist is resolved through its nearest existing ancestor, so `/tmp/missing` still reads as under `/private/tmp`. */
@@ -127,7 +127,7 @@ interface Registration {
   locationFields:   RegistryEntry;
   changedAt:        string;
   command:          string;
-  overseer?:        OverseerRegistration | 'removed';
+  hephaestus?:      HephaestusRegistration | 'removed';
   presence?:        PresenceRegistration;
 }
 
@@ -141,8 +141,8 @@ function updatedEntry(storedEntry: RegistryEntry | undefined, registration: Regi
     lastChangedAt:       registration.changedAt,
     lastCommand:         registration.command,
   };
-  if (registration.overseer === 'removed') delete entry[OVERSEER_KEY];
-  else if (registration.overseer !== undefined) entry[OVERSEER_KEY] = { ...registration.overseer };
+  if (registration.hephaestus === 'removed') delete entry[HEPHAESTUS_KEY];
+  else if (registration.hephaestus !== undefined) entry[HEPHAESTUS_KEY] = { ...registration.hephaestus };
   if (registration.presence !== undefined) entry[PRESENCE_KEY] = structuredClone(registration.presence);
   return entry;
 }
@@ -163,7 +163,7 @@ function registerUnderTheLock(registration: Registration): MonitorRegistrationOu
 
 export async function registerWithTheMonitor(request: MonitorRegistrationRequest): Promise<MonitorRegistrationOutcome> {
   const {
-    rootDirectory, progress, monitorFolder, temporaryDirectories, command, program, now, overseer, presence, lockTaker
+    rootDirectory, progress, monitorFolder, temporaryDirectories, command, program, now, hephaestus, presence, lockTaker
   } = request;
   if (trackerLiesInATemporaryFolder(rootDirectory, temporaryDirectories)) return { verdict: 'not-registered-temporary-tracker' };
   if (progress.verdict === 'absent') return { verdict: 'not-registered-unreadable-tracker', reason: 'its progress file is absent' };
@@ -181,7 +181,7 @@ export async function registerWithTheMonitor(request: MonitorRegistrationRequest
     },
     changedAt: LocalTimeUtil.formatLocalIso(now()),
     command,
-    ...(overseer === undefined ? {} : { overseer }),
+    ...(hephaestus === undefined ? {} : { hephaestus }),
     ...(presence === undefined ? {} : { presence }),
   };
   try {

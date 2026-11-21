@@ -107,7 +107,7 @@ describe('the crash logs', () => {
     });
     expect(ForgePresenceModel.presenceContentOf(forge, CLOCK).crashLogs.map((line) => [line.crashLogNumber, line.title])).toEqual([
       [2, 'Suspected crash before a reboot: Forge crashed'],
-      [1, 'Overseer crashed'],
+      [1, 'Hephaestus crashed'],
     ]);
   });
 

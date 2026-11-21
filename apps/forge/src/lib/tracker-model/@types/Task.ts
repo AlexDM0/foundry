@@ -70,7 +70,7 @@ export interface Task {
   /** The phase of that gate run; written with `pipelineHash`. A row with `pipelineHash` and no `greenPhase` has no current green. */
   greenPhase?:     GatePhase;
   /**
-   * The tree OID the Overseer's last gate run on the row's ticket passed, judged by `pipelineHash` in `greenPhase`; absent before a green
+   * The tree OID Hephaestus's last gate run on the row's ticket passed, judged by `pipelineHash` in `greenPhase`; absent before a green
    * run, and removed by a run that was not green.
    */
   greenTree?:      string;

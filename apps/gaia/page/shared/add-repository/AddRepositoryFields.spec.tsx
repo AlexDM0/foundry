@@ -39,8 +39,8 @@ const DONE: CommandAnswerDocument = {
 const START_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'overseer-did-not-answer',
-  text:          'The Overseer started but its API did not answer.',
+  refusal:       'hephaestus-did-not-answer',
+  text:          'Hephaestus started but its API did not answer.',
   forges:        [],
 };
 

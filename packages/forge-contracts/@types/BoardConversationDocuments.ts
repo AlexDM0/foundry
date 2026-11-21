@@ -33,7 +33,7 @@ export interface BoardDecisionDocument {
   readonly kind:      string;
   readonly ticketIds: readonly string[];
   readonly jobId:     string | null;
-  /** The asking agent's role; `overseer` for a decision the forge opened from the facts. */
+  /** The asking agent's role; `hephaestus` for a decision the forge opened from the facts. */
   readonly askedBy:   string;
   readonly questions: readonly BoardDecisionQuestionDocument[];
   readonly context:   string;

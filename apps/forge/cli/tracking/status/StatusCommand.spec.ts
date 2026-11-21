@@ -1,7 +1,7 @@
 /**
  * What `agent-progress status` tells its two readers. The `--json` working view leaves settled work and the old log out and counts what it
  * left out; `--full` is the whole progress file plus the tickets. Both documents are the agent's contract, and both carry the concurrency block.
- * A forge off after a crash adds one notice on standard error and leaves standard output as it was; a stopped forge adds none.
+ * Hephaestus's process facts above the board are held by `cli/tracking/status/StatusCommand.processFacts.spec.ts`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join }                        from 'node:path';
@@ -12,25 +12,20 @@ import {
   expect,
   test
 }                                                                             from 'bun:test';
-import type { FullStatusDocument }                         from '../../../src/adapters/@types/StatusDocument.ts';
-import type { ConfinementVerdict }                         from '../../../src/lib/gate-confinement/GateConfinement.ts';
-import type { TicketFrontmatter }                          from '../../../src/lib/tracker-model/@types/Ticket.ts';
-import type { PresenceEndingToWrite }                      from '../../../src/services/overseer/@types/PresenceRecord.ts';
-import { overseerFilesIn }                                 from '../../../src/services/overseer/OverseerFiles.ts';
-import { Presence }                                        from '../../../src/services/overseer/Presence.ts';
-import { requireWorkspace }                                from '../../../src/services/tracker/Workspace.ts';
-import type { WordedProgressDocument }                     from '../../../src/shared/@types/WordedProgressDocument.ts';
-import { PRODUCT_NAMES }                                   from '../../../src/shared/constants/ProductNames.ts';
-import { fakeGateConfinement }                             from '../../../src/testing/FakeGateConfinement.ts';
-import { nativePlatformPorts }                             from '../../../src/testing/NativePlatformPorts.ts';
-import { useRecordedGit }                                  from '../../../src/testing/RecordedGit.ts';
-import { useRecordedProcessTable }                         from '../../../src/testing/RecordedProcessTable.ts';
-import { removeScratchDirectory }                          from '../../../src/testing/ScratchWorkspace.ts';
-import { describeWhenGitIsRecorded, describeWhenRecorded } from '../../../src/testing/ToolGuard.ts';
-import { createCapturedCommandContext }                    from '../../testing/CapturedCommandContext.ts';
-import { createInitializedRecordedGitRepository }          from '../../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }                 from '../../testing/OverseerTicketMoves.ts';
-import { fileReadyTicket }                                 from '../../testing/ReadyTicketFiling.ts';
+import type { FullStatusDocument }                from '../../../src/adapters/@types/StatusDocument.ts';
+import type { ConfinementVerdict }                from '../../../src/lib/gate-confinement/GateConfinement.ts';
+import type { TicketFrontmatter }                 from '../../../src/lib/tracker-model/@types/Ticket.ts';
+import type { WordedProgressDocument }            from '../../../src/shared/@types/WordedProgressDocument.ts';
+import { PRODUCT_NAMES }                          from '../../../src/shared/constants/ProductNames.ts';
+import { fakeGateConfinement }                    from '../../../src/testing/FakeGateConfinement.ts';
+import { nativePlatformPorts }                    from '../../../src/testing/NativePlatformPorts.ts';
+import { useRecordedGit }                         from '../../../src/testing/RecordedGit.ts';
+import { removeScratchDirectory }                 from '../../../src/testing/ScratchWorkspace.ts';
+import { describeWhenGitIsRecorded }              from '../../../src/testing/ToolGuard.ts';
+import { createCapturedCommandContext }           from '../../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from '../../testing/HephaestusTicketMoves.ts';
+import { createInitializedRecordedGitRepository } from '../../testing/InitializedScratchRepository.ts';
+import { fileReadyTicket }                        from '../../testing/ReadyTicketFiling.ts';
 
 const FROZEN_NOW = new Date('2026-09-18T20:11:03Z');
 
@@ -49,7 +44,7 @@ type StatusDocument = WordedProgressDocument & {
     agentsInFlight:        number;
     freeSlots:             number;
     readyTicketIds:        string[];
-    overseerState:         string;
+    hephaestusState:       string;
     inProgressTicketIds:   string[];
     inProgressReviewOfIds: string[];
   };
@@ -71,13 +66,12 @@ function contextHere(): ReturnType<typeof createCapturedCommandContext> {
 
 async function run(commandLineArguments: readonly string[]): Promise<ReturnType<typeof createCapturedCommandContext>> {
   const context  = contextHere();
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
   return context;
 }
 
 const recordedGit = useRecordedGit();
-const processTable = useRecordedProcessTable(nativePlatformPorts());
 
 beforeEach(async () => {
   repositoryDirectory = await createInitializedRecordedGitRepository('status-command', ['--project', 'Example Agency'], () => FROZEN_NOW, recordedGit);
@@ -121,12 +115,12 @@ describeWhenGitIsRecorded('the human listing', () => {
 describeWhenGitIsRecorded('the confinement in force', () => {
   const VERDICTS: readonly ConfinementVerdict[] = ['confined', 'unavailable', 'unconfined-by-design'];
 
-  test.each([...VERDICTS])('%s is the port\'s word in both status documents, from this process while no Overseer serves', async (verdict) => {
+  test.each([...VERDICTS])('%s is the port\'s word in both status documents, from this process while no Hephaestus serves', async (verdict) => {
     const platformPorts = { ...nativePlatformPorts(), gateConfinement: fakeGateConfinement(verdict) };
     const contextOfPort = () => createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts });
     const documentOf = async (commandLineArguments: readonly string[]): Promise<{ confinement?: string; confinementSource?: string }> => {
       const context = contextOfPort();
-      expect(await runCommandLineWithOverseerMoves(commandLineArguments, context)).toBe(0);
+      expect(await runCommandLineWithHephaestusMoves(commandLineArguments, context)).toBe(0);
       return JSON.parse(context.outputText()) as { confinement?: string; confinementSource?: string };
     };
 
@@ -183,56 +177,56 @@ describeWhenGitIsRecorded('the keys of the --json --full document', () => {
    * the compiler hold it equal to the keys `FullStatusDocument` names. Retake it from `Object.keys` of the document the test below reads.
    */
   const FULL_STATUS_DOCUMENT_KEYS: Record<keyof FullStatusDocument, true> = {
-    version:                true,
-    trackerId:              true,
-    project:                true,
-    startedAt:              true,
-    view:                   true,
-    nextTaskId:             true,
-    concurrencyLimit:       true,
-    tasks:                  true,
-    log:                    true,
-    overseerState:          true,
-    nextDraftId:            true,
-    nextSetupId:            true,
-    nextJobId:              true,
-    jobs:                   true,
-    nextDecisionId:         true,
-    decisions:              true,
-    nextIncidentId:         true,
-    incidents:              true,
-    overseerFirstStartedAt: true,
-    branchNamespace:        true,
-    needs:                  true,
-    tickets:                true,
-    epics:                  true,
-    drafts:                 true,
-    concurrency:            true,
-    readyTickets:           true,
-    reviewWaitingTickets:   true,
-    pausedBuilds:           true,
-    ticketRows:             true,
-    tokensByOwner:          true,
-    ticketCountByStatus:    true,
-    confinement:            true,
-    confinementSource:      true,
-    pipelineIsSet:          true,
+    version:                  true,
+    trackerId:                true,
+    project:                  true,
+    startedAt:                true,
+    view:                     true,
+    nextTaskId:               true,
+    concurrencyLimit:         true,
+    tasks:                    true,
+    log:                      true,
+    hephaestusState:          true,
+    nextDraftId:              true,
+    nextSetupId:              true,
+    nextJobId:                true,
+    jobs:                     true,
+    nextDecisionId:           true,
+    decisions:                true,
+    nextIncidentId:           true,
+    incidents:                true,
+    hephaestusFirstStartedAt: true,
+    branchNamespace:          true,
+    needs:                    true,
+    tickets:                  true,
+    epics:                    true,
+    drafts:                   true,
+    concurrency:              true,
+    readyTickets:             true,
+    reviewWaitingTickets:     true,
+    pausedBuilds:             true,
+    ticketRows:               true,
+    tokensByOwner:            true,
+    ticketCountByStatus:      true,
+    confinement:              true,
+    confinementSource:        true,
+    pipelineIsSet:            true,
   };
 
   /** The keys `progress.json` holds only once set, each planted with a value a board could hold. */
   const OPTIONAL_PROGRESS_KEYS = {
-    overseerState:          'paused',
-    nextDraftId:            1,
-    nextSetupId:            1,
-    nextJobId:              1,
-    jobs:                   [],
-    nextDecisionId:         1,
-    decisions:              [],
-    nextIncidentId:         1,
-    incidents:              [],
-    overseerFirstStartedAt: FROZEN_NOW.toISOString(),
-    branchNamespace:        'example',
-    needs:                  [],
+    hephaestusState:          'paused',
+    nextDraftId:              1,
+    nextSetupId:              1,
+    nextJobId:                1,
+    jobs:                     [],
+    nextDecisionId:           1,
+    decisions:                [],
+    nextIncidentId:           1,
+    incidents:                [],
+    hephaestusFirstStartedAt: FROZEN_NOW.toISOString(),
+    branchNamespace:          'example',
+    needs:                    [],
   };
 
   function plantEveryOptionalProgressKey(): void {
@@ -246,7 +240,8 @@ describeWhenGitIsRecorded('the keys of the --json --full document', () => {
 
     const document = JSON.parse((await run(['status', '--json', '--full'])).outputText()) as Record<string, unknown>;
 
-    expect(Object.keys(document).sort()).toEqual(Object.keys(FULL_STATUS_DOCUMENT_KEYS).sort());
+    // The command adds Hephaestus's process facts to the document under `hephaestus`, last.
+    expect(Object.keys(document).sort()).toEqual([...Object.keys(FULL_STATUS_DOCUMENT_KEYS), 'hephaestus'].sort());
   });
 });
 
@@ -450,7 +445,7 @@ describeWhenGitIsRecorded('the log listing', () => {
 });
 
 describeWhenGitIsRecorded('the concurrency block both --json documents carry', () => {
-  // The Overseer reads this to decide whether to start an agent and on what: a running row with no job takes no slot, and a ticket waiting on
+  // Hephaestus reads this to decide whether to start an agent and on what: a running row with no job takes no slot, and a ticket waiting on
   // unfinished work is not ready.
   test('counts no running row against the limit, only build and review jobs, and lists the ready tickets lowest first', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history']);
@@ -465,7 +460,7 @@ describeWhenGitIsRecorded('the concurrency block both --json documents carry', (
       agentsInFlight:        0,
       freeSlots:             2,
       readyTicketIds:        ['002', '004'],
-      overseerState:         'paused',
+      hephaestusState:       'paused',
       heldTicketIds:         [],
       inProgressTicketIds:   ['001'],
       inProgressReviewOfIds: [],
@@ -474,7 +469,7 @@ describeWhenGitIsRecorded('the concurrency block both --json documents carry', (
     expect(full.concurrency).toEqual(expected);
   });
 
-  // The Overseer starts each ready ticket's agents on what this list says, so it must name the same tickets in the same order as `readyTicketIds`.
+  // Hephaestus starts each ready ticket's agents on what this list says, so it must name the same tickets in the same order as `readyTicketIds`.
   test('readyTickets resolves each ready ticket to its priority, model and effort, in the ready order', async () => {
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history', '--model', 'sonnet', '--effort', 'high']);
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Export the roles', '--depends-on', '1']);
@@ -556,6 +551,7 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
       'confinement',
       'confinementSource',
       'pipelineIsSet',
+      'hephaestus',
     ];
 
     expect(Object.keys(working)).toEqual([...progressKeys, 'tickets', 'epics', 'drafts', 'concurrency', 'readyTickets', 'omitted', ...dispatchKeys]);
@@ -572,7 +568,7 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
   });
 
   test('the ids in flight end the concurrency block', async () => {
-    await run(['oversee', 'resume']);
+    await run(['unpause']);
 
     const { working, full } = await bothDocuments();
     const expectedKeys      = [
@@ -580,7 +576,7 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
       'agentsInFlight',
       'freeSlots',
       'readyTicketIds',
-      'overseerState',
+      'hephaestusState',
       'heldTicketIds',
       'inProgressTicketIds',
       'inProgressReviewOfIds',
@@ -601,7 +597,7 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
     expect(full.concurrency.inProgressTicketIds).toEqual(['001', '002']);
   });
 
-  // A review started with the move is a reviewer at work; one finished without it waits for a reviewer the Overseer starts on these settings.
+  // A review started with the move is a reviewer at work; one finished without it waits for a reviewer Hephaestus starts on these settings.
   test('finish --start-review puts the ticket\'s review in flight, while a plain finish leaves it waiting with its agents resolved', async () => {
     await run(['concurrency', '5']);
     await fileReadyTicket(run, ['ticket', 'add', '--type', 'ticket', 'Show the role history', '--model', 'sonnet']);
@@ -652,50 +648,5 @@ describeWhenGitIsRecorded('the dispatch fields both --json documents carry', () 
     expect(full.ticketRows.map((entry) => entry.id)).toEqual(['001', '002']);
     expect(full.ticketRows[0]).toEqual(firstTicketRows);
     expect(full.ticketRows[1]).toMatchObject({ id: '002', row: { id: 3, status: 'abandoned' }, reviewBars: [] });
-  });
-});
-
-describeWhenRecorded(['git-recording', 'process-table-recording'], 'the notice of a forge off after a crash', () => {
-  const ENDED_GENERATION = 2;
-  const OFF_AFTER_A_CRASH_NOTICE = `The ${PRODUCT_NAMES.PROGRAM} is off after a crash: run \`${PRODUCT_NAMES.PROGRAM} crash-log\` to read why, `
-    + `\`${PRODUCT_NAMES.PROGRAM} start\` to start it again.`;
-
-  function plantAnEnding(ending: PresenceEndingToWrite): void {
-    const files = overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
-    Presence.writeStartedPresence(files, {
-      generation:          ENDED_GENERATION,
-      process:             processTable.bornProcess(),
-      codeVersion:         'code-example',
-      startOrigin:         'user',
-      startedAt:           '2026-09-18T20:00:00+00:00',
-      startClassification: null,
-    });
-    Presence.writeEnding(files, ENDED_GENERATION, ending, '2026-09-18T20:05:00+00:00');
-  }
-
-  async function statusOverTheProcessTable(commandLine: readonly string[]): Promise<ReturnType<typeof createCapturedCommandContext>> {
-    processTable.callerProcess();
-    const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, platformPorts: processTable.ports });
-    expect(await runCommandLineWithOverseerMoves(commandLine, context), context.errorText()).toBe(0);
-    return context;
-  }
-
-  test('is one line on standard error only, and standard output stays what it was', async () => {
-    const before = await statusOverTheProcessTable(['status', '--json']);
-    plantAnEnding({ kind: 'crashed', component: 'overseer', crashLogNumber: null });
-
-    const after = await statusOverTheProcessTable(['status', '--json']);
-
-    expect(after.errorText()).toContain(OFF_AFTER_A_CRASH_NOTICE);
-    expect(after.outputText()).toBe(before.outputText());
-    expect(after.outputText()).not.toContain('crash-log');
-  });
-
-  test('is absent for a forge stopped on purpose', async () => {
-    plantAnEnding({ kind: 'stopped' });
-
-    const context = await statusOverTheProcessTable(['status']);
-
-    expect(context.errorText()).not.toContain('off after a crash');
   });
 });

@@ -11,7 +11,7 @@ import { CONCURRENCY_LIMIT_CEILING_AGENTS, DEFAULT_CONCURRENCY_LIMIT_AGENTS } fr
 import { DEFAULT_INSTRUCTIONS_OF_ROLE, RE_REVIEW_THRESHOLD_STEP_LINES }       from '../../../lib/tracker-model/constants/PipelineDefaults.ts';
 import type { PageTicket, PageTicketFacts }                                   from '../../../shared/@types/PagePayload.ts';
 import { DISPATCH_PROTOCOL }                                                  from '../../../shared/constants/DispatchProtocol.ts';
-import { WORKER_EFFORT, WORKER_MODEL }                                        from '../../../shared/constants/OverseerLimits.ts';
+import { WORKER_EFFORT, WORKER_MODEL }                                        from '../../../shared/constants/HephaestusLimits.ts';
 import type { AttentionEntry }                                                from '../../../shared/monitor/AttentionEntries.ts';
 import { taskFixture }                                                        from '../../../testing/BoardFixtures.ts';
 import { BoardReadingMappingUtil }                                            from './BoardReadingMappingUtil.ts';

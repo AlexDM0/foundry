@@ -1,5 +1,5 @@
 // P7: a kill of the CLI's group leaves the Bash tool's command or not, and a session whose reader dies mid-turn carries
-// on: a relay process owns the session's pipes and exits abruptly, as a dying Watcher does.
+// on: a relay process owns the session's pipes and exits abruptly, as a dying Talos does.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -88,7 +88,7 @@ await probe({
   needsClaudeProgram: true,
   observe: async () => {
     const shortToolFolder = scratchFolder();
-    const markerPath = join(shortToolFolder, 'after-watcher-death.txt');
+    const markerPath = join(shortToolFolder, 'after-talos-death.txt');
     return {
       killOfCliGroup: await killOfCliGroup(),
       readerDiesDuringLongTool: await sessionAfterReaderDeath(

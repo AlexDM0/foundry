@@ -13,7 +13,7 @@ import { ProgressFileValidationUtil } from './ProgressFileValidationUtil.ts';
 function storedTextWithNamespace(branchNamespace: unknown): string {
   const progress = emptyProgress();
   return JsonTextUtil.storedFileTextOf({
-    version:    2,
+    version:    3,
     trackerId:  progress.trackerId,
     project:    progress.project,
     startedAt:  progress.startedAt,

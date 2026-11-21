@@ -39,7 +39,7 @@ export class TicketStageRows {
   }
 
   /**
-   * A move the stage table does not allow is a programming error: the Overseer moves a ticket only along the table. A second package
+   * A move the stage table does not allow is a programming error: Hephaestus moves a ticket only along the table. A second package
    * return is one too: it goes through the Board's `returnTicketToThePackage`, which opens `second-return` instead.
    */
   moveTicketStage(ticketId: string, stage: TicketStage, at: string): Logged {

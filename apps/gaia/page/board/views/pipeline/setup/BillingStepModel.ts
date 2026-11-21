@@ -2,7 +2,7 @@
  * The billing step's model, pure: the billing choice a person makes on the cards and the cap field, the command it sends (the setup's
  * start on the landing, a billing change on a reopened step, and the Continue of a record still at billing), the footer's words for it,
  * the count of waiting tickets, the pipeline agent's meter and the panel head's status, and the words of the page's lists. The cap is
- * sent as typed once it is a number; the Overseer refuses one that is not positive, and the view shows that refusal verbatim.
+ * sent as typed once it is a number; Hephaestus refuses one that is not positive, and the view shows that refusal verbatim.
  */
 import { PAGE_CONTRACT_VERSIONS }                              from '../../../../../src/shared/constants/PageContractVersions.ts';
 import type { BoardCommandDocument }                           from '../../../../@types/board/BoardCommandDocument.ts';
@@ -41,7 +41,7 @@ export const BILLING_CARDS: readonly { readonly mode: BillingMode; readonly labe
   {
     mode:        'api',
     label:       'API key',
-    description: 'Billed to the API key in the Overseer\'s environment. The key is never stored.',
+    description: 'Billed to the API key in Hephaestus\'s environment. The key is never stored.',
   },
 ];
 
@@ -114,11 +114,11 @@ function waitingTicketsTextOf(pendingTicketCount: number): string {
   return pendingTicketCount === 1 ? '1 ticket waits for a pipeline' : `${pendingTicketCount} tickets wait for a pipeline`;
 }
 
-/** What the meter reads: every effort in order, and the pipeline agent's default pair, both served by the Overseer. */
+/** What the meter reads: every effort in order, and the pipeline agent's default pair, both served by Hephaestus. */
 export type PipelineAgentMeterFacts = Pick<BoardDocument, 'pipeline'>;
 
 /**
- * The record's draft names the pipeline agent's pair once the agent proposed one; until then the Overseer's default pair shows. `null`, so
+ * The record's draft names the pipeline agent's pair once the agent proposed one; until then Hephaestus's default pair shows. `null`, so
  * no meter shows, when neither names one.
  */
 function pipelineAgentMeterOf(record: BoardSetupRecordDocument | null, facts: PipelineAgentMeterFacts): PipelineAgentMeter | null {

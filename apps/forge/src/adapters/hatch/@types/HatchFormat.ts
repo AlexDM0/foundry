@@ -1,5 +1,5 @@
 /**
- * The Hatch's two stored formats: the request a session under a job writes for a mutating verb, and the reply the Overseer writes back.
+ * The Hatch's two stored formats: the request a session under a job writes for a mutating verb, and the reply Hephaestus writes back.
  * A request names no job and no role: identity comes from the Hatch folder's job record, so a request carrying either is refused.
  */
 import type { ControlCommand }                                 from '../../../shared/@types/ControlCommand.ts';

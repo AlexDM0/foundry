@@ -18,8 +18,8 @@ import { useRecordedGit }                         from '../../src/testing/Record
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
 import { storedLogEntriesOf }                     from '../testing/StoredLogEntries.ts';
 
@@ -33,7 +33,7 @@ function contextHere(): ReturnType<typeof createCapturedCommandContext> {
 
 async function runWithExitCode(commandLineArguments: readonly string[], expectedExitCode: number): Promise<ReturnType<typeof createCapturedCommandContext>> {
   const context  = contextHere();
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\`: ${context.errorText()}`).toBe(expectedExitCode);
   return context;
 }

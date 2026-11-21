@@ -8,7 +8,7 @@ export type ForgeRegistryPresenceState = 'serving' | 'stopped' | 'handed-over' |
 
 /** The registry's summary of a crash: the component the forge names, and the error's name and message when it caught one. */
 export interface ForgeCrashSummary {
-  readonly component:    'overseer' | 'talos';
+  readonly component:    'hephaestus' | 'talos';
   /** A crash suspected before a reboot. */
   readonly suspected:    boolean;
   readonly errorName:    string | null;
@@ -64,7 +64,7 @@ export interface ForgePresenceReport {
 
 /**
  * How a forge is present, told from served facts alone: `crashed` the registry says so; `stopped` and `handed-over` the registry says so and
- * no Overseer answers; `down` the registry says serving and no Overseer answers, gone or hung; `hung` its API answers and its presence says
+ * no Hephaestus answers; `down` the registry says serving and no Hephaestus answers, gone or hung; `hung` its API answers and its presence says
  * Talos stopped supervising; `unknown` the registry holds no presence of a forge that does not answer.
  */
 export type ForgePresenceState = 'serving' | 'hung' | 'stopped' | 'handed-over' | 'crashed' | 'down' | 'unknown';

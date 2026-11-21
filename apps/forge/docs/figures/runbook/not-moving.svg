@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="642" viewBox="0 0 680 642" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Check the board first, then the ticket, then capacity</title>
+  <desc>Three groups of checks in order, each with the command that answers it. Board-wide, one of these stops every ticket: Hephaestus up, not paused, pipeline set, no usage limit, install unchanged, no outage. The ticket, one of these stops this ticket: not a draft ticket, no hold or merge mark, no blocking decision or incident, branch and target clean, dependencies settled. Capacity, nothing is wrong with the ticket: a launch slot free, and within the free launch slots by priority, phase and readiness. Then the ticket launches on the next Pass.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+
+  <rect x="1" y="1" width="678" height="640" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Check the board first, then the ticket, then capacity</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">stop at the first rung that fails; the rest cannot help until it clears</text>
+
+  <g fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)">
+    <path d="M340,264 V277"/><path d="M340,448 V461"/><path d="M340,560 V573"/>
+  </g>
+  <g fill="#E6F1FB" stroke="#CFE2F6">
+    <rect x="40" y="86" width="600" height="178" rx="8"/>
+    <rect x="40" y="280" width="600" height="168" rx="8"/>
+    <rect x="40" y="464" width="600" height="96" rx="8"/>
+  </g>
+  <path d="M56,116 H624 M56,140 H624 M56,164 H624 M56,188 H624 M56,212 H624 M56,236 H624 M56,310 H624 M56,334 H624 M56,358 H624 M56,396 H624 M56,420 H624 M56,494 H624 M56,518 H624" fill="none" stroke="#CFE2F6" stroke-width="1"/>
+
+  <g font-size="12" font-weight="500" fill="#0C447C">
+    <text x="56" y="106">Board-wide: one of these stops every ticket</text>
+    <text x="56" y="300">The ticket: one of these stops this ticket</text>
+    <text x="56" y="484">Capacity: nothing is wrong with the ticket</text>
+  </g>
+  <g font-size="11" fill="#185FA5" text-anchor="end">
+    <text x="624" y="106">see: Nothing launches at all</text>
+    <text x="624" y="300">see: One ticket will not start</text>
+    <text x="624" y="484">see: One ticket will not start</text>
+    <text x="624" y="535">no command shows the order</text>
+  </g>
+  <g font-size="13" fill="#0C447C">
+    <text x="56" y="133">Hephaestus up?</text>
+    <text x="56" y="157">Not paused?</text>
+    <text x="56" y="181">Pipeline set?</text>
+    <text x="56" y="205">No usage limit?</text>
+    <text x="56" y="229">Install unchanged?</text>
+    <text x="56" y="253">No outage?</text>
+    <text x="56" y="327">Not a draft ticket?</text>
+    <text x="56" y="351">No hold or merge mark?</text>
+    <text x="56" y="375">No blocking decision or incident?</text>
+    <text x="56" y="413">Branch and target clean?</text>
+    <text x="56" y="437">Dependencies settled?</text>
+    <text x="56" y="511">Launch slot free?</text>
+    <text x="56" y="535">Within the free launch slots?</text>
+  </g>
+  <g font-size="11" fill="#185FA5">
+    <text x="56" y="390">waiver, ended job's question, any incident</text>
+    <text x="56" y="550">priority, phase, readiness</text>
+  </g>
+  <g font-size="12" fill="#185FA5" text-anchor="end" font-family="ui-monospace,Menlo,Consolas,monospace">
+    <text x="624" y="133">status</text>
+    <text x="624" y="157">status</text>
+    <text x="624" y="181">gate list</text>
+    <text x="624" y="205">usage-limit.json</text>
+    <text x="624" y="229">status</text>
+    <text x="624" y="253">decisions</text>
+    <text x="624" y="327">ticket show</text>
+    <text x="624" y="351">ticket show, merges</text>
+    <text x="624" y="375">decisions, incidents</text>
+    <text x="624" y="413">decisions, status</text>
+    <text x="624" y="437">ticket show</text>
+    <text x="624" y="511">jobs, concurrency</text>
+  </g>
+
+  <rect x="200" y="576" width="280" height="46" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="340" y="596" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">The ticket launches</text>
+  <text x="340" y="614" font-size="12" fill="#3B6D11" text-anchor="middle">on the next Pass</text>
+</svg>

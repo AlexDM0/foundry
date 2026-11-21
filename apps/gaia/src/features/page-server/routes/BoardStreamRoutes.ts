@@ -4,17 +4,17 @@
  * to `BoardStreams`, ingested and mapped to the page's contract by its kind: a board event as a change signal, a job stream's `history` and
  * `message` and a profile stream's `line` as a `ConversationDocument`. An event that does not ingest is dropped, never forwarded raw.
  */
-import type { DocumentReadingFailure }                              from '../../../adapters/forge-api/@types/ForgeDocumentReading.ts';
-import { BoardEventIngestion }                                      from '../../../adapters/forge-api/BoardEventIngestion.ts';
-import { ConversationIngestion }                                    from '../../../adapters/forge-api/ConversationIngestion.ts';
-import { BoardDocumentMapUtil }                                     from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
-import type { ForgeStreamEvent, ForgeStreamFollow, OverseerAccess } from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
-import { forgeEndpointPathOf }                                      from '../../../lib/forge-client/ForgeClient.ts';
-import { JsonValueUtil }                                            from '../../../lib/json-value/JsonValueUtil.ts';
-import { BoardRelayAnswers }                                        from '../BoardRelayAnswers.ts';
-import type { BoardStreams, RelayedEventMapping }                   from '../BoardStreams.ts';
-import { forgeAccessVerdictFor, type ForgeAccessSources }           from '../ForgeAccess.ts';
-import { WHOLE_EVENT_KEY }                                          from '../utils/BoardRelayLogUtil.ts';
+import type { DocumentReadingFailure }                                from '../../../adapters/forge-api/@types/ForgeDocumentReading.ts';
+import { BoardEventIngestion }                                        from '../../../adapters/forge-api/BoardEventIngestion.ts';
+import { ConversationIngestion }                                      from '../../../adapters/forge-api/ConversationIngestion.ts';
+import { BoardDocumentMapUtil }                                       from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
+import type { ForgeStreamEvent, ForgeStreamFollow, HephaestusAccess } from '../../../lib/forge-client/@types/ForgeClientAnswer.ts';
+import { forgeEndpointPathOf }                                        from '../../../lib/forge-client/ForgeClient.ts';
+import { JsonValueUtil }                                              from '../../../lib/json-value/JsonValueUtil.ts';
+import { BoardRelayAnswers }                                          from '../BoardRelayAnswers.ts';
+import type { BoardStreams, RelayedEventMapping }                     from '../BoardStreams.ts';
+import { forgeAccessVerdictFor, type ForgeAccessSources }             from '../ForgeAccess.ts';
+import { WHOLE_EVENT_KEY }                                            from '../utils/BoardRelayLogUtil.ts';
 
 export interface BoardStreamRouteSources {
   readonly forgeAccess:  ForgeAccessSources;
@@ -24,7 +24,7 @@ export interface BoardStreamRouteSources {
 /** What one relayed stream follows: the forge's stream path, how to follow it from a cursor and how each of its events maps. */
 interface RelayedForgeStream {
   readonly forgeStreamPath: string;
-  readonly follow:          (access: OverseerAccess, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void) => ForgeStreamFollow;
+  readonly follow:          (access: HephaestusAccess, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void) => ForgeStreamFollow;
   readonly mapEvent:        (event: ForgeStreamEvent) => RelayedEventMapping;
 }
 

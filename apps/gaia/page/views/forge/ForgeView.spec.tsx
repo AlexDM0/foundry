@@ -175,7 +175,7 @@ describe('the board mounts only where Gaia\'s relay can read it', () => {
   });
 });
 
-describe('a forge whose Overseer is not read in full', () => {
+describe('a forge whose Hephaestus is not read in full', () => {
   test('an unreachable forge shows its board as last reported, under a bar that says so and can still stop it', () => {
     const rendered = markupAt(`#forge/${TRACKER_IDS.invoiceService}`, FLEET_DEGRADED);
     const { markup } = rendered;
@@ -252,13 +252,13 @@ describe('the bar\'s commands', () => {
 
   test('the forge\'s refusal shows under the bar with its own code and sentence', async () => {
     const refused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.', forges: []
+      answerVersion: 3, outcome: 'refused', refusal: 'hephaestus-still-live', text: 'Hephaestus did not stop within its tries.', forges: []
     };
     const sender = senderOver([async () => answerResponse(refused)]);
     await sender.send({ kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' });
     const rendered = markupAt(STOREFRONT_ON_E2, FLEET_FIVE_FORGES, sender);
     const { markup } = rendered;
-    const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="overseer-still-live" sentence="The Overseer did not stop within its tries." onDismiss={doNothing} />;
+    const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="hephaestus-still-live" sentence="Hephaestus did not stop within its tries." onDismiss={doNothing} />;
     expect(markup).toContain(`<div class="gaia-forge-frame-refusal">${renderToStaticMarkup(refusal)}</div>`);
     expect(buttonsIn(rendered)).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });

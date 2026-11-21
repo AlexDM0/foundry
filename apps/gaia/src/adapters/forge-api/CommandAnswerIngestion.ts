@@ -1,5 +1,5 @@
 /**
- * The ingestion of a forge's answer to a board command (`POST /api/v2/commands`) into Gaia's `BoardCommandAnswer`: 200 applied, 423 held for
+ * The ingestion of a forge's answer to a board command (`POST /api/v3/commands`) into Gaia's `BoardCommandAnswer`: 200 applied, 423 held for
  * an install change, any other status a refusal, each under `controlVersion` as `CONTRACT_VERSIONS` knows it. A refusal keeps the forge's
  * code, fields and sentence unchanged. A body at another control version, or one that is no such answer, is `unreadable`.
  */

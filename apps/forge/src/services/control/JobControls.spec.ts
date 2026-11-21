@@ -25,7 +25,7 @@ import type { Ticket }                           from '../../lib/tracker-model/@
 import type { Board }                            from '../../lib/tracker-model/Board.ts';
 import type { ControlCommand, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                      from '../../shared/OperationRefusal.ts';
-import { PICTURES_PER_MESSAGE_LIMIT }            from '../../shared/constants/OverseerLimits.ts';
+import { PICTURES_PER_MESSAGE_LIMIT }            from '../../shared/constants/HephaestusLimits.ts';
 import {
   boardFixture,
   entityPipelineFixture,
@@ -84,7 +84,7 @@ describe('job stop and wind-down', () => {
     expect(board.jobById('J1')).toMatchObject({ state: 'running', stopRequest: 'wind-down' });
   });
 
-  test('stop holds the ticket "stopped by User (J1)" and moves a running job to stopping for the Overseer to stop', () => {
+  test('stop holds the ticket "stopped by User (J1)" and moves a running job to stopping for Hephaestus to stop', () => {
     const board = runningBuildBoard();
     apply(board, { kind: 'job-stop', jobId: 'J1', mode: 'stop' });
 
@@ -116,12 +116,12 @@ describe('job stop and wind-down', () => {
 
   test('stop --all pauses the board and stops every build, review and product-owner job', () => {
     const board = runningBuildBoard();
-    board.setOverseerState('running', AT);
+    board.setHephaestusState('running', AT);
     apply(board, { kind: 'intake-start', text: 'A basket' });
     const result = apply(board, { kind: 'job-stop-all', mode: 'stop' });
 
-    expect(loggedKindsOf(result)).toEqual(['overseer-set', 'job-stop-requested', 'ticket-held', 'job-stop-requested']);
-    expect(board.overseerState()).toBe('paused');
+    expect(loggedKindsOf(result)).toEqual(['hephaestus-set', 'job-stop-requested', 'ticket-held', 'job-stop-requested']);
+    expect(board.hephaestusState()).toBe('paused');
     expect(board.jobs().map((job) => job.state)).toEqual(['stopping', 'stopping']);
   });
 });

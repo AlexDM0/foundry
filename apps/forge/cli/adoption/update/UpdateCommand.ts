@@ -3,9 +3,9 @@
  * `init` — a verb that reads as destructive — to pick up newer instructions. It creates
  * no tracker, so it takes neither `--project` nor `--root`, and never touches the tracker's own files.
  */
-import { Baton }                                          from '../../../src/services/overseer/Baton.ts';
-import { CodeVersion }                                    from '../../../src/services/overseer/CodeVersion.ts';
-import { overseerFilesIn }                                from '../../../src/services/overseer/OverseerFiles.ts';
+import { Baton }                                          from '../../../src/services/hephaestus/Baton.ts';
+import { CodeVersion }                                    from '../../../src/services/hephaestus/CodeVersion.ts';
+import { hephaestusFilesIn }                              from '../../../src/services/hephaestus/HephaestusFiles.ts';
 import { requireWorkspace }                               from '../../../src/services/tracker/Workspace.ts';
 import { PRODUCT_NAMES }                                  from '../../../src/shared/constants/ProductNames.ts';
 import { JsonTextUtil }                                   from '../../../src/shared/utils/JsonTextUtil.ts';
@@ -13,7 +13,7 @@ import type { CommandContext }                            from '../../CommandCon
 import type { CommandHandler }                            from '../../CommandHandler.ts';
 import { requireInstallManifestThisVersionCanReplace }    from '../../InstallVersionCheck.ts';
 import { INSTALL_VERSION }                                from '../../constants/InstallVersion.ts';
-import { OverseerRemote }                                 from '../../overseer/OverseerRemote.ts';
+import { HephaestusRemote }                               from '../../hephaestus/HephaestusRemote.ts';
 import { ProgramAnswerUtil }                              from '../../utils/ProgramAnswerUtil.ts';
 import { installedFileTextsFor, installedSkillFileTexts } from '../InstalledFileGeneration.ts';
 import { refuseBesideAnOlderProgram }                     from '../OlderProgramRefusal.ts';
@@ -29,8 +29,8 @@ const USAGE = `${PRODUCT_NAMES.PROGRAM} update [--no-hooks] [--json]`;
 const KNOWN_OPTION_NAMES = ['no-hooks', 'json'];
 
 /**
- * How `update`'s last step went. A Baton pass the live Overseer did not take is `failed` at the step `restart-not-taken`, at exit 0, with the
- * old Overseer still driving; one that failed after it was taken is the refusal `baton-pass-failed` instead.
+ * How `update`'s last step went. A Baton pass the live Hephaestus did not take is `failed` at the step `restart-not-taken`, at exit 0, with the
+ * old Hephaestus still driving; one that failed after it was taken is the refusal `baton-pass-failed` instead.
  */
 interface BatonPassOutcome {
   batonPass:     'done' | 'not-needed' | 'failed';
@@ -65,29 +65,29 @@ export const updateCommand: CommandHandler = async (commandArguments, context) =
   output(`Refreshed what ${PRODUCT_NAMES.PROGRAM} manages in ${workspace.rootDirectory}; the tracker itself was not touched.`);
   for (const line of refreshReportLinesOf(report)) output(line);
   recordInstallVersion(workspace.rootDirectory);
-  const batonPassOutcome = await handTheLiveOverseerToTheCodeOnDisk(context, workspace.trackerDirectory, output);
+  const batonPassOutcome = await handTheLiveHephaestusToTheCodeOnDisk(context, workspace.trackerDirectory, output);
   if (answersInJson) {
     context.standardOutput(JsonTextUtil.indentedTextOf(ProgramAnswerUtil.answerOf({ outcome: 'done', installVersion: INSTALL_VERSION, ...batonPassOutcome })));
   }
 };
 
 /**
- * The last step of `update`: a live Overseer on other code or another install version is handed to the code on disk through the checked
- * Baton pass. A failed one exits 1 `baton-pass-failed` with the old Overseer still driving, and what `update` installed stands.
+ * The last step of `update`: a live Hephaestus on other code or another install version is handed to the code on disk through the checked
+ * Baton pass. A failed one exits 1 `baton-pass-failed` with the old Hephaestus still driving, and what `update` installed stands.
  */
-async function handTheLiveOverseerToTheCodeOnDisk(context: CommandContext, trackerDirectory: string, output: (line: string) => void): Promise<BatonPassOutcome> {
-  const files  = overseerFilesIn(trackerDirectory);
-  const newest = Baton.newestBatonOf(context.platformPorts, files.overseerDirectory);
+async function handTheLiveHephaestusToTheCodeOnDisk(context: CommandContext, trackerDirectory: string, output: (line: string) => void): Promise<BatonPassOutcome> {
+  const files  = hephaestusFilesIn(trackerDirectory);
+  const newest = Baton.newestBatonOf(context.platformPorts, files.hephaestusDirectory);
   if (newest.verdict !== 'live') return BATON_PASS_NOT_NEEDED;
   if (newest.record.codeVersion === CodeVersion.onDisk() && newest.record.installVersion === INSTALL_VERSION) return BATON_PASS_NOT_NEEDED;
-  output(`Handing the Overseer at ${newest.record.url} over to the code on disk…`);
-  const batonPass = await OverseerRemote.handOverTheLiveOverseer(context.platformPorts, files, false);
+  output(`Handing Hephaestus at ${newest.record.url} over to the code on disk…`);
+  const batonPass = await HephaestusRemote.handOverTheLiveHephaestus(context.platformPorts, files, false);
   if (batonPass.verdict === 'baton-passed') {
-    output(`Overseer handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}.`);
+    output(`Hephaestus handed over to code ${batonPass.successorCodeVersion} at ${batonPass.url}.`);
     return { batonPass: 'done', batonPassStep: null };
   }
   if (batonPass.verdict === 'not-taken') {
-    output(`The Overseer at ${batonPass.record.url} did not take the Baton pass; run \`${PRODUCT_NAMES.PROGRAM} oversee restart\`.`);
+    output(`Hephaestus at ${batonPass.record.url} did not take the Baton pass; run \`${PRODUCT_NAMES.PROGRAM} restart\`.`);
     return { batonPass: 'failed', batonPassStep: 'restart-not-taken' };
   }
   return BATON_PASS_NOT_NEEDED;

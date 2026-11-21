@@ -142,7 +142,7 @@ function airlockAgentSubject(merge: { branchTip: string; targetTip: string }, ov
       role: 'reviewer', outcome: 'resolved', headCommit: HEAD_COMMIT, resolvedFiles: [], notes: '', reportKind: null,
     },
     merge:          { ...merge, conflictedFiles: [] },
-    // The target branch is the Overseer's merge-in, made before the Airlock agent's launch.
+    // The target branch is Hephaestus's merge-in, made before the Airlock agent's launch.
     launchSnapshot: launchSnapshotOf(repositoryDirectory) ?? launchSnapshot,
     ...overrides,
   });

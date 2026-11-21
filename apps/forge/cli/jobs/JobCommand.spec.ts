@@ -21,7 +21,7 @@ import {
 } from 'bun:test';
 
 import type { Job }                               from '../../src/lib/tracker-model/@types/Job.ts';
-import { jobFolderIn }                            from '../../src/services/overseer/OverseerFiles.ts';
+import { jobFolderIn }                            from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { localStoreLayoutOf }                     from '../../src/services/tracker/LocalStoreLayout.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
@@ -111,6 +111,13 @@ describeWhenGitIsRecorded('job attach following a job to its end', () => {
     const exitCode = await runCommandLine(['job', 'attach', JOB_ID], context);
     expect({ exitCode, error: captured.errorText() }).toEqual({ exitCode: 0, error: '' });
     expect(captured.outputText().split('\n').filter((line) => line !== '')).toEqual([FIRST_LINE, LAST_LINE]);
+  });
+
+  test('a stop says Hephaestus carries it out, at once when it is up, else when it starts', async () => {
+    const captured = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
+    const exitCode = await runCommandLine(['job', 'stop', JOB_ID], captured);
+    expect({ exitCode, error: captured.errorText() }).toEqual({ exitCode: 0, error: '' });
+    expect(captured.outputText().trimEnd().split('\n').at(-1)).toBe('Hephaestus carries it out, at once when it is up, else when it starts.');
   });
 
   test('--json replays the log without following', async () => {

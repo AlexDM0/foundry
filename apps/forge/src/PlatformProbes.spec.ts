@@ -103,6 +103,6 @@ describe('the platform probes folder', () => {
     const readme = readFileSync(join(PROBES_FOLDER, 'README.md'), 'utf8');
     expect(readme).toContain('bun .platform-probes/run-all.js');
     expect(readme).toContain('gates no ticket');
-    expect(readme).toContain('per-OS column of `docs/development/overseer-claude-probe.md`');
+    expect(readme).toContain('per-OS column of `docs/development/hephaestus-claude-probe.md`');
   });
 });

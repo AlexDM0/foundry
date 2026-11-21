@@ -270,7 +270,7 @@ const BOARD_SAMPLE_OF_REASON: { readonly [Reason in BoardReason]: Extract<BoardR
 
 const ROOT = '/example/repository';
 const URL = 'http://127.0.0.1:4242';
-const BATON = '/example/overseer/baton-1.json';
+const BATON = '/example/hephaestus/baton-1.json';
 
 const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalDetail, { kind: Kind }> } = {
   'board-refusal':            { kind: 'board-refusal', boardRefusal: BOARD_SAMPLE_OF_REASON['unknown-task'] },
@@ -292,43 +292,43 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'malformed-ticket-file': {
     kind: 'malformed-ticket-file', filePath: `${ROOT}/004.md`, line: 2, reason: 'Example reason'
   },
-  'unreadable-file-in-the-way':       { kind: 'unreadable-file-in-the-way', filePath: `${ROOT}/epic.md`, record: 'epic' },
-  'malformed-pipeline':               { kind: 'malformed-pipeline', filePath: `${ROOT}/pipeline.json`, reason: 'Example reason' },
-  'entities-in-a-folder':             { kind: 'entities-in-a-folder', filePath: `${ROOT}/pipeline.json`, projectPrefix: 'apps/web' },
-  'role-command-refused':             { kind: 'role-command-refused', reason: 'worker-filing-flag', commandKind: 'ticket add' },
-  'verb-not-relayable':               { kind: 'verb-not-relayable', verb: 'init', jobId: 'J3' },
-  'malformed-hatch-reply':            { kind: 'malformed-hatch-reply', replyFilePath: `${ROOT}/reply.json` },
-  'overseer-already-running':         { kind: 'overseer-already-running', url: URL, batonFilePath: BATON },
-  'overseer-down':                    { kind: 'overseer-down', overseerDirectory: '/example/overseer' },
-  'overseer-contended':               { kind: 'overseer-contended', overseerDirectory: '/example/overseer' },
-  'gate-confinement-unavailable':     { kind: 'gate-confinement-unavailable', reason: 'Example reason' },
-  'malformed-overseer-poll-interval': { kind: 'malformed-overseer-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: 'soon' },
-  'malformed-versions-answer':        { kind: 'malformed-versions-answer', variable: 'EXAMPLE_VERSIONS_ANSWER', value: 'newest' },
-  'git-below-floor':                  { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
-  'baton-taken':                      { kind: 'baton-taken', batonFilePath: BATON },
-  'baton-not-created-whole':          { kind: 'baton-not-created-whole', batonFilePath: BATON, reason: 'Example reason' },
-  'overseer-port-in-use':             { kind: 'overseer-port-in-use', firstPort: 4242, lastPort: 4252 },
-  'overseer-identity-unreadable':     { kind: 'overseer-identity-unreadable', processId: 4242, identitySources: [] },
-  'overseer-did-not-start':           { kind: 'overseer-did-not-start', exitCode: 1, logFilePath: '/example/overseer.log' },
-  'overseer-still-live':              { kind: 'overseer-still-live', url: URL, processId: 4242 },
-  'baton-pass-failed':                {
+  'unreadable-file-in-the-way':         { kind: 'unreadable-file-in-the-way', filePath: `${ROOT}/epic.md`, record: 'epic' },
+  'malformed-pipeline':                 { kind: 'malformed-pipeline', filePath: `${ROOT}/pipeline.json`, reason: 'Example reason' },
+  'entities-in-a-folder':               { kind: 'entities-in-a-folder', filePath: `${ROOT}/pipeline.json`, projectPrefix: 'apps/web' },
+  'role-command-refused':               { kind: 'role-command-refused', reason: 'worker-filing-flag', commandKind: 'ticket add' },
+  'verb-not-relayable':                 { kind: 'verb-not-relayable', verb: 'init', jobId: 'J3' },
+  'malformed-hatch-reply':              { kind: 'malformed-hatch-reply', replyFilePath: `${ROOT}/reply.json` },
+  'hephaestus-already-running':         { kind: 'hephaestus-already-running', url: URL, batonFilePath: BATON },
+  'hephaestus-down':                    { kind: 'hephaestus-down', hephaestusDirectory: '/example/hephaestus' },
+  'hephaestus-contended':               { kind: 'hephaestus-contended', hephaestusDirectory: '/example/hephaestus' },
+  'gate-confinement-unavailable':       { kind: 'gate-confinement-unavailable', reason: 'Example reason' },
+  'malformed-hephaestus-poll-interval': { kind: 'malformed-hephaestus-poll-interval', variable: 'EXAMPLE_POLL_INTERVAL', value: 'soon' },
+  'malformed-versions-answer':          { kind: 'malformed-versions-answer', variable: 'EXAMPLE_VERSIONS_ANSWER', value: 'newest' },
+  'git-below-floor':                    { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
+  'baton-taken':                        { kind: 'baton-taken', batonFilePath: BATON },
+  'baton-not-created-whole':            { kind: 'baton-not-created-whole', batonFilePath: BATON, reason: 'Example reason' },
+  'hephaestus-port-in-use':             { kind: 'hephaestus-port-in-use', firstPort: 4242, lastPort: 4252 },
+  'hephaestus-identity-unreadable':     { kind: 'hephaestus-identity-unreadable', processId: 4242, identitySources: [] },
+  'hephaestus-did-not-start':           { kind: 'hephaestus-did-not-start', exitCode: 1, logFilePath: '/example/hephaestus.log' },
+  'hephaestus-still-live':              { kind: 'hephaestus-still-live', url: URL, processId: 4242 },
+  'baton-pass-failed':                  {
     kind: 'baton-pass-failed', successorCodeVersion: 'code-example', step: 'take-baton', error: 'Example error', url: URL
   },
-  'overseer-control-is-runtime-only': { kind: 'overseer-control-is-runtime-only', commandKind: 'overseer-stop' },
-  'intake-close-without-job':         { kind: 'intake-close-without-job' },
-  'intake-title-without-job':         { kind: 'intake-title-without-job' },
-  'question-options-without-job':     { kind: 'question-options-without-job' },
-  'need-declare-without-job':         { kind: 'need-declare-without-job' },
-  'picture-unknown':                  { kind: 'picture-unknown', pictureId: 'example-picture' },
-  'too-many-pictures':                { kind: 'too-many-pictures', pictureCount: 9, limit: 8 },
-  'picture-too-large':                { kind: 'picture-too-large', bytes: 9, sizeLimitBytes: 8 },
-  'picture-type-unsupported':         { kind: 'picture-type-unsupported', mediaTypes: ['image/png'] },
-  'overseer-owns-the-lifecycle':      { kind: 'overseer-owns-the-lifecycle', url: URL, batonFilePath: BATON },
-  'talos-protocol-differs':           { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
-  'talos-unavailable':                { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
-  'forge-crashed':                    { kind: 'forge-crashed', component: 'talos', crashLogPath: '/example/overseer/crash-logs/crash-4.json' },
-  'forge-off-after-crash':            {
-    kind: 'forge-off-after-crash', crashedGeneration: 4, crashLogPath: '/example/overseer/crash-logs/crash-4.json', suspected: false
+  'hephaestus-control-is-runtime-only': { kind: 'hephaestus-control-is-runtime-only', commandKind: 'hephaestus-stop' },
+  'intake-close-without-job':           { kind: 'intake-close-without-job' },
+  'intake-title-without-job':           { kind: 'intake-title-without-job' },
+  'question-options-without-job':       { kind: 'question-options-without-job' },
+  'need-declare-without-job':           { kind: 'need-declare-without-job' },
+  'picture-unknown':                    { kind: 'picture-unknown', pictureId: 'example-picture' },
+  'too-many-pictures':                  { kind: 'too-many-pictures', pictureCount: 9, limit: 8 },
+  'picture-too-large':                  { kind: 'picture-too-large', bytes: 9, sizeLimitBytes: 8 },
+  'picture-type-unsupported':           { kind: 'picture-type-unsupported', mediaTypes: ['image/png'] },
+  'hephaestus-owns-the-lifecycle':      { kind: 'hephaestus-owns-the-lifecycle', url: URL, batonFilePath: BATON },
+  'talos-protocol-differs':             { kind: 'talos-protocol-differs', requiredProtocolVersion: 1, answeredProtocolVersion: 2 },
+  'talos-unavailable':                  { kind: 'talos-unavailable', reason: 'not-serving', startNumber: 2 },
+  'forge-crashed':                      { kind: 'forge-crashed', component: 'talos', crashLogPath: '/example/hephaestus/crash-logs/crash-4.json' },
+  'forge-off-after-crash':              {
+    kind: 'forge-off-after-crash', crashedGeneration: 4, crashLogPath: '/example/hephaestus/crash-logs/crash-4.json', suspected: false
   },
   'no-crash-log':        { kind: 'no-crash-log', number: 7 },
   'ticket-has-live-job': {
@@ -340,7 +340,7 @@ const SAMPLE_OF_KIND: { readonly [Kind in DetailKind]: Extract<OperationRefusalD
   'tracker-has-live-jobs':          { kind: 'tracker-has-live-jobs', jobIds: ['J3'] },
   'malformed-hatch-request':        { kind: 'malformed-hatch-request', requestId: 'R1' },
   'hatch-identity-mismatch':        { kind: 'hatch-identity-mismatch', requestId: 'R1', jobId: 'J3' },
-  'overseer-not-answering':         { kind: 'overseer-not-answering', url: URL },
+  'hephaestus-not-answering':       { kind: 'hephaestus-not-answering', url: URL },
   'login-item-unavailable':         { kind: 'login-item-unavailable', reason: 'Example reason' },
   'login-item-not-changed':         { kind: 'login-item-not-changed', location: '/example/login-item', reason: 'Example reason' },
   'machine-agent-limit-above-cpus': { kind: 'machine-agent-limit-above-cpus', limit: 99, ceiling: 8 },

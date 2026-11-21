@@ -79,14 +79,14 @@ const STORE_ADAPTER_FOLDERS: readonly string[] = [
 ];
 
 const CLI_COMPOSITION_ROOT_REASON = 'The CLI\'s composition root picks the store\'s adapter.';
-const OVERSEER_COMPOSITION_ROOT_REASON = 'The Overseer\'s composition root picks the store\'s adapter.';
+const HEPHAESTUS_COMPOSITION_ROOT_REASON = 'Hephaestus\'s composition root picks the store\'s adapter.';
 
 /** `<path>: <form>: <trimmed line>`, sorted by path: only the composition roots, which pick the store's adapter. */
 const ALLOWED_STORE_LINES: Readonly<Record<string, string>> = {
   'cli/BoardStoreOf.ts: store-internal-import: import { createLocalFilesBoardStore }       from \'../src/services/store/LocalFilesBoardStore.ts\';':
     CLI_COMPOSITION_ROOT_REASON,
-  'cli/overseer/OverseerForeground.ts: store-internal-import: import { createLocalFilesBoardStore } from \'../../src/services/store/LocalFilesBoardStore.ts\';':
-    OVERSEER_COMPOSITION_ROOT_REASON,
+  'cli/hephaestus/HephaestusForeground.ts: store-internal-import: import { createLocalFilesBoardStore } from \'../../src/services/store/LocalFilesBoardStore.ts\';':
+    HEPHAESTUS_COMPOSITION_ROOT_REASON,
 };
 
 const ALLOWED_LINES = Object.keys(ALLOWED_STORE_LINES);
@@ -131,8 +131,8 @@ function violationsOfPlanted(path: string, plantedLine: string): readonly string
   return boundaryReportOf([{ path, text: `${plantedLine}\n` }], []).violations;
 }
 
-const COMPOSITION_ROOT_PATHS: readonly string[] = ['cli/BoardStoreOf.ts', 'cli/overseer/OverseerForeground.ts'];
-const COMPOSITION_ROOT_REASONS: readonly string[] = [CLI_COMPOSITION_ROOT_REASON, OVERSEER_COMPOSITION_ROOT_REASON];
+const COMPOSITION_ROOT_PATHS: readonly string[] = ['cli/BoardStoreOf.ts', 'cli/hephaestus/HephaestusForeground.ts'];
+const COMPOSITION_ROOT_REASONS: readonly string[] = [CLI_COMPOSITION_ROOT_REASON, HEPHAESTUS_COMPOSITION_ROOT_REASON];
 
 describe('the scan saw the tree', () => {
   const shippingPaths = SOURCES.map((source) => source.path).filter(isShippingCode);
@@ -141,7 +141,7 @@ describe('the scan saw the tree', () => {
     expect(shippingPaths.length).toBeGreaterThan(400);
     expect(SOURCES.length).toBeGreaterThan(shippingPaths.length);
     expect(shippingPaths).toEqual(expect.arrayContaining([
-      'cli/CommandContext.ts', 'src/services/overseer/DrivePass.ts', 'src/services/control/ControlService.ts',
+      'cli/CommandContext.ts', 'src/services/hephaestus/DrivePass.ts', 'src/services/control/ControlService.ts',
     ]));
     expect(shippingPaths).not.toContain('src/StoreBoundary.spec.ts');
   });
@@ -173,7 +173,7 @@ describe('the scan saw the tree', () => {
 
 describe('the allowlist is exact both ways', () => {
   const removedEntry = ALLOWED_LINES[0] ?? '';
-  const allowedEntry = 'src/services/overseer/Planted.ts: record-constant: const name = LOCAL_STORE_FILES.LOG_FILE_NAME;';
+  const allowedEntry = 'src/services/hephaestus/Planted.ts: record-constant: const name = LOCAL_STORE_FILES.LOG_FILE_NAME;';
 
   test('removing an entry leaves its line a violation', () => {
     expect(boundaryReportOf(SOURCES, ALLOWED_LINES.slice(1))).toEqual({ violations: [removedEntry], unusedAllowances: [] });
@@ -184,21 +184,21 @@ describe('the allowlist is exact both ways', () => {
   });
 
   test('a second copy of an allowed line in its own file is a violation', () => {
-    const doubledSite = { path: 'src/services/overseer/Planted.ts', text: 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;\nconst name = LOCAL_STORE_FILES.LOG_FILE_NAME;\n' };
+    const doubledSite = { path: 'src/services/hephaestus/Planted.ts', text: 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;\nconst name = LOCAL_STORE_FILES.LOG_FILE_NAME;\n' };
     expect(boundaryReportOf([doubledSite], [allowedEntry])).toEqual({ violations: [allowedEntry], unusedAllowances: [] });
   });
 
   test('an allowed line in another file is a violation', () => {
-    const plantedCopy = { path: 'src/services/overseer/PlantedCopy.ts', text: 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;\n' };
+    const plantedCopy = { path: 'src/services/hephaestus/PlantedCopy.ts', text: 'const name = LOCAL_STORE_FILES.LOG_FILE_NAME;\n' };
     expect(boundaryReportOf([plantedCopy], [allowedEntry])).toEqual({
-      violations:       ['src/services/overseer/PlantedCopy.ts: record-constant: const name = LOCAL_STORE_FILES.LOG_FILE_NAME;'],
+      violations:       ['src/services/hephaestus/PlantedCopy.ts: record-constant: const name = LOCAL_STORE_FILES.LOG_FILE_NAME;'],
       unusedAllowances: [allowedEntry],
     });
   });
 });
 
 describe('the guard names each form, planted in memory', () => {
-  const plantedPath = 'src/services/overseer/Planted.ts';
+  const plantedPath = 'src/services/hephaestus/Planted.ts';
 
   const plantedForms: readonly (readonly [string, string, readonly StoreForm[]])[] = [
     ['a record file name in single quotes', 'const name = \'progress.json\';', ['record-file-name']],
@@ -237,7 +237,7 @@ describe('the guard names each form, planted in memory', () => {
     for (const plantedLine of [
       'const advice = `Set up pipeline.json again`;',
       'const approval = \'tickets\';',
-      'const path = overseerFiles.logFilePath;',
+      'const path = hephaestusFiles.logFilePath;',
       'const path = registry.lockDirectoryPath;',
       'const folder = PRODUCT_NAMES.DATA_FOLDER;',
       'const page = workspace.htmlFilePath;',

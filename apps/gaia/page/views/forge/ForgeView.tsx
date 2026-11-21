@@ -110,8 +110,8 @@ function openingsOfCrashLogsRead(crashLogsRead: readonly CrashLogDocument[]): Re
 }
 
 /**
- * The forge's presence under its bar. A crash log is read once, when User opens it, and kept for as long as the same Overseer serves; its
- * key in the parent is the forge and its Overseer's start, so a new start reads again.
+ * The forge's presence under its bar. A crash log is read once, when User opens it, and kept for as long as the same Hephaestus serves; its
+ * key in the parent is the forge and its Hephaestus's start, so a new start reads again.
  */
 function ForgePresenceArea({
   forge, clock, requestCrashLog, crashLogsRead
@@ -196,7 +196,7 @@ export function forgeViewPartsOf(route: ForgeViewRoute, fleetDocument: FleetDocu
           : <ForgeBarWithControls key={bar.trackerId} bar={bar} onOpenInNewTab={openRouteInNewTab} />}
         {forge === undefined ? null : (
           <ForgePresenceArea
-            key={`${forge.trackerId} ${forge.overseerStartedAt ?? ''}`}
+            key={`${forge.trackerId} ${forge.hephaestusStartedAt ?? ''}`}
             forge={forge}
             clock={clock}
             requestCrashLog={surroundings.requestCrashLog}

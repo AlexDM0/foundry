@@ -1,7 +1,7 @@
 /**
  * The readings of a forge the watch cannot read now, held against the five-forge fixture: a forge stopped in this run keeps what it last
- * reported about its board, log and limits and loses what only a running Overseer knows; an unreachable forge keeps its
- * whole last reading; a forge never read shows only what the registry says, and no fact stands in as zero. An Overseer is starting while
+ * reported about its board, log and limits and loses what only a running Hephaestus knows; an unreachable forge keeps its
+ * whole last reading; a forge never read shows only what the registry says, and no fact stands in as zero. A Hephaestus is starting while
  * it refuses as starting or not ready, and for no other failure.
  */
 import { describe, expect, test } from 'bun:test';
@@ -13,13 +13,13 @@ import { WatchReadingUtil }                                    from './WatchRead
 
 const READINGS = FLEET_SNAPSHOT_FIVE_FORGES_READINGS;
 
-function entryOf(reading: ForgeReading, overseer: RegisteredForge['overseer']): RegisteredForge {
+function entryOf(reading: ForgeReading, hephaestus: RegisteredForge['hephaestus']): RegisteredForge {
   return {
     trackerId:     reading.trackerId,
     project:       reading.project,
     root:          reading.root,
     program:       reading.program,
-    overseer,
+    hephaestus,
     lastCommand:   reading.lastCommand,
     lastChangedAt: reading.lastChangedAt,
     presence:      null,
@@ -27,9 +27,9 @@ function entryOf(reading: ForgeReading, overseer: RegisteredForge['overseer']): 
 }
 
 /** The entry the forge wrote at its stop, after the reading Gaia kept was taken. */
-const STOP_FACTS = { lastCommand: 'oversee stop', lastChangedAt: '2026-11-12T12:40:00.000Z' } as const;
+const STOP_FACTS = { lastCommand: 'stop', lastChangedAt: '2026-11-12T12:40:00.000Z' } as const;
 
-const EXAMPLE_OVERSEER = {
+const EXAMPLE_HEPHAESTUS = {
   url:       'http://127.0.0.1:4977/',
   processId: 51_230,
   startedAt: '2026-11-12T11:02:00.000Z',
@@ -44,20 +44,20 @@ const LIVE_CONCURRENCY = {
   ticketsWaitingForMachineSlot: 0,
 } as const;
 
-/** The Design System forge as it was read in full just before its stop: what the fixture keeps, and what a running Overseer adds. */
+/** The Design System forge as it was read in full just before its stop: what the fixture keeps, and what a running Hephaestus adds. */
 const DESIGN_SYSTEM_BEFORE_THE_STOP: ForgeReading = {
   ...READINGS.designSystem,
-  fidelity:          'full',
-  condition:         'live',
-  url:               'http://127.0.0.1:4977',
-  processId:         EXAMPLE_OVERSEER.processId,
-  overseerStartedAt: EXAMPLE_OVERSEER.startedAt,
-  attention:         READINGS.exampleStorefront.attention,
-  agents:            READINGS.exampleStorefront.agents,
-  notices:           [{ kind: 'new-code', text: 'New code is on disk.' }],
-  warnings:          [{ kind: 'baton-pass-failed', text: 'The Baton pass failed.' }],
-  today:             { deliveredTickets: 2, tokens: 88_000 },
-  usage:             {
+  fidelity:            'full',
+  condition:           'live',
+  url:                 'http://127.0.0.1:4977',
+  processId:           EXAMPLE_HEPHAESTUS.processId,
+  hephaestusStartedAt: EXAMPLE_HEPHAESTUS.startedAt,
+  attention:           READINGS.exampleStorefront.attention,
+  agents:              READINGS.exampleStorefront.agents,
+  notices:             [{ kind: 'new-code', text: 'New code is on disk.' }],
+  warnings:            [{ kind: 'baton-pass-failed', text: 'The Baton pass failed.' }],
+  today:               { deliveredTickets: 2, tokens: 88_000 },
+  usage:               {
     resetsAt:              '2026-11-12T17:00:00.000Z',
     window:                'five-hour',
     currentWindow:         'five_hour',
@@ -106,25 +106,25 @@ describe('a forge whose repository is gone', () => {
 
 describe('a starting forge', () => {
   test('reads as dormant with the word starting and the address the registry names', () => {
-    const starting = WatchReadingUtil.startingReadingOf(entryOf(READINGS.designSystem, EXAMPLE_OVERSEER), DESIGN_SYSTEM_BEFORE_THE_STOP);
+    const starting = WatchReadingUtil.startingReadingOf(entryOf(READINGS.designSystem, EXAMPLE_HEPHAESTUS), DESIGN_SYSTEM_BEFORE_THE_STOP);
     expect(starting).toEqual({
       ...READINGS.designSystem,
-      condition:         'starting',
-      url:               EXAMPLE_OVERSEER.url,
-      processId:         EXAMPLE_OVERSEER.processId,
-      overseerStartedAt: EXAMPLE_OVERSEER.startedAt,
+      condition:           'starting',
+      url:                 EXAMPLE_HEPHAESTUS.url,
+      processId:           EXAMPLE_HEPHAESTUS.processId,
+      hephaestusStartedAt: EXAMPLE_HEPHAESTUS.startedAt,
     });
   });
 });
 
-describe('an Overseer that has not finished starting', () => {
+describe('a Hephaestus that has not finished starting', () => {
   test('is told by its identity or monitor refusing as starting, and by its monitor stream refusing as not ready', () => {
     expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'starting', text: null })).toBe(true);
     expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'not-ready', text: null })).toBe(true);
   });
 
   test('is not told by another refusal, a refusal without a code, or any other failure', () => {
-    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'read-failed', text: 'The Overseer could not read the board\'s files.' })).toBe(false);
+    expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: 'read-failed', text: 'Hephaestus could not read the board\'s files.' })).toBe(false);
     expect(WatchReadingUtil.failureMeansStarting({ verdict: 'refused', refusal: null, text: null })).toBe(false);
     expect(WatchReadingUtil.failureMeansStarting({ verdict: 'unauthorized' })).toBe(false);
     expect(WatchReadingUtil.failureMeansStarting({ verdict: 'unreachable' })).toBe(false);
@@ -134,43 +134,43 @@ describe('an Overseer that has not finished starting', () => {
 
 describe('an unreachable forge', () => {
   test('keeps its whole last reading, stamped when the forge last reported it', () => {
-    const invoiceEntry = entryOf(READINGS.invoiceService, { ...EXAMPLE_OVERSEER, url: 'http://127.0.0.1:4958/' });
+    const invoiceEntry = entryOf(READINGS.invoiceService, { ...EXAMPLE_HEPHAESTUS, url: 'http://127.0.0.1:4958/' });
     expect(WatchReadingUtil.unreachableReadingOf(invoiceEntry, READINGS.invoiceService))
       .toEqual({ ...READINGS.invoiceService, fidelity: 'unreachable', condition: 'unreachable' });
   });
 
   test('names the last command its registry entry names now, whether this run read it or not', () => {
-    const invoiceEntry = { ...entryOf(READINGS.invoiceService, EXAMPLE_OVERSEER), ...STOP_FACTS };
+    const invoiceEntry = { ...entryOf(READINGS.invoiceService, EXAMPLE_HEPHAESTUS), ...STOP_FACTS };
     expect(WatchReadingUtil.unreachableReadingOf(invoiceEntry, READINGS.invoiceService)).toMatchObject(STOP_FACTS);
     expect(WatchReadingUtil.unreachableReadingOf(invoiceEntry, null)).toMatchObject(STOP_FACTS);
   });
 
   test('shows the address and process the registry names when this run never read it', () => {
-    const unreachable = WatchReadingUtil.unreachableReadingOf(entryOf(READINGS.invoiceService, EXAMPLE_OVERSEER), null);
+    const unreachable = WatchReadingUtil.unreachableReadingOf(entryOf(READINGS.invoiceService, EXAMPLE_HEPHAESTUS), null);
     expect(unreachable).toMatchObject({
-      fidelity:          'unreachable',
-      condition:         'unreachable',
-      url:               EXAMPLE_OVERSEER.url,
-      processId:         EXAMPLE_OVERSEER.processId,
-      overseerStartedAt: EXAMPLE_OVERSEER.startedAt,
-      lastReportedAt:    null,
-      agents:            [],
-      attention:         [],
+      fidelity:            'unreachable',
+      condition:           'unreachable',
+      url:                 EXAMPLE_HEPHAESTUS.url,
+      processId:           EXAMPLE_HEPHAESTUS.processId,
+      hephaestusStartedAt: EXAMPLE_HEPHAESTUS.startedAt,
+      lastReportedAt:      null,
+      agents:              [],
+      attention:           [],
     });
   });
 });
 
 describe('the registry facts', () => {
-  test('carry the entry, its Overseer and the last command the entry names', () => {
-    expect(WatchReadingUtil.registryFactsOf({ ...entryOf(READINGS.designSystem, EXAMPLE_OVERSEER), ...STOP_FACTS }, EXAMPLE_OVERSEER)).toEqual({
-      trackerId:         READINGS.designSystem.trackerId,
-      project:           READINGS.designSystem.project,
-      root:              READINGS.designSystem.root,
-      overseerUrl:       EXAMPLE_OVERSEER.url,
-      overseerProcessId: EXAMPLE_OVERSEER.processId,
-      program:           READINGS.designSystem.program,
-      lastCommand:       STOP_FACTS.lastCommand,
-      lastChangedAt:     STOP_FACTS.lastChangedAt,
+  test('carry the entry, its Hephaestus and the last command the entry names', () => {
+    expect(WatchReadingUtil.registryFactsOf({ ...entryOf(READINGS.designSystem, EXAMPLE_HEPHAESTUS), ...STOP_FACTS }, EXAMPLE_HEPHAESTUS)).toEqual({
+      trackerId:           READINGS.designSystem.trackerId,
+      project:             READINGS.designSystem.project,
+      root:                READINGS.designSystem.root,
+      hephaestusUrl:       EXAMPLE_HEPHAESTUS.url,
+      hephaestusProcessId: EXAMPLE_HEPHAESTUS.processId,
+      program:             READINGS.designSystem.program,
+      lastCommand:         STOP_FACTS.lastCommand,
+      lastChangedAt:       STOP_FACTS.lastChangedAt,
     });
   });
 });

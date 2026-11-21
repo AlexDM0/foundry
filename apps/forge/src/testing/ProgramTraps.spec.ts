@@ -11,7 +11,7 @@ import { delimiter, join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
 
 import { hostExecutableResolver }       from '../lib/executable-resolver/ExecutableResolverFor.ts';
-import { GpgDirectories }               from '../services/overseer/GpgDirectories.ts';
+import { GpgDirectories }               from '../services/hephaestus/GpgDirectories.ts';
 import { environmentCopy }              from '../shared/Environment.ts';
 import { BOUNDARY_SPECS }               from './BoundarySpecs.ts';
 import { repositoryRootOfThisCheckout } from './ImportGraph.ts';
@@ -28,7 +28,7 @@ import {
 } from './ProgramTraps.ts';
 import { repositoryTypeScriptSources } from './RepositorySources.ts';
 
-const GPG_BOUNDARY_SPEC = 'src/services/overseer/GpgDirectories.integration.spec.ts';
+const GPG_BOUNDARY_SPEC = 'src/services/hephaestus/GpgDirectories.integration.spec.ts';
 /** This spec calls the release only to watch it refused. */
 const THIS_SPEC = 'src/testing/ProgramTraps.spec.ts';
 const EXAMPLE_HOME = '/home/alex-example';
@@ -93,7 +93,7 @@ describe('the release of a trap', () => {
   });
 
   test('gpgconf stays trapped for every other listed spec and for a default spec', () => {
-    const released = [...LISTED_SPECS, 'src/services/overseer/GpgDirectories.spec.ts']
+    const released = [...LISTED_SPECS, 'src/services/hephaestus/GpgDirectories.spec.ts']
       .filter((specPath) => trapReleaseVerdictOf('gpgconf', specPath).verdict === 'released');
     expect(LISTED_SPECS.length).toBeGreaterThan(1);
     expect(released).toEqual([GPG_BOUNDARY_SPEC]);

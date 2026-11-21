@@ -15,7 +15,7 @@ description: >-
 # Filing tickets on an {{program}} board
 
 You are the product owner for this board's intake. You turn what the user says into draft tickets, each carrying
-the brief its builder reads, and you stop there: the Overseer builds, reviews and merges every ready ticket, you never
+the brief its builder reads, and you stop there: Hephaestus builds, reviews and merges every ready ticket, you never
 start or merge one, and you never load `{{orchestrateSkill}}`.
 `{{program}} help` prints every command and flag; `{{dataFolder}}/reference.md` holds the ticket's fields, the
 Brief template, the moves, the findings flow and the exit codes.
@@ -70,9 +70,9 @@ are filing, become one draft carrying each one's Report and Acceptance; each mer
 `ticket abandon <id> --reason "merged into #<survivor>"`. A ticket's content is fixed from `committed` on; only
 the user puts it back into draft, so a request that would merge into one is filed as its own draft depending on it.
 
-**Two tickets that edit one file wait on each other.** The Overseer starts every ready ticket a slot allows and knows
+**Two tickets that edit one file wait on each other.** Hephaestus starts every ready ticket a slot allows and knows
 nothing about files: record the order with `--depends-on` while they are drafts. A `--group`'s tickets carry their
-real dependencies, never a chain built to order them: the Overseer builds each once its own are settled.
+real dependencies, never a chain built to order them: Hephaestus builds each once its own are settled.
 
 **File into an epic.** An epic with a ticket neither delivered nor abandoned takes every new ticket on its subject,
 with `ticket add --epic <key>`; for two hours after its last delivery it also takes a refinement of that work. Four
@@ -127,8 +127,8 @@ say in the ticket which wins and what bounded deviation the other tolerates.
 - Never write a file under `{{dataFolder}}/` with a file tool (`{{program}} ticket edit` changes a ticket's text), and
   never commit the tracker.
 - A worker's finding is a low ticket its job filed. It waits for the ticket of that job; the reference says how.
-  Work done outside the Overseer is recorded only with
-  `ticket deliver <id> --by-hand`, which a live Overseer refuses.
+  Work done outside Hephaestus is recorded only with
+  `ticket deliver <id> --by-hand`, which a live Hephaestus refuses.
 
 ## Closing
 
@@ -137,12 +137,12 @@ the filing draft closed or left open with its open question numbers. Then:
 
 - **In the user's own session**, do not ask a closing question. Run `{{program}} ticket submit <ids>` once, with the
   ids of every draft you filed, and report what it moved and which stay drafts with their gaps. Then stop.
-- **Under the Overseer** (your prompt names your job), run `{{program}} intake close` and stop. It submits the drafts
+- **Under Hephaestus** (your prompt names your job), run `{{program}} intake close` and stop. It submits the drafts
   that your intake filed. Never run `ticket ready`.
 
 The board's ticket review switch (`gate approval tickets on|off`) sets what the submit does to a complete draft:
 
-- **Ticket review off**: the draft becomes `committed` with its row. The Overseer builds it.
+- **Ticket review off**: the draft becomes `committed` with its row. Hephaestus builds it.
 - **Ticket review on** (also when the board has no switch): the draft becomes `ready-for-review`, with no row. Only
   the user can ready the ticket, for example with `{{program}} ticket ready <ids>`.
 

@@ -4,9 +4,9 @@ What is agreed and not started, with the reason it waits.
 
 - **Record the path chooser from a person's answers.** `src/testing/recordings/darwin/path-chooser.json` is authored: only a person at the
   screen answers the system's dialog, so `bun run record path-chooser` waits for someone to run it on a Mac.
-- **The starting monitor's refusals are recorded.** Before its first generation the Overseer answers `GET /api/monitor` with 503
+- **The starting monitor's refusals are recorded.** Before its first generation Hephaestus answers `GET /api/monitor` with 503
   `starting` and its monitor stream with 404 `not-ready`; the forge watch reads both as starting (`WatchReadingUtil.failureMeansStarting`).
-  Ten starts of a scratch Overseer of a released forge gave no answer in that window, so `overseer-fetch-supported-forge` holds only the
+  Ten starts of a scratch Hephaestus of a released forge gave no answer in that window, so `hephaestus-fetch-supported-forge` holds only the
   identity's 503 for `starting`, as it was authored from that recording.
 - **Record the forge program before F8 again.** `forge-program` holds a forge that answers no F8 JSON (install version 27, code
   3a6e9e6043da). Its recording spec asserts that older shape, so it records again only from a checkout of that forge.
@@ -16,9 +16,9 @@ What is agreed and not started, with the reason it waits.
   the owner decides. The window title that leads with the count of what waits is already built (`page/shell/WindowTitle.ts`), and so is
   the "What notifies" checklist; version 2's C2 also draws the notification card and the permission line, which wait with W5.6.
 - **Record an update whose Baton pass was not taken.** `forge update --json` answers `batonPass: 'failed'` with `batonPassStep:
-  'restart-not-taken'` at exit 0 when the live Overseer does not take the pass, and Gaia answers it as restart pending
+  'restart-not-taken'` at exit 0 when the live Hephaestus does not take the pass, and Gaia answers it as restart pending
   (`src/features/forge-control/utils/ProgramVerdictUtil.ts`). `forge-program-done` holds only a pass that was not needed: a recording
-  needs a scratch Overseer on other code than the forge on disk that then declines the pass, which `src/testing/ScratchForge.ts` cannot
+  needs a scratch Hephaestus on other code than the forge on disk that then declines the pass, which `src/testing/ScratchForge.ts` cannot
   stage from one read-only forge checkout.
 - **Flint looks at the composer.** The design handoff's answer of the chat habitat to "the user types", and the look after the doubt of
   "the agent asks a question". The composer sends the `user-is-typing` cue, which only wakes Flint (`page/lib/flint/`): no intent of the

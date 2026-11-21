@@ -3,7 +3,7 @@
  * `machine limit` and `login-item`, the answer of a success and of one refusal. What matters: every answer is one document on standard output
  * carrying `answerVersion: 2`, and a refusal under `--json` is `{answerVersion, refusal, text}` at exit 1, the code beside the sentence
  * standard error carries. `init`, `update` and `stop` on a tracker are in `ProgramAnswerUtil.trackerVerbs.spec.ts`; `start` twice against a
- * real Overseer is pinned by `cli/overseer/OverseerCommand.integration.spec.ts`.
+ * real Hephaestus is pinned by `cli/hephaestus/StartCommand.integration.spec.ts`.
  */
 import { mkdirSync } from 'node:fs';
 import { join }      from 'node:path';
@@ -49,7 +49,7 @@ test('version answers its versions, the contracts it serves, the Talos protocol 
       answerVersion:        2,
       codeVersion:          expect.any(String),
       installVersion:       INSTALL_VERSION,
-      contracts:            { summary: 1, monitor: 4, control: 2 },
+      contracts:            { summary: 2, monitor: 5, control: 3 },
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       monitorFolder:        expect.any(String),
     },
@@ -95,7 +95,7 @@ test('login-item answers its state, label and location for add, status and remov
   };
   const repository = join(directory, 'example-storefront');
   const expected = (outcome: LoginItemAnswer['outcome'], state: LoginItemAnswer['state']): LoginItemAnswer => ({
-    outcome, state, label: 'com.forge.overseer.tracker-example', location: expect.stringContaining('LaunchAgents') as unknown as string, repository
+    outcome, state, label: 'com.forge.hephaestus.tracker-example', location: expect.stringContaining('LaunchAgents') as unknown as string, repository
   });
   expect(loginItemAnswerOf(host, 'add', repository, 'tracker-example')).toEqual(expected('done', 'present'));
   expect(loginItemAnswerOf(host, 'status', repository, 'tracker-example')).toEqual(expected(null, 'present'));

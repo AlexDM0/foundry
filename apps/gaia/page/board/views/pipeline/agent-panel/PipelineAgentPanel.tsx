@@ -1,7 +1,7 @@
 /**
  * The pipeline agent's conversation inside a pipeline panel: what the step shows before it, the agent's chat, what follows the chat, the
  * line of what the agent does while a turn runs, and the step's setup questions as decision cards last; then the agent strip with Flint,
- * and the composer that messages the agent in the panel's foot. An answer and a message go to the Overseer as commands, and a refusal
+ * and the composer that messages the agent in the panel's foot. An answer and a message go to Hephaestus as commands, and a refusal
  * shows verbatim. In monorepo mode the panel shows one level's session, the forge's or an entity's, under a line that links the open
  * questions of the other levels; the head that holds the panel names the level by `PipelineAgentPanelModel.panelTitleOf`.
  */

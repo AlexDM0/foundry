@@ -1,5 +1,5 @@
 /**
- * From a tracker id to a forge's Overseer. What matters: a registered forge the watch read at the registry's address, at a version Gaia
+ * From a tracker id to a forge's Hephaestus. What matters: a registered forge the watch read at the registry's address, at a version Gaia
  * talks to, gives the access with its token and the version the watch read, ahead of the supported one too; the token file is read again
  * at each call; and each way there is no access is its own refusal, asked of nothing: an unregistered forge, a registry Gaia cannot read,
  * a forge the watch could not reach or read at another address, a version Gaia cannot talk to, and a token file that is gone or unnamed.
@@ -15,7 +15,7 @@ import {
 } from 'bun:test';
 
 import { SUPPORTED_FORGE_VERSION }                   from '../../lib/forge-client/constants/SupportedForgeVersions.ts';
-import { recordedOverseerFetch }                     from '../../testing/RecordedAnswers.ts';
+import { recordedHephaestusFetch }                   from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath } from '../../testing/ScratchRoot.ts';
 import { forgeAccessVerdictFor }                     from './ForgeAccess.ts';
 import {
@@ -41,14 +41,14 @@ afterEach(() => {
 });
 
 function sourcesOf(options: ExampleRelayForgeOptions = {}) {
-  return relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), recordedOverseerFetch([]));
+  return relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), recordedHephaestusFetch([]));
 }
 
 describe('a forge Gaia can reach', () => {
-  test('gives the access to its Overseer with its token, and the version the watch read', async () => {
+  test('gives the access to its Hephaestus with its token, and the version the watch read', async () => {
     expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, sourcesOf())).toEqual({
       verdict:            'access',
-      access:             { overseerUrl: STOREFRONT_URL, bearerToken: EXAMPLE_FORGE_TOKEN },
+      access:             { hephaestusUrl: STOREFRONT_URL, bearerToken: EXAMPLE_FORGE_TOKEN },
       forgeSystemVersion: SUPPORTED_FORGE_VERSION,
     });
   });
@@ -59,7 +59,7 @@ describe('a forge Gaia can reach', () => {
     expect(verdict).toMatchObject({ verdict: 'access', forgeSystemVersion: ahead });
   });
 
-  test('reads the token file again at each call, since the Overseer writes a fresh one at each start', async () => {
+  test('reads the token file again at each call, since Hephaestus writes a fresh one at each start', async () => {
     const sources = sourcesOf();
     await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, sources);
     writeFileSync(tokenPath, 'example-token-after-a-restart\n');
@@ -70,14 +70,14 @@ describe('a forge Gaia can reach', () => {
 describe('a forge Gaia cannot reach', () => {
   test('is forge-not-registered when the registry names no such forge, or there is no registry', async () => {
     const forge = exampleRelayForgeOf(scratchFolder, tokenPath);
-    const emptyRegistry = relaySourcesOver(forge, recordedOverseerFetch([]), { verdict: 'readable', forges: [] });
-    const noRegistry = relaySourcesOver(forge, recordedOverseerFetch([]), { verdict: 'absent' });
+    const emptyRegistry = relaySourcesOver(forge, recordedHephaestusFetch([]), { verdict: 'readable', forges: [] });
+    const noRegistry = relaySourcesOver(forge, recordedHephaestusFetch([]), { verdict: 'absent' });
     expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, emptyRegistry)).toEqual({ verdict: 'refused', refusal: 'forge-not-registered' });
     expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, noRegistry)).toEqual({ verdict: 'refused', refusal: 'forge-not-registered' });
   });
 
   test('names the registry\'s own refusal when it cannot be read', async () => {
-    const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), recordedOverseerFetch([]), { verdict: 'newer-version', version: 2 });
+    const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), recordedHephaestusFetch([]), { verdict: 'newer-version', version: 2 });
     expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, sources)).toEqual({ verdict: 'refused', refusal: 'registry-newer-version' });
   });
 
@@ -86,10 +86,10 @@ describe('a forge Gaia cannot reach', () => {
     expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, sourcesOf({ versions: null }))).toEqual({ verdict: 'refused', refusal: 'forge-unreachable' });
   });
 
-  test('is forge-unreachable when the registry names the Overseer at another address than the watch read', async () => {
+  test('is forge-unreachable when the registry names Hephaestus at another address than the watch read', async () => {
     const forge = exampleRelayForgeOf(scratchFolder, tokenPath);
     const moved = { ...forge, reading: { ...forge.reading, url: 'http://127.0.0.1:4961/' } };
-    expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, relaySourcesOver(moved, recordedOverseerFetch([])))).toEqual({ verdict: 'refused', refusal: 'forge-unreachable' });
+    expect(await forgeAccessVerdictFor(STOREFRONT_TRACKER_ID, relaySourcesOver(moved, recordedHephaestusFetch([])))).toEqual({ verdict: 'refused', refusal: 'forge-unreachable' });
   });
 
   test('is forge-version-unsupported for a forge newer or older than Gaia talks to', async () => {

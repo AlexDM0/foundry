@@ -16,16 +16,16 @@ function quotedUnitArgumentOf(text: string): string {
   return `"${escaped}"`;
 }
 
-/** Foreground, so systemd watches the Overseer itself: `start` would exit at once and leave a unit with nothing in it. */
+/** Foreground, so systemd watches Hephaestus itself: a detached `start` would exit at once and leave a unit with nothing in it. */
 function commandOf(item: LoginItem): readonly string[] {
-  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'oversee', '--started-by', 'login-item'];
+  return [item.bunProgram, ...item.isolatingArguments, item.entryPoint, 'start', '--foreground', '--started-by', 'login-item'];
 }
 
-/** `KillMode=process` stops only the Overseer with the unit, so the Talos it started outlives a stop or restart, as they must. */
+/** `KillMode=process` stops only Hephaestus with the unit, so the Talos it started outlives a stop or restart, as they must. */
 function unitTextOf(item: LoginItem): string {
   return [
     '[Unit]',
-    `Description=Overseer of ${specifierEscaped(item.repository)}`,
+    `Description=Hephaestus of ${specifierEscaped(item.repository)}`,
     '',
     '[Service]',
     'Type=simple',
@@ -41,7 +41,7 @@ function unitTextOf(item: LoginItem): string {
   ].join('\n');
 }
 
-/** Linux: a systemd user unit, enabled for the user's service manager, running the Overseer in the foreground. */
+/** Linux: a systemd user unit, enabled for the user's service manager, running Hephaestus in the foreground. */
 export function linuxAutostartOver(primitives: AutostartPrimitives): Autostart {
   const unitFileNameOf = (label: string): string => `${label}.service`;
   const locationOf = (label: string): string => join(primitives.homeDirectory, '.config', 'systemd', 'user', unitFileNameOf(label));

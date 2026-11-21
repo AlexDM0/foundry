@@ -776,7 +776,7 @@ export type BoardPipelineHistoryEntryDocument =
   }
   | { readonly kind: 'pipeline-draft-discarded'; readonly at: string; readonly setupId: string; readonly fields: { readonly revision: number } }
   | { readonly kind: 'pipeline-setup-discarded'; readonly at: string; readonly setupId: string }
-  | { readonly kind: 'overseer-set'; readonly at: string; readonly fields: { readonly state: 'running' | 'paused' } };
+  | { readonly kind: 'hephaestus-set'; readonly at: string; readonly fields: { readonly state: 'running' | 'paused' } };
 
 /** Every model and effort a step may take, in order. */
 export interface BoardPipelineChoicesDocument {

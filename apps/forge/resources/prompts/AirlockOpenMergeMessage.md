@@ -1,6 +1,6 @@
-You are in the Airlock of #{{ticketId}} as the {{role}} of the package that owns these files, job {{jobId}}. The
-Overseer merged the target tip {{targetTip}} into the branch tip {{branchTip}} in the worktree {{airlockWorktree}}. The
-merge has conflicts in files of your package and in other files. Resolve the conflicts in these files only:
+You are in the Airlock of #{{ticketId}} as the {{role}} of the package that owns these files, job {{jobId}}. Hephaestus
+merged the target tip {{targetTip}} into the branch tip {{branchTip}} in the worktree {{airlockWorktree}}. The merge has
+conflicts in files of your package and in other files. Resolve the conflicts in these files only:
 
 {{conflictedFiles}}
 

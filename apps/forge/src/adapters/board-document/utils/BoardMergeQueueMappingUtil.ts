@@ -28,7 +28,7 @@ function mergeTargetOf(target: MergeTargetFacts): BoardMergeTargetDocument {
   };
 }
 
-/** The slots the Overseer keeps beside the targets are each target's holder already. */
+/** The slots Hephaestus keeps beside the targets are each target's holder already. */
 function mergeQueueOf(mergeQueue: MergeQueueFacts): BoardMergeQueueDocument {
   return {
     queuedTicketIds: [...mergeQueue.queuedTicketIds],

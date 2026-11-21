@@ -25,7 +25,7 @@ import { createCapturedCommandContext }                   from './testing/Captur
 const HELP_TEXT      = helpText('posix-shell');
 const REFERENCE_TEXT = readFileSync(join(import.meta.dir, '..', 'docs', 'cli.md'), 'utf8');
 
-const COMMANDS_WITH_SUBCOMMANDS = new Set(['task', 'ticket', 'epic', 'draft', 'oversee', 'hook', 'job', 'intake', 'gate', 'pipeline']);
+const COMMANDS_WITH_SUBCOMMANDS = new Set(['task', 'ticket', 'epic', 'draft', 'hook', 'job', 'intake', 'gate', 'pipeline']);
 
 const JSON_OPTION_NAME = 'json';
 
@@ -104,7 +104,7 @@ function referenceSignaturesOf(text: string): string[] {
 
 function entryKeysOf(signature: string): string[] {
   const [commandWord = '', secondWord = ''] = signature.trim().split(/\s+/);
-  // `oversee [--port <n>]` is the command alone: a subcommand never opens with an option or a bracket.
+  // `intake [--set <n>]` is the command alone: a subcommand never opens with an option or a bracket.
   if (!COMMANDS_WITH_SUBCOMMANDS.has(commandWord) || secondWord === '' || /^[[-]/.test(secondWord)) return [commandWord];
   return secondWord.split('|').map((subcommand) => `${commandWord} ${subcommand}`);
 }

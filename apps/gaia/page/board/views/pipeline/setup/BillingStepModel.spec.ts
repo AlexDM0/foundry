@@ -1,10 +1,10 @@
 /**
- * The billing step's model. What matters: the start carries the chosen billing, with the cap as typed once it is a number (the Overseer,
+ * The billing step's model. What matters: the start carries the chosen billing, with the cap as typed once it is a number (Hephaestus,
  * not the board, refuses a cap that is not positive) and the unreadable file's replacement; a reopened step sends a billing change only
  * when the choice differs from the record's, and a record still at billing continues from here, never loops back to it; the waiting
  * tickets are the committed ones; the pipeline agent's meter shows its pair over five bars, the default pair until a draft names one; the
  * panel head says the agent is not started before a setup, then whether its job runs; the cards and the footer word the chosen billing and
- * its cap without naming the agent's vendor or its key variable, which the Overseer's decision names once the key is missing.
+ * its cap without naming the agent's vendor or its key variable, which Hephaestus's decision names once the key is missing.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -41,7 +41,7 @@ describe('the start command', () => {
       });
   });
 
-  test('a cap that is not positive is still sent, so the Overseer\'s refusal shows', () => {
+  test('a cap that is not positive is still sent, so Hephaestus\'s refusal shows', () => {
     expect(startCommandOf({ mode: 'api', capText: '0' }, false))
       .toEqual({
         boardCommandVersion: 1, kind: 'pipeline-setup-start', billing: { mode: 'api', maximumBudgetDollars: 0 }, replacesUnreadablePipeline: false
@@ -96,7 +96,7 @@ describe('the waiting tickets', () => {
 });
 
 describe('the pipeline agent\'s meter', () => {
-  test('shows the Overseer\'s default pair over five bars before any draft', () => {
+  test('shows Hephaestus\'s default pair over five bars before any draft', () => {
     expect(pipelineAgentMeterOf(null, pipelineBoardStateOf('A0'))).toEqual({
       model: 'opus', effort: 'high', level: 3, levelCount: 5, accessibleName: 'Pipeline agent: opus, high effort',
     });
@@ -127,10 +127,10 @@ describe('the panel head', () => {
 });
 
 describe('the cards', () => {
-  test('word the login and the API key in the Overseer\'s environment', () => {
+  test('word the login and the API key in Hephaestus\'s environment', () => {
     expect(BILLING_CARDS.map((card) => card.description)).toEqual([
       'Agents run on this machine\'s agent login. Usage counts against the plan\'s limits, such as its weekly window.',
-      'Billed to the API key in the Overseer\'s environment. The key is never stored.',
+      'Billed to the API key in Hephaestus\'s environment. The key is never stored.',
     ]);
   });
 });

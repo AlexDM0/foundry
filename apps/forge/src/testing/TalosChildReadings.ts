@@ -7,8 +7,8 @@ import { basename, dirname } from 'node:path';
 
 import type { PlatformPorts }                                             from '../lib/platform-ports/PlatformPortsFor.ts';
 import { type ChildFiles, childFilesOf }                                  from '../lib/talos/TalosFiles.ts';
-import type { BoardChildren }                                             from '../services/overseer/BoardChildren.ts';
-import { createTalosChildren, recordedTalosLiveness, type TalosLiveness } from '../services/overseer/TalosChildren.ts';
+import type { BoardChildren }                                             from '../services/hephaestus/BoardChildren.ts';
+import { createTalosChildren, recordedTalosLiveness, type TalosLiveness } from '../services/hephaestus/TalosChildren.ts';
 
 const UNREAD_BOARD_FOLDER = '/example/unread-tracker';
 

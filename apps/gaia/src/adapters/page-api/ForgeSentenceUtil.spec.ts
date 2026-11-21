@@ -17,7 +17,7 @@ describe('whether a sentence names a command', () => {
   test('names one by a backticked span or by the program\'s name before one of its verbs', () => {
     expect(ForgeSentenceUtil.sentenceNamesACommand(NEW_CODE_NOTICE)).toBe(true);
     expect(ForgeSentenceUtil.sentenceNamesACommand('Run forge open again.')).toBe(true);
-    expect(ForgeSentenceUtil.sentenceNamesACommand('Then Forge Oversee restart takes it.')).toBe(true);
+    expect(ForgeSentenceUtil.sentenceNamesACommand('Then Forge Restart takes it.')).toBe(true);
     expect(ForgeSentenceUtil.sentenceNamesACommand('See forge merges and forge incidents for what waits.')).toBe(true);
   });
 
@@ -36,7 +36,7 @@ describe('a forge\'s refusal', () => {
 describe('the sentence of a notice and of a warning', () => {
   test('is Gaia\'s for each notice kind the forge words with a command', () => {
     expect(ForgeSentenceUtil.noticeSentenceOf('new-code', NEW_CODE_NOTICE))
-      .toBe('New code is on disk. The Overseer runs the code it started with until it restarts.');
+      .toBe('New code is on disk. Hephaestus runs the code it started with until it restarts.');
     expect(ForgeSentenceUtil.noticeSentenceOf('install-version-changed', INSTALL_CHANGED_NOTICE))
       .toBe('The install version changed. Nothing launches until this forge is updated.');
   });
@@ -47,13 +47,13 @@ describe('the sentence of a notice and of a warning', () => {
   });
 
   test('is neutral for a notice of another kind or a warning that names a command', () => {
-    expect(ForgeSentenceUtil.noticeSentenceOf('example-kind', 'run `forge oversee restart`')).toBe('This forge raised a notice that Gaia does not word yet.');
-    expect(ForgeSentenceUtil.warningSentenceOf('The Baton pass failed: run `forge oversee restart`.')).toBe('This forge reports a warning that Gaia does not word yet.');
+    expect(ForgeSentenceUtil.noticeSentenceOf('example-kind', 'run `forge restart`')).toBe('This forge raised a notice that Gaia does not word yet.');
+    expect(ForgeSentenceUtil.warningSentenceOf('The Baton pass failed: run `forge restart`.')).toBe('This forge reports a warning that Gaia does not word yet.');
   });
 
   test('is the forge\'s own, unchanged, when it names no command', () => {
-    const notice = 'job J1 is not launched: this platform cannot bind the Watcher endpoint /Users/example/.forge-monitor/watchers/example.sock';
-    expect(ForgeSentenceUtil.noticeSentenceOf('watcher-endpoint-does-not-fit', notice)).toBe(notice);
+    const notice = 'job J1 is not launched: this platform cannot bind the Talos endpoint /Users/example/.forge-monitor/private/example.sock';
+    expect(ForgeSentenceUtil.noticeSentenceOf('talos-endpoint-does-not-fit', notice)).toBe(notice);
     expect(ForgeSentenceUtil.noticeSentenceOf('toString', notice)).toBe(notice);
     expect(ForgeSentenceUtil.warningSentenceOf('The Assistant could not come up.')).toBe('The Assistant could not come up.');
   });
@@ -61,7 +61,7 @@ describe('the sentence of a notice and of a warning', () => {
 
 describe('the sentence of an activity entry', () => {
   test('is neutral for an activity entry that names a command', () => {
-    expect(ForgeSentenceUtil.activitySentenceOf('The Baton pass failed: run `forge oversee restart`.')).toBe('This forge logged an entry that Gaia does not word yet.');
+    expect(ForgeSentenceUtil.activitySentenceOf('The Baton pass failed: run `forge restart`.')).toBe('This forge logged an entry that Gaia does not word yet.');
   });
 
   test('is the forge\'s own, unchanged, when it names no command', () => {
@@ -71,9 +71,7 @@ describe('the sentence of an activity entry', () => {
 
 describe('the last command of a registry entry', () => {
   test('is named by Gaia\'s own command for each forge verb Gaia runs itself', () => {
-    expect(ForgeSentenceUtil.lastCommandNameOf('oversee')).toBe('Start forge');
     expect(ForgeSentenceUtil.lastCommandNameOf('start')).toBe('Start forge');
-    expect(ForgeSentenceUtil.lastCommandNameOf('oversee stop')).toBe('Stop forge');
     expect(ForgeSentenceUtil.lastCommandNameOf('stop')).toBe('Stop forge');
     expect(ForgeSentenceUtil.lastCommandNameOf('update')).toBe('Update forge');
     expect(ForgeSentenceUtil.lastCommandNameOf('init')).toBe('Add a repository');

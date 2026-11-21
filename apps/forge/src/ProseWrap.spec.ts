@@ -66,7 +66,7 @@ function overlongProseLinesOf(path: string, text: string): string[] {
 const PROSE_FILES = wrappedProseFilesOf(repositoryRootOfThisCheckout()).map(({ path, location }) => ({ path, text: readFileSync(location, 'utf8') }));
 
 describe('prose wraps at 120 columns', () => {
-  test('the scan reads paragraph lines of the rules, both skills, the templates, the reference and the overseer\'s prompts', () => {
+  test('the scan reads paragraph lines of the rules, both skills, the templates, the reference and the prompts of Hephaestus', () => {
     for (const expectedPath of ['CLAUDE.md',
       '.claude/rules/design-system.md',
       '.claude/rules/flint.md',

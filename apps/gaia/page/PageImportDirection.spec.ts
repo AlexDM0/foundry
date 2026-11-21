@@ -183,8 +183,8 @@ describe('the page\'s reach past its boundary', () => {
 
   test('the guard names a shared file the page includes that imports forge-contracts', () => {
     const plantedSharedModule = join(GAIA_FOLDER, 'src', 'shared', 'constants', 'PageContractVersions.ts');
-    expect(forgeReachesOf(plantedSharedModule, 'import { OVERSEER_CONTRACT_VERSIONS } from \'forge-contracts/OverseerContractVersions\';', plantedSharedFiles))
-      .toEqual(['src/shared/constants/PageContractVersions.ts imports forge-contracts/OverseerContractVersions']);
+    expect(forgeReachesOf(plantedSharedModule, 'import { HEPHAESTUS_CONTRACT_VERSIONS } from \'forge-contracts/HephaestusContractVersions\';', plantedSharedFiles))
+      .toEqual(['src/shared/constants/PageContractVersions.ts imports forge-contracts/HephaestusContractVersions']);
   });
 
   test('the guard names a page module that reaches a file outside page/ the tsconfig does not name, and passes one it names', () => {

@@ -1,0 +1,26 @@
+{
+  "stamp": {
+    "boundary": "src/services/hephaestus/GpgDirectories.ts",
+    "system": "gpg",
+    "version": "2.5.21",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "<gpgconf> --list-dirs",
+      "answer": {
+        "kind": "finished",
+        "exitCode": 0,
+        "stdout": "sysconfdir:/opt/homebrew/etc/gnupg\nbindir:/opt/homebrew/Cellar/gnupg/2.5.21/bin\nlibexecdir:/opt/homebrew/Cellar/gnupg/2.5.21/libexec\nlibdir:/opt/homebrew/Cellar/gnupg/2.5.21/lib/gnupg\ndatadir:/opt/homebrew/Cellar/gnupg/2.5.21/share/gnupg\nlocaledir:/opt/homebrew/Cellar/gnupg/2.5.21/share/locale\nsocketdir:<home>/.gnupg\ndirmngr-socket:<home>/.gnupg/S.dirmngr\nkeyboxd-socket:<home>/.gnupg/S.keyboxd\nagent-ssh-socket:<home>/.gnupg/S.gpg-agent.ssh\nagent-extra-socket:<home>/.gnupg/S.gpg-agent.extra\nagent-browser-socket:<home>/.gnupg/S.gpg-agent.browser\nagent-socket:<home>/.gnupg/S.gpg-agent\nhomedir:<home>/.gnupg\n",
+        "stderr": ""
+      }
+    },
+    {
+      "callShape": "<home>/missing/gpgconf --list-dirs, the program missing",
+      "answer": {
+        "kind": "spawn-failed",
+        "code": "ENOENT"
+      }
+    }
+  ]
+}

@@ -72,7 +72,7 @@ export class IncidentMoves {
   /**
    * Each kind's fail-safe default, logged `incident-defaulted`: a question escalates, a park or a merge abort parks, `job-fresh` asks for a
    * fresh agent, the quiet-job default opens its decision; a repair, retry or fresh
-   * agent taken once per ticket parks the next time. The repair, retry and merge agents themselves are the Overseer's.
+   * agent taken once per ticket parks the next time. The repair, retry and merge agents themselves are Hephaestus's.
    */
   defaultIncident(incidentId: string, cause: IncidentDefaultCause, decisionWordingOf: (draft: DecisionDraft) => DecisionWording, at: string): LogRecord[] {
     const incident = this.input.incidentRules.requireOpenIncident(incidentId);
@@ -91,7 +91,7 @@ export class IncidentMoves {
       case 'open-quiet-job-decision': {
         const draft = { kind: 'quiet-job', ticketIds: incident.ticketIds, jobId: incident.jobId } as const;
         const opened = this.input.decisionRules.openDecision({
-          ...draft, askedBy: 'overseer', requestId: null, ...decisionWordingOf(draft)
+          ...draft, askedBy: 'hephaestus', requestId: null, ...decisionWordingOf(draft)
         }, at);
         return [...defaulted, ...opened.logged];
       }
@@ -121,12 +121,12 @@ export class IncidentMoves {
     if (ticket.frontmatter.hold !== undefined) logged.push(...ticketSettings.unholdTicket(ticketId, at).logged);
     logged.push(...ticketSettings.holdTicket(ticketId, `${PARKED_HOLD_PREFIX}${incident?.kind ?? USER_PARK_CAUSE}`, at).logged);
     const waitingJob = incident?.jobId === null || incident === null ? undefined : jobRules.jobById(incident.jobId);
-    // A merge job is the Overseer's to abort, restoring its Airlock worktree; only a session waiting on its question ends here.
+    // A merge job is Hephaestus's to abort, restoring its Airlock worktree; only a session waiting on its question ends here.
     if (waitingJob?.state === 'waiting-for-answer') logged.push(...this.input.endJob(waitingJob.id, { outcome: 'stopped', cause: PARKED_JOB_CAUSE }, at).logged);
     const agentQuestionsOfIncident: DecisionQuestion[] | null = incident === null ? null : agentQuestions.questionsOf(incident);
     const wording = agentQuestionsOfIncident === null ? fallback : { questions: agentQuestionsOfIncident, context: fallback.questions[0]?.question ?? '' };
     logged.push(...decisionRules.openDecision({
-      kind: 'parked', ticketIds: [ticketId], jobId: null, askedBy: 'overseer', requestId: null, ...wording
+      kind: 'parked', ticketIds: [ticketId], jobId: null, askedBy: 'hephaestus', requestId: null, ...wording
     }, at).logged);
     return logged;
   }

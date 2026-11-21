@@ -119,10 +119,10 @@ function runningVersionsOut(versions: ForgeRunningVersions | null): FleetDocumen
   if (versions === null) return null;
   const { talosRunning } = versions;
   return {
-    overseerRunning: versions.overseerRunning,
-    overseerNewest:  versions.overseerNewest,
-    talosRunning:    talosRunning === null ? null : { protocolVersion: talosRunning.protocolVersion, codeVersion: talosRunning.codeVersion },
-    talosNewest:     versions.talosNewest,
+    hephaestusRunning: versions.hephaestusRunning,
+    hephaestusNewest:  versions.hephaestusNewest,
+    talosRunning:      talosRunning === null ? null : { protocolVersion: talosRunning.protocolVersion, codeVersion: talosRunning.codeVersion },
+    talosNewest:       versions.talosNewest,
   };
 }
 
@@ -143,13 +143,13 @@ function forgeOut(reading: FleetForge): FleetDocumentForge {
       monitor: contracts.monitor,
       control: contracts.control,
     },
-    codeVersion:       reading.codeVersion,
-    lastReportedAt:    reading.lastReportedAt,
-    overseerStartedAt: reading.overseerStartedAt,
-    program:           reading.program,
-    lastCommand:       ForgeSentenceUtil.lastCommandNameOf(reading.lastCommand),
-    lastChangedAt:     reading.lastChangedAt,
-    concurrency:       concurrency === null ? null : {
+    codeVersion:         reading.codeVersion,
+    lastReportedAt:      reading.lastReportedAt,
+    hephaestusStartedAt: reading.hephaestusStartedAt,
+    program:             reading.program,
+    lastCommand:         ForgeSentenceUtil.lastCommandNameOf(reading.lastCommand),
+    lastChangedAt:       reading.lastChangedAt,
+    concurrency:         concurrency === null ? null : {
       limit:                        concurrency.limit,
       agentsInFlight:               concurrency.agentsInFlight,
       machineLimit:                 concurrency.machineLimit,

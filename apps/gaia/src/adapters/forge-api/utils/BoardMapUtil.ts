@@ -211,11 +211,11 @@ function pageOf(page: BoardPageDocument): BoardPage {
   } = page.payload;
   return {
     progress: {
-      startedAt:       progress.startedAt,
-      view:            viewRangeOf(progress.view),
-      overseerSetting: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.overseerSetting, progress.overseerState),
-      tasks:           progress.tasks.map(taskOf),
-      log:             progress.log.map((entry) => ({
+      startedAt:         progress.startedAt,
+      view:              viewRangeOf(progress.view),
+      hephaestusSetting: VocabularyMapUtil.gaiaValueOf(VOCABULARIES.hephaestusSetting, progress.hephaestusState),
+      tasks:             progress.tasks.map(taskOf),
+      log:               progress.log.map((entry) => ({
         at: entry.at, text: entry.text, taskIds: entry.taskIds ?? null, ticketIds: entry.ticketIds ?? null
       })),
     },
@@ -474,11 +474,11 @@ function assistantIsOnIn(applied: BoardAppliedPipelineDocument): boolean {
 function boardOf(trackerId: string, document: ForgeBoardDocument, pipeline: BoardPipelineFacts, resumeWaits: ResumeWaitsOfJobs): ForgeBoard {
   return {
     trackerId,
-    project:  document.project,
-    overseer: {
-      state:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.overseerState, document.overseer.state),
-      paused:      document.overseer.paused,
-      codeVersion: document.overseer.codeVersion,
+    project:    document.project,
+    hephaestus: {
+      state:       VocabularyMapUtil.gaiaValueOf(VOCABULARIES.hephaestusState, document.hephaestus.state),
+      paused:      document.hephaestus.paused,
+      codeVersion: document.hephaestus.codeVersion,
     },
     concurrency: { limit: document.concurrency.limit, agentsInFlight: document.concurrency.agentsInFlight },
     launchSlots: {

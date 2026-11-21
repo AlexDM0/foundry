@@ -563,7 +563,7 @@ describe('the setup record a hold reads and writes', () => {
     expect(existsSync(localStoreLayoutOf(workspace).pipelineSetupRecordPath)).toBe(false);
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).pipelineRecordPath, 'utf8'))).toMatchObject({ version: 5, constitution: { path: 'CONSTITUTION.md' } });
     expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).constitutionSourcesRecordPath, 'utf8'))).toMatchObject({ formatVersion: 1, blob: constitution.blob });
-    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ overseerState: 'running' });
+    expect(JSON.parse(readFileSync(localStoreLayoutOf(workspace).progressRecordPath, 'utf8'))).toMatchObject({ hephaestusState: 'running' });
   });
 
   test('a malformed record is a verdict: other writes go on, a setup move is refused, and the file stays byte for byte', async () => {

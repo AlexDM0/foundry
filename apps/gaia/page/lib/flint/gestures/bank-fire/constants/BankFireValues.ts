@@ -1,5 +1,5 @@
 /**
- * Bank the fire of `06-more-animations.md`, "Sessions and budget": the stop of the Overseer, an entrance of 2000 ms and then a steady pose
+ * Bank the fire of `06-more-animations.md`, "Sessions and budget": the stop of Hephaestus, an entrance of 2000 ms and then a steady pose
  * in which Flint is dark, landed and awake a little; in sprite units, for Flint facing right, and milliseconds; `sin(t / n)` names `n` a
  * divisor.
  */

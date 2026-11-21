@@ -7,7 +7,7 @@ import type {
   BoardDisplayState,
   BoardDraftState,
   BoardOfferedCommandKind,
-  BoardOverseerSetting,
+  BoardHephaestusSetting,
   BoardTaskStatus,
   BoardTicketPriority,
   BoardTicketSize,
@@ -121,11 +121,11 @@ export type BoardViewRange =
   | { readonly kind: 'absolute' | 'relative'; readonly from: string; readonly to: string; readonly tickMinutes: number | null };
 
 export interface BoardProgress {
-  readonly startedAt:       string;
-  readonly view:            BoardViewRange;
-  readonly overseerSetting: BoardOverseerSetting;
-  readonly tasks:           readonly BoardTask[];
-  readonly log:             readonly BoardLogEntry[];
+  readonly startedAt:         string;
+  readonly view:              BoardViewRange;
+  readonly hephaestusSetting: BoardHephaestusSetting;
+  readonly tasks:             readonly BoardTask[];
+  readonly log:               readonly BoardLogEntry[];
 }
 
 /** One per task row, at the same index. */

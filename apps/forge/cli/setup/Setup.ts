@@ -7,38 +7,38 @@ import { PRODUCT_NAMES }                   from '../../src/shared/constants/Prod
 import { bunMeetsTheFloor }                from './BunStep.ts';
 import { pointHooksPathAtTheTrackedHooks } from './HooksPathStep.ts';
 import { installAndLink }                  from './InstallStep.ts';
-import { writeLoginOverseer }              from './LoginOverseer.ts';
+import { writeLoginHephaestus }            from './LoginHephaestus.ts';
 import { type SetupHost }                  from './SetupHost.ts';
 import { setupPlatformFor }                from './SetupPlatformFor.ts';
 import { setupReportOver }                 from './SetupReport.ts';
 
-const USAGE = 'Usage: setup [--instruct-only] | setup --login-overseer <repository> [--label <label>] [--instruct-only]';
+const USAGE = 'Usage: setup [--instruct-only] | setup --login-item <repository> [--label <label>] [--instruct-only]';
 
 interface SetupArguments {
-  readonly instructOnly:            boolean;
-  readonly loginOverseerRepository: string | null;
-  readonly loginOverseerLabel:      string;
+  readonly instructOnly:              boolean;
+  readonly loginHephaestusRepository: string | null;
+  readonly loginHephaestusLabel:      string;
 }
 
 /** The arguments, or the line that refuses them. */
 function setupArgumentsOf(commandLine: readonly string[]): SetupArguments | string {
   let instructOnly = false;
-  let loginOverseerRepository: string | null = null;
-  let loginOverseerLabel = PRODUCT_NAMES.LOGIN_ITEM_LABEL;
+  let loginHephaestusRepository: string | null = null;
+  let loginHephaestusLabel = PRODUCT_NAMES.LOGIN_ITEM_LABEL;
   for (let i = 0; i < commandLine.length; i++) {
     const argument = commandLine[i];
     const value = commandLine[i + 1];
     if (argument === '--instruct-only') {
       instructOnly = true;
-    } else if ((argument === '--login-overseer' || argument === '--label') && value !== undefined) {
-      if (argument === '--login-overseer') loginOverseerRepository = value;
-      else loginOverseerLabel = value;
+    } else if ((argument === '--login-item' || argument === '--label') && value !== undefined) {
+      if (argument === '--login-item') loginHephaestusRepository = value;
+      else loginHephaestusLabel = value;
       i += 1;
     } else {
-      return argument === '--login-overseer' || argument === '--label' ? USAGE : `Unknown option: ${argument ?? ''}\n${USAGE}`;
+      return argument === '--login-item' || argument === '--label' ? USAGE : `Unknown option: ${argument ?? ''}\n${USAGE}`;
     }
   }
-  return { instructOnly, loginOverseerRepository, loginOverseerLabel };
+  return { instructOnly, loginHephaestusRepository, loginHephaestusLabel };
 }
 
 export function runSetup(commandLine: readonly string[], host: SetupHost): number {
@@ -49,9 +49,9 @@ export function runSetup(commandLine: readonly string[], host: SetupHost): numbe
   }
   const { instructOnly } = setupArguments;
   const report = setupReportOver(host.write);
-  if (setupArguments.loginOverseerRepository !== null) {
-    report.heading('The Overseer\'s login item');
-    return writeLoginOverseer(host, report, { repository: setupArguments.loginOverseerRepository, label: setupArguments.loginOverseerLabel, instructOnly });
+  if (setupArguments.loginHephaestusRepository !== null) {
+    report.heading('Hephaestus\'s login item');
+    return writeLoginHephaestus(host, report, { repository: setupArguments.loginHephaestusRepository, label: setupArguments.loginHephaestusLabel, instructOnly });
   }
   report.heading('1/3 Bun');
   if (!bunMeetsTheFloor(host, report, instructOnly)) return 1;

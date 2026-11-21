@@ -1,8 +1,8 @@
 /**
- * The chat thread's model over the transcript entries the Overseer streams. What matters: the session's entries between two other items
+ * The chat thread's model over the transcript entries Hephaestus streams. What matters: the session's entries between two other items
  * are one agent turn and a `turn-end` closes it, so `working` and the open fold never depend on a clock; a subagent's entries stay out; a
  * call takes its outcome from the result with its `toolUseId`, so calls that share a log line each keep theirs; the fold counts its tools
- * most used first; the Overseer's first chat is the boot line and a later one with incidents a delivery; a Talos line is a standing reply
+ * most used first; Hephaestus's first chat is the boot line and a later one with incidents a delivery; a Talos line is a standing reply
  * with no text; a stamp is the entry's own and never invented; the queued messages come last; and every key is unique.
  */
 import { describe, expect, test } from 'bun:test';
@@ -133,37 +133,37 @@ describe('ChatThreadModelUtil.threadItemsOf', () => {
     expect(fold?.toolCounts).toEqual([{ toolName: 'Bash', count: 4 }, { toolName: 'Grep', count: 1 }, { toolName: 'Read', count: 1 }]);
   });
 
-  test('the Overseer\'s first chat is the boot line with its prompt, a later one with incidents a delivery, any other a plain chat', () => {
+  test('Hephaestus\'s first chat is the boot line with its prompt, a later one with incidents a delivery, any other a plain chat', () => {
     const items = threadItemsOf([
       entryOf({
-        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', chatSequence: 1, text: 'You are the Assistant.'
+        role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', chatSequence: 1, text: 'You are the Assistant.'
       }),
       entryOf({ role: 'turn-end' }),
       entryOf({
-        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', chatSequence: 3, incidentIds: ['I2'], text: 'I2 opened.'
+        role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', chatSequence: 3, incidentIds: ['I2'], text: 'I2 opened.'
       }),
       entryOf({
-        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: 'Wind down.'
+        role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', text: 'Wind down.'
       }),
     ], []);
     expect(items.map((item) => (item.kind === 'system' ? [item.facts, item.revealText] : item.kind))).toEqual([
       [{ form: 'boot', chatSequence: 1 }, 'You are the Assistant.'],
       [{ form: 'incident-delivery', chatSequence: 3, incidentIds: ['I2'] }, 'I2 opened.'],
-      [{ form: 'overseer-chat' }, 'Wind down.'],
+      [{ form: 'hephaestus-chat' }, 'Wind down.'],
     ]);
   });
 
   test('a Talos line is a standing reply that shows no text, and a client act names its act and who did it', () => {
     const items = threadItemsOf([
       entryOf({ role: 'talos', text: '{"type":"control_response"}' }),
-      entryOf({ role: 'overseer', clientAct: 'interrupt', sentBy: 'overseer' }),
+      entryOf({ role: 'hephaestus', clientAct: 'interrupt', sentBy: 'hephaestus' }),
       entryOf({
-        role: 'overseer', clientAct: 'answer', sentBy: 'assistant', text: 'Retry the gate'
+        role: 'hephaestus', clientAct: 'answer', sentBy: 'assistant', text: 'Retry the gate'
       }),
     ], []);
     expect(items.map((item) => (item.kind === 'system' ? [item.facts, item.revealText] : item.kind))).toEqual([
       [{ form: 'standing-reply' }, null],
-      [{ form: 'client-act', act: 'interrupt', sender: 'overseer' }, null],
+      [{ form: 'client-act', act: 'interrupt', sender: 'hephaestus' }, null],
       [{ form: 'client-act', act: 'answer', sender: 'assistant' }, null],
     ]);
   });
@@ -210,7 +210,7 @@ describe('ChatThreadModelUtil.threadItemsOf', () => {
 describe('ChatThreadModelUtil.turnCountOf', () => {
   test('counts closed turns and the working one, a turn parted by a standing reply once', () => {
     expect(turnCountOf([
-      entryOf({ role: 'overseer', clientAct: 'chat', text: 'Boot.' }),
+      entryOf({ role: 'hephaestus', clientAct: 'chat', text: 'Boot.' }),
       entryOf({ role: 'assistant', text: 'One.' }),
       entryOf({ role: 'turn-end' }),
       entryOf({

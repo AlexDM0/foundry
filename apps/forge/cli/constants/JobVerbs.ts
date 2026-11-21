@@ -19,7 +19,6 @@ export const READ_ONLY_VERBS_UNDER_A_JOB: readonly string[] = [
   'hook session-start',
   'hook stage-edits',
   'version',
-  'oversee status',
   'decisions',
   'incidents',
   'merges',
@@ -40,7 +39,7 @@ export const UNRELAYED_VERB_OF_CONTROL_KIND = {
   'chart-range-set':        'range',
   'tracker-clear':          'clear',
   'ticket-deliver-by-hand': 'ticket deliver --by-hand',
-  'talos-restart':          'oversee talos-restart',
+  'talos-restart':          'talos-restart',
 } as const satisfies Partial<Record<ControlCommandKind, string>>;
 
 /**
@@ -115,11 +114,11 @@ export const RELAYED_VERB_OF_CONTROL_KIND: Readonly<Record<RelayedControlCommand
   'intake-title':                'intake title',
   'question-options':            'question options',
   'need-declare':                'need declare',
-  'overseer-pause':              'oversee pause',
-  'overseer-resume':             'oversee resume',
+  'hephaestus-pause':            'pause',
+  'hephaestus-unpause':          'unpause',
   'interrupted-work-resume':     'resume',
-  'overseer-stop':               'oversee stop',
-  'overseer-restart':            'oversee restart',
+  'hephaestus-stop':             'stop',
+  'hephaestus-restart':          'restart',
   'concurrency-set':             'concurrency',
   'machine-agent-limit-set':     'machine limit',
   'pipeline-prepare-step-set':   'gate prepare',

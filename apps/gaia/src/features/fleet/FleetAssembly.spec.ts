@@ -134,23 +134,23 @@ describe('agents', () => {
 
 const STOREFRONT = READINGS.exampleStorefront;
 
-/** The identity of the forge the Storefront at work was recorded from: Example Storefront at monitor 4 and control 2. */
+/** The identity of the forge the Storefront at work was recorded from: Example Storefront at monitor 5 and control 3. */
 const RECORDED_FORGE_IDENTITY: ForgeIdentity = {
   trackerId: STOREFRONT.trackerId,
   project:   STOREFRONT.project,
-  ...recordedForgeVersionsOf('overseer-fetch-supported-forge'),
+  ...recordedForgeVersionsOf('hephaestus-fetch-supported-forge'),
   processId: 48_107,
   contracts: {
-    summary: 1,
-    monitor: 4,
-    control: 2,
+    summary: 2,
+    monitor: 5,
+    control: 3,
   },
 };
 
 describe('a forge whose snapshot still carries a `flintBrain` key', () => {
   test('adds no row of the role brain and no row beside its jobs, whatever the key holds', async () => {
     const facts = registryFactsOf(STOREFRONT);
-    const recorded = await recordedDocumentOf('serving-every-contract', 'monitor', facts.overseerUrl) as Record<string, unknown>;
+    const recorded = await recordedDocumentOf('serving-every-contract', 'monitor', facts.hephaestusUrl) as Record<string, unknown>;
     const flintBrain = {
       state: 'running', startedAt: EXAMPLE_READ_STAMP, tokens: 11, calls: 1
     };

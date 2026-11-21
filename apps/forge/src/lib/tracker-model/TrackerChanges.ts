@@ -3,7 +3,7 @@ import type {
   ConcurrencyLimitSet,
   Logged,
   PipelineChanged,
-  OverseerStateSet,
+  HephaestusStateSet,
   TrackerCleared
 } from './@types/BoardChanges.ts';
 import { GATE_PHASES, type GatePhase, type GateRunStamp } from './@types/GatePhase.ts';
@@ -15,13 +15,13 @@ import {
   type PipelineGate,
   type PipelineStep
 } from './@types/Pipeline.ts';
-import type { OverseerState, ViewRange } from './@types/TrackerProgress.ts';
-import type { BoardRecords }             from './BoardRecords.ts';
-import { BoardRefusal }                  from './BoardRefusal.ts';
-import type { DispatchQueries }          from './DispatchQueries.ts';
-import { PENDING_APPLY_REQUEST_STATES }  from './constants/PipelineSetupVocabulary.ts';
-import { PipelineUtil }                  from './utils/PipelineUtil.ts';
-import { TicketChartUtil }               from './utils/TicketChartUtil.ts';
+import type { HephaestusState, ViewRange } from './@types/TrackerProgress.ts';
+import type { BoardRecords }               from './BoardRecords.ts';
+import { BoardRefusal }                    from './BoardRefusal.ts';
+import type { DispatchQueries }            from './DispatchQueries.ts';
+import { PENDING_APPLY_REQUEST_STATES }    from './constants/PipelineSetupVocabulary.ts';
+import { PipelineUtil }                    from './utils/PipelineUtil.ts';
+import { TicketChartUtil }                 from './utils/TicketChartUtil.ts';
 
 export class TrackerChanges {
   constructor(
@@ -47,11 +47,11 @@ export class TrackerChanges {
     return { logged: [this.records.logger.log({ kind: 'branch-namespace-set', fields: { namespace: branchNamespace } }, at)] };
   }
 
-  setOverseerState(state: OverseerState, at: string): OverseerStateSet {
+  setHephaestusState(state: HephaestusState, at: string): HephaestusStateSet {
     const { progress }   = this.records;
-    const previousState  = this.dispatchQueries.overseerState();
-    progress.overseerState = state;
-    return { logged: [this.records.logger.log({ kind: 'overseer-set', fields: { state } }, at)], previousState };
+    const previousState  = this.dispatchQueries.hephaestusState();
+    progress.hephaestusState = state;
+    return { logged: [this.records.logger.log({ kind: 'hephaestus-set', fields: { state } }, at)], previousState };
   }
 
   /**

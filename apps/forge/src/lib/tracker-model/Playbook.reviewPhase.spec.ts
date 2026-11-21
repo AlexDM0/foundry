@@ -74,7 +74,7 @@ describe('a pipeline without a review phase', () => {
 
   test('queues no ticket whose refused merge waits on User, so a refusal does not loop back into the queue', () => {
     const mergeRefused: Decision = {
-      id: 'E1', kind: 'merge-refused', ticketIds: ['001'], jobId: null, askedBy: 'overseer', requestId: null, questions: [], context: '', openedAt: FIXTURE_AT,
+      id: 'E1', kind: 'merge-refused', ticketIds: ['001'], jobId: null, askedBy: 'hephaestus', requestId: null, questions: [], context: '', openedAt: FIXTURE_AT,
     };
     const steps = Playbook.nextStepsOf(factsWith({ tickets: [ticketOf('001', 'in-review')], decisions: [mergeRefused], reviewIsSet: false }), FIXTURE_LIMITS);
     expect(steps).toEqual([]);

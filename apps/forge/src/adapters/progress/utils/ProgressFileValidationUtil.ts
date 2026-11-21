@@ -3,7 +3,7 @@ import { JsonRecordUtil }                                    from '../../../lib/
 import { GATE_PHASES }                                       from '../../../lib/tracker-model/@types/GatePhase.ts';
 import { LOWEST_CONCURRENCY_LIMIT_AGENTS }                   from '../../../lib/tracker-model/constants/ConcurrencyLimits.ts';
 import { FIRST_DRAFT_NUMBER }                                from '../../../lib/tracker-model/constants/DraftFields.ts';
-import { OVERSEER_STATES }                                   from '../../../lib/tracker-model/constants/OverseerStates.ts';
+import { HEPHAESTUS_STATES }                                 from '../../../lib/tracker-model/constants/HephaestusStates.ts';
 import { FIRST_SETUP_NUMBER }                                from '../../../lib/tracker-model/constants/PipelineSetupVocabulary.ts';
 import { FIRST_REPEAT_REVIEW_ROUND, FIRST_REVIEW_BAR_ROUND } from '../../../lib/tracker-model/constants/ReviewRounds.ts';
 import { TASK_STATUSES }                                     from '../../../lib/tracker-model/constants/Statuses.ts';
@@ -126,7 +126,7 @@ function taskProblem(value: unknown, index: number): string | null {
 }
 
 /**
- * `null` for a document whose top level this build reads, before its rows are looked at. A version 2 file keeps its log in log.jsonl, so a
+ * `null` for a document whose top level this build reads, before its rows are looked at. A version 3 file keeps its log in log.jsonl, so a
  * `log` in one is refused rather than silently ignored.
  */
 function documentHeaderProblemOf(candidate: unknown): string | null {
@@ -145,8 +145,8 @@ function documentHeaderProblemOf(candidate: unknown): string | null {
   if (candidate['concurrencyLimit'] !== undefined && !BoardSettingsUtil.concurrencyLimitIsWellFormed(candidate['concurrencyLimit'])) {
     return `concurrencyLimit is ${JSON.stringify(candidate['concurrencyLimit'])}, and when present it has to be a whole number of at least ${LOWEST_CONCURRENCY_LIMIT_AGENTS}`;
   }
-  if (candidate['overseerState'] !== undefined && !BoardSettingsUtil.overseerStateIsKnown(candidate['overseerState'])) {
-    return `overseerState is ${JSON.stringify(candidate['overseerState'])}, and when present it has to be one of ${OVERSEER_STATES.join(', ')}`;
+  if (candidate['hephaestusState'] !== undefined && !BoardSettingsUtil.hephaestusStateIsKnown(candidate['hephaestusState'])) {
+    return `hephaestusState is ${JSON.stringify(candidate['hephaestusState'])}, and when present it has to be one of ${HEPHAESTUS_STATES.join(', ')}`;
   }
   const retiredKey = RETIRED_PIPELINE_KEYS.find((key) => Object.hasOwn(candidate, key));
   if (retiredKey !== undefined) return `${retiredKey} is present, and the gate pipeline lives in pipeline.json; ${OLDER_FORMAT_ADVICE}`;
@@ -156,8 +156,8 @@ function documentHeaderProblemOf(candidate: unknown): string | null {
   if (candidate['nextSetupId'] !== undefined && !StoredValueUtil.wholeNumberIsAtLeast(candidate['nextSetupId'], FIRST_SETUP_NUMBER)) {
     return `nextSetupId is ${JSON.stringify(candidate['nextSetupId'])}, and when present it has to be a whole number of at least ${FIRST_SETUP_NUMBER}`;
   }
-  if (candidate['overseerFirstStartedAt'] !== undefined && !textFieldIsPresent(candidate, 'overseerFirstStartedAt')) {
-    return `overseerFirstStartedAt is ${JSON.stringify(candidate['overseerFirstStartedAt'])}, and when present it has to be a timestamp`;
+  if (candidate['hephaestusFirstStartedAt'] !== undefined && !textFieldIsPresent(candidate, 'hephaestusFirstStartedAt')) {
+    return `hephaestusFirstStartedAt is ${JSON.stringify(candidate['hephaestusFirstStartedAt'])}, and when present it has to be a timestamp`;
   }
   const { branchNamespace } = candidate;
   if (branchNamespace !== undefined && !(typeof branchNamespace === 'string' && BranchNamespaceUtil.namespaceIsWellFormed(branchNamespace))) {

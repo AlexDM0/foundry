@@ -21,12 +21,12 @@ afterAll(() => {
   for (const directory of scratchDirectories) removeScratchDirectory(directory);
 });
 
-/** A progress whose settings were set after the log, as a tracker that ran `oversee resume` after `init` stores them. */
+/** A progress whose settings were set after the log, as a tracker that ran `unpause` after `init` stores them. */
 function progressWithSettingsAfterTheLog(): TrackerProgress {
   const progress = emptyProgress();
   fileRow(progress, { name: 'Example build' });
-  progress.overseerState = 'running';
-  progress.overseerFirstStartedAt = '2026-09-18T21:00:00+02:00';
+  progress.hephaestusState = 'running';
+  progress.hephaestusFirstStartedAt = '2026-09-18T21:00:00+02:00';
   return progress;
 }
 
@@ -44,7 +44,7 @@ test('version 1 comes first, whatever the progress holds', () => {
 test('the worded log sits directly after tasks, also when a setting stored later follows it', () => {
   const document = ProgressFileMappingUtil.wordedDocumentOf(progressWithSettingsAfterTheLog(), WORDED_LOG);
   const keys     = Object.keys(document);
-  expect(keys.slice(keys.indexOf('tasks'))).toEqual(['tasks', 'log', 'overseerState', 'overseerFirstStartedAt']);
+  expect(keys.slice(keys.indexOf('tasks'))).toEqual(['tasks', 'log', 'hephaestusState', 'hephaestusFirstStartedAt']);
   expect(document.log).toEqual([...WORDED_LOG]);
 });
 

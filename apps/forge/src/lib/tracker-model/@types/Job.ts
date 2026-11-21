@@ -1,6 +1,6 @@
 /**
- * A unit of the Overseer's agent work, stored in progress.json while it is unsettled so a restart reads every job from disk. Only what the
- * Overseer decided is stored: a child's process identity lives in the job's own folder, never on the board.
+ * A unit of Hephaestus's agent work, stored in progress.json while it is unsettled so a restart reads every job from disk. Only what
+ * Hephaestus decided is stored: a child's process identity lives in the job's own folder, never on the board.
  */
 
 import type { GatePhase }           from './GatePhase.ts';
@@ -38,7 +38,7 @@ export type JobState =
   | 'in-customs'
   | 'gating'
   /**
-   * A build or review job whose gates passed, with merge approval on: the Overseer merges the target into the ticket's worktree and gates
+   * A build or review job whose gates passed, with merge approval on: Hephaestus merges the target into the ticket's worktree and gates
    * the merged tree before the ticket waits for User's Merge.
    */
   | 'merging-main'
@@ -75,17 +75,17 @@ export type JobOutcome =
   | 'closed';
 
 /**
- * `watcher-lost` and `agent-crashed` are the crashes a resume counts; the others never count. `handoff-red` is a handoff whose gate or Customs
+ * `talos-lost` and `agent-crashed` are the crashes a resume counts; the others never count. `handoff-red` is a handoff whose gate or Customs
  * check went red: the same session is resumed to fix it, counted on its own bound. `forced-stop-refused` is a lost child whose process tree
  * refused the forced stop: the job is never resumed while it holds this cause, and a later pass gives it the cause the next stop settles.
  * `authentication-failed` is a session whose API key was refused: it resumes once User answers the decision that names the failure.
- * `talos-paused` is a clean quit of Talos, resumed by itself as a reboot is; `lease-ended` (Talos stopped the agents of an Overseer that lost
+ * `talos-paused` is a clean quit of Talos, resumed by itself as a reboot is; `lease-ended` (Talos stopped the agents of a Hephaestus that lost
  * its lease) and `network-outage` (the agent ended on an outage its retries did not outlast) wait for User's resume. `forge-stopped` is a
- * child that ended with a stop of the forge on purpose, and `forge-crashed` one gone with the forge's crash (the Overseer or Talos); the
+ * child that ended with a stop of the forge on purpose, and `forge-crashed` one gone with the forge's crash (Hephaestus or Talos); the
  * next start finds either gone, and the job waits for User's resume. `RESUME_POLICY_OF_CAUSE` names each cause's resume policy.
  */
 export type InterruptionCause =
-  | 'watcher-lost'
+  | 'talos-lost'
   | 'agent-crashed'
   | 'reboot'
   | 'answer-delivery'
@@ -135,7 +135,7 @@ export interface JobIntake {
   carriedAnswers?:    Readonly<Record<string, string>>[];
 }
 
-/** The last child event the Overseer applied, written in the hold that applied it. */
+/** The last child event Hephaestus applied, written in the hold that applied it. */
 export interface JobEventCursor {
   instance: number;
   sequence: number;
@@ -162,11 +162,11 @@ export interface Job {
   eventCursor:         JobEventCursor;
   /** The relayed question request ids already answered, kept until the job ends, so each answer is delivered until its delivery is marked. */
   answeredRequestIds:  string[];
-  /** Resumes after a `watcher-lost` or `agent-crashed` interruption only. */
+  /** Resumes after a `talos-lost` or `agent-crashed` interruption only. */
   crashResumes:        number;
   /** On the merge or refresh job holding its target's Airlock, while it holds it. */
   airlock?:            Airlock;
-  /** Set once User stopped, wound down or freshened the job; the Overseer sends its frames from it. */
+  /** Set once User stopped, wound down or freshened the job; Hephaestus sends its frames from it. */
   stopRequest?:        JobStopMode;
   /** On a product-owner job only. */
   intake?:             JobIntake;
@@ -174,7 +174,7 @@ export interface Job {
   pendingOptionNotes?: QuestionOptionNotes[];
   /** Set only on the record `job-ended` hands back: an ended job leaves the board in the same hold. */
   outcome?:            JobOutcome;
-  /** Set by the Overseer at launch on a forge with entities: the entity whose stage the job runs. Absent on a forge without entities. */
+  /** Set by Hephaestus at launch on a forge with entities: the entity whose stage the job runs. Absent on a forge without entities. */
   entity?:             EntityKey;
   /** The stage of the ticket the job runs, from 1; set with `entity`. */
   stage?:              number;
@@ -196,14 +196,14 @@ export interface JobLaunch {
 
 export interface JobEnding {
   outcome:            JobOutcome;
-  /** What ended it, worded by the Overseer; absent when the outcome says it all. */
+  /** What ended it, worded by Hephaestus; absent when the outcome says it all. */
   cause?:             string;
   /** The commit the job's work ended on, when it made one. */
   commit?:            string;
   deniedPermissions?: readonly string[];
 }
 
-export type OverseerStopReason = 'stopped' | 'baton-passed';
+export type HephaestusStopReason = 'stopped' | 'baton-passed';
 
 /** What the forge's start found before it: no earlier start, a Baton pass, a stop on purpose, a machine that went down, or a crash. */
 export type StartKind = 'first-start' | 'handover' | 'stopped-on-purpose' | 'machine-went-down' | 'crashed';

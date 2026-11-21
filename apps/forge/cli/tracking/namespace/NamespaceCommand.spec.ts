@@ -3,7 +3,7 @@
  * and its progress file holds no key; a name is stored, logged once and printed with the branch names it gives; a name that is not one,
  * a branch named as the program, a branch left under the board's bare names, a job on a branch, and a namespace another tracker of the
  * repository lists are refused at exit 1 with every file as it was; the Assistant and the product owner, which work on no branch and which
- * an Overseer's stop leaves on the board, hold no name back; a name taken lists the board in the repository's tracker list.
+ * a Hephaestus's stop leaves on the board, hold no name back; a name taken lists the board in the repository's tracker list.
  */
 import {
   existsSync,
@@ -67,7 +67,7 @@ function storedNamespace(): unknown {
   return (JSON.parse(readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, 'utf8')) as Record<string, unknown>)['branchNamespace'];
 }
 
-/** A job left running on the board, as an Overseer's stop leaves its Assistant. */
+/** A job left running on the board, as a Hephaestus's stop leaves its Assistant. */
 function writeRunningJobs(jobs: readonly Pick<Job, 'id' | 'kind' | 'role' | 'ticketIds'>[]): void {
   const runningJobs = jobs.map((job): Job => ({
     ...job,

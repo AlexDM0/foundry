@@ -145,7 +145,7 @@ function OutageResumeAnswerBlock({
 }
 
 function UnreachableBannerLine({ banner, commandStates, onCommand }: { readonly banner: UnreachableBanner } & CommandHandlers) {
-  const lead = <span className="gaia-attention-banner-lead">{`Overseer unreachable: ${banner.project}.`}</span>;
+  const lead = <span className="gaia-attention-banner-lead">{`Hephaestus unreachable: ${banner.project}.`}</span>;
   const text = banner.lastReportedClock === null
     ? <>{lead}{' Gaia shows nothing of it and tries again.'}</>
     : (

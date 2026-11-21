@@ -58,7 +58,7 @@ export class Incidents {
     return { incident, logged: [logged] };
   }
 
-  /** Delivery is the Overseer's state, not an event: it is stored and never logged. */
+  /** Delivery is Hephaestus's state, not an event: it is stored and never logged. */
   markIncidentDelivered(incidentId: string, turn: IncidentDeliveryTurn): Readonly<Incident> {
     const incident           = this.requireOpenIncident(incidentId);
     incident.deliveredInTurn = { jobId: turn.jobId, chatSequence: turn.chatSequence };

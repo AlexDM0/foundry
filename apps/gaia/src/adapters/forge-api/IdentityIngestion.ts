@@ -1,5 +1,5 @@
 /**
- * The ingestion of an Overseer's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
+ * The ingestion of a Hephaestus's identity (F1): check `identityVersion` against `CONTRACT_VERSIONS`, check the keys, map to a
  * `ForgeIdentity`, and decide from its `contracts` whether Gaia reads the forge (PLAN 7.1): only a forge that serves the monitor contract
  * Gaia knows is read. An identity without `identityVersion` is a forge's from before F1, older than Gaia reads.
  */

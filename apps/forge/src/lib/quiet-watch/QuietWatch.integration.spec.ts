@@ -1,7 +1,7 @@
 /**
  * The real folder watch, recorded for `src/testing/RecordedFolderWatch.ts`. What matters: a watch of a missing folder is refused and
  * `watchQuietly` answers null without a throw, and a recursive watch sees a file written in a subfolder made after it started, which is
- * how a Hatch request in a new job's folder wakes the Overseer.
+ * how a Hatch request in a new job's folder wakes Hephaestus.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';

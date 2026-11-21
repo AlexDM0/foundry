@@ -140,7 +140,7 @@ export function BoardApp({
   const loseSession = useCallback(() => setSessionIsLost(true), []);
   const mainPanelRef = useRef<HTMLElement | null>(null);
 
-  const boardIsHeld = board?.overseer.state === HELD_BY_INSTALL_CHANGE;
+  const boardIsHeld = board?.hephaestus.state === HELD_BY_INSTALL_CHANGE;
   const [refusalBoard, setRefusalBoard] = useState(board);
   // Adjusting state while rendering, as React advises for a value derived from a changed input: a board no longer held clears the 423.
   if (refusalBoard !== board) {

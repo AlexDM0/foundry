@@ -158,7 +158,7 @@ describe('the activity', () => {
     expect(AgentPanelSpriteModel.activityOccasionOf([job('J1', { state: 'stopping' }), job('J2', { state: 'gating' })], serving)?.cueName).toBe('agent-works');
   });
 
-  test('is all-agents-idle only while no job works and the Overseer serves unpaused', () => {
+  test('is all-agents-idle only while no job works and Hephaestus serves unpaused', () => {
     expect(AgentPanelSpriteModel.activityOccasionOf([job('J1', { state: 'stopping' })], serving)?.cueName).toBe('all-agents-idle');
     expect(AgentPanelSpriteModel.activityOccasionOf([], { state: 'serving', paused: true })).toBeNull();
     expect(AgentPanelSpriteModel.activityOccasionOf([], { state: 'down', paused: false })).toBeNull();

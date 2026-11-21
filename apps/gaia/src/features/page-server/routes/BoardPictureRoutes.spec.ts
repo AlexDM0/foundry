@@ -12,10 +12,10 @@ import {
   test
 } from 'bun:test';
 
-import { recordedBoardDocumentOf }                                                   from '../../../adapters/forge-api/testing/BoardDocuments.ts';
-import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                          from '../../../shared/constants/Limits.ts';
-import { recordedBoardAnswersOf, recordedOverseerFetch, type RecordedOverseerFetch } from '../../../testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath }                                 from '../../../testing/ScratchRoot.ts';
+import { recordedBoardDocumentOf }                                                       from '../../../adapters/forge-api/testing/BoardDocuments.ts';
+import { BOARD_PICTURE_UPLOAD_LIMIT_BYTES }                                              from '../../../shared/constants/Limits.ts';
+import { recordedBoardAnswersOf, recordedHephaestusFetch, type RecordedHephaestusFetch } from '../../../testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath }                                     from '../../../testing/ScratchRoot.ts';
 import {
   EXAMPLE_FORGE_TOKEN,
   STOREFRONT_TRACKER_ID,
@@ -51,8 +51,8 @@ afterEach(() => {
   removeScratchPath(scratchFolder);
 });
 
-function sourcesOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}) {
-  return relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), overseerFetch);
+function sourcesOver(hephaestusFetch: RecordedHephaestusFetch, options: ExampleRelayForgeOptions = {}) {
+  return relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), hephaestusFetch);
 }
 
 /** As a browser sends it: with the body's declared length. */
@@ -63,24 +63,24 @@ function uploadRequest(bytes: Uint8Array): Request {
 
 describe('a picture upload', () => {
   test('forwards the page\'s bytes and content type, and answers the picture the forge stored', async () => {
-    const overseerFetch = boardAnswering('picture-accepted', (callShape) => callShape === UPLOAD_CALL_SHAPE);
+    const hephaestusFetch = boardAnswering('picture-accepted', (callShape) => callShape === UPLOAD_CALL_SHAPE);
     const picture = recordedPictureBytes();
-    const answer = await pictureUploadAnswerFor(uploadRequest(picture), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch), EXAMPLE_BOUND_BYTES);
+    const answer = await pictureUploadAnswerFor(uploadRequest(picture), STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch), EXAMPLE_BOUND_BYTES);
     expect([answer.status, answer.headers.get('cache-control'), await answer.json()]).toEqual([200, 'no-store', {
       pictureUploadAnswerVersion: 1,
       outcome:                    'uploaded',
       picture:                    { pictureId: RECORDED_PICTURE_ID, bytes: 70, mediaType: 'image/png' },
       refusal:                    null,
     }]);
-    const [call] = overseerFetch.callsAnswered();
+    const [call] = hephaestusFetch.callsAnswered();
     expect([call?.bearerToken, call?.byteBody?.mediaType, [...call?.byteBody?.bytes ?? []]]).toEqual([EXAMPLE_FORGE_TOKEN, 'image/png', [...picture]]);
   });
 
   test('answers a forge\'s refusal with the forge\'s code, fields and sentence unchanged, under a conflict status', async () => {
-    const overseerFetch = boardAnswering('picture-too-large');
+    const hephaestusFetch = boardAnswering('picture-too-large');
     const [recorded] = recordedBoardAnswersOf('picture-too-large');
     const sentence = recorded?.answer.verdict === 'answered' ? (JSON.parse(recorded.answer.bodyText) as { readonly text: string }).text : '';
-    const answer = await pictureUploadAnswerFor(uploadRequest(recordedPictureBytes()), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch), EXAMPLE_BOUND_BYTES);
+    const answer = await pictureUploadAnswerFor(uploadRequest(recordedPictureBytes()), STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch), EXAMPLE_BOUND_BYTES);
     expect([answer.status, await answer.json()]).toEqual([409, {
       pictureUploadAnswerVersion: 1,
       outcome:                    'refused',
@@ -92,24 +92,24 @@ describe('a picture upload', () => {
   });
 
   test('refuses a body over its bound unread, and asks the forge nothing', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
+    const hephaestusFetch = recordedHephaestusFetch([]);
     const request = uploadRequest(new Uint8Array(EXAMPLE_BOUND_BYTES + 1));
-    const answer = await pictureUploadAnswerFor(request, STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch), EXAMPLE_BOUND_BYTES);
+    const answer = await pictureUploadAnswerFor(request, STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch), EXAMPLE_BOUND_BYTES);
     expect([answer.status, await answer.json()]).toEqual([413, {
       pictureUploadAnswerVersion: 1,
       outcome:                    'refused',
       picture:                    null,
       refusal:                    { refusedBy: 'gaia', code: 'too-large', text: 'This is larger than Gaia takes for this request.' },
     }]);
-    expect([request.bodyUsed, overseerFetch.callsAnswered()]).toEqual([false, []]);
+    expect([request.bodyUsed, hephaestusFetch.callsAnswered()]).toEqual([false, []]);
   });
 
-  test('is refused as forge-unreachable when the Overseer does not answer, and as forge-not-registered for a forge the registry does not name', async () => {
+  test('is refused as forge-unreachable when Hephaestus does not answer, and as forge-not-registered for a forge the registry does not name', async () => {
     const stoppedForge = sourcesOver(stoppedForgeAnswering([UPLOAD_CALL_SHAPE]));
     const unreachable = await pictureUploadAnswerFor(uploadRequest(recordedPictureBytes()), STOREFRONT_TRACKER_ID, stoppedForge, EXAMPLE_BOUND_BYTES);
     const unreachableRefusal = ((await unreachable.json()) as { readonly refusal: unknown }).refusal;
     expect([unreachable.status, unreachableRefusal]).toEqual([502, { refusedBy: 'gaia', code: 'forge-unreachable', text: 'This forge does not answer.' }]);
-    const forgeAccess = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), recordedOverseerFetch([]), { verdict: 'readable', forges: [] });
+    const forgeAccess = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), recordedHephaestusFetch([]), { verdict: 'readable', forges: [] });
     const unregistered = await pictureUploadAnswerFor(uploadRequest(recordedPictureBytes()), STOREFRONT_TRACKER_ID, forgeAccess, EXAMPLE_BOUND_BYTES);
     expect(unregistered.status).toBe(404);
   });
@@ -117,8 +117,8 @@ describe('a picture upload', () => {
 
 describe('a picture read back', () => {
   test('answers the forge\'s bytes under its content type, never sniffed, sandboxed and never stored', async () => {
-    const overseerFetch = boardAnswering('picture-accepted', (callShape) => callShape.startsWith('GET '));
-    const answer = await pictureAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_PICTURE_ID, sourcesOver(overseerFetch));
+    const hephaestusFetch = boardAnswering('picture-accepted', (callShape) => callShape.startsWith('GET '));
+    const answer = await pictureAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_PICTURE_ID, sourcesOver(hephaestusFetch));
     expect([
       answer.status,
       answer.headers.get('content-type'),
@@ -129,11 +129,11 @@ describe('a picture read back', () => {
     expect([...new Uint8Array(await answer.arrayBuffer())]).toEqual([...recordedPictureBytes()]);
   });
 
-  test('is forge-unreachable when the Overseer does not answer, and token-unreadable when the registry names no token file', async () => {
+  test('is forge-unreachable when Hephaestus does not answer, and token-unreadable when the registry names no token file', async () => {
     const pictureCallShape = `GET /api/v1/pictures/${RECORDED_PICTURE_ID} with bearer`;
     const unreachable = await pictureAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_PICTURE_ID, sourcesOver(stoppedForgeAnswering([pictureCallShape])));
     expect([unreachable.status, await unreachable.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
-    const noToken = await pictureAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_PICTURE_ID, sourcesOver(recordedOverseerFetch([]), { tokenPath: null }));
+    const noToken = await pictureAnswerFor(STOREFRONT_TRACKER_ID, RECORDED_PICTURE_ID, sourcesOver(recordedHephaestusFetch([]), { tokenPath: null }));
     expect([noToken.status, await noToken.json()]).toEqual([502, { refusal: 'token-unreadable', refusedBy: 'gaia' }]);
   });
 });

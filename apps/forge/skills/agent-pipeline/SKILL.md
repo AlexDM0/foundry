@@ -21,7 +21,7 @@ Read the files. Do not run a script. Do not change a file of the repository, and
 
 ## The setup record
 
-- Under a pipeline agent job, the verbs name no setup record: the Overseer adds the record that the job serves.
+- Under a pipeline agent job, the verbs name no setup record: Hephaestus adds the record that the job serves.
 - Outside a job, the first word after the verb names the record, such as `{{program}} pipeline finding S1 -- <JSON>`.
   When no record is open, start one with `{{program}} pipeline setup` for a first pipeline, or with
   `{{program}} pipeline update` for a stored pipeline. Each verb's `--json` prints the record as the move left it.
@@ -41,7 +41,7 @@ Send each result with one of these commands. Write the payload as JSON after `--
 | `{{program}} pipeline ready <step>` | no payload; the step is `research`, `entities`, `constitution` or `design` |
 
 When a command is refused, it prints the reason. Correct the payload and send the command again. Do not send a
-command again when it printed `queued`: the Overseer applies it later.
+command again when it printed `queued`: Hephaestus applies it later.
 
 ## Questions
 

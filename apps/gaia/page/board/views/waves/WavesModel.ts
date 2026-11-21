@@ -178,7 +178,7 @@ function forecastTicketsOf(board: BoardDocument): ForecastTicket[] {
   });
 }
 
-/** "ETA 25m–50m": the wave's p50 to p80 finish from now; asked for only while the Overseer runs, since it is shown, never decides. */
+/** "ETA 25m–50m": the wave's p50 to p80 finish from now; asked for only while Hephaestus runs, since it is shown, never decides. */
 function waveForecastTextOf(board: BoardDocument, graph: DependencyGraph, nowEpochMilliseconds: number): (waveNodeIds: readonly string[]) => string | null {
   const forecastTickets = forecastTicketsOf(board);
   const ticketById = new Map(forecastTickets.map((ticket) => [ticket.id, ticket]));
@@ -215,7 +215,7 @@ function wavesModelOf(board: BoardDocument, nowEpochMilliseconds: number): Waves
   const graph = DependencyGraphUtil.dependencyGraphOf(graphTickets, board.concurrency.limit);
   const ticketById = new Map(tickets.map((ticket) => [ticket.id, ticket]));
   const readyTicketIds = new Set(facts.readyTickets.filter((ready) => !ready.isHeld).map((ready) => ready.id));
-  const forecastOf = progress.overseerSetting === 'running' ? waveForecastTextOf(board, graph, nowEpochMilliseconds) : null;
+  const forecastOf = progress.hephaestusSetting === 'running' ? waveForecastTextOf(board, graph, nowEpochMilliseconds) : null;
   const placedColumns = columnsInRowOrder(graph, ticketById);
   const forecastTexts = placedColumns.map((column) => (column.isDone || forecastOf === null ? null : forecastOf(column.nodeIds)));
   const epicByKey = new Map(facts.epics.map((epic) => [epic.key, epic]));

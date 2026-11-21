@@ -53,7 +53,7 @@ function needTicket(status: Parameters<typeof ticketOf>[1], overrides: Parameter
 
 function needDecision(kind: Decision['kind']): Decision {
   return {
-    id: 'E1', kind, ticketIds: ['001'], jobId: null, askedBy: 'overseer', requestId: null, questions: [], context: '', openedAt: FIXTURE_AT,
+    id: 'E1', kind, ticketIds: ['001'], jobId: null, askedBy: 'hephaestus', requestId: null, questions: [], context: '', openedAt: FIXTURE_AT,
   };
 }
 

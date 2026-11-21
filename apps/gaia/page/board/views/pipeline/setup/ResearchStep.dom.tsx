@@ -3,7 +3,7 @@
  * the scripts with their command and meaning, a script that needs a network with the amber dot and its note; the stack chips pop in and no
  * finding offers to run anything; Answer sends the chosen letter or the Other text and the card turns into the answered pill; Continue
  * is enabled while the agent still researches; while a turn runs the typing line says what the agent does, politely live; a step prompt
- * the Overseer sent reads as its system line with the prompt on User's ask, never as a User bubble; grey lines
+ * Hephaestus sent reads as its system line with the prompt on User's ask, never as a User bubble; grey lines
  * stand in before the first finding; Stop stops the agent's job; the panel head says the agent researches, and the page's one Flint slot
  * waits on User while a research question is open. In monorepo mode (MonoResearch): the layout comes first; each session's row says its
  * state in words; a press on a row shows that session's findings and chat at its level in the route; Stop on a row stops that session
@@ -174,15 +174,15 @@ describe('the agent panel', () => {
     expect(screen.getByRole('list', { name: 'Conversation of J4' }).textContent).toContain('Sorting the scripts into build and merge…');
   });
 
-  test('a step prompt the Overseer sent is its line, shown on User\'s ask, and only User\'s own message is a User bubble', () => {
+  test('a step prompt Hephaestus sent is its line, shown on User\'s ask, and only User\'s own message is a User bubble', () => {
     const { transcripts } = renderResearch();
     const stepPrompt = 'User completed the research step. The current step is constitution.\n\n### Constitution';
     transcripts.feed('J4', [
       exampleTranscriptEntry({
-        cursor: '1.1', role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: 'You are the pipeline agent.'
+        cursor: '1.1', role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', text: 'You are the pipeline agent.'
       }),
       exampleTranscriptEntry({
-        cursor: '1.2', role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: stepPrompt
+        cursor: '1.2', role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', text: stepPrompt
       }),
       exampleTranscriptEntry({
         cursor: '1.3', role: 'user', clientAct: 'chat', sentBy: 'user', text: 'Keep the lint gate.'
@@ -192,8 +192,8 @@ describe('the agent panel', () => {
     expect([...conversation.querySelectorAll('.board-chat-bubble')].map((bubble) => bubble.textContent)).toEqual(['Keep the lint gate.']);
     expect(conversation.textContent).not.toContain('User completed the research step');
     expect([...conversation.querySelectorAll('.board-chat-system')].map((line) => line.textContent)).toEqual([
-      'Overseer started J4 for the pipeline setupShow prompt',
-      'Overseer sent a messageShow prompt',
+      'Hephaestus started J4 for the pipeline setupShow prompt',
+      'Hephaestus sent a messageShow prompt',
     ]);
     const [, stepPromptButton] = within(conversation).getAllByRole('button', { name: 'Show prompt' });
     if (stepPromptButton === undefined) throw new Error('the step prompt line offers no Show prompt');

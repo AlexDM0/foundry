@@ -10,9 +10,9 @@ import {
   test
 } from 'bun:test';
 
-import type { StartClassificationVerdict }        from '../../src/services/overseer/@types/StartClassification.ts';
-import { CrashLog }                               from '../../src/services/overseer/CrashLog.ts';
-import { overseerFilesIn }                        from '../../src/services/overseer/OverseerFiles.ts';
+import type { StartClassificationVerdict }        from '../../src/services/hephaestus/@types/StartClassification.ts';
+import { CrashLog }                               from '../../src/services/hephaestus/CrashLog.ts';
+import { hephaestusFilesIn }                      from '../../src/services/hephaestus/HephaestusFiles.ts';
 import { requireWorkspace }                       from '../../src/services/tracker/Workspace.ts';
 import { useRecordedGit }                         from '../../src/testing/RecordedGit.ts';
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
@@ -54,7 +54,7 @@ afterEach(() => {
 });
 
 function filesOfTheBoard() {
-  return overseerFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
+  return hephaestusFilesIn(requireWorkspace(repositoryDirectory).trackerDirectory);
 }
 
 function writeCrashLog(crashedGeneration: number, errorName: string, classification: StartClassificationVerdict | null): number {

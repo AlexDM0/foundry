@@ -9,9 +9,9 @@ import type { PlatformPorts }                      from '../lib/platform-ports/P
 import type { DoneFrame }                          from '../lib/talos/@types/TalosFrame.ts';
 import type { ChildLaunch }                        from '../lib/talos/ChildLaunch.ts';
 import type { ChildEnd }                           from '../lib/talos/ChildRecord.ts';
-import type { BoardChildren }                      from '../services/overseer/BoardChildren.ts';
-import { createTalosChildren }                     from '../services/overseer/TalosChildren.ts';
-import type { TalosConnection, TalosFrameRequest } from '../services/overseer/TalosConnection.ts';
+import type { BoardChildren }                      from '../services/hephaestus/BoardChildren.ts';
+import { createTalosChildren }                     from '../services/hephaestus/TalosChildren.ts';
+import type { TalosConnection, TalosFrameRequest } from '../services/hephaestus/TalosConnection.ts';
 import { PlantedChild }                            from './PlantedChild.ts';
 
 export interface FrameRecordingTalos {
@@ -25,7 +25,7 @@ export interface FrameRecordingTalos {
   readonly launchedFolders: () => readonly string[];
   /** The launch taken for the child of `childFolder`, an absolute folder, at `instance`; `null` for none. */
   readonly launchOf:        (childFolder: string, instance: number) => ChildLaunch | null;
-  /** A running agent child of `childFolder`, an absolute folder, as one an earlier Overseer launched. */
+  /** A running agent child of `childFolder`, an absolute folder, as one an earlier Hephaestus launched. */
   readonly plantLiveChild:  (childFolder: string, instance: number) => void;
   /** The child's record ended as Talos records `end`: exited 0 unless it says otherwise. */
   readonly endChild:        (childFolder: string, instance: number, end?: Partial<ChildEnd>) => void;

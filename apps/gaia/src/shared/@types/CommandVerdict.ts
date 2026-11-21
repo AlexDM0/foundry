@@ -13,8 +13,8 @@ export type RegistryRefusal = 'registry-unreadable' | 'registry-newer-version';
 /**
  * `command-in-flight`: a command to the same forge, the same repository or the machine limit is on its way. `forge-not-registered`: the
  * registry Gaia read names no such forge. `no-forge-registered`: the machine limit has no forge to carry it. `program-not-found`: neither
- * the registry nor the settings name a forge program that runs. `repository-missing`: the forge's root is gone. `token-unreadable`: the
- * Overseer's token file cannot be read. `token-rejected`: the Overseer refused the token. `settings-newer-version`: the settings file is
+ * the registry nor the settings name a forge program that runs. `repository-missing`: the forge's root is gone. `token-unreadable`:
+ * Hephaestus's token file cannot be read. `token-rejected`: Hephaestus refused the token. `settings-newer-version`: the settings file is
  * newer than this Gaia and is kept as it is. `settings-unwritable`: the settings file cannot be written. `path-chooser-failed`: the chooser
  * ended without a choice and without being cancelled.
  */
@@ -48,7 +48,7 @@ export interface OutageResumeForgeAnswer {
 
 /**
  * `path-chosen`: a `path-choose` ended with User's choice, which the answer carries. `restart-pending`: a `forge-update` was done, but the
- * live Overseer did not take the Baton pass and runs the old code until it restarts. `unreachable`: the forge gave no answer in time.
+ * live Hephaestus did not take the Baton pass and runs the old code until it restarts. `unreachable`: the forge gave no answer in time.
  * `not-supported`: the forge speaks a control contract Gaia does not know, its program answered in a way Gaia does not understand, or this
  * machine has no chooser. `outage-resume-answered`: the fleet's resume of the jobs a network outage stopped, with one answer per forge.
  */

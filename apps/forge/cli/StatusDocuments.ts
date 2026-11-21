@@ -12,7 +12,7 @@ import { ownerTokenTotalsOf }                         from './OwnerTokenTotals.t
 
 const WORKING_VIEW_LOG_ENTRY_COUNT = 10;
 
-/** The confinement word and whose probe gave it: the live Overseer's, or this process's own when none answers. */
+/** The confinement word and whose probe gave it: the live Hephaestus's, or this process's own when none answers. */
 export interface ConfinementInForce {
   confinement:       ConfinementVerdict;
   confinementSource: ConfinementSource;

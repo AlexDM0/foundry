@@ -183,11 +183,11 @@ function messagedToTheAgent(
   return messagedToTheSetupAgent(changed, change.board, context.setupMessageWordingOf(message), change.at, entityKey);
 }
 
-/** The same for the Overseer, which words its own message; a record whose agent at the level takes no message is returned as it was. */
+/** The same for Hephaestus, which words its own message; a record whose agent at the level takes no message is returned as it was. */
 export function messagedToTheSetupAgent(changed: PipelineSetupChanged, board: Board, text: string, at: string, entityKey?: EntityKey): PipelineSetupChanged {
   const agentJobId = agentJobIdAt(changed.setup, entityKey);
   if (agentJobId === null || !agentTakesAMessage(board, agentJobId)) return changed;
-  const messaged = board.messageJobAsOverseer(agentJobId, text, at);
+  const messaged = board.messageJobAsHephaestus(agentJobId, text, at);
   return { setup: changed.setup, logged: [...changed.logged, ...messaged.logged] };
 }
 
@@ -327,7 +327,7 @@ function moveStep(command: CommandOf<'pipeline-setup-step'>, change: BoardTransa
 }
 
 /**
- * Every live agent of the record, the forge's and each entity's, is stopped in the same hold; the Overseer removes the snapshot once no
+ * Every live agent of the record, the forge's and each entity's, is stopped in the same hold; Hephaestus removes the snapshot once no
  * pipeline agent runs.
  */
 function startOver(command: CommandOf<'pipeline-setup-start-over'>, change: BoardTransaction): PipelineSetupChanged {
@@ -365,7 +365,7 @@ function mainLineMoveOf(repositoryRoot: string, snapshotCommit: string | null): 
 
 /**
  * Opens the record's agent again. When main moved past the snapshot, the record takes main's tip as its snapshot commit and the changed
- * paths, research needs a recheck, and the message names the paths; the Overseer checks the snapshot out at that commit before the
+ * paths, research needs a recheck, and the message names the paths; Hephaestus checks the snapshot out at that commit before the
  * agent's next launch. An agent that ended other than by a stop is replaced by a new one, which starts from the record.
  */
 function resumeSetup(command: CommandOf<'pipeline-setup-resume'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
@@ -442,7 +442,7 @@ function editConstitution(command: CommandOf<'pipeline-constitution-edit'>, chan
 /**
  * The draft a move would leave must pass the draft's read of the setup record, which is the `pipeline.json` validator but for the entities'
  * set check: entities the validator refuses are kept while User works on them, and Continue and Apply wait for none. It is checked before
- * the move touches the Board: a relayed command shares the Overseer's hold, which a refusal does not undo, so no move leaves a record the
+ * the move touches the Board: a relayed command shares Hephaestus's hold, which a refusal does not undo, so no move leaves a record the
  * board cannot read.
  */
 export function requireStorableDraft(setupId: string, draft: Readonly<Pipeline>): void {
@@ -556,7 +556,7 @@ function discardDraft(command: CommandOf<'pipeline-draft-discard'>, change: Boar
 }
 
 /**
- * The Overseer runs the queued checks at its next pass; the agent hears which gates it runs. On a draft over entities, each entity the
+ * Hephaestus runs the queued checks at its next pass; the agent hears which gates it runs. On a draft over entities, each entity the
  * draft touched has its own check, and its session hears only its gates.
  */
 function requestCheck(command: CommandOf<'pipeline-check'>, change: BoardTransaction, context: ControlContext): PipelineSetupChanged {
@@ -624,7 +624,7 @@ function applySetup(command: CommandOf<'pipeline-apply'>, change: BoardTransacti
 }
 
 /**
- * At the Overseer's start, in its first hold: an Apply cut short after it stored the pipeline finishes. Main is read only while a record
+ * At Hephaestus's start, in its first hold: an Apply cut short after it stored the pipeline finishes. Main is read only while a record
  * and a pipeline are both stored, and a read git cannot answer leaves the record for the next start.
  */
 export function finishHalfAppliedSetup(change: BoardTransaction, context: ControlContext): PipelineApplyChanged | null {

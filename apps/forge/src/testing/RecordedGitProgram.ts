@@ -66,7 +66,7 @@ export function withRecordedGitFirstOnPath(environment: Readonly<Record<string, 
   return { ...environment, PATH: searchPath === undefined || searchPath === '' ? flow.programFolder : `${flow.programFolder}${delimiter}${searchPath}` };
 }
 
-/** `ports` whose resolver finds the recorded `git`, so a git process the Overseer starts by its absolute path answers from the flow too. */
+/** `ports` whose resolver finds the recorded `git`, so a git process Hephaestus starts by its absolute path answers from the flow too. */
 export function portsResolvingTheRecordedGit(ports: PlatformPorts, flow: SharedRecordedGitFlow): PlatformPorts {
   const executableResolver: ExecutableResolver = {
     ...ports.executableResolver,

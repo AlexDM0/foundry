@@ -49,9 +49,9 @@ function recordKindsOf(records: readonly { kind: string }[]): string[] {
 describe('incident note and answer', () => {
   test('a note is logged incident-noted and leaves the incident open', () => {
     const { board, records } = boardWithWaitingQuestion('system-question');
-    board.noteIncident('I1', 'The tool is on the Overseer image', AT);
+    board.noteIncident('I1', 'The tool is on the Hephaestus image', AT);
     expect(records).toEqual([{
-      at: AT, kind: 'incident-noted', incidentId: 'I1', fields: { text: 'The tool is on the Overseer image' }
+      at: AT, kind: 'incident-noted', incidentId: 'I1', fields: { text: 'The tool is on the Hephaestus image' }
     }]);
     expect(board.incidentById('I1')).toBeDefined();
   });
@@ -84,12 +84,12 @@ describe('incident note and answer', () => {
 describe('ticket park', () => {
   test('under a question incident it holds parked:<kind>, stops the waiting job and puts the agent\'s questions to User', () => {
     const { board, records, progress } = boardWithWaitingQuestion('system-question');
-    board.parkTicket('001', 'The Overseer image lacks the tool', 'I1', AT);
+    board.parkTicket('001', 'The Hephaestus image lacks the tool', 'I1', AT);
     expect(records[0]).toMatchObject({ kind: 'incident-handled', fields: { move: 'ticket-park' } });
     expect(board.ticketByReference('001')?.frontmatter.hold).toBe('parked:system-question');
     expect(records.find((record) => record.kind === 'job-ended')).toMatchObject({ jobId: 'J1', fields: { outcome: 'stopped', cause: 'parked' } });
     expect(progress.decisions?.[0]).toMatchObject({
-      kind: 'parked', ticketIds: ['001'], questions: [AGENT_WORDS], context: 'The Overseer image lacks the tool'
+      kind: 'parked', ticketIds: ['001'], questions: [AGENT_WORDS], context: 'The Hephaestus image lacks the tool'
     });
   });
 

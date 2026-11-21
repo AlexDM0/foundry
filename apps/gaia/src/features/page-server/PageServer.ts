@@ -43,7 +43,7 @@ export interface PageServerOptions {
   readonly pageFiles:                       PageFilesSource;
   /** The command port: forge-control's carrier, which `Main.ts` wires, since no feature reaches another. */
   readonly carryCommand:                    CommandCarrier;
-  /** What the board's relay reaches a forge's Overseer with: the registry, the forge watch's readings and the forge client. */
+  /** What the board's relay reaches a forge's Hephaestus with: the registry, the forge watch's readings and the forge client. */
   readonly forgeAccessSources:              ForgeAccessSources;
   /** Where the board's relay logs an event it dropped, a handshake at another version and a board it could not read. */
   readonly logBoardRelay:                   BoardRelayLog;

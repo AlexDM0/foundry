@@ -1,7 +1,7 @@
 /**
  * The copy between entities (MonoCopyGates): the entity to copy from, the entities to copy to with each one's kind and gates, what to copy
  * (gates with their phases, prepare steps, agent settings), a preview line for each target the copy changes, and Copy, which sends the set
- * as one copy and closes once the Overseer applied it. With no target or nothing to copy, the foot says what to pick.
+ * as one copy and closes once Hephaestus applied it. With no target or nothing to copy, the foot says what to pick.
  */
 import { useState }                             from 'react';
 import type { BoardPipelineDefinitionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';

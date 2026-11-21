@@ -60,7 +60,7 @@ export interface DesignStepProps {
   readonly setup:            BoardPipelineSetupDocument;
   readonly followTranscript: TranscriptFollower;
   readonly clock:            BoardClock;
-  /** Called with the board's resume choice once the Overseer took the Apply. */
+  /** Called with the board's resume choice once Hephaestus took the Apply. */
   readonly onApplySent?:     (resumesBoard: boolean) => void;
   /** The route the step is on; in monorepo mode it holds the level shown. */
   readonly route?:           BoardRoute;

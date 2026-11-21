@@ -25,7 +25,7 @@ export function forgeProgramToRecordFrom(): string | null {
 
 /**
  * `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM`: the program of a forge from before system versions, which serves no `/api/versions`, such as
- * a detached worktree's `agent-progress.ts`, so `bun run record overseer-fetch-versions` records that situation from a real forge too.
+ * a detached worktree's `agent-progress.ts`, so `bun run record hephaestus-fetch-versions` records that situation from a real forge too.
  * `null` when unset.
  */
 export function unversionedForgeProgramToRecordFrom(): string | null {

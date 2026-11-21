@@ -1,5 +1,5 @@
 /**
- * The board document's ingestion over the documents a scratch forge at the supported forge version answered (`overseer-fetch-board`). What
+ * The board document's ingestion over the documents a scratch forge at the supported forge version answered (`hephaestus-fetch-board`). What
  * matters: every served fact of the forge's board maps to its field of Gaia's model unchanged, the attention entries with their typed
  * target, the worded notices, today's figures with their date, the open decisions in answering order, each ticket's facts and offers, each
  * job's stop holds and offers, the effective pipelines, the limits, an option's recommendation beside its unmarked label, the entities
@@ -40,7 +40,7 @@ describe('boardOf, on the board of a forge at work', () => {
     const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
     expect(board.trackerId).toBe(RECORDED_TRACKER_ID);
     expect(board.project).toBe('Example Storefront');
-    expect(board.overseer).toEqual({ state: 'serving', paused: false, codeVersion: expect.any(String) });
+    expect(board.hephaestus).toEqual({ state: 'serving', paused: false, codeVersion: expect.any(String) });
   });
 
   test('keeps the attention entries in the forge\'s order, each with its typed target', async () => {
@@ -210,7 +210,7 @@ describe('boardOf, on the board of a forge at work', () => {
 
   test('reads the board a forge serves while an install change holds its launches', async () => {
     const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await recordedBoardDocumentOf('board-install-held')));
-    expect(board.overseer.state).toBe('held-by-install-change');
+    expect(board.hephaestus.state).toBe('held-by-install-change');
   });
 });
 
@@ -258,7 +258,7 @@ describe('boardOf, on keys Gaia does not read', () => {
     const recorded = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
     const document = await boardAtWorkDocument();
     delete document['confinement'];
-    recordAt(document, ['overseer'])['batonPassWarning'] = 'example';
+    recordAt(document, ['hephaestus'])['batonPassWarning'] = 'example';
     expect(boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, document))).toEqual(recorded);
   });
 });

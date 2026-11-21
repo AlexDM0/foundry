@@ -188,7 +188,7 @@ describe('a callout\'s command', () => {
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     const pending = unfoldedLayout(FLEET_FIVE_FORGES, sender);
     const pendingStep = tree.onlyOfComponent([calloutNamed(pending, 'Example Mobile App')], PendingStep);
-    expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Overseer runs the old code until it restarts.']);
+    expect([pendingStep.props['word'], pendingStep.props['sentence']]).toEqual(['Updated; restart pending.', 'Its Hephaestus runs the old code until it restarts.']);
     expect(tree.hostElementsIn([calloutNamed(pending, 'Design System')], tree.withComponent(PendingStep))).toEqual([]);
     PackageButtons.press(buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart'));
     expect(JSON.parse(String(sent[1]?.requestOptions.body))).toEqual({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp, commandVersion: 5 });
@@ -203,13 +203,13 @@ describe('a callout\'s command', () => {
       answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
     };
     const restartRefused: CommandAnswerDocument = {
-      answerVersion: 3, outcome: 'refused', refusal: 'overseer-busy', text: 'Its Overseer is busy with a baton pass.', forges: []
+      answerVersion: 3, outcome: 'refused', refusal: 'hephaestus-busy', text: 'Its Hephaestus is busy with a baton pass.', forges: []
     };
     const sender = senderOver([() => Promise.resolve(answerResponse(restartPending)), () => Promise.resolve(answerResponse(restartRefused))]);
     await sender.send({ kind: 'forge-update', trackerId: TRACKER_IDS.exampleMobileApp });
     await sender.send({ kind: 'forge-restart', trackerId: TRACKER_IDS.exampleMobileApp });
     const refusal = FailedActions.onlyFailedActionIn([calloutNamed(unfoldedLayout(FLEET_FIVE_FORGES, sender), 'Example Mobile App')]);
-    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Restart: ', 'overseer-busy', 'Its Overseer is busy with a baton pass.']);
+    expect(FailedActions.wordsOf(refusal)).toEqual(['The forge refused Restart: ', 'hephaestus-busy', 'Its Hephaestus is busy with a baton pass.']);
   });
 
   test('a callout that leaves the document leaves the view', () => {
@@ -228,7 +228,7 @@ describe('forges Gaia cannot fully read (B3)', () => {
       if (typeof part === 'string') return part;
       return part.tag === 'Stamp' ? `[stamp ${String(part.props['shortText'])}]` : tree.textOf([part]);
     });
-    expect(textParts.join('')).toBe('Overseer unreachable: Invoice Service. Gaia shows what it last reported at [stamp 13:14] and tries again.');
+    expect(textParts.join('')).toBe('Hephaestus unreachable: Invoice Service. Gaia shows what it last reported at [stamp 13:14] and tries again.');
     expect(PackageButtons.buttonsIn(tree.unfoldedProp(banner, 'action')).map(PackageButtons.labelOf)).toEqual(['Look again']);
   });
 
@@ -349,10 +349,10 @@ describe('forges at a version this Gaia cannot talk to (U1)', () => {
     await sender.send({ kind: 'forge-update', trackerId: BILLING });
     const callout = calloutNamed(unfoldedLayout(FLEET_VERSIONS, sender), 'Example Billing');
     expect(tree.textOf([tree.onlyWithClass([callout], 'gaia-callout-sentence')]))
-      .toBe('This forge stays older than the forge this Gaia is built for until its Overseer restarts.');
+      .toBe('This forge stays older than the forge this Gaia is built for until its Hephaestus restarts.');
     const pendingStep = tree.onlyOfComponent([callout], PendingStep);
     expect([pendingStep.props['word'], pendingStep.props['sentence']])
-      .toEqual(['Updated; restart pending.', 'Its Overseer runs the old code, and this Gaia reads none of it, until it restarts.']);
+      .toEqual(['Updated; restart pending.', 'Its Hephaestus runs the old code, and this Gaia reads none of it, until it restarts.']);
     const restart = buttonNamed(tree.unfoldedProp(pendingStep, 'action'), 'Restart');
     expect(PackageButtons.emphasisOf(restart)).toBe('quiet');
     expect(PackageButtons.buttonsIn([tree.onlyWithClass([callout], 'gaia-callout')])).toEqual([]);
@@ -429,7 +429,7 @@ describe('the outage resume\'s answer', () => {
         trackerId: TRACKER_IDS.exampleStorefront, outcome: 'resumed', resumedCount: 2, refusalText: null
       },
       {
-        trackerId: TRACKER_IDS.invoiceService, outcome: 'refused', resumedCount: 0, refusalText: 'The Overseer is held by an install change.'
+        trackerId: TRACKER_IDS.invoiceService, outcome: 'refused', resumedCount: 0, refusalText: 'Hephaestus is held by an install change.'
       },
       {
         trackerId: TRACKER_IDS.designSystem, outcome: 'not-reached', resumedCount: 0, refusalText: null
@@ -441,7 +441,7 @@ describe('the outage resume\'s answer', () => {
     const lines = tree.hostElementsIn(unfolded, tree.withClass('gaia-attention-outage-answer-line'));
     expect(lines.map((line) => [line.props['data-outcome'], tree.textOf([line])])).toEqual([
       ['resumed', 'Example Storefront Resumed 2 agents'],
-      ['refused', 'Invoice Service The Overseer is held by an install change.'],
+      ['refused', 'Invoice Service Hephaestus is held by an install change.'],
       ['not-reached', 'Design System Did not answer. Nothing was resumed there.'],
     ]);
     tree.dispatch(tree.onlyOfComponent([tree.onlyWithClass(unfolded, 'gaia-attention-outage-answer')], TextButton), 'onPress');

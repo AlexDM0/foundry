@@ -34,8 +34,8 @@ import { useRecordedGit }                         from '../../src/testing/Record
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 import { fileReadyTicket }                        from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                        from '../testing/StoredLogText.ts';
 
@@ -51,7 +51,7 @@ const ENTITY_PIPELINE_WRITES: readonly (readonly string[])[] = [
 ];
 
 /** The flag's name before `--forge-only`, joined from its parts so no tracked line holds the retired name. */
-const RETIRED_FORGE_ONLY_FLAG = `--${['overseer', 'only'].join('-')}`;
+const RETIRED_FORGE_ONLY_FLAG = `--${['over', 'seer-only'].join('')}`;
 
 let repositoryDirectory = '';
 
@@ -59,7 +59,7 @@ const pipelineFilePath = (): string => localStoreLayoutOf(workspacePathsFor(repo
 
 async function runWithExitCode(commandLineArguments: readonly string[]): Promise<{ exitCode: number; context: ReturnType<typeof createCapturedCommandContext> }> {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   return { exitCode, context };
 }
 
@@ -357,7 +357,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
       executableSearchPath: [join(repositoryDirectory, 'spec-home', '.local', 'bin'), '/opt/example-tools'],
     });
 
-    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--writes', '~/.bun/install/cache', '--writes', path, '--', 'bun test'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['gate', 'add', 'test', '--writes', '~/.bun/install/cache', '--writes', path, '--', 'bun test'], context)).toBe(1);
     expect(context.errorText()).toContain(named);
     expect(storedFiles()).toEqual(before);
   });
@@ -369,7 +369,7 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
       platformPorts:    platformPortsFor('win32', PLATFORM_HOST_FACTS),
     });
 
-    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--writes', 'C:\\cache', '--writes', '~\\AppData\\cache', '--', 'bun test'], context)).toBe(0);
+    expect(await runCommandLineWithHephaestusMoves(['gate', 'add', 'test', '--writes', 'C:\\cache', '--writes', '~\\AppData\\cache', '--', 'bun test'], context)).toBe(0);
     expect(PipelineFile.read(pipelineFilePath())).toEqual({
       verdict:  'readable',
       pipeline: {
@@ -391,12 +391,12 @@ describeWhenGitIsRecorded('the gate pipeline verbs', () => {
     });
     const before = storedFiles();
 
-    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--', 'bun test --all'], context)).toBe(1);
-    expect(await runCommandLineWithOverseerMoves(['gate', 'prepare', 'install', '--', 'bun install --x'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['gate', 'add', 'test', '--', 'bun test --all'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['gate', 'prepare', 'install', '--', 'bun install --x'], context)).toBe(1);
     expect(context.errorText()).toContain('The command is 14 characters, and this machine\'s shell runs at most 12; nothing was stored.');
     expect(context.errorText()).toContain('The command is 15 characters, and this machine\'s shell runs at most 12; nothing was stored.');
     expect(storedFiles()).toEqual(before);
-    expect(await runCommandLineWithOverseerMoves(['gate', 'add', 'test', '--', 'bun test --a'], context)).toBe(0);
+    expect(await runCommandLineWithHephaestusMoves(['gate', 'add', 'test', '--', 'bun test --a'], context)).toBe(0);
   });
 
   test('a command missing after -- is refused with the usage', async () => {

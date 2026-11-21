@@ -26,7 +26,7 @@ const HOST_WORDS: readonly string[] = [
   'rail',
   'artboard',
   'screens',
-  'overseer',
+  'hephaestus',
   'tracker',
   'ticket',
   'tickets',

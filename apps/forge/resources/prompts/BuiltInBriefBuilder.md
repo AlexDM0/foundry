@@ -7,7 +7,7 @@ gives no instruction file to the builder, so you get this basic brief.
 - Before your last gate run, merge the target `{{target}}` into your branch. Resolve each conflict and commit the merge.
 - Run each gate below on your last commit. Do not take the gates from a different file.
 - Do not change the ticket file.
-- You have {{callBudget}} calls. When the Overseer tells you to stop, commit the work that passes and report.
+- You have {{callBudget}} calls. When Hephaestus tells you to stop, commit the work that passes and report.
 - At the end, send the structured report. Give the result of each Acceptance item and the gate that each commit passed.
 
 ## The gates

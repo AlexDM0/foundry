@@ -9,13 +9,13 @@ export interface BoundarySpecs {
 
 export const INTEGRATION_SPEC_SUFFIX = '.integration.spec.ts';
 
-const BATON_PASS_SPEC = 'src/services/overseer/BatonPass.integration.spec.ts';
-const BUILD_JOB_SPEC = 'cli/overseer/OverseerBuildJob.integration.spec.ts';
-const OVERSEER_API_SPEC = 'cli/overseer/OverseerApi.integration.spec.ts';
-const OVERSEER_COMMAND_SPEC = 'cli/overseer/OverseerCommand.integration.spec.ts';
-const CHILD_SPAWN_OPTIONS_SPEC = 'cli/overseer/ChildSpawnOptions.integration.spec.ts';
-const CRASH_MATRIX_SPEC = 'src/services/overseer/CrashMatrix.integration.spec.ts';
-const DRIVE_PASS_SPEC = 'cli/overseer/OverseerDrivePass.integration.spec.ts';
+const BATON_PASS_SPEC = 'src/services/hephaestus/BatonPass.integration.spec.ts';
+const BUILD_JOB_SPEC = 'cli/hephaestus/HephaestusBuildJob.integration.spec.ts';
+const HEPHAESTUS_API_SPEC = 'cli/hephaestus/HephaestusApi.integration.spec.ts';
+const HEPHAESTUS_COMMAND_SPEC = 'cli/hephaestus/StartCommand.integration.spec.ts';
+const CHILD_SPAWN_OPTIONS_SPEC = 'cli/hephaestus/ChildSpawnOptions.integration.spec.ts';
+const CRASH_MATRIX_SPEC = 'src/services/hephaestus/CrashMatrix.integration.spec.ts';
+const DRIVE_PASS_SPEC = 'cli/hephaestus/HephaestusDrivePass.integration.spec.ts';
 const GUARD_EMPTY_SEARCH_PATH_SPEC = 'cli/hooks/BashDomainsHook.emptySearchPath.integration.spec.ts';
 const SUITE_SPLIT_SPEC = 'src/testing/CheckRecordingStamps.integration.spec.ts';
 const SHARED_CASE_DEADLINE_SPEC = 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts';
@@ -57,8 +57,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       CRASH_MATRIX_SPEC,
       'src/lib/process-identity/ProcessIdentity.integration.spec.ts',
       'src/lib/process-identity/ProcessSupervision.contract.integration.spec.ts',
-      'src/services/overseer/GateRunSlots.integration.spec.ts',
-      'src/services/overseer/Regrouping.integration.spec.ts',
+      'src/services/hephaestus/GateRunSlots.integration.spec.ts',
+      'src/services/hephaestus/Regrouping.integration.spec.ts',
       'src/services/store/LocalFilesBoardStore.integration.spec.ts',
       'src/services/tracker/GenerationLock.integration.spec.ts',
       'src/services/tracker/TrackerLock.integration.spec.ts',
@@ -72,8 +72,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       'src/services/lifecycle/GateLineRun.integration.spec.ts',
       'src/services/lifecycle/GateRun.integration.spec.ts',
       'src/services/lifecycle/ProposalTwiceRun.integration.spec.ts',
-      'src/services/overseer/GateProfiling.integration.spec.ts',
-      'src/services/overseer/GateRunSlots.integration.spec.ts',
+      'src/services/hephaestus/GateProfiling.integration.spec.ts',
+      'src/services/hephaestus/GateRunSlots.integration.spec.ts',
       'src/testing/RecordedGateLines.gateRun.integration.spec.ts',
     ],
   },
@@ -82,8 +82,8 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     specs:    [
       BUILD_JOB_SPEC,
       'src/lib/gate-confinement/GateConfinement.contract.integration.spec.ts',
-      'src/services/overseer/LineSandbox.integration.spec.ts',
-      'src/services/overseer/WorkerProfiles.airlock.integration.spec.ts',
+      'src/services/hephaestus/LineSandbox.integration.spec.ts',
+      'src/services/hephaestus/WorkerProfiles.airlock.integration.spec.ts',
       'src/testing/RecordedGateLines.confinement.integration.spec.ts',
     ],
   },
@@ -107,22 +107,22 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
     ],
   },
   { boundary: 'src/lib/owner-only-files/', specs: LOCAL_ENDPOINT_SPECS },
-  { boundary: 'src/services/overseer/TalosStart.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/services/overseer/TalosStart.integration.spec.ts'] },
-  { boundary: 'src/services/overseer/LeaseRenewal.ts', specs: ['src/services/overseer/LeaseRenewal.integration.spec.ts'] },
-  { boundary: 'src/services/overseer/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/testing/RecordedCommand.versionCheck.integration.spec.ts'] },
-  { boundary: 'src/services/overseer/GpgDirectories.ts', specs: ['src/services/overseer/GpgDirectories.integration.spec.ts'] },
-  { boundary: 'src/services/overseer/OverseerServer.ts', specs: [OVERSEER_API_SPEC, 'src/services/overseer/OverseerServer.integration.spec.ts'] },
-  { boundary: 'cli/overseer/routes/', specs: [OVERSEER_API_SPEC] },
+  { boundary: 'src/services/hephaestus/TalosStart.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/services/hephaestus/TalosStart.integration.spec.ts'] },
+  { boundary: 'src/services/hephaestus/LeaseRenewal.ts', specs: ['src/services/hephaestus/LeaseRenewal.integration.spec.ts'] },
+  { boundary: 'src/services/hephaestus/InstallChangeWatch.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, 'src/testing/RecordedCommand.versionCheck.integration.spec.ts'] },
+  { boundary: 'src/services/hephaestus/GpgDirectories.ts', specs: ['src/services/hephaestus/GpgDirectories.integration.spec.ts'] },
+  { boundary: 'src/services/hephaestus/HephaestusServer.ts', specs: [HEPHAESTUS_API_SPEC, 'src/services/hephaestus/HephaestusServer.integration.spec.ts'] },
+  { boundary: 'cli/hephaestus/routes/', specs: [HEPHAESTUS_API_SPEC] },
   { boundary: '.platform-probes/', specs: ['src/PlatformProbes.integration.spec.ts'] },
   { boundary: 'cli/ApplyCommandOfVerb.ts', specs: ['cli/RegisterWrittenTracker.integration.spec.ts'] },
-  { boundary: 'cli/overseer/OverseerForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_API_SPEC, OVERSEER_COMMAND_SPEC] },
-  { boundary: 'cli/overseer/OverseerRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, OVERSEER_COMMAND_SPEC] },
+  { boundary: 'cli/hephaestus/HephaestusForeground.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, HEPHAESTUS_API_SPEC, HEPHAESTUS_COMMAND_SPEC] },
+  { boundary: 'cli/hephaestus/HephaestusRemote.ts', specs: [CHILD_SPAWN_OPTIONS_SPEC, HEPHAESTUS_COMMAND_SPEC] },
   { boundary: 'agent-progress.ts', specs: ['cli/BinarySmoke.integration.spec.ts'] },
   {
     boundary: 'cli/testing/CliProcess.ts',
     specs:    [
-      OVERSEER_API_SPEC,
-      OVERSEER_COMMAND_SPEC,
+      HEPHAESTUS_API_SPEC,
+      HEPHAESTUS_COMMAND_SPEC,
       'cli/BinarySmoke.integration.spec.ts',
       'cli/GitVersionFloor.integration.spec.ts',
       'cli/HoldJournalCrash.integration.spec.ts',
@@ -135,7 +135,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
       GUARD_EMPTY_SEARCH_PATH_SPEC,
     ],
   },
-  { boundary: 'src/services/overseer/GuardCommand.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
+  { boundary: 'src/services/hephaestus/GuardCommand.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
   { boundary: 'src/lib/claude-code/ClaudeCodeAdapter.ts', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },
   { boundary: 'cli/CommandTable.ts', specs: ['cli/Main.integration.spec.ts'] },
   { boundary: 'eslint.config.js', specs: ['src/LintRules.integration.spec.ts'] },
@@ -143,7 +143,7 @@ export const BOUNDARY_SPECS: readonly BoundarySpecs[] = [
   { boundary: 'setup.ts', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts'] },
   { boundary: 'cli/setup/', specs: ['cli/SetupScript.integration.spec.ts', 'cli/Launcher.integration.spec.ts', 'cli/setup/Setup.commands.integration.spec.ts'] },
   { boundary: 'launcher.ts', specs: ['cli/Launcher.integration.spec.ts'] },
-  { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', 'src/services/overseer/TalosStart.integration.spec.ts'] },
+  { boundary: 'src/shared/ToolRuntimeUtil.ts', specs: ['cli/Launcher.integration.spec.ts', 'src/services/hephaestus/TalosStart.integration.spec.ts'] },
   {
     boundary: 'src/lib/executable-resolver/',
     specs:    ['src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts', 'src/testing/RecordedGateLines.executableLookup.integration.spec.ts'],

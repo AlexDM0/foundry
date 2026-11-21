@@ -1,13 +1,12 @@
 import { LogUtil }                                      from '../../../src/adapters/utils/LogUtil.ts';
 import { LocalTimeUtil }                                from '../../../src/lib/local-time/LocalTimeUtil.ts';
 import { readingBoardOf }                               from '../../../src/lib/tracker-model/ReadingBoard.ts';
-import { overseerFilesIn }                              from '../../../src/services/overseer/OverseerFiles.ts';
-import { PresenceStatus }                               from '../../../src/services/overseer/PresenceStatus.ts';
 import type { WordedLogEntry }                          from '../../../src/shared/@types/WordedLogEntry.ts';
 import { PRODUCT_NAMES }                                from '../../../src/shared/constants/ProductNames.ts';
 import { boardStoreOf }                                 from '../../BoardStoreOf.ts';
 import type { CommandHandler }                          from '../../CommandHandler.ts';
 import { fullDocumentOf, workingDocumentOf }            from '../../StatusDocuments.ts';
+import { hephaestusStatusTextOf, readHephaestusStatus } from '../../hephaestus/HephaestusStatusReading.ts';
 import { NextLineUtil }                                 from '../../utils/NextLineUtil.ts';
 import { OutputUtil }                                   from '../../utils/OutputUtil.ts';
 import { confinementInForceOf, readConfinementInForce } from './ConfinementInForceReading.ts';
@@ -16,9 +15,6 @@ import { humanStatusTextOf }                            from './StatusText.ts';
 const USAGE = `${PRODUCT_NAMES.PROGRAM} status [--json] [--full] [--tickets-only]`;
 
 const KNOWN_OPTION_NAMES = ['json', 'full', 'tickets-only'];
-
-const OFF_AFTER_A_CRASH_NOTICE = `The ${PRODUCT_NAMES.PROGRAM} is off after a crash: run \`${PRODUCT_NAMES.PROGRAM} crash-log\` to read why, `
-  + `\`${PRODUCT_NAMES.PROGRAM} start\` to start it again.`;
 
 /**
  * Sorted for display because `--at` backfills, so array order is not chronological: a stated exception
@@ -44,9 +40,6 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
     context.standardError(`Hold journal unreadable: ${unfinishedWrite.location}: ${unfinishedWrite.reason}. `
       + 'Every write refuses until it is repaired or removed.');
   }
-  if (PresenceStatus.forgeIsOffAfterACrash({ ports: context.platformPorts, files: overseerFilesIn(workspace.trackerDirectory), workspace })) {
-    context.standardError(OFF_AFTER_A_CRASH_NOTICE);
-  }
   const {
     progress, pipelineReading, storedLog, listing, epicListing, draftListing
   } = store.reads.requireBoard();
@@ -63,9 +56,14 @@ export const statusCommand: CommandHandler = async (commandArguments, context) =
   const confinementInForce = commandArguments.flag('json')
     ? await readConfinementInForce(context, workspace)
     : confinementInForceOf(null, context.platformPorts.gateConfinement);
-  const asJson           = showsEverything
+  const boardDocument    = showsEverything
     ? fullDocumentOf(progress, wordedLog, board, showsTicketsOnly, confinementInForce, pipelineReading.verdict === 'readable')
     : workingDocumentOf(progress, logNewestFirst, board, showsTicketsOnly, confinementInForce, pipelineReading.verdict === 'readable');
-  const humanText        = humanStatusTextOf(progress, logNewestFirst, board, { showsEverything, showsTicketsOnly });
-  OutputUtil.printEntityThenNextLine(commandArguments, context, asJson, humanText, NextLineUtil.nextLineOf(board));
+  const hephaestusStatus = await readHephaestusStatus(context, workspace, progress);
+  const humanText        = [
+    hephaestusStatusTextOf(hephaestusStatus),
+    '',
+    humanStatusTextOf(progress, logNewestFirst, board, { showsEverything, showsTicketsOnly }),
+  ].join('\n');
+  OutputUtil.printEntityThenNextLine(commandArguments, context, { ...boardDocument, hephaestus: hephaestusStatus.facts }, humanText, NextLineUtil.nextLineOf(board));
 };

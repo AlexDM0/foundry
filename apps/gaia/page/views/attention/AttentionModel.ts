@@ -253,7 +253,7 @@ const OUTAGE_ALERT_HREF = HashRouter.fragmentOf({ view: 'agents', selectedAgent:
 /** Each alert's subject; a crash names its error after it, when the registry holds one. */
 const FORGE_ALERT_SUBJECTS: Readonly<Record<'forge-crashed' | 'forge-down' | 'forge-hung', string>> = {
   'forge-crashed': 'Forge crashed. It stays off until it is started.',
-  'forge-down':    'Forge is down: its Overseer is gone or hung.',
+  'forge-down':    'Forge is down: its Hephaestus is gone or hung.',
   'forge-hung':    'The forge stopped supervising its agents. They wait for a resume.',
 };
 
@@ -529,7 +529,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
       return {
         tone:        'error' as const,
         word:        'Baton pass failed',
-        sentence:    forgeTextOf(forge.warnings, BATON_PASS_FAILED_WARNING_KIND) ?? 'Its Overseer could not hand over to its successor.',
+        sentence:    forgeTextOf(forge.warnings, BATON_PASS_FAILED_WARNING_KIND) ?? 'Its Hephaestus could not hand over to its successor.',
         machineLine: null,
         actions:     [linkAction('Open', forgeInPlaceHrefOf(trackerId, null))],
       };
@@ -547,7 +547,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
       return {
         tone:        'neutral' as const,
         word:        'New code',
-        sentence:    forgeTextOf(forge.notices, NEW_CODE_NOTICE_KIND) ?? 'This forge\'s code changed since its Overseer started.',
+        sentence:    forgeTextOf(forge.notices, NEW_CODE_NOTICE_KIND) ?? 'This forge\'s code changed since its Hephaestus started.',
         machineLine: forge.codeVersion === null ? null : `code ${forge.codeVersion}`,
         actions:     [commandAction('Restart onto the new code', 'primary', { kind: 'forge-restart', trackerId }, ForgeContractUtil.controlContractIsKnown(forge))],
       };
@@ -575,7 +575,7 @@ function calloutPartsOf(look: FleetDocumentLook, forge: FleetDocumentForge, flee
 }
 
 /**
- * Restart reaches the forge only through its Overseer, in the control contract Gaia knows. Under an older forge's callout it is
+ * Restart reaches the forge only through its Hephaestus, in the control contract Gaia knows. Under an older forge's callout it is
  * secondary, since that callout keeps its own primary.
  */
 function restartAfterUpdateOf(forge: FleetDocumentForge, parts: CalloutParts): LookAction | null {
@@ -707,7 +707,7 @@ function readingTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
     case 'older-contract':
       return ForgeVersionsTextUtil.readingTextOf({ project: forge.project, versions: forge.versions ?? ForgeVersionsTextUtil.NO_VERSIONS_SERVED }).reading;
     case 'dormant':
-      return 'Nothing while its Overseer is not running.';
+      return 'Nothing while its Hephaestus is not running.';
     case 'repository-missing':
       return 'Nothing. Its repository is gone.';
   }

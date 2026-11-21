@@ -788,7 +788,7 @@ describe('what a change runs', () => {
 
   test.each([
     ['src/lib/process-identity/DarwinProcessIdentity.ts', 'src/lib/process-identity/ProcessIdentity.integration.spec.ts'],
-    ['src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/services/overseer/LineSandbox.integration.spec.ts'],
+    ['src/lib/gate-confinement/DarwinSeatbelt.ts', 'src/services/hephaestus/LineSandbox.integration.spec.ts'],
     ['src/lib/shell-line/PosixShellLine.ts', 'src/lib/shell-line/ShellLine.contract.integration.spec.ts'],
     ['src/lib/executable-resolver/PosixExecutableResolver.ts', 'src/lib/executable-resolver/ExecutableResolver.planted.integration.spec.ts'],
     ['src/lib/talos/PosixSocketEndpoint.ts', 'src/lib/talos/LocalEndpoint.contract.integration.spec.ts'],
@@ -809,7 +809,7 @@ describe('what a change runs', () => {
 
   test.each([
     ['src/testing/SharedCaseDeadlinePreload.ts', 'src/testing/SharedCaseDeadlinePreload.integration.spec.ts'],
-    ['src/services/overseer/TalosStart.ts', 'cli/overseer/ChildSpawnOptions.integration.spec.ts'],
+    ['src/services/hephaestus/TalosStart.ts', 'cli/hephaestus/ChildSpawnOptions.integration.spec.ts'],
   ])('a change to %s runs %s', (changedPath, spec) => {
     expect(integrationSpecsTouchedBy([changedPath], integrationSpecPaths)).toContain(spec);
   });

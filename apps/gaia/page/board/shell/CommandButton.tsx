@@ -25,7 +25,7 @@ export interface CommandButtonProps {
   readonly danger?:                   boolean;
   /** The button's name where its label is short for it, such as "low" under a "Priority" label. */
   readonly accessibleName?:           string;
-  /** The 30px compact button of a row of small controls, such as the header's Overseer controls. */
+  /** The 30px compact button of a row of small controls, such as the header's Hephaestus controls. */
   readonly compact?:                  boolean;
 }
 

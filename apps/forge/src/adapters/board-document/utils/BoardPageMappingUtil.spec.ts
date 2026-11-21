@@ -1,7 +1,7 @@
 /**
  * The board's page and its forge-wide figures against the contract's documents. What matters: a ticket, a row, a row's and a ticket's facts
  * and an epic map field by field, their statuses as the model names them; an optional field the model leaves absent stays absent, and a
- * field no reader names (a ticket's model, its stored extra lines, its body hash) never reaches the document; an unset Overseer setting
+ * field no reader names (a ticket's model, its stored extra lines, its body hash) never reaches the document; an unset Hephaestus setting
  * reads as paused and an absent draft list as none; a notice keeps its kind and its other fields as facts, and a value that is no notice is
  * dropped; a Baton warning that does not read as one is `null`.
  */
@@ -152,11 +152,11 @@ describe('BoardPageMappingUtil.pageOf', () => {
     expect(page.payload.boardFacts.tickets[0]?.displayState).toBe('committed');
   });
 
-  test('keeps the chart range as written and reads an unset Overseer setting as paused', () => {
+  test('keeps the chart range as written and reads an unset Hephaestus setting as paused', () => {
     expect(page.payload.progress.view).toEqual({
       kind: 'relative', from: '-2h', to: 'now', tickMinutes: null
     });
-    expect(page.payload.progress.overseerState).toBe('paused');
+    expect(page.payload.progress.hephaestusState).toBe('paused');
   });
 
   test('keeps a log entry\'s ids where its record names them, and none on a note', () => {
@@ -176,19 +176,19 @@ describe('BoardPageMappingUtil.pageOf', () => {
   });
 });
 
-describe('BoardPageMappingUtil.overseerOf', () => {
-  const overseer = {
+describe('BoardPageMappingUtil.hephaestusOf', () => {
+  const hephaestus = {
     state: 'serving', paused: true, url: 'http://127.0.0.1:4100/', generation: 3, codeVersion: 'code-example', installVersion: 36
   } as const;
 
   test('names the state, the pause and the code version, and the Baton warning that reads as one', () => {
     const batonPassWarning = { successorCodeVersion: 'code-next', step: 'handover', error: 'Example failure.' };
-    expect(BoardPageMappingUtil.overseerOf({ ...overseer, batonPassWarning })).toEqual({
+    expect(BoardPageMappingUtil.hephaestusOf({ ...hephaestus, batonPassWarning })).toEqual({
       state: 'serving', paused: true, codeVersion: 'code-example', batonPassWarning
     });
   });
 
   test('reads a Baton warning that does not read as one as none', () => {
-    expect(BoardPageMappingUtil.overseerOf({ ...overseer, batonPassWarning: { step: 3 } }).batonPassWarning).toBeNull();
+    expect(BoardPageMappingUtil.hephaestusOf({ ...hephaestus, batonPassWarning: { step: 3 } }).batonPassWarning).toBeNull();
   });
 });

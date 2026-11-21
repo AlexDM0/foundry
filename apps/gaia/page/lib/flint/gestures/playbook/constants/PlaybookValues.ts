@@ -1,4 +1,4 @@
-/** Playbook of `06-more-animations.md`: one Pass of the Overseer, observe, read the Playbook, act; in sprite units, facing right. */
+/** Playbook of `06-more-animations.md`: one Pass of Hephaestus, observe, read the Playbook, act; in sprite units, facing right. */
 export const PLAYBOOK_TIMELINE = {
   CYCLE_MILLISECONDS:          4000,
   LOOK_AHEAD_MILLISECONDS:     500,

@@ -13,10 +13,10 @@ import {
   test
 } from 'bun:test';
 
-import { BoardCommandMapUtil }                                                       from '../../../adapters/forge-api/utils/BoardCommandMapUtil.ts';
-import { EXAMPLE_BOARD_COMMAND_DOCUMENTS, exampleBoardCommandOf }                    from '../../../adapters/page-api/testing/ExampleBoardCommandDocuments.ts';
-import { recordedBoardAnswersOf, recordedOverseerFetch, type RecordedOverseerFetch } from '../../../testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath }                                 from '../../../testing/ScratchRoot.ts';
+import { BoardCommandMapUtil }                                                           from '../../../adapters/forge-api/utils/BoardCommandMapUtil.ts';
+import { EXAMPLE_BOARD_COMMAND_DOCUMENTS, exampleBoardCommandOf }                        from '../../../adapters/page-api/testing/ExampleBoardCommandDocuments.ts';
+import { recordedBoardAnswersOf, recordedHephaestusFetch, type RecordedHephaestusFetch } from '../../../testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath }                                     from '../../../testing/ScratchRoot.ts';
 import {
   EXAMPLE_FORGE_TOKEN,
   STOREFRONT_TRACKER_ID,
@@ -29,7 +29,7 @@ import {
 } from '../testing/ExampleRelayForge.ts';
 import { boardCommandAnswerFor } from './BoardCommandRoute.ts';
 
-const COMMANDS_CALL_SHAPE = 'POST /api/v2/commands with bearer';
+const COMMANDS_CALL_SHAPE = 'POST /api/v3/commands with bearer';
 const COMMAND_BODY_BOUND_BYTES = 65_536;
 const TICKET_HOLD = EXAMPLE_BOARD_COMMAND_DOCUMENTS['ticket-hold'];
 
@@ -45,8 +45,8 @@ afterEach(() => {
   removeScratchPath(scratchFolder);
 });
 
-function sourcesOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}) {
-  return relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), overseerFetch);
+function sourcesOver(hephaestusFetch: RecordedHephaestusFetch, options: ExampleRelayForgeOptions = {}) {
+  return relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), hephaestusFetch);
 }
 
 function commandRequestOf(body: string): Request {
@@ -65,8 +65,8 @@ interface RecordedRefusal {
   readonly text:    string;
 }
 
-async function exchangeOf(body: string, overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}): Promise<CommandExchange> {
-  const answer = await boardCommandAnswerFor(commandRequestOf(body), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch, options), COMMAND_BODY_BOUND_BYTES);
+async function exchangeOf(body: string, hephaestusFetch: RecordedHephaestusFetch, options: ExampleRelayForgeOptions = {}): Promise<CommandExchange> {
+  const answer = await boardCommandAnswerFor(commandRequestOf(body), STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch, options), COMMAND_BODY_BOUND_BYTES);
   return { status: answer.status, document: await answer.json() };
 }
 
@@ -78,14 +78,14 @@ function recordedRefusalOf(situation: 'board-command-refused' | 'board-command-u
 
 describe('a board command the forge answers', () => {
   test('is sent as the forge\'s command of its kind, with the token as its bearer, and answers its applied outcome', async () => {
-    const overseerFetch = boardAnswering('board-command-applied');
-    expect(await exchangeOf(JSON.stringify(TICKET_HOLD), overseerFetch)).toEqual({
+    const hephaestusFetch = boardAnswering('board-command-applied');
+    expect(await exchangeOf(JSON.stringify(TICKET_HOLD), hephaestusFetch)).toEqual({
       status:   200,
       document: {
         boardCommandAnswerVersion: 1, outcome: 'applied', applied: { outcome: 'done', startedJobId: null }, refusal: null,
       },
     });
-    const [call] = overseerFetch.callsAnswered();
+    const [call] = hephaestusFetch.callsAnswered();
     expect([call?.callShape, call?.bearerToken, JSON.parse(call?.jsonBody ?? 'null')])
       .toEqual([COMMANDS_CALL_SHAPE, EXAMPLE_FORGE_TOKEN, JSON.parse(JSON.stringify(BoardCommandMapUtil.contractCommandOf(exampleBoardCommandOf(TICKET_HOLD))))]);
   });
@@ -139,9 +139,9 @@ describe('a board command the forge answers', () => {
 
 describe('a board command Gaia does not send', () => {
   test('is refused as unknown-kind for a kind the page contract does not name, and the forge is asked nothing', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
-    const exchange = await exchangeOf(JSON.stringify({ boardCommandVersion: 1, kind: 'ticket-unready', ticketId: '001' }), overseerFetch);
-    expect([exchange.status, exchange.document, overseerFetch.callsAnswered()]).toEqual([400, {
+    const hephaestusFetch = recordedHephaestusFetch([]);
+    const exchange = await exchangeOf(JSON.stringify({ boardCommandVersion: 1, kind: 'ticket-unready', ticketId: '001' }), hephaestusFetch);
+    expect([exchange.status, exchange.document, hephaestusFetch.callsAnswered()]).toEqual([400, {
       boardCommandAnswerVersion: 1,
       outcome:                   'refused',
       applied:                   null,
@@ -150,28 +150,28 @@ describe('a board command Gaia does not send', () => {
   });
 
   test('is refused as malformed-body for a body that is no command, and the forge is asked nothing', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
+    const hephaestusFetch = recordedHephaestusFetch([]);
     const bodies = ['not json', JSON.stringify({ ...TICKET_HOLD, ticketId: 7 }), JSON.stringify({ ...TICKET_HOLD, boardCommandVersion: 2 })];
-    const exchanges = await Promise.all(bodies.map((body) => exchangeOf(body, overseerFetch)));
+    const exchanges = await Promise.all(bodies.map((body) => exchangeOf(body, hephaestusFetch)));
     expect(exchanges.map((exchange) => [exchange.status, (exchange.document as { readonly refusal: { readonly code: string } }).refusal.code]))
       .toEqual([[400, 'malformed-body'], [400, 'malformed-body'], [400, 'malformed-body']]);
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 
   test('is refused as too-large for a body over its bound, unread, and the forge is asked nothing', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
+    const hephaestusFetch = recordedHephaestusFetch([]);
     const request = commandRequestOf(JSON.stringify({ ...TICKET_HOLD, reason: 'x'.repeat(COMMAND_BODY_BOUND_BYTES) }));
-    const answer = await boardCommandAnswerFor(request, STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch), COMMAND_BODY_BOUND_BYTES);
+    const answer = await boardCommandAnswerFor(request, STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch), COMMAND_BODY_BOUND_BYTES);
     expect([answer.status, ((await answer.json()) as { readonly refusal: { readonly code: string } }).refusal.code, request.bodyUsed]).toEqual([413, 'too-large', false]);
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 });
 
 describe('a board command that reaches no answer', () => {
   test('is unreachable when the watch could not reach the forge, and is never sent', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
-    const exchange = await exchangeOf(JSON.stringify(TICKET_HOLD), overseerFetch, { fidelity: 'unreachable' });
-    expect([exchange.status, exchange.document, overseerFetch.callsAnswered()]).toEqual([502, {
+    const hephaestusFetch = recordedHephaestusFetch([]);
+    const exchange = await exchangeOf(JSON.stringify(TICKET_HOLD), hephaestusFetch, { fidelity: 'unreachable' });
+    expect([exchange.status, exchange.document, hephaestusFetch.callsAnswered()]).toEqual([502, {
       boardCommandAnswerVersion: 1,
       outcome:                   'unreachable',
       applied:                   null,
@@ -179,17 +179,17 @@ describe('a board command that reaches no answer', () => {
     }, []]);
   });
 
-  test('leaves the outcome unknown when it was sent and the Overseer gave no answer', async () => {
+  test('leaves the outcome unknown when it was sent and Hephaestus gave no answer', async () => {
     const exchange = await exchangeOf(JSON.stringify(TICKET_HOLD), stoppedForgeAnswering([COMMANDS_CALL_SHAPE]));
     expect([exchange.status, exchange.document])
       .toEqual([502, expect.objectContaining({ outcome: 'outcome-unknown', refusal: expect.objectContaining({ code: 'forge-unreachable' }) })]);
   });
 
   test('is refused as token-unreadable or token-rejected, and the token is in no answer', async () => {
-    const unreadable = await exchangeOf(JSON.stringify(TICKET_HOLD), recordedOverseerFetch([]), { tokenPath: null });
+    const unreadable = await exchangeOf(JSON.stringify(TICKET_HOLD), recordedHephaestusFetch([]), { tokenPath: null });
     expect([unreadable.status, unreadable.document])
       .toEqual([502, expect.objectContaining({ outcome: 'refused', refusal: expect.objectContaining({ code: 'token-unreadable' }) })]);
-    const tokenRefused = recordedOverseerFetch(recordedBoardAnswersOf('board-token-rejected').map(({ answer }) => ({ callShape: COMMANDS_CALL_SHAPE, answer })).slice(0, 1));
+    const tokenRefused = recordedHephaestusFetch(recordedBoardAnswersOf('board-token-rejected').map(({ answer }) => ({ callShape: COMMANDS_CALL_SHAPE, answer })).slice(0, 1));
     const rejected = await exchangeOf(JSON.stringify(TICKET_HOLD), tokenRefused);
     expect([rejected.status, rejected.document]).toEqual([502, expect.objectContaining({ outcome: 'refused', refusal: expect.objectContaining({ code: 'token-rejected' }) })]);
     expect(JSON.stringify([unreadable, rejected])).not.toContain(EXAMPLE_FORGE_TOKEN);

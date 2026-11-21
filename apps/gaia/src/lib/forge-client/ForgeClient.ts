@@ -1,5 +1,5 @@
 /**
- * The HTTP client of one Overseer: its versions, identity, board summary, monitor snapshot and board document, its event streams, a
+ * The HTTP client of one Hephaestus: its versions, identity, board summary, monitor snapshot and board document, its event streams, a
  * control or board command, a picture up and down, and a session code. Every call answers the forge's document or a verdict; the documents
  * stay unchecked JSON for the ingestions that read them. `/api/versions` is asked at its one path; every other endpoint at the version
  * forge's registry serves the supported forge version.
@@ -22,59 +22,59 @@ import type {
   ForgeStreamFollow,
   MonitorFollow,
   MonitorFollowEnd,
-  OverseerAccess,
-  OverseerAddress,
+  HephaestusAccess,
+  HephaestusAddress,
 } from './@types/ForgeClientAnswer.ts';
 import type {
-  OverseerAnswer,
-  OverseerAnswerForm,
-  OverseerByteBody,
-  OverseerFetch,
-  OverseerRequest,
-  OverseerStream,
-} from './OverseerFetch.ts';
+  HephaestusAnswer,
+  HephaestusAnswerForm,
+  HephaestusByteBody,
+  HephaestusFetch,
+  HephaestusRequest,
+  HephaestusStream,
+} from './HephaestusFetch.ts';
 import { SUPPORTED_FORGE_VERSION } from './constants/SupportedForgeVersions.ts';
 
 export interface ForgeClientSettings {
-  readonly overseerFetch:                  OverseerFetch;
+  readonly hephaestusFetch:                HephaestusFetch;
   readonly requestTimeoutMilliseconds?:    number;
   readonly streamOpenTimeoutMilliseconds?: number;
 }
 
 export interface ForgeClient {
   /** `GET /api/versions`, which a forge from before versions answers as any unknown path. */
-  readonly versionsOf:      (overseerUrl: string) => Promise<ForgeDocumentAnswer>;
-  readonly identityOf:      (address: OverseerAddress) => Promise<ForgeDocumentAnswer>;
-  readonly summaryOf:       (address: OverseerAddress) => Promise<ForgeDocumentAnswer>;
-  readonly monitorOf:       (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
+  readonly versionsOf:      (hephaestusUrl: string) => Promise<ForgeDocumentAnswer>;
+  readonly identityOf:      (address: HephaestusAddress) => Promise<ForgeDocumentAnswer>;
+  readonly summaryOf:       (address: HephaestusAddress) => Promise<ForgeDocumentAnswer>;
+  readonly monitorOf:       (access: HephaestusAccess) => Promise<ForgeDocumentAnswer>;
   /** Hands each whole snapshot of the stream to `onSnapshot` as it arrives; an event the stream left unfinished is never handed on. */
-  readonly followMonitor:   (access: OverseerAccess, onSnapshot: (document: unknown) => void) => MonitorFollow;
-  readonly send:            (access: OverseerAccess, command: ForgeControlCommand) => Promise<ForgeCommandAnswer>;
-  readonly boardOf:         (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
-  readonly presenceOf:      (access: OverseerAccess) => Promise<ForgeDocumentAnswer>;
+  readonly followMonitor:   (access: HephaestusAccess, onSnapshot: (document: unknown) => void) => MonitorFollow;
+  readonly send:            (access: HephaestusAccess, command: ForgeControlCommand) => Promise<ForgeCommandAnswer>;
+  readonly boardOf:         (access: HephaestusAccess) => Promise<ForgeDocumentAnswer>;
+  readonly presenceOf:      (access: HephaestusAccess) => Promise<ForgeDocumentAnswer>;
   /** One crash log by its number; a number with no log is the forge's refusal `no-crash-log`. */
-  readonly crashLogOf:      (access: OverseerAccess, crashLogNumber: number) => Promise<ForgeDocumentAnswer>;
+  readonly crashLogOf:      (access: HephaestusAccess, crashLogNumber: number) => Promise<ForgeDocumentAnswer>;
   /** The board's events, each whole one handed to `onEvent` as it arrives; `lastEventId` replays what came after that event. */
-  readonly followEvents:    (access: OverseerAccess, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void) => ForgeStreamFollow;
+  readonly followEvents:    (access: HephaestusAccess, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void) => ForgeStreamFollow;
   /** A job's conversation from the cursor `after`, or from its start when `null`. */
   readonly followJobStream: (
-    access: OverseerAccess, jobId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
+    access: HephaestusAccess, jobId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ) => ForgeStreamFollow;
   /** A gate profile run's output lines after the line `after`, or from its first when `null`. */
   readonly followProfileStream: (
-    access: OverseerAccess, profileRunId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
+    access: HephaestusAccess, profileRunId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ) => ForgeStreamFollow;
-  readonly uploadPicture:    (access: OverseerAccess, bytes: Uint8Array, mediaType: string) => Promise<ForgePictureUploadAnswer>;
-  readonly pictureOf:        (access: OverseerAccess, pictureId: string) => Promise<ForgePictureAnswer>;
+  readonly uploadPicture:    (access: HephaestusAccess, bytes: Uint8Array, mediaType: string) => Promise<ForgePictureUploadAnswer>;
+  readonly pictureOf:        (access: HephaestusAccess, pictureId: string) => Promise<ForgePictureAnswer>;
   /** Unlike `send`, keeps the forge's status and its whole body, so an install hold (423) reads apart from a refusal. */
-  readonly sendBoardCommand: (access: OverseerAccess, body: JsonObject) => Promise<ForgeBoardCommandAnswer>;
+  readonly sendBoardCommand: (access: HephaestusAccess, body: JsonObject) => Promise<ForgeBoardCommandAnswer>;
 }
 
-const OVERSEER_REQUEST_TIMEOUT_MILLISECONDS = 5_000;
+const HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS = 5_000;
 const MONITOR_STREAM_OPEN_TIMEOUT_MILLISECONDS = 5_000;
 
 /** Each endpoint below `/api/`, without its version; a `{<name>}` segment is filled per call. */
-const OVERSEER_ENDPOINTS = {
+const HEPHAESTUS_ENDPOINTS = {
   identity:      'identity',
   summary:       'summary',
   monitor:       'monitor',
@@ -90,22 +90,22 @@ const OVERSEER_ENDPOINTS = {
   picture:       'pictures/{pictureId}',
 } as const;
 
-export type OverseerEndpointName = keyof typeof OVERSEER_ENDPOINTS;
+export type HephaestusEndpointName = keyof typeof HEPHAESTUS_ENDPOINTS;
 
 /**
  * The version of the endpoint that forge's compatibility registry serves the forge version this client supports. Every endpoint the client
  * calls has one, as its spec holds, so the throw marks a registry that dropped one, never a forge's answer.
  */
-export function forgeEndpointVersionOf(endpointName: OverseerEndpointName): number {
-  const endpoint = OVERSEER_ENDPOINTS[endpointName];
+export function forgeEndpointVersionOf(endpointName: HephaestusEndpointName): number {
+  const endpoint = HEPHAESTUS_ENDPOINTS[endpointName];
   const version = CompatibilityRegistryUtil.endpointVersionAt(FORGE_COMPATIBILITY_REGISTRY, endpoint, SUPPORTED_FORGE_VERSION);
   if (version === null) throw new Error(`The forge version this client supports serves no ${endpoint} endpoint.`);
   return version;
 }
 
 /** The versioned path Gaia calls an endpoint at, each template segment filled from `values`. */
-export function forgeEndpointPathOf(endpointName: OverseerEndpointName, values: Readonly<Record<string, string>> = {}): string {
-  const endpointPath = CompatibilityRegistryUtil.endpointPathOf(OVERSEER_ENDPOINTS[endpointName], values);
+export function forgeEndpointPathOf(endpointName: HephaestusEndpointName, values: Readonly<Record<string, string>> = {}): string {
+  const endpointPath = CompatibilityRegistryUtil.endpointPathOf(HEPHAESTUS_ENDPOINTS[endpointName], values);
   return ApiPathUtil.versionedPathOf(endpointPath, forgeEndpointVersionOf(endpointName));
 }
 
@@ -131,7 +131,7 @@ function refusalOf(bodyText: string): ForgeClientFailure {
   return { verdict: 'refused', refusal: ownTextOf(parsing.parsed, 'refusal'), text: ownTextOf(parsing.parsed, 'text') };
 }
 
-function successBodyOf(answer: OverseerAnswer): SuccessBody {
+function successBodyOf(answer: HephaestusAnswer): SuccessBody {
   if (answer.verdict !== 'answered') return { verdict: 'unreachable' };
   if (answer.status === UNAUTHORIZED_STATUS) return { verdict: 'unauthorized' };
   if (answer.status !== SUCCESS_STATUS) return refusalOf(answer.bodyText);
@@ -139,12 +139,12 @@ function successBodyOf(answer: OverseerAnswer): SuccessBody {
   return parsing === null ? { verdict: 'malformed' } : { verdict: 'success', parsed: parsing.parsed };
 }
 
-function documentAnswerOf(answer: OverseerAnswer): ForgeDocumentAnswer {
+function documentAnswerOf(answer: HephaestusAnswer): ForgeDocumentAnswer {
   const body = successBodyOf(answer);
   return body.verdict === 'success' ? { verdict: 'answered', document: body.parsed } : body;
 }
 
-function commandAnswerOf(answer: OverseerAnswer): ForgeCommandAnswer {
+function commandAnswerOf(answer: HephaestusAnswer): ForgeCommandAnswer {
   const body = successBodyOf(answer);
   if (body.verdict !== 'success') return body;
   const outcome = JsonValueUtil.isJsonObject(body.parsed) ? JsonValueUtil.ownValueOf(body.parsed, 'outcome') : undefined;
@@ -152,14 +152,14 @@ function commandAnswerOf(answer: OverseerAnswer): ForgeCommandAnswer {
 }
 
 /** Keeps the status of every answer but a refused token, and its body parsed, for the command's ingestion to read. */
-function boardCommandAnswerOf(answer: OverseerAnswer): ForgeBoardCommandAnswer {
+function boardCommandAnswerOf(answer: HephaestusAnswer): ForgeBoardCommandAnswer {
   if (answer.verdict !== 'answered') return { verdict: 'unreachable' };
   if (answer.status === UNAUTHORIZED_STATUS) return { verdict: 'unauthorized' };
   const parsing = JsonValueUtil.parsedValueOf(answer.bodyText);
   return parsing === null ? { verdict: 'malformed' } : { verdict: 'answered', status: answer.status, body: parsing.parsed };
 }
 
-function pictureAnswerOf(answer: OverseerAnswer): ForgePictureAnswer {
+function pictureAnswerOf(answer: HephaestusAnswer): ForgePictureAnswer {
   if (answer.verdict !== 'answered') return { verdict: 'unreachable' };
   if (answer.status === UNAUTHORIZED_STATUS) return { verdict: 'unauthorized' };
   return {
@@ -172,85 +172,85 @@ function streamEventOf(event: ServerSentEvent): ForgeStreamEvent {
 }
 
 export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
-  const { overseerFetch } = settings;
-  const requestTimeoutMilliseconds    = settings.requestTimeoutMilliseconds ?? OVERSEER_REQUEST_TIMEOUT_MILLISECONDS;
+  const { hephaestusFetch } = settings;
+  const requestTimeoutMilliseconds    = settings.requestTimeoutMilliseconds ?? HEPHAESTUS_REQUEST_TIMEOUT_MILLISECONDS;
   const streamOpenTimeoutMilliseconds = settings.streamOpenTimeoutMilliseconds ?? MONITOR_STREAM_OPEN_TIMEOUT_MILLISECONDS;
 
-  function overseerRequestOf(overseerUrl: string, method: OverseerRequest['method'], path: string, bearerToken: string | null, jsonBody: string | null): OverseerRequest {
-    return byteRequestOf(overseerUrl, method, path, bearerToken, { jsonBody, byteBody: null, answerAs: 'text' });
+  function hephaestusRequestOf(hephaestusUrl: string, method: HephaestusRequest['method'], path: string, bearerToken: string | null, jsonBody: string | null): HephaestusRequest {
+    return byteRequestOf(hephaestusUrl, method, path, bearerToken, { jsonBody, byteBody: null, answerAs: 'text' });
   }
 
   function byteRequestOf(
-    overseerUrl: string,
-    method: OverseerRequest['method'],
+    hephaestusUrl: string,
+    method: HephaestusRequest['method'],
     path: string,
     bearerToken: string | null,
-    bodies: { readonly jsonBody: string | null; readonly byteBody: OverseerByteBody | null; readonly answerAs: OverseerAnswerForm },
-  ): OverseerRequest {
+    bodies: { readonly jsonBody: string | null; readonly byteBody: HephaestusByteBody | null; readonly answerAs: HephaestusAnswerForm },
+  ): HephaestusRequest {
     return {
-      overseerUrl, method, path, bearerToken, ...bodies, timeoutMilliseconds: requestTimeoutMilliseconds,
+      hephaestusUrl, method, path, bearerToken, ...bodies, timeoutMilliseconds: requestTimeoutMilliseconds,
     };
   }
 
-  async function versionsOf(overseerUrl: string): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', ApiPathUtil.VERSIONS_PATH, null, null)));
+  async function versionsOf(hephaestusUrl: string): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', ApiPathUtil.VERSIONS_PATH, null, null)));
   }
 
-  async function identityOf({ overseerUrl }: OverseerAddress): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', forgeEndpointPathOf('identity'), null, null)));
+  async function identityOf({ hephaestusUrl }: HephaestusAddress): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', forgeEndpointPathOf('identity'), null, null)));
   }
 
-  async function summaryOf({ overseerUrl }: OverseerAddress): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(overseerUrl, 'GET', forgeEndpointPathOf('summary'), null, null)));
+  async function summaryOf({ hephaestusUrl }: HephaestusAddress): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(hephaestusUrl, 'GET', forgeEndpointPathOf('summary'), null, null)));
   }
 
-  async function monitorOf(access: OverseerAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', forgeEndpointPathOf('monitor'), access.bearerToken, null)));
+  async function monitorOf(access: HephaestusAccess): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('monitor'), access.bearerToken, null)));
   }
 
-  async function send(access: OverseerAccess, command: ForgeControlCommand): Promise<ForgeCommandAnswer> {
-    const commandRequest = overseerRequestOf(access.overseerUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(command));
-    return commandAnswerOf(await overseerFetch.request(commandRequest));
+  async function send(access: HephaestusAccess, command: ForgeControlCommand): Promise<ForgeCommandAnswer> {
+    const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(command));
+    return commandAnswerOf(await hephaestusFetch.request(commandRequest));
   }
 
-  async function boardOf(access: OverseerAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', forgeEndpointPathOf('board'), access.bearerToken, null)));
+  async function boardOf(access: HephaestusAccess): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('board'), access.bearerToken, null)));
   }
 
-  async function presenceOf(access: OverseerAccess): Promise<ForgeDocumentAnswer> {
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', forgeEndpointPathOf('presence'), access.bearerToken, null)));
+  async function presenceOf(access: HephaestusAccess): Promise<ForgeDocumentAnswer> {
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('presence'), access.bearerToken, null)));
   }
 
-  async function crashLogOf(access: OverseerAccess, crashLogNumber: number): Promise<ForgeDocumentAnswer> {
+  async function crashLogOf(access: HephaestusAccess, crashLogNumber: number): Promise<ForgeDocumentAnswer> {
     const crashLogPath = `${forgeEndpointPathOf('crashLog')}?${new URLSearchParams({ number: String(crashLogNumber) }).toString()}`;
-    return documentAnswerOf(await overseerFetch.request(overseerRequestOf(access.overseerUrl, 'GET', crashLogPath, access.bearerToken, null)));
+    return documentAnswerOf(await hephaestusFetch.request(hephaestusRequestOf(access.hephaestusUrl, 'GET', crashLogPath, access.bearerToken, null)));
   }
 
-  async function sendBoardCommand(access: OverseerAccess, body: JsonObject): Promise<ForgeBoardCommandAnswer> {
-    const commandRequest = overseerRequestOf(access.overseerUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(body));
-    return boardCommandAnswerOf(await overseerFetch.request(commandRequest));
+  async function sendBoardCommand(access: HephaestusAccess, body: JsonObject): Promise<ForgeBoardCommandAnswer> {
+    const commandRequest = hephaestusRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('commands'), access.bearerToken, JSON.stringify(body));
+    return boardCommandAnswerOf(await hephaestusFetch.request(commandRequest));
   }
 
-  async function uploadPicture(access: OverseerAccess, bytes: Uint8Array, mediaType: string): Promise<ForgePictureUploadAnswer> {
+  async function uploadPicture(access: HephaestusAccess, bytes: Uint8Array, mediaType: string): Promise<ForgePictureUploadAnswer> {
     const uploadBodies = { jsonBody: null, byteBody: { bytes, mediaType }, answerAs: 'text' } as const;
-    const uploadRequest = byteRequestOf(access.overseerUrl, 'POST', forgeEndpointPathOf('pictures'), access.bearerToken, uploadBodies);
-    return boardCommandAnswerOf(await overseerFetch.request(uploadRequest));
+    const uploadRequest = byteRequestOf(access.hephaestusUrl, 'POST', forgeEndpointPathOf('pictures'), access.bearerToken, uploadBodies);
+    return boardCommandAnswerOf(await hephaestusFetch.request(uploadRequest));
   }
 
-  async function pictureOf(access: OverseerAccess, pictureId: string): Promise<ForgePictureAnswer> {
+  async function pictureOf(access: HephaestusAccess, pictureId: string): Promise<ForgePictureAnswer> {
     const pictureBodies = { jsonBody: null, byteBody: null, answerAs: 'bytes' } as const;
-    const pictureRequest = byteRequestOf(access.overseerUrl, 'GET', forgeEndpointPathOf('picture', { pictureId }), access.bearerToken, pictureBodies);
-    return pictureAnswerOf(await overseerFetch.request(pictureRequest));
+    const pictureRequest = byteRequestOf(access.hephaestusUrl, 'GET', forgeEndpointPathOf('picture', { pictureId }), access.bearerToken, pictureBodies);
+    return pictureAnswerOf(await hephaestusFetch.request(pictureRequest));
   }
 
   /** Hands each whole event of the stream at `path` to `onEvent`; an event the stream left unfinished is never handed on. */
-  function followEventStream(access: OverseerAccess, path: string, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void): ForgeStreamFollow {
+  function followEventStream(access: HephaestusAccess, path: string, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void): ForgeStreamFollow {
     let stopIsRequested = false;
-    let openStream: OverseerStream | null = null;
+    let openStream: HephaestusStream | null = null;
 
     async function follow(): Promise<MonitorFollowEnd> {
-      const opening = await overseerFetch.openStream({
-        overseerUrl:         access.overseerUrl,
+      const opening = await hephaestusFetch.openStream({
+        hephaestusUrl:       access.hephaestusUrl,
         path,
         bearerToken:         access.bearerToken,
         lastEventId,
@@ -290,7 +290,7 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     return { ended: follow(), stop };
   }
 
-  function followMonitor(access: OverseerAccess, onSnapshot: (document: unknown) => void): MonitorFollow {
+  function followMonitor(access: HephaestusAccess, onSnapshot: (document: unknown) => void): MonitorFollow {
     return followEventStream(access, forgeEndpointPathOf('monitorEvents'), null, (event) => {
       if (event.eventName !== MONITOR_EVENT_NAME) return;
       // A snapshot that cannot be read is passed over: the next whole one replaces it.
@@ -299,18 +299,18 @@ export function forgeClientOf(settings: ForgeClientSettings): ForgeClient {
     });
   }
 
-  function followEvents(access: OverseerAccess, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void): ForgeStreamFollow {
+  function followEvents(access: HephaestusAccess, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void): ForgeStreamFollow {
     return followEventStream(access, forgeEndpointPathOf('events'), lastEventId, onEvent);
   }
 
   function followJobStream(
-    access: OverseerAccess, jobId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
+    access: HephaestusAccess, jobId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ): ForgeStreamFollow {
     return followEventStream(access, streamPathOf(forgeEndpointPathOf('jobStream', { jobId }), after), lastEventId, onEvent);
   }
 
   function followProfileStream(
-    access: OverseerAccess, profileRunId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
+    access: HephaestusAccess, profileRunId: string, after: string | null, lastEventId: string | null, onEvent: (event: ForgeStreamEvent) => void,
   ): ForgeStreamFollow {
     return followEventStream(access, streamPathOf(forgeEndpointPathOf('profileStream', { profileRunId }), after), lastEventId, onEvent);
   }

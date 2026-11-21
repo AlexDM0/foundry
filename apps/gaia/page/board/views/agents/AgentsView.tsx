@@ -29,7 +29,7 @@ import { WorkerCard }                     from './WorkerCard.tsx';
 
 export type AgentsBoard = Pick<
   BoardDocument,
-  'project' | 'jobs' | 'endedJobs' | 'decisions' | 'incidents' | 'launchSlots' | 'concurrency' | 'page' | 'overseer' | 'limits'
+  'project' | 'jobs' | 'endedJobs' | 'decisions' | 'incidents' | 'launchSlots' | 'concurrency' | 'page' | 'hephaestus' | 'limits'
 >;
 
 export interface AgentsViewProps {
@@ -65,7 +65,7 @@ function panelConcurrencyOf(board: Pick<AgentsBoard, 'concurrency' | 'page'>): P
 
 export function AgentsView({ board, selectedJobId, followTranscript }: AgentsViewProps) {
   const {
-    project, jobs, decisions, incidents, launchSlots, concurrency, page, endedJobs, overseer, limits
+    project, jobs, decisions, incidents, launchSlots, concurrency, page, endedJobs, hephaestus, limits
   } = board;
   const now = useNowEverySecond(useBoardClock());
   const navigateTo = useBoardNavigation();
@@ -81,7 +81,7 @@ export function AgentsView({ board, selectedJobId, followTranscript }: AgentsVie
   const viewElement = useRef<HTMLDivElement>(null);
   const panelConcurrency = useMemo(() => panelConcurrencyOf({ concurrency, page }), [concurrency, page]);
   useAgentPanelHabitat(viewElement, {
-    jobs, endedJobs, concurrency: panelConcurrency, overseer
+    jobs, endedJobs, concurrency: panelConcurrency, hephaestus
   }, selectedJobId);
 
   return (

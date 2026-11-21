@@ -2,16 +2,16 @@
  * `crash-log [<number>]`: prints one of the board's crash logs, the newest when no number is given. It reads the files alone, so it works
  * with the forge up or down, and takes no lock.
  */
-import type { CrashLogJob, CrashLogRecord }    from '../../src/services/overseer/@types/CrashLogRecord.ts';
-import type { StartClassificationVerdict }     from '../../src/services/overseer/@types/StartClassification.ts';
-import { CrashLog }                            from '../../src/services/overseer/CrashLog.ts';
-import { overseerFilesIn, type OverseerFiles } from '../../src/services/overseer/OverseerFiles.ts';
-import { requireWorkspace }                    from '../../src/services/tracker/Workspace.ts';
-import { OperationRefusal }                    from '../../src/shared/OperationRefusal.ts';
-import { PRODUCT_NAMES }                       from '../../src/shared/constants/ProductNames.ts';
-import type { CommandHandler }                 from '../CommandHandler.ts';
-import type { ArgumentParser }                 from '../arguments/ArgumentParser.ts';
-import { OutputUtil }                          from '../utils/OutputUtil.ts';
+import type { CrashLogJob, CrashLogRecord }        from '../../src/services/hephaestus/@types/CrashLogRecord.ts';
+import type { StartClassificationVerdict }         from '../../src/services/hephaestus/@types/StartClassification.ts';
+import { CrashLog }                                from '../../src/services/hephaestus/CrashLog.ts';
+import { hephaestusFilesIn, type HephaestusFiles } from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { requireWorkspace }                        from '../../src/services/tracker/Workspace.ts';
+import { OperationRefusal }                        from '../../src/shared/OperationRefusal.ts';
+import { PRODUCT_NAMES }                           from '../../src/shared/constants/ProductNames.ts';
+import type { CommandHandler }                     from '../CommandHandler.ts';
+import type { ArgumentParser }                     from '../arguments/ArgumentParser.ts';
+import { OutputUtil }                              from '../utils/OutputUtil.ts';
 
 const USAGE = `${PRODUCT_NAMES.PROGRAM} crash-log [<number>] [--json]`;
 
@@ -30,7 +30,7 @@ function requestedNumberOf(commandArguments: ArgumentParser): number | null {
   return Number(written);
 }
 
-function crashLogNumberToRead(files: OverseerFiles, requestedNumber: number | null): number {
+function crashLogNumberToRead(files: HephaestusFiles, requestedNumber: number | null): number {
   const crashLogNumber = requestedNumber ?? CrashLog.list(files).at(-1) ?? null;
   if (crashLogNumber === null) throw new OperationRefusal('refused', { kind: 'no-crash-log', number: null });
   return crashLogNumber;
@@ -92,7 +92,7 @@ function crashLogTextOf(crashLogNumber: number, path: string, record: CrashLogRe
 
 export const crashLogCommand: CommandHandler = (commandArguments, context) => {
   const requestedNumber = requestedNumberOf(commandArguments);
-  const files = overseerFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
+  const files = hephaestusFilesIn(requireWorkspace(context.currentDirectory).trackerDirectory);
   const crashLogNumber = crashLogNumberToRead(files, requestedNumber);
   const path = CrashLog.pathOf(files, crashLogNumber);
   const reading = CrashLog.read(files, crashLogNumber);

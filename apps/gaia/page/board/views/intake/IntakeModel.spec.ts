@@ -214,7 +214,7 @@ describe('IntakeModelUtil.chatTurnsOf', () => {
   };
   const entries: BoardTranscriptEntryDocument[] = [
     exampleTranscriptEntry({
-      cursor: '1.1', role: 'overseer', text: 'You are the product owner.', at: minute(1), sentBy: 'overseer', clientAct: 'chat', pictures: [picture]
+      cursor: '1.1', role: 'hephaestus', text: 'You are the product owner.', at: minute(1), sentBy: 'hephaestus', clientAct: 'chat', pictures: [picture]
     }),
     exampleTranscriptEntry({
       cursor: '1.2', role: 'tool-call', text: 'src/basket.ts', toolName: 'Read', toolUseId: 't1', at: minute(2)
@@ -249,7 +249,7 @@ describe('IntakeModelUtil.chatTurnsOf', () => {
   test('User\'s request follows the line that started the session, with the pictures that line carried', () => {
     const turns = IntakeModelUtil.chatTurnsOf(entries, [], facts);
     expect(turns.map(shapeOf)).toEqual([
-      'system: Overseer started J7 from User\'s first message · product-owner',
+      'system: Hephaestus started J7 from User\'s first message · product-owner',
       'user: Saved baskets across devices (1 picture)',
       'Product owner: Two tickets.',
       'user: Titles first.',
@@ -265,7 +265,7 @@ describe('IntakeModelUtil.chatTurnsOf', () => {
   test('an open decision sits after the last entry stamped at or before it was asked, and at the end with no stamps', () => {
     const asked = [decision('E5', 'J7', minute(4)), decision('E6', 'J7', minute(4))];
     expect(IntakeModelUtil.chatTurnsOf(entries, asked, facts).map(shapeOf)).toEqual([
-      'system: Overseer started J7 from User\'s first message · product-owner',
+      'system: Hephaestus started J7 from User\'s first message · product-owner',
       'user: Saved baskets across devices (1 picture)',
       'Product owner: Two tickets.',
       'decision E5',

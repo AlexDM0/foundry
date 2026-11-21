@@ -70,7 +70,7 @@ function Reconciliation({ slotMeter, joblessTicketIds }: { readonly slotMeter: S
     sentences.push(
       <span key="jobless">
         <strong className="agents-figure">{joblessTicketIds.length}</strong>
-        {joblessTicketIds.length === 1 ? ' ticket in progress has no Overseer job: ' : ' tickets in progress have no Overseer job: '}
+        {joblessTicketIds.length === 1 ? ' ticket in progress has no Hephaestus job: ' : ' tickets in progress have no Hephaestus job: '}
         <TicketLinks ticketIds={joblessTicketIds} />
       </span>
     );

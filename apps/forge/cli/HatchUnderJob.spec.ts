@@ -1,7 +1,7 @@
 /**
  * A session under a job, driven in-process with the job carried on its context (never the environment): every relayed verb writes one
  * request of its own kind and prints `queued` when no reply comes; every read-only verb runs directly and relays nothing; every other verb
- * is refused before it runs. The three lists are exact both ways over the verbs the table answers. A reply, once the Overseer writes one, is
+ * is refused before it runs. The three lists are exact both ways over the verbs the table answers. A reply, once Hephaestus writes one, is
  * printed: a done reply as done, a refusal worded as a direct run would word it, at its exit code.
  */
 import {
@@ -37,7 +37,7 @@ import { createScratchDirectory, removeScratchDirectory }                       
 import { describeWhenGitIsRecorded }                                                                 from '../src/testing/ToolGuard.ts';
 import { firstValueOf }                                                                              from '../src/testing/WaitUntil.ts';
 import type { CommandContext }                                                                       from './CommandContext.ts';
-import { INSIDE_THE_OVERSEER_CONTROL_CONTEXT }                                                       from './CommandControlContext.ts';
+import { INSIDE_HEPHAESTUS_CONTROL_CONTEXT }                                                         from './CommandControlContext.ts';
 import { COMMAND_NAMES }                                                                             from './CommandTable.ts';
 import { runCommandLine }                                                                            from './Main.ts';
 import { READ_ONLY_VERBS_UNDER_A_JOB, RELAYED_VERB_OF_CONTROL_KIND, type RelayedControlCommandKind } from './constants/JobVerbs.ts';
@@ -51,7 +51,6 @@ import { INTAKE_SUBCOMMAND_NAMES }                                              
 import { JOB_SUBCOMMAND_NAMES }                                                                      from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }                                                                    from './merges/MergeCommand.ts';
 import { NEED_SUBCOMMAND_NAMES }                                                                     from './needs/NeedCommand.ts';
-import { OVERSEE_SUBCOMMAND_NAMES }                                                                  from './overseer/OverseerCommand.ts';
 import { PIPELINE_SUBCOMMAND_NAMES }                                                                 from './pipeline/PipelineCommand.ts';
 import { LOGIN_ITEM_SUBCOMMAND_NAMES }                                                               from './setup/login-item/LoginItemCommand.ts';
 import { createCapturedCommandContext, type CapturedCommandContext }                                 from './testing/CapturedCommandContext.ts';
@@ -106,11 +105,11 @@ const ARGUMENTS_OF_KIND: { readonly [Kind in RelayedControlCommandKind]: readonl
   'intake-title':               ['intake', 'title', '--', 'Example basket'],
   'question-options':           ['question', 'options', '--', '{"question": "Which basket?", "options": [{"label": "Wicker", "tradeOff": "Lighter, less sturdy."}]}'],
   'need-declare':               ['need', 'declare', 'Export the basket total', '--entity', 'shared', '--body', NEED_BODY_TEXT],
-  'overseer-pause':             ['oversee', 'pause'],
-  'overseer-resume':            ['oversee', 'resume'],
+  'hephaestus-pause':           ['pause'],
+  'hephaestus-unpause':         ['unpause'],
   'interrupted-work-resume':    ['resume', '--all'],
-  'overseer-stop':              ['oversee', 'stop', '--now'],
-  'overseer-restart':           ['oversee', 'restart'],
+  'hephaestus-stop':            ['stop', '--now'],
+  'hephaestus-restart':         ['restart'],
   'concurrency-set':            ['concurrency', '3'],
   'machine-agent-limit-set':    ['machine', 'limit', '2'],
   'pipeline-prepare-step-set':  ['gate', 'prepare', 'install', '--', 'bun install'],
@@ -163,7 +162,6 @@ const ARGUMENTS_OF_READ_ONLY_VERB: Readonly<Record<string, readonly string[]>> =
   'hook session-start': ['hook', 'session-start'],
   'hook stage-edits':   ['hook', 'stage-edits', '--allow', '/example/worktree/apps/example'],
   'version':            ['version'],
-  'oversee status':     ['oversee', 'status'],
   'decisions':          ['decisions'],
   'incidents':          ['incidents'],
   'merges':             ['merges'],
@@ -244,7 +242,6 @@ function everyVerb(): string[] {
     if (command === 'ticket') return TICKET_SUBCOMMAND_NAMES.map((subcommand) => `ticket ${subcommand}`);
     if (command === 'epic') return EPIC_SUBCOMMAND_NAMES.map((subcommand) => `epic ${subcommand}`);
     if (command === 'draft') return DRAFT_SUBCOMMAND_NAMES.map((subcommand) => `draft ${subcommand}`);
-    if (command === 'oversee') return [command, ...OVERSEE_SUBCOMMAND_NAMES.map((subcommand) => `oversee ${subcommand}`)];
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start', 'hook stage-edits'];
     if (command === 'job') return JOB_SUBCOMMAND_NAMES.map((subcommand) => `job ${subcommand}`);
     if (command === 'incident') return INCIDENT_SUBCOMMAND_NAMES.map((subcommand) => `incident ${subcommand}`);
@@ -348,7 +345,7 @@ describeWhenGitIsRecorded('read-only and refused verbs', () => {
   });
 });
 
-describeWhenGitIsRecorded('the overseer\'s reply', () => {
+describeWhenGitIsRecorded('the reply of Hephaestus', () => {
   async function runAnswering(reply: (requestId: string) => object): Promise<{ exitCode: number; context: CapturedCommandContext }> {
     const context  = jobContext(100);
     const running  = runCommandLine(ARGUMENTS_OF_KIND['ticket-add'], context);
@@ -361,7 +358,7 @@ describeWhenGitIsRecorded('the overseer\'s reply', () => {
   test('a done reply prints the request id and the filed ticket at exit 0', async () => {
     const { exitCode, context } = await runAnswering(() => ({ outcome: 'done', ticketIds: ['014'] }));
     expect(exitCode).toBe(0);
-    expect(context.outputText()).toMatch(/^done [0-9a-f-]+ \(#014\): the Overseer applied the request\.$/);
+    expect(context.outputText()).toMatch(/^done [0-9a-f-]+ \(#014\): Hephaestus applied the request\.$/);
   });
 
   test('a refused reply is worded by the refusal-wording util and exits 1', async () => {
@@ -378,7 +375,7 @@ describeWhenGitIsRecorded('the overseer\'s reply', () => {
   });
 });
 
-describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
+describeWhenGitIsRecorded('Hephaestus applying an admitted filing', () => {
   test('the admission stamps filedByJob, waits the finding on its finder and puts it in the finder\'s group', async () => {
     const directContext = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: SPEC_CLOCK });
     expect(await runCommandLine(['ticket', 'add', 'Example finder', '--type', 'ticket', '--group', 'checkout', '--json'], directContext)).toBe(0);
@@ -398,7 +395,7 @@ describeWhenGitIsRecorded('the Overseer applying an admitted filing', () => {
       workspace,
       at:        '2026-09-18T22:11:03+02:00',
       now:       SPEC_CLOCK,
-      mutate:    (change) => ControlService.apply(verdict.command, change, INSIDE_THE_OVERSEER_CONTROL_CONTEXT).result,
+      mutate:    (change) => ControlService.apply(verdict.command, change, INSIDE_HEPHAESTUS_CONTROL_CONTEXT).result,
     });
     const filed = written.result as { ticket: { frontmatter: { id: string } } };
     const text  = readFileSync(listTickets(workspace).ticketLocations.get(filed.ticket.frontmatter.id) ?? '', 'utf8');

@@ -38,7 +38,7 @@ function boardOf(jobs: readonly PanelJob[], agentsInFlight: number): AgentPanelB
     concurrency: {
       limit: 3, agentsInFlight, readyTicketIds: [], heldTicketIds: []
     },
-    overseer: { state: 'serving', paused: false },
+    hephaestus: { state: 'serving', paused: false },
   };
 }
 

@@ -73,7 +73,7 @@ function interruptedPipelineAgentJob(): Job {
 
 function decisionOf(kind: Decision['kind']): Decision {
   return {
-    id: 'E1', kind, ticketIds: [], jobId: null, askedBy: 'overseer', requestId: null, questions: [], context: '', openedAt: FIXTURE_AT,
+    id: 'E1', kind, ticketIds: [], jobId: null, askedBy: 'hephaestus', requestId: null, questions: [], context: '', openedAt: FIXTURE_AT,
   };
 }
 
@@ -96,7 +96,7 @@ function launchesExactly(ticketIds: readonly string[]): (steps: readonly Playboo
 }
 
 const INTERRUPTED_BUILD = jobFixture({
-  id: 'J1', ticketIds: ['001'], state: 'interrupted', interruption: 'watcher-lost'
+  id: 'J1', ticketIds: ['001'], state: 'interrupted', interruption: 'talos-lost'
 });
 
 const TWO_FAILED_PASSES_WITH_REWORK_BETWEEN: LogRecord[] = [
@@ -111,7 +111,7 @@ const CRASHES_ON_TWO_TICKETS: LogRecord[] = [
   launchedRecord('J1', 'build', ['001']),
   launchedRecord('J2', 'build', ['002']),
   interruptedRecord('J1', 'agent-crashed'),
-  interruptedRecord('J2', 'watcher-lost'),
+  interruptedRecord('J2', 'talos-lost'),
 ];
 
 const WAITING_REVIEW = jobFixture({
@@ -572,7 +572,7 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'a session that went down is replaced, never resumed',
-    facts:  factsWith({ jobs: [{ ...LIVE_ASSISTANT, state: 'interrupted', interruption: 'watcher-lost' }] }),
+    facts:  factsWith({ jobs: [{ ...LIVE_ASSISTANT, state: 'interrupted', interruption: 'talos-lost' }] }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'replace-job',
     mutant: policyLine('    if (REPLACED_SESSION_JOB_KINDS.includes(job.kind)) {\n', '    if (false) {\n'),
   },
@@ -584,8 +584,8 @@ const CLAIMS: PolicyClaim[] = [
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
     mutant: {
       modulePath: JOB_STATES_MODULE,
-      find:       '= [\'watcher-lost\', \'agent-crashed\'] as const',
-      replace:    '= [\'watcher-lost\', \'agent-crashed\', \'talos-paused\'] as const',
+      find:       '= [\'talos-lost\', \'agent-crashed\'] as const',
+      replace:    '= [\'talos-lost\', \'agent-crashed\', \'talos-paused\'] as const',
     },
   },
   {
@@ -647,31 +647,31 @@ const CLAIMS: PolicyClaim[] = [
     mutant: policyLine('!ticketIdsSettledThisPass.has(ticket.id) && !ticketHasAJob', '!ticketHasAJob'),
   },
   {
-    name:   'two crashed jobs on different tickets pause the Overseer and open the outage decision',
+    name:   'two crashed jobs on different tickets pause Hephaestus and open the outage decision',
     facts:  factsWith({ logRecords: CRASHES_ON_TWO_TICKETS }),
-    holds:  (steps) => stepKindsOf(steps).slice(0, 2).join(' ') === 'pause-overseer open-decision',
+    holds:  (steps) => stepKindsOf(steps).slice(0, 2).join(' ') === 'pause-hephaestus open-decision',
     mutant: policyLine('>= limits.CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING', '> limits.CONSECUTIVE_DEAD_AGENTS_BEFORE_STOPPING'),
   },
   {
     name:   'two crashes on one ticket are no outage',
-    facts:  factsWith({ logRecords: [launchedRecord('J1', 'build', ['001']), interruptedRecord('J1', 'watcher-lost'), interruptedRecord('J1', 'watcher-lost')] }),
-    holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
+    facts:  factsWith({ logRecords: [launchedRecord('J1', 'build', ['001']), interruptedRecord('J1', 'talos-lost'), interruptedRecord('J1', 'talos-lost')] }),
+    holds:  (steps) => !stepKindsOf(steps).includes('pause-hephaestus'),
     mutant: policyLine('crashedTicketKeys.at(-1) === ticketKey ? [ticketKey] : [...crashedTicketKeys, ticketKey]', '[...crashedTicketKeys, ticketKey]'),
   },
   {
     name:   'reboots are never counted toward an outage',
     facts:  factsWith({ logRecords: [...CRASHES_ON_TWO_TICKETS.slice(0, 2), interruptedRecord('J1', 'reboot'), interruptedRecord('J2', 'reboot')] }),
-    holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
+    holds:  (steps) => !stepKindsOf(steps).includes('pause-hephaestus'),
     mutant: policyLine('record.kind !== \'job-interrupted\' || !isCrash(record.fields.cause)', 'record.kind !== \'job-interrupted\''),
   },
   {
     name:   'a network outage and a lease end are never counted toward an outage',
     facts:  factsWith({ logRecords: [...CRASHES_ON_TWO_TICKETS.slice(0, 2), interruptedRecord('J1', 'network-outage'), interruptedRecord('J2', 'lease-ended')] }),
-    holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
+    holds:  (steps) => !stepKindsOf(steps).includes('pause-hephaestus'),
     mutant: {
       modulePath: JOB_STATES_MODULE,
-      find:       '= [\'watcher-lost\', \'agent-crashed\'] as const',
-      replace:    '= [\'watcher-lost\', \'agent-crashed\', \'network-outage\', \'lease-ended\'] as const',
+      find:       '= [\'talos-lost\', \'agent-crashed\'] as const',
+      replace:    '= [\'talos-lost\', \'agent-crashed\', \'network-outage\', \'lease-ended\'] as const',
     },
   },
   {
@@ -683,10 +683,10 @@ const CLAIMS: PolicyClaim[] = [
         launchedRecord('J4', 'build', ['004']),
         interruptedRecord('J3', 'network-outage'),
         interruptedRecord('J4', 'lease-ended'),
-        interruptedRecord('J2', 'watcher-lost'),
+        interruptedRecord('J2', 'talos-lost'),
       ],
     }),
-    holds:  (steps) => stepKindsOf(steps).slice(0, 2).join(' ') === 'pause-overseer open-decision',
+    holds:  (steps) => stepKindsOf(steps).slice(0, 2).join(' ') === 'pause-hephaestus open-decision',
     mutant: policyLine(
       '    if (record.kind !== \'job-interrupted\' || !isCrash(record.fields.cause)) continue;\n',
       '    if (record.kind === \'job-interrupted\' && !isCrash(record.fields.cause)) crashedTicketKeys = [];\n'
@@ -695,8 +695,8 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'a verified job ending between two crashes breaks the run',
-    facts:  factsWith({ logRecords: [...CRASHES_ON_TWO_TICKETS.slice(0, 3), ...finishedJobRecords('J3', 'build', '003', 'built'), interruptedRecord('J2', 'watcher-lost')] }),
-    holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
+    facts:  factsWith({ logRecords: [...CRASHES_ON_TWO_TICKETS.slice(0, 3), ...finishedJobRecords('J3', 'build', '003', 'built'), interruptedRecord('J2', 'talos-lost')] }),
+    holds:  (steps) => !stepKindsOf(steps).includes('pause-hephaestus'),
     mutant: policyLine('    if (record.kind === \'job-ended\' && VERIFIED_OUTCOMES.includes(record.fields.outcome)) crashedTicketKeys = [];\n', ''),
   },
   {
@@ -706,7 +706,7 @@ const CLAIMS: PolicyClaim[] = [
         kind: 'decision-opened', decisionId: 'E1', fields: { kind: 'outage', ticketIds: [] }, at: FIXTURE_AT
       }]
     }),
-    holds:  (steps) => !stepKindsOf(steps).includes('pause-overseer'),
+    holds:  (steps) => !stepKindsOf(steps).includes('pause-hephaestus'),
     mutant: policyLine('    if (record.kind === \'decision-opened\' && record.fields.kind === \'outage\') crashedTicketKeys = [];\n', ''),
   },
   {
@@ -717,9 +717,9 @@ const CLAIMS: PolicyClaim[] = [
   },
   {
     name:   'a paused board resumes interrupted jobs but launches nothing new',
-    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'committed')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD], overseerState: 'paused' }),
+    facts:  factsWith({ tickets: [ticketOf('001', 'in-progress'), ticketOf('002', 'committed')], jobs: [LIVE_ASSISTANT, INTERRUPTED_BUILD], hephaestusState: 'paused' }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
-    mutant: policyLine('resumesAreHeld || facts.overseerState === \'paused\'', 'resumesAreHeld'),
+    mutant: policyLine('resumesAreHeld || facts.hephaestusState === \'paused\'', 'resumesAreHeld'),
   },
   {
     name:  'two replaced jobs in a row on one ticket open a job-lost incident defaulting to park',
@@ -756,7 +756,7 @@ const CLAIMS: PolicyClaim[] = [
   {
     name:  'an interrupted pipeline agent resumes with no pipeline stored and on a paused board',
     facts: factsWith({
-      pipelineIsSet: false, overseerState: 'paused', decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, interruptedPipelineAgentJob()]
+      pipelineIsSet: false, hephaestusState: 'paused', decisions: [decisionOf('checks-not-set')], jobs: [LIVE_ASSISTANT, interruptedPipelineAgentJob()]
     }),
     holds:  (steps) => stepKindsOf(steps).join(' ') === 'resume-job',
     mutant: policyLine('    if (job.kind === \'pipeline-agent\') return resumeStepsOf(job, facts, limits, holds.pipelineAgentResumesAreHeld);\n', ''),

@@ -102,11 +102,11 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"ticket-abandoned","ticketId":"003","fields":{"reason":"superseded by #001"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"chart-range-set","fields":{"view":{"kind":"relative","from":"-2h","to":"now","tickMinutes":15}}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"concurrency-limit-set","fields":{"limit":3}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-set","fields":{"state":"running"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"hephaestus-set","fields":{"state":"running"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"branch-namespace-set","fields":{"namespace":"web"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"agent-stopped","fields":{"agentId":"example-agent","agentType":"agent-progress-worker",'
     + '"apiCallCount":12,"endContextTokens":48000,"totalInputTokens":310000,"cacheReadInputTokens":250000,"outputTokens":9000}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-started","fields":{"codeVersion":"a1b2c3d","installVersion":17}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"hephaestus-started","fields":{"codeVersion":"a1b2c3d","installVersion":17}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"start-classified","fields":{"kind":"machine-went-down","startOrigin":"login-item","previousGeneration":3,'
     + '"crashSuspected":true,"crashLogNumber":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"job-launched","jobId":"J2","fields":{"kind":"build","role":"builder","ticketIds":["002"],'
@@ -140,7 +140,7 @@ const FROZEN_STORED_LINES = [
   '{"at":"2026-09-26T10:15:00+02:00","kind":"incident-opened","incidentId":"I3","fields":{"kind":"system-question","ticketIds":["002"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"decision-opened","decisionId":"E3","fields":{"kind":"agent-question","ticketIds":["002"]}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"incident-escalated","incidentId":"I3","fields":{"decisionId":"E3"}}',
-  '{"at":"2026-09-26T10:15:00+02:00","kind":"overseer-stopped","fields":{"reason":"stopped"}}',
+  '{"at":"2026-09-26T10:15:00+02:00","kind":"hephaestus-stopped","fields":{"reason":"stopped"}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"flint-brain-ended","fields":{"startedBy":"bridge","startedAt":"2026-09-26T08:13:00.000Z",'
     + '"endedAt":"2026-09-26T08:15:00.000Z","endedReason":"time","tokens":4200,"calls":3}}',
   '{"at":"2026-09-26T10:15:00+02:00","kind":"baton-pass-failed","fields":{"successorCodeVersion":"d4e5f6a","step":"read-child-records",'

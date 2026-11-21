@@ -18,8 +18,8 @@ import { useRecordedGit }                         from '../../src/testing/Record
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 
 const FROZEN_NOW = new Date('2026-10-24T20:01:45Z');
 
@@ -50,7 +50,7 @@ let repositoryDirectory = '';
 
 async function runExpectingExit(expectedExitCode: number, commandLineArguments: readonly string[]): Promise<CapturedContext> {
   const context  = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW });
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\`: ${context.errorText()}`).toBe(expectedExitCode);
   return context;
 }

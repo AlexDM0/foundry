@@ -5,7 +5,7 @@ import type { RecognisedEnding }     from '../EndingPatterns.ts';
 import type { LeaseStanding }        from '../SupervisionLease.ts';
 import type { LeaseRenewer }         from '../TalosRecord.ts';
 
-// Overseer to Talos.
+// Hephaestus to Talos.
 /** Frozen. The first line of every connection. */
 export interface HelloFrame { kind: 'hello'; requiredProtocolVersion: number; secret: string }
 
@@ -32,7 +32,7 @@ export type ClientFrame = LeaseRenewalFrame | LaunchFrame | InputFrame | StopFra
  */
 export type ReceivedClientFrame = Exclude<ClientFrame, LaunchFrame> | (Omit<LaunchFrame, 'launch'> & { launch: unknown });
 
-// Talos to the Overseer.
+// Talos to Hephaestus.
 /** Frozen. Answers a `hello` of another protocol version; Talos then quits cleanly. */
 export interface VersionMismatchFrame { kind: 'version-mismatch'; protocolVersion: number }
 /** Frozen. Answers a first line that is no `hello`, a wrong secret, or any `hello` while quitting. */

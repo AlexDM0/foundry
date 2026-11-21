@@ -75,11 +75,11 @@ A fresh reviewer follows when the board's pipeline sets one.
 
 **Done means merged.** The Airlock lands tickets on main one at a time, from the merge queue. A red result goes back to the same builder.
 
-**An Overseer can die or be updated while agents keep running.** Each agent session lives under a detached Watcher, not under the
-Overseer, and on macOS every gate and session runs confined.
+**A Hephaestus can die or be updated while agents keep running.** Each agent session lives under the detached Talos, not under
+Hephaestus, and on macOS every gate and session runs confined.
 
 **You answer only what code cannot.** A builder's question, a proposed gate or an escalated incident reaches the Questions view as a
-decision, with what each option touches. Everything else, the Overseer drives.
+decision, with what each option touches. Everything else, Hephaestus drives.
 
 [forge's README](apps/forge/README.md) shows every view, what `forge init` adds to a repository, and the quickstart.
 
@@ -100,7 +100,7 @@ decision, with what each option touches. Everything else, the Overseer drives.
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="docs/images/gaia-forges.png" width="100%" alt="Start, stop, update: Gaia's Forges view, every forge on the machine with its Overseer state, agents, waiting count and code, its Pause, Stop and Open controls, and the machine's agent limit">
+      <img src="docs/images/gaia-forges.png" width="100%" alt="Start, stop, update: Gaia's Forges view, every forge on the machine with its Hephaestus state, agents, waiting count and code, its Pause, Stop and Open controls, and the machine's agent limit">
     </td>
     <td width="50%" valign="top">
       <img src="docs/images/flint.png" width="100%" alt="Meet Flint: six still frames of the orange diamond, drafting a ticket, running the gates, clearing Customs, asking you, entering the Airlock and landing on main">
@@ -122,7 +122,7 @@ Gaia shows it and makes no model call.
 
 | Folder | What it is |
 | --- | --- |
-| [`apps/forge/`](apps/forge/) | forge: the tracker, the Overseer, the Bridge and the CLI |
+| [`apps/forge/`](apps/forge/) | forge: the tracker, Hephaestus, the Bridge and the CLI |
 | [`apps/gaia/`](apps/gaia/) | Gaia: one window over every forge on the machine |
 | [`apps/gaia/page/lib/design-system/`](apps/gaia/page/lib/design-system/) | a library of Gaia's page: React components with their own light and dark theme |
 | [`apps/gaia/page/lib/flint/`](apps/gaia/page/lib/flint/) | a library of Gaia's page: Flint, the orange diamond that acts out what the agents do, drawn over its host page |
@@ -148,12 +148,12 @@ Then, in the repository to adopt:
 
 ```sh
 forge init --project "Example Storefront"
-forge oversee --detach
-forge oversee resume
+forge start
+forge unpause
 forge open
 ```
 
-A new board starts paused; `oversee resume` lets it build. [Getting started](apps/forge/docs/operations/getting-started.md) runs a first
+A new board starts paused; `unpause` lets it build. [Getting started](apps/forge/docs/operations/getting-started.md) runs a first
 board end to end.
 
 ### Open Gaia

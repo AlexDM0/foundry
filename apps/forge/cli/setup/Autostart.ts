@@ -1,5 +1,5 @@
 /**
- * The port behind setup's optional login item: what starts the Overseer of one repository when the user logs in. Each operating system
+ * The port behind setup's optional login item: what starts Hephaestus of one repository when the user logs in. Each operating system
  * has its own adapter over injected primitives, so every adapter runs on any machine against a scratch home or a fake registry.
  */
 import { type FinishedCommand } from './SetupHost.ts';
@@ -47,7 +47,7 @@ export interface Autostart {
   readonly locationOf:             (label: string) => string;
   /** Why no item written here would ever run, or null when one would. Checked before anything is written. */
   readonly unavailableReason:      () => string | null;
-  /** The repository the stored item of `label` starts the Overseer of, read back from where it is stored; null when there is none. */
+  /** The repository the stored item of `label` starts Hephaestus of, read back from where it is stored; null when there is none. */
   readonly registeredRepositoryOf: (label: string) => string | null;
   readonly commandOf:              (item: LoginItem) => readonly string[];
   readonly write:                  (item: LoginItem) => LoginItemWriteVerdict;

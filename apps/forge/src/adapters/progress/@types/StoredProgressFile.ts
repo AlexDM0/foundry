@@ -16,7 +16,7 @@ import type {
   AirlockPhase
 }                                             from '../../../lib/tracker-model/@types/Job.ts';
 import type { TaskStatus, TicketStageName }   from '../../../lib/tracker-model/@types/Task.ts';
-import type { OverseerState, ViewRange }      from '../../../lib/tracker-model/@types/TrackerProgress.ts';
+import type { HephaestusState, ViewRange }    from '../../../lib/tracker-model/@types/TrackerProgress.ts';
 import type { CURRENT_PROGRESS_FILE_VERSION } from '../constants/ProgressFileVersions.ts';
 
 export interface StoredTaskPhase {
@@ -104,26 +104,26 @@ export interface StoredJob {
 }
 
 export interface StoredProgressFile {
-  version:                 typeof CURRENT_PROGRESS_FILE_VERSION;
-  trackerId:               string;
-  project:                 string;
-  startedAt:               string;
-  view:                    ViewRange;
-  nextTaskId:              number;
-  concurrencyLimit?:       number;
-  overseerState?:          OverseerState;
-  nextDraftId?:            number;
-  nextSetupId?:            number;
-  nextJobId?:              number;
-  jobs?:                   StoredJob[];
-  nextDecisionId?:         number;
-  decisions?:              StoredDecision[];
-  nextIncidentId?:         number;
-  incidents?:              StoredIncident[];
-  overseerFirstStartedAt?: string;
-  branchNamespace?:        string;
-  tasks:                   StoredTask[];
-  needs?:                  StoredDeclaredNeed[];
+  version:                   typeof CURRENT_PROGRESS_FILE_VERSION;
+  trackerId:                 string;
+  project:                   string;
+  startedAt:                 string;
+  view:                      ViewRange;
+  nextTaskId:                number;
+  concurrencyLimit?:         number;
+  hephaestusState?:          HephaestusState;
+  nextDraftId?:              number;
+  nextSetupId?:              number;
+  nextJobId?:                number;
+  jobs?:                     StoredJob[];
+  nextDecisionId?:           number;
+  decisions?:                StoredDecision[];
+  nextIncidentId?:           number;
+  incidents?:                StoredIncident[];
+  hephaestusFirstStartedAt?: string;
+  branchNamespace?:          string;
+  tasks:                     StoredTask[];
+  needs?:                    StoredDeclaredNeed[];
 }
 
 export interface StoredDeclaredNeed {

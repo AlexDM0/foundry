@@ -6,7 +6,7 @@ import type { BoardCommandAnswer } from './BoardCommandAnswer.ts';
 import type { BoardRefusal }       from './BoardRefusal.ts';
 
 /**
- * `forge-unreachable`: no Overseer of the forge answers. `forge-version-unsupported`: its system version is one Gaia cannot talk to.
+ * `forge-unreachable`: no Hephaestus of the forge answers. `forge-version-unsupported`: its system version is one Gaia cannot talk to.
  * `forge-document-unreadable`: the forge answered what Gaia cannot read. `too-large`: a body over the route's bound. `malformed-body` and
  * `unknown-kind`: a page's command Gaia cannot read.
  */

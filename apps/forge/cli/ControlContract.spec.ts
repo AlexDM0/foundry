@@ -26,7 +26,6 @@ import { INTAKE_SUBCOMMAND_NAMES }     from './intake/IntakeCommand.ts';
 import { JOB_SUBCOMMAND_NAMES }        from './jobs/JobCommand.ts';
 import { MERGE_SUBCOMMAND_NAMES }      from './merges/MergeCommand.ts';
 import { NEED_SUBCOMMAND_NAMES }       from './needs/NeedCommand.ts';
-import { OVERSEE_SUBCOMMAND_NAMES }    from './overseer/OverseerCommand.ts';
 import { PIPELINE_SUBCOMMAND_NAMES }   from './pipeline/PipelineCommand.ts';
 import { LOGIN_ITEM_SUBCOMMAND_NAMES } from './setup/login-item/LoginItemCommand.ts';
 import { TICKET_SUBCOMMAND_NAMES }     from './tickets/TicketCommand.ts';
@@ -44,21 +43,19 @@ const VERB_OF_KIND: { readonly [Kind in ControlCommandKind]: string } = {
 };
 
 /**
- * Mutating verbs that apply no control command, never relayed and never offered in the UI (design section 9.1): machine setup, and the
- * Overseer's own start and stop.
+ * Mutating verbs that apply no control command, never relayed and never offered in the UI (design section 9.1): machine setup, and
+ * Hephaestus's own start and stop.
  */
 const NOT_RELAYABLE_MUTATING_VERBS = [
   'init',
   'update',
-  'oversee',
   'start',
-  'stop',
   'login-item add',
   'login-item remove',
 ];
 
 /**
- * `await` is the wait of User's own session around the Overseer, which runs under no job; `login-item status` reads the login item and
+ * `await` is the wait of User's own session around Hephaestus, which runs under no job; `login-item status` reads the login item and
  * `crash-log` a crash log, and neither writes anything.
  */
 const READ_ONLY_VERBS = [...READ_ONLY_VERBS_UNDER_A_JOB, 'await', 'login-item status', 'crash-log'];
@@ -85,7 +82,6 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'ticket') return subcommandVerbsOf(command, TICKET_SUBCOMMAND_NAMES).map((verb) => (verb === 'ticket deliver' ? 'ticket deliver --by-hand' : verb));
     if (command === 'epic') return subcommandVerbsOf(command, EPIC_SUBCOMMAND_NAMES);
     if (command === 'draft') return subcommandVerbsOf(command, DRAFT_SUBCOMMAND_NAMES);
-    if (command === 'oversee') return [command, ...subcommandVerbsOf(command, OVERSEE_SUBCOMMAND_NAMES)];
     if (command === 'job') return subcommandVerbsOf(command, JOB_SUBCOMMAND_NAMES);
     if (command === 'incident') return subcommandVerbsOf(command, INCIDENT_SUBCOMMAND_NAMES);
     if (command === 'worktree') return subcommandVerbsOf(command, WORKTREE_SUBCOMMAND_NAMES);
@@ -97,7 +93,7 @@ function tableVerbsOf(commandNames: readonly string[]): string[] {
     if (command === 'pipeline') return subcommandVerbsOf(command, PIPELINE_SUBCOMMAND_NAMES);
     if (command === 'machine') return subcommandVerbsOf(command, MACHINE_SUBCOMMAND_NAMES);
     if (command === 'login-item') return subcommandVerbsOf(command, LOGIN_ITEM_SUBCOMMAND_NAMES);
-    // The measurement events retire as `hook`; the guards an Overseer renders into a job's settings stay.
+    // The measurement events retire as `hook`; the guards a Hephaestus renders into a job's settings stay.
     if (command === 'hook') return [command, 'hook bash-domains', 'hook session-start', 'hook stage-edits'];
     return [command];
   });
@@ -139,7 +135,7 @@ const CONTRACT: ControlContract = {
 };
 
 describe('the control contract', () => {
-  // Owner answer Q41: the Overseer makes every lifecycle move, and User records only a ticket landed outside it, which no job relays.
+  // Owner answer Q41: Hephaestus makes every lifecycle move, and User records only a ticket landed outside it, which no job relays.
   test('`ticket deliver --by-hand` is the only lifecycle verb, the verb of an unrelayed kind, and no lifecycle verb is on the not-relayable list', () => {
     const LIFECYCLE_VERB_PATTERN = /^(?:release|rework|review record|dispatcher|ticket (?:claim|start|finish|approve|deliver))\b/;
     expect(LIFECYCLE_VERB_PATTERN.test('ticket finish'), 'the pattern finds a lifecycle verb').toBe(true);

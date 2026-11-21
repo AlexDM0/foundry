@@ -193,7 +193,7 @@ function folderFlowRepository(): FlowRepository {
   const directory = realpathSync(scratchRepository());
   gitOutputIn(directory, ['branch', '-m', RECORDED_FLOW_MAIN_LINE]);
   gitOutputIn(directory, ['config', 'commit.gpgsign', 'false']);
-  // The Overseer's merge-in names no identity of its own, so the recorded repository holds one.
+  // Hephaestus's merge-in names no identity of its own, so the recorded repository holds one.
   for (const [key, value] of [['user.name', 'Alex Example'], ['user.email', 'alex@example.com']]) gitOutputIn(directory, ['config', key ?? '', value ?? '']);
   const ignoreFile = join(RECORDED_FOLDER_FLOW_PROJECT.prefix, '.gitignore');
   mkdirSync(join(directory, RECORDED_FOLDER_FLOW_PROJECT.prefix), { recursive: true });
@@ -658,7 +658,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE, gitOutputIn(flow.directory, ['rev-parse', 'HEAD^{tree}']));
     const [mergedTree = ''] = gitOutputIn(flow.directory, ['merge-tree', '--write-tree', RECORDED_FLOW_MAIN_LINE, RECORDED_FLOW_TICKET_BRANCH]).split('\n');
     flow.values.set(RECORDED_FLOW_PLACEHOLDERS.MERGED_TREE, mergedTree);
-    // The Overseer's merge-in names no identity of its own, so the recorded repository holds one.
+    // Hephaestus's merge-in names no identity of its own, so the recorded repository holds one.
     for (const [key, value] of [['user.name', 'Alex Example'], ['user.email', 'alex@example.com']]) gitOutputIn(flow.directory, ['config', key ?? '', value ?? '']);
     recordFlowStage('main moved', flow);
     recordFlowCall('main moved', flow, requireTransitionTo('main moved', 'main merged in'));
@@ -686,7 +686,7 @@ describeWhenGitIsPresent('the git answers the default specs replay', () => {
     writeFileSync(join(sessionFolder, RECORDED_FLOW_CONFLICT.path), RECORDED_FLOW_CONFLICT.resolvedText);
     commitIn(worktree, RECORDED_FLOW_CONFLICT.branchText, RECORDED_FLOW_PLACEHOLDERS.TICKET_TIP, RECORDED_FLOW_PLACEHOLDERS.TICKET_TREE);
     commitIn(flow.directory, RECORDED_FLOW_CONFLICT.mainLineText, RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TIP, RECORDED_FLOW_PLACEHOLDERS.MOVED_MAIN_TREE);
-    // The Overseer's merge-in names no identity of its own, so the recorded repository holds one.
+    // Hephaestus's merge-in names no identity of its own, so the recorded repository holds one.
     for (const [key, value] of [['user.name', 'Alex Example'], ['user.email', 'alex@example.com']]) gitOutputIn(flow.directory, ['config', key ?? '', value ?? '']);
     recordFlowStage('branch conflicting with main', flow);
     recordFlowCall('branch conflicting with main', flow, requireTransitionTo('branch conflicting with main', 'merge conflicted'));

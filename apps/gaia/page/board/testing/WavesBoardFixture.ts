@@ -2,9 +2,9 @@
  * Small synthetic boards in the page's board contract holding exactly what the Waves tab reads, for its model and DOM specs: tickets with the
  * `settlesADependency` fact a forge serves for their status, their rows, the ready list, the slot limit and the epics. Test-only.
  */
-import type { BoardDocument }                                              from '../../@types/board/BoardDocument.ts';
-import type { BoardEpicDocument, BoardTaskDocument, BoardTicketDocument }  from '../../@types/board/BoardTicketDocuments.ts';
-import type { BoardDisplayState, BoardOverseerSetting, BoardTicketStatus } from '../../@types/board/BoardVocabulary.ts';
+import type { BoardDocument }                                                from '../../@types/board/BoardDocument.ts';
+import type { BoardEpicDocument, BoardTaskDocument, BoardTicketDocument }    from '../../@types/board/BoardTicketDocuments.ts';
+import type { BoardDisplayState, BoardHephaestusSetting, BoardTicketStatus } from '../../@types/board/BoardVocabulary.ts';
 import {
   boardStateFixture,
   exampleTask,
@@ -35,16 +35,16 @@ export function exampleWavesEpic(key: string, fields: Partial<BoardEpicDocument>
 }
 
 export interface ExampleWavesBoardFields {
-  readonly tasks?:            readonly BoardTaskDocument[];
-  readonly tickets?:          readonly BoardTicketDocument[];
+  readonly tasks?:             readonly BoardTaskDocument[];
+  readonly tickets?:           readonly BoardTicketDocument[];
   /** Each ticket's own row and review bars, by task id. */
-  readonly ticketRows?:       Readonly<Record<string, { ownTaskId?: number; reviewTaskIds?: readonly number[] }>>;
-  readonly displayStates?:    Readonly<Record<string, BoardDisplayState>>;
-  readonly readyTicketIds?:   readonly string[];
-  readonly concurrencyLimit?: number;
-  /** Paused unless said: the wave forecast is asked for only while the Overseer runs. */
-  readonly overseerSetting?:  BoardOverseerSetting;
-  readonly epics?:            readonly BoardEpicDocument[];
+  readonly ticketRows?:        Readonly<Record<string, { ownTaskId?: number; reviewTaskIds?: readonly number[] }>>;
+  readonly displayStates?:     Readonly<Record<string, BoardDisplayState>>;
+  readonly readyTicketIds?:    readonly string[];
+  readonly concurrencyLimit?:  number;
+  /** Paused unless said: the wave forecast is asked for only while Hephaestus runs. */
+  readonly hephaestusSetting?: BoardHephaestusSetting;
+  readonly epics?:             readonly BoardEpicDocument[];
 }
 
 export function exampleWavesBoard(fields: ExampleWavesBoardFields = {}): BoardDocument {
@@ -60,7 +60,7 @@ export function exampleWavesBoard(fields: ExampleWavesBoardFields = {}): BoardDo
     page:        {
       ...board.page,
       progress: {
-        ...board.page.progress, overseerSetting: fields.overseerSetting ?? 'paused', tasks, log: []
+        ...board.page.progress, hephaestusSetting: fields.hephaestusSetting ?? 'paused', tasks, log: []
       },
       facts: {
         rows:    tasks.map((task) => ({ displayState: task.status, deliveredRowCountsAsReviewed: false, ownRowPositionOfReviewedTicket: null })),

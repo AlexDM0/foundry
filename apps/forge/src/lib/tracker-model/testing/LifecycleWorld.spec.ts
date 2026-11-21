@@ -13,7 +13,7 @@ describe('the job states the lifecycle world checks for git operations', () => {
     expect([...GIT_OPERATING_STATES, ...GIT_IDLE_STATES].sort()).toEqual([...JOB_STATES].sort());
   });
 
-  test('count merging-main as git-operating: the Overseer merges the target into the ticket\'s worktree', () => {
+  test('count merging-main as git-operating: Hephaestus merges the target into the ticket\'s worktree', () => {
     expect(GIT_OPERATING_STATES).toContain('merging-main');
   });
 });

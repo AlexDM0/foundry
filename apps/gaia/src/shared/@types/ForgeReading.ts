@@ -42,7 +42,7 @@ export interface ForgeConcurrency {
   ticketsWaitingForMachineSlot: number | null;
 }
 
-/** An open notice or a warning of the Overseer: the forge's kind and its own sentence. */
+/** An open notice or a warning of Hephaestus: the forge's kind and its own sentence. */
 export interface ForgeNotice {
   kind: string;
   text: string;
@@ -68,41 +68,41 @@ export interface ForgeToday {
 }
 
 export interface ForgeReading {
-  trackerId:         string;
-  project:           string;
-  root:              string;
-  fidelity:          ForgeFidelity;
-  condition:         ForgeCondition;
-  url:               string | null;
-  processId:         number | null;
-  contracts:         ForgeContracts;
-  codeVersion:       string | null;
+  trackerId:           string;
+  project:             string;
+  root:                string;
+  fidelity:            ForgeFidelity;
+  condition:           ForgeCondition;
+  url:                 string | null;
+  processId:           number | null;
+  contracts:           ForgeContracts;
+  codeVersion:         string | null;
   /** The stamp of the newest whole answer, shown as "as last reported"; never compared. */
-  lastReportedAt:    string | null;
-  overseerStartedAt: string | null;
+  lastReportedAt:      string | null;
+  hephaestusStartedAt: string | null;
   /** The forge program the registry names for this forge, which Gaia starts it with before the one in its settings; `null` when it names none. */
-  program:           string | null;
+  program:             string | null;
   /** The registry's record of the last forge command in this repository and its stamp. */
-  lastCommand:       string | null;
-  lastChangedAt:     string | null;
-  concurrency:       ForgeConcurrency | null;
-  readyTicketCount:  number | null;
-  openIncidents:     number | null;
-  attention:         AttentionItem[];
+  lastCommand:         string | null;
+  lastChangedAt:       string | null;
+  concurrency:         ForgeConcurrency | null;
+  readyTicketCount:    number | null;
+  openIncidents:       number | null;
+  attention:           AttentionItem[];
   /** Set only at fidelity counts-only, where the entries are not known by name. */
-  attentionCount:    number | null;
-  agents:            AgentRow[];
-  notices:           ForgeNotice[];
-  warnings:          ForgeNotice[];
-  activity:          ActivityEntry[];
-  today:             ForgeToday | null;
-  usage:             ForgeUsage | null;
+  attentionCount:      number | null;
+  agents:              AgentRow[];
+  notices:             ForgeNotice[];
+  warnings:            ForgeNotice[];
+  activity:            ActivityEntry[];
+  today:               ForgeToday | null;
+  usage:               ForgeUsage | null;
   /** `null` for a reading taken without the forge's `/api/versions`, such as a dormant or an unreachable forge's. */
-  versions:          ForgeVersions | null;
+  versions:            ForgeVersions | null;
   /** What the registry says the forge last wrote of its presence, as the entry names it now. */
-  registryPresence:  ForgeRegistryPresence | null;
+  registryPresence:    ForgeRegistryPresence | null;
   /** The presence a live forge serves, read at each change of its monitor snapshot; `null` for a forge not read in full. */
-  presenceReport:    ForgePresenceReport | null;
+  presenceReport:      ForgePresenceReport | null;
   /** The installed program's versions, read once per registry check that finds the forge's entry changed; `null` until read or unreadable. */
-  newestVersions:    ForgeNewestVersions | null;
+  newestVersions:      ForgeNewestVersions | null;
 }

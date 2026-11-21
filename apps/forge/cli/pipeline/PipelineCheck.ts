@@ -1,4 +1,4 @@
-/** `pipeline check <S>` asks the Overseer to run the gates the draft changes or adds two times, and to send the result to the agent. */
+/** `pipeline check <S>` asks Hephaestus to run the gates the draft changes or adds two times, and to send the result to the agent. */
 import type { CommandContext }          from '../CommandContext.ts';
 import type { ArgumentParser }          from '../arguments/ArgumentParser.ts';
 import { applySetupCommand, setupIdOf } from './SetupCommandLine.ts';

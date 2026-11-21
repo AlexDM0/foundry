@@ -1,5 +1,5 @@
 /**
- * `advise` opens an advise record on the stored pipeline and records its pipeline agent job, which the Overseer launches on a main-line
+ * `advise` opens an advise record on the stored pipeline and records its pipeline agent job, which Hephaestus launches on a main-line
  * snapshot to propose edits of the record's draft.
  */
 import { PRODUCT_NAMES }       from '../../src/shared/constants/ProductNames.ts';
@@ -20,6 +20,6 @@ export const adviseCommand: CommandHandler = async (commandArguments, context) =
   const { setup, logged } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const jobId = setup.agentJobId ?? '';
   OutputUtil.printEntity(commandArguments, context, { setupId: setup.setupId, jobId, logged }, OutputUtil.loggedSentencesOf(logged));
-  context.standardError(`The Overseer launches the pipeline agent of job ${jobId} for pipeline setup ${setup.setupId}; follow it with `
+  context.standardError(`Hephaestus launches the pipeline agent of job ${jobId} for pipeline setup ${setup.setupId}; follow it with `
     + `\`${PROGRAM} job attach ${jobId}\`.`);
 };

@@ -1,6 +1,6 @@
 /**
  * What the ingestion refuses to believe, read through a real file as every command reads it: absent is never unreadable, every malformed
- * field is named, a future version is refused, and a version 2 file carries no log over.
+ * field is named, a future version is refused, and a version 3 file carries no log over.
  */
 import { writeFileSync }          from 'node:fs';
 import { join }                   from 'node:path';
@@ -46,12 +46,12 @@ test('a file that is not JSON is unreadable and says so', () => {
 });
 
 test('a document from a future format version is refused rather than half-read', () => {
-  const result = readBack('store-future-version', { ...emptyDocument(), version: 3 });
+  const result = readBack('store-future-version', { ...emptyDocument(), version: 4 });
   expect(result.verdict).toBe('unreadable');
-  expect(result.verdict === 'unreadable' ? result.reason : '').toStartWith('version is 3, ');
+  expect(result.verdict === 'unreadable' ? result.reason : '').toStartWith('version is 4, ');
 });
 
-test('the model read from a version 2 file holds neither the format\'s version nor a log', () => {
+test('the model read from a version 3 file holds neither the format\'s version nor a log', () => {
   const result = readBack('store-model-keys', emptyDocument());
   if (result.verdict !== 'readable') throw new Error(`expected a readable file, got ${JSON.stringify(result)}`);
   expect(Object.keys(result.progress)).toEqual(Object.keys(emptyProgress()));
@@ -117,7 +117,7 @@ test('every other missing or mistyped field is named too', () => {
     { prefix: 'store-no-started-at', document: { ...progress, startedAt: undefined }, named: 'startedAt' },
     { prefix: 'store-bad-view', document: { ...progress, view: { kind: 'sliding' } }, named: 'view' },
     { prefix: 'store-tasks-not-array', document: { ...progress, tasks: {} }, named: 'tasks' },
-    { prefix: 'store-version-two-with-log', document: { ...progress, log: [] }, named: 'log is present, and a version 2 file keeps its log in log.jsonl' },
+    { prefix: 'store-version-two-with-log', document: { ...progress, log: [] }, named: 'log is present, and a version 3 file keeps its log in log.jsonl' },
     { prefix: 'store-task-id', document: { ...progress, tasks: [{ ...progress.tasks[0], id: '1' }] }, named: 'tasks[0].id' },
     { prefix: 'store-task-start', document: { ...progress, tasks: [{ ...progress.tasks[0], start: 17 }] }, named: 'tasks[0].start' },
     { prefix: 'store-task-ticket', document: { ...progress, tasks: [{ ...progress.tasks[0], ticket: 3 }] }, named: 'tasks[0].ticket' },

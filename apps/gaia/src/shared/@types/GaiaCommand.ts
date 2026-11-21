@@ -1,7 +1,7 @@
 /** One command Gaia carries out (PLAN 8.2), mapped in from the page's command document. Internal only, so it carries no version. */
 import type { GaiaSettings } from './GaiaSettings.ts';
 
-/** Whether a stop leaves the running agents to the Overseer's stop, or stops them first. */
+/** Whether a stop leaves the running agents to Hephaestus's stop, or stops them first. */
 export type ForgeStopAgents = 'keep' | 'stop-first';
 
 /** What the chooser of `path-choose` lets User pick. */

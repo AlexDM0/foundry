@@ -1,6 +1,6 @@
 /**
  * The catalogue of installed files. The cases that matter: the session instructions, the reference and the instruction defaults in the
- * git-ignored tracker directory, where the SessionStart hook, the skills and the Overseer read them, and the install manifest beside what
+ * git-ignored tracker directory, where the SessionStart hook, the skills and Hephaestus read them, and the install manifest beside what
  * it versions; and every path absolute under the root it was given, since `init` and `update` print them.
  */
 import {

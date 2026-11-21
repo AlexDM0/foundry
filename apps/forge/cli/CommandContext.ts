@@ -20,11 +20,11 @@ import {
   hatchDirectory,
   hatchReplyIntervalOverride,
   launchingProgram,
-  overseerJobId
+  hephaestusJobId
 } from '../src/shared/Environment.ts';
 import { PLATFORM_HOST_FACTS }                                  from '../src/shared/PlatformHostFacts.ts';
 import { ToolRuntimeUtil }                                      from '../src/shared/ToolRuntimeUtil.ts';
-import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES } from '../src/shared/constants/OverseerLimits.ts';
+import { HATCH_REPLY_INTERVAL_MILLISECONDS, HATCH_REPLY_TRIES } from '../src/shared/constants/HephaestusLimits.ts';
 import {
   DEFAULT_FAKE_AGENT_STEPS,
   fakeAgentAdapter,
@@ -57,15 +57,15 @@ export interface CommandContext {
   temporaryDirectories:    readonly string[];
   /** The verb `cli/Main.ts` dispatched, such as `ticket hold`, which the monitor registry records; empty before the dispatch. */
   commandVerb:             string;
-  /** Present only when the Overseer launched this process for a job: then a mutating verb relays rather than opening the tracker. */
+  /** Present only when Hephaestus launched this process for a job: then a mutating verb relays rather than opening the tracker. */
   job?:                    JobContext;
-  /** The runtime and the entry point this process was started with, which `oversee --detach` starts again with the Overseer's arguments. */
+  /** The runtime and the entry point this process was started with, which `start` starts again with Hephaestus's arguments. */
   programCommand:          readonly string[];
   /** The absolute path of the program User runs: the compiled launcher that started this process, else its entry point. */
   programPath:             string;
-  /** Calls `listener` on each of the platform's stop signals, which a foreground Overseer takes as a stop; returns the unsubscribe. */
+  /** Calls `listener` on each of the platform's stop signals, which a foreground Hephaestus takes as a stop; returns the unsubscribe. */
   onStopSignal:            (listener: () => void) => () => void;
-  /** What the Overseer launches its sessions through: the agent port's adapter, or the scripted fake agent under the fake-agent switch. */
+  /** What Hephaestus launches its sessions through: the agent port's adapter, or the scripted fake agent under the fake-agent switch. */
   agentAdapter:            AgentAdapter;
 }
 
@@ -107,9 +107,9 @@ export interface JobContext {
   replyIntervalMilliseconds: number;
 }
 
-/** Both getters set, or no job: one alone is a session the Overseer did not launch whole, which runs as any other process does. */
+/** Both getters set, or no job: one alone is a session Hephaestus did not launch whole, which runs as any other process does. */
 function jobContextOfThisProcess(): JobContext | undefined {
-  const jobId          = overseerJobId();
+  const jobId          = hephaestusJobId();
   const hatchFolder    = hatchDirectory();
   if (jobId === undefined || hatchFolder === undefined) return undefined;
   return {

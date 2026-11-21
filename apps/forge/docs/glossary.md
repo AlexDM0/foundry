@@ -12,13 +12,13 @@
 eleven capitalised names sit on one ticket's path, and the rest act beside it. Learn where each one sits and most other
 words follow.
 
-Most of the eleven names sit on one path from User to the main line. User works through a client of the API. Inside the
-Overseer the Pass runs the Playbook and has Talos run a session, whose requests pass the Hatch and the Bouncer and whose
+Most of the eleven names sit on one path from User to the main line. User works through a client of the API. Inside
+Hephaestus the Pass runs the Playbook and has Talos run a session, whose requests pass the Hatch and the Bouncer and whose
 result passes Customs and the Airlock. Beside that path the Assistant takes incidents, and the Baton and Regrouping act
-across Overseer restarts.
+across Hephaestus restarts.
 
 A [session](#session) never touches the board directly: what it sends through the Hatch passes the Bouncer, and what it
-says in its event stream and final report is read by the Overseer and checked by Customs. Gates and reviews are left out
+says in its event stream and final report is read by Hephaestus and checked by Customs. Gates and reviews are left out
 of this path to keep it short.
 
 Several words mean different things in different places: pass, slot, draft, hold and others. If a word could mean two
@@ -69,26 +69,26 @@ Read the row that fits the context. Component names are capitalised, like the el
 
 | Word | Meaning | How to recognise it |
 | --- | --- | --- |
-| **pass** | the [Pass](#pass), the Overseer's loop | capitalised; `runOnePass`, `passes` |
+| **pass** | the [Pass](#pass), Hephaestus's loop | capitalised; `runOnePass`, `passes` |
 | | a [failed pass](#failed-pass), a bound on a ticket's jobs | only in "failed pass"; `FailedPassUtil`, `FAILED_PASSES_BEFORE_PARKING` |
 | | a review pass, the same thing as a [review round](#review-round) | code comments, `reviewPassCount`; this documentation says review round |
-| | a [Baton pass](#baton-pass), the Overseer hand-over | `src/services/overseer/BatonPass.ts` |
-| | the red-handoff note, `gate-failure.md` | "The Baton pass is in ..." in `RedHandoffMessage.md`; `batonPass` in `RedHandoff.ts`. No Overseer hand-over is involved |
+| | a [Baton pass](#baton-pass), the Hephaestus hand-over | `src/services/hephaestus/BatonPass.ts` |
+| | the red-handoff note, `gate-failure.md` | "The Baton pass is in ..." in `RedHandoffMessage.md`; `batonPass` in `RedHandoff.ts`. No Hephaestus hand-over is involved |
 | **phase** | a [gate phase](#gate-phase): `build`, `review` or `merge` | `phases` in `pipeline.json`, `greenPhase` on a row, `GatePhase` |
 | | an Airlock phase, how far a merge, refresh or constitution commit job is | `airlock.phase`: `merge-in` … `landing`, `AirlockPhase` |
 | | a setup step of a [setup record](#setup-record) | `stepStates`, `currentStep`: `billing` … `apply` |
 | **draft** | a [filing draft](#filing-draft), `D<n>` | `draft` verbs; no status, no [row](#row) |
 | | a [draft ticket](#draft-ticket), status `draft` | `#003`; a real ticket, not yet ready |
-| **slot** | a [launch slot](#launch-slot) | `LaunchSlotUtil` counts build and review jobs; the Overseer launches by this, and `status` and the [Next line](#next-line) print it |
+| **slot** | a [launch slot](#launch-slot) | `LaunchSlotUtil` counts build and review jobs; Hephaestus launches by this, and `status` and the [Next line](#next-line) print it |
 | | an [Airlock slot](#airlock-slot), one per [target](#target) | `slotHolderOf`, `Job.airlock`; held by a merge or refresh job |
 | | a [gate slot](#gate-slot), machine-wide | files in `<monitor>/gate-slots/` |
 | | an [epic colour slot](#epic-colour-slot) | the stored `slot` field, set at `epic add`; a colour, no capacity |
-| **orchestrator** | the optional interactive wrapper session | the skill `forge-orchestrate` around a running Overseer; the only use in these documents |
+| **orchestrator** | the optional interactive wrapper session | the skill `forge-orchestrate` around a running Hephaestus; the only use in these documents |
 | | the Assistant, in surviving comments | `UsageMarkerFile.ts`, `ControlCommand.ts`: read as "Assistant" |
 | **dispatch** | launching jobs; no dispatcher exists in this build | surviving names: `cli/dispatch/concurrency/`, `DISPATCH_PROTOCOL`, `DispatchQueries`, `dispatchCapacity` |
 | | a retired stored record | the `dispatcher-set` log kind, read so an older log stays readable |
 | **fixer** | a review's move | `fixer` in `settleReviewPass`: job ends `does-not-hold`, the ticket goes back to a builder |
-| **render** | assembling the page payload | `assemblePagePayload`; the Overseer sends it inside `BoardState` |
+| **render** | assembling the page payload | `assemblePagePayload`; Hephaestus sends it inside `BoardState` |
 | | no command | there is no `render` verb, and no command rebuilds a page |
 | **page** | the payload of a client's board view; forge serves no page | `AssembledPagePayload`, the `page` field of `BoardState` |
 | **claim** | a report claim | the [builder](#builder) report's `gates`, the [reviewer](#reviewer) report's `claims`; never trusted |
@@ -97,19 +97,19 @@ Read the row that fits the context. Component names are capitalised, like the el
 | | a filing-draft claim | `DraftClaim`: who holds the draft |
 | **alive** | a live Baton | `BatonReading` verdict `live`: the newest generation names a running process |
 | | a live child | `ChildLiveness`: `unlaunched` before Talos launched it, `live` while its child record says it runs, `ended` once Talos recorded its end, `lost` when its record cannot be read or says ended with no end |
-| | an agent | no verdict of its own: read through its child, and `agent-crashed` or `watcher-lost` says which died |
+| | an agent | no verdict of its own: read through its child, and `agent-crashed` or `talos-lost` says which died |
 | **hold** | a [ticket hold](#ticket-hold) | frontmatter `hold`, such as `parked:<cause>` |
 | | a [lock hold](#lock-hold) | one write of the store's local adapter (one `writeTracker` run), as in "in the same hold" |
 | | an [install hold](#install-hold) | the runtime state `held-by-install-change` |
 | | a review that does not hold | job outcome `does-not-hold`: the review sent the build back; nothing is held |
 | **finding** | a recorded review finding | `ReviewFinding`, in a `review-recorded` record |
 | | a filed finding | a low ticket a job filed through its Hatch, waiting in `dependsOn` for the ticket that found it |
-| **sweep** | the Overseer's timed [wake](#wake) | `OVERSEER_SWEEP_SECONDS`, `DataFolderWatch`; "silent sweeps" (`silentSweepsOf`) counts those a job's [cursor](#cursor) stood still for |
+| **sweep** | Hephaestus's timed [wake](#wake) | `HEPHAESTUS_SWEEP_SECONDS`, `DataFolderWatch`; "silent sweeps" (`silentSweepsOf`) counts those a job's [cursor](#cursor) stood still for |
 | | the [Airlock sweep](#airlock-sweep), a step inside a Pass | `airlocks.sweep` |
 | **marker** | the [usage marker](#usage-marker) | `<monitor>/usage-limit.json` |
-| | a delivery marker | `.sent` and `.delivered` files in a job folder; each says a line went out, written after Talos took it, so an Overseer that dies in between sends it again: at least once |
+| | a delivery marker | `.sent` and `.delivered` files in a job folder; each says a line went out, written after Talos took it, so a Hephaestus that dies in between sends it again: at least once |
 | | an [install marker](#install-marker) | `session-instructions.md`: its presence tells the version check an install exists |
-| **request** | a Hatch request | `<worktrees>/hatch/J<n>/requests/<requestId>.json`, a session's file for the Overseer |
+| **request** | a Hatch request | `<worktrees>/hatch/J<n>/requests/<requestId>.json`, a session's file for Hephaestus |
 | | a question request | one `AskUserQuestion` call; `requestId` on the decision or in the incident's facts |
 | **settled** | a job | ended, and out of `progress.json`; "unsettled jobs" are the stored ones |
 | | a ticket | `delivered` or `abandoned`, `SETTLED_TICKET_STATUSES` |
@@ -182,7 +182,7 @@ conversation itself matters.
 
 ### Airlock
 
-The code that lets one merge at a time into a [target](#target) and lands it, `src/services/overseer/Airlocks.ts`.
+The code that lets one merge at a time into a [target](#target) and lands it, `src/services/hephaestus/Airlocks.ts`.
 
 ### Airlock phase
 
@@ -229,13 +229,13 @@ prompt. Every session runs in it, inside the other confinement layers.
 
 ### Baton
 
-A file `<data>/overseer/baton-<n>.json` created exclusively at each Overseer start. The newest
-[generation](#generation) decides: if it names a live process, that process is the Overseer; if not, no Overseer is
-running (`src/services/overseer/Baton.ts`).
+A file `<data>/hephaestus/baton-<n>.json` created exclusively at each Hephaestus start. The newest
+[generation](#generation) decides: if it names a live process, that process is Hephaestus; if not, no Hephaestus is
+running (`src/services/hephaestus/Baton.ts`).
 
 ### Baton pass
 
-The hand-over from a running Overseer to its successor, `src/services/overseer/BatonPass.ts`, with no restart of
+The hand-over from a running Hephaestus to its successor, `src/services/hephaestus/BatonPass.ts`, with no restart of
 Talos or its children. The red-handoff text uses the same words for something else: see [Words that mean several
 things](#words-that-mean-several-things).
 
@@ -374,7 +374,7 @@ next delivery goes to a new one (`deliverIncidentsWhenIdle`).
 ### control command
 
 One typed change to a board, `ControlCommand` in `src/shared/@types/ControlCommand.ts`. A verb, a [relayed
-command](#relayed-command) and the Overseer's API all reach the same code through it. A control of a client of the API
+command](#relayed-command) and Hephaestus's API all reach the same code through it. A control of a client of the API
 sends one.
 
 ### crash bound
@@ -389,7 +389,7 @@ A [resume](#resume) after an interruption with a crash cause that User did not i
 
 ### cursor
 
-`Job.eventCursor`, the last event of the job's child the Overseer applied, as instance and sequence, written in the [lock
+`Job.eventCursor`, the last event of the job's child Hephaestus applied, as instance and sequence, written in the [lock
 hold](#lock-hold) that applied it. The job stream's transcript cursor is a separate value.
 
 ### Customs
@@ -451,8 +451,8 @@ A bug naming a delivered ticket in its [introducedBy](#introducedby) field, coun
 
 ### event broker
 
-`EventBroker`, one per Overseer generation, which holds the event ids and replay buffer of `GET /api/events`. Home:
-[Overseer API](reference/overseer-api.md).
+`EventBroker`, one per Hephaestus generation, which holds the event ids and replay buffer of `GET /api/events`. Home:
+[Hephaestus API](reference/hephaestus-api.md).
 
 ### event log
 
@@ -567,8 +567,8 @@ the folders of a stage of a job of an entity.
 
 ### Handoff
 
-The `## Handoff` section of a ticket, which the Overseer writes from the `handoff` field of the builder's
-[report](#report). In lower case, a handoff is the moment a session ends and the Overseer verifies what it left and
+The `## Handoff` section of a ticket, which Hephaestus writes from the `handoff` field of the builder's
+[report](#report). In lower case, a handoff is the moment a session ends and Hephaestus verifies what it left and
 writes that section.
 
 ### handoff cycle
@@ -598,7 +598,7 @@ Operational trouble addressed to the Assistant, `I<n>`, with a default move if n
 
 ### install hold
 
-The state in which an Overseer launches and resumes nothing because the [install version](#install-version) changed
+The state in which a Hephaestus launches and resumes nothing because the [install version](#install-version) changed
 under it, runtime state `held-by-install-change`. Its API answers most commands 423. A [Baton pass](#baton-pass) ends
 it.
 
@@ -670,7 +670,7 @@ session and its model and effort (`lastWorkerOf`).
 
 Room for one more build or review job under the [concurrency limit](#concurrency-limit), counted from jobs by
 `LaunchSlotUtil`: the Playbook's `freeSlotsOf`, `status`, the [Next line](#next-line) and the served board state all read
-this one count. The Overseer serves which jobs hold one as `launchSlots` in `BoardState`.
+this one count. Hephaestus serves which jobs hold one as `launchSlots` in `BoardState`.
 
 ### liveness
 
@@ -748,7 +748,7 @@ slots](#launch-slot) and ready tickets. Home: [CLI reference](cli.md).
 
 ### notice
 
-A warning the Overseer shows and nobody answers (`OverseerNotice`), such as `dirty-main-checkout`.
+A warning Hephaestus shows and nobody answers (`HephaestusNotice`), such as `dirty-main-checkout`.
 
 ### orchestrator
 
@@ -760,9 +760,9 @@ things](#words-that-mean-several-things).
 Confinement the operating system enforces on a process. The vendor's sandbox holds a session's Bash and its children;
 [Seatbelt](#seatbelt) holds gate, prepare and install processes.
 
-### Overseer
+### Hephaestus
 
-The one long-running process that owns a board, started by `forge oversee`. Its [Pass](#pass) launches every
+The one long-running process that owns a board, started by `forge start`. Its [Pass](#pass) launches every
 job.
 
 ### own row
@@ -782,7 +782,7 @@ park` verb both do this.
 
 ### Pass
 
-One turn of the Overseer's loop, `runOnePass` in `src/services/overseer/DrivePass.ts`: observe, apply, run the
+One turn of Hephaestus's loop, `runOnePass` in `src/services/hephaestus/DrivePass.ts`: observe, apply, run the
 [Playbook](#playbook), then act.
 
 ### pipeline
@@ -804,7 +804,7 @@ fresh worktree of the main line, its result sent to the [pipeline agent](#pipeli
 
 ### Playbook
 
-The pure function that derives what runs next from the board and the Overseer's observations,
+The pure function that derives what runs next from the board and Hephaestus's observations,
 `src/lib/tracker-model/Playbook.ts`. It reads no clock, file or process.
 
 ### pipeline-step-ran
@@ -861,7 +861,7 @@ A handoff whose gate or Customs check went red (`handoff-red`). The same session
 ### red-handoff note
 
 `gate-failure.md`, the note a [red handoff](#red-handoff) leaves for the resumed session (`RedHandoff.ts`). Its text
-says Baton pass, which here means no Overseer hand-over.
+says Baton pass, which here means no Hephaestus hand-over.
 
 ### refresh
 
@@ -874,12 +874,12 @@ Board rule. Home: [Refusals](reference/refusals.md).
 
 ### Regrouping
 
-What a starting Overseer does before its first Pass: it connects to its board's [Talos](#talos), or starts one, reads
-each job's child from its [cursor](#cursor) on, and cleans up what died (`src/services/overseer/Regrouping.ts`).
+What a starting Hephaestus does before its first Pass: it connects to its board's [Talos](#talos), or starts one, reads
+each job's child from its [cursor](#cursor) on, and cleans up what died (`src/services/hephaestus/Regrouping.ts`).
 
 ### relayed command
 
-A verb run inside a job that travels through the job's [Hatch](#hatch) and is applied by the Overseer (`jobRouteOf`
+A verb run inside a job that travels through the job's [Hatch](#hatch) and is applied by Hephaestus (`jobRouteOf`
 answers `relayed`). The session never touches the board itself.
 
 ### release bundle
@@ -1040,31 +1040,31 @@ running holder as gone, the [fence](#fence) stops that holder's writes.
 
 ### standing reply
 
-A rule that lets Talos answer a line on the session's stdout without the Overseer (`StandingReply`). A line no
-rule matches waits for the Overseer.
+A rule that lets Talos answer a line on the session's stdout without Hephaestus (`StandingReply`). A line no
+rule matches waits for Hephaestus.
 
 ### successor
 
-The Overseer that follows another, on the code on disk: in a [Baton pass](#baton-pass), or after one died.
+The Hephaestus that follows another, on the code on disk: in a [Baton pass](#baton-pass), or after one died.
 
 ### supervision lease
 
-How long [Talos](#talos) lets the board's agents run without an Overseer: one minute, renewed every 15 seconds from the
-Overseer's main loop and only while its [Passes](#pass) make progress (`LeaseRenewal.ts`). When it ends, Talos asks
+How long [Talos](#talos) lets the board's agents run without a Hephaestus: one minute, renewed every 15 seconds from
+Hephaestus's main loop and only while its [Passes](#pass) make progress (`LeaseRenewal.ts`). When it ends, Talos asks
 every agent to quit at the end of its turn and the jobs wait, interrupted `lease-ended`, for User's resume. After a gap
 in Talos's ticks, such as a sleep, it ends no sooner than one renewal interval later. Lines are never stopped by it.
 
 ### sweep
 
-The Overseer's timed backstop [wake](#wake) (`OVERSEER_SWEEP_SECONDS`). A job's silent sweeps count those its
+Hephaestus's timed backstop [wake](#wake) (`HEPHAESTUS_SWEEP_SECONDS`). A job's silent sweeps count those its
 [cursor](#cursor) stood still for. It differs from the [Airlock sweep](#airlock-sweep).
 
 ### Talos
 
 The board's one detached supervisor of children, `talos.ts` and `src/lib/talos/Talos.ts`, with a protocol version of its
-own (`TALOS_PROTOCOL_VERSION`). The Overseer starts it once per board and talks to it over a local socket in
+own (`TALOS_PROTOCOL_VERSION`). Hephaestus starts it once per board and talks to it over a local socket in
 [frames](#frame); it runs every agent session and every install, prepare, gate and merge line, records each in a [child
-record](#child-record) and an event log, and outlives the Overseer. It holds the [supervision
+record](#child-record) and an event log, and outlives Hephaestus. It holds the [supervision
 lease](#supervision-lease), bounds every install, prepare and gate line to 15 minutes of awake time, recognises an
 agent's ending on a network outage, and ends by a [clean quit](#clean-quit). Its files are in `<data>/talos/`.
 
@@ -1096,7 +1096,7 @@ first run left.
 
 ### undriven gap
 
-The moment in a [Baton pass](#baton-pass) when neither Overseer drives the board: the old one closed its listener and
+The moment in a [Baton pass](#baton-pass) when neither Hephaestus drives the board: the old one closed its listener and
 the successor has not claimed. Talos and its children run through it.
 
 ### usage marker
@@ -1124,7 +1124,7 @@ The pure data a client's view renders, derived from the board document by the cl
 ### waiver
 
 Dropping an Acceptance item: a session proposes it and a `waiver` [decision](#decision) asks User. An item written
-`A<n>. Waived: <reason>` is waived. The Overseer's next [Pass](#pass) after User's answer applies it.
+`A<n>. Waived: <reason>` is waived. Hephaestus's next [Pass](#pass) after User's answer applies it.
 
 ### wake
 
@@ -1133,8 +1133,7 @@ A request for a [Pass](#pass), `DrivePass.wake`. Wakes during a Pass add exactly
 
 ### Watcher
 
-The retired name of the per-session process [Talos](#talos) replaced. Dated records and the stored interruption cause
-`watcher-lost` still carry the word; the cause keeps its value until the rename.
+The retired name of the per-session process [Talos](#talos) replaced. Dated records still carry the word.
 
 ### wave
 

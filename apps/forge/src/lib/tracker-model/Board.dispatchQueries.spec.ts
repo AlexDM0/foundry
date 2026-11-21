@@ -401,7 +401,7 @@ describe('the concurrency figure', () => {
         view:             { kind: 'auto' },
         nextTaskId:       2,
         concurrencyLimit: 4,
-        overseerState:    'running',
+        hephaestusState:  'running',
         nextJobId:        4,
         jobs:             [
           { ...LIVE_ASSISTANT },

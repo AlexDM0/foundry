@@ -2,8 +2,8 @@
  * A verified and gated review pass settled by code on recorded git scenarios and a Board in memory. What matters: the rework
  * is counted from the review's start, the `## Review <round>` and the record are code's, a pass that changed nothing is committed by code,
  * and each outcome makes its one move: a failed claim back to a fixer, a granted round to a fresh reviewer the policy launches, a refused
- * round to the merge queue with its notice, and a waiver proposal to User. User's answer is only recorded, as it is with the Overseer down;
- * the Overseer's next pass acts on it: a grant writes the waived item and a refusal is a failed pass. A grant whose
+ * round to the merge queue with its notice, and a waiver proposal to User. User's answer is only recorded, as it is with Hephaestus down;
+ * Hephaestus's next pass acts on it: a grant writes the waived item and a refusal is a failed pass. A grant whose
  * stored proposals are gone, cut short or of another shape waives nothing and fails closed as a failed pass. The board's
  * pipeline sets the rework threshold: a review with no re-review grants no round at any rework, and its `thresholdLines` is honoured.
  * Each branch state is a scenario `src/lib/git/RecordedGitScenarios.integration.spec.ts` records with real git; a call
@@ -86,7 +86,7 @@ function newBoard(
     view:             { kind: 'auto' },
     nextTaskId:       1,
     concurrencyLimit: 2,
-    overseerState:    'running',
+    hephaestusState:  'running',
     tasks:            [],
   };
   const ticket: Ticket = {
@@ -122,7 +122,7 @@ function newBoard(
   });
 }
 
-/** A review job of the round, standing in `gating` with its review bar, as the Overseer leaves it once the gate passed. */
+/** A review job of the round, standing in `gating` with its review bar, as Hephaestus leaves it once the gate passed. */
 function reviewJobAtRound(round: number): string {
   const launched = board.launchJob({
     kind: 'review', role: 'reviewer', ticketIds: ['001'], parentJobId: null, attempt: round, target
@@ -160,7 +160,7 @@ function settle(jobId: string, reviewerReport: Record<string, unknown>) {
     limits:            LIFECYCLE_LIMITS,
     decisionWordingOf: (_draft: DecisionDraft) => WORDING,
   };
-  // As the Overseer's hold does once the gate passed on the tree.
+  // As Hephaestus's hold does once the gate passed on the tree.
   board.recordPipelineJudgedBy('001', GATED_TREE, board.gateRunStampOf('review'), AT);
   return ReviewOutcome.settleReviewPass(request);
 }
@@ -186,7 +186,7 @@ function followThePlaybook(): ReturnType<Board['followPlaybook']> {
   }, () => WORDING);
 }
 
-/** User's answer is recorded as `decide` records it; the Overseer's next pass acts on each answer its Playbook names, on `headTree`. */
+/** User's answer is recorded as `decide` records it; Hephaestus's next pass acts on each answer its Playbook names, on `headTree`. */
 function answerTheWaiver(answer: string, headTree: string): void {
   const [decision] = board.decisions();
   board.answerDecision(decision?.id ?? '', [answer], AT);

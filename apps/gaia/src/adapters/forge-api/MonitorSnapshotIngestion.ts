@@ -10,7 +10,7 @@ import type {
   MonitorConcurrencyDocument,
   MonitorJobDocument,
   MonitorNoticeDocument,
-  MonitorOverseerDocument,
+  MonitorHephaestusDocument,
   MonitorSnapshotDocument,
   MonitorTodayDocument,
   MonitorUsageDocument,
@@ -31,14 +31,14 @@ const NULLABLE_TEXT = { nullable: 'text' } as const;
 const NULLABLE_WHOLE_NUMBER = { nullable: 'whole-number' } as const;
 const TARGET_OBJECT = { object: TARGET_SHAPE } as const;
 
-const OVERSEER_SHAPE = {
+const HEPHAESTUS_SHAPE = {
   state:       { oneOf: ['serving', 'held-by-install-change', 'passing-baton'] },
   paused:      'boolean',
   url:         'text',
   processId:   'whole-number',
   startedAt:   'text',
   codeVersion: 'text',
-} as const satisfies ShapeOf<MonitorOverseerDocument>;
+} as const satisfies ShapeOf<MonitorHephaestusDocument>;
 
 const CONCURRENCY_SHAPE = {
   limit:                        'whole-number',
@@ -118,7 +118,7 @@ const MONITOR_SNAPSHOT_SHAPE = {
   trackerId:      'text',
   project:        'text',
   root:           'text',
-  overseer:       { object: OVERSEER_SHAPE },
+  hephaestus:     { object: HEPHAESTUS_SHAPE },
   concurrency:    { object: CONCURRENCY_SHAPE },
   readyTicketIds: 'text-list',
   openIncidents:  'whole-number',

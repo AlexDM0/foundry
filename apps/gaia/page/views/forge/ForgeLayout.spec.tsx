@@ -1,7 +1,7 @@
 /**
  * A forge in place laid out from its model. What matters (SCREENS B1 and B2): the bar shows Pause or Unpause, Stop and Open in new tab as
- * the forge's condition allows; Stop opens its question under the button and sends `forge-stop` with `agents: 'keep'` for "Stop the
- * Overseer only" and `stop-first` for the other choice; while a command to the forge is on its way every control of the bar is disabled;
+ * the forge's condition allows; Stop opens its question under the button and sends `forge-stop` with `agents: 'keep'` for "Stop
+ * Hephaestus only" and `stop-first` for the other choice; while a command to the forge is on its way every control of the bar is disabled;
  * a forge whose control contract Gaia does not know keeps only Open in new tab; a refusal shows the forge's code and sentence with Try
  * again only where the command can be sent again as it was. Where no board shows, the area says Gaia cannot read the forge's board,
  * with no way to open its own Bridge, or that the registry names no such forge.
@@ -107,7 +107,7 @@ describe('the bar\'s controls', () => {
   });
 
   test('a forge whose control contract Gaia does not know keeps only Open in new tab', () => {
-    const newerControl = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } };
+    const newerControl = { ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 4 } };
     const { unfolded } = controlsOf({ bar: barOf(newerControl), stopIsOpen: true });
     expect(buttonsIn(unfolded).map((button) => [PackageButtons.labelOf(button), button.props['disabled']])).toEqual([
       ['Pause', true], ['Stop', true], ['Open in new tab', false],
@@ -124,7 +124,7 @@ describe('the bar\'s controls', () => {
 });
 
 describe('the Stop question as a popover under its button (B2)', () => {
-  test('asks about the forge, offers both choices with "Stop the Overseer only" chosen, and says what keeps waiting', () => {
+  test('asks about the forge, offers both choices with "Stop Hephaestus only" chosen, and says what keeps waiting', () => {
     const { unfolded } = controlsOf({ stopIsOpen: true });
     const popover = tree.onlyOfComponent(unfolded, Popover);
     expect(tree.onlyWithClass(unfolded, 'gaia-forge-frame-stop').children).toContain(popover);
@@ -132,14 +132,14 @@ describe('the Stop question as a popover under its button (B2)', () => {
     const strip = tree.onlyOfComponent([popover], ConfirmStrip);
     expect(['label', 'question', 'consequence'].map((propName) => strip.props[propName])).toEqual([
       'Stop Example Storefront',
-      'Stop the Overseer of Example Storefront? 4 agents are running.',
+      'Stop Hephaestus of Example Storefront? 4 agents are running.',
       '2 entries keep waiting on you while it is stopped.',
     ]);
     const choices = choicesIn(popover);
-    expect(choices.map((choice) => [choice.label, choice.input?.props.checked])).toEqual([['Stop the Overseer only', true], ['Stop the agents, then the Overseer', false]]);
+    expect(choices.map((choice) => [choice.label, choice.input?.props.checked])).toEqual([['Stop Hephaestus only', true], ['Stop the agents, then Hephaestus', false]]);
   });
 
-  test('"Stop the Overseer only" sends forge-stop keeping the agents, and the other choice is handed on', () => {
+  test('"Stop Hephaestus only" sends forge-stop keeping the agents, and the other choice is handed on', () => {
     const { unfolded, sent, events } = controlsOf({ stopIsOpen: true });
     const popover = tree.onlyOfComponent(unfolded, Popover);
     const [, stopFirst] = choicesIn(popover);
@@ -151,13 +151,13 @@ describe('the Stop question as a popover under its button (B2)', () => {
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'keep' }]);
   });
 
-  test('with "Stop the agents, then the Overseer" chosen, Stop sends stop-first', () => {
+  test('with "Stop the agents, then Hephaestus" chosen, Stop sends stop-first', () => {
     const { unfolded, sent } = controlsOf({ stopIsOpen: true, stopAgents: 'stop-first' });
     PackageButtons.press(buttonNamed([tree.onlyOfComponent(unfolded, Popover)], 'Stop'));
     expect(sent).toEqual([{ kind: 'forge-stop', trackerId: STOREFRONT.trackerId, agents: 'stop-first' }]);
   });
 
-  test('with no agent running the question has no choices and Stop keeps the Overseer\'s agents, of which there are none', () => {
+  test('with no agent running the question has no choices and Stop keeps Hephaestus\'s agents, of which there are none', () => {
     const idle = barOf({ ...STOREFRONT, concurrency: null, agents: [] });
     const { unfolded, sent } = controlsOf({ bar: idle, stopIsOpen: true, stopAgents: 'stop-first' });
     const popover = tree.onlyOfComponent(unfolded, Popover);
@@ -169,7 +169,7 @@ describe('the Stop question as a popover under its button (B2)', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.', forges: []
+    answerVersion: 3, outcome: 'refused', refusal: 'hephaestus-still-live', text: 'Hephaestus did not stop within its tries.', forges: []
   } as const;
 
   test('shows the forge\'s code and sentence, with no Try again for Stop, and dismisses', () => {
@@ -180,7 +180,7 @@ describe('a refusal under the bar', () => {
       dismissed += 1;
     }} />);
     const failedAction = FailedActions.onlyFailedActionIn(unfolded);
-    expect(FailedActions.wordsOf(failedAction)).toEqual(['The forge refused Stop: ', 'overseer-still-live', 'The Overseer did not stop within its tries.']);
+    expect(FailedActions.wordsOf(failedAction)).toEqual(['The forge refused Stop: ', 'hephaestus-still-live', 'Hephaestus did not stop within its tries.']);
     expect([failedAction.props['retryLabel'], failedAction.props['onRetry'], failedAction.props['dismissLabel']]).toEqual([undefined, undefined, 'Dismiss this refusal']);
     tree.dispatch(failedAction, 'onDismiss');
     expect(dismissed).toBe(1);

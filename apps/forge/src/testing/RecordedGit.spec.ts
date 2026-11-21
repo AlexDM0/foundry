@@ -14,7 +14,7 @@ import {
 } from 'bun:test';
 
 import { GitProcess }                                     from '../lib/git/GitProcess.ts';
-import { GpgDirectories }                                 from '../services/overseer/GpgDirectories.ts';
+import { GpgDirectories }                                 from '../services/hephaestus/GpgDirectories.ts';
 import * as RecordedGitModule                             from './RecordedGit.ts';
 import { useRecordedGit }                                 from './RecordedGit.ts';
 import { createScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';

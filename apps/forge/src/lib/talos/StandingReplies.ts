@@ -30,7 +30,7 @@ function valueAtDottedPath(record: Readonly<Record<string, unknown>>, dottedPath
 
 /**
  * The reply the first matching rule writes, or `null`: a line that is not a JSON object, matches no rule, or lacks the string at the
- * request identifier path its template needs is never answered, so whatever no rule names, a question above all, waits for the Overseer.
+ * request identifier path its template needs is never answered, so whatever no rule names, a question above all, waits for Hephaestus.
  */
 export function standingReplyFor(line: string, standingReplies: readonly StandingReply[]): string | null {
   return standingReplyForParsedLine(parsedObjectOf(line), standingReplies);

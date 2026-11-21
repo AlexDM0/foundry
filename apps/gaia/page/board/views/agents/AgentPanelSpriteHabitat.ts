@@ -35,7 +35,7 @@ export function agentPanelSpriteHabitatOf(copyTargetFor: () => SpriteCopyTarget 
       { when: ARRIVED_CUE, respond: 'wave', note: 'Wave to the agents.' },
       { when: AGENT_PANEL_CUES.AGENT_APPEARS, respond: 'wave', note: 'Wave to the agent that appeared.' },
       { when: AGENT_PANEL_CUES.AGENT_WORKS, respond: 'copy', note: 'Stand below the job column and copy the state of the agent.' },
-      { when: AGENT_PANEL_CUES.ALL_AGENTS_IDLE, respond: 'playbook', note: 'Every agent is idle while the Overseer serves.' },
+      { when: AGENT_PANEL_CUES.ALL_AGENTS_IDLE, respond: 'playbook', note: 'Every agent is idle while Hephaestus serves.' },
       { when: AGENT_PANEL_CUES.COPIED_JOB_LAUNCHES, respond: 'strike-spark', note: 'The agent Flint copies is launched.' },
       { when: AGENT_PANEL_CUES.COPIED_JOB_WINDS_DOWN, respond: 'wind-down', note: 'The agent Flint copies winds down.' },
       { when: AGENT_PANEL_CUES.GATE_FAILED, respond: 'gate-failed', note: 'A handoff went red at its gate or Customs check.' },

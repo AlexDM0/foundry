@@ -33,7 +33,7 @@ describe('historyOf', () => {
     expect(reading.entries).toEqual([{
       cursor:          '1.2',
       entryKey:        '1.2.0',
-      role:            'overseer',
+      role:            'hephaestus',
       text:            expect.stringContaining('suggest searches as the shopper types'),
       at:              expect.any(String),
       toolName:        null,
@@ -43,7 +43,7 @@ describe('historyOf', () => {
       model:           null,
       tokens:          null,
       clientAct:       'chat',
-      sentBy:          'overseer',
+      sentBy:          'hephaestus',
       chatSequence:    null,
       incidentIds:     [],
       pictures:        [{
@@ -66,7 +66,7 @@ describe('messageOf', () => {
   test('maps one entry, passing over a key Gaia does not read', async () => {
     const [entry] = await recordedHistoryData() as Record<string, unknown>[];
     const reading = INGESTION.messageOf({ ...entry, exampleAddedKey: true });
-    expect(reading.entry).toMatchObject({ cursor: '1.2', role: 'overseer', clientAct: 'chat' });
+    expect(reading.entry).toMatchObject({ cursor: '1.2', role: 'hephaestus', clientAct: 'chat' });
   });
 
   test('names a missing key', () => {

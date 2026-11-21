@@ -12,10 +12,10 @@ describe('a relay log line', () => {
 
   test('names both versions of a handshake that differs, and the keys of a board it could not read', () => {
     expect(BoardRelayLogUtil.lineOf({
-      kind: 'handshake-version-differs', trackerId: 'example', stream: '/api/v2/events', versionWatchRead: { major: 1, minor: 23 }, versionHandshakeNamed: null,
-    })).toBe('Gaia closed example\'s /api/v2/events: its handshake named version none, and the watch read 1.23.\n');
-    expect(BoardRelayLogUtil.lineOf({ kind: 'board-unreadable', trackerId: 'example', invalidKeys: ['overseer', 'jobs[0].id'] }))
-      .toBe('Gaia could not read example\'s board: overseer, jobs[0].id.\n');
+      kind: 'handshake-version-differs', trackerId: 'example', stream: '/api/v3/events', versionWatchRead: { major: 1, minor: 23 }, versionHandshakeNamed: null,
+    })).toBe('Gaia closed example\'s /api/v3/events: its handshake named version none, and the watch read 1.23.\n');
+    expect(BoardRelayLogUtil.lineOf({ kind: 'board-unreadable', trackerId: 'example', invalidKeys: ['hephaestus', 'jobs[0].id'] }))
+      .toBe('Gaia could not read example\'s board: hephaestus, jobs[0].id.\n');
   });
 
   test('names the keys of a presence it could not read the waiting work of', () => {

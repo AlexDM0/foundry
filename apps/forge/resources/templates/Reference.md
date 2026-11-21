@@ -5,7 +5,7 @@ itself and therefore never out of step with it. Run it when you need a flag you 
 nothing here repeats it.
 
 What is here is what the tool does not print: the ticket's fields and the Brief it carries, what each
-move does to the Gantt row, the jobs, decisions and incidents the Overseer keeps, how a finding travels, what a session
+move does to the Gantt row, the jobs, decisions and incidents Hephaestus keeps, how a finding travels, what a session
 under a job may run, where a review bar is drawn, how a row's tokens are credited, what counts against the limit,
 the time axis and the exit codes. `{{program}} init` and `update` install it as `{{dataFolder}}/reference.md` and
 rewrite it on every run, so a hand edit is undone; read it when a skill or a prompt sends you here, not before.
@@ -65,7 +65,7 @@ task: 17
 | `crosses` | only once set | the keys of the whitelisted packages intake expects the ticket to cross into, written `"design-system, contracts"` and read like `epics`: a forecast for the board, never what decides the stages. No verb sets it. |
 | `introducedBy` | only once named, on a bug | one ticket id, written `"005"`, read like a `dependsOn` entry: the delivered ticket whose change introduced the bug. Set it with `ticket add --introduced-by` or `ticket introduced-by`, which refuse a ticket that is not a bug and a cause that is missing, the ticket itself or not delivered; an empty cause removes it. |
 | `foundInReview` | only once named | one ticket id, written and read like `introducedBy`: the ticket whose review found this one. Set only at filing, with `ticket add --found-in-review`, which refuses a ticket that does not exist. |
-| `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by the Overseer from the Hatch folder's job, never from the request |
+| `filedByJob` | only on a ticket a job filed | the id of the job whose Hatch filed it, written `"J12"`, stamped by Hephaestus from the Hatch folder's job, never from the request |
 | `contentHash` | once the ticket was committed | the hash (64-bit FNV-1a, 16 hex digits) of the title and body kept when the ticket became committed, and moved by forge's own records in the body (the Handoff, a review, waived items, an answer); absent on a draft and on a ticket ready for review. The title and body read are always the kept ones, so a change of the file's text is undone at the next write. Any other value makes the file malformed. |
 | `task` | always | the row's id as an unquoted integer, or `null` for a draft, and for a low ticket filed before install version 17 and never started; a quoted `task` makes the file malformed |
 
@@ -108,10 +108,10 @@ ticket that builds carries both.
 ## The Brief template
 
 What only the filer knows goes into the `## Brief`, at the end of the ticket body when it is filed: where the work
-belongs, the facts its builder would otherwise go and discover, and the claims its reviewer is to test. The Overseer
+belongs, the facts its builder would otherwise go and discover, and the claims its reviewer is to test. Hephaestus
 builds other tickets beside it, so `Out of bounds` names what this ticket must not touch, and two tickets that
 rewrite one file are ordered with `--depends-on` rather than fenced here. A Brief never states a worktree, a branch,
-a claim or a merge step: the Overseer's prompts name them.
+a claim or a merge step: Hephaestus's prompts name them.
 
 ```
 ## Brief
@@ -131,7 +131,7 @@ the rule it is an instance of and make the search an Acceptance item, with the c
 
 ## What each move does to the Gantt row
 
-The **from** column is the matrix the named verbs enforce and the Overseer's moves keep; `ticket status <id> <status>`
+The **from** column is the matrix the named verbs enforce and Hephaestus's moves keep; `ticket status <id> <status>`
 skips it. **its row** is the status stored; **pill** is what that row then reads on the chart.
 
 | move | from | ticket status | its row | pill | stamps written | log line |
@@ -145,7 +145,7 @@ skips it. **its row** is the status stored; **pill** is what that row then reads
 | a review job launches | in-review | in-review, unchanged | `in-review`, plus an in-progress review row for the job's round | `Reviewing` | — | `Review row #18 started: <name>` |
 | a group ticket's merge lands on its group branch | in-review | reviewed | `reviewed`, its `reviewed` stamp set if unset | `Awaiting merge` | `finished` if null | `Ticket #003 reviewed` |
 | a merge lands on the main line | in-review; reviewed for a release bundle's ticket landed with its group's release ticket | reviewed (unless already), then delivered | `delivered`; in-progress review rows delivered | `Done` | `finished` and `delivered` if null; `branch`, `commit` | the reviewed and delivered lines, and one per review row closed |
-| `ticket deliver --by-hand` | anything but draft, while no Overseer is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
+| `ticket deliver --by-hand` | anything but draft, while no Hephaestus is live and no job of the ticket is | delivered | `delivered` | `Done` | `delivered` if null | `Ticket #003 delivered` |
 | `ticket abandon` | anything but delivered, abandoned | abandoned | `abandoned`; none created for a ticket without one | `Abandoned` | `abandonedAt`, always; the row's end if it had started | `Ticket #003 abandoned: <reason>` |
 | `ticket reopen` | anything but draft and committed; a group's release ticket only while no other release ticket of its group is open | committed | `committed`, its start, end, `reviewed` and `reviewRound` cleared | `To do` | all four cleared; `reason` dropped | `Ticket #003 reopened` |
 | `ticket unready` | committed, while no job of the ticket is on the board | draft | removed | `Draft` | — | `Ticket #003 unreadied` |
@@ -173,7 +173,7 @@ reaches `Done` through `{{program}} task deliver <id>` once its work is accepted
 
 ## Jobs, decisions and incidents
 
-**A job** is one agent session the Overseer launched, kept on the board while it lives: a `build` or `review` job on a
+**A job** is one agent session Hephaestus launched, kept on the board while it lives: a `build` or `review` job on a
 ticket, a `merge` job holding a target's Airlock (with a `merge-agent` job: the last worker of the ticket, resumed for a
 conflict or a red merged tree, or a conflict re-reviewer of a large resolution), a `product-owner` job running an
 intake, and the one `assistant` job, the Assistant. A conflict re-reviewer can also run under a `build` or `review` job
@@ -183,10 +183,10 @@ verified by code before anything it reports counts: its report, its commits and 
 
 **A decision** is a question for User, kept on the board until answered: an agent's own question (`agent-question`),
 a parked ticket, a proposed waiver, a refused landing or merge, and the other kinds
-the Overseer opens from the facts. `{{program}} decisions` lists the open ones; `decide` answers one with the Overseer
+Hephaestus opens from the facts. `{{program}} decisions` lists the open ones; `decide` answers one with Hephaestus
 up or down, the first answer winning. An agent's question carries exactly its words, never anybody's opinion.
 
-**An incident** is operational trouble the Overseer's code cannot settle alone, never addressed to User: an agent's
+**An incident** is operational trouble Hephaestus's code cannot settle alone, never addressed to User: an agent's
 `system` or `ticket` question, a failed setup, a job out of calls, a blocked or lost job, a gate that cannot run, a
 quiet job, or a delivered ticket's findings. Each kind allows a fixed set of moves (`{{program}} incidents` shows them)
 and has a default. While the board's Assistant is on, the incident goes to the Assistant, and takes its default when
@@ -199,7 +199,7 @@ install version that changed, a dirty main checkout, an attribution trailer, rev
 ## Findings and the by-hand rule
 
 **A finding** is a low ticket that a builder, reviewer or merge-gate fixer filed with `ticket add --priority low`
-through its Hatch. The Overseer writes the tickets of the filing job (the finders) into its `dependsOn`. When a finder
+through its Hatch. Hephaestus writes the tickets of the filing job (the finders) into its `dependsOn`. When a finder
 has a group, the finding goes into that group. The worker cannot set either.
 
 - When ticket review is off, a complete finding is committed at once. It builds only after its finders are reviewed or
@@ -212,21 +212,21 @@ has a group, the finding goes into that group. The worker cannot set either.
 A finding is a low ticket, so it launches after the ready normal and high tickets. Priority only sets the order of
 the ready tickets: it never stops a ticket from being ready.
 
-**Nothing is moved through the lifecycle by hand.** The Overseer launches, verifies, merges and delivers; the one
-record-only verb is `{{program}} ticket deliver <id> --by-hand`, which records as delivered a ticket User finished
-and landed outside the Overseer. It is refused while an Overseer is live (`overseer-owns-the-lifecycle`) and while a job
-of the ticket is.
+**Nothing is moved through the lifecycle by hand.** Hephaestus launches, verifies, merges and delivers; the one
+record-only verb is `{{program}} ticket deliver <id> --by-hand`, which records as delivered a ticket User finished and
+landed outside Hephaestus. It is refused while a Hephaestus is live (`hephaestus-owns-the-lifecycle`) and while a job of
+the ticket is.
 
 ## Under a job: the Hatch
 
-A session the Overseer launched cannot write the data folder. Its read-only commands run directly; a command that
+A session Hephaestus launched cannot write the data folder. Its read-only commands run directly; a command that
 would change the board goes through its job's Hatch folder, the Hatch: the CLI writes the request there and waits for
-the Overseer's reply, printing `done <requestId>` or `nothing-to-do <requestId>` when the Overseer applied it, the
-refusal worded as a direct run words it, or `queued <requestId>` when no reply came in time, which the Overseer still
+Hephaestus's reply, printing `done <requestId>` or `nothing-to-do <requestId>` when Hephaestus applied it, the
+refusal worded as a direct run words it, or `queued <requestId>` when no reply came in time, which Hephaestus still
 applies. Never repeat a `queued` command. Each role may run only what its prompt names; anything else is refused.
 
 The pipeline agent changes its setup record with five relayed commands. These commands are not in help. Under the
-job, do not name the setup record: the Overseer adds it. Write the payload as JSON after `--`, or give it in a file or
+job, do not name the setup record: Hephaestus adds it. Write the payload as JSON after `--`, or give it in a file or
 on standard input with `--file <path>` or `--file -`.
 
 | Command | Payload |
@@ -251,8 +251,8 @@ In a forge with entities, a builder changes only the homes and the `reach` of it
 write a proposal in the home of a package that its entity whitelists. When the work needs a change in a different
 entity, do not make that change. Declare a need with
 `{{program}} need declare "<title>" --entity <key> --body-file <path>`. The body is the body of a ticket: a numbered
-`## Acceptance` that gives the intended use, and a `## Brief`. Under the job, do not name the job: the Overseer adds
-it. The Overseer refuses these needs:
+`## Acceptance` that gives the intended use, and a `## Brief`. Under the job, do not name the job: Hephaestus adds
+it. Hephaestus refuses these needs:
 
 - A need that is not complete (`need-incomplete`).
 - A need for an entity that the pipeline does not name (`need-entity-unknown`).
@@ -271,7 +271,7 @@ done — is drawn where its filing puts it.
 
 ## A row's tokens
 
-When a job ends, the Overseer credits its tokens, every token the session and its subagents processed, to the row it
+When a job ends, Hephaestus credits its tokens, every token the session and its subagents processed, to the row it
 worked: a build's, a fixer's or a merge job's to its ticket's row, a review's to its review bar. A resumed session is
 credited only what it grew by since its last credit. Product-owner and Assistant jobs have no row: their tokens are
 kept on the job. `--tokens` on a `task` verb **sets** a row's count.
@@ -292,8 +292,8 @@ means the last two hours.
 
 | code | meaning | examples |
 |---|---|---|
-| **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `oversee stop` with no live Overseer, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
-| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while an Overseer is live (`overseer-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that the Overseer refused, a second Overseer (`overseer-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `machine`, `login-item`, `oversee status` and `oversee stop`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
-| **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, an Overseer whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
+| **0** | done, or there was nothing to do | also a command under a job that printed `done`, `nothing-to-do` or `queued` with its request id, `stop` with no live Hephaestus, every `hook session-start` run, and every `hook bash-domains` and `hook stage-edits` run, a deny answered through its JSON |
+| **1** | a refusal the caller can act on | no tracker here (run `{{program}} init`), no such task or ticket, a missing `--reason`, a move the matrix refuses, readying a ticket that is not a draft or lacks a numbered Acceptance or a Brief (`incomplete-tickets`), lowering a ticket that is not a draft or committed, a `network` domain that is not public, `ticket deliver --by-hand` while a Hephaestus is live (`hephaestus-owns-the-lifecycle`), an answer to a decision already answered, a move its incident does not allow, a command under a job that its role may not run or that Hephaestus refused, a second Hephaestus (`hephaestus-already-running`), installed files of another install version (every command but `init`, `update`, `help`, `status`, `version`, `stop`, `talos-restart`, `machine` and `login-item`; run `{{program}} update`), `init` or `update` over files a newer {{program}} installed, `hook` given a wrong event word, an extra argument or an option, and an unknown command |
+| **2** | a state the tool will not repair on its own | an unreadable or malformed progress file, an unreadable or malformed log.jsonl, a malformed ticket file a command names, a lock it could not take, a Hephaestus whose Baton a newer generation took (`baton-taken`), and any error the tool did not expect |
 
 Check the code rather than the wording.

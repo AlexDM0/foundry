@@ -25,7 +25,7 @@ import { startPageServer, type PageServerStartVerdict }                  from '.
 import { builtPageFilesOf, pageIndexFilePath }                           from './features/page-server/routes/PageFilesRoute.ts';
 import { BoardRelayLogUtil }                                             from './features/page-server/utils/BoardRelayLogUtil.ts';
 import { forgeClientOf }                                                 from './lib/forge-client/ForgeClient.ts';
-import { realOverseerFetch }                                             from './lib/forge-client/OverseerFetch.ts';
+import { realHephaestusFetch }                                           from './lib/forge-client/HephaestusFetch.ts';
 import { SUPPORTED_FORGE_VERSION }                                       from './lib/forge-client/constants/SupportedForgeVersions.ts';
 import { realProcessRun }                                                from './lib/process-run/ProcessRun.ts';
 import { realClockTimers, stampOfNow }                                   from './services/Clock.ts';
@@ -128,7 +128,7 @@ async function serve(_remainingArguments: readonly string[], output: ProgramOutp
   let address = `http://127.0.0.1:${port}`;
 
   const readRegistry = () => new RegistryFile(registryPath).read();
-  const forgeClient = forgeClientOf({ overseerFetch: realOverseerFetch() });
+  const forgeClient = forgeClientOf({ hephaestusFetch: realHephaestusFetch() });
   const processRun = realProcessRun(environmentCopy);
   const forgeProgram = createForgeProgram({ processRun, settingsProgramPath: () => settingsStore.settings().forgeProgramPath });
   const forgeWatch = createForgeWatch({

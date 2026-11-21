@@ -2,7 +2,7 @@
  * The real-system spec of every forge verb refused, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record
  * forge-program-refused` with the program of a forge that answers F8. It runs that forge under a scratch home, through ForgeProgram, and
  * records one refusal of each verb Gaia runs under the example program path: init in a bare repository, start and update over files a
- * newer forge installed, stop of an Overseer that is suspended and so outlives the stop, the login item where no tracker is, and a machine
+ * newer forge installed, stop of a Hephaestus that is suspended and so outlives the stop, the login item where no tracker is, and a machine
  * limit above the CPU count. The forge's install version stamps the recording.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -30,8 +30,8 @@ const SETUP_TIMEOUT_MILLISECONDS = 180_000;
 const GIT_TIMEOUT_MILLISECONDS = 30_000;
 const EXAMPLE_ROOT = '/Users/example/development/example-project';
 const EXAMPLE_TRACKER_ID = 'example-tracker';
-const EXAMPLE_OVERSEER_ADDRESS = '127.0.0.1:47213';
-const EXAMPLE_OVERSEER_PROCESS_ID = '48107';
+const EXAMPLE_HEPHAESTUS_ADDRESS = '127.0.0.1:47213';
+const EXAMPLE_HEPHAESTUS_PROCESS_ID = '48107';
 const MACHINE_LIMIT_ABOVE_ANY_CPU_COUNT = 64;
 const VERSION_FILE_PATH = ['.forge', 'version.json'] as const;
 
@@ -39,7 +39,7 @@ let scratchForge: ScratchForge;
 let recordingRun: ForgeProgramRecordingRun;
 let forgeProgram: ForgeProgram;
 let trackedRepository = '';
-let suspendedOverseerProcessId: number | null = null;
+let suspendedHephaestusProcessId: number | null = null;
 const foldersWithoutABoard: string[] = [];
 
 function folderWithoutABoard(prefix: string): string {
@@ -72,7 +72,7 @@ beforeAll(async () => {
 }, SETUP_TIMEOUT_MILLISECONDS);
 
 afterAll(async () => {
-  if (suspendedOverseerProcessId !== null) process.kill(suspendedOverseerProcessId, 'SIGCONT');
+  if (suspendedHephaestusProcessId !== null) process.kill(suspendedHephaestusProcessId, 'SIGCONT');
   recordingRun.recordAnswers();
   await scratchForge.remove();
   for (const folder of foldersWithoutABoard.splice(0)) removeScratchPath(folder);
@@ -102,17 +102,17 @@ describe('a forge that answers F8, every verb refused', () => {
     }
   });
 
-  test('stop refuses an Overseer that is still live after the stop was asked, as a suspended one is', async () => {
+  test('stop refuses a Hephaestus that is still live after the stop was asked, as a suspended one is', async () => {
     const started = await scratchForge.runForDocument(trackedRepository, ['start', '--json']);
-    scratchForge.exampleValueFor({ drawn: new URL(String(started['url'])).host, example: EXAMPLE_OVERSEER_ADDRESS });
-    const overseer = scratchForge.registryEntryOf(String(started['trackerId']))?.['overseer'] as { processId: number } | undefined;
-    if (overseer === undefined) throw new Error('the registry names no live Overseer after start');
-    scratchForge.exampleValueFor({ drawn: `process ${overseer.processId}`, example: `process ${EXAMPLE_OVERSEER_PROCESS_ID}` });
-    suspendedOverseerProcessId = overseer.processId;
-    process.kill(overseer.processId, 'SIGSTOP');
-    expect(refusalOf(await forgeProgram.stop(forgeIn(trackedRepository)))).toBe('overseer-still-live');
-    process.kill(overseer.processId, 'SIGCONT');
-    suspendedOverseerProcessId = null;
+    scratchForge.exampleValueFor({ drawn: new URL(String(started['url'])).host, example: EXAMPLE_HEPHAESTUS_ADDRESS });
+    const hephaestus = scratchForge.registryEntryOf(String(started['trackerId']))?.['hephaestus'] as { processId: number } | undefined;
+    if (hephaestus === undefined) throw new Error('the registry names no live Hephaestus after start');
+    scratchForge.exampleValueFor({ drawn: `process ${hephaestus.processId}`, example: `process ${EXAMPLE_HEPHAESTUS_PROCESS_ID}` });
+    suspendedHephaestusProcessId = hephaestus.processId;
+    process.kill(hephaestus.processId, 'SIGSTOP');
+    expect(refusalOf(await forgeProgram.stop(forgeIn(trackedRepository)))).toBe('hephaestus-still-live');
+    process.kill(hephaestus.processId, 'SIGCONT');
+    suspendedHephaestusProcessId = null;
   }, SETUP_TIMEOUT_MILLISECONDS);
 
   test('the login item is refused where no tracker is', async () => {

@@ -103,7 +103,7 @@ describeWhenGitIsRecorded('initialising a repository', () => {
     expect(existsSync(installedFilePathsIn(repositoryDirectory).reference)).toBe(true);
     expect(context.outputText()).toContain('.gitignore:');
     expect(context.outputText()).not.toContain('progress.html');
-    expect(context.outputText(), 'a fresh init ends with what to run next').toContain(`Run \`${PRODUCT_NAMES.PROGRAM} start\`. It starts the Overseer`);
+    expect(context.outputText(), 'a fresh init ends with what to run next').toContain(`Run \`${PRODUCT_NAMES.PROGRAM} start\`. It starts Hephaestus`);
     expect(context.errorText()).toBe('');
   });
 

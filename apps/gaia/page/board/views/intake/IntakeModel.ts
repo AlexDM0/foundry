@@ -317,7 +317,7 @@ function userTurnOf(key: string, at: string | null, text: string, pictures: read
 type ThreadPlace = { readonly kind: 'item'; readonly item: ChatThreadItem } | { readonly kind: 'decision'; readonly decisionId: string };
 
 /**
- * The session's chat: the transcript's items worded for a product owner, User's request as a bubble after the Overseer's line that started
+ * The session's chat: the transcript's items worded for a product owner, User's request as a bubble after Hephaestus's line that started
  * the session (or first, before that line came), with the pictures that line carried, and each open decision as a turn of its own.
  */
 function chatTurnsOf(entries: readonly BoardTranscriptEntryDocument[], decisions: readonly BoardDecisionDocument[], facts: IntakeChatFacts): IntakeChatTurn[] {
@@ -329,7 +329,7 @@ function chatTurnsOf(entries: readonly BoardTranscriptEntryDocument[], decisions
   for (const { decisionId, position } of positions.toReversed()) places.splice(position, 0, { kind: 'decision', decisionId });
 
   const { todayCalendarDate } = facts;
-  const bootLineText = `Overseer started ${facts.jobId} from User's first message · ${PRODUCT_OWNER_KIND}`;
+  const bootLineText = `Hephaestus started ${facts.jobId} from User's first message · ${PRODUCT_OWNER_KIND}`;
   const requestTurnOf = (key: string, at: string | null, pictures: readonly BoardTranscriptPictureDocument[]): IntakeUserTurn[] => (
     facts.requestText === null && pictures.length === 0 ? [] : [userTurnOf(key, at, facts.requestText ?? '', pictures, todayCalendarDate)]
   );

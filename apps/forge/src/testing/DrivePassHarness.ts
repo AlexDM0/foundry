@@ -14,12 +14,12 @@ import type { PlatformPorts }                                     from '../lib/p
 import type { ProcessIdentity }                                   from '../lib/process-identity/ProcessIdentity.ts';
 import type { ChildLaunch }                                       from '../lib/talos/ChildLaunch.ts';
 import { TALOS_PROTOCOL_VERSION }                                 from '../lib/talos/constants/TalosProtocol.ts';
-import { Baton }                                                  from '../services/overseer/Baton.ts';
-import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/overseer/DrivePass.ts';
-import { overseerFilesIn }                                        from '../services/overseer/OverseerFiles.ts';
-import { createTalosChildren }                                    from '../services/overseer/TalosChildren.ts';
-import { type TalosConnection, connectToTalos }                   from '../services/overseer/TalosConnection.ts';
-import { createLineRunner }                                       from '../services/overseer/TalosLines.ts';
+import { Baton }                                                  from '../services/hephaestus/Baton.ts';
+import { createDrivePass, type DrivePass, type DrivePassRequest } from '../services/hephaestus/DrivePass.ts';
+import { hephaestusFilesIn }                                      from '../services/hephaestus/HephaestusFiles.ts';
+import { createTalosChildren }                                    from '../services/hephaestus/TalosChildren.ts';
+import { type TalosConnection, connectToTalos }                   from '../services/hephaestus/TalosConnection.ts';
+import { createLineRunner }                                       from '../services/hephaestus/TalosLines.ts';
 import {
   createTalosStartHold,
   ensureTalos,
@@ -29,7 +29,7 @@ import {
   type TalosStartBounds,
   type TalosStartContext,
   talosRecordAt
-} from '../services/overseer/TalosStart.ts';
+} from '../services/hephaestus/TalosStart.ts';
 import { createLocalFilesBoardStore } from '../services/store/LocalFilesBoardStore.ts';
 import type { LockHolder }            from '../services/tracker/GenerationLock.ts';
 import { requireProgressFile }        from '../services/tracker/TrackerReader.ts';
@@ -53,19 +53,19 @@ interface ScratchDrivePassRequired {
 
 export type ScratchDrivePassRequest = ScratchDrivePassRequired & Partial<DrivePassRequest>;
 
-/** Each call is an Overseer start: a newer generation than the last one's. */
+/** Each call is a Hephaestus start: a newer generation than the last one's. */
 export function createScratchDrivePass(request: ScratchDrivePassRequest): DrivePass {
-  const { overseerDirectory } = overseerFilesIn(request.workspace.trackerDirectory);
-  mkdirSync(overseerDirectory, { recursive: true });
+  const { hephaestusDirectory } = hephaestusFilesIn(request.workspace.trackerDirectory);
+  mkdirSync(hephaestusDirectory, { recursive: true });
   // Only the start stamp differs from this process's identity, so the Baton reads as dead to a successor, a recorded answer of the process table.
   const ownBootIdentity = request.platformPorts.processSupervision.identityOf(process.pid)?.bootIdentity ?? 'example-boot';
-  const acquisition = Baton.acquire(request.platformPorts, overseerDirectory, {
+  const acquisition = Baton.acquire(request.platformPorts, hephaestusDirectory, {
     processId:            process.pid,
     processStartStamp:    request.batonStartStamp ?? '1',
     bootIdentity:         ownBootIdentity,
     port:                 1,
     url:                  'http://127.0.0.1:1/',
-    tokenFile:            join(overseerDirectory, 'token'),
+    tokenFile:            join(hephaestusDirectory, 'token'),
     codeVersion:          'code-example',
     installVersion:       1,
     talosProtocolVersion: TALOS_PROTOCOL_VERSION,
@@ -79,7 +79,7 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
     boardStore:            createLocalFilesBoardStore({ workspace: request.workspace, now, lockTaker: lockTakerJudgingHoldersBy(holderIsGoneByProcessId) }),
     now,
     formatStamp:           () => '2026-09-18T22:11:03+02:00',
-    overseerDirectory,
+    hephaestusDirectory,
     generation:            acquisition.generation,
     boardChildren,
     lineRunner:            createLineRunner(boardChildren, request.talosConnection),
@@ -110,14 +110,14 @@ export function createScratchDrivePass(request: ScratchDrivePassRequest): DriveP
   return createDrivePass(Object.defineProperties(defaults, Object.getOwnPropertyDescriptors(request)) as DrivePassRequest);
 }
 
-/** A board's real Talos for a real-system spec, started as the Overseer starts it; `quit` ends it cleanly, pausing what still runs. */
+/** A board's real Talos for a real-system spec, started as Hephaestus starts it; `quit` ends it cleanly, pausing what still runs. */
 export interface ScratchBoardTalos {
   readonly connection:   () => TalosConnection | null;
   /** The launch sent for the child of `childFolder`, an absolute folder, at `instance`, which a spec reads as Talos never stores it. */
   readonly launchOf:     (childFolder: string, instance: number) => ChildLaunch | null;
   /** The Talos's own process, as its record names it; `null` before it claimed. */
   readonly talos:        () => ProcessIdentity | null;
-  /** Once the connection closed, starts the next Talos as the Overseer's `ensureTalos` does, sweeping the lost one's orphans. */
+  /** Once the connection closed, starts the next Talos as Hephaestus's `ensureTalos` does, sweeping the lost one's orphans. */
   readonly ensureIfLost: () => Promise<void>;
   readonly quit:         () => Promise<void>;
 }
@@ -127,7 +127,7 @@ export interface ScratchBoardTalosRequest {
   platformPorts: PlatformPorts;
   monitorFolder: string;
   log:           (line: string) => void;
-  /** The lease and tick bounds the Talos is started with; absent, the Overseer's own. A row that waits out a lease shortens it. */
+  /** The lease and tick bounds the Talos is started with; absent, Hephaestus's own. A row that waits out a lease shortens it. */
   bounds?:       TalosStartBounds;
 }
 

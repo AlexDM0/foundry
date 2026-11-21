@@ -13,7 +13,7 @@ export interface StopChoice {
   readonly consequence: string;
 }
 
-/** B2's Stop question; with no agent running it has no choices and stops the Overseer only. */
+/** B2's Stop question; with no agent running it has no choices and stops Hephaestus only. */
 export interface StopQuestion {
   readonly label:       string;
   readonly question:    string;
@@ -36,10 +36,10 @@ const FORGE_COMMAND_LABELS: Readonly<Record<ForgeCommandBody['kind'], string>> =
   'forge-interrupted-work-resume': 'Resume',
 };
 
-/** An update was done and the forge's Overseer did not take the new code: Restart sends `forge-restart`. */
+/** An update was done and the forge's Hephaestus did not take the new code: Restart sends `forge-restart`. */
 const RESTART_PENDING = {
   word:         'Updated; restart pending.',
-  sentence:     'Its Overseer runs the old code until it restarts.',
+  sentence:     'Its Hephaestus runs the old code until it restarts.',
   restartLabel: 'Restart',
   dismissLabel: 'Dismiss the pending restart',
 } as const;
@@ -55,15 +55,15 @@ function stopChoicesOf(agentsRunning: number): StopChoice[] {
   return [
     {
       agents:      'keep',
-      title:       'Stop the Overseer only',
+      title:       'Stop Hephaestus only',
       consequence: `${theAgents} ${agentsRunning === 1 ? 'finishes what it is on under Talos' : 'finish what they are on under Talos'}. `
         + 'Nothing new starts until this forge is started again.',
     },
     {
       agents:      'stop-first',
-      title:       'Stop the agents, then the Overseer',
+      title:       'Stop the agents, then Hephaestus',
       consequence: `${theAgents} ${agentsRunning === 1 ? 'winds down first and its tickets return' : 'wind down first and their tickets return'} to the board. `
-        + 'Then the Overseer stops.',
+        + 'Then Hephaestus stops.',
     },
   ];
 }
@@ -75,7 +75,7 @@ function stopQuestionOf(forge: FleetDocumentForge): StopQuestion {
   const running = agentsRunning === 0 ? '' : ` ${CountTextUtil.countedPhrase(agentsRunning, 'agent is', 'agents are')} running.`;
   return {
     label:       `Stop ${forge.project}`,
-    question:    `Stop the Overseer of ${forge.project}?${running}`,
+    question:    `Stop Hephaestus of ${forge.project}?${running}`,
     choices:     stopChoicesOf(agentsRunning),
     consequence: waitingCount === null || waitingCount === 0
       ? null

@@ -30,7 +30,7 @@ const TRANSCRIPT_ENTRY_SHAPE = {
   model:           OPTIONAL_TEXT,
   tokens:          { optional: 'whole-number' },
   clientAct:       { optional: { oneOf: ['chat', 'answer', 'interrupt', 'close-input', 'stop'] } },
-  sentBy:          { optional: { oneOf: ['user', 'overseer', 'assistant'] } },
+  sentBy:          { optional: { oneOf: ['user', 'hephaestus', 'assistant'] } },
   chatSequence:    { optional: 'whole-number' },
   incidentIds:     { optional: 'text-list' },
   pictures:        { optional: { listOf: TRANSCRIPT_PICTURE_SHAPE } },

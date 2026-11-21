@@ -3,7 +3,7 @@
 # setup.sh is the macOS and Linux bootstrap.
 #
 # Usage: powershell -ExecutionPolicy Bypass -File setup.ps1 [--instruct-only]
-#        powershell -ExecutionPolicy Bypass -File setup.ps1 --login-overseer <repository> [--label <label>] [--instruct-only]
+#        powershell -ExecutionPolicy Bypass -File setup.ps1 --login-item <repository> [--label <label>] [--instruct-only]
 #   --instruct-only  changes nothing: every offer declines and every write is reported as "would".
 $ErrorActionPreference = 'Stop'
 

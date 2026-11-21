@@ -1,7 +1,7 @@
 /**
- * `intake -- <text>` records a product-owner job the Overseer launches in a session folder of its own; `intake close <J>` closes its input,
+ * `intake -- <text>` records a product-owner job Hephaestus launches in a session folder of its own; `intake close <J>` closes its input,
  * and submits the drafts its intake filed; `intake title <J> -- <title>` gives the intake a short title. Under the product owner's own job
- * `intake close` and `intake title` name no job: the Overseer stamps it.
+ * `intake close` and `intake title` name no job: Hephaestus stamps it.
  */
 import type { ControlCommandOf } from '../../src/shared/@types/ControlCommand.ts';
 import { PRODUCT_NAMES }         from '../../src/shared/constants/ProductNames.ts';
@@ -85,7 +85,7 @@ export const intakeCommand: CommandHandler = async (commandArguments, context) =
   const text = commandArguments.positionals().join(' ').trim();
   if (text === '') refuseUsage('Write the request after --.', START_USAGE);
   const jobId = await recordControl(commandArguments, context, { kind: 'intake-start', text });
-  context.standardError(`The Overseer launches the product owner of job ${jobId}; follow it with \`${PROGRAM} job attach ${jobId}\`.`);
+  context.standardError(`Hephaestus launches the product owner of job ${jobId}; follow it with \`${PROGRAM} job attach ${jobId}\`.`);
 };
 
 export const INTAKE_SUBCOMMAND_NAMES: readonly string[] = Object.freeze(['close', 'title']);

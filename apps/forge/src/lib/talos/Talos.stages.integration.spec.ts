@@ -1,5 +1,5 @@
 /**
- * The real Talos, spawned from its binary as the Overseer starts it, walked through each stage of an agent and of a line; under
+ * The real Talos, spawned from its binary as Hephaestus starts it, walked through each stage of an agent and of a line; under
  * `bun run record src/lib/talos/Talos.ts` each stage's answer is recorded for `src/testing/RecordedTalosStages.ts`. What matters is what a
  * DrivePass reads: the child record, the origin of each event-log line, Talos's own record, and whether Talos and the child still run. A
  * stage settles on what Talos wrote, never on a clock.
@@ -48,7 +48,7 @@ const CHILD_LINE = fakeAssistantTurnLine('example-reply');
 const GREEN_OUTPUT = 'green-output';
 const RED_OUTPUT = 'expected 2, received 3';
 const RED_EXIT_CODE = 4;
-/** A line's bound in every stage but the one that runs past it, so each line record holds the bound as the Overseer's launches do. */
+/** A line's bound in every stage but the one that runs past it, so each line record holds the bound as Hephaestus's launches do. */
 const LINE_STAGE_BOUND_MILLISECONDS = 60_000;
 const PAST_BOUND_MILLISECONDS = 200;
 const STAYS_UNTIL_STOPPED = 'setInterval(() => undefined, 60000);';
@@ -211,7 +211,7 @@ describe('an agent through its stages', () => {
     expect(await serving.quit()).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a stop by the Overseer is logged as the client\'s and ends an agent that does not end on its closed input', async () => {
+  test('a stop by Hephaestus is logged as the client\'s and ends an agent that does not end on its closed input', async () => {
     const serving = await scratchTalos().serve(START_NUMBER);
     const staged = await launched(serving, agentLaunch([{ kind: 'shell', command: 'sleep 30' }]), []);
     await untilRunning(staged);
@@ -260,7 +260,7 @@ describe('a line through its stages', () => {
     expect(await serving.quit()).toBe(0);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('a stop by the Overseer ends a line signalled and logs nothing', async () => {
+  test('a stop by Hephaestus ends a line signalled and logs nothing', async () => {
     const serving = await scratchTalos().serve(START_NUMBER);
     const staged = await launched(serving, lineLaunch(STAYS_UNTIL_STOPPED), []);
     await untilRunning(staged);

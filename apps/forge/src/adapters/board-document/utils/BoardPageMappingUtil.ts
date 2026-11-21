@@ -1,6 +1,6 @@
 /**
  * The board's page and the forge-wide figures beside it mapped into the contract's board document: the tickets, the task rows, the worded
- * log, the epics, the drafts and the Board's facts of each row and ticket, then the limits, the concurrency, the Overseer, the usage
+ * log, the epics, the drafts and the Board's facts of each row and ticket, then the limits, the concurrency, Hephaestus, the usage
  * windows and the notices. Every field is named, so a field the model gains reaches no reader until it is mapped here.
  */
 import type { BoardLimitsDocument } from 'forge-contracts/BoardLimitsDocument';
@@ -17,8 +17,8 @@ import type {
   BoardTaskDocument,
   BoardTicketDocument
 } from 'forge-contracts/BoardPageDocuments';
-import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                 from 'forge-contracts/BoardReadingDocuments';
-import type { BoardConcurrencyDocument, BoardOverseerDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
+import type { BoardTicketFactsDocument, BoardTicketOffersDocument }                   from 'forge-contracts/BoardReadingDocuments';
+import type { BoardConcurrencyDocument, BoardHephaestusDocument, BoardUsageDocument } from 'forge-contracts/ForgeBoardDocument';
 
 import type { DraftQuestion, DraftSummary } from '../../../lib/tracker-model/@types/Draft.ts';
 import type { EpicRollup }                  from '../../../lib/tracker-model/@types/Epic.ts';
@@ -33,10 +33,10 @@ import type {
   PageTicket,
   PageTicketFacts
 } from '../../../shared/@types/PagePayload.ts';
-import type { IdentifiedLogEntry }        from '../../../shared/@types/WordedLogEntry.ts';
-import { NoticeWordingUtil }              from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
-import type { OverseerFacts, UsageFacts } from '../../@types/BoardStateParts.ts';
-import { BoardReadingMappingUtil }        from './BoardReadingMappingUtil.ts';
+import type { IdentifiedLogEntry }          from '../../../shared/@types/WordedLogEntry.ts';
+import { NoticeWordingUtil }                from '../../../shared/monitor/utils/NoticeWordingUtil.ts';
+import type { HephaestusFacts, UsageFacts } from '../../@types/BoardStateParts.ts';
+import { BoardReadingMappingUtil }          from './BoardReadingMappingUtil.ts';
 
 /** What forge reads of one ticket beyond its file: its facts and the commands it accepts now. */
 export interface TicketReadings {
@@ -116,9 +116,9 @@ function progressOf(progress: PagePayload['progress']): BoardProgressDocument {
       kind: progress.view.kind, from: progress.view.from, to: progress.view.to, tickMinutes: progress.view.tickMinutes
     },
     // An absent setting is a board the user never started, which reads as paused.
-    overseerState: progress.overseerState ?? 'paused',
-    tasks:         progress.tasks.map(taskOf),
-    log:           progress.log.map(logEntryOf),
+    hephaestusState: progress.hephaestusState ?? 'paused',
+    tasks:           progress.tasks.map(taskOf),
+    log:             progress.log.map(logEntryOf),
   };
 }
 
@@ -244,12 +244,12 @@ function concurrencyOf(concurrency: PageConcurrency): BoardConcurrencyDocument {
   return { limit: concurrency.limit, agentsInFlight: concurrency.agentsInFlight };
 }
 
-function overseerOf(overseer: OverseerFacts): BoardOverseerDocument {
+function hephaestusOf(hephaestus: HephaestusFacts): BoardHephaestusDocument {
   return {
-    state:            overseer.state,
-    paused:           overseer.paused,
-    codeVersion:      overseer.codeVersion,
-    batonPassWarning: NoticeWordingUtil.batonPassWarningIn(overseer.batonPassWarning),
+    state:            hephaestus.state,
+    paused:           hephaestus.paused,
+    codeVersion:      hephaestus.codeVersion,
+    batonPassWarning: NoticeWordingUtil.batonPassWarningIn(hephaestus.batonPassWarning),
   };
 }
 
@@ -267,6 +267,6 @@ export const BoardPageMappingUtil = Object.freeze({
   pageOf,
   limitsOf,
   concurrencyOf,
-  overseerOf,
+  hephaestusOf,
   usageOf,
 });

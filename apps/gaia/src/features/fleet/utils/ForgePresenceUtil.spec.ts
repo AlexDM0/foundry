@@ -1,8 +1,8 @@
 /**
  * How a forge is present, against the util's own contract. What matters: crashed, stopped, handed over, down, hung, serving and unknown are
- * told apart from the registry's presence, the Overseer's answer and the served supervision alone, a forge of a version Gaia cannot talk to
+ * told apart from the registry's presence, Hephaestus's answer and the served supervision alone, a forge of a version Gaia cannot talk to
  * answering all the same; a crash the registry records wins over an answer; the crash summary, the crash logs and the waiting work reach
- * only the forge that holds them; and an alert, with Start where the Overseer is gone, is raised only for a crashed, down or hung forge.
+ * only the forge that holds them; and an alert, with Start where Hephaestus is gone, is raised only for a crashed, down or hung forge.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -19,7 +19,7 @@ const CRASHED: ForgeRegistryPresence = {
   generation: 2,
   at:         CRASH_AT,
   crash:      {
-    component: 'overseer', suspected: true, errorName: 'Error', errorMessage: 'Example failure.',
+    component: 'hephaestus', suspected: true, errorName: 'Error', errorMessage: 'Example failure.',
   },
 };
 
@@ -59,15 +59,15 @@ describe('presenceOf', () => {
     expect(stateOf({ ...NOT_ANSWERING, registryPresence: null })).toBe('unknown');
   });
 
-  test('reads a crash the registry records as crashed, even while an Overseer answers as it starts again', () => {
+  test('reads a crash the registry records as crashed, even while a Hephaestus answers as it starts again', () => {
     expect(ForgePresenceUtil.presenceOf(readingWith({ ...DORMANT, condition: 'starting', registryPresence: CRASHED }))).toEqual({ state: 'crashed', generation: 2, at: CRASH_AT });
   });
 
-  test('reads an Overseer that says it is starting as answering, so a forge serving in the registry is not down', () => {
+  test('reads a Hephaestus that says it is starting as answering, so a forge serving in the registry is not down', () => {
     expect(ForgePresenceUtil.presenceOf(readingWith({ ...DORMANT, condition: 'starting', registryPresence: registryPresence('serving') })).state).toBe('serving');
   });
 
-  test('reads a forge whose Overseer answered at a version Gaia cannot talk to as serving, never down, and raises no alert for it', () => {
+  test('reads a forge whose Hephaestus answered at a version Gaia cannot talk to as serving, never down, and raises no alert for it', () => {
     for (const fidelity of ['older-contract', 'newer-contract'] as const) {
       const forge = ForgePresenceUtil.fleetForgeOf(readingWith({ fidelity, condition: 'unreadable', registryPresence: registryPresence('serving') }));
       expect([forge.presence.state, ForgePresenceUtil.forgeAlertOf(forge)]).toEqual(['serving', null]);

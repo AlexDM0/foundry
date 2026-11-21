@@ -104,7 +104,7 @@ function packageBuildOf(ticketId: string, attempt: number = 1): PlaybookStep {
 
 function openDecisionOf(kind: Decision['kind']): Decision {
   return {
-    id: 'E1', kind, ticketIds: ['001'], jobId: null, askedBy: 'overseer', requestId: null, questions: [], context: '', openedAt: '2026-11-17T12:00:00+01:00',
+    id: 'E1', kind, ticketIds: ['001'], jobId: null, askedBy: 'hephaestus', requestId: null, questions: [], context: '', openedAt: '2026-11-17T12:00:00+01:00',
   };
 }
 

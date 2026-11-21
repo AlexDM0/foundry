@@ -52,16 +52,16 @@ const DONE: CommandAnswerDocument = {
 const STOP_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'overseer-still-live',
-  text:          'The Overseer did not stop within its tries.',
+  refusal:       'hephaestus-still-live',
+  text:          'Hephaestus did not stop within its tries.',
   forges:        [],
 };
 
 const START_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'overseer-did-not-answer',
-  text:          'The Overseer started but its API did not answer.',
+  refusal:       'hephaestus-did-not-answer',
+  text:          'Hephaestus started but its API did not answer.',
   forges:        [],
 };
 
@@ -244,7 +244,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
   });
 
   test('a forge whose control contract Gaia does not know has Pause, Unpause, Stop and its limit off', () => {
-    const unknown = { ...READINGS.exampleStorefront.contracts, control: 3 };
+    const unknown = { ...READINGS.exampleStorefront.contracts, control: 4 };
     const [live] = contentOf(fleetWithOneForgeIn('live', { contracts: unknown })).rows;
     expect(live?.buttons.map((button) => [labelOf(button), button.kind === 'waiting' || button.disabled])).toEqual([
       ['Pause', true], ['Stop', true], ['Open', false],
@@ -260,7 +260,7 @@ describe('which buttons a row shows (A4 acceptance 1)', () => {
     expect(dormant?.detailText).toBe('the forge program was not found');
   });
 
-  test('a crashed forge offers Start and Look again; a down one keeps Stop too, as its Overseer may be alive but not answering', () => {
+  test('a crashed forge offers Start and Look again; a down one keeps Stop too, as its Hephaestus may be alive but not answering', () => {
     const labelsAt = (state: 'crashed' | 'down') => contentOf(fleetWithOneForgeIn('unreachable', { presence: { state, generation: 2, at: FLEET_FIXTURES_READ_AT } }))
       .rows.flatMap((row) => row.buttons.map((button) => [labelOf(button), button.kind === 'waiting' || button.disabled]));
     expect(labelsAt('crashed')).toEqual([['Start', false], ['Look again', false]]);
@@ -397,22 +397,22 @@ describe('this machine (A4 acceptance 2 and 3, B2)', () => {
 describe('the Stop dialog (B2 acceptance 1)', () => {
   const STOREFRONT_STOP: StopDialogState = { trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' };
 
-  test('asks under its row with two choices, the Overseer only chosen first, and says what keeps waiting', () => {
+  test('asks under its row with two choices, Hephaestus only chosen first, and says what keeps waiting', () => {
     const row = rowOf(contentOf(FLEET_FIVE_FORGES, { stopDialog: STOREFRONT_STOP }), TRACKER_IDS.exampleStorefront);
     expect(row.stopDialog).toEqual({
       label:    'Stop Example Storefront',
-      question: 'Stop the Overseer of Example Storefront? 4 agents are running.',
+      question: 'Stop Hephaestus of Example Storefront? 4 agents are running.',
       choices:  [
         {
           agents:      'keep',
-          title:       'Stop the Overseer only',
+          title:       'Stop Hephaestus only',
           consequence: 'The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.',
           chosen:      true,
         },
         {
           agents:      'stop-first',
-          title:       'Stop the agents, then the Overseer',
-          consequence: 'The 4 agents wind down first and their tickets return to the board. Then the Overseer stops.',
+          title:       'Stop the agents, then Hephaestus',
+          consequence: 'The 4 agents wind down first and their tickets return to the board. Then Hephaestus stops.',
           chosen:      false,
         },
       ],
@@ -423,7 +423,7 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     expect(contentOf(FLEET_FIVE_FORGES).rows.every((candidate) => candidate.stopDialog === null)).toBe(true);
   });
 
-  test('"Overseer only" sends agents keep, and the other choice stop-first', () => {
+  test('"Hephaestus only" sends agents keep, and the other choice stop-first', () => {
     const commandFor = (agents: StopDialogState['agents']) => rowOf(
       contentOf(FLEET_FIVE_FORGES, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents } }),
       TRACKER_IDS.exampleStorefront,
@@ -436,16 +436,16 @@ describe('the Stop dialog (B2 acceptance 1)', () => {
     const idle = fleetWithOneForgeIn('live', { agents: [], concurrency: { ...READINGS.exampleStorefront.concurrency, agentsInFlight: 0 } as FleetDocumentForge['concurrency'] });
     const dialog = rowOf(contentOf(idle, { stopDialog: { trackerId: TRACKER_IDS.exampleStorefront, agents: 'stop-first' } }), TRACKER_IDS.exampleStorefront).stopDialog;
     expect([dialog?.question, dialog?.choices, dialog?.command]).toEqual([
-      'Stop the Overseer of Example Storefront?',
+      'Stop Hephaestus of Example Storefront?',
       [],
       { kind: 'forge-stop', trackerId: TRACKER_IDS.exampleStorefront, agents: 'keep' },
     ]);
   });
 
-  test('an Overseer that does not answer Gaia is stopped by the forge program, so its agents are not offered a choice', () => {
+  test('a Hephaestus that does not answer Gaia is stopped by the forge program, so its agents are not offered a choice', () => {
     const dialog = rowOf(contentOf(FLEET_DEGRADED, { stopDialog: { trackerId: TRACKER_IDS.invoiceService, agents: 'keep' } }), TRACKER_IDS.invoiceService).stopDialog;
     expect([dialog?.question, dialog?.choices, dialog?.command]).toEqual([
-      'Stop the Overseer of Invoice Service? 3 agents are running.',
+      'Stop Hephaestus of Invoice Service? 3 agents are running.',
       [],
       { kind: 'forge-stop', trackerId: TRACKER_IDS.invoiceService, agents: 'keep' },
     ]);
@@ -507,8 +507,8 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     expect(refused.refusal).toEqual({
       refusedBy:    'forge',
       commandLabel: 'Stop',
-      code:         'overseer-still-live',
-      sentence:     'The Overseer did not stop within its tries.',
+      code:         'hephaestus-still-live',
+      sentence:     'Hephaestus did not stop within its tries.',
       retryCommand: stop
     });
     expect(rowOf(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }), TRACKER_IDS.invoiceService).refusal).toBeNull();
@@ -557,7 +557,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     expect(rowOf(content, TRACKER_IDS.exampleMobileApp).pendingRestart).toBeNull();
     expect(content.heldBanners[0]?.pendingRestart).toEqual({
       word:          'Updated; restart pending.',
-      sentence:      'Its Overseer runs the old code until it restarts.',
+      sentence:      'Its Hephaestus runs the old code until it restarts.',
       restartButton: {
         kind:     'command',
         button:   'restart',
@@ -625,7 +625,7 @@ describe('a command on its way and its refusal (B2 acceptance 2, 3 and 4)', () =
     expect(liveButtons).toEqual(['Pause', 'Stop', 'Open']);
     await sender.send({ kind: 'forge-start', trackerId: TRACKER_IDS.designSystem });
     const refused = rowOf(contentOf(FLEET_FIVE_FORGES, { commandStates: sender.states() }), TRACKER_IDS.designSystem);
-    expect([refused.conditionWord, refused.buttons.map(labelOf), refused.refusal?.code]).toEqual(['Dormant', ['Start'], 'overseer-did-not-answer']);
+    expect([refused.conditionWord, refused.buttons.map(labelOf), refused.refusal?.code]).toEqual(['Dormant', ['Start'], 'hephaestus-did-not-answer']);
   });
 });
 

@@ -14,7 +14,7 @@ const SHOP_BUILD   = { name: 'build', entity: 'shop' } as const;
 const UI_KIT_BUILD = { name: 'package-build', entity: 'ui-kit' } as const;
 const ICONS_BUILD  = { name: 'package-build', entity: 'icons' } as const;
 const SHOP_ADAPT   = { name: 'adapt', entity: 'shop' } as const;
-const FILED_BODY   = '## Report\n\nExample basket badge.\n\n## Handoff\n\n_Written by the Overseer._\n\n## Review\n\nExample review.\n';
+const FILED_BODY   = '## Report\n\nExample basket badge.\n\n## Handoff\n\n_Written by Hephaestus._\n\n## Review\n\nExample review.\n';
 
 const STAGE_ONE_PART: HandoffStagePart = { stage: SHOP_BUILD, text: 'Example shop handoff.', acceptanceEvidence: ['- A1 — BasketBadge.spec.ts'] };
 const STAGE_ONE_TEXT = '### Stage 1, build of shop\n\nExample shop handoff.\n\n';
@@ -24,7 +24,7 @@ function packagePartOf(stage: HandoffStagePart['stage'], text: string): HandoffS
   return { stage, text, acceptanceEvidence: null };
 }
 
-/** `body` with its `## Handoff` section replaced by `part`'s, as the Overseer writes it back. */
+/** `body` with its `## Handoff` section replaced by `part`'s, as Hephaestus writes it back. */
 function bodyWithPartOf(body: string, part: HandoffStagePart): string {
   const section = TicketHandoffUtil.handoffSectionWithStagePartOf(body, part);
   const [before = '', rest = ''] = body.split('## Handoff\n');

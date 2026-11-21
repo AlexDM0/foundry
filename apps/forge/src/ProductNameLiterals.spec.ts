@@ -34,7 +34,7 @@ const ALLOWED_LITERALS: readonly LiteralFinding[] = [
   // The names themselves.
   ...PROGRAM_NAMES.map((name) => ({ path: PRODUCT_NAMES_PATH, literal: name })),
   // The monitor snapshot's activity category for the forge's own entries: a fixed value of the monitor contract, never the program's name.
-  { path: 'src/services/overseer/MonitorSnapshotAssembly.ts', literal: 'forge' },
+  { path: 'src/services/hephaestus/MonitorSnapshotAssembly.ts', literal: 'forge' },
 ];
 
 /** The name standing alone, longest first: not inside a path, a folder, a file name, a longer name or a storage key. */

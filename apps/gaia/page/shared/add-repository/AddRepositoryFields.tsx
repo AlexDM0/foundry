@@ -58,7 +58,7 @@ const PATH_CHOOSE: CommandSubject = { fleetCommand: 'path-choose' };
 const FORGE_ADD: CommandSubject = { fleetCommand: 'forge-add' };
 const SETTINGS_SET: CommandSubject = { fleetCommand: 'settings-set' };
 
-const ADD_AND_START_SENTENCE = 'Gaia sets up the board in that repository and starts its Overseer.';
+const ADD_AND_START_SENTENCE = 'Gaia sets up the board in that repository and starts its Hephaestus.';
 const ADD_AND_START_WAITS_SENTENCE = 'Add and start waits for the forge program. Choose it below.';
 
 function isOnItsWay(commandStates: CommandStates, subject: CommandSubject): boolean {

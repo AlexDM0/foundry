@@ -1,4 +1,4 @@
-/** Why the Overseer refused a relayed command under the job's role, as `Bouncer.verdictOf` decides and a Hatch reply carries. */
+/** Why Hephaestus refused a relayed command under the job's role, as `Bouncer.verdictOf` decides and a Hatch reply carries. */
 export type RoleCommandRefusalReason =
   | 'hatch-identity-mismatch'
   | 'command-not-allowed-for-role'

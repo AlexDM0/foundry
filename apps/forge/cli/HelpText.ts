@@ -15,7 +15,7 @@ Usage: ${PRODUCT_NAMES.PROGRAM} <command> [options]
 
 The tracker lives in \`${PRODUCT_NAMES.DATA_FOLDER}/\` at the repository root and is shared by every worktree of
 it. Every mutating command takes the lock and writes the progress file atomically; the live
-Overseer serves the board over its API. \`<when>\` is an ISO 8601 timestamp, \`now\`,
+Hephaestus serves the board over its API. \`<when>\` is an ISO 8601 timestamp, \`now\`,
 or an offset from now: \`-5m\`, \`-2h\`, \`-1d\`, \`+30m\`. \`<n>\` on --tokens is a whole number or a
 decimal with a \`k\`/\`m\`/\`b\` suffix: \`12000\`, \`12k\`, \`12.3k\`, \`1.2m\`, \`1.20b\`.
 
@@ -34,7 +34,7 @@ depends\`, \`priority\`, \`agent\`, \`hold\` and \`unhold\` end their
 output with one line read from the board after the change: \`Next: 1 of 2 slots free; ready: #003, #005\`, \`Next: no slot
 free (2 agents in flight); ready: #003\` or \`Next: 2 of 2 slots free; nothing ready\` — at most five
 ready ids, then \`and N more\`; a held ready ticket is left out and named apart, \`; held: #002\` —
-followed, while the Overseer is paused, by \`; overseer paused: wait for the user's go\`. --json output
+followed, while Hephaestus is paused, by \`; hephaestus paused: wait for the user's go\`. --json output
 never carries it.
 
   init                        Create the tracker here: \`${PRODUCT_NAMES.DATA_FOLDER}/\` with an empty progress
@@ -42,7 +42,7 @@ never carries it.
       [--root <path>]         and for \`${PRODUCT_NAMES.WORKTREES_FOLDER}/\`, before any worktree can exist. Beside the
       [--namespace <name>]    tracker go \`session-instructions.md\` (written first, its presence marking
       [--no-hooks] [--json]   the install), \`reference.md\` (the ticket format, the moves and the exit
-                              codes) and \`assistant-brief.md\`, the role prompt the Overseer fills for
+                              codes) and \`assistant-brief.md\`, the role prompt Hephaestus fills for
                               its Assistant; \`hook session-start\` goes into the agent's
                               session-start entry, in the settings the agent adapter writes, and three
                               skills into the folder the agent loads instruction bundles from:
@@ -84,14 +84,19 @@ never carries it.
                               batonPassStep}, batonPass \`done\`, \`not-needed\` or \`not-taken\`; a
                               failed Baton pass is the refusal baton-pass-failed, whose answer
                               adds batonPass \`failed\` and batonPassStep.
-                              Every command but init, update, help, status, version, stop, machine,
-                              login-item, oversee status and oversee stop refuses, with exit 1, while the files
-                              installed here are of another install version than this
+                              Every command but init, update, help, status, version, stop,
+                              talos-restart, machine and login-item refuses, with exit 1, while the
+                              files installed here are of another install version than this
                               ${PRODUCT_NAMES.PROGRAM} (the hooks run regardless);
                               update rewrites them, and it and \`init\` refuse files a newer
                               ${PRODUCT_NAMES.PROGRAM} installed.
 
-  status [--json] [--full]    The project, the counts, the rows that are not delivered or
+  status [--json] [--full]    First Hephaestus: the Baton, the URL, the runtime state, paused or
+                              not, and the code version on disk against the live Hephaestus's, with
+                              presence: down, it says when it stays down after a crash and names
+                              the crash log; live, the last start's kind, the heartbeat, the
+                              supervision and the abandoned passes. Then the board:
+                              the project, the counts, the rows that are not delivered or
                               abandoned, and the last five log entries newest first. --json prints the
                               same working view for an agent: the unsettled rows and tickets, the
                               last 10 log entries and counts of what was left out. --full lists
@@ -106,14 +111,15 @@ never carries it.
                               defaults resolved, plus an optional group and held: true on a held
                               one, so a reader derives none of them itself.
                               Both carry \`epics\`, every epic with its roll-up as \`epic list
-                              --json\` prints it, and each ticket's \`epics\`, empty when it has none.
+                              --json\` prints it, and each ticket's \`epics\`, empty when it has none,
+                              and \`hephaestus\`, Hephaestus's facts with {presence}. Read-only, no lock.
       [--tickets-only]        --tickets-only leaves out the free-standing task rows, those that are
                               no ticket's own row and no review bar; tickets and the log stay.
                               The token total is also given per owner, grouped case-insensitively
                               on the trimmed owner under its most common spelling, rows without an
                               owner apart; --json carries it as \`tokensByOwner\`, and then
                               \`ticketCountByStatus\`, every ticket counted per status.
-                              With the Overseer down after a crash, one line on standard error
+                              With Hephaestus down after a crash, one line on standard error
                               says to read crash-log and to start it again; the JSON is unchanged.
 
   task add "<name>"           Add a Gantt row. --start marks it in-progress at --at (default
@@ -158,7 +164,7 @@ never carries it.
                               happens, printing nothing on failure.
 
   hook bash-domains           Keep a job's network inside its ticket's \`network\` line: the
-      --allow <domains>       network guard an Overseer renders into a job's launch, run before each
+      --allow <domains>       network guard a Hephaestus renders into a job's launch, run before each
                               shell command and web fetch. It denies, through the line it prints on
                               standard output, a shell command that asks for a domain, or a web
                               fetch whose URL host names a domain, outside the comma-separated list
@@ -168,7 +174,7 @@ never carries it.
                               whatever happens, answering deny on any failure.
 
   hook stage-edits            Keep the file edits of a job of an entity inside its stage's
-      --allow <folder>        folders: the edit guard an Overseer renders into the launch of such a
+      --allow <folder>        folders: the edit guard a Hephaestus renders into the launch of such a
                               job. It denies, through the line it prints on standard output, a
                               file edit whose path lies outside every \`--allow\` folder (one per
                               flag), a path made after the job started included. Any other call is
@@ -278,8 +284,8 @@ never carries it.
                               \`ticket add\`, and when nothing would change.
 
   ticket hold <id> [--reason <text>] [--at <when>]
-                              Pause a ticket between steps without stopping the run: the
-                              Overseer starts no builder or reviewer for it while it is held, and
+                              Pause a ticket between steps without stopping the run:
+                              Hephaestus starts no builder or reviewer for it while it is held, and
                               a claim refuses it. One log line; \`status --json\` lists it in
                               \`heldTicketIds\`. An agent already running is never interrupted, so
                               a hold set after a builder's final status read is too late for the
@@ -287,10 +293,10 @@ never carries it.
                               ticket and on one already held.
 
   ticket unhold <id> [--at <when>]
-                              Lift the hold, with one log line: the step it held starts at the
-                              Overseer's next pass. On a ticket in progress whose row is paused, a
-                              last line says to resume it with \`task start <row>\`, since the
-                              Overseer never takes a paused row over. Refused at exit 1 on a
+                              Lift the hold, with one log line: the step it held starts at
+                              Hephaestus's next pass. On a ticket in progress whose row is paused, a
+                              last line says to resume it with \`task start <row>\`, since
+                              Hephaestus never takes a paused row over. Refused at exit 1 on a
                               delivered or abandoned ticket and on one not held.
 
   ticket release-of <id> [--clear] [--at <when>]
@@ -382,7 +388,7 @@ never carries it.
       [--reason <text>] [--tokens <n>] [--at <when>]
                               Move a ticket and its Gantt row together, stamping both: abandon
                               from anything not already delivered or abandoned, reopen from
-                              anything but a draft ticket or committed. The Overseer makes every other
+                              anything but a draft ticket or committed. Hephaestus makes every other
                               lifecycle move. A draft ticket moves only through \`ticket ready\` or
                               \`abandon\`.
                               Moving a ticket to the status it already has is refused and logs
@@ -396,11 +402,11 @@ never carries it.
                               row (a low one never started) is refused at exit 1.
 
   ticket deliver <id> --by-hand [--branch <b>] [--commit <sha>] [--at <when>]
-                              Record as delivered a ticket finished and landed outside the
-                              Overseer, from any status but draft, in one hold: it merges, lands
+                              Record as delivered a ticket finished and landed outside
+                              Hephaestus, from any status but draft, in one hold: it merges, lands
                               and spawns nothing, and logs \`ticket-delivered\` with byHand true.
-                              Refused at exit 1 while an Overseer's Baton is live
-                              (overseer-owns-the-lifecycle) and while a job of the ticket is live
+                              Refused at exit 1 while a Hephaestus's Baton is live
+                              (hephaestus-owns-the-lifecycle) and while a job of the ticket is live
                               (ticket-has-live-job).
 
   ticket rereview <id> --start-review [--owner <who>] [--note <text>] [--at <when>]
@@ -540,7 +546,7 @@ never carries it.
                               Print the machine agent limit: how many build and review jobs may run
                               at once across every board on this machine, at most its CPU count,
                               which it is when none was set. With <n>, store a new one in the
-                              monitor folder, read by every Overseer at its next launch; one above
+                              monitor folder, read by every Hephaestus at its next launch; one above
                               the CPU count is refused machine-agent-limit-above-cpus at exit 1
                               with nothing written, and lowering it stops no job in flight. --json
                               prints {answerVersion, limit, ceiling, agentsInFlight}, or after a set
@@ -614,7 +620,7 @@ never carries it.
                               ${PRODUCT_NAMES.PROGRAM}/<name>/ticket-<id> and its group branches
                               ${PRODUCT_NAMES.PROGRAM}/<name>/group-<group>, so boards that share a repository
                               never name the same branch. Lower-case letters, digits and inner
-                              dashes. Refused at exit 1 with nothing written while an Overseer
+                              dashes. Refused at exit 1 with nothing written while a Hephaestus
                               serves the board, a job that works on a branch is on it (the
                               Assistant and the product owner work on none), a branch is left
                               under its current names, a branch blocks the new names, or the
@@ -623,75 +629,68 @@ never carries it.
                               list follows the name. One log line. --json prints
                               {branchNamespace}, null for bare names.
 
-  oversee [--started-by user|login-item] [--port <n>] [--detach] [--repository <path>] [--json]
-                              Start the board's one Overseer on 127.0.0.1, logging to standard error
-                              and \`overseer.log\`: it creates the Baton \`overseer/baton-<n>.json\`, writes
-                              the API token to the owner-only folder under the monitor folder in the
-                              user's home, prints its URL and serves
-                              until stopped. The port derives from the tracker id, moving upward
-                              past one in use; --port binds the one given, 0 any free one. A live
-                              Overseer refuses it (overseer-already-running, with its URL) at exit 1, as
-                              does a starter that lost the race (overseer-contended); an Overseer whose
-                              Baton a newer one overtook stops baton-taken at exit 2.
-                              --detach starts it in the background and prints the URL once it answers.
-                              --repository starts the Overseer of that repository, not of the
-                              working directory. --started-by names who started it, user when
-                              absent: after a crash only a start by the user serves, and any other
-                              is refused forge-off-after-crash at exit 1.
-  oversee --successor-of <generation> [--port <n>]
-                              The successor's side of \`oversee restart\`'s Baton pass, which only the
-                              live Overseer starts.
-  oversee stop [--now] [--json]
-                              Stop the live Overseer through its API, else ends the process its Baton
-                              names, by force where the platform cannot ask, and records the stop
-                              after a forced end; Talos and its children are never touched. --now also stops
-                              line children, through the API only.
-  oversee restart [--now] [--json]
-                              Hand the board to the code on disk: a successor proves it, then takes
-                              over and regroups around Talos; no agent is touched. A failed
-                              Baton pass leaves the old Overseer driving with a warning and exits 1
-                              (baton-pass-failed).
-  oversee talos-restart [--json]
-                              Ask the live Overseer to restart Talos cleanly: each agent stops at
-                              the end of its turn, the right Talos starts, and the paused agents
-                              resume by themselves. {outcome}: done, nothing-to-do (no Talos took
-                              it) or not-taken (no live Overseer took it). Refused under a job.
-  oversee pause|resume [--json]
-                              Store \`overseerState\` \`paused\` or \`running\`: no new jobs while
-                              paused; oversee resume undoes a pause, and \`resume\` resumes
-                              interrupted work. Works with the Overseer up or down.
-  oversee status [--json]     The Baton, the URL, the runtime state, paused or not, and the code
-                              version on disk against the live Overseer's, with presence: down, it
-                              says when it stays down after a crash and names the crash log;
-                              live, the last start's kind, the heartbeat, the supervision and the
-                              abandoned passes. --json adds {presence}. Read-only, no lock.
   crash-log [<number>] [--json]
                               Print the crash log of that number, or the newest: the component,
                               the start's classification and its evidence, the error, the jobs,
-                              then the log tail. Reads files only, with the Overseer up or down.
+                              then the log tail. Reads files only, with Hephaestus up or down.
                               Refused no-crash-log at exit 1 when there is none.
 
   version [--json]            Print the code version on disk and the install version:
                               {answerVersion, codeVersion, installVersion, contracts,
-                              talosProtocolVersion, monitorFolder}, \`contracts\` the Overseer
+                              talosProtocolVersion, monitorFolder}, \`contracts\` Hephaestus
                               API's contracts this program serves, as \`GET /api/identity\`
                               names them, and the Talos protocol version it starts. Read-only.
 
-  start [--started-by user|login-item] [--repository <path>] [--port <n>] [--json]
-                              Start the board's Overseer detached, as \`oversee --detach\` does;
-                              with one live, start nothing. It returns only once the
-                              Overseer's API answers. --json prints {answerVersion, started, url,
-                              generation, trackerId, codeVersion, installVersion, contracts}.
-                              --repository starts the Overseer of that repository, and --port
-                              binds the port given, 0 any free one, and --started-by names who
-                              started it, as \`oversee\` does.
+  start [--repository <path>] [--port <n>] [--started-by user|login-item] [--json]
+                              Start the board's one Hephaestus detached; with one live, start
+                              nothing. It returns only once Hephaestus's API answers. --json
+                              prints {answerVersion, started, url, generation, trackerId,
+                              codeVersion, installVersion, contracts}. Hephaestus serves on
+                              127.0.0.1 and logs to \`hephaestus.log\`: it creates the Baton
+                              \`hephaestus/baton-<n>.json\` and writes the API token to the owner-only
+                              folder under the monitor folder in the user's home. The port derives
+                              from the tracker id, moving upward past one in use; --port binds the
+                              one given, 0 any free one. --repository starts Hephaestus of that
+                              repository, not of the working directory. --started-by names who
+                              started it, user when absent: after a crash only a start by the user
+                              serves, and any other is refused forge-off-after-crash at exit 1.
+  start --foreground [--repository <path>] [--port <n>] [--started-by user|login-item]
+                              The serving process itself, which the detached start and the Linux
+                              login item run: it logs to standard error too, prints its URL and
+                              serves until stopped. A live Hephaestus refuses it
+                              (hephaestus-already-running, with its URL) at exit 1, as does a starter
+                              that lost the race (hephaestus-contended); a Hephaestus whose Baton a
+                              newer one overtook stops baton-taken at exit 2.
+  start --successor-of <generation> [--port <n>]
+                              The successor's side of \`restart\`'s Baton pass, which only the
+                              live Hephaestus starts.
 
-  stop [--now] [--json]       \`oversee stop\` under the short name: {answerVersion, outcome},
-                              with \`ending\` when the Overseer ended before it finished its stop.
+  stop [--now] [--json]       Stop the live Hephaestus through its API, else end the process its
+                              Baton names, by force where the platform cannot ask, and record the
+                              stop after a forced end; Talos and its children are never touched.
+                              --now also stops line children, through the API only. --json prints
+                              {answerVersion, outcome}, with \`ending\` when Hephaestus ended
+                              before it finished its stop.
+
+  restart [--now] [--json]    Hand the board to the code on disk: a successor proves it, then takes
+                              over and regroups around Talos; no agent is touched. A failed
+                              Baton pass leaves the old Hephaestus driving with a warning and exits 1
+                              (baton-pass-failed).
+
+  talos-restart [--json]      Ask the live Hephaestus to restart Talos cleanly: each agent stops at
+                              the end of its turn, the right Talos starts, and the paused agents
+                              resume by themselves. {outcome}: done, nothing-to-do (no Talos took
+                              it) or not-taken (no live Hephaestus took it). Refused under a job.
+
+  pause [--json]              Store \`hephaestusState\` \`paused\`: no new jobs while paused. Works
+                              with Hephaestus up or down.
+
+  unpause [--json]            Undo a pause: store \`hephaestusState\` \`running\`. \`resume\` is
+                              another verb, which resumes interrupted work.
 
   login-item add|remove|status [--repository <path>] [--json]
-                              The item that starts this board's Overseer when the user logs in, as
-                              \`setup --login-overseer\` writes it, under the label
+                              The item that starts this board's Hephaestus when the user logs in, as
+                              \`setup --login-item\` writes it, under the label
                               \`${PRODUCT_NAMES.LOGIN_ITEM_LABEL}.<trackerId>\`, so every board has its own.
                               --json prints {answerVersion, outcome, state, label, location,
                               repository}: state \`present\` or \`absent\` after the step, outcome
@@ -735,12 +734,12 @@ never carries it.
                               its options lettered a, b, c as decide takes them. Read-only, no lock.
 
   decide <decision> <letters>... | -- <text> [--json]
-                              Answer an open decision, with the Overseer up or down: one choice of
+                              Answer an open decision, with Hephaestus up or down: one choice of
                               option letters per question (b; ac for a multi-select), or free text
                               after -- for a one-question decision (decision-has-several-questions
                               otherwise). The first answer wins (decision-already-answered); it is
-                              stored as {question: answer}, logged decision-answered, and the
-                              Overseer delivers it to the asking session.
+                              stored as {question: answer}, logged decision-answered, and
+                              Hephaestus delivers it to the asking session.
   question options <J> -- <json> [--json]
                               Notes for the options of the question job <J> asks next, as JSON
                               {question, options: [{label, touches, tradeOff, acceptanceEffect}]}:
@@ -752,7 +751,7 @@ never carries it.
   need declare <J> "<title>" --entity <key> --body <text> | --body-file <path> [--json]
                               A build job's need for another entity: a title, and a body with a
                               numbered ## Acceptance that holds the intended use and a ## Brief.
-                              Kept on the board for the Overseer to file as that entity's ticket;
+                              Kept on the board for Hephaestus to file as that entity's ticket;
                               the same entity and title again replaces the body. Refused
                               need-outside-an-entity-build (not a build job of an entity),
                               need-entity-unknown, need-of-own-entity, need-incomplete and
@@ -775,15 +774,15 @@ never carries it.
                               the incident handled in the same hold (incident-handled).
 
   jobs [--json]               The live jobs, one line each (id, kind and role, state, tickets,
-                              attempt, child instance, a stop asked), then the Overseer, paused or not,
+                              attempt, child instance, a stop asked), then Hephaestus, paused or not,
                               agents against the limit, open decisions and incidents, and each
-                              incident that took its default since the Overseer started, a warning.
+                              incident that took its default since Hephaestus started, a warning.
                               Read-only.
   job show <J> [--json]       The job's record, or what the log holds of a finished one.
   job attach <J> [--json]     Replay every child instance's event log, then follow the newest while
                               the job is on the board (--json replays only). Both read-only.
   job message <J> [--incident <I>] -- <text> [--json]
-                              A chat turn the Overseer writes to the session (job-messaged); a closed
+                              A chat turn Hephaestus writes to the session (job-messaged); a closed
                               product owner is reopened, resuming its session (job-reopened), and
                               any other finished job is refused job-finished. Under an
                               incident, refused job-awaits-user-answer for a job waiting on User or
@@ -792,17 +791,17 @@ never carries it.
   job wind-down|stop <J> [--json]
                               Logged job-stop-requested with the mode. stop and wind-down hold the
                               ticket "stopped by User (J<n>)" or "wound down by User (J<n>)" in the
-                              same hold, with the Overseer up or down; a stopped product owner is
+                              same hold, with Hephaestus up or down; a stopped product owner is
                               finished and its open decisions withdrawn. fresh stops the job so the
                               next attempt starts on its worktree (job-has-no-ticket otherwise).
   job stop --all [--wind-down] [--json]
-                              oversee pause, then stop or wind down every build, review and
+                              pause, then stop or wind down every build, review and
                               product-owner job.
 
   resume <J>|<T> [--json]     Resume interrupted work: User's instruction for the job, or for the
                               ticket's interrupted job and its interrupted: hold, which is lifted
                               with no fresh attempt (ticket-interrupted-hold-lifted). Recorded with
-                              the Overseer up or down; the next pass resumes the job under every
+                              Hephaestus up or down; the next pass resumes the job under every
                               hold a resume obeys, and an instruction gives the job its automatic
                               restarts back. Refused job-not-interrupted, ticket-not-interrupted.
   resume --all [--json]       Resume every job that waits for an instruction and lift every
@@ -811,13 +810,13 @@ never carries it.
                               Resume every job that ended on a network outage. Nothing waiting is
                               nothing to do, exit 0.
 
-  intake -- <text> [--json]   Record a product-owner job (no ticket, no build slot) the Overseer
+  intake -- <text> [--json]   Record a product-owner job (no ticket, no build slot) Hephaestus
                               launches in <worktrees>/sessions/<J>/ with /${PRODUCT_NAMES.PRODUCT_OWNER_SKILL} <text>;
                               several may run at once, and job message chats with one.
   intake close <J> [--set <id,id>]... [--json]
                               Close its input (job-not-intake for another kind of job) and submit
                               the drafts its intake filed, as ticket submit does, refused as it is
-                              (\`ticket-without-entity\`, \`work-outside-entity\`); the Overseer
+                              (\`ticket-without-entity\`, \`work-outside-entity\`); Hephaestus
                               ends the job once its session ends. --set is stored on the job and
                               decides nothing. Under the product owner's own job it names no job.
   intake title <J> -- <title> [--json]
@@ -826,7 +825,7 @@ never carries it.
                               Under the product owner's own job it names no job.
 
   advise [--json]             Open an advise record on the stored pipeline and record its pipeline
-                              agent job (no ticket, no build slot), which the Overseer launches as
+                              agent job (no ticket, no build slot), which Hephaestus launches as
                               a session on a main-line snapshot: it reads the repository and the
                               gate history, never writes it, and proposes edits of the record's
                               draft. Nothing starts one by itself; job stop closes it and job
@@ -859,7 +858,7 @@ never carries it.
                               review, airlock, approval:<approval>, constitution), each to a JSON
                               value, null removing one, and the draft must stay a valid
                               pipeline.json; undo writes an edit's base value back; discard drops
-                              every proposed change; check has the Overseer run the gates the
+                              every proposed change; check has Hephaestus run the gates the
                               draft changes or adds two times in a fresh worktree of main, with
                               no writes folder granted, and send the result to the agent;
                               start-over removes the record and stops its agent; resume opens the
@@ -874,7 +873,7 @@ never carries it.
   pipeline profile <gate> build|review|merge [<S>] [--json]
   pipeline profile-stop <P> [--json]
                               Profile one gate in one phase, once, from setup <S>'s draft or with
-                              no <S> the stored pipeline: the Overseer runs the prepare steps and
+                              no <S> the stored pipeline: Hephaestus runs the prepare steps and
                               the gate in a fresh worktree of main, with no writes folder granted,
                               and records the time in <data>/gate-profiles.json. It only informs:
                               no green, no gate-ran. gate-profile-running while that gate and

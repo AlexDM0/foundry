@@ -31,8 +31,8 @@ export const REGISTRY_RECORDING = {
     'example-dairy':    { project: 'Example Dairy', root: '/Users/example/development/example-dairy', trackerId: 'e2b86d14-9f3a-4c70-a5d2-3b8e0f6c7a91' },
     'example-estate':   { project: 'Example Estate', root: '/Users/example/development/example-estate', trackerId: '1d7f3c58-6a2e-4b9d-8c04-e5a19b3f6d82' },
   } satisfies Readonly<Record<RegistryBoardName, RegistryBoardExample>>,
-  /** The address and process each started Overseer is recorded with, in the order the boards are started. */
-  overseers: [
+  /** The address and process each started Hephaestus is recorded with, in the order the boards are started. */
+  hephaestusProcesses: [
     { address: '127.0.0.1:4987', processId: 4242 },
     { address: '127.0.0.1:4988', processId: 5151 },
     { address: '127.0.0.1:4990', processId: 5353 },

@@ -13,7 +13,7 @@ const STOREFRONT: OutageResumeForge = { trackerId: 'example-storefront-7c41', ap
 const INVOICE_SERVICE: OutageResumeForge = { trackerId: 'invoice-service-2b9e', apiAnswers: true, outageEndings: 1 };
 const DESIGN_SYSTEM_DOWN: OutageResumeForge = { trackerId: 'design-system-91c2', apiAnswers: false, outageEndings: 0 };
 
-const FORGE_REFUSAL_SENTENCE = 'The Overseer is held by an install change.';
+const FORGE_REFUSAL_SENTENCE = 'Hephaestus is held by an install change.';
 
 /** A sender answering each forge's verdict by its tracker id, which records the order of the sends and how many were on their way at once. */
 function senderAnswering(verdictsByTrackerId: Readonly<Record<string, CommandVerdict>>) {
@@ -50,7 +50,7 @@ describe('resumeAll', () => {
 
   test('keeps a forge\'s refusal with its own sentence', async () => {
     const refused: CommandVerdict = {
-      verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: FORGE_REFUSAL_SENTENCE
+      verdict: 'refused', refusedBy: 'forge', refusal: 'hephaestus-held', text: FORGE_REFUSAL_SENTENCE
     };
     const sender = senderAnswering({ [STOREFRONT.trackerId]: refused });
     expect(await OutageResume.resumeAll([STOREFRONT], sender.send)).toEqual([{

@@ -7,16 +7,16 @@
 
 ## In one screen
 
-forge turns [tickets](../glossary.md#ticket) into merged commits: [agent sessions](../glossary.md#session)
-build each ticket on its own [worktree](../glossary.md#worktree), and your commands, the
-[gates](../glossary.md#gate), decide whether it lands. An [Overseer](../glossary.md#overseer) per repository serves the
-[board](../glossary.md#board) through an API on `127.0.0.1`, and a client of that API shows it to you.
+forge turns [tickets](../glossary.md#ticket) into merged commits: [agent sessions](../glossary.md#session) build each
+ticket on its own [worktree](../glossary.md#worktree), and your commands, the [gates](../glossary.md#gate), decide
+whether it lands. A [Hephaestus](../glossary.md#hephaestus) per repository serves the [board](../glossary.md#board)
+through an API on `127.0.0.1`, and a client of that API shows it to you.
 
-The path from clone to first merged ticket: you run `setup.sh`, `init` and `start`, and the Overseer serves the board
+The path from clone to first merged ticket: you run `setup.sh`, `init` and `start`, and Hephaestus serves the board
 paused with `checks-not-set` open. You start the pipeline setup; the pipeline agent researches the repository, drafts
 the constitution and proposes the pipeline, and you continue each step. Apply commits `CONSTITUTION.md` to the main
 line, stores the pipeline and resumes the board. You describe the work in Intake, a product owner files draft tickets,
-you ready them, and the Overseer builds, gates and merges each ticket onto the main line. Nothing builds before an
+you ready them, and Hephaestus builds, gates and merges each ticket onto the main line. Nothing builds before an
 Apply, and the Apply is what resumes a new, paused board. The gate commands, which store a pipeline by hand, are under
 Set up the pipeline.
 
@@ -25,7 +25,7 @@ git clone git@github.com:AlexDM0/foundry.git && cd foundry
 apps/forge/setup.sh                         # once per machine; apps/forge/setup.ps1 on Windows
 cd ~/code/example-storefront && forge init --project "Example Storefront"
 git add .gitignore && git commit -m "Ignore the tracker"
-forge start                                 # starts the Overseer in the background
+forge start                                 # starts Hephaestus in the background
 forge pipeline setup                        # the pipeline agent designs the pipeline with you
 ```
 
@@ -44,10 +44,10 @@ the first sign of a missing one is a failing session.
 | Bun at the clone's `.bun-version` or later | Runs the program; the bootstrap offers Bun's installer when Bun is missing, and the setup offers `bun upgrade` below `.bun-version` | `bun --version` |
 | git | Worktrees, branches and [landings](../glossary.md#landing) | `git --version` |
 | `claude`, logged in | Every agent is a Claude Code session | `claude` opens a session |
-| A git repository with a commit | The Overseer cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
+| A git repository with a commit | Hephaestus cuts every worktree from the [main line](../glossary.md#main-line) | `git log -1` |
 
-Elsewhere the program differs in two ways. Where gates cannot run confined, `oversee` refuses to start and names what
-is missing; `status --json` prints the answer as `confinement`. `--login-overseer` writes a systemd user unit on Linux
+Elsewhere the program differs in two ways. Where gates cannot run confined, `start` refuses to start and names what
+is missing; `status --json` prints the answer as `confinement`. `--login-item` writes a systemd user unit on Linux
 and a Run entry on Windows in place of a LaunchAgent ([the login item](../cli.md#the-login-item)).
 
 ## Install the program
@@ -107,7 +107,7 @@ Expect `Initialised forge for "Example Storefront"`, then one line per part. On 
 `(installed)`.
 
 After `init`, your code and `CLAUDE.md` stay yours. `init` and `update` own the installed files. `init` creates the
-stores, which runtime then writes, and `pipeline.json`, the `overseer` and `jobs` folders and the worktrees folder
+stores, which runtime then writes, and `pipeline.json`, the `hephaestus` and `jobs` folders and the worktrees folder
 appear at runtime. Little reaches git: only `.gitignore`. `update` replaces each installed file; `.gitignore` and
 settings keep your entries, and only the program's own retired entries are removed.
 
@@ -123,10 +123,10 @@ remove it by hand.
 says `nothing was written`; [Refusals](../reference/refusals.md) lists this as `older-program-present`. This build
 cannot adopt that repository: run `forge` in one without that folder.
 
-## Start the Overseer
+## Start Hephaestus
 
-`start` starts the Overseer in the background, as `oversee --detach` does, and prints its URL. No forge command opens
-the board; a client of the Overseer's API shows it. Run either with your main line checked out: the Overseer reads the branch
+`start` starts Hephaestus in the background, as `start` does, and prints its URL. No forge command opens
+the board; a client of Hephaestus's API shows it. Run either with your main line checked out: Hephaestus reads the branch
 of your repository's main checkout when it starts and lands onto that branch.
 
 ```sh
@@ -134,19 +134,19 @@ forge start
 ```
 
 The URL looks like `http://127.0.0.1:<port>/`. The port is derived from the tracker's id, starting at
-`OVERSEER_PORT_FIRST` (4930), so the URL survives a restart. If that port is taken, the Overseer moves up, within
-`OVERSEER_PORT_COUNT` (100) ports. `--port <n>` picks one yourself.
+`HEPHAESTUS_PORT_FIRST` (4930), so the URL survives a restart. If that port is taken, Hephaestus moves up, within
+`HEPHAESTUS_PORT_COUNT` (100) ports. `--port <n>` picks one yourself.
 
-The Overseer keeps running after `start` ends and after its terminal closes. Stop it with `forge oversee stop`; running
+Hephaestus keeps running after `start` ends and after its terminal closes. Stop it with `forge stop`; running
 agents carry on under Talos until its lease ends a minute later, then stop at the end of their turn and wait for your
 resume.
 
 ## Set up the pipeline
 
 A board builds nothing until it has a [pipeline](../glossary.md#pipeline), `<data>/pipeline.json`, which names the
-commands that judge a commit and the steps a ticket takes. Until one is stored, the Overseer shows the
+commands that judge a commit and the steps a ticket takes. Until one is stored, Hephaestus shows the
 `checks-not-set` [decision](../glossary.md#decision) in Questions and holds every launch. A new board is also paused
-(`DEFAULT_OVERSEER_STATE`), but the pause does not hold the setup: you can set the pipeline up first and resume the
+(`DEFAULT_HEPHAESTUS_STATE`), but the pause does not hold the setup: you can set the pipeline up first and resume the
 board when you apply it.
 
 ![The checks-not-set decision is open on a new board. Two routes store a pipeline. pipeline setup, then Apply, designs it with the pipeline agent; gate add or gate none stores it by hand, at once. Both reach a stored pipeline. After an Apply, checks-not-set is withdrawn by the Apply itself; after a gate command it stays open until you answer it with any text. The exit: an answer while no pipeline is stored makes the next Pass open it again.](../figures/getting-started/settling-gates.png)
@@ -182,22 +182,22 @@ gate in one phase. Neither is needed to apply.
 
 **Apply.** Apply refuses while a question is open or a step needs a recheck. It commits the constitution to your main
 line first: the [Airlock](../glossary.md#airlock) commits `CONSTITUTION.md` with the subject `Add the repository
-constitution`, ungated, while the Overseer runs. Then it stores `pipeline.json`, withdraws `checks-not-set` and, with
+constitution`, ungated, while Hephaestus runs. Then it stores `pipeline.json`, withdraws `checks-not-set` and, with
 `--resume`, resumes the board. The command prints the log lines it wrote. Until the commit lands, the record's
 `applyRequest` reads `committing`; once it landed, `<data>/pipeline-setup.json` is gone, `forge gate list` prints the
 pipeline and `git log --oneline -1` on your main line shows the commit.
 
 > **Careful.** The commit fast-forwards your repository's main checkout, as a landing does. If that checkout is off the
 > main line, or holds its own change to `CONSTITUTION.md`, Apply waits and says so; clean it and the next Pass commits.
-> In a repository that signs its commits, the Overseer signs through your gpg-agent; if it cannot, commit the text as
+> In a repository that signs its commits, Hephaestus signs through your gpg-agent; if it cannot, commit the text as
 > `CONSTITUTION.md` yourself, signed, and apply again.
 
 **Set gates yourself.** The `gate` commands store a pipeline at once, with no agent and no constitution. A gate is any
 shell line: its exit code is the verdict, so the program needs no knowledge of your stack. A gate runs confined: no
 network beyond loopback unless `--network` names a domain, and writes only to its worktree, its git admin folder and
 temp, plus `--writes` folders. A prepare step sets a fresh worktree up before
-the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run before fixing by hand; the
-Overseer never runs it. A gate runs in every phase unless `--phases` names some. For Example Storefront, with its own
+the gates run. `--fix` names a command the [builder](../glossary.md#builder) is told to run before fixing by hand;
+Hephaestus never runs it. A gate runs in every phase unless `--phases` names some. For Example Storefront, with its own
 scripts:
 
 ```sh
@@ -236,10 +236,10 @@ pipeline is stored. If you applied without it, or set gates by hand, press Resum
 board](running-a-board.md) tours the header. The same thing from a terminal:
 
 ```sh
-forge oversee resume
+forge unpause
 ```
 
-Expect `Overseer set to running (was paused).`
+Expect `Hephaestus set to running (was paused).`
 
 Paused holds new work, not sessions you asked for. A paused board shows this:
 
@@ -253,7 +253,8 @@ Paused holds new work, not sessions you asked for. A paused board shows this:
 | Ticket builds | Wait | Start once a pipeline is set |
 | Landings | Wait | Start once a pipeline is set |
 
-The [Next line](../glossary.md#next-line) under `status` says so too: it ends `Overseer paused: wait for the user's go`.
+The [Next line](../glossary.md#next-line) under `status` says so too: it ends
+`Hephaestus paused: wait for the user's go`.
 
 ## File the first work
 
@@ -321,7 +322,7 @@ Once a ticket is ready, nothing waits on you unless Questions or a header notice
 
 Each tab is explained in [Running a board](running-a-board.md).
 
-A builder commits on its own worktree under `<worktrees>/`, never in your repository's main checkout. The Overseer then
+A builder commits on its own worktree under `<worktrees>/`, never in your repository's main checkout. Hephaestus then
 runs the build phase's gates on that commit. A reviewer follows if the pipeline sets one: its job first merges your
 main line into the branch and runs the build gates again, a conflict going back to the builder; then the reviewer works
 and the review phase's gates run, with a fresh re-reviewer when its fixes were large and the pipeline asks for one.
@@ -342,24 +343,24 @@ overwritten, landings wait and the header shows the `dirty-main-checkout` [notic
 
 ## Keep it running across logins
 
-The Overseer does not come back after a reboot on its own. On macOS, an optional login item starts it at login:
+Hephaestus does not come back after a reboot on its own. On macOS, an optional login item starts it at login:
 
 ```sh
 cd <your forge clone>
-apps/forge/setup.sh --login-overseer ~/code/example-storefront
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.overseer.plist
+apps/forge/setup.sh --login-item ~/code/example-storefront
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.forge.hephaestus.plist
 ```
 
-The `setup.sh` line starts `setup.ts`, whose login item step (`cli/setup/LoginOverseer.ts`, through the Autostart port)
-writes one file, `~/Library/LaunchAgents/com.forge.overseer.plist`, which runs `oversee --detach` in that
-repository at login. On Linux it writes a systemd user unit, and on Windows (`apps/forge/setup.ps1 --login-overseer`) a
+The `setup.sh` line starts `setup.ts`, whose login item step (`cli/setup/LoginHephaestus.ts`, through the Autostart port)
+writes one file, `~/Library/LaunchAgents/com.forge.hephaestus.plist`, which runs `start` in that
+repository at login. On Linux it writes a systemd user unit, and on Windows (`apps/forge/setup.ps1 --login-item`) a
 `Run` registry value ([the login item](../cli.md#the-login-item)). The `launchctl` line loads the item, so you need not log
 out and back in.
 
 A second repository needs its own `--label <label>`, and the setup refuses the default label for it. The plist stores
 your clone's path and your current `PATH`, so write it again if either changes.
 
-The item starts the Overseer once. It does not restart one that dies.
+The item starts Hephaestus once. It does not restart one that dies.
 
 ## Did it work?
 
@@ -369,14 +370,14 @@ Each row is one stage; stop at the first that does not match.
 | --- | --- | --- | --- |
 | Install | `forge version` | `code <hash>, install version <number>` | Follow the check under [Install the program](#install-the-program) |
 | Adopt | `git status --short` | `?? .claude/` and `?? .gitignore`; once `.gitignore` is committed, `?? .claude/` alone. A global ignore covering the settings file drops the `.claude/` line | A skill folder listed: run `init` again. `<data>` listed: add `.forge/` to `.gitignore` by hand; `init` adds that entry only when it creates the tracker |
-| Tracker | `forge status` | `Next:` line ending `Overseer paused: wait for the user's go` | Rerun `init` |
-| Overseer | `forge oversee status` | `overseer: serving at http://127.0.0.1:<port>/`, then `paused` | `oversee --detach`, then read `<data>/overseer.log` |
-| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before the Overseer started | Wait one Pass, then reread `<data>/overseer.log` |
+| Tracker | `forge status` | `Next:` line ending `Hephaestus paused: wait for the user's go` | Rerun `init` |
+| Hephaestus | `forge status` | `hephaestus: serving at http://127.0.0.1:<port>/`, then `paused` | `start`, then read `<data>/hephaestus.log` |
+| Decision | `forge status --json` | `decisions` lists `checks-not-set`, unless you stored gates before Hephaestus started | Wait one Pass, then reread `<data>/hephaestus.log` |
 | Sessions | `forge status` | No repeating `ended failed (assistant-down)` in the log lines | Run `claude` by hand: it shows why a session cannot start, such as a missing login |
 | Setup | `forge jobs` | A `pipeline-agent` job while the setup runs | `forge pipeline resume S1`: it opens the agent again, or starts a new one from the record |
 | Apply | `git log --oneline -1` on the main line | `Add the repository constitution` | Read the reason in `applyRequest` in `<data>/pipeline-setup.json`; clean the main checkout, or commit the text yourself |
 | Gates | `forge gate list` | Your gates, or `none, on purpose` | Set the pipeline up; see [Set up the pipeline](#set-up-the-pipeline) |
-| Resume | `forge oversee status` | `not paused` | `oversee resume` |
+| Resume | `forge status` | `not paused` | `unpause` |
 | Drafts | `forge ticket list` | Your ticket as `draft` | Check the Intake tab |
 | Ready | `forge ticket list` | Your ticket as `committed` (the Ready lane), then `in-progress` (Building) | Read the refusal; see [File the first work](#file-the-first-work) |
 | Worktree | `git worktree list` | A line for `<worktrees>/ticket-<id>` | Check the board is not paused |
@@ -390,18 +391,18 @@ Anything else is in the [Runbook](runbook.md), which also has
 
 | Concept | Path | Symbol | Spec |
 | --- | --- | --- | --- |
-| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `writeLoginOverseer` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
+| Machine setup | `setup.ts`, `cli/setup/Setup.ts`; bootstraps `setup.sh`, `setup.ps1` | `runSetup`, `writeLoginHephaestus` | `cli/setup/Setup.spec.ts`, `cli/SetupScript.integration.spec.ts`, `cli/setup/BootstrapScripts.spec.ts` |
 | Adoption | `cli/adoption/init/InitCommand.ts` | `initCommand` | `cli/adoption/init/InitCommand.spec.ts` |
 | What install writes | `cli/adoption/constants/AgentInstall.ts` | `AGENT_INSTALL` | `cli/adoption/TrackerRefresh.claudeInstall.spec.ts` |
 | Refusal beside the released program | `cli/adoption/OlderProgramRefusal.ts` | `refuseBesideAnOlderProgram` | `cli/ProductNameIsolation.integration.spec.ts` |
-| Starting detached | `cli/overseer/OverseerCommand.ts` | `startOverseer` | `cli/overseer/OverseerCommand.integration.spec.ts` |
-| The port | `src/services/overseer/OverseerPort.ts` | `OverseerPort` | `src/services/overseer/OverseerServer.integration.spec.ts` |
-| A new board is paused | `src/lib/tracker-model/constants/OverseerStates.ts` | `DEFAULT_OVERSEER_STATE` | `cli/overseer/OverseerCommand.spec.ts` |
+| Starting detached | `cli/hephaestus/StartCommand.ts` | `startDetached` | `cli/hephaestus/StartCommand.integration.spec.ts` |
+| The port | `src/services/hephaestus/HephaestusPort.ts` | `HephaestusPort` | `src/services/hephaestus/HephaestusServer.integration.spec.ts` |
+| A new board is paused | `src/lib/tracker-model/constants/HephaestusStates.ts` | `DEFAULT_HEPHAESTUS_STATE` | `cli/hephaestus/UnpauseCommand.spec.ts` |
 | What paused holds | `src/lib/tracker-model/Playbook.ts` | `nextStepsOf` | `src/lib/tracker-model/Playbook.spec.ts` |
 | The pipeline setup | `cli/pipeline/PipelineCommand.ts`, `src/services/control/PipelineSetupControls.ts` | `startSetup`, `applySetup` | `cli/pipeline/PipelineCommand.spec.ts`, `src/services/control/PipelineSetupControls.spec.ts` |
-| The constitution commit | `src/services/overseer/Airlocks.ts` | `allocateConstitutionCommit` | `src/services/overseer/Airlocks.constitutionCommit.spec.ts` |
+| The constitution commit | `src/services/hephaestus/Airlocks.ts` | `allocateConstitutionCommit` | `src/services/hephaestus/Airlocks.constitutionCommit.spec.ts` |
 | The gate verbs | `cli/gates/GatePipelineVerbs.ts` | `addGate`, `setNoGates` | `cli/gates/GatePipelineVerbs.spec.ts` |
 | Readiness | `src/lib/tracker-model/@types/Ticket.ts` | `ReadinessGap` | `src/lib/tracker-model/Board.ready.spec.ts` |
-| Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/overseer/OverseerWording.intake.spec.ts` |
+| Intake | `cli/intake/IntakeCommand.ts` | `intakeCommand` | `cli/hephaestus/HephaestusWording.intake.spec.ts` |
 | What `intake close` submits | `src/lib/tracker-model/Board.ts`, `src/lib/tracker-model/TicketMoves.ts` | `closeIntake`, `submitDraftTickets` | `src/services/control/JobControls.spec.ts` |
 | How a decision answer acts | `src/services/control/DecisionControls.ts` | `answerDecision` | `cli/decisions/DecisionCommands.spec.ts` |

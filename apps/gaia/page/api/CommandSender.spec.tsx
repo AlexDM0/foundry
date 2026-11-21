@@ -26,8 +26,8 @@ const PAUSE_INVOICE_SERVICE: CommandBody = { kind: 'forge-pause', trackerId: TRA
 const STOP_REFUSED: CommandAnswerDocument = {
   answerVersion: 3,
   outcome:       'refused',
-  refusal:       'overseer-still-live',
-  text:          'The Overseer did not stop within its tries.',
+  refusal:       'hephaestus-still-live',
+  text:          'Hephaestus did not stop within its tries.',
   forges:        [],
 };
 
@@ -35,7 +35,7 @@ const DONE: CommandAnswerDocument = {
   answerVersion: 3, outcome: 'done', refusal: null, text: null, forges: []
 };
 
-/** An update was done, and the forge's live Overseer did not take the Baton pass. */
+/** An update was done, and the forge's live Hephaestus did not take the Baton pass. */
 const RESTART_PENDING: CommandAnswerDocument = {
   answerVersion: 3, outcome: 'restart-pending', refusal: null, text: null, forges: []
 };
@@ -130,7 +130,7 @@ describe('a refusal reaches the view with the forge\'s sentence', () => {
     expect(renderToStaticMarkup(view)).toBe('');
     await sender.send(STOP_EXAMPLE_MOBILE_APP);
     const refused = renderToStaticMarkup(view);
-    const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="overseer-still-live" sentence="The Overseer did not stop within its tries." onDismiss={() => undefined} />;
+    const refusal = <Refusal commandLabel="Stop" refusedBy="forge" code="hephaestus-still-live" sentence="Hephaestus did not stop within its tries." onDismiss={() => undefined} />;
     expect(refused).toBe(renderToStaticMarkup(refusal));
     sender.dismissFailure(subject);
     expect(renderToStaticMarkup(view)).toBe('');

@@ -2,7 +2,7 @@
  * `Board.followPlaybook` over real board records. What matters: the steps the policy derives are applied in the same pass (jobs launched as
  * records, a park held and asked about, decisions and incidents opened, defaults taken), every record stamped with `limits.now`; a ready
  * ticket is any committed, unheld one, a low one and one with an open question alike; failed passes, crashes on one ticket and usage limits
- * are acted on with no incident, and an Overseer restart counts toward no outage; a review past its first round launches as a
+ * are acted on with no incident, and a Hephaestus restart counts toward no outage; a review past its first round launches as a
  * `re-reviewer`; and a group builds in parallel, each ticket as soon as the
  * group tickets it names are integrated.
  */
@@ -72,7 +72,7 @@ function lifecycleBoardOf(contents: { tickets: Ticket[]; progress?: Partial<Trac
     view:             { kind: 'auto' },
     nextTaskId:       1,
     concurrencyLimit: 4,
-    overseerState:    'running',
+    hephaestusState:  'running',
     nextJobId:        901,
     jobs:             [{ ...LIVE_ASSISTANT }],
     tasks:            [],
@@ -154,7 +154,7 @@ describe('advancing the lifecycle applies what the policy derives', () => {
 
     expect(board.tickets()[0]?.frontmatter.hold).toBe('parked:failed-passes');
     expect(board.decisions().map((decision) => [decision.kind, decision.ticketIds, decision.askedBy, decision.context]))
-      .toEqual([['parked', ['001'], 'overseer', 'Example context']]);
+      .toEqual([['parked', ['001'], 'hephaestus', 'Example context']]);
     expect(board.incidents()).toEqual([]);
   });
 
@@ -162,14 +162,14 @@ describe('advancing the lifecycle applies what the policy derives', () => {
     const storedLogRecords = [
       launchedRecord('J1', 'build', ['001']),
       launchedRecord('J2', 'build', ['002']),
-      interruptedRecord('J1', 'watcher-lost'),
+      interruptedRecord('J1', 'talos-lost'),
       interruptedRecord('J2', 'agent-crashed'),
     ];
     const { board } = lifecycleBoardOf({ tickets: [], storedLogRecords });
 
     advance(board);
 
-    expect(board.overseerState()).toBe('paused');
+    expect(board.hephaestusState()).toBe('paused');
     expect(board.decisions().map((decision) => decision.kind)).toEqual(['outage']);
     expect(board.incidents()).toEqual([]);
   });
@@ -254,17 +254,17 @@ describe('ready is committed and unheld', () => {
 });
 
 describe('what code counts and acts on alone', () => {
-  test('an Overseer restart between two crashes is not counted: the outage still pauses the overseer', () => {
+  test('a Hephaestus restart between two crashes is not counted: the outage still pauses Hephaestus', () => {
     const storedLogRecords = [
       launchedRecord('J1', 'build', ['001']),
       launchedRecord('J2', 'build', ['002']),
-      interruptedRecord('J1', 'watcher-lost'),
-      { kind: 'overseer-started', fields: { codeVersion: 'example', installVersion: 17 }, at: FIXTURE_AT } satisfies LogRecord,
-      interruptedRecord('J2', 'watcher-lost'),
+      interruptedRecord('J1', 'talos-lost'),
+      { kind: 'hephaestus-started', fields: { codeVersion: 'example', installVersion: 17 }, at: FIXTURE_AT } satisfies LogRecord,
+      interruptedRecord('J2', 'talos-lost'),
     ];
     const { board } = lifecycleBoardOf({ tickets: [], storedLogRecords });
 
-    expect(stepKindsOf(advance(board).steps)).toContain('pause-overseer');
+    expect(stepKindsOf(advance(board).steps)).toContain('pause-hephaestus');
   });
 
   test('one failed pass rebuilds on the next attempt and opens nothing', () => {

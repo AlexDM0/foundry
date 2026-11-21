@@ -17,7 +17,7 @@ const { PROGRAM } = PRODUCT_NAMES;
 const ROOT = '/example/repository';
 const MANIFEST = '/example/repository/.example/version.json';
 const URL = 'http://127.0.0.1:4242';
-const BATON = '/example/overseer/baton-1.json';
+const BATON = '/example/hephaestus/baton-1.json';
 
 function boardRefusal(boardRefusalDetail: BoardRefusalDetail): OperationRefusalDetail {
   return { kind: 'board-refusal', boardRefusal: boardRefusalDetail };
@@ -48,33 +48,33 @@ const API_SENTENCE_FOR_DETAIL: readonly (readonly [OperationRefusalDetail, strin
   [{ kind: 'no-tracker-at-override', overrideDirectory: ROOT }, `No ${PROGRAM} tracker was found in ${ROOT}, which ${ROOT_OVERRIDE_VARIABLE} names.`],
   [{ kind: 'no-readable-ticket', reference: '7' }, 'There is no readable ticket 7.'],
   [
-    { kind: 'overseer-already-running', url: URL, batonFilePath: BATON },
-    `An Overseer already serves this board at ${URL} (${BATON}). Stop it first.`,
+    { kind: 'hephaestus-already-running', url: URL, batonFilePath: BATON },
+    `A Hephaestus already serves this board at ${URL} (${BATON}). Stop it first.`,
   ],
   [
-    { kind: 'overseer-down', overseerDirectory: '/example/overseer' },
-    'No Overseer serves this board (/example/overseer holds no live Baton). Start the board again to start one.',
+    { kind: 'hephaestus-down', hephaestusDirectory: '/example/hephaestus' },
+    'No Hephaestus serves this board (/example/hephaestus holds no live Baton). Start the board again to start one.',
   ],
   [
-    { kind: 'overseer-did-not-start', exitCode: 1, logFilePath: '/example/overseer.log' },
-    'The detached Overseer exited with code 1 before it answered. Its log is /example/overseer.log, which may name the cause.',
+    { kind: 'hephaestus-did-not-start', exitCode: 1, logFilePath: '/example/hephaestus.log' },
+    'The detached Hephaestus exited with code 1 before it answered. Its log is /example/hephaestus.log, which may name the cause.',
   ],
   [
     { kind: 'git-below-floor', foundVersion: '2.30.0', floorVersion: '2.38.0' },
     `${PROGRAM} needs git 2.38.0 or newer, for its merge of trees; the git on the PATH is 2.30.0. Upgrade git and try again.`,
   ],
-  [{ kind: 'overseer-port-in-use', firstPort: 4242, lastPort: 4242 }, 'Port 4242 on 127.0.0.1 is in use, so the Overseer did not start.'],
-  [{ kind: 'overseer-port-in-use', firstPort: 4242, lastPort: 4252 }, 'Every port from 4242 to 4252 on 127.0.0.1 is in use, so the Overseer did not start.'],
+  [{ kind: 'hephaestus-port-in-use', firstPort: 4242, lastPort: 4242 }, 'Port 4242 on 127.0.0.1 is in use, so Hephaestus did not start.'],
+  [{ kind: 'hephaestus-port-in-use', firstPort: 4242, lastPort: 4252 }, 'Every port from 4242 to 4252 on 127.0.0.1 is in use, so Hephaestus did not start.'],
   [
     {
       kind: 'baton-pass-failed', successorCodeVersion: 'code-example', step: 'take-baton', error: 'Example error', url: URL
     },
-    `The Baton pass to code code-example failed at take-baton: Example error. The old Overseer keeps driving at ${URL} and shows this as a warning; `
-    + 'see the Overseer log.',
+    `The Baton pass to code code-example failed at take-baton: Example error. The old Hephaestus keeps driving at ${URL} and shows this as a warning; `
+    + 'see the Hephaestus log.',
   ],
   [
-    { kind: 'overseer-owns-the-lifecycle', url: URL, batonFilePath: BATON },
-    `An Overseer drives this board at ${URL} (${BATON}), so only it delivers tickets. Ask the Overseer to record the ticket as delivered by hand. `
+    { kind: 'hephaestus-owns-the-lifecycle', url: URL, batonFilePath: BATON },
+    `A Hephaestus drives this board at ${URL} (${BATON}), so only it delivers tickets. Ask Hephaestus to record the ticket as delivered by hand. `
     + 'Nothing was written.',
   ],
   [

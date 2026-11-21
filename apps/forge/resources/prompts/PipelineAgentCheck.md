@@ -1,4 +1,4 @@
-User asked for a check of the draft. The Overseer ran the prepare steps and the gates that draft revision
+User asked for a check of the draft. Hephaestus ran the prepare steps and the gates that draft revision
 {{draftRevision}} changes or adds. It ran them two times, in a fresh worktree of main at commit {{snapshotCommit}}.
 It gave no gate the folders in its `writes` list.
 

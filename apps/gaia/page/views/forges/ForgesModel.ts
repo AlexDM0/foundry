@@ -249,11 +249,11 @@ const SHORT_CODE_VERSION_CHARACTERS = 7;
 /** What the machine panel's limit shows while no forge reports one. */
 const NO_LIMIT_KNOWN = '—';
 
-/** The conditions under which a forge's Overseer runs. */
+/** The conditions under which a forge's Hephaestus runs. */
 const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
 
-/** The fidelities at which the forge's Overseer answered its last read, so a command it carries reaches it. */
-const OVERSEER_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set(['full', 'counts-only', 'newer-contract']);
+/** The fidelities at which the forge's Hephaestus answered its last read, so a command it carries reaches it. */
+const HEPHAESTUS_ANSWERS_AT: ReadonlySet<FleetDocumentForge['fidelity']> = new Set(['full', 'counts-only', 'newer-contract']);
 
 /** SCREENS A4: which buttons each condition shows. Open is left out where the forge cannot open in place (F5). */
 const BUTTONS_BY_CONDITION: Readonly<Record<FleetDocumentCondition, readonly RowButtonKind[]>> = {
@@ -317,12 +317,12 @@ function titleFiguresOf(fleetDocument: FleetDocument): PageFigure[] {
 }
 
 function apiCarriesCommandsTo(forge: FleetDocumentForge): boolean {
-  return OVERSEER_ANSWERS_AT.has(forge.fidelity) && ForgeContractUtil.controlContractIsKnown(forge);
+  return HEPHAESTUS_ANSWERS_AT.has(forge.fidelity) && ForgeContractUtil.controlContractIsKnown(forge);
 }
 
-/** A Stop reaches an answering Overseer only in the control contract Gaia knows; with none answering, the forge program stops the forge. */
+/** A Stop reaches an answering Hephaestus only in the control contract Gaia knows; with none answering, the forge program stops the forge. */
 function stopReaches(forge: FleetDocumentForge): boolean {
-  return !OVERSEER_ANSWERS_AT.has(forge.fidelity) || ForgeContractUtil.controlContractIsKnown(forge);
+  return !HEPHAESTUS_ANSWERS_AT.has(forge.fidelity) || ForgeContractUtil.controlContractIsKnown(forge);
 }
 
 interface RowSurroundings {
@@ -414,7 +414,7 @@ function buttonsOfAForgeGaiaCannotTalkTo(forge: FleetDocumentForge & { readonly 
 
 /**
  * A forge that crashed or is down offers its start, as one that never answered would. A down forge keeps the Stop of an unreachable one,
- * since its Overseer may be alive but not answering; a crashed one's Overseer is gone.
+ * since its Hephaestus may be alive but not answering; a crashed one's Hephaestus is gone.
  */
 const BUTTONS_BY_PRESENCE_OFF: Readonly<Partial<Record<FleetDocumentForge['presence']['state'], readonly RowButtonKind[]>>> = {
   crashed: ['start', 'look-again'],
@@ -444,7 +444,7 @@ function detailTextOf(forge: FleetDocumentForge, shownCondition: ShownCondition,
     case 'live':
     case 'held':
     case 'passing-baton': {
-      const startedClock = StampTextUtil.clockTextAtReadingOf(forge.overseerStartedAt, clock);
+      const startedClock = StampTextUtil.clockTextAtReadingOf(forge.hephaestusStartedAt, clock);
       return startedClock === null ? null : `since ${startedClock}`;
     }
     case 'paused': {
@@ -496,7 +496,7 @@ function detailFaceOf(condition: ShownCondition, forgeProgramIsMissing: boolean)
 }
 
 /**
- * The forge's own limit, between one agent and the forge's ceiling; a stepper only while its Overseer runs and is read in full, and a
+ * The forge's own limit, between one agent and the forge's ceiling; a stepper only while its Hephaestus runs and is read in full, and a
  * disabled one while the forge starts (B2).
  */
 function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurroundings): ForgeAgentsCell | null {
@@ -505,8 +505,8 @@ function agentsCellOf(forge: FleetDocumentForge, rowSurroundings: RowSurrounding
   if (concurrency === null) return null;
   const valueText = `${concurrency.agentsInFlight} / ${concurrency.limit}`;
   const isStarting = shownConditionOf(forge, rowSurroundings.surroundings.commandStates) === 'starting';
-  const overseerRuns = RUNNING_CONDITIONS.has(forge.condition) && forge.fidelity === 'full';
-  if (!overseerRuns && !isStarting) return { kind: 'text', text: valueText };
+  const hephaestusRuns = RUNNING_CONDITIONS.has(forge.condition) && forge.fidelity === 'full';
+  if (!hephaestusRuns && !isStarting) return { kind: 'text', text: valueText };
   const { limit } = concurrency;
   return {
     kind:         'stepper',
@@ -556,7 +556,7 @@ function refusalOf(trackerId: string, surroundings: ForgesSurroundings, showsHer
 }
 
 /**
- * B2: the dialog under the row it stops. With no agent running there is nothing to choose, nor for an Overseer that does not answer Gaia,
+ * B2: the dialog under the row it stops. With no agent running there is nothing to choose, nor for a Hephaestus that does not answer Gaia,
  * since the forge program then stops it whatever its agents were asked to do; the agents are then kept.
  */
 function stopDialogOf(forge: FleetDocumentForge, surroundings: ForgesSurroundings): StopDialog | null {
@@ -601,12 +601,12 @@ function pendingRestartOf(forge: FleetDocumentForge, rowSurroundings: RowSurroun
   };
 }
 
-/** The conditions whose detail is only when the Overseer started: the versions subline takes their place. */
+/** The conditions whose detail is only when Hephaestus started: the versions subline takes their place. */
 const CONDITIONS_DETAILED_BY_THEIR_START: ReadonlySet<ShownCondition> = new Set(['live', 'held', 'passing-baton']);
 
 const VERSIONS_DISCLOSURE_LABEL_SUFFIX = ', its version beside this Gaia’s';
 
-/** A current forge's version replaces when its Overseer started; any other verdict's disclosure replaces whatever the detail was. */
+/** A current forge's version replaces when its Hephaestus started; any other verdict's disclosure replaces whatever the detail was. */
 function rowVersionsOf(forge: FleetDocumentForge, shownCondition: ShownCondition, { fleetDocument, surroundings }: RowSurroundings): ForgeRowVersions | null {
   const withVersions = withVersionsOf(forge);
   if (withVersions === null) return null;

@@ -4,9 +4,9 @@
  * comes from the registry and the identity; a fact no source gives is `null`, never zero. A monitor's
  * `target` names the thing an entry opens, and maps to that subject's place on Gaia's board; an entry with no target maps to none.
  */
-import type { BoardTarget, BoardTargetSubject }                                from 'forge-contracts/BoardReadingDocuments';
-import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerState } from 'forge-contracts/BoardSummaryDocument';
-import type { IdentityDocument }                                               from 'forge-contracts/IdentityDocument';
+import type { BoardTarget, BoardTargetSubject }                                  from 'forge-contracts/BoardReadingDocuments';
+import type { BoardSummaryDocument, SummaryJobDocument, SummaryHephaestusState } from 'forge-contracts/BoardSummaryDocument';
+import type { IdentityDocument }                                                 from 'forge-contracts/IdentityDocument';
 import type {
   MonitorActivityEntryDocument,
   MonitorAttentionEntryDocument,
@@ -69,7 +69,7 @@ function identityOf(document: IdentityDocument): ForgeIdentity {
 }
 
 /** A held launch outranks a pause: it is what User must act on. */
-function conditionOf(state: SummaryOverseerState, paused: boolean): ForgeCondition {
+function conditionOf(state: SummaryHephaestusState, paused: boolean): ForgeCondition {
   switch (state) {
     case 'held-by-install-change':
       return 'held';
@@ -182,23 +182,23 @@ function contractsWith(identity: ForgeIdentity | null, readContracts: Partial<Fo
 
 /** A forge read in full: everything comes from the snapshot but the contracts, the registry's last command and the stamp of the read. */
 function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRegistryFacts, identity: ForgeIdentity, readAt: string): ForgeReading {
-  const { overseer, concurrency, usage } = snapshot;
+  const { hephaestus, concurrency, usage } = snapshot;
   return {
-    trackerId:         snapshot.trackerId,
-    project:           snapshot.project,
-    root:              snapshot.root,
-    fidelity:          'full',
-    condition:         conditionOf(overseer.state, overseer.paused),
-    url:               overseer.url,
-    processId:         overseer.processId,
-    contracts:         contractsWith(identity, { monitor: snapshot.monitorVersion }),
-    codeVersion:       overseer.codeVersion,
-    lastReportedAt:    readAt,
-    overseerStartedAt: overseer.startedAt,
-    program:           registryFacts.program,
-    lastCommand:       registryFacts.lastCommand,
-    lastChangedAt:     registryFacts.lastChangedAt,
-    concurrency:       {
+    trackerId:           snapshot.trackerId,
+    project:             snapshot.project,
+    root:                snapshot.root,
+    fidelity:            'full',
+    condition:           conditionOf(hephaestus.state, hephaestus.paused),
+    url:                 hephaestus.url,
+    processId:           hephaestus.processId,
+    contracts:           contractsWith(identity, { monitor: snapshot.monitorVersion }),
+    codeVersion:         hephaestus.codeVersion,
+    lastReportedAt:      readAt,
+    hephaestusStartedAt: hephaestus.startedAt,
+    program:             registryFacts.program,
+    lastCommand:         registryFacts.lastCommand,
+    lastChangedAt:       registryFacts.lastChangedAt,
+    concurrency:         {
       limit:                        concurrency.limit,
       agentsInFlight:               concurrency.agentsInFlight,
       machineLimit:                 concurrency.machineLimit,
@@ -233,31 +233,31 @@ function fullReadingOf(snapshot: MonitorSnapshotDocument, registryFacts: ForgeRe
  */
 function countsOnlyReadingOf(summary: BoardSummaryDocument, registryFacts: ForgeRegistryFacts, identity: ForgeIdentity, readAt: string): ForgeReading {
   return {
-    trackerId:         registryFacts.trackerId,
-    project:           summary.project,
-    root:              registryFacts.root,
-    fidelity:          'counts-only',
-    condition:         conditionOf(summary.overseer.state, summary.overseer.paused),
-    url:               summary.overseer.url ?? registryFacts.overseerUrl,
-    processId:         identity.processId,
-    contracts:         contractsWith(identity, { summary: summary.summaryVersion }),
-    codeVersion:       identity.codeVersion,
-    lastReportedAt:    readAt,
-    overseerStartedAt: null,
-    program:           registryFacts.program,
-    lastCommand:       registryFacts.lastCommand,
-    lastChangedAt:     registryFacts.lastChangedAt,
-    concurrency:       null,
-    readyTicketCount:  summary.readyTicketIds.length,
-    openIncidents:     summary.openIncidents,
-    attention:         [],
-    attentionCount:    summary.openDecisions,
-    agents:            summary.jobs.map(agentRowOfSummaryJob),
-    notices:           [],
-    warnings:          [],
-    activity:          [],
-    today:             null,
-    usage:             {
+    trackerId:           registryFacts.trackerId,
+    project:             summary.project,
+    root:                registryFacts.root,
+    fidelity:            'counts-only',
+    condition:           conditionOf(summary.hephaestus.state, summary.hephaestus.paused),
+    url:                 summary.hephaestus.url ?? registryFacts.hephaestusUrl,
+    processId:           identity.processId,
+    contracts:           contractsWith(identity, { summary: summary.summaryVersion }),
+    codeVersion:         identity.codeVersion,
+    lastReportedAt:      readAt,
+    hephaestusStartedAt: null,
+    program:             registryFacts.program,
+    lastCommand:         registryFacts.lastCommand,
+    lastChangedAt:       registryFacts.lastChangedAt,
+    concurrency:         null,
+    readyTicketCount:    summary.readyTicketIds.length,
+    openIncidents:       summary.openIncidents,
+    attention:           [],
+    attentionCount:      summary.openDecisions,
+    agents:              summary.jobs.map(agentRowOfSummaryJob),
+    notices:             [],
+    warnings:            [],
+    activity:            [],
+    today:               null,
+    usage:               {
       resetsAt:              summary.usage.resetsAt,
       window:                summary.usage.window,
       currentWindow:         null,
@@ -290,35 +290,35 @@ function unreadReadingOf(
   fidelity: 'newer-contract' | 'older-contract',
 ): ForgeReading {
   return {
-    trackerId:         registryFacts.trackerId,
-    project:           registryFacts.project,
-    root:              registryFacts.root,
+    trackerId:           registryFacts.trackerId,
+    project:             registryFacts.project,
+    root:                registryFacts.root,
     fidelity,
-    condition:         'unreadable',
-    url:               registryFacts.overseerUrl,
-    processId:         identity?.processId ?? registryFacts.overseerProcessId,
+    condition:           'unreadable',
+    url:                 registryFacts.hephaestusUrl,
+    processId:           identity?.processId ?? registryFacts.hephaestusProcessId,
     contracts,
-    codeVersion:       identity?.codeVersion ?? null,
-    lastReportedAt:    null,
-    overseerStartedAt: null,
-    program:           registryFacts.program,
-    lastCommand:       registryFacts.lastCommand,
-    lastChangedAt:     registryFacts.lastChangedAt,
-    concurrency:       null,
-    readyTicketCount:  null,
-    openIncidents:     null,
-    attention:         [],
-    attentionCount:    null,
-    agents:            [],
-    notices:           [],
-    warnings:          [],
-    activity:          [],
-    today:             null,
-    usage:             null,
-    versions:          null,
-    registryPresence:  null,
-    presenceReport:    null,
-    newestVersions:    null,
+    codeVersion:         identity?.codeVersion ?? null,
+    lastReportedAt:      null,
+    hephaestusStartedAt: null,
+    program:             registryFacts.program,
+    lastCommand:         registryFacts.lastCommand,
+    lastChangedAt:       registryFacts.lastChangedAt,
+    concurrency:         null,
+    readyTicketCount:    null,
+    openIncidents:       null,
+    attention:           [],
+    attentionCount:      null,
+    agents:              [],
+    notices:             [],
+    warnings:            [],
+    activity:            [],
+    today:               null,
+    usage:               null,
+    versions:            null,
+    registryPresence:    null,
+    presenceReport:      null,
+    newestVersions:      null,
   };
 }
 

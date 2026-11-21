@@ -26,8 +26,8 @@ import { useRecordedGit }                         from '../../src/testing/Record
 import { removeScratchDirectory }                 from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 
 const FROZEN_NOW = new Date('2026-10-24T20:01:45Z');
 
@@ -44,7 +44,7 @@ async function runExpectingExit(expectedExitCode: number, commandLineArguments: 
     now:              () => FROZEN_NOW,
     ...(standardInputText === undefined ? {} : { standardInputText }),
   });
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\`: ${context.errorText()}`).toBe(expectedExitCode);
   return context;
 }
@@ -137,7 +137,7 @@ describeWhenGitIsRecorded('draft', () => {
     const before   = storedFiles();
     const terminal = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputIsTerminal: true });
 
-    expect(await runCommandLineWithOverseerMoves(['draft', 'open', 'Example feature', '--owner', 'opus', '--request-file', '-'], terminal)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['draft', 'open', 'Example feature', '--owner', 'opus', '--request-file', '-'], terminal)).toBe(1);
 
     expect(terminal.errorText()).toContain('--request-file - reads standard input, and standard input is a terminal');
     expect(storedFiles()).toEqual(before);

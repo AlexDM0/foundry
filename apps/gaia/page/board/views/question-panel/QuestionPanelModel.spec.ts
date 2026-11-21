@@ -3,7 +3,7 @@
  * opened since the fold, else the first) and whether the panel shows against the fold (it shows again once a decision opens that was not
  * open at the fold, and whenever User opened it); options stay as stored, the stored recommendation a mark beside the label, with
  * consequences only when the agent noted them; own words only on a decision of one question; a code-opened decision has no
- * conversation, no steps and is asked by the Overseer; the ticket block reads the first ticket's sections and Acceptance as served, a
+ * conversation, no steps and is asked by Hephaestus; the ticket block reads the first ticket's sections and Acceptance as served, a
  * wrapped line joined to its paragraph as Markdown reads it, and omits them when the board serves none; the earlier answers join the
  * openings by decision id, on that ticket only, newest first; the steps are the last top-level tool calls with the asking call current; the
  * queue foot names the later decisions, wrapping round; `open since` is the sliced stamp, never the clock; and the board's "no pipeline"
@@ -188,9 +188,9 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
     expect(modelOf(board, 'E7').answerLineText).toBe('decision-answer E7');
   });
 
-  test('a code-opened decision is the Overseer\'s, with no role, no steps and no conversation tab', () => {
+  test('a code-opened decision is Hephaestus\'s, with no role, no steps and no conversation tab', () => {
     const model = modelOf(exampleQuestionPanelBoard({ decisions: [PARKED_DECISION] }), 'E6');
-    expect(model.head.askerText).toBe('Overseer');
+    expect(model.head.askerText).toBe('Hephaestus');
     expect(model.head.askerRoleText).toBeNull();
     expect(model.stepsJobId).toBeNull();
     expect(model.readingTabs).toEqual(['background']);
@@ -278,7 +278,7 @@ describe('QuestionPanelModel.questionPanelModelOf', () => {
 
   test('the queue foot names the later decisions and their askers in the served answering order, wrapping round to the first', () => {
     const board = exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION, PARKED_DECISION] });
-    expect(modelOf(board, 'E8').queueFoot).toEqual({ position: 2, count: 3, laterEntries: [{ idText: 'E6', askerText: 'Overseer' }, { idText: 'E7', askerText: 'J4' }] });
+    expect(modelOf(board, 'E8').queueFoot).toEqual({ position: 2, count: 3, laterEntries: [{ idText: 'E6', askerText: 'Hephaestus' }, { idText: 'E7', askerText: 'J4' }] });
   });
 
   test('a decision the forge serves as escalated is marked in the head', () => {

@@ -1,5 +1,5 @@
 /**
- * Runs the forge program for what no Overseer API can do: one verb in the forge's root, through process-run, answered as a verdict. The
+ * Runs the forge program for what no Hephaestus API can do: one verb in the forge's root, through process-run, answered as a verdict. The
  * program is the registry's `program` for the forge, else the one in Gaia's settings (PLAN 8.2).
  */
 import type { ProcessRun } from '../../lib/process-run/ProcessRun.ts';
@@ -39,7 +39,7 @@ export interface ForgeProgram {
   readonly loginItem:       (forge: ForgeProgramTarget, action: ForgeLoginItemAction) => Promise<ForgeProgramVerdict<ForgeLoginItemAnswer>>;
 }
 
-/** `forge start` returns only when the new Overseer's API answers. */
+/** `forge start` returns only when the new Hephaestus's API answers. */
 const FORGE_START_TIMEOUT_MILLISECONDS = 120_000;
 /** `forge update` may pass the Baton to the new code before it answers. */
 const FORGE_UPDATE_TIMEOUT_MILLISECONDS = 300_000;

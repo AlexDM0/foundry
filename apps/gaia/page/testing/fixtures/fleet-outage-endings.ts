@@ -2,7 +2,7 @@
  * The example data of the outage alert: A1's fleet after a network outage stopped two of Example Storefront's agents and one of Invoice
  * Service's, which wait for User's resume. Example Mobile App holds a job the outage stopped that was already told to resume and one whose
  * supervision ended: neither counts. The fleet's alert heads what waits on User. Each of the three serves its presence, so its running
- * Overseer and Talos are known: Talos at protocol 2 on the forge's own code, the installed program not read yet.
+ * Hephaestus and Talos are known: Talos at protocol 2 on the forge's own code, the installed program not read yet.
  */
 import type {
   FleetDocument,
@@ -28,10 +28,10 @@ export const OUTAGE_TALOS_PROTOCOL_VERSION = 2;
 function runningVersionsOf(forge: FleetDocumentForge): FleetDocumentRunningVersions {
   const codeVersion = forge.codeVersion ?? '';
   return {
-    overseerRunning: codeVersion,
-    overseerNewest:  null,
-    talosRunning:    { protocolVersion: OUTAGE_TALOS_PROTOCOL_VERSION, codeVersion },
-    talosNewest:     null,
+    hephaestusRunning: codeVersion,
+    hephaestusNewest:  null,
+    talosRunning:      { protocolVersion: OUTAGE_TALOS_PROTOCOL_VERSION, codeVersion },
+    talosNewest:       null,
   };
 }
 

@@ -13,8 +13,10 @@ import { GAIA_ENDPOINT_VERSIONS } from './GaiaSystemVersions.ts';
 const FIRST_VERSIONED_GAIA: SystemVersion = { major: 1, minor: 0 };
 const BOARD_RELAY_ADDED_IN: SystemVersion = { major: 1, minor: 2 };
 const CRASH_LOG_ADDED_IN: SystemVersion = { major: 1, minor: 3 };
-/** Gaia 2.0 took Flint's brain out of the fleet document and the commands. */
-const FLEET_WITHOUT_FLINT_BRAIN_IN: SystemVersion = { major: 2, minor: 0 };
+/** Gaia 2.0 took Flint's brain out of the commands. */
+const COMMANDS_WITHOUT_FLINT_BRAIN_IN: SystemVersion = { major: 2, minor: 0 };
+/** Gaia 3.0 names a forge's serving process Hephaestus in the fleet document's keys. */
+const FLEET_NAMING_HEPHAESTUS_IN: SystemVersion = { major: 3, minor: 0 };
 
 /** Each route below `/api/`, without its version; a tracker id and an item id are placeholders. */
 export const GAIA_ENDPOINTS = {
@@ -48,9 +50,9 @@ export const GAIA_COMPATIBILITY_REGISTRY: readonly CompatibilityEntry[] = [
   currentEndpointOf('health'),
   currentEndpointOf('sessionCodes'),
   currentEndpointOf('session'),
-  currentEndpointOf('fleet', FLEET_WITHOUT_FLINT_BRAIN_IN),
-  currentEndpointOf('events', FLEET_WITHOUT_FLINT_BRAIN_IN),
-  currentEndpointOf('commands', FLEET_WITHOUT_FLINT_BRAIN_IN),
+  currentEndpointOf('fleet', FLEET_NAMING_HEPHAESTUS_IN),
+  currentEndpointOf('events', FLEET_NAMING_HEPHAESTUS_IN),
+  currentEndpointOf('commands', COMMANDS_WITHOUT_FLINT_BRAIN_IN),
   currentEndpointOf('forgeBoard', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeBoardEvents', BOARD_RELAY_ADDED_IN),
   currentEndpointOf('forgeJobStream', BOARD_RELAY_ADDED_IN),

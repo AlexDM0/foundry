@@ -1,6 +1,6 @@
 /**
- * The parts of the Overseer's `BoardState` document that its readers map: each job with its live facts, the jobs that left the board, the
- * merge queue, the Overseer, the usage windows and the picture limits. The Overseer's services build them; an adapter maps them into the
+ * The parts of Hephaestus's `BoardState` document that its readers map: each job with its live facts, the jobs that left the board, the
+ * merge queue, Hephaestus, the usage windows and the picture limits. Hephaestus's services build them; an adapter maps them into the
  * contract's board document.
  */
 import type { InterruptionCause, Job, LostLineKind } from '../../lib/tracker-model/@types/Job.ts';
@@ -76,16 +76,16 @@ export interface JobLiveFacts {
   usageWindow:            UsageWindowReport | null;
 }
 
-export type OverseerRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
+export type HephaestusRuntimeState = 'serving' | 'held-by-install-change' | 'passing-baton' | 'down';
 
-export interface OverseerFacts {
-  state:            OverseerRuntimeState;
+export interface HephaestusFacts {
+  state:            HephaestusRuntimeState;
   paused:           boolean;
   url:              string | null;
   generation:       number | null;
   codeVersion:      string;
   installVersion:   number;
-  /** The last Baton pass that failed while this Overseer kept driving; `null` when none did. */
+  /** The last Baton pass that failed while this Hephaestus kept driving; `null` when none did. */
   batonPassWarning: unknown;
 }
 

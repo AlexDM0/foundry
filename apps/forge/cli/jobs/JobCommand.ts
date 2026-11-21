@@ -1,14 +1,14 @@
 /**
  * `job` and its subcommands: `show` and `attach` read without the lock; `message`, `wind-down`, `stop` and `fresh` each record one control
- * command in a hold, with the Overseer up or down, and the Overseer sends the frames.
+ * command in a hold, with Hephaestus up or down, and Hephaestus sends the frames.
  */
 import type { AgentAdapter }      from '../../src/lib/agent-launch/AgentAdapter.ts';
 import type { AgentSessionEvent } from '../../src/lib/agent-launch/AgentSessionEvent.ts';
 import type { EventLogEntry }     from '../../src/lib/talos/EventLog.ts';
 import type { LogRecord }         from '../../src/lib/tracker-model/@types/LogRecord.ts';
 import { FIRST_CHILD_INSTANCE }   from '../../src/lib/tracker-model/constants/JobStates.ts';
-import { jobFolderIn }            from '../../src/services/overseer/OverseerFiles.ts';
-import { createTalosChildren }    from '../../src/services/overseer/TalosChildren.ts';
+import { jobFolderIn }            from '../../src/services/hephaestus/HephaestusFiles.ts';
+import { createTalosChildren }    from '../../src/services/hephaestus/TalosChildren.ts';
 import type { StoreReadFace }     from '../../src/services/store/BoardStore.ts';
 import type { ControlCommand }    from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }       from '../../src/shared/OperationRefusal.ts';
@@ -47,7 +47,7 @@ function jobIdIn(commandArguments: ArgumentParser, usage: string): string {
 }
 
 function recordedOrLogged(loggedSentences: string): string {
-  return `${loggedSentences === '' ? 'Recorded.' : loggedSentences}\nThe Overseer carries it out, at once when it is up, else when it starts.`;
+  return `${loggedSentences === '' ? 'Recorded.' : loggedSentences}\nHephaestus carries it out, at once when it is up, else when it starts.`;
 }
 
 /** A finished job is no longer on the board: what its launch and end records say of it. */

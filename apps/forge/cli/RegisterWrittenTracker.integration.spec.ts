@@ -166,7 +166,7 @@ testWhenGitIsRecorded('A1: init registers one entry keyed by the trackerId, carr
 
   const document  = registry();
   const trackerId = trackerIdOf(repositoryDirectory);
-  expect(document.version).toBe(1);
+  expect(document.version).toBe(2);
   expect(Object.keys(document.projects)).toEqual([trackerId]);
   const entry = document.projects[trackerId];
   expect(realpathSync(entry?.root ?? '')).toBe(realpathSync(repositoryDirectory));
@@ -202,10 +202,10 @@ testWhenGitIsRecorded('A1: each mutating command updates lastChangedAt and lastC
   expect(Object.keys(registry().projects)).toEqual([trackerId]);
 });
 
-testWhenGitIsRecorded('an Overseer key with its token path is added at the overseer\'s start, kept by every other write, and removed at its stop', async () => {
+testWhenGitIsRecorded('a Hephaestus key with its token path is added at the start of Hephaestus, kept by every other write, and removed at its stop', async () => {
   const repositoryDirectory = await initializedRepository();
   const trackerId           = trackerIdOf(repositoryDirectory);
-  const overseer              = {
+  const hephaestus              = {
     url: 'http://127.0.0.1:4930/', processId: 4242, startedAt: LocalTimeUtil.formatLocalIso(FIRST_NOW), tokenPath: join(homeDirectory, 'example-token')
   };
   const registration = {
@@ -213,21 +213,21 @@ testWhenGitIsRecorded('an Overseer key with its token path is added at the overs
     monitorFolder:        join(homeDirectory, PRODUCT_NAMES.MONITOR_FOLDER),
     lockTaker:            LIVE_HOLDERS_LOCK_TAKER,
     temporaryDirectories: [folderOutsideEveryRepository],
-    command:              'oversee',
+    command:              'start',
     program:              '/example/bin/forge',
     now:                  () => FIRST_NOW,
   };
 
-  const registered = async (overseerKey: typeof overseer | 'removed'): Promise<string> => (await recordedGit.playStage(
-    REGISTERING_WRITE, async () => registerWithTheMonitor({ ...registration, overseer: overseerKey })
+  const registered = async (hephaestusKey: typeof hephaestus | 'removed'): Promise<string> => (await recordedGit.playStage(
+    REGISTERING_WRITE, async () => registerWithTheMonitor({ ...registration, hephaestus: hephaestusKey })
   )).verdict;
 
-  expect(await registered(overseer)).toBe('registered');
-  expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'oversee', program: '/example/bin/forge' });
+  expect(await registered(hephaestus)).toBe('registered');
+  expect(registry().projects[trackerId]).toMatchObject({ hephaestus, lastCommand: 'start', program: '/example/bin/forge' });
   await requireExitZero(['log', 'Example milestone'], await registeringContext(repositoryDirectory, SECOND_NOW));
-  expect(registry().projects[trackerId]).toMatchObject({ overseer, lastCommand: 'log' });
+  expect(registry().projects[trackerId]).toMatchObject({ hephaestus, lastCommand: 'log' });
   expect(await registered('removed')).toBe('registered');
-  expect(Object.keys(registry().projects[trackerId] ?? {})).not.toContain('overseer');
+  expect(Object.keys(registry().projects[trackerId] ?? {})).not.toContain('hephaestus');
 });
 
 testWhenGitIsRecorded('A2: status and ticket show register nothing', async () => {
@@ -357,14 +357,14 @@ testWhenGitIsRecorded('A3: a moved tracker updates its one entry\'s paths', asyn
 
 testWhenGitIsRecorded('A4: a registry of a newer version is left byte-identical, with a warning and exit 0', async () => {
   const repositoryDirectory = await initializedRepository();
-  const newerText           = '{"version":2,"projects":{"elsewhere":{"shape":"unknown"}}}';
+  const newerText           = '{"version":3,"projects":{"elsewhere":{"shape":"unknown"}}}';
   mkdirSync(dirname(registryFilePath()), { recursive: true });
   writeFileSync(registryFilePath(), newerText);
 
   const context = await registeringContext(repositoryDirectory);
   await requireExitZero(['log', 'Example milestone'], context);
   expect(registryText()).toBe(newerText);
-  expect(context.errorText()).toContain(`is version 2, newer than this ${PRODUCT_NAMES.PROGRAM} writes; it was left untouched`);
+  expect(context.errorText()).toContain(`is version 3, newer than this ${PRODUCT_NAMES.PROGRAM} writes; it was left untouched`);
 });
 
 testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive a write, in order', async () => {
@@ -394,7 +394,7 @@ testWhenGitIsRecorded('A4: unknown keys at the top level and on an entry survive
 testWhenGitIsRecorded('A4: a malformed registry is reported and rewritten keeping every readable entry, plus this one', async () => {
   const repositoryDirectory = await initializedRepository();
   mkdirSync(dirname(registryFilePath()), { recursive: true });
-  writeFileSync(registryFilePath(), JSON.stringify({ version: 1, projects: { readable: { project: 'Other Example' }, broken: 'not an entry' } }));
+  writeFileSync(registryFilePath(), JSON.stringify({ version: 2, projects: { readable: { project: 'Other Example' }, broken: 'not an entry' } }));
 
   const context = await registeringContext(repositoryDirectory);
   await requireExitZero(['log', 'Example milestone'], context);

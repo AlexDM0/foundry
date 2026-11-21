@@ -1,5 +1,5 @@
 /**
- * The real `<program> version --json` that the Overseer runs at each sweep, recorded for `src/services/overseer/InstallChangeWatch.spec.ts`.
+ * The real `<program> version --json` that Hephaestus runs at each sweep, recorded for `src/services/hephaestus/InstallChangeWatch.spec.ts`.
  * What matters: the on-disk program answers both versions as JSON that `versionsFromTheBinary` reads, and a missing program fails to start
  * with `ENOENT`, which the read turns into `null`.
  */
@@ -12,7 +12,7 @@ import {
   test
 } from 'bun:test';
 
-import { versionsFromTheBinary }                                   from '../services/overseer/InstallChangeWatch.ts';
+import { versionsFromTheBinary }                                   from '../services/hephaestus/InstallChangeWatch.ts';
 import { VERSION_CHECK_RECORDING }                                 from './RecordedBoundaryCommands.ts';
 import { realCommandAnswerOf, recordCommandAnswer }                from './RecordedCommand.ts';
 import { createCanonicalScratchDirectory, removeScratchDirectory } from './ScratchWorkspace.ts';
@@ -40,7 +40,7 @@ test('the on-disk program answers both versions, and a missing program fails to 
   const answer = realCommandAnswerOf([...programCommand, ...VERSION_ARGUMENTS], { cwd: scratchDirectory, env: { HOME: scratchDirectory } });
   expect(answer.kind === 'finished' ? answer.exitCode : answer.code).toBe(0);
   const printed = answer.kind === 'finished' ? JSON.parse(answer.stdout) as { codeVersion: string; installVersion: number } : null;
-  // The answer carries more keys, such as `contracts`; the Overseer reads only the two versions from it.
+  // The answer carries more keys, such as `contracts`; Hephaestus reads only the two versions from it.
   const versionsPrinted = printed === null ? null : { codeVersion: printed.codeVersion, installVersion: printed.installVersion };
   expect(await versionsFromTheBinary(programCommand, scratchDirectory)).toEqual(versionsPrinted);
   recordCommandAnswer({ argv: [...programCommand, ...VERSION_ARGUMENTS] }, placeholders, answer);

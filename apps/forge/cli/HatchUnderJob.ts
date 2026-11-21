@@ -1,5 +1,5 @@
 /**
- * Under a job a session cannot write the data folder, so a mutating verb hands the control command it built to the Overseer: it writes a
+ * Under a job a session cannot write the data folder, so a mutating verb hands the control command it built to Hephaestus: it writes a
  * request into the job's Hatch folder, waits a while for the reply, and prints the outcome, or `queued <requestId>` when none came.
  */
 import { randomUUID } from 'node:crypto';

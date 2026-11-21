@@ -30,7 +30,7 @@ export type LogFieldShape =
   | 'review-round'
   | 'chart-range'
   | 'concurrency-limit'
-  | 'overseer-state'
+  | 'hephaestus-state'
   | 'dispatcher-state'
   | 'dispatcher-run-id'
   | 'check-command'
@@ -47,7 +47,7 @@ export type LogFieldShape =
   | 'interruption-cause'
   | 'child-instance'
   | 'permission-names'
-  | 'overseer-stop-reason'
+  | 'hephaestus-stop-reason'
   | 'start-kind'
   | 'start-origin'
   | 'job-stop-mode'
@@ -132,7 +132,7 @@ export const LOG_RECORD_SCHEMA = {
   'ticket-started':                 { subject: 'ticket', fields: NO_FIELDS },
   'ticket-finished':                { subject: 'ticket', fields: NO_FIELDS },
   'ticket-approved':                { subject: 'ticket', fields: NO_FIELDS },
-  // `byHand` is set only by `ticket deliver --by-hand`, which records work the Overseer never merged or landed.
+  // `byHand` is set only by `ticket deliver --by-hand`, which records work Hephaestus never merged or landed.
   'ticket-delivered':               { subject: 'ticket', fields: { byHand: 'optional-flag' } },
   'ticket-abandoned':               { subject: 'ticket', fields: { reason: 'text' } },
   'ticket-retitled':                { subject: 'ticket', fields: { from: 'text', to: 'text' } },
@@ -158,9 +158,9 @@ export const LOG_RECORD_SCHEMA = {
   'ticket-network-set':             { subject: 'ticket', fields: { domains: 'network-domains' } },
   // The reason is kept here alone, never on the ticket.
   'entity-assigned':                { subject: 'ticket', fields: { entity: 'text', reason: 'text', by: 'entity-assigner' } },
-  // A build stage's job of the ticket declared work it needs in another entity; the Overseer files that work as its own ticket.
+  // A build stage's job of the ticket declared work it needs in another entity; Hephaestus files that work as its own ticket.
   'need-declared':                  { subject: 'ticket', fields: { entity: 'text', title: 'text', byJob: 'text' } },
-  // E26: the Overseer filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
+  // E26: Hephaestus filed tickets of a dependent entity in the crossing ticket's group, which wait on the crossing ticket.
   'dependent-fix-filed':            { subject: 'ticket', fields: { entity: 'text', fixTicketIds: 'ticket-ids' } },
   // A crossing ticket's row moved into `stage`, run by the agents of `entity`; a stage job never moves the ticket's status.
   'stage-started':                  { subject: 'ticket', fields: { stage: 'text', entity: 'text' } },
@@ -226,9 +226,9 @@ export const LOG_RECORD_SCHEMA = {
       gateName: 'text', phase: 'gate-phase', state: 'gate-profile-ending', elapsedMilliseconds: 'count'
     },
   },
-  // User's Stop, or an Overseer start that found the run left running: no result.
+  // User's Stop, or a Hephaestus start that found the run left running: no result.
   'gate-profile-stopped':     { subject: 'gate-profile', fields: { gateName: 'text', phase: 'gate-phase' } },
-  // User asked for a check of the gates draft `revision` changes or adds; the Overseer runs them twice.
+  // User asked for a check of the gates draft `revision` changes or adds; Hephaestus runs them twice.
   'pipeline-check-requested': { subject: 'pipeline-setup', fields: { revision: 'count', gateNames: 'gate-names' } },
   // Stage 1 of an Apply waits for the constitution commit of draft `revision`.
   'pipeline-apply-requested': { subject: 'pipeline-setup', fields: { revision: 'count', resumesBoard: 'flag' } },
@@ -272,7 +272,7 @@ export const LOG_RECORD_SCHEMA = {
   },
   'chart-range-set':             { subject: 'board', fields: { view: 'chart-range' } },
   'concurrency-limit-set':       { subject: 'board', fields: { limit: 'concurrency-limit' } },
-  'overseer-set':                { subject: 'board', fields: { state: 'overseer-state' } },
+  'hephaestus-set':              { subject: 'board', fields: { state: 'hephaestus-state' } },
   'dispatcher-set':              { subject: 'board', fields: { state: 'dispatcher-state', runId: 'dispatcher-run-id' } },
   'pipeline-prepare-step-set':   { subject: 'board', fields: { name: 'text', run: 'text' } },
   'pipeline-gate-added':         { subject: 'board', fields: { name: 'text', run: 'text' } },
@@ -309,12 +309,12 @@ export const LOG_RECORD_SCHEMA = {
       stepKind: 'pipeline-step-kind', stepName: 'text', phase: 'optional-gate-phase', entity: 'optional-text', runMilliseconds: 'count', ending: 'pipeline-step-ending'
     }
   },
-  'tracker-cleared':  { subject: 'board', fields: NO_FIELDS },
-  'overseer-started': { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
-  'overseer-stopped': { subject: 'board', fields: { reason: 'overseer-stop-reason' } },
+  'tracker-cleared':    { subject: 'board', fields: NO_FIELDS },
+  'hephaestus-started': { subject: 'board', fields: { codeVersion: 'text', installVersion: 'count' } },
+  'hephaestus-stopped': { subject: 'board', fields: { reason: 'hephaestus-stop-reason' } },
   // What the forge's start found before it; `previousGeneration` only when there is one, `crashSuspected` only when true,
   // `crashLogNumber` only when a crash log exists for this start.
-  'start-classified': {
+  'start-classified':   {
     subject: 'board',
     fields:  {
       kind: 'start-kind', startOrigin: 'start-origin', previousGeneration: 'optional-count', crashSuspected: 'optional-flag', crashLogNumber: 'optional-count'
@@ -327,7 +327,7 @@ export const LOG_RECORD_SCHEMA = {
       startedBy: 'flint-brain-starter', startedAt: 'text', endedAt: 'text', endedReason: 'flint-brain-ended-reason', tokens: 'count', calls: 'count'
     },
   },
-  // The old Overseer keeps driving, or took the board back; `step` names where the successor failed, `error` what it said.
+  // The old Hephaestus keeps driving, or took the board back; `step` names where the successor failed, `error` what it said.
   'baton-pass-failed': { subject: 'board', fields: { successorCodeVersion: 'text', step: 'text', error: 'text' } },
   // A job's state lives in progress.json; only its launch, its interruptions, its resumes and its end are logged.
   'job-launched':      {
@@ -359,22 +359,22 @@ export const LOG_RECORD_SCHEMA = {
   'job-line-lost':         { subject: 'job', fields: { line: 'lost-line-kind', cause: 'interruption-cause' } },
   // The vendor refused the job's requests: `window` as the vendor names it, `resetsAt` the ISO stamp no launch or resume precedes.
   'usage-limit-hit':       { subject: 'job', fields: { window: 'text', resetsAt: 'text' } },
-  // User's stop, wind-down or fresh agent, recorded whether or not its child is up; the Overseer sends the frames from the job record.
+  // User's stop, wind-down or fresh agent, recorded whether or not its child is up; Hephaestus sends the frames from the job record.
   'job-stop-requested':    { subject: 'job', fields: { mode: 'job-stop-mode' } },
-  // A chat turn for the session, which the Overseer writes from the log in order; `pictures` is set only when User sent some.
-  // `byOverseer` is set only on the Overseer's own wording of User's setup move, so the transcript never reads it as User's.
-  'job-messaged':          { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byOverseer: 'optional-flag' } },
+  // A chat turn for the session, which Hephaestus writes from the log in order; `pictures` is set only when User sent some.
+  // `byHephaestus` is set only on Hephaestus's own wording of User's setup move, so the transcript never reads it as User's.
+  'job-messaged':          { subject: 'job', fields: { text: 'text', pictures: 'optional-pictures', byHephaestus: 'optional-flag' } },
   // A message reopened a closed product owner or pipeline agent: `childInstance` resumes its session with `text` (and `pictures`,
-  // when set) first; `offeredTicketIds` is recorded only; `byOverseer` as on `job-messaged`.
+  // when set) first; `offeredTicketIds` is recorded only; `byHephaestus` as on `job-messaged`.
   'job-reopened':          {
     subject: 'job',
     fields:  {
-      childInstance: 'child-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures', byOverseer: 'optional-flag'
+      childInstance: 'child-instance', text: 'text', offeredTicketIds: 'ticket-ids', pictures: 'optional-pictures', byHephaestus: 'optional-flag'
     },
   },
   // The product owner's short title for its intake; a later record replaces an earlier one.
   'intake-titled': { subject: 'job', fields: { title: 'text' } },
-  // `cause` and `commit` are set only when the Overseer names them.
+  // `cause` and `commit` are set only when Hephaestus names them.
   'job-ended':     {
     subject: 'job',
     fields:  {
@@ -385,7 +385,7 @@ export const LOG_RECORD_SCHEMA = {
     },
   },
   'decision-opened':    { subject: 'decision', fields: { kind: 'decision-kind', ticketIds: 'ticket-ids' } },
-  // The question request it answered, so the Overseer delivers the answer to that request, however long after the answering hold.
+  // The question request it answered, so Hephaestus delivers the answer to that request, however long after the answering hold.
   'decision-answered':  { subject: 'decision', fields: { answer: 'decision-answer', requestId: 'optional-text' } },
   'decision-withdrawn': { subject: 'decision', fields: { reason: 'text' } },
   'incident-opened':    { subject: 'incident', fields: { kind: 'incident-kind', ticketIds: 'ticket-ids' } },
@@ -394,7 +394,7 @@ export const LOG_RECORD_SCHEMA = {
   'incident-escalated': { subject: 'incident', fields: { decisionId: 'text' } },
   // A finding the Assistant records under an open incident, which stays open.
   'incident-noted':     { subject: 'incident', fields: { text: 'text' } },
-  // The board's answer to a question incident, keyed by the question's request so the Overseer delivers it as it delivers a decision's.
+  // The board's answer to a question incident, keyed by the question's request so Hephaestus delivers it as it delivers a decision's.
   'incident-answered':  { subject: 'incident', fields: { answer: 'decision-answer', requestId: 'optional-text' } },
   // A merge job claimed its target's slot against these recorded tips; the predicted files are empty for a clean prediction.
   'merge-started':      {
@@ -403,9 +403,9 @@ export const LOG_RECORD_SCHEMA = {
       target: 'text', targetTip: 'text', branchTip: 'text', predictedConflictFiles: 'file-paths'
     },
   },
-  // The Overseer moved `target` to `commit`: the list of tips it landed, which a moved target is judged against.
+  // Hephaestus moved `target` to `commit`: the list of tips it landed, which a moved target is judged against.
   'merge-landed':  { subject: 'job', fields: { target: 'text', commit: 'text', kind: 'landing-kind' } },
-  // A relayed request the Overseer answered, so a replay of its request file never applies it twice, with what its reply carried, so a
+  // A relayed request Hephaestus answered, so a replay of its request file never applies it twice, with what its reply carried, so a
   // reply lost after the hold committed is written again.
   'hatch-applied': {
     subject: 'job',

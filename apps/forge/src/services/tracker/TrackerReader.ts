@@ -115,7 +115,7 @@ export function requireLocalTracker(workspace: Workspace): LocalBoardContents {
   return { contents: reading.contents, ticketLocations: reading.ticketLocations };
 }
 
-/** For the progress-only reads (`concurrency`, `oversee status`, `decisions`): log.jsonl is not read, so a broken log does not stop them. */
+/** For the progress-only reads (`concurrency`, `status`, `decisions`): log.jsonl is not read, so a broken log does not stop them. */
 export function requireProgressFile(workspace: Workspace): TrackerProgress {
   const reading = progressFileReadingOf(workspace);
   if (reading.verdict !== 'readable') throw new OperationRefusal('unrepaired', { kind: 'unreadable-tracker', reading });

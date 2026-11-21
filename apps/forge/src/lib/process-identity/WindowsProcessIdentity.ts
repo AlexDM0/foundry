@@ -1,7 +1,7 @@
 /**
  * Reads a process's identity on Windows: the start stamp is the decimal text of its FILETIME from the kernel, and the boot is the BootId value
  * read once per process through the absolute `reg.exe` under the given `SystemRoot`, because liveness runs per child per pass. A failed boot
- * read answers `UNREADABLE_BOOT_IDENTITY`, which never stops an Overseer: a FILETIME alone tells a reused pid apart, so a reboot then reads as a crash.
+ * read answers `UNREADABLE_BOOT_IDENTITY`, which never stops a Hephaestus: a FILETIME alone tells a reused pid apart, so a reboot then reads as a crash.
  */
 import type { ProcessIdentityPrimitives }                 from './DarwinProcessIdentity.ts';
 import { type ProcessIdentity, UNREADABLE_BOOT_IDENTITY } from './ProcessIdentity.ts';

@@ -3,8 +3,8 @@
  * check the keys Gaia reads, map to a `ForgeReading` at fidelity `counts-only`. A summary at a newer version maps nothing of itself; nor
  * does a malformed one.
  */
-import type { BoardSummaryDocument, SummaryJobDocument, SummaryOverseerDocument } from 'forge-contracts/BoardSummaryDocument';
-import type { UsageLimitDocument }                                                from 'forge-contracts/MonitorSnapshotDocument';
+import type { BoardSummaryDocument, SummaryJobDocument, SummaryHephaestusDocument } from 'forge-contracts/BoardSummaryDocument';
+import type { UsageLimitDocument }                                                  from 'forge-contracts/MonitorSnapshotDocument';
 
 import { DocumentShapeUtil, type ShapeOf }                              from '../../lib/json-value/DocumentShapeUtil.ts';
 import type { ForgeReading }                                            from '../../shared/@types/ForgeReading.ts';
@@ -17,11 +17,11 @@ const VERSION_KEYS = { majorKey: 'summaryVersion' } as const;
 
 const NULLABLE_TEXT = { nullable: 'text' } as const;
 
-const OVERSEER_SHAPE = {
+const HEPHAESTUS_SHAPE = {
   state:  { oneOf: ['serving', 'held-by-install-change', 'passing-baton', 'down'] },
   paused: 'boolean',
   url:    NULLABLE_TEXT,
-} as const satisfies ShapeOf<SummaryOverseerDocument>;
+} as const satisfies ShapeOf<SummaryHephaestusDocument>;
 
 const JOB_SHAPE = {
   id:        'text',
@@ -37,7 +37,7 @@ const USAGE_SHAPE = { resetsAt: NULLABLE_TEXT, window: NULLABLE_TEXT } as const 
 const BOARD_SUMMARY_SHAPE = {
   summaryVersion: 'whole-number',
   project:        'text',
-  overseer:       { object: OVERSEER_SHAPE },
+  hephaestus:     { object: HEPHAESTUS_SHAPE },
   readyTicketIds: 'text-list',
   jobs:           { listOf: JOB_SHAPE },
   openDecisions:  'whole-number',

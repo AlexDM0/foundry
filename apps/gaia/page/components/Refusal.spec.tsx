@@ -15,8 +15,8 @@ function refusalOf(presses: string[], canTryAgain: boolean, refusedBy: RefusedBy
     <Refusal
       commandLabel="Stop"
       refusedBy={refusedBy}
-      code="overseer-still-live"
-      sentence="The Overseer did not stop within its tries."
+      code="hephaestus-still-live"
+      sentence="Hephaestus did not stop within its tries."
       onDismiss={() => presses.push('dismiss')}
       {...(canTryAgain ? { onTryAgain: () => presses.push('try again') } : {})}
     />,
@@ -27,7 +27,7 @@ describe('the refusal', () => {
   test('it is the failed action led by the refused command, with the forge\'s code and its sentence unedited', () => {
     const refusal = refusalOf([], true);
     expect([refusal.props['lead'], refusal.props['code'], refusal.props['sentence']])
-      .toEqual(['The forge refused Stop: ', 'overseer-still-live', 'The Overseer did not stop within its tries.']);
+      .toEqual(['The forge refused Stop: ', 'hephaestus-still-live', 'Hephaestus did not stop within its tries.']);
   });
 
   test('a refusal Gaia gave, or one nothing answered, says Gaia could not carry out the command and never that the forge refused it', () => {

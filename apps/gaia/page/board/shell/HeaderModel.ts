@@ -6,15 +6,15 @@
  * pill reads Setting up, and it holds the setup steps with the record's statuses, and no usage.
  */
 
-import type { BoardDocument, BoardOverseerDocument, BoardUsageDocument } from '../../@types/board/BoardDocument.ts';
-import type { BoardSetupRecordDocument }                                 from '../../@types/board/BoardPipelineDocuments.ts';
-import type { StepperStep }                                              from '../../lib/design-system/DesignSystemInterface.ts';
-import { CountTextUtil }                                                 from '../../shared/utils/CountTextUtil.ts';
-import type { ConnectionState }                                          from '../api/BoardEventStreamClient.ts';
-import { TimeUtil }                                                      from '../utils/TimeUtil.ts';
-import { PipelineViewModel, SETUP_STEP_LABELS }                          from '../views/pipeline/PipelineViewModel.ts';
-import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }      from './ActivityStripModel.ts';
-import type { BoardRoute, BoardTab }                                     from './BoardRouter.ts';
+import type { BoardDocument, BoardHephaestusDocument, BoardUsageDocument } from '../../@types/board/BoardDocument.ts';
+import type { BoardSetupRecordDocument }                                   from '../../@types/board/BoardPipelineDocuments.ts';
+import type { StepperStep }                                                from '../../lib/design-system/DesignSystemInterface.ts';
+import { CountTextUtil }                                                   from '../../shared/utils/CountTextUtil.ts';
+import type { ConnectionState }                                            from '../api/BoardEventStreamClient.ts';
+import { TimeUtil }                                                        from '../utils/TimeUtil.ts';
+import { PipelineViewModel, SETUP_STEP_LABELS }                            from '../views/pipeline/PipelineViewModel.ts';
+import { ActivityStripModel, NO_ACTIVITY, type ActivityStripFacts }        from './ActivityStripModel.ts';
+import type { BoardRoute, BoardTab }                                       from './BoardRouter.ts';
 
 /** The state pill's state: `live` only while serving, unpaused, with the event stream up; the pill is orange and its dot pulses only then. */
 export type StatusToken = 'live' | 'paused' | 'connecting' | 'held' | 'passing-baton' | 'down';
@@ -68,7 +68,7 @@ const STATUS_LABEL: Readonly<Record<StatusToken, string>> = {
 
 const SETUP_STATUS_LABEL = 'Setting up';
 
-const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<BoardOverseerDocument['state'], 'serving'>, StatusToken>> = {
+const STATUS_TOKEN_OF_RUNTIME_STATE: Readonly<Record<Exclude<BoardHephaestusDocument['state'], 'serving'>, StatusToken>> = {
   'held-by-install-change': 'held',
   'passing-baton':          'passing-baton',
   'down':                   'down',
@@ -169,15 +169,15 @@ function statisticsOf(board: BoardDocument, figures: BoardFigures): HeaderStatis
   ];
 }
 
-function statusTokenOf(overseer: BoardOverseerDocument | null, connection: ConnectionState): StatusToken {
+function statusTokenOf(hephaestus: BoardHephaestusDocument | null, connection: ConnectionState): StatusToken {
   if (connection === 'down' || connection === 'no-session') return 'down';
-  if (overseer === null || connection === 'connecting') return 'connecting';
-  if (overseer.state !== 'serving') return STATUS_TOKEN_OF_RUNTIME_STATE[overseer.state];
-  return overseer.paused ? 'paused' : 'live';
+  if (hephaestus === null || connection === 'connecting') return 'connecting';
+  if (hephaestus.state !== 'serving') return STATUS_TOKEN_OF_RUNTIME_STATE[hephaestus.state];
+  return hephaestus.paused ? 'paused' : 'live';
 }
 
 export function headerModelOf(board: BoardDocument | null, now: Date, connection: ConnectionState): HeaderModel {
-  const statusToken = statusTokenOf(board?.overseer ?? null, connection);
+  const statusToken = statusTokenOf(board?.hephaestus ?? null, connection);
   const setupSteps = setupStepsOfBoard(board);
   const activity = board === null ? NO_ACTIVITY : ActivityStripModel.activityStripFactsOf(board.launchSlots, board.jobs, board.page.tickets);
   const notices = board?.notices ?? [];

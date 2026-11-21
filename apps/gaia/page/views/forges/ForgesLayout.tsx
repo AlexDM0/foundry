@@ -70,7 +70,7 @@ type ForgeColumn = 'forge' | 'condition' | 'agents' | 'waiting' | 'code' | 'cont
 
 const COLUMNS: readonly DataTableColumn<ForgeColumn>[] = [
   { key: 'forge', label: 'Forge' },
-  { key: 'condition', label: 'Overseer' },
+  { key: 'condition', label: 'Hephaestus' },
   { key: 'agents', label: 'Agents' },
   { key: 'waiting', label: 'Waiting' },
   { key: 'code', label: 'Code' },

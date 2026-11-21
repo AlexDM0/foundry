@@ -2,12 +2,12 @@
  * The dependencies view's model, laid out in waves. The cases that matter: a diamond lays out a Done column of what the open tickets build
  * on and one column per wave, the pace path first; Ready comes only from the forge's ready list and a held ticket wears Held; edges mark
  * the pace path and a settled dependency; nodes and heads are placed in pixels on one canvas; a ticket's lineage is itself, everything
- * upstream and everything waiting on it; a forecast is asked only while the Overseer is running; a node names its ticket's first epic;
+ * upstream and everything waiting on it; a forecast is asked only while Hephaestus is running; a node names its ticket's first epic;
  * and a board where nothing depends on anything draws no view.
  */
 import { describe, expect, test } from 'bun:test';
 
-import type { BoardOverseerSetting } from '../../../@types/board/BoardVocabulary.ts';
+import type { BoardHephaestusSetting } from '../../../@types/board/BoardVocabulary.ts';
 import {
   exampleWavesBoard,
   exampleWavesEpic,
@@ -107,16 +107,16 @@ describe('the waves', () => {
     expect(edges.toSorted()).toEqual([['1>2', false, true], ['1>3', false, true], ['2>4', true, false], ['3>4', false, false]]);
   });
 
-  test('asks for no forecast while the Overseer is not running', () => {
+  test('asks for no forecast while Hephaestus is not running', () => {
     expect(diamondCanvas().columns.map((column) => column.forecastText)).toEqual([null, null, null]);
   });
 
-  test('forecasts each open wave from the delivered history while the Overseer is running, and none while it is paused', () => {
+  test('forecasts each open wave from the delivered history while Hephaestus is running, and none while it is paused', () => {
     const deliveredBuildRow = exampleWavesTask(1, {
       status:  'delivered',
       history: [{ status: 'in-progress', at: '2026-09-18T10:00:00+02:00' }, { status: 'in-review', at: '2026-09-18T10:30:00+02:00' }],
     });
-    const boardWhileOverseer = (overseerSetting: BoardOverseerSetting) => exampleWavesBoard({
+    const boardWhileHephaestus = (hephaestusSetting: BoardHephaestusSetting) => exampleWavesBoard({
       tasks:   [deliveredBuildRow],
       tickets: [
         exampleWavesTicket('1', { status: 'delivered' }),
@@ -125,9 +125,9 @@ describe('the waves', () => {
       ],
       ticketRows:     { 1: { ownTaskId: 1 } },
       readyTicketIds: ['2'],
-      overseerSetting,
+      hephaestusSetting,
     });
-    const forecastTextsWhile = (overseerSetting: BoardOverseerSetting) => WavesModel.wavesModelOf(boardWhileOverseer(overseerSetting), NOW_EPOCH_MILLISECONDS)
+    const forecastTextsWhile = (hephaestusSetting: BoardHephaestusSetting) => WavesModel.wavesModelOf(boardWhileHephaestus(hephaestusSetting), NOW_EPOCH_MILLISECONDS)
       ?.columns.map((column) => column.forecastText);
 
     expect(forecastTextsWhile('running')?.slice(1)).toEqual([expect.stringMatching(/^ETA /), expect.stringMatching(/^ETA /)]);

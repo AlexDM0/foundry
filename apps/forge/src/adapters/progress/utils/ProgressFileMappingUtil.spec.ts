@@ -27,7 +27,7 @@ function storedTextWithUnknownKeys(): string {
   fileRow(progress, { name: 'Example build' });
   const [row] = progress.tasks;
   const document = {
-    version:       2,
+    version:       3,
     trackerId:     progress.trackerId,
     unknownTopKey: 'kept',
     project:       progress.project,
@@ -55,7 +55,7 @@ function writtenTextOf(document: StoredProgressFile): string {
 
 test('every top-level key but version, unknown ones included, comes through in the file\'s order', () => {
   const progress = ProgressFileMappingUtil.progressOf(storedDocumentOf(storedTextWithUnknownKeys()));
-  expect(Object.keys(progress), 'version 2').toEqual(['trackerId', 'unknownTopKey', 'project', 'startedAt', 'view', 'nextTaskId', 'tasks', 'trailingKey']);
+  expect(Object.keys(progress), 'version 3').toEqual(['trackerId', 'unknownTopKey', 'project', 'startedAt', 'view', 'nextTaskId', 'tasks', 'trailingKey']);
 });
 
 test('a row and a phase keep a key the tool does not know, where the file had it', () => {
@@ -91,16 +91,16 @@ test('an unknown key whose name is an integer keeps its value but moves to the f
 });
 
 // The retired Workflow dispatcher stored its state and run id here; a board it ran on keeps both keys as the owner's, unread and never rewritten.
-test('a stored dispatcherState and dispatcherRunId are unknown keys: kept in place byte for byte, also across an Overseer state change', () => {
+test('a stored dispatcherState and dispatcherRunId are unknown keys: kept in place byte for byte, also across a Hephaestus state change', () => {
   const progress = emptyProgress();
   const text     = JsonTextUtil.storedFileTextOf({
-    version:         2,
+    version:         3,
     trackerId:       progress.trackerId,
     project:         progress.project,
     startedAt:       progress.startedAt,
     view:            progress.view,
     nextTaskId:      progress.nextTaskId,
-    overseerState:   'running',
+    hephaestusState: 'running',
     dispatcherState: 'finished',
     dispatcherRunId: 'wf_example-run',
     tasks:           [],
@@ -108,7 +108,7 @@ test('a stored dispatcherState and dispatcherRunId are unknown keys: kept in pla
   const mapped = ProgressFileMappingUtil.progressOf(storedDocumentOf(text));
   expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mapped))).toBe(text);
 
-  mapped.overseerState = 'paused';
+  mapped.hephaestusState = 'paused';
   expect(writtenTextOf(ProgressFileMappingUtil.storedDocumentOf(mapped))).toBe(text.replace('"running"', '"paused"'));
 });
 
@@ -145,7 +145,7 @@ test('a row\'s greenPhase is written only once set: a row stored without it is w
   const [row]       = progress.tasks;
   const gatedRow    = { ...row, pipelineHash: '0f871814e52ef878', greenTree: '4b825dc642cb6eb9a060e54bf8d69288fbee4904' };
   const textOf      = (tasks: object[]): string => JsonTextUtil.storedFileTextOf({
-    version: 2, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: progress.nextTaskId, tasks,
+    version: 3, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: progress.nextTaskId, tasks,
   });
   const withoutPhase = textOf([gatedRow]);
   const withPhase    = textOf([{ ...gatedRow, greenPhase: 'review' }]);
@@ -169,7 +169,7 @@ describe('a row\'s pipelineHashes', () => {
   function textOfRows(rows: object[]): string {
     const progress = emptyProgress();
     return JsonTextUtil.storedFileTextOf({
-      version: 2, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: 2, tasks: rows,
+      version: 3, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: 2, tasks: rows,
     });
   }
 
@@ -230,7 +230,7 @@ describe('a row\'s stage keys', () => {
   function textOfRows(rows: object[]): string {
     const progress = emptyProgress();
     return JsonTextUtil.storedFileTextOf({
-      version: 2, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: 2, tasks: rows,
+      version: 3, trackerId: progress.trackerId, project: progress.project, startedAt: progress.startedAt, view: progress.view, nextTaskId: 2, tasks: rows,
     });
   }
 

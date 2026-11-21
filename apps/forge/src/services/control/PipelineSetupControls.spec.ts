@@ -5,7 +5,7 @@
  * an update starts from a readable stored pipeline only; a start launches the record's pipeline agent, the only launch besides `advise`,
  * and a start over stops it; an answer, edit, Undo, discard, constitution edit or Continue messages the agent in the same hold, in the
  * words the injected context gives, carrying what changed (the constitution's new text and ticks, each changed draft field's value now),
- * since the agent cannot read the record, logged as the Overseer's so its transcript never reads it as User's words, and opens it again
+ * since the agent cannot read the record, logged as Hephaestus's so its transcript never reads it as User's words, and opens it again
  * with its conversation when a stop closed it, while a record with no agent,
  * or one that ended otherwise, sends none; and a resume moves the snapshot commit to main's tip when main moved, with the changed paths and a
  * research recheck, naming the paths in its message; a check queues only the gates the draft changes or adds, one at a time, and tells the
@@ -448,7 +448,7 @@ describe('the message to the pipeline agent', () => {
     }]);
   });
 
-  test('a check messages the live agent with the gates the Overseer runs', () => {
+  test('a check messages the live agent with the gates Hephaestus runs', () => {
     const fixture = liveAgentBoard();
     apply(fixture, {
       kind:          'pipeline-draft-edit',
@@ -486,7 +486,7 @@ describe('the message to the pipeline agent', () => {
     expect(fixture.board.jobById('J1')).toMatchObject({ state: 'running', childInstance: 2 });
   });
 
-  test('the setup move\'s message and the reopening it makes are logged as the Overseer\'s, and User\'s own job message is not', () => {
+  test('the setup move\'s message and the reopening it makes are logged as Hephaestus\'s, and User\'s own job message is not', () => {
     const fixture = liveAgentBoard();
     apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
     apply(fixture, { kind: 'job-message', jobId: 'J1', text: 'Keep the lint gate.' });
@@ -494,7 +494,7 @@ describe('the message to the pipeline agent', () => {
     apply(fixture, { kind: 'pipeline-draft-discard', setupId: 'S1' });
 
     const sentRecords = fixture.records.filter((record) => record.kind === 'job-messaged' || record.kind === 'job-reopened');
-    expect(sentRecords.map((record) => [record.kind, 'byOverseer' in record.fields ? record.fields.byOverseer : null])).toEqual([
+    expect(sentRecords.map((record) => [record.kind, 'byHephaestus' in record.fields ? record.fields.byHephaestus : null])).toEqual([
       ['job-messaged', true],
       ['job-messaged', null],
       ['job-reopened', true],

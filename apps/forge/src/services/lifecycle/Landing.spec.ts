@@ -133,7 +133,7 @@ describeWhenGitIsRecorded('landing a gated commit', () => {
     expect(landing).toEqual({ verdict: 'landed', commit: MERGED_COMMIT, previousTip: MAIN_TIP });
   });
 
-  test('a target moved by nobody the Overseer recorded is refused target-moved, and nothing moves', async () => {
+  test('a target moved by nobody Hephaestus recorded is refused target-moved, and nothing moves', async () => {
     expect(await landedIn([
       ...onBranch('main'),
       resolved('refs/heads/main', MOVED_TIP),

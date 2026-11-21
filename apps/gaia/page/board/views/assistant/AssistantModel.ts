@@ -159,7 +159,7 @@ function headMetaOf(job: AssistantJob, turnCount: number): string {
 
 /** The thread's items as the chat parts show them. */
 function chatTurnsOf(items: readonly ChatThreadItem[], facts: ChatWordingFacts): ChatTurn[] {
-  const bootLineText = `Overseer booted ${facts.jobId} with its prompt`;
+  const bootLineText = `Hephaestus booted ${facts.jobId} with its prompt`;
   return items.map((item): ChatTurn => {
     const stamp = ChatTurnWordingUtil.stampOf(item.at, facts.todayCalendarDate);
     switch (item.kind) {

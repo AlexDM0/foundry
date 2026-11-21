@@ -1,6 +1,6 @@
 /**
- * The job and intake kinds of the control contract. Each records in the hold and the Overseer carries it out, so every one works with the
- * Overseer down; `job fresh` is a stop whose job ends `replaced`, so the policy launches the next attempt on the same worktree. Naming an
+ * The job and intake kinds of the control contract. Each records in the hold and Hephaestus carries it out, so every one works with
+ * Hephaestus down; `job fresh` is a stop whose job ends `replaced`, so the policy launches the next attempt on the same worktree. Naming an
  * incident marks it handled by the move in the same hold.
  */
 import { TicketAcceptanceUtil }                from '../../adapters/tickets/utils/TicketAcceptanceUtil.ts';
@@ -9,7 +9,7 @@ import type { PictureReference }               from '../../lib/tracker-model/@ty
 import { BoardRefusal }                        from '../../lib/tracker-model/BoardRefusal.ts';
 import type { ControlCommandOf }               from '../../shared/@types/ControlCommand.ts';
 import { OperationRefusal }                    from '../../shared/OperationRefusal.ts';
-import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/OverseerLimits.ts';
+import { PICTURES_PER_MESSAGE_LIMIT }          from '../../shared/constants/HephaestusLimits.ts';
 import type { BoardTransaction }               from '../tracker/BoardTransaction.ts';
 import { PictureStore }                        from '../tracker/PictureStore.ts';
 import { handledUnder, requireIncidentAllows } from './IncidentControls.ts';
@@ -50,7 +50,7 @@ function noteQuestionOptions(command: ControlCommandOf<'question-options'>, chan
   return change.board.noteQuestionOptions(command.jobId, { question: command.question, options: command.options });
 }
 
-/** Recorded only: the Overseer files the need as its entity's ticket. The body is read as `ticket ready` reads a draft's. */
+/** Recorded only: Hephaestus files the need as its entity's ticket. The body is read as `ticket ready` reads a draft's. */
 function declareNeed(command: ControlCommandOf<'need-declare'>, change: BoardTransaction) {
   if (command.jobId === undefined) throw new OperationRefusal('refused', { kind: 'need-declare-without-job' });
   const declaration = { entity: command.entity, title: command.title, body: command.bodyText };

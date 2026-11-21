@@ -9,11 +9,11 @@ import { FORGE_CONTROL_COMMAND_KINDS, type ForgeClientCommandKind } from './Forg
 
 /** One key per kind of the two unions: a kind added to either, or a key that is no kind, fails the typecheck. */
 const EVERY_CLIENT_COMMAND_KIND = {
-  'overseer-pause':             true,
-  'overseer-resume':            true,
+  'hephaestus-pause':           true,
+  'hephaestus-unpause':         true,
   'interrupted-work-resume':    true,
-  'overseer-stop':              true,
-  'overseer-restart':           true,
+  'hephaestus-stop':            true,
+  'hephaestus-restart':         true,
   'talos-restart':              true,
   'concurrency-set':            true,
   'job-stop-all':               true,

@@ -37,7 +37,7 @@ function boardWithTheShopTicket(pipeline: Pipeline, stage?: TicketStage): Board 
       id: '001', status: stage === undefined ? 'committed' : 'in-progress', task: 1, entity: SHOP.key
     })],
   });
-  board.setOverseerState('running', AT);
+  board.setHephaestusState('running', AT);
   return board;
 }
 

@@ -38,26 +38,26 @@ type KnownKeys = Readonly<Record<string, true>>;
 
 // Each table names every key of the model and of the stored form, so a field added to either fails to compile here until it is mapped.
 const KNOWN_PROGRESS_KEYS = {
-  version:                true,
-  trackerId:              true,
-  project:                true,
-  startedAt:              true,
-  view:                   true,
-  nextTaskId:             true,
-  concurrencyLimit:       true,
-  overseerState:          true,
-  nextDraftId:            true,
-  nextSetupId:            true,
-  nextJobId:              true,
-  jobs:                   true,
-  nextDecisionId:         true,
-  decisions:              true,
-  nextIncidentId:         true,
-  incidents:              true,
-  overseerFirstStartedAt: true,
-  branchNamespace:        true,
-  tasks:                  true,
-  needs:                  true,
+  version:                  true,
+  trackerId:                true,
+  project:                  true,
+  startedAt:                true,
+  view:                     true,
+  nextTaskId:               true,
+  concurrencyLimit:         true,
+  hephaestusState:          true,
+  nextDraftId:              true,
+  nextSetupId:              true,
+  nextJobId:                true,
+  jobs:                     true,
+  nextDecisionId:           true,
+  decisions:                true,
+  nextIncidentId:           true,
+  incidents:                true,
+  hephaestusFirstStartedAt: true,
+  branchNamespace:          true,
+  tasks:                    true,
+  needs:                    true,
 } as const satisfies Record<keyof TrackerProgress | keyof StoredProgressFile, true>;
 
 const KNOWN_NEED_KEYS = {
@@ -295,7 +295,7 @@ function decisionOf(stored: StoredDecision): Decision {
   });
 }
 
-/** `facts` is a map whose every key is the Overseer's, so it is copied whole. */
+/** `facts` is a map whose every key is Hephaestus's, so it is copied whole. */
 function incidentOf(stored: StoredIncident): Incident {
   const turn = stored.deliveredInTurn;
   return readInFileOrder(stored, KNOWN_INCIDENT_KEYS, {
@@ -349,7 +349,7 @@ function progressOf(document: StoredProgressFile): TrackerProgress {
     view:       document.view,
     nextTaskId: document.nextTaskId,
     ...(document.concurrencyLimit === undefined ? {} : { concurrencyLimit: document.concurrencyLimit }),
-    ...(document.overseerState === undefined ? {} : { overseerState: document.overseerState }),
+    ...(document.hephaestusState === undefined ? {} : { hephaestusState: document.hephaestusState }),
     ...(document.nextDraftId === undefined ? {} : { nextDraftId: document.nextDraftId }),
     ...(document.nextSetupId === undefined ? {} : { nextSetupId: document.nextSetupId }),
     ...(document.nextJobId === undefined ? {} : { nextJobId: document.nextJobId }),
@@ -358,7 +358,7 @@ function progressOf(document: StoredProgressFile): TrackerProgress {
     ...(document.decisions === undefined ? {} : { decisions: document.decisions.map(decisionOf) }),
     ...(document.nextIncidentId === undefined ? {} : { nextIncidentId: document.nextIncidentId }),
     ...(document.incidents === undefined ? {} : { incidents: document.incidents.map(incidentOf) }),
-    ...(document.overseerFirstStartedAt === undefined ? {} : { overseerFirstStartedAt: document.overseerFirstStartedAt }),
+    ...(document.hephaestusFirstStartedAt === undefined ? {} : { hephaestusFirstStartedAt: document.hephaestusFirstStartedAt }),
     ...(document.branchNamespace === undefined ? {} : { branchNamespace: document.branchNamespace }),
     tasks:      document.tasks.map(taskOf),
     ...(document.needs === undefined ? {} : { needs: document.needs.map(needOf) }),
@@ -493,7 +493,7 @@ function storedDocumentOf(progress: TrackerProgress): StoredProgressFile {
     view:       progress.view,
     nextTaskId: progress.nextTaskId,
     ...(progress.concurrencyLimit === undefined ? {} : { concurrencyLimit: progress.concurrencyLimit }),
-    ...(progress.overseerState === undefined ? {} : { overseerState: progress.overseerState }),
+    ...(progress.hephaestusState === undefined ? {} : { hephaestusState: progress.hephaestusState }),
     ...(progress.nextDraftId === undefined ? {} : { nextDraftId: progress.nextDraftId }),
     ...(progress.nextSetupId === undefined ? {} : { nextSetupId: progress.nextSetupId }),
     ...(progress.nextJobId === undefined ? {} : { nextJobId: progress.nextJobId }),
@@ -502,7 +502,7 @@ function storedDocumentOf(progress: TrackerProgress): StoredProgressFile {
     ...(progress.decisions === undefined ? {} : { decisions: progress.decisions.map(storedDecisionOf) }),
     ...(progress.nextIncidentId === undefined ? {} : { nextIncidentId: progress.nextIncidentId }),
     ...(progress.incidents === undefined ? {} : { incidents: progress.incidents.map(storedIncidentOf) }),
-    ...(progress.overseerFirstStartedAt === undefined ? {} : { overseerFirstStartedAt: progress.overseerFirstStartedAt }),
+    ...(progress.hephaestusFirstStartedAt === undefined ? {} : { hephaestusFirstStartedAt: progress.hephaestusFirstStartedAt }),
     ...(progress.branchNamespace === undefined ? {} : { branchNamespace: progress.branchNamespace }),
     tasks:      progress.tasks.map(storedTaskOf),
     ...(progress.needs === undefined ? {} : { needs: progress.needs.map(storedNeedOf) }),

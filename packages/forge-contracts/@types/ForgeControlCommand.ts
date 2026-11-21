@@ -18,11 +18,11 @@ export type ForgeResumeTarget =
   | 'network-outage';
 
 export type ForgeControlCommand =
-  | { readonly kind: 'overseer-pause' }
-  | { readonly kind: 'overseer-resume' }
+  | { readonly kind: 'hephaestus-pause' }
+  | { readonly kind: 'hephaestus-unpause' }
   | { readonly kind: 'interrupted-work-resume'; readonly target: ForgeResumeTarget }
-  | { readonly kind: 'overseer-stop'; readonly now: boolean }
-  | { readonly kind: 'overseer-restart'; readonly now: boolean }
+  | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
+  | { readonly kind: 'hephaestus-restart'; readonly now: boolean }
   /** Runtime only: Talos quits cleanly and the right one starts; its paused agents resume by themselves. From forge 1.23. */
   | { readonly kind: 'talos-restart' }
   | { readonly kind: 'concurrency-set'; readonly limit: number }

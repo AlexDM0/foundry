@@ -1,6 +1,6 @@
 /**
  * What the forge route shows under its bar of how the forge is present (decisions 13, 14, 21, 38, 39): the alert of a forge that crashed,
- * is down or stopped supervising its agents, with the registry's crash summary and Start where the forge's Overseer is gone; the crash logs
+ * is down or stopped supervising its agents, with the registry's crash summary and Start where the forge's Hephaestus is gone; the crash logs
  * a forge that serves again lists, each read when User opens it; and the work that waits, each job's cause and what it waits for, a Resume
  * per job that waits for an instruction, and one Resume all. Gaia starts and resumes nothing by itself.
  */
@@ -23,7 +23,7 @@ export interface PresenceAlert {
   readonly suspected:   string | null;
   /** The crashed component and its error, set in mono; `null` when the registry holds none. */
   readonly machineLine: string | null;
-  /** Start, the user's own start, for a forge whose Overseer is gone; `null` for one that answers. */
+  /** Start, the user's own start, for a forge whose Hephaestus is gone; `null` for one that answers. */
   readonly start:       CommandBody | null;
 }
 
@@ -67,7 +67,7 @@ const SUSPECTED_CRASH = 'Suspected crash before a reboot';
 
 const ALERT_TEXTS = {
   crashed: { title: 'Forge crashed', sentence: 'It stays off until it is started. Nothing runs until then.' },
-  down:    { title: 'Forge is down', sentence: 'Its Overseer does not answer: it is gone, or hung so that it does not answer.' },
+  down:    { title: 'Forge is down', sentence: 'Its Hephaestus does not answer: it is gone, or hung so that it does not answer.' },
   hung:    { title: 'Not supervised', sentence: 'The forge stopped supervising its agents. They stopped at the end of their turn and wait for a resume.' },
 } as const;
 
@@ -99,7 +99,7 @@ const WAIT_WORDS: Readonly<Record<FleetDocumentResumeWait, string>> = {
 };
 
 const CRASHED_COMPONENT_WORDS: Readonly<Record<FleetDocumentCrashLogEntry['component'], string>> = {
-  hephaestus: 'Overseer',
+  hephaestus: 'Hephaestus',
   talos:      'Talos',
   unknown:    'Forge',
 };

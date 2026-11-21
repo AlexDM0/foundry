@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="596" viewBox="0 0 680 596" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Claude Code settles most calls itself; the Watcher sees the rest</title>
+  <desc>A tool call enters Claude Code, where the deny rules and the auto mode classifier settle it: allowed calls run with no request, and refused ones appear in the result's permission_denials and map to permission-denied events, one per entry. A call left open leaves as a control_request, can_use_tool on stdout, which the Watcher matches against the standing reply: another tool gets a control_response that denies at once, and AskUserQuestion becomes a question that goes to Hephaestus.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+
+  <rect x="1" y="1" width="678" height="594" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Claude Code settles most calls itself; the Watcher sees the rest</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">P4, P5: these calls produced no control_request. No probe records an order inside Claude Code.</text>
+
+  <g fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)">
+    <path d="M340,134 V157"/><path d="M130,264 V305"/><path d="M340,264 V305"/><path d="M550,264 V305"/>
+    <path d="M340,364 V405"/><path d="M550,364 V405"/><path d="M490,464 V490 H340 V517"/><path d="M590,464 V517"/>
+  </g>
+  <g font-size="11" fill="#73726c">
+    <text x="138" y="290">allowed</text><text x="348" y="290">refused</text><text x="558" y="290">left open</text><text x="348" y="390">mapped</text>
+    <text x="415" y="484" text-anchor="middle">other tool</text><text x="582" y="506" text-anchor="end">AskUserQuestion</text>
+  </g>
+
+  <rect x="40" y="160" width="600" height="104" rx="12" fill="#FAF9F5" stroke="#F3D2C5"/>
+  <text x="54" y="180" font-size="12" fill="#993C1D" font-family="ui-monospace,Menlo,Consolas,monospace">inside Claude Code</text>
+  <g fill="#FAECE7" stroke="#F3D2C5">
+    <rect x="240" y="90" width="200" height="44" rx="8"/><rect x="70" y="190" width="250" height="58" rx="8"/><rect x="360" y="190" width="250" height="58" rx="8"/>
+    <rect x="460" y="308" width="180" height="56" rx="8"/>
+  </g>
+  <g fill="#F1EFE8" stroke="#E1DDD0"><rect x="40" y="308" width="180" height="56" rx="8"/><rect x="250" y="308" width="180" height="56" rx="8"/></g>
+  <g fill="#E6F1FB" stroke="#CFE2F6">
+    <rect x="250" y="408" width="180" height="56" rx="8"/><rect x="460" y="408" width="180" height="56" rx="8"/><rect x="250" y="520" width="180" height="56" rx="8"/>
+  </g>
+  <rect x="460" y="520" width="180" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+
+  <g text-anchor="middle">
+    <g font-size="14" font-weight="500" fill="#712B13">
+      <text x="340" y="117">Tool call</text><text x="195" y="216">Deny rules</text><text x="485" y="216">Auto mode classifier</text>
+      <text x="550" y="333" font-family="ui-monospace,Menlo,Consolas,monospace">control_request</text>
+    </g>
+    <g font-size="12" fill="#993C1D"><text x="195" y="234">permissions.deny</text><text x="485" y="234">decides alone</text><text x="550" y="351">can_use_tool on stdout</text></g>
+    <g font-size="14" font-weight="500" fill="#444441"><text x="130" y="333">Tool runs</text><text x="340" y="333" font-family="ui-monospace,Menlo,Consolas,monospace">permission_denials</text></g>
+    <g font-size="12" fill="#5F5E5A"><text x="130" y="351">no request</text><text x="340" y="351">on the result</text></g>
+    <g font-size="14" font-weight="500" fill="#0C447C">
+      <text x="340" y="433" font-family="ui-monospace,Menlo,Consolas,monospace">permission-denied</text><text x="550" y="433">Watcher</text><text x="340" y="545" font-family="ui-monospace,Menlo,Consolas,monospace">control_response</text>
+    </g>
+    <g font-size="12" fill="#185FA5"><text x="340" y="451">one event per entry</text><text x="550" y="451">matches the standing reply</text><text x="340" y="563">deny, at once</text></g>
+    <text x="550" y="545" font-size="14" font-weight="500" fill="#633806">question</text>
+    <text x="550" y="563" font-size="12" fill="#854F0B">goes to Hephaestus</text>
+  </g>
+</svg>

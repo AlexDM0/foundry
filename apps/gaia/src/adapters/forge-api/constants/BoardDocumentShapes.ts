@@ -132,7 +132,7 @@ import type {
 import type {
   BoardConcurrencyDocument,
   BoardLaunchSlotsDocument,
-  BoardOverseerDocument,
+  BoardHephaestusDocument,
   BoardUsageDocument,
   BoardUsageWindowDocument,
   ForgeBoardDocument,
@@ -197,12 +197,12 @@ const NOTICE_SHAPE = {
 
 const TODAY_SHAPE = { calendarDate: 'text', deliveredTickets: 'whole-number', tokens: 'whole-number' } as const satisfies ShapeOf<BoardTodayDocument>;
 
-const OVERSEER_SHAPE = {
-  state:            vocabularyRule('overseerState'),
+const HEPHAESTUS_SHAPE = {
+  state:            vocabularyRule('hephaestusState'),
   paused:           'boolean',
   codeVersion:      'text',
   batonPassWarning: 'passed-over',
-} as const satisfies ShapeOf<BoardOverseerDocument>;
+} as const satisfies ShapeOf<BoardHephaestusDocument>;
 
 const CONCURRENCY_SHAPE = { limit: 'whole-number', agentsInFlight: 'whole-number' } as const satisfies ShapeOf<BoardConcurrencyDocument>;
 
@@ -310,11 +310,11 @@ const WINDOW_RANGE_SHAPE = {
 } as const satisfies ShapeOf<Extract<BoardViewRangeDocument, { kind: 'absolute' }>>;
 
 const PROGRESS_SHAPE = {
-  startedAt:     'text',
-  view:          { anyShapeOf: [AUTOMATIC_RANGE_SHAPE, WINDOW_RANGE_SHAPE] },
-  overseerState: vocabularyRule('overseerSetting'),
-  tasks:         { listOf: TASK_SHAPE },
-  log:           { listOf: LOG_ENTRY_SHAPE },
+  startedAt:       'text',
+  view:            { anyShapeOf: [AUTOMATIC_RANGE_SHAPE, WINDOW_RANGE_SHAPE] },
+  hephaestusState: vocabularyRule('hephaestusSetting'),
+  tasks:           { listOf: TASK_SHAPE },
+  log:             { listOf: LOG_ENTRY_SHAPE },
 } as const satisfies ShapeOf<BoardProgressDocument>;
 
 const ROW_FACTS_SHAPE = {
@@ -1104,10 +1104,10 @@ const PIPELINE_HISTORY_ENTRY_RULE = {
     } as const satisfies ShapeOf<HistoryEntryOf<'pipeline-draft-discarded'>>,
     { kind: { oneOf: ['pipeline-setup-discarded'] }, at: 'text', setupId: 'text' } as const satisfies ShapeOf<HistoryEntryOf<'pipeline-setup-discarded'>>,
     {
-      kind:   { oneOf: ['overseer-set'] },
+      kind:   { oneOf: ['hephaestus-set'] },
       at:     'text',
-      fields: { object: { state: vocabularyRule('overseerSetting') } },
-    } as const satisfies ShapeOf<HistoryEntryOf<'overseer-set'>>,
+      fields: { object: { state: vocabularyRule('hephaestusSetting') } },
+    } as const satisfies ShapeOf<HistoryEntryOf<'hephaestus-set'>>,
   ],
 } as const;
 
@@ -1132,7 +1132,7 @@ const ENTITY_ASSIGNMENT_SHAPE = {
 
 export const BOARD_DOCUMENT_SHAPE = {
   project:               'text',
-  overseer:              { object: OVERSEER_SHAPE },
+  hephaestus:            { object: HEPHAESTUS_SHAPE },
   concurrency:           { object: CONCURRENCY_SHAPE },
   launchSlots:           { object: LAUNCH_SLOTS_SHAPE },
   confinement:           'passed-over',

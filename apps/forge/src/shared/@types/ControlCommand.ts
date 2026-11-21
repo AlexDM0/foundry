@@ -60,7 +60,7 @@ export type ChartRangeRequest =
 export type TrackerClearScope = 'tasks-and-log' | 'everything';
 
 /**
- * What the Overseer stamps on a ticket its Hatch filed: the filing job, from the Hatch folder's job record, and, on a worker's finding,
+ * What Hephaestus stamps on a ticket its Hatch filed: the filing job, from the Hatch folder's job record, and, on a worker's finding,
  * the tickets of that job (the finders), which the finding waits for.
  */
 export interface FilingAdmission {
@@ -144,15 +144,15 @@ export type ControlCommand =
   | { kind: 'draft-close'; draftId: string; ticketReferences: string[] }
   | { kind: 'draft-abandon'; draftId: string; reason: string }
   | { kind: 'decision-answer'; decisionId: string; answer: DecisionAnswerForm }
-  | { kind: 'overseer-pause' }
-  /** Undoes a pause until stage 9 names it `unpause`; resuming interrupted work is `interrupted-work-resume`. */
-  | { kind: 'overseer-resume' }
+  | { kind: 'hephaestus-pause' }
+  /** Undoes a pause; resuming interrupted work is `interrupted-work-resume`. */
+  | { kind: 'hephaestus-unpause' }
   | { kind: 'interrupted-work-resume'; target: ResumeTarget }
-  /** Runtime only: sent to the live Overseer, which stops; the board is never changed by it. */
-  | { kind: 'overseer-stop'; now: boolean }
-  /** Runtime only: sent to the live Overseer, which hands the board to a successor on the code on disk. */
-  | { kind: 'overseer-restart'; now: boolean }
-  /** Runtime only: sent to the live Overseer, which has Talos quit cleanly and starts the right one; never relayed from a job. */
+  /** Runtime only: sent to the live Hephaestus, which stops; the board is never changed by it. */
+  | { kind: 'hephaestus-stop'; now: boolean }
+  /** Runtime only: sent to the live Hephaestus, which hands the board to a successor on the code on disk. */
+  | { kind: 'hephaestus-restart'; now: boolean }
+  /** Runtime only: sent to the live Hephaestus, which has Talos quit cleanly and starts the right one; never relayed from a job. */
   | { kind: 'talos-restart' }
   | { kind: 'job-stop'; jobId: string; mode: Exclude<JobStopMode, 'fresh'> }
   /** `incidentId` names the incident the move handles, in the same hold; the orchestrator must name one. */
@@ -182,7 +182,7 @@ export type ControlCommand =
    */
   | { kind: 'need-declare'; jobId?: string; entity: EntityKey; title: string; bodyText: string }
   | { kind: 'concurrency-set'; limit: number }
-  /** Machine-wide, never a board change: the Overseer writes `<monitor>/machine-limits.json`; applied to a board it is refused as runtime only. */
+  /** Machine-wide, never a board change: Hephaestus writes `<monitor>/machine-limits.json`; applied to a board it is refused as runtime only. */
   | { kind: 'machine-agent-limit-set'; limit: number }
   | { kind: 'pipeline-prepare-step-set'; step: PipelineStep }
   /** With no `phases`, a new gate runs in every phase and a replaced one keeps its phases. */
@@ -233,7 +233,7 @@ export type ControlCommand =
   /** Stage 1 of an Apply of the draft at `draftRevision`; `resumesBoard` resumes a paused board once the pipeline is stored. */
   | { kind: 'pipeline-apply'; setupId: string; draftRevision: number; resumesBoard: boolean }
   | { kind: 'pipeline-apply-cancel'; setupId: string }
-  /** User's press: the Overseer runs the gates the draft changes or adds twice, in a fresh worktree of main, and tells the agent. */
+  /** User's press: Hephaestus runs the gates the draft changes or adds twice, in a fresh worktree of main, and tells the agent. */
   | { kind: 'pipeline-check'; setupId: string }
   /**
    * The pipeline agent's moves on the setup record it serves. Relayed without `jobId`, `setupId` or `entity`: the role policy stamps its
@@ -270,8 +270,8 @@ export type ControlCommand =
   /** `clear`, refused while a job other than the Assistant is live. Only User's own surfaces send it: it is never relayed from a job. */
   | { kind: 'tracker-clear'; scope: TrackerClearScope }
   /**
-   * Records a ticket User finished and landed outside the Overseer, refused while a job of the ticket is live. The verb is refused while an
-   * Overseer is live; the live Overseer applies this command in its own hold. Never relayed from a job.
+   * Records a ticket User finished and landed outside Hephaestus, refused while a job of the ticket is live. The verb is refused while a
+   * Hephaestus is live; the live Hephaestus applies this command in its own hold. Never relayed from a job.
    */
   | { kind: 'ticket-deliver-by-hand'; ticketReference: string; branch?: string; commit?: string }
   /** The by-hand kinds below are User's own verbs outside a job: never relayed from a job, never accepted by `POST /api/commands`. */

@@ -37,7 +37,7 @@ import type { FleetSnapshot }                                       from '../../
 import type { GaiaCommand }                                         from '../../shared/@types/GaiaCommand.ts';
 import { GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION }      from '../../shared/constants/GaiaSystemVersions.ts';
 import { manualTimers, type ManualTimers }                          from '../../testing/ManualTimers.ts';
-import { recordedOverseerFetch, type RecordedOverseerFetch }        from '../../testing/RecordedAnswers.ts';
+import { recordedHephaestusFetch, type RecordedHephaestusFetch }    from '../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath }                from '../../testing/ScratchRoot.ts';
 import type { BoardRelayLogEntry }                                  from './@types/BoardRelayLogEntry.ts';
 import { startPageServer, type PageServer, type PageServerOptions } from './PageServer.ts';
@@ -72,7 +72,7 @@ let serversToStop: PageServer[];
 let streamsToAbort: AbortController[];
 let carriedCommands: GaiaCommand[];
 let nextCommandVerdict: CommandVerdict;
-let overseerFetch: RecordedOverseerFetch;
+let hephaestusFetch: RecordedHephaestusFetch;
 let relayLogEntries: BoardRelayLogEntry[];
 
 beforeEach(() => {
@@ -83,7 +83,7 @@ beforeEach(() => {
   streamsToAbort = [];
   carriedCommands    = [];
   nextCommandVerdict = { verdict: 'done' };
-  overseerFetch      = recordedOverseerFetch([]);
+  hephaestusFetch      = recordedHephaestusFetch([]);
   relayLogEntries    = [];
 });
 
@@ -108,7 +108,7 @@ function optionsWith(overrides: Partial<PageServerOptions> = {}): PageServerOpti
       readRegistry:            () => Promise.resolve({ verdict: 'absent' }),
       readings:                () => [],
       presenceReadingAfterNow: () => Promise.resolve(null),
-      forgeClient:             forgeClientOf({ overseerFetch }),
+      forgeClient:             forgeClientOf({ hephaestusFetch }),
     },
     logBoardRelay: (entry) => {
       relayLogEntries.push(entry);
@@ -186,7 +186,7 @@ function eventReaderOf(response: Response): EventReader {
   };
 }
 
-async function openEvents(pageServer: PageServer, cookie: string, path = '/api/v10/events'): Promise<{ readonly response: Response; readonly events: EventReader }> {
+async function openEvents(pageServer: PageServer, cookie: string, path = '/api/v11/events'): Promise<{ readonly response: Response; readonly events: EventReader }> {
   const streamAbort = new AbortController();
   streamsToAbort.push(streamAbort);
   const response = await answerOf(pageServer, path, { headers: { cookie }, signal: streamAbort.signal });
@@ -222,7 +222,7 @@ describe('a headless start under a scratch home', () => {
     const pageServer = await servingPageServer();
     const cookie = await sessionCookieOf(pageServer);
 
-    const fleetAnswer = await answerOf(pageServer, '/api/v10/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v11/fleet', { headers: { cookie } });
     expect([fleetAnswer.status, fleetAnswer.headers.get('content-type')]).toEqual([200, 'application/json;charset=utf-8']);
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
 
@@ -292,7 +292,7 @@ describe('a headless start under a scratch home', () => {
 
   test('reads the fleet for a holder of the token as well as for a session', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/v10/fleet', { headers: { authorization: `Bearer ${storedToken()}` } });
+    const response = await answerOf(pageServer, '/api/v11/fleet', { headers: { authorization: `Bearer ${storedToken()}` } });
     expect(response.status).toBe(200);
   });
 });
@@ -316,7 +316,7 @@ describe('a command', () => {
   test('answers a forge\'s refusal with its code and its sentence unchanged, under a conflict status', async () => {
     const pageServer = await servingPageServer();
     nextCommandVerdict = {
-      verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
+      verdict: 'refused', refusedBy: 'forge', refusal: 'hephaestus-held', text: 'Hephaestus is held by an install change.'
     };
     const stopCommand = {
       commandVersion: 5, kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep'
@@ -326,8 +326,8 @@ describe('a command', () => {
     expect(await response.json()).toEqual({
       answerVersion: 3,
       outcome:       'refused',
-      refusal:       'overseer-held',
-      text:          'The Overseer is held by an install change.',
+      refusal:       'hephaestus-held',
+      text:          'Hephaestus is held by an install change.',
       forges:        [],
     });
     expect(carriedCommands).toEqual([{ kind: 'forge-stop', trackerId: 'example-storefront-7c41', agents: 'keep' }]);
@@ -375,7 +375,7 @@ describe('a frame session', () => {
     for (const path of ['/api/v1/forges/example-storefront-7c41/frame-session', '/api/v2/forges/example-storefront-7c41/frame-session']) {
       expect([path, (await answerOf(pageServer, path, { method: 'POST', headers: { cookie } })).status]).toEqual([path, 404]);
     }
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 });
 
@@ -408,7 +408,7 @@ describe('the relay of a forge\'s board', () => {
       const unversioned = await answerOf(pageServer, `/api/${endpoint}`, { method, headers: { cookie }, ...bodyOfMethod });
       expect([endpoint, unversioned.status, (await unversioned.text()).includes('"forge-not-registered"')]).toEqual([endpoint, 404, false]);
     }
-    expect(overseerFetch.callsAnswered()).toEqual([]);
+    expect(hephaestusFetch.callsAnswered()).toEqual([]);
   });
 
   test('refuses a body one byte over the bound on the commands routes, and takes it on the picture route', async () => {
@@ -445,7 +445,7 @@ describe('one refused request per guard', () => {
 
   test('refuses a preflight, even from its own origin', async () => {
     const pageServer = await servingPageServer();
-    const response = await answerOf(pageServer, '/api/v10/fleet', { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } });
+    const response = await answerOf(pageServer, '/api/v11/fleet', { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } });
     expect(response.status).toBe(403);
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
@@ -467,9 +467,9 @@ describe('one refused request per guard', () => {
 
   test('refuses the fleet and its events to a request with neither session nor token', async () => {
     const pageServer = await servingPageServer();
-    expect((await answerOf(pageServer, '/api/v10/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v10/events')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v10/fleet', { headers: { cookie: `gaia-session-${pageServer.port}=${'0'.repeat(64)}` } })).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v11/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v11/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v11/fleet', { headers: { cookie: `gaia-session-${pageServer.port}=${'0'.repeat(64)}` } })).status).toBe(401);
   });
 
   test('refuses a session code that is no string, or a body that is no JSON', async () => {
@@ -481,7 +481,7 @@ describe('one refused request per guard', () => {
   test('answers an unknown API address as not found, and a known one under another method as not allowed', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/unknown')).status).toBe(404);
-    expect((await answerOf(pageServer, '/api/v10/fleet', { method: 'POST' })).status).toBe(405);
+    expect((await answerOf(pageServer, '/api/v11/fleet', { method: 'POST' })).status).toBe(405);
     expect((await answerOf(pageServer, '/', { method: 'POST' })).status).toBe(404);
   });
 });
@@ -492,7 +492,7 @@ describe('the versioned paths', () => {
     const response = await answerOf(pageServer, '/api/versions');
     expect([response.status, response.headers.get('cache-control')]).toEqual([200, 'no-store']);
     expect(await response.json()).toEqual({ current: GAIA_SYSTEM_VERSION, minimumSupported: MINIMUM_SUPPORTED_GAIA_VERSION });
-    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 2, minor: 0 }, { major: 2, minor: 0 }]);
+    expect([GAIA_SYSTEM_VERSION, MINIMUM_SUPPORTED_GAIA_VERSION]).toEqual([{ major: 3, minor: 0 }, { major: 3, minor: 0 }]);
   });
 
   test('serve /api/versions at no versioned path', async () => {
@@ -509,9 +509,9 @@ describe('the versioned paths', () => {
     expect(exchange.status).toBe(204);
     const cookie = (exchange.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
 
-    const fleetAnswer = await answerOf(pageServer, '/api/v10/fleet', { headers: { cookie } });
+    const fleetAnswer = await answerOf(pageServer, '/api/v11/fleet', { headers: { cookie } });
     expect(await fleetAnswer.json()).toEqual(FleetDocumentMapUtil.fleetDocumentOf(FLEET_SNAPSHOT_EMPTY));
-    const { events } = await openEvents(pageServer, cookie, '/api/v10/events');
+    const { events } = await openEvents(pageServer, cookie, '/api/v11/events');
     expect((await events.nextEvent()).eventName).toBe('handshake');
     expect(JSON.parse((await events.nextEvent()).data)).toEqual(fleetEventDocumentOf(FLEET_SNAPSHOT_EMPTY));
     const command = await answerOf(pageServer, '/api/v6/commands', commandRequest(cookie, { commandVersion: 5, kind: 'fleet-look-again' }));
@@ -520,7 +520,7 @@ describe('the versioned paths', () => {
 
   test('answer each route at no version but its own', async () => {
     const pageServer = await servingPageServer();
-    for (const path of ['/api/v2/health', '/api/v9/fleet', '/api/v1/fleet', '/api/v9/events', '/api/v5/commands', '/api/v2/session-codes']) {
+    for (const path of ['/api/v2/health', '/api/v10/fleet', '/api/v1/fleet', '/api/v10/events', '/api/v5/commands', '/api/v2/session-codes']) {
       expect([path, (await answerOf(pageServer, path)).status]).toEqual([path, 404]);
     }
   });
@@ -541,14 +541,14 @@ describe('the versioned paths', () => {
       expect((await answerOf(pageServer, path, { headers: { origin: 'https://foreign.example' } })).status).toBe(403);
     }
     const preflight = { method: 'OPTIONS', headers: { origin: pageServer.url.origin, 'access-control-request-method': 'GET' } };
-    expect((await answerOf(pageServer, '/api/v10/fleet', preflight)).status).toBe(403);
+    expect((await answerOf(pageServer, '/api/v11/fleet', preflight)).status).toBe(403);
   });
 
   test('keep the token and session guards on the versioned paths', async () => {
     const pageServer = await servingPageServer();
     expect((await answerOf(pageServer, '/api/v1/session-codes', withBearer('f'.repeat(64)))).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v10/fleet')).status).toBe(401);
-    expect((await answerOf(pageServer, '/api/v10/events')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v11/fleet')).status).toBe(401);
+    expect((await answerOf(pageServer, '/api/v11/events')).status).toBe(401);
     expect((await answerOf(pageServer, '/api/v6/commands', { method: 'POST', body: '{}' })).status).toBe(401);
     expect(carriedCommands).toEqual([]);
   });
@@ -608,7 +608,7 @@ describe('a stop', () => {
   });
 
   test('closes every open relayed stream and the forge stream it follows', async () => {
-    const tokenPath = join(homeDirectory, 'example-overseer-token');
+    const tokenPath = join(homeDirectory, 'example-hephaestus-token');
     writeFileSync(tokenPath, 'example-forge-token-0123456789abcdef\n');
     const forge = exampleRelayForgeOf(homeDirectory, tokenPath);
     const boardFetch = boardAnswering('board-at-work');

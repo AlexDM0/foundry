@@ -11,7 +11,7 @@ import { NeedUtil }                                                  from '../..
 import { TicketIdUtil }                                              from '../../lib/tracker-model/utils/TicketIdUtil.ts';
 import type { ControlCommand, ControlCommandKind, ControlCommandOf } from '../../shared/@types/ControlCommand.ts';
 import type { RoleCommandRefusalReason }                             from '../../shared/@types/RoleCommandRefusalReason.ts';
-import { WORKER_FILINGS_PER_JOB }                                    from '../../shared/constants/OverseerLimits.ts';
+import { WORKER_FILINGS_PER_JOB }                                    from '../../shared/constants/HephaestusLimits.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }                            from './constants/AllowedMovesByIncidentKind.ts';
 
 /**
@@ -93,7 +93,7 @@ const PIPELINE_AGENT_KINDS: ReadonlySet<ControlCommandKind> = new Set([
   'pipeline-step-ready',
 ]);
 
-const FIELDS_ONLY_THE_OVERSEER_DECIDES = ['jobId', 'role', 'admission'] as const;
+const FIELDS_ONLY_HEPHAESTUS_DECIDES = ['jobId', 'role', 'admission'] as const;
 
 /** Their `jobId` is the job the move acts on, not the sender's identity. */
 const JOB_TARGETING_KINDS: ReadonlySet<ControlCommandKind> = new Set(['job-fresh', 'job-message', 'gate-retry']);
@@ -200,7 +200,7 @@ function assistantVerdictOf(job: RelayingJob, command: ControlCommand): BouncerV
 
 /** A job with no role runs no agent, so it relays nothing. */
 function verdictOf(job: RelayingJob, command: ControlCommand): BouncerVerdict {
-  const forgedField = FIELDS_ONLY_THE_OVERSEER_DECIDES.some((field) => Object.hasOwn(command, field) && !(field === 'jobId' && JOB_TARGETING_KINDS.has(command.kind)));
+  const forgedField = FIELDS_ONLY_HEPHAESTUS_DECIDES.some((field) => Object.hasOwn(command, field) && !(field === 'jobId' && JOB_TARGETING_KINDS.has(command.kind)));
   if (forgedField) return refused('hatch-identity-mismatch');
   if (job.role === null) return refused('command-not-allowed-for-role');
   if (WORKER_ROLES.has(job.role)) return workerVerdictOf(job, command);

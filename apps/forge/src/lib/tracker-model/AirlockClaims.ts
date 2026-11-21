@@ -86,7 +86,7 @@ export class AirlockClaims {
   }
 
   /**
-   * A queued ticket is a candidate only while its green is current: the Overseer gated its branch HEAD's tree green under the current
+   * A queued ticket is a candidate only while its green is current: Hephaestus gated its branch HEAD's tree green under the current
    * pipeline. A group's release ticket is a candidate only once the rest of its bundle integrated, and carries the bundle's highest priority.
    * With merge approval on, only a ticket User accepted is a candidate.
    */
@@ -139,7 +139,7 @@ export class AirlockClaims {
   }
 
   /**
-   * The tickets that wait for the Overseer outside the Airlock: a queued one whose green is stale, since its tree or the pipeline changed,
+   * The tickets that wait for Hephaestus outside the Airlock: a queued one whose green is stale, since its tree or the pipeline changed,
    * and, with no review phase, one in review and not queued, which only a current green queues.
    */
   ticketsAwaitingGreenOf(target: string, targetOf: MergeTargetOf, branchTreeOf: BranchTreeOf): TicketAwaitingGreen[] {
@@ -267,7 +267,7 @@ export class AirlockClaims {
     return { logged: [this.records.logger.log({ kind: 'merge-landed', jobId, fields: { target: landing.target, commit: landing.commit, kind: landing.kind } }, at)] };
   }
 
-  /** Every tip the Overseer landed on the target, from the stored log and this hold's records. */
+  /** Every tip Hephaestus landed on the target, from the stored log and this hold's records. */
   recordedLandingsOn(target: string): string[] {
     return [...this.records.storedLogRecords, ...this.records.loggedRecords]
       .flatMap((record) => (record.kind === 'merge-landed' && record.fields.target === target ? [record.fields.commit] : []));

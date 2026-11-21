@@ -171,9 +171,9 @@ describe('the head', () => {
     expect(head?.textContent).toContain('open since 14:06');
   });
 
-  test('a code-opened decision is the Overseer\'s, with no conversation tab and no steps block', () => {
+  test('a code-opened decision is Hephaestus\'s, with no conversation tab and no steps block', () => {
     const rendered = renderPanel({ board: exampleQuestionPanelBoard({ decisions: [PARKED_DECISION] }) });
-    expect(panel().querySelector('.board-question-panel-head')?.textContent).toContain('Overseer asks User');
+    expect(panel().querySelector('.board-question-panel-head')?.textContent).toContain('Hephaestus asks User');
     expect(within(panel()).getAllByRole('tab').map((tab) => tab.textContent)).toEqual(['Background']);
     expect(within(panel()).queryByRole('region', { name: /did before it asked/u })).toBeNull();
     expect(rendered.followed()).toEqual([]);
@@ -329,18 +329,18 @@ describe('folding and the queue', () => {
   test('Next question shows the next decision with nothing chosen, and the foot names the later ids and askers', () => {
     renderPanel({ board: exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION, PARKED_DECISION] }) });
     const foot = (): string => panel().querySelector('.board-question-panel-foot')?.textContent ?? '';
-    expect(foot()).toContain('2 more after this: E8 J2 · E6 Overseer');
+    expect(foot()).toContain('2 more after this: E8 J2 · E6 Hephaestus');
     act(() => within(panel()).getByRole('radio', { name: /^a\./u }).click());
     act(() => within(panel()).getByRole('button', { name: 'Next question' }).click());
     expect(panel().getAttribute('aria-label')).toBe('Question E8 from J2');
     expect(within(panel()).getAllByRole<HTMLInputElement>('radio').some((radio) => radio.checked)).toBe(false);
-    expect(foot()).toContain('2 more after this: E6 Overseer · E7 J4');
+    expect(foot()).toContain('2 more after this: E6 Hephaestus · E7 J4');
   });
 
   test('the queue line carries its whole text as its title, so a long queue cut short in the foot still reads whole on hover', () => {
     renderPanel({ board: exampleQuestionPanelBoard({ decisions: [DARK_MODE_QUESTION, TWO_QUESTION_DECISION, PARKED_DECISION] }) });
     const queueLine = panel().querySelector('.board-question-panel-queue-line');
-    expect(queueLine?.getAttribute('title')).toBe('2 more after this: E8 J2 · E6 Overseer');
+    expect(queueLine?.getAttribute('title')).toBe('2 more after this: E8 J2 · E6 Hephaestus');
   });
 
   test('a decision of its own in the queue offers no Next question', () => {

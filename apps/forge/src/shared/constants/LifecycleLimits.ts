@@ -1,4 +1,4 @@
-/** Every threshold the Playbook, the round verdict and the Overseer's jobs decide by, passed into the tracker model as `limits`. */
+/** Every threshold the Playbook, the round verdict and Hephaestus's jobs decide by, passed into the tracker model as `limits`. */
 import type { LifecycleThresholds } from '../../lib/tracker-model/@types/LifecycleLimits.ts';
 import { DISPATCH_PROTOCOL }        from './DispatchProtocol.ts';
 

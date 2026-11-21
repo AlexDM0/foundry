@@ -1,5 +1,5 @@
 /**
- * The call budgets and rework threshold the Overseer's job prompts state, the brief paths, and the agent type the retired worker
+ * The call budgets and rework threshold Hephaestus's job prompts state, the brief paths, and the agent type the retired worker
  * definition was named for, which `update` removes by that name. It imports only the product names.
  */
 import { PRODUCT_NAMES } from './ProductNames.ts';

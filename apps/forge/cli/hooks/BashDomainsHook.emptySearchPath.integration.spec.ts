@@ -13,8 +13,8 @@ import {
 } from 'bun:test';
 
 import type { WorkerProfile }                             from '../../src/lib/agent-launch/WorkerProfile.ts';
-import { GuardCommand }                                   from '../../src/services/overseer/GuardCommand.ts';
-import { WorkerProfiles }                                 from '../../src/services/overseer/WorkerProfiles.ts';
+import { GuardCommand }                                   from '../../src/services/hephaestus/GuardCommand.ts';
+import { WorkerProfiles }                                 from '../../src/services/hephaestus/WorkerProfiles.ts';
 import { ToolRuntimeUtil }                                from '../../src/shared/ToolRuntimeUtil.ts';
 import { createScratchDirectory, removeScratchDirectory } from '../../src/testing/ScratchWorkspace.ts';
 import { agentAdapterOfThisProcess }                      from '../CommandContext.ts';

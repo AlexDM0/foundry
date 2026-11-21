@@ -1,5 +1,5 @@
 /**
- * `init` and `oversee` below the git floor, through the real binary, whose git plays recorded answers with the version as a fixed answer, since
+ * `init` and `start` below the git floor, through the real binary, whose git plays recorded answers with the version as a fixed answer, since
  * no real git can be put below the floor. What matters: each refuses with exit 1 and words the floor and the version found, before it writes
  * anything, and a git at the floor lets `init` through.
  */
@@ -46,7 +46,7 @@ const BELOW_THE_FLOOR = 'git version 2.37.1';
 describeWhenGitIsRecorded('the git floor', () => {
   const refusedStages: Array<[commandLine: string[], stage: RecordedGitStage]> = [
     [['init'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
-    [['oversee', '--port', '0'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
+    [['start', '--foreground', '--port', '0'], withTheVersion([COMMON_FOLDER_AT_THE_ROOT, GIT_VERSION], BELOW_THE_FLOOR)],
   ];
 
   test.each(refusedStages)('`%p` below git 2.38 refuses with the floor and the version found, and writes no tracker', async (commandLine, recordedGitStage) => {

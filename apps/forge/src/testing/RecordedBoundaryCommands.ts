@@ -5,14 +5,14 @@
 const MISSING_PROGRAM_SITUATION = 'the program missing';
 
 export const GPGCONF_RECORDING = {
-  BOUNDARY:            'src/services/overseer/GpgDirectories.ts',
+  BOUNDARY:            'src/services/hephaestus/GpgDirectories.ts',
   HOME_PLACEHOLDER:    '<home>',
   PROGRAM_PLACEHOLDER: '<gpgconf>',
   MISSING_SITUATION:   MISSING_PROGRAM_SITUATION,
 } as const;
 
 export const VERSION_CHECK_RECORDING = {
-  BOUNDARY:             'src/services/overseer/InstallChangeWatch.ts',
+  BOUNDARY:             'src/services/hephaestus/InstallChangeWatch.ts',
   BUN_PLACEHOLDER:      '<bun>',
   CHECKOUT_PLACEHOLDER: '<checkout>',
   /** The home the recorded program runs under, a scratch folder, so the monitor folder `version` prints names no real home. */

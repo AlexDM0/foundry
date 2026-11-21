@@ -1,6 +1,6 @@
 /**
- * The options of the entity decisions whose answer the Overseer acts on: `work-in-other-entity` (E15), `package-refused` (E22),
- * `whitelist-removed-mid-crossing` (E19) and `dependent-broken` (E26). An answer is stored as the label User chose, so the Overseer reads
+ * The options of the entity decisions whose answer Hephaestus acts on: `work-in-other-entity` (E15), `package-refused` (E22),
+ * `whitelist-removed-mid-crossing` (E19) and `dependent-broken` (E26). An answer is stored as the label User chose, so Hephaestus reads
  * it back by the label; an answer that names none of them acts on nothing.
  */
 export const ENTITY_DECISION_ANSWERS = {
@@ -15,7 +15,7 @@ export const ENTITY_DECISION_ANSWERS = {
   fileAFixTicketForPrefix:       'File a fix ticket for ',
 } as const;
 
-/** The decisions whose answer moves the ticket, which the Overseer acts on at its next pass. */
+/** The decisions whose answer moves the ticket, which Hephaestus acts on at its next pass. */
 export const DECISION_KINDS_ACTED_ON = ['work-in-other-entity', 'package-refused', 'whitelist-removed-mid-crossing', 'dependent-broken'] as const;
 
 export type DecisionKindActedOn = typeof DECISION_KINDS_ACTED_ON[number];

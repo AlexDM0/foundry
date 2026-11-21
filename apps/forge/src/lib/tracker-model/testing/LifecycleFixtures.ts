@@ -74,7 +74,7 @@ export function factsWith(overrides: Partial<PlaybookFacts> = {}): PlaybookFacts
     logRecords:                  [],
     readinessPositionByTicketId: new Map(),
     concurrencyLimit:            3,
-    overseerState:               'running',
+    hephaestusState:             'running',
     pipelineIsSet:               true,
     assistantIsOn:               true,
     reviewIsSet:                 true,

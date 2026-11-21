@@ -16,8 +16,8 @@ const FIRST_VERSIONED_FORGE: SystemVersion = { major: 1, minor: 0 };
 /** The forge version that first served the endpoint at this version: `versions:raise-minimum` dates it by this, and it gates nothing. */
 const PRESENCE_ADDED_IN: SystemVersion = { major: 1, minor: 20 };
 const VERSIONED_STREAMS_AND_PICTURES_ADDED_IN: SystemVersion = { major: 1, minor: 22 };
-/** The headless forge: the monitor's typed targets and no Flint's brain, the board's Markdown and Assistant switch, the commands that left and came. */
-const HEADLESS_FORGE: SystemVersion = { major: 2, minor: 0 };
+/** The forge whose serving process is Hephaestus: the key `hephaestus` of the summary, the monitor and the board, and the four lifecycle command kinds. */
+const HEPHAESTUS_FORGE: SystemVersion = { major: 3, minor: 0 };
 
 function endpointAddedIn(endpoint: string, version: number, introducedIn: SystemVersion): ForgeCompatibilityEntry {
   return {
@@ -36,14 +36,14 @@ function currentEndpointOf(endpoint: string, version: number): ForgeCompatibilit
 
 export const FORGE_COMPATIBILITY_REGISTRY: readonly ForgeCompatibilityEntry[] = [
   currentEndpointOf('identity', 1),
-  currentEndpointOf('summary', 1),
-  endpointAddedIn('monitor', 3, HEADLESS_FORGE),
-  endpointAddedIn('monitor/events', 3, HEADLESS_FORGE),
-  endpointAddedIn('commands', 2, HEADLESS_FORGE),
+  endpointAddedIn('summary', 2, HEPHAESTUS_FORGE),
+  endpointAddedIn('monitor', 4, HEPHAESTUS_FORGE),
+  endpointAddedIn('monitor/events', 4, HEPHAESTUS_FORGE),
+  endpointAddedIn('commands', 3, HEPHAESTUS_FORGE),
   endpointAddedIn('presence', 1, PRESENCE_ADDED_IN),
   endpointAddedIn('crash-log', 1, PRESENCE_ADDED_IN),
-  endpointAddedIn('board', 2, HEADLESS_FORGE),
-  endpointAddedIn('events', 2, HEADLESS_FORGE),
+  endpointAddedIn('board', 3, HEPHAESTUS_FORGE),
+  endpointAddedIn('events', 3, HEPHAESTUS_FORGE),
   endpointAddedIn('jobs/{jobId}/stream', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
   endpointAddedIn('profiles/{profileRunId}/stream', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),
   endpointAddedIn('pictures', 1, VERSIONED_STREAMS_AND_PICTURES_ADDED_IN),

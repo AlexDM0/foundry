@@ -1,7 +1,7 @@
 /**
  * The real-system spec of the forges' registry, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-registry` with the
  * program of a forge that writes F4 and F9. It brings five scratch boards under one scratch home into the states Gaia shows, each with the
- * presence the forge writes: two serving, one crashed (its Overseer killed, then a login item's start that stays off after the crash), one
+ * presence the forge writes: two serving, one crashed (its Hephaestus killed, then a login item's start that stays off after the crash), one
  * stopped and one never started, then reads the registry the forge wrote and records it, with the paths, tracker ids, ports and process ids
  * this run drew replaced by examples. The forge's install version stamps the recording.
  */
@@ -44,25 +44,25 @@ async function boardIn(board: RegistryBoardName): Promise<string> {
   return repository;
 }
 
-/** Kills the board's Overseer from outside, which writes nothing, then starts it as a login item does: the start gate keeps it off. */
+/** Kills the board's Hephaestus from outside, which writes nothing, then starts it as a login item does: the start gate keeps it off. */
 async function crashedBoard(board: RegistryBoardName): Promise<void> {
   const repository = repositoryOf.get(board) ?? '';
-  const overseer = scratchForge.registryEntryOf(drawnTrackerIdOf.get(board) ?? '')?.['overseer'] as { processId: number } | undefined;
-  if (overseer === undefined) throw new Error(`The registry names no Overseer for ${board} to crash.`);
-  process.kill(overseer.processId, 'SIGKILL');
+  const hephaestus = scratchForge.registryEntryOf(drawnTrackerIdOf.get(board) ?? '')?.['hephaestus'] as { processId: number } | undefined;
+  if (hephaestus === undefined) throw new Error(`The registry names no Hephaestus for ${board} to crash.`);
+  process.kill(hephaestus.processId, 'SIGKILL');
   const stayedOff = await scratchForge.run(repository, ['start', '--started-by', 'login-item', '--json']);
   expect(stayedOff.exitCode).toBe(STAYED_OFF_EXIT_CODE);
 }
 
-async function startedBoard(board: RegistryBoardName, overseerNumber: number): Promise<void> {
+async function startedBoard(board: RegistryBoardName, hephaestusNumber: number): Promise<void> {
   const repository = repositoryOf.get(board) ?? await boardIn(board);
   const started = await scratchForge.runForDocument(repository, ['start', '--json']);
-  const example = REGISTRY_RECORDING.overseers[overseerNumber];
-  if (example === undefined) throw new Error(`No example Overseer numbered ${overseerNumber}.`);
+  const example = REGISTRY_RECORDING.hephaestusProcesses[hephaestusNumber];
+  if (example === undefined) throw new Error(`No example Hephaestus numbered ${hephaestusNumber}.`);
   scratchForge.exampleValueFor({ drawn: new URL(String(started['url'])).host, example: example.address });
-  const overseer = scratchForge.registryEntryOf(String(started['trackerId']))?.['overseer'] as { processId: number } | undefined;
-  if (overseer === undefined) throw new Error(`The registry names no Overseer for ${board} after its start.`);
-  scratchForge.exampleValueFor({ drawn: `"processId": ${overseer.processId}`, example: `"processId": ${example.processId}` });
+  const hephaestus = scratchForge.registryEntryOf(String(started['trackerId']))?.['hephaestus'] as { processId: number } | undefined;
+  if (hephaestus === undefined) throw new Error(`The registry names no Hephaestus for ${board} after its start.`);
+  scratchForge.exampleValueFor({ drawn: `"processId": ${hephaestus.processId}`, example: `"processId": ${example.processId}` });
 }
 
 beforeAll(async () => {
@@ -88,11 +88,11 @@ afterAll(async () => {
 }, SETUP_TIMEOUT_MILLISECONDS);
 
 describe('the registry a forge writes', () => {
-  test('names five boards in the order they were registered, the Overseer last written with its token file, and the program of each', async () => {
+  test('names five boards in the order they were registered, Hephaestus last written with its token file, and the program of each', async () => {
     const registryPath = registryFilePathIn(scratchForge.home());
     const reading = await new RegistryFile(registryPath).read();
     expect(reading).toMatchObject({ verdict: 'readable' });
-    expect(reading.verdict === 'readable' ? reading.forges.map(({ project, overseer }) => [project, overseer !== null]) : []).toEqual([
+    expect(reading.verdict === 'readable' ? reading.forges.map(({ project, hephaestus }) => [project, hephaestus !== null]) : []).toEqual([
       ['Example Agency', true],
       ['Example Bookshop', true],
       ['Example Clinic', false],

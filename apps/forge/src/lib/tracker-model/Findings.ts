@@ -1,6 +1,6 @@
 /**
  * The findings a worker files beside its ticket, past their filing: an abandoned finder hands its unstarted findings to User's review,
- * and the Overseer's first start puts the low tickets v16 left before that review too.
+ * and Hephaestus's first start puts the low tickets v16 left before that review too.
  */
 import type { Logged }             from './@types/BoardChanges.ts';
 import type { LogRecord }          from './@types/LogRecord.ts';
@@ -41,13 +41,13 @@ export class Findings {
   }
 
   /**
-   * The Overseer's first start on a board puts every unheld low `committed` ticket v16 left in `ready-for-review`, whatever the ticket review
-   * switch says; a board that stored its first Overseer start, or whose log holds an `overseer-started` record, moves nothing.
+   * Hephaestus's first start on a board puts every unheld low `committed` ticket v16 left in `ready-for-review`, whatever the ticket review
+   * switch says; a board that stored its first Hephaestus start, or whose log holds a `hephaestus-started` record, moves nothing.
    */
   submitFirstRunLeftovers(at: string): Logged {
-    const overseerStartedBefore = this.records.progress.overseerFirstStartedAt !== undefined
-      || [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'overseer-started');
-    if (overseerStartedBefore) return { logged: [] };
+    const hephaestusStartedBefore = this.records.progress.hephaestusFirstStartedAt !== undefined
+      || [...this.records.storedLogRecords, ...this.records.loggedRecords].some((record) => record.kind === 'hephaestus-started');
+    if (hephaestusStartedBefore) return { logged: [] };
     const leftovers = this.records.ticketRecords.filter(({ frontmatter }) => frontmatter.status === 'committed'
       && TicketDefaultsUtil.ticketPriorityOf(frontmatter) === 'low' && frontmatter.hold === undefined);
     return { logged: leftovers.map((leftover) => this.ticketMoves.putBeforeReview(leftover, at)) };

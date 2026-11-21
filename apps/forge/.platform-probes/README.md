@@ -55,7 +55,7 @@ Some unknowns need more than one run:
 
 ## Recording results
 
-Record the results on the platform, in a per-OS column of `docs/development/overseer-claude-probe.md`. The probe record
+Record the results on the platform, in a per-OS column of `docs/development/hephaestus-claude-probe.md`. The probe record
 there has no P12, so no script has that number. `host-stream-fixture` saves a session as a `.stdout.jsonl` and
 `.stdin.jsonl` pair beside `verdicts.jsonl`.
 
@@ -63,7 +63,7 @@ there has no P12, so no script has that number. `host-stream-fixture` saves a se
 
 - `os-*.js`: one operating-system unknown each, Windows, Linux or macOS.
 - `host-*.js`: one Claude host unknown each.
-- `claude-pNN-*.js`: one numbered probe of `docs/development/overseer-claude-probe.md` each.
+- `claude-pNN-*.js`: one numbered probe of `docs/development/hephaestus-claude-probe.md` each.
 - `support/`: the verdict line, program runs, scratch folders, pipes and the scripted session.
 
 Plain `.js`, as in `.readme-graphics/`, so typecheck, lint and the layer guards stay out of this folder.

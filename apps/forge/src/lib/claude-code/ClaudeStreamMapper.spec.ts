@@ -1,6 +1,6 @@
 /**
- * The mapper is the Overseer's only reading of a Claude session, so each case replays a recorded 2.1.311 fixture
- * (`docs/development/overseer-claude-probe.md`) rather than a hand-written line: the start, a question the Overseer must deliver, the denials it
+ * The mapper is Hephaestus's only reading of a Claude session, so each case replays a recorded 2.1.311 fixture
+ * (`docs/development/hephaestus-claude-probe.md`) rather than a hand-written line: the start, a question Hephaestus must deliver, the denials it
  * counts, the structured report it verifies, and the two rate-limit shapes, each
  * window of which is one event, and of which only the top-level refusal of the named window may interrupt a job.
  * The API billing results (a refused key, a budget stop) have no recording yet: those cases plant their values over a recorded result line.
@@ -233,7 +233,7 @@ describe('API billing results', () => {
     expect(resultOf(line)).toMatchObject({ isError: true, costUsd: 3.02, failure: { kind: 'budget-reached', httpStatus: null } });
   });
 
-  test('an error result of another status, or none, is no failure the Overseer acts on', () => {
+  test('an error result of another status, or none, is no failure Hephaestus acts on', () => {
     expect(resultOf(plantedResultLineOf('rate-limit-rejected', { api_error_status: 500 }))?.failure).toBeNull();
     expect(resultOf(plantedResultLineOf('rate-limit-rejected', { api_error_status: undefined }))?.failure).toBeNull();
   });

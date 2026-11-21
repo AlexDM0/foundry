@@ -1,5 +1,5 @@
 /**
- * Finds and reads every forge the registry names (PLAN 7.1): one watch per forge asks its Overseer's versions, identifies it, follows its
+ * Finds and reads every forge the registry names (PLAN 7.1): one watch per forge asks its Hephaestus's versions, identifies it, follows its
  * monitor stream or polls its summary, and opens a lost stream again. The forge's system version decides whether Gaia can talk to it at
  * all; a forge that serves no versions is older than Gaia supports. A forge that is down is an ordinary reading, never a throw. Every
  * interval is a schedule on injected timers, never a decision.
@@ -11,9 +11,9 @@ import type { SystemVersion } from 'system-versions/VersionsDocument';
 
 import type { ForgeIdentity, ForgeRegistryFacts }        from '../adapters/forge-api/@types/ForgeDocumentReading.ts';
 import { BoardSummaryIngestion }                         from '../adapters/forge-api/BoardSummaryIngestion.ts';
+import { HephaestusTokenFile }                           from '../adapters/forge-api/HephaestusTokenFile.ts';
 import { IdentityIngestion }                             from '../adapters/forge-api/IdentityIngestion.ts';
 import { MonitorSnapshotIngestion }                      from '../adapters/forge-api/MonitorSnapshotIngestion.ts';
-import { OverseerTokenFile }                             from '../adapters/forge-api/OverseerTokenFile.ts';
 import { PresenceIngestion, type PresenceReportReading } from '../adapters/forge-api/PresenceIngestion.ts';
 import { ForgeReadingMapUtil }                           from '../adapters/forge-api/utils/ForgeReadingMapUtil.ts';
 import type { RegisteredForge }                          from '../adapters/forge-registry/@types/RegisteredForge.ts';
@@ -21,8 +21,8 @@ import type { RegistryReading }                          from '../adapters/forge
 import type {
   ForgeDocumentAnswer,
   MonitorFollow,
-  OverseerAccess,
-  OverseerAddress,
+  HephaestusAccess,
+  HephaestusAddress,
 } from '../lib/forge-client/@types/ForgeClientAnswer.ts';
 import type { ForgeClient }                                      from '../lib/forge-client/ForgeClient.ts';
 import { SUPPORTED_FORGE_VERSION }                               from '../lib/forge-client/constants/SupportedForgeVersions.ts';
@@ -98,7 +98,7 @@ async function rootIsAFolder(root: string): Promise<boolean> {
 }
 
 /**
- * What a forge's `/api/versions` answer says. `starting`: its Overseer is not up yet. `unanswered`: it does not answer, or answers what no
+ * What a forge's `/api/versions` answer says. `starting`: its Hephaestus is not up yet. `unanswered`: it does not answer, or answers what no
  * forge would, as a program that is no forge does, so the try fails. A refusal is a forge from before versions, which answers the path as
  * any unknown one: older than Gaia supports.
  */
@@ -122,11 +122,11 @@ function contentHashOf(value: unknown): string {
  */
 function followedPartOf(entry: RegisteredForge): Omit<RegisteredForge, 'lastCommand' | 'lastChangedAt' | 'presence'> {
   return {
-    trackerId: entry.trackerId,
-    project:   entry.project,
-    root:      entry.root,
-    program:   entry.program,
-    overseer:  entry.overseer,
+    trackerId:  entry.trackerId,
+    project:    entry.project,
+    root:       entry.root,
+    program:    entry.program,
+    hephaestus: entry.hephaestus,
   };
 }
 
@@ -150,7 +150,7 @@ interface WatchRound {
 /** One round's way to the forge: what the registry holds of it, its address, and its versions, which every reading carries. */
 interface ForgeAddress {
   readonly registryFacts: ForgeRegistryFacts;
-  readonly address:       OverseerAddress;
+  readonly address:       HephaestusAddress;
   readonly versions:      ForgeVersions;
 }
 
@@ -249,7 +249,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       scheduleRound(intervals.streamReconnectIntervalMilliseconds);
     }
 
-    async function decideWithoutOverseer(round: WatchRound): Promise<void> {
+    async function decideWithoutHephaestus(round: WatchRound): Promise<void> {
       const isAFolder = await rootIsAFolder(entry.root);
       if (!round.isCurrent()) return;
       setReading(isAFolder ? WatchReadingUtil.dormantReadingOf(entry, lastWholeReading) : WatchReadingUtil.repositoryMissingReadingOf(entry));
@@ -269,11 +269,11 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
 
     async function followMonitor(round: WatchRound, forgeAddress: ForgeAddress, identity: ForgeIdentity, tokenPath: string): Promise<void> {
       const { registryFacts, address, versions } = forgeAddress;
-      const bearerToken = await new OverseerTokenFile(tokenPath).read();
+      const bearerToken = await new HephaestusTokenFile(tokenPath).read();
       if (!round.isCurrent()) return;
       if (bearerToken === null) return failedTry();
       const ingestion = new MonitorSnapshotIngestion(registryFacts, identity);
-      const access: OverseerAccess = { ...address, bearerToken };
+      const access: HephaestusAccess = { ...address, bearerToken };
       const readPresence = presenceReaderOf(round, access);
       presenceReadAfterNow = readPresence;
       let wholeSnapshotsRead = 0;
@@ -312,7 +312,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
      * read is on its way shares the one after it, so a burst of changes and asks costs at most two. A presence that cannot be read keeps the
      * last one read in this round.
      */
-    function presenceReaderOf(round: WatchRound, access: OverseerAccess): PresenceReadAfterNow {
+    function presenceReaderOf(round: WatchRound, access: HephaestusAccess): PresenceReadAfterNow {
       let readOnItsWay: Promise<PresenceReportReading | null> | null = null;
       let readAfterIt: Promise<PresenceReportReading | null> | null = null;
 
@@ -357,16 +357,16 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
     }
 
     async function identifyAndRead(round: WatchRound): Promise<void> {
-      const { overseer } = entry;
-      if (overseer === null) return decideWithoutOverseer(round);
-      const registryFacts = WatchReadingUtil.registryFactsOf(entry, overseer);
-      const versionsReading = versionsAnswerReadingOf(await forgeClient.versionsOf(overseer.url), supportedForgeVersion);
+      const { hephaestus } = entry;
+      if (hephaestus === null) return decideWithoutHephaestus(round);
+      const registryFacts = WatchReadingUtil.registryFactsOf(entry, hephaestus);
+      const versionsReading = versionsAnswerReadingOf(await forgeClient.versionsOf(hephaestus.url), supportedForgeVersion);
       if (!round.isCurrent()) return;
       if (versionsReading.verdict === 'starting') return readStarting();
       if (versionsReading.verdict === 'unanswered') return failedTry();
       const { versions } = versionsReading;
       if (!ForgeVersionsUtil.canTalk(versions)) return readCannotTalk(registryFacts, versions);
-      const forgeAddress: ForgeAddress = { registryFacts, address: { overseerUrl: overseer.url }, versions };
+      const forgeAddress: ForgeAddress = { registryFacts, address: { hephaestusUrl: hephaestus.url }, versions };
       const answer = await forgeClient.identityOf(forgeAddress.address);
       if (!round.isCurrent()) return;
       if (answer.verdict !== 'answered' && WatchReadingUtil.failureMeansStarting(answer)) return readStarting();
@@ -379,7 +379,7 @@ export function createForgeWatch(options: ForgeWatchOptions): ForgeWatch {
       if (identityReading.verdict !== 'readable') return failedTry();
       const { identity } = identityReading;
       // A forge that names no token file cannot be followed; its open summary still gives its counts.
-      if (overseer.tokenPath !== null) return followMonitor(round, forgeAddress, identity, overseer.tokenPath);
+      if (hephaestus.tokenPath !== null) return followMonitor(round, forgeAddress, identity, hephaestus.tokenPath);
       return readSummary(round, forgeAddress, identity);
     }
 

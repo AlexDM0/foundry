@@ -1,7 +1,7 @@
 /**
  * `need declare <J> "<title>" --entity <key> --body-file <path>` records a build job's need for another entity: the ticket that entity
- * builds first, with a numbered Acceptance that holds the intended use and a Brief. The Overseer files it. Under the declaring job it names
- * no job: the Overseer stamps it.
+ * builds first, with a numbered Acceptance that holds the intended use and a Brief. Hephaestus files it. Under the declaring job it names
+ * no job: Hephaestus stamps it.
  */
 import { requireWorkspace }       from '../../src/services/tracker/Workspace.ts';
 import type { ControlCommandOf }  from '../../src/shared/@types/ControlCommand.ts';
@@ -50,7 +50,7 @@ async function declareNeed(commandArguments: ArgumentParser, context: CommandCon
   const command: ControlCommandOf<'need-declare'> = { kind: 'need-declare', jobId, ...await writtenNeedOf(commandArguments, context, 2) };
   const { need, changed } = (await applyCommandOfVerb(commandArguments, context, command)).result;
   const sentence = changed
-    ? `Job ${jobId} declared the need "${need.title}" for ${need.entity}; the Overseer files it as a ticket of ${need.entity}.`
+    ? `Job ${jobId} declared the need "${need.title}" for ${need.entity}; Hephaestus files it as a ticket of ${need.entity}.`
     : `Job ${jobId} already declared the need "${need.title}" for ${need.entity} with this body. Nothing to do.`;
   OutputUtil.printEntity(commandArguments, context, { need, changed }, sentence);
 }

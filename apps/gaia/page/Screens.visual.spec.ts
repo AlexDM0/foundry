@@ -297,7 +297,7 @@ describe('each screen shows the state its artboard draws', () => {
     const markup = screenMarkupOf(screenOf('B2'), 'dark');
     const tree = MarkupTree.parse(markup);
     const stopQuestion = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('group')(element) && element.attributes['aria-label'] === 'Stop Example Storefront');
-    expect(MarkupTree.textOf(stopQuestion)).toContain('Stop the Overseer of Example Storefront? 4 agents are running.');
+    expect(MarkupTree.textOf(stopQuestion)).toContain('Stop Hephaestus of Example Storefront? 4 agents are running.');
     const refusalCode = B2_STOP_REFUSAL.refusal ?? '';
     expect(MarkupTree.textOf(tree).split(refusalCode)).toHaveLength(2);
     const refusal = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('alert')(element) && MarkupTree.textOf(element).includes(refusalCode));
@@ -317,10 +317,10 @@ describe('each screen shows the state its artboard draws', () => {
     const markup = screenMarkupOf(screenOf('B3'), 'dark');
     const tree = MarkupTree.parse(markup);
     const lead = MarkupTree.onlyElementIn(tree, MarkupTree.withClass('gaia-attention-banner-lead'));
-    expect(MarkupTree.textOf(lead)).toBe('Overseer unreachable: Invoice Service.');
+    expect(MarkupTree.textOf(lead)).toBe('Hephaestus unreachable: Invoice Service.');
     const errorTone = MarkupTree.variantAttributesOf(createElement(Banner, { tone: 'quiet', text: '' }), createElement(Banner, { tone: 'error', text: '' }));
     const banner = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.carries(element, errorTone) && MarkupTree.elementsIn(element).includes(lead));
-    expect(MarkupTree.textOf(banner)).toStartWith('Overseer unreachable: Invoice Service.');
+    expect(MarkupTree.textOf(banner)).toStartWith('Hephaestus unreachable: Invoice Service.');
     const waitingHead = MarkupTree.onlyElementIn(tree, (element) => MarkupTree.withRole('heading')(element) && MarkupTree.textOf(element).startsWith('Waiting on you'));
     const countTag = createElement(Tag, { key: 'count', text: '4 known, more possible', tone: 'warn' });
     const separator = createElement('span', { key: 'separator', className: 'gaia-visually-hidden' }, ' · ');
@@ -408,7 +408,7 @@ describe('the restart an update left pending, over the artboard it changes', () 
     const [pendingStep, ...otherPendingSteps] = restartPendingStepsIn(heldLook);
     if (pendingStep === undefined) throw new Error('Example Mobile App\'s callout holds no pending restart.');
     expect(otherPendingSteps).toEqual([]);
-    expect(MarkupTree.textOf(pendingStep)).toStartWith('Updated; restart pending. Its Overseer runs the old code until it restarts.');
+    expect(MarkupTree.textOf(pendingStep)).toStartWith('Updated; restart pending. Its Hephaestus runs the old code until it restarts.');
     expect(MarkupTree.elementsIn(heldLook, MarkupTree.withRole('button', 'Restart'))).toHaveLength(1);
   });
 
@@ -467,7 +467,7 @@ describe('a crashed forge in place, which no artboard draws', () => {
     if (crashed === undefined) throw new Error('A crashed forge\'s screen is missing.');
     const markup = screenMarkupOf(crashed, 'dark');
     expect(markup).toContain('Forge crashed');
-    expect(markup).toContain('overseer · TypeError: Cannot read properties of undefined');
+    expect(markup).toContain('hephaestus · TypeError: Cannot read properties of undefined');
     expect(MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Start'))).toHaveLength(1);
     expect(markup).not.toContain('How long should a password reset link stay valid?');
   });
@@ -477,7 +477,7 @@ describe('a crashed forge in place, which no artboard draws', () => {
     if (started === undefined) throw new Error('A crashed forge\'s screen is missing.');
     const markup = screenMarkupOf(started, 'dark');
     expect(markup).toContain('Crash log 1');
-    expect(markup).toContain('Overseer crashed in pass 412: TypeError.');
+    expect(markup).toContain('Hephaestus crashed in pass 412: TypeError.');
     expect(MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Show log'))).toEqual([]);
   });
 });

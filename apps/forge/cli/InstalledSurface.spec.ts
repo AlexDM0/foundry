@@ -1,6 +1,6 @@
 /**
  * The surface of the CLI the installed files name, frozen per `INSTALL_VERSION` in `cli/FrozenInstalledSurface.json`: the commands and flags the
- * session instructions, the reference, the Assistant brief and the skills name, and the `status --json` and Overseer state fields they read. A
+ * session instructions, the reference, the Assistant brief and the skills name, and the `status --json` and Hephaestus state fields they read. A
  * version's surface only grows, since a file installed at that version may name any of it; so a frozen name the CLI no longer has means an
  * installed file became wrong, and fails until `INSTALL_VERSION` is bumped. Prose and numbers are not surface, so rewording a template or
  * changing a `DISPATCH_PROTOCOL` number trips nothing. This spec compares the commands and flags, the CLI's side being the help screen;

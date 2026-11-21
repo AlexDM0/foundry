@@ -1,5 +1,5 @@
 /**
- * The pipeline agent panel's model. What matters: the Overseer's chats, its step prompts among them, are its system lines with the prompt
+ * The pipeline agent panel's model. What matters: Hephaestus's chats, its step prompts among them, are its system lines with the prompt
  * on User's ask, never User bubbles, which are User's own messages alone; the activity line shows only while a turn runs, and says the
  * newest line the agent wrote or its last tool call; a step's questions become cards, an answered one with its confirmation; an answer
  * sends the chosen letters or the Other text and nothing while it is incomplete; a multiple question toggles its letters and starts with
@@ -42,14 +42,14 @@ function researchRecord() {
 }
 
 describe('the chat', () => {
-  test('the Overseer\'s step prompt is its system line with the prompt to reveal, and only User\'s own message is a User bubble', () => {
+  test('Hephaestus\'s step prompt is its system line with the prompt to reveal, and only User\'s own message is a User bubble', () => {
     const stepPrompt = 'User completed the research step. The current step is constitution.';
     const turns = PipelineAgentPanelModel.chatTurnsOf([
       entry(1, {
-        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: 'You are the pipeline agent.'
+        role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', text: 'You are the pipeline agent.'
       }),
       entry(2, {
-        role: 'overseer', clientAct: 'chat', sentBy: 'overseer', text: stepPrompt
+        role: 'hephaestus', clientAct: 'chat', sentBy: 'hephaestus', text: stepPrompt
       }),
       entry(3, {
         role: 'user', clientAct: 'chat', sentBy: 'user', text: 'Keep the lint gate.'
@@ -57,8 +57,8 @@ describe('the chat', () => {
     ], 'J4', '2026-11-12');
     expect(turns.map((turn) => (turn.kind === 'system' ? [turn.kind, turn.text, turn.revealText] : [turn.kind, turn.kind === 'user' ? turn.text : null, null])))
       .toEqual([
-        ['system', 'Overseer started J4 for the pipeline setup', 'You are the pipeline agent.'],
-        ['system', 'Overseer sent a message', stepPrompt],
+        ['system', 'Hephaestus started J4 for the pipeline setup', 'You are the pipeline agent.'],
+        ['system', 'Hephaestus sent a message', stepPrompt],
         ['user', 'Keep the lint gate.', null],
       ]);
   });

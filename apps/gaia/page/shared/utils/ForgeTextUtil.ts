@@ -1,6 +1,6 @@
 /**
  * How the page words a forge's own state wherever it shows one: the condition it shows, its word, in a row or leading a line in sentence
- * case, the dot that stands beside the word, the usage line as the Bridge words it, the callout of an Overseer that stopped answering (B3),
+ * case, the dot that stands beside the word, the usage line as the Bridge words it, the callout of a Hephaestus that stopped answering (B3),
  * and its agents a network outage stopped.
  */
 import type {
@@ -103,7 +103,7 @@ function unreachableCalloutTextOf(forge: FleetDocumentForge, lastAnswerClock: st
   const machineParts = [address, forge.processId === null ? null : `process ${forge.processId}`, lastAnswerClock === null ? null : `last answer ${lastAnswerClock}`];
   return {
     word:        'Unreachable',
-    sentence:    'Its Overseer stopped answering. The registry still names it.',
+    sentence:    'Its Hephaestus stopped answering. The registry still names it.',
     machineLine: machineParts.filter((part) => part !== null).join(MACHINE_LINE_SEPARATOR) || null,
   };
 }

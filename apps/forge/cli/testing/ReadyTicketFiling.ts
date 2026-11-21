@@ -28,7 +28,7 @@ function sectionsMissingForReadinessOf(body: string): string {
   ].join('');
 }
 
-/** Runs `ticket add` and `ticket ready` through the spec's own Overseer, which fails the spec on a non-zero exit; resolves to the filing's result. */
+/** Runs `ticket add` and `ticket ready` through the spec's own Hephaestus, which fails the spec on a non-zero exit; resolves to the filing's result. */
 export async function fileReadyTicketThrough<Result>(
   runCommand: (commandLineArguments: readonly string[]) => Promise<Result>,
   outputOf: (result: Result) => string,
@@ -43,7 +43,7 @@ export async function fileReadyTicketThrough<Result>(
   return filing;
 }
 
-/** `fileReadyTicketThrough` for an Overseer resolving to the captured command context. */
+/** `fileReadyTicketThrough` for a Hephaestus resolving to the captured command context. */
 export async function fileReadyTicket<Context extends { outputText: () => string }>(
   runCommand: (commandLineArguments: readonly string[]) => Promise<Context>,
   addArguments: readonly string[],

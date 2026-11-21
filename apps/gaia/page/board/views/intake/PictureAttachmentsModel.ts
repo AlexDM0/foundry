@@ -6,7 +6,7 @@
 import type { BoardPictureLimitsDocument } from '../../../@types/board/BoardFactDocuments.ts';
 import { BoardApiPaths }                   from '../../api/BoardApiPaths.ts';
 
-/** `uploading` until the Overseer stored it; a refusal before upload or from the Overseer keeps the picture out of the message. */
+/** `uploading` until Hephaestus stored it; a refusal before upload or from Hephaestus keeps the picture out of the message. */
 export type PictureUploadState =
   | 'uploading'
   | { readonly pictureId: string }
@@ -82,7 +82,7 @@ function carriedOf(pending: readonly PendingPicture[]): PendingPicture[] {
 }
 
 /**
- * Each file's verdict against the limits, in order: a type the Overseer does not take, a file over the size bound, and a file past the
+ * Each file's verdict against the limits, in order: a type Hephaestus does not take, a file over the size bound, and a file past the
  * per-message bound, counting the pictures the message already carries and the files admitted before it.
  */
 function admissionsOf(files: readonly PictureFileFacts[], pending: readonly PendingPicture[], limits: BoardPictureLimitsDocument): AdmissionVerdict[] {

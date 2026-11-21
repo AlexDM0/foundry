@@ -3,5 +3,5 @@ export const MONITOR_REGISTRY_FILES = {
   REGISTRY_FILE_NAME:  'projects.json',
   LOCK_DIRECTORY_NAME: '.lock',
   ENTRIES_KEY:         'projects',
-  SUPPORTED_VERSION:   1,
+  SUPPORTED_VERSION:   2,
 } as const;

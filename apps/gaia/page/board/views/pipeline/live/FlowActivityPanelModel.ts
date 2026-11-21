@@ -227,7 +227,7 @@ function historyTextOf(record: BoardPipelineHistoryEntryDocument): string {
       return 'Pipeline changes discarded';
     case 'pipeline-setup-discarded':
       return 'Pipeline setup discarded';
-    case 'overseer-set':
+    case 'hephaestus-set':
       return record.state === 'running' ? 'Board resumed' : 'Board paused';
   }
 }

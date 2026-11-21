@@ -72,13 +72,13 @@ describe('the usage line', () => {
   });
 });
 
-describe('the callout of an Overseer that stopped answering', () => {
+describe('the callout of a Hephaestus that stopped answering', () => {
   const forge = FLEET_FIVE_FORGES_READINGS.exampleStorefront;
 
   test('names the address without its scheme, the process and the last answer', () => {
     expect(ForgeTextUtil.unreachableCalloutTextOf({ ...forge, url: 'http://127.0.0.1:4801', processId: 4242 }, '13:02')).toEqual({
       word:        'Unreachable',
-      sentence:    'Its Overseer stopped answering. The registry still names it.',
+      sentence:    'Its Hephaestus stopped answering. The registry still names it.',
       machineLine: '127.0.0.1:4801 · process 4242 · last answer 13:02',
     });
   });

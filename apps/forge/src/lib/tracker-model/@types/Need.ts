@@ -9,7 +9,7 @@ export interface NeedDeclaration {
   body:   string;
 }
 
-/** A need a build job of one entity declared for another, kept until the Overseer files it as that entity's ticket. */
+/** A need a build job of one entity declared for another, kept until Hephaestus files it as that entity's ticket. */
 export interface DeclaredNeed extends NeedDeclaration {
   jobId:     string;
   /** The declaring job's tickets, which wait for the need's ticket. */

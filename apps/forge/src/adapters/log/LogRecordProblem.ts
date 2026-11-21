@@ -10,6 +10,7 @@ import {
 }                             from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { FLINT_BRAIN_ENDED_REASONS, FLINT_BRAIN_STARTERS } from '../../lib/tracker-model/constants/FlintBrainVocabulary.ts';
 import { GATE_CACHE_REPORTS, GATE_PROFILE_RUN_ENDINGS }    from '../../lib/tracker-model/constants/GateProfileVocabulary.ts';
+import { HEPHAESTUS_STATES }                               from '../../lib/tracker-model/constants/HephaestusStates.ts';
 import {
   FIRST_CHILD_INSTANCE,
   GATE_OUTCOMES,
@@ -19,7 +20,7 @@ import {
   JOB_KINDS,
   JOB_OUTCOMES,
   JOB_ROLES,
-  OVERSEER_STOP_REASONS,
+  HEPHAESTUS_STOP_REASONS,
   JOB_STOP_MODES,
   PIPELINE_STEP_ENDINGS,
   PIPELINE_STEP_KINDS,
@@ -33,7 +34,6 @@ import {
   LOG_RECORD_SUBJECT_IDS,
   RETIRED_DISPATCHER_STATES
 } from '../../lib/tracker-model/constants/LogRecordSchema.ts';
-import { OVERSEER_STATES } from '../../lib/tracker-model/constants/OverseerStates.ts';
 import {
   PIPELINE_BILLING_MODES,
   PIPELINE_SETUP_MODES,
@@ -142,8 +142,8 @@ function reviewBarRoundProblem(value: unknown, path: string): string | null {
   return StoredValueUtil.wholeNumberIsAtLeast(value, FIRST_REVIEW_BAR_ROUND) ? null : `${path} is not a whole round of at least ${FIRST_REVIEW_BAR_ROUND}`;
 }
 
-function overseerStateProblem(value: unknown, path: string): string | null {
-  return BoardSettingsUtil.overseerStateIsKnown(value) ? null : `${path} is ${JSON.stringify(value)}, which is not one of ${OVERSEER_STATES.join(', ')}`;
+function hephaestusStateProblem(value: unknown, path: string): string | null {
+  return BoardSettingsUtil.hephaestusStateIsKnown(value) ? null : `${path} is ${JSON.stringify(value)}, which is not one of ${HEPHAESTUS_STATES.join(', ')}`;
 }
 
 function countProblem(value: unknown, path: string): string | null {
@@ -169,7 +169,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'review-round':             reviewRoundProblem,
   'chart-range':              (value, path) => (BoardSettingsUtil.viewRangeIsWellFormed(value) ? null : `${path} is not a chart range`),
   'concurrency-limit':        (value, path) => (BoardSettingsUtil.concurrencyLimitIsWellFormed(value) ? null : `${path} is not a whole number of agents`),
-  'overseer-state':           overseerStateProblem,
+  'hephaestus-state':         hephaestusStateProblem,
   'dispatcher-state':         (value, path) => vocabularyProblem(value, path, RETIRED_DISPATCHER_STATES),
   'dispatcher-run-id':        retiredDispatcherRunIdProblem,
   'check-command':            checkCommandProblem,
@@ -186,7 +186,7 @@ const CHECK_FOR_FIELD_SHAPE: Readonly<Record<LogFieldShape, FieldShapeCheck>> = 
   'interruption-cause':       (value, path) => vocabularyProblem(value, path, INTERRUPTION_CAUSES),
   'child-instance':           childInstanceProblem,
   'permission-names':         (value, path) => listOfTextProblem(value, path, 'permission names'),
-  'overseer-stop-reason':     (value, path) => vocabularyProblem(value, path, OVERSEER_STOP_REASONS),
+  'hephaestus-stop-reason':   (value, path) => vocabularyProblem(value, path, HEPHAESTUS_STOP_REASONS),
   'start-kind':               (value, path) => vocabularyProblem(value, path, START_KINDS),
   'start-origin':             (value, path) => vocabularyProblem(value, path, START_ORIGINS),
   'job-stop-mode':            (value, path) => vocabularyProblem(value, path, JOB_STOP_MODES),

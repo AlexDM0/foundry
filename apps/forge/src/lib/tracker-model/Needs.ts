@@ -1,6 +1,6 @@
 /**
  * The needs a build job of one entity declares for another entity (strategy section 4.3): checked and kept on the board, in declaring order,
- * for the Overseer to file as that entity's tickets. A declaration logs nothing and files no ticket; the filing takes the job's needs off,
+ * for Hephaestus to file as that entity's tickets. A declaration logs nothing and files no ticket; the filing takes the job's needs off,
  * and a job that ends any other way drops them.
  */
 import type { NeedDeclared }                  from './@types/BoardChanges.ts';

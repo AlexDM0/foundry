@@ -137,14 +137,14 @@ function launchAgentPathOf(label: string): string {
   return join(scratchHomeDirectory, 'Library', 'LaunchAgents', `${label}.plist`);
 }
 
-function runLoginOverseer(loginArguments: readonly string[]): FinishedSetupRun {
-  return runSetupEntry(['--login-overseer', ...loginArguments]);
+function runLoginHephaestus(loginArguments: readonly string[]): FinishedSetupRun {
+  return runSetupEntry(['--login-item', ...loginArguments]);
 }
 
-test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL running start --started-by login-item at load, every path absolute', () => {
+test('setup.ts --login-item writes a LaunchAgent labelled LOGIN_ITEM_LABEL running start --started-by login-item at load, every path absolute', () => {
   const repositoryDirectory = join(scratchDirectory, 'tracked-repository');
   mkdirSync(repositoryDirectory);
-  const { exitCode, output } = runLoginOverseer([repositoryDirectory]);
+  const { exitCode, output } = runLoginHephaestus([repositoryDirectory]);
   expect(exitCode, output).toBe(0);
 
   const plist = readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8');
@@ -164,20 +164,20 @@ test('setup.ts --login-overseer writes a LaunchAgent labelled LOGIN_ITEM_LABEL r
   expect(recordedBunCalls()).toEqual([]);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('setup.ts --login-overseer refuses a second repository under the same label, takes one under its own, and --instruct-only writes nothing', () => {
+test('setup.ts --login-item refuses a second repository under the same label, takes one under its own, and --instruct-only writes nothing', () => {
   const firstRepository = join(scratchDirectory, 'first-repository');
   const secondRepository = join(scratchDirectory, 'second-repository');
   mkdirSync(firstRepository);
   mkdirSync(secondRepository);
   const homeBefore = snapshotOf(scratchHomeDirectory);
-  expect(runLoginOverseer([firstRepository, '--instruct-only']).exitCode).toBe(0);
+  expect(runLoginHephaestus([firstRepository, '--instruct-only']).exitCode).toBe(0);
   expect(snapshotOf(scratchHomeDirectory)).toEqual(homeBefore);
 
-  expect(runLoginOverseer([firstRepository]).exitCode).toBe(0);
-  const refused = runLoginOverseer([secondRepository]);
+  expect(runLoginHephaestus([firstRepository]).exitCode).toBe(0);
+  const refused = runLoginHephaestus([secondRepository]);
   expect(refused.exitCode).toBe(1);
   expect(refused.output).toContain('pass --label');
   expect(readFileSync(launchAgentPathOf(PRODUCT_NAMES.LOGIN_ITEM_LABEL), 'utf8')).toContain(firstRepository);
-  expect(runLoginOverseer([secondRepository, '--label', 'com.example-agency.overseer']).exitCode).toBe(0);
-  expect(readFileSync(launchAgentPathOf('com.example-agency.overseer'), 'utf8')).toContain(secondRepository);
+  expect(runLoginHephaestus([secondRepository, '--label', 'com.example-agency.hephaestus']).exitCode).toBe(0);
+  expect(readFileSync(launchAgentPathOf('com.example-agency.hephaestus'), 'utf8')).toContain(secondRepository);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);

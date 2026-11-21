@@ -1,6 +1,6 @@
 /**
  * The store port: the forge reaches its stored board only through it. Its command face applies one `ControlCommand`, its transaction face
- * holds the board for the Overseer's pass, and both share a lock-free read side. `apply` and `transact` write nothing when they throw: a
+ * holds the board for Hephaestus's pass, and both share a lock-free read side. `apply` and `transact` write nothing when they throw: a
  * `BoardRefusal` leaves as `OperationRefusal('refused', board-refusal)`, and a held or lost lock, an unreadable tracker or a malformed
  * hold journal as `unrepaired`.
  */
@@ -65,7 +65,7 @@ export interface TransactionWritten<Result> {
 }
 
 /**
- * The Overseer's face: everything `mutate` changes is written together after it returns, or nothing when it throws. The write is
+ * Hephaestus's face: everything `mutate` changes is written together after it returns, or nothing when it throws. The write is
  * exclusive for as long as `mutate` runs, an `await` and a git call inside it included; a remote adapter cannot offer that.
  */
 export interface StoreTransactionFace {

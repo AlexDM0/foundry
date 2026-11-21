@@ -1,6 +1,6 @@
 /**
  * How the page words a command to one forge. What matters (SCREENS B2): a refusal names the refused command by its own button, and a
- * command that names no forge has no such name here; the Stop question names the forge and its running agents, offers the Overseer only
+ * command that names no forge has no such name here; the Stop question names the forge and its running agents, offers Hephaestus only
  * first and the agents first second, each with its consequence in the singular for one agent, has nothing to choose with no agent running,
  * and says what keeps waiting on User only when something does.
  */
@@ -28,20 +28,20 @@ describe('the name of a refused command', () => {
 });
 
 describe('the Stop question', () => {
-  test('names the forge and its running agents, offers the Overseer only first, and says what keeps waiting', () => {
+  test('names the forge and its running agents, offers Hephaestus only first, and says what keeps waiting', () => {
     expect(ForgeCommandTextUtil.stopQuestionOf(STOREFRONT)).toEqual({
       label:    'Stop Example Storefront',
-      question: 'Stop the Overseer of Example Storefront? 4 agents are running.',
+      question: 'Stop Hephaestus of Example Storefront? 4 agents are running.',
       choices:  [
         {
           agents:      'keep',
-          title:       'Stop the Overseer only',
+          title:       'Stop Hephaestus only',
           consequence: 'The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.',
         },
         {
           agents:      'stop-first',
-          title:       'Stop the agents, then the Overseer',
-          consequence: 'The 4 agents wind down first and their tickets return to the board. Then the Overseer stops.',
+          title:       'Stop the agents, then Hephaestus',
+          consequence: 'The 4 agents wind down first and their tickets return to the board. Then Hephaestus stops.',
         },
       ],
       consequence: '2 entries keep waiting on you while it is stopped.',
@@ -50,17 +50,17 @@ describe('the Stop question', () => {
 
   test('words one agent in the singular', () => {
     const { question, choices } = ForgeCommandTextUtil.stopQuestionOf(withAgentsInFlight(STOREFRONT, 1));
-    expect(question).toBe('Stop the Overseer of Example Storefront? 1 agent is running.');
+    expect(question).toBe('Stop Hephaestus of Example Storefront? 1 agent is running.');
     expect(choices.map((choice) => choice.consequence)).toEqual([
       'The agent finishes what it is on under Talos. Nothing new starts until this forge is started again.',
-      'The agent winds down first and its tickets return to the board. Then the Overseer stops.',
+      'The agent winds down first and its tickets return to the board. Then Hephaestus stops.',
     ]);
   });
 
   test('has nothing to choose with no agent running, and no line of what waits when nothing does', () => {
     const idle = { ...withAgentsInFlight(STOREFRONT, 0), attention: [] };
     expect(ForgeCommandTextUtil.stopQuestionOf(idle)).toEqual({
-      label: 'Stop Example Storefront', question: 'Stop the Overseer of Example Storefront?', choices: [], consequence: null
+      label: 'Stop Example Storefront', question: 'Stop Hephaestus of Example Storefront?', choices: [], consequence: null
     });
   });
 

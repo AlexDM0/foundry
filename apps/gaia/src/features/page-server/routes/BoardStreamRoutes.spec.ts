@@ -21,10 +21,10 @@ import { GAIA_SYSTEM_VERSION }     from '../../../shared/constants/GaiaSystemVer
 import { manualTimers }            from '../../../testing/ManualTimers.ts';
 import {
   recordedBoardAnswersOf,
-  recordedOverseerFetch,
+  recordedHephaestusFetch,
   type BoardSituation,
-  type RecordedOverseerAnswer,
-  type RecordedOverseerFetch,
+  type RecordedHephaestusAnswer,
+  type RecordedHephaestusFetch,
 } from '../../../testing/RecordedAnswers.ts';
 import { createScratchDirectory, removeScratchPath } from '../../../testing/ScratchRoot.ts';
 import type { BoardRelayLogEntry }                   from '../@types/BoardRelayLogEntry.ts';
@@ -43,8 +43,8 @@ import {
 import { relayEventReaderOf }                                               from '../testing/RelayEventReader.ts';
 import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor } from './BoardStreamRoutes.ts';
 
-const EVENTS_CALL_SHAPE = 'STREAM /api/v2/events with bearer';
-const EVENTS_FROM_LAST_ID_CALL_SHAPE = 'STREAM /api/v2/events with bearer from a last event id';
+const EVENTS_CALL_SHAPE = 'STREAM /api/v3/events with bearer';
+const EVENTS_FROM_LAST_ID_CALL_SHAPE = 'STREAM /api/v3/events with bearer from a last event id';
 const RELAY_URL = 'http://127.0.0.1:4790/api/v1/forges/example-storefront-7c41';
 const EXAMPLE_LAST_EVENT_ID = recordedBoardEventIdOf('board-at-work', 'afresh');
 
@@ -73,8 +73,8 @@ afterEach(() => {
   removeScratchPath(scratchFolder);
 });
 
-function sourcesOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}) {
-  return { forgeAccess: relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), overseerFetch), boardStreams };
+function sourcesOver(hephaestusFetch: RecordedHephaestusFetch, options: ExampleRelayForgeOptions = {}) {
+  return { forgeAccess: relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), hephaestusFetch), boardStreams };
 }
 
 function pageRequest(path: string, headers: Readonly<Record<string, string>> = {}): Request {
@@ -82,7 +82,7 @@ function pageRequest(path: string, headers: Readonly<Record<string, string>> = {
 }
 
 /** The recorded answers of a situation, a stream among them ending where the recording stays open, as a forge's stream ends at its stop. */
-function answersEndingStreams(situation: BoardSituation): readonly RecordedOverseerAnswer[] {
+function answersEndingStreams(situation: BoardSituation): readonly RecordedHephaestusAnswer[] {
   return recordedBoardAnswersOf(situation).map(({ callShape, answer }) => ({
     callShape,
     answer: answer.verdict === 'streaming' ? { ...answer, ending: 'closed' as const } : answer,
@@ -90,7 +90,7 @@ function answersEndingStreams(situation: BoardSituation): readonly RecordedOvers
 }
 
 /** The recorded answer of a stream, given for the same stream asked from a cursor and a last event id, which the recording did not ask. */
-function answersAfterCursor(situation: BoardSituation, cursor: string): readonly RecordedOverseerAnswer[] {
+function answersAfterCursor(situation: BoardSituation, cursor: string): readonly RecordedHephaestusAnswer[] {
   return recordedBoardAnswersOf(situation).map(({ callShape, answer }) => ({
     callShape: callShape.replace(/\/stream with bearer$/, `/stream?after=${encodeURIComponent(cursor)} with bearer from a last event id`),
     answer,
@@ -114,30 +114,30 @@ describe('the board\'s events', () => {
   });
 
   test('ask the forge from the page\'s Last-Event-ID', async () => {
-    const overseerFetch = boardAnswering('board-at-work');
-    const answer = await boardEventsAnswerFor(pageRequest('board/events', { 'last-event-id': EXAMPLE_LAST_EVENT_ID }), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch));
+    const hephaestusFetch = boardAnswering('board-at-work');
+    const answer = await boardEventsAnswerFor(pageRequest('board/events', { 'last-event-id': EXAMPLE_LAST_EVENT_ID }), STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch));
     const events = relayEventReaderOf(answer);
     await events.nextEvent();
     expect((await events.nextEvent()).lastEventId).toBe(recordedBoardEventIdOf('board-at-work', 'from-a-last-event-id'));
-    expect(overseerFetch.callsAnswered().map((call) => [call.callShape, call.lastEventId])).toEqual([[EVENTS_FROM_LAST_ID_CALL_SHAPE, EXAMPLE_LAST_EVENT_ID]]);
+    expect(hephaestusFetch.callsAnswered().map((call) => [call.callShape, call.lastEventId])).toEqual([[EVENTS_FROM_LAST_ID_CALL_SHAPE, EXAMPLE_LAST_EVENT_ID]]);
     await events.leave();
   });
 
   test('end the page\'s stream when the forge\'s ends', async () => {
-    const overseerFetch = recordedOverseerFetch(answersEndingStreams('board-at-work'));
-    const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch));
+    const hephaestusFetch = recordedHephaestusFetch(answersEndingStreams('board-at-work'));
+    const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch));
     expect((await relayEventReaderOf(answer).untilEnd()).map((event) => event.eventName)).toEqual(['handshake', 'board']);
     expect(boardStreams.openStreamCount()).toBe(0);
   });
 
   test('close the forge\'s stream when the page goes', async () => {
-    const overseerFetch = boardAnswering('board-at-work');
-    const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch));
+    const hephaestusFetch = boardAnswering('board-at-work');
+    const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(hephaestusFetch));
     const events = relayEventReaderOf(answer);
     await events.nextEvent();
-    expect(overseerFetch.streamsLeftOpen()).toBe(1);
+    expect(hephaestusFetch.streamsLeftOpen()).toBe(1);
     await events.leave();
-    expect([overseerFetch.streamsLeftOpen(), boardStreams.openStreamCount()]).toEqual([0, 0]);
+    expect([hephaestusFetch.streamsLeftOpen(), boardStreams.openStreamCount()]).toEqual([0, 0]);
   });
 
   test('map each event once for two page streams of the same forge', async () => {
@@ -164,16 +164,16 @@ describe('a job\'s stream', () => {
     expect((await events.nextEvent()).eventName).toBe('handshake');
     const history = await events.nextEvent();
     expect([history.eventName, history.lastEventId]).toEqual(['history', '1.2']);
-    expect(JSON.parse(history.data)).toMatchObject({ boardVersion: 1, kind: 'history', entries: [{ cursor: '1.2', role: 'overseer' }] });
+    expect(JSON.parse(history.data)).toMatchObject({ boardVersion: 1, kind: 'history', entries: [{ cursor: '1.2', role: 'hephaestus' }] });
     await events.leave();
   });
 
   test('asks the forge from the page\'s after cursor and Last-Event-ID', async () => {
-    const overseerFetch = recordedOverseerFetch(answersAfterCursor('intake-conversation', '1.1'));
+    const hephaestusFetch = recordedHephaestusFetch(answersAfterCursor('intake-conversation', '1.1'));
     const request = pageRequest(`jobs/${JOB_ID}/stream?after=1.1`, { 'last-event-id': '1.1' });
-    const events = relayEventReaderOf(await jobStreamAnswerFor(request, STOREFRONT_TRACKER_ID, JOB_ID, sourcesOver(overseerFetch)));
+    const events = relayEventReaderOf(await jobStreamAnswerFor(request, STOREFRONT_TRACKER_ID, JOB_ID, sourcesOver(hephaestusFetch)));
     await events.nextEvent();
-    const [call] = overseerFetch.callsAnswered().filter((answered) => answered.callShape.startsWith('STREAM '));
+    const [call] = hephaestusFetch.callsAnswered().filter((answered) => answered.callShape.startsWith('STREAM '));
     expect([call?.callShape, call?.lastEventId]).toEqual([`STREAM /api/v1/jobs/${JOB_ID}/stream?after=1.1 with bearer from a last event id`, '1.1']);
     await events.leave();
   });
@@ -201,7 +201,7 @@ describe('an event that does not ingest', () => {
         : answer,
     }));
     const request = pageRequest(`profiles/${PROFILE_RUN_ID}/stream`);
-    const answer = await profileStreamAnswerFor(request, STOREFRONT_TRACKER_ID, PROFILE_RUN_ID, sourcesOver(recordedOverseerFetch(withoutText)));
+    const answer = await profileStreamAnswerFor(request, STOREFRONT_TRACKER_ID, PROFILE_RUN_ID, sourcesOver(recordedHephaestusFetch(withoutText)));
     expect((await relayEventReaderOf(answer).untilEnd()).map((event) => event.eventName)).toEqual(['handshake']);
     expect(boardStreams.droppedEventCount()).toBe(1);
     expect(logEntries).toEqual([{
@@ -212,43 +212,45 @@ describe('an event that does not ingest', () => {
 
 describe('a stream that cannot open', () => {
   test('is forge-not-registered for a forge the registry does not name, and asks nothing', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
-    const forgeAccess = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), overseerFetch, { verdict: 'readable', forges: [] });
+    const hephaestusFetch = recordedHephaestusFetch([]);
+    const forgeAccess = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath), hephaestusFetch, { verdict: 'readable', forges: [] });
     const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, { forgeAccess, boardStreams });
-    expect([answer.status, await answer.json(), overseerFetch.callsAnswered()]).toEqual([404, { refusal: 'forge-not-registered', refusedBy: 'gaia' }, []]);
+    expect([answer.status, await answer.json(), hephaestusFetch.callsAnswered()]).toEqual([404, { refusal: 'forge-not-registered', refusedBy: 'gaia' }, []]);
   });
 
-  test('is forge-unreachable when the Overseer does not answer', async () => {
+  test('is forge-unreachable when Hephaestus does not answer', async () => {
     const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(stoppedForgeAnswering([EVENTS_CALL_SHAPE])));
     expect([answer.status, await answer.json(), boardStreams.openStreamCount()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }, 0]);
   });
 
   test('is forge-version-unsupported for a forge Gaia cannot talk to', async () => {
     const newer = { verdict: 'newer', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } } as const;
-    const sources = sourcesOver(recordedOverseerFetch([]), { fidelity: 'newer-contract', versions: newer });
+    const sources = sourcesOver(recordedHephaestusFetch([]), { fidelity: 'newer-contract', versions: newer });
     const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sources);
     expect([answer.status, await answer.json()]).toEqual([501, { refusal: 'forge-version-unsupported', refusedBy: 'gaia' }]);
   });
 
   test('is forge-version-unsupported, logged, when the forge\'s handshake names another version than the watch read', async () => {
     const ahead = { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor + 1 };
-    const overseerFetch = boardAnswering('board-at-work');
+    const hephaestusFetch = boardAnswering('board-at-work');
     const answer = await boardEventsAnswerFor(
-      pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch, { versions: { verdict: 'ahead', current: ahead, minimumSupported: { major: 1, minor: 0 } } }),
+      pageRequest('board/events'),
+      STOREFRONT_TRACKER_ID,
+      sourcesOver(hephaestusFetch, { versions: { verdict: 'ahead', current: ahead, minimumSupported: { major: 1, minor: 0 } } }),
     );
-    expect([answer.status, await answer.json(), overseerFetch.streamsLeftOpen(), boardStreams.openStreamCount()])
+    expect([answer.status, await answer.json(), hephaestusFetch.streamsLeftOpen(), boardStreams.openStreamCount()])
       .toEqual([501, { refusal: 'forge-version-unsupported', refusedBy: 'gaia' }, 0, 0]);
     expect(logEntries).toEqual([{
-      kind: 'handshake-version-differs', trackerId: STOREFRONT_TRACKER_ID, stream: '/api/v2/events', versionWatchRead: ahead, versionHandshakeNamed: SUPPORTED_FORGE_VERSION,
+      kind: 'handshake-version-differs', trackerId: STOREFRONT_TRACKER_ID, stream: '/api/v3/events', versionWatchRead: ahead, versionHandshakeNamed: SUPPORTED_FORGE_VERSION,
     }]);
   });
 
   test('is token-unreadable when the registry names no token file', async () => {
-    const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(recordedOverseerFetch([]), { tokenPath: null }));
+    const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(recordedHephaestusFetch([]), { tokenPath: null }));
     expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'token-unreadable', refusedBy: 'gaia' }]);
   });
 
-  test('is token-rejected when the Overseer refuses the token, which reaches no answer and no log line', async () => {
+  test('is token-rejected when Hephaestus refuses the token, which reaches no answer and no log line', async () => {
     const answer = await boardEventsAnswerFor(pageRequest('board/events'), STOREFRONT_TRACKER_ID, sourcesOver(boardAnswering('board-token-rejected')));
     const answerText = `${[...answer.headers.entries()].flat().join('\n')}\n${await answer.text()}`;
     expect([answer.status, JSON.parse(answerText.slice(answerText.indexOf('{')))]).toEqual([502, { refusal: 'token-rejected', refusedBy: 'gaia' }]);

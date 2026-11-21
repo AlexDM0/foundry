@@ -1,5 +1,5 @@
 /**
- * The gate pipeline run on a tree, the code the Overseer's build, review and merge gates share: the prepare steps, then each gate of the
+ * The gate pipeline run on a tree, the code Hephaestus's build, review and merge gates share: the prepare steps, then each gate of the
  * phase in its run order, the first red one stopping the rest. Each argv arrives built and confined by the caller; a step runs as a line
  * child of Talos through the caller's `LineRunner`, in a child folder of its own and within the line time bound, with the job variables
  * removed from its environment. agent-progress keeps no gate result: caching is the repository's own tooling's, and a gate may only report
@@ -34,7 +34,7 @@ import type {
 import { EntityOwnershipUtil }                                             from '../../lib/tracker-model/utils/EntityOwnershipUtil.ts';
 import { PipelineUtil }                                                    from '../../lib/tracker-model/utils/PipelineUtil.ts';
 import { GATE_REPORT_VARIABLE, HATCH_DIRECTORY_VARIABLE, JOB_ID_VARIABLE } from '../../shared/Environment.ts';
-import { LINE_TIME_BOUND_MILLISECONDS }                                    from '../../shared/constants/OverseerLimits.ts';
+import { LINE_TIME_BOUND_MILLISECONDS }                                    from '../../shared/constants/HephaestusLimits.ts';
 import { ProjectPathsUtil }                                                from '../../shared/utils/ProjectPathsUtil.ts';
 
 export interface LineRunRequest {
@@ -174,7 +174,7 @@ const LINE_STATUS_FILE_PREFIX = 'line-status-';
 const GATE_REPORT_FILE_PREFIX = 'gate-report-';
 
 /**
- * Without the job variables' removal, every spec of a gated tree that runs a mutating verb would Hatch it to the Overseer rather than run
+ * Without the job variables' removal, every spec of a gated tree that runs a mutating verb would Hatch it to Hephaestus rather than run
  * it. The report path is the line's own: one this process inherited is never passed on.
  */
 function gateEnvironmentOf(environment: Readonly<Record<string, string>>, reportFile?: string): Record<string, string> {
@@ -193,7 +193,7 @@ function gateReportFileOf(): string {
 }
 
 /**
- * A step a line child runs is read in a later pass, perhaps by the next Overseer, so its report path in the temporary folder is derived from
+ * A step a line child runs is read in a later pass, perhaps by the next Hephaestus, so its report path in the temporary folder is derived from
  * the step's own folder rather than drawn fresh.
  */
 function gateReportFileFor(stepFolder: string): string {
@@ -400,7 +400,7 @@ function prepareConfinementOf(gates: readonly PipelineGate[]): GateConfinement {
 }
 
 /**
- * A prepare step that does not pass, or changes a tracked file, is a setup failure, never a red gate; the Overseer never runs a gate's
+ * A prepare step that does not pass, or changes a tracked file, is a setup failure, never a red gate; Hephaestus never runs a gate's
  * `fix`. A phase with no gates passes at once: its prepare steps would prepare for nothing.
  */
 async function runPipeline(request: PipelineRunRequest): Promise<PipelineVerdict> {

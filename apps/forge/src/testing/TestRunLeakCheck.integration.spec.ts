@@ -1,7 +1,7 @@
 /**
  * The leak check of `src/testing/TestRunReport.ts`, watched failing on one planted leak of each kind. Each case runs `bun test` in a child
  * whose working directory is a scratch folder, never this checkout. What matters: a run that leaves nothing passes; an entry left in the
- * run's temp folder, an entry put straight in the shared scratch root and a process still working in a run folder (an Overseer successor
+ * run's temp folder, an entry put straight in the shared scratch root and a process still working in a run folder (a Hephaestus successor
  * among them) each fail the run and are named, the full report on standard error; and a case its deadline cut short stops the successor
  * it started in its own teardown. A parallel run's planted shared-root entry may join a report, so a case counts only its own line.
  * The child runs and the processes are real; the child finds no git on its PATH, so it checks no git state.
@@ -30,8 +30,8 @@ const PROCESSES_IN_FOLDER_PATH    = join(import.meta.dir, 'ProcessesInFolder.ts'
 const ENVIRONMENT_PATH            = join(import.meta.dir, '..', 'shared', 'Environment.ts');
 const FIXTURE_FILE_NAME           = 'LeakFixture.spec.ts';
 const CUT_SHORT_DEADLINE_MILLISECONDS = 200;
-/** Only the command line of an Overseer successor, which the planted process carries; split, so no guard reads it as an Overseer start. */
-const SUCCESSOR_ARGUMENTS = 'oversee --successor-of 1'.split(' ');
+/** Only the command line of a Hephaestus successor, which the planted process carries; split, so no guard reads it as a Hephaestus start. */
+const SUCCESSOR_ARGUMENTS = 'start --successor-of 1'.split(' ');
 
 let repositoryDirectory = '';
 let recordDirectory     = '';
@@ -58,7 +58,7 @@ afterEach(() => {
 
 /**
  * A fixture process that lives until it is stopped, working in the fixture's `plantedFolder` under its run folder, spawned without Bun's
- * flag that ends a child with its parent, as an Overseer spawns its successor; its pid is written where the case reads it.
+ * flag that ends a child with its parent, as a Hephaestus spawns its successor; its pid is written where the case reads it.
  */
 function plantedProcessSource(extraArguments: readonly string[]): string {
   const spawnerScript = [
@@ -155,10 +155,10 @@ test('a process still working in a run folder fails the run, named, and the chec
   expect(processIsRunning(plantedProcessId())).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-test('an Overseer successor left running fails the run, named by its command line', () => {
+test('a Hephaestus successor left running fails the run, named by its command line', () => {
   const { exitCode, output } = testRunOf(fixtureSource({ plantedBody: plantedProcessSource(SUCCESSOR_ARGUMENTS) }));
   expect(exitCode, output).not.toBe(0);
-  expect(output).toMatch(new RegExp(`a process ${plantedProcessId()} \\(.*oversee --successor-of 1\\) still ran`));
+  expect(output).toMatch(new RegExp(`a process ${plantedProcessId()} \\(.*start --successor-of 1\\) still ran`));
   expect(processIsRunning(plantedProcessId())).toBe(false);
 }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 

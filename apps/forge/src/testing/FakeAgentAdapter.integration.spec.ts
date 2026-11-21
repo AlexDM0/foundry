@@ -1,5 +1,5 @@
 /**
- * The fake agent stands in for a vendor in every Overseer, Talos and crash spec, so it must behave as a session does where those specs
+ * The fake agent stands in for a vendor in every Hephaestus, Talos and crash spec, so it must behave as a session does where those specs
  * look: it takes its first line, asks, waits for the answer, reports, and exits; and it can die without a result, as a killed session does.
  * It ends as the recorded `claude` did on a stdin line that is not JSON, and refuses a scenario line no recording holds.
  */

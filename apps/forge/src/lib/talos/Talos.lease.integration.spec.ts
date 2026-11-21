@@ -58,7 +58,7 @@ interface Renewals {
   readonly stop:     () => void;
 }
 
-/** Renews at the interval, as the Overseer's main loop does, without waiting for an answer. */
+/** Renews at the interval, as Hephaestus's main loop does, without waiting for an answer. */
 function renewEachInterval(serving: ServingTalos): Renewals {
   const frameIds = new Set<number>();
   const timer = setInterval(() => {

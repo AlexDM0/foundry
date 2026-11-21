@@ -1,9 +1,9 @@
 /**
- * `machine limit [<n>] [--json]`: the machine-wide agent limit every Overseer of this user keeps, read or set with or without one live. It
- * needs no tracker; a live Overseer reads the stored limit at its next launch, and lowering it stops nothing.
+ * `machine limit [<n>] [--json]`: the machine-wide agent limit every Hephaestus of this user keeps, read or set with or without one live. It
+ * needs no tracker; a live Hephaestus reads the stored limit at its next launch, and lowering it stops nothing.
  */
-import { AgentSlots }            from '../../../src/services/overseer/AgentSlots.ts';
-import { MachineAgentLimit }     from '../../../src/services/overseer/MachineAgentLimit.ts';
+import { AgentSlots }            from '../../../src/services/hephaestus/AgentSlots.ts';
+import { MachineAgentLimit }     from '../../../src/services/hephaestus/MachineAgentLimit.ts';
 import type { ControlCommandOf } from '../../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }      from '../../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }         from '../../../src/shared/constants/ProductNames.ts';

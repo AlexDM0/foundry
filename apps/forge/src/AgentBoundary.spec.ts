@@ -152,9 +152,9 @@ const ALLOWED_TESTING_LINES: Readonly<Record<string, string>> = {
     'Permanent: records, stamps or traps the real program.',
   'src/testing/BoundaryRecordings.ts: vendor-name: const CLAUDE: RecordedSystem = \'claude\';':
     'Permanent: records, stamps or traps the real program.',
-  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/lib/claude-code/ClaudeCodeAdapter.ts\':    BUN,':
+  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/lib/claude-code/ClaudeCodeAdapter.ts\':      BUN,':
     'Permanent: records, stamps or traps the real program.',
-  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/testing/fake-agent/\':                     CLAUDE,':
+  'src/testing/BoundaryRecordings.ts: vendor-name: \'src/testing/fake-agent/\':                       CLAUDE,':
     'Permanent: records, stamps or traps the real program.',
   'src/testing/BoundarySpecs.ts: vendor-name: { boundary: \'src/lib/claude-code/ClaudeCodeAdapter.ts\', specs: [GUARD_EMPTY_SEARCH_PATH_SPEC] },':
     'Permanent: records, stamps or traps the real program.',
@@ -464,7 +464,7 @@ describe('the scan saw the tree', () => {
     expect(scannedPaths.filter(isEvidence).length).toBeGreaterThan(60);
     expect(scannedPaths).toEqual(expect.arrayContaining([
       SEAM_PATH,
-      'src/services/overseer/DrivePass.ts',
+      'src/services/hephaestus/DrivePass.ts',
       'src/testing/ProgramTraps.ts',
       'cli/testing/CutoverSmoke.ts',
       'resources/prompts/BuildPrompt.md',
@@ -497,7 +497,7 @@ describe('the scan saw the tree', () => {
 
 describe('the allowlist is exact both ways', () => {
   const removedEntry = ALLOWED_LINES[0] ?? '';
-  const allowedEntry = 'src/services/overseer/PlantedSite.ts: vendor-name: const program = \'claude\';';
+  const allowedEntry = 'src/services/hephaestus/PlantedSite.ts: vendor-name: const program = \'claude\';';
 
   test('removing an entry leaves its line a violation', () => {
     expect(boundaryReportOf(SOURCES, ALLOWED_LINES.slice(1))).toEqual({ violations: [removedEntry], unusedAllowances: [] });
@@ -508,14 +508,14 @@ describe('the allowlist is exact both ways', () => {
   });
 
   test('a second copy of an allowed line in its own file is a violation', () => {
-    const doubledSite = { path: 'src/services/overseer/PlantedSite.ts', text: 'const program = \'claude\';\nconst program = \'claude\';\n' };
+    const doubledSite = { path: 'src/services/hephaestus/PlantedSite.ts', text: 'const program = \'claude\';\nconst program = \'claude\';\n' };
     expect(boundaryReportOf([doubledSite], [allowedEntry])).toEqual({ violations: [`${allowedEntry} [copy 2]`], unusedAllowances: [] });
   });
 
   test('an allowed line in another file is a violation', () => {
-    const plantedCopy = { path: 'src/services/overseer/PlantedOther.ts', text: 'const program = \'claude\';\n' };
+    const plantedCopy = { path: 'src/services/hephaestus/PlantedOther.ts', text: 'const program = \'claude\';\n' };
     expect(boundaryReportOf([plantedCopy], [allowedEntry])).toEqual({
-      violations:       ['src/services/overseer/PlantedOther.ts: vendor-name: const program = \'claude\';'],
+      violations:       ['src/services/hephaestus/PlantedOther.ts: vendor-name: const program = \'claude\';'],
       unusedAllowances: [allowedEntry],
     });
   });
@@ -553,7 +553,7 @@ describe('every entry names its package', () => {
 });
 
 describe('the guard names each form, planted in memory', () => {
-  const servicePath = 'src/services/overseer/Planted.ts';
+  const servicePath = 'src/services/hephaestus/Planted.ts';
   const talosPath = 'src/lib/talos/Planted.ts';
   const promptPath = 'resources/prompts/Planted.md';
   const bundlePath = 'skills/planted/SKILL.md';

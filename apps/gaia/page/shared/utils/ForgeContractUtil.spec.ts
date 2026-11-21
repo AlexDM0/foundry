@@ -1,7 +1,7 @@
 /**
  * What Gaia can do with a forge by its contracts. What matters: a forge's board opens in place while it is read in full or as last
  * reported, so a forge read through its summary, or of a newer contract, never does; and only a control contract Gaia sends is sent what
- * an Overseer carries.
+ * a Hephaestus carries.
  */
 import { describe, expect, test } from 'bun:test';
 
@@ -35,7 +35,7 @@ describe('opening a forge in place', () => {
 describe('the control contract', () => {
   test('is known at the one number this Gaia sends, and at no other', () => {
     expect(ForgeContractUtil.controlContractIsKnown(STOREFRONT)).toBe(true);
-    expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 3 } })).toBe(false);
+    expect(ForgeContractUtil.controlContractIsKnown({ ...STOREFRONT, contracts: { ...STOREFRONT.contracts, control: 4 } })).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Research Wiki'))).toBe(false);
     expect(ForgeContractUtil.controlContractIsKnown(degradedForgeNamed('Analytics Sandbox'))).toBe(false);
   });

@@ -4,7 +4,7 @@ Two apps share this Bun workspace, each under its own rules. Read the rules of w
 
 | Folder | What it is | Its rules |
 | --- | --- | --- |
-| `apps/forge/` | forge: the tracker, the Overseer, the Bridge, the CLI | `apps/forge/CLAUDE.md` and the path-scoped `.claude/rules/*.md` |
+| `apps/forge/` | forge: the tracker, Hephaestus, the Bridge, the CLI | `apps/forge/CLAUDE.md` and the path-scoped `.claude/rules/*.md` |
 | `apps/gaia/` | Gaia: one window over every forge on the machine | `apps/gaia/CLAUDE.md` |
 | `packages/<name>/` | a shared package: `forge-contracts` and `system-versions` | its own `README.md`, plus the rules named below |
 | `docs/monorepo/` | the monorepo's design (`design.md`) and the migration checklist (`migration.md`) | this file |
@@ -30,7 +30,7 @@ From the landing on, each app has its own forge tracker in its own folder, and n
 
 - A tracker's agents change only its home and its reach; Customs refuses the rest. `scripts/`, `docs/monorepo/`, this file and
   `.claude/` are in neither tracker's reach: a person changes them.
-- Each tracker's gate runs at the repository root (`--in /`) through `bun run gate:<app>`, and an Overseer-only merge gate runs
+- Each tracker's gate runs at the repository root (`--in /`) through `bun run gate:<app>`, and a Hephaestus-only merge gate runs
   `bun run cache:audit`; `docs/monorepo/design.md` holds the exact gate lines. So a ticket of one app cannot turn the other red through
   a shared package, and turbo replays what the ticket did not touch.
 - The installed forge runs from a second clone outside this repository, updated by pulling; nobody runs this checkout's forge.

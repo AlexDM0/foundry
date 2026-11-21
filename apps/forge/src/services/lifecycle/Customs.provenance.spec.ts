@@ -135,7 +135,7 @@ function jobEndedRecord(jobId: string, outcome: 'landed' | 'refreshed' | 'commit
 const OWN_BUILD_JOB_ID = 'J9';
 
 /**
- * A live build job whose exemptions are read from the Overseer's records: ticket 378 releases `group-example`, and constitution commit job
+ * A live build job whose exemptions are read from Hephaestus's records: ticket 378 releases `group-example`, and constitution commit job
  * C1 commits in `commitWorktree`.
  */
 function buildJobAcross(logRecords: readonly LogRecord[], refreshWorktree = '', commitWorktree = ''): CustomsSubject {
@@ -328,7 +328,7 @@ describeWhenGitIsRecorded('V14: no foreign ref moved', () => {
     expect(refusal('V14', reviewerSubject([]))).toEqual({ reason: 'foreign-ref-moved', facts: ['refs/heads/example-foreign'] });
   });
 
-  test('a landing the Overseer recorded at the commit the ref now names passes, and another job\'s branch passes', () => {
+  test('a landing Hephaestus recorded at the commit the ref now names passes, and another job\'s branch passes', () => {
     enter(GIT_SCENARIOS.TARGET_AND_JOB_BRANCH_ADDED);
     const subject = reviewerSubject([]);
     expect(refusal('V14', {

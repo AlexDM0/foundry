@@ -36,7 +36,7 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
     ];
     expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
       'incident I3 took its default, job-fresh: its delivery turn closed',
-      'new code is on disk: restart the Overseer to run it',
+      'new code is on disk: restart Hephaestus to run it',
       'landings on main wait: the main checkout\'s changes to README.md, docs/cli.md block the fast-forward',
       'example-kind',
     ]);
@@ -46,7 +46,7 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
     const notices = [{ kind: 'install-version-changed' }, { kind: 'new-code' }];
     expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
       'the install version changed, so launches are held until the board is updated',
-      'new code is on disk: restart the Overseer to run it',
+      'new code is on disk: restart Hephaestus to run it',
     ]);
     for (const sentence of notices.map(NoticeWordingUtil.noticeSentenceOf)) expect(sentence).not.toMatch(new RegExp(`\`|${PRODUCT_NAMES.PROGRAM} `, 'u'));
   });
@@ -76,9 +76,9 @@ describe('NoticeWordingUtil.noticeSentenceOf', () => {
       { kind: 'passes-abandoned', inARow: 3, reason: 'example-reason' },
     ];
     expect(notices.map(NoticeWordingUtil.noticeSentenceOf)).toEqual([
-      '3 drive passes in a row were abandoned, the last as another process held the board\'s lock past its wait; the Overseer keeps running and tries again at each wake-up',
-      '5 drive passes in a row were abandoned, the last as another process took the board\'s lock over; the Overseer keeps running and tries again at each wake-up',
-      '3 drive passes in a row were abandoned, the last as example-reason; the Overseer keeps running and tries again at each wake-up',
+      '3 drive passes in a row were abandoned, the last as another process held the board\'s lock past its wait; Hephaestus keeps running and tries again at each wake-up',
+      '5 drive passes in a row were abandoned, the last as another process took the board\'s lock over; Hephaestus keeps running and tries again at each wake-up',
+      '3 drive passes in a row were abandoned, the last as example-reason; Hephaestus keeps running and tries again at each wake-up',
     ]);
   });
 });

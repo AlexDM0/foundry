@@ -124,7 +124,7 @@ describe('Apply changes', () => {
     expect(within(dialog).queryByRole('list', { name: 'Tickets in flight' })).toBeNull();
   });
 
-  test('removing an entity that a ticket names is refused in the Overseer\'s words, verbatim', async () => {
+  test('removing an entity that a ticket names is refused in Hephaestus\'s words, verbatim', async () => {
     const controls = renderEditing(FORGE_ROUTE, boardRemovingRoot());
     const dialog = await openApplyChanges();
     controls.answerNextWith({ verdict: 'refused', refusal: ENTITY_NAMED_BY_TICKETS_REFUSAL });

@@ -75,10 +75,10 @@ const IDLE_BRANCH = 'main';
 const IDLE_COMMIT = '0123456789abcdef0123456789abcdef01234567';
 
 /**
- * What an idle Overseer asks git about a repository with one checkout and one commit. Its polls decide how often, so it answers from a
+ * What an idle Hephaestus asks git about a repository with one checkout and one commit. Its polls decide how often, so it answers from a
  * set rather than a stage.
  */
-export function idleOverseerAnswersIn(repositoryDirectory: string): RecordedGitStage {
+export function idleHephaestusAnswersIn(repositoryDirectory: string): RecordedGitStage {
   const onTheBranch = { [RECORDED_PLACEHOLDERS.BRANCH]: IDLE_BRANCH, [RECORDED_PLACEHOLDERS.COMMIT]: IDLE_COMMIT };
   return [
     GIT_VERSION,

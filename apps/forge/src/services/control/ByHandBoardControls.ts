@@ -12,8 +12,8 @@ import type { BoardTransaction }              from '../tracker/BoardTransaction.
 const BRANCH_LIST_ARGUMENTS = ['for-each-ref', '--format=%(refname:short)', 'refs/heads'] as const;
 
 /**
- * The Assistant and the product owner work on no branch, and an Overseer's stop leaves its Assistant on the board while the next start
- * boots a new one, so counting them would refuse a namespace on every board an Overseer ever served.
+ * The Assistant and the product owner work on no branch, and a Hephaestus's stop leaves its Assistant on the board while the next start
+ * boots a new one, so counting them would refuse a namespace on every board a Hephaestus ever served.
  */
 const JOB_KINDS_ON_NO_BRANCH: readonly JobKind[] = ['assistant', 'product-owner'];
 

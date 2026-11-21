@@ -47,13 +47,13 @@ describe('the command answer of a verdict', () => {
 
   test('passes a forge\'s refusal code and a sentence that names no command through unchanged', () => {
     const refusal = {
-      verdict: 'refused', refusedBy: 'forge', refusal: 'overseer-held', text: 'The Overseer is held by an install change.'
+      verdict: 'refused', refusedBy: 'forge', refusal: 'hephaestus-held', text: 'Hephaestus is held by an install change.'
     } as const;
     expect(PageAnswerMapUtil.commandAnswerOf(refusal)).toEqual({
       answerVersion: 3,
       outcome:       'refused',
-      refusal:       'overseer-held',
-      text:          'The Overseer is held by an install change.',
+      refusal:       'hephaestus-held',
+      text:          'Hephaestus is held by an install change.',
       forges:        [],
     });
   });

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="342" viewBox="0 0 680 342" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>One reading lays live facts over the status document</title>
+  <desc>Three layers, each overriding or adding to the one below. The status keys are the status --json --full document, read from the board files. The replaced layer holds jobs, decisions and incidents, read from the board files, the event logs and transcripts, and Hephaestus's memory. The added layer holds page, notices, mergeQueue, hephaestus, usage, questionHistory, endedJobs, ticketForecasts, launchSlots and pictureLimits, read from the board files, git forecasts and Hephaestus's memory.</desc>
+
+  <rect x="1" y="1" width="678" height="340" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">One reading lays live facts over the status document</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Each layer overrides or adds to the one below; dots show what it reads</text>
+
+  <g font-size="11" fill="#73726c" text-anchor="middle">
+    <text x="432" y="96">Board</text><text x="432" y="110">files</text>
+    <text x="496" y="96">Event logs,</text><text x="496" y="110">transcripts</text>
+    <text x="558" y="96">git</text><text x="558" y="110">forecasts</text>
+    <text x="612" y="96">Hephaestus</text><text x="612" y="110">memory</text>
+  </g>
+
+  <rect x="40" y="122" width="360" height="72" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="58" y="163" font-size="14" font-weight="500" fill="#0C447C">Added</text>
+  <g font-size="11.5" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">
+    <text x="150" y="139">page, notices, mergeQueue</text>
+    <text x="150" y="154">hephaestus, usage, questionHistory</text>
+    <text x="150" y="169">endedJobs, ticketForecasts</text>
+    <text x="150" y="184">launchSlots, pictureLimits</text>
+  </g>
+
+  <rect x="40" y="204" width="360" height="50" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="58" y="234" font-size="14" font-weight="500" fill="#0C447C">Replaced</text>
+  <text x="150" y="233" font-size="11.5" fill="#185FA5" font-family="ui-monospace,Menlo,Consolas,monospace">jobs, decisions, incidents</text>
+
+  <rect x="40" y="264" width="360" height="50" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="58" y="294" font-size="14" font-weight="500" fill="#444441">Status keys</text>
+  <text x="150" y="293" font-size="12" fill="#5F5E5A">the status --json --full document</text>
+
+  <path d="M410,158 H640 M410,229 H640 M410,289 H640" fill="none" stroke="#E1DDD0" stroke-width="1.2"/>
+  <g fill="#73726c">
+    <circle cx="432" cy="158" r="6"/><circle cx="558" cy="158" r="6"/><circle cx="612" cy="158" r="6"/>
+    <circle cx="432" cy="229" r="6"/><circle cx="496" cy="229" r="6"/><circle cx="612" cy="229" r="6"/>
+    <circle cx="432" cy="289" r="6"/>
+  </g>
+</svg>

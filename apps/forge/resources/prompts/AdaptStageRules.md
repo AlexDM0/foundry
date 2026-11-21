@@ -7,7 +7,7 @@
 - If a package does not give `{{homeEntity}}` what it needs, do not write the files of the package. Do the same if you
   need one more change in a package. End with the outcome `package-return`. In `packageReturnReason`, write what the
   package must give. If more than one package is sealed, write the key of the package in `packageReturnEntity`.
-- After a `package-return`, the Overseer lifts the seal, and the ticket goes back to the package build. The builder of
+- After a `package-return`, Hephaestus lifts the seal, and the ticket goes back to the package build. The builder of
   the package gets your `packageReturnReason`. A ticket goes back one time only. A second return stops the ticket until
   User decides.
 - This stage owns the evidence for the Acceptance of the ticket. In your report, give the evidence for each numbered

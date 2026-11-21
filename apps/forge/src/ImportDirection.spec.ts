@@ -46,7 +46,7 @@ type Layer =
   | 'lifecycle-service'
   | 'control-service'
   | 'store-service'
-  | 'overseer-service'
+  | 'hephaestus-service'
   | 'test-support'
   | 'repository-guard'
   | 'cli'
@@ -74,31 +74,31 @@ const VENDOR_ADAPTER_SEAM = 'cli/CommandContext.ts';
 const FAKE_AGENT_ADAPTER_FILES: readonly string[] = ['src/testing/FakeAgentAdapter.ts', 'src/testing/FakeReportingSessions.ts'];
 const FAKE_AGENT_ADAPTER_FOLDER = 'src/testing/fake-agent/';
 const SOURCE_LAYERS = [
-  'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'overseer-service',
+  'lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'hephaestus-service',
 ] as const satisfies readonly Layer[];
 
 /** What each layer may import, a folder in a testing folder aside: those are judged by `TESTING_FOLDER_IMPORTERS` alone. */
 const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
-  'binary':            ['cli'],
+  'binary':             ['cli'],
   // Narrowed further to its own package by directionFinding.
-  'talos-binary':      ['lib'],
-  'launcher-binary':   ['shared'],
-  'setup-binary':      ['cli'],
-  'lib':               ['lib'],
-  'shared':            ['lib', 'shared', 'workspace-package'],
-  'adapters':          ['lib', 'shared', 'adapters', 'workspace-package'],
-  'render-service':    ['lib', 'shared', 'adapters', 'render-service', 'workspace-package'],
-  'tracker-service':   ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'workspace-package'],
-  'lifecycle-service': ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'workspace-package'],
-  'control-service':   ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'workspace-package'],
-  'store-service':     ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'workspace-package'],
-  'overseer-service':  [...SOURCE_LAYERS, 'workspace-package'],
-  'test-support':      [...SOURCE_LAYERS, 'workspace-package'],
-  'repository-guard':  [],
-  'cli':               [...SOURCE_LAYERS, 'cli', 'workspace-package'],
+  'talos-binary':       ['lib'],
+  'launcher-binary':    ['shared'],
+  'setup-binary':       ['cli'],
+  'lib':                ['lib'],
+  'shared':             ['lib', 'shared', 'workspace-package'],
+  'adapters':           ['lib', 'shared', 'adapters', 'workspace-package'],
+  'render-service':     ['lib', 'shared', 'adapters', 'render-service', 'workspace-package'],
+  'tracker-service':    ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'workspace-package'],
+  'lifecycle-service':  ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'workspace-package'],
+  'control-service':    ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'workspace-package'],
+  'store-service':      ['lib', 'shared', 'adapters', 'render-service', 'tracker-service', 'lifecycle-service', 'control-service', 'store-service', 'workspace-package'],
+  'hephaestus-service': [...SOURCE_LAYERS, 'workspace-package'],
+  'test-support':       [...SOURCE_LAYERS, 'workspace-package'],
+  'repository-guard':   [],
+  'cli':                [...SOURCE_LAYERS, 'cli', 'workspace-package'],
   // Narrowed further to its own package and those its package.json declares by workspacePackageDeclarationFinding.
-  'workspace-package': ['workspace-package'],
-  'unplaced':          [],
+  'workspace-package':  ['workspace-package'],
+  'unplaced':           [],
 };
 
 /**
@@ -107,12 +107,12 @@ const LAYER_REACH: Readonly<Record<Layer, readonly Layer[]>> = {
  * ways: every `testing/` folder in the tree has an entry, and every importer folder or file is used by at least one import.
  */
 const TESTING_FOLDER_IMPORTERS: Readonly<Record<string, readonly string[]>> = {
-  'src/testing/':                   ['src/', 'cli/', VENDOR_ADAPTER_SEAM],
-  'src/lib/tracker-model/testing/': ['src/lib/tracker-model/'],
-  'src/adapters/progress/testing/': ['src/adapters/'],
-  'src/services/tracker/testing/':  ['src/services/tracker/'],
-  'src/services/overseer/testing/': ['src/services/overseer/'],
-  'cli/testing/':                   ['cli/'],
+  'src/testing/':                     ['src/', 'cli/', VENDOR_ADAPTER_SEAM],
+  'src/lib/tracker-model/testing/':   ['src/lib/tracker-model/'],
+  'src/adapters/progress/testing/':   ['src/adapters/'],
+  'src/services/tracker/testing/':    ['src/services/tracker/'],
+  'src/services/hephaestus/testing/': ['src/services/hephaestus/'],
+  'cli/testing/':                     ['cli/'],
 };
 
 /** One allowed import, as an exact importer and target. */
@@ -122,12 +122,14 @@ interface ExactReach {
 }
 
 /**
- * A command set reaching another set's file: `cli/overseer/OverseerRemote.ts` is the one client of a live Overseer's API, and its path is a
- * boundary's recording key, so it stays in its set until that boundary is moved with it.
+ * A command set reaching another set's file: `cli/hephaestus/HephaestusRemote.ts` is the one client of a live Hephaestus's API, and its path is a
+ * boundary's recording key, so it stays in its set until that boundary is moved with it. `status` prints Hephaestus's process facts above
+ * the board, and their reading asks that client, so it stays beside it.
  */
 const COMMAND_SET_REACHES: readonly ExactReach[] = [
-  { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/overseer/OverseerRemote.ts' },
-  { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/overseer/OverseerRemote.ts' },
+  { importer: 'cli/adoption/update/UpdateCommand.ts',              target: 'cli/hephaestus/HephaestusRemote.ts' },
+  { importer: 'cli/tracking/status/ConfinementInForceReading.ts',  target: 'cli/hephaestus/HephaestusRemote.ts' },
+  { importer: 'cli/tracking/status/StatusCommand.ts',              target: 'cli/hephaestus/HephaestusStatusReading.ts' },
 ];
 
 interface Allowlists {
@@ -217,7 +219,7 @@ const layerOf = memoisedPerPath((path: string): Layer => {
       if (unitFolder === 'lifecycle') return 'lifecycle-service';
       if (unitFolder === 'control') return 'control-service';
       if (unitFolder === 'store') return 'store-service';
-      return unitFolder === 'overseer' ? 'overseer-service' : 'unplaced';
+      return unitFolder === 'hephaestus' ? 'hephaestus-service' : 'unplaced';
     case 'testing':
       return 'test-support';
     default:
@@ -614,20 +616,20 @@ describe('the guard still names each violation, planted in memory', () => {
       'layer-imports-upward — src/shared/PlantedValue.ts:1 imports cli/Main.ts: shared reaches only lib, shared, workspace-package, not cli',
     ]);
     expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../render/BoardFacts.ts') })).toEqual([]);
-    expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../overseer/PlantedPass.ts') })).toEqual([
-      'layer-imports-upward — src/services/tracker/PlantedStep.ts:1 imports src/services/overseer/PlantedPass.ts: '
-        + 'tracker-service reaches only lib, shared, adapters, render-service, tracker-service, workspace-package, not overseer-service',
+    expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../hephaestus/PlantedPass.ts') })).toEqual([
+      'layer-imports-upward — src/services/tracker/PlantedStep.ts:1 imports src/services/hephaestus/PlantedPass.ts: '
+        + 'tracker-service reaches only lib, shared, adapters, render-service, tracker-service, workspace-package, not hephaestus-service',
     ]);
-    expect(plantedSentencesOf({ 'src/services/overseer/PlantedPass.ts': importing('../tracker/TrackerLock.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/hephaestus/PlantedPass.ts': importing('../tracker/TrackerLock.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/control/PlantedControl.ts': importing('../tracker/TrackerLock.ts') })).toEqual([]);
-    expect(plantedSentencesOf({ 'src/services/overseer/PlantedPass.ts': importing('../control/ControlService.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/hephaestus/PlantedPass.ts': importing('../control/ControlService.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/tracker/PlantedStep.ts': importing('../control/ControlService.ts') })).toEqual([
       'layer-imports-upward — src/services/tracker/PlantedStep.ts:1 imports src/services/control/ControlService.ts: '
         + 'tracker-service reaches only lib, shared, adapters, render-service, tracker-service, workspace-package, not control-service',
     ]);
-    expect(plantedSentencesOf({ 'src/services/control/PlantedControl.ts': importing('../overseer/PlantedPass.ts') })).toEqual([
-      'layer-imports-upward — src/services/control/PlantedControl.ts:1 imports src/services/overseer/PlantedPass.ts: '
-        + 'control-service reaches only lib, shared, adapters, render-service, tracker-service, lifecycle-service, control-service, workspace-package, not overseer-service',
+    expect(plantedSentencesOf({ 'src/services/control/PlantedControl.ts': importing('../hephaestus/PlantedPass.ts') })).toEqual([
+      'layer-imports-upward — src/services/control/PlantedControl.ts:1 imports src/services/hephaestus/PlantedPass.ts: '
+        + 'control-service reaches only lib, shared, adapters, render-service, tracker-service, lifecycle-service, control-service, workspace-package, not hephaestus-service',
     ]);
     expect(plantedSentencesOf({ 'src/services/lifecycle/PlantedGate.ts': importing('../tracker/TrackerLock.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/control/PlantedControl.ts': importing('../lifecycle/PlantedGate.ts') })).toEqual([]);
@@ -636,7 +638,7 @@ describe('the guard still names each violation, planted in memory', () => {
         + 'control-service reaches only lib, shared, adapters, render-service, tracker-service, lifecycle-service, control-service, workspace-package, not store-service',
     ]);
     expect(plantedSentencesOf({ 'src/services/store/PlantedStore.ts': importing('../control/ControlService.ts') })).toEqual([]);
-    expect(plantedSentencesOf({ 'src/services/overseer/PlantedPass.ts': importing('../store/BoardStore.ts') })).toEqual([]);
+    expect(plantedSentencesOf({ 'src/services/hephaestus/PlantedPass.ts': importing('../store/BoardStore.ts') })).toEqual([]);
     expect(plantedSentencesOf({ 'src/services/lifecycle/PlantedGate.ts': importing('../control/ControlService.ts') })).toEqual([
       'layer-imports-upward — src/services/lifecycle/PlantedGate.ts:1 imports src/services/control/ControlService.ts: '
         + 'lifecycle-service reaches only lib, shared, adapters, render-service, tracker-service, lifecycle-service, workspace-package, not control-service',
@@ -712,18 +714,18 @@ describe('the guard still names each violation, planted in memory', () => {
     expect(plantedSentencesOf({ 'system-versions/PlantedValue.ts': importing('../../apps/gaia/page/Main.tsx') })).toEqual([
       `import-leaves-the-program — system-versions/PlantedValue.ts:1 imports ../gaia/page/Main.tsx: ${leavesReason}`,
     ]);
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('../../../../scripts/CacheAudit.ts') })).toEqual([
-      `import-leaves-the-program — cli/overseer/PlantedPart.ts:1 imports ../../scripts/CacheAudit.ts: ${leavesReason}`,
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('../../../../scripts/CacheAudit.ts') })).toEqual([
+      `import-leaves-the-program — cli/hephaestus/PlantedPart.ts:1 imports ../../scripts/CacheAudit.ts: ${leavesReason}`,
     ]);
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('../../../../packages/design-system/atoms/Button.tsx') })).toEqual([
-      `import-leaves-the-program — cli/overseer/PlantedPart.ts:1 imports ../../packages/design-system/atoms/Button.tsx: ${leavesReason}`,
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('../../../../packages/design-system/atoms/Button.tsx') })).toEqual([
+      `import-leaves-the-program — cli/hephaestus/PlantedPart.ts:1 imports ../../packages/design-system/atoms/Button.tsx: ${leavesReason}`,
     ]);
     const undeclaredReason = 'it names a member of the workspace that package.json does not declare as a workspace:^ dependency';
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('monorepo-scripts/CacheAudit') })).toEqual([
-      `workspace-package-not-declared — cli/overseer/PlantedPart.ts:1 imports monorepo-scripts/CacheAudit: ${undeclaredReason}`,
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('monorepo-scripts/CacheAudit') })).toEqual([
+      `workspace-package-not-declared — cli/hephaestus/PlantedPart.ts:1 imports monorepo-scripts/CacheAudit: ${undeclaredReason}`,
     ]);
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importing('gaia/page/Main.tsx') })).toEqual([
-      `workspace-package-not-declared — cli/overseer/PlantedPart.ts:1 imports gaia/page/Main.tsx: ${undeclaredReason}`,
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importing('gaia/page/Main.tsx') })).toEqual([
+      `workspace-package-not-declared — cli/hephaestus/PlantedPart.ts:1 imports gaia/page/Main.tsx: ${undeclaredReason}`,
     ]);
     expect(plantedSentencesOf({ 'forge-contracts/constants/PlantedValue.ts': importing('forge') })).toEqual([
       `workspace-package-not-declared — forge-contracts/constants/PlantedValue.ts:1 imports forge: ${undeclaredReason}`,
@@ -732,7 +734,7 @@ describe('the guard still names each violation, planted in memory', () => {
       `workspace-package-not-declared — system-versions/PlantedValue.ts:1 imports gaia/src/Main.ts: ${undeclaredReason}`,
     ]);
     const importingDeclaredAndOutsidePackages = `${importing('forge-contracts/ForgeSystemVersions')}${importing('marked').replaceAll('planted', 'plantedMarked')}`;
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedPart.ts': importingDeclaredAndOutsidePackages })).toEqual([]);
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedPart.ts': importingDeclaredAndOutsidePackages })).toEqual([]);
   });
 
   test('the binary importing anything but cli/', () => {
@@ -784,21 +786,21 @@ describe('the guard still names each violation, planted in memory', () => {
   test('the vendor\'s adapter imported outside its seam, by a service, a test helper or any spec outside its package, and not by the seam', () => {
     const vendorSentenceOf = (importerPath: string, targetPath = 'src/lib/claude-code/ClaudeCodeAdapter.ts'): string => 'vendor-adapter-imported-outside-its-seam — '
       + `${importerPath}:1 imports ${targetPath}: only the agent port's seam and its adapters import the vendor's adapter`;
-    expect(plantedSentencesOf({ 'src/services/overseer/PlantedLaunch.ts': importing('../../lib/claude-code/ClaudeCodeAdapter.ts') }))
-      .toEqual([vendorSentenceOf('src/services/overseer/PlantedLaunch.ts')]);
+    expect(plantedSentencesOf({ 'src/services/hephaestus/PlantedLaunch.ts': importing('../../lib/claude-code/ClaudeCodeAdapter.ts') }))
+      .toEqual([vendorSentenceOf('src/services/hephaestus/PlantedLaunch.ts')]);
     expect(plantedSentencesOf({ 'src/testing/PlantedAdapter.ts': importing('../lib/claude-code/ClaudeCodeAdapter.ts') }))
       .toEqual([vendorSentenceOf('src/testing/PlantedAdapter.ts')]);
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedRun.spec.ts': importing('../../src/lib/claude-code/ClaudeCodeAdapter.ts') }))
-      .toEqual([vendorSentenceOf('cli/overseer/PlantedRun.spec.ts')]);
-    expect(plantedSentencesOf({ 'cli/overseer/PlantedRun.realAgent.spec.ts': importing('../../src/lib/claude-code/ClaudeCodeAdapter.ts') }))
-      .toEqual([vendorSentenceOf('cli/overseer/PlantedRun.realAgent.spec.ts')]);
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedRun.spec.ts': importing('../../src/lib/claude-code/ClaudeCodeAdapter.ts') }))
+      .toEqual([vendorSentenceOf('cli/hephaestus/PlantedRun.spec.ts')]);
+    expect(plantedSentencesOf({ 'cli/hephaestus/PlantedRun.realAgent.spec.ts': importing('../../src/lib/claude-code/ClaudeCodeAdapter.ts') }))
+      .toEqual([vendorSentenceOf('cli/hephaestus/PlantedRun.realAgent.spec.ts')]);
     expect(plantedSentencesOf({ 'src/lib/claude-code/PlantedPlan.ts': importing('./ClaudeCodeAdapter.ts') })).toEqual([]);
   });
 
   test('any file of the vendor\'s adapter imported outside the seam and the adapters fails, and not from the seam or the fake agent', () => {
     const transcriptsPath = 'src/lib/claude-code/ClaudeTranscripts.ts';
-    expect(plantedSentencesOf({ 'src/services/overseer/Planted.ts': importing('../../lib/claude-code/ClaudeTranscripts.ts') })).toEqual([
-      'vendor-adapter-imported-outside-its-seam — src/services/overseer/Planted.ts:1 imports '
+    expect(plantedSentencesOf({ 'src/services/hephaestus/Planted.ts': importing('../../lib/claude-code/ClaudeTranscripts.ts') })).toEqual([
+      'vendor-adapter-imported-outside-its-seam — src/services/hephaestus/Planted.ts:1 imports '
         + `${transcriptsPath}: only the agent port's seam and its adapters import the vendor's adapter`,
     ]);
     const seamText = `${GRAPH.sourceTextOf(VENDOR_ADAPTER_SEAM)}${importing('../src/lib/claude-code/ClaudeTranscripts.ts').replaceAll('planted', 'plantedTranscripts')}`;
@@ -858,13 +860,13 @@ describe('the guard still names each violation, planted in memory', () => {
   test('an allowlist entry or a declared lib dependency nothing uses any more, and a testing folder without an entry', () => {
     const plantedAllowlists: Allowlists = {
       testingFolderImporters: { ...TESTING_FOLDER_IMPORTERS, 'cli/testing/': ['cli/', 'src/'], 'src/retired/testing/': ['src/'] },
-      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/adoption/update/UpdateCommand.ts', target: 'cli/overseer/Retired.ts' }],
+      commandSetReaches:      [...COMMAND_SET_REACHES, { importer: 'cli/adoption/update/UpdateCommand.ts', target: 'cli/hephaestus/Retired.ts' }],
     };
     const mainModulePath = 'src/lib/claude-code/ClaudeTranscripts.ts';
     const plantedHeader = GRAPH.sourceTextOf(mainModulePath).replace('depends on `src/lib/agent-launch`', 'depends on `src/lib/gate-confinement`, `src/lib/agent-launch`');
     const plantedGraph = SCANNER.graphWithPlantedFiles({ [mainModulePath]: plantedHeader, 'src/shared/testing/PlantedFixture.ts': 'export const planted = 1;\n' });
     expect(unusedAllowancesOf(plantedGraph, plantedAllowlists)).toEqual([
-      'COMMAND_SET_REACHES lets cli/adoption/update/UpdateCommand.ts import cli/overseer/Retired.ts, and it does not',
+      'COMMAND_SET_REACHES lets cli/adoption/update/UpdateCommand.ts import cli/hephaestus/Retired.ts, and it does not',
       'TESTING_FOLDER_IMPORTERS lets src/ import cli/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lets src/ import src/retired/testing/, and nothing there does',
       'TESTING_FOLDER_IMPORTERS lists src/retired/testing/, which holds no file',

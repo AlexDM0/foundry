@@ -8,7 +8,7 @@ import type { StoredProgressFile } from '../@types/StoredProgressFile.ts';
 
 /** The progress as the writer stores it, `version` first; the tasks array is the progress's own, so a row filed on either shows in both. */
 export function versionTwoDocumentOf(progress: TrackerProgress): StoredProgressFile {
-  return { version: 2, ...progress };
+  return { version: 3, ...progress };
 }
 
 export function emptyDocument(): StoredProgressFile {

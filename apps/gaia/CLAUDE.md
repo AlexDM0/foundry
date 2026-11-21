@@ -51,7 +51,7 @@ the root's.
    reads as the forge's own sentence, the one its command line prints, shown verbatim (decision 45). A notice, a warning or another forge
    sentence that names a command still leaves the server in Gaia's words (`src/adapters/page-api/ForgeSentenceUtil.ts`), by its notice
    kind, and otherwise for a neutral sentence.
-5. **Gaia starts a dormant forge with `forge start --json`, never `oversee --detach`.**
+5. **Gaia starts a dormant forge with `forge start --json`.**
 6. **Tokens stay in the server.** No forge token reaches the page, an answer or a log line.
 7. **The server binds `127.0.0.1` only** and keeps the Host, Origin, CSP and session guards on every route.
 8. **Commits:** one plain, human-written subject line. No AI attribution of any kind: no `Co-Authored-By`, no "generated with" footer.
@@ -146,7 +146,7 @@ page/board/        the board's views, Gaia's own; a view may draw the board, the
 | Outside system | Boundary util |
 | --- | --- |
 | Other programs: `forge`, `osascript`, `clang`, `lipo`, `codesign`, the browser | `src/lib/process-run/ProcessRun.ts` |
-| HTTP to an Overseer | `src/lib/forge-client/OverseerFetch.ts` |
+| HTTP to a Hephaestus | `src/lib/forge-client/HephaestusFetch.ts` |
 | The browser's debugging pipe | `src/features/launcher/BrowserWindowWatch.ts` |
 | The file system's odd corners | `src/lib/atomic-file/AtomicFile.ts` |
 | The Notification API | `page/notifications/NotificationBoundary.ts` (`eslint.config.js` holds it the one reach) |
@@ -154,9 +154,9 @@ page/board/        the board's views, Gaia's own; a view may draw the board, the
 | The clock | an injected `now` and injected timers; the clock, wall and monotonic, is read only in `src/services/Clock.ts` |
 
 Only a boundary's own specs touch the real system; every other spec mocks it with recorded answers (`src/testing/RecordedRuns.ts` for
-process-run, `src/testing/RecordedAnswers.ts` for overseer-fetch, one answer set per situation of the forge), and the clock's timers with
+process-run, `src/testing/RecordedAnswers.ts` for hephaestus-fetch, one answer set per situation of the forge), and the clock's timers with
 `src/testing/ManualTimers.ts`, which a spec fires by hand, so no spec waits a real interval. Every forge answer is recorded from a real
-forge; a program that is no forge on an Overseer's port is recorded from a local Bun server and stamped with Bun's version.
+forge; a program that is no forge on a Hephaestus's port is recorded from a local Bun server and stamped with Bun's version.
 
 A boundary's real-system spec is `<Module>.recording.spec.ts`, listed in `RECORDED_BOUNDARIES` (`src/testing/BoundaryRecordings.ts`).
 `bunfig.toml` keeps it out of `bun test`; `bun run record <name>` runs it and writes `src/testing/recordings/<os>/<name>.json`, stamped
@@ -164,9 +164,9 @@ with the system's version. Verify fails on a stale stamp and on a forge recordin
 for the OS as not finished. One recording is stamped `authored`, and verify lists it as a warning: a dialog only a person can answer.
 `bun run record path-chooser` asks the person at a Mac's screen to choose a folder and cancel a file, and until someone has, its
 recording stays authored beside its spec. Every forge recording is recorded. From this repository's forge, at `SUPPORTED_FORGE_VERSION`
-(2.0): `overseer-fetch-supported-forge`, the forge in each situation;
-`overseer-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the crash log it wrote; and
-`overseer-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
+(3.0): `hephaestus-fetch-supported-forge`, the forge in each situation;
+`hephaestus-fetch-presence`, a forge's presence while it serves and after User started it again after a kill, with the crash log it wrote; and
+`hephaestus-fetch-versions`, older, ahead and newer through forge's test setting `FORGE_VERSIONS_ANSWER`, and from a forge from before
 system versions that `GAIA_RECORDING_UNVERSIONED_FORGE_PROGRAM` names (a scratch clone's `agent-progress.ts`). macOS's programs are
 stamped with the Darwin release. The forge's version is read only by running it:
 `GAIA_RECORDING_FORGE_PROGRAM=<a forge's agent-progress.ts> bun run record <name>` runs that forge, this repository's

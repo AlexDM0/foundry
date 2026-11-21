@@ -6,7 +6,7 @@ import { isAbsolute } from 'node:path';
 
 import { JsonValueUtil, type JsonObject }                                            from '../../../lib/json-value/JsonValueUtil.ts';
 import type { ForgeCrashSummary, ForgeRegistryPresence, ForgeRegistryPresenceState } from '../../../shared/@types/ForgePresence.ts';
-import type { RegisteredForge, RegisteredOverseer }                                  from '../@types/RegisteredForge.ts';
+import type { RegisteredForge, RegisteredHephaestus }                                from '../@types/RegisteredForge.ts';
 
 type TextRule = 'text' | 'absolute-path' | 'http-address';
 
@@ -30,24 +30,24 @@ function processIdOf(record: JsonObject): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1 ? value : null;
 }
 
-/** An absent or `null` overseer is a forge with no live Overseer, and so is one that is not whole. */
-function overseerOf(entry: JsonObject): RegisteredOverseer | null {
-  const overseer = JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(entry, 'overseer'));
-  if (overseer === null) return null;
-  const url       = textOf(overseer, 'url', 'http-address');
-  const processId = processIdOf(overseer);
-  const startedAt = textOf(overseer, 'startedAt', 'text');
+/** An absent or `null` `hephaestus` entry is a forge with no live Hephaestus, and so is one that is not whole. */
+function hephaestusOf(entry: JsonObject): RegisteredHephaestus | null {
+  const hephaestus = JsonValueUtil.jsonObjectOf(JsonValueUtil.ownValueOf(entry, 'hephaestus'));
+  if (hephaestus === null) return null;
+  const url       = textOf(hephaestus, 'url', 'http-address');
+  const processId = processIdOf(hephaestus);
+  const startedAt = textOf(hephaestus, 'startedAt', 'text');
   if (url === null || processId === null || startedAt === null) return null;
   return {
     url,
     processId,
     startedAt,
-    tokenPath: textOf(overseer, 'tokenPath', 'absolute-path'),
+    tokenPath: textOf(hephaestus, 'tokenPath', 'absolute-path'),
   };
 }
 
 const PRESENCE_STATES: ReadonlySet<unknown> = new Set<ForgeRegistryPresenceState>(['serving', 'stopped', 'handed-over', 'crashed']);
-const CRASHED_COMPONENTS: ReadonlySet<unknown> = new Set<ForgeCrashSummary['component']>(['overseer', 'talos']);
+const CRASHED_COMPONENTS: ReadonlySet<unknown> = new Set<ForgeCrashSummary['component']>(['hephaestus', 'talos']);
 
 function isPresenceState(value: unknown): value is ForgeRegistryPresenceState {
   return PRESENCE_STATES.has(value);
@@ -102,7 +102,7 @@ function registeredForgeOf(trackerId: string, entryValue: unknown): RegisteredFo
     project,
     root,
     program:       textOf(entry, 'program', 'absolute-path'),
-    overseer:      overseerOf(entry),
+    hephaestus:    hephaestusOf(entry),
     lastCommand:   textOf(entry, 'lastCommand', 'text'),
     lastChangedAt: textOf(entry, 'lastChangedAt', 'text'),
     presence:      presenceOf(entry),

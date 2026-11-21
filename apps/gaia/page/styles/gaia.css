@@ -601,7 +601,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
   min-width: var(--forges-aside-least-width);
 }
 
-/* A row of the table: the forge, its Overseer's condition, its agents against its limit, what waits, its code, its controls */
+/* A row of the table: the forge, its Hephaestus's condition, its agents against its limit, what waits, its code, its controls */
 .gaia-forges-forge,
 .gaia-forges-condition { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
 .gaia-forges-forge-name-line { display: flex; align-items: center; gap: var(--sp-2); min-width: 0; }
@@ -1140,7 +1140,7 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forge-frame-versions-word[data-verdict="older"] { color: var(--link); }
 .gaia-forge-frame-versions-notice > .gaia-versions-pair { align-self: stretch; margin-top: var(--sp-1); }
 
-/* The bar's second line: the running and the newest Overseer and Talos, a newer installed version marked, and the restart of each. */
+/* The bar's second line: the running and the newest Hephaestus and Talos, a newer installed version marked, and the restart of each. */
 .gaia-forge-frame-running { display: flex; flex: none; align-items: center; gap: var(--space-10); min-width: 0; padding: 0 var(--sp-4) var(--sp-2) var(--space-18); }
 .gaia-forge-frame-running-pair {
   min-width: 0;

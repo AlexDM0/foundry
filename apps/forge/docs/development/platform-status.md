@@ -23,10 +23,10 @@ architecture, and correct the docs that it contradicts.
 ### Sessions in a folder tracker's worktree (probed 16 November 2026)
 
 Probed on macOS arm64 with Claude Code 2.1.323: a builder of a folder tracker (`apps/example`, namespace `example`) in a
-scratch repository, its launch rendered by a real Overseer and replayed with the real `claude`, changing only the start
-folder and `sandbox.network.allowLocalBinding`. Never run on Linux or Windows.
+scratch repository, its launch rendered by a real Hephaestus and replayed with the real `claude`, changing only the
+start folder and `sandbox.network.allowLocalBinding`. Never run on Linux or Windows.
 
-| Start folder | `allowLocalBinding` | `git add` / `git commit` | Bind 127.0.0.1 | Reach the Overseer's port | Reach another local service |
+| Start folder | `allowLocalBinding` | `git add` / `git commit` | Bind 127.0.0.1 | Reach Hephaestus's port | Reach another local service |
 | --- | --- | --- | --- | --- | --- |
 | the project folder in the worktree | not set | refused: `index.lock` in `<git common dir>/worktrees/<name>/` | refused | refused | refused |
 | the worktree's root | not set | committed | refused | refused | refused |
@@ -35,13 +35,13 @@ folder and `sandbox.network.allowLocalBinding`. Never run on Linux or Windows.
 - **Start folder.** The settings, argv and environment were byte-equal in the first two rows: only the start folder
   decides. Claude Code's sandbox grants a linked worktree's admin folder only to a session that starts at the
   worktree's root, which holds the `.git` file naming that folder. So a session in a job's worktree starts at
-  `worktreeRoot` (`src/services/overseer/SessionPlace.ts`), and forge adds no git grant. From there Claude Code reads
+  `worktreeRoot` (`src/services/hephaestus/SessionPlace.ts`), and forge adds no git grant. From there Claude Code reads
   the repository root's `CLAUDE.md` and `.claude/settings.json` of the worktree, and a folder's `CLAUDE.md` only when
   the session works in that folder. A resumed session starts where it first started, since Claude Code finds it by
   that folder.
 - **`allowLocalBinding` stays off.** It opens more than binding: with it set, the session also connected out to every
-  loopback port, the Overseer's API and an unrelated local service among them. Without it, outbound loopback is
-  refused at once. Setting it would give every builder and reviewer the Overseer's API and every local service on the
+  loopback port, Hephaestus's API and an unrelated local service among them. Without it, outbound loopback is
+  refused at once. Setting it would give every builder and reviewer Hephaestus's API and every local service on the
   machine, so no profile sets it, held by `src/lib/claude-code/ClaudeCodeAdapter.spec.ts`.
 
 ## Talos
@@ -52,9 +52,6 @@ a held lease or a running line never ran: the specs move the clock, so the wake 
 are proved on a fake clock alone. On Linux and Windows none of Talos ever ran: not its endpoint (a Unix socket on Linux,
 a named pipe on Windows), not a Bun `Worker` running its synchronous calls while its timers fire, not `bun:ffi` in a
 worker on Windows, and not a line's tree stop at its time bound.
-
-The rows below that name a Watcher (#553, #554) quote their tickets, which predate Talos; each unknown now applies to
-Talos, the process that outlives the Overseer.
 
 ## Linux
 
@@ -71,11 +68,11 @@ macOS; on Linux they have never run. The Linux-only adapters have never run anyw
 | `GateConfinement` | #546 | every rendered argv under a real bwrap, including default Ubuntu 24.04 with its AppArmor user-namespace rule. |
 | `AgentHostFacts`, worker sandbox | #547 | a real sandboxed session on Linux, including an empty ref left after SIGKILL. |
 | `AgentHostFacts`, worker sandbox | #548 | a real Linux session reading the file, and authentication under the deny. |
-| `Autostart` | #553 | systemctl and reg.exe on real hosts, a Watcher surviving a unit restart. |
+| `Autostart` | #553 | systemctl and reg.exe on real hosts, Talos surviving a unit restart. |
 | `LocalEndpoint` | #554 | a socket path of 104 to 107 bytes binding under the 108-byte Linux limit. |
-| Platforms section | #554 | a Watcher ending at logout under `KillUserProcesses=yes`, and a container run without `--init`. |
+| Platforms section | #554 | Talos ending at logout under `KillUserProcesses=yes`, and a container run without `--init`. |
 | `ProcessSupervision` (tree stop), `GateConfinement` | none | a gate profile's line under bwrap, its output read piece by piece, and Stop ending its tree on a real /proc. |
-| `ProcessSupervision` (tree stop), `GateConfinement` | none | a pipeline check's two runs under bwrap, and an Overseer stop ending its tree on a real /proc. |
+| `ProcessSupervision` (tree stop), `GateConfinement` | none | a pipeline check's two runs under bwrap, and a Hephaestus stop ending its tree on a real /proc. |
 | `ProcessSupervision` (boot start) | none | the `btime` line of a real /proc/stat, read for a crash suspected before a reboot. |
 
 ## Windows
@@ -103,10 +100,10 @@ here, and `WindowsKernelProcessApi` calls `kernel32.dll` through `bun:ffi`.
 | `AgentHostFacts` | #550 | a real Windows session running `git push` in PowerShell. |
 | `AgentHostFacts`, worker settings | #551 | a real Windows session starting with these settings. |
 | `SetupPlatform` | #552 | setup.ps1 from real cmd and PowerShell. |
-| `Autostart` | #553 | systemctl and reg.exe on real hosts, a Watcher surviving a unit restart. |
-| Platforms section | #554 | a Watcher started inside a job object that kills on close, and `clear` from a Git Bash mintty. |
+| `Autostart` | #553 | systemctl and reg.exe on real hosts, Talos surviving a unit restart. |
+| Platforms section | #554 | Talos started inside a job object that kills on close, and `clear` from a Git Bash mintty. |
 | `ProcessSupervision` (tree stop) | none | a gate profile's line, unconfined as every gate here, its output read piece by piece, and Stop ending its tree through taskkill. |
-| `ProcessSupervision` (tree stop) | none | a pipeline check's two runs, unconfined as every gate here, and an Overseer stop ending its tree through taskkill. |
+| `ProcessSupervision` (tree stop) | none | a pipeline check's two runs, unconfined as every gate here, and a Hephaestus stop ending its tree through taskkill. |
 | `ProcessSupervision` (boot start) | none | no read exists: the boot's start answers `null`, so a crash suspected before a reboot is never judged on Windows. |
 
 ## Repository tooling

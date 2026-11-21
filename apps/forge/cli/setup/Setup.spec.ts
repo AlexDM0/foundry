@@ -240,7 +240,7 @@ describe('core.hooksPath', () => {
   });
 });
 
-describe('--login-overseer where no login item would run', () => {
+describe('--login-item where no login item would run', () => {
   const REFUSING_HOSTS: readonly { readonly name: string; readonly choices: HostChoices; readonly reason: string }[] = [
     { name: 'a platform with no Autostart adapter', choices: { platform: 'freebsd' }, reason: 'No login item is known for this operating system' },
     { name: 'Linux with no systemctl on PATH', choices: { platform: 'linux', programOnPath: null }, reason: 'no systemctl is on PATH' },
@@ -252,7 +252,7 @@ describe('--login-overseer where no login item would run', () => {
       mkdirSync(repository);
       const homeBefore = readdirSync(homeDirectory, { recursive: true });
       const setup = recordedSetup(choices);
-      expect(runSetup(['--login-overseer', repository], setup.host)).toBe(1);
+      expect(runSetup(['--login-item', repository], setup.host)).toBe(1);
       expect(setup.output()).toContain(reason);
       expect(setup.output()).not.toContain('✔');
       expect(readdirSync(homeDirectory, { recursive: true })).toEqual(homeBefore);
@@ -266,7 +266,7 @@ test('an unknown option or a flag without its value is refused with the usage li
   expect(runSetup(['--example'], unknown.host)).toBe(1);
   expect(unknown.output()).toContain('Unknown option: --example');
   const missingValue = recordedSetup();
-  expect(runSetup(['--login-overseer'], missingValue.host)).toBe(1);
+  expect(runSetup(['--login-item'], missingValue.host)).toBe(1);
   expect(missingValue.output()).toStartWith('Usage: setup');
   expect(unknown.commands).toEqual([]);
 });

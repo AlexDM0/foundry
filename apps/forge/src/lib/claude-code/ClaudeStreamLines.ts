@@ -227,7 +227,7 @@ const NETWORK_OUTAGE_ENDING: PlanEndingPattern = {
 
 const STANDING_DENIAL_MESSAGE = 'Permission requests are not answered for this session; work within the tools and paths already allowed.';
 
-/** Every permission request but a question is denied while nobody watches; a question waits for the Overseer. */
+/** Every permission request but a question is denied while nobody watches; a question waits for Hephaestus. */
 export const CLAUDE_CODE_STANDING_REPLIES: readonly StandingReply[] = Object.freeze([{
   whenAllEqual:  { 'type': 'control_request', 'request.subtype': 'can_use_tool' },
   whenNoneEqual: { 'request.tool_name': QUESTION_TOOL_NAME },

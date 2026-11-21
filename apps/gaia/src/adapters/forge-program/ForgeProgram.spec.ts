@@ -28,7 +28,7 @@ import {
 /** The forge the F8 answers were recorded from, as the recording's stamp names it. */
 const RECORDED_FORGE_VERSIONS = recordedForgeVersionsOf(RECORDING_NAME_OF_FORGE_PROGRAM_STAGE['every-verb-done']);
 
-const EXAMPLE_CONTRACTS = { summary: 1, monitor: 4, control: 2 };
+const EXAMPLE_CONTRACTS = { summary: 2, monitor: 5, control: 3 };
 
 let forgeRoot = '';
 
@@ -102,7 +102,7 @@ describe('a forge checkout that does not answer in versioned JSON yet (recorded)
 });
 
 describe('every verb done (recorded)', () => {
-  test('start answers done with the started Overseer, its code, install version and contracts', async () => {
+  test('start answers done with the started Hephaestus, its code, install version and contracts', async () => {
     const { forgeProgram } = forgeProgramAt('every-verb-done');
     expect(await forgeProgram.start(registeredForge())).toEqual({
       verdict: 'done',

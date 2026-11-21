@@ -1,4 +1,4 @@
-/** Whether a domain on a ticket's `network` line is public, so no grant reaches this machine, its local network or the Overseer's own API. */
+/** Whether a domain on a ticket's `network` line is public, so no grant reaches this machine, its local network or Hephaestus's own API. */
 import {
   GLOBAL_UNICAST_IPV6_FIRST_GROUP,
   IPV4_ADDRESS_BITS,

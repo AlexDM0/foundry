@@ -11,11 +11,14 @@ import type { VersionsDocument } from 'system-versions/VersionsDocument';
  * HTML; the Assistant is a switch of the board (the command pipeline-assistant-set, the pipeline's `assistant` key, the default cause
  * assistant-off); and a pipeline has one format, whose gate key is `forgeOnly`. The registry dates the endpoints this changed at 2.0
  * (`ForgeCompatibilityRegistry.ts`).
- * The minimum supported is the current major's first version: no client built for forge 1 is served. The current version is raised with
+ * Forge 3.0 names its serving process Hephaestus. Against forge 2: the summary, the monitor and the board document carry the process's facts
+ * under the key `hephaestus` (the board's own switch is `hephaestusState`, its log kind hephaestus-set), and the four lifecycle commands are
+ * hephaestus-pause, hephaestus-unpause, hephaestus-stop and hephaestus-restart. The registry dates the endpoints this changed at 3.0.
+ * The minimum supported is the current major's first version: no client built for forge 2 is served. The current version is raised with
  * every change to a route, a document, a command or a message, in its minor when the change only adds; the minimum only to retire what the
  * registry keeps.
  */
 export const FORGE_SYSTEM_VERSIONS: VersionsDocument = {
-  current:          { major: 2, minor: 0 },
-  minimumSupported: { major: 2, minor: 0 },
+  current:          { major: 3, minor: 0 },
+  minimumSupported: { major: 3, minor: 0 },
 };

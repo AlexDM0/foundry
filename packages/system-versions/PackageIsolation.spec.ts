@@ -17,7 +17,7 @@ const PACKAGE_FOLDER = import.meta.dir;
 const THIS_SPEC_PATH = 'PackageIsolation.spec.ts';
 const SPEC_PACKAGES: readonly string[] = ['bun:test', 'node:fs', 'node:path', 'typescript'];
 /** The systems that use the package. This spec is the one file that names them. */
-const USER_WORDS = /\b(forge|forges|gaia|overseer|bridge)\b/gi;
+const USER_WORDS = /\b(forge|forges|gaia|hephaestus|bridge)\b/gi;
 
 function packageFilesMatching(pattern: RegExp): PackageFile[] {
   return readdirSync(PACKAGE_FOLDER, { recursive: true, encoding: 'utf8' })

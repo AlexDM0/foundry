@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="732" viewBox="0 0 680 732" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>A missing header control does not apply at this moment</title>
+  <desc>The board's header unfolded, with thirteen numbered callouts. Above it sit the banners, one banner per warning or notice, and the incident line. The title row holds the state with usage and the new-code line over the board name, Pause or Resume, Restart and Stop Hephaestus, then the statistics and the Waiting on User pill. Below it come the activity strip, one chip per job in a launch slot, and the tabs with their counts and the theme. Pause, Resume and Stop are offered unless Hephaestus is handing over or down, Restart only with the new-code line.</desc>
+
+  <rect x="1" y="1" width="678" height="730" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">A missing header control does not apply at this moment</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Rows unfolded, not to scale. Dashed items come and go.</text>
+
+  <circle cx="52" cy="103" r="9" fill="#3d3d3a"/><text x="52" y="106.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">1</text><circle cx="52" cy="141" r="9" fill="#3d3d3a"/><text x="52" y="144.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">2</text><circle cx="52" cy="179" r="9" fill="#3d3d3a"/><text x="52" y="182.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">3</text>
+  <rect x="68" y="88" width="572" height="30" rx="8" fill="#FAEEDA" stroke="#F2DDB0" stroke-dasharray="4 3"/>
+  <text x="354" y="108" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">Hephaestus unreachable. Reconnecting; showing the board as of 14:02.</text>
+  <rect x="68" y="126" width="572" height="30" rx="8" fill="#FCEBEB" stroke="#F4CFCF" stroke-dasharray="4 3"/>
+  <text x="354" y="146" font-size="12" font-weight="500" fill="#791F1F" text-anchor="middle">One banner per warning (red) or notice (amber)</text>
+  <rect x="68" y="164" width="572" height="30" rx="8" fill="#FCEBEB" stroke="#F4CFCF" stroke-dasharray="4 3"/>
+  <text x="80" y="184" font-size="12" font-weight="500" fill="#791F1F">2 open · 1 default applied: I3 to #004, 14:05</text>
+  <rect x="548" y="170" width="84" height="18" rx="5" fill="#FFFFFF" stroke="#F4CFCF"/>
+  <text x="590" y="183" font-size="11" fill="#791F1F" text-anchor="middle">Show incidents</text>
+
+  <rect x="40" y="206" width="600" height="244" rx="10" fill="#FFFFFF" stroke="#E1DDD0"/>
+  <path d="M40,384 H640 M40,420 H640" fill="none" stroke="#E1DDD0"/>
+  <path d="M56,302 H624" fill="none" stroke="#D3D1C7" stroke-dasharray="2 3"/>
+
+  <circle cx="64" cy="231" r="4" fill="#3B6D11"/>
+  <text x="74" y="235" font-size="12" font-weight="500" fill="#27500A">Live</text>
+  <circle cx="112" cy="231" r="9" fill="#3d3d3a"/><text x="112" y="234.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">4</text>
+  <text x="128" y="235" font-size="11" fill="#73726c" font-family="ui-monospace,Menlo,Consolas,monospace">usage under its limit</text>
+  <circle cx="286" cy="231" r="9" fill="#3d3d3a"/><text x="286" y="234.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">5</text>
+  <circle cx="346" cy="231" r="9" fill="#3d3d3a"/><text x="346" y="234.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">7</text>
+  <rect x="358" y="218" width="54" height="26" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="385" y="235" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">Pause</text>
+  <circle cx="428" cy="231" r="9" fill="#3d3d3a"/><text x="428" y="234.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">8</text>
+  <rect x="440" y="218" width="58" height="26" rx="8" fill="#FAEEDA" stroke="#F2DDB0" stroke-dasharray="4 3"/>
+  <text x="469" y="235" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">Restart</text>
+  <circle cx="514" cy="231" r="9" fill="#3d3d3a"/><text x="514" y="234.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">9</text>
+  <rect x="526" y="218" width="106" height="26" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="579" y="235" font-size="12" font-weight="500" fill="#633806" text-anchor="middle">Stop Hephaestus</text>
+
+  <rect x="56" y="245" width="220" height="20" rx="6" fill="none" stroke="#F2DDB0" stroke-dasharray="4 3"/>
+  <text x="66" y="259" font-size="11.5" fill="#854F0B" font-family="ui-monospace,Menlo,Consolas,monospace">new code: run `forge update`</text>
+  <circle cx="288" cy="255" r="9" fill="#3d3d3a"/><text x="288" y="258.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">6</text>
+  <text x="56" y="288" font-size="15" font-weight="500" fill="#3d3d3a">Example Storefront</text>
+
+  <circle cx="64" cy="326" r="9" fill="#3d3d3a"/><text x="64" y="329.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">10</text>
+  <text x="80" y="330" font-size="11" fill="#5F5E5A">3 / 5 agents working · 0 done today · 209k tokens today · 7 waiting in queue · 0 open incidents</text>
+
+  <circle cx="64" cy="360" r="9" fill="#3d3d3a"/><text x="64" y="363.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">11</text>
+  <rect x="80" y="347" width="128" height="26" rx="13" fill="#FCEBEB" stroke="#F4CFCF"/>
+  <circle cx="93" cy="360" r="3" fill="#A32D2D"/>
+  <text x="102" y="364" font-size="11.5" font-weight="500" fill="#791F1F">Waiting on User · 6 ▾</text>
+  <text x="218" y="364" font-size="11" fill="#73726c">opens the inbox: escalated first, then oldest first</text>
+
+  <circle cx="64" cy="402" r="9" fill="#3d3d3a"/><text x="64" y="405.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">12</text>
+  <circle cx="84" cy="402" r="4" fill="#0C447C"/>
+  <text x="92" y="406" font-size="11.5" fill="#3d3d3a">3 building · 1 reviewing</text>
+  <g fill="#E6F1FB" stroke="#B5D4F4">
+    <rect x="232" y="393" width="100" height="18" rx="9"/><rect x="338" y="393" width="100" height="18" rx="9"/><rect x="445" y="393" width="107" height="18" rx="9"/>
+  </g>
+  <g font-size="10.5" fill="#0C447C" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">
+    <text x="282" y="406">J2 builder 4m</text><text x="388" y="406">J4 builder 4m</text><text x="498" y="406">J6 reviewer 3m</text>
+  </g>
+  <rect x="558" y="393" width="74" height="18" rx="9" fill="#FAEEDA" stroke="#F2DDB0" stroke-dasharray="4 3"/>
+  <text x="595" y="406" font-size="10" fill="#633806" text-anchor="middle">⚠ 1 with no job</text>
+
+  <circle cx="64" cy="436" r="9" fill="#3d3d3a"/><text x="64" y="439.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">13</text>
+  <text x="80" y="440" font-size="11.5" font-weight="500" fill="#3d3d3a">Kanban</text>
+  <path d="M80,447 H118" fill="none" stroke="#3d3d3a" stroke-width="1.5"/>
+  <rect x="122" y="428" width="20" height="16" rx="8" fill="#FCEBEB" stroke="#F4CFCF"/>
+  <text x="132" y="440" font-size="10" fill="#791F1F" text-anchor="middle">4</text>
+  <g font-size="11.5" fill="#5F5E5A">
+    <text x="152" y="440">Progress</text><text x="216" y="440">Tickets</text><text x="272" y="440">Agents</text><text x="323" y="440">Questions</text>
+    <text x="422" y="440">Assistant</text><text x="514" y="440">Intake</text>
+  </g>
+  <rect x="384" y="428" width="28" height="16" rx="8" fill="#FCEBEB" stroke="#F4CFCF"/>
+  <circle cx="392" cy="436" r="2.5" fill="#A32D2D"/>
+  <text x="402" y="440" font-size="10" fill="#791F1F" text-anchor="middle">3</text>
+  <rect x="484" y="428" width="20" height="16" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="494" y="440" font-size="10" fill="#5F5E5A" text-anchor="middle">2</text>
+  <rect x="548" y="426" width="84" height="20" rx="10" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="590" y="440" font-size="10.5" fill="#5F5E5A" text-anchor="middle">auto · light · dark</text>
+
+  <circle cx="49" cy="482" r="9" fill="#3d3d3a"/><text x="49" y="485.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">1</text><text x="66" y="478" font-size="13" font-weight="500" fill="#3d3d3a">Banners</text><text x="66" y="493" font-size="12" fill="#73726c">stream down, install held, session lost</text><circle cx="49" cy="518" r="9" fill="#3d3d3a"/><text x="49" y="521.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">2</text><text x="66" y="514" font-size="13" font-weight="500" fill="#3d3d3a">Warnings and notices</text><text x="66" y="529" font-size="12" fill="#73726c">banners too, one each</text><circle cx="49" cy="554" r="9" fill="#3d3d3a"/><text x="49" y="557.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">3</text><text x="66" y="550" font-size="13" font-weight="500" fill="#3d3d3a">Incident line</text><text x="66" y="565" font-size="12" fill="#73726c">only once a default was applied</text><circle cx="49" cy="590" r="9" fill="#3d3d3a"/><text x="49" y="593.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">4</text><text x="66" y="586" font-size="13" font-weight="500" fill="#3d3d3a">State</text><text x="66" y="601" font-size="12" fill="#73726c">over the board name, always</text><circle cx="49" cy="626" r="9" fill="#3d3d3a"/><text x="49" y="629.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">5</text><text x="66" y="622" font-size="13" font-weight="500" fill="#3d3d3a">Usage</text><text x="66" y="637" font-size="12" fill="#73726c">always; names the reset once hit</text><circle cx="49" cy="662" r="9" fill="#3d3d3a"/><text x="49" y="665.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">6</text><text x="66" y="658" font-size="13" font-weight="500" fill="#3d3d3a">new-code line</text><text x="66" y="673" font-size="12" fill="#73726c">only with a new-code notice</text><circle cx="49" cy="698" r="9" fill="#3d3d3a"/><text x="49" y="701.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">7</text><text x="66" y="694" font-size="13" font-weight="500" fill="#3d3d3a">Pause or Resume</text><text x="66" y="709" font-size="12" fill="#73726c">unless handing over or down</text><circle cx="359" cy="482" r="9" fill="#3d3d3a"/><text x="359" y="485.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">8</text><text x="376" y="478" font-size="13" font-weight="500" fill="#3d3d3a">Restart</text><text x="376" y="493" font-size="12" fill="#73726c">only with line 6</text><circle cx="359" cy="518" r="9" fill="#3d3d3a"/><text x="359" y="521.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">9</text><text x="376" y="514" font-size="13" font-weight="500" fill="#3d3d3a">Stop Hephaestus</text><text x="376" y="529" font-size="12" fill="#73726c">as Pause; confirm first</text><circle cx="359" cy="554" r="9" fill="#3d3d3a"/><text x="359" y="557.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">10</text><text x="376" y="550" font-size="13" font-weight="500" fill="#3d3d3a">Statistics</text><text x="376" y="565" font-size="12" fill="#73726c">always</text><circle cx="359" cy="590" r="9" fill="#3d3d3a"/><text x="359" y="593.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">11</text><text x="376" y="586" font-size="13" font-weight="500" fill="#3d3d3a">Waiting on User</text><text x="376" y="601" font-size="12" fill="#73726c">always; neutral at zero</text><circle cx="359" cy="626" r="9" fill="#3d3d3a"/><text x="359" y="629.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">12</text><text x="376" y="622" font-size="13" font-weight="500" fill="#3d3d3a">Activity strip</text><text x="376" y="637" font-size="12" fill="#73726c">one chip per job in a launch slot</text><circle cx="359" cy="662" r="9" fill="#3d3d3a"/><text x="359" y="665.5" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">13</text><text x="376" y="658" font-size="13" font-weight="500" fill="#3d3d3a">Tabs and theme</text><text x="376" y="673" font-size="12" fill="#73726c">a tab counts what waits there</text>
+</svg>

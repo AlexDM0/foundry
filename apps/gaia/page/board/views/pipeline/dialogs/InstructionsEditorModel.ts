@@ -1,7 +1,7 @@
 /**
  * The instruction list's model, pure: each entry as a row (its file name, the note on whose it is, its Edit link or the text Open shows),
  * the list after a remove, an added file or the constitution switched back on, and which roles may read the constitution. A row takes the
- * file name and text the Overseer resolved on main when the facts carry the same entry; an entry added in the dialog is worded here.
+ * file name and text Hephaestus resolved on main when the facts carry the same entry; an entry added in the dialog is worded here.
  */
 import type { BoardInstructionDocument, BoardPipelineDefinitionDocument, BoardResolvedInstructionDocument } from '../../../../@types/board/BoardPipelineDocuments.ts';
 import type { ConstitutionState }                                                                           from '../entities/ConstitutionStateTagModel.ts';

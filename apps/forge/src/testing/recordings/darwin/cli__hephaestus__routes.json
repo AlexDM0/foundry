@@ -1,0 +1,104 @@
+{
+  "stamp": {
+    "boundary": "cli/hephaestus/routes/",
+    "system": "bun",
+    "version": "1.4.2",
+    "os": "darwin"
+  },
+  "answers": [
+    {
+      "callShape": "POST api/commands, with the token, the command applied",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "controlVersion": 3,
+          "outcome": "done",
+          "result": {
+            "logged": [
+              {
+                "at": "<stamp>",
+                "kind": "hephaestus-set",
+                "fields": {
+                  "state": "running"
+                }
+              }
+            ],
+            "previousState": "paused"
+          }
+        }
+      }
+    },
+    {
+      "callShape": "POST api/commands, with the token, the command refused",
+      "answer": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "controlVersion": 3,
+          "refusal": "no-readable-ticket",
+          "fields": {
+            "reference": "999"
+          },
+          "text": "There is no readable ticket 999. Run `forge ticket list` to see what this tracker holds; a file that will not parse is reported there as malformed."
+        }
+      }
+    },
+    {
+      "callShape": "POST api/pictures, with the token, a picture of an accepted type",
+      "answer": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "pictureId": "218ad85a233eff829618a6865ab681222b734c62d35a32b3eabd5c37d8945f86",
+          "bytes": 12,
+          "mediaType": "image/png"
+        }
+      }
+    },
+    {
+      "callShape": "POST api/pictures, with the token, a picture over the size limit",
+      "answer": {
+        "status": 413,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "picture-too-large",
+          "fields": {
+            "bytes": 3932161,
+            "sizeLimitBytes": 3932160
+          },
+          "text": "The picture is 3932161 bytes, and a picture is at most 3932160 bytes, so it was not stored."
+        }
+      }
+    },
+    {
+      "callShape": "POST api/pictures, with the token, bytes of no accepted type",
+      "answer": {
+        "status": 415,
+        "headers": {
+          "content-type": "application/json;charset=utf-8"
+        },
+        "body": {
+          "refusal": "picture-type-unsupported",
+          "fields": {
+            "mediaTypes": [
+              "image/png",
+              "image/jpeg",
+              "image/webp",
+              "image/gif"
+            ]
+          },
+          "text": "By its first bytes the picture is none of image/png, image/jpeg, image/webp, image/gif, so it was not stored."
+        }
+      }
+    }
+  ]
+}

@@ -42,11 +42,11 @@ function exampleTask(id: number, startOffsetMinutes: number | null, endOffsetMin
 
 function exampleProgress(tasks: BoardTaskDocument[], view: BoardViewRangeDocument = { kind: 'auto' }): BoardProgressDocument {
   return {
-    startedAt:       timestampAt(0),
+    startedAt:         timestampAt(0),
     view,
-    overseerSetting: 'running',
+    hephaestusSetting: 'running',
     tasks,
-    log:             [],
+    log:               [],
   };
 }
 

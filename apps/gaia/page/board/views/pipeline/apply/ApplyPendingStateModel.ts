@@ -67,7 +67,7 @@ function reasonSentenceOf(reason: BoardApplyRequestReason | null, blockingFiles:
   if (entitiesSentence !== null) return entitiesSentence;
   switch (reason) {
     case 'interrupted':
-      return 'The commit was cut short when the machine or the Overseer went down, so it waits for a resume.';
+      return 'The commit was cut short when the machine or Hephaestus went down, so it waits for a resume.';
     case 'dirty-checkout':
       return `Main has uncommitted changes to ${filesTextOf(blockingFiles, entityConstitutionCount)}.`;
     case 'not-on-target-branch':

@@ -177,15 +177,15 @@ describe('AssistantModelUtil.chatTurnsOf', () => {
         kind: 'system', key: 'c', at: null, facts: { form: 'standing-reply' }, revealText: null
       },
       {
-        kind: 'system', key: 'd', at: null, facts: { form: 'client-act', act: 'close-input', sender: 'overseer' }, revealText: null
+        kind: 'system', key: 'd', at: null, facts: { form: 'client-act', act: 'close-input', sender: 'hephaestus' }, revealText: null
       },
     ];
     const turns = AssistantModelUtil.chatTurnsOf(items, facts);
     expect(turns.map((turn) => (turn.kind === 'system' ? turn.text : turn.kind))).toEqual([
-      'Overseer booted J1 with its prompt · chat 1',
-      'Overseer delivered I2 · chat 3',
+      'Hephaestus booted J1 with its prompt · chat 1',
+      'Hephaestus delivered I2 · chat 3',
       'Talos sent a standing reply',
-      'Overseer closed the session\'s input',
+      'Hephaestus closed the session\'s input',
     ]);
     expect(turns[0]).toMatchObject({ stamp: { shortText: `${TimeUtil.shortInstantText(instant, today)}:31` }, revealText: 'You are the Assistant.' });
     expect(turns[1]).toMatchObject({ stamp: null });

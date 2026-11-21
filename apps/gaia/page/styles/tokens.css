@@ -57,7 +57,7 @@
   --fs-agents-panel-kind: 14px;
   --line-height-agents-last-line: 18px;
   /* The artboard's tracks would leave the Forge column too little room for a name and the root path on their
-     lines, since Agents holds the package's number stepper after the agents in flight: Overseer and Code are a little narrower, and so is
+     lines, since Agents holds the package's number stepper after the agents in flight: Hephaestus and Code are a little narrower, and so is
      the aside, which gives way, down to its least width, before the Forge column does. */
   --forges-forge-column-width:     228px;
   --forges-condition-column-width: 96px;

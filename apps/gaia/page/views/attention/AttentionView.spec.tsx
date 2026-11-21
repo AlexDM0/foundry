@@ -111,7 +111,7 @@ describe('the view follows the fleet source, with no reload', () => {
     const app = appAt(source);
     const unreachable = renderToStaticMarkup(app);
     expect(staleRowCountIn(unreachable)).toBe(2);
-    expect(unreachable).toContain('Overseer unreachable: Invoice Service.');
+    expect(unreachable).toContain('Hephaestus unreachable: Invoice Service.');
     source.publish({
       ...FLEET_DEGRADED,
       forges:     FLEET_DEGRADED.forges.map((forge) => (forge.trackerId === TRACKER_IDS.invoiceService ? FLEET_FIVE_FORGES_READINGS.invoiceService : forge)),
@@ -119,7 +119,7 @@ describe('the view follows the fleet source, with no reload', () => {
     });
     const answered = renderToStaticMarkup(app);
     expect(staleRowCountIn(answered)).toBe(0);
-    expect(answered).not.toContain('Overseer unreachable');
+    expect(answered).not.toContain('Hephaestus unreachable');
   });
 
   test('a forge that registers while no forge is shown replaces B4 with A1', () => {

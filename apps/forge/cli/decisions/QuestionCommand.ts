@@ -1,7 +1,7 @@
 /**
  * `question options <J> -- <json>` keeps an agent's notes for the options of the question it asks next on its job: what each option
  * touches, its trade-off and its effect on the Acceptance. The decision the question opens takes them. Under the asking job it names no
- * job: the Overseer stamps it.
+ * job: Hephaestus stamps it.
  */
 import type { QuestionOptionNotes } from '../../src/lib/tracker-model/@types/OptionConsequences.ts';
 import { OptionConsequencesUtil }   from '../../src/lib/tracker-model/utils/OptionConsequencesUtil.ts';

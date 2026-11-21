@@ -1,7 +1,7 @@
 /** Where each file the tool installs into a tracked repository lives. */
 import { join } from 'node:path';
 
-import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from '../src/services/overseer/InstructionFiles.ts';
+import { CONSTITUTION_DEFAULT_PATH, defaultInstructionPathOf } from '../src/services/hephaestus/InstructionFiles.ts';
 import { PRODUCT_NAMES }                                       from '../src/shared/constants/ProductNames.ts';
 
 const INSTALL_MANIFEST_FILE_NAME = 'version.json';

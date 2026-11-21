@@ -1,5 +1,5 @@
 /**
- * Talos's own record is how an Overseer finds a running Talos and the orphans of a lost one, so the reader must give back exactly what
+ * Talos's own record is how a Hephaestus finds a running Talos and the orphans of a lost one, so the reader must give back exactly what
  * was written and never throw: a record round trips through its text, another format version is named rather than misread, and truncated
  * or damaged text reads `unreadable`.
  */

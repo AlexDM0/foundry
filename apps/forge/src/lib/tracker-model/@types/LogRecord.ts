@@ -22,7 +22,7 @@ import type {
   JobStopMode,
   LandingKind,
   LostLineKind,
-  OverseerStopReason,
+  HephaestusStopReason,
   PictureReference,
   PipelineStepEnding,
   PipelineStepKind,
@@ -38,7 +38,7 @@ import type {
   TicketPriority,
   TicketSize
 }                                                                            from './Ticket.ts';
-import type { OverseerState, ViewRange } from './TrackerProgress.ts';
+import type { HephaestusState, ViewRange } from './TrackerProgress.ts';
 
 export type HatchRefusalStatus = (typeof HATCH_REFUSAL_STATUSES)[number];
 
@@ -67,7 +67,7 @@ interface ValueOfFieldShape {
   'review-round':             number;
   'chart-range':              ViewRange;
   'concurrency-limit':        number;
-  'overseer-state':           OverseerState;
+  'hephaestus-state':         HephaestusState;
   'dispatcher-state':         RetiredDispatcherState;
   'dispatcher-run-id':        string | null;
   'check-command':            string | null;
@@ -84,7 +84,7 @@ interface ValueOfFieldShape {
   'interruption-cause':       InterruptionCause;
   'child-instance':           number;
   'permission-names':         readonly string[];
-  'overseer-stop-reason':     OverseerStopReason;
+  'hephaestus-stop-reason':   HephaestusStopReason;
   'start-kind':               StartKind;
   'start-origin':             StartOrigin;
   'job-stop-mode':            JobStopMode;

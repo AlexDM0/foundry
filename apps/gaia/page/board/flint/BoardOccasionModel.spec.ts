@@ -14,7 +14,7 @@ import { describe, expect, test } from 'bun:test';
 import type { SpriteIntent }                                         from '../../lib/flint/FlintInterface.ts';
 import { BoardOccasionModel, type BoardReading, type OccasionBoard } from './BoardOccasionModel.ts';
 
-type BoardChanges = Partial<Omit<OccasionBoard, 'overseer'>> & { readonly overseer?: Partial<OccasionBoard['overseer']> };
+type BoardChanges = Partial<Omit<OccasionBoard, 'hephaestus'>> & { readonly hephaestus?: Partial<OccasionBoard['hephaestus']> };
 
 function board(changes: BoardChanges = {}): OccasionBoard {
   return {
@@ -23,8 +23,8 @@ function board(changes: BoardChanges = {}): OccasionBoard {
     incidents:   [],
     concurrency: { agentsInFlight: 1 },
     ...changes,
-    overseer:    {
-      state: 'serving', paused: false, generation: 3, ...changes.overseer
+    hephaestus:  {
+      state: 'serving', paused: false, generation: 3, ...changes.hephaestus
     },
   };
 }
@@ -40,7 +40,7 @@ function readingOfBoard(changes: BoardChanges): BoardReading {
 }
 
 const BOARD_WITHOUT_COUNT: OccasionBoard = {
-  usage: null, jobs: [], incidents: [], overseer: { state: 'serving', paused: false },
+  usage: null, jobs: [], incidents: [], hephaestus: { state: 'serving', paused: false },
 };
 
 const LIMIT_HIT = { resetsAt: '2026-10-29T20:00:00', window: 'five-hour' };
@@ -65,20 +65,20 @@ const AT_HOME = null;
 describe('each row of the table', () => {
   test.each<readonly [string, BoardReading, BoardReading, readonly SpriteIntent[]]>([
     ['the connection becomes down', reading(), reading({ connection: 'down' }), ['unplugged']],
-    ['the Overseer state becomes down', reading(), reading({ board: board({ overseer: { state: 'down' } }) }), ['bank-fire']],
-    ['the Overseer state becomes passing-baton', reading(), reading({ board: board({ overseer: { state: 'passing-baton' } }) }), ['baton-pass']],
+    ['the Hephaestus state becomes down', reading(), reading({ board: board({ hephaestus: { state: 'down' } }) }), ['bank-fire']],
+    ['the Hephaestus state becomes passing-baton', reading(), reading({ board: board({ hephaestus: { state: 'passing-baton' } }) }), ['baton-pass']],
     ['the generation rises after a pass that was shown, with jobs in flight',
-      reading({ board: board({ overseer: { state: 'passing-baton' } }) }),
-      reading({ board: board({ overseer: { generation: 4 } }) }),
+      reading({ board: board({ hephaestus: { state: 'passing-baton' } }) }),
+      reading({ board: board({ hephaestus: { generation: 4 } }) }),
       ['regroup']],
     ['usage gets a resetsAt', reading(), reading({ board: board({ usage: LIMIT_HIT }) }), ['out-of-fuel']],
     ['usage loses its resetsAt', reading({ board: board({ usage: LIMIT_HIT }) }), reading(), ['refuel']],
-    ['paused becomes true', reading(), reading({ board: board({ overseer: { paused: true } }) }), ['hold']],
+    ['paused becomes true', reading(), reading({ board: board({ hephaestus: { paused: true } }) }), ['hold']],
     ['an incident opens', reading({ board: board({ incidents: [{ id: 'I1' }] }) }), reading({ board: board({ incidents: [{ id: 'I1' }, { id: 'I2' }] }) }), ['intercept']],
     ['an incident settles', readingOfBoard({ questionHistory: INCIDENT_OPEN }), readingOfBoard({ questionHistory: incidentClosedBy('incident-handled') }), ['happy']],
     ['a pipeline is applied again', readingOfBoard({ pipeline: appliedPipeline(1) }), readingOfBoard({ pipeline: appliedPipeline(2) }), ['happy']],
     ['the first pipeline is applied', readingOfBoard({ pipeline: { applied: { readingVerdict: 'absent' } } }), readingOfBoard({ pipeline: appliedPipeline(1) }), ['happy']],
-    ['the Overseer refuses a control command', reading({ refusedCommandCount: 2 }), reading({ refusedCommandCount: 3 }), ['refuse']],
+    ['Hephaestus refuses a control command', reading({ refusedCommandCount: 2 }), reading({ refusedCommandCount: 3 }), ['refuse']],
     ['the connection comes back', reading({ connection: 'down' }), reading(), ['wave']],
   ])('%s', (_change, previous, next, occasions) => {
     expect(BoardOccasionModel.occasionsOf(previous, next, AT_HOME)).toEqual(occasions);
@@ -86,14 +86,22 @@ describe('each row of the table', () => {
 
   test.each<readonly [string, BoardReading, BoardReading]>([
     ['a board that stays as it was', reading(), reading()],
-    ['the first board after none', reading({ board: null }), reading({ board: board({ overseer: { state: 'down', paused: true }, usage: LIMIT_HIT, incidents: [{ id: 'I1' }] }) })],
+    [
+      'the first board after none',
+      reading({ board: null }),
+      reading({ board: board({ hephaestus: { state: 'down', paused: true }, usage: LIMIT_HIT, incidents: [{ id: 'I1' }] }) }),
+    ],
     ['a connection that stays down', reading({ connection: 'down' }), reading({ connection: 'down' })],
-    ['an Overseer that stays down', reading({ board: board({ overseer: { state: 'down' } }) }), reading({ board: board({ overseer: { state: 'down' } }) })],
-    ['a pass that goes on', reading({ board: board({ overseer: { state: 'passing-baton' } }) }), reading({ board: board({ overseer: { state: 'passing-baton' } }) })],
-    ['a generation the previous board did not serve', reading({ board: board({ overseer: { generation: null } }) }), reading({ board: board({ overseer: { generation: 4 } }) })],
-    ['a generation that falls', reading({ board: board({ overseer: { generation: 4 } }) }), reading()],
+    ['a Hephaestus that stays down', reading({ board: board({ hephaestus: { state: 'down' } }) }), reading({ board: board({ hephaestus: { state: 'down' } }) })],
+    ['a pass that goes on', reading({ board: board({ hephaestus: { state: 'passing-baton' } }) }), reading({ board: board({ hephaestus: { state: 'passing-baton' } }) })],
+    [
+      'a generation the previous board did not serve',
+      reading({ board: board({ hephaestus: { generation: null } }) }),
+      reading({ board: board({ hephaestus: { generation: 4 } }) }),
+    ],
+    ['a generation that falls', reading({ board: board({ hephaestus: { generation: 4 } }) }), reading()],
     ['a usage limit that stays', reading({ board: board({ usage: LIMIT_HIT }) }), reading({ board: board({ usage: LIMIT_HIT }) })],
-    ['a pause that ends', reading({ board: board({ overseer: { paused: true } }) }), reading()],
+    ['a pause that ends', reading({ board: board({ hephaestus: { paused: true } }) }), reading()],
     ['an incident that leaves the list with no record that closes it', reading({ board: board({ incidents: [{ id: 'I1' }] }) }), reading()],
     ['an incident that escalates to a decision', readingOfBoard({ questionHistory: INCIDENT_OPEN }), readingOfBoard({ questionHistory: incidentClosedBy('incident-escalated') })],
     ['an incident that stays settled', readingOfBoard({ questionHistory: SETTLED_BY_DEFAULT }), readingOfBoard({ questionHistory: SETTLED_BY_DEFAULT })],
@@ -110,13 +118,13 @@ describe('each row of the table', () => {
 
 describe('the baton pass and the regroup', () => {
   test('a rise of the generation the page saw no pass for is the pass, then the regroup', () => {
-    expect(BoardOccasionModel.occasionsOf(reading(), reading({ board: board({ overseer: { generation: 4 } }) }), AT_HOME)).toEqual(['baton-pass', 'regroup']);
+    expect(BoardOccasionModel.occasionsOf(reading(), reading({ board: board({ hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual(['baton-pass', 'regroup']);
   });
 
   test('a rise with no job in flight regroups nothing', () => {
-    const passing = reading({ board: board({ overseer: { state: 'passing-baton' } }) });
-    expect(BoardOccasionModel.occasionsOf(passing, reading({ board: board({ jobs: [], overseer: { generation: 4 } }) }), AT_HOME)).toEqual([]);
-    expect(BoardOccasionModel.occasionsOf(reading(), reading({ board: board({ jobs: [], overseer: { generation: 4 } }) }), AT_HOME)).toEqual(['baton-pass']);
+    const passing = reading({ board: board({ hephaestus: { state: 'passing-baton' } }) });
+    expect(BoardOccasionModel.occasionsOf(passing, reading({ board: board({ jobs: [], hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual([]);
+    expect(BoardOccasionModel.occasionsOf(reading(), reading({ board: board({ jobs: [], hephaestus: { generation: 4 } }) }), AT_HOME)).toEqual(['baton-pass']);
   });
 });
 
@@ -126,7 +134,7 @@ describe('the order', () => {
     const next = reading({
       connection:          'down',
       refusedCommandCount: 1,
-      board:               board({ usage: LIMIT_HIT, incidents: [{ id: 'I2' }], overseer: { state: 'down', paused: true, generation: 4 } }),
+      board:               board({ usage: LIMIT_HIT, incidents: [{ id: 'I2' }], hephaestus: { state: 'down', paused: true, generation: 4 } }),
     });
     expect(BoardOccasionModel.occasionsOf(previous, next, AT_HOME)).toEqual(['unplugged', 'bank-fire', 'baton-pass', 'regroup', 'out-of-fuel', 'hold', 'intercept', 'refuse']);
   });
@@ -139,7 +147,7 @@ describe('the order', () => {
   });
 
   test('a lost limit comes before the pause it shares a board with', () => {
-    const next = reading({ board: board({ overseer: { paused: true } }) });
+    const next = reading({ board: board({ hephaestus: { paused: true } }) });
     expect(BoardOccasionModel.occasionsOf(reading({ board: board({ usage: LIMIT_HIT }) }), next, AT_HOME)).toEqual(['refuel', 'hold']);
   });
 });

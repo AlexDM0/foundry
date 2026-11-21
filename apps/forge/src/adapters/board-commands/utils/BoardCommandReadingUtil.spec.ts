@@ -51,13 +51,13 @@ describe('a body of a board kind', () => {
     }],
     ['a window with no tick', { kind: 'chart-range-set', range: { kind: 'window', from: '-4h', to: 'now' } }],
     ['a kind outside the board\'s', { kind: 'ticket-add', title: 'Example' }],
-    ['a control contract kind', { kind: 'overseer-pause' }],
+    ['a control contract kind', { kind: 'hephaestus-pause' }],
   ])('%s reads as null', (_case, body) => {
     expect(BoardCommandReadingUtil.boardCommandOf(body)).toBeNull();
   });
 
   test('names each board kind and no other', () => {
     expect(Object.keys(BOARD_COMMAND_SAMPLES).every(BoardCommandReadingUtil.isBoardCommandKind)).toBe(true);
-    expect(BoardCommandReadingUtil.isBoardCommandKind('overseer-pause')).toBe(false);
+    expect(BoardCommandReadingUtil.isBoardCommandKind('hephaestus-pause')).toBe(false);
   });
 });

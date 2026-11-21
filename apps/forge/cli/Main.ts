@@ -19,14 +19,12 @@ const HELP_ALIASES     = new Set([`--${HELP_OPTION_NAME}`, HELP_SHORT_ALIAS]);
 
 /**
  * `init` and `update` repair a mismatch, `status` output is a contract that stays silent about one, and `version` reports the versions itself;
- * `stop` must reach an Overseer whose install changed, and `machine` and `login-item` write nothing of a repository's install.
+ * `stop` must reach a Hephaestus whose install changed, as `talos-restart` must, which the live Hephaestus takes during an install hold too, and
+ * `machine` and `login-item` write nothing of a repository's install.
  */
-const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version', 'stop', 'machine', 'login-item']);
-/**
- * A hook prints or guards whatever the install, and `oversee status` and `oversee stop` must reach an Overseer whose install changed, so each runs the
- * check inside its own handling.
- */
-const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'oversee', 'start']);
+const COMMANDS_THE_INSTALL_CHECK_SPARES = new Set(['init', 'update', 'help', 'status', 'version', 'stop', 'talos-restart', 'machine', 'login-item']);
+/** A hook prints or guards whatever the install; `start` checks the repository it starts, and its successor form checks as a Baton pass step. */
+const COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL = new Set(['hook', 'start']);
 
 /** The commands whose first argument names a subcommand, which the recorded verb then carries: `ticket hold`, not `ticket`. */
 const COMMANDS_WITH_A_SUBCOMMAND = new Set([
@@ -35,7 +33,6 @@ const COMMANDS_WITH_A_SUBCOMMAND = new Set([
   'epic',
   'draft',
   'hook',
-  'oversee',
   'job',
   'intake',
   'question',
@@ -106,7 +103,7 @@ export async function runCommandLine(commandLineArguments: readonly string[], co
       throw new OperationRefusal('refused', { kind: 'verb-not-relayable', verb: commandVerb, jobId: context.job.jobId });
     }
     const runCommand = await loadCommand();
-    // A relayed verb writes nothing of this install's: the Overseer applies it, so it relays before any install check.
+    // A relayed verb writes nothing of this install's: Hephaestus applies it, so it relays before any install check.
     if (jobRoute !== 'relayed' && !COMMANDS_THE_INSTALL_CHECK_SPARES.has(command) && !COMMANDS_THAT_CHECK_THEIR_OWN_INSTALL.has(command)) {
       requireCurrentInstall(context.currentDirectory);
     }

@@ -24,7 +24,7 @@ export const RESUME_POLICY_OF_CAUSE: Readonly<Record<InterruptionCause, ResumePo
   'forge-crashed':         'waits-for-instruction',
   'network-outage':        'waits-for-instruction',
   'agent-crashed':         'resumes-twice-then-waits',
-  'watcher-lost':          'resumes-twice-then-waits',
+  'talos-lost':            'resumes-twice-then-waits',
   'authentication-failed': 'resumes-once-decision-answered',
   'forced-stop-refused':   'never-resumes',
 });

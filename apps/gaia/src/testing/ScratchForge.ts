@@ -50,11 +50,11 @@ export interface ScratchForge {
   readonly runForDocument:   (repository: string, programArguments: readonly string[]) => Promise<Record<string, unknown>>;
   /** The registry entry of the board in `repository`, as the forge wrote it under the scratch home. */
   readonly registryEntryOf:  (trackerId: string) => Record<string, unknown> | null;
-  /** A value drawn again, such as a port a second Overseer is given once the first let it go, takes the example of its newest drawing. */
+  /** A value drawn again, such as a port a second Hephaestus is given once the first let it go, takes the example of its newest drawing. */
   readonly exampleValueFor:  (exampleValue: ExampleValue) => void;
   /** `text` with every value drawn by this run replaced by its example, the longest first so no path is replaced inside another. */
   readonly exampleTextOf:    (text: string) => string;
-  /** Stops each Overseer still live in the scratch repositories, ends what still runs from them, and removes them, then the scratch home. */
+  /** Stops each Hephaestus still live in the scratch repositories, ends what still runs from them, and removes them, then the scratch home. */
   readonly remove:           () => Promise<void>;
 }
 
@@ -194,7 +194,7 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
     return longestFirst.reduce((exampleText, { drawn, example }) => exampleText.replaceAll(drawn, example), text);
   }
 
-  /** The processes still running from the repository's own files, such as Talos and its agent, which outlive an Overseer's stop. */
+  /** The processes still running from the repository's own files, such as Talos and its agent, which outlive a Hephaestus's stop. */
   async function processIdsRunningFrom(repository: string): Promise<number[]> {
     const listed = await realProcessRun(environmentCopy).run({
       program: 'pgrep', programArguments: ['-f', repository], workingDirectory: repository, timeoutMilliseconds: PROCESS_LIST_TIMEOUT_MILLISECONDS,

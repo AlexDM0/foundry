@@ -1,4 +1,4 @@
-// P22: one turn of Flint's brain against the real model, launched as the Overseer launches the brain: Haiku at low
+// P22: one turn of Flint's brain against the real model, launched as Hephaestus launches the brain: Haiku at low
 // effort, no tool at all, under the sandbox, with the answer schema and the brain's brief, and no instruction file of the
 // user. It records what a session with `--tools ""` and `--json-schema` prints: its tools, its model calls, its usage and
 // its structured answer. It spends one Haiku turn.

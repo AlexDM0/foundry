@@ -3,7 +3,7 @@
  * stage may change that the Brief's `Work belongs in:` line names (in each of them when it names none), commits it and reports `built`; a
  * reviewer reports every Acceptance item as holding. Each report follows the schema its
  * launch hands it, a crossing ticket's package and adapt stages included: a package build states that what the package exposes did not
- * change, its review confirms it, so the adapt stage is skipped. It claims no gate, so only a gate the Overseer alone runs passes V15.
+ * change, its review confirms it, so the adapt stage is skipped. It claims no gate, so only a gate Hephaestus alone runs passes V15.
  */
 import {
   ADAPT_BUILDER_REPORT_SCHEMA,

@@ -4,7 +4,7 @@
  * draft's text it stores only the request, after which every other setup move and every `gate` verb refuses; when main already holds the
  * text, stage 2 runs in the same hold and stores the whole pipeline on main's file, the sources keyed by the text's blob id, the
  * withdrawal of `checks-not-set` and the resume when asked, `pipeline-applied` with the field names, and last closes the record. Apply is
- * idempotent by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or the Overseer's start finishes
+ * idempotent by setup and revision: a pipeline this draft stored is no move of anyone else's, so a retry or Hephaestus's start finishes
  * the rest, and an Apply of a revision already applied changes nothing. Cancel clears the request and leaves the record editable at
  * design, with Apply not reached. Once Apply lands, in whichever hold, every live pipeline agent of the record is stopped, each entity's
  * session beside the forge's, since a closed record leaves none of them a level to serve. A constitution commit
@@ -349,12 +349,12 @@ describe('stage 1 while main lacks the draft\'s text', () => {
 describe('stage 2 when main already holds the draft\'s text', () => {
   test('stores the whole pipeline on main\'s file, the sources by blob id, withdraws checks-not-set, resumes, logs, and closes the record last', () => {
     const { board, setupId } = firstSetupAtApply();
-    board.setOverseerState('paused', AT);
+    board.setHephaestusState('paused', AT);
     board.openDecision({
       kind:      'checks-not-set',
       ticketIds: [],
       jobId:     null,
-      askedBy:   'overseer',
+      askedBy:   'hephaestus',
       requestId: null,
       questions: [{
         question: 'Set the gates?', header: 'Gates', multiSelect: false, options: [{ label: 'Later', description: 'Wait', isRecommended: false }]
@@ -384,8 +384,8 @@ describe('stage 2 when main already holds the draft\'s text', () => {
       },
     });
     expect(board.decisions()).toEqual([]);
-    expect(board.overseerState()).toBe('running');
-    expect(applied.logged.map((record) => record.kind)).toEqual(['decision-withdrawn', 'overseer-set', 'pipeline-applied']);
+    expect(board.hephaestusState()).toBe('running');
+    expect(applied.logged.map((record) => record.kind)).toEqual(['decision-withdrawn', 'hephaestus-set', 'pipeline-applied']);
     expect(applied.logged.at(-1)).toEqual({
       at:     AT,
       kind:   'pipeline-applied',
@@ -455,7 +455,7 @@ describe('the record\'s pipeline agent once Apply lands', () => {
     expect(world.board.jobById(agentJobId)?.state).toBe('stopping');
   });
 
-  test('the Overseer\'s start that finishes a half-applied record stops it, and an agent that has no session ends closed', () => {
+  test('Hephaestus\'s start that finishes a half-applied record stops it, and an agent that has no session ends closed', () => {
     const { board: first, setupId } = firstSetupAtApply();
     const { job } = first.startPipelineAgent(AT);
     first.attachSetupAgent(setupId, job.id, null);
@@ -507,7 +507,7 @@ describe('idempotent by setup and revision', () => {
       .toEqual({ reason: 'no-setup-open', setupId });
   });
 
-  test('the Overseer\'s start finishes an open record whose draft is the stored pipeline, resuming only as its request asked', () => {
+  test('Hephaestus\'s start finishes an open record whose draft is the stored pipeline, resuming only as its request asked', () => {
     const { board: first, setupId } = firstSetupAtApply();
     first.requestApply(setupId, { draftRevision: 1, resumesBoard: true, mainConstitution: null }, AT);
     const setup = structuredClone(openSetupOf(first)) as PipelineSetup;
@@ -515,16 +515,16 @@ describe('idempotent by setup and revision', () => {
     first.requestApply(setupId, { draftRevision: 1, resumesBoard: false, mainConstitution: MAIN_CONSTITUTION }, AT);
     const stored = first.pipeline() as Pipeline;
     const { board } = boardFixture({ pipeline: stored, pipelineSetup: { verdict: 'readable', setup } });
-    board.setOverseerState('paused', AT);
+    board.setHephaestusState('paused', AT);
 
     const finished = board.finishHalfAppliedSetup({ mainConstitution: MAIN_CONSTITUTION }, AT);
 
     expect(finished?.outcome).toBe('applied');
-    expect(board.overseerState()).toBe('running');
+    expect(board.hephaestusState()).toBe('running');
     expect(board.pipelineSetup()).toBeNull();
   });
 
-  test('the Overseer\'s start leaves alone a record whose draft is not the stored pipeline, or whose base it still is', () => {
+  test('Hephaestus\'s start leaves alone a record whose draft is not the stored pipeline, or whose base it still is', () => {
     const { board, setupId } = firstSetupAtApply();
     expect(board.finishHalfAppliedSetup({ mainConstitution: MAIN_CONSTITUTION }, AT)).toBeNull();
 

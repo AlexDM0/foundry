@@ -18,7 +18,7 @@ export type QuestionsBoard = Pick<BoardDocument, 'decisions' | 'openDecisionIds'
 export interface AnsweredDecision {
   readonly decisionId: string;
   readonly answeredAt: string;
-  /** The question's text to its answer, as the Overseer stored it. */
+  /** The question's text to its answer, as Hephaestus stored it. */
   readonly answer:     readonly (readonly [question: string, answer: string])[];
 }
 

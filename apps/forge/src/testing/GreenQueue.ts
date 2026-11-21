@@ -1,5 +1,5 @@
 /**
- * Queues a ticket to merge as the Overseer does after a green gate run: a pipeline stored (no gates when none is), the tree recorded as the
+ * Queues a ticket to merge as Hephaestus does after a green gate run: a pipeline stored (no gates when none is), the tree recorded as the
  * row's review-phase green under that pipeline, then the mark. For specs whose subject is what happens after the queuing.
  */
 import type { Logged } from '../lib/tracker-model/@types/BoardChanges.ts';

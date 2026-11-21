@@ -4,7 +4,7 @@
  */
 export type BoardTranscriptClientAct = 'chat' | 'answer' | 'interrupt' | 'close-input' | 'stop';
 
-export type BoardTranscriptSender = 'user' | 'overseer' | 'assistant';
+export type BoardTranscriptSender = 'user' | 'hephaestus' | 'assistant';
 
 /** A picture a chat carried; `name` is `null` when no record of the job names it. The entry never carries the bytes. */
 export interface BoardTranscriptPicture {

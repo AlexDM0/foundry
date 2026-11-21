@@ -1,5 +1,5 @@
 /**
- * `machine-limits.json` in the monitor folder: the one agent limit every Overseer of this user on this machine keeps, `{version: 1,
+ * `machine-limits.json` in the monitor folder: the one agent limit every Hephaestus of this user on this machine keeps, `{version: 1,
  * agentLimit}`. Read, validate and map; written through the atomic-file package.
  */
 import { mkdirSync } from 'node:fs';

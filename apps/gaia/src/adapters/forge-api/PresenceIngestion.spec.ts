@@ -1,5 +1,5 @@
 /**
- * The presence ingestion against its own contract and the presence a scratch forge served (`overseer-fetch-presence`). What matters: the
+ * The presence ingestion against its own contract and the presence a scratch forge served (`hephaestus-fetch-presence`). What matters: the
  * recorded documents read with their supervision and crash logs; each listed job's wait, cause and tickets map in; every key Gaia does not
  * read, and one it does not know, is passed over; and a document that does not ingest names its keys and reads as no report.
  */

@@ -2,7 +2,7 @@
  * The registry's ingestion, over the registry a forge wrote for five boards, each in a presence the forge writes (recorded), and
  * variants of it written to the scratch root: the recording maps to five forges in its order, an entry from a forge before F4 or F9 maps
  * its token file or program as unknown, a newer version maps nothing, an entry without its root is left out while the rest map, an entry
- * with a broken overseer keeps its forge with no live Overseer, every file that is no registry at version 1 answers a verdict, never a
+ * with a broken `hephaestus` entry keeps its forge with no live Hephaestus, every file that is no registry at version 2 answers a verdict, never a
  * throw, and a registry Gaia cannot read names no forge but the reason.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -27,11 +27,11 @@ const DAIRY_TRACKER_ID    = BOARDS['example-dairy'].trackerId;
 const ESTATE_TRACKER_ID   = BOARDS['example-estate'].trackerId;
 const EXAMPLE_PROGRAM = '/Users/example/.bun/bin/forge';
 
-type RecordedStamp = 'lastChangedAt' | 'overseerStartedAt' | 'presenceAt';
+type RecordedStamp = 'lastChangedAt' | 'hephaestusStartedAt' | 'presenceAt';
 
 interface RecordedEntryStamps {
   readonly lastChangedAt?: string;
-  readonly overseer?:      { readonly startedAt?: string } | null;
+  readonly hephaestus?:    { readonly startedAt?: string } | null;
   readonly presence?:      { readonly at?: string } | null;
 }
 
@@ -39,7 +39,7 @@ interface RecordedEntryStamps {
 function recordedStampOf(trackerId: string, stamp: RecordedStamp): string {
   const { projects } = recordedRegistryDocument() as { projects: Record<string, RecordedEntryStamps> };
   const entry = projects[trackerId];
-  const stampValue = { lastChangedAt: entry?.lastChangedAt, overseerStartedAt: entry?.overseer?.startedAt, presenceAt: entry?.presence?.at }[stamp];
+  const stampValue = { lastChangedAt: entry?.lastChangedAt, hephaestusStartedAt: entry?.hephaestus?.startedAt, presenceAt: entry?.presence?.at }[stamp];
   if (stampValue === undefined) throw new Error(`The recorded entry of ${trackerId} holds no ${stamp}.`);
   return stampValue;
 }
@@ -47,31 +47,31 @@ function recordedStampOf(trackerId: string, stamp: RecordedStamp): string {
 /** What the recorded registry maps to; retake the last commands from the recording after `bun run record forge-registry`. */
 const RECORDED_FORGES: readonly RegisteredForge[] = [
   {
-    trackerId: AGENCY_TRACKER_ID,
-    project:   'Example Agency',
-    root:      BOARDS['example-agency'].root,
-    program:   EXAMPLE_PROGRAM,
-    overseer:  {
+    trackerId:  AGENCY_TRACKER_ID,
+    project:    'Example Agency',
+    root:       BOARDS['example-agency'].root,
+    program:    EXAMPLE_PROGRAM,
+    hephaestus: {
       url:       'http://127.0.0.1:4987/',
       processId: 4242,
-      startedAt: recordedStampOf(AGENCY_TRACKER_ID, 'overseerStartedAt'),
+      startedAt: recordedStampOf(AGENCY_TRACKER_ID, 'hephaestusStartedAt'),
       tokenPath: `/Users/example/.forge-monitor/private/${AGENCY_TRACKER_ID}/token`,
     },
-    lastCommand:   'oversee',
+    lastCommand:   'start',
     lastChangedAt: recordedStampOf(AGENCY_TRACKER_ID, 'lastChangedAt'),
     presence:      {
       state: 'serving', generation: 1, at: recordedStampOf(AGENCY_TRACKER_ID, 'presenceAt'), crash: null,
     },
   },
   {
-    trackerId: BOOKSHOP_TRACKER_ID,
-    project:   'Example Bookshop',
-    root:      BOARDS['example-bookshop'].root,
-    program:   EXAMPLE_PROGRAM,
-    overseer:  {
+    trackerId:  BOOKSHOP_TRACKER_ID,
+    project:    'Example Bookshop',
+    root:       BOARDS['example-bookshop'].root,
+    program:    EXAMPLE_PROGRAM,
+    hephaestus: {
       url:       'http://127.0.0.1:4988/',
       processId: 5151,
-      startedAt: recordedStampOf(BOOKSHOP_TRACKER_ID, 'overseerStartedAt'),
+      startedAt: recordedStampOf(BOOKSHOP_TRACKER_ID, 'hephaestusStartedAt'),
       tokenPath: `/Users/example/.forge-monitor/private/${BOOKSHOP_TRACKER_ID}/token`,
     },
     lastCommand:   'start',
@@ -81,7 +81,7 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
       generation: 1,
       at:         recordedStampOf(BOOKSHOP_TRACKER_ID, 'presenceAt'),
       crash:      {
-        component: 'overseer', suspected: false, errorName: null, errorMessage: null,
+        component: 'hephaestus', suspected: false, errorName: null, errorMessage: null,
       },
     },
   },
@@ -90,8 +90,8 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     project:       'Example Clinic',
     root:          BOARDS['example-clinic'].root,
     program:       EXAMPLE_PROGRAM,
-    overseer:      null,
-    lastCommand:   'oversee',
+    hephaestus:    null,
+    lastCommand:   'start',
     lastChangedAt: recordedStampOf(BOARDS['example-clinic'].trackerId, 'lastChangedAt'),
     presence:      {
       state: 'stopped', generation: 1, at: recordedStampOf(BOARDS['example-clinic'].trackerId, 'presenceAt'), crash: null,
@@ -102,23 +102,23 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     project:       'Example Dairy',
     root:          BOARDS['example-dairy'].root,
     program:       EXAMPLE_PROGRAM,
-    overseer:      null,
+    hephaestus:    null,
     lastCommand:   'init',
     lastChangedAt: recordedStampOf(DAIRY_TRACKER_ID, 'lastChangedAt'),
     presence:      null,
   },
   {
-    trackerId: ESTATE_TRACKER_ID,
-    project:   'Example Estate',
-    root:      BOARDS['example-estate'].root,
-    program:   EXAMPLE_PROGRAM,
-    overseer:  {
+    trackerId:  ESTATE_TRACKER_ID,
+    project:    'Example Estate',
+    root:       BOARDS['example-estate'].root,
+    program:    EXAMPLE_PROGRAM,
+    hephaestus: {
       url:       'http://127.0.0.1:4989/',
       processId: 6060,
-      startedAt: recordedStampOf(ESTATE_TRACKER_ID, 'overseerStartedAt'),
+      startedAt: recordedStampOf(ESTATE_TRACKER_ID, 'hephaestusStartedAt'),
       tokenPath: `/Users/example/.forge-monitor/private/${ESTATE_TRACKER_ID}/token`,
     },
-    lastCommand:   'oversee',
+    lastCommand:   'start',
     lastChangedAt: recordedStampOf(ESTATE_TRACKER_ID, 'lastChangedAt'),
     presence:      {
       state: 'serving', generation: 1, at: recordedStampOf(ESTATE_TRACKER_ID, 'presenceAt'), crash: null,
@@ -175,29 +175,29 @@ describe('a registry at another minor', () => {
 });
 
 describe('an entry written by a forge before F4 or F9', () => {
-  test('maps a live Overseer without its token file to an unknown token path, and an entry without its program to an unknown program', async () => {
+  test('maps a live Hephaestus without its token file to an unknown token path, and an entry without its program to an unknown program', async () => {
     const document = fixtureDocument();
-    delete (fixtureEntry(document, BOOKSHOP_TRACKER_ID)['overseer'] as Record<string, unknown>)['tokenPath'];
+    delete (fixtureEntry(document, BOOKSHOP_TRACKER_ID)['hephaestus'] as Record<string, unknown>)['tokenPath'];
     delete fixtureEntry(document, DAIRY_TRACKER_ID)['program'];
     const reading = await registryWith(JSON.stringify(document)).read();
-    expect(reading.verdict === 'readable' ? reading.forges.map(({ program, overseer }) => [program, overseer?.tokenPath ?? null]) : null).toEqual([
-      [EXAMPLE_PROGRAM, RECORDED_FORGES[0]?.overseer?.tokenPath ?? null],
+    expect(reading.verdict === 'readable' ? reading.forges.map(({ program, hephaestus }) => [program, hephaestus?.tokenPath ?? null]) : null).toEqual([
+      [EXAMPLE_PROGRAM, RECORDED_FORGES[0]?.hephaestus?.tokenPath ?? null],
       [EXAMPLE_PROGRAM, null],
       [EXAMPLE_PROGRAM, null],
       [null, null],
-      [EXAMPLE_PROGRAM, RECORDED_FORGES[4]?.overseer?.tokenPath ?? null],
+      [EXAMPLE_PROGRAM, RECORDED_FORGES[4]?.hephaestus?.tokenPath ?? null],
     ]);
   });
 });
 
 describe('a registry at a version Gaia does not know', () => {
-  test('answers newer-version at version 2 and maps nothing', async () => {
-    const document = { ...fixtureDocument(), version: 2 };
-    expect(await registryWith(JSON.stringify(document)).read()).toEqual({ verdict: 'newer-version', version: 2 });
+  test('answers newer-version at version 3 and maps nothing', async () => {
+    const document = { ...fixtureDocument(), version: 3 };
+    expect(await registryWith(JSON.stringify(document)).read()).toEqual({ verdict: 'newer-version', version: 3 });
   });
 
   test('answers unreadable when the version is missing, older or not a whole number', async () => {
-    for (const version of [undefined, 0, 1.5, '1']) {
+    for (const version of [undefined, 0, 1, 2.5, '2']) {
       const document = { ...fixtureDocument(), version };
       expect(await registryWith(JSON.stringify(document)).read()).toEqual({ verdict: 'unreadable', reason: 'version-unknown', failure: null });
     }
@@ -214,12 +214,12 @@ describe('a malformed entry', () => {
     });
   });
 
-  test('keeps its forge with no live Overseer when its overseer lacks a key', async () => {
+  test('keeps its forge with no live Hephaestus when its `hephaestus` entry lacks a key', async () => {
     const document = fixtureDocument();
-    delete (fixtureEntry(document, AGENCY_TRACKER_ID)['overseer'] as Record<string, unknown>)['url'];
+    delete (fixtureEntry(document, AGENCY_TRACKER_ID)['hephaestus'] as Record<string, unknown>)['url'];
     expect(await registryWith(JSON.stringify(document)).read()).toEqual({
       verdict: 'readable',
-      forges:  RECORDED_FORGES.map((forge) => (forge.trackerId === AGENCY_TRACKER_ID ? { ...forge, overseer: null } : forge)),
+      forges:  RECORDED_FORGES.map((forge) => (forge.trackerId === AGENCY_TRACKER_ID ? { ...forge, hephaestus: null } : forge)),
     });
   });
 });
@@ -236,7 +236,7 @@ describe('a file that is no registry', () => {
   });
 
   test('answers unreadable for text that is not JSON', async () => {
-    expect(await registryWith('{"version": 1, "projects": {').read()).toEqual({ verdict: 'unreadable', reason: 'not-json', failure: null });
+    expect(await registryWith('{"version": 2, "projects": {').read()).toEqual({ verdict: 'unreadable', reason: 'not-json', failure: null });
   });
 
   test('answers unreadable for JSON that is not an object', async () => {
@@ -246,13 +246,13 @@ describe('a file that is no registry', () => {
   });
 
   test('answers unreadable when projects is not an object', async () => {
-    expect(await registryWith('{"version": 1, "projects": []}').read()).toEqual({ verdict: 'unreadable', reason: 'projects-not-an-object', failure: null });
+    expect(await registryWith('{"version": 2, "projects": []}').read()).toEqual({ verdict: 'unreadable', reason: 'projects-not-an-object', failure: null });
   });
 });
 
 describe('a registry with no projects key', () => {
   test('reads as a registry of no forges', async () => {
-    expect(await registryWith('{"version": 1}').read()).toEqual({ verdict: 'readable', forges: [] });
+    expect(await registryWith('{"version": 2}').read()).toEqual({ verdict: 'readable', forges: [] });
   });
 });
 
@@ -264,7 +264,7 @@ describe('the forges a reading names', () => {
 
   test('are none, but the reason Gaia cannot act on them, for a registry it cannot read or that is newer than it reads', () => {
     expect(registeredForgesOf({ verdict: 'unreadable', reason: 'not-json', failure: null })).toBe('registry-unreadable');
-    expect(registeredForgesOf({ verdict: 'newer-version', version: 2 })).toBe('registry-newer-version');
+    expect(registeredForgesOf({ verdict: 'newer-version', version: 3 })).toBe('registry-newer-version');
   });
 });
 

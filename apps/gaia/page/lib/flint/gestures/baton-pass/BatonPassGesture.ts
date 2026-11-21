@@ -1,5 +1,5 @@
 /**
- * Implements `06-more-animations.md`, "Baton pass": a new generation of the Overseer, in one action. Flint tosses the baton up, flickers
+ * Implements `06-more-animations.md`, "Baton pass": a new generation of Hephaestus, in one action. Flint tosses the baton up, flickers
  * out to its outline, returns bright with a glow and a hop, catches the falling baton, and is happy; then the baton and the hand fade.
  */
 import type {

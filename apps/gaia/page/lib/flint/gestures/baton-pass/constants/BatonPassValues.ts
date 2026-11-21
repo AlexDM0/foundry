@@ -1,4 +1,4 @@
-/** Baton pass of `06-more-animations.md`: a new generation of the Overseer, in one action; in sprite units, for Flint facing right. */
+/** Baton pass of `06-more-animations.md`: a new generation of Hephaestus, in one action; in sprite units, for Flint facing right. */
 export const BATON_PASS_TIMELINE = {
   DURATION_MILLISECONDS:       2600,
   TOSS_STARTS_MILLISECONDS:    300,

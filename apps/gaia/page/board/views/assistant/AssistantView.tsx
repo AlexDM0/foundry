@@ -167,7 +167,7 @@ export function AssistantView({ board, followTranscript }: AssistantViewProps) {
   const presentSettledIncidents = useItemPresence(model.settledIncidents, incidentKeyOf);
   return (
     <div className="board-view">
-      <ViewTitle title="Assistant" lead="The Overseer's Assistant. Talk to it here; its incidents are on the right." />
+      <ViewTitle title="Assistant" lead="Hephaestus's Assistant. Talk to it here; its incidents are on the right." />
       <div className="board-assistant-layout">
         <ChatCard label="Assistant session">
           <ChatHead assistantIsOn={model.assistantIsOn} job={job} turnCount={ChatThreadModelUtil.turnCountOf(entries)} askingDecisionCount={model.askingDecisionCount} />

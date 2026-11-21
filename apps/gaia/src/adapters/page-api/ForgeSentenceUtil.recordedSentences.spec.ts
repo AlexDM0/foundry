@@ -4,7 +4,7 @@
  * recorded refusal reaches the page through the command answer as the forge's own sentence, unchanged (decision 45); and each recorded
  * monitor snapshot reaches it through the fleet document, its notices, warnings and activity entries among it. The frozen list of refusal
  * codes whose recorded sentence names a command keeps the spec from passing on nothing; retake it after `bun run record
- * forge-program-refused` or an overseer-fetch recording.
+ * forge-program-refused` or a hephaestus-fetch recording.
  * The board's answers are left out: the board contract shows a forge's sentence as the forge serves it (decision 45).
  */
 import { describe, expect, test } from 'bun:test';
@@ -13,7 +13,7 @@ import type { FleetDocumentForge } from '../../../page/@types/FleetDocument.ts';
 import { CONTRACT_VERSIONS }       from '../../shared/constants/ContractVersions.ts';
 import {
   BOARD_SITUATIONS,
-  everyRecordedOverseerAnswerOf,
+  everyRecordedHephaestusAnswerOf,
   everyRecordedVersionsAnswerOf,
   situationCallShapeOf,
   type RecordedStreamAnswer,
@@ -75,9 +75,9 @@ function isBoardAnswer(callShape: string): boolean {
   return BOARD_SITUATIONS.some((situation) => callShape.startsWith(situationCallShapeOf(situation, '')));
 }
 
-/** Every JSON document the recorded Overseers answered outside the board: whole bodies, and each event of a stream. */
-function recordedOverseerDocuments(): unknown[] {
-  const answers = [...everyRecordedOverseerAnswerOf(), ...everyRecordedVersionsAnswerOf()].filter(({ callShape }) => !isBoardAnswer(callShape));
+/** Every JSON document the recorded Hephaestus processes answered outside the board: whole bodies, and each event of a stream. */
+function recordedHephaestusDocuments(): unknown[] {
+  const answers = [...everyRecordedHephaestusAnswerOf(), ...everyRecordedVersionsAnswerOf()].filter(({ callShape }) => !isBoardAnswer(callShape));
   return answers.flatMap(({ answer }) => {
     if (isStreamAnswer(answer)) {
       return answer.chunks.join('').split('\n')
@@ -96,7 +96,7 @@ function recordedProgramDocuments(): unknown[] {
 }
 
 function recordedDocuments(): unknown[] {
-  return [...recordedOverseerDocuments(), ...recordedProgramDocuments()];
+  return [...recordedHephaestusDocuments(), ...recordedProgramDocuments()];
 }
 
 function isRefusalHolder(holder: Readonly<Record<string, unknown>>): boolean {
@@ -121,12 +121,12 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
     facts: {
       trackerId,
       project,
-      root:              String(snapshot['root']),
-      overseerUrl:       'http://127.0.0.1:4951/',
-      overseerProcessId: 48_107,
-      program:           null,
-      lastCommand:       null,
-      lastChangedAt:     null,
+      root:                String(snapshot['root']),
+      hephaestusUrl:       'http://127.0.0.1:4951/',
+      hephaestusProcessId: 48_107,
+      program:             null,
+      lastCommand:         null,
+      lastChangedAt:       null,
     },
     identity: {
       trackerId,
@@ -134,14 +134,14 @@ function factsOf(snapshot: Readonly<Record<string, unknown>>): { readonly facts:
       codeVersion:    'example-code',
       installVersion: 27,
       processId:      48_107,
-      contracts:      { summary: 1, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, },
+      contracts:      { summary: 2, monitor: Number(snapshot['monitorVersion'] ?? CONTRACT_VERSIONS.forgeMonitor), control: 1, },
     },
   };
 }
 
 /** Each recorded monitor snapshot Gaia reads in full, as the fleet document the page receives holds it. */
 function recordedForgeDocuments(): FleetDocumentForge[] {
-  return recordedOverseerDocuments().filter(isMonitorSnapshot).flatMap((snapshot) => {
+  return recordedHephaestusDocuments().filter(isMonitorSnapshot).flatMap((snapshot) => {
     const { facts, identity } = factsOf(snapshot);
     const reading = new MonitorSnapshotIngestion(facts, identity).readingOf(snapshot, EXAMPLE_READ_STAMP);
     if (reading.verdict !== 'readable') return [];

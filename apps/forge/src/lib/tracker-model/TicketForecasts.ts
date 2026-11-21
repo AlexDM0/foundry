@@ -16,7 +16,7 @@ import { Playbook }                                                 from './Play
 import { PipelineUtil }                                             from './utils/PipelineUtil.ts';
 import { TicketDependencyUtil }                                     from './utils/TicketDependencyUtil.ts';
 
-/** The statuses whose work still lies ahead under the Overseer: every other ticket is unready, landed or closed. */
+/** The statuses whose work still lies ahead under Hephaestus: every other ticket is unready, landed or closed. */
 const FORECAST_TICKET_STATUSES: readonly TicketStatus[] = ['committed', 'in-progress', 'in-review'];
 
 /** A filed ticket no builder can take yet, which can neither start nor be said to wait. */

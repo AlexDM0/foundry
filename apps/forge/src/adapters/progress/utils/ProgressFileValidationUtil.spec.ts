@@ -1,5 +1,5 @@
 /**
- * The validator reads the current format alone: an unknown status word is a problem, in a row and in its history; a version 2 file must not
+ * The validator reads the current format alone: an unknown status word is a problem, in a row and in its history; a version 3 file must not
  * hold a log; and any other version is named. A status or a version an earlier release may have written carries the advice to rewrite it with
  * that release's `update`.
  */
@@ -33,15 +33,15 @@ test('a history phase in a status the file format does not know is a problem', (
   expect(ProgressFileValidationUtil.documentProblemOf(document)).toEndWith(OLDER_FORMAT_ADVICE);
 });
 
-test('a version 2 document that holds a log is a problem, because its log is log.jsonl', () => {
-  expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), log: [] })).toBe('log is present, and a version 2 file keeps its log in log.jsonl');
+test('a version 3 document that holds a log is a problem, because its log is log.jsonl', () => {
+  expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), log: [] })).toBe('log is present, and a version 3 file keeps its log in log.jsonl');
 });
 
-test('the validator reads only version 2, and names it for any other version, 1 included', () => {
+test('the validator reads only version 3, and names it for any other version, 1 included', () => {
   expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), version: 1, log: [] }))
-    .toBe(`version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 2; ${OLDER_FORMAT_ADVICE}`);
-  expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), version: 3 }))
-    .toBe(`version is 3, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 2; ${OLDER_FORMAT_ADVICE}`);
+    .toBe(`version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 3; ${OLDER_FORMAT_ADVICE}`);
+  expect(ProgressFileValidationUtil.documentProblemOf({ ...emptyDocument(), version: 4 }))
+    .toBe(`version is 4, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 3; ${OLDER_FORMAT_ADVICE}`);
 });
 
 test('the header is checked before the rows, and the rows name the first broken one', () => {

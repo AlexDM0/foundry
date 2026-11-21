@@ -11,7 +11,7 @@ import type {
 
 const HATCH_FORMAT_VERSION: HatchFormatVersion = 1;
 
-/** Fields only the Overseer may decide: who sent the request, and what its admission stamped. */
+/** Fields only Hephaestus may decide: who sent the request, and what its admission stamped. */
 const IDENTITY_FIELDS = ['jobId', 'role'] as const;
 
 const ADMISSION_FIELD = 'admission';

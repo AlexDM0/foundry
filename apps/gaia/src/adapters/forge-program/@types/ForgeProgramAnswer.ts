@@ -3,7 +3,7 @@ import type { ForgeContracts } from '../../../shared/@types/ForgeReading.ts';
 
 export type ForgeProgramOutcome = 'done' | 'nothing-to-do';
 
-/** `started` is `false` when an Overseer was already live and the program started nothing. */
+/** `started` is `false` when a Hephaestus was already live and the program started nothing. */
 export interface ForgeStartAnswer {
   readonly started:        boolean;
   readonly url:            string;
@@ -29,7 +29,7 @@ export interface ForgeInitAnswer {
 }
 
 /**
- * A failed pass names its step: `restart-not-taken` when the live Overseer did not take the pass and the old one still drives, at exit 0;
+ * A failed pass names its step: `restart-not-taken` when the live Hephaestus did not take the pass and the old one still drives, at exit 0;
  * a pass that failed after it was taken is the refusal `baton-pass-failed`.
  */
 export type ForgeBatonPass =

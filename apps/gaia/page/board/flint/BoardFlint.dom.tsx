@@ -357,7 +357,7 @@ describe('the agent panel habitat', () => {
 describe('the board occasions', () => {
   function readingOf(changes: { readonly paused?: boolean; readonly agentsInFlight?: number; readonly connection?: BoardReading['connection'] } = {}): BoardReading {
     const board: OccasionBoard = {
-      overseer:    { state: 'serving', paused: changes.paused ?? false, generation: 1 },
+      hephaestus:  { state: 'serving', paused: changes.paused ?? false, generation: 1 },
       usage:       { resetsAt: null, window: null },
       jobs:        [],
       incidents:   [],
@@ -376,7 +376,7 @@ describe('the board occasions', () => {
     return overlay().querySelectorAll('g[data-flint-part="watcher-spark"] rect[width="4"][height="4"][transform^="translate("]').length;
   }
 
-  test('a board that pauses the Overseer makes Flint hold, wherever it is', () => {
+  test('a board that pauses Hephaestus makes Flint hold, wherever it is', () => {
     const frames = createManualFlintFrames();
     const page = render(<Host boardStore={null} frames={frames} boardReading={readingOf()}><Chat turns={[]} /></Host>);
     placeChat();

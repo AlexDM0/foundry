@@ -1,6 +1,6 @@
 /**
  * The board's pictures, one owner-only folder `<data>/pictures/` of files named `<sha256>.<extension>`: a picture is known by the hash of its
- * bytes and its type by its first bytes, never by a name or a header. A picture no log record or live job names is swept at the Overseer's
+ * bytes and its type by its first bytes, never by a name or a header. A picture no log record or live job names is swept at Hephaestus's
  * start, a set difference that reads no clock.
  */
 import { createHash } from 'node:crypto';
@@ -19,7 +19,7 @@ import type { OwnerOnlyFiles }                                    from '../../li
 import type { Job, PictureReference }                             from '../../lib/tracker-model/@types/Job.ts';
 import type { LogRecord }                                         from '../../lib/tracker-model/@types/LogRecord.ts';
 import { PICTURE_ID_PATTERN }                                     from '../../lib/tracker-model/constants/PictureIdPattern.ts';
-import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/OverseerLimits.ts';
+import { ACCEPTED_PICTURE_MEDIA_TYPES, PICTURE_SIZE_LIMIT_BYTES } from '../../shared/constants/HephaestusLimits.ts';
 import { PICTURE_SIGNATURES }                                     from './constants/PictureSignatures.ts';
 
 export type PictureStoring =
@@ -105,7 +105,7 @@ function referencedPictureIdsOf(logRecords: readonly LogRecord[], jobs: readonly
 }
 
 /**
- * Removes every stored picture whose id is not referenced, and answers the removed ids. Best effort, since it runs in the Overseer's start
+ * Removes every stored picture whose id is not referenced, and answers the removed ids. Best effort, since it runs in Hephaestus's start
  * hold: an entry that is no file, or a file whose removal fails, stays for the next sweep.
  */
 function sweepUnreferenced(trackerDirectory: string, referencedPictureIds: ReadonlySet<string>, fileReplace?: FileReplace): string[] {

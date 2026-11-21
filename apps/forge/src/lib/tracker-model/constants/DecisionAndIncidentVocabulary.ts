@@ -29,7 +29,7 @@ export const DECISION_KINDS = [
 ] as const satisfies readonly DecisionKind[];
 
 /** Who opens a decision beside an agent of a job role. */
-export const NON_AGENT_DECISION_ASKERS = ['overseer', 'assistant'] as const;
+export const NON_AGENT_DECISION_ASKERS = ['hephaestus', 'assistant'] as const;
 
 export const INCIDENT_KINDS = [
   'system-question',

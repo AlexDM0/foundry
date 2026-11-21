@@ -97,7 +97,7 @@ export interface PipelineConstitution {
 export type PipelineApproval = 'tickets' | 'merge';
 
 /**
- * How the agents the Overseer starts are billed: `subscription` by the login, `api` by the Console account of the API key the Overseer's
+ * How the agents Hephaestus starts are billed: `subscription` by the login, `api` by the Console account of the API key Hephaestus's
  * environment holds. `maxBudgetUsd` caps each launch of a session. No key or command is ever stored here.
  */
 export type PipelineBilling =

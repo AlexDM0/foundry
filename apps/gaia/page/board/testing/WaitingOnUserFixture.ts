@@ -41,7 +41,7 @@ export const ESCALATED_DECISION = exampleDecision({
 });
 
 export const CODE_OPENED_DECISION = exampleDecision({
-  id: 'E2', kind: 'leftover-worktree', ticketIds: ['002'], askedBy: 'overseer', openedAt: '2026-11-09T10:58:00', questions: [], context: 'Example worktree left on a branch',
+  id: 'E2', kind: 'leftover-worktree', ticketIds: ['002'], askedBy: 'hephaestus', openedAt: '2026-11-09T10:58:00', questions: [], context: 'Example worktree left on a branch',
 });
 
 export const AGENT_DECISION = exampleDecision({
@@ -128,7 +128,7 @@ export const WAITING_ATTENTION: readonly BoardAttentionEntryDocument[] = [
     idText:       'E2',
     ticketIds:    ['002'],
     subject:      'Example worktree left on a branch',
-    askedBy:      'overseer',
+    askedBy:      'hephaestus',
     decisionKind: 'leftover-worktree',
     stamp:        '2026-11-09T10:58:00',
     target:       { subject: 'decision', id: 'E2' },

@@ -95,7 +95,7 @@ export function createCapturedCommandContext(options: CapturedCommandContextOpti
     executableSearchPath: options.executableSearchPath ?? [],
     temporaryDirectories: options.temporaryDirectories ?? [SHARED_SCRATCH_ROOT, tmpdir()],
     commandVerb:          '',
-    // No program to start again and no signal to take: an Overseer is started in a spec only as a child through `cli/testing/CliProcess.ts`.
+    // No program to start again and no signal to take: a Hephaestus is started in a spec only as a child through `cli/testing/CliProcess.ts`.
     programCommand:       [],
     programPath:          '/example/bin/forge',
     onStopSignal:         () => () => undefined,

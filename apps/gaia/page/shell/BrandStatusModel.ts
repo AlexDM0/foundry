@@ -1,5 +1,5 @@
 /**
- * What the brand bar says of a fleet document (SCREENS "The shell"): the forges whose Overseer runs counted in the pill, and the other
+ * What the brand bar says of a fleet document (SCREENS "The shell"): the forges whose Hephaestus runs counted in the pill, and the other
  * conditions counted in the sentence after it, over the forges not hidden. Before the first document the bar says nothing of the fleet.
  */
 import type { FleetDocument, FleetDocumentCondition } from '../@types/FleetDocument.ts';
@@ -9,11 +9,11 @@ import { ForgeTextUtil, type ShownCondition }         from '../shared/utils/Forg
 
 const SENTENCE_SEPARATOR = ' · ';
 
-/** The conditions under which a forge's Overseer runs. */
+/** The conditions under which a forge's Hephaestus runs. */
 const RUNNING_CONDITIONS: ReadonlySet<FleetDocumentCondition> = new Set(['live', 'paused', 'held', 'passing-baton']);
 
-/** A forge at a version Gaia cannot talk to answered its versions, so its Overseer runs, whatever Gaia reads of it. */
-function overseerRuns(forge: FleetDocument['forges'][number]): boolean {
+/** A forge at a version Gaia cannot talk to answered its versions, so its Hephaestus runs, whatever Gaia reads of it. */
+function hephaestusRuns(forge: FleetDocument['forges'][number]): boolean {
   const answeredAtAnotherVersion = forge.versions?.verdict === 'older' || forge.versions?.verdict === 'newer';
   return answeredAtAnotherVersion || RUNNING_CONDITIONS.has(forge.condition);
 }
@@ -36,7 +36,7 @@ function brandStatusOf(fleetDocument: FleetDocument | null): BrandStatus | null 
   const forges = fleetDocument.forges.filter((forge) => !hidden.has(forge.trackerId));
   if (forges.length === 0) return EVERY_FORGE_HIDDEN_STATUS;
   const countOf = (condition: ShownCondition): number => forges.filter((forge) => ForgeTextUtil.shownConditionOf(forge) === condition).length;
-  const runningCount = forges.filter(overseerRuns).length;
+  const runningCount = forges.filter(hephaestusRuns).length;
   const clauses = [
     clauseOf(countOf('paused'), 'paused'),
     clauseOf(countOf('held'), 'holds its launches', 'hold their launches'),

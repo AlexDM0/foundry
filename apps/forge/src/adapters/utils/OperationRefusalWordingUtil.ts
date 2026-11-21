@@ -91,7 +91,7 @@ function incompleteTicketText(incompleteTicket: IncompleteTicket): string {
   return `ticket #${incompleteTicket.ticketId} is incomplete: ${incompleteTicket.gaps.map((gap) => READINESS_GAP_TEXT[gap]).join(', and ')}`;
 }
 
-/** The statuses a ticket verb still reaches; the Overseer makes every other lifecycle move, so those are named as `ticket status`. */
+/** The statuses a ticket verb still reaches; Hephaestus makes every other lifecycle move, so those are named as `ticket status`. */
 const OPTION_NOTES_PROBLEM_TEXT: Readonly<Record<OptionNotesProblem, string>> = {
   'not-an-object': 'is not a JSON object',
   'not-text':      'is not text, or it is blank',
@@ -588,7 +588,7 @@ function boardRefusalSentenceOf(detail: BoardRefusalDetail, channel: RefusalChan
       return `Ticket #${detail.ticketId} is ${StatusWordingUtil.statusTextFor(detail.status)}, `
         + `so it was not queued to merge: only a ticket in review whose review passed is. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-queue-without-a-current-green':
-      return `Ticket #${detail.ticketId} was not queued to merge: the Overseer's last green gate run was not on its HEAD tree `
+      return `Ticket #${detail.ticketId} was not queued to merge: Hephaestus's last green gate run was not on its HEAD tree `
         + `${detail.headTree ?? '(unreadable)'} under the current pipeline. ${NOTHING_WAS_WRITTEN}`;
     case 'merge-approval-off':
       return `Merge approval is off, so ticket #${detail.ticketId} needs no accept: switch it on`
@@ -826,23 +826,23 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The pipeline ${detail.filePath} of the tracker in the folder ${detail.projectPrefix} cannot hold entities: only a tracker at the `
         + `repository's root holds them, since an entity's home is a folder of the repository. ${NOTHING_WAS_WRITTEN}`;
     case 'role-command-refused':
-      return `The Overseer refused the relayed ${detail.commandKind}: ${ROLE_COMMAND_REFUSAL_TEXT[detail.reason]} (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
+      return `Hephaestus refused the relayed ${detail.commandKind}: ${ROLE_COMMAND_REFUSAL_TEXT[detail.reason]} (${detail.reason}). ${NOTHING_WAS_WRITTEN}`;
     case 'verb-not-relayable':
-      return `\`${PRODUCT_NAMES.PROGRAM} ${detail.verb}\` cannot run under job ${detail.jobId}: it is neither read-only nor a command the Overseer `
+      return `\`${PRODUCT_NAMES.PROGRAM} ${detail.verb}\` cannot run under job ${detail.jobId}: it is neither read-only nor a command Hephaestus `
         + `applies through the Hatch. ${NOTHING_WAS_WRITTEN}`;
     case 'malformed-hatch-reply':
-      return `The Overseer's reply ${detail.replyFilePath} cannot be read, so whether the request was applied is unknown.`;
-    case 'overseer-already-running':
-      return `An Overseer already serves this board at ${detail.url} (${detail.batonFilePath}). `
-        + `Stop it first${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} oversee stop\``, '')}.`;
-    case 'overseer-down':
-      return `No Overseer serves this board (${detail.overseerDirectory} holds no live Baton). `
+      return `Hephaestus's reply ${detail.replyFilePath} cannot be read, so whether the request was applied is unknown.`;
+    case 'hephaestus-already-running':
+      return `A Hephaestus already serves this board at ${detail.url} (${detail.batonFilePath}). `
+        + `Stop it first${adviceFor(channel, ` with \`${PRODUCT_NAMES.PROGRAM} stop\``, '')}.`;
+    case 'hephaestus-down':
+      return `No Hephaestus serves this board (${detail.hephaestusDirectory} holds no live Baton). `
         + `${adviceFor(channel, `Run \`${PRODUCT_NAMES.PROGRAM} start\``, 'Start the board')} again to start one.`;
-    case 'overseer-contended':
-      return `Another Overseer started in ${detail.overseerDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
+    case 'hephaestus-contended':
+      return `Another Hephaestus started in ${detail.hephaestusDirectory} at the same moment and holds the newer Baton, so this one stopped without serving.`;
     case 'gate-confinement-unavailable':
-      return `Gates and install lines cannot run confined here, so the Overseer did not start: ${detail.reason}.`;
-    case 'malformed-overseer-poll-interval':
+      return `Gates and install lines cannot run confined here, so Hephaestus did not start: ${detail.reason}.`;
+    case 'malformed-hephaestus-poll-interval':
       return `${detail.variable} must be a positive whole number of milliseconds, not ${JSON.stringify(detail.value)}. Unset it or correct it.`;
     case 'malformed-versions-answer':
       return `${detail.variable} must be two versions, the current and the minimum supported, such as "1.3/1.0", not ${JSON.stringify(detail.value)}. `
@@ -850,30 +850,30 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'git-below-floor':
       return gitBelowFloorText(detail, channel);
     case 'baton-taken':
-      return `A newer Overseer took this board over from the Baton ${detail.batonFilePath}, so this Overseer stopped without acting.`;
+      return `A newer Hephaestus took this board over from the Baton ${detail.batonFilePath}, so this Hephaestus stopped without acting.`;
     case 'baton-not-created-whole':
-      return `The Baton ${detail.batonFilePath} cannot be created whole (${detail.reason}), so the Overseer did not start. Its claim needs a `
+      return `The Baton ${detail.batonFilePath} cannot be created whole (${detail.reason}), so Hephaestus did not start. Its claim needs a `
         + 'hard link: move the data folder to a filesystem that allows one.';
-    case 'overseer-port-in-use':
+    case 'hephaestus-port-in-use':
       return detail.firstPort === detail.lastPort
-        ? `Port ${detail.firstPort} on 127.0.0.1 is in use, so the Overseer did not start.${adviceFor(channel, ' Pass another --port, or 0 for any free one.', '')}`
-        : `Every port from ${detail.firstPort} to ${detail.lastPort} on 127.0.0.1 is in use, so the Overseer did not start.`
+        ? `Port ${detail.firstPort} on 127.0.0.1 is in use, so Hephaestus did not start.${adviceFor(channel, ' Pass another --port, or 0 for any free one.', '')}`
+        : `Every port from ${detail.firstPort} to ${detail.lastPort} on 127.0.0.1 is in use, so Hephaestus did not start.`
           + adviceFor(channel, ' Pass a free one with --port.', '');
-    case 'overseer-identity-unreadable':
+    case 'hephaestus-identity-unreadable':
       return detail.identitySources.length === 0
-        ? `The start and boot of process ${detail.processId} cannot be read on this platform, so it cannot hold an Overseer Baton.`
-        : `The start and boot of process ${detail.processId} cannot be read from ${detail.identitySources.join(' and ')}, so it cannot hold an Overseer Baton.`;
-    case 'overseer-did-not-start':
-      return `The detached Overseer exited${detail.exitCode === null ? '' : ` with code ${detail.exitCode}`} before it answered. `
-        + `Its log is ${detail.logFilePath}${adviceFor(channel, `; run \`${PRODUCT_NAMES.PROGRAM} oversee\` in the foreground to see why`, ', which may name the cause')}.`;
-    case 'overseer-still-live':
-      return `The Overseer at ${detail.url} (process ${detail.processId}) is still live after being asked to stop; its Baton was left as it is.`;
+        ? `The start and boot of process ${detail.processId} cannot be read on this platform, so it cannot hold a Hephaestus Baton.`
+        : `The start and boot of process ${detail.processId} cannot be read from ${detail.identitySources.join(' and ')}, so it cannot hold a Hephaestus Baton.`;
+    case 'hephaestus-did-not-start':
+      return `The detached Hephaestus exited${detail.exitCode === null ? '' : ` with code ${detail.exitCode}`} before it answered. `
+        + `Its log is ${detail.logFilePath}${adviceFor(channel, `; run \`${PRODUCT_NAMES.PROGRAM} start --foreground\` to see why`, ', which may name the cause')}.`;
+    case 'hephaestus-still-live':
+      return `Hephaestus at ${detail.url} (process ${detail.processId}) is still live after being asked to stop; its Baton was left as it is.`;
     case 'baton-pass-failed':
       return `The Baton pass to code ${detail.successorCodeVersion} failed at ${detail.step}: ${detail.error}. `
-        + `The old Overseer keeps driving${detail.url === null ? '' : ` at ${detail.url}`} and shows this as a warning; `
-        + `see ${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} oversee status\` and `, '')}the Overseer log.`;
-    case 'overseer-control-is-runtime-only':
-      return `${detail.commandKind} is sent to the live Overseer, never applied to the board. ${NOTHING_WAS_WRITTEN}`;
+        + `The old Hephaestus keeps driving${detail.url === null ? '' : ` at ${detail.url}`} and shows this as a warning; `
+        + `see ${adviceFor(channel, `\`${PRODUCT_NAMES.PROGRAM} status\` and `, '')}the Hephaestus log.`;
+    case 'hephaestus-control-is-runtime-only':
+      return `${detail.commandKind} is sent to the live Hephaestus, never applied to the board. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-close-without-job':
       return `Name the product-owner job whose intake to close, as J4. ${NOTHING_WAS_WRITTEN}`;
     case 'intake-title-without-job':
@@ -901,11 +901,11 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'too-many-pictures':
       return `The message carries ${detail.pictureCount} pictures, and one message carries at most ${detail.limit}. ${NOTHING_WAS_WRITTEN}`;
     case 'login-item-unavailable':
-      return `No login item can start the Overseer on this machine: ${detail.reason}.`;
+      return `No login item can start Hephaestus on this machine: ${detail.reason}.`;
     case 'login-item-not-changed':
       return `The login item ${detail.location} was not changed: ${detail.reason}.`;
-    case 'overseer-not-answering':
-      return `The Overseer at ${detail.url} is live, but its API did not answer, so nothing was started beside it. Stop it and start it again.`;
+    case 'hephaestus-not-answering':
+      return `Hephaestus at ${detail.url} is live, but its API did not answer, so nothing was started beside it. Stop it and start it again.`;
     case 'machine-agent-limit-above-cpus':
       return `A machine agent limit of ${detail.limit} is above the ${detail.ceiling} CPUs this machine has, so nothing was written.`;
     case 'machine-agent-limit-not-whole':
@@ -918,15 +918,15 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
       return `The picture is ${detail.bytes} bytes, and a picture is at most ${detail.sizeLimitBytes} bytes, so it was not stored.`;
     case 'picture-type-unsupported':
       return `By its first bytes the picture is none of ${detail.mediaTypes.join(', ')}, so it was not stored.`;
-    case 'overseer-owns-the-lifecycle':
-      return `An Overseer drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
-        + 'Ask the Overseer to record the ticket as delivered by hand'
-        + `${adviceFor(channel, `, or stop the Overseer with \`${PRODUCT_NAMES.PROGRAM} oversee stop\` first`, '')}. ${NOTHING_WAS_WRITTEN}`;
+    case 'hephaestus-owns-the-lifecycle':
+      return `A Hephaestus drives this board at ${detail.url} (${detail.batonFilePath}), so only it delivers tickets. `
+        + 'Ask Hephaestus to record the ticket as delivered by hand'
+        + `${adviceFor(channel, `, or stop Hephaestus with \`${PRODUCT_NAMES.PROGRAM} stop\` first`, '')}. ${NOTHING_WAS_WRITTEN}`;
     case 'talos-protocol-differs':
-      return `Talos, started from the program on disk, speaks protocol version ${detail.answeredProtocolVersion}, and this Overseer speaks `
-        + `${detail.requiredProtocolVersion}, so the Overseer did not start. Update the program checkout, then start the Overseer again.`;
+      return `Talos, started from the program on disk, speaks protocol version ${detail.answeredProtocolVersion}, and this Hephaestus speaks `
+        + `${detail.requiredProtocolVersion}, so Hephaestus did not start. Update the program checkout, then start Hephaestus again.`;
     case 'talos-unavailable':
-      return `Talos ${detail.startNumber} ${TALOS_UNAVAILABLE_REASON_WORDING[detail.reason]}, so the Overseer did not start and no agent runs.`;
+      return `Talos ${detail.startNumber} ${TALOS_UNAVAILABLE_REASON_WORDING[detail.reason]}, so Hephaestus did not start and no agent runs.`;
     case 'forge-crashed':
       return `The ${PRODUCT_NAMES.PROGRAM} crashed (${detail.component}) and stays off; `
         + `its crash log ${detail.crashLogPath === null ? 'could not be written' : `is ${detail.crashLogPath}`}.`;
@@ -955,7 +955,7 @@ function refusalSentenceOf(refusal: OperationRefusal, channel: RefusalChannel): 
     case 'tracker-has-live-jobs':
       return `Job(s) ${detail.jobIds.join(', ')} are live, so the board cannot be cleared under them. Stop them first. ${NOTHING_WAS_WRITTEN}`;
     case 'malformed-hatch-request':
-      return `The relayed request ${detail.requestId} is not a request the Overseer reads. ${NOTHING_WAS_WRITTEN}`;
+      return `The relayed request ${detail.requestId} is not a request Hephaestus reads. ${NOTHING_WAS_WRITTEN}`;
     case 'hatch-identity-mismatch':
       return `The relayed request ${detail.requestId} names a job or role of its own; a request takes job ${detail.jobId}'s from its folder. `
         + NOTHING_WAS_WRITTEN;
@@ -985,12 +985,12 @@ const ROLE_COMMAND_REFUSAL_TEXT: Readonly<Record<RoleCommandRefusalReason, strin
   'need-for-sealed-package':           'the change of this ticket in that package is sealed; end the stage with the outcome package-return',
 };
 
-/** What a relayed verb prints once the Overseer answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */
+/** What a relayed verb prints once Hephaestus answered it, or once it gave up waiting; a refusal is worded by `messageOf`. */
 function hatchAnsweredMessageOf(requestId: string, outcome: 'done' | 'nothing-to-do', ticketIds: readonly string[]): string {
   const ticketsText = ticketIds.length === 0 ? '' : ` (${ticketIds.map((ticketId) => `#${ticketId}`).join(', ')})`;
   return outcome === 'done'
-    ? `done ${requestId}${ticketsText}: the Overseer applied the request.`
-    : `nothing-to-do ${requestId}${ticketsText}: the Overseer found the change already made.`;
+    ? `done ${requestId}${ticketsText}: Hephaestus applied the request.`
+    : `nothing-to-do ${requestId}${ticketsText}: Hephaestus found the change already made.`;
 }
 
 function hatchQueuedMessageOf(requestId: string): string {

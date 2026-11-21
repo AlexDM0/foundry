@@ -124,10 +124,28 @@ const RETIRED_NAMES = [
   'watcher-endpoint-does-not-fit',
   'Bridge',
   'bridge/',
+  'Oversee',
+  'oversee',
+  'OVERSEE',
+  'watcher-lost',
 ];
 
 /** `<file>: <retired name>` pairs a file may keep. */
-const ALLOWED_RETIRED_NAMES: readonly string[] = [];
+const VENDOR_FIXTURES_NAMING_THE_PROBE_FOLDER = [
+  'ask-user-question-live-answer.stdout',
+  'mid-turn-line-folded.stdout',
+  'permission-denials-under-deny-rules.stdout',
+  'rate-limit-rejected.stdout',
+  'rate-limit-window-rejected-under-allowed.stdout',
+  'resume-structured-output.stdout',
+];
+
+/** `<file>: <retired name>` pairs a file may keep: records of older installs, of another program's login item and of what Claude Code printed. */
+const ALLOWED_RETIRED_NAMES: readonly string[] = [
+  'cli/FrozenInstalledSurface.json: oversee',
+  'src/shared/constants/ProductNames.ts: oversee',
+  ...VENDOR_FIXTURES_NAMING_THE_PROBE_FOLDER.map((name) => `src/lib/claude-code/testing/fixtures/${name}.jsonl: oversee`),
+];
 
 function scannedFiles(): ProgramFile[] {
   return programFiles(REPOSITORY_ROOT).filter(({ path }) => path !== THIS_FILE
@@ -143,15 +161,15 @@ test('the scan reads every program and package file but this one, the board and 
   expect(filePaths.length).toBeGreaterThan(SMALLEST_SCANNED_FILE_COUNT);
   expect(filePaths).toContain('CLAUDE.md');
   expect(filePaths).toEqual(expect.arrayContaining(['forge-contracts/package.json', 'system-versions/package.json']));
-  expect(filePaths.some((filePath) => filePath.startsWith('src/services/overseer/'))).toBe(true);
+  expect(filePaths.some((filePath) => filePath.startsWith('src/services/hephaestus/'))).toBe(true);
   expect(filePaths.some((filePath) => filePath.startsWith('src/lib/talos/'))).toBe(true);
   expect(filePaths.filter((filePath) => filePath === THIS_FILE || UNSCANNED_FOLDERS.some((folder) => filePath.startsWith(folder)))).toEqual([]);
-  expect(readFileSync(join(REPOSITORY_ROOT, 'CLAUDE.md'), 'utf8')).toContain('Overseer');
+  expect(readFileSync(join(REPOSITORY_ROOT, 'CLAUDE.md'), 'utf8')).toContain('Hephaestus');
 });
 
 test('no repository file names a component by its retired name, beyond the exact allowlist', () => {
   const found = scannedFiles().flatMap(({ path, location }) => retiredNamesIn(path, readFileSync(location, 'utf8')));
-  expect(found).toEqual([...ALLOWED_RETIRED_NAMES]);
+  expect(found.toSorted()).toEqual(ALLOWED_RETIRED_NAMES.toSorted());
 });
 
 test('the scan fails on a planted path, identifier and wire literal, and passes without them', () => {
@@ -163,5 +181,12 @@ test('the scan fails on a planted path, identifier and wire literal, and passes 
   expect(retiredNamesIn('src/Example.ts', 'const phase = \'watcher-events\';\n')).toEqual(['src/Example.ts: watcher-events']);
   expect(retiredNamesIn('src/Example.ts', '/** As the Bridge shows it. */\n')).toEqual(['src/Example.ts: Bridge']);
   expect(retiredNamesIn('bridge/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['bridge/Example.ts: bridge/']);
-  expect(retiredNamesIn('src/services/overseer/Example.ts', 'import { Baton } from \'./Baton.ts\';\nconst cause = \'watcher-lost\';\n')).toEqual([]);
+  expect(retiredNamesIn('src/Example.ts', 'const cause = \'watcher-lost\';\n')).toEqual(['src/Example.ts: watcher-lost']);
+  expect(retiredNamesIn('src/services/overseer/Example.ts', 'export const EXAMPLE = 1;\n')).toEqual(['src/services/overseer/Example.ts: oversee']);
+  expect(retiredNamesIn('src/Example.ts', 'import { OverseerServer } from "./Example.ts";\n')).toEqual(['src/Example.ts: Oversee']);
+  expect(retiredNamesIn('src/Example.ts', 'const kind = \'overseer-stop\';\n')).toEqual(['src/Example.ts: oversee']);
+  expect(retiredNamesIn('src/Example.ts', 'const OVERSEER_PORT_FIRST = 1;\n')).toEqual(['src/Example.ts: OVERSEE']);
+  expect(retiredNamesIn('src/Example.ts', 'const commandLine = [\'oversee\', \'stop\'];\n')).toEqual(['src/Example.ts: oversee']);
+  expect(retiredNamesIn('src/services/hephaestus/Example.ts', 'import { HephaestusServer } from "./Example.ts";\nconst kind = \'hephaestus-stop\';\n')).toEqual([]);
+  expect(retiredNamesIn('src/Example.ts', 'const HEPHAESTUS_PORT_FIRST = 1;\nconst commandLine = [\'stop\'];\nconst cause = \'talos-lost\';\n')).toEqual([]);
 });

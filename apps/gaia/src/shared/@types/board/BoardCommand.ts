@@ -32,10 +32,10 @@ export type BoardResumeTarget = { readonly jobId: string } | { readonly ticketRe
 export type BoardTrackerClearScope = 'tasks-and-log' | 'everything';
 
 export type BoardCommand =
-  | { readonly kind: 'overseer-pause' }
-  | { readonly kind: 'overseer-resume' }
-  | { readonly kind: 'overseer-stop'; readonly now: boolean }
-  | { readonly kind: 'overseer-restart'; readonly now: boolean }
+  | { readonly kind: 'hephaestus-pause' }
+  | { readonly kind: 'hephaestus-unpause' }
+  | { readonly kind: 'hephaestus-stop'; readonly now: boolean }
+  | { readonly kind: 'hephaestus-restart'; readonly now: boolean }
   | { readonly kind: 'concurrency-set'; readonly limit: number }
   | { readonly kind: 'interrupted-work-resume'; readonly target: BoardResumeTarget }
   | { readonly kind: 'chart-range-set'; readonly range: BoardChartRange }

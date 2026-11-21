@@ -12,7 +12,7 @@
  * reads no Brief and files a finding with no entity. An assignment stamped with a job is the product owner's, any other User's. A filed
  * ticket is the one the transaction's records allocate, and a reference to a ticket file the store cannot read finds it by the key the
  * store gives it, the file name's number, so it is refused as malformed rather than as no ticket. A by-hand delivery is refused for a live
- * Overseer the caller's context names, judged in the hold before anything is written.
+ * Hephaestus the caller's context names, judged in the hold before anything is written.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join }                     from 'node:path';
@@ -237,7 +237,7 @@ function finderAt(
 ): { board: Board; change: BoardTransaction } {
   const status = launch.role === 'builder' ? 'in-progress' : 'in-review';
   const fixture = boardWithOneTicket(ticketFixture({ id: '001', status, ...(pipeline.entities === undefined ? {} : { entity: 'web' }) }), pipeline);
-  fixture.board.setOverseerState('running', AT);
+  fixture.board.setHephaestusState('running', AT);
   fixture.board.launchJob({
     kind:        launch.role === 'builder' ? 'build' : 'review',
     role:        launch.role,
@@ -389,28 +389,28 @@ test('a reference to the id a renamed file holds finds no ticket: the file answe
   expect(refusal.detail).toEqual({ kind: 'no-readable-ticket', reference: '6' });
 });
 
-test('ticket-deliver-by-hand with a live Overseer the context names is refused overseer-owns-the-lifecycle, asked for its data folder, and writes nothing', () => {
+test('ticket-deliver-by-hand with a live Hephaestus the context names is refused hephaestus-owns-the-lifecycle, asked for its data folder, and writes nothing', () => {
   const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', status: 'reviewed' }));
   const askedDataFolders: string[] = [];
-  const liveOverseerContext = {
+  const liveHephaestusContext = {
     ...ECHOED_CONTROL_CONTEXT,
-    liveOverseerOf: (dataFolder: string) => {
+    liveHephaestusOf: (dataFolder: string) => {
       askedDataFolders.push(dataFolder);
-      return { url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/overseer/baton-3.json' };
+      return { url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/hephaestus/baton-3.json' };
     },
   };
   const ticketsBefore = board.tickets();
 
-  const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-deliver-by-hand', ticketReference: '1' }, change, liveOverseerContext));
+  const refusal = operationRefusalOf(() => ControlService.apply({ kind: 'ticket-deliver-by-hand', ticketReference: '1' }, change, liveHephaestusContext));
 
   expect(refusal.status).toBe('refused');
-  expect(refusal.detail).toEqual({ kind: 'overseer-owns-the-lifecycle', url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/overseer/baton-3.json' });
+  expect(refusal.detail).toEqual({ kind: 'hephaestus-owns-the-lifecycle', url: 'http://127.0.0.1:4100', batonFilePath: '/example-agency/.agent-progress/hephaestus/baton-3.json' });
   expect(askedDataFolders).toEqual([change.workspace.trackerDirectory]);
   expect(board.tickets()).toEqual(ticketsBefore);
   expect(board.logRecordsSoFar()).toEqual([]);
 });
 
-test('ticket-deliver-by-hand with no live Overseer delivers the ticket', () => {
+test('ticket-deliver-by-hand with no live Hephaestus delivers the ticket', () => {
   const { board, change } = boardWithOneTicket(ticketFixture({ id: '001', status: 'reviewed' }));
 
   ControlService.apply({

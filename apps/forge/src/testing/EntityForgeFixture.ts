@@ -46,8 +46,8 @@ export function entityPathOf(pathBelowTheRepository: string): string {
 }
 
 /**
- * The tickets of the fixture: one of the shop that may need a change of the admin app or cross into the package, and the ticket the
- * Overseer files for the admin app when the shop's ticket declares that need.
+ * The tickets of the fixture: one of the shop that may need a change of the admin app or cross into the package, and the ticket
+ * Hephaestus files for the admin app when the shop's ticket declares that need.
  */
 export const ENTITY_FORGE_TICKETS = {
   SHOP_TICKET: { id: '001', entity: ENTITY_FORGE_ENTITIES.SHOP },

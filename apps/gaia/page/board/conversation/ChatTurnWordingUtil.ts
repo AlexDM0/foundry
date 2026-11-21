@@ -40,13 +40,13 @@ function systemLineTextOf(facts: SystemLineFacts, bootLineText: string): string 
     case 'boot':
       return [bootLineText, ...chatText(facts.chatSequence)].join(' · ');
     case 'incident-delivery':
-      return [`Overseer delivered ${facts.incidentIds.join(', ')}`, ...chatText(facts.chatSequence)].join(' · ');
-    case 'overseer-chat':
-      return 'Overseer sent a message';
+      return [`Hephaestus delivered ${facts.incidentIds.join(', ')}`, ...chatText(facts.chatSequence)].join(' · ');
+    case 'hephaestus-chat':
+      return 'Hephaestus sent a message';
     case 'standing-reply':
       return 'Talos sent a standing reply';
     case 'client-act':
-      return `${facts.sender === 'assistant' ? 'The Assistant' : 'Overseer'} ${CLIENT_ACT_TEXT[facts.act]}`;
+      return `${facts.sender === 'assistant' ? 'The Assistant' : 'Hephaestus'} ${CLIENT_ACT_TEXT[facts.act]}`;
   }
 }
 

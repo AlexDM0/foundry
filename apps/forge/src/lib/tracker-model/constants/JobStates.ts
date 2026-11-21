@@ -8,7 +8,7 @@ import type {
   JobStopMode,
   LandingKind,
   LostLineKind,
-  OverseerStopReason,
+  HephaestusStopReason,
   AirlockPhase,
   PipelineStepEnding,
   PipelineStepKind,
@@ -76,7 +76,7 @@ export const JOB_OUTCOMES = [
 ] as const satisfies readonly JobOutcome[];
 
 export const INTERRUPTION_CAUSES = [
-  'watcher-lost',
+  'talos-lost',
   'agent-crashed',
   'reboot',
   'answer-delivery',
@@ -98,11 +98,11 @@ export const FORCED_STOP_REFUSED_INTERRUPTION = 'forced-stop-refused' satisfies 
 export const HANDOFF_RED_INTERRUPTION = 'handoff-red' satisfies InterruptionCause;
 
 /** The interruptions a resume counts in `crashResumes`; a reboot, an answer delivery or a usage limit is nobody's crash. */
-export const CRASH_INTERRUPTION_CAUSES = ['watcher-lost', 'agent-crashed'] as const satisfies readonly InterruptionCause[];
+export const CRASH_INTERRUPTION_CAUSES = ['talos-lost', 'agent-crashed'] as const satisfies readonly InterruptionCause[];
 
 export const AIRLOCK_PHASES = ['merge-in', 'resolving', 're-reviewing', 'gating', 'fixing', 'committing', 'landing'] as const satisfies readonly AirlockPhase[];
 
-export const OVERSEER_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly OverseerStopReason[];
+export const HEPHAESTUS_STOP_REASONS = ['stopped', 'baton-passed'] as const satisfies readonly HephaestusStopReason[];
 
 export const START_KINDS = ['first-start', 'handover', 'stopped-on-purpose', 'machine-went-down', 'crashed'] as const satisfies readonly StartKind[];
 

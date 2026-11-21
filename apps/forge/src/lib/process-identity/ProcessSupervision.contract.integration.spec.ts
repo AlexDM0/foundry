@@ -327,7 +327,7 @@ const CLAUSES: readonly PortClause<SupervisionSubject>[] = [
   {
     claim: 'every child starts detached, a child\'s end reads from its exit, and a fallback stop can ask',
     check: ({ supervision }) => {
-      const everyChildKind = ['supervised-child', 'talos', 'overseer', 'successor'] as const;
+      const everyChildKind = ['supervised-child', 'talos', 'hephaestus', 'successor'] as const;
       for (const childKind of everyChildKind) expect(supervision.spawnOptionsFor(childKind)).toEqual({ detached: true });
       expect(supervision.endOf({ exitCode: 3, signalCode: null })).toEqual({ reason: 'exited', exitCode: 3, signal: null });
       expect(supervision.endOf({ exitCode: null, signalCode: 'SIGKILL' })).toEqual({ reason: 'signalled', exitCode: null, signal: 'SIGKILL' });

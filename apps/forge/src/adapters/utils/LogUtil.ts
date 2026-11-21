@@ -259,8 +259,8 @@ function sentenceOf(record: LogRecordContent): string {
       return `Chart range: ${chartRangeTextOf(record.fields.view)}`;
     case 'concurrency-limit-set':
       return `Concurrency limit set to ${record.fields.limit}`;
-    case 'overseer-set':
-      return `Overseer set to ${record.fields.state}`;
+    case 'hephaestus-set':
+      return `Hephaestus set to ${record.fields.state}`;
     case 'dispatcher-set':
       return `Dispatcher set to ${retiredDispatcherStateTextOf(record.fields.state, record.fields.runId)}`;
     case 'pipeline-prepare-step-set':
@@ -303,14 +303,14 @@ function sentenceOf(record: LogRecordContent): string {
       return agentStoppedTextOf(record.fields);
     case 'flint-brain-ended':
       return flintBrainEndedTextOf(record.fields);
-    case 'overseer-started':
-      return `Overseer started on code ${record.fields.codeVersion}, install version ${record.fields.installVersion}`;
-    case 'overseer-stopped':
-      return record.fields.reason === 'baton-passed' ? 'Overseer handed the board over to its successor' : 'Overseer stopped';
+    case 'hephaestus-started':
+      return `Hephaestus started on code ${record.fields.codeVersion}, install version ${record.fields.installVersion}`;
+    case 'hephaestus-stopped':
+      return record.fields.reason === 'baton-passed' ? 'Hephaestus handed the board over to its successor' : 'Hephaestus stopped';
     case 'start-classified':
       return startClassifiedTextOf(record.fields);
     case 'baton-pass-failed':
-      return `Overseer Baton pass to code ${record.fields.successorCodeVersion} failed at ${record.fields.step}: ${record.fields.error}; the old Overseer keeps driving`;
+      return `Hephaestus Baton pass to code ${record.fields.successorCodeVersion} failed at ${record.fields.step}: ${record.fields.error}; the old Hephaestus keeps driving`;
     case 'job-launched':
       return jobLaunchedTextOf(record.jobId, record.fields);
     case 'job-interrupted':
@@ -332,7 +332,7 @@ function sentenceOf(record: LogRecordContent): string {
     case 'job-messaged':
       return `Message for job ${record.jobId}: ${record.fields.text}`;
     case 'job-reopened': {
-      const sender = record.fields.byOverseer === true ? 'the Overseer\'s' : 'User\'s';
+      const sender = record.fields.byHephaestus === true ? 'Hephaestus\'s' : 'User\'s';
       return `Job ${record.jobId} reopened in child instance ${record.fields.childInstance} for ${sender} message: ${record.fields.text}`;
     }
     case 'intake-titled':

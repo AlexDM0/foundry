@@ -16,14 +16,14 @@ import {
 
 import type { ForgePresenceDocument } from 'forge-contracts/ForgePresenceDocument';
 
-import { BoardStateIngestion }                                                       from '../../../adapters/forge-api/BoardStateIngestion.ts';
-import { PresenceIngestion, type PresenceReportReading }                             from '../../../adapters/forge-api/PresenceIngestion.ts';
-import { recordedBoardDocumentOf }                                                   from '../../../adapters/forge-api/testing/BoardDocuments.ts';
-import { BoardDocumentMapUtil }                                                      from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
-import { createMarkdownRenderer }                                                    from '../../../lib/markdown-render/MarkdownRenderer.ts';
-import { recordedBoardAnswersOf, recordedOverseerFetch, type RecordedOverseerFetch } from '../../../testing/RecordedAnswers.ts';
-import { createScratchDirectory, removeScratchPath }                                 from '../../../testing/ScratchRoot.ts';
-import type { BoardRelayLogEntry }                                                   from '../@types/BoardRelayLogEntry.ts';
+import { BoardStateIngestion }                                                           from '../../../adapters/forge-api/BoardStateIngestion.ts';
+import { PresenceIngestion, type PresenceReportReading }                                 from '../../../adapters/forge-api/PresenceIngestion.ts';
+import { recordedBoardDocumentOf }                                                       from '../../../adapters/forge-api/testing/BoardDocuments.ts';
+import { BoardDocumentMapUtil }                                                          from '../../../adapters/page-api/BoardDocumentMapUtil.ts';
+import { createMarkdownRenderer }                                                        from '../../../lib/markdown-render/MarkdownRenderer.ts';
+import { recordedBoardAnswersOf, recordedHephaestusFetch, type RecordedHephaestusFetch } from '../../../testing/RecordedAnswers.ts';
+import { createScratchDirectory, removeScratchPath }                                     from '../../../testing/ScratchRoot.ts';
+import type { BoardRelayLogEntry }                                                       from '../@types/BoardRelayLogEntry.ts';
 import {
   EXAMPLE_FORGE_TOKEN,
   STOREFRONT_TRACKER_ID,
@@ -36,7 +36,7 @@ import {
 } from '../testing/ExampleRelayForge.ts';
 import { createBoardStateRoute, type BoardStateRoute } from './BoardStateRoute.ts';
 
-const BOARD_CALL_SHAPE = 'GET /api/v2/board with bearer';
+const BOARD_CALL_SHAPE = 'GET /api/v3/board with bearer';
 const BURST_OF_REQUESTS = 5;
 
 let scratchFolder = '';
@@ -55,8 +55,8 @@ afterEach(() => {
 
 type PresenceReadAfterNow = (trackerId: string) => Promise<PresenceReportReading | null>;
 
-function routeOver(overseerFetch: RecordedOverseerFetch, options: ExampleRelayForgeOptions = {}, presenceReadingAfterNow?: PresenceReadAfterNow): BoardStateRoute {
-  const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), overseerFetch, undefined, presenceReadingAfterNow);
+function routeOver(hephaestusFetch: RecordedHephaestusFetch, options: ExampleRelayForgeOptions = {}, presenceReadingAfterNow?: PresenceReadAfterNow): BoardStateRoute {
+  const sources = relaySourcesOver(exampleRelayForgeOf(scratchFolder, tokenPath, options), hephaestusFetch, undefined, presenceReadingAfterNow);
   return createBoardStateRoute(sources, (entry) => {
     logEntries.push(entry);
   });
@@ -83,14 +83,14 @@ describe('a forge\'s board', () => {
 
 describe('reads of one forge', () => {
   test('share one read for a burst of requests while a read is on its way, and map it once', async () => {
-    const overseerFetch = boardAnswering('board-at-work');
-    const route = routeOver(overseerFetch);
+    const hephaestusFetch = boardAnswering('board-at-work');
+    const route = routeOver(hephaestusFetch);
     const boardMapSpy = spyOn(BoardDocumentMapUtil, 'boardDocumentOf');
     try {
       const answers = await Promise.all(Array.from({ length: BURST_OF_REQUESTS }, () => route.answerFor(STOREFRONT_TRACKER_ID)));
       const documents = await Promise.all(answers.map((answer) => answer.json()));
       expect(new Set(documents.map((document) => JSON.stringify(document))).size).toBe(1);
-      expect(overseerFetch.callsAnswered().map((call) => call.callShape)).toEqual([BOARD_CALL_SHAPE, BOARD_CALL_SHAPE]);
+      expect(hephaestusFetch.callsAnswered().map((call) => call.callShape)).toEqual([BOARD_CALL_SHAPE, BOARD_CALL_SHAPE]);
       expect(boardMapSpy).toHaveBeenCalledTimes(2);
     } finally {
       boardMapSpy.mockRestore();
@@ -98,40 +98,40 @@ describe('reads of one forge', () => {
   });
 
   test('read afresh for a request that comes once the reads before it are done', async () => {
-    const overseerFetch = boardAnswering('board-at-work');
-    const route = routeOver(overseerFetch);
+    const hephaestusFetch = boardAnswering('board-at-work');
+    const route = routeOver(hephaestusFetch);
     await route.answerFor(STOREFRONT_TRACKER_ID);
     await route.answerFor(STOREFRONT_TRACKER_ID);
-    expect(overseerFetch.callsAnswered()).toHaveLength(2);
+    expect(hephaestusFetch.callsAnswered()).toHaveLength(2);
   });
 });
 
 describe('a forge whose board cannot be read', () => {
   test('is forge-not-registered when the registry names no such forge, and is asked nothing', async () => {
-    const overseerFetch = recordedOverseerFetch([]);
+    const hephaestusFetch = recordedHephaestusFetch([]);
     const forge = exampleRelayForgeOf(scratchFolder, tokenPath);
-    const route = createBoardStateRoute(relaySourcesOver(forge, overseerFetch, { verdict: 'readable', forges: [] }), () => undefined);
+    const route = createBoardStateRoute(relaySourcesOver(forge, hephaestusFetch, { verdict: 'readable', forges: [] }), () => undefined);
     const answer = await route.answerFor(STOREFRONT_TRACKER_ID);
-    expect([answer.status, await answer.json(), overseerFetch.callsAnswered()]).toEqual([404, { refusal: 'forge-not-registered', refusedBy: 'gaia' }, []]);
+    expect([answer.status, await answer.json(), hephaestusFetch.callsAnswered()]).toEqual([404, { refusal: 'forge-not-registered', refusedBy: 'gaia' }, []]);
   });
 
-  test('is forge-unreachable when its Overseer does not answer', async () => {
+  test('is forge-unreachable when its Hephaestus does not answer', async () => {
     const answer = await routeOver(stoppedForgeAnswering([BOARD_CALL_SHAPE])).answerFor(STOREFRONT_TRACKER_ID);
     expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'forge-unreachable', refusedBy: 'gaia' }]);
   });
 
   test('is forge-version-unsupported for a forge at a version Gaia cannot talk to', async () => {
     const newer = { verdict: 'newer', current: { major: 2, minor: 1 }, minimumSupported: { major: 2, minor: 0 } } as const;
-    const answer = await routeOver(recordedOverseerFetch([]), { fidelity: 'newer-contract', versions: newer }).answerFor(STOREFRONT_TRACKER_ID);
+    const answer = await routeOver(recordedHephaestusFetch([]), { fidelity: 'newer-contract', versions: newer }).answerFor(STOREFRONT_TRACKER_ID);
     expect([answer.status, await answer.json()]).toEqual([501, { refusal: 'forge-version-unsupported', refusedBy: 'gaia' }]);
   });
 
   test('is token-unreadable when the registry names no token file', async () => {
-    const answer = await routeOver(recordedOverseerFetch([]), { tokenPath: null }).answerFor(STOREFRONT_TRACKER_ID);
+    const answer = await routeOver(recordedHephaestusFetch([]), { tokenPath: null }).answerFor(STOREFRONT_TRACKER_ID);
     expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'token-unreadable', refusedBy: 'gaia' }]);
   });
 
-  test('is token-rejected when the Overseer refuses the token', async () => {
+  test('is token-rejected when Hephaestus refuses the token', async () => {
     const answer = await routeOver(boardAnswering('board-token-rejected', (callShape) => callShape === BOARD_CALL_SHAPE)).answerFor(STOREFRONT_TRACKER_ID);
     expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'token-rejected', refusedBy: 'gaia' }]);
   });
@@ -139,11 +139,11 @@ describe('a forge whose board cannot be read', () => {
   test('is forge-document-unreadable for a document that does not ingest, logged with the key it lacks', async () => {
     const recorded = recordedBoardAnswersOf('board-at-work').find(({ callShape }) => callShape === BOARD_CALL_SHAPE)?.answer;
     if (recorded?.verdict !== 'answered') throw new Error('The board-at-work situation holds no answered board.');
-    const { overseer: _overseer, ...withoutOverseer } = JSON.parse(recorded.bodyText) as Record<string, unknown>;
-    const notABoard = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText: JSON.stringify(withoutOverseer) } }]);
+    const { hephaestus: _hephaestus, ...withoutHephaestus } = JSON.parse(recorded.bodyText) as Record<string, unknown>;
+    const notABoard = recordedHephaestusFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText: JSON.stringify(withoutHephaestus) } }]);
     const answer = await routeOver(notABoard).answerFor(STOREFRONT_TRACKER_ID);
     expect([answer.status, await answer.json()]).toEqual([502, { refusal: 'forge-document-unreadable', refusedBy: 'gaia' }]);
-    expect(logEntries).toEqual([{ kind: 'board-unreadable', trackerId: STOREFRONT_TRACKER_ID, invalidKeys: ['overseer'] }]);
+    expect(logEntries).toEqual([{ kind: 'board-unreadable', trackerId: STOREFRONT_TRACKER_ID, invalidKeys: ['hephaestus'] }]);
   });
 });
 
@@ -197,12 +197,12 @@ describe('a board that holds waiting work', () => {
     const jobIds = (JSON.parse(bodyText) as { jobs: { id: string }[] }).jobs.map((job) => job.id);
     const [firstJobId] = jobIds;
     if (firstJobId === undefined) throw new Error('The recorded board holds a job.');
-    const overseerFetch = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
+    const hephaestusFetch = recordedHephaestusFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
     const watchPresence = watchPresenceServing(presenceListing(firstJobId));
-    const answer = await routeOver(overseerFetch, {}, watchPresence.read).answerFor(STOREFRONT_TRACKER_ID);
+    const answer = await routeOver(hephaestusFetch, {}, watchPresence.read).answerFor(STOREFRONT_TRACKER_ID);
     const { jobs } = await answer.json() as { jobs: { id: string; waitsFor: string | null }[] };
     expect(jobs.map((job) => job.waitsFor)).toEqual(jobIds.map((jobId) => (jobId === firstJobId ? 'instruction' : null)));
-    expect([overseerFetch.callsAnswered().map((call) => call.callShape), watchPresence.askedFor]).toEqual([[BOARD_CALL_SHAPE], [STOREFRONT_TRACKER_ID]]);
+    expect([hephaestusFetch.callsAnswered().map((call) => call.callShape), watchPresence.askedFor]).toEqual([[BOARD_CALL_SHAPE], [STOREFRONT_TRACKER_ID]]);
     const atWork = boardAnswering('board-at-work');
     const presenceOfBoardAtWork = watchPresenceServing(presenceListing(firstJobId));
     await routeOver(atWork, {}, presenceOfBoardAtWork.read).answerFor(STOREFRONT_TRACKER_ID);
@@ -212,8 +212,8 @@ describe('a board that holds waiting work', () => {
   test('leaves every wait unknown when the presence does not ingest, logged with the key it lacks', async () => {
     const { recorded, bodyText } = boardAnswerWith((document) => interruptedEveryJob(document, 'lease-ended'));
     const { interruptedWork: _interruptedWork, ...withoutWork } = presenceListing('J1');
-    const overseerFetch = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
-    const route = routeOver(overseerFetch, {}, watchPresenceServing(withoutWork).read);
+    const hephaestusFetch = recordedHephaestusFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
+    const route = routeOver(hephaestusFetch, {}, watchPresenceServing(withoutWork).read);
     const { jobs } = await (await route.answerFor(STOREFRONT_TRACKER_ID)).json() as { jobs: { waitsFor: string | null }[] };
     expect(jobs.every((job) => job.waitsFor === null)).toBe(true);
     expect(logEntries).toEqual([{ kind: 'presence-unreadable', trackerId: STOREFRONT_TRACKER_ID, invalidKeys: ['interruptedWork'] }]);
@@ -221,8 +221,8 @@ describe('a board that holds waiting work', () => {
 
   test('leaves every wait unknown when the forge watch follows no monitor of the forge', async () => {
     const { recorded, bodyText } = boardAnswerWith((document) => interruptedEveryJob(document, 'lease-ended'));
-    const overseerFetch = recordedOverseerFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
-    const { jobs } = await (await routeOver(overseerFetch).answerFor(STOREFRONT_TRACKER_ID)).json() as { jobs: { waitsFor: string | null }[] };
+    const hephaestusFetch = recordedHephaestusFetch([{ callShape: BOARD_CALL_SHAPE, answer: { ...recorded, bodyText } }]);
+    const { jobs } = await (await routeOver(hephaestusFetch).answerFor(STOREFRONT_TRACKER_ID)).json() as { jobs: { waitsFor: string | null }[] };
     expect([jobs.every((job) => job.waitsFor === null), logEntries]).toEqual([true, []]);
   });
 });

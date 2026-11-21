@@ -1,6 +1,6 @@
 /**
  * "Copy to another entity" in an entity's gates table head: a popover that ticks the entities to copy the phase's gates to, says that the
- * copy is a set of ordinary edits shown as one row in Changes, and sends them as one copy. Once the Overseer applied it, the popover closes
+ * copy is a set of ordinary edits shown as one row in Changes, and sends them as one copy. Once Hephaestus applied it, the popover closes
  * and the head says where the gates went and how many edits it made.
  */
 import { useRef, useState }                     from 'react';

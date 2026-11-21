@@ -1,5 +1,5 @@
 /**
- * How a forge program's run ends as Gaia's command verdict. What matters: a done update whose Baton pass the live Overseer did not take is
+ * How a forge program's run ends as Gaia's command verdict. What matters: a done update whose Baton pass the live Hephaestus did not take is
  * restart pending, not plain done, since the old code still drives; a pass that was done or not needed leaves the update's own outcome; a
  * refusal keeps the forge's code and sentence for the page contract's mapper to word; and each way the program did not finish is Gaia's
  * own verdict. The failed pass is a value of the internal model: no forge was recorded answering it yet (docs/backlog.md).
@@ -20,7 +20,7 @@ function updateDoneWith(batonPass: ForgeBatonPass): ForgeProgramVerdict<ForgeUpd
 }
 
 describe('the verdict of an update', () => {
-  test('is restart pending when the live Overseer did not take the Baton pass', () => {
+  test('is restart pending when the live Hephaestus did not take the Baton pass', () => {
     expect(ProgramVerdictUtil.verdictOfUpdate(updateDoneWith({ outcome: 'failed', failedStep: 'restart-not-taken' }))).toEqual({ verdict: 'restart-pending' });
   });
 

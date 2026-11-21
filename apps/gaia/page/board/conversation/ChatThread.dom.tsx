@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 const BOOT_LINE: ChatTurn = {
-  kind: 'system', key: 'boot', text: 'Overseer booted J1 with its prompt · chat 1', stamp: { shortText: '14:02:08' }, revealText: 'You are the Assistant of Example Storefront.',
+  kind: 'system', key: 'boot', text: 'Hephaestus booted J1 with its prompt · chat 1', stamp: { shortText: '14:02:08' }, revealText: 'You are the Assistant of Example Storefront.',
 };
 
 const CLOSED_AGENT_TURN: ChatTurn = {

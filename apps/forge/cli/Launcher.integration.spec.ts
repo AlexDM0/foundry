@@ -1,7 +1,7 @@
 /**
  * The compiled launcher `setup.ts` installs, run in a scratch repository that plants a bunfig preload and a `.env`. The cases that matter:
  * the planted preload stays unrun and the planted variable unset, for a command and for the hook; a missing preload path leaves the exit
- * code alone; the exit code and both streams match the direct run; and the program command the Overseer, its successor and the
+ * code alone; the exit code and both streams match the direct run; and the program command Hephaestus, its successor and the
  * install-change watch start from (`cli/CommandContext.ts`) is isolated the same way. Each claim is first watched failing without the
  * isolation, so the planting is proved to work.
  */
@@ -14,7 +14,7 @@ import {
   expect,
   test
 }                                                         from 'bun:test';
-import { versionsFromTheBinary }                                          from '../src/services/overseer/InstallChangeWatch.ts';
+import { versionsFromTheBinary }                                          from '../src/services/hephaestus/InstallChangeWatch.ts';
 import { ToolRuntimeUtil }                                                from '../src/shared/ToolRuntimeUtil.ts';
 import { ROOT_OVERRIDE_VARIABLE }                                         from '../src/shared/constants/RootOverrideVariable.ts';
 import { CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS }                        from '../src/testing/ChildProcessCaseTimeout.ts';
@@ -123,7 +123,7 @@ describe('a missing preload path in a tracked bunfig', () => {
     expect((await runLauncher(['no-such-command'], missingPreloadRepository)).exitCode).toBe(1);
   }, CHILD_PROCESS_CASE_TIMEOUT_MILLISECONDS);
 
-  test('leaves the program command the Overseer starts its children from answering, where without the isolation it does not', async () => {
+  test('leaves the program command Hephaestus starts its children from answering, where without the isolation it does not', async () => {
     const isolatedProgramCommand = [process.execPath, ...ToolRuntimeUtil.isolatingArgumentsOfThisCheckout(), ENTRY_POINT];
     expect(await versionsFromTheBinary([process.execPath, ENTRY_POINT], missingPreloadRepository)).toBeNull();
     expect(await versionsFromTheBinary(isolatedProgramCommand, missingPreloadRepository)).toEqual({ codeVersion: expect.any(String), installVersion: expect.any(Number) });

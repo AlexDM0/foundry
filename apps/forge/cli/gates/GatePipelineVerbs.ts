@@ -12,7 +12,7 @@ import type {
   PipelineStep
 } from '../../src/lib/tracker-model/@types/Pipeline.ts';
 import { PipelineUtil }                                   from '../../src/lib/tracker-model/utils/PipelineUtil.ts';
-import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/overseer/GateCachePaths.ts';
+import { type CacheFolderRefusal, GateCachePaths }        from '../../src/services/hephaestus/GateCachePaths.ts';
 import type { ControlCommand }                            from '../../src/shared/@types/ControlCommand.ts';
 import { OperationRefusal }                               from '../../src/shared/OperationRefusal.ts';
 import { PRODUCT_NAMES }                                  from '../../src/shared/constants/ProductNames.ts';
@@ -71,7 +71,7 @@ function commandLineFrom(commandArguments: ArgumentParser, context: CommandConte
   return commandLine;
 }
 
-/** A folder a gate could never write is refused when stored, so the Overseer's later dropping of it never comes as a surprise. */
+/** A folder a gate could never write is refused when stored, so Hephaestus's later dropping of it never comes as a surprise. */
 function refuseUnwritableFolder(path: string, context: CommandContext, usage: string): void {
   if (!PathNestingUtil.wirePathIsWellFormed(path)) refuseUsage(`--writes takes an absolute or ~/ folder, and ${path} is neither.`, usage);
   const refusal = GateCachePaths.refusalOf(path, context.homeDirectory, context.executableSearchPath, context.platformPorts.dataFolders);

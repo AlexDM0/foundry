@@ -1,7 +1,7 @@
 /**
  * The live flow's footer in a happy-dom document, over the A5 fixture. What matters: it names the applied version with its time and User,
  * the content hash and the constitution commit's short id; View stored pipeline shows the stored text byte for byte, read-only; Update
- * pipeline sends `pipeline-update-start` and moves to `#pipeline/edit` only once the Overseer took it.
+ * pipeline sends `pipeline-update-start` and moves to `#pipeline/edit` only once Hephaestus took it.
  */
 import { cleanup, screen, within } from '@testing-library/react';
 import {

@@ -30,8 +30,8 @@ import { removeScratchDirectory }                 from '../../src/testing/Scratc
 import { describeWhenGitIsRecorded }              from '../../src/testing/ToolGuard.ts';
 import { waitUntil }                              from '../../src/testing/WaitUntil.ts';
 import { createCapturedCommandContext }           from '../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }      from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository } from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }        from '../testing/OverseerTicketMoves.ts';
 import { fileReadyTicket, filedTicketIdOf }       from '../testing/ReadyTicketFiling.ts';
 import { dropTicketRow }                          from '../testing/RowlessTicket.ts';
 import { storedLogEntriesOf }                     from '../testing/StoredLogEntries.ts';
@@ -53,7 +53,7 @@ function contextHere(): ReturnType<typeof createCapturedCommandContext> {
 
 async function run(commandLineArguments: readonly string[]): Promise<ReturnType<typeof createCapturedCommandContext>> {
   const context  = contextHere();
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\` failed: ${context.errorText()}`).toBe(0);
   return context;
 }
@@ -102,7 +102,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
 
   test('--body beside --body-file is refused at exit 1 and files nothing, rather than dropping the file', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Fix the axis', '--body', 'a', '--body-file', 'b'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', 'Fix the axis', '--body', 'a', '--body-file', 'b'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('takes --body or --body-file, not both');
@@ -112,7 +112,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
   test('a type that is not one of the three, a retired one included, is refused at exit 1 naming the three and files nothing', async () => {
     for (const writtenType of ['defect', 'change', 'feature']) {
       const context  = contextHere();
-      const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', 'Fix the axis', '--type', writtenType], context);
+      const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'add', 'Fix the axis', '--type', writtenType], context);
 
       expect(exitCode, writtenType).toBe(1);
       expect(context.errorText()).toContain(`"${writtenType}" is not a ticket type. The types are ticket, bug, research.`);
@@ -123,7 +123,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
   test('a --group that is not portable is refused at exit 1 and files nothing', async () => {
     for (const group of ['Role-Editor', 'role|editor', 'role-editor.']) {
       const context  = contextHere();
-      const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', 'Fix the axis', '--type', 'ticket', '--group', group], context);
+      const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'add', 'Fix the axis', '--type', 'ticket', '--group', group], context);
 
       expect(exitCode, group).toBe(1);
       expect(context.errorText(), group).toContain(`"${group}" is not a usable group name`);
@@ -133,7 +133,7 @@ describeWhenGitIsRecorded('filing a ticket', () => {
 
   test('an add without --type is refused at exit 1 with the usage line and files nothing', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', 'Fix the axis'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'add', 'Fix the axis'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} ticket add needs --type ticket|bug|research.`);
@@ -176,8 +176,8 @@ describeWhenGitIsRecorded('filing a ticket', () => {
   test('two adds queued behind a held lock each carry their own id in their heading', async () => {
     const queuedAdds = await parkingLockRetries((parkedRetries) => withLock(workspacePathsFor(repositoryDirectory), async () => {
       const adds = [
-        runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Held A'], contextHere()),
-        runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Held B'], contextHere()),
+        runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', 'Held A'], contextHere()),
+        runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', 'Held B'], contextHere()),
       ];
       await waitUntil(() => parkedRetries() === adds.length, 'both adds queueing on the lock');
       return adds;
@@ -250,7 +250,7 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
     const progressBefore = readFileSync(join(repositoryDirectory, PRODUCT_NAMES.DATA_FOLDER, 'progress.json'), 'utf8');
 
     const context = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'ready', '2', '1'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'ready', '2', '1'], context)).toBe(1);
 
     expect(context.errorText()).toContain('Ticket #001 is committed, not a draft ticket');
     expect(storedTicketText('002-show-the-role-history.md')).toContain('status: "draft"');
@@ -263,7 +263,7 @@ describeWhenGitIsRecorded('readying a draft ticket', () => {
     await run(['ticket', 'add', '--type', 'ticket', 'Export the roles', '--body', UNNUMBERED_BODY]);
 
     const context = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'ready', '1', '2', '3'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'ready', '1', '2', '3'], context)).toBe(1);
 
     expect(context.errorText()).toContain('#002');
     expect(context.errorText()).toContain('brief-missing');
@@ -315,7 +315,7 @@ describeWhenGitIsRecorded('putting a ticket back into draft', () => {
     const ticketBefore   = storedTicketText();
 
     const context = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'unready', '1'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'unready', '1'], context)).toBe(1);
 
     expect(context.errorText()).toContain('Ticket #001 is in-progress, not committed, so it was not put back into draft.');
     expect(context.errorText()).toContain(`\`${PRODUCT_NAMES.PROGRAM} ticket reopen 001\``);
@@ -327,7 +327,7 @@ describeWhenGitIsRecorded('putting a ticket back into draft', () => {
     await run(['ticket', 'unready', '1']);
 
     const context = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'unready', '1'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'unready', '1'], context)).toBe(1);
 
     expect(context.errorText()).toContain('Ticket #001 is a draft ticket, not committed, so it was not put back into draft. Its content can be edited as it is.');
   });
@@ -341,7 +341,7 @@ describeWhenGitIsRecorded('putting a ticket back into draft', () => {
       },
     };
 
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'unready', '1'], context)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'unready', '1'], context)).toBe(1);
 
     expect(context.errorText()).toContain(`\`${PRODUCT_NAMES.PROGRAM} ticket unready\` cannot run under job J4`);
     expect(storedTicketText()).toBe(ticketBefore);
@@ -412,7 +412,7 @@ describeWhenGitIsRecorded('moving a ticket', () => {
 
   test('abandon needs a reason, and refuses without one rather than inventing a blank', async () => {
     const refused  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'abandon', '1'], refused);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'abandon', '1'], refused);
 
     expect(exitCode).toBe(1);
     expect(refused.errorText()).toContain('--reason');
@@ -434,7 +434,7 @@ describeWhenGitIsRecorded('moving a ticket', () => {
 
   test('a status that is not one is refused, listing the ones that are', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'status', '1', 'finished'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'status', '1', 'finished'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('is not a ticket status');
@@ -443,7 +443,7 @@ describeWhenGitIsRecorded('moving a ticket', () => {
 
   test('a ticket that does not exist is refused with exit 1', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'start', '42'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'start', '42'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('There is no readable ticket 42');
@@ -494,7 +494,7 @@ describeWhenGitIsRecorded('a second review pass', () => {
     await fileReadyTicket(run, ['ticket', 'add', 'Fix the axis', '--type', 'bug']);
 
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'rereview', '2'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'rereview', '2'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('Ticket #002 is committed');
@@ -508,14 +508,14 @@ describeWhenGitIsRecorded('a second review pass', () => {
     await run(['ticket', 'start', '2']);
 
     const context = contextHere();
-    await runCommandLineWithOverseerMoves(['ticket', 'rereview', '2'], context);
+    await runCommandLineWithHephaestusMoves(['ticket', 'rereview', '2'], context);
 
     expect(context.errorText()).toContain(`${PRODUCT_NAMES.PROGRAM} ticket status 002 in-review`);
   });
 
   test('rereview takes no --tokens, so the figure on the row stays the builder\'s', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'rereview', '1', '--tokens', '48k'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'rereview', '1', '--tokens', '48k'], context);
 
     expect(exitCode).not.toBe(0);
     expect(storedProgressOf(repositoryDirectory).tasks[0]?.status).not.toBe('re-review');
@@ -588,7 +588,7 @@ describeWhenGitIsRecorded('linking a ticket to a row', () => {
     await fileReadyTicket(run, ['ticket', 'add', 'Fix the axis', '--type', 'bug']);
 
     const refused = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'link', '1', '2'], refused)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'link', '1', '2'], refused)).toBe(1);
     expect(refused.errorText()).toContain('already belongs to ticket #002');
 
     await run(['ticket', 'link', '1', '2', '--force']);
@@ -605,7 +605,7 @@ describeWhenGitIsRecorded('the transition matrix', () => {
 
   test('a verb refuses a ticket that is not in a status it moves from, naming the override', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'deliver', '1'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'deliver', '1'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('Ticket #001 is committed');
@@ -616,7 +616,7 @@ describeWhenGitIsRecorded('the transition matrix', () => {
   test('a refused move writes no log line and leaves the ticket where it was', async () => {
     const logBefore = storedLogEntriesOf(repositoryDirectory).length;
 
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'deliver', '1'], contextHere())).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'deliver', '1'], contextHere())).toBe(1);
 
     expect(storedLogEntriesOf(repositoryDirectory)).toHaveLength(logBefore);
     expect(storedTicketText()).toContain('status: "committed"');
@@ -627,11 +627,11 @@ describeWhenGitIsRecorded('the transition matrix', () => {
     const logBefore = storedLogEntriesOf(repositoryDirectory).length;
 
     const byVerb = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'start', '1'], byVerb)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'start', '1'], byVerb)).toBe(1);
     expect(byVerb.errorText()).toContain('is already in-progress');
 
     const byStatus = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'status', '1', 'in-progress'], byStatus)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'status', '1', 'in-progress'], byStatus)).toBe(1);
     expect(byStatus.errorText()).toContain('is already in-progress');
 
     expect(storedLogEntriesOf(repositoryDirectory)).toHaveLength(logBefore);
@@ -659,7 +659,7 @@ describeWhenGitIsRecorded('the transition matrix', () => {
     await run(['ticket', 'status', '1', 'delivered']);
 
     const refused = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'abandon', '1', '--reason', 'superseded'], refused)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'abandon', '1', '--reason', 'superseded'], refused)).toBe(1);
     expect(refused.errorText()).toContain('a move to abandoned takes a ticket that is draft or ready-for-review or committed');
 
     await run(['ticket', 'reopen', '1']);
@@ -669,7 +669,7 @@ describeWhenGitIsRecorded('the transition matrix', () => {
 
   test('an inherited property of the subcommand table is not a subcommand', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'constructor', '1'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'constructor', '1'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain(`is not a ${PRODUCT_NAMES.PROGRAM} ticket subcommand`);
@@ -693,7 +693,7 @@ describeWhenGitIsRecorded('token counts on a ticket move', () => {
     const ticketBefore   = storedTicketText();
 
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'abandon', '1', '--reason', 'superseded', '--tokens', '12k'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'abandon', '1', '--reason', 'superseded', '--tokens', '12k'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('has no row');
@@ -709,7 +709,7 @@ describeWhenGitIsRecorded('where --body-file reads from', () => {
       now:               () => FROZEN_NOW,
       standardInputText: '## Report\nPiped by Alex Example.\n',
     });
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', '-'], context)).toBe(0);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', '-'], context)).toBe(0);
 
     expect(storedTicketText()).toContain('Piped by Alex Example.');
   });
@@ -740,7 +740,7 @@ describeWhenGitIsRecorded('where --body-file reads from', () => {
     ];
     for (const [index, standardInputBytes] of piped.entries()) {
       const context = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputBytes });
-      expect(await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', `Example piped ticket ${index + 1}`, '--body-file', '-'], context)).toBe(0);
+      expect(await runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', `Example piped ticket ${index + 1}`, '--body-file', '-'], context)).toBe(0);
     }
 
     expect(storedTicketText('001-example-piped-ticket-1.md')).toContain('Piped in UTF-16 by Alex Example.');
@@ -751,7 +751,7 @@ describeWhenGitIsRecorded('where --body-file reads from', () => {
   test('bytes that are not valid UTF-8 are refused by name, and no ticket is stored', async () => {
     writeFileSync(join(repositoryDirectory, 'body.md'), Buffer.from([0x23, 0x23, 0x20, 0xC3, 0x28, 0x0A]));
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', 'body.md'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', 'Double-click a role to edit it', '--body-file', 'body.md'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('--body-file body.md is not valid UTF-8 text');
@@ -762,7 +762,7 @@ describeWhenGitIsRecorded('where --body-file reads from', () => {
 describeWhenGitIsRecorded('what ticket add refuses and what it falls back to', () => {
   test('a title that is nothing but whitespace is refused', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'add', '--type', 'ticket', '  '], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'add', '--type', 'ticket', '  '], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toContain('needs a title');
@@ -794,7 +794,7 @@ describeWhenGitIsRecorded('ticket dependencies', () => {
 
   async function refusalOf(commandLineArguments: readonly string[]): Promise<string> {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+    const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
     expect(exitCode).toBe(1);
     return context.errorText();
   }
@@ -915,11 +915,11 @@ describeWhenGitIsRecorded('a ticket file that will not parse', () => {
 
     for (const commandLine of [['ticket', 'show', '1'], ['ticket', 'claim', '1', '--owner', 'opus']]) {
       const context = contextHere();
-      expect(await runCommandLineWithOverseerMoves(commandLine, context), commandLine.join(' ')).toBe(2);
+      expect(await runCommandLineWithHephaestusMoves(commandLine, context), commandLine.join(' ')).toBe(2);
       expect(context.errorText(), commandLine.join(' ')).toMatch(new RegExp(`^Ticket file ignored: .*${FIRST_TICKET_FILE_NAME}`));
     }
     const missingContext = contextHere();
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'show', '2'], missingContext)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'show', '2'], missingContext)).toBe(1);
     expect(missingContext.errorText()).toContain('There is no readable ticket 2');
   });
 });
@@ -967,7 +967,7 @@ describeWhenGitIsRecorded('the subcommand groups', () => {
 
   test('constructor, inherited by every table, is refused as an unknown subcommand, with nothing on standard output', async () => {
     const context  = contextHere();
-    const exitCode = await runCommandLineWithOverseerMoves(['ticket', 'constructor', '1'], context);
+    const exitCode = await runCommandLineWithHephaestusMoves(['ticket', 'constructor', '1'], context);
 
     expect(exitCode).toBe(1);
     expect(context.errorText()).toStartWith(`"constructor" is not a ${PRODUCT_NAMES.PROGRAM} ticket subcommand.\n  Usage: ${PRODUCT_NAMES.PROGRAM} ticket add "<title>"`);

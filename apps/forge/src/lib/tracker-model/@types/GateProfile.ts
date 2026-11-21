@@ -42,7 +42,7 @@ export interface GateProfileRun {
   /** The pipeline's prepare steps at the press, which run before the gate. */
   prepare:             PipelineStep[];
   state:               GateProfileRunState;
-  /** User pressed Stop while the run was running; the Overseer ends its process tree and records `stopped`. */
+  /** User pressed Stop while the run was running; Hephaestus ends its process tree and records `stopped`. */
   stopRequested:       boolean;
   /** Recorded and shown only; `null` until the run ended by itself. */
   elapsedMilliseconds: number | null;

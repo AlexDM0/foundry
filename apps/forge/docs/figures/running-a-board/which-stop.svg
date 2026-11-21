@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="406" viewBox="0 0 680 406" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Pick the smallest stop that does the job</title>
+  <desc>A tree from the question of what must stop. One ticket with no agent on it: Hold keeps it from launching, and Park does the same and asks you. One running job: Wind down wraps up and holds the ticket, Stop ends it now and holds the ticket, and Fresh agent starts the next attempt in the same worktree. The whole board: Pause lets running agents carry on, and job stop --all --wind-down has the agents wrap up and holds the tickets.</desc>
+  <defs><marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/></marker></defs>
+
+  <rect x="1" y="1" width="678" height="404" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Pick the smallest stop that does the job</text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Every leaf names its consequence. Amber is your question, blue is what Hephaestus then does.</text>
+
+  <path d="M340,128 V138 M135,138 H545 M135,270 V282 M340,270 V282 M340,328 V340 M545,270 V282" fill="none" stroke="#bfbdb0" stroke-width="1.6"/>
+  <g fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)">
+    <path d="M135,138 V153"/><path d="M340,138 V153"/><path d="M545,138 V153"/>
+    <path d="M135,204 V221"/><path d="M340,204 V221"/><path d="M545,204 V221"/>
+  </g>
+
+  <g fill="#FAEEDA" stroke="#F2DDB0">
+    <rect x="240" y="88" width="200" height="40" rx="8"/>
+    <rect x="40" y="156" width="190" height="48" rx="8"/>
+    <rect x="245" y="156" width="190" height="48" rx="8"/>
+    <rect x="450" y="156" width="190" height="48" rx="8"/>
+  </g>
+  <g fill="#E6F1FB" stroke="#CFE2F6">
+    <rect x="40" y="224" width="190" height="46" rx="8"/><rect x="40" y="282" width="190" height="46" rx="8"/>
+    <rect x="245" y="224" width="190" height="46" rx="8"/><rect x="245" y="282" width="190" height="46" rx="8"/><rect x="245" y="340" width="190" height="46" rx="8"/>
+    <rect x="450" y="224" width="190" height="46" rx="8"/><rect x="450" y="282" width="190" height="46" rx="8"/>
+  </g>
+  <g text-anchor="middle">
+    <g font-size="13" font-weight="500" fill="#633806">
+      <text x="340" y="113">What must stop?</text>
+      <text x="135" y="177" font-size="14">One ticket</text>
+      <text x="340" y="185" font-size="14">One running job</text>
+      <text x="545" y="185" font-size="14">The whole board</text>
+    </g>
+    <text x="135" y="194" font-size="11.5" fill="#854F0B">no agent on it</text>
+    <g font-size="14" font-weight="500" fill="#0C447C">
+      <text x="135" y="244">Hold</text><text x="135" y="302">Park</text>
+      <text x="340" y="244">Wind down</text><text x="340" y="302">Stop</text><text x="340" y="360">Fresh agent</text>
+      <text x="545" y="244">Pause</text>
+      <text x="545" y="302" font-size="11.5" font-family="ui-monospace,Menlo,Consolas,monospace">job stop --all --wind-down</text>
+    </g>
+    <g font-size="12" fill="#185FA5">
+      <text x="135" y="261">keeps it from launching</text><text x="135" y="319">same, and asks you</text>
+      <text x="340" y="261">wraps up; ticket held</text><text x="340" y="319">ends now; ticket held</text><text x="340" y="377">next attempt, same worktree</text>
+      <text x="545" y="261">running agents carry on</text><text x="545" y="319">agents wrap up; tickets held</text>
+    </g>
+  </g>
+</svg>

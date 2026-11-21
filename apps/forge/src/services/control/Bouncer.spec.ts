@@ -15,7 +15,7 @@ import type { JobRole }                                   from '../../lib/tracke
 import { INCIDENT_KINDS }                                 from '../../lib/tracker-model/constants/DecisionAndIncidentVocabulary.ts';
 import { JOB_ROLES }                                      from '../../lib/tracker-model/constants/JobStates.ts';
 import type { ControlCommand, ControlCommandOf }          from '../../shared/@types/ControlCommand.ts';
-import { WORKER_FILINGS_PER_JOB }                         from '../../shared/constants/OverseerLimits.ts';
+import { WORKER_FILINGS_PER_JOB }                         from '../../shared/constants/HephaestusLimits.ts';
 import { Bouncer, type BouncerVerdict, type RelayingJob } from './Bouncer.ts';
 import { CONTROL_COMMAND_KINDS }                          from './ControlService.ts';
 import { ALLOWED_MOVES_BY_INCIDENT_KIND }                 from './constants/AllowedMovesByIncidentKind.ts';
@@ -101,7 +101,7 @@ describe('builder and reviewer', () => {
 });
 
 describe('the runtime commands', () => {
-  // A clean restart of Talos stops every agent at its turn end: it is User's, from the live Overseer's API, never an agent's.
+  // A clean restart of Talos stops every agent at its turn end: it is User's, from the live Hephaestus's API, never an agent's.
   test('talos-restart is refused for every agent role, the Assistant and the pipeline agent included', () => {
     const roles: readonly JobRole[] = ['builder', 'reviewer', 're-reviewer', 'conflict-re-reviewer', 'assistant', 'product-owner', 'pipeline-agent'];
     for (const role of roles) {
@@ -319,7 +319,7 @@ describe('pipeline agent', () => {
 describe('ticket review', () => {
   const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'pipeline-agent', null];
 
-  test('no Overseer-launched session relays ticket ready, ticket submit, a switch of ticket review or the Assistant\'s switch', () => {
+  test('no Hephaestus-launched session relays ticket ready, ticket submit, a switch of ticket review or the Assistant\'s switch', () => {
     const commands: ControlCommand[] = [
       { kind: 'ticket-ready', ticketReferences: ['7'] },
       { kind: 'ticket-submit', ticketReferences: ['7'] },
@@ -338,14 +338,14 @@ describe('ticket review', () => {
   });
 });
 
-// Their verbs are refused under a job before anything relays; a request file written by hand must meet the same wall at the Overseer.
+// Their verbs are refused under a job before anything relays; a request file written by hand must meet the same wall at Hephaestus.
 describe('the kinds only User\'s own surfaces send', () => {
   const ROLES: readonly (JobRole | null)[] = ['builder', 'reviewer', 'product-owner', 'assistant', 'pipeline-agent', null];
   const SYSTEM_QUESTION_ON_TICKET_7: RelayingJob['deliveredIncidents'][number] = {
     id: 'I9', kind: 'system-question', ticketIds: ['007'], jobId: 'J2'
   };
 
-  test('no Overseer-launched session relays a resume of interrupted work, whatever its target', () => {
+  test('no Hephaestus-launched session relays a resume of interrupted work, whatever its target', () => {
     const targets: ControlCommandOf<'interrupted-work-resume'>['target'][] = [{ jobId: 'J2' }, { ticketReference: '7' }, 'all', 'network-outage'];
     for (const role of [...JOB_ROLES, null]) {
       const job = jobOf(role, { deliveredIncidents: [SYSTEM_QUESTION_ON_TICKET_7] });
@@ -356,7 +356,7 @@ describe('the kinds only User\'s own surfaces send', () => {
     }
   });
 
-  test('no Overseer-launched session relays range, clear, a by-hand delivery or an unready, not even naming a delivered incident', () => {
+  test('no Hephaestus-launched session relays range, clear, a by-hand delivery or an unready, not even naming a delivered incident', () => {
     const commands: ControlCommand[] = [
       { kind: 'chart-range-set', range: { kind: 'automatic' } },
       { kind: 'tracker-clear', scope: 'everything' },

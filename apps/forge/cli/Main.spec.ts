@@ -153,7 +153,7 @@ describe('a command run where no tracker is', () => {
 });
 
 describe('a tracker whose installed files are of another install version', () => {
-  const COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN = new Set(['init', 'update', 'help', 'status', 'version', 'hook', 'stop', 'machine', 'login-item']);
+  const COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN = new Set(['init', 'update', 'help', 'status', 'version', 'hook', 'stop', 'talos-restart', 'machine', 'login-item']);
   const CHECKED_COMMAND_NAMES = COMMAND_NAMES.filter((commandName) => !COMMANDS_THAT_RUN_OR_CHECK_ON_THEIR_OWN.has(commandName));
 
   /** A tracker made by `init` and then stripped of its manifest is exactly a tracker installed by an agent-progress from before versioning. */
@@ -198,30 +198,30 @@ describe('a tracker whose installed files are of another install version', () =>
     expect(existsSync(installedFilePathsIn(trackedDirectory).installManifest)).toBe(false);
   });
 
-  test('version runs and prints the code and install versions, so an Overseer can read the code on disk whatever was installed', async () => {
+  test('version runs and prints the code and install versions, so a Hephaestus can read the code on disk whatever was installed', async () => {
     const context = trackedContext();
     expect(await runCommandLine(['version', '--json'], context), context.errorText()).toBe(0);
     expect(JSON.parse(context.outputText())).toEqual({
       answerVersion:        2,
       codeVersion:          expect.stringMatching(/^[0-9a-f]{12}$/),
       installVersion:       INSTALL_VERSION,
-      contracts:            { summary: 1, monitor: 4, control: 2 },
+      contracts:            { summary: 2, monitor: 5, control: 3 },
       talosProtocolVersion: TALOS_PROTOCOL_VERSION,
       monitorFolder:        expect.stringMatching(/monitor$/),
     });
   });
 
-  test('run status runs and reports the Overseer down, so an Overseer whose install changed can still be inspected', async () => {
+  test('run status runs and reports Hephaestus down, so a Hephaestus whose install changed can still be inspected', async () => {
     const context = trackedContext();
-    expect(await runCommandLine(['oversee', 'status', '--json'], context), context.errorText()).toBe(0);
-    expect(JSON.parse(context.outputText())).toMatchObject({
+    expect(await runCommandLine(['status', '--json'], context), context.errorText()).toBe(0);
+    expect((JSON.parse(context.outputText()) as { hephaestus: unknown }).hephaestus).toMatchObject({
       state: 'down', paused: true, url: null, baton: null, codeVersionInMemory: null
     });
   });
 
   test('run pause is checked like every mutating verb', async () => {
     const context = trackedContext();
-    expect(await runCommandLine(['oversee', 'pause'], context)).toBe(1);
+    expect(await runCommandLine(['pause'], context)).toBe(1);
     expect(context.errorText()).toBe(unversionedParagraph());
   });
 

@@ -1,8 +1,7 @@
 /**
- * Test-only: the Bridge's style guards, carried over so the board's stylesheets under `page/styles/board/` are held exactly as the Bridge
- * holds `bridge/styles/board.css` and `tokens.css` (`apps/forge/bridge/testing/StyleRuleReader.ts`, `ReducedMotionStopsEveryAnimation`,
- * `HoverMovesNothing` and `ThemeTokens` specs): a rule the Bridge passes, the board passes once its prefix is `board-`. Keep each guard the
- * same as its Bridge original; `StyleContract.spec.ts` plants their cases and runs them.
+ * Test-only: the style guards of the board's stylesheets under `page/styles/board/`. It reads a stylesheet's rules and token blocks and
+ * words what breaks a guard: an animation that reduced motion does not stop, a hover or press that moves something, a token a theme
+ * leaves unset. `StyleContract.spec.ts` plants a case for each guard and runs them on the board's sheets.
  */
 
 export interface StylesheetDeclaration {

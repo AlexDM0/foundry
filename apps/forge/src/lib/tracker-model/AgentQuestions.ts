@@ -180,6 +180,6 @@ export class AgentQuestions {
     const questions = questionsOfIncident(incident);
     if (questions === null) return null;
     const job = incident.jobId === null ? undefined : this.jobRules.jobById(incident.jobId);
-    return { askedBy: job?.role ?? 'overseer', questions, context: '' };
+    return { askedBy: job?.role ?? 'hephaestus', questions, context: '' };
   }
 }

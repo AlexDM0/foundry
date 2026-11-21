@@ -1,5 +1,5 @@
 /**
- * What the pipeline agent's verbs share. Under its job a verb names no setup record: the Overseer stamps the one the agent serves. Outside
+ * What the pipeline agent's verbs share. Under its job a verb names no setup record: Hephaestus stamps the one the agent serves. Outside
  * a job User names the record first. The payload is JSON after `--`, or in a file or standard input with `--file`, read through the same
  * closed schema the applier reads it with, so a misshapen payload is refused before it is relayed.
  */
@@ -20,7 +20,7 @@ import { setupIdOf }                                        from './SetupCommand
 /** Each verb's own word comes first; outside a job the setup record follows it. */
 const VERB_WORD_COUNT = 1;
 
-/** The record the command names: none under a job, where the Overseer stamps it. */
+/** The record the command names: none under a job, where Hephaestus stamps it. */
 export interface AgentSetupNaming {
   setupId?: string;
 }

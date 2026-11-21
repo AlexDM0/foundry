@@ -214,7 +214,7 @@ describe('the filters', () => {
     expect(forgeFilterOf(unfolded)).toEqual([
       ['All forges', false], ['Example Storefront', false], ['Invoice Service', false], ['Research Wiki', false], ['Design System', true],
     ]);
-    expect(bodyRowsIn(unfolded).map(cellTextsOf)).toEqual([['12:20', 'Design System', 'Forge', 'Overseer stopped']]);
+    expect(bodyRowsIn(unfolded).map(cellTextsOf)).toEqual([['12:20', 'Design System', 'Forge', 'Hephaestus stopped']]);
   });
 
   test('the menu\'s own close, on Escape or a press outside it, is handed on to the view', () => {

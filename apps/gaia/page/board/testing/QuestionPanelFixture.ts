@@ -65,7 +65,7 @@ export const PARKED_DECISION: BoardDecisionDocument = {
   kind:      'parked',
   ticketIds: ['005'],
   jobId:     null,
-  askedBy:   'overseer',
+  askedBy:   'hephaestus',
   context:   '',
   openedAt:  '2026-10-29T13:40:00+01:00',
   questions: [{

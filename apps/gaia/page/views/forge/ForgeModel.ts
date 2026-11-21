@@ -1,7 +1,7 @@
 /**
  * What a forge in place shows of a fleet document (SCREENS B1): Gaia's bar over the board, with the forge's name, its condition, one short
  * line of what it reports and the controls its condition allows; the Stop question; and what the area under the bar holds: the board, the
- * board of an Overseer that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
+ * board of a Hephaestus that stopped answering, the notice for a forge at a version this Gaia cannot talk to, or the sentence for a forge
  * whose board Gaia cannot read. Also the steps of an older forge's Update forge.
  */
 
@@ -77,21 +77,21 @@ export type BarUpdateStep =
  * where it differs), whether a newer version is installed, which marks the pair and restarts nothing, and the whole reading for its title.
  */
 export interface BarVersionPair {
-  readonly component:        'Overseer' | 'Talos';
+  readonly component:        'Hephaestus' | 'Talos';
   readonly line:             readonly BarLineSegment[];
   readonly newerIsInstalled: boolean;
   readonly title:            string;
 }
 
 /**
- * The running and the newest Overseer and Talos, and a clean restart of each: Restart Overseer is a Baton pass, Restart Talos its clean
+ * The running and the newest Hephaestus and Talos, and a clean restart of each: Restart Hephaestus is a Baton pass, Restart Talos its clean
  * quit. `pairs` is empty for a forge not answering, whose versions are not known; the restarts act only while the forge answers.
  */
 export interface BarVersions {
-  readonly pairs:           readonly BarVersionPair[];
-  readonly restartOverseer: BarCommand;
-  readonly restartTalos:    BarCommand;
-  readonly restartsMayAct:  boolean;
+  readonly pairs:             readonly BarVersionPair[];
+  readonly restartHephaestus: BarCommand;
+  readonly restartTalos:      BarCommand;
+  readonly restartsMayAct:    boolean;
 }
 
 export interface ForgeBar {
@@ -108,7 +108,7 @@ export interface ForgeBar {
   readonly versions:               BarVersions | null;
 }
 
-/** `board`: a forge read in full or as an Overseer that stopped answering last reported it, whose board Gaia's relay reads. */
+/** `board`: a forge read in full or as a Hephaestus that stopped answering last reported it, whose board Gaia's relay reads. */
 export type ForgeArea =
   | { readonly kind: 'board'; readonly trackerId: string; readonly project: string }
   | {
@@ -187,7 +187,7 @@ const OUTAGE_ENDINGS_WORDS = ' stopped on an outage';
 /** The whole reading for the tooltip: agents, what waits, a usage limit hit and since, after "as last reported" for a forge that stopped answering. */
 function statusTextOf(forge: FleetDocumentForge, clock: ClockReading): string {
   const waitingCount = FleetDocumentUtil.waitingCountOf(forge);
-  const startedClock = StampTextUtil.clockTextAtReadingOf(forge.overseerStartedAt, clock);
+  const startedClock = StampTextUtil.clockTextAtReadingOf(forge.hephaestusStartedAt, clock);
   const lastReportedClock = StampTextUtil.clockTextAtReadingOf(forge.lastReportedAt, clock);
   const asLastReported = lastReportedClock === null ? 'as last reported' : `as last reported ${lastReportedClock}`;
   return [
@@ -286,15 +286,15 @@ function barCannotTalkOf(forge: FleetDocumentForge, gaiaVersions: GaiaVersions):
 const NEWER_INSTALLED_WORDS = ' · newer installed ';
 
 /** A code version is a content hash, so a newer one is one that differs; a protocol version that differs is newer or older alike. */
-function overseerPairOf({ overseerRunning, overseerNewest }: FleetDocumentRunningVersions): BarVersionPair {
-  const newerIsInstalled = overseerNewest !== null && overseerNewest !== overseerRunning;
+function hephaestusPairOf({ hephaestusRunning, hephaestusNewest }: FleetDocumentRunningVersions): BarVersionPair {
+  const newerIsInstalled = hephaestusNewest !== null && hephaestusNewest !== hephaestusRunning;
   return {
-    component: 'Overseer',
-    line:      [wordsOf('Overseer '), figureOf(overseerRunning), ...(newerIsInstalled ? [wordsOf(NEWER_INSTALLED_WORDS), figureOf(overseerNewest)] : [])],
+    component: 'Hephaestus',
+    line:      [wordsOf('Hephaestus '), figureOf(hephaestusRunning), ...(newerIsInstalled ? [wordsOf(NEWER_INSTALLED_WORDS), figureOf(hephaestusNewest)] : [])],
     newerIsInstalled,
     title:     newerIsInstalled
-      ? `The Overseer runs code ${overseerRunning}; code ${overseerNewest} is installed. Restart Overseer to run it.`
-      : `The Overseer runs code ${overseerRunning}${overseerNewest === null ? '' : ', the code installed'}.`,
+      ? `Hephaestus runs code ${hephaestusRunning}; code ${hephaestusNewest} is installed. Restart Hephaestus to run it.`
+      : `Hephaestus runs code ${hephaestusRunning}${hephaestusNewest === null ? '' : ', the code installed'}.`,
   };
 }
 
@@ -302,13 +302,13 @@ function overseerPairOf({ overseerRunning, overseerNewest }: FleetDocumentRunnin
  * Talos starts from the forge program's code, so it runs the newest when its protocol is the installed program's and its code version is
  * the installed code's; while the installed program is not read, nothing marks it.
  */
-function talosIsBehindTheInstalledProgram({ talosRunning, talosNewest, overseerNewest }: FleetDocumentRunningVersions): boolean {
+function talosIsBehindTheInstalledProgram({ talosRunning, talosNewest, hephaestusNewest }: FleetDocumentRunningVersions): boolean {
   if (talosRunning === null || talosNewest === null) return false;
-  return talosRunning.protocolVersion !== talosNewest || (overseerNewest !== null && talosRunning.codeVersion !== overseerNewest);
+  return talosRunning.protocolVersion !== talosNewest || (hephaestusNewest !== null && talosRunning.codeVersion !== hephaestusNewest);
 }
 
 function talosPairOf(versions: FleetDocumentRunningVersions): BarVersionPair {
-  const { talosRunning, talosNewest, overseerNewest } = versions;
+  const { talosRunning, talosNewest, hephaestusNewest } = versions;
   if (talosRunning === null) {
     return {
       component: 'Talos', line: [wordsOf('Talos not running')], newerIsInstalled: false, title: 'No Talos runs for this forge.'
@@ -328,7 +328,7 @@ function talosPairOf(versions: FleetDocumentRunningVersions): BarVersionPair {
     ],
     newerIsInstalled,
     title: newerIsInstalled
-      ? `Talos runs ${running}, code ${talosRunning.codeVersion}; the installed program starts ${newest ?? running}, code ${overseerNewest ?? talosRunning.codeVersion}. `
+      ? `Talos runs ${running}, code ${talosRunning.codeVersion}; the installed program starts ${newest ?? running}, code ${hephaestusNewest ?? talosRunning.codeVersion}. `
         + 'Restart Talos to run it.'
       : `Talos runs ${running}, code ${talosRunning.codeVersion}.`,
   };
@@ -337,10 +337,10 @@ function talosPairOf(versions: FleetDocumentRunningVersions): BarVersionPair {
 function barVersionsOf(forge: FleetDocumentForge): BarVersions {
   const { trackerId, runningVersions } = forge;
   return {
-    pairs:           runningVersions === null ? [] : [overseerPairOf(runningVersions), talosPairOf(runningVersions)],
-    restartOverseer: { label: 'Restart Overseer', emphasis: 'quiet', command: { kind: 'forge-restart', trackerId } },
-    restartTalos:    { label: 'Restart Talos', emphasis: 'quiet', command: { kind: 'forge-talos-restart', trackerId } },
-    restartsMayAct:  runningVersions !== null && ForgeContractUtil.controlContractIsKnown(forge),
+    pairs:             runningVersions === null ? [] : [hephaestusPairOf(runningVersions), talosPairOf(runningVersions)],
+    restartHephaestus: { label: 'Restart Hephaestus', emphasis: 'quiet', command: { kind: 'forge-restart', trackerId } },
+    restartTalos:      { label: 'Restart Talos', emphasis: 'quiet', command: { kind: 'forge-talos-restart', trackerId } },
+    restartsMayAct:    runningVersions !== null && ForgeContractUtil.controlContractIsKnown(forge),
   };
 }
 

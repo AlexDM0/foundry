@@ -1,7 +1,7 @@
 import type { IncidentKind, IncidentMove } from '../../../lib/tracker-model/@types/Incident.ts';
 
 /**
- * The Bouncer's one table of the moves each incident kind allows, design section 8.3, whoever names the incident: the Overseer's
+ * The Bouncer's one table of the moves each incident kind allows, design section 8.3, whoever names the incident: Hephaestus's
  * Assistant through its Hatch or User at the command line. `incident-note` records and never closes.
  */
 export const ALLOWED_MOVES_BY_INCIDENT_KIND: Readonly<Record<IncidentKind, readonly IncidentMove[]>> = {

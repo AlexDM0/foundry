@@ -2,7 +2,7 @@
  * The real-system spec of every forge verb done, run only by `GAIA_RECORDING_FORGE_PROGRAM=<program> bun run record forge-program-done`
  * with the program of a forge that answers F8. It runs that forge under a scratch home in a scratch repository, through ForgeProgram, and
  * records each answer under the example program path: init, version, the login item added, read and removed, the machine limit set, start,
- * update with the Overseer live and stop. The forge's install version stamps the recording.
+ * update with Hephaestus live and stop. The forge's install version stamps the recording.
  */
 import {
   afterAll,
@@ -24,7 +24,7 @@ const RECORDING_NAME = RECORDING_NAME_OF_FORGE_PROGRAM_STAGE['every-verb-done'];
 const SETUP_TIMEOUT_MILLISECONDS = 180_000;
 const EXAMPLE_ROOT = '/Users/example/development/example-project';
 const EXAMPLE_TRACKER_ID = 'example-tracker';
-const EXAMPLE_OVERSEER_ADDRESS = '127.0.0.1:47213';
+const EXAMPLE_HEPHAESTUS_ADDRESS = '127.0.0.1:47213';
 const LOWERED_MACHINE_LIMIT = 4;
 
 let scratchForge: ScratchForge;
@@ -63,7 +63,7 @@ describe('a forge that answers F8, every verb done', () => {
   test('version answers the code and install versions, the contracts and the monitor folder', async () => {
     expect(await forgeProgram.version(forge)).toMatchObject({
       verdict: 'done',
-      answer:  { contracts: { summary: 1, monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl } }
+      answer:  { contracts: { summary: 2, monitor: CONTRACT_VERSIONS.forgeMonitor, control: CONTRACT_VERSIONS.forgeControl } }
     });
     recordSystemVersion(RECORDING_NAME, `install version ${String(lastDocument()['installVersion'])}, code ${String(lastDocument()['codeVersion'])}`);
   });
@@ -78,17 +78,17 @@ describe('a forge that answers F8, every verb done', () => {
     expect(await forgeProgram.machineLimitSet(forge, LOWERED_MACHINE_LIMIT)).toEqual({ verdict: 'done', answer: { outcome: 'done', agentLimit: LOWERED_MACHINE_LIMIT } });
   });
 
-  test('start starts the Overseer and answers once its API answers', async () => {
+  test('start starts Hephaestus and answers once its API answers', async () => {
     const verdict = await forgeProgram.start(forge);
     expect(verdict).toMatchObject({ verdict: 'done', answer: { started: true, generation: 1 } });
-    scratchForge.exampleValueFor({ drawn: new URL(String(lastDocument()['url'])).host, example: EXAMPLE_OVERSEER_ADDRESS });
+    scratchForge.exampleValueFor({ drawn: new URL(String(lastDocument()['url'])).host, example: EXAMPLE_HEPHAESTUS_ADDRESS });
   }, SETUP_TIMEOUT_MILLISECONDS);
 
-  test('update with the Overseer live refreshes the install and needs no Baton pass on the same code', async () => {
+  test('update with Hephaestus live refreshes the install and needs no Baton pass on the same code', async () => {
     expect(await forgeProgram.update(forge)).toMatchObject({ verdict: 'done', answer: { outcome: 'done', batonPass: { outcome: 'not-needed' } } });
   }, SETUP_TIMEOUT_MILLISECONDS);
 
-  test('stop stops the live Overseer', async () => {
+  test('stop stops the live Hephaestus', async () => {
     expect(await forgeProgram.stop(forge)).toEqual({ verdict: 'done', answer: { outcome: 'done' } });
   }, SETUP_TIMEOUT_MILLISECONDS);
 });

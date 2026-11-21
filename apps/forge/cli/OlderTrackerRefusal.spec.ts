@@ -59,7 +59,7 @@ describeWhenGitIsRecorded('a tracker in a format an earlier release wrote', () =
     const refused = await run(['log', 'Example note after the upgrade']);
 
     expect(refused.exitCode).toBe(2);
-    expect(refused.errorText).toContain(`version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 2`);
+    expect(refused.errorText).toContain(`version is 1, and this build of ${PRODUCT_NAMES.PROGRAM} reads version 3`);
     expect(refused.errorText).toContain(UPDATE_SENTENCE);
     expect(readFileSync(localStoreLayoutOf(workspacePathsFor(repositoryDirectory)).progressRecordPath, 'utf8')).toBe(olderText);
   });

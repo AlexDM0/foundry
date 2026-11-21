@@ -76,7 +76,7 @@ function undoMergeUpdate(worktree: string, startTip: string): void {
 }
 
 /**
- * The target merged into the ticket's worktree, never while a job is on the ticket. Clean, the branch's green goes stale, so the Overseer
+ * The target merged into the ticket's worktree, never while a job is on the ticket. Clean, the branch's green goes stale, so Hephaestus
  * gates it again: green queues it again, red returns it to its reviewer. A conflict is aborted and the ticket leaves the queue, so its
  * reviewer takes it back.
  */

@@ -23,8 +23,8 @@ import { useRecordedGit }                               from '../../src/testing/
 import { removeScratchDirectory }                       from '../../src/testing/ScratchWorkspace.ts';
 import { describeWhenGitIsRecorded }                    from '../../src/testing/ToolGuard.ts';
 import { createCapturedCommandContext }                 from '../testing/CapturedCommandContext.ts';
+import { runCommandLineWithHephaestusMoves }            from '../testing/HephaestusTicketMoves.ts';
 import { createInitializedRecordedGitRepository }       from '../testing/InitializedScratchRepository.ts';
-import { runCommandLineWithOverseerMoves }              from '../testing/OverseerTicketMoves.ts';
 import { fileReadyTicket, READY_TICKET_BODY_ARGUMENTS } from '../testing/ReadyTicketFiling.ts';
 import { storedLogTextOf }                              from '../testing/StoredLogText.ts';
 
@@ -64,7 +64,7 @@ type CapturedContext = ReturnType<typeof createCapturedCommandContext>;
 
 async function runExpectingExit(expectedExitCode: number, commandLineArguments: readonly string[], standardInputText?: string): Promise<CapturedContext> {
   const context  = contextHere(standardInputText);
-  const exitCode = await runCommandLineWithOverseerMoves(commandLineArguments, context);
+  const exitCode = await runCommandLineWithHephaestusMoves(commandLineArguments, context);
   expect(exitCode, `\`agent-progress ${commandLineArguments.join(' ')}\`: ${context.errorText()}`).toBe(expectedExitCode);
   return context;
 }
@@ -170,7 +170,7 @@ describeWhenGitIsRecorded('editing a ticket body', () => {
     const before   = storedTicketText();
     const terminal = createCapturedCommandContext({ currentDirectory: repositoryDirectory, now: () => FROZEN_NOW, standardInputIsTerminal: true });
 
-    expect(await runCommandLineWithOverseerMoves(['ticket', 'edit', '1', '--append', '--body-file', '-'], terminal)).toBe(1);
+    expect(await runCommandLineWithHephaestusMoves(['ticket', 'edit', '1', '--append', '--body-file', '-'], terminal)).toBe(1);
 
     expect(terminal.errorText()).toContain('--body-file - reads standard input, and standard input is a terminal');
     expect(storedTicketText()).toBe(before);
@@ -254,8 +254,8 @@ describeWhenGitIsRecorded('a committed ticket\'s content', () => {
       const appendedText = `Edited in round ${reference}.\n`;
 
       const [readyExit, editExit] = await Promise.all([
-        runCommandLineWithOverseerMoves(['ticket', 'ready', reference], contextHere()),
-        runCommandLineWithOverseerMoves(['ticket', 'edit', reference, '--append', '--body', appendedText], contextHere()),
+        runCommandLineWithHephaestusMoves(['ticket', 'ready', reference], contextHere()),
+        runCommandLineWithHephaestusMoves(['ticket', 'edit', reference, '--append', '--body', appendedText], contextHere()),
       ]);
 
       expect(readyExit).toBe(0);

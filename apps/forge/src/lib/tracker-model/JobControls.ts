@@ -1,6 +1,6 @@
 /**
- * User's controls over a live job and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the hold and the
- * Overseer carries it out, so every one works with the Overseer down. A stop or wind-down holds the job's ticket in the same hold.
+ * User's controls over a live job and the product owner's intake (design sections 7.4, 8.1 and 8.4): each records in the hold and
+ * Hephaestus carries it out, so every one works with Hephaestus down. A stop or wind-down holds the job's ticket in the same hold.
  */
 import type { JobChanged, Logged } from './@types/BoardChanges.ts';
 import type {
@@ -86,7 +86,7 @@ export class JobControls {
     return { logged: unasked.flatMap((job) => this.requestJobStop(job.id, 'wind-down', at).logged) };
   }
 
-  /** `oversee pause` plus a stop or wind-down of every live build, review and product-owner job. */
+  /** `pause` plus a stop or wind-down of every live build, review and product-owner job. */
   stopAllJobs(mode: Exclude<JobStopMode, 'fresh'>, pause: () => readonly LogRecord[], at: string): Logged {
     const jobIds = this.jobRules.jobs().filter((job) => STOPPABLE_BY_ALL_KINDS.includes(job.kind)).map((job) => job.id);
     return { logged: [...pause(), ...jobIds.flatMap((jobId) => this.requestJobStop(jobId, mode, at).logged)] };
@@ -96,7 +96,7 @@ export class JobControls {
    * A product owner or pipeline agent that closed, by its own `intake-close` or by `job stop`, is reopened: its session resumes with the
    * text and pictures as its first line. A product owner keeps the title its intake was given, and the log records the tickets its intake
    * filed before. Every other finished job is refused `job-finished`. Only a product owner takes pictures: any other job is refused
-   * `pictures-not-taken`. The message's sender is logged, so the transcript tells the Overseer's setup wording from User's words.
+   * `pictures-not-taken`. The message's sender is logged, so the transcript tells Hephaestus's setup wording from User's words.
    */
   messageJob(jobId: string, message: JobMessage, at: string): JobChanged {
     const { text, pictures, sender } = message;
@@ -118,7 +118,7 @@ export class JobControls {
   }
 
   /**
-   * Recorded `launching` with no ticket and no build slot, so it works with the Overseer down; several may run at once. A request of only
+   * Recorded `launching` with no ticket and no build slot, so it works with Hephaestus down; several may run at once. A request of only
    * spaces is refused `intake-empty` unless pictures carry it.
    */
   startIntake(text: string, pictures: readonly PictureReference[], at: string): JobChanged {
@@ -151,7 +151,7 @@ export class JobControls {
   }
 
   /**
-   * Closes the session's input; the Overseer ends it `closed` once its child is gone. The caller submits the drafts the intake filed in
+   * Closes the session's input; Hephaestus ends it `closed` once its child is gone. The caller submits the drafts the intake filed in
    * the same hold.
    */
   closeIntake(jobId: string, proposedDraftSets: readonly (readonly string[])[], at: string): JobChanged {

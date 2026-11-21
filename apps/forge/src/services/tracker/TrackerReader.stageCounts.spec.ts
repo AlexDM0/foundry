@@ -110,7 +110,7 @@ function crossingProgress(): TrackerProgress {
   return {
     ...emptyProgress(),
     concurrencyLimit: 3,
-    overseerState:    'running',
+    hephaestusState:  'running',
     nextTaskId:       3,
     tasks:            [
       taskFixture({

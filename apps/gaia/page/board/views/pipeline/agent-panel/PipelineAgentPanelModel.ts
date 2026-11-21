@@ -102,9 +102,9 @@ const WORKING_STRIPS: Readonly<Record<BoardSetupQuestionStep, AgentStripView>> =
   design:       DESIGNING_STRIP,
 });
 
-/** The chat of the agent's session: the Overseer's lines as system lines, User's messages as bubbles, the agent's turns with their tools. */
+/** The chat of the agent's session: Hephaestus's lines as system lines, User's messages as bubbles, the agent's turns with their tools. */
 function chatTurnsOf(entries: readonly BoardTranscriptEntryDocument[], agentJobId: string, todayCalendarDate: string): ChatTurn[] {
-  const bootLineText = `Overseer started ${agentJobId} for the pipeline setup`;
+  const bootLineText = `Hephaestus started ${agentJobId} for the pipeline setup`;
   return ChatThreadModelUtil.threadItemsOf(entries, []).map((item): ChatTurn => {
     const stamp = ChatTurnWordingUtil.stampOf(item.at, todayCalendarDate);
     switch (item.kind) {

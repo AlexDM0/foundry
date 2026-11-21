@@ -58,7 +58,7 @@ function planOf(): ConfinementPlan {
     worktreeAdminFolder: null,
     temporaryDirectory:  join(scratch, 'temp'),
     writableCachePaths:  [],
-    // A plan with no denied root renders a Seatbelt rule that denies every read, so this one denies a data folder as the Overseer's does.
+    // A plan with no denied root renders a Seatbelt rule that denies every read, so this one denies a data folder as Hephaestus's does.
     // The machine's temp folders are writable to every gate, so the outside folder, a scratch folder, is denied by name.
     deniedWritableRoots: [join(scratch, 'temp', 'data'), join(scratch, 'outside')],
     deniedReadableRoots: [join(scratch, 'temp', 'data', 'jobs', '*', 'launch-*.json')],

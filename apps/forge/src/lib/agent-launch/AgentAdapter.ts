@@ -12,7 +12,7 @@ import type { AgentToolCall }                                                   
 import type { SubagentFacts, SubagentUsageAnswer, SubagentUsageRequest }         from './AgentTranscripts.ts';
 import type { SandboxDenyShape }                                                 from './WorkerProfile.ts';
 
-/** The names an adapter may give an ending in its plan's `endingPatterns`, each of which the Overseer maps to a cause. */
+/** The names an adapter may give an ending in its plan's `endingPatterns`, each of which Hephaestus maps to a cause. */
 export const AGENT_ENDING_NAMES = ['network-outage'] as const;
 
 export type AgentEndingName = typeof AGENT_ENDING_NAMES[number];
@@ -25,7 +25,7 @@ export interface AgentCapabilities {
   readonly usage:                      'tokens' | 'none';
   /** Whether a chat line carries pictures beside its text. */
   readonly pictures:                   boolean;
-  /** A live session takes an answer line; `false`: the Overseer stops it and resumes it with the answer. */
+  /** A live session takes an answer line; `false`: Hephaestus stops it and resumes it with the answer. */
   readonly takesLiveAnswers:           boolean;
   /** A resumed session is found by the folder it began in. */
   readonly resumeFindsSessionByFolder: boolean;

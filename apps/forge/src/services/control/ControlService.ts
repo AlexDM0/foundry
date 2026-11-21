@@ -12,9 +12,9 @@ import { DECISION_CONTROLS }                                         from './Dec
 import { EPIC_BY_HAND_CONTROLS }                                     from './EpicByHandControls.ts';
 import { FILING_CONTROLS }                                           from './FilingControls.ts';
 import { GATE_PROFILE_CONTROLS }                                     from './GateProfileControls.ts';
+import { HEPHAESTUS_CONTROLS }                                       from './HephaestusControls.ts';
 import { INCIDENT_CONTROLS }                                         from './IncidentControls.ts';
 import { JOB_CONTROLS }                                              from './JobControls.ts';
-import { OVERSEER_CONTROLS }                                         from './OverseerControls.ts';
 import { PIPELINE_AGENT_CONTROLS }                                   from './PipelineAgentControls.ts';
 import { PIPELINE_SETUP_CONTROLS }                                   from './PipelineSetupControls.ts';
 import { REPAIR_CONTROLS }                                           from './RepairControls.ts';
@@ -31,7 +31,7 @@ const CONTROL_APPLIERS = {
   ...DECISION_CONTROLS,
   ...JOB_CONTROLS,
   ...REPAIR_CONTROLS,
-  ...OVERSEER_CONTROLS,
+  ...HEPHAESTUS_CONTROLS,
   ...RESUME_CONTROLS,
   ...SETTING_CONTROLS,
   ...AIRLOCK_CONTROLS,

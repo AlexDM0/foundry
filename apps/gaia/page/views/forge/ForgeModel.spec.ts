@@ -2,9 +2,9 @@
  * What a forge in place shows of a fleet document. What matters (SCREENS B1, with A4's buttons per condition and B2's Stop question): the
  * bar names the forge's condition by its word beside the dot and shows one line of agents and what waits with its figures apart, artboard
  * B1's line, so the bar keeps to one line (D2), with the whole reading of a usage limit hit and since for its tooltip; a value the forge
- * did not report is absent, not zero; an Overseer that stopped answering says its line is as last reported; each condition shows exactly
+ * did not report is absent, not zero; a Hephaestus that stopped answering says its line is as last reported; each condition shows exactly
  * its controls, and a forge whose control contract Gaia does not know cannot be paused, unpaused or stopped from Gaia; the Stop question
- * offers its two choices only while agents run; the area under the bar is the board for a forge read in full or as an Overseer that
+ * offers its two choices only while agents run; the area under the bar is the board for a forge read in full or as a Hephaestus that
  * stopped answering last reported it, and otherwise why it cannot be shown; a refusal is worded with the forge's own sentence.
  */
 import { describe, expect, test } from 'bun:test';
@@ -73,7 +73,7 @@ describe('the bar', () => {
 
   test('leaves out what the forge did not report, and names no count of agents for a forge Gaia reads nothing of', () => {
     const quiet = barOf({
-      ...READINGS.exampleStorefront, attention: [], usage: null, overseerStartedAt: null, concurrency: null,
+      ...READINGS.exampleStorefront, attention: [], usage: null, hephaestusStartedAt: null, concurrency: null,
     });
     expect(quiet.status.text).toBe('4 agents');
     expect(quiet.status.line).toEqual([figure('4'), words(' agents')]);
@@ -138,7 +138,7 @@ describe('the bar\'s controls for each condition', () => {
     expect(barOf(READINGS.exampleStorefront).pauseOrUnpause?.command).toEqual({ kind: 'forge-pause', trackerId: TRACKER_IDS.exampleStorefront });
     expect(barOf({ ...READINGS.exampleStorefront, condition: 'paused' }).pauseOrUnpause?.command)
       .toEqual({ kind: 'forge-unpause', trackerId: TRACKER_IDS.exampleStorefront });
-    const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 3 } };
+    const newerControl = { ...READINGS.exampleStorefront, contracts: { ...READINGS.exampleStorefront.contracts, control: 4 } };
     expect(barOf(newerControl).controlContractIsKnown).toBe(false);
   });
 });
@@ -147,17 +147,17 @@ describe('the Stop question (B2)', () => {
   test('asks about the forge and its running agents, offers both choices with their consequence, and says what keeps waiting', () => {
     expect(barOf(READINGS.exampleStorefront).stop).toEqual({
       label:    'Stop Example Storefront',
-      question: 'Stop the Overseer of Example Storefront? 4 agents are running.',
+      question: 'Stop Hephaestus of Example Storefront? 4 agents are running.',
       choices:  [
         {
           agents:      'keep',
-          title:       'Stop the Overseer only',
+          title:       'Stop Hephaestus only',
           consequence: 'The 4 agents finish what they are on under Talos. Nothing new starts until this forge is started again.',
         },
         {
           agents:      'stop-first',
-          title:       'Stop the agents, then the Overseer',
-          consequence: 'The 4 agents wind down first and their tickets return to the board. Then the Overseer stops.',
+          title:       'Stop the agents, then Hephaestus',
+          consequence: 'The 4 agents wind down first and their tickets return to the board. Then Hephaestus stops.',
         },
       ],
       consequence: '2 entries keep waiting on you while it is stopped.',
@@ -168,23 +168,23 @@ describe('the Stop question (B2)', () => {
     const { stop } = barOf({
       ...READINGS.exampleStorefront, concurrency: null, agents: READINGS.exampleStorefront.agents.slice(0, 1), attention: []
     });
-    expect(stop?.question).toBe('Stop the Overseer of Example Storefront? 1 agent is running.');
+    expect(stop?.question).toBe('Stop Hephaestus of Example Storefront? 1 agent is running.');
     expect(stop?.choices.map((choice) => choice.consequence)).toEqual([
       'The agent finishes what it is on under Talos. Nothing new starts until this forge is started again.',
-      'The agent winds down first and its tickets return to the board. Then the Overseer stops.',
+      'The agent winds down first and its tickets return to the board. Then Hephaestus stops.',
     ]);
     expect(stop?.consequence).toBeNull();
   });
 
   test('has no choices when no agent runs', () => {
     const { stop } = barOf({ ...READINGS.exampleStorefront, concurrency: null, agents: [] });
-    expect(stop?.question).toBe('Stop the Overseer of Example Storefront?');
+    expect(stop?.question).toBe('Stop Hephaestus of Example Storefront?');
     expect(stop?.choices).toEqual([]);
   });
 });
 
 describe('the area under the bar', () => {
-  test('is the board of a forge read in full, and of one whose Overseer stopped answering, as last reported', () => {
+  test('is the board of a forge read in full, and of one whose Hephaestus stopped answering, as last reported', () => {
     expect(contentOf(TRACKER_IDS.exampleStorefront).area).toEqual({ kind: 'board', trackerId: TRACKER_IDS.exampleStorefront, project: 'Example Storefront' });
     expect(contentOf(TRACKER_IDS.invoiceService, FLEET_DEGRADED).area).toEqual({ kind: 'board', trackerId: TRACKER_IDS.invoiceService, project: 'Invoice Service' });
   });
@@ -206,15 +206,15 @@ describe('the area under the bar', () => {
 
 describe('a refusal under the bar', () => {
   const refused = {
-    answerVersion: 3, outcome: 'refused', refusal: 'overseer-still-live', text: 'The Overseer did not stop within its tries.', forges: []
+    answerVersion: 3, outcome: 'refused', refusal: 'hephaestus-still-live', text: 'Hephaestus did not stop within its tries.', forges: []
   } as const;
 
   test('names the bar\'s command and shows the forge\'s code and sentence; Stop asks its question again rather than resending', () => {
     expect(ForgeModel.barRefusalOf(TRACKER_IDS.exampleStorefront, { kind: 'forge-stop', result: { verdict: 'answered', answer: refused } })).toEqual({
       refusedBy:    'forge',
       commandLabel: 'Stop',
-      code:         'overseer-still-live',
-      sentence:     'The Overseer did not stop within its tries.',
+      code:         'hephaestus-still-live',
+      sentence:     'Hephaestus did not stop within its tries.',
       tryAgain:     null,
     });
   });

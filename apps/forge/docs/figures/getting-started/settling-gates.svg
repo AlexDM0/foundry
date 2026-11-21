@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="560" viewBox="0 0 680 560" role="img" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">
+  <title>Only an Apply withdraws checks-not-set</title>
+  <desc>The checks-not-set decision, opened by Hephaestus, opens again at the next Pass while it is answered with no pipeline stored. Two routes store a pipeline: pipeline setup and then Apply, designed with the pipeline agent, or gate add and gate none by hand. After an Apply the decision is withdrawn by the Apply itself; after a gate command it stays open until it is answered with any text.</desc>
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 z" fill="#73726c"/>
+    </marker>
+  </defs>
+
+  <rect x="1" y="1" width="678" height="558" rx="16" fill="#FAF9F5" stroke="#ECE7DC" stroke-width="1.5"/>
+
+  <text x="40" y="46" font-size="18" font-weight="500" fill="#3d3d3a">Only an Apply withdraws <tspan font-family="ui-monospace,Menlo,Consolas,monospace">checks-not-set</tspan></text>
+  <text x="40" y="68" font-size="13" fill="#73726c">Two routes store a pipeline; after the gate commands, you answer the question.</text>
+
+  <g fill="none" stroke="#bfbdb0" stroke-width="1.6" marker-end="url(#ah)">
+    <path d="M250,116 H427"/>
+    <path d="M430,140 H253"/>
+    <path d="M145,156 V233"/>
+    <path d="M200,156 V196 H510 V233"/>
+    <path d="M170,292 V341"/>
+    <path d="M510,292 V341"/>
+    <path d="M170,400 V453"/>
+    <path d="M510,400 V453"/>
+  </g>
+  <g font-size="11" fill="#73726c">
+    <text x="340" y="108" text-anchor="middle">answered, no pipeline stored</text>
+    <text x="340" y="154" text-anchor="middle">open again</text>
+    <text x="178" y="431">after an Apply</text>
+    <text x="518" y="431">after a gate command</text>
+  </g>
+
+  <rect x="40" y="100" width="210" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="145" y="125" font-size="14" font-weight="500" fill="#633806" text-anchor="middle"><tspan font-family="ui-monospace,Menlo,Consolas,monospace">checks-not-set</tspan> open</text>
+  <text x="145" y="143" font-size="12" fill="#854F0B" text-anchor="middle">opened by Hephaestus</text>
+
+  <rect x="430" y="100" width="210" height="56" rx="8" fill="#E6F1FB" stroke="#CFE2F6"/>
+  <text x="535" y="125" font-size="14" font-weight="500" fill="#0C447C" text-anchor="middle">Next Pass opens it</text>
+  <text x="535" y="143" font-size="12" fill="#185FA5" text-anchor="middle">before any launch</text>
+
+  <rect x="40" y="236" width="260" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="170" y="261" font-size="14" font-weight="500" fill="#633806" text-anchor="middle"><tspan font-family="ui-monospace,Menlo,Consolas,monospace">pipeline setup</tspan>, then Apply</text>
+  <text x="170" y="279" font-size="12" fill="#854F0B" text-anchor="middle">designed with the pipeline agent</text>
+
+  <rect x="380" y="236" width="260" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="510" y="261" font-size="14" font-weight="500" fill="#633806" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">gate add<tspan font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif">, </tspan>gate none</text>
+  <text x="510" y="279" font-size="12" fill="#854F0B" text-anchor="middle">by hand, at once</text>
+
+  <rect x="40" y="344" width="600" height="56" rx="8" fill="#F1EFE8" stroke="#E1DDD0"/>
+  <text x="340" y="369" font-size="14" font-weight="500" fill="#444441" text-anchor="middle">Pipeline stored</text>
+  <text x="340" y="387" font-size="12" fill="#5F5E5A" text-anchor="middle"><tspan font-family="ui-monospace,Menlo,Consolas,monospace">pipeline.json</tspan>; work may start</text>
+
+  <rect x="40" y="456" width="260" height="56" rx="8" fill="#EAF3DE" stroke="#D3E6BC"/>
+  <text x="170" y="481" font-size="14" font-weight="500" fill="#27500A" text-anchor="middle">Withdrawn</text>
+  <text x="170" y="499" font-size="12" fill="#3B6D11" text-anchor="middle">by the Apply itself</text>
+
+  <rect x="380" y="456" width="260" height="56" rx="8" fill="#FAEEDA" stroke="#F2DDB0"/>
+  <text x="510" y="481" font-size="14" font-weight="500" fill="#633806" text-anchor="middle">Stays open</text>
+  <text x="510" y="499" font-size="12" fill="#854F0B" text-anchor="middle">answer it with any text</text>
+</svg>

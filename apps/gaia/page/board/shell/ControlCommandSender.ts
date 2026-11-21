@@ -10,8 +10,8 @@ import type { BoardCommandDocument }                           from '../../@type
 import type { BoardCommandResult, CommandOutcome }             from '../api/BoardCommandClient.ts';
 import { ControlAvailabilityUtil, ControlSurroundingsContext } from './ControlAvailability.ts';
 
-export const UNREACHABLE_WORDING = 'The Overseer could not be reached. Try again.';
-export const OUTCOME_UNKNOWN_WORDING = 'The Overseer may have applied this, but its answer was lost. Check the board before sending it again.';
+export const UNREACHABLE_WORDING = 'Hephaestus could not be reached. Try again.';
+export const OUTCOME_UNKNOWN_WORDING = 'Hephaestus may have applied this, but its answer was lost. Check the board before sending it again.';
 
 export interface ControlCommandSender {
   readonly enabled: boolean;

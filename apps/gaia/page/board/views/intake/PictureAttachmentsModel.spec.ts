@@ -1,5 +1,5 @@
 /**
- * The pictures a message is about to carry. What matters: each refusal before upload (a type the Overseer does not take, a file over the
+ * The pictures a message is about to carry. What matters: each refusal before upload (a type Hephaestus does not take, a file over the
  * size bound, a file past the per-message bound) comes from the served limits and counts the pictures already carried, never a refused
  * one; the accepted types and the sizes read as User reads them, at each unit's edge; a message sends with text or an uploaded picture and
  * never while an upload runs; a send names only the uploaded pictures; and a sent picture's address is Gaia's relay's.
@@ -22,7 +22,7 @@ function file(name: string, type: string, size = 1000) {
 }
 
 describe('PictureAttachmentsModelUtil.admissionsOf', () => {
-  test('refuses a type the Overseer does not take and a file over the size bound, each in its own words', () => {
+  test('refuses a type Hephaestus does not take and a file over the size bound, each in its own words', () => {
     expect(PictureAttachmentsModelUtil.admissionsOf([file('notes.pdf', 'application/pdf'), file('huge.png', 'image/png', 6_000_000)], [], LIMITS)).toEqual([
       { admitted: false, refusal: 'notes.pdf is no PNG, JPEG, WebP or GIF picture.' },
       { admitted: false, refusal: 'huge.png is 5.7 MB, and a picture is at most 5.0 MB.' },

@@ -1,5 +1,5 @@
 /**
- * A child record survives Talos and is read by the Overseer after it, so the reader must give back exactly what was written and never
+ * A child record survives Talos and is read by Hephaestus after it, so the reader must give back exactly what was written and never
  * throw: a record round trips through its text, another format version is named rather than misread, and truncated or damaged text
  * reads `unreadable`.
  */

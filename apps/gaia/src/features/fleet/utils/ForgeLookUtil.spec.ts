@@ -24,9 +24,9 @@ function liveForgeWith(changes: Partial<ForgeReading>): ForgeReading {
   return { ...QUIET_LIVE_FORGE, ...changes };
 }
 
-const BATON_PASS_FAILED = { kind: BATON_PASS_FAILED_WARNING_KIND, text: 'The Baton pass to the next Overseer failed.' };
+const BATON_PASS_FAILED = { kind: BATON_PASS_FAILED_WARNING_KIND, text: 'The Baton pass to the next Hephaestus failed.' };
 
-const NEW_CODE = { kind: NEW_CODE_NOTICE_KIND, text: 'New code is on disk. Restart the Overseer to run it.' };
+const NEW_CODE = { kind: NEW_CODE_NOTICE_KIND, text: 'New code is on disk. Restart Hephaestus to run it.' };
 
 const MACHINE_AT_ITS_LIMIT = { ...QUIET_LIVE_CONCURRENCY, machineLimit: 10, ticketsWaitingForMachineSlot: 2 };
 
@@ -35,7 +35,7 @@ describe('one look per row of PLAN 7.2', () => {
     expect(ForgeLookUtil.lookKindOf(QUIET_LIVE_FORGE)).toBeNull();
   });
 
-  test('row 1: a forge whose Overseer stopped answering needs the look unreachable', () => {
+  test('row 1: a forge whose Hephaestus stopped answering needs the look unreachable', () => {
     expect(ForgeLookUtil.lookKindOf(liveForgeWith({ fidelity: 'unreachable', condition: 'unreachable' }))).toBe('unreachable');
   });
 
@@ -51,7 +51,7 @@ describe('one look per row of PLAN 7.2', () => {
     expect(ForgeLookUtil.lookKindOf(liveForgeWith({ warnings: [BATON_PASS_FAILED] }))).toBe('baton-pass-failed');
   });
 
-  test('row 4: an Overseer held by an install change needs the look launches-held', () => {
+  test('row 4: a Hephaestus held by an install change needs the look launches-held', () => {
     expect(ForgeLookUtil.lookKindOf(FLEET_SNAPSHOT_FIVE_FORGES_READINGS.exampleMobileApp)).toBe('launches-held');
   });
 

@@ -1,6 +1,6 @@
 /**
  * The Progress chart's choices kept per viewer and board: the range as JSON under the bare `<STORAGE_PREFIX>:<trackerId>`, then
- * `name-column`, `progress-folded-epics` and `review-rows` after it. Without a board store, before the Overseer named its tracker, every
+ * `name-column`, `progress-folded-epics` and `review-rows` after it. Without a board store, before Hephaestus named its tracker, every
  * choice reads as its default and nothing is written.
  */
 import type { PreferenceStore }                                                          from '../../preferences/PreferenceStore.ts';
