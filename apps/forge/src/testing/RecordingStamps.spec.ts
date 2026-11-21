@@ -17,7 +17,7 @@ const GIT_BOUNDARY = 'src/lib/git/GitProcess.ts';
 const OS_BOUNDARY = 'src/lib/process-identity/';
 const RECORD_GIT = '`bun run record src/lib/git/GitProcess.ts`';
 const INSTALLED: Readonly<Record<RecordedSystem, string>> = {
-  'agent-progress':   'install version 23',
+  'agent-progress':   'install version 23, answer version 2',
   'bun':              '1.3.0',
   'claude':           '2.1.311',
   'eslint':           '9.39.1',

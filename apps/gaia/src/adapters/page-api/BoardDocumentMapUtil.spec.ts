@@ -23,10 +23,13 @@ import type { BoardTranscriptEntry }                       from '../../shared/@t
 import type { ForgeBoard }                                 from '../../shared/@types/board/ForgeBoard.ts';
 import { PAGE_CONTRACT_VERSIONS }                          from '../../shared/constants/PageContractVersions.ts';
 import { CommandAnswerIngestion }                          from '../forge-api/CommandAnswerIngestion.ts';
-import { recordedCommandAnswerOf }                         from '../forge-api/testing/BoardDocuments.ts';
+import { recordedCalendarDateOf, recordedCommandAnswerOf } from '../forge-api/testing/BoardDocuments.ts';
 import { BoardDocumentMapUtil }                            from './BoardDocumentMapUtil.ts';
 import { ForgeSentenceUtil }                               from './ForgeSentenceUtil.ts';
 import { modelLeavesOf, pageLeavesOf, recordedBoardModel } from './testing/BoardModelLeaves.ts';
+
+/** A day as the forge writes it: year, month and day of month. */
+const CALENDAR_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** The recorded board holds far more values than this, so the comparison of leaves cannot pass on an empty board. */
 const MINIMUM_RECORDED_BOARD_LEAVES = 300;
@@ -85,7 +88,8 @@ describe('boardDocumentOf, on the recorded board', () => {
       { key: 'decision:E2', target: { subject: 'decision', id: 'E2' } },
       { key: 'ticket:001', target: { subject: 'ticket', id: '001' } },
     ]);
-    expect(document.today).toEqual({ calendarDate: '2026-11-21', deliveredTickets: 0, tokens: 0 });
+    expect(document.today).toEqual({ calendarDate: await recordedCalendarDateOf('board-at-work'), deliveredTickets: 0, tokens: 0 });
+    expect(document.today.calendarDate).toMatch(CALENDAR_DATE_SHAPE);
     expect(document.openDecisionIds).toEqual(['E2']);
     expect(document.escalatedDecisionIds).toEqual(['E2']);
   });
@@ -100,15 +104,18 @@ describe('boardDocumentOf, on the recorded board', () => {
   });
 
   test('keeps the step run times, the entities draft\'s refusals with their typed fix, and the Apply refusal', async () => {
-    const { setup } = BoardDocumentMapUtil.boardDocumentOf(await recordedBoardModel()).pipeline;
-    expect(BoardDocumentMapUtil.boardDocumentOf(await recordedBoardModel()).pipeline.stepRunTimes).toEqual([{
+    const boardModel = await recordedBoardModel();
+    const { setup, stepRunTimes } = BoardDocumentMapUtil.boardDocumentOf(boardModel).pipeline;
+    const [recordedRunTime] = boardModel.pipeline.stepRunTimes;
+    if (recordedRunTime === undefined) throw new Error('The recorded board holds no step run time.');
+    expect(stepRunTimes).toEqual([{
       entity:          'web',
       stepKind:        'gate',
       stepName:        'unit',
       phase:           'build',
-      runMilliseconds: 44,
+      runMilliseconds: recordedRunTime.runMilliseconds,
       ending:          'passed',
-      at:              expect.any(String),
+      at:              recordedRunTime.at,
     }]);
     expect(setup?.entityRefusals[0]).toMatchObject({ reason: 'equal-homes', shownOn: 'api', fix: { label: 'Remove apps/web from api' } });
     expect(setup?.entityRefusals[0]?.fix?.edits).toEqual([{ target: 'entity', entityKey: 'api', value: { kind: 'app', home: ['/apps/api'], summary: null } }]);

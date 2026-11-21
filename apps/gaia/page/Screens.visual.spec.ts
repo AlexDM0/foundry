@@ -40,6 +40,7 @@ import {
   BRAIN_SCREENS,
   BRAIN_STATE_SCREENS,
   BATON_PASS_FAILED_SENTENCE,
+  CRASHED_FORGE_SCREENS,
   FORGE_PROGRAM_FOUND_SCREENS,
   HIDDEN_FORGE_SCREENS,
   MONITOR_WARNING_SCREENS,
@@ -76,6 +77,7 @@ const PAINTED_OVER_ARTBOARDS: readonly ArtboardScreen[] = [
   ...RESTART_PENDING_SCREENS,
   ...MONITOR_WARNING_SCREENS,
   ...OUTAGE_ENDINGS_SCREENS,
+  ...CRASHED_FORGE_SCREENS,
   ...HIDDEN_FORGE_SCREENS,
   ...FORGE_PROGRAM_FOUND_SCREENS,
   ...VERSIONS_SCREENS,
@@ -303,6 +305,12 @@ describe('each screen shows the state its artboard draws', () => {
     expect(themeButtonsOf(markup)).toEqual([]);
   });
 
+  test('B1: the board shows its moved Questions view at E2, read over a live stream, not a board still waiting for its first', () => {
+    const markup = screenMarkupOf(screenOf('B1'), 'dark');
+    expect(markup).toContain('How long should a password reset link stay valid?');
+    expect([markup.includes('Waiting for the forge\'s first board.'), markup.includes('>Connecting<')]).toEqual([false, false]);
+  });
+
   test('B2: the Stop dialog under Example Storefront, the refusal under Example Mobile App, and Design System starting', () => {
     const markup = screenMarkupOf(screenOf('B2'), 'dark');
     const tree = MarkupTree.parse(markup);
@@ -419,7 +427,7 @@ describe('B1 in each state of its brain tweak', () => {
     expect(barByState).toEqual([
       ['off', 'off', ['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']],
       ['starting', 'starting', ['Pause', 'Stop', 'Open in new tab']],
-      ['running', 'running', ['Pause', 'Stop', 'Stop', 'Open in new tab']],
+      ['running', 'running', ['Pause', 'Stop', 'Stop brain', 'Open in new tab']],
       ['refused', 'refused', ['Pause', 'Stop', 'Wake Flint\'s brain', 'Open in new tab']],
       ['ended', 'ended', ['Pause', 'Stop', 'Open in new tab']],
     ]);
@@ -490,6 +498,27 @@ describe('the agents a network outage stopped, over the artboards that show them
       '2 agents stopped on a network outage',
       '1 agent stopped on a network outage',
     ]);
+  });
+});
+
+describe('a crashed forge in place, which no artboard draws', () => {
+  test('off after its crash: the alert with the registry\'s crash summary and Start, and no board read', () => {
+    const [crashed] = CRASHED_FORGE_SCREENS;
+    if (crashed === undefined) throw new Error('A crashed forge\'s screen is missing.');
+    const markup = screenMarkupOf(crashed, 'dark');
+    expect(markup).toContain('Forge crashed');
+    expect(markup).toContain('overseer · TypeError: Cannot read properties of undefined');
+    expect(MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Start'))).toHaveLength(1);
+    expect(markup).not.toContain('How long should a password reset link stay valid?');
+  });
+
+  test('started again: its crash log open in place of Show log, with the error, the jobs active then and the tail of its log', () => {
+    const started = CRASHED_FORGE_SCREENS[1];
+    if (started === undefined) throw new Error('A crashed forge\'s screen is missing.');
+    const markup = screenMarkupOf(started, 'dark');
+    expect(markup).toContain('Crash log 1');
+    expect(markup).toContain('Overseer crashed in pass 412: TypeError.');
+    expect(MarkupTree.elementsIn(MarkupTree.parse(markup), MarkupTree.withRole('button', 'Show log'))).toEqual([]);
   });
 });
 

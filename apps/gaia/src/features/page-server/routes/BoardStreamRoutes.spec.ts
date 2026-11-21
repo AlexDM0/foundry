@@ -35,6 +35,7 @@ import {
   boardAnswering,
   exampleRelayForgeOf,
   exampleTokenFileIn,
+  recordedBoardEventIdOf,
   relaySourcesOver,
   stoppedForgeAnswering,
   type ExampleRelayForgeOptions,
@@ -45,7 +46,7 @@ import { boardEventsAnswerFor, jobStreamAnswerFor, profileStreamAnswerFor } from
 const EVENTS_CALL_SHAPE = 'STREAM /api/v1/events with bearer';
 const EVENTS_FROM_LAST_ID_CALL_SHAPE = 'STREAM /api/v1/events with bearer from a last event id';
 const RELAY_URL = 'http://127.0.0.1:4790/api/v1/forges/example-storefront-7c41';
-const EXAMPLE_LAST_EVENT_ID = '1-43';
+const EXAMPLE_LAST_EVENT_ID = recordedBoardEventIdOf('board-at-work', 'afresh');
 
 const JOB_ID = recordedPathSegmentOf('intake-conversation', /\/jobs\/([^/]+)\/stream/);
 const PROFILE_RUN_ID = recordedPathSegmentOf('gate-profile-run', /\/profiles\/([^/]+)\/stream/);
@@ -108,7 +109,7 @@ describe('the board\'s events', () => {
       forgeSystemVersion: { major: SUPPORTED_FORGE_VERSION.major, minor: SUPPORTED_FORGE_VERSION.minor },
     }]);
     const boardEvent = await events.nextEvent();
-    expect([boardEvent.eventName, boardEvent.lastEventId, JSON.parse(boardEvent.data)]).toEqual(['board', '1-43', { boardVersion: 1, kind: 'board-changed' }]);
+    expect([boardEvent.eventName, boardEvent.lastEventId, JSON.parse(boardEvent.data)]).toEqual(['board', EXAMPLE_LAST_EVENT_ID, { boardVersion: 1, kind: 'board-changed' }]);
     await events.leave();
   });
 
@@ -117,7 +118,7 @@ describe('the board\'s events', () => {
     const answer = await boardEventsAnswerFor(pageRequest('board/events', { 'last-event-id': EXAMPLE_LAST_EVENT_ID }), STOREFRONT_TRACKER_ID, sourcesOver(overseerFetch));
     const events = relayEventReaderOf(answer);
     await events.nextEvent();
-    expect((await events.nextEvent()).lastEventId).toBe('1-44');
+    expect((await events.nextEvent()).lastEventId).toBe(recordedBoardEventIdOf('board-at-work', 'from-a-last-event-id'));
     expect(overseerFetch.callsAnswered().map((call) => [call.callShape, call.lastEventId])).toEqual([[EVENTS_FROM_LAST_ID_CALL_SHAPE, EXAMPLE_LAST_EVENT_ID]]);
     await events.leave();
   });

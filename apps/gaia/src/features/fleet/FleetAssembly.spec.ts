@@ -175,7 +175,8 @@ function brainIn(state: ForgeBrain['state']): ForgeBrain {
 
 describe('Flint\'s brain', () => {
   test('a running brain adds one agent row of role brain, after its forge\'s jobs, that counts against no limit', async () => {
-    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [await recordedBrainReadingOf('brain-running')]));
+    const brainReading = await recordedBrainReadingOf('brain-running');
+    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [brainReading]));
     expect(snapshot.agents.map((row) => [row.jobId, row.role, row.countsAgainstLimit])).toEqual([
       ['J1', 'assistant', true],
       [FLINT_BRAIN_ROW_ID, FLINT_BRAIN_ROLE, false],
@@ -185,7 +186,7 @@ describe('Flint\'s brain', () => {
       state:      'running',
       tokens:     11,
       calls:      1,
-      startedAt:  '2026-11-21T07:05:52.612Z',
+      startedAt:  brainReading.brain === 'not-reported' ? 'no brain reported' : brainReading.brain.startedAt,
       ticketIds:  [],
       boardRoute: null,
     });
@@ -219,11 +220,14 @@ describe('Flint\'s brain', () => {
   });
 
   test('an ended brain adds one activity entry, the forge\'s own words with its tokens, and no row', async () => {
-    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [await recordedBrainReadingOf('brain-ended')]));
+    const brainReading = await recordedBrainReadingOf('brain-ended');
+    const recordedBrainEntry = brainReading.activity.find((entry) => entry.kind === 'flint-brain');
+    if (recordedBrainEntry === undefined) throw new Error('The ended brain was recorded with no activity entry of its own.');
+    const snapshot = fleetSnapshotOf(inputBehind(FLEET_SNAPSHOT_FIVE_FORGES, [brainReading]));
     expect(snapshot.activity.filter((entry) => entry.kind === 'flint-brain')).toEqual([{
       trackerId:   STOREFRONT.trackerId,
-      logPosition: 6,
-      at:          '2026-11-21T08:05:53+01:00',
+      logPosition: recordedBrainEntry.logPosition,
+      at:          recordedBrainEntry.at,
       category:    'agent',
       text:        'Flint\'s brain was stopped, after 1 model call and 11 tokens',
       boardRoute:  null,

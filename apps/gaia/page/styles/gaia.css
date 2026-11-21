@@ -1192,29 +1192,27 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 /* ── A forge in place (B1) ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
 
 .gaia-forge-frame-view { display: flex; flex-direction: column; height: 100%; }
-/* The forge's bar heads the view in the page title's place: its mark and name, its condition's dot and word, one line, and its controls. */
+/* The forge's bar heads the view in the page title's place: its mark and name, its condition's dot and word, its line, and its controls. */
 .gaia-forge-frame-bar {
   display: flex;
   flex: none;
   align-items: center;
   gap: var(--space-10);
   box-sizing: border-box;
-  height: var(--forge-bar-height);
-  padding: 0 var(--sp-4) 0 var(--space-18);
+  min-height: var(--forge-bar-height);
+  padding: var(--space-7) var(--sp-4) var(--space-7) var(--space-18);
 }
 .gaia-forge-frame-bar-name { flex: none; margin: 0; font-size: var(--fs-title); line-height: var(--line-height-lead); font-weight: var(--weight-strong); white-space: nowrap; }
 .gaia-forge-frame-bar-status { display: inline-flex; flex: 0 1 auto; align-items: center; gap: var(--space-7); min-width: 0; }
 .gaia-forge-frame-bar-word { flex: none; font-weight: var(--weight-strong); white-space: nowrap; }
 .gaia-forge-frame-bar-word[data-condition="outdated"] { color: var(--link); }
+/* A long line, such as an older forge's verdict, wraps under itself rather than cut its sentence short. */
 .gaia-forge-frame-bar-line {
   min-width: 0;
   margin-left: var(--space-2);
-  overflow: hidden;
   font-size: var(--fs-tab);
   line-height: var(--line-height-tab);
   color: var(--ink-muted);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 /* The controls take the room the line leaves; the brain's group joins them between Stop and Open in new tab. */
 .gaia-forge-frame-bar-controls { display: inline-flex; flex: 1 0 auto; justify-content: flex-end; align-items: center; gap: var(--space-10); }
@@ -1312,12 +1310,9 @@ a.gaia-activity-text::after { content: ""; position: absolute; inset: 0; }
 .gaia-forge-frame-bar-update-refusal {
   min-width: 0;
   max-width: var(--forge-bar-update-refusal-width);
-  overflow: hidden;
   font-size: var(--fs-tab);
   line-height: var(--line-height-small);
   color: var(--err-ink);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .gaia-forge-frame-bar-update-refusal-code { font-family: var(--font-mono); font-size: var(--fs-small); font-weight: var(--weight-strong); }
 

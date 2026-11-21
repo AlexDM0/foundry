@@ -2,7 +2,7 @@
   "stamp": {
     "boundary": "src/services/overseer/InstallChangeWatch.ts",
     "system": "agent-progress",
-    "version": "install version 43",
+    "version": "install version 43, answer version 2",
     "os": "darwin"
   },
   "answers": [
@@ -11,7 +11,7 @@
       "answer": {
         "kind": "finished",
         "exitCode": 0,
-        "stdout": "{\n  \"answerVersion\": 1,\n  \"codeVersion\": \"cc31bde57bf5\",\n  \"installVersion\": 43,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
+        "stdout": "{\n  \"answerVersion\": 2,\n  \"codeVersion\": \"af2246de1aee\",\n  \"installVersion\": 43,\n  \"contracts\": {\n    \"summary\": 1,\n    \"monitor\": 3,\n    \"control\": 1,\n    \"embed\": 1\n  },\n  \"talosProtocolVersion\": 2,\n  \"monitorFolder\": \"<home>/.forge-monitor\"\n}\n",
         "stderr": ""
       }
     },

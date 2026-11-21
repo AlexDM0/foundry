@@ -19,7 +19,12 @@ function windowIsNarrow(): boolean {
   return window.matchMedia(NARROW_WINDOW_QUERY).matches;
 }
 
+/** A page drawn with no window, such as a screen of the visual pass, is drawn at a full width. */
+function windowIsNarrowWithoutAWindow(): boolean {
+  return false;
+}
+
 /** Below the anchor's end, or below its start while the window is narrow. */
 export function useEndPlacementOrStartWhenNarrow(): PopoverPlacement {
-  return useSyncExternalStore(subscribeToWindowWidth, windowIsNarrow) ? 'below-start' : 'below-end';
+  return useSyncExternalStore(subscribeToWindowWidth, windowIsNarrow, windowIsNarrowWithoutAWindow) ? 'below-start' : 'below-end';
 }

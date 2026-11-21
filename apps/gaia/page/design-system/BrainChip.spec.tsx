@@ -1,7 +1,7 @@
 /**
  * Flint's brain in B1's bar, in each of its five states. What matters: each state shows exactly its parts of SCREENS B1 and nothing of
  * another: off the Wake button with its diamond; starting the starting dot and its note as a status; running the orange chip with the
- * model, the effort, the countdown and the tokens it is given, the figures in mono, and Stop named "Stop Flint's brain on <forge>"; refused
+ * model, the effort, the countdown and the tokens it is given, the figures in mono, and Stop brain named "Stop Flint's brain on <forge>"; refused
  * the forge's refusal on one line, its sentence apart from its code so that only the sentence is cut short, whole in its title, then Wake
  * again; ended the grey diamond and the forge's sentence with no button.
  * A control the forge does not take is absent, and one on its way is disabled. The chip computes nothing: the countdown it shows is the
@@ -72,7 +72,7 @@ describe('the brain chip', () => {
     const [stop, ...others] = buttonsOf(unfolded);
     if (stop === undefined) throw new Error('The Stop button is missing.');
     expect([others, PackageButtons.labelOf(stop), PackageButtons.nameOf(stop), PackageButtons.emphasisOf(stop)])
-      .toEqual([[], 'Stop', 'Stop Flint\'s brain on Example Storefront', 'quiet']);
+      .toEqual([[], 'Stop brain', 'Stop Flint\'s brain on Example Storefront', 'quiet']);
     PackageButtons.press(stop);
     expect(presses).toEqual(['stop']);
   });

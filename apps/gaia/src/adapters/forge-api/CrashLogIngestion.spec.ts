@@ -12,13 +12,14 @@ const INGESTION = new CrashLogIngestion();
 
 describe('crashLogOf', () => {
   test('reads the crash log the forge wrote for a kill from outside: no error caught, the jobs active then and the tail of its log', () => {
-    const reading = INGESTION.crashLogOf(recordedCrashLogBodyOf('started-after-a-crash'));
+    const recordedBody = recordedCrashLogBodyOf('started-after-a-crash');
+    const reading = INGESTION.crashLogOf(recordedBody);
     expect(reading.crashLog).toMatchObject({
       number:     1,
       generation: 1,
       component:  'hephaestus',
       suspected:  false,
-      recordedAt: '2026-11-21T07:41:07+01:00',
+      recordedAt: recordedBody['recordedAt'],
       error:      null,
       activeJobs: [{
         jobId: 'J1', kind: 'assistant', ticketIds: [], state: 'launching', interruption: null, airlockPhase: null,

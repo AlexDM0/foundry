@@ -1,6 +1,6 @@
 /**
  * Flint's brain in B1's bar (COMPONENT_LIBRARY 3.4, SCREENS B1), one of five states, each replacing the last: off (the Wake button),
- * starting (the starting dot and its note), running (the orange chip with the model, the effort, the countdown and the tokens, and Stop),
+ * starting (the starting dot and its note), running (the orange chip with the model, the effort, the countdown and the tokens, and Stop brain),
  * refused (the forge's refusal on one line, its sentence cut short before its code, then Wake again) and ended (a grey diamond and the
  * forge's sentence). It computes nothing from a clock: the countdown arrives as the text to show. A control is absent where the forge takes
  * no brain command, and disabled while its command is on its way.
@@ -43,6 +43,9 @@ const STARTING_NOTE = 'Waking Flint\'s brain…';
 
 const BRAIN_NAME = 'Flint\'s brain';
 
+/** The bar's own Stop stops the forge beside it, so the brain's names what it stops. */
+const STOP_LABEL = 'Stop brain';
+
 const REFUSAL_LEAD_INS: Readonly<Record<RefusedBy, string>> = {
   forge: 'The forge refused: ',
   gaia:  'Gaia could not wake Flint\'s brain: ',
@@ -67,7 +70,7 @@ function RunningChip(props: Extract<BrainChipProps, { state: 'running' }>) {
         {' tokens'}
       </span>
       {stop === null ? null : (
-        <Button label="Stop" accessibleName={`Stop Flint's brain on ${props.forgeName}`} compact disabled={stop.disabled} onPress={stop.onPress} />
+        <Button label={STOP_LABEL} accessibleName={`Stop Flint's brain on ${props.forgeName}`} compact disabled={stop.disabled} onPress={stop.onPress} />
       )}
     </>
   );

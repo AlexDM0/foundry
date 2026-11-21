@@ -43,12 +43,15 @@ function gitVersion(): string {
   return printedVersionOf(['git', '--version'])?.replace(GIT_VERSION_PREFIX, '') ?? NOT_INSTALLED;
 }
 
-/** The install version names what `version --json` answers; the code version moves with every commit and changes no answer's shape. */
+/**
+ * The install and answer versions name what `version --json` answers, the answer version its shape; the code version moves with every
+ * commit and changes no answer's shape.
+ */
 function agentProgressInstallVersion(): string {
   const printed = printedVersionOf([process.execPath, join(REPOSITORY_ROOT, 'agent-progress.ts'), 'version', '--json']);
   if (printed === null) return NOT_INSTALLED;
-  const { installVersion } = JSON.parse(printed) as { installVersion?: unknown };
-  return `install version ${String(installVersion)}`;
+  const { installVersion, answerVersion } = JSON.parse(printed) as { installVersion?: unknown; answerVersion?: unknown };
+  return `install version ${String(installVersion)}, answer version ${String(answerVersion)}`;
 }
 
 /** Resolved as the program resolves it, so the eslint a workspace hoists to its root is found. */

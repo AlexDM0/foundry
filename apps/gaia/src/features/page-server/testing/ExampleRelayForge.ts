@@ -90,6 +90,17 @@ export function boardAnswering(situation: BoardSituation, withCallShape: (callSh
   return recordedOverseerFetch(recordedBoardAnswersOf(situation).filter(({ callShape }) => withCallShape(callShape)));
 }
 
+const BOARD_EVENT_ID_PATTERN = /\nid: ([^\n]+)\nevent: board\n/;
+
+/** The id of the first board event the recorded board stream of `situation` carries, asked afresh or from a last event id. */
+export function recordedBoardEventIdOf(situation: BoardSituation, asked: 'afresh' | 'from-a-last-event-id'): string {
+  const callShape = `STREAM /api/v1/events with bearer${asked === 'afresh' ? '' : ' from a last event id'}`;
+  const recorded = recordedBoardAnswersOf(situation).find((answer) => answer.callShape === callShape)?.answer;
+  const boardEventId = recorded?.verdict === 'streaming' ? BOARD_EVENT_ID_PATTERN.exec(`\n${recorded.chunks.join('')}`)?.[1] : undefined;
+  if (boardEventId === undefined) throw new Error(`The recorded stream ${callShape} carries no board event with an id.`);
+  return boardEventId;
+}
+
 const STOPPED_FORGE_REQUEST_CALL_SHAPE = 'GET /api/v2/monitor with bearer';
 const STOPPED_FORGE_STREAM_CALL_SHAPE = 'STREAM /api/v2/monitor/events with bearer';
 

@@ -160,13 +160,13 @@ describe('Flint\'s brain in the bar (SCREENS B1)', () => {
     expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Open in new tab']);
   });
 
-  test('running: the chip with the forge\'s model, effort and tokens and the time left to its end, and Stop, which sends forge-brain-stop', () => {
+  test('running: the chip with the forge\'s model, effort and tokens and the time left to its end, and Stop brain, which sends forge-brain-stop', () => {
     const { unfolded, sent } = controlsOf({ bar: barOf(storefrontWithBrain('running')) });
     const group = brainGroupOf(unfolded);
     expect(tree.textOf([tree.onlyWithClass([group], 'gaia-brain-chip')])).toBe('Flint\'s brain · haiku low · 1:24 left · 3.1k tokens');
     const brainStop = tree.onlyHostElementIn([group], PackageButtons.isButton);
     expect(PackageButtons.nameOf(brainStop)).toBe('Stop Flint\'s brain on Example Storefront');
-    expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Stop', 'Open in new tab']);
+    expect(buttonTextsOf(unfolded)).toEqual(['Pause', 'Stop', 'Stop brain', 'Open in new tab']);
     PackageButtons.press(brainStop);
     expect(sent).toEqual([{ kind: 'forge-brain-stop', trackerId: STOREFRONT.trackerId }]);
   });

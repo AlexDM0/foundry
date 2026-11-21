@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { CommandBody, ForgeStopAgents }      from '../../@types/CommandDocument.ts';
+import type { CrashLogDocument }                  from '../../@types/CrashLogDocument.ts';
 import type { FleetDocument, FleetDocumentForge } from '../../@types/FleetDocument.ts';
 import { CommandSender, useCommandSender }        from '../../api/CommandSender.ts';
 import { Board, type BoardServicesOf }            from '../../board/Board.tsx';
@@ -33,12 +34,14 @@ import { ForgePresenceModel }                           from './ForgePresenceMod
 /** What the page around a forge's board hands it: the server's crash logs, the board's services and views, and a tab of its own. */
 export interface ForgeViewSurroundings {
   /** One crash log of a forge that serves again, read through Gaia's server when User opens it. */
-  readonly requestCrashLog: (trackerId: string, crashLogNumber: number) => Promise<CrashLogResult>;
-  readonly boardServicesOf: BoardServicesOf;
+  readonly requestCrashLog:       (trackerId: string, crashLogNumber: number) => Promise<CrashLogResult>;
+  readonly boardServicesOf:       BoardServicesOf;
   /** The view of every board tab; `BOARD_TAB_VIEWS` unless a spec hands its own. */
-  readonly boardTabViews:   BoardTabViewTable;
+  readonly boardTabViews:         BoardTabViewTable;
   /** Opens Gaia's own address at a fragment in a browser tab of its own. */
-  readonly openInNewTab:    (fragment: string) => void;
+  readonly openInNewTab:          (fragment: string) => void;
+  /** Crash logs already read when the view mounts, shown open; a page painted without effects, such as a screen of the visual pass, hands them. */
+  readonly crashLogsReadAtMount?: (trackerId: string) => readonly CrashLogDocument[];
 }
 
 /** The forge view's route: the forge, and the board route Gaia's address names. */
@@ -110,15 +113,22 @@ interface ForgePresenceAreaProps {
   readonly forge:           FleetDocumentForge;
   readonly clock:           ClockReading;
   readonly requestCrashLog: ForgeViewSurroundings['requestCrashLog'];
+  readonly crashLogsRead:   readonly CrashLogDocument[];
+}
+
+function openingsOfCrashLogsRead(crashLogsRead: readonly CrashLogDocument[]): ReadonlyMap<number, CrashLogOpening> {
+  return new Map(crashLogsRead.map((crashLog) => [crashLog.number, { phase: 'read', shown: ForgePresenceModel.crashLogShownOf(crashLog) }]));
 }
 
 /**
  * The forge's presence under its bar. A crash log is read once, when User opens it, and kept for as long as the same Overseer serves; its
  * key in the parent is the forge and its Overseer's start, so a new start reads again.
  */
-function ForgePresenceArea({ forge, clock, requestCrashLog }: ForgePresenceAreaProps) {
+function ForgePresenceArea({
+  forge, clock, requestCrashLog, crashLogsRead
+}: ForgePresenceAreaProps) {
   const { send, states } = useCommandSender();
-  const [openedCrashLogs, setOpenedCrashLogs] = useState<ReadonlyMap<number, CrashLogOpening>>(new Map());
+  const [openedCrashLogs, setOpenedCrashLogs] = useState<ReadonlyMap<number, CrashLogOpening>>(() => openingsOfCrashLogsRead(crashLogsRead));
   const content = ForgePresenceModel.presenceContentOf(forge, clock);
   if (ForgePresenceModel.presenceIsQuiet(content)) return null;
   const setOpening = (crashLogNumber: number, opening: CrashLogOpening): void => {
@@ -196,7 +206,13 @@ export function forgeViewPartsOf(route: ForgeViewRoute, fleetDocument: FleetDocu
           ? <ForgeBarLayout name={route.trackerId} status={null} mark={{}} controls={null} />
           : <ForgeBarWithControls key={bar.trackerId} bar={bar} onOpenInNewTab={openRouteInNewTab} />}
         {forge === undefined ? null : (
-          <ForgePresenceArea key={`${forge.trackerId} ${forge.overseerStartedAt ?? ''}`} forge={forge} clock={clock} requestCrashLog={surroundings.requestCrashLog} />
+          <ForgePresenceArea
+            key={`${forge.trackerId} ${forge.overseerStartedAt ?? ''}`}
+            forge={forge}
+            clock={clock}
+            requestCrashLog={surroundings.requestCrashLog}
+            crashLogsRead={surroundings.crashLogsReadAtMount?.(forge.trackerId) ?? []}
+          />
         )}
         <ForgeContentView content={content} route={route} surroundings={surroundings} />
       </div>

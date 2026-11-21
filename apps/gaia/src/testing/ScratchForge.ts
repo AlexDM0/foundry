@@ -50,6 +50,7 @@ export interface ScratchForge {
   readonly runForDocument:   (repository: string, programArguments: readonly string[]) => Promise<Record<string, unknown>>;
   /** The registry entry of the board in `repository`, as the forge wrote it under the scratch home. */
   readonly registryEntryOf:  (trackerId: string) => Record<string, unknown> | null;
+  /** A value drawn again, such as a port a second Overseer is given once the first let it go, takes the example of its newest drawing. */
   readonly exampleValueFor:  (exampleValue: ExampleValue) => void;
   /** `text` with every value drawn by this run replaced by its example, the longest first so no path is replaced inside another. */
   readonly exampleTextOf:    (text: string) => string;
@@ -181,6 +182,12 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
     return isRecord(entry) ? entry : null;
   }
 
+  function exampleValueFor(exampleValue: ExampleValue): void {
+    const earlierDrawing = exampleValues.findIndex(({ drawn }) => drawn === exampleValue.drawn);
+    if (earlierDrawing !== -1) exampleValues.splice(earlierDrawing, 1);
+    exampleValues.push(exampleValue);
+  }
+
   function exampleTextOf(text: string): string {
     const homeExamples = [{ drawn: forgeHome, example: '/Users/example' }, { drawn: shortForgeHome, example: '/Users/example' }];
     const longestFirst = [...exampleValues, ...homeExamples].sort((a, b) => b.drawn.length - a.drawn.length);
@@ -211,13 +218,13 @@ export function createScratchForge(recordingName: string, options: ScratchForgeO
   }
 
   return {
-    home:            () => forgeHome,
+    home: () => forgeHome,
     processRun,
     createRepository,
     run,
     runForDocument,
     registryEntryOf,
-    exampleValueFor: (exampleValue) => exampleValues.push(exampleValue),
+    exampleValueFor,
     exampleTextOf,
     remove,
   };

@@ -25,6 +25,14 @@ export async function recordedBoardDocumentOf(situation: Extract<BoardSituation,
   return answer.document;
 }
 
+/** The day the recorded board counted today's figures on, as the forge wrote it, so a spec holds the date without pinning the day it was taken. */
+export async function recordedCalendarDateOf(situation: Extract<BoardSituation, 'board-at-work' | 'board-install-held'>): Promise<string> {
+  const document = await recordedBoardDocumentOf(situation) as { readonly today?: { readonly calendarDate?: unknown } };
+  const calendarDate = document.today?.calendarDate;
+  if (typeof calendarDate !== 'string') throw new Error(`The ${situation} board names no calendar date for today.`);
+  return calendarDate;
+}
+
 /** A board command's answer as the forge gave it: its status and its parsed body. */
 export async function recordedCommandAnswerOf(
   situation: Extract<BoardSituation, 'board-command-applied' | 'board-command-refused' | 'board-command-unknown-kind' | 'board-install-held' | 'intake-conversation'>,

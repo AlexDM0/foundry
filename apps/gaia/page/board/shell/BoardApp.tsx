@@ -90,9 +90,10 @@ function useBoardReading(services: BoardServices): {
   readonly connection:     ConnectionState;
   readonly boardShownAsOf: string | null;
 } {
-  const [board, setBoard] = useState<BoardDocument | null>(null);
-  const [connection, setConnection] = useState<ConnectionState>('connecting');
-  const [boardShownAsOf, setBoardShownAsOf] = useState<string | null>(null);
+  const { readingAtMount } = services;
+  const [board, setBoard] = useState<BoardDocument | null>(readingAtMount?.board ?? null);
+  const [connection, setConnection] = useState<ConnectionState>(readingAtMount?.connection ?? 'connecting');
+  const [boardShownAsOf, setBoardShownAsOf] = useState<string | null>(() => (readingAtMount?.board ? services.now().toLocaleString() : null));
   useEffect(() => {
     let isMounted = true;
     let readNumber = 0;

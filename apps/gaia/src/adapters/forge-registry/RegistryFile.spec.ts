@@ -27,7 +27,24 @@ const DAIRY_TRACKER_ID    = BOARDS['example-dairy'].trackerId;
 const ESTATE_TRACKER_ID   = BOARDS['example-estate'].trackerId;
 const EXAMPLE_PROGRAM = '/Users/example/.bun/bin/forge';
 
-/** What the recorded registry maps to; retake the stamps and last commands from the recording after `bun run record forge-registry`. */
+type RecordedStamp = 'lastChangedAt' | 'overseerStartedAt' | 'presenceAt';
+
+interface RecordedEntryStamps {
+  readonly lastChangedAt?: string;
+  readonly overseer?:      { readonly startedAt?: string } | null;
+  readonly presence?:      { readonly at?: string } | null;
+}
+
+/** A stamp the forge wrote into a board's entry when the recording was taken, read from the recording so a fresh take reads alike. */
+function recordedStampOf(trackerId: string, stamp: RecordedStamp): string {
+  const { projects } = recordedRegistryDocument() as { projects: Record<string, RecordedEntryStamps> };
+  const entry = projects[trackerId];
+  const stampValue = { lastChangedAt: entry?.lastChangedAt, overseerStartedAt: entry?.overseer?.startedAt, presenceAt: entry?.presence?.at }[stamp];
+  if (stampValue === undefined) throw new Error(`The recorded entry of ${trackerId} holds no ${stamp}.`);
+  return stampValue;
+}
+
+/** What the recorded registry maps to; retake the last commands from the recording after `bun run record forge-registry`. */
 const RECORDED_FORGES: readonly RegisteredForge[] = [
   {
     trackerId: AGENCY_TRACKER_ID,
@@ -37,13 +54,13 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     overseer:  {
       url:       'http://127.0.0.1:4987/',
       processId: 4242,
-      startedAt: '2026-11-21T06:32:50+01:00',
+      startedAt: recordedStampOf(AGENCY_TRACKER_ID, 'overseerStartedAt'),
       tokenPath: `/Users/example/.forge-monitor/private/${AGENCY_TRACKER_ID}/token`,
     },
     lastCommand:   'oversee',
-    lastChangedAt: '2026-11-21T06:32:50+01:00',
+    lastChangedAt: recordedStampOf(AGENCY_TRACKER_ID, 'lastChangedAt'),
     presence:      {
-      state: 'serving', generation: 1, at: '2026-11-21T06:32:50+01:00', crash: null,
+      state: 'serving', generation: 1, at: recordedStampOf(AGENCY_TRACKER_ID, 'presenceAt'), crash: null,
     },
   },
   {
@@ -54,15 +71,15 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     overseer:  {
       url:       'http://127.0.0.1:4988/',
       processId: 5151,
-      startedAt: '2026-11-21T06:32:51+01:00',
+      startedAt: recordedStampOf(BOOKSHOP_TRACKER_ID, 'overseerStartedAt'),
       tokenPath: `/Users/example/.forge-monitor/private/${BOOKSHOP_TRACKER_ID}/token`,
     },
     lastCommand:   'start',
-    lastChangedAt: '2026-11-21T06:32:52+01:00',
+    lastChangedAt: recordedStampOf(BOOKSHOP_TRACKER_ID, 'lastChangedAt'),
     presence:      {
       state:      'crashed',
       generation: 1,
-      at:         '2026-11-21T06:32:52+01:00',
+      at:         recordedStampOf(BOOKSHOP_TRACKER_ID, 'presenceAt'),
       crash:      {
         component: 'overseer', suspected: false, errorName: null, errorMessage: null,
       },
@@ -75,9 +92,9 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     program:       EXAMPLE_PROGRAM,
     overseer:      null,
     lastCommand:   'oversee',
-    lastChangedAt: '2026-11-21T06:32:53+01:00',
+    lastChangedAt: recordedStampOf(BOARDS['example-clinic'].trackerId, 'lastChangedAt'),
     presence:      {
-      state: 'stopped', generation: 1, at: '2026-11-21T06:32:53+01:00', crash: null,
+      state: 'stopped', generation: 1, at: recordedStampOf(BOARDS['example-clinic'].trackerId, 'presenceAt'), crash: null,
     },
   },
   {
@@ -87,7 +104,7 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     program:       EXAMPLE_PROGRAM,
     overseer:      null,
     lastCommand:   'init',
-    lastChangedAt: '2026-11-21T06:32:53+01:00',
+    lastChangedAt: recordedStampOf(DAIRY_TRACKER_ID, 'lastChangedAt'),
     presence:      null,
   },
   {
@@ -98,13 +115,13 @@ const RECORDED_FORGES: readonly RegisteredForge[] = [
     overseer:  {
       url:       'http://127.0.0.1:4989/',
       processId: 6060,
-      startedAt: '2026-11-21T06:32:54+01:00',
+      startedAt: recordedStampOf(ESTATE_TRACKER_ID, 'overseerStartedAt'),
       tokenPath: `/Users/example/.forge-monitor/private/${ESTATE_TRACKER_ID}/token`,
     },
     lastCommand:   'oversee',
-    lastChangedAt: '2026-11-21T06:32:54+01:00',
+    lastChangedAt: recordedStampOf(ESTATE_TRACKER_ID, 'lastChangedAt'),
     presence:      {
-      state: 'serving', generation: 1, at: '2026-11-21T06:32:54+01:00', crash: null,
+      state: 'serving', generation: 1, at: recordedStampOf(ESTATE_TRACKER_ID, 'presenceAt'), crash: null,
     },
   },
 ];

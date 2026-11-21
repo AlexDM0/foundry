@@ -19,8 +19,13 @@ import { SUPPORTED_FORGE_VERSION }                                        from '
 import { manualTimers, type ManualTimers }                                from '../../testing/ManualTimers.ts';
 import type { RecordedOverseerFetch }                                     from '../../testing/RecordedAnswers.ts';
 import { createBoardStreams, type BoardStreams, type RelayStreamRequest } from './BoardStreams.ts';
-import { STOREFRONT_TRACKER_ID, STOREFRONT_URL, boardAnswering }          from './testing/ExampleRelayForge.ts';
-import { relayEventReaderOf }                                             from './testing/RelayEventReader.ts';
+import {
+  STOREFRONT_TRACKER_ID,
+  STOREFRONT_URL,
+  boardAnswering,
+  recordedBoardEventIdOf,
+} from './testing/ExampleRelayForge.ts';
+import { relayEventReaderOf } from './testing/RelayEventReader.ts';
 
 const HEARTBEAT_MILLISECONDS = 1_000;
 const EXAMPLE_ACCESS = { overseerUrl: STOREFRONT_URL, bearerToken: 'example-forge-token-0123456789abcdef' };
@@ -94,7 +99,7 @@ describe('an event mapped for several page streams', () => {
       await events.nextEvent();
       await events.nextEvent();
     }
-    expect(mappedEvents.map((event) => [event.eventName, event.id])).toEqual([['board', '1-43']]);
+    expect(mappedEvents.map((event) => [event.eventName, event.id])).toEqual([['board', recordedBoardEventIdOf('board-at-work', 'afresh')]]);
     await Promise.all(readers.map((events) => events.leave()));
   });
 });

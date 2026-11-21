@@ -9,25 +9,28 @@ import { join }                 from 'node:path';
 import { pathToFileURL }        from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 
-import type { CommandAnswerDocument, ForgeCommandBody }                             from '../@types/CommandDocument.ts';
-import type { FleetDocument, FleetDocumentBrainState }                              from '../@types/FleetDocument.ts';
-import { type CommandSender, CommandSenderContext, type CommandStates }             from '../api/CommandSender.ts';
-import { HashRouter }                                                               from '../shared/HashRouter.ts';
-import { GaiaShell, viewPartsOf }                                                   from '../shell/GaiaApp.tsx';
-import { ForgesLayout }                                                             from '../views/forges/ForgesLayout.tsx';
-import { ForgesModel, type StopDialogState }                                        from '../views/forges/ForgesModel.ts';
-import { GaiaPanelModel }                                                           from '../views/forges/GaiaPanelModel.ts';
-import { WhatNotifiesDialog }                                                       from '../views/forges/WhatNotifiesDialog.tsx';
-import { DesignSystemStylesheet }                                                   from './DesignSystemStylesheet.ts';
-import { PackageStylesheet }                                                        from './PackageStylesheet.ts';
-import { forgeViewSurroundingsAt }                                                  from './ShellSurroundingsAt.ts';
-import { FLEET_AT_LIMIT }                                                           from './fixtures/fleet-at-limit.ts';
-import { fleetWithStorefrontBrainOf }                                               from './fixtures/fleet-brain-states.ts';
-import { FLEET_DEGRADED }                                                           from './fixtures/fleet-degraded.ts';
-import { FLEET_EMPTY }                                                              from './fixtures/fleet-empty.ts';
-import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT } from './fixtures/fleet-five-forges.ts';
-import { FLEET_OUTAGE_ENDINGS }                                                     from './fixtures/fleet-outage-endings.ts';
-import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                               from './fixtures/fleet-versions.ts';
+import type { CommandAnswerDocument, ForgeCommandBody }                                           from '../@types/CommandDocument.ts';
+import type { FleetDocument, FleetDocumentBrainState }                                            from '../@types/FleetDocument.ts';
+import { type CommandSender, CommandSenderContext, type CommandStates }                           from '../api/CommandSender.ts';
+import type { BoardServices }                                                                     from '../board/@types/BoardServices.ts';
+import { HashRouter }                                                                             from '../shared/HashRouter.ts';
+import { GaiaShell, viewPartsOf }                                                                 from '../shell/GaiaApp.tsx';
+import { ForgesLayout }                                                                           from '../views/forges/ForgesLayout.tsx';
+import { ForgesModel, type StopDialogState }                                                      from '../views/forges/ForgesModel.ts';
+import { GaiaPanelModel }                                                                         from '../views/forges/GaiaPanelModel.ts';
+import { WhatNotifiesDialog }                                                                     from '../views/forges/WhatNotifiesDialog.tsx';
+import { DesignSystemStylesheet }                                                                 from './DesignSystemStylesheet.ts';
+import { PackageStylesheet }                                                                      from './PackageStylesheet.ts';
+import { forgeViewSurroundingsAt, silentBoardServicesOf }                                         from './ShellSurroundingsAt.ts';
+import { FLEET_AT_LIMIT }                                                                         from './fixtures/fleet-at-limit.ts';
+import { fleetWithStorefrontBrainOf }                                                             from './fixtures/fleet-brain-states.ts';
+import { FLEET_DEGRADED }                                                                         from './fixtures/fleet-degraded.ts';
+import { FLEET_EMPTY }                                                                            from './fixtures/fleet-empty.ts';
+import { FLEET_FIVE_FORGES, FLEET_FIVE_FORGES_TRACKER_IDS, FLEET_FIXTURES_READ_AT }               from './fixtures/fleet-five-forges.ts';
+import { FLEET_OUTAGE_ENDINGS }                                                                   from './fixtures/fleet-outage-endings.ts';
+import { FLEET_STOREFRONT_CRASHED, FLEET_STOREFRONT_STARTED_AFTER_A_CRASH, STOREFRONT_CRASH_LOG } from './fixtures/fleet-storefront-crashed.ts';
+import { FLEET_VERSIONS, FLEET_VERSIONS_TRACKER_IDS }                                             from './fixtures/fleet-versions.ts';
+import { storefrontBoardOf }                                                                      from './fixtures/storefront-board.ts';
 
 export type ScreenTheme = 'dark' | 'light';
 
@@ -57,6 +60,9 @@ export interface ArtboardScreen {
 }
 
 const TRACKER_IDS = FLEET_FIVE_FORGES_TRACKER_IDS;
+
+/** B1's forge in place: Example Storefront at its open question E2. */
+const STOREFRONT_IN_PLACE_FRAGMENT = HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } });
 
 const BRAND_STYLESHEET_EXPORT = 'brand/brand.css';
 
@@ -108,7 +114,7 @@ export const ARTBOARD_SCREENS: readonly ArtboardScreen[] = [
     title:         'A forge in place',
     designFile:    'Forge.dc.html',
     fleetDocument: fleetWithStorefrontBrainOf('off'),
-    fragment:      HashRouter.fragmentOf({ view: 'forge', trackerId: TRACKER_IDS.exampleStorefront, boardRoute: { tab: 'questions', item: 'E2' } }),
+    fragment:      STOREFRONT_IN_PLACE_FRAGMENT,
     viewState:     'as-routed',
   },
   {
@@ -250,6 +256,26 @@ export const OUTAGE_ENDINGS_SCREENS: readonly ArtboardScreen[] = [
     designFile:    'Forges.dc.html',
     fleetDocument: FLEET_OUTAGE_ENDINGS,
     fragment:      '#forges',
+    viewState:     'as-routed',
+  },
+];
+
+/** Owner answer 5, which no artboard draws: B1 of a forge off after a crash, with its crash summary, then started again with its crash log open. */
+export const CRASHED_FORGE_SCREENS: readonly ArtboardScreen[] = [
+  {
+    artboard:      'B1',
+    title:         'A forge off after a crash',
+    designFile:    'Forge.dc.html',
+    fleetDocument: FLEET_STOREFRONT_CRASHED,
+    fragment:      STOREFRONT_IN_PLACE_FRAGMENT,
+    viewState:     'as-routed',
+  },
+  {
+    artboard:      'B1',
+    title:         'A forge started again after a crash, its crash log open',
+    designFile:    'Forge.dc.html',
+    fleetDocument: FLEET_STOREFRONT_STARTED_AFTER_A_CRASH,
+    fragment:      STOREFRONT_IN_PLACE_FRAGMENT,
     viewState:     'as-routed',
   },
 ];
@@ -536,6 +562,22 @@ function fleetDocumentInTheme(fleetDocument: FleetDocument, theme: ScreenTheme):
   return { ...fleetDocument, settings: { ...fleetDocument.settings, theme } };
 }
 
+/**
+ * A painted screen runs no read, so Example Storefront in place shows its board as read over a live stream while it serves, and a lost
+ * stream with no board while it does not; any other forge's board waits for its first.
+ */
+function screenBoardServicesOf(fleetDocument: FleetDocument): (trackerId: string) => BoardServices {
+  const storefront = fleetDocument.forges.find((forge) => forge.trackerId === TRACKER_IDS.exampleStorefront);
+  return (trackerId) => {
+    const services = silentBoardServicesOf(trackerId);
+    if (trackerId !== TRACKER_IDS.exampleStorefront || storefront === undefined) return services;
+    const readingAtMount = storefront.presence.state === 'serving'
+      ? { board: storefrontBoardOf(trackerId), connection: 'live' as const }
+      : { board: null, connection: 'down' as const };
+    return { ...services, readingAtMount };
+  };
+}
+
 /** The shell as the page paints it for the screen: the brand bar, the rail, the page title and the view, with every control live. */
 export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): string {
   const fleetDocument = fleetDocumentInTheme(screen.fleetDocument, theme);
@@ -544,7 +586,11 @@ export function screenMarkupOf(screen: ArtboardScreen, theme: ScreenTheme): stri
     readAtMilliseconds: Date.parse(FLEET_FIXTURES_READ_AT),
     timeZone:           'UTC',
     goTo:               doNothing,
-    forgeView:          forgeViewSurroundingsAt(),
+    forgeView:          {
+      ...forgeViewSurroundingsAt(),
+      boardServicesOf:      screenBoardServicesOf(fleetDocument),
+      crashLogsReadAtMount: (trackerId) => (trackerId === TRACKER_IDS.exampleStorefront ? [STOREFRONT_CRASH_LOG] : []),
+    },
   });
   const viewContent = viewContentOf(screen, fleetDocument);
   const view = viewContent === null ? routedParts : { ...routedParts, content: viewContent };

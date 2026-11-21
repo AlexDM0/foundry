@@ -8,12 +8,15 @@
  */
 import { describe, expect, test } from 'bun:test';
 
-import { BoardStateIngestion, type BoardReading }       from './BoardStateIngestion.ts';
-import { RECORDED_TRACKER_ID, recordedBoardDocumentOf } from './testing/BoardDocuments.ts';
+import { BoardStateIngestion, type BoardReading }                               from './BoardStateIngestion.ts';
+import { RECORDED_TRACKER_ID, recordedBoardDocumentOf, recordedCalendarDateOf } from './testing/BoardDocuments.ts';
 
 type MutableDocument = Record<string, unknown>;
 
 const INGESTION = new BoardStateIngestion();
+
+/** A day as the forge writes it: year, month and day of month. */
+const CALENDAR_DATE_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
 
 async function boardAtWorkDocument(): Promise<MutableDocument> {
   return structuredClone(await recordedBoardDocumentOf('board-at-work')) as MutableDocument;
@@ -68,7 +71,8 @@ describe('boardOf, on the board of a forge at work', () => {
 
   test('keeps today\'s figures with the date they were counted on, and the open decisions in answering order with the escalated ones', async () => {
     const board = boardOf(INGESTION.boardOf(RECORDED_TRACKER_ID, await boardAtWorkDocument()));
-    expect(board.today).toEqual({ calendarDate: '2026-11-21', deliveredTickets: 0, tokens: 0 });
+    expect(board.today).toEqual({ calendarDate: await recordedCalendarDateOf('board-at-work'), deliveredTickets: 0, tokens: 0 });
+    expect(board.today.calendarDate).toMatch(CALENDAR_DATE_SHAPE);
     expect(board.openDecisionIds).toEqual(['E2']);
     expect(board.escalatedDecisionIds).toEqual(['E2']);
   });
